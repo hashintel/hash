@@ -68,6 +68,8 @@ gives the typing rules.
   providers and supplies a command registry when the host passes none.
 - The editor view renders the outlets; User settings renders
   `PluginSettingsRows` and, under Plugins, one row per status entry.
+- Actual mode's Events tab reads `actualExports` with `useRunningPlugins` and
+  lists them in its Export menu.
 - `ui/index.ts` and `main.ts` export the definition, the types and the hooks
   plugin code imports.
 

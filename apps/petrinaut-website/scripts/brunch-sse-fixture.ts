@@ -28,12 +28,10 @@ import { resolve } from "node:path";
 
 import type {
   BrunchNetDefinitionInput,
+  BrunchReceivedEvent,
   BrunchTransitionInput,
 } from "../src/main/app/brunch-demo/brunch-protocol";
-import type {
-  ActualModeReceivedEvent,
-  ActualModeTransitionFiring,
-} from "@hashintel/petrinaut-core";
+import type { ActualModeTransitionFiring } from "@hashintel/petrinaut-core";
 
 type NumericMarking = Record<string, number>;
 
@@ -48,7 +46,7 @@ type TimedSseFrame = SseFrame & {
 
 type RecordingReplay = {
   definition: BrunchNetDefinitionInput;
-  events: ActualModeReceivedEvent[];
+  events: BrunchReceivedEvent[];
   initialState: NumericMarking;
   path: string;
   transitionFirings: ActualModeTransitionFiring[];
@@ -241,7 +239,7 @@ const parseTransitionFiring = (
 
 const parseReceivedEventsRecording = (
   data: Record<string, unknown>,
-): ActualModeReceivedEvent[] => {
+): BrunchReceivedEvent[] => {
   if (!Array.isArray(data.events)) {
     throw new Error("Recording events must be an array.");
   }
@@ -390,7 +388,7 @@ const toBrunchDefinitionInput = (data: unknown): BrunchNetDefinitionInput => {
 
 const parseNormalizedRecording = (
   data: Record<string, unknown>,
-): ActualModeReceivedEvent[] => {
+): BrunchReceivedEvent[] => {
   if (!Array.isArray(data.transitionFirings)) {
     throw new Error("Recording transitionFirings must be an array.");
   }
@@ -408,7 +406,7 @@ const parseNormalizedRecording = (
   ];
 };
 
-const parseRecordingEvents = (data: unknown): ActualModeReceivedEvent[] => {
+const parseRecordingEvents = (data: unknown): BrunchReceivedEvent[] => {
   if (!isRecord(data)) {
     throw new Error("Recording root must be an object.");
   }
@@ -426,14 +424,14 @@ const parseRecordingEvents = (data: unknown): ActualModeReceivedEvent[] => {
   }
 
   throw new Error(
-    "Recording must be an Actual Events export with `events` or an older normalized recording.",
+    "Recording must be an Export Stream file with `events` or an Export Recording file.",
   );
 };
 
 const findFirstEvent = (
-  events: ActualModeReceivedEvent[],
+  events: BrunchReceivedEvent[],
   eventName: string,
-): ActualModeReceivedEvent | null =>
+): BrunchReceivedEvent | null =>
   events.find((event) => event.event === eventName) ?? null;
 
 const parseRecordingReplay = (path: string): RecordingReplay => {
@@ -462,7 +460,7 @@ const parseRecordingReplay = (path: string): RecordingReplay => {
   };
 };
 
-const getEventTimestampMs = (event: ActualModeReceivedEvent): number | null => {
+const getEventTimestampMs = (event: BrunchReceivedEvent): number | null => {
   if (!isRecord(event.data) || typeof event.data.ts !== "string") {
     return null;
   }
@@ -490,7 +488,7 @@ const retimeEventData = (data: unknown, deltaMs: number): unknown => {
 };
 
 const createTimedReplayFrames = (
-  events: ActualModeReceivedEvent[],
+  events: BrunchReceivedEvent[],
   launchTimeMs: number,
 ): TimedSseFrame[] => {
   const firstTimestampMs = events

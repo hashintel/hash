@@ -6,6 +6,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { ActualModeContext } from "../../../../../../react/actual-mode-context";
 import { exportActualModeRecording } from "../../../../../file-io/export-actual-mode-recording";
 import { exportSDCPN } from "../../../../../file-io/export-sdcpn";
+import { useRunningPlugins } from "../../../../../plugins/plugins-provider";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
@@ -243,26 +244,43 @@ const EventRow: React.FC<{
 
 const ActualEventsContent: React.FC = () => {
   const actualMode = use(ActualModeContext);
-  const canExportStream =
+  const runningPlugins = useRunningPlugins();
+  const canExportRecording =
     actualMode.available &&
-    (actualMode.receivedEvents.length > 0 ||
-      (actualMode.definition !== null && actualMode.initialState !== null));
+    actualMode.definition !== null &&
+    actualMode.initialState !== null;
   const canExportNet = actualMode.available && actualMode.definition !== null;
-  const canExport = canExportStream || canExportNet;
   const transitionFirings = actualMode.transitionFirings;
   const visibleFirings = transitionFirings.slice(-MAX_VISIBLE_EVENTS);
   const firstVisibleIndex = transitionFirings.length - visibleFirings.length;
   const namesById = namesByIdOf(actualMode.definition);
 
-  const handleExportStream = () => {
-    if (!actualMode.available || !canExportStream) {
+  const pluginExportItems: MenuItem[] = runningPlugins.flatMap(
+    ({ manifest, contributions }) =>
+      Object.entries(manifest.actualExports ?? {}).map(([key, spec]) => {
+        const actualExport = contributions.actualExports?.[key];
+
+        return {
+          id: `${manifest.id}.actualExports.${key}`,
+          text: spec.label,
+          disabled: !actualExport || actualExport.disabled === true,
+          onClick: () => actualExport?.run(),
+        };
+      }),
+  );
+
+  const handleExportRecording = () => {
+    if (
+      !actualMode.available ||
+      actualMode.definition === null ||
+      actualMode.initialState === null
+    ) {
       return;
     }
 
     exportActualModeRecording({
       definition: actualMode.definition,
       initialState: actualMode.initialState,
-      receivedEvents: actualMode.receivedEvents,
       source: actualMode.source,
       title: actualMode.title,
       transitionFirings,
@@ -281,11 +299,12 @@ const ActualEventsContent: React.FC = () => {
   };
 
   const exportMenuItems: MenuItem[] = [
+    ...pluginExportItems,
     {
-      id: "export-stream",
-      text: "Export Stream",
-      disabled: !canExportStream,
-      onClick: handleExportStream,
+      id: "export-recording",
+      text: "Export Recording",
+      disabled: !canExportRecording,
+      onClick: handleExportRecording,
     },
     {
       id: "export-net",
@@ -294,6 +313,7 @@ const ActualEventsContent: React.FC = () => {
       onClick: handleExportNet,
     },
   ];
+  const canExport = exportMenuItems.some((item) => !item.disabled);
 
   if (!actualMode.available) {
     return <span className={emptyStyle}>Actual mode is not available.</span>;
@@ -410,6 +430,6 @@ export const actualEventsSubView: SubView = {
   id: "actual-events",
   title: "Events",
   tooltip:
-    "Inspect the Actual mode transition stream and export stream or net JSON.",
+    "Inspect the Actual mode transition stream and export a recording or the net.",
   component: ActualEventsContent,
 };

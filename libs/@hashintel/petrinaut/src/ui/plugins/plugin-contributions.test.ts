@@ -13,6 +13,7 @@ describe("describePluginContributions", () => {
         buttons: { mute: { label: "Mute", place: "viewport-controls" } },
         topBarItems: { status: { place: "top-bar-end" } },
         readOnlyAction: { label: "Make a copy" },
+        actualExports: { raw: { label: "Export Stream" } },
         commands: {
           mute: { label: "Mute the assistant", shortcut: "f2" },
           unmute: { label: "Unmute the assistant" },
@@ -34,6 +35,11 @@ describe("describePluginContributions", () => {
       { kind: "button", subject: "Mute", detail: "Viewport controls" },
       { kind: "top-bar-item", subject: "status", detail: "End of the top bar" },
       { kind: "read-only-action", subject: "Make a copy" },
+      {
+        kind: "actual-export",
+        subject: "Export Stream",
+        detail: "Events tab",
+      },
       { kind: "command", subject: "Mute the assistant", detail: "F2" },
       { kind: "command", subject: "Unmute the assistant" },
       { kind: "setting", subject: "Captions", detail: "Labs" },

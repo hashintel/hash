@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  createActualModeReceivedEventsRecording,
+  ACTUAL_MODE_RECORDING_VERSION,
   createActualModeRecording,
   createActualModeTimelineFrameReader,
   parseActualModeRecording,
@@ -36,8 +36,8 @@ describe("Actual mode recordings", () => {
     const recording = createActualModeRecording({
       title: "Replay",
       source: {
-        kind: "brunch",
-        endpoint: "http://127.0.0.1:5184/stream",
+        id: "run-1",
+        label: "Run 1",
       },
       definition,
       initialState: { queued: 1 },
@@ -67,27 +67,18 @@ describe("Actual mode recordings", () => {
     });
   });
 
-  it("exports raw received events without mapping to SDCPN", () => {
-    const rawDefinition = {
-      title: "Raw Brunch run",
-      places: [{ id: "queued", name: "Queued" }],
-      transitions: [],
-    };
-
-    const recording = createActualModeReceivedEventsRecording({
-      title: "Replay",
-      source: null,
-      events: [{ event: "definition", data: rawDefinition }],
-      exportedAt: "2026-06-05T10:01:00.000Z",
-    });
-
-    expect(recording).toEqual({
-      version: 1,
-      exportedAt: "2026-06-05T10:01:00.000Z",
-      title: "Replay",
-      source: null,
-      events: [{ event: "definition", data: rawDefinition }],
-    });
+  it("rejects version 1 recordings", () => {
+    expect(() =>
+      parseActualModeRecording({
+        version: 1,
+        exportedAt: "2026-06-05T10:01:00.000Z",
+        title: "Replay",
+        source: { kind: "host", endpoint: "http://127.0.0.1:5184/stream" },
+        definition,
+        initialState: { queued: 1 },
+        transitionFirings: [],
+      }),
+    ).toThrow();
   });
 
   it("retimes transition firings relative to the first event", () => {
@@ -125,7 +116,7 @@ describe("Actual mode recordings", () => {
 
   it("fills the collections a recorded definition omits", () => {
     const parsed = parseActualModeRecording({
-      version: 1,
+      version: ACTUAL_MODE_RECORDING_VERSION,
       exportedAt: "2026-06-05T10:01:00.000Z",
       title: "Replay",
       source: null,
@@ -141,7 +132,7 @@ describe("Actual mode recordings", () => {
   it("rejects transition firings with extra fields", () => {
     expect(() =>
       parseActualModeRecording({
-        version: 1,
+        version: ACTUAL_MODE_RECORDING_VERSION,
         exportedAt: "2026-06-05T10:01:00.000Z",
         title: "Replay",
         source: null,
@@ -163,7 +154,7 @@ describe("Actual mode recordings", () => {
   it("rejects transition firings with non-count effect values", () => {
     expect(() =>
       parseActualModeRecording({
-        version: 1,
+        version: ACTUAL_MODE_RECORDING_VERSION,
         exportedAt: "2026-06-05T10:01:00.000Z",
         title: "Replay",
         source: null,

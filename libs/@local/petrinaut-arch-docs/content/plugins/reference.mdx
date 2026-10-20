@@ -23,6 +23,7 @@ together.
 | `buttons`        | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                               |                                     | `buttons`        |
 | `topBarItems`    | Per key: `{ place }`.                                                                                                                          |                                     | `topBarItems`    |
 | `readOnlyAction` | `{ label }`: a button on the notice of a blocked edit on a document the host made read-only.                                                   |                                     | `readOnlyAction` |
+| `actualExports`  | Per key: `{ label }`: an item in the Export menu of Actual mode's Events tab, before the built-in ones.                                        |                                     | `actualExports`  |
 | `root`           | `true`: the plugin renders UI inside the editor.                                                                                               |                                     | `root`           |
 | `provides`       | `pluginService<T>()`, the type of the service the hook provides.                                                                               |                                     | `provides`       |
 
@@ -180,6 +181,7 @@ type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
 | `buttons`        | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, one of the plugin's command keys. A button has at least one of `onClick`, `command` and `ref`. |
 | `topBarItems`    | Declared     | Per key: a `ReactNode`.                                                                                                                                                                    |
 | `readOnlyAction` | Declared     | `{ run }`: what the read-only notice's button does. The notice shows the action of the first running plugin that declares one, and closes when the button is clicked.                      |
+| `actualExports`  | Declared     | Per key: `{ run, disabled? }`. `disabled` defaults to `false`; while `true`, the item shows greyed out. Every running plugin's items show, in plugin order.                                |
 | `provides`       | Declared     | The service type `T` of `pluginService<T>()`.                                                                                                                                              |
 
 Every declared key is required and every undeclared one is a type error.
@@ -211,8 +213,9 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
   `ServiceOf`.
 - Manifest entries: `PluginSettingSpec`, `PluginSettingSection`,
   `PluginCommandSpec`, `PluginButtonSpec`, `PluginButtonPlace`,
-  `PluginTopBarItemSpec`, `PluginTopBarPlace`.
-- Contributions: `PluginButton`, `PluginCommand`, `PluginReadOnlyAction`.
+  `PluginTopBarItemSpec`, `PluginTopBarPlace`, `PluginActualExportSpec`.
+- Contributions: `PluginButton`, `PluginCommand`, `PluginReadOnlyAction`,
+  `PluginActualExport`.
 - Access: `PluginAccess`, `AccessApi`, `PluginDocumentReader`,
   `PluginDocument`, `PluginDiagnostics`, `PluginEdits`,
   `PluginExperimentsReader`, `PluginExperiments`, `PluginEditorReader`,

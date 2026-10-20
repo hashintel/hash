@@ -30,7 +30,11 @@ export const BrunchActualModeRoute = ({
       key={`${endpointResult.endpoint}:${endpointResult.runId ?? ""}`}
       runId={endpointResult.runId}
     >
-      <BrunchPetrinaut navigation={navigation} />
+      <BrunchPetrinaut
+        endpoint={endpointResult.endpoint}
+        navigation={navigation}
+        runId={endpointResult.runId}
+      />
     </BrunchActualModeProvider>
   );
 };

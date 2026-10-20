@@ -10,26 +10,29 @@ import {
   parseMarkingFrameData,
   parseTransitionFiringFrameData,
 } from "./brunch-frame-parsers";
+import { BrunchStreamContext } from "./brunch-stream-export";
 
+import type { BrunchReceivedEvent } from "./brunch-protocol";
 import type { ActualModeContextValue } from "@hashintel/petrinaut-core";
 
-type AvailableActualModeContextValue = Extract<
+type BrunchActualModeState = Extract<
   ActualModeContextValue,
   { available: true }
->;
+> & {
+  receivedEvents: readonly BrunchReceivedEvent[];
+};
 
 const createLoadingActualModeValue = (
   endpoint: string,
   runId: string | undefined,
-): AvailableActualModeContextValue => {
+): BrunchActualModeState => {
   const now = Date.now();
 
   return {
     available: true,
     source: {
-      kind: "brunch",
-      endpoint,
-      ...(runId ? { runId } : {}),
+      id: runId ? `brunch:${endpoint}#${runId}` : `brunch:${endpoint}`,
+      label: endpoint,
     },
     status: "loading",
     title: null,
@@ -46,7 +49,7 @@ const createLoadingActualModeValue = (
 export const BrunchActualModeProvider: FC<
   PropsWithChildren<{ endpoint: string; runId?: string }>
 > = ({ children, endpoint, runId }) => {
-  const [value, setValue] = useState<AvailableActualModeContextValue>(() =>
+  const [value, setValue] = useState<BrunchActualModeState>(() =>
     createLoadingActualModeValue(endpoint, runId),
   );
 
@@ -266,5 +269,15 @@ export const BrunchActualModeProvider: FC<
     };
   }, [endpoint, runId]);
 
-  return <ActualModeContext value={value}>{children}</ActualModeContext>;
+  const { receivedEvents, ...actualMode } = value;
+
+  return (
+    <ActualModeContext value={actualMode}>
+      <BrunchStreamContext
+        value={{ endpoint, runId, title: actualMode.title, receivedEvents }}
+      >
+        {children}
+      </BrunchStreamContext>
+    </ActualModeContext>
+  );
 };

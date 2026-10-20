@@ -12,30 +12,24 @@ import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { StatusPage } from "../../../shared/status-page";
 import { sentryFeedbackPlugin } from "../plugins/sentry-feedback/plugin";
+import { brunchStreamExportPlugin } from "./brunch-stream-export";
 
-import type {
-  ActualModeSource,
-  PetrinautDocHandle,
-  SDCPN,
-} from "@hashintel/petrinaut-core";
-
-const getSourceKey = (source: ActualModeSource): string =>
-  `${source.kind}:${source.endpoint}:${source.runId ?? ""}`;
+import type { PetrinautDocHandle, SDCPN } from "@hashintel/petrinaut-core";
 
 const BrunchPetrinautWithHandle = ({
   definition,
   navigation,
-  source,
+  runId,
   title,
 }: {
   definition: SDCPN;
   navigation: PetrinautNavigationController;
-  source: ActualModeSource;
+  runId?: string;
   title: string;
 }) => {
   const [handle] = useState<PetrinautDocHandle>(() =>
     createJsonDocHandle({
-      id: source.runId ? `brunch-${source.runId}` : "brunch-actual",
+      id: runId ? `brunch-${runId}` : "brunch-actual",
       initial: definition,
       capabilities: {
         readonly: true,
@@ -51,7 +45,7 @@ const BrunchPetrinautWithHandle = ({
         handle={handle}
         hideNetManagementControls="except-title"
         navigation={navigation}
-        plugins={[sentryFeedbackPlugin]}
+        plugins={[sentryFeedbackPlugin, brunchStreamExportPlugin]}
         readonly
         setTitle={() => {}}
         title={title}
@@ -61,15 +55,17 @@ const BrunchPetrinautWithHandle = ({
 };
 
 export const BrunchPetrinaut = ({
+  endpoint,
   navigation,
+  runId,
 }: {
+  endpoint: string;
   navigation: PetrinautNavigationController;
+  runId?: string;
 }) => {
   const actualMode = use(ActualModeContext);
   const definition = actualMode.available ? actualMode.definition : null;
   const initialState = actualMode.available ? actualMode.initialState : null;
-  const source = actualMode.available ? actualMode.source : null;
-  const sourceKey = source ? getSourceKey(source) : null;
 
   if (!actualMode.available) {
     return (
@@ -85,12 +81,12 @@ export const BrunchPetrinaut = ({
       <StatusPage
         title="Could not load Brunch run"
         body={actualMode.error ?? "The Brunch stream returned an error."}
-        detail={actualMode.source.endpoint}
+        detail={endpoint}
       />
     );
   }
 
-  if (!definition || !initialState || !source || !sourceKey) {
+  if (!definition || !initialState) {
     return (
       <StatusPage
         title="Connecting to Brunch"
@@ -98,7 +94,7 @@ export const BrunchPetrinaut = ({
           actualMode.error ??
           "Waiting for the Petri net definition and initial state."
         }
-        detail={actualMode.source.endpoint}
+        detail={endpoint}
       />
     );
   }
@@ -106,13 +102,10 @@ export const BrunchPetrinaut = ({
   return (
     <BrunchPetrinautWithHandle
       definition={definition}
-      key={sourceKey}
+      key={actualMode.source.id}
       navigation={navigation}
-      source={source}
-      title={
-        actualMode.title ??
-        (source.runId ? `Brunch run ${source.runId}` : "Brunch run")
-      }
+      runId={runId}
+      title={actualMode.title ?? (runId ? `Brunch run ${runId}` : "Brunch run")}
     />
   );
 };

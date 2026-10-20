@@ -13,6 +13,7 @@ export type PluginContributionKind =
   | "button"
   | "top-bar-item"
   | "read-only-action"
+  | "actual-export"
   | "command"
   | "setting"
   | "provides"
@@ -64,6 +65,11 @@ export const describePluginContributions = (
           subject: manifest.readOnlyAction.label,
         },
       ]),
+  ...Object.values(manifest.actualExports ?? {}).map((spec) => ({
+    kind: "actual-export" as const,
+    subject: spec.label,
+    detail: "Events tab",
+  })),
   ...Object.values(manifest.commands ?? {}).map((spec) => ({
     kind: "command" as const,
     subject: spec.label,

@@ -75,3 +75,9 @@ export type BrunchNetDefinitionInput = z.input<
   typeof brunchNetDefinitionSchema
 >;
 export type BrunchTransitionInput = z.input<typeof brunchTransitionSchema>;
+
+/** A Brunch SSE frame as received: its event name and parsed JSON payload. */
+export type BrunchReceivedEvent = {
+  event: string;
+  data: unknown;
+};
