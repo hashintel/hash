@@ -62,6 +62,10 @@ const report = (text: string) => process.stdout.write(`${text}\n`);
 
 const application = await loadBuiltBrunchApplication();
 const started = Date.now();
+const stop = new AbortController();
+const interrupt = () => stop.abort(new Error("Probe interrupted"));
+const stopSignals = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
+for (const signal of stopSignals) process.once(signal, interrupt);
 try {
   const identity = {
     principalKey: "probe",
@@ -77,7 +81,7 @@ try {
   });
   await client.wait(
     await client.send({ message: { kind: "user", body: opening } }),
-    { signal: AbortSignal.timeout(600_000) },
+    { signal: AbortSignal.any([AbortSignal.timeout(600_000), stop.signal]) },
   );
   const history = await client.history();
   writeFileSync(
@@ -118,6 +122,13 @@ try {
   report(`\nhistory: ${join(directory, "history.json")}`);
 } finally {
   await application.stop();
+  for (const signal of stopSignals) process.removeListener(signal, interrupt);
+  // After the app stops, the conversation store is final.
+  await writeRunPacket(directory).then(
+    () => report(`packet: ${join(directory, "evidence", "packet.md")}`),
+    (error: unknown) =>
+      process.stderr.write(
+        `Could not write the run packet (retry with \`yarn workspace @apps/brunch-agent packet:run ${directory}\`): ${String(error)}\n`,
+      ),
+  );
 }
-await writeRunPacket(directory);
-report(`packet: ${join(directory, "evidence", "packet.md")}`);
