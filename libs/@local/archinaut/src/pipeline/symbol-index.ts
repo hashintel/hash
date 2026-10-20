@@ -1,24 +1,26 @@
 /**
- * Symbol facts from SCIP indexers, one index per package, cached by the
- * package's source listing.
+ * Symbol facts per package, cached by the package's source listing.
  *
- * TypeScript packages are indexed with scip-typescript through a generated
- * tsconfig that maps every covered workspace package to its source entries,
- * so a cross-package reference lands on the defining source file rather than
- * on a rolled-up declaration bundle. Python packages are indexed with
- * scip-python on the package's own virtual environment when it has one.
+ * TypeScript packages share one TypeScript program whose facts are walked
+ * once and stored as JSON; cross-package references resolve to source entries
+ * through the `paths` map derived from each package's `exports`. Python
+ * packages are indexed with scip-python on the package's own virtual
+ * environment when it has one.
  */
 
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join, posix } from "node:path";
 import { promisify } from "node:util";
 
+import ts from "typescript";
+
 import { error, type Diagnostic } from "../shared/diagnostics";
 import { sourceRootOf } from "./shared/scope";
+import { createTypeScriptFacts } from "./typescript-facts";
 
 import type { ArchitecturePackage } from "../model";
 
@@ -49,7 +51,7 @@ export interface IndexOptions {
   cacheDirectory: string;
 }
 
-/** The subset of the generated protobuf bindings this module reads. */
+/** The subset of scip-typescript's protobuf bindings this module reads; the indexer itself is not run. */
 interface ScipIndex {
   documents: {
     relative_path: string;
@@ -65,16 +67,13 @@ const scipBindings =
   };
 
 const indexerVersions = {
-  typescript: (
-    require("@sourcegraph/scip-typescript/package.json") as { version: string }
-  ).version,
+  typescript: ts.version,
   python: (
     require("@sourcegraph/scip-python/package.json") as { version: string }
   ).version,
 };
 
 const indexerEntry = {
-  typescript: require.resolve("@sourcegraph/scip-typescript/dist/src/main.js"),
   python: require.resolve("@sourcegraph/scip-python/index.js"),
 };
 
@@ -87,10 +86,7 @@ const sourceEntries = (
   pkg: ArchitecturePackage,
 ): Record<string, string[]> => {
   const manifest = JSON.parse(
-    require("node:fs").readFileSync(
-      join(repoRoot, pkg.path, "package.json"),
-      "utf8",
-    ) as string,
+    readFileSync(join(repoRoot, pkg.path, "package.json"), "utf8"),
   ) as { name: string; exports?: Record<string, unknown> };
   const paths: Record<string, string[]> = {};
   for (const [subpath, target] of Object.entries(manifest.exports ?? {})) {
@@ -127,7 +123,7 @@ const safeName = (pkg: ArchitecturePackage): string =>
 
 const cacheKey = async (
   repoRoot: string,
-  pkg: ArchitecturePackage,
+  pkg: Pick<ArchitecturePackage, "language" | "path">,
   files: string[],
   extra: string,
 ): Promise<string> => {
@@ -142,50 +138,17 @@ const cacheKey = async (
   return hash.digest("hex").slice(0, 16);
 };
 
-/** The tsconfig a package is indexed with: its own, plus workspace sources. */
-const generatedTsconfig = (
-  options: IndexOptions,
-  pkg: ArchitecturePackage,
-): string => {
-  const packageRoot = join(options.repoRoot, pkg.path);
-  const baseTsconfig = join(packageRoot, "tsconfig.json");
-  const paths = Object.assign(
+/** `paths` mapping every covered TypeScript package to its source entries. */
+export const workspacePaths = (
+  repoRoot: string,
+  packages: ArchitecturePackage[],
+): Record<string, string[]> =>
+  Object.assign(
     {},
-    ...options.packages
+    ...packages
       .filter((candidate) => candidate.language === "typescript")
-      .map((candidate) => sourceEntries(options.repoRoot, candidate)),
+      .map((candidate) => sourceEntries(repoRoot, candidate)),
   ) as Record<string, string[]>;
-  const tsconfig = {
-    ...(existsSync(baseTsconfig) ? { extends: baseTsconfig } : {}),
-    compilerOptions: { paths },
-    include: [join(packageRoot, pkg.sourceDirectory)],
-  };
-  return `${JSON.stringify(tsconfig, null, 2)}\n`;
-};
-
-const indexTypeScript = async (
-  options: IndexOptions,
-  pkg: ArchitecturePackage,
-  output: string,
-  tsconfigPath: string,
-  tsconfig: string,
-): Promise<void> => {
-  const packageRoot = join(options.repoRoot, pkg.path);
-  await writeFile(tsconfigPath, tsconfig);
-  await run(
-    process.execPath,
-    [
-      indexerEntry.typescript,
-      "index",
-      "--cwd",
-      packageRoot,
-      "--output",
-      output,
-      tsconfigPath,
-    ],
-    { maxBuffer: 64 * 1024 * 1024 },
-  );
-};
 
 const indexPython = async (
   options: IndexOptions,
@@ -227,14 +190,12 @@ const decode = async (
   );
   const sourceRoot = sourceRootOf(pkg);
   return index.documents.map((document) => {
-    // scip-python reports paths relative to `--target-only`; scip-typescript
-    // relative to `--cwd`. Both are brought to repo-relative here.
+    // scip-python reports paths relative to `--target-only`, or to `--cwd`
+    // when the package has a single root; both become repo-relative here.
     const relativePath = document.relative_path;
-    const file =
-      pkg.language === "python" &&
-      !relativePath.startsWith(`${pkg.sourceDirectory}/`)
-        ? posix.join(sourceRoot, relativePath)
-        : posix.join(pkg.path, relativePath);
+    const file = relativePath.startsWith(`${pkg.sourceDirectory}/`)
+      ? posix.join(pkg.path, relativePath)
+      : posix.join(sourceRoot, relativePath);
     return {
       file,
       occurrences: document.occurrences
@@ -247,7 +208,11 @@ const decode = async (
   });
 };
 
-/** Indexes every package, reusing a cached index whose key still matches. */
+/**
+ * Facts for every package: the TypeScript packages from one program, walked
+ * once and cached as JSON; each Python package from its scip-python index.
+ * A cached entry is reused while its key, the package's file listing, holds.
+ */
 export const indexPackages = async (
   options: IndexOptions,
 ): Promise<{
@@ -258,55 +223,72 @@ export const indexPackages = async (
   await mkdir(options.cacheDirectory, { recursive: true });
   const diagnostics: Diagnostic[] = [];
   const fresh: string[] = [];
+  const filesOf = (pkg: ArchitecturePackage): string[] =>
+    options.files.filter((file) => file.startsWith(`${sourceRootOf(pkg)}/`));
 
-  const results = await Promise.all(
-    options.packages.map(async (pkg): Promise<IndexedDocument[]> => {
-      const files = options.files.filter((file) =>
-        file.startsWith(`${sourceRootOf(pkg)}/`),
-      );
-      const tsconfigPath = join(
-        options.cacheDirectory,
-        `${safeName(pkg)}.tsconfig.json`,
-      );
-      const tsconfig =
-        pkg.language === "typescript" ? generatedTsconfig(options, pkg) : "";
-      const key = await cacheKey(
-        options.repoRoot,
-        pkg,
-        files,
-        `${pkg.sourceDirectory}\n${tsconfig}`,
-      );
-      const indexPath = join(
-        options.cacheDirectory,
-        `${safeName(pkg)}-${key}.scip`,
-      );
-      if (!existsSync(indexPath)) {
-        try {
-          if (pkg.language === "typescript") {
-            await indexTypeScript(
-              options,
-              pkg,
-              indexPath,
-              tsconfigPath,
-              tsconfig,
-            );
-          } else {
-            await indexPython(options, pkg, indexPath);
-          }
-          fresh.push(pkg.name);
-        } catch (cause) {
-          diagnostics.push(
-            error(
-              `${pkg.path}/package.json`,
-              `indexing ${pkg.name} failed, so its edges are missing: ${cause instanceof Error ? cause.message : String(cause)}`,
-            ),
-          );
-          return [];
-        }
-      }
-      return decode(pkg, indexPath);
-    }),
+  const typescriptPackages = options.packages.filter(
+    (pkg) => pkg.language === "typescript",
   );
+  const typescript = async (): Promise<IndexedDocument[]> => {
+    if (typescriptPackages.length === 0) {
+      return [];
+    }
+    const files = typescriptPackages.flatMap(filesOf);
+    const paths = workspacePaths(options.repoRoot, options.packages);
+    const key = await cacheKey(
+      options.repoRoot,
+      { language: "typescript", path: "typescript" },
+      files,
+      JSON.stringify(paths),
+    );
+    const cachePath = join(options.cacheDirectory, `typescript-${key}.json`);
+    if (existsSync(cachePath)) {
+      return JSON.parse(await readFile(cachePath, "utf8")) as IndexedDocument[];
+    }
+    const documents = createTypeScriptFacts({
+      repoRoot: options.repoRoot,
+      paths,
+      files,
+    }).documents();
+    await writeFile(cachePath, JSON.stringify(documents));
+    fresh.push("typescript");
+    return documents;
+  };
 
+  const python = async (
+    pkg: ArchitecturePackage,
+  ): Promise<IndexedDocument[]> => {
+    const files = filesOf(pkg);
+    const key = await cacheKey(
+      options.repoRoot,
+      pkg,
+      files,
+      pkg.sourceDirectory,
+    );
+    const indexPath = join(
+      options.cacheDirectory,
+      `${safeName(pkg)}-${key}.scip`,
+    );
+    if (!existsSync(indexPath)) {
+      try {
+        await indexPython(options, pkg, indexPath);
+        fresh.push(pkg.name);
+      } catch (cause) {
+        diagnostics.push(
+          error(
+            `${pkg.path}/package.json`,
+            `indexing ${pkg.name} failed, so its edges are missing: ${cause instanceof Error ? cause.message : String(cause)}`,
+          ),
+        );
+        return [];
+      }
+    }
+    return decode(pkg, indexPath);
+  };
+
+  const results = await Promise.all([
+    typescript(),
+    ...options.packages.filter((pkg) => pkg.language === "python").map(python),
+  ]);
   return { facts: { documents: results.flat() }, diagnostics, fresh };
 };

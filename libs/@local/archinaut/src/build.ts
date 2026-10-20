@@ -22,23 +22,28 @@ export interface BuildResult {
   diagnostics: Diagnostic[];
   /** Bundle files written this time, relative to the bundle root; empty when nothing changed or nothing was written. */
   written: string[];
+  /** Bundle files the model no longer produces, removed this time. */
+  removed: string[];
   diagramsRendered: number;
   /** Where the bundle lives, absolute. */
   bundleRoot: string;
 }
 
-export const buildArchitecture = async (
+export interface BuildOptions {
+  write: boolean;
+  /** A git ref to mark changes against; null builds a plain bundle. */
+  diffBase?: string | null;
+}
+
+/** Emits and, when asked, writes the bundle for an already-built model. */
+export const writeBuild = async (
   config: ArchinautConfig,
-  options: {
-    write: boolean;
-    /** A git ref to mark changes against; null builds a plain bundle. */
-    diffBase?: string | null;
-  },
+  pipeline: PipelineResult,
+  options: BuildOptions,
 ): Promise<BuildResult> => {
   const bundleRoot = join(config.root, config.outputDirectory);
   const d2 = options.write ? findD2(config.root) : null;
 
-  const pipeline = await runPipeline(config);
   const bundle = await emitBundle({
     model: pipeline.model,
     repoRoot: config.root,
@@ -54,6 +59,7 @@ export const buildArchitecture = async (
       bundle,
       diagnostics,
       written: [],
+      removed: [],
       diagramsRendered: 0,
       bundleRoot,
     };
@@ -122,7 +128,14 @@ export const buildArchitecture = async (
     bundle,
     diagnostics,
     written: summary.written,
+    removed: summary.removed,
     diagramsRendered,
     bundleRoot,
   };
 };
+
+export const buildArchitecture = async (
+  config: ArchinautConfig,
+  options: BuildOptions,
+): Promise<BuildResult> =>
+  writeBuild(config, await runPipeline(config), options);

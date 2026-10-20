@@ -1,39 +1,32 @@
 /**
- * `archinaut dev`: build once, serve the site, and rebuild the bundle when a
- * covered package or the content changes. The site reads files, so a rebuild
- * that changes nothing writes nothing and the page stays as it is.
+ * `archinaut dev`: build once, serve the site, and rebuild on change through
+ * a session that keeps every package's facts in memory. The site reads
+ * files, so a rebuild that changes nothing writes nothing, and the first
+ * source edit waits for the language service the session builds behind the
+ * initial serve.
  */
 
 import { watch } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 
-import { buildArchitecture } from "./build";
+import { createDevSession, type SessionBuild } from "./dev/session";
 import { packageSchema } from "./model";
 import { sourceRootOf } from "./pipeline/shared/scope";
 import { countErrors } from "./shared/diagnostics";
+import { toPosix } from "./shared/paths";
 import { report, summarise } from "./shared/report";
 import { serveSite, syncSite } from "./site";
 
 import type { ArchinautConfig } from "./config";
 
-const DEBOUNCE_MS = 200;
+const DEBOUNCE_MS = 100;
 
-const rebuild = async (
-  config: ArchinautConfig,
-  reason: string,
-): Promise<void> => {
-  process.stdout.write(`\n${reason}\n`);
-  const result = await buildArchitecture(config, { write: true });
-  report(result.diagnostics);
-  summarise(result);
-  if (countErrors(result.diagnostics) > 0) {
-    process.stdout.write("the site keeps serving the last good bundle\n");
-    return;
-  }
-  const written = await syncSite(config, result.bundleRoot);
-  if (written.length > 0) {
-    process.stdout.write(`${written.length} site files updated\n`);
-  }
+const describe = (build: SessionBuild): string => {
+  const total = Object.values(build.timings).reduce((sum, ms) => sum + ms, 0);
+  const stages = Object.entries(build.timings)
+    .map(([stage, ms]) => `${stage} ${ms} ms`)
+    .join(" · ");
+  return `${total} ms (${stages}) · ${build.touched.join(", ")}`;
 };
 
 export const serve = async (options: {
@@ -41,16 +34,37 @@ export const serve = async (options: {
   port: number;
 }): Promise<void> => {
   const { config } = options;
-  const first = await buildArchitecture(config, { write: true });
-  report(first.diagnostics);
-  summarise(first);
-  if (countErrors(first.diagnostics) > 0) {
+  const session = createDevSession(config);
+  const first = await session.build();
+  report(first.result.diagnostics);
+  summarise(first.result);
+  if (countErrors(first.result.diagnostics) > 0) {
     throw new Error("fix the errors above, then start again");
   }
-  await serveSite({ config, bundleRoot: first.bundleRoot, port: options.port });
+  await serveSite({
+    config,
+    bundleRoot: first.result.bundleRoot,
+    port: options.port,
+  });
   process.stdout.write(
     `serving http://localhost:${options.port}/ · watching for changes\n`,
   );
+
+  const rebuild = async (changed: string[]): Promise<void> => {
+    const build = await session.rebuild(changed);
+    report(build.result.diagnostics);
+    if (countErrors(build.result.diagnostics) > 0) {
+      process.stdout.write("the site keeps serving the last good bundle\n");
+      return;
+    }
+    const written = await syncSite(config, build.result.bundleRoot, [
+      ...build.result.written,
+      ...build.result.removed,
+    ]);
+    process.stdout.write(
+      `rebuilt in ${describe(build)} · ${build.result.written.length} bundle files, ${written.length} site files\n`,
+    );
+  };
 
   const ignored = new Set(config.ignoredDirectories);
   const roots = [
@@ -69,11 +83,14 @@ export const serve = async (options: {
       clearTimeout(timer);
     }
     timer = setTimeout(() => {
-      const reason = `changed: ${[...changed].slice(0, 3).join(", ")}${changed.size > 3 ? ` and ${changed.size - 3} more` : ""}`;
+      const batch = [...changed];
       changed.clear();
-      // Rebuilds queue behind each other so two edits never race on the cache.
+      process.stdout.write(
+        `\nchanged: ${batch.slice(0, 3).join(", ")}${batch.length > 3 ? ` and ${batch.length - 3} more` : ""}\n`,
+      );
+      // Rebuilds queue behind each other so two edits never race.
       running = running
-        .then(() => rebuild(config, reason))
+        .then(() => rebuild(batch))
         .catch((cause: unknown) => {
           process.stderr.write(
             `rebuild failed: ${cause instanceof Error ? cause.message : String(cause)}\n`,
@@ -90,11 +107,11 @@ export const serve = async (options: {
       if (file.split("/").some((segment) => ignored.has(segment))) {
         return;
       }
-      schedule(file);
+      schedule(toPosix(relative(config.root, join(root, file))));
     });
   }
 
-  // Keep the process alive until the user stops it; the watchers and the dev
-  // server hold the event loop open.
+  // The watchers and the dev server hold the event loop open until the user
+  // stops the process.
   await new Promise<void>(() => {});
 };

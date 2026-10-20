@@ -10,8 +10,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join, posix, relative } from "node:path";
 
-import { layerSchema, parentLayerId } from "../model";
-import { audienceSchema } from "../model";
+import { audienceSchema, layerSchema, parentLayerId } from "../model";
 import { error, type Diagnostic } from "../shared/diagnostics";
 import { parseFrontmatter } from "../shared/frontmatter";
 import { toPosix } from "../shared/paths";

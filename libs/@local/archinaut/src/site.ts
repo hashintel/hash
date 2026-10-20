@@ -37,6 +37,21 @@ const contentMapping = {
   components: "src/content/components",
 } as const;
 
+/** The named files under `root`, skipping any that no longer exist. */
+const readSome = async (
+  root: string,
+  paths: string[],
+): Promise<Map<string, string>> => {
+  const files = new Map<string, string>();
+  for (const path of paths) {
+    const contents = await readFile(join(root, path), "utf8").catch(() => null);
+    if (contents !== null) {
+      files.set(path, contents);
+    }
+  }
+  return files;
+};
+
 const readTree = async (root: string): Promise<Map<string, string>> => {
   const files = new Map<string, string>();
   for (const path of await listFiles(root)) {
@@ -45,17 +60,33 @@ const readTree = async (root: string): Promise<Map<string, string>> => {
   return files;
 };
 
-/** Brings the site's inputs up to date with the bundle; touches only what changed. */
+/**
+ * Brings the site's inputs up to date with the bundle. With `changed`, only
+ * those bundle paths are copied or, when the bundle no longer has them,
+ * removed, which is what a dev rebuild knows; without it every directory is
+ * compared, which is what the first run needs.
+ */
 export const syncSite = async (
   config: ArchinautConfig,
   bundleRoot: string,
+  changed?: string[],
 ): Promise<string[]> => {
   const written: string[] = [];
   for (const [source, target] of Object.entries(contentMapping)) {
-    const summary = await syncDirectory(
-      join(siteRoot, target),
-      await readTree(join(bundleRoot, source)),
+    const prefix = `${source}/`;
+    const named = new Set(
+      changed
+        ?.filter((path) => path.startsWith(prefix))
+        .map((path) => path.slice(prefix.length)),
     );
+    const files =
+      changed === undefined
+        ? await readTree(join(bundleRoot, source))
+        : await readSome(join(bundleRoot, source), [...named]);
+    const summary = await syncDirectory(join(siteRoot, target), files, {
+      // A partial sync prunes only the named paths the bundle lost.
+      keep: (path) => changed !== undefined && !named.has(path),
+    });
     written.push(...summary.written.map((path) => `${target}/${path}`));
   }
   const identity = new Map<string, string | Uint8Array>([
@@ -85,10 +116,7 @@ export const syncSite = async (
       "architecture.json",
       await readFile(join(bundleRoot, "architecture.json"), "utf8"),
     ],
-    [
-      "favicon.ico",
-      await readFile(join(config.root, config.site.favicon), "latin1"),
-    ],
+    ["favicon.ico", await readFile(join(config.root, config.site.favicon))],
   ]);
   const publicSummary = await syncDirectory(join(siteRoot, "public"), served);
   written.push(...publicSummary.written.map((path) => `public/${path}`));

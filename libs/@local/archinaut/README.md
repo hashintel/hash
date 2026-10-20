@@ -1,8 +1,9 @@
 # `@local/archinaut`
 
 Builds an architecture model from annotations in the source and symbol facts
-from SCIP indexers, checks it on every build, emits a portable documentation
-bundle, and builds or serves the website that renders it.
+from the TypeScript compiler and scip-python, checks it on every build, emits
+a portable documentation bundle, and builds or serves the website that
+renders it.
 
 ```sh
 archinaut check  --config archinaut.config.ts                 # report, never write
@@ -27,10 +28,13 @@ Four stages over plain data, in `src/pipeline.ts`:
    `@audience` say what a layer is about and who reads it; `@talksTo` declares
    an edge no import carries; `@interface` marks the file that defines an
    interface, with `@summary` beside it; `@participates` declares a role in one.
-2. `index` runs scip-typescript and scip-python per package, in parallel,
-   cached under `cacheDirectory` by the package's source listing. Workspace
-   packages resolve to their source entries through a generated tsconfig, so a
-   reference lands on the defining file rather than on a declaration bundle.
+2. `index` collects symbol facts: which file defines each symbol another file
+   references. Every TypeScript package goes into one TypeScript program, in
+   `src/pipeline/typescript-facts.ts`, whose `paths` map workspace packages
+   to their source entries, so a reference lands on the defining file rather
+   than on a declaration bundle; each Python package is indexed by scip-python
+   on its own virtual environment. Facts are cached under `cacheDirectory`
+   by the package's source listing, the TypeScript ones as one JSON file.
 3. `model` turns symbol references into file dependencies, aggregates them to
    layer edges, adds the declared edges, and derives each interface's
    participants: every layer referencing a symbol the defining file exports is
@@ -80,10 +84,14 @@ status.
 `site/` is an Astro and Starlight project. Before Astro runs, the tool writes
 the bundle into `site/src/content/` and `site/public/`, together with the
 instance's title, logo and favicon, and runs Astro from that directory. `dev`
-watches the covered packages and the content directory, reruns the pipeline
-on change (only the touched package re-indexes), and writes what differs;
-Astro's own reload does the rest, and the last good bundle keeps serving
-while an error stands.
+watches the covered packages and the content directory and rebuilds through
+a session that keeps every package's scan and facts in memory: a content edit
+rebuilds the model alone, a Python edit re-indexes that package, and a
+TypeScript edit goes to a language service the session builds in the
+background after the first serve, which re-walks the edited file and the
+files referencing what it defines. Only the bundle files that differ are
+written and copied into the site tree, Astro's own reload does the rest, and
+the last good bundle keeps serving while an error stands.
 
 `cookie` is a direct dependency, though no source file imports it. Astro's
 generated prerender entry imports `cookie`, and Node resolves it from this
