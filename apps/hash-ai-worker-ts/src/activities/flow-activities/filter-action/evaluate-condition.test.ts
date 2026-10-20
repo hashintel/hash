@@ -330,7 +330,7 @@ describe("evaluateCondition", () => {
     ).toEqual({ status: "success", matches: false });
   });
 
-  describe("isOfType flags", () => {
+  describe("isOfType versions and subtypes", () => {
     const organizationType =
       "https://example.com/types/entity-type/organization/v/1" as VersionedUrl;
     const charityType =
@@ -341,6 +341,8 @@ describe("evaluateCondition", () => {
       "https://example.com/types/entity-type/company-group/v/1" as VersionedUrl;
     const companyV2Type =
       "https://example.com/types/entity-type/company/v/2" as VersionedUrl;
+    const companyBaseUrl =
+      "https://example.com/types/entity-type/company/" as BaseUrl;
     /* startup → company v1 → organization v1; charity → organization v1. */
     const context = {
       entityTypeAncestors: new Map<VersionedUrl, VersionedUrl[]>([
@@ -352,14 +354,16 @@ describe("evaluateCondition", () => {
       ]),
     };
     const isOfType = (
-      type: VersionedUrl,
-      flags: { includeSubtypes?: boolean; anyVersion?: boolean },
+      type: VersionedUrl | BaseUrl,
+      flags: { includeSubtypes?: boolean },
     ) =>
       all({
         kind: "condition",
         subject: { kind: "entityType" },
         operator: "isOfType",
-        value: { kind: "VersionedUrl", value: type },
+        value: type.endsWith("/")
+          ? { kind: "BaseUrl", value: type as BaseUrl }
+          : { kind: "VersionedUrl", value: type as VersionedUrl },
         ...flags,
       });
     const ofTypes = (...entityTypeIds: VersionedUrl[]): ConditionInput => ({
@@ -422,23 +426,26 @@ describe("evaluateCondition", () => {
         matches: false,
       },
       {
-        name: "anyVersion, another version",
-        condition: isOfType(companyV2Type, { anyVersion: true }),
+        name: "a versioned URL, another version",
+        condition: isOfType(companyV2Type, {}),
+        input: ofTypes(companyType),
+        matches: false,
+      },
+      {
+        name: "a base URL, any version",
+        condition: isOfType(companyBaseUrl, {}),
         input: ofTypes(companyType),
         matches: true,
       },
       {
-        name: "anyVersion, a type with a URL that extends the type's",
-        condition: isOfType(companyType, { anyVersion: true }),
+        name: "a base URL, a type with a URL that extends the type's",
+        condition: isOfType(companyBaseUrl, {}),
         input: ofTypes(companyGroupType),
         matches: false,
       },
       {
-        name: "both, a subtype of another version",
-        condition: isOfType(companyV2Type, {
-          includeSubtypes: true,
-          anyVersion: true,
-        }),
+        name: "a base URL with includeSubtypes, a subtype",
+        condition: isOfType(companyBaseUrl, { includeSubtypes: true }),
         input: ofTypes(startupType),
         matches: true,
       },

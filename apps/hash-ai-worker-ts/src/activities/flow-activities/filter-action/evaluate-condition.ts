@@ -133,11 +133,7 @@ const baseUrlOf = (typeId: string) =>
     : undefined;
 
 const isOfType = (
-  {
-    value,
-    includeSubtypes,
-    anyVersion,
-  }: Extract<FilterLeaf, { operator: "isOfType" }>,
+  { value, includeSubtypes }: Extract<FilterLeaf, { operator: "isOfType" }>,
   entityTypeIds: readonly string[],
   context: ConditionContext,
 ): ConditionResult => {
@@ -157,11 +153,12 @@ const isOfType = (
       typeIds.push(...ancestors);
     }
   }
-  const baseUrl = extractBaseUrl(value.value);
   return {
     status: "success",
     matches: typeIds.some((typeId) =>
-      anyVersion ? baseUrlOf(typeId) === baseUrl : typeId === value.value,
+      value.kind === "BaseUrl"
+        ? baseUrlOf(typeId) === value.value
+        : typeId === value.value,
     ),
   };
 };
@@ -275,8 +272,8 @@ export const evaluateValidatedCondition = (
  * so it matches empty values and fails if any element is equal. Every
  * child/element is checked so `any` cannot hide bad data, and errors are never
  * negated into a match.
- * Entity type membership is exact (including version) unless the condition sets
- * `anyVersion`, and covers the entity's ancestor types, which must be in
+ * Entity type membership is exact (including version) unless the condition
+ * names a base URL, and covers the entity's ancestor types, which must be in
  * `context`, only with `includeSubtypes`.
  */
 export const evaluateCondition = (

@@ -80,39 +80,60 @@ describe("validateCondition", () => {
   });
 
   it.each([
-    { value: "https://example.com/types/entity-type/company/v/1", valid: true },
-    { value: "https://example.com/types/entity-type/company/", valid: false },
     {
+      kind: "VersionedUrl",
+      value: "https://example.com/types/entity-type/company/v/1",
+      valid: true,
+    },
+    {
+      kind: "VersionedUrl",
+      value: "https://example.com/types/entity-type/company/",
+      valid: false,
+    },
+    {
+      kind: "VersionedUrl",
       value: "https://example.com/types/entity-type/company/v/0",
       valid: false,
     },
-    { value: 1, valid: false },
-    { value: undefined, valid: false },
-  ])(
-    "checks that $value is a versioned entity type URL",
-    ({ value, valid }) => {
-      expect(
-        validateCondition(
-          all({
-            kind: "condition",
-            subject: { kind: "entityType" },
-            operator: "isOfType",
-            value: { kind: "VersionedUrl", value },
-          } as never),
-          "ProposedEntity",
-        ),
-      ).toEqual(
-        valid
-          ? undefined
-          : {
-              status: "error",
-              code: "invalidCondition",
-              message:
-                "Entity type conditions require isOfType and a versioned type URL.",
-            },
-      );
+    {
+      kind: "BaseUrl",
+      value: "https://example.com/types/entity-type/company/",
+      valid: true,
     },
-  );
+    {
+      kind: "BaseUrl",
+      value: "https://example.com/types/entity-type/company/v/1",
+      valid: false,
+    },
+    {
+      kind: "Text",
+      value: "https://example.com/types/entity-type/company/",
+      valid: false,
+    },
+    { kind: "VersionedUrl", value: 1, valid: false },
+    { kind: "BaseUrl", value: undefined, valid: false },
+  ])("checks that $value is a $kind type URL", ({ kind, value, valid }) => {
+    expect(
+      validateCondition(
+        all({
+          kind: "condition",
+          subject: { kind: "entityType" },
+          operator: "isOfType",
+          value: { kind, value },
+        } as never),
+        "ProposedEntity",
+      ),
+    ).toEqual(
+      valid
+        ? undefined
+        : {
+            status: "error",
+            code: "invalidCondition",
+            message:
+              "Entity type conditions require isOfType and a versioned or base type URL.",
+          },
+    );
+  });
 
   const isCompany: FilterLeaf = {
     kind: "condition",
@@ -124,10 +145,10 @@ describe("validateCondition", () => {
     },
   };
 
-  it("accepts isOfType with both type flags", () => {
+  it("accepts isOfType with includeSubtypes", () => {
     expect(
       validateCondition(
-        all({ ...isCompany, includeSubtypes: true, anyVersion: true }),
+        all({ ...isCompany, includeSubtypes: true }),
         "EntityId",
       ),
     ).toBeUndefined();
@@ -143,7 +164,7 @@ describe("validateCondition", () => {
       name: "a scalar condition",
       leaf: { ...scoreCondition, includeSubtypes: true },
       inputKind: "WebPage",
-      message: "only apply to isOfType",
+      message: "only applies to isOfType",
     },
     {
       name: "a presence check on the entity type",
@@ -151,18 +172,18 @@ describe("validateCondition", () => {
         kind: "condition",
         subject: { kind: "entityType" },
         operator: "isNotEmpty",
-        anyVersion: false,
+        includeSubtypes: false,
       },
       inputKind: "EntityId",
-      message: "only apply to isOfType",
+      message: "only applies to isOfType",
     },
     {
       name: "isOfType, when not a boolean",
-      leaf: { ...isCompany, anyVersion: "true" },
+      leaf: { ...isCompany, includeSubtypes: "true" },
       inputKind: "EntityId",
-      message: "must be booleans",
+      message: "must be a boolean",
     },
-  ])("rejects the type flags on $name", ({ leaf, inputKind, message }) => {
+  ])("rejects includeSubtypes on $name", ({ leaf, inputKind, message }) => {
     expect(validateCondition(all(leaf as FilterLeaf), inputKind)).toMatchObject(
       {
         status: "error",

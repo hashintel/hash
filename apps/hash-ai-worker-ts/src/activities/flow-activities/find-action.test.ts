@@ -12,7 +12,11 @@ import { StatusCode } from "@local/status";
 
 import { findAction } from "./find-action.js";
 
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { QueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
@@ -193,9 +197,12 @@ describe("findAction", () => {
             kind: "condition",
             subject: { kind: "entityType" },
             operator: "isOfType",
-            value: { kind: "VersionedUrl", value: typeUrl("company", 2) },
+            value: {
+              kind: "BaseUrl",
+              value:
+                "https://example.com/types/entity-type/company/" as BaseUrl,
+            },
             includeSubtypes: true,
-            anyVersion: true,
           },
         ],
       },
