@@ -111,6 +111,49 @@ export interface LedgerDocumentOptions {
   readonly comments?: LedgerCommentMarks;
 }
 
+/** The options, with the block each record first appears in. */
+interface DocumentContext extends LedgerDocumentOptions {
+  readonly firstShownIn: ReadonlyMap<string, string>;
+}
+
+/**
+ * The block each record address first appears in: an entity's address, an
+ * obligation's address for the reflections that met it, or a section's name.
+ * Walks the projection in the order `BrunchLedgerDocument` renders it.
+ */
+const firstShownIn = (
+  projection: LedgerProjection,
+  showReflections: boolean,
+): ReadonlyMap<string, string> => {
+  const first = new Map<string, string>();
+  const show = (within: string, address: string) => {
+    if (!first.has(address)) first.set(address, within);
+  };
+  const showEntity = ({ record, claims, reflections }: ProjectedEntity) => {
+    show(record.address, record.address);
+    for (const claim of claims) {
+      show(record.address, claim.record.address);
+      for (const ancestor of claim.history)
+        show(record.address, ancestor.address);
+    }
+    if (showReflections)
+      for (const reflection of reflections)
+        show(record.address, reflection.address);
+  };
+  for (const section of projection.sections)
+    for (const group of section.kinds) group.entities.forEach(showEntity);
+  for (const { claim } of projection.questions)
+    show("questions", claim.address);
+  for (const { record } of projection.owed) show("owed", record.address);
+  for (const { record, dischargedBy } of projection.met) {
+    show("met", record.address);
+    for (const reflection of dischargedBy)
+      show(record.address, reflection.address);
+  }
+  projection.excluded.forEach(showEntity);
+  return first;
+};
+
 const OpenCommentMark = ({
   comments,
 }: {
@@ -210,23 +253,28 @@ const PendingCommentNote = ({
 };
 
 /**
- * One record where it appears. A claim can appear under several entities,
- * so the same address can mark more than one block.
+ * One record where it appears, `within` the block that holds it. A claim can
+ * appear under several entities, so the same address can mark more than one
+ * block; its pending comments show only in the first.
  */
 const RecordMark = ({
   address,
+  within,
   options,
   children,
 }: {
   address: string;
-  options: LedgerDocumentOptions;
+  within: string;
+  options: DocumentContext;
   children: ReactNode;
 }) => {
   const marks = options.comments;
   const open =
     marks?.open.filter(({ records }) => records.includes(address)) ?? [];
   const notes =
-    marks?.pending.filter(({ records }) => records[0] === address) ?? [];
+    options.firstShownIn.get(address) === within
+      ? (marks?.pending.filter(({ records }) => records[0] === address) ?? [])
+      : [];
   return (
     <>
       <span
@@ -260,13 +308,15 @@ const qualifiers = (...parts: string[]) => (
 
 const ClaimItem = ({
   claim: { record, history },
+  within,
   options,
 }: {
   claim: ProjectedClaim;
-  options: LedgerDocumentOptions;
+  within: string;
+  options: DocumentContext;
 }) => (
   <li>
-    <RecordMark address={record.address} options={options}>
+    <RecordMark address={record.address} within={within} options={options}>
       {record.text}
       {qualifiers(record.origin, record.status)}
     </RecordMark>
@@ -274,7 +324,11 @@ const ClaimItem = ({
       <ul>
         {history.map((ancestor) => (
           <li key={ancestor.address}>
-            <RecordMark address={ancestor.address} options={options}>
+            <RecordMark
+              address={ancestor.address}
+              within={within}
+              options={options}
+            >
               <s>{ancestor.text}</s>
               {qualifiers("superseded")}
             </RecordMark>
@@ -287,16 +341,22 @@ const ClaimItem = ({
 
 const ReflectionItem = ({
   reflection,
+  within,
   options,
 }: {
   reflection: ReflectionRecord;
-  options: LedgerDocumentOptions;
+  within: string;
+  options: DocumentContext;
 }) => {
   const items = reflectionSelection(reflection);
   const { onSelectNetElements } = options;
   return (
     <li>
-      <RecordMark address={reflection.address} options={options}>
+      <RecordMark
+        address={reflection.address}
+        within={within}
+        options={options}
+      >
         <span className={reflectionStyle}>{reflection.text}</span>
       </RecordMark>
       {onSelectNetElements && items.length > 0 && (
@@ -321,13 +381,17 @@ const EntityItem = ({
   withKind = false,
 }: {
   entity: ProjectedEntity;
-  options: LedgerDocumentOptions;
+  options: DocumentContext;
   withKind?: boolean;
 }) => {
   const shownReflections = options.showReflections ? reflections : [];
   return (
     <li>
-      <RecordMark address={record.address} options={options}>
+      <RecordMark
+        address={record.address}
+        within={record.address}
+        options={options}
+      >
         <strong>{record.name}</strong>
         {withKind
           ? qualifiers(record.kind, record.origin, record.status)
@@ -339,6 +403,7 @@ const EntityItem = ({
             <ClaimItem
               key={claim.record.address}
               claim={claim}
+              within={record.address}
               options={options}
             />
           ))}
@@ -346,6 +411,7 @@ const EntityItem = ({
             <ReflectionItem
               key={reflection.address}
               reflection={reflection}
+              within={record.address}
               options={options}
             />
           ))}
@@ -357,15 +423,17 @@ const EntityItem = ({
 
 const ObligationItem = ({
   obligation: { record, concerns },
+  within,
   options,
   children,
 }: {
   obligation: ProjectedObligation;
-  options: LedgerDocumentOptions;
+  within: string;
+  options: DocumentContext;
   children?: ReactNode;
 }) => (
   <li>
-    <RecordMark address={record.address} options={options}>
+    <RecordMark address={record.address} within={within} options={options}>
       {record.text}
       {concerns.length > 0 && qualifiers(concerns.join(", "))}
     </RecordMark>
@@ -393,6 +461,10 @@ export const BrunchLedgerDocument = ({
       ?.querySelector("[data-traced]")
       ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [tracedKey]);
+  const documentContext: DocumentContext = {
+    ...options,
+    firstShownIn: firstShownIn(projection, options.showReflections),
+  };
   return (
     <article
       ref={articleRef}
@@ -412,7 +484,7 @@ export const BrunchLedgerDocument = ({
                   <EntityItem
                     key={entity.record.address}
                     entity={entity}
-                    options={options}
+                    options={documentContext}
                   />
                 ))}
               </ul>
@@ -426,7 +498,11 @@ export const BrunchLedgerDocument = ({
           <ul>
             {projection.questions.map(({ claim, prompt, context }) => (
               <li key={claim.address}>
-                <RecordMark address={claim.address} options={options}>
+                <RecordMark
+                  address={claim.address}
+                  within="questions"
+                  options={documentContext}
+                >
                   {prompt}
                 </RecordMark>
                 <ul>
@@ -445,7 +521,8 @@ export const BrunchLedgerDocument = ({
               <ObligationItem
                 key={obligation.record.address}
                 obligation={obligation}
-                options={options}
+                within="owed"
+                options={documentContext}
               />
             ))}
           </ul>
@@ -459,14 +536,16 @@ export const BrunchLedgerDocument = ({
               <ObligationItem
                 key={obligation.record.address}
                 obligation={obligation}
-                options={options}
+                within="met"
+                options={documentContext}
               >
                 <ul>
                   {obligation.dischargedBy.map((reflection) => (
                     <ReflectionItem
                       key={reflection.address}
                       reflection={reflection}
-                      options={options}
+                      within={obligation.record.address}
+                      options={documentContext}
                     />
                   ))}
                 </ul>
@@ -483,7 +562,7 @@ export const BrunchLedgerDocument = ({
               <EntityItem
                 key={entity.record.address}
                 entity={entity}
-                options={options}
+                options={documentContext}
                 withKind
               />
             ))}
