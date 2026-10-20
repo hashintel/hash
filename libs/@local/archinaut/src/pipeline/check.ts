@@ -4,10 +4,10 @@
  * whose folder has been emptied.
  */
 
-import { error, warning, type Diagnostic } from "../diagnostics";
-import { ancestorLayerIds, isImportEdge } from "./types";
+import { ancestorLayerIds, isImportEdge } from "../model";
+import { error, warning, type Diagnostic } from "../shared/diagnostics";
 
-import type { ArchitectureModel, LayerRule } from "./types";
+import type { ArchitectureModel, LayerRule } from "../model";
 
 /** True when `layerId` is the scope itself or nested inside it. */
 export const withinScope = (layerId: string, scope: string): boolean =>

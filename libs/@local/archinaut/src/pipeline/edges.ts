@@ -7,12 +7,12 @@
  * edge per layer pair; `@talksTo` declarations add edges no import carries.
  */
 
-import { error, type Diagnostic } from "../diagnostics";
-import { sourceExtensions } from "../scope";
+import { error, type Diagnostic } from "../shared/diagnostics";
+import { sourceExtensions } from "./shared/scope";
 
-import type { DeclaredEdge, ImportEdge, Layer } from "../model/types";
-import type { TalksToDeclaration } from "../scan/declarations";
-import type { SymbolFacts } from "./scip";
+import type { DeclaredEdge, ImportEdge, Layer } from "../model";
+import type { TalksToDeclaration } from "./scan";
+import type { SymbolFacts } from "./symbol-index";
 
 /** One file-level dependency, the record every provider emits. */
 export interface FileDependency {

@@ -8,8 +8,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./src/archinaut.ts",
+      "default": "./src/archinaut.ts"
     }
   },
   "scripts": {
@@ -19,10 +19,20 @@
     "test:unit": "vitest --run src"
   },
   "dependencies": {
+    "@astrojs/markdown-remark": "7.2.4",
+    "@astrojs/react": "6.0.2",
+    "@astrojs/starlight": "0.41.5",
     "@sourcegraph/scip-python": "0.6.6",
     "@sourcegraph/scip-typescript": "0.4.0",
+    "astro": "7.2.8",
+    "cookie": "2.0.1",
+    "hast-util-from-html": "2.0.3",
     "js-yaml": "4.3.2",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "sharp": "0.35.5",
     "tsx": "catalog:",
+    "unist-util-visit": "5.1.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
@@ -30,8 +40,13 @@
     "@tsconfig/bases": "catalog:",
     "@types/js-yaml": "^4",
     "@types/node": "catalog:",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
     "oxlint": "1.86.0",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

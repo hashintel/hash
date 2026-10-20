@@ -14,34 +14,22 @@
  */
 
 import { readdir, readFile } from "node:fs/promises";
-import path from "node:path";
-
-const assetsDir = path.join(import.meta.dirname, "..", "dist", "_astro");
+import { join } from "node:path";
 
 /** A timeline inside the `animation` shorthand: the rewrite that broke it. */
 const timelineInShorthand =
   /animation\s*:[^;}]*\b(?:scroll|view)\s*\(|animation\s*:[^;}]*--pnd-nav-scroll/u;
 
-/**
- * Every custom property naming a resting opacity, wherever it is declared.
- *
- * @param {string} css
- * @returns {Set<string>}
- */
-const idleOpacityTokens = (css) =>
+/** Every custom property naming a resting opacity, wherever it is declared. */
+const idleOpacityTokens = (css: string): Set<string> =>
   new Set(
     [...css.matchAll(/--pnd-[a-z-]*idle-opacity(?=\s*:)/gu)].map(
       (match) => match[0],
     ),
   );
 
-/**
- * The body of the `prefers-reduced-transparency` rule, braces balanced.
- *
- * @param {string} css
- * @returns {string | null}
- */
-const reducedTransparencyBlock = (css) => {
+/** The body of the `prefers-reduced-transparency` rule, braces balanced. */
+const reducedTransparencyBlock = (css: string): string | null => {
   const opening = css.search(/@media[^{]*prefers-reduced-transparency[^{]*\{/u);
 
   if (opening === -1) {
@@ -73,11 +61,8 @@ const reducedTransparencyBlock = (css) => {
  * new token to that rule, so splitting one out silently leaves its element
  * faded — which is how the left rail came to be the only thing still at 52.5%
  * for exactly the readers who had asked it not to be.
- *
- * @param {string} css
- * @returns {string[]}
  */
-const unreset = (css) => {
+const unreset = (css: string): string[] => {
   const tokens = idleOpacityTokens(css);
 
   if (tokens.size === 0) {
@@ -93,14 +78,11 @@ const unreset = (css) => {
   return [...tokens].filter((token) => !block.includes(`${token}:`));
 };
 
-/**
- * @type {{
- *   name: string,
- *   failing: (css: string) => boolean,
- *   detail?: (css: string) => string,
- * }[]}
- */
-const checks = [
+const checks: {
+  name: string;
+  failing: (css: string) => boolean;
+  detail?: (css: string) => string;
+}[] = [
   {
     name: "no scroll timeline folded into the `animation` shorthand",
     failing: (css) => timelineInShorthand.test(css),
@@ -123,34 +105,24 @@ const checks = [
   },
 ];
 
-const files = (await readdir(assetsDir)).filter((name) =>
-  name.endsWith(".css"),
-);
-
-if (files.length === 0) {
-  console.error(`no stylesheets in ${assetsDir}; run the build first`);
-  process.exit(1);
-}
-
-const failures = [];
-
-for (const file of files) {
-  const css = await readFile(path.join(assetsDir, file), "utf8");
-
-  for (const check of checks) {
-    if (check.failing(css)) {
-      const detail = check.detail?.(css);
-      failures.push(`${file}: ${check.name}${detail ? ` (${detail})` : ""}`);
+/** Failures found in the built stylesheets under `distDir`, one line each. */
+export const checkBuiltCss = async (distDir: string): Promise<string[]> => {
+  const assetsDir = join(distDir, "_astro");
+  const files = (await readdir(assetsDir)).filter((name) =>
+    name.endsWith(".css"),
+  );
+  if (files.length === 0) {
+    return [`no stylesheets in ${assetsDir}`];
+  }
+  const failures: string[] = [];
+  for (const file of files) {
+    const css = await readFile(join(assetsDir, file), "utf8");
+    for (const check of checks) {
+      if (check.failing(css)) {
+        const detail = check.detail?.(css);
+        failures.push(`${file}: ${check.name}${detail ? ` (${detail})` : ""}`);
+      }
     }
   }
-}
-
-if (failures.length > 0) {
-  console.error("built CSS check failed:");
-  for (const failure of failures) {
-    console.error(`  ${failure}`);
-  }
-  process.exit(1);
-}
-
-console.log(`built CSS check passed over ${files.length} stylesheets`);
+  return failures;
+};

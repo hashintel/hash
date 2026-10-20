@@ -88,6 +88,9 @@ export type Edge = z.infer<typeof edgeSchema>;
 export const isImportEdge = (edge: Edge): edge is ImportEdge =>
   edge.provenance === "imports";
 
+export const isDeclaredEdge = (edge: Edge): edge is DeclaredEdge =>
+  edge.provenance === "declared";
+
 export const participantSchema = z.object({
   /** A layer id or an external id. */
   node: z.string().min(1),

@@ -5,7 +5,7 @@
 
 import { posix } from "node:path";
 
-import type { ArchitecturePackage } from "./model/types";
+import type { ArchitecturePackage } from "../../model";
 
 /** Extensions treated as architecture source in TypeScript packages. */
 export const sourceExtensions = [".ts", ".tsx", ".mts", ".cts"] as const;

@@ -12,14 +12,12 @@
     }
   },
   "scripts": {
-    "doc:architecture": "tsx src/cli.ts build",
+    "doc:architecture": "archinaut bundle --config archinaut.config.ts",
     "fix:eslint": "oxlint --fix --report-unused-disable-directives-severity=error .",
-    "lint:arch-docs": "tsx src/cli.ts check",
+    "lint:arch-docs": "archinaut check --config archinaut.config.ts",
     "lint:eslint": "oxlint --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsc --noEmit",
-    "test:unit": "vitest --run src",
-    "arch:check": "archinaut check --config archinaut.config.ts",
-    "arch:build": "archinaut build --config archinaut.config.ts"
+    "test:unit": "vitest --run src"
   },
   "dependencies": {
     "dependency-cruiser": "18.0.0",

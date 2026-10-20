@@ -6,7 +6,7 @@
 
 import { fileURLToPath } from "node:url";
 
-import { defineConfig } from "@local/archinaut";
+import { defineConfig, resolveSourceUrlPrefix } from "@local/archinaut";
 
 import { config } from "./architecture.config";
 
@@ -17,6 +17,15 @@ export default defineConfig({
   ignoredDirectories: config.ignoredDirectories,
   ignoredFilePattern: config.ignoredFilePattern,
   contentDirectory: "libs/@local/petrinaut-arch-docs/content",
-  outputDirectory: "libs/@local/petrinaut-arch-docs/bundle-v3",
+  outputDirectory: "libs/@local/petrinaut-arch-docs/bundle",
   cacheDirectory: "node_modules/.cache/archinaut",
+  sourceUrlPrefix: resolveSourceUrlPrefix(process.env),
+  site: {
+    title: "Docs",
+    description:
+      "How the Petrinaut packages fit together — generated from annotations in the source.",
+    url: "https://docs.petrinaut.org",
+    logo: "libs/@local/petrinaut-arch-docs/assets/petrinaut-helmet.png",
+    favicon: "libs/@local/petrinaut-arch-docs/assets/favicon.ico",
+  },
 });

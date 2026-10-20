@@ -6,7 +6,7 @@ import {
   resolvePythonImport,
 } from "./python-imports";
 
-import type { ArchitecturePackage } from "../model/types";
+import type { ArchitecturePackage } from "../../model";
 import type { PythonImport } from "./python-imports";
 
 /**

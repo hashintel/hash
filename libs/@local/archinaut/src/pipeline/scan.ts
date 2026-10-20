@@ -10,14 +10,14 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join, posix, relative } from "node:path";
 
-import { error, type Diagnostic } from "../diagnostics";
-import { layerSchema, parentLayerId } from "../model/types";
-import { toPosix } from "../paths";
-import { sourceExtensionsFor, sourceRootOf } from "../scope";
-import { parseFrontmatter } from "./frontmatter";
-import { scanTags } from "./tags";
+import { layerSchema, parentLayerId } from "../model";
+import { error, type Diagnostic } from "../shared/diagnostics";
+import { parseFrontmatter } from "../shared/frontmatter";
+import { toPosix } from "../shared/paths";
+import { scanTags } from "./scan/tags";
+import { sourceExtensionsFor, sourceRootOf } from "./shared/scope";
 
-import type { ArchitecturePackage, Layer } from "../model/types";
+import type { ArchitecturePackage, Layer } from "../model";
 
 interface LayerAccumulator {
   id: string;

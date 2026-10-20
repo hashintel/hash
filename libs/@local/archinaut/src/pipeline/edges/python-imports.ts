@@ -13,11 +13,11 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { error, type Diagnostic } from "../diagnostics";
-import { sourceRootOf } from "../scope";
+import { error, type Diagnostic } from "../../shared/diagnostics";
+import { sourceRootOf } from "../shared/scope";
 
-import type { ArchitecturePackage } from "../model/types";
-import type { FileDependency } from "./edges";
+import type { ArchitecturePackage } from "../../model";
+import type { FileDependency } from "../edges";
 
 /** One parsed import statement. */
 export interface PythonImport {

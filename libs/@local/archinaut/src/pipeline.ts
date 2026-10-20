@@ -6,24 +6,24 @@
 
 import { join } from "node:path";
 
-import { countErrors, error, type Diagnostic } from "./diagnostics";
+import {
+  ARCHITECTURE_MODEL_VERSION,
+  architectureModelSchema,
+  packageSchema,
+  type ArchitectureModel,
+} from "./model";
+import { runChecks } from "./pipeline/check";
 import {
   aggregateImportEdges,
   checkCoverage,
   dependenciesFromFacts,
   resolveDeclaredEdges,
   type FileDependency,
-} from "./index/edges";
-import { collectPythonImports } from "./index/python-imports";
-import { indexPackages } from "./index/scip";
-import { runChecks } from "./model/check";
-import {
-  ARCHITECTURE_MODEL_VERSION,
-  architectureModelSchema,
-  packageSchema,
-  type ArchitectureModel,
-} from "./model/types";
-import { scanDeclarations } from "./scan/declarations";
+} from "./pipeline/edges";
+import { collectPythonImports } from "./pipeline/edges/python-imports";
+import { scanDeclarations } from "./pipeline/scan";
+import { indexPackages } from "./pipeline/symbol-index";
+import { countErrors, error, type Diagnostic } from "./shared/diagnostics";
 
 import type { ArchinautConfig } from "./config";
 

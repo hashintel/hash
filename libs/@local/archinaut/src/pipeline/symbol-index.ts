@@ -17,10 +17,10 @@ import { createRequire } from "node:module";
 import { join, posix } from "node:path";
 import { promisify } from "node:util";
 
-import { error, type Diagnostic } from "../diagnostics";
-import { sourceRootOf } from "../scope";
+import { error, type Diagnostic } from "../shared/diagnostics";
+import { sourceRootOf } from "./shared/scope";
 
-import type { ArchitecturePackage } from "../model/types";
+import type { ArchitecturePackage } from "../model";
 
 const require = createRequire(import.meta.url);
 const run = promisify(execFile);
@@ -283,7 +283,13 @@ export const indexPackages = async (
       if (!existsSync(indexPath)) {
         try {
           if (pkg.language === "typescript") {
-            await indexTypeScript(options, pkg, indexPath, tsconfigPath, tsconfig);
+            await indexTypeScript(
+              options,
+              pkg,
+              indexPath,
+              tsconfigPath,
+              tsconfig,
+            );
           } else {
             await indexPython(options, pkg, indexPath);
           }

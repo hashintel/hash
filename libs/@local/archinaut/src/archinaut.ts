@@ -3,4 +3,5 @@ export type {
   ArchitectureModel,
   ArchitecturePackageInput,
   LayerRule,
-} from "./model/types";
+} from "./model";
+export { resolveSourceUrlPrefix } from "./source-url";

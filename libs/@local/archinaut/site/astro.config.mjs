@@ -10,23 +10,20 @@ import { resolveDiffCompareContext } from "./src/diff-context";
 import { rehypeInlineDiagrams } from "./src/plugins/inline-diagrams.mjs";
 
 /**
- * Renders the architecture bundle produced by `@local/petrinaut-arch-docs`.
- *
- * This site owns no content. That is the point: the bundle has to render in a
- * host that did not generate it, so anything that only works here is a bug in
- * the bundle's portability, which is why the sidebar below is built from
- * `manifest.json` rather than from Starlight-specific frontmatter.
+ * Renders an architecture bundle. The bundle, the manifest and the instance's
+ * title, logo and favicon are written into `src/content/` and `public/` by
+ * `archinaut` before Astro runs; this site owns no content of its own, so
+ * anything that only works here is a bug in the bundle's portability.
  */
 
-const manifestPath = fileURLToPath(
-  new URL(
-    "../../libs/@local/petrinaut-arch-docs/bundle/manifest.json",
-    import.meta.url,
-  ),
-);
+const contentFile = (name) =>
+  fileURLToPath(new URL(`./src/content/${name}`, import.meta.url));
 
-/** @type {import("@local/petrinaut-arch-docs").BundleManifest} */
-const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+/** @type {import("../src/bundle/outputs").BundleManifest} */
+const manifest = JSON.parse(readFileSync(contentFile("manifest.json"), "utf8"));
+
+/** @type {{ title: string, description: string, url: string }} */
+const site = JSON.parse(readFileSync(contentFile("site.json"), "utf8"));
 
 /**
  * @typedef {{ text: string, variant: "success" | "note" | "danger" }} SidebarBadge
@@ -285,7 +282,7 @@ const hasAuthoredIndex = manifest.pages.some(
 const diffCompareContext = await resolveDiffCompareContext(manifest);
 
 export default defineConfig({
-  site: "https://docs.petrinaut.org",
+  site: site.url,
 
   vite: {
     define: {
@@ -365,14 +362,13 @@ export default defineConfig({
     // authored pages may import its diagram components; both are React.
     react(),
     starlight({
-      title: "Docs",
-      description:
-        "How the Petrinaut packages fit together — generated from annotations in the source.",
-      // The helmet carries the Petrinaut identity, so the title beside it names
+      title: site.title,
+      description: site.description,
+      // The logo carries the instance's identity, so the title beside it names
       // only what this site is. `replacesTitle: false` keeps both.
       logo: {
-        src: "./src/assets/petrinaut-helmet.png",
-        alt: "Petrinaut",
+        src: "./src/content/logo.png",
+        alt: site.title,
         replacesTitle: false,
       },
       favicon: "/favicon.ico",
@@ -398,8 +394,7 @@ export default defineConfig({
       ],
       sidebar: buildSidebar(),
       // No llms.txt plugin: the bundle emits its own `architecture.md` and
-      // `architecture.json`, which `scripts/sync-bundle.mjs` copies into
-      // `public/`. Serving those keeps the site's machine-readable surface
+      // `architecture.json`, which archinaut copies into `public/`. Serving those keeps the site's machine-readable surface
       // identical to what any other host of the bundle would serve, rather than
       // a second, site-shaped copy that could disagree with it.
       pagination: false,

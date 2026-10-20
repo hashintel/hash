@@ -9,7 +9,7 @@ import { pathToFileURL } from "node:url";
 
 import { tsImport } from "tsx/esm/api";
 
-import type { ArchitecturePackageInput, LayerRule } from "./model/types";
+import type { ArchitecturePackageInput, LayerRule } from "./model";
 
 export interface ArchinautConfig {
   /** Absolute repository root every repo-relative path is read against. */
@@ -24,6 +24,21 @@ export interface ArchinautConfig {
   outputDirectory: string;
   /** Where symbol indexes are cached, repo-relative. */
   cacheDirectory: string;
+  /** Base URL for source links in generated pages, including the git ref. */
+  sourceUrlPrefix: string;
+  site: SiteConfig;
+}
+
+/** What the website shows about the instance; everything else comes from the bundle. */
+export interface SiteConfig {
+  title: string;
+  description: string;
+  /** The canonical URL, for sitemaps and absolute links. */
+  url: string;
+  /** Repo-relative PNG shown beside the title. */
+  logo: string;
+  /** Repo-relative favicon. */
+  favicon: string;
 }
 
 export const defineConfig = (config: ArchinautConfig): ArchinautConfig =>

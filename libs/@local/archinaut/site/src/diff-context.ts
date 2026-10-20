@@ -15,7 +15,7 @@
 
 import { execFileSync } from "node:child_process";
 
-import type { BundleManifest } from "@local/petrinaut-arch-docs";
+import type { BundleManifest } from "../../src/bundle/outputs";
 
 export interface DiffChip {
   /** `#1234` when a PR exists, the branch name otherwise. */
