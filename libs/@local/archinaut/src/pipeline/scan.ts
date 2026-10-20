@@ -4,7 +4,8 @@
  * A layer is declared on a folder, by `@layerRoot` in a doc comment or by
  * README frontmatter, and every descendant file inherits it until a deeper
  * declaration says otherwise. `@talksTo` declarations are collected for the
- * graph stage, which resolves them into edges.
+ * graph stage, which resolves them into edges. An `.mdx` page or a `.d2`
+ * diagram beside the code belongs to the layer of its folder, the same way.
  */
 
 import { readdir, readFile } from "node:fs/promises";
@@ -29,6 +30,8 @@ interface LayerAccumulator {
   scope: string;
   prose: string | null;
   references: string[];
+  pages: string[];
+  diagrams: string[];
   files: string[];
   lineCount: number;
 }
@@ -140,6 +143,12 @@ export const scanDeclarations = async (
     sourceExtensionsFor(pkg).includes(extensionOf(entry.name));
   const isMarkdownEntry = (entry: WalkEntry): boolean =>
     entry.name.toLowerCase().endsWith(".md");
+  const isPageEntry = (entry: WalkEntry): boolean =>
+    entry.name.toLowerCase().endsWith(".mdx");
+  const isDiagramEntry = (entry: WalkEntry): boolean =>
+    entry.name.toLowerCase().endsWith(".d2");
+  const isDocumentEntry = (entry: WalkEntry): boolean =>
+    isMarkdownEntry(entry) || isPageEntry(entry) || isDiagramEntry(entry);
 
   for (const pkg of packages) {
     const entries = await walkFiles(
@@ -152,13 +161,16 @@ export const scanDeclarations = async (
       entries.filter(
         (entry) =>
           !ignoredFilePattern.test(entry.path) &&
-          (isMarkdownEntry(entry) || isSourceEntry(pkg, entry)),
+          (isDocumentEntry(entry) || isSourceEntry(pkg, entry)),
       ),
     );
   }
 
   const register = (
-    accumulator: Omit<LayerAccumulator, "files" | "lineCount" | "references">,
+    accumulator: Omit<
+      LayerAccumulator,
+      "files" | "lineCount" | "references" | "pages" | "diagrams"
+    >,
   ): void => {
     const existingFile = declaredBy.get(accumulator.id);
     if (existingFile !== undefined) {
@@ -185,6 +197,8 @@ export const scanDeclarations = async (
     accumulators.set(accumulator.id, {
       ...accumulator,
       references: [],
+      pages: [],
+      diagrams: [],
       files: [],
       lineCount: 0,
     });
@@ -194,6 +208,9 @@ export const scanDeclarations = async (
   // the order files are visited in.
   for (const pkg of packages) {
     for (const entry of packageEntries.get(pkg.name) ?? []) {
+      if (isPageEntry(entry) || isDiagramEntry(entry)) {
+        continue;
+      }
       const contents = await readFile(entry.absolutePath, "utf8");
       const lastSegment = (id: string): string => id.split(".").pop() ?? "";
 
@@ -265,6 +282,23 @@ export const scanDeclarations = async (
         }
         continue;
       }
+      if (isPageEntry(entry) || isDiagramEntry(entry)) {
+        const accumulator =
+          layerId === null ? undefined : accumulators.get(layerId);
+        if (accumulator === undefined) {
+          diagnostics.push(
+            error(
+              entry.path,
+              `no layer resolves for this ${isPageEntry(entry) ? "page" : "diagram"}; it belongs beside code a layer claims, or under the content directory`,
+            ),
+          );
+        } else if (isPageEntry(entry)) {
+          accumulator.pages.push(entry.path);
+        } else {
+          accumulator.diagrams.push(entry.path);
+        }
+        continue;
+      }
       if (layerId === null) {
         diagnostics.push(
           error(
@@ -300,6 +334,12 @@ export const scanDeclarations = async (
         declaredIn: accumulator.declaredIn,
         prose: accumulator.prose,
         references: accumulator.references.sort((left, right) =>
+          left.localeCompare(right),
+        ),
+        pages: accumulator.pages.sort((left, right) =>
+          left.localeCompare(right),
+        ),
+        diagrams: accumulator.diagrams.sort((left, right) =>
           left.localeCompare(right),
         ),
         files: accumulator.files,

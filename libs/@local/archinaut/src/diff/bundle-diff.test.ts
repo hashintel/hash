@@ -20,6 +20,8 @@ const layer = (id: string, files: string[]): Layer => ({
   declaredIn: `src/${id}/index.ts`,
   prose: null,
   references: [],
+  pages: [],
+  diagrams: [],
   files,
   fileCount: files.length,
   lineCount: files.length * 10,

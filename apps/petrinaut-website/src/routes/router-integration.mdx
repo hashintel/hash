@@ -1,0 +1,129 @@
+---
+title: Router integration
+description: How the site drives Petrinaut's app location from the URL, and why only part of that location is shareable.
+sidebar_order: 10
+---
+
+Petrinaut imports no router. It exposes a `navigation` prop taking a
+router-neutral controller, and the host decides what a URL means. This page is
+how the website implements that contract with TanStack Router.
+
+## The three pieces
+
+`website.routes` owns the URL. Routes are file-based under `src/routes`, and
+every route that reads query params declares `validateSearch`, which is the
+only place raw query input enters the app.
+
+`website.examples` owns the contract. `example-search.ts` defines the four
+params a shareable location carries — `scenario`, `subnet`, `itemType`,
+`itemId` — validates them with zod, and encodes them back. The module imports
+neither React nor the editor, so the oEmbed function can speak the same
+contract without bundling either.
+
+`useSharedSearchNavigation` bridges the two. The editor navigates more than a
+URL carries: global mode, the Simulate section, overlays. Those live in page
+state, and only the shared projection reaches the URL.
+
+![One navigation round trip](./website-navigation-loop.d2)
+
+## Why the location splits in two
+
+Deriving the whole controller state from the URL does not work. A control
+driving a field the URL cannot represent — the mode switcher, the
+viewport-settings overlay — would write, read back a state without that field,
+and snap to its previous value. The control appears not to respond.
+
+So the hook keeps the full `PetrinautNavigationState` in component state,
+mirrors `navigationStateToSharedSearch(state)` to the URL, and merges external
+URL changes (Back, Forward, a shared link) back into the in-memory location.
+Fields outside the contract survive that merge untouched.
+
+## A controlled host owns the whole initial location
+
+`PetrinautNavigationProvider` reads `controller?.state ?? uncontrolledState`,
+so a host that passes a controller replaces the provider's initial state
+outright. That includes the Actual-mode default the provider applies when a
+live stream is available. A page that must open in a non-default mode states
+it in the hook's `initialState`, which seeds the fields the URL does not
+carry; the URL still wins for the fields it owns.
+
+## Validation normalizes the location
+
+`validateSharedExampleSearch` drops everything it cannot represent: an unknown
+`itemType`, an empty `subnet`, a param outside the contract. Its output is
+therefore the canonical spelling of a location, and two searches are the same
+location when `canonicalSearchString` agrees on both. The hook uses that
+equality to suppress no-op navigations, and the oEmbed function uses the same
+encoder to build embed URLs.
+
+Query params outside the contract are not rewritten on load. TanStack Router
+only re-stringifies the URL when the parsed search changes, so stripping them
+eagerly would need a document reload, which an embed must not do. The first
+navigation drops them, because the routes write a fresh contract-only search
+rather than merging into the existing one. Params an older link may still
+carry (`view=optimizations`, `overlay=create-optimization`, `present`) fall
+under the same rule: `validateSharedExampleSearch` normalises them to the
+baseline location, and the first navigation rewrites the URL.
+
+## Which routes speak the contract
+
+Every page that mounts Petrinaut does: the editable demo at `/local/$netId`,
+the example pages at `/examples/$slug` and
+`/embed/examples/$slug`, and snapshots at `/share`.
+
+Each also names its model in the URL. The editable demo names a net saved in
+this browser's local storage by its id, so the link opens that net only in the
+browser that saved it. The demo takes the id as a prop and asks the route to
+open another net, so Back and Forward move between nets. The demo passes the
+net id as the hook's `resetKey`, so opening another net starts the location
+over from the URL, as a fresh page would. The example pages name the model in the path. `/share` carries the whole
+net in its fragment, `#v1.br.<payload>`, which the browser does not send to
+the server. The route keeps the fragment when the view changes, and keys the
+snapshot page by it, so Back and Forward between snapshots open each one
+afresh.
+
+**Make a local copy**, in the top bar of `/examples/$slug` or `/share` or on
+the notice that explains a blocked edit, saves the document as a new local net
+and opens it at its `/local/$netId` URL. The search it passes is
+`navigationStateToSharedSearch` of the editor's location when clicked, so the
+copy opens at the same location. It passes no fragment, so a copy made on
+`/share` opens without the snapshot's payload.
+
+**Share**, in the editable demo's top bar, builds the `/share` link from the
+net and `navigationStateToSharedSearch` of the editor's location when its
+dropdown opens. "Include current view" decides whether that search goes into
+the link.
+
+`/`, `/new` and `/examples` mount nothing. All three redirect from
+`beforeLoad` and replace the history entry:
+
+- `/` opens the most recently edited net, saving an empty one when the browser
+  holds none, and passes its search on.
+- `/new` saves an empty net and opens it.
+- `/examples` sends the visitor to `/`.
+
+`/` and `/new` show an error page instead of redirecting when the browser
+refuses the write.
+
+## What a URL carries, and what it does not
+
+A single focused item is shareable; a multi-selection is not. Multi-selection
+is a working state inside the editor, and encoding it would require a
+precedence rule between two spellings of the same location. A location with
+several items selected therefore carries no item at all.
+
+`scenario` is tri-state: absent means "the model's first scenario", `none`
+means the user explicitly chose no scenario, and any other value names one. The
+oEmbed endpoint drops an explicit `none` when it builds the embed URL, because
+an embed with no scenario has nothing to run. The embed route itself honours
+`none`, so a hand-written embed URL can still ask for no scenario.
+
+Ids in a URL are the net's UUIDs. A link made before ids were converted names
+items by their older ids; the editor resolves each one to its converted id and
+replaces the URL once, so the link opens the same scenario and item.
+
+## Hosting Petrinaut without a router
+
+The prop is optional. Omit it and Petrinaut keeps its location in internal
+state, which is what Storybook does. Nothing about the editor's behaviour
+depends on a host router being present.

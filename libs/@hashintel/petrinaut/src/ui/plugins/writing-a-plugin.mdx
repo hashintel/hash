@@ -1,0 +1,441 @@
+---
+title: Writing a plugin
+description: How to write a Petrinaut plugin, add each kind of contribution, read and edit the document, and share a service between plugins.
+sidebar_order: 20
+---
+
+The parts are named in [Plugins](doc:ui.plugins/overview); exact keys, members
+and messages are in the [Plugin API reference](doc:ui.plugins/reference).
+
+## Choose a form
+
+`definePetrinautPlugin(manifest)` returns a definition, and calling the
+definition with the implementation returns the plugin. This is the default.
+`definePetrinautPlugin(manifest, implementation)` returns the plugin in one
+call.
+
+| The plugin                                                                         | Write                                                                                                                                         |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Keeps state, calls hooks, or has a definition another plugin imports (the default) | `const XPlugin = definePetrinautPlugin(manifest)`, a module-scope `const useXPlugin: PluginHook<typeof XPlugin>`, then `XPlugin(useXPlugin)`. |
+| Only reads `api`                                                                   | `definePetrinautPlugin(manifest, (api) => ({ … }))`                                                                                           |
+| Needs no `api`                                                                     | `definePetrinautPlugin(manifest, { … })`. Component state still works inside the JSX it renders.                                              |
+
+An inline function is not a hook to the rules of hooks or to the React
+Compiler, so a hook with state stays a module-scope `useXPlugin`.
+
+```tsx
+// Hook form
+const TidyPlugin = definePetrinautPlugin({ … });
+const useTidyPlugin: PluginHook<typeof TidyPlugin> = (api) => …;
+export const tidyPlugin = TidyPlugin(useTidyPlugin);
+
+// Object form. `openHelp` is the plugin's own function.
+export const helpPlugin = definePetrinautPlugin(
+  {
+    id: "example.help",
+    name: "Help",
+    buttons: { help: { label: "Open help", place: "top-bar-end" } },
+  },
+  { buttons: { help: { icon: <InfoIcon />, onClick: openHelp } } },
+);
+```
+
+## Rules
+
+- Name the hook `useXPlugin`: the `use` prefix makes the rules of hooks and
+  the React Compiler treat it as a hook. Name a definition you keep
+  `XPlugin`. Keep one only for the hook form, or when another plugin
+  imports it.
+- Annotate the hook (`const useX: PluginHook<…> = …`). Never use `satisfies`
+  on it: the compiler skips a function wrapped in `satisfies`.
+- Keep definitions, hooks and plugins at module scope. Code that renders never
+  calls `XPlugin(…)` or `definePetrinautPlugin(manifest, …)`: each call
+  makes a plugin with a new `hostKey`, which remounts on every render.
+  Rendering code may choose among plugins, but keeps the array's identity (a
+  module constant, or a literal the React Compiler memoizes): a new array runs
+  every plugin's hook again.
+- Export plugins as named exports.
+- Put the definition in its own `definition.ts` when another plugin imports it
+  for `usePluginService`, so importing it loads no implementation. Such a
+  plugin uses the curried form.
+
+## Add buttons and top-bar items
+
+Declare each one in the manifest with its `place`, and return it from the
+hook under the same key. A button's label, tooltip and place come from the
+manifest. The hook gives its `icon` and what it does: `onClick`, a `command`,
+or both. A top-bar item is any `ReactNode`.
+
+`command` names one of the plugin's own [commands](#add-commands), so the
+button and its palette entry are one action and the palette shows its
+shortcut. `onClick` runs first.
+
+## Add commands
+
+Declare each command under `commands` with what the palette shows: its
+`label`, and optionally a `category` (the plugin's name by default),
+`keywords` and a `shortcut` to display. Return what it does from the hook
+under the same key: `run`, and `when` to withhold it while a condition does
+not hold.
+
+```tsx
+const HistoryPlugin = definePetrinautPlugin({
+  id: "example.history",
+  name: "History",
+  commands: {
+    show: { label: "Show the edit history", shortcut: "mod+h" },
+    clear: { label: "Clear the edit history", keywords: ["reset"] },
+  },
+  buttons: { show: { label: "Edit history", place: "top-bar-end" } },
+  root: true,
+});
+
+// `Entry`, `HistoryIcon` and `HistoryDialog` are the plugin's own.
+const useHistoryPlugin: PluginHook<typeof HistoryPlugin> = () => {
+  const [entries, setEntries] = useState<readonly Entry[]>([]);
+  const [open, setOpen] = useState(false);
+
+  return {
+    commands: {
+      show: { run: () => setOpen(true) },
+      clear: { run: () => setEntries([]), when: entries.length > 0 },
+    },
+    buttons: { show: { icon: <HistoryIcon />, command: "show" } },
+    root: open ? (
+      <HistoryDialog entries={entries} onClose={() => setOpen(false)} />
+    ) : null,
+  };
+};
+```
+
+The editor registers each command as `<plugin id>.<key>`
+(`example.history.show`) while the plugin runs and `when` holds, and keeps the
+registration pointed at the latest `run`. A palette, from the host or from
+another plugin, lists it with the editor's own commands; see
+[Commands and the palette](doc:core.command-registry/usage-manual). `shortcut` is display
+only: a plugin that wants the keys bound listens for them itself and runs the
+same handler, or calls `useCommandRegistry()?.execute(pluginCommandId(id, key))`.
+
+## Render UI inside the editor
+
+Declare `root: true` and return a `root` for dialogs, overlays and tours,
+`null` while there is nothing to show. The editor renders it inside itself,
+behind the plugin's error boundary. Return `overlay: true` while the root
+covers the editor: it holds back the empty-canvas assistant prompt.
+
+## Add an action to the read-only notice
+
+On a document the host made read-only, a blocked edit shows a notice that
+says so. Declare `readOnlyAction: { label }` to add a button to that notice,
+and return what it does under `readOnlyAction`. The notice shows the action of
+the first running plugin that declares one. Notices for Simulate mode, Actual
+mode or a simulation carry no action.
+
+```tsx
+const CopyPlugin = definePetrinautPlugin({
+  id: "example.copy",
+  name: "Copy",
+  access: { document: "read" },
+  readOnlyAction: { label: "Make a copy" },
+});
+
+const useCopyPlugin: PluginHook<typeof CopyPlugin> = ({ document }) => ({
+  readOnlyAction: { run: () => saveCopy(document.net.get()) },
+});
+
+export const copyPlugin = CopyPlugin(useCopyPlugin);
+```
+
+## Provide the AI assistant
+
+Declare `assistant: true` and return `assistant: { content }`. The editor
+renders `content` in its assistant panel, below the title bar, behind the
+plugin's error boundary, and opens the panel from the bottom bar button and
+the toggle shortcut. The panel's frame, placement, resizing, dock toggle and
+Close button stay the editor's. The editor shows the first running plugin that
+provides an assistant, and the deprecated `aiAssistant` prop's chat while
+none runs.
+
+Inside `content`, `AssistantPanelTitle` fills the title bar and
+`useAssistantPanel()` reads whether the panel is open and closes it.
+
+The title bar's parts render inside `content`, so they read the chat's state:
+the Clear button below shows only once there are messages.
+
+The empty-net prompt shows while the assistant returns `onPrompt`. The editor
+opens the panel and calls it with the message the user sends, so the
+conversation lives in the hook, where `onPrompt` can reach it. When the panel
+opens, the content's element marked `data-autofocus`, such as the composer's
+`<textarea data-autofocus />`, takes focus; without one, the panel does.
+
+```tsx
+// `Chat` and `useChat` come from `@ai-sdk/react`, `UIMessage` from `ai`.
+// `MyChat` and `transport` are the plugin's own.
+const ChatPlugin = definePetrinautPlugin({
+  id: "example.chat",
+  name: "Chat",
+  assistant: true,
+});
+
+const ChatPanel = ({ chat }: { chat: Chat<UIMessage> }) => {
+  const { isOpen } = useAssistantPanel();
+  const { messages, setMessages } = useChat({ chat });
+
+  return (
+    <>
+      <AssistantPanelTitle
+        actions={
+          messages.length > 0 && (
+            <button type="button" onClick={() => setMessages([])}>
+              Clear
+            </button>
+          )
+        }
+      >
+        Chat
+      </AssistantPanelTitle>
+      <MyChat chat={chat} visible={isOpen} />
+    </>
+  );
+};
+
+const useChatPlugin: PluginHook<typeof ChatPlugin> = () => {
+  const [chat] = useState(() => new Chat({ transport }));
+
+  return {
+    assistant: {
+      content: <ChatPanel chat={chat} />,
+      onPrompt: (text) => chat.sendMessage({ text }),
+    },
+  };
+};
+
+export const chatPlugin = ChatPlugin(useChatPlugin);
+```
+
+For a second tab, the content draws the tabs in the title bar and switches its
+own body. `LedgerPane` is the plugin's own.
+
+```tsx
+const ChatPanel = ({ chat }: { chat: Chat<UIMessage> }) => {
+  const [tab, setTab] = useState<"chat" | "ledger">("chat");
+
+  return (
+    <>
+      <AssistantPanelTitle>
+        <button type="button" onClick={() => setTab("chat")}>
+          Chat
+        </button>
+        <button type="button" onClick={() => setTab("ledger")}>
+          Ledger
+        </button>
+      </AssistantPanelTitle>
+      {tab === "chat" ? <MyChat chat={chat} /> : <LedgerPane />}
+    </>
+  );
+};
+```
+
+## Add settings
+
+Declare each setting under `settings`. The editor renders its row in User
+settings and stores its value. Read it with `api.settings.get(key)` and change
+it with `api.settings.set(key, value)`. Both are typed by the spec, and a
+change runs the hook again.
+
+```tsx
+const PlaceCountPlugin = definePetrinautPlugin({
+  id: "example.place-count",
+  name: "Place count",
+  access: { document: "read" },
+  settings: {
+    show: {
+      type: "boolean",
+      default: true,
+      label: "Show the place count",
+      section: "viewport",
+    },
+  },
+  topBarItems: { count: { place: "top-bar-end" } },
+});
+
+const usePlaceCountPlugin: PluginHook<typeof PlaceCountPlugin> = ({
+  document,
+  settings,
+}) => ({
+  topBarItems: {
+    count: settings.get("show") ? <PlaceCount document={document} /> : null,
+  },
+});
+```
+
+## Read and edit the document
+
+Declare in `access` the families the plugin needs, `document`, `experiments`
+and `editor`, each at `"read"` or `"write"`. Only declared families appear on
+`api`; the reference lists [what each level gives](doc:ui.plugins/reference#access).
+`editor` holds where the editor is: its `navigation` store carries the mode,
+the views, the selection and the open overlay, and `navigate` moves them, so a
+plugin can open User settings at the section that holds its setting rows, such
+as `navigate({ overlay: { type: "user-settings", section: "general" } })`.
+
+### Values, stores and actions
+
+- **Values**: `document.id`, `document.extensions`, `settings.get()`. Read
+  them anywhere in the hook or its components.
+- **Stores**: `document.net`, `document.title`, `document.diagnostics`,
+  `experiments.records`, `experiments.optimizationUnavailableReason`,
+  `editor.navigation`. In render, read them with `useStore` or
+  `useStoreSelector` in the component that shows the value. In handlers,
+  effects and async code, call `.get()`.
+- **Actions**: `edit.*`, `setTitle`, `diagnose`, `run`, `navigate`, `reveal`,
+  `notifications.add`, `errors.capture`, `settings.set`. They act on the
+  editor as it is when called.
+
+Rules:
+
+- Read stores in the components that show them. A subscription in the hook
+  republishes the contributions, and re-renders the editor's outlets, on
+  every edit.
+- Never call `.get()` during render: the React Compiler caches the result.
+- After an `await`, read stores with `.get()` and change things through
+  actions, never through values captured at render.
+- Give code that lives as long as the plugin the family objects
+  (`api.document`, `api.experiments`, `api.editor`, `api.errors`,
+  `api.notifications`). They never change while the plugin is mounted, and
+  `api` changes with every setting change.
+- Write hooks that tolerate extra runs. Editor changes never run a hook again,
+  but other events do; see [when hooks run](doc:ui.plugins/runtime#remounts-and-re-runs).
+
+### Components take capabilities
+
+Pass a component the family it needs, typed by the least it needs: a family
+type such as `PluginDocumentReader`, or `AccessApi<{ document: "read" }>` for a
+whole `api`. A writer is assignable to its reader.
+
+```tsx
+const PlaceCount = ({ document }: { document: PluginDocumentReader }) => {
+  const count = useStoreSelector(document.net, (net) => net.places.length);
+
+  return <span>{count} places</span>;
+};
+```
+
+### Read the selection
+
+`editor.navigation` holds the selection as `readonly SelectionItem[]`, one
+`{ type, id }` per item. It is a new array on every navigation change, so
+select a primitive, such as a count or an id, and the component re-renders
+only when that value changes.
+
+```tsx
+const SelectedPlace = ({ editor }: { editor: PluginEditorReader }) => {
+  const placeId = useStoreSelector(editor.navigation, ({ selection }) =>
+    selection.length === 1 && selection[0]?.type === "place"
+      ? selection[0].id
+      : null,
+  );
+
+  return placeId === null ? null : <span>Place {placeId}</span>;
+};
+```
+
+The ids name items of the net the editor shows: the root net, or the subnet at
+`subnetId`. Right after an edit, an id can name a deleted item, so look each
+one up in `document.net` before using it.
+
+### Read diagnostics
+
+`document.diagnostics` holds what the editor's diagnostics indicator and panel
+show. `byUri` is a `Map` from a code document's URI to its LSP diagnostics.
+`parseDocumentUri(uri)` gives the transition or differential equation the URI
+belongs to. Select a number, as for the selection.
+
+```tsx
+const TransitionIssues = ({
+  document,
+  transitionId,
+}: {
+  document: PluginDocumentReader;
+  transitionId: string;
+}) => {
+  const count = useStoreSelector(document.diagnostics, ({ byUri }) =>
+    [...byUri].reduce(
+      (sum, [uri, diagnostics]) =>
+        parseDocumentUri(uri)?.itemId === transitionId
+          ? sum + diagnostics.length
+          : sum,
+      0,
+    ),
+  );
+
+  return count === 0 ? null : <span>{count} issues</span>;
+};
+```
+
+To check a net on demand, call `diagnose()`.
+
+### Edits return a result
+
+Edits are checked when called, and each returns an `EditResult`:
+`{ applied: true, value }`, or `{ applied: false, reason }` when the editor
+refused it. `describeRefusal(reason)` gives a sentence for a toast or an AI
+tool's output.
+
+```ts
+const rename = (
+  document: PluginDocument,
+  notifications: PluginNotifications,
+) => {
+  const result = document.setTitle("Renamed");
+  if (!result.applied) {
+    notifications.add({ message: describeRefusal(result.reason) });
+  }
+};
+```
+
+`edit` has its own type, `PluginEdits`. Never pass it where
+`PetrinautMutations` is expected: a function returning `EditResult` is
+assignable to one returning `void`, and the refusal would be lost.
+
+`api.document` has no handle, no instance and no `change()`. For a content
+version, use `hashPetrinautDocument(document.net.get())` from
+`@hashintel/petrinaut-core`.
+
+## Share a service between plugins
+
+```ts
+// chat/definition.ts
+export const ChatPlugin = definePetrinautPlugin({
+  …,
+  provides: pluginService<ChatService>(),
+});
+
+// another plugin's hook, or any component the editor renders
+const chat = usePluginService(ChatPlugin); // ChatService | undefined
+```
+
+`pluginService<T>()` is a type-only marker. `usePluginService(definition)`
+returns the providing hook's latest `provides`, or `undefined` while that
+plugin is not running or before its
+[first publish](doc:ui.plugins/runtime#publishing-contributions). It adds no
+dependency, so two plugins can read each other's services and show them.
+
+A service is a new object whenever the services it is built from change. So
+two services must not each be built from the other: plugin A's `provides`
+changes with B's service, B's with A's, and the editor stops with "Maximum
+update depth exceeded". A plugin that calls the other's service from its own
+reads it when the call runs, through a function the other plugin provides,
+rather than closing over the value.
+
+## What plugin code imports
+
+Plugin code imports the plugin API from `@hashintel/petrinaut/ui/plugin`,
+icons and other components from `@hashintel/petrinaut/ui`, and domain contracts
+(SDCPN and experiment types, AI tool schemas, `hashPetrinautDocument`) from
+`@hashintel/petrinaut-core`. It never imports `@hashintel/petrinaut/react`, a
+handle, an instance or a Petrinaut context. Host state reaches contributions
+through the host's own context, rendered above `<Petrinaut>`; the
+[reference implementations](doc:core.handle/host-integration#reference-implementations-in-this-repo)
+include a host plugin built this way. The reference lists
+[every export](doc:ui.plugins/reference#exports).

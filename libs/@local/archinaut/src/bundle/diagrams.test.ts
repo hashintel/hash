@@ -21,6 +21,8 @@ const layer = (id: string, name = id): Layer => ({
   declaredIn: `src/${id}/index.ts`,
   prose: null,
   references: [],
+  pages: [],
+  diagrams: [],
   files: [`src/${id}/index.ts`],
   fileCount: 1,
   lineCount: 1,

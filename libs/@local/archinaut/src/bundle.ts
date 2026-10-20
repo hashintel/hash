@@ -6,6 +6,7 @@
 
 import {
   collectAuthoredContent,
+  collectColocatedContent,
   type AuthoredComponent,
   type AuthoredPage,
 } from "./bundle/content";
@@ -23,6 +24,7 @@ import {
   resolveAuthoredLinks,
   resolveComponentImports,
   resolveDiagramImages,
+  resolveLocalDiagrams,
 } from "./bundle/page-links";
 import { buildPages, layerSlug, type GeneratedPage } from "./bundle/pages";
 import { readShippedComponents } from "./bundle/shipped-components";
@@ -62,10 +64,20 @@ export const emitBundle = async (options: {
 }): Promise<Bundle> => {
   const { model } = options;
   const diagnostics: Diagnostic[] = [];
-  const authoredResult = await collectAuthoredContent({
+  const fromContent = await collectAuthoredContent({
     repoRoot: options.repoRoot,
     contentDirectory: options.contentDirectory,
   });
+  const fromCode = await collectColocatedContent({
+    repoRoot: options.repoRoot,
+    layers: model.layers,
+  });
+  const authoredResult = {
+    pages: [...fromContent.pages, ...fromCode.pages],
+    components: fromContent.components,
+    diagrams: [...fromContent.diagrams, ...fromCode.diagrams],
+    errors: [...fromContent.errors, ...fromCode.errors],
+  };
   for (const failure of authoredResult.errors) {
     diagnostics.push(error(failure.file, failure.message));
   }
@@ -98,6 +110,7 @@ export const emitBundle = async (options: {
   // Authored diagrams render through the same pipeline, so a name collision
   // would silently overwrite a generated one.
   const authoredDiagramNames = new Set<string>();
+  const diagramsBySource = new Map<string, string>();
   for (const diagram of authoredResult.diagrams) {
     if (diagramSources.has(diagram.name)) {
       diagnostics.push(
@@ -110,6 +123,7 @@ export const emitBundle = async (options: {
     }
     diagramSources.set(diagram.name, diagram.source);
     authoredDiagramNames.add(diagram.name);
+    diagramsBySource.set(diagram.sourceFile, diagram.name);
   }
 
   const declaredLayerIds = new Set(model.layers.map((layer) => layer.id));
@@ -182,10 +196,18 @@ export const emitBundle = async (options: {
       authoredDiagramNames,
       options.includeDiagrams,
     );
+    const local = resolveLocalDiagrams(
+      illustrated.contents,
+      slug,
+      page.sourceFile,
+      diagramsBySource,
+      options.includeDiagrams,
+    );
     for (const target of [
       ...linked.unresolved,
       ...imported.unresolved,
       ...illustrated.unresolved,
+      ...local.unresolved,
     ]) {
       diagnostics.push(
         error(page.sourceFile, `link target \`${target}\` does not resolve`),
@@ -195,7 +217,7 @@ export const emitBundle = async (options: {
       ...page,
       slug,
       path: `pages/${slug}.mdx`,
-      contents: illustrated.contents,
+      contents: local.contents,
     };
   });
 
