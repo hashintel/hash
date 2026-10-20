@@ -318,17 +318,14 @@ const ensureFlowDefinitionEntity = async ({
   const properties = mapFlowDefinitionToEntityProperties(flowDefinition);
 
   const existingEntity = await getFlowDefinitionEntityById({
-    flowDefinitionEntityId: entityIdFromComponents(
-      userId as WebId,
-      flowDefinitionId,
-    ),
+    flowDefinitionEntityId: entityIdFromComponents(userId, flowDefinitionId),
     graphApiClient: graphApi,
     userAuthentication: authentication,
   });
 
   if (!existingEntity) {
     await HashEntity.create<FlowDefinitionEntity>(graphApi, authentication, {
-      webId: userId as WebId,
+      webId: userId,
       entityUuid: flowDefinitionId,
       entityTypeIds,
       properties,
@@ -421,7 +418,7 @@ const seedEntities = async ({
 
   for (const [index, { entityTypeId, properties }] of entities.entries()) {
     await HashEntity.create(graphApi, authentication, {
-      webId: userId as WebId,
+      webId: userId,
       entityTypeIds: [entityTypeId],
       properties: mergePropertyObjectAndMetadata(properties, undefined),
       provenance: { actorType: "user", origin: { type: "api" } },
@@ -646,7 +643,7 @@ const describeWorkflowError = (error: unknown) => {
 
   while (current?.cause) {
     activityType = current.activityType ?? activityType;
-    current = current.cause as typeof current;
+    current = current.cause;
   }
 
   return `${activityType ? `\`${activityType}\` failed: ` : ""}${current?.message ?? "unknown error"}`;
@@ -909,15 +906,12 @@ const main = async () => {
     const workflowError = await workflowErrorWhenClosed;
 
     const flowRun = await getFlowRunFromTemporalWorkflowId({
-      flowDefinitionEntityId: entityIdFromComponents(
-        userId as WebId,
-        flowDefinitionId,
-      ),
-      flowRunEntityId: entityIdFromComponents(userId as WebId, workflowId),
+      flowDefinitionEntityId: entityIdFromComponents(userId, flowDefinitionId),
+      flowRunEntityId: entityIdFromComponents(userId, workflowId),
       name: flowDefinition.name,
       temporalClient: client,
       temporalWorkflowId: workflowId,
-      webId: userId as WebId,
+      webId: userId,
       storageProvider: getStorageProvider(),
     });
 
