@@ -7,7 +7,6 @@ import { generateActionSubnet } from "./compile-flow-definition/generate-action-
 import { actionSubnetKey } from "./compile-flow-definition/shared/action-subnet-ids.js";
 import {
   pendingColor,
-  runRequestColor,
   stepFailureColor,
 } from "./compile-flow-definition/shared/colors.js";
 import {
@@ -21,9 +20,6 @@ import {
 import { layOut } from "./compile-flow-definition/shared/lay-out.js";
 import { createNetBuilder } from "./compile-flow-definition/shared/net-builder.js";
 import {
-  createTransition,
-  inputArc,
-  outputArc,
   placeEndpoint,
   toPetrinautEndpoint,
 } from "./compile-flow-definition/shared/net-elements.js";
@@ -31,10 +27,7 @@ import {
   failedStepRunsPlaceId,
   pendingPlaceId,
 } from "./compile-flow-definition/shared/step-places.js";
-import {
-  inputValueKey,
-  placeValues,
-} from "./compile-flow-definition/shared/value-places.js";
+import { placeValues } from "./compile-flow-definition/shared/value-places.js";
 
 import type { ArcEndpoint, SDCPN } from "@hashintel/petrinaut-core";
 import type {
@@ -46,7 +39,9 @@ import type {
 /**
  * Compiles a flow definition into the Petri net that runs it, which Petrinaut can render.
  *
- * - Each flow input is a place, seeded by the `startRun` transition when a run starts.
+ * - Each flow input is a place. A run starts with a token in each flow input's places, and a `Pending` token for
+ *   each top-level step, which the executor puts there: the root's `metadata.flowInputs` and
+ *   `metadata.pendingAtStart` say where.
  * - Each action step is an instance of its action's subnet (see `generateActionSubnet`), started by a `startStep`
  *   transition once the step's `Pending` token and its connected inputs are available.
  * - A step's output stays in its instance's output port, where steps that read it read it. A single step that
@@ -89,32 +84,6 @@ export const compileFlowDefinition = async (
     description: "Steps that gave up after exhausting their retries.",
     colorId: stepFailureColor.id,
   });
-
-  const runRequestsPlaceId = net.addPlace({
-    id: "p.runRequests",
-    name: "RunRequests",
-    description: "Requests to run the flow, from any of its triggers.",
-    colorId: runRequestColor.id,
-  });
-
-  net.addTransitions(
-    createTransition({
-      id: "t.startRun",
-      name: "Start run",
-      description:
-        "Starts a run: puts the flow's inputs in place, and marks each top-level step as pending.",
-      role: "startRun",
-      inputArcs: [inputArc(placeEndpoint(runRequestsPlaceId))],
-      outputArcs: [
-        ...flowDefinition.inputs.flatMap(({ name }) =>
-          values.valueOutputArcs(inputValueKey(name)),
-        ),
-        ...flowDefinition.steps.map(({ stepId }) =>
-          outputArc(placeEndpoint(pendingPlaceId(stepId))),
-        ),
-      ],
-    }),
-  );
 
   for (const { step, scope } of steps.entries) {
     if (step.kind === "action") {
@@ -201,6 +170,15 @@ export const compileFlowDefinition = async (
   return canonicalizePetrinautIds({
     description: flowDefinition.description,
     metadata: {
+      flowInputs: Object.fromEntries(
+        Object.entries(values.flowInputEndpoints).map(([name, endpoints]) => [
+          name,
+          endpoints.map(toPetrinautEndpoint),
+        ]),
+      ),
+      pendingAtStart: flowDefinition.steps.map(({ stepId }) =>
+        toPetrinautEndpoint(placeEndpoint(pendingPlaceId(stepId))),
+      ),
       flowOutputs: Object.fromEntries(
         Object.entries(values.flowOutputEndpoints).map(([name, endpoint]) => [
           name,

@@ -32,12 +32,13 @@ type Value = {
   label: string;
   shape: ValueShape;
   /**
-   * Where the value first appears: an action step's output port, or the places a transition of the root net
-   * (`startRun`, or a for-each step's `finishCollecting`) puts it in.
+   * Where the value first appears: an action step's output port, or the places it's put in directly, by the
+   * executor when a run starts (a flow input) or by a for-each step's transitions (its item, and its collected
+   * output).
    */
   producer:
     | { kind: "port"; stepId: string; outputName: string; portId: string }
-    | { kind: "transition" };
+    | { kind: "placed" };
   consumers: Consumer[];
   isFlowOutput: boolean;
 };
@@ -137,7 +138,7 @@ export const placeValues = ({
       key: inputValueKey(input.name),
       label: input.name,
       shape: input,
-      producer: { kind: "transition" },
+      producer: { kind: "placed" },
     });
   }
 
@@ -147,13 +148,13 @@ export const placeValues = ({
         key: outputValueKey(step.stepId, step.collect.as),
         label: `${step.stepId}.${step.collect.as}`,
         shape: steps.getOutputShape(step.stepId, step.collect.as),
-        producer: { kind: "transition" },
+        producer: { kind: "placed" },
       });
       addValue({
         key: itemValueKey(step.stepId),
         label: `Item: ${step.stepId}`,
         shape: { ...steps.getForEachArrayShape(step), array: false },
-        producer: { kind: "transition" },
+        producer: { kind: "placed" },
       });
     } else {
       const subnetKey = steps.getSubnetKey(step);
@@ -353,6 +354,17 @@ export const placeValues = ({
 
       return inputArc(shared, "read");
     },
+
+    /**
+     * Where each flow input is put when a run starts: the place shared by its readers, and a copy for each step
+     * that consumes it.
+     */
+    flowInputEndpoints: Object.fromEntries(
+      flowDefinition.inputs.map((input) => [
+        input.name,
+        getValueLocation(inputValueKey(input.name)).producedInto,
+      ]),
+    ),
 
     /** Where each flow output is found: a place of the root net, or an output port of a step's instance. */
     flowOutputEndpoints: Object.fromEntries(

@@ -25,6 +25,7 @@ import { generateInstanceKey } from "./compile-flow-definition/shared/step-place
 import {
   generateCopyKey,
   generateStepOutputKey,
+  inputValueKey,
   itemValueKey,
   outputValueKey,
 } from "./compile-flow-definition/shared/value-places.js";
@@ -227,11 +228,12 @@ describe("compileFlowDefinition", () => {
         {
           flowDefinitionId: "step-named-like-a-place",
           name: "Step named like a place",
-          description: "A step whose id is the key of the run requests place",
+          description:
+            "A step whose id is the key of the failed step runs place",
           inputs: { url: flowInput("Text") },
         },
         ({ inputs, step }) => {
-          const getFile = step("p.runRequests", actions.getFileFromUrl, {
+          const getFile = step("p.failedStepRuns", actions.getFileFromUrl, {
             description: "Retrieve the file from the URL",
             inputs: { url: inputs.url },
           });
@@ -290,6 +292,61 @@ describe("compileFlowDefinition", () => {
     expect(
       (sdcpn.metadata?.flowOutputs as Record<string, unknown>).files,
     ).toEqual(collected);
+  });
+
+  it("says where a run's flow inputs and first Pending tokens go", async () => {
+    const sdcpn = await compileFlowDefinition(
+      defineFlow(
+        {
+          flowDefinitionId: "run-start",
+          name: "Run start",
+          description:
+            "An input two steps consume and one reads, and a forEach",
+          inputs: {
+            url: flowInput("Text"),
+            urls: flowInput("Text", { array: true }),
+          },
+        },
+        ({ inputs, step, forEach }) => {
+          for (const stepId of ["a", "b"]) {
+            step(stepId, actions.getFileFromUrl, {
+              description: "Retrieve the file",
+              inputs: { url: inputs.url.consume() },
+            });
+          }
+          const read = step("c", actions.getFileFromUrl, {
+            description: "Retrieve the file again",
+            inputs: { url: inputs.url },
+          });
+          const files = forEach("each", inputs.urls, {
+            description: "Retrieve each file",
+            collectAs: "files",
+            steps: (url, scope) =>
+              scope.step("inner", actions.getFileFromUrl, {
+                description: "Retrieve the file",
+                inputs: { url },
+              }).outputs.fileEntity,
+          });
+
+          return { outputs: { file: read.outputs.fileEntity, files } };
+        },
+      ).flowDefinition,
+    );
+
+    expect(sdcpn.metadata?.flowInputs).toEqual({
+      url: [
+        placeEndpointOf(`p.${inputValueKey("url")}`),
+        placeEndpointOf(`p.${generateCopyKey(inputValueKey("url"), "a.url")}`),
+        placeEndpointOf(`p.${generateCopyKey(inputValueKey("url"), "b.url")}`),
+      ],
+      urls: [placeEndpointOf(`p.${inputValueKey("urls")}`)],
+    });
+    /* Only the top-level steps: a step inside a forEach gets its Pending token when an item starts. */
+    expect(sdcpn.metadata?.pendingAtStart).toEqual(
+      ["a", "b", "c", "each"].map((stepId) =>
+        placeEndpointOf(`p.pending.${stepId}`),
+      ),
+    );
   });
 
   it("builds a flow whose inputs share a label", async () => {
@@ -670,9 +727,7 @@ describe("compileFlowDefinition", () => {
       const sdcpn = await compileWithConsumers(["consume", "read"]);
 
       expect(
-        sdcpn.transitions
-          .filter((transition) => !byKey("t.startRun")(transition))
-          .map(({ id, metadata }) => [id, metadata?.stepId]),
+        sdcpn.transitions.map(({ id, metadata }) => [id, metadata?.stepId]),
       ).toEqual(
         (
           [
@@ -712,7 +767,6 @@ describe("compileFlowDefinition", () => {
           "p.pending.persist0",
           "p.pending.persist1",
           "p.pending.research",
-          "p.runRequests",
         ]),
       );
       expect(sdcpn.transitions.map(({ id }) => id).sort()).toEqual(
@@ -721,7 +775,6 @@ describe("compileFlowDefinition", () => {
           "t.recordStepFailure.persist0",
           "t.recordStepFailure.persist1",
           "t.recordStepFailure.research",
-          "t.startRun",
           "t.startStep.persist0",
           "t.startStep.persist1",
           "t.startStep.research",

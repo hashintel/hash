@@ -117,14 +117,6 @@ export const createOneOfPayloadColor = (
     elements: [element("kind", "string"), ...payloadElements(array)],
   });
 
-export const runRequestColor = createColor({
-  id: "color.runRequest",
-  name: "RunRequest",
-  description: "A request to run the flow, from one of its triggers.",
-  displayColor: "#0F766E",
-  elements: [element("trigger", "string")],
-});
-
 export const pendingColor = createColor({
   id: "color.pending",
   name: "Pending",

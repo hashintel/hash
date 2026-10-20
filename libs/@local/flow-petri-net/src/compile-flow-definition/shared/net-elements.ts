@@ -16,7 +16,6 @@ import type {
 /**
  * What a transition does in a flow net, for the executor that runs it and for anyone reading the net.
  *
- * - `startRun`: starts a run, seeding the flow's inputs and its top-level steps' `Pending` tokens.
  * - `startStep`: starts an action step once its inputs are available, feeding every input port of its instance.
  * - `startForEach`: starts a `forEach` step once its array is available, turning it into an iterator.
  * - `copyOutput`: takes an output from a step's output port, and puts it where each of its readers and consumers takes it from. Only added when more than one place needs the value.
@@ -28,7 +27,6 @@ import type {
  *   as soon as it's enabled.
  */
 export type TransitionRole =
-  | "startRun"
   | "startStep"
   | "startForEach"
   | "copyOutput"

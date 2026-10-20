@@ -1,7 +1,6 @@
 import {
   createPayloadColor,
   pendingColor,
-  runRequestColor,
   stepFailureColor,
 } from "./colors.js";
 import { createPlace } from "./net-elements.js";
@@ -22,10 +21,7 @@ export type NetBuilder = ReturnType<typeof createNetBuilder>;
 
 export const createNetBuilder = () => {
   const colors = new Map<string, Color>(
-    [runRequestColor, pendingColor, stepFailureColor].map((color) => [
-      color.id,
-      color,
-    ]),
+    [pendingColor, stepFailureColor].map((color) => [color.id, color]),
   );
 
   const places: Place[] = [];

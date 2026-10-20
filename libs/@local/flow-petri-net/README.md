@@ -51,9 +51,8 @@ Places are circles and transitions are boxes. Dashed arrows are read arcs, which
 
 ```mermaid
 flowchart LR
-  runRequests(("RunRequests")) --> startRun["t.startRun"]
-  startRun --> inputPlace(("input.‹id›"))
-  startRun --> pending(("Pending: ‹step›"))
+  runStart["a run starts"] -.-> inputPlace(("input.‹id›"))
+  runStart -.-> pending(("Pending: ‹step›"))
 
   pending --> startStep["t.startStep.‹step›"]
   inputPlace -. read .-> startStep
@@ -108,7 +107,7 @@ flowchart LR
   finishCollecting --> forEachOutput(("output.‹forEach›~‹as›"))
 ```
 
-- **Runs.** `t.startRun` takes a run request and seeds a token into each flow input's place, and a `Pending` token for each top-level step.
+- **Runs.** The net has no transition that starts a run. The executor starts one by putting a token in each flow input's places, and a `Pending` token in each top-level step's place, which the root's `metadata.flowInputs` and `metadata.pendingAtStart` list. Steps inside a for-each step get theirs when each item starts.
 - **Ids.** The compiler builds the net from readable keys, such as `p.input.prompt`, `t.startStep.<step>` and `i.<step>` for a step's instance. Step ids can be any string without `~`, so instances have keys of their own, and `~` is what separates a step id from an output name (`p.output.<step>~<output>`), and a value from the consumer of its copy (`p.output.<step>~<output>~<consumer>`). Kernels address places by name, so a value's place is named by its key. Every id in the compiled net is the Petrinaut id of its key (`toPetrinautId`, a UUIDv5), which is what Petrinaut converts a non-UUID id to when it loads a net. So loading a compiled net changes nothing, and anything that needs an id works it out from the key. The endpoints in the root's metadata are converted too.
 - **Steps.** Each action step is a component instance of its action's subnet, keyed `i.<step>`. Its `t.startStep.<step>` fires once per run (or per item), because it consumes the step's `Pending` token. It reads or consumes each connected value according to the connection's `access`, which defaults to read, matching today's semantics. It feeds every input port of the action:
   - a connected value;
@@ -122,7 +121,7 @@ flowchart LR
 
   So a step's output has no fixed place: it's the port of the step's instance or a copy place, and anything that needs to find a value looks it up. An action with no outputs leaves its `done` token in its port.
 
-- **Flow inputs and collected outputs.** `t.startRun` and a for-each step's `t.finishCollecting` put a value straight into a place shared by its readers and a copy for each step that consumes it.
+- **Flow inputs and collected outputs.** The executor, when a run starts, and a for-each step's `t.finishCollecting` put a value straight into a place shared by its readers and a copy for each step that consumes it.
 - **For-each steps.** A for-each step iterates over its array:
   - `t.startForEach.<id>` turns the array into an iterator token, `{ref, item_count, next}`.
   - `t.startItem.<id>` starts one item per firing: it puts the item where each nested step takes it from, as for any other value (a place shared by the steps that read it, and a copy for each step that consumes it), and a `Pending` token for each nested step.
@@ -135,7 +134,7 @@ flowchart LR
   - An input or output whose kind another input decides (`kindFrom`) is typed by the kind a step connects, so an action gets a subnet per combination of kinds its steps use.
   - Any other input accepting several kinds has a `oneOf` colour, such as `Text | WebPage`, with a `kind` element saying which kind the token carries.
   - A `for-each` step's iterator is typed by the kind of array it walks (`Iterator<Text>`).
-- **Metadata.** The root carries `metadata.flowOutputs`: for each flow output, the arc endpoint it's found at, a place of the root net or an instance's output port. Every transition added for a step names it in `metadata.stepId`, so a run's view can map steps to the net and back; a for-each step's `t.collectItem` also carries its `collect`. A step's `t.startStep` carries `inputSources`: for each of the action's inputs, the arc endpoint its value comes from with the connection's `access`, `wrap` and `whenMissing`, or that it's a constant, takes its default, or is absent. The arcs alone don't say which value feeds which input. Each transition carries `metadata.role` (see `TransitionRole` in `compile-flow-definition/shared/net-elements.ts`), which tells the executor how to treat it:
+- **Metadata.** The root carries `metadata.flowInputs`: for each flow input, the places a run puts it in; `metadata.pendingAtStart`: the `Pending` places of the top-level steps; and `metadata.flowOutputs`: for each flow output, the arc endpoint it's found at, a place of the root net or an instance's output port. Every transition added for a step names it in `metadata.stepId`, so a run's view can map steps to the net and back; a for-each step's `t.collectItem` also carries its `collect`. A step's `t.startStep` carries `inputSources`: for each of the action's inputs, the arc endpoint its value comes from with the connection's `access`, `wrap` and `whenMissing`, or that it's a constant, takes its default, or is absent. The arcs alone don't say which value feeds which input. Each transition carries `metadata.role` (see `TransitionRole` in `compile-flow-definition/shared/net-elements.ts`), which tells the executor how to treat it:
   - `succeedAttempt` and `failAttempt` fire when an action's activity completes;
   - every other transition fires as soon as it's enabled, including `recordStepFailure`, which moves a step that gave up into `FailedStepRuns` and so fails the run.
 
