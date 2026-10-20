@@ -3,7 +3,8 @@
  *
  * Authored pages carry the reasoning an import graph cannot supply. They end up
  * in the same manifest as the generated pages, so a host renders one coherent
- * set of docs. Slugs mirror the directory layout under `content/`.
+ * set of docs. A page under `content/` has the slug of its path there; a page
+ * beside the code belongs to that code's layer.
  */
 
 import { readdir, readFile } from "node:fs/promises";
@@ -12,6 +13,7 @@ import { join, relative } from "node:path";
 import { parseFrontmatterRecord } from "../shared/frontmatter";
 import { toPosix } from "../shared/paths";
 
+import type { Layer } from "../model";
 import type { Dirent } from "node:fs";
 
 export interface AuthoredPage {
@@ -257,4 +259,58 @@ export const collectAuthoredContent = async (options: {
     ),
     errors,
   };
+};
+
+/**
+ * Pages and diagrams the scan found beside the code. A page belongs to the
+ * layer of its folder, so it needs no `attachTo`, and carrying one is an
+ * error: two answers to one question. Its slug is `<layer>/<file stem>`, the
+ * key `doc:` links use; the bundle places it beneath the layer's page.
+ */
+export const collectColocatedContent = async (options: {
+  repoRoot: string;
+  layers: Layer[];
+}): Promise<AuthoredContentResult> => {
+  const pages: AuthoredPage[] = [];
+  const diagrams: AuthoredDiagram[] = [];
+  const errors: { file: string; message: string }[] = [];
+  const stem = (file: string): string =>
+    (file.split("/").pop() ?? file).replace(/\.[^.]+$/u, "");
+
+  for (const layer of options.layers) {
+    for (const file of layer.pages) {
+      const contents = await readFile(join(options.repoRoot, file), "utf8");
+      const { record, errors: frontmatterErrors } =
+        parseFrontmatterRecord(contents);
+      for (const message of frontmatterErrors) {
+        errors.push({ file, message });
+      }
+      if (record !== null && "attachTo" in record) {
+        errors.push({
+          file,
+          message: `a page beside the code belongs to \`${layer.id}\` by its location; remove \`attachTo\``,
+        });
+      }
+      const slug = `${layer.id}/${stem(file)}`;
+      const meta = readPageMeta(record);
+      pages.push({
+        path: `pages/${slug}.mdx`,
+        slug,
+        title: meta.title ?? firstHeading(contents) ?? titleFromSlug(slug),
+        description: meta.description,
+        contents,
+        order: meta.order,
+        attachTo: layer.id,
+        sourceFile: file,
+      });
+    }
+    for (const file of layer.diagrams) {
+      diagrams.push({
+        name: `layers/${layer.id}/${stem(file)}`,
+        source: await readFile(join(options.repoRoot, file), "utf8"),
+        sourceFile: file,
+      });
+    }
+  }
+  return { pages, components: [], diagrams, errors };
 };

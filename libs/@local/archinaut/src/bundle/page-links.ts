@@ -181,3 +181,61 @@ export const resolveDiagramImages = (
 };
 
 /** One row of the relations card, mirroring `LayerRelation` in the component. */
+
+/**
+ * Resolves `.d2` references a page makes relative to its own source file, as
+ * an image (`![alt](./flow.d2)`) or as a component (`import Flow from
+ * "./flow.d2"`). Both become the rendered SVG in the bundle: the image stays
+ * a plain Markdown image any host renders; the import becomes an SVG import,
+ * which a host that turns SVG files into components, as Astro does, inlines.
+ * Without a renderer the image is dropped and the component renders nothing.
+ */
+export const resolveLocalDiagrams = (
+  contents: string,
+  fromSlug: string,
+  sourceFile: string,
+  /** Repo-relative `.d2` source file → the bundle's diagram name. */
+  diagramsBySource: Map<string, string>,
+  emit = true,
+): { contents: string; unresolved: string[] } => {
+  const unresolved: string[] = [];
+  const directory = posix.dirname(sourceFile);
+  const nameOf = (target: string): string | null => {
+    const file = posix.normalize(posix.join(directory, target));
+    const name = diagramsBySource.get(file);
+    if (name === undefined) {
+      unresolved.push(target);
+      return null;
+    }
+    return name;
+  };
+  const asset = (name: string): string =>
+    assetPathFrom(fromSlug, `diagrams/${name}.svg`);
+
+  const resolved = outsideCode(contents, (text) =>
+    text
+      .replace(
+        /!\[([^\]]*)\]\((\.{1,2}\/[^)\s]+?\.d2)\)(\n?)/gu,
+        (match, alt: string, target: string, newline: string) => {
+          const name = nameOf(target);
+          if (name === null) {
+            return match;
+          }
+          return emit ? `![${alt}](${asset(name)})${newline}` : "";
+        },
+      )
+      .replace(
+        /^import\s+(\w+)\s+from\s+"(\.{1,2}\/[^"]+?\.d2)";?$/gmu,
+        (match, binding: string, target: string) => {
+          const name = nameOf(target);
+          if (name === null) {
+            return match;
+          }
+          return emit
+            ? `import ${binding} from "${asset(name)}";`
+            : `export const ${binding} = () => null;`;
+        },
+      ),
+  );
+  return { contents: resolved, unresolved };
+};
