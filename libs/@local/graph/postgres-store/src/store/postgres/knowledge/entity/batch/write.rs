@@ -52,22 +52,18 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
             })
             .collect();
         self.insert_rows(&editions).await?;
-        for draft in &patches.drafts {
-            self.insert_rows(core::slice::from_ref(draft)).await?;
-        }
+        self.insert_rows(&patches.drafts).await?;
         self.insert_entity_patch_types(patches).await?;
         self.update_entity_history(&patches.history).await?;
         self.update_entity_patch_provenance(actor_id, patches)
             .await?;
-        for edition_id in &patches.changed {
-            self.as_client()
-                .execute(
-                    &insert_entity_edition_cache_statement(true),
-                    &[&[edition_id].as_slice()],
-                )
-                .await
-                .change_context(UpdateError)?;
-        }
+        self.as_client()
+            .execute(
+                &insert_entity_edition_cache_statement(true),
+                &[&patches.changed],
+            )
+            .await
+            .change_context(UpdateError)?;
         Ok(())
     }
 
@@ -86,57 +82,52 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         Ok(())
     }
 
-    /// Records inherited types at their shortest inheritance depth alongside direct memberships.
+    /// Records inherited types at their shortest inheritance depth alongside direct memberships,
+    /// so queries and permission checks use the complete type set for each new edition.
     async fn insert_entity_patch_types(
         &self,
         patches: &EntityPatchSet,
     ) -> Result<(), Report<UpdateError>> {
+        let mut edition_ids = Vec::new();
+        let mut type_ids = Vec::new();
         for entity in patches.changed_entities() {
-            let edition_id = entity.metadata.record_id.edition_id;
-            let type_ids: Vec<_> = entity
-                .metadata
-                .entity_type_ids
-                .iter()
-                .map(EntityTypeUuid::from_url)
-                .collect();
-            self.as_client()
-                .execute(
-                    "
-                    INSERT INTO entity_is_of_type (
-                        entity_edition_id, entity_type_ontology_id, inheritance_depth
-                    )
-                    SELECT
-                        $1 AS entity_edition_id,
-                        unnest($2::UUID []) AS entity_type_ontology_id,
-                        0 AS inheritance_depth
-                    ",
-                    &[&edition_id, &type_ids],
-                )
-                .await
-                .change_context(UpdateError)?;
-            self.as_client()
-                .execute(
-                    "
-                    INSERT INTO entity_is_of_type (
-                        entity_edition_id, entity_type_ontology_id, inheritance_depth
-                    )
-                    SELECT
-                        entity_is_of_type.entity_edition_id,
-                        entity_type_inherits_from.target_entity_type_ontology_id,
-                        min(entity_type_inherits_from.depth + 1) AS inheritance_depth
-                    FROM entity_is_of_type
-                    INNER JOIN entity_type_inherits_from
-                        ON entity_is_of_type.entity_type_ontology_id = \
-                     entity_type_inherits_from.source_entity_type_ontology_id
-                    WHERE entity_is_of_type.entity_edition_id = $1
-                    GROUP BY entity_is_of_type.entity_edition_id, \
-                     entity_type_inherits_from.target_entity_type_ontology_id
-                    ",
-                    &[&edition_id],
-                )
-                .await
-                .change_context(UpdateError)?;
+            for type_id in &entity.metadata.entity_type_ids {
+                edition_ids.push(entity.metadata.record_id.edition_id);
+                type_ids.push(EntityTypeUuid::from_url(type_id));
+            }
         }
+        self.as_client()
+            .execute(
+                "
+                WITH
+                    direct_types AS (
+                        SELECT *
+                        FROM
+                            unnest($1::UUID [], $2::UUID []) AS membership (edition_id, type_id)
+                    )
+
+                INSERT INTO entity_is_of_type (
+                    entity_edition_id, entity_type_ontology_id, inheritance_depth
+                )
+                SELECT
+                    direct_types.edition_id,
+                    direct_types.type_id,
+                    0 AS inheritance_depth
+                FROM direct_types
+                UNION ALL
+                SELECT
+                    direct_types.edition_id,
+                    inheritance.target_entity_type_ontology_id,
+                    min(inheritance.depth + 1) AS inheritance_depth
+                FROM direct_types
+                INNER JOIN entity_type_inherits_from AS inheritance
+                    ON direct_types.type_id = inheritance.source_entity_type_ontology_id
+                GROUP BY direct_types.edition_id, inheritance.target_entity_type_ontology_id
+                ",
+                &[&edition_ids, &type_ids],
+            )
+            .await
+            .change_context(UpdateError)?;
         Ok(())
     }
 
@@ -257,32 +248,41 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         actor_id: ActorId,
         patches: &EntityPatchSet,
     ) -> Result<(), Report<UpdateError>> {
-        for (id, publication) in &patches.publications {
+        if !patches.publications.is_empty() {
+            let mut web_ids = Vec::new();
+            let mut entity_uuids = Vec::new();
+            let mut provenance = Vec::new();
+            for (id, publication) in &patches.publications {
+                web_ids.push(id.web_id);
+                entity_uuids.push(id.entity_uuid);
+                provenance.push(SqlEntityProvenance::from(publication.clone()).json);
+            }
             self.as_client()
                 .execute(
                     "
                     UPDATE entity_ids
-                    SET provenance = provenance || $3::JSONB
-                    WHERE web_id = $1 AND entity_uuid = $2
+                    SET provenance = entity_ids.provenance || published.provenance
+                    FROM
+                        unnest($1::UUID [], $2::UUID [], $3::JSONB [])
+                            AS published (web_id, entity_uuid, provenance)
+                    WHERE entity_ids.web_id = published.web_id
+                        AND entity_ids.entity_uuid = published.entity_uuid
                     ",
-                    &[
-                        &id.web_id,
-                        &id.entity_uuid,
-                        &SqlEntityProvenance::from(publication.clone()).json,
-                    ],
+                    &[&web_ids, &entity_uuids, &provenance],
                 )
                 .await
                 .change_context(UpdateError)?;
         }
-        for edition_id in &patches.archived {
+        if !patches.archived.is_empty() {
+            let archived: Vec<_> = patches.archived.iter().copied().collect();
             self.as_client()
                 .execute(
                     "
                     UPDATE entity_editions
                     SET provenance = provenance || jsonb_build_object('archivedById', $2::UUID)
-                    WHERE entity_edition_id = $1
+                    WHERE entity_edition_id = any($1::UUID [])
                     ",
-                    &[edition_id, &ActorEntityUuid::from(actor_id)],
+                    &[&archived, &ActorEntityUuid::from(actor_id)],
                 )
                 .await
                 .change_context(UpdateError)?;
