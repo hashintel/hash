@@ -246,6 +246,7 @@ export type {
   PetrinautAiInteractiveToolSchema,
   PetrinautAiInteractiveToolWidgetProps,
 } from "./types/ai-interactive-tool";
+/** @deprecated Import `DefaultChatTransport` from `ai`. */
 export { DefaultChatTransport } from "ai";
 
 // SDCPN value-equality check exposed for consumers that need to detect

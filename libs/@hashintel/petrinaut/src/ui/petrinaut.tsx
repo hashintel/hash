@@ -53,14 +53,34 @@ import type {
 } from "./views/Editor/panels/ai-assistant-panel";
 import type { PetrinautAiMutationExecutor } from "./views/Editor/panels/ai-assistant-panel/types";
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiChatTransport = PetrinautAiTransport;
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiStopResult = "already-settled" | "stop-requested";
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiAssistantPresentation = "stock" | "brunch";
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiToolPresentationState = "pending" | "success" | "error";
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiToolPresentationTone =
   | "danger"
   | "info"
@@ -68,6 +88,10 @@ export type PetrinautAiToolPresentationTone =
   | "pending"
   | "success";
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiToolPresentationContext = {
   toolName: string;
   state: PetrinautAiToolPresentationState;
@@ -76,6 +100,10 @@ export type PetrinautAiToolPresentationContext = {
   error: string | undefined;
 };
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiToolPresentation = {
   title: string;
   detail?: string;
@@ -83,10 +111,18 @@ export type PetrinautAiToolPresentation = {
   items?: readonly string[];
 };
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiToolPresentationResolver = (
   context: PetrinautAiToolPresentationContext,
 ) => PetrinautAiToolPresentation | undefined;
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiAssistant = {
   /** Selects the assistant's visual presentation. Defaults to "stock". */
   presentation?: PetrinautAiAssistantPresentation;
@@ -211,6 +247,11 @@ export type PetrinautProps = {
   existingNets?: MinimalNetMetadata[];
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet?: (petriNetId: string) => void;
+  /**
+   * @deprecated Provide the assistant with a plugin that declares
+   * `assistant`, which renders its own chat. While such a plugin runs, the
+   * editor ignores this prop.
+   */
   aiAssistant?: PetrinautAiAssistant;
   /**
    * Host-supplied components to inject at specific locations in the editor.

@@ -11,7 +11,7 @@ import type { PetrinautAiAssistant } from "../../../petrinaut";
 
 /**
  * The editor's AI assistant: the first running plugin that provides one, or
- * else the `aiAssistant` prop's built-in chat.
+ * else the deprecated `aiAssistant` prop's built-in chat.
  */
 export const useEditorAssistant = (aiAssistant?: PetrinautAiAssistant) => {
   const plugin = usePluginAssistant();

@@ -17,7 +17,12 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type { ChatTransport, UIDataTypes, UIMessage } from "ai";
 
-/** Synchronous host boundary for canonical mutations, not commands or title changes. */
+/**
+ * Synchronous host boundary for canonical mutations, not commands or title changes.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiMutationExecutor = (
   mutation: Extract<AiToolCall, { toolName: PetrinautAiMutationToolName }> & {
     toolCallId: string;
@@ -63,7 +68,12 @@ type PetrinautAiUiTools = {
   };
 };
 
-/** Message provenance and terminal presentation projected by the host. */
+/**
+ * Message provenance and terminal presentation projected by the host.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiMessageMetadata = {
   source?: "voice";
   /** This assistant response was stopped, rather than completed normally. */
@@ -74,12 +84,20 @@ export type PetrinautAiMessageMetadata = {
   toolCallId?: string;
 };
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiMessage = UIMessage<
   PetrinautAiMessageMetadata,
   UIDataTypes,
   PetrinautAiUiTools
 >;
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiTransport = ChatTransport<PetrinautAiMessage>;
 
 /**

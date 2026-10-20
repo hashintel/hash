@@ -2483,7 +2483,12 @@ const ConversationAiAssistantPanel = ({
   );
 };
 
-/** Replace every conversation-owned hook and callback together when identity changes. */
+/**
+ * Replace every conversation-owned hook and callback together when identity changes.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export const AiAssistantPanel = (props: AiAssistantPanelProps) => (
   <ConversationAiAssistantPanel
     key={props.aiAssistant.conversationId ?? "generated-conversation"}
