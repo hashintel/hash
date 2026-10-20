@@ -1,5 +1,7 @@
+mod batch;
 mod delete;
 pub(crate) mod feed;
+mod history;
 mod patch;
 pub(crate) mod provenance;
 mod query;
@@ -103,6 +105,7 @@ use crate::store::{
         BeginReadOnlyTransaction, InTransaction, TransactionState, TraversalContext,
         crud::{QueryIndices, TypedRow},
         knowledge::entity::{
+            history::EntityHistory,
             patch::{EntityPatchPreparation, PreparedEntityPatch},
             provenance::{SqlEntityEditionProvenance, SqlEntityProvenance},
             read::EntityEdgeTraversalData,
@@ -2485,6 +2488,19 @@ struct LockedEntityEdition {
     transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
+impl From<LockedEntityEdition> for EntityTemporalMetadataRow {
+    fn from(edition: LockedEntityEdition) -> Self {
+        Self {
+            web_id: edition.entity_id.web_id,
+            entity_uuid: edition.entity_id.entity_uuid,
+            draft_id: edition.entity_id.draft_id,
+            entity_edition_id: edition.entity_edition_id,
+            decision_time: edition.decision_time,
+            transaction_time: edition.transaction_time,
+        }
+    }
+}
+
 /// Builds the statement populating `entity_edition_cache` by aggregating the editions'
 /// `entity_is_of_type` rows joined to the referenced types.
 ///
@@ -2848,8 +2864,8 @@ where
         })
     }
 
+    /// Preserves the earlier intervals before replacing the state at the patch timestamps.
     #[tracing::instrument(level = "info", skip(self))]
-    #[expect(clippy::too_many_lines)]
     async fn update_temporal_metadata(
         &self,
         locked_row: LockedEntityEdition,
@@ -2858,186 +2874,28 @@ where
         entity_edition_id: EntityEditionId,
         undraft: bool,
     ) -> Result<EntityTemporalMetadata, Report<UpdateError>> {
-        let row = if let Some(draft_id) = locked_row.entity_id.draft_id {
-            if undraft {
-                self.client
-                    .as_client()
-                    .query_one(
-                        "
-                UPDATE entity_temporal_metadata
-                SET transaction_time = tstzrange($4::timestamptz, NULL, '[)'),
-                    decision_time = tstzrange($5::timestamptz, upper(decision_time), '[)'),
-                    entity_edition_id = $6,
-                    draft_id = NULL
-                WHERE entity_temporal_metadata.web_id = $1
-                  AND entity_temporal_metadata.entity_uuid = $2
-                  AND entity_temporal_metadata.draft_id = $3
-                  AND entity_temporal_metadata.transaction_time @> $4::timestamptz
-                  AND entity_temporal_metadata.decision_time @> $5::timestamptz
-                RETURNING decision_time, transaction_time;",
-                        &[
-                            &locked_row.entity_id.web_id,
-                            &locked_row.entity_id.entity_uuid,
-                            &draft_id,
-                            &transaction_time,
-                            &decision_time,
-                            &entity_edition_id,
-                        ],
-                    )
-                    .instrument(tracing::info_span!(
-                        "UPDATE",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(UpdateError)?
-            } else {
-                self.client
-                    .as_client()
-                    .query_one(
-                        "
-                UPDATE entity_temporal_metadata
-                SET transaction_time = tstzrange($4::timestamptz, NULL, '[)'),
-                    decision_time = tstzrange($5::timestamptz, upper(decision_time), '[)'),
-                    entity_edition_id = $6
-                WHERE entity_temporal_metadata.web_id = $1
-                  AND entity_temporal_metadata.entity_uuid = $2
-                  AND entity_temporal_metadata.draft_id = $3
-                  AND entity_temporal_metadata.transaction_time @> $4::timestamptz
-                  AND entity_temporal_metadata.decision_time @> $5::timestamptz
-                RETURNING decision_time, transaction_time;",
-                        &[
-                            &locked_row.entity_id.web_id,
-                            &locked_row.entity_id.entity_uuid,
-                            &draft_id,
-                            &transaction_time,
-                            &decision_time,
-                            &entity_edition_id,
-                        ],
-                    )
-                    .instrument(tracing::info_span!(
-                        "UPDATE",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(UpdateError)?
-            }
-        } else {
-            self.client
-                .as_client()
-                .query_one(
-                    "
-                UPDATE entity_temporal_metadata
-                SET transaction_time = tstzrange($3::timestamptz, NULL, '[)'),
-                    decision_time = tstzrange($4::timestamptz, upper(decision_time), '[)'),
-                    entity_edition_id = $5
-                WHERE entity_temporal_metadata.web_id = $1
-                  AND entity_temporal_metadata.entity_uuid = $2
-                  AND entity_temporal_metadata.draft_id IS NULL
-                  AND entity_temporal_metadata.transaction_time @> $3::timestamptz
-                  AND entity_temporal_metadata.decision_time @> $4::timestamptz
-                RETURNING decision_time, transaction_time;",
-                    &[
-                        &locked_row.entity_id.web_id,
-                        &locked_row.entity_id.entity_uuid,
-                        &transaction_time,
-                        &decision_time,
-                        &entity_edition_id,
-                    ],
-                )
-                .instrument(tracing::info_span!(
-                    "UPDATE",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres"
-                ))
-                .await
-                .change_context(UpdateError)?
+        let previous = EntityTemporalMetadataRow::from(locked_row);
+        let row = EntityTemporalMetadataRow {
+            draft_id: if undraft { None } else { previous.draft_id },
+            entity_edition_id,
+            transaction_time: LeftClosedTemporalInterval::new(
+                ClosedTemporalBound::Inclusive(transaction_time),
+                OpenTemporalBound::Unbounded,
+            ),
+            decision_time: LeftClosedTemporalInterval::new(
+                ClosedTemporalBound::Inclusive(decision_time),
+                *previous.decision_time.end(),
+            ),
+            ..previous.clone()
         };
-
-        self.client
-            .as_client()
-            .query(
-                "
-                INSERT INTO entity_temporal_metadata (
-                    web_id,
-                    entity_uuid,
-                    draft_id,
-                    entity_edition_id,
-                    decision_time,
-                    transaction_time
-                ) SELECT
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    $5,
-                    tstzrange(lower($6::tstzrange), $7, '[)')
-                WHERE lower($6::tstzrange) < $7::timestamptz;",
-                &[
-                    &locked_row.entity_id.web_id,
-                    &locked_row.entity_id.entity_uuid,
-                    &locked_row.entity_id.draft_id,
-                    &locked_row.entity_edition_id,
-                    &locked_row.decision_time,
-                    &locked_row.transaction_time,
-                    &transaction_time,
-                ],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(UpdateError)?;
-
-        self.client
-            .as_client()
-            .query(
-                "
-                INSERT INTO entity_temporal_metadata (
-                    web_id,
-                    entity_uuid,
-                    draft_id,
-                    entity_edition_id,
-                    transaction_time,
-                    decision_time
-                ) SELECT
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    tstzrange($6, NULL, '[)'),
-                    tstzrange(lower($5::tstzrange), $7, '[)')
-                WHERE lower($5::tstzrange) < $7::timestamptz;",
-                &[
-                    &locked_row.entity_id.web_id,
-                    &locked_row.entity_id.entity_uuid,
-                    &locked_row.entity_id.draft_id,
-                    &locked_row.entity_edition_id,
-                    &locked_row.decision_time,
-                    &transaction_time,
-                    &decision_time,
-                ],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(UpdateError)?;
-
-        Ok(EntityTemporalMetadata {
-            decision_time: row.get(0),
-            transaction_time: row.get(1),
-        })
+        let temporal_versioning = EntityTemporalMetadata {
+            decision_time: row.decision_time,
+            transaction_time: row.transaction_time,
+        };
+        let mut history = EntityHistory::new([previous.clone()]);
+        history.replace(&previous, row, transaction_time, decision_time);
+        self.update_entity_history(&history).await?;
+        Ok(temporal_versioning)
     }
 
     #[tracing::instrument(level = "info", skip(self))]

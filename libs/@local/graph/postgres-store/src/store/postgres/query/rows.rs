@@ -571,7 +571,7 @@ impl PostgresRow for EntityIsOfTypeRow {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EntityTemporalMetadataRow {
     pub web_id: WebId,
     pub entity_uuid: EntityUuid,
