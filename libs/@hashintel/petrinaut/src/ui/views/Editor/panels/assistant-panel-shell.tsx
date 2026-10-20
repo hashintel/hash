@@ -27,9 +27,6 @@ const dockSpaceStyle = css({
     transition: "[width 150ms ease-in-out]",
     "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
   },
-  "@media (prefers-reduced-motion: reduce)": {
-    transition: "[none]",
-  },
 });
 
 const shellStyle = cva({
@@ -48,9 +45,6 @@ const shellStyle = cva({
       transition:
         "[top 150ms ease-in-out, right 150ms ease-in-out, height 150ms ease-in-out, max-height 150ms ease-in-out, transform 150ms ease-in-out, visibility 0s]",
       "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-    },
-    "@media (prefers-reduced-motion: reduce)": {
-      transition: "[none]",
     },
   },
   variants: {
@@ -98,9 +92,6 @@ const cardStyle = cva({
       transition:
         "[border-radius 150ms ease-in-out, box-shadow 150ms ease-in-out]",
       "@media (prefers-reduced-motion: reduce)": { transition: "[none]" },
-    },
-    "@media (prefers-reduced-motion: reduce)": {
-      transition: "[none]",
     },
   },
   variants: {
