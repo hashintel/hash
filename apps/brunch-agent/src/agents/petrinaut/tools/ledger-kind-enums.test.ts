@@ -545,8 +545,12 @@ test("a claim that only renders under an entity is refused without one", async (
     });
 });
 
-test("only a recorded commit that sets endTurn ends the turn", async () => {
-  const terminates = async (entries: unknown, endTurn?: boolean) => {
+test("only a recorded commit that sets endTurn beside a reply ends the turn", async () => {
+  const terminates = async (
+    entries: unknown,
+    endTurn?: boolean,
+    reply = "Noted.",
+  ) => {
     const batch = toBatch(entries);
     const history: LedgerHistory = {
       messages: [
@@ -554,7 +558,7 @@ test("only a recorded commit that sets endTurn ends the turn", async () => {
         {
           id: "response-1",
           role: "assistant",
-          parts: [commitPart("commit-1", batch)],
+          parts: [{ type: "text", text: reply }, commitPart("commit-1", batch)],
         },
       ],
     };
@@ -596,6 +600,8 @@ test("only a recorded commit that sets endTurn ends the turn", async () => {
   expect(await terminates(entity)).toBe(false);
   expect(await terminates(entity, false)).toBe(false);
   expect(await terminates(unanchored, true)).toBe(false);
+  expect(await terminates(entity, true, "")).toBe(false);
+  expect(await terminates(entity, true, " \n")).toBe(false);
 });
 
 test("an entity update keeps the turn the entity was created in", () => {
