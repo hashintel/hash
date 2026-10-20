@@ -6,7 +6,7 @@ sidebar_order: 1
 
 The generated pages come from annotations in the Petrinaut source. This page is
 the short version of how to change them; the full reference lives in
-[`libs/@local/petrinaut-arch-docs/README.md`](https://github.com/hashintel/hash/blob/main/libs/@local/petrinaut-arch-docs/README.md).
+[`libs/@local/archinaut/README.md`](https://github.com/hashintel/hash/blob/main/libs/@local/archinaut/README.md).
 
 ## Declaring a layer
 
@@ -32,9 +32,9 @@ instead:
  */
 ```
 
-Use one mechanism or the other, never both on the same folder. `layer` and
-`role` are the only frontmatter keys, and `@layerRoot`, `@role` and `@talksTo`
-the only tags; anything else is either an error or ignored.
+Use one mechanism or the other, never both on the same folder. Frontmatter
+takes `layer` and `role`; in a doc comment the tags are `@layerRoot`, `@role`
+and `@talksTo`. Anything else is either an error or ignored.
 
 ## You do not need to annotate every file
 

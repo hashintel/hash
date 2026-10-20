@@ -2,37 +2,16 @@
   "name": "@apps/petrinaut-docs",
   "version": "0.0.0-private",
   "private": true,
-  "description": "Renders the Petrinaut architecture bundle as a browsable docs site",
+  "description": "Builds and serves the Petrinaut architecture docs with archinaut; the Vercel project for docs.petrinaut.org",
   "license": "(MIT OR Apache-2.0)",
   "type": "module",
   "scripts": {
-    "build": "astro build && node scripts/check-built-css.mjs",
-    "dev": "astro dev --port ${PORT:-4322}",
-    "lint:tsc": "astro check --minimumSeverity error",
-    "preview": "astro preview",
-    "sync:bundle": "node scripts/sync-bundle.mjs"
-  },
-  "dependencies": {
-    "@astrojs/markdown-remark": "7.3.3",
-    "@astrojs/react": "7.1.0",
-    "@astrojs/starlight": "0.42.6",
-    "astro": "7.4.0",
-    "cookie": "2.0.1",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
-    "sharp": "0.35.5"
+    "build": "archinaut build --config ../../libs/@local/petrinaut-arch-docs/archinaut.config.ts --out dist",
+    "dev": "archinaut dev --config ../../libs/@local/petrinaut-arch-docs/archinaut.config.ts --port ${PORT:-4322}"
   },
   "devDependencies": {
-    "@astrojs/check": "0.9.10",
-    "@local/petrinaut-arch-docs": "workspace:*",
-    "@local/tsconfig": "workspace:*",
-    "@tsconfig/bases": "catalog:",
-    "@types/node": "catalog:",
-    "@types/react": "19.2.14",
-    "@types/react-dom": "19.2.3",
-    "hast-util-from-html": "2.0.3",
-    "typescript": "catalog:",
-    "unist-util-visit": "5.1.0"
+    "@local/archinaut": "workspace:*",
+    "@local/petrinaut-arch-docs": "workspace:*"
   },
   "engines": {
     "node": "22.x"
