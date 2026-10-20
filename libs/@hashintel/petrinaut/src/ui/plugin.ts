@@ -14,6 +14,7 @@ export type {
   PetrinautPluginManifest,
   PluginApi,
   PluginAssistant,
+  PluginAssistantStartAction,
   PluginButton,
   PluginButtonPlace,
   PluginButtonSpec,
@@ -53,7 +54,11 @@ export {
   AssistantPanelTitle,
   useAssistantPanel,
 } from "./plugins/plugin-assistant";
-export type { AssistantPanel } from "./plugins/plugin-assistant";
+export type {
+  AssistantPanel,
+  AssistantStartRequest,
+} from "./plugins/plugin-assistant";
+export { AssistantPanelPreview } from "./views/Editor/panels/assistant-panel-shell";
 export {
   useCommand,
   useCommandRegistry,
@@ -62,6 +67,7 @@ export {
 export { useStore, useStoreSelector } from "../react/use-store";
 export type { PetrinautRevealTarget } from "../react/hooks/use-reveal-in-editor";
 export type { AddNotificationInput } from "../react/notifications/context";
+export type { ExperimentRecord } from "../react/experiments/context";
 export type { ReadOnlyReason } from "../react/state/use-read-only-reason";
 export { parseDocumentUri } from "@hashintel/petrinaut-core";
 export type {

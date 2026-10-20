@@ -42,6 +42,7 @@ export type {
 export {
   ExperimentalIcon,
   ExperimentalIconProvider,
+  useExperimentalIconPackEnabled,
   DiagnosticsIcon,
   LoadingIcon,
   ArrowTrendDownIcon,
@@ -189,6 +190,11 @@ export type {
   ExperimentalIconTransition,
   ExperimentalIconChoreography,
 } from "./experimental-icons";
+// What an assistant plugin's own chat draws with: the assistant icon and the
+// tabs the editor's panels use.
+export { AiAssistantIcon } from "./components/ai-assistant-icon";
+export { HorizontalTabsHeader } from "./components/sub-view/horizontal/horizontal-tabs-container";
+export type { HorizontalTabView } from "./components/sub-view/horizontal/horizontal-tabs-container";
 // The user-guide pages the built-in documentation read serves, so a host
 // tool under its own name can answer with the same text.
 export { petrinautDocsContent } from "./petrinaut-docs-content";

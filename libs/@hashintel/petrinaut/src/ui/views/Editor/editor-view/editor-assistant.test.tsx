@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, screen } from "@testing-library/react";
-import { type ReactNode, use } from "react";
+import { type ReactNode, use, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
@@ -8,6 +8,7 @@ import { EditorContext } from "../../../../react/state/editor-context";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import {
   AssistantPanelTitle,
+  type AssistantStartRequest,
   useAssistantPanel,
 } from "../../../plugins/plugin-assistant";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";
@@ -26,6 +27,8 @@ beforeAll(() => {
 
 afterEach(cleanup);
 
+const onTitleClose = vi.fn();
+
 const PluginChat = () => {
   const panel = useAssistantPanel();
 
@@ -33,17 +36,28 @@ const PluginChat = () => {
     <>
       <AssistantPanelTitle
         actions={<button type="button">Clear test chat</button>}
+        onClose={onTitleClose}
       >
         Test assistant
       </AssistantPanelTitle>
       <p>{panel.isOpen ? "Plugin chat open" : "Plugin chat closed"}</p>
+      {panel.startRequest !== null && (
+        <button type="button" onClick={panel.consumeStartRequest}>
+          Start with {JSON.stringify(panel.startRequest)}
+        </button>
+      )}
     </>
   );
 };
 
 const chatPlugin = definePetrinautPlugin(
   { id: "test.chat", name: "Chat", assistant: true },
-  { assistant: { content: <PluginChat /> } },
+  {
+    assistant: {
+      content: <PluginChat />,
+      startAction: { id: "listen", label: "Listen", icon: null },
+    },
+  },
 );
 
 const composerPlugin = definePetrinautPlugin(
@@ -64,21 +78,36 @@ const brokenPlugin = definePetrinautPlugin(
   { assistant: { content: <Throwing /> } },
 );
 
-/** The panel as the editor mounts it, with a button standing in for the toggle. */
+/** The panel as the editor mounts it, with buttons standing in for the toggle and the empty-canvas prompt. */
 const Editor = () => {
-  const { plugin } = useEditorAssistant();
+  const assistant = useEditorAssistant();
   const { setAiAssistantOpen } = use(EditorContext);
+  const [startRequest, setStartRequest] =
+    useState<AssistantStartRequest | null>(null);
 
   return (
     <>
       <button type="button" onClick={() => setAiAssistantOpen(true)}>
         Show AI assistant
       </button>
-      {plugin && (
+      {assistant.startAction && (
+        <button
+          type="button"
+          onClick={() => {
+            setStartRequest({ action: assistant.startAction!.id });
+            setAiAssistantOpen(true);
+          }}
+        >
+          {assistant.startAction.label}
+        </button>
+      )}
+      {assistant.plugin && (
         <EditorAssistantPanel
-          plugin={plugin}
+          plugin={assistant.plugin}
           petriNetId="net"
           focusRequest={0}
+          startRequest={startRequest}
+          consumeStartRequest={() => setStartRequest(null)}
         />
       )}
     </>
@@ -115,13 +144,26 @@ describe("EditorAssistantPanel", () => {
     );
   });
 
-  test("closes the panel from its title bar", () => {
+  test("runs the title's onClose, then closes the panel", () => {
     renderPlugins([chatPlugin], <Editor />);
     fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
 
+    expect(onTitleClose).toHaveBeenCalledOnce();
     expect(screen.getByText("Plugin chat closed")).not.toBeNull();
+  });
+
+  test("hands the start action's request to the content until it is consumed", () => {
+    renderPlugins([chatPlugin], <Editor />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Listen" }));
+    const start = screen.getByRole("button", {
+      name: 'Start with {"action":"listen"}',
+    });
+    fireEvent.click(start);
+
+    expect(screen.queryByRole("button", { name: /^Start with/u })).toBeNull();
   });
 
   test("keeps the panel's frame when the plugin's content throws, and reports it", () => {

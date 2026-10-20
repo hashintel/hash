@@ -181,7 +181,7 @@ type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
 | `buttons`        | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, one of the plugin's command keys. A button has at least one of `onClick`, `command` and `ref`. |
 | `topBarItems`    | Declared     | Per key: a `ReactNode`.                                                                                                                                                                    |
 | `readOnlyAction` | Declared     | `{ run }`: what the read-only notice's button does. The notice shows the action of the first running plugin that declares one, and closes when the button is clicked.                      |
-| `assistant`      | Declared     | `{ content, onPrompt? }`: `content` fills the panel behind the plugin's error boundary, and `onPrompt(text)` takes the empty-net prompt's message. The first running plugin's shows.       |
+| `assistant`      | Declared     | `{ content, onPrompt?, startAction? }`: `content` fills the panel behind the plugin's error boundary; the others serve the empty-net prompt. The first running plugin's shows.             |
 | `provides`       | Declared     | The service type `T` of `pluginService<T>()`.                                                                                                                                              |
 
 Every declared key is required and every undeclared one is a type error.
@@ -215,13 +215,15 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
   `PluginCommandSpec`, `PluginButtonSpec`, `PluginButtonPlace`,
   `PluginTopBarItemSpec`, `PluginTopBarPlace`.
 - Contributions: `PluginButton`, `PluginCommand`, `PluginReadOnlyAction`,
-  `PluginAssistant`.
-- Assistant panel: `AssistantPanel`.
+  `PluginAssistant`, `PluginAssistantStartAction`.
+- Assistant panel: `AssistantPanel`, `AssistantStartRequest`.
 - Access: `PluginAccess`, `AccessApi`, `PluginDocumentReader`,
   `PluginDocument`, `PluginDiagnostics`, `PluginEdits`,
   `PluginExperimentsReader`, `PluginExperiments`, `PluginEditorReader`,
   `PluginEditor`, `PluginErrors`, `PluginNotifications`, `EditResult`,
   `EditRefusal`, `ReadOnlyReason`.
+- Experiments: `ExperimentRecord`, the records `api.experiments.records`
+  holds.
 - Editor state: `PetrinautNavigationState`, `PetrinautNavigationUpdate`,
   `SelectionItem`, `PetrinautRevealTarget`, `DiagnosticsSnapshot`,
   `AddNotificationInput`, `ReadableStore`.
@@ -236,13 +238,18 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
 - `useCommand(command, options?)`: a command the manifest cannot declare, such
   as one per record. Declared commands need no hook.
 - `useAssistantPanel()`: the assistant panel's state, from inside
-  `assistant.content`: `isOpen` and `close`.
+  `assistant.content`: `isOpen`, `close`, `focusRequest`, `collapsed`,
+  `setCollapsed`, and the start request with `consumeStartRequest`.
 
 ### Components
 
 - `AssistantPanelTitle`: fills the assistant panel's title bar from inside
   `assistant.content`. `children` render after the assistant icon, such as a
   title or tabs, and `actions` between the dock toggle and the Close button.
+  `onClose` runs when the user presses Close, before the panel closes.
+- `AssistantPanelPreview`: renders `children` as a plugin's `assistant.content`
+  in the panel outside an editor, for stories and tests. `state` overrides the
+  panel's state, which starts open with no start request.
 
 ### Attributes
 
