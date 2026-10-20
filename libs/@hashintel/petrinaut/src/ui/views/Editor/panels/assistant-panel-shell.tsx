@@ -162,8 +162,9 @@ const headerLabelStyle = css({
   },
 });
 
-// Clicks on the title's text reach the drag handle beneath it; its controls
-// take their own.
+// Clicks on the title's text and containers, such as a tab list, reach the
+// drag handle beneath it. Its controls take their own: a container with
+// `tabindex="-1"` only receives focus from code, so it stays a drag area.
 const titleStyle = css({
   position: "relative",
   flex: "[1]",
@@ -176,9 +177,10 @@ const titleStyle = css({
   fontWeight: "medium",
   whiteSpace: "nowrap",
   pointerEvents: "none",
-  "& :is(button, a, input, select, textarea, [tabindex])": {
-    pointerEvents: "auto",
-  },
+  "& :is(button, a, input, select, textarea, [tabindex]:not([tabindex='-1']))":
+    {
+      pointerEvents: "auto",
+    },
 });
 
 const actionsStyle = css({ display: "contents" });
