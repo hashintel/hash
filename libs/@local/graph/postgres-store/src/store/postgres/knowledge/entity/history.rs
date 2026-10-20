@@ -4,7 +4,7 @@ use hash_graph_temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
     TransactionTime,
 };
-use type_system::knowledge::entity::EntityId;
+use type_system::knowledge::entity::{EntityId, id::EntityEditionId};
 
 use crate::store::postgres::query::rows::EntityTemporalMetadataRow;
 
@@ -35,6 +35,14 @@ impl EntityHistory {
             });
         }
         history
+    }
+
+    /// An edition may appear in several intervals, so the same ID can occur more than once.
+    pub(super) fn edition_ids(&self) -> impl Iterator<Item = EntityEditionId> {
+        self.current
+            .values()
+            .flatten()
+            .map(|entry| entry.row.entity_edition_id)
     }
 
     pub(super) fn get(
@@ -85,6 +93,11 @@ impl EntityHistory {
             row,
             original: None,
         });
+    }
+
+    /// Tracks membership in the batch even after every interval for an entity has been closed.
+    pub(super) fn contains(&self, entity_id: EntityId) -> bool {
+        self.current.contains_key(&entity_id)
     }
 
     /// Produces intervals that preserve earlier transaction snapshots and earlier decision-time

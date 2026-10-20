@@ -68,7 +68,7 @@ use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use tokio::sync::oneshot;
-use tokio_postgres::{GenericClient as _, error::SqlState};
+use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;
 use type_system::{
     knowledge::{
@@ -100,12 +100,10 @@ use uuid::Uuid;
 
 use crate::store::{
     AsClient, GenericClientIter as _, PostgresStore,
-    error::RaceConditionOnUpdate,
     postgres::{
         BeginReadOnlyTransaction, InTransaction, TransactionState, TraversalContext,
         crud::{QueryIndices, TypedRow},
         knowledge::entity::{
-            patch::{EntityPatchPreparation, PreparedEntityPatch, authorize_entity_patch},
             provenance::SqlEntityProvenance,
             read::EntityEdgeTraversalData,
             summary::{Deduplication, EntitySummaryQuery, EntitySummaryRequest},
@@ -2012,77 +2010,33 @@ where
         Ok(response.entities.into_iter().next())
     }
 
+    /// Preserves input-order semantics for repeated entities while writing the batch in one
+    /// transaction. Embedding updates start after the entity changes are committed.
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn patch_entities(
         &mut self,
         actor_id: ActorId,
         params: Vec<PatchEntityParams>,
     ) -> Result<Vec<Entity>, Report<UpdateError>> {
+        if params.is_empty() {
+            return Ok(Vec::new());
+        }
         let transaction_time = Timestamp::now().remove_nanosecond();
         let transaction = self.begin_transaction().await.change_context(UpdateError)?;
 
-        let mut patched_entities = Vec::with_capacity(params.len());
-        let mut embedding_entity_ids = Vec::new();
-
-        for (index, params) in params.into_iter().enumerate() {
-            let decision_time = params
-                .decision_time
-                .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
-            let (locked_row, previous_entity) = transaction
-                .load_entity_for_patch(params.entity_id, transaction_time, decision_time)
-                .await?;
-            let policy_components = transaction
-                .build_entity_patch_policy_components(actor_id, &params, &previous_entity)
-                .await?;
-            let policy_set = policy_components
-                .build_policy_set([
-                    ActionName::Instantiate,
-                    ActionName::UpdateEntity,
-                    ActionName::ArchiveEntity,
-                ])
-                .change_context(UpdateError)?;
-            authorize_entity_patch(
-                actor_id,
-                &params,
-                &previous_entity,
-                &policy_set,
-                policy_components.context(),
-            )?;
-            let validator_provider = StoreProvider::new(&transaction, &policy_components);
-            match transaction
-                .prepare_entity_patch(
-                    actor_id,
-                    params,
-                    previous_entity,
-                    &policy_components,
-                    &policy_set,
-                    &validator_provider,
-                )
-                .await?
-            {
-                EntityPatchPreparation::Unchanged(entity) => patched_entities.push(*entity),
-                EntityPatchPreparation::Changed(prepared) => {
-                    let PreparedEntityPatch {
-                        changes,
-                        validation,
-                    } = *prepared;
-                    let entity = transaction
-                        .persist_entity_patch(
-                            actor_id,
-                            changes,
-                            locked_row,
-                            transaction_time,
-                            decision_time,
-                        )
-                        .await?;
-                    validation
-                        .validate(&validator_provider, &entity, index)
-                        .await?;
-                    embedding_entity_ids.push(entity.metadata.record_id.entity_id);
-                    patched_entities.push(entity);
-                }
-            }
-        }
+        let mut patches = transaction
+            .load_entity_patch_set(&params, transaction_time)
+            .await?;
+        let patched_entities = transaction
+            .resolve_entity_patches(actor_id, params, &mut patches, transaction_time)
+            .await?;
+        transaction
+            .write_entity_patch_set(actor_id, &patches)
+            .await?;
+        let embedding_entity_ids: Vec<_> = patches
+            .changed_entities()
+            .map(|entity| entity.metadata.record_id.entity_id)
+            .collect();
 
         transaction.commit().await.change_context(UpdateError)?;
 
@@ -2493,28 +2447,6 @@ where
     }
 }
 
-#[derive(Debug)]
-#[must_use]
-struct LockedEntityEdition {
-    entity_id: EntityId,
-    entity_edition_id: EntityEditionId,
-    decision_time: LeftClosedTemporalInterval<DecisionTime>,
-    transaction_time: LeftClosedTemporalInterval<TransactionTime>,
-}
-
-impl From<LockedEntityEdition> for EntityTemporalMetadataRow {
-    fn from(edition: LockedEntityEdition) -> Self {
-        Self {
-            web_id: edition.entity_id.web_id,
-            entity_uuid: edition.entity_id.entity_uuid,
-            draft_id: edition.entity_id.draft_id,
-            entity_edition_id: edition.entity_edition_id,
-            decision_time: edition.decision_time,
-            transaction_time: edition.transaction_time,
-        }
-    }
-}
-
 /// Builds the statement populating `entity_edition_cache` by aggregating the editions'
 /// `entity_is_of_type` rows joined to the referenced types.
 ///
@@ -2622,96 +2554,6 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
         ON types.entity_edition_id = labels.entity_edition_id;
 "
     )
-}
-
-impl<C> PostgresStore<C, InTransaction>
-where
-    C: AsClient,
-{
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn lock_entity_edition(
-        &self,
-        entity_id: EntityId,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-    ) -> Result<Option<LockedEntityEdition>, Report<UpdateError>> {
-        let current_data = if let Some(draft_id) = entity_id.draft_id {
-            self.as_client()
-                .query_opt(
-                    "
-                        SELECT
-                            entity_temporal_metadata.entity_edition_id,
-                            entity_temporal_metadata.transaction_time,
-                            entity_temporal_metadata.decision_time
-                        FROM entity_temporal_metadata
-                        WHERE entity_temporal_metadata.web_id = $1
-                          AND entity_temporal_metadata.entity_uuid = $2
-                          AND entity_temporal_metadata.draft_id = $3
-                          AND entity_temporal_metadata.transaction_time @> $4::timestamptz
-                          AND entity_temporal_metadata.decision_time @> $5::timestamptz
-                          FOR NO KEY UPDATE NOWAIT;",
-                    &[
-                        &entity_id.web_id,
-                        &entity_id.entity_uuid,
-                        &draft_id,
-                        &transaction_time,
-                        &decision_time,
-                    ],
-                )
-                .instrument(tracing::info_span!(
-                    "SELECT",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres"
-                ))
-                .await
-        } else {
-            self.as_client()
-                .query_opt(
-                    "
-                        SELECT
-                            entity_temporal_metadata.entity_edition_id,
-                            entity_temporal_metadata.transaction_time,
-                            entity_temporal_metadata.decision_time
-                        FROM entity_temporal_metadata
-                        WHERE entity_temporal_metadata.web_id = $1
-                          AND entity_temporal_metadata.entity_uuid = $2
-                          AND entity_temporal_metadata.draft_id IS NULL
-                          AND entity_temporal_metadata.transaction_time @> $3::timestamptz
-                          AND entity_temporal_metadata.decision_time @> $4::timestamptz
-                          FOR NO KEY UPDATE NOWAIT;",
-                    &[
-                        &entity_id.web_id,
-                        &entity_id.entity_uuid,
-                        &transaction_time,
-                        &decision_time,
-                    ],
-                )
-                .instrument(tracing::info_span!(
-                    "SELECT",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres"
-                ))
-                .await
-        };
-
-        current_data
-            .map(|row| {
-                row.map(|row| LockedEntityEdition {
-                    entity_id,
-                    entity_edition_id: row.get(0),
-                    transaction_time: row.get(1),
-                    decision_time: row.get(2),
-                })
-            })
-            .map_err(|error| match error.code() {
-                Some(&SqlState::LOCK_NOT_AVAILABLE) => Report::new(RaceConditionOnUpdate)
-                    .attach_opaque(entity_id)
-                    .change_context(UpdateError),
-                _ => Report::new(error).change_context(UpdateError),
-            })
-    }
 }
 
 #[cfg(test)]
