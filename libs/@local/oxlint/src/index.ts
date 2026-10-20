@@ -144,6 +144,7 @@ const createDefaults = (
                 "declaration",
                 { allowArrowFunctions: true },
               ],
+              "typescript/strict-boolean-expressions": "allow", // JSX commonly uses truthiness for conditional rendering.
             },
           }),
         );
@@ -332,6 +333,7 @@ const createDefaults = (
           ignoreTypeIndexes: true,
         },
       ],
+      "no-ternary": "allow", // hash/no-complex-ternary restricts branch expressions without banning simple value selection.
       "no-undefined": "allow", // comparisons need `undefined`
       "one-var": ["deny", "never"], // use one declaration per variable
       "oxc/no-async-await": "allow", // Promise-based code uses native async functions.
