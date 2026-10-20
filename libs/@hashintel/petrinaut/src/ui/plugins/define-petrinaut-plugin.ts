@@ -265,6 +265,18 @@ export interface PluginReadOnlyAction {
   readonly run: () => void;
 }
 
+/**
+ * A button the empty-canvas prompt shows in place of Send while its input is
+ * empty. Pressing it opens the assistant panel with `{ action: id }` as the
+ * start request.
+ */
+export interface PluginAssistantStartAction {
+  readonly id: string;
+  /** The button's accessible name and tooltip. */
+  readonly label: string;
+  readonly icon: ReactNode;
+}
+
 /** The AI assistant a plugin provides. */
 export interface PluginAssistant {
   /**
@@ -278,9 +290,11 @@ export interface PluginAssistant {
   readonly content: ReactNode;
   /**
    * Takes the message the user sends from the empty-net prompt, after the
-   * editor opens the panel. The prompt shows only while it is set.
+   * editor opens the panel. Without it, the content receives the message as
+   * the panel's start request.
    */
   readonly onPrompt?: (text: string) => void;
+  readonly startAction?: PluginAssistantStartAction;
 }
 
 interface ContributionTable<M extends PetrinautPluginManifest> {

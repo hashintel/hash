@@ -1,4 +1,12 @@
-import { type ReactNode, use, useEffect, useState } from "react";
+import {
+  type ReactNode,
+  use,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -67,6 +75,15 @@ const shellStyle = cva({
         },
       },
     },
+    collapsed: {
+      true: {
+        top: "[auto]",
+        bottom: "[12px]",
+        right: "[12px]",
+        height: "auto",
+        maxWidth: "[calc(100% - 24px)]",
+      },
+    },
   },
 });
 
@@ -95,6 +112,10 @@ const cardStyle = cva({
     },
   },
   variants: {
+    // A collapsed panel's content may overflow its dock, for a popover above it.
+    collapsed: {
+      true: { overflow: "visible" },
+    },
     floating: {
       true: {
         borderLeftColor: "[transparent]",
@@ -102,6 +123,15 @@ const cardStyle = cva({
         boxShadow:
           "[0 0 0 1px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.12), 0 12px 32px -12px rgba(0,0,0,0.16)]",
       },
+    },
+  },
+});
+
+/** Hides a part of the panel without unmounting it while the panel is collapsed. */
+const panelContentStyle = cva({
+  variants: {
+    visible: {
+      false: { display: "none" },
     },
   },
 });
@@ -197,16 +227,14 @@ const buttonStyle = css({
  * the canvas, its docked or floating placement, resizing, and a title bar with
  * the assistant icon, the dock toggle and Close. The content fills the rest,
  * and the title bar through `AssistantPanelTitle`; it reads `panel` with
- * `useAssistantPanel`.
+ * `useAssistantPanel`. Collapsed, the panel shrinks to a dock in the corner and
+ * hides its title bar.
  */
 export const PluginAssistantPanel = ({
   panel,
-  focusRequest,
   children,
 }: {
   panel: AssistantPanel;
-  /** Changes each time the user opens the panel; the panel then takes focus. */
-  focusRequest: number;
   children: ReactNode;
 }) => {
   const {
@@ -215,8 +243,9 @@ export const PluginAssistantPanel = ({
     isPanelAnimating,
     setAiAssistantPlacement,
     setAiAssistantWidth,
+    setAiAssistantDockHeight,
   } = use(EditorContext);
-  const { isOpen, close } = panel;
+  const { isOpen, close, collapsed, focusRequest } = panel;
 
   const isFloating = aiAssistantPlacement === "floating";
   const HeaderLabel = isFloating ? "button" : "div";
@@ -241,34 +270,67 @@ export const PluginAssistantPanel = ({
   const [actionsElement, setActionsElement] = useState<HTMLElement | null>(
     null,
   );
+  const closeHandlerRef = useRef<(() => void) | undefined>(undefined);
+  const [setCloseHandler] = useState(
+    () => (handler: (() => void) | undefined) => {
+      closeHandlerRef.current = handler;
+    },
+  );
+
+  const reportDockHeight = useEffectEvent((height: number | null) => {
+    setAiAssistantDockHeight(height);
+  });
+  useLayoutEffect(() => {
+    const shell = panelRef.current;
+    if (!isOpen || !collapsed || !shell) {
+      return;
+    }
+    const measure = () =>
+      reportDockHeight(shell.getBoundingClientRect().height);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(shell);
+    return () => {
+      observer.disconnect();
+      reportDockHeight(null);
+    };
+  }, [isOpen, collapsed, panelRef]);
 
   // Opening the panel moves focus to the content's element marked
-  // `data-autofocus`, or else to the panel, unless focus is already inside.
+  // `data-autofocus`, or else to the panel. An expanded panel that already
+  // holds focus keeps it, and a collapsed panel focuses itself.
   useEffect(() => {
     const panelElement = panelRef.current;
     if (
       !isOpen ||
       panelElement === null ||
-      panelElement.contains(document.activeElement)
+      (!collapsed && panelElement.contains(document.activeElement))
     ) {
       return;
     }
-    const target =
-      panelElement.querySelector<HTMLElement>("[data-autofocus]") ??
-      panelElement;
+    const target = collapsed
+      ? panelElement
+      : (panelElement.querySelector<HTMLElement>("[data-autofocus]") ??
+        panelElement);
     target.focus({ preventScroll: true });
-  }, [focusRequest, isOpen, panelRef]);
+  }, [collapsed, focusRequest, isOpen, panelRef]);
 
   return (
     <AssistantPanelContext value={panel}>
       <AssistantTitleBarContext
-        value={{ title: titleElement, actions: actionsElement }}
+        value={{
+          title: titleElement,
+          actions: actionsElement,
+          setCloseHandler,
+        }}
       >
         <div
           aria-hidden="true"
           className={dockSpaceStyle}
           data-animating={animating}
-          style={{ width: isOpen && !isFloating ? panelWidth : 0 }}
+          style={{
+            width: isOpen && !isFloating && !collapsed ? panelWidth : 0,
+          }}
         />
         <aside
           ref={panelRef}
@@ -276,21 +338,29 @@ export const PluginAssistantPanel = ({
           aria-label="AI assistant"
           tabIndex={-1}
           inert={!isOpen}
-          className={shellStyle({ open: isOpen, floating: isFloating })}
+          className={shellStyle({
+            collapsed,
+            open: isOpen,
+            floating: isFloating && !collapsed,
+          })}
           data-placement={aiAssistantPlacement}
           data-animating={animating}
           style={{
             width: panelWidth,
-            ...(isFloating ? floatingPositionStyle : {}),
+            ...(isFloating && !collapsed ? floatingPositionStyle : {}),
           }}
         >
-          {isFloating ? (
+          {isFloating && !collapsed ? (
             <FloatingResizeHandles
               label="AI assistant"
               getHandleProps={getResizeHandleProps}
             />
           ) : (
-            <div className={resizeAnchorStyle}>
+            <div
+              className={`${resizeAnchorStyle} ${panelContentStyle({
+                visible: !collapsed,
+              })}`}
+            >
               <ResizeHandle
                 edge="left"
                 appearance="hidden"
@@ -303,10 +373,17 @@ export const PluginAssistantPanel = ({
             </div>
           )}
           <div
-            className={cardStyle({ floating: isFloating })}
+            className={cardStyle({
+              floating: isFloating || collapsed,
+              collapsed,
+            })}
             data-animating={animating}
           >
-            <div className={headerStyle}>
+            <div
+              className={`${headerStyle} ${panelContentStyle({
+                visible: !collapsed,
+              })}`}
+            >
               <HeaderLabel
                 type={isFloating ? "button" : undefined}
                 className={headerLabelStyle}
@@ -342,7 +419,10 @@ export const PluginAssistantPanel = ({
                 variant="ghost"
                 className={buttonStyle}
                 aria-label="Close AI assistant"
-                onClick={close}
+                onClick={() => {
+                  closeHandlerRef.current?.();
+                  close();
+                }}
                 prefix={<ExperimentalIcon name="close" size={14} />}
                 tooltip="Close AI assistant"
               />
@@ -352,5 +432,50 @@ export const PluginAssistantPanel = ({
         </aside>
       </AssistantTitleBarContext>
     </AssistantPanelContext>
+  );
+};
+
+/**
+ * Renders `children` as a plugin's `assistant.content` in the assistant
+ * panel, outside an editor, for stories and tests. The panel starts open and
+ * docked, with no start request; `state` overrides any of its state. Its dock
+ * toggle and resizing work as in the editor.
+ */
+export const AssistantPanelPreview = ({
+  state,
+  children,
+}: {
+  state?: Partial<AssistantPanel>;
+  children: ReactNode;
+}) => {
+  const editor = use(EditorContext);
+  const [placement, setPlacement] = useState(editor.aiAssistantPlacement);
+  const [width, setWidth] = useState(editor.aiAssistantWidth);
+
+  return (
+    <EditorContext
+      value={{
+        ...editor,
+        aiAssistantPlacement: placement,
+        setAiAssistantPlacement: setPlacement,
+        aiAssistantWidth: width,
+        setAiAssistantWidth: setWidth,
+      }}
+    >
+      <PluginAssistantPanel
+        panel={{
+          isOpen: true,
+          close: () => {},
+          focusRequest: 0,
+          collapsed: false,
+          setCollapsed: () => {},
+          startRequest: null,
+          consumeStartRequest: () => {},
+          ...state,
+        }}
+      >
+        {children}
+      </PluginAssistantPanel>
+    </EditorContext>
   );
 };

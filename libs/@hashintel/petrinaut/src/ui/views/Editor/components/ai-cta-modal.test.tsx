@@ -114,6 +114,28 @@ describe("AiCtaModal", () => {
     ).toBe(true);
   });
 
+  test("offers a plugin assistant's start action in place of Send and requests it once", () => {
+    const onStartAction = vi.fn();
+    const onSubmit = vi.fn();
+    render(
+      <AiCtaModal
+        bottomClearance={0}
+        voiceModeAvailable={false}
+        onDismiss={vi.fn()}
+        onStartAction={onStartAction}
+        onStartVoiceMode={vi.fn()}
+        onSubmit={onSubmit}
+        startAction={{ id: "listen", label: "Listen", icon: null }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Listen" }));
+
+    expect(onStartAction).toHaveBeenCalledOnce();
+    expect(onStartAction).toHaveBeenCalledWith("listen");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   test("keeps outside-click and Escape dismissal", () => {
     const onDismiss = vi.fn();
     render(
