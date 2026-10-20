@@ -21,7 +21,11 @@ export const compileToolDescription =
 const vTextPart = v.object({ type: v.literal("text"), text: v.string() });
 const vCallPart = v.object({ toolCallId: v.string() });
 
-/** Whether the response that made this call also carries a reply. */
+/**
+ * Whether the turn has replied by this call. History keeps one assistant
+ * message per turn, so a commit repaired after a refusal counts the reply
+ * written beside the refused call.
+ */
 const repliesWith = (history: LedgerHistory, toolCallId: string) =>
   history.messages
     .find((message) =>
@@ -52,8 +56,8 @@ export const createLedgerCommitTool = (
       });
       return {
         output,
-        // Ends the turn only when every call of the step terminates. Without a
-        // reply beside the call, the turn stays open so the user gets one.
+        // Ends the turn only when every call of the step terminates. Before the
+        // turn has replied, it stays open so the user gets one.
         terminate:
           data.endTurn === true &&
           output.status === "recorded" &&
