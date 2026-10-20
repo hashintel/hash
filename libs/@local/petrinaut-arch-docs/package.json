@@ -2,7 +2,7 @@
   "name": "@local/petrinaut-arch-docs",
   "version": "0.0.0-private",
   "private": true,
-  "description": "Generates the Petrinaut architecture bundle from in-code annotations",
+  "description": "The Petrinaut architecture docs: the archinaut config, the hand-written pages, and the site's identity",
   "license": "(MIT OR Apache-2.0)",
   "type": "module",
   "exports": {
@@ -13,16 +13,8 @@
   },
   "scripts": {
     "doc:architecture": "archinaut bundle --config archinaut.config.ts",
-    "fix:eslint": "oxlint --fix --report-unused-disable-directives-severity=error .",
     "lint:arch-docs": "archinaut check --config archinaut.config.ts",
-    "lint:eslint": "oxlint --report-unused-disable-directives-severity=error .",
-    "lint:tsc": "tsc --noEmit",
-    "test:unit": "vitest --run src"
-  },
-  "dependencies": {
-    "dependency-cruiser": "18.0.0",
-    "js-yaml": "4.3.2",
-    "zod": "4.4.3"
+    "lint:tsc": "tsc --noEmit"
   },
   "devDependencies": {
     "@apps/petrinaut-opt": "workspace:*",
@@ -35,11 +27,7 @@
     "@local/petrinaut-python": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
-    "@types/js-yaml": "^4",
     "@types/node": "catalog:",
-    "oxlint": "1.86.0",
-    "tsx": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }

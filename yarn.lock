@@ -9929,15 +9929,8 @@ __metadata:
     "@local/petrinaut-python": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@tsconfig/bases": "catalog:"
-    "@types/js-yaml": "npm:^4"
     "@types/node": "catalog:"
-    dependency-cruiser: "npm:18.0.0"
-    js-yaml: "npm:4.3.2"
-    oxlint: "npm:1.86.0"
-    tsx: "catalog:"
     typescript: "catalog:"
-    vitest: "catalog:"
-    zod: "npm:4.4.3"
   languageName: unknown
   linkType: soft
 

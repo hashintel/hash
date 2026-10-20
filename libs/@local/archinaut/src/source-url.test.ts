@@ -31,7 +31,7 @@ describe("resolveSourceRef", () => {
     expect(
       resolveSourceRef({
         GITHUB_SHA: "0123456789abcdef",
-        PETRINAUT_ARCH_DOCS_SOURCE_REF: "my-local-branch",
+        ARCHINAUT_SOURCE_REF: "my-local-branch",
         VERCEL_GIT_COMMIT_SHA: "89abcdef",
       }),
     ).toBe("my-local-branch");

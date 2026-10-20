@@ -60,8 +60,10 @@ export interface SiteConfig {
   favicon: string;
 }
 
-export const defineConfig = (config: ArchinautConfig): ArchinautConfig =>
-  config;
+/** What a config file default-exports; the loader adds where it came from. */
+export const defineConfig = (
+  config: Omit<ArchinautConfig, "configFile">,
+): Omit<ArchinautConfig, "configFile"> => config;
 
 export const loadConfig = async (
   configPath: string,

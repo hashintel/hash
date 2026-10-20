@@ -20,7 +20,7 @@ const DEFAULT_SOURCE_REF = "main";
  * here and not there is hidden by strict env mode and silently ignored.
  */
 const REF_VARIABLES = [
-  "PETRINAUT_ARCH_DOCS_SOURCE_REF",
+  "ARCHINAUT_SOURCE_REF",
   "VERCEL_GIT_COMMIT_SHA",
   "GITHUB_SHA",
   "VERCEL_GIT_COMMIT_REF",
