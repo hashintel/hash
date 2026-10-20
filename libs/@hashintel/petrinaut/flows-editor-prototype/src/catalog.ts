@@ -8,12 +8,16 @@ import {
   isMockActionDefinitionId,
   mockActionDefinitions,
 } from "./mock-action-definitions";
+import { prdBlocks, type PrdSource } from "./mock-prd-ports";
 
 import type { IconName } from "@hashintel/ds-components";
 
 export type InputView = {
   name: string;
   label: string;
+  /** From the draft PRD: the sources the picker offers, and when the input is required. */
+  sources?: PrdSource[];
+  rule?: string;
   description?: string;
   array: boolean;
   required: boolean;
@@ -237,10 +241,39 @@ export const forEachEntry: CatalogEntry = {
   outputs: [],
 };
 
+/** Lays the draft PRD's port names, descriptions, sources and rules over the engine's inputs and outputs. */
+const withPrdPorts = (entry: CatalogEntry): CatalogEntry => {
+  const prd = prdBlocks[entry.id];
+  if (!prd) {
+    return entry;
+  }
+  return {
+    ...entry,
+    inputs: entry.inputs.map((input) => {
+      const port = prd.inputs[input.name];
+      return port
+        ? {
+            ...input,
+            label: port.label,
+            description: port.description,
+            sources: port.sources,
+            rule: port.rule,
+          }
+        : input;
+    }),
+    outputs: entry.outputs.map((output) => {
+      const port = prd.outputs[output.name];
+      return port
+        ? { ...output, label: port.label, description: port.description }
+        : output;
+    }),
+  };
+};
+
 export const catalog: CatalogEntry[] = [
   ...Object.keys(presentation).flatMap((id) => {
     const entry = fromEngine(id);
-    return entry ? [entry] : [];
+    return entry ? [withPrdPorts(entry)] : [];
   }),
   forEachEntry,
 ];

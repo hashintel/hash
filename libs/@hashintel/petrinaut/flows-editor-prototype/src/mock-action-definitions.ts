@@ -247,7 +247,7 @@ export const mockActionDefinitions: Record<
     description: "Send an email. It only sends: drafting is a separate step.",
     origin: {
       kind: "mock",
-      why: "No Send email action, PR or spec exists. Fields follow the PRD's Actions Priority row (to, subject, body).",
+      why: "No Send email action or PR exists. Ports follow Dora's draft PRD database (Flows action inputs and outputs).",
     },
     inputs: [
       {
@@ -255,6 +255,12 @@ export const mockActionDefinitions: Record<
         name: "to",
         description: "The addresses to send to.",
         required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "cc",
+        required: false,
         array: true,
       },
       {
@@ -269,8 +275,33 @@ export const mockActionDefinitions: Record<
         required: true,
         array: false,
       },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "senderAddress",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["PersistedEntityMetadata", "EntityId"],
+        name: "attachments",
+        required: false,
+        array: true,
+      },
     ],
-    outputs: [],
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "messageId",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "DateTime",
+        name: "sentAt",
+        array: false,
+        required: true,
+      },
+    ],
   },
 };
 

@@ -23,6 +23,7 @@ import { acceptedKinds, type SourceOption, sourceOptions } from "./shapes";
 import { IconTile, kindLabel } from "./ui";
 
 import type { PayloadKind, StepInputSource } from "./engine";
+import type { PrdSource } from "./mock-prd-ports";
 
 const rowStyle = css({
   display: "flex",
@@ -195,8 +196,8 @@ export const SourceMenu = ({
   onPick,
   onClose,
   query,
-  onTypeValue,
-  typedChoices = [],
+  onTypeValue: onTypeValueProp,
+  typedChoices: typedChoicesProp = [],
   hideSearch = false,
 }: {
   anchor: React.RefObject<Element | null>;
@@ -216,7 +217,18 @@ export const SourceMenu = ({
   const text = (query ?? search).trim().toLowerCase();
   const kinds = acceptedKinds(document, stepId, input, entry);
 
-  const options = sourceOptions(document, stepId, input, entry).filter(
+  // The draft PRD lists which sources each port takes; ports it doesn't list take every source.
+  const allows = (source: PrdSource) =>
+    !input.sources || input.sources.includes(source);
+  const fromSteps = allows("Previous step");
+  const lookupAllowed = allows("HASH graph @lookup");
+  const onTypeValue = allows("Manual input") ? onTypeValueProp : undefined;
+  const typedChoices =
+    lookupAllowed || allows("Manual input") ? typedChoicesProp : [];
+
+  const options = (
+    fromSteps ? sourceOptions(document, stepId, input, entry) : []
+  ).filter(
     (option) =>
       !text ||
       option.label.toLowerCase().includes(text) ||
@@ -240,7 +252,7 @@ export const SourceMenu = ({
     onClose();
   };
 
-  const noStepFits = options.length === 0 && !text;
+  const noStepFits = fromSteps && options.length === 0 && !text;
   const kindName = kindLabel(kinds[0], input.array);
   const article = /^[aeiou]/i.test(kindName) ? "an" : "a";
 
@@ -310,7 +322,7 @@ export const SourceMenu = ({
                   Type a value
                 </Button>
               ) : null}
-              {kinds.includes("EntityId") ? (
+              {kinds.includes("EntityId") && lookupAllowed ? (
                 <Button
                   size="sm"
                   variant="subtle"
@@ -401,7 +413,7 @@ export const SourceMenu = ({
                 Type a value
               </button>
             ) : null}
-            {kinds.includes("EntityId") ? (
+            {kinds.includes("EntityId") && lookupAllowed ? (
               <button
                 type="button"
                 className={rowStyle}

@@ -115,7 +115,12 @@ export const supplierReviewExample = (): EditorDocument => {
             stepId: "sendReviewEmail",
             actionDefinitionId: "sendEmail",
             description: "Send review email",
-            inputs: {},
+            inputs: {
+              senderAddress: {
+                kind: "constant",
+                payload: { kind: "Text", value: "quality@acme.example" },
+              },
+            },
           },
           {
             kind: "action",
