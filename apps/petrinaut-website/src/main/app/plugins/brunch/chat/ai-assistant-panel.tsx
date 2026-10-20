@@ -177,6 +177,13 @@ const voiceInputWithdrawn = (signal: AbortSignal | undefined): unknown =>
     "AbortError",
   );
 
+const abortAndClear = (controllers: Set<AbortController>) => {
+  for (const controller of controllers) {
+    controller.abort();
+  }
+  controllers.clear();
+};
+
 export const getVoiceToolCallIds = (
   metadata: PetrinautAiMessage["metadata"],
 ): string[] =>
@@ -801,24 +808,9 @@ const ConversationAiAssistantPanel = ({
         current === report ? null : current,
       );
   }, []);
-  // Stable: the submit and stop callbacks that call it must stay stable too.
-  const abortAutomaticTools = useCallback(() => {
-    for (const controller of automaticToolAbortsRef.current) {
-      controller.abort();
-    }
-    automaticToolAbortsRef.current.clear();
-  }, []);
   // Conversation switch remounts this panel via key; abort here, not only
   // when conversationId changes on the same instance.
-  useEffect(
-    () => () => {
-      for (const controller of automaticToolAbortsRef.current) {
-        controller.abort();
-      }
-      automaticToolAbortsRef.current.clear();
-    },
-    [],
-  );
+  useEffect(() => () => abortAndClear(automaticToolAbortsRef.current), []);
   const automaticToolExecutionTimersRef = useRef(
     new Map<ReturnType<typeof setTimeout>, string>(),
   );
@@ -1464,14 +1456,14 @@ const ConversationAiAssistantPanel = ({
     submissionConversationIdRef.current = conversationId;
     followedMessagesRef.current = undefined;
     locallyStreamedToolCallsRef.current.clear();
-    abortAutomaticTools();
+    abortAndClear(automaticToolAbortsRef.current);
     explicitContinuationToolCallIdsRef.current.clear();
     submissionGenerationRef.current += 1;
     stopRequestedRef.current = false;
     setContinuationPending(false);
     setStreamError(null);
     setStopped(false);
-  }, [abortAutomaticTools, conversationId]);
+  }, [conversationId]);
   const status: PetrinautAiComposerStatus =
     chatStatus === "ready" && streamError !== null
       ? "error"
@@ -1936,7 +1928,7 @@ const ConversationAiAssistantPanel = ({
       setStreamError(null);
       setStopped(false);
       stopRequestedRef.current = false;
-      abortAutomaticTools();
+      abortAndClear(automaticToolAbortsRef.current);
       explicitContinuationToolCallIdsRef.current.clear();
       submissionGenerationRef.current += 1;
       await submitMessage({
@@ -1947,7 +1939,7 @@ const ConversationAiAssistantPanel = ({
       });
       return { kind: "message", messageId };
     },
-    [abortAutomaticTools, composerSubmissionStateRef, reportOperationalFailure],
+    [composerSubmissionStateRef, reportOperationalFailure],
   );
 
   const stopStateRef = useLatest({
@@ -2054,7 +2046,7 @@ const ConversationAiAssistantPanel = ({
 
     const generation = submissionGenerationRef.current;
     automaticToolTerminationRef.current = { generation, kind: "stopped" };
-    abortAutomaticTools();
+    abortAndClear(automaticToolAbortsRef.current);
     for (const controller of experimentControllersRef.current.values())
       controller.abort();
     stopRequestedRef.current = true;
@@ -2085,7 +2077,7 @@ const ConversationAiAssistantPanel = ({
       return;
     }
     await stopCurrentResponse();
-  }, [abortAutomaticTools, reportOperationalFailure, stopStateRef]);
+  }, [reportOperationalFailure, stopStateRef]);
 
   const submitUserText = useCallback(
     (
@@ -2314,7 +2306,7 @@ const ConversationAiAssistantPanel = ({
       messages={aiAssistant.mapMessagesForDisplay?.(messages) ?? messages}
       renderSystemMessage={aiAssistant.renderSystemMessage}
       onClearMessages={() => {
-        abortAutomaticTools();
+        abortAndClear(automaticToolAbortsRef.current);
         for (const controller of experimentControllersRef.current.values())
           controller.abort();
         experimentControllersRef.current.clear();
