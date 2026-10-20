@@ -2,7 +2,8 @@ FROM oryd/hydra:v25.4
 
 USER root
 
-RUN apk add --no-cache 'ca-certificates>=20261020-r0' 'ca-certificates-bundle>=20261020-r0'
+RUN sed -i -e 's|^mozilla/emSign_ECC_Root_CA_-_G3.crt|!&|' /etc/ca-certificates.conf && \
+    update-ca-certificates
 
 RUN mkdir -p /home/nonroot/.postgresql
 
