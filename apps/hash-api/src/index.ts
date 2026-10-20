@@ -71,6 +71,10 @@ import {
 import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
+import {
+  getBrunchAgentOrigin,
+  setupBrunchAgentProxy,
+} from "./brunch-agent/setup-brunch-agent-proxy";
 import { createEmailTransporter } from "./email/create-email-transporter";
 import { setupFlowRunRecordHandler } from "./flows/setup-flow-run-record-handler";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
@@ -802,6 +806,8 @@ const main = async () => {
   setupFlowRunRecordHandler(app);
 
   setupAnalysisHandler(app, keyv);
+
+  setupBrunchAgentProxy(app, { logger, origin: getBrunchAgentOrigin() });
 
   setupTelemetryHandler(app);
   shutdown.addCleanup("Rudderstack Telemetry", async () => telemetry.flush());
