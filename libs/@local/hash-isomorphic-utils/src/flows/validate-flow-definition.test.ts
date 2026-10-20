@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { ftseInvestorsFlow } from "./ftse-investors-flow-definition.js";
-import { goalFlow } from "./goal-flow-definitions.js";
+import { ftseInvestorsFlow } from "./definitions/ftse-investors-flow-definition.js";
+import { goalFlow } from "./definitions/goal-flow-definitions.js";
 import {
   type FlowDefinitionDiagnostic,
   validateFlowDefinition,

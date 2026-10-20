@@ -7,10 +7,7 @@ import {
   ClockRegularIcon,
   IconButton,
 } from "@hashintel/design-system";
-import {
-  isGoalFlowDefinitionId,
-  type GoalFlowInputName,
-} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
+import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { Link } from "../../../../../shared/ui/link";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
@@ -23,6 +20,7 @@ import { flowSectionBorderRadius } from "./shared/styles";
 import type { FlowRun } from "../../../../../graphql/api-types.gen";
 import type { EdgesAndNodes } from "./shared/types";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
+import type { GoalFlowInputName } from "@local/hash-isomorphic-utils/flows/definitions/goal-flow-definitions";
 import type { PropsWithChildren } from "react";
 
 const SidebarSection = ({ children }: PropsWithChildren) => (
@@ -40,7 +38,7 @@ const SidebarSection = ({ children }: PropsWithChildren) => (
 );
 
 type FlowRunSidebarProps = {
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   flowRunEntityId: EntityId;
   flowScheduleId: EntityUuid | null;
   graph: EdgesAndNodes;
@@ -49,7 +47,7 @@ type FlowRunSidebarProps = {
 };
 
 export const FlowRunSidebar = ({
-  flowDefinitionId,
+  flowDefinitionEntityId,
   flowRunEntityId,
   flowScheduleId,
   graph,
@@ -88,7 +86,9 @@ export const FlowRunSidebar = ({
         <Stack direction="row" alignItems="center" gap={0.75}>
           <SectionLabel
             text={
-              isGoalFlowDefinitionId(flowDefinitionId) ? "Goal" : "Description"
+              isGoalFlowDefinitionEntityId(flowDefinitionEntityId)
+                ? "Goal"
+                : "Description"
             }
           />
           {flowScheduleId && (

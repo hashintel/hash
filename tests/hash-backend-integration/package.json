@@ -25,8 +25,7 @@
     "@local/status": "workspace:*",
     "execa": "9.6.0",
     "fractional-indexing": "3.2.0",
-    "graphql": "16.11.0",
-    "node-fetch": "2.7.0"
+    "graphql": "16.11.0"
   },
   "devDependencies": {
     "@apps/hash-ai-worker-ts": "workspace:*",
@@ -40,7 +39,6 @@
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
     "@types/node": "catalog:",
-    "@types/node-fetch": "2.6.13",
     "@vitest/coverage-istanbul": "4.1.10",
     "eslint": "9.39.4",
     "rimraf": "6.1.3",

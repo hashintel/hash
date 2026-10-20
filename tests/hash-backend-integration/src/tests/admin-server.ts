@@ -1,6 +1,4 @@
-import { createReadStream } from "node:fs";
-
-import fetch from "node-fetch";
+import { readFile } from "node:fs/promises";
 
 import {
   ensureHashSystemAccountExists,
@@ -157,7 +155,7 @@ export const restoreSnapshot = async (snapshotPath: string) => {
   await fetch(`http://127.0.0.1:${port}/snapshot`, {
     method: "POST",
     headers: secretHeaders,
-    body: createReadStream(snapshotPath),
+    body: await readFile(snapshotPath),
   }).then(async (response) => {
     const status = (await response.json()) as GraphStatus;
     if (status.code !== StatusCode.Ok) {

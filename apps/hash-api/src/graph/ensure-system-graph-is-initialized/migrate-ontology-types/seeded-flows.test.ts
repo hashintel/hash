@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import * as browserPluginFlows from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
-import * as fileFlows from "@local/hash-isomorphic-utils/flows/file-flow-definitions";
-import * as frontendFlows from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
-import * as ftseInvestorsFlows from "@local/hash-isomorphic-utils/flows/ftse-investors-flow-definition";
-import * as goalFlows from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import * as integrationFlows from "@local/hash-isomorphic-utils/flows/integration-flow-definitions";
+import * as browserPluginFlows from "@local/hash-isomorphic-utils/flows/definitions/browser-plugin-flow-definitions";
+import * as fileFlows from "@local/hash-isomorphic-utils/flows/definitions/file-flow-definitions";
+import * as frontendFlows from "@local/hash-isomorphic-utils/flows/definitions/frontend-flow-definitions";
+import * as ftseInvestorsFlows from "@local/hash-isomorphic-utils/flows/definitions/ftse-investors-flow-definition";
+import * as goalFlows from "@local/hash-isomorphic-utils/flows/definitions/goal-flow-definitions";
+import * as integrationFlows from "@local/hash-isomorphic-utils/flows/definitions/integration-flow-definitions";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
 import { devFlows } from "./dev-flows";

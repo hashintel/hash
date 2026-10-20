@@ -796,7 +796,7 @@ export type LocalFlowRun<
   name: string;
   temporalWorkflowId: string;
   flowInputs: FlowInputValues;
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   steps: FlowStep<ActionDefinitionId>[];
   outputs?: StepOutput[];
 };

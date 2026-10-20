@@ -3,9 +3,10 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { memo, useMemo, useState } from "react";
 
 import { InfinityLightIcon } from "@hashintel/design-system";
+import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
+import { useGetOwnerForEntity } from "../components/hooks/use-get-owner-for-entity";
 import { getLayoutWithSidebar } from "../shared/layout";
 import { Link } from "../shared/ui/link";
 import { WorkersHeader } from "../shared/workers-header";
@@ -28,6 +29,7 @@ import type {
   VirtualizedTableRow,
 } from "./shared/virtualized-table";
 import type { VirtualizedTableSort } from "./shared/virtualized-table/header/sort";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 
 type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
@@ -69,14 +71,15 @@ type FlowSummary = Subtype<
       isOrg: boolean;
     };
     name: string;
-    uuid: string;
+    flowDefinitionEntityId: EntityId;
     description: string;
     lastRunStartedAt: string | null;
   }
 >;
 
 const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
-  const { web, name, uuid, description, lastRunStartedAt } = flowSummary;
+  const { web, name, flowDefinitionEntityId, description, lastRunStartedAt } =
+    flowSummary;
 
   return (
     <>
@@ -87,7 +90,7 @@ const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
         <Link
           href={generateFlowDefinitionPath({
             shortname: web.shortname,
-            flowDefinitionId: uuid,
+            flowDefinitionEntityId,
           })}
           sx={{
             display: "block",
@@ -134,16 +137,19 @@ const FlowsPageContent = () => {
 
   const { flowRuns } = useFlowRunsContext();
 
+  const getOwner = useGetOwnerForEntity();
+
   const flowDefinitionRows = useMemo<VirtualizedTableRow<FlowSummary>[]>(() => {
     const rowData: VirtualizedTableRow<FlowSummary>[] = allFlowDefinitions
       .filter(
-        ({ flowDefinitionId }) => !isGoalFlowDefinitionId(flowDefinitionId),
+        ({ flowDefinitionEntityId }) =>
+          !isGoalFlowDefinitionEntityId(flowDefinitionEntityId),
       )
-      .map(({ flowDefinitionId, flowDefinition }) => {
+      .map(({ flowDefinitionEntityId, flowDefinition }) => {
         let lastRunStartedAt = null;
         for (const flowRun of flowRuns) {
           if (
-            flowRun.flowDefinitionId === flowDefinitionId &&
+            flowRun.flowDefinitionEntityId === flowDefinitionEntityId &&
             (!lastRunStartedAt || flowRun.startedAt > lastRunStartedAt)
           ) {
             lastRunStartedAt = flowRun.startedAt;
@@ -151,16 +157,17 @@ const FlowsPageContent = () => {
         }
 
         return {
-          id: flowDefinitionId,
+          id: flowDefinitionEntityId,
           data: {
             web: {
               avatarUrl: "/hash-logo-black.png",
               name: "HASH",
-              shortname: "hash",
+              shortname: getOwner({ entityId: flowDefinitionEntityId })
+                .shortname,
               isOrg: true,
             },
             name: flowDefinition.name,
-            uuid: flowDefinitionId,
+            flowDefinitionEntityId,
             description: flowDefinition.description,
             lastRunStartedAt,
           },
@@ -179,7 +186,7 @@ const FlowsPageContent = () => {
         (a.data[field] ?? "").localeCompare(b.data[field] ?? "") * direction
       );
     });
-  }, [allFlowDefinitions, flowRuns, sort]);
+  }, [allFlowDefinitions, flowRuns, getOwner, sort]);
 
   const tableHeight = Math.min(
     600,
@@ -216,7 +223,7 @@ const FlowsPageContent = () => {
 
 const FlowsPage: NextPageWithLayout = () => {
   return (
-    <FlowDefinitionsContextProvider selectedFlowDefinitionId={null}>
+    <FlowDefinitionsContextProvider selectedFlowDefinitionEntityId={null}>
       <FlowRunsContextProvider selectedFlowRunEntityId={null}>
         <FlowsPageContent />
       </FlowRunsContextProvider>

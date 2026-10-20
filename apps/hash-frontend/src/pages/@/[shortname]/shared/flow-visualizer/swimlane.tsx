@@ -139,7 +139,8 @@ export const Swimlane = ({
   );
 
   const stepsWithIds = useMemo(
-    () => nodes.map((node) => ({ stepId: node.id })),
+    () =>
+      nodes.map((node) => ({ stepId: node.id, parentStepId: node.parentNode })),
     [nodes],
   );
 

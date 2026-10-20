@@ -5,16 +5,14 @@ import {
   getPrimaryChartType,
   normalizeStructuralQuery,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import {
-  configureDashboardItemFlow,
-  refineDashboardItemFlow,
-} from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
+import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { FlowRunStatus } from "../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
 import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
+import { useGenerateHashFlowDefinitionEntityId } from "../../shared/use-hash-flows";
 
 import type {
   FlowRun,
@@ -207,6 +205,9 @@ export const useDashboardItemConfig = ({
     UpdateEntityMutation,
     UpdateEntityMutationVariables
   >(updateEntityMutation);
+
+  const generateHashFlowDefinitionEntityId =
+    useGenerateHashFlowDefinitionEntityId();
 
   const [startFlow] = useMutation<
     StartFlowMutation,
@@ -603,7 +604,9 @@ export const useDashboardItemConfig = ({
       // Start the flow
       const { data } = await startFlow({
         variables: {
-          flowDefinitionId: configureDashboardItemFlow.flowDefinitionId,
+          flowDefinitionEntityId: generateHashFlowDefinitionEntityId(
+            flowDefinitionIds.configureDashboardItem,
+          ),
           flowInputs: {
             userGoal: {
               kind: "Text",
@@ -667,6 +670,7 @@ export const useDashboardItemConfig = ({
     onGenerationStarted,
     onComplete,
     markGenerationFailed,
+    generateHashFlowDefinitionEntityId,
   ]);
 
   const refineConfiguration = useCallback(
@@ -721,7 +725,9 @@ export const useDashboardItemConfig = ({
 
         const { data } = await startFlow({
           variables: {
-            flowDefinitionId: refineDashboardItemFlow.flowDefinitionId,
+            flowDefinitionEntityId: generateHashFlowDefinitionEntityId(
+              flowDefinitionIds.refineDashboardItem,
+            ),
             flowInputs: {
               userGoal: { kind: "Text", value: initialGoal },
               refinementInstruction: {
@@ -792,6 +798,7 @@ export const useDashboardItemConfig = ({
       initialValues,
       markGenerationFailed,
       onGenerationStarted,
+      generateHashFlowDefinitionEntityId,
       setError,
       startFlow,
       startPolling,
