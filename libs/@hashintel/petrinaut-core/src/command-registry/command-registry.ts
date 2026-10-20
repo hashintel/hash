@@ -1,6 +1,11 @@
 /**
  * @layerRoot core.command-registry
  * @role User-invocable commands, registered by views and instances and rendered by the host as a palette
+ * @tags commands
+ * @audience integrator contributor
+ * @interface iface:command-registry CommandRegistry via call
+ * @summary Named commands the editor, its host and plugins register and
+ * execute; the palette reads the view.
  *
  * A command is a labelled, argument-free action a person picks from a list.
  * The registry holds the current set and notifies subscribers when it

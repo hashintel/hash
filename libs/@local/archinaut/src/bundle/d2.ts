@@ -1,0 +1,223 @@
+/**
+ * The d2 renderer: finding the command, running it on one source, and
+ * making the SVG it writes themeable by a host.
+ */
+
+import { execFile, spawnSync } from "node:child_process";
+import { readFile, writeFile } from "node:fs/promises";
+
+import { themeableColours } from "./shared/palette";
+
+const probeD2 = (repoRoot: string): D2 | null => {
+  for (const command of [
+    ["d2"],
+    ["mise", "exec", "--env", "dev", "--", "d2"],
+  ]) {
+    const [executable = "", ...prefix] = command;
+    const result = spawnSync(executable, [...prefix, "--version"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    });
+    if (!result.error && result.status === 0) {
+      return { command, version: result.stdout.trim() };
+    }
+  }
+  return null;
+};
+
+export interface D2 {
+  command: string[];
+  /** What `--version` printed, which keys rendered output. */
+  version: string;
+}
+
+const d2Commands = new Map<string, D2 | null>();
+
+/** The d2 command for this repository, probed once per process. */
+export const findD2 = (repoRoot: string): D2 | null => {
+  const known = d2Commands.get(repoRoot);
+  if (known !== undefined) {
+    return known;
+  }
+  const found = probeD2(repoRoot);
+  d2Commands.set(repoRoot, found);
+  return found;
+};
+
+/** Runs a command to completion; a non-zero exit or a spawn failure is an error string. */
+const execute = (
+  executable: string,
+  args: string[],
+  cwd: string,
+): Promise<{ ok: true } | { ok: false; error: string }> =>
+  new Promise((resolve) => {
+    execFile(
+      executable,
+      args,
+      { cwd, encoding: "utf8" },
+      (error, stdout, stderr) => {
+        if (error === null) {
+          resolve({ ok: true });
+        } else {
+          resolve({
+            ok: false,
+            error: stderr || stdout || error.message,
+          });
+        }
+      },
+    );
+  });
+
+/**
+ * Renders a `.d2` file to SVG.
+ *
+ * `d2` is provided by mise, matching how the previous script invoked it. When it
+ * is unavailable the caller is told rather than the build failing outright: the
+ * `.d2` sources are the diffable artefact, and a missing renderer should not
+ * block regenerating the model and pages.
+ */
+/**
+ * `d2`'s own palette, as it writes it into every SVG: seven neutrals and the
+ * blues it draws connections and links with. Restated here so the appended
+ * stylesheet can hand each one to a custom property.
+ *
+ * Taken from the rendered output rather than from a `d2` theme file, because
+ * these are the values it bakes in at the default theme.
+ */
+const rendererPalette: Record<string, string> = {
+  n1: "#0A0F25",
+  n2: "#676C7E",
+  n3: "#9499AB",
+  n4: "#CFD2DD",
+  n5: "#DEE1EB",
+  n6: "#EEF1F8",
+  n7: "#FFFFFF",
+  b1: "#0D32B2",
+  b2: "#0D32B2",
+  b3: "#E3E9FD",
+  b4: "#E3E9FD",
+  b5: "#EDF0FD",
+  b6: "#F7F8FE",
+};
+
+/**
+ * Restates every colour in a rendered SVG as a custom property, so a host can
+ * retheme the diagram without the generator knowing anything about that host's
+ * themes.
+ *
+ * Appended as a stylesheet rather than rewritten into the markup, for two
+ * reasons. `var()` is not reliably honoured inside SVG presentation attributes,
+ * where the layer colours land, but is honoured in a declaration that overrides
+ * them, because any rule beats a presentation attribute. And `d2`'s own colours
+ * arrive as classes under a per-diagram `.d2-<hash>` scope, so matching that
+ * scope and coming later in the document is what wins the cascade without
+ * inventing specificity.
+ *
+ * Every property carries the original colour as its fallback, so a host that
+ * defines nothing renders exactly what `d2` drew.
+ */
+/**
+ * Rewrites a rendered diagram so a host page can recolour it.
+ *
+ * `d2` writes its palette straight into the markup, so a drawing carries one
+ * theme and keeps it. Each colour it drew is restated here as a custom property
+ * holding that same colour as its fallback, scoped to the `d2-<hash>` class the
+ * renderer puts on the drawing: a host that defines none of them gets exactly
+ * what `d2` drew, and one that defines them can follow its own light and dark
+ * themes. Markup carrying no such class is returned untouched.
+ */
+export const withThemeableColours = (markup: string): string => {
+  const scope = /class="(d2-\d+)/u.exec(markup)?.[1];
+
+  if (scope === undefined) {
+    return markup;
+  }
+
+  const rules = [
+    ...Object.entries(rendererPalette).flatMap(([token, colour]) => [
+      `.${scope} .fill-${token.toUpperCase()}{fill:var(--pnd-diagram-${token},${colour});}`,
+      `.${scope} .stroke-${token.toUpperCase()}{stroke:var(--pnd-diagram-${token},${colour});}`,
+    ]),
+    ...Object.entries(themeableColours).flatMap(([name, { fill, stroke }]) => [
+      `.${scope} [fill="${fill}"]{fill:var(--pnd-diagram-${name}-fill,${fill});}`,
+      `.${scope} [stroke="${stroke}"]{stroke:var(--pnd-diagram-${name}-stroke,${stroke});}`,
+    ]),
+    /*
+     * The badge that marks a node as carrying a tooltip. `d2` draws it outside
+     * its palette, so without these it stays a white disc with a near-black
+     * glyph whatever the host does.
+     *
+     * Matched on the pair of attributes rather than on `white` alone, and that
+     * is the whole point. `d2` knocks its connections out from behind their
+     * labels with a mask built from a white rect that shows everything and
+     * black rects over each label, where white and black are not colours but
+     * show and hide; theming those inverts the mask and every masked
+     * connection vanishes apart from the stubs behind its own labels. A mask
+     * holds only `rect` elements and none of them carry a stroke, so a
+     * `path` carrying both a fill and this stroke cannot be one.
+     */
+    `.${scope} path[fill="white"][stroke="#DEE1EB"]{fill:var(--pnd-diagram-badge-fill,#FFFFFF);stroke:var(--pnd-diagram-badge-edge,#DEE1EB);}`,
+    `.${scope} [stroke="#2E3346"]{stroke:var(--pnd-diagram-badge-mark,#2E3346);}`,
+  ].join("\n");
+
+  return markup.replace(
+    "</svg>",
+    `<style type="text/css"><![CDATA[\n${rules}\n]]></style></svg>`,
+  );
+};
+
+/**
+ * Renders a `.d2` file to SVG.
+ *
+ * `d2` is provided by mise, matching how the previous script invoked it. When it
+ * is unavailable the caller is told rather than the build failing outright: the
+ * `.d2` sources are the diffable artefact, and a missing renderer should not
+ * block regenerating the model and pages.
+ *
+ * Rendered with the same face the docs are set in. This is not decoration: `d2`
+ * measures every label with the font it renders with and sizes the boxes from
+ * that, so a diagram drawn in one face and displayed in another has labels that
+ * no longer fit. The padding is `d2`'s 100px default cut to something that
+ * leaves the drawing room without a frame of empty page around it.
+ */
+export const renderD2 = async (options: {
+  command: string[];
+  repoRoot: string;
+  sourcePath: string;
+  outputPath: string;
+  fontsDirectory: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> => {
+  const { repoRoot, sourcePath, outputPath, fontsDirectory } = options;
+  const [executable = "", ...prefix] = options.command;
+  const result = await execute(
+    executable,
+    [
+      ...prefix,
+      "--layout",
+      "elk",
+      "--pad",
+      "16",
+      "--font-regular",
+      `${fontsDirectory}/Inter-Regular.ttf`,
+      "--font-bold",
+      `${fontsDirectory}/Inter-Bold.ttf`,
+      sourcePath,
+      outputPath,
+    ],
+    repoRoot,
+  );
+  if (!result.ok) {
+    return result;
+  }
+
+  try {
+    await writeFile(
+      outputPath,
+      withThemeableColours(await readFile(outputPath, "utf8")),
+    );
+  } catch (error) {
+    return { ok: false, error: String(error) };
+  }
+
+  return { ok: true };
+};
