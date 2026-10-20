@@ -52,8 +52,9 @@ import type {
  *   collected output.
  * - A step that gives up puts a token in `FailedStepRuns`.
  *
- * Transitions carry their role in `metadata.role`, for the executor to interpret: the net has no guards or
- * kernels yet, so it doesn't simulate meaningfully. Every transition added for a step names it in
+ * Transitions carry their role in `metadata.role`, for the executor to interpret. Their kernels are placeholders,
+ * which carry `run_id` and `item_path` forward and give every other attribute a default, and the net has no guards,
+ * so it builds in Petrinaut but doesn't simulate meaningfully. Every transition added for a step names it in
  * `metadata.stepId`. The root's `metadata.flowOutputs` gives the endpoint each flow output is found at.
  *
  * The result is deterministic, so compiled nets can be compared and stored.
