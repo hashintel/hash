@@ -24,15 +24,12 @@ export const GrayToBlueIconButton = ({ sx, ...props }: IconButtonProps) => {
             border: `1px solid ${palette.blue[25]}`,
             color: "blue.70",
           },
-          // `@hashintel/ds-components` tokens, as hex because their CSS
-          // variables only resolve inside `.hash-ds-root`.
           '&[aria-pressed="true"]': {
-            background: "#0090ff", // blue.bg.solid
-            border: "1px solid #0090ff", // blue.bg.solid
-            color: "#ffffff", // blue.fg.onSolid
+            background: palette.blue[20],
+            border: `1px solid ${palette.blue[30]}`,
+            color: palette.blue[70],
             "&:hover": {
-              background: "#0588f0", // blue.bg.solid.hover
-              border: "1px solid #0588f0", // blue.bg.solid.hover
+              background: palette.blue[30],
             },
           },
           "& svg": {

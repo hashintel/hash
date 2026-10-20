@@ -121,7 +121,13 @@ export const FilePreviewSearch = ({
               }}
               sx={{ "& svg": { fontSize: 13 }, p: 0.5 }}
             >
-              <FontCaseRegularIcon />
+              <FontCaseRegularIcon
+                sx={{
+                  fill: ({ palette }) =>
+                    ignoreCase ? undefined : palette.blue[70],
+                  transition: ({ transitions }) => transitions.create("fill"),
+                }}
+              />
             </GrayToBlueIconButton>
           </Tooltip>
           <Collapse orientation="horizontal" in={!!searchText} timeout={200}>
