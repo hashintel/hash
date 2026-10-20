@@ -1055,7 +1055,7 @@ const aiFlowActionDefinitionsAsConst = {
         oneOfPayloadKinds: ["PropertyObjectWithMetadata"],
         name: "properties",
         description:
-          "The entity's properties with their metadata, as the graph takes them: values keyed by property type base URL, each giving the ID of its data type.",
+          "The entity's properties with their metadata, as the graph takes them: values keyed by property type base URL, each giving the ID of its data type and optionally its provenance and confidence.",
         required: true,
         array: false,
       },
