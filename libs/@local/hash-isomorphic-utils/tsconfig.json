@@ -4,6 +4,7 @@
     "src",
     "codegen.config.ts",
     "eslint.config.js",
+    "oxlint.config.ts",
     "vitest.config.ts"
   ],
   "compilerOptions": {
