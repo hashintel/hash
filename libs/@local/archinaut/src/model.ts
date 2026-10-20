@@ -40,6 +40,10 @@ export const layerSchema = z.object({
   prose: z.string().nullable(),
   /** Other markdown under this layer, linked from its page. */
   references: z.array(z.string().min(1)),
+  /** MDX pages beside the layer's code, rendered beneath its page. */
+  pages: z.array(z.string().min(1)),
+  /** D2 sources beside the layer's code, rendered for its pages. */
+  diagrams: z.array(z.string().min(1)),
   files: z.array(z.string().min(1)),
   fileCount: z.number().int().nonnegative(),
   lineCount: z.number().int().nonnegative(),

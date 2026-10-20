@@ -82,38 +82,50 @@ yarn workspace @local/petrinaut-arch-docs doc:architecture
 
 ## Adding a hand-written guide
 
-Authored pages live in `libs/@local/petrinaut-arch-docs/content/` and are
-optional. To have one sit _inside_ the architecture tree rather than beside it,
-name the layer it explains:
+A guide about a layer lives beside that layer's code, as an `.mdx` file in
+the folder that declares the layer or any folder beneath it. The build finds
+it through the same walk that resolves source files to layers, places it
+beneath the layer's page, and links it from there under "Guides". Nothing in
+the package compiles it: the CLI reads it, resolves its links, and ships it in
+the bundle.
 
-```yaml
----
-title: Memory model
-attachTo: core.simulation
-sidebar_order: 10
----
+```text
+libs/@hashintel/petrinaut-core/src/simulation/
+  README.md          # declares core.simulation
+  memory-model.mdx   # a guide, rendered beneath core.simulation
 ```
 
-The page then appears beneath that layer, and the layer's page links to it under
-"Guides".
+Frontmatter carries `title`, `description` and `sidebar_order`; the layer
+comes from the location, so an `attachTo` key is an error. Link to other
+pages by name rather than by path: `[text](layer:core.simulation.engine)` for
+a generated page, `[text](doc:core.simulation/memory-model)` for a guide,
+named by its layer and file stem. A target that does not resolve fails the
+check.
 
-Because `attachTo` decides where the page ends up, link to other pages by name
-rather than by path — `[text](layer:core.simulation.engine)` for a generated
-page, `[text](doc:simulation/memory-model)` for another authored one. A target
-that does not resolve fails the check.
+Pages about the documentation itself, like this one, belong to no layer and
+stay under `libs/@local/petrinaut-arch-docs/content/`, where the slug is the
+path.
 
 ## Adding a hand-written diagram
 
-Put a D2 file in `content/diagrams/` and reference it from an authored page as
-an image:
+Put a D2 file beside the page that uses it and reference it relative to the
+page, as an image or as a component:
 
 ```mdx
-![One trial through the browser runtime](@diagrams/browser-optimization-loop.svg)
+![One experiment through the GPU](./gpu-experiment-pipeline.d2)
+
+import Pipeline from "./gpu-experiment-pipeline.d2";
+
+<Pipeline />
 ```
 
-The build renders it to SVG next to the generated diagrams and rewrites the
-path. A name that does not exist, or that collides with a generated diagram,
-fails the check.
+The build renders the file to SVG next to the generated diagrams and rewrites
+the reference: the image form stays a plain Markdown image that any host
+renders, and the import becomes an SVG import that the site inlines as a
+themeable component. A diagram several pages share, or one used by a page
+under `content/`, lives in `content/diagrams/` and is referenced as
+`@diagrams/<name>.svg`. A reference that does not resolve, or a name that
+collides with a generated diagram, fails the check.
 
 ## Declaring a rule
 

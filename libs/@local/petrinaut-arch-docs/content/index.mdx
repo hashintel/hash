@@ -49,15 +49,15 @@ they avoid restating facts the generated pages already own.
 Detail that the generated pages do not carry — binary formats, message
 protocols, and the costs behind each design choice.
 
-- [Memory model](doc:simulation/memory-model) — which buffer lives on which thread,
+- [Memory model](doc:core.simulation/memory-model) — which buffer lives on which thread,
   and the frame format.
-- [How a step is computed](doc:simulation/stepping) — the fixed stage order, and
+- [How a step is computed](doc:core.simulation.engine/stepping) — the fixed stage order, and
   determinism.
-- [Compiling user code](doc:simulation/user-code) — the HIR pipeline, scenarios, and
+- [Compiling user code](doc:core.simulation.authoring/user-code) — the HIR pipeline, scenarios, and
   what the sandbox does not protect against.
-- [Worker protocol and backpressure](doc:simulation/protocol) — messages, and
+- [Worker protocol and backpressure](doc:core.simulation.worker/protocol) — messages, and
   the ack contract.
-- [Monte Carlo experiments](doc:simulation/experiments) — bounded memory, and why
+- [Monte Carlo experiments](doc:core.simulation.monte-carlo/experiments) — bounded memory, and why
   only aggregates reach the UI.
 
 ## Embedding Petrinaut
@@ -65,12 +65,12 @@ protocols, and the costs behind each design choice.
 How a host application connects its own document store to the editor and
 extends the editor with plugins.
 
-- [Embedding in a host application](doc:handle/host-integration): the
+- [Embedding in a host application](doc:core.handle/host-integration): the
   `PetrinautDocHandle` contract, the invariants the editor relies on, and a
   worked adapter.
-- [Handle contract gaps](doc:handle/contract-gaps): where the contract
+- [Handle contract gaps](doc:core.handle/contract-gaps): where the contract
   under-specifies or misbehaves, and the enhancement each gap calls for.
-- [Plugins](doc:plugins/overview): what a plugin is, how to write one, the
+- [Plugins](doc:ui.plugins/overview): what a plugin is, how to write one, the
   API reference, and how the editor runs plugins.
 - [Petricon](doc:ui/petricon): icon design references, motion rules, SVG
   implementation, and the React API.
@@ -95,9 +95,9 @@ TypeScript ones.
 `@apps/petrinaut-website` is the demo site and the host that embeds the editor.
 Its layers cover the routes, the example catalog, the plugins, and the Vercel
 functions in `api/`. These pages describe how it drives Petrinaut:
-[Router integration](doc:website/router-integration) for the navigation
-contract, [oEmbed](doc:website/oembed) for the embed endpoint, and
-[The demo site's plugins](doc:website/plugins) for the plugins it gives the
+[Router integration](doc:website.routes/router-integration) for the navigation
+contract, [oEmbed](doc:website.api/oembed) for the embed endpoint, and
+[The demo site's plugins](doc:website.plugins/plugins) for the plugins it gives the
 editor.
 
 Adding a package is a matter of declaring layers in its source; see

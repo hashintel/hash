@@ -43,6 +43,19 @@ Four stages over plain data, in `src/pipeline.ts`:
 An edge lands on the layer that defines the symbol, so the model is finer than
 one that stops at barrels: `react → core.handle`, not `react → core`.
 
+## Pages beside the code
+
+An `.mdx` page or a `.d2` diagram inside a covered package belongs to the
+layer of its folder, found by the same scan that resolves source files, and
+the model lists it on the layer (`pages`, `diagrams`). The emitter renders
+the page beneath the layer's page, with the slug `<layer>/<file stem>` as the
+key `doc:` links use, and renders the diagram like any other. A page
+references a diagram relative to itself, as `![alt](./flow.d2)` or
+`import Flow from "./flow.d2"`; the emitter rewrites the former to a plain
+image and the latter to an SVG import, so the package needs no MDX or D2
+tooling and the bundle stays framework-neutral. Pages that belong to no
+layer, and diagrams several pages share, live under `contentDirectory`.
+
 ## Facts providers
 
 **TypeScript** facts come from the native TypeScript compiler, the 7.1 line,

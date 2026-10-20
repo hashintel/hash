@@ -24,7 +24,7 @@ import {
   type IndexedDocument,
   type Language,
 } from "../pipeline/facts";
-import { sourceRootOf } from "../pipeline/shared/scope";
+import { sourceExtensionsFor, sourceRootOf } from "../pipeline/shared/scope";
 
 import type { ArchinautConfig } from "../config";
 import type { ArchitecturePackage } from "../model";
@@ -207,16 +207,31 @@ export const createDevSession = (
       clock.lap("scan");
       const diagnostics: Diagnostic[] = [];
       const notes: string[] = [];
+      // A page or diagram beside the code changes the model, not the facts.
+      const changedSource = changed.filter((file) =>
+        touched.some(
+          (pkg) =>
+            file.startsWith(`${sourceRootOf(pkg)}/`) &&
+            sourceExtensionsFor(pkg).some((extension) =>
+              file.endsWith(extension),
+            ),
+        ),
+      );
       await Promise.all(
         languagesOf(touched).map((language) =>
           queue(language, async () => {
             const source = sources.get(language);
-            if (source === undefined) {
+            const changedHere = filesInLanguage(
+              language,
+              packages,
+              changedSource,
+            );
+            if (source === undefined || changedHere.length === 0) {
               return;
             }
             const result = await source.update(
               filesInLanguage(language, packages, allFiles()),
-              filesInLanguage(language, packages, changed),
+              changedHere,
             );
             facts.set(language, result.documents);
             diagnostics.push(...result.diagnostics);
