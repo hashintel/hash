@@ -2,14 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
-import { generateActionSubnet } from "./generate-action-subnet.js";
 import {
-  actionSubnetKey,
-  gaveUpPortId,
-  inputPortId,
-  outputPortId,
-} from "./shared/action-subnet-ids.js";
-import { oneOfPayloadColorId, payloadColorId } from "./shared/colors.js";
+  generateActionSubnetName,
+  generateGaveUpPortKey,
+  generateInputPortKey,
+  generateOneOfPayloadColorKey,
+  generateOutputPortKey,
+  generatePayloadColorKey,
+  generateSubnetElementKey,
+  generateSubnetKey,
+} from "../flow-net-keys.js";
+import { generateActionSubnet } from "./generate-action-subnet.js";
 
 import type {
   ActionDefinition,
@@ -20,7 +23,9 @@ describe("generateActionSubnet", () => {
   it("gives an action a port per input and output, and one it gives up through", async () => {
     const actionDefinition = actionDefinitions.persistEntities;
     const subnet = await generateActionSubnet(actionDefinition);
-    const subnetKey = actionSubnetKey(actionDefinition.actionDefinitionId);
+    const subnetName = generateActionSubnetName(
+      actionDefinition.actionDefinitionId,
+    );
 
     expect(
       subnet.places
@@ -30,12 +35,12 @@ describe("generateActionSubnet", () => {
     ).toEqual(
       [
         ...actionDefinition.inputs.map(({ name }) =>
-          inputPortId(subnetKey, name),
+          generateInputPortKey(subnetName, name),
         ),
         ...actionDefinition.outputs.map(({ name }) =>
-          outputPortId(subnetKey, name),
+          generateOutputPortKey(subnetName, name),
         ),
-        gaveUpPortId(subnetKey),
+        generateGaveUpPortKey(subnetName),
       ].sort(),
     );
   });
@@ -60,27 +65,37 @@ describe("generateActionSubnet", () => {
       };
     };
 
-    expect(arcsOf("t.persistEntities.startAttempt")).toEqual({
+    expect(
+      arcsOf(generateSubnetElementKey("t", "persistEntities", "startAttempt")),
+    ).toEqual({
       from: [
-        "p.persistEntities.in.proposedEntities",
-        "p.persistEntities.in.draft",
+        generateInputPortKey("persistEntities", "proposedEntities"),
+        generateInputPortKey("persistEntities", "draft"),
       ],
-      to: ["p.persistEntities.inProgress"],
+      to: [generateSubnetElementKey("p", "persistEntities", "inProgress")],
     });
-    expect(arcsOf("t.persistEntities.succeedAttempt")).toEqual({
-      from: ["p.persistEntities.inProgress"],
+    expect(
+      arcsOf(
+        generateSubnetElementKey("t", "persistEntities", "succeedAttempt"),
+      ),
+    ).toEqual({
+      from: [generateSubnetElementKey("p", "persistEntities", "inProgress")],
       to: [
-        "p.persistEntities.out.persistedEntities",
-        "p.persistEntities.out.failedEntityProposals",
+        generateOutputPortKey("persistEntities", "persistedEntities"),
+        generateOutputPortKey("persistEntities", "failedEntityProposals"),
       ],
     });
-    expect(arcsOf("t.persistEntities.retryAttempt")).toEqual({
-      from: ["p.persistEntities.failed"],
-      to: ["p.persistEntities.inProgress"],
+    expect(
+      arcsOf(generateSubnetElementKey("t", "persistEntities", "retryAttempt")),
+    ).toEqual({
+      from: [generateSubnetElementKey("p", "persistEntities", "failed")],
+      to: [generateSubnetElementKey("p", "persistEntities", "inProgress")],
     });
-    expect(arcsOf("t.persistEntities.giveUp")).toEqual({
-      from: ["p.persistEntities.failed"],
-      to: [gaveUpPortId("persistEntities")],
+    expect(
+      arcsOf(generateSubnetElementKey("t", "persistEntities", "giveUp")),
+    ).toEqual({
+      from: [generateSubnetElementKey("p", "persistEntities", "failed")],
+      to: [generateGaveUpPortKey("persistEntities")],
     });
   });
 
@@ -105,23 +120,23 @@ describe("generateActionSubnet", () => {
     } as unknown as ActionDefinition<FlowActionDefinitionId>;
 
     const resolvedKinds = { items: "PersistedEntityMetadata" } as const;
-    const subnetKey = actionSubnetKey("find", resolvedKinds);
+    const subnetName = generateActionSubnetName("find", resolvedKinds);
 
     const subnet = await generateActionSubnet(findAction, resolvedKinds);
 
     const portColor = (portId: string) =>
       subnet.places.find(({ id }) => id === portId)?.colorId;
 
-    expect(subnetKey).toBe("find.PersistedEntityMetadata");
-    expect(subnet.id).toBe("subnet.find.PersistedEntityMetadata");
-    expect(portColor(inputPortId(subnetKey, "items"))).toBe(
-      payloadColorId("PersistedEntityMetadata", true),
+    expect(subnetName).not.toBe(generateActionSubnetName("find"));
+    expect(subnet.id).toBe(generateSubnetKey(subnetName));
+    expect(portColor(generateInputPortKey(subnetName, "items"))).toBe(
+      generatePayloadColorKey("PersistedEntityMetadata", true),
     );
-    expect(portColor(inputPortId(subnetKey, "fallback"))).toBe(
-      payloadColorId("PersistedEntityMetadata", false),
+    expect(portColor(generateInputPortKey(subnetName, "fallback"))).toBe(
+      generatePayloadColorKey("PersistedEntityMetadata", false),
     );
-    expect(portColor(outputPortId(subnetKey, "match"))).toBe(
-      payloadColorId("PersistedEntityMetadata", false),
+    expect(portColor(generateOutputPortKey(subnetName, "match"))).toBe(
+      generatePayloadColorKey("PersistedEntityMetadata", false),
     );
 
     await expect(generateActionSubnet(findAction)).rejects.toThrow(
@@ -129,18 +144,18 @@ describe("generateActionSubnet", () => {
     );
   });
   it("types an input accepting several kinds by all of them, when no other input or output takes its kind", async () => {
-    const subnetKey = actionSubnetKey("inferEntitiesFromContent");
+    const subnetName = generateActionSubnetName("inferEntitiesFromContent");
 
     const subnet = await generateActionSubnet(
       actionDefinitions.inferEntitiesFromContent,
     );
 
     const contentColorId = subnet.places.find(
-      ({ id }) => id === inputPortId(subnetKey, "content"),
+      ({ id }) => id === generateInputPortKey(subnetName, "content"),
     )?.colorId;
 
     expect(contentColorId).toBe(
-      oneOfPayloadColorId(["Text", "WebPage"], false),
+      generateOneOfPayloadColorKey(["Text", "WebPage"], false),
     );
     expect(
       subnet.types

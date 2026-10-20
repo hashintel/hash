@@ -35,15 +35,16 @@ flowchart LR
 - **The current Temporal engine** runs definitions directly, until the net executor replaces it (TODO FE-1904).
 - **The flow net** is compiled from a definition, deterministically and in one direction. Definitions stay the source: the net's design will keep changing, which only means recompiling.
 
-## Entry point
+## Entry points
 
-The package exports one module, `@local/flow-petri-net/compile-flow-definition`, with `compileFlowDefinition(flowDefinition): Promise<SDCPN>`. It's async because it lays the net out with Petrinaut's ELK layout.
+- `@local/flow-petri-net/compile-flow-definition` exports `compileFlowDefinition(flowDefinition): Promise<SDCPN>`. It's async because it lays the net out with Petrinaut's ELK layout.
+- `@local/flow-petri-net/flow-net-keys` exports the functions every key in a compiled net is made with (see **Ids** below), so that anything reading a net, such as an executor or a run's view, can work out an element's id.
 
 Its implementation is in `src/compile-flow-definition/`:
 
 - `compile-action-step.ts` and `compile-for-each-step.ts` add each kind of step to the root net.
 - `generate-action-subnet.ts` makes the subnet an action's steps are instances of.
-- `shared/` holds what those share: the step index (`flow-steps.ts`), the net being built (`net-builder.ts`), where each value is held (`value-places.ts`), ids (`action-subnet-ids.ts`, `step-places.ts`), colours, kernels, layout, and helpers for making places, transitions and arcs.
+- `shared/` holds what those share: the step index (`flow-steps.ts`), the net being built (`net-builder.ts`), where each value is held (`value-places.ts`), colours, kernels, layout, and helpers for making places, transitions and arcs.
 
 ## What a compiled net looks like
 
@@ -108,7 +109,7 @@ flowchart LR
 ```
 
 - **Runs.** The net has no transition that starts a run. The executor starts one by putting a token in each flow input's places, and a `Pending` token in each top-level step's place, which the root's `metadata.flowInputs` and `metadata.pendingAtStart` list. Steps inside a for-each step get theirs when each item starts.
-- **Ids.** The compiler builds the net from readable keys, such as `p.input.prompt`, `t.startStep.<step>` and `i.<step>` for a step's instance. Step ids can be any string without `~`, so instances have keys of their own, and `~` is what separates a step id from an output name (`p.output.<step>~<output>`), and a value from the consumer of its copy (`p.output.<step>~<output>~<consumer>`). Kernels address places by name, so a value's place is named by its key. Every id in the compiled net is the Petrinaut id of its key (`toPetrinautId`, a UUIDv5), which is what Petrinaut converts a non-UUID id to when it loads a net. So loading a compiled net changes nothing, and anything that needs an id works it out from the key. The endpoints in the root's metadata are converted too.
+- **Ids.** The compiler builds the net from readable keys, such as `p.input.prompt`, `t.startStep.<step>` and `i.<step>` for a step's instance, all made by the functions in `src/flow-net-keys.ts`. Step ids can be any string without `~`, so instances have keys of their own, and `~` is what separates a step id from an output name (`p.output.<step>~<output>`), and a value from the consumer of its copy (`p.output.<step>~<output>~<consumer>`). Kernels address places by name, so a value's place is named by its key. Every id in the compiled net is the Petrinaut id of its key (`toPetrinautId`, a UUIDv5), which is what Petrinaut converts a non-UUID id to when it loads a net. So loading a compiled net changes nothing, and anything that needs an id works it out from the key. The endpoints in the root's metadata are converted too.
 - **Steps.** Each action step is a component instance of its action's subnet, keyed `i.<step>`. Its `t.startStep.<step>` fires once per run (or per item), because it consumes the step's `Pending` token. It reads or consumes each connected value according to the connection's `access`, which defaults to read, matching today's semantics. It feeds every input port of the action:
   - a connected value;
   - a constant, recorded in the instance's `metadata.constants`;

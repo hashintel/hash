@@ -21,14 +21,22 @@ import * as integrationFlows from "@local/hash-isomorphic-utils/flows/definition
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 
 import { compileFlowDefinition } from "./compile-flow-definition.js";
-import { generateInstanceKey } from "./compile-flow-definition/shared/step-places.js";
 import {
-  generateCopyKey,
-  generateStepOutputKey,
-  inputValueKey,
-  itemValueKey,
-  outputValueKey,
-} from "./compile-flow-definition/shared/value-places.js";
+  failedStepRunsPlaceKey,
+  generateCopyOutputTransitionKey,
+  generateCopyPlaceKey,
+  generateInputConsumerKey,
+  generateInputPortKey,
+  generateInputValueKey,
+  generateInstanceKey,
+  generateItemValueKey,
+  generateIteratorPlaceKey,
+  generateOutputPortKey,
+  generateOutputValueKey,
+  generatePendingPlaceKey,
+  generateStepTransitionKey,
+  generateValuePlaceKey,
+} from "./flow-net-keys.js";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 import type {
@@ -233,7 +241,7 @@ describe("compileFlowDefinition", () => {
           inputs: { url: flowInput("Text") },
         },
         ({ inputs, step }) => {
-          const getFile = step("p.failedStepRuns", actions.getFileFromUrl, {
+          const getFile = step(failedStepRunsPlaceKey, actions.getFileFromUrl, {
             description: "Retrieve the file from the URL",
             inputs: { url: inputs.url },
           });
@@ -283,11 +291,13 @@ describe("compileFlowDefinition", () => {
     expect(new Set(placeNames).size).toBe(placeNames.length);
 
     const collected = placeEndpointOf(
-      `p.${outputValueKey("a", "b.fileEntity")}`,
+      generateValuePlaceKey(generateOutputValueKey("a", "b.fileEntity")),
     );
 
     expect(
-      sdcpn.transitions.find(byKey("t.finishCollecting.a"))?.outputArcs,
+      sdcpn.transitions.find(
+        byKey(generateStepTransitionKey("finishCollecting", "a")),
+      )?.outputArcs,
     ).toContainEqual({ endpoint: collected, weight: 1 });
     expect(
       (sdcpn.metadata?.flowOutputs as Record<string, unknown>).files,
@@ -335,16 +345,28 @@ describe("compileFlowDefinition", () => {
 
     expect(sdcpn.metadata?.flowInputs).toEqual({
       url: [
-        placeEndpointOf(`p.${inputValueKey("url")}`),
-        placeEndpointOf(`p.${generateCopyKey(inputValueKey("url"), "a.url")}`),
-        placeEndpointOf(`p.${generateCopyKey(inputValueKey("url"), "b.url")}`),
+        placeEndpointOf(generateValuePlaceKey(generateInputValueKey("url"))),
+        placeEndpointOf(
+          generateCopyPlaceKey(
+            generateInputValueKey("url"),
+            generateInputConsumerKey("a", "url"),
+          ),
+        ),
+        placeEndpointOf(
+          generateCopyPlaceKey(
+            generateInputValueKey("url"),
+            generateInputConsumerKey("b", "url"),
+          ),
+        ),
       ],
-      urls: [placeEndpointOf(`p.${inputValueKey("urls")}`)],
+      urls: [
+        placeEndpointOf(generateValuePlaceKey(generateInputValueKey("urls"))),
+      ],
     });
     /* Only the top-level steps: a step inside a forEach gets its Pending token when an item starts. */
     expect(sdcpn.metadata?.pendingAtStart).toEqual(
       ["a", "b", "c", "each"].map((stepId) =>
-        placeEndpointOf(`p.pending.${stepId}`),
+        placeEndpointOf(generatePendingPlaceKey(stepId)),
       ),
     );
   });
@@ -400,25 +422,37 @@ describe("compileFlowDefinition", () => {
 
     const inputSourcesOf = async (swapped: boolean) =>
       (await compileWithInputsSwapped(swapped)).transitions.find(
-        byKey("t.startStep.1"),
+        byKey(generateStepTransitionKey("startStep", "1")),
       )?.metadata?.inputSources;
 
     expect(await inputSourcesOf(false)).toEqual({
       url: {
         kind: "value",
-        from: placeEndpointOf("p.input.a"),
+        from: placeEndpointOf(
+          generateValuePlaceKey(generateInputValueKey("a")),
+        ),
         access: "read",
       },
       description: {
         kind: "value",
-        from: placeEndpointOf("p.input.b"),
+        from: placeEndpointOf(
+          generateValuePlaceKey(generateInputValueKey("b")),
+        ),
         access: "read",
       },
       displayName: { kind: "absent" },
     });
     expect(await inputSourcesOf(true)).toMatchObject({
-      url: { from: placeEndpointOf("p.input.b") },
-      description: { from: placeEndpointOf("p.input.a") },
+      url: {
+        from: placeEndpointOf(
+          generateValuePlaceKey(generateInputValueKey("b")),
+        ),
+      },
+      description: {
+        from: placeEndpointOf(
+          generateValuePlaceKey(generateInputValueKey("a")),
+        ),
+      },
     });
   });
 
@@ -456,18 +490,23 @@ describe("compileFlowDefinition", () => {
 
     const copyFor = (stepId: string) =>
       placeEndpointOf(
-        `p.${generateCopyKey(itemValueKey("each"), `${stepId}.url`)}`,
+        generateCopyPlaceKey(
+          generateItemValueKey("each"),
+          generateInputConsumerKey(stepId, "url"),
+        ),
       );
 
     expect(
       sdcpn.transitions
-        .find(byKey("t.startItem.each"))
+        .find(byKey(generateStepTransitionKey("startItem", "each")))
         ?.outputArcs.map(({ endpoint }) => endpoint),
     ).toEqual(expect.arrayContaining([copyFor("a"), copyFor("b")]));
 
     for (const stepId of ["a", "b"]) {
       expect(
-        sdcpn.transitions.find(byKey(`t.startStep.${stepId}`))?.inputArcs,
+        sdcpn.transitions.find(
+          byKey(generateStepTransitionKey("startStep", stepId)),
+        )?.inputArcs,
       ).toContainEqual({
         endpoint: copyFor(stepId),
         weight: 1,
@@ -532,28 +571,46 @@ describe("compileFlowDefinition", () => {
       .map((transition) => [transition.id, roleOf(transition)]);
 
     expect(forEachTransitions).toEqual([
-      [toPetrinautId("t.startForEach.3"), "startForEach"],
-      [toPetrinautId("t.startItem.3"), "startItem"],
-      [toPetrinautId("t.startCollecting.3"), "startCollecting"],
-      [toPetrinautId("t.collectItem.3"), "collectItem"],
-      [toPetrinautId("t.finishCollecting.3"), "finishCollecting"],
+      [
+        toPetrinautId(generateStepTransitionKey("startForEach", "3")),
+        "startForEach",
+      ],
+      [toPetrinautId(generateStepTransitionKey("startItem", "3")), "startItem"],
+      [
+        toPetrinautId(generateStepTransitionKey("startCollecting", "3")),
+        "startCollecting",
+      ],
+      [
+        toPetrinautId(generateStepTransitionKey("collectItem", "3")),
+        "collectItem",
+      ],
+      [
+        toPetrinautId(generateStepTransitionKey("finishCollecting", "3")),
+        "finishCollecting",
+      ],
     ]);
 
-    const startItem = sdcpn.transitions.find(byKey("t.startItem.3"));
+    const startItem = sdcpn.transitions.find(
+      byKey(generateStepTransitionKey("startItem", "3")),
+    );
 
     /* Each item starts both nested steps. */
     expect(startItem?.outputArcs.map(({ endpoint }) => endpoint)).toEqual([
-      placeEndpointOf("p.forEach.3.iterator"),
-      placeEndpointOf("p.item.3"),
-      placeEndpointOf("p.pending.3.1"),
-      placeEndpointOf("p.pending.3.2"),
+      placeEndpointOf(generateIteratorPlaceKey("3")),
+      placeEndpointOf(generateValuePlaceKey(generateItemValueKey("3"))),
+      placeEndpointOf(generatePendingPlaceKey("3.1")),
+      placeEndpointOf(generatePendingPlaceKey("3.2")),
     ]);
 
     /* The draft flag is read by every item, never consumed. */
-    const persistInvestors = sdcpn.transitions.find(byKey("t.startStep.3.2"));
+    const persistInvestors = sdcpn.transitions.find(
+      byKey(generateStepTransitionKey("startStep", "3.2")),
+    );
 
     expect(persistInvestors?.inputArcs).toContainEqual({
-      endpoint: placeEndpointOf("p.input.draft"),
+      endpoint: placeEndpointOf(
+        generateValuePlaceKey(generateInputValueKey("draft")),
+      ),
       weight: 1,
       type: "read",
     });
@@ -606,35 +663,35 @@ describe("compileFlowDefinition", () => {
 
     const outputPort = portEndpointOf(
       "research",
-      "p.researchEntities.out.proposedEntities",
+      generateOutputPortKey("researchEntities", "proposedEntities"),
     );
 
     const sharedPlace = placeEndpointOf(
-      `p.${outputValueKey("research", "proposedEntities")}`,
+      generateValuePlaceKey(
+        generateOutputValueKey("research", "proposedEntities"),
+      ),
     );
 
     const copyPlace = (stepId: string) =>
       placeEndpointOf(
-        `p.${generateCopyKey(
-          outputValueKey("research", "proposedEntities"),
-          `${stepId}.proposedEntities`,
-        )}`,
+        generateCopyPlaceKey(
+          generateOutputValueKey("research", "proposedEntities"),
+          generateInputConsumerKey(stepId, "proposedEntities"),
+        ),
       );
 
     const routeInputArc = (sdcpn: SDCPN, stepId: string) =>
       sdcpn.transitions
-        .find(byKey(`t.startStep.${stepId}`))
+        .find(byKey(generateStepTransitionKey("startStep", stepId)))
         ?.inputArcs.find(
           ({ endpoint }) =>
             endpoint?.kind !== "place" ||
-            endpoint.placeId !== toPetrinautId(`p.pending.${stepId}`),
+            endpoint.placeId !== toPetrinautId(generatePendingPlaceKey(stepId)),
         );
 
     const copyTransition = (sdcpn: SDCPN) =>
       sdcpn.transitions.find(
-        byKey(
-          `t.copyOutput.${generateStepOutputKey("research", "proposedEntities")}`,
-        ),
+        byKey(generateCopyOutputTransitionKey("research", "proposedEntities")),
       );
 
     it("lets every reader read the output port, when nothing consumes it", async () => {
@@ -732,15 +789,24 @@ describe("compileFlowDefinition", () => {
         (
           [
             [
-              `t.copyOutput.${generateStepOutputKey("research", "proposedEntities")}`,
+              generateCopyOutputTransitionKey("research", "proposedEntities"),
               "research",
             ],
-            ["t.startStep.research", "research"],
-            ["t.recordStepFailure.research", "research"],
-            ["t.startStep.persist0", "persist0"],
-            ["t.recordStepFailure.persist0", "persist0"],
-            ["t.startStep.persist1", "persist1"],
-            ["t.recordStepFailure.persist1", "persist1"],
+            [generateStepTransitionKey("startStep", "research"), "research"],
+            [
+              generateStepTransitionKey("recordStepFailure", "research"),
+              "research",
+            ],
+            [generateStepTransitionKey("startStep", "persist0"), "persist0"],
+            [
+              generateStepTransitionKey("recordStepFailure", "persist0"),
+              "persist0",
+            ],
+            [generateStepTransitionKey("startStep", "persist1"), "persist1"],
+            [
+              generateStepTransitionKey("recordStepFailure", "persist1"),
+              "persist1",
+            ],
           ] satisfies [key: string, stepId: string][]
         ).map(([key, stepId]) => [toPetrinautId(key), stepId]),
       );
@@ -757,27 +823,29 @@ describe("compileFlowDefinition", () => {
 
       expect(sdcpn.places.map(({ id }) => id).sort()).toEqual(
         idsOfKeys([
-          "p.failedStepRuns",
-          "p.input.prompt",
-          `p.${outputValueKey("research", "proposedEntities")}`,
-          `p.${generateCopyKey(
-            outputValueKey("research", "proposedEntities"),
-            "persist0.proposedEntities",
-          )}`,
-          "p.pending.persist0",
-          "p.pending.persist1",
-          "p.pending.research",
+          failedStepRunsPlaceKey,
+          generateValuePlaceKey(generateInputValueKey("prompt")),
+          generateValuePlaceKey(
+            generateOutputValueKey("research", "proposedEntities"),
+          ),
+          generateCopyPlaceKey(
+            generateOutputValueKey("research", "proposedEntities"),
+            generateInputConsumerKey("persist0", "proposedEntities"),
+          ),
+          generatePendingPlaceKey("persist0"),
+          generatePendingPlaceKey("persist1"),
+          generatePendingPlaceKey("research"),
         ]),
       );
       expect(sdcpn.transitions.map(({ id }) => id).sort()).toEqual(
         idsOfKeys([
-          `t.copyOutput.${generateStepOutputKey("research", "proposedEntities")}`,
-          "t.recordStepFailure.persist0",
-          "t.recordStepFailure.persist1",
-          "t.recordStepFailure.research",
-          "t.startStep.persist0",
-          "t.startStep.persist1",
-          "t.startStep.research",
+          generateCopyOutputTransitionKey("research", "proposedEntities"),
+          generateStepTransitionKey("recordStepFailure", "persist0"),
+          generateStepTransitionKey("recordStepFailure", "persist1"),
+          generateStepTransitionKey("recordStepFailure", "research"),
+          generateStepTransitionKey("startStep", "persist0"),
+          generateStepTransitionKey("startStep", "persist1"),
+          generateStepTransitionKey("startStep", "research"),
         ]),
       );
       expect(sdcpn.componentInstances?.map(({ id }) => id)).toEqual(
@@ -808,11 +876,13 @@ describe("compileFlowDefinition", () => {
       ).flowDefinition,
     );
 
-    const startStep = sdcpn.transitions.find(byKey("t.startStep.1"));
+    const startStep = sdcpn.transitions.find(
+      byKey(generateStepTransitionKey("startStep", "1")),
+    );
 
     expect(startStep?.outputArcs.map(({ endpoint }) => endpoint)).toEqual(
       actions.getFileFromUrl.inputs.map(({ name }) =>
-        portEndpointOf("1", `p.getFileFromUrl.in.${name}`),
+        portEndpointOf("1", generateInputPortKey("getFileFromUrl", name)),
       ),
     );
 

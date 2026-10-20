@@ -1,6 +1,17 @@
-import { stepRunIdSeparator } from "@local/hash-isomorphic-utils/flows/step-run-id";
-
-import { outputPortId } from "./action-subnet-ids.js";
+import {
+  generateArrayConsumerKey,
+  generateCollectConsumerKey,
+  generateCopyKey,
+  generateCopyOutputTransitionKey,
+  generateCopyPlaceKey,
+  generateInputConsumerKey,
+  generateInputValueKey,
+  generateInstanceKey,
+  generateItemValueKey,
+  generateOutputPortKey,
+  generateOutputValueKey,
+  generateValuePlaceKey,
+} from "../../flow-net-keys.js";
 import { getActionDefinition } from "./flow-steps.js";
 import {
   createTransition,
@@ -9,7 +20,6 @@ import {
   placeEndpoint,
   portEndpoint,
 } from "./net-elements.js";
-import { generateInstanceKey } from "./step-places.js";
 
 import type { FlowSteps, ValueShape } from "./flow-steps.js";
 import type { NetBuilder } from "./net-builder.js";
@@ -23,7 +33,7 @@ import type {
  * Something that takes a value: a step's input, a for-each step's array, or a for-each step collecting its
  * items' outputs (which always consumes).
  */
-export type Consumer = { key: string; label: string; consumes: boolean };
+type Consumer = { key: string; label: string; consumes: boolean };
 
 type Value = {
   /** e.g. `input.prompt`, or `output.1~proposedEntities` */
@@ -55,34 +65,12 @@ type ValueLocation = {
   producedInto: ArcEndpoint[];
 };
 
-export const inputValueKey = (inputId: string) => `input.${inputId}`;
-
-/**
- * The key of a step's output. Step ids can't contain the separator, so it tells the step from the output whatever
- * the output is called: a for-each step's collected output can have any name.
- */
-export const generateStepOutputKey = (stepId: string, outputName: string) =>
-  `${stepId}${stepRunIdSeparator}${outputName}`;
-
-export const outputValueKey = (stepId: string, outputName: string) =>
-  `output.${generateStepOutputKey(stepId, outputName)}`;
-
-/**
- * The key of a value's copy for one consumer to take. A consumer's key, a step id and an action's input name,
- * can't contain the separator, so the last one in a copy's key separates the value from the consumer.
- */
-export const generateCopyKey = (valueKey: string, consumerKey: string) =>
-  `${valueKey}${stepRunIdSeparator}${consumerKey}`;
-
-/** The value a for-each step gives the steps inside it: the item each of their runs is for. */
-export const itemValueKey = (forEachStepId: string) => `item.${forEachStepId}`;
-
-export const sourceValueKey = (source: StepInputSource): string | null => {
+const sourceValueKey = (source: StepInputSource): string | null => {
   switch (source.kind) {
     case "flow-input":
-      return inputValueKey(source.inputName);
+      return generateInputValueKey(source.inputName);
     case "step-output":
-      return outputValueKey(source.stepId, source.outputName);
+      return generateOutputValueKey(source.stepId, source.outputName);
     case "item":
     case "constant":
       return null;
@@ -90,14 +78,14 @@ export const sourceValueKey = (source: StepInputSource): string | null => {
 };
 
 /** The item value of the for-each step a step is directly inside. */
-export const itemValueKeyIn = (scope: string[]) => {
+const itemValueKeyIn = (scope: string[]) => {
   const forEachStepId = scope.at(-1);
 
   if (forEachStepId === undefined) {
     throw new Error("Only a step inside a for-each step can use its item");
   }
 
-  return itemValueKey(forEachStepId);
+  return generateItemValueKey(forEachStepId);
 };
 
 export const consumes = (source: StepInputSource) =>
@@ -135,7 +123,7 @@ export const placeValues = ({
 
   for (const input of flowDefinition.inputs) {
     addValue({
-      key: inputValueKey(input.name),
+      key: generateInputValueKey(input.name),
       label: input.name,
       shape: input,
       producer: { kind: "placed" },
@@ -145,30 +133,30 @@ export const placeValues = ({
   for (const { step } of steps.entries) {
     if (step.kind === "for-each") {
       addValue({
-        key: outputValueKey(step.stepId, step.collect.as),
+        key: generateOutputValueKey(step.stepId, step.collect.as),
         label: `${step.stepId}.${step.collect.as}`,
         shape: steps.getOutputShape(step.stepId, step.collect.as),
         producer: { kind: "placed" },
       });
       addValue({
-        key: itemValueKey(step.stepId),
+        key: generateItemValueKey(step.stepId),
         label: `Item: ${step.stepId}`,
         shape: { ...steps.getForEachArrayShape(step), array: false },
         producer: { kind: "placed" },
       });
     } else {
-      const subnetKey = steps.getSubnetKey(step);
+      const subnetName = steps.getSubnetName(step);
 
       for (const output of getActionDefinition(step).outputs) {
         addValue({
-          key: outputValueKey(step.stepId, output.name),
+          key: generateOutputValueKey(step.stepId, output.name),
           label: `${step.stepId}.${output.name}`,
           shape: steps.getOutputShape(step.stepId, output.name),
           producer: {
             kind: "port",
             stepId: step.stepId,
             outputName: output.name,
-            portId: outputPortId(subnetKey, output.name),
+            portId: generateOutputPortKey(subnetName, output.name),
           },
         });
       }
@@ -185,47 +173,60 @@ export const placeValues = ({
     return value;
   };
 
+  /* Consumer key → the value it takes, and how. */
+  const consumersByKey = new Map<
+    string,
+    { valueKey: string; consumer: Consumer }
+  >();
+
+  const addConsumer = (valueKey: string, consumer: Consumer) => {
+    getValue(valueKey).consumers.push(consumer);
+    consumersByKey.set(consumer.key, { valueKey, consumer });
+  };
+
   /* Register every consumer, so that each value's places can be decided before any arcs are made. */
   for (const { step, scope } of steps.entries) {
     if (step.kind === "action") {
       for (const [inputName, source] of Object.entries(step.inputs)) {
-        const key =
+        const valueKey =
           source.kind === "item"
             ? itemValueKeyIn(scope)
             : sourceValueKey(source);
 
-        if (key) {
-          getValue(key).consumers.push({
-            key: `${step.stepId}.${inputName}`,
+        if (valueKey) {
+          addConsumer(valueKey, {
+            key: generateInputConsumerKey(step.stepId, inputName),
             label: `${step.stepId}.${inputName}`,
             consumes: consumes(source),
           });
         }
       }
     } else {
-      const overKey = sourceValueKey(step.over);
+      const arrayKey = sourceValueKey(step.over);
 
-      if (overKey) {
-        getValue(overKey).consumers.push({
-          key: `${step.stepId}.over`,
+      if (arrayKey) {
+        addConsumer(arrayKey, {
+          key: generateArrayConsumerKey(step.stepId),
           label: `${step.stepId} (for each)`,
           consumes: consumes(step.over),
         });
       }
 
-      getValue(
-        outputValueKey(step.collect.stepId, step.collect.outputName),
-      ).consumers.push({
-        key: `${step.stepId}.collect`,
-        label: `${step.stepId} (collect)`,
-        consumes: true,
-      });
+      addConsumer(
+        generateOutputValueKey(step.collect.stepId, step.collect.outputName),
+        {
+          key: generateCollectConsumerKey(step.stepId),
+          label: `${step.stepId} (collect)`,
+          consumes: true,
+        },
+      );
     }
   }
 
   for (const output of flowDefinition.outputs) {
-    getValue(outputValueKey(output.stepId, output.outputName)).isFlowOutput =
-      true;
+    getValue(
+      generateOutputValueKey(output.stepId, output.outputName),
+    ).isFlowOutput = true;
   }
 
   const valueLocations = new Map<string, ValueLocation>();
@@ -267,7 +268,7 @@ export const placeValues = ({
       isShared || value.consumers.length === 0
         ? placeEndpoint(
             net.addPlace({
-              id: `p.${value.key}`,
+              id: generateValuePlaceKey(value.key),
               name: value.key,
               description: value.isFlowOutput
                 ? `${value.label}, an output of the flow.`
@@ -282,7 +283,7 @@ export const placeValues = ({
         consumer.key,
         placeEndpoint(
           net.addPlace({
-            id: `p.${generateCopyKey(value.key, consumer.key)}`,
+            id: generateCopyPlaceKey(value.key, consumer.key),
             name: generateCopyKey(value.key, consumer.key),
             description: `${value.label}, for ${consumer.label} to consume.`,
             colorId,
@@ -301,7 +302,7 @@ export const placeValues = ({
 
       net.addTransitions(
         createTransition({
-          id: `t.copyOutput.${generateStepOutputKey(stepId, outputName)}`,
+          id: generateCopyOutputTransitionKey(stepId, outputName),
           name: `Copy ${value.label}`,
           description: `Puts the ${outputName} output of step ${stepId} where each step that reads or consumes it takes it from.`,
           role: "copyOutput",
@@ -329,31 +330,67 @@ export const placeValues = ({
     return location;
   };
 
+  /** Arcs from a root transition that produces a value, putting it into every place it's taken from. */
+  const valueOutputArcs = (valueKey: string): OutputArc[] =>
+    getValueLocation(valueKey).producedInto.map(outputArc);
+
+  /** The arc a consumer takes its value through, if it takes one: a constant isn't a value. */
+  const consumerInputArc = (consumerKey: string) => {
+    const registered = consumersByKey.get(consumerKey);
+
+    if (!registered) {
+      return null;
+    }
+
+    const { valueKey, consumer } = registered;
+    const { shared, taken } = getValueLocation(valueKey);
+
+    if (consumer.consumes) {
+      const endpoint = taken.get(consumer.key);
+
+      if (!endpoint) {
+        throw new Error(
+          `Value "${valueKey}" has no copy for ${consumer.label}`,
+        );
+      }
+
+      return inputArc(endpoint, "standard");
+    }
+
+    if (!shared) {
+      throw new Error(`Value "${valueKey}" has no place for ${consumer.label}`);
+    }
+
+    return inputArc(shared, "read");
+  };
+
   return {
-    /** Arcs from a root transition that produces a value, putting it into every place it's taken from. */
-    valueOutputArcs: (key: string): OutputArc[] =>
-      getValueLocation(key).producedInto.map(outputArc),
+    /** The arc a step's input takes its connected value through, or `null` for a constant. */
+    stepInputArc: (stepId: string, inputName: string) =>
+      consumerInputArc(generateInputConsumerKey(stepId, inputName)),
 
-    /** The arc a consumer takes a value through. */
-    valueInputArc: (key: string, consumer: Consumer) => {
-      const { shared, taken } = getValueLocation(key);
+    /** The arc a for-each step takes the array it iterates over through, or `null` for a constant. */
+    forEachArrayArc: (forEachStepId: string) =>
+      consumerInputArc(generateArrayConsumerKey(forEachStepId)),
 
-      if (consumer.consumes) {
-        const endpoint = taken.get(consumer.key);
+    /** The arc a for-each step collects each item's output through. */
+    collectArc: (forEachStepId: string) => {
+      const arc = consumerInputArc(generateCollectConsumerKey(forEachStepId));
 
-        if (!endpoint) {
-          throw new Error(`Value "${key}" has no copy for ${consumer.label}`);
-        }
-
-        return inputArc(endpoint, "standard");
+      if (!arc) {
+        throw new Error(`For-each step "${forEachStepId}" collects nothing`);
       }
 
-      if (!shared) {
-        throw new Error(`Value "${key}" has no place for ${consumer.label}`);
-      }
-
-      return inputArc(shared, "read");
+      return arc;
     },
+
+    /** Arcs putting a for-each step's item where each step inside it takes it from. */
+    itemOutputArcs: (forEachStepId: string) =>
+      valueOutputArcs(generateItemValueKey(forEachStepId)),
+
+    /** Arcs putting a for-each step's collected output where each of its consumers takes it from. */
+    collectedOutputArcs: (forEachStepId: string, outputName: string) =>
+      valueOutputArcs(generateOutputValueKey(forEachStepId, outputName)),
 
     /**
      * Where each flow input is put when a run starts: the place shared by its readers, and a copy for each step
@@ -362,7 +399,7 @@ export const placeValues = ({
     flowInputEndpoints: Object.fromEntries(
       flowDefinition.inputs.map((input) => [
         input.name,
-        getValueLocation(inputValueKey(input.name)).producedInto,
+        getValueLocation(generateInputValueKey(input.name)).producedInto,
       ]),
     ),
 
@@ -370,7 +407,7 @@ export const placeValues = ({
     flowOutputEndpoints: Object.fromEntries(
       flowDefinition.outputs.map((output) => {
         const { shared } = getValueLocation(
-          outputValueKey(output.stepId, output.outputName),
+          generateOutputValueKey(output.stepId, output.outputName),
         );
 
         if (!shared) {

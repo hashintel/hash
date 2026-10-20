@@ -1,16 +1,15 @@
 import {
-  actionSubnetId,
-  actionSubnetKey,
-  defaultMaxRetries,
-  donePortId,
-  gaveUpPortId,
-  inputPortId,
-  maxRetriesParameterId,
-  outputPortId,
+  generateActionSubnetName,
+  generateDonePortKey,
+  generateGaveUpPortKey,
+  generateInputPortKey,
+  generateOutputPortKey,
+  generateStartPortKey,
+  generateSubnetElementKey,
+  generateSubnetKey,
+  maxRetriesParameterKey,
   type ResolvedKinds,
-  startPortId,
-  subnetItemId,
-} from "./shared/action-subnet-ids.js";
+} from "../flow-net-keys.js";
 import {
   createOneOfPayloadColor,
   createPayloadColor,
@@ -18,6 +17,7 @@ import {
 } from "./shared/colors.js";
 import { type KernelPlace, withKernel } from "./shared/kernels.js";
 import { layOut } from "./shared/lay-out.js";
+import { defaultMaxRetries } from "./shared/max-retries.js";
 import {
   createPlace,
   createTransition,
@@ -92,7 +92,10 @@ export const generateActionSubnet = async (
   const { actionDefinitionId, name, description, inputs, outputs } =
     actionDefinition;
 
-  const subnetKey = actionSubnetKey(actionDefinitionId, resolvedKinds);
+  const subnetName = generateActionSubnetName(
+    actionDefinitionId,
+    resolvedKinds,
+  );
 
   const colors = new Map<string, Color>([[lifecycleColor.id, lifecycleColor]]);
 
@@ -105,7 +108,7 @@ export const generateActionSubnet = async (
     inputs.length > 0
       ? inputs.map((input) =>
           createPlace({
-            id: inputPortId(subnetKey, input.name),
+            id: generateInputPortKey(subnetName, input.name),
             name: input.name,
             description: [
               input.description ?? `The ${input.name} input.`,
@@ -117,7 +120,7 @@ export const generateActionSubnet = async (
         )
       : [
           createPlace({
-            id: startPortId(subnetKey),
+            id: generateStartPortKey(subnetName),
             name: "Start",
             description: "Starts the action (it has no inputs).",
             colorId: lifecycleColor.id,
@@ -129,7 +132,7 @@ export const generateActionSubnet = async (
     outputs.length > 0
       ? outputs.map((output) =>
           createPlace({
-            id: outputPortId(subnetKey, output.name),
+            id: generateOutputPortKey(subnetName, output.name),
             name: output.name,
             description: [
               output.description ?? `The ${output.name} output.`,
@@ -141,7 +144,7 @@ export const generateActionSubnet = async (
         )
       : [
           createPlace({
-            id: donePortId(subnetKey),
+            id: generateDonePortKey(subnetName),
             name: "Done",
             description: "The action succeeded (it has no outputs).",
             colorId: lifecycleColor.id,
@@ -150,21 +153,21 @@ export const generateActionSubnet = async (
         ];
 
   const inProgress = createPlace({
-    id: subnetItemId("p", subnetKey, "inProgress"),
+    id: generateSubnetElementKey("p", subnetName, "inProgress"),
     name: "InProgress",
     description: `${name} is running.`,
     colorId: lifecycleColor.id,
   });
 
   const failed = createPlace({
-    id: subnetItemId("p", subnetKey, "failed"),
+    id: generateSubnetElementKey("p", subnetName, "failed"),
     name: "Failed",
     description: `An attempt to run ${name} failed.`,
     colorId: lifecycleColor.id,
   });
 
   const gaveUp = createPlace({
-    id: gaveUpPortId(subnetKey),
+    id: generateGaveUpPortKey(subnetName),
     name: "GaveUp",
     description: `${name} failed on every attempt.`,
     colorId: lifecycleColor.id,
@@ -175,7 +178,7 @@ export const generateActionSubnet = async (
 
   const transitions = [
     createTransition({
-      id: subnetItemId("t", subnetKey, "startAttempt"),
+      id: generateSubnetElementKey("t", subnetName, "startAttempt"),
       name: `Start ${name}`,
       description: `Start running ${name} with the step's inputs.`,
       role: "startAttempt",
@@ -183,7 +186,7 @@ export const generateActionSubnet = async (
       outputArcs: [outputArc(placeEndpoint(inProgress.id))],
     }),
     createTransition({
-      id: subnetItemId("t", subnetKey, "succeedAttempt"),
+      id: generateSubnetElementKey("t", subnetName, "succeedAttempt"),
       name: `${name} succeeded`,
       description: `${name} completed, producing its outputs.`,
       role: "succeedAttempt",
@@ -191,7 +194,7 @@ export const generateActionSubnet = async (
       outputArcs: outputPorts.map((port) => outputArc(placeEndpoint(port.id))),
     }),
     createTransition({
-      id: subnetItemId("t", subnetKey, "failAttempt"),
+      id: generateSubnetElementKey("t", subnetName, "failAttempt"),
       name: `${name} failed`,
       description: `An attempt to run ${name} failed.`,
       role: "failAttempt",
@@ -199,7 +202,7 @@ export const generateActionSubnet = async (
       outputArcs: [outputArc(placeEndpoint(failed.id))],
     }),
     createTransition({
-      id: subnetItemId("t", subnetKey, "retryAttempt"),
+      id: generateSubnetElementKey("t", subnetName, "retryAttempt"),
       name: `Retry ${name}`,
       description: `Try ${name} again, while fewer than max_retries attempts have been made.`,
       role: "retryAttempt",
@@ -207,7 +210,7 @@ export const generateActionSubnet = async (
       outputArcs: [outputArc(placeEndpoint(inProgress.id))],
     }),
     createTransition({
-      id: subnetItemId("t", subnetKey, "giveUp"),
+      id: generateSubnetElementKey("t", subnetName, "giveUp"),
       name: `Give up on ${name}`,
       description: `Stop trying ${name} once max_retries attempts have failed.`,
       role: "giveUp",
@@ -240,7 +243,7 @@ export const generateActionSubnet = async (
   });
 
   return {
-    id: actionSubnetId(subnetKey),
+    id: generateSubnetKey(subnetName),
     name: actionDefinitionId,
     description,
     metadata: { actionDefinitionId },
@@ -250,7 +253,7 @@ export const generateActionSubnet = async (
     differentialEquations: [],
     parameters: [
       {
-        id: maxRetriesParameterId,
+        id: maxRetriesParameterKey,
         name: "Max retries",
         variableName: "max_retries",
         type: "integer",

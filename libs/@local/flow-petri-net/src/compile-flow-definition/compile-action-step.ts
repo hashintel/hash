@@ -1,12 +1,16 @@
 import {
-  actionSubnetId,
-  defaultMaxRetries,
-  gaveUpPortId,
-  inputPortId,
-  maxRetriesParameterId,
-  startPortId,
-} from "./shared/action-subnet-ids.js";
+  failedStepRunsPlaceKey,
+  generateGaveUpPortKey,
+  generateInputPortKey,
+  generateInstanceKey,
+  generatePendingPlaceKey,
+  generateStartPortKey,
+  generateStepTransitionKey,
+  generateSubnetKey,
+  maxRetriesParameterKey,
+} from "../flow-net-keys.js";
 import { getActionDefinition } from "./shared/flow-steps.js";
+import { defaultMaxRetries } from "./shared/max-retries.js";
 import {
   createTransition,
   inputArc,
@@ -15,16 +19,7 @@ import {
   portEndpoint,
   toPetrinautEndpoint,
 } from "./shared/net-elements.js";
-import {
-  failedStepRunsPlaceId,
-  generateInstanceKey,
-  pendingPlaceId,
-} from "./shared/step-places.js";
-import {
-  consumes,
-  itemValueKeyIn,
-  sourceValueKey,
-} from "./shared/value-places.js";
+import { consumes } from "./shared/value-places.js";
 
 import type { FlowSteps } from "./shared/flow-steps.js";
 import type { NetBuilder } from "./shared/net-builder.js";
@@ -45,23 +40,20 @@ import type {
  */
 export const compileActionStep = ({
   step,
-  scope,
   steps,
   net,
   values,
 }: {
   step: ActionStepDefinition;
-  /** The for-each steps enclosing the step, outermost first. */
-  scope: string[];
   steps: FlowSteps;
   net: NetBuilder;
   values: ValuePlaces;
 }) => {
   const actionDefinition = getActionDefinition(step);
-  const subnetKey = steps.getSubnetKey(step);
+  const subnetName = steps.getSubnetName(step);
 
   const inputArcs: InputArc[] = [
-    inputArc(placeEndpoint(pendingPlaceId(step.stepId))),
+    inputArc(placeEndpoint(generatePendingPlaceKey(step.stepId))),
   ];
 
   const constants: Record<string, JsonValue> = {};
@@ -86,24 +78,13 @@ export const compileActionStep = ({
   });
 
   for (const [inputName, source] of Object.entries(step.inputs)) {
-    const consumer = {
-      key: `${step.stepId}.${inputName}`,
-      label: `${step.stepId}.${inputName}`,
-      consumes: consumes(source),
-    };
-
     if (source.kind === "constant") {
       constants[inputName] = source.payload as JsonValue;
       inputSources[inputName] = { kind: "constant" };
-    } else if (source.kind === "item") {
-      const arc = values.valueInputArc(itemValueKeyIn(scope), consumer);
-      inputArcs.push(arc);
-      inputSources[inputName] = connectedValue(arc, source);
     } else {
-      const key = sourceValueKey(source);
+      const arc = values.stepInputArc(step.stepId, inputName);
 
-      if (key) {
-        const arc = values.valueInputArc(key, consumer);
+      if (arc) {
         inputArcs.push(arc);
         inputSources[inputName] = connectedValue(arc, source);
       }
@@ -112,8 +93,10 @@ export const compileActionStep = ({
 
   const inputPortIds =
     actionDefinition.inputs.length > 0
-      ? actionDefinition.inputs.map(({ name }) => inputPortId(subnetKey, name))
-      : [startPortId(subnetKey)];
+      ? actionDefinition.inputs.map(({ name }) =>
+          generateInputPortKey(subnetName, name),
+        )
+      : [generateStartPortKey(subnetName)];
 
   /*
    * An input nothing is connected to takes its default, if it has one. Otherwise, as it must be optional, it's given a
@@ -130,15 +113,17 @@ export const compileActionStep = ({
       inputSources[input.name] = { kind: "default" };
     } else {
       inputSources[input.name] = { kind: "absent" };
-      absentInputPortIds.push(inputPortId(subnetKey, input.name));
+      absentInputPortIds.push(generateInputPortKey(subnetName, input.name));
     }
   }
 
-  net.markAbsentInputPorts(`t.startStep.${step.stepId}`, absentInputPortIds);
+  const startStepKey = generateStepTransitionKey("startStep", step.stepId);
+
+  net.markAbsentInputPorts(startStepKey, absentInputPortIds);
 
   net.addTransitions(
     createTransition({
-      id: `t.startStep.${step.stepId}`,
+      id: startStepKey,
       name: `Start ${step.stepId}`,
       description: `Starts step ${step.stepId} once its inputs are available, feeding every input of ${step.actionDefinitionId}: connected values, constants, and absent values for unconnected optional inputs.`,
       role: "startStep",
@@ -149,7 +134,7 @@ export const compileActionStep = ({
       ),
     }),
     createTransition({
-      id: `t.recordStepFailure.${step.stepId}`,
+      id: generateStepTransitionKey("recordStepFailure", step.stepId),
       name: `${step.stepId} gave up`,
       description: `Records that step ${step.stepId} gave up, failing its run.`,
       role: "recordStepFailure",
@@ -158,11 +143,11 @@ export const compileActionStep = ({
         inputArc(
           portEndpoint(
             generateInstanceKey(step.stepId),
-            gaveUpPortId(subnetKey),
+            generateGaveUpPortKey(subnetName),
           ),
         ),
       ],
-      outputArcs: [outputArc(placeEndpoint(failedStepRunsPlaceId))],
+      outputArcs: [outputArc(placeEndpoint(failedStepRunsPlaceKey))],
     }),
   );
 
@@ -174,9 +159,9 @@ export const compileActionStep = ({
       actionDefinitionId: step.actionDefinitionId,
       ...(Object.keys(constants).length > 0 ? { constants } : {}),
     },
-    subnetId: actionSubnetId(subnetKey),
+    subnetId: generateSubnetKey(subnetName),
     parameterValues: {
-      [maxRetriesParameterId]: String(step.retryCount ?? defaultMaxRetries),
+      [maxRetriesParameterKey]: String(step.retryCount ?? defaultMaxRetries),
     },
     x: 0,
     y: 0,

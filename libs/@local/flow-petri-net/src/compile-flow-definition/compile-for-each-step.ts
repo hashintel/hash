@@ -1,3 +1,9 @@
+import {
+  generateAccumulatorPlaceKey,
+  generateIteratorPlaceKey,
+  generatePendingPlaceKey,
+  generateStepTransitionKey,
+} from "../flow-net-keys.js";
 import { accumulatorColor, createIteratorColor } from "./shared/colors.js";
 import {
   createTransition,
@@ -5,13 +11,6 @@ import {
   outputArc,
   placeEndpoint,
 } from "./shared/net-elements.js";
-import { pendingPlaceId } from "./shared/step-places.js";
-import {
-  consumes,
-  itemValueKey,
-  outputValueKey,
-  sourceValueKey,
-} from "./shared/value-places.js";
 
 import type { FlowSteps } from "./shared/flow-steps.js";
 import type { NetBuilder } from "./shared/net-builder.js";
@@ -37,38 +36,30 @@ export const compileForEachStep = ({
   const overShape = steps.getForEachArrayShape(step);
 
   const iteratorPlaceId = net.addPlace({
-    id: `p.forEach.${step.stepId}.iterator`,
+    id: generateIteratorPlaceKey(step.stepId),
     name: `Iterator: ${step.stepId}`,
     description: `Iterates over the array step ${step.stepId} runs its steps for.`,
     colorId: net.registerColor(createIteratorColor(overShape.payloadKind)),
   });
 
   const accumulatorPlaceId = net.addPlace({
-    id: `p.forEach.${step.stepId}.accumulator`,
+    id: generateAccumulatorPlaceKey(step.stepId),
     name: `Accumulator: ${step.stepId}`,
     description: `Counts the items of step ${step.stepId} that have finished.`,
     colorId: net.registerColor(accumulatorColor),
   });
 
-  const overKey = sourceValueKey(step.over);
+  const arrayArc = values.forEachArrayArc(step.stepId);
 
   net.addTransitions(
     createTransition({
-      id: `t.startForEach.${step.stepId}`,
+      id: generateStepTransitionKey("startForEach", step.stepId),
       name: `Start ${step.stepId}`,
       description: `Starts step ${step.stepId} once its array is available.`,
       role: "startForEach",
       inputArcs: [
-        inputArc(placeEndpoint(pendingPlaceId(step.stepId))),
-        ...(overKey
-          ? [
-              values.valueInputArc(overKey, {
-                key: `${step.stepId}.over`,
-                label: `${step.stepId} (for each)`,
-                consumes: consumes(step.over),
-              }),
-            ]
-          : []),
+        inputArc(placeEndpoint(generatePendingPlaceKey(step.stepId))),
+        ...(arrayArc ? [arrayArc] : []),
       ],
       outputArcs: [outputArc(placeEndpoint(iteratorPlaceId))],
       metadata: {
@@ -79,7 +70,7 @@ export const compileForEachStep = ({
       },
     }),
     createTransition({
-      id: `t.startItem.${step.stepId}`,
+      id: generateStepTransitionKey("startItem", step.stepId),
       name: `Start an item of ${step.stepId}`,
       description: `Starts the next item of step ${step.stepId}, while \`next\` is less than \`item_count\`.`,
       role: "startItem",
@@ -87,14 +78,14 @@ export const compileForEachStep = ({
       inputArcs: [inputArc(placeEndpoint(iteratorPlaceId))],
       outputArcs: [
         outputArc(placeEndpoint(iteratorPlaceId)),
-        ...values.valueOutputArcs(itemValueKey(step.stepId)),
+        ...values.itemOutputArcs(step.stepId),
         ...step.steps.map(({ stepId }) =>
-          outputArc(placeEndpoint(pendingPlaceId(stepId))),
+          outputArc(placeEndpoint(generatePendingPlaceKey(stepId))),
         ),
       ],
     }),
     createTransition({
-      id: `t.startCollecting.${step.stepId}`,
+      id: generateStepTransitionKey("startCollecting", step.stepId),
       name: `Collect the items of ${step.stepId}`,
       description: `Every item of step ${step.stepId} has started (\`next\` equals \`item_count\`): count them as they finish.`,
       role: "startCollecting",
@@ -103,34 +94,25 @@ export const compileForEachStep = ({
       outputArcs: [outputArc(placeEndpoint(accumulatorPlaceId))],
     }),
     createTransition({
-      id: `t.collectItem.${step.stepId}`,
+      id: generateStepTransitionKey("collectItem", step.stepId),
       name: `Collect an item of ${step.stepId}`,
       description: `Collects an item's ${step.collect.stepId}.${step.collect.outputName}, counting it as done.`,
       role: "collectItem",
       metadata: { stepId: step.stepId, collect: step.collect },
       inputArcs: [
-        values.valueInputArc(
-          outputValueKey(step.collect.stepId, step.collect.outputName),
-          {
-            key: `${step.stepId}.collect`,
-            label: `${step.stepId} (collect)`,
-            consumes: true,
-          },
-        ),
+        values.collectArc(step.stepId),
         inputArc(placeEndpoint(accumulatorPlaceId)),
       ],
       outputArcs: [outputArc(placeEndpoint(accumulatorPlaceId))],
     }),
     createTransition({
-      id: `t.finishCollecting.${step.stepId}`,
+      id: generateStepTransitionKey("finishCollecting", step.stepId),
       name: `Finish collecting ${step.stepId}`,
       description: `Every item of step ${step.stepId} has finished (\`done\` equals \`expected\`): its collected output is complete.`,
       role: "finishCollecting",
       metadata: { stepId: step.stepId },
       inputArcs: [inputArc(placeEndpoint(accumulatorPlaceId))],
-      outputArcs: values.valueOutputArcs(
-        outputValueKey(step.stepId, step.collect.as),
-      ),
+      outputArcs: values.collectedOutputArcs(step.stepId, step.collect.as),
     }),
   );
 };

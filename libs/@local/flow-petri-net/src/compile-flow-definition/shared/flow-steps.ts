@@ -4,7 +4,7 @@ import {
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 
-import { actionSubnetKey } from "./action-subnet-ids.js";
+import { generateActionSubnetName } from "../../flow-net-keys.js";
 
 import type {
   ActionDefinition,
@@ -134,8 +134,8 @@ export const indexFlowSteps = (flowDefinition: FlowDefinition) => {
       }),
     );
 
-  const getSubnetKey = (step: ActionStepDefinition) =>
-    actionSubnetKey(step.actionDefinitionId, getResolvedKinds(step));
+  const getSubnetName = (step: ActionStepDefinition) =>
+    generateActionSubnetName(step.actionDefinitionId, getResolvedKinds(step));
 
   return {
     /** Every step, including those nested in for-each steps, in the order they appear in the definition. */
@@ -143,6 +143,6 @@ export const indexFlowSteps = (flowDefinition: FlowDefinition) => {
     getForEachArrayShape,
     getOutputShape,
     getResolvedKinds,
-    getSubnetKey,
+    getSubnetName,
   };
 };

@@ -1,3 +1,14 @@
+import {
+  accumulatorColorKey,
+  generateIteratorColorKey,
+  generateOneOfPayloadColorKey,
+  generatePayloadColorKey,
+  generatePayloadColorName,
+  lifecycleColorKey,
+  pendingColorKey,
+  stepFailureColorKey,
+} from "../../flow-net-keys.js";
+
 import type { Color, ColorElementType } from "@hashintel/petrinaut-core";
 import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -68,9 +79,6 @@ const payloadKindDisplayColors: Record<PayloadKind, string> = {
 /** The colour of tokens that may be of one of several kinds. */
 const oneOfDisplayColor = "#64748B";
 
-const arrayName = (name: string, array: boolean) =>
-  array ? `${name}[]` : name;
-
 const payloadElements = (array: boolean) => [
   element("ref", "string"),
   element("present", "boolean"),
@@ -78,16 +86,13 @@ const payloadElements = (array: boolean) => [
   ...(array ? [element("item_count", "integer")] : []),
 ];
 
-export const payloadColorId = (kind: PayloadKind, array: boolean) =>
-  `color.${arrayName(kind, array)}`;
-
 /**
  * The colour of a token carrying a payload of one kind: a flow input, a step input or output, or a `forEach` item.
  */
 export const createPayloadColor = (kind: PayloadKind, array: boolean): Color =>
   createColor({
-    id: payloadColorId(kind, array),
-    name: arrayName(kind, array),
+    id: generatePayloadColorKey(kind, array),
+    name: generatePayloadColorName([kind], array),
     description: `A reference to ${array ? "an array of" : "a"} ${kind} payload${array ? "s" : ""}. \`present\` is false when an optional value is missing.`,
     displayColor: payloadKindDisplayColors[kind],
     elements: payloadElements(array),
@@ -95,11 +100,6 @@ export const createPayloadColor = (kind: PayloadKind, array: boolean): Color =>
 
 const sortedKinds = (kinds: readonly PayloadKind[]) =>
   [...new Set(kinds)].sort();
-
-export const oneOfPayloadColorId = (
-  kinds: readonly PayloadKind[],
-  array: boolean,
-) => `color.${arrayName(`oneOf(${sortedKinds(kinds).join("|")})`, array)}`;
 
 /**
  * The colour of a token for an action input that accepts any of several kinds. `kind` is the kind of the payload the
@@ -110,15 +110,15 @@ export const createOneOfPayloadColor = (
   array: boolean,
 ): Color =>
   createColor({
-    id: oneOfPayloadColorId(kinds, array),
-    name: arrayName(sortedKinds(kinds).join(" | "), array),
+    id: generateOneOfPayloadColorKey(kinds, array),
+    name: generatePayloadColorName(kinds, array),
     description: `A reference to ${array ? "an array of payloads" : "a payload"} of one of these kinds: ${sortedKinds(kinds).join(", ")}. \`kind\` is the payload's kind, and \`present\` is false when an optional value is missing.`,
     displayColor: oneOfDisplayColor,
     elements: [element("kind", "string"), ...payloadElements(array)],
   });
 
 export const pendingColor = createColor({
-  id: "color.pending",
+  id: pendingColorKey,
   name: "Pending",
   description:
     "A step that has yet to start in a run (or for an item). Starting the step consumes it, so each step starts once.",
@@ -127,7 +127,7 @@ export const pendingColor = createColor({
 });
 
 export const lifecycleColor = createColor({
-  id: "color.lifecycle",
+  id: lifecycleColorKey,
   name: "ActionAttempt",
   description:
     "An action running for a run (or item), with its attempts so far.",
@@ -136,7 +136,7 @@ export const lifecycleColor = createColor({
 });
 
 export const stepFailureColor = createColor({
-  id: "color.stepFailure",
+  id: stepFailureColorKey,
   name: "StepFailure",
   description: "A step that gave up after exhausting its retries.",
   displayColor: "#DC2626",
@@ -149,7 +149,7 @@ export const stepFailureColor = createColor({
  */
 export const createIteratorColor = (kind: PayloadKind): Color =>
   createColor({
-    id: `color.iterator.${kind}`,
+    id: generateIteratorColorKey(kind),
     name: `Iterator<${kind}>`,
     description: `Iterates over an array of ${kind} payloads for a forEach step: \`next\` is the index of the next item to fan out, of \`item_count\`.`,
     displayColor: payloadKindDisplayColors[kind],
@@ -161,7 +161,7 @@ export const createIteratorColor = (kind: PayloadKind): Color =>
   });
 
 export const accumulatorColor = createColor({
-  id: "color.accumulator",
+  id: accumulatorColorKey,
   name: "Accumulator",
   description:
     "Counts the items of a forEach step that have finished: the step completes when `done` equals `expected`.",

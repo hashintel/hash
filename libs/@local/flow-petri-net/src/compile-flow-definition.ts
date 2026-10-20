@@ -4,7 +4,6 @@ import { assertValidFlowDefinition } from "@local/hash-isomorphic-utils/flows/va
 import { compileActionStep } from "./compile-flow-definition/compile-action-step.js";
 import { compileForEachStep } from "./compile-flow-definition/compile-for-each-step.js";
 import { generateActionSubnet } from "./compile-flow-definition/generate-action-subnet.js";
-import { actionSubnetKey } from "./compile-flow-definition/shared/action-subnet-ids.js";
 import {
   pendingColor,
   stepFailureColor,
@@ -23,11 +22,12 @@ import {
   placeEndpoint,
   toPetrinautEndpoint,
 } from "./compile-flow-definition/shared/net-elements.js";
-import {
-  failedStepRunsPlaceId,
-  pendingPlaceId,
-} from "./compile-flow-definition/shared/step-places.js";
 import { placeValues } from "./compile-flow-definition/shared/value-places.js";
+import {
+  failedStepRunsPlaceKey,
+  generateActionSubnetName,
+  generatePendingPlaceKey,
+} from "./flow-net-keys.js";
 
 import type { ArcEndpoint, SDCPN } from "@hashintel/petrinaut-core";
 import type {
@@ -72,7 +72,7 @@ export const compileFlowDefinition = async (
 
   for (const { step } of steps.entries) {
     net.addPlace({
-      id: pendingPlaceId(step.stepId),
+      id: generatePendingPlaceKey(step.stepId),
       name: `Pending: ${step.stepId}`,
       description: `Step ${step.stepId} has yet to start.`,
       colorId: pendingColor.id,
@@ -80,15 +80,15 @@ export const compileFlowDefinition = async (
   }
 
   net.addPlace({
-    id: failedStepRunsPlaceId,
+    id: failedStepRunsPlaceKey,
     name: "FailedStepRuns",
     description: "Steps that gave up after exhausting their retries.",
     colorId: stepFailureColor.id,
   });
 
-  for (const { step, scope } of steps.entries) {
+  for (const { step } of steps.entries) {
     if (step.kind === "action") {
-      compileActionStep({ step, scope, steps, net, values });
+      compileActionStep({ step, steps, net, values });
     } else {
       compileForEachStep({ step, steps, net, values });
     }
@@ -104,16 +104,19 @@ export const compileFlowDefinition = async (
     if (step.kind === "action") {
       const resolvedKinds = steps.getResolvedKinds(step);
 
-      usedSubnets.set(actionSubnetKey(step.actionDefinitionId, resolvedKinds), {
-        step,
-        resolvedKinds,
-      });
+      usedSubnets.set(
+        generateActionSubnetName(step.actionDefinitionId, resolvedKinds),
+        {
+          step,
+          resolvedKinds,
+        },
+      );
     }
   }
 
   const subnets = await Promise.all(
-    [...usedSubnets.keys()].sort().map((subnetKey) => {
-      const { step, resolvedKinds } = usedSubnets.get(subnetKey)!;
+    [...usedSubnets.keys()].sort().map((subnetName) => {
+      const { step, resolvedKinds } = usedSubnets.get(subnetName)!;
 
       return generateActionSubnet(getActionDefinition(step), resolvedKinds);
     }),
@@ -178,7 +181,7 @@ export const compileFlowDefinition = async (
         ]),
       ),
       pendingAtStart: flowDefinition.steps.map(({ stepId }) =>
-        toPetrinautEndpoint(placeEndpoint(pendingPlaceId(stepId))),
+        toPetrinautEndpoint(placeEndpoint(generatePendingPlaceKey(stepId))),
       ),
       flowOutputs: Object.fromEntries(
         Object.entries(values.flowOutputEndpoints).map(([name, endpoint]) => [
