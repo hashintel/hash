@@ -3,6 +3,7 @@
 from fastapi import APIRouter, HTTPException
 
 from petrinaut_optimization.api.context import Service
+from petrinaut_optimization.api.responses import RUN_NOT_FOUND_RESPONSE
 from petrinaut_optimization.status import RunStatus
 
 status_router = APIRouter()
@@ -14,7 +15,7 @@ def get_status(service: Service) -> list[RunStatus]:
     return service.status.all()
 
 
-@status_router.get("/{run_id}")
+@status_router.get("/{run_id}", responses={404: RUN_NOT_FOUND_RESPONSE})
 def get_run_status(run_id: str, service: Service) -> RunStatus:
     """Return the status of one optimization run."""
     status = service.status.get(run_id)
