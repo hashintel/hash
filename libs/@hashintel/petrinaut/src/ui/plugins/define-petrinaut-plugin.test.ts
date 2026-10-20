@@ -36,12 +36,6 @@ const NoticePlugin = definePetrinautPlugin({
   readOnlyAction: { label: "Make a copy" },
 });
 
-const ExportPlugin = definePetrinautPlugin({
-  id: "test.export",
-  name: "Export",
-  actualExports: { raw: { label: "Export Stream" } },
-});
-
 const EditorPlugin = definePetrinautPlugin({
   id: "test.editor",
   name: "Editor",
@@ -159,32 +153,6 @@ describe("definePetrinautPlugin", () => {
 
     expect(plugin[pluginRuntime].hook(undefined as never)).toEqual({
       readOnlyAction: { run },
-    });
-  });
-
-  it("requires each declared Actual mode export's run", () => {
-    const run = () => {};
-    const plugin = ExportPlugin({
-      actualExports: { raw: { run, disabled: true } },
-    });
-    // @ts-expect-error A declared export the contributions leave out.
-    ExportPlugin({ actualExports: {} });
-    // @ts-expect-error An export the manifest does not declare.
-    ExportPlugin({ actualExports: { raw: { run }, other: { run } } });
-    PalettePlugin({
-      buttons: { toggle: { icon: null, onClick: noop } },
-      // @ts-expect-error Exports the manifest does not declare.
-      actualExports: { raw: { run } },
-    });
-    definePetrinautPlugin({
-      id: "test.misspelt-export",
-      name: "Misspelt export",
-      // @ts-expect-error A key an export spec does not have.
-      actualExports: { raw: { label: "Export", lable: "Export" } },
-    });
-
-    expect(plugin[pluginRuntime].hook(undefined as never)).toEqual({
-      actualExports: { raw: { run, disabled: true } },
     });
   });
 

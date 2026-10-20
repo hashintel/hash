@@ -208,7 +208,6 @@ const contributionKinds: Record<
   button: { label: "Button", icon: "cursor" },
   "top-bar-item": { label: "Top bar", icon: "sidebar", code: true },
   "read-only-action": { label: "Read-only notice", icon: "lockClosed" },
-  "actual-export": { label: "Actual export", icon: "download" },
   command: { label: "Command", icon: "lightning" },
   setting: { label: "Setting", icon: "sliders" },
   provides: { label: "Provides", icon: "plug", code: true },

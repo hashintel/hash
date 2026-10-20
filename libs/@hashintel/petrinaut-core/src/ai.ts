@@ -141,7 +141,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "simulation-panels":
     "Experiment and scenario panels, fullscreen controls, state preservation, docked and floating AI layout, links and browser history, session limits for experiments.",
   "actual-mode":
-    "Actual mode: host-provided live execution view, read-only net, timeline scrubbing, Events tab with recording, net and host-supplied exports.",
+    "Actual mode: host-provided live execution view, read-only net, timeline scrubbing, Events tab with recording and net exports.",
   preview:
     "Compact read-only PetrinautPreview for host-controlled embeds: shared SDCPN canvas, pan/zoom/fit/minimap, selection and responsive inspector, root/subnet navigation, URL-state ownership, omitted editing and management UI, and host-owned iframe security.",
   "ai-assistant":

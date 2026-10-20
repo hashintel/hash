@@ -10,22 +10,18 @@ import {
   parseMarkingFrameData,
   parseTransitionFiringFrameData,
 } from "./brunch-frame-parsers";
-import { BrunchStreamContext } from "./brunch-stream-export";
 
-import type { BrunchReceivedEvent } from "./brunch-protocol";
 import type { ActualModeContextValue } from "@hashintel/petrinaut-core";
 
-type BrunchActualModeState = Extract<
+type AvailableActualModeContextValue = Extract<
   ActualModeContextValue,
   { available: true }
-> & {
-  receivedEvents: readonly BrunchReceivedEvent[];
-};
+>;
 
 const createLoadingActualModeValue = (
   endpoint: string,
   runId: string | undefined,
-): BrunchActualModeState => {
+): AvailableActualModeContextValue => {
   const now = Date.now();
 
   return {
@@ -39,7 +35,6 @@ const createLoadingActualModeValue = (
     definition: null,
     initialState: null,
     transitionFirings: [],
-    receivedEvents: [],
     timelineStartedAtMs: now,
     timelineNowMs: now,
     error: null,
@@ -49,7 +44,7 @@ const createLoadingActualModeValue = (
 export const BrunchActualModeProvider: FC<
   PropsWithChildren<{ endpoint: string; runId?: string }>
 > = ({ children, endpoint, runId }) => {
-  const [value, setValue] = useState<BrunchActualModeState>(() =>
+  const [value, setValue] = useState<AvailableActualModeContextValue>(() =>
     createLoadingActualModeValue(endpoint, runId),
   );
 
@@ -146,7 +141,6 @@ export const BrunchActualModeProvider: FC<
         return {
           ...prev,
           transitionFirings: [],
-          receivedEvents: [],
           timelineStartedAtMs: Date.now(),
           timelineNowMs: Date.now(),
           error,
@@ -163,10 +157,6 @@ export const BrunchActualModeProvider: FC<
           setValue((prev) => ({
             ...prev,
             status: prev.status === "complete" ? "complete" : "streaming",
-            receivedEvents: [
-              ...prev.receivedEvents,
-              { event: "definition", data },
-            ],
             timelineNowMs: Date.now(),
             error: null,
           }));
@@ -199,10 +189,6 @@ export const BrunchActualModeProvider: FC<
           ...prev,
           status: prev.status === "complete" ? "complete" : "streaming",
           initialState,
-          receivedEvents: [
-            ...prev.receivedEvents,
-            { event: "initial_state", data },
-          ],
           timelineNowMs: Date.now(),
           error: null,
         }));
@@ -222,10 +208,6 @@ export const BrunchActualModeProvider: FC<
           ...prev,
           status: prev.status === "complete" ? "complete" : "streaming",
           transitionFirings: [...prev.transitionFirings, firing],
-          receivedEvents: [
-            ...prev.receivedEvents,
-            { event: "transition_firing", data },
-          ],
           timelineNowMs: Date.now(),
           error: null,
         }));
@@ -269,15 +251,5 @@ export const BrunchActualModeProvider: FC<
     };
   }, [endpoint, runId]);
 
-  const { receivedEvents, ...actualMode } = value;
-
-  return (
-    <ActualModeContext value={actualMode}>
-      <BrunchStreamContext
-        value={{ endpoint, runId, title: actualMode.title, receivedEvents }}
-      >
-        {children}
-      </BrunchStreamContext>
-    </ActualModeContext>
-  );
+  return <ActualModeContext value={value}>{children}</ActualModeContext>;
 };

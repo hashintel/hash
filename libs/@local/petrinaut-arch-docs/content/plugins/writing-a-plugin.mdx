@@ -147,34 +147,6 @@ const useCopyPlugin: PluginHook<typeof CopyPlugin> = ({ document }) => ({
 export const copyPlugin = CopyPlugin(useCopyPlugin);
 ```
 
-## Add an Actual mode export
-
-A host that feeds Actual mode may hold data Petrinaut does not, such as the
-payloads exactly as it received them. Declare `actualExports` with a `label`
-per key to add items to the Export menu of the Events tab, before Petrinaut's
-own **Export Recording** and **Export Net**, and return what each one does
-under the same key. Return `disabled: true` while there is nothing to export.
-
-```tsx
-const RawExportPlugin = definePetrinautPlugin({
-  id: "example.raw-export",
-  name: "Raw export",
-  actualExports: { raw: { label: "Export Stream" } },
-});
-
-const useRawExportPlugin: PluginHook<typeof RawExportPlugin> = () => {
-  const events = use(HostEventsContext);
-
-  return {
-    actualExports: {
-      raw: { run: () => download(events), disabled: events.length === 0 },
-    },
-  };
-};
-
-export const rawExportPlugin = RawExportPlugin(useRawExportPlugin);
-```
-
 ## Add settings
 
 Declare each setting under `settings`. The editor renders its row in User

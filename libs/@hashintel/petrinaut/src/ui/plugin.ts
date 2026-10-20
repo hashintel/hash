@@ -12,8 +12,6 @@ export type {
   PetrinautPlugin,
   PetrinautPluginDefinition,
   PetrinautPluginManifest,
-  PluginActualExport,
-  PluginActualExportSpec,
   PluginApi,
   PluginButton,
   PluginButtonPlace,

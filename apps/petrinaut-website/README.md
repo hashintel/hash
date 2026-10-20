@@ -120,18 +120,10 @@ events from that replay, so an interruption neither duplicates transition
 events nor misses ones that fired while disconnected. If the stream sends
 invalid data, the route shows an error page with a link back to the demo site.
 
-In the Events tab, **Export Stream** comes from the required
-`website.brunch-stream-export` plugin. It downloads a
-`.petrinaut-actual.json` file with the frames exactly as received: an `events`
-array whose items hold the SSE event name and the parsed JSON payload, plus
-`version: 1`, `exportedAt`, `title`, and `source: { kind: "brunch", endpoint,
-runId? }`. The stream may use any id string; Petrinaut converts ids to UUIDs
-for rendering, but the export keeps them as received. Petrinaut's own
-**Export Recording** and **Export Net** sit below it.
-
 `yarn brunch:fixture` serves a local Brunch-compatible stream and prints
-`/brunch` URLs for it. Pass `--recording=<file>` to replay an Export Stream or
-Export Recording file instead of generated events.
+`/brunch` URLs for it. Pass `--recording=<file>` to replay an Export Recording
+file, or an older raw stream file with an `events` array, instead of generated
+events.
 
 ## Example embeds and oEmbed
 

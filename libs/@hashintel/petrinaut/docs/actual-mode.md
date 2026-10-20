@@ -19,8 +19,6 @@ Use the **Export** dropdown in the Events tab:
 - **Export Recording** downloads a JSON recording of the execution as Petrinaut shows it: the net, its initial state, every transition firing, and the host's source id and label.
 - **Export Net** downloads a normal Petrinaut net file (YAML). This file contains the read-only Petri net currently shown in Actual mode and can be imported back into Petrinaut like other net exports.
 
-The host application can add its own exports above these, such as one that keeps the data exactly as the host received it.
-
 In a recording, each transition firing stores its effect rather than a full before/after snapshot. The `input` and `output` fields are numeric count maps keyed by place id:
 
 ```json

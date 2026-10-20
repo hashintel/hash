@@ -12,7 +12,6 @@ import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { StatusPage } from "../../../shared/status-page";
 import { sentryFeedbackPlugin } from "../plugins/sentry-feedback/plugin";
-import { brunchStreamExportPlugin } from "./brunch-stream-export";
 
 import type { PetrinautDocHandle, SDCPN } from "@hashintel/petrinaut-core";
 
@@ -45,7 +44,7 @@ const BrunchPetrinautWithHandle = ({
         handle={handle}
         hideNetManagementControls="except-title"
         navigation={navigation}
-        plugins={[sentryFeedbackPlugin, brunchStreamExportPlugin]}
+        plugins={[sentryFeedbackPlugin]}
         readonly
         setTitle={() => {}}
         title={title}

@@ -127,12 +127,6 @@ export interface PluginTopBarItemSpec {
   readonly place: PluginTopBarPlace;
 }
 
-/** An Actual mode export the plugin declares; what it does comes from the hook under the same key. */
-export interface PluginActualExportSpec {
-  /** The item's text in the Export menu, e.g. "Export Stream". */
-  readonly label: string;
-}
-
 /** What a plugin declares, as plain data Petrinaut reads before running the plugin. */
 export interface PetrinautPluginManifest {
   /**
@@ -175,12 +169,6 @@ export interface PetrinautPluginManifest {
     /** The button's text. */
     readonly label: string;
   };
-  /**
-   * Items in the Export menu of Actual mode's Events tab, before the built-in
-   * ones, such as an export of the host's raw execution data. The hook
-   * returns what each one does under the same key.
-   */
-  readonly actualExports?: Readonly<Record<string, PluginActualExportSpec>>;
   /**
    * UI inside the editor: dialogs, overlays, tours. The hook returns it under
    * `root`, and may return `overlay` while it covers the editor.
@@ -271,14 +259,6 @@ export interface PluginReadOnlyAction {
   readonly run: () => void;
 }
 
-/** What a declared Actual mode export does; its label comes from the manifest. */
-export interface PluginActualExport {
-  /** Runs when the item is chosen. */
-  readonly run: () => void;
-  /** Shows the item greyed out, e.g. before there is anything to export; defaults to `false`. */
-  readonly disabled?: boolean;
-}
-
 interface ContributionTable<M extends PetrinautPluginManifest> {
   /** Rendered inside the editor behind the plugin's error boundary; `null` while there is nothing to show. */
   root: ReactNode;
@@ -294,9 +274,6 @@ interface ContributionTable<M extends PetrinautPluginManifest> {
     readonly [K in keyof NonNullable<M["topBarItems"]>]: ReactNode;
   };
   readOnlyAction: PluginReadOnlyAction;
-  actualExports: {
-    readonly [K in keyof NonNullable<M["actualExports"]>]: PluginActualExport;
-  };
   provides: ServiceOf<M>;
 }
 
@@ -347,7 +324,6 @@ export interface AnyPluginContributions {
   readonly buttons?: Readonly<Record<string, PluginButton>>;
   readonly topBarItems?: Readonly<Record<string, ReactNode>>;
   readonly readOnlyAction?: PluginReadOnlyAction;
-  readonly actualExports?: Readonly<Record<string, PluginActualExport>>;
   readonly provides?: unknown;
 }
 
@@ -464,8 +440,7 @@ type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
     ? { readonly readOnlyAction: RejectUnknownKeys<Spec, "label"> }
     : unknown) &
   EntryChecks<M, "buttons", keyof PluginButtonSpec> &
-  EntryChecks<M, "topBarItems", keyof PluginTopBarItemSpec> &
-  EntryChecks<M, "actualExports", keyof PluginActualExportSpec>;
+  EntryChecks<M, "topBarItems", keyof PluginTopBarItemSpec>;
 
 /** A plugin's implementation, whatever its manifest. */
 type AnyImplementation = PluginRuntime["hook"] | AnyPluginContributions;

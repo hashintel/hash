@@ -6,7 +6,6 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { ActualModeContext } from "../../../../../../react/actual-mode-context";
 import { exportActualModeRecording } from "../../../../../file-io/export-actual-mode-recording";
 import { exportSDCPN } from "../../../../../file-io/export-sdcpn";
-import { useRunningPlugins } from "../../../../../plugins/plugins-provider";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
@@ -244,30 +243,16 @@ const EventRow: React.FC<{
 
 const ActualEventsContent: React.FC = () => {
   const actualMode = use(ActualModeContext);
-  const runningPlugins = useRunningPlugins();
   const canExportRecording =
     actualMode.available &&
     actualMode.definition !== null &&
     actualMode.initialState !== null;
   const canExportNet = actualMode.available && actualMode.definition !== null;
+  const canExport = canExportRecording || canExportNet;
   const transitionFirings = actualMode.transitionFirings;
   const visibleFirings = transitionFirings.slice(-MAX_VISIBLE_EVENTS);
   const firstVisibleIndex = transitionFirings.length - visibleFirings.length;
   const namesById = namesByIdOf(actualMode.definition);
-
-  const pluginExportItems: MenuItem[] = runningPlugins.flatMap(
-    ({ manifest, contributions }) =>
-      Object.entries(manifest.actualExports ?? {}).map(([key, spec]) => {
-        const actualExport = contributions.actualExports?.[key];
-
-        return {
-          id: `${manifest.id}.actualExports.${key}`,
-          text: spec.label,
-          disabled: !actualExport || actualExport.disabled === true,
-          onClick: () => actualExport?.run(),
-        };
-      }),
-  );
 
   const handleExportRecording = () => {
     if (
@@ -299,7 +284,6 @@ const ActualEventsContent: React.FC = () => {
   };
 
   const exportMenuItems: MenuItem[] = [
-    ...pluginExportItems,
     {
       id: "export-recording",
       text: "Export Recording",
@@ -313,7 +297,6 @@ const ActualEventsContent: React.FC = () => {
       onClick: handleExportNet,
     },
   ];
-  const canExport = exportMenuItems.some((item) => !item.disabled);
 
   if (!actualMode.available) {
     return <span className={emptyStyle}>Actual mode is not available.</span>;
