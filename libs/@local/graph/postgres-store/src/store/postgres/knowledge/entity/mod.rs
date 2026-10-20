@@ -2898,8 +2898,8 @@ where
         Ok(temporal_versioning)
     }
 
+    /// Closes the superseded live interval and records the actor responsible for publication.
     #[tracing::instrument(level = "info", skip(self))]
-    #[expect(clippy::too_many_lines)]
     async fn archive_entity(
         &self,
         actor_id: ActorId,
@@ -2907,148 +2907,24 @@ where
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
     ) -> Result<(), Report<UpdateError>> {
-        // Closing at the start would leave an empty decision interval
-        if locked_row.decision_time.start() == &ClosedTemporalBound::Inclusive(decision_time) {
-            self.as_client()
-                .query(
-                    "DELETE FROM entity_temporal_metadata
-                     WHERE web_id = $1
-                       AND entity_uuid = $2
-                       AND draft_id IS NOT DISTINCT FROM $3
-                       AND transaction_time @> $4::timestamptz
-                       AND decision_time @> $5::timestamptz;",
-                    &[
-                        &locked_row.entity_id.web_id,
-                        &locked_row.entity_id.entity_uuid,
-                        &locked_row.entity_id.draft_id,
-                        &transaction_time,
-                        &decision_time,
-                    ],
-                )
-                .instrument(tracing::info_span!(
-                    "DELETE",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres",
-                ))
-                .await
-                .change_context(UpdateError)?;
-        } else if let Some(draft_id) = locked_row.entity_id.draft_id {
-            self.client
-                .as_client()
-                .query(
-                    "
-                UPDATE entity_temporal_metadata
-                SET transaction_time = tstzrange($4::timestamptz, NULL, '[)'),
-                    decision_time = tstzrange(lower(decision_time), $5::timestamptz, '[)')
-                WHERE entity_temporal_metadata.web_id = $1
-                  AND entity_temporal_metadata.entity_uuid = $2
-                  AND entity_temporal_metadata.draft_id = $3
-                  AND entity_temporal_metadata.transaction_time @> $4::timestamptz
-                  AND entity_temporal_metadata.decision_time @> $5::timestamptz;",
-                    &[
-                        &locked_row.entity_id.web_id,
-                        &locked_row.entity_id.entity_uuid,
-                        &draft_id,
-                        &transaction_time,
-                        &decision_time,
-                    ],
-                )
-                .instrument(tracing::info_span!(
-                    "UPDATE",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres"
-                ))
-                .await
-                .change_context(UpdateError)?;
-        } else {
-            self.client
-                .as_client()
-                .query(
-                    "
-                UPDATE entity_temporal_metadata
-                SET transaction_time = tstzrange($3::timestamptz, NULL, '[)'),
-                    decision_time = tstzrange(lower(decision_time), $4::timestamptz, '[)')
-                WHERE entity_temporal_metadata.web_id = $1
-                  AND entity_temporal_metadata.entity_uuid = $2
-                  AND entity_temporal_metadata.draft_id IS NULL
-                  AND entity_temporal_metadata.transaction_time @> $3::timestamptz
-                  AND entity_temporal_metadata.decision_time @> $4::timestamptz;",
-                    &[
-                        &locked_row.entity_id.web_id,
-                        &locked_row.entity_id.entity_uuid,
-                        &transaction_time,
-                        &decision_time,
-                    ],
-                )
-                .instrument(tracing::info_span!(
-                    "UPDATE",
-                    otel.kind = "client",
-                    db.system = "postgresql",
-                    peer.service = "Postgres"
-                ))
-                .await
-                .change_context(UpdateError)?;
-        }
-
-        self.client
-            .as_client()
-            .query(
+        let previous = EntityTemporalMetadataRow::from(locked_row);
+        let mut history = EntityHistory::new([previous.clone()]);
+        history.close(&previous, transaction_time, decision_time);
+        self.update_entity_history(&history).await?;
+        self.as_client()
+            .execute(
                 "
-                INSERT INTO entity_temporal_metadata (
-                    web_id,
-                    entity_uuid,
-                    draft_id,
-                    entity_edition_id,
-                    transaction_time,
-                    decision_time
-                ) SELECT
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    tstzrange(lower($6::tstzrange), $7, '[)'),
-                    $5
-                WHERE lower($6::tstzrange) < $7::timestamptz;",
+                UPDATE entity_editions
+                SET provenance = provenance || jsonb_build_object('archivedById', $2::UUID)
+                WHERE entity_edition_id = $1
+                ",
                 &[
-                    &locked_row.entity_id.web_id,
-                    &locked_row.entity_id.entity_uuid,
-                    &locked_row.entity_id.draft_id,
-                    &locked_row.entity_edition_id,
-                    &locked_row.decision_time,
-                    &locked_row.transaction_time,
-                    &transaction_time,
+                    &previous.entity_edition_id,
+                    &ActorEntityUuid::from(actor_id),
                 ],
             )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
             .await
             .change_context(UpdateError)?;
-
-        self.as_client()
-            .query(
-                "
-                    UPDATE entity_editions SET
-                        provenance = provenance || JSONB_BUILD_OBJECT(
-                            'archivedById', $2::UUID
-                        )
-                    WHERE entity_edition_id = $1",
-                &[&locked_row.entity_edition_id, &actor_id],
-            )
-            .instrument(tracing::info_span!(
-                "UPDATE",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(UpdateError)?;
-
         Ok(())
     }
 }
