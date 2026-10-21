@@ -58,11 +58,13 @@ export const generateCollectConsumerKey = (forEachStepId: string) =>
   joinKey(forEachStepId, "collect");
 
 /**
- * A value's copy for one consumer to take. As a consumer's key can't contain the separator, the last one in a
- * copy's key separates the value from the consumer.
+ * A value's copy for one consumer to take. Copies have a namespace of their own, apart from values' keys (which
+ * start `input`, `output` or `item`), as a value's key can contain the separator: a flow input's name can be
+ * anything. As a consumer's key can't contain the separator, the last one in a copy's key separates the value from
+ * the consumer.
  */
 export const generateCopyKey = (valueKey: string, consumerKey: string) =>
-  `${valueKey}${keyBoundarySeparator}${consumerKey}`;
+  joinKey("copy", `${valueKey}${keyBoundarySeparator}${consumerKey}`);
 
 /*
  * Places of the root net.

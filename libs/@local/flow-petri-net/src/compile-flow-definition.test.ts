@@ -371,6 +371,42 @@ describe("compileFlowDefinition", () => {
     );
   });
 
+  it("keeps a copy apart from a value whose key it would otherwise share", async () => {
+    /* Step `a` consumes `url`, whose copy for `a.url` must not be the input named `url~a.url`. */
+    const sdcpn = await compileFlowDefinition(
+      defineFlow(
+        {
+          flowDefinitionId: "copy-named-like-an-input",
+          name: "Copy named like an input",
+          description: "An input whose name is that of another input's copy",
+          inputs: {
+            url: flowInput("Text"),
+            "url~a.url": flowInput("Text"),
+          },
+        },
+        ({ inputs, step }) => {
+          const getFile = step("a", actions.getFileFromUrl, {
+            description: "Retrieve the file",
+            inputs: {
+              url: inputs.url.consume(),
+              description: inputs["url~a.url"],
+            },
+          });
+
+          return { outputs: { fileEntity: getFile.outputs.fileEntity } };
+        },
+      ).flowDefinition,
+    );
+
+    const ids = idsOf(sdcpn);
+    expect(new Set(ids).size).toBe(ids.length);
+
+    const placeNames = sdcpn.places.map((place) => place.name);
+    expect(new Set(placeNames).size).toBe(placeNames.length);
+
+    expect(() => compilePetrinautModel({ sdcpn })).not.toThrow();
+  });
+
   it("builds a flow whose inputs share a label", async () => {
     const sdcpn = await compileFlowDefinition(
       defineFlow(

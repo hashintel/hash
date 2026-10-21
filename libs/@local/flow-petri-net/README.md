@@ -79,7 +79,7 @@ flowchart LR
   outPorts -- "one consumer, no readers" --> consumer["its t.startStep"]
   outPorts -- "otherwise" --> copy["t.copyOutput.‹step›~‹output›"]
   copy --> shared(("output.‹step›~‹output›<br/>shared by readers"))
-  copy --> copies(("output…~‹consumer›<br/>a copy per consumer"))
+  copy --> copies(("copy.output…~‹consumer›<br/>a copy per consumer"))
   gaveUp --> recordStepFailure["t.recordStepFailure.‹step›"]
   recordStepFailure --> failedStepRuns(("FailedStepRuns"))
 ```
@@ -94,7 +94,7 @@ flowchart LR
   iterator --> startItem["t.startItem<br/>while next #lt; item_count"]
   startItem --> iterator
   startItem --> item(("item.‹forEach›<br/>shared by readers"))
-  startItem --> itemCopies(("item.‹forEach›~‹consumer›<br/>a copy per consumer"))
+  startItem --> itemCopies(("copy.item.‹forEach›~‹consumer›<br/>a copy per consumer"))
   startItem --> nestedPending(("Pending: ‹nested step›…"))
   iterator --> startCollecting["t.startCollecting<br/>when next = item_count"]
   startCollecting --> accumulator(("Accumulator<br/>expected, done"))
@@ -110,7 +110,7 @@ flowchart LR
 ```
 
 - **Runs.** The net has no transition that starts a run. The executor starts one by putting a token in each flow input's places, and a `Pending` token in each top-level step's place, which the root's `metadata.flowInputs` and `metadata.pendingAtStart` list. Steps inside a for-each step get theirs when each item starts.
-- **Ids.** The compiler builds the net from readable keys, such as `p.input.prompt`, `t.startStep.<step>` and `i.<step>` for a step's instance, all made by the functions in `src/flow-net-keys.ts`. Step ids can be any string without `~`, so instances have keys of their own, and `~` is what separates a step id from an output name (`p.output.<step>~<output>`), and a value from the consumer of its copy (`p.output.<step>~<output>~<consumer>`). Kernels address places by name, so a value's place is named by its key. Every id in the compiled net is the Petrinaut id of its key (`toPetrinautId`, a UUIDv5), which is what Petrinaut converts a non-UUID id to when it loads a net. So loading a compiled net changes nothing, and anything that needs an id works it out from the key. The endpoints in the root's metadata are converted too.
+- **Ids.** The compiler builds the net from readable keys, such as `p.input.prompt`, `t.startStep.<step>` and `i.<step>` for a step's instance, all made by the functions in `src/flow-net-keys.ts`. Step ids can be any string without `~`, so instances have keys of their own, and `~` is what separates a step id from an output name (`p.output.<step>~<output>`), and a value from the consumer of its copy. Copies have a namespace of their own (`p.copy.output.<step>~<output>~<consumer>`), as a flow input's name can contain `~`. Kernels address places by name, so a value's place is named by its key. Every id in the compiled net is the Petrinaut id of its key (`toPetrinautId`, a UUIDv5), which is what Petrinaut converts a non-UUID id to when it loads a net. So loading a compiled net changes nothing, and anything that needs an id works it out from the key. The endpoints in the root's metadata are converted too.
 - **Steps.** Each action step is a component instance of its action's subnet, keyed `i.<step>`. Its `t.startStep.<step>` fires once per run (or per item), because it consumes the step's `Pending` token. It reads or consumes each connected value according to the connection's `access`, which defaults to read, matching today's semantics. It feeds every input port of the action:
   - a connected value;
   - a constant, recorded in the instance's `metadata.constants`;
