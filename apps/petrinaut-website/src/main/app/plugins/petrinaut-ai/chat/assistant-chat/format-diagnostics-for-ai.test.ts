@@ -1,12 +1,18 @@
 import { describe, expect, test } from "vitest";
-import {
-  type Diagnostic,
-  DiagnosticSeverity,
-} from "vscode-languageserver-types";
 
 import { formatDiagnosticsForAi } from "./format-diagnostics-for-ai";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
+import type { DiagnosticsSnapshot } from "@hashintel/petrinaut/ui/plugin";
+
+type Diagnostic =
+  DiagnosticsSnapshot["byUri"] extends Map<string, (infer Item)[]>
+    ? Item
+    : never;
+
+/** LSP severity codes. */
+const errorSeverity = 1;
+const warningSeverity = 2;
 
 const definition: SDCPN = {
   places: [],
@@ -44,7 +50,7 @@ const diagnostic = (
     start: { line: 1, character: 2 },
     end: { line: 1, character: 8 },
   },
-  severity: DiagnosticSeverity.Error,
+  severity: errorSeverity,
   source: "ts",
   ...overrides,
 });
@@ -80,7 +86,7 @@ describe("formatDiagnosticsForAi", () => {
         [
           diagnostic("Type 'string' is not assignable to type 'number'.", {
             code: 2322,
-            severity: DiagnosticSeverity.Warning,
+            severity: warningSeverity,
           }),
         ],
       ],
