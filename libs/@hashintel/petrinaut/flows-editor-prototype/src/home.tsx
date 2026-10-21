@@ -1,6 +1,6 @@
 import { ReactFlowProvider } from "@xyflow/react";
 
-import { Button, Icon } from "@hashintel/ds-components";
+import { Avatar, Button, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import hashLockup from "./assets/hash-lockup.svg";
@@ -28,32 +28,13 @@ const headerStyle = css({
   borderBottomColor: "neutral.bd.subtle",
 });
 
-const searchBoxStyle = css({
+/** Where J1 · 1 places the search: 180 px in, 380 px wide, centred in the 56 px header. */
+const searchSlotStyle = css({
   position: "absolute",
   left: "[180px]",
-  top: "[10px]",
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
+  top: "[50%]",
+  transform: "[translateY(-50%)]",
   width: "[380px]",
-  height: "[36px]",
-  paddingX: "3",
-  backgroundColor: "neutral.bgSolid.min",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle.hover",
-  borderRadius: "lg",
-  color: "neutral.fg.muted.disabled",
-  "&:focus-within": { borderColor: "blue.bd.strong" },
-  "& input": {
-    flex: "1",
-    minWidth: "[0]",
-    textStyle: "sm",
-    color: "neutral.fg.heading",
-    backgroundColor: "[transparent]",
-    outline: "none",
-    _placeholder: { color: "neutral.fg.muted.disabled" },
-  },
 });
 
 /** The DS Button at the empty state's size: 32 px, 10 px in, regular 14 px text. */
@@ -125,16 +106,24 @@ export const Home = ({
     >
       <header className={headerStyle}>
         <img src={hashLockup} alt="HASH" width={100} height={18} />
-        <label className={searchBoxStyle}>
-          <Icon name="search" size="xs" />
-          <input
+        {/* Figma J1 · 1: `input_string` md with _showIconLeft (no suffix shown). */}
+        <div className={searchSlotStyle}>
+          <TextInput
+            size="md"
             value={search}
             placeholder="Search for anything"
             aria-label="Search flows"
-            onChange={(event) => onSearch(event.target.value)}
+            prefix={{ iconName: "search", variant: "subtle" }}
+            onChange={(next) => onSearch(next)}
           />
-          <span className={css({ textStyle: "xs" })}>⌘ K</span>
-        </label>
+        </div>
+        <Avatar
+          className={css({ marginLeft: "auto", marginRight: "5" })}
+          alt="Your account"
+          size="md"
+          shape="circle"
+          placeholder={{ initials: "AS" }}
+        />
       </header>
       <main
         className={css({
