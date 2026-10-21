@@ -166,12 +166,17 @@ export const Guide = () => {
               created, Entity updated and Webhook.
             </li>
             <li>
-              Relative dates in conditions (Today, Yesterday, N days ago) and
-              "is in month". The engine stores fixed dates only.
+              Relative dates (Today, Yesterday, N days ago) in conditions,
+              default values and a trigger's fixed values, and "is in month".
+              The engine stores fixed dates only.
             </li>
             <li>
               Text that mixes typed words and values, lists with several
               sources, and default values on flow inputs.
+            </li>
+            <li>
+              Send email's sender addresses and the files you can attach.
+              "Upload a file" only keeps the file's name: nothing uploads.
             </li>
             <li>
               Nothing runs for real: the Run button shows the form a run would
