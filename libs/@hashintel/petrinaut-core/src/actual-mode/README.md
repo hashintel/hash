@@ -32,8 +32,6 @@ independently of how a host transports events:
 - the context value type shared with the React package
 
 Wire formats, connection handling and raw-payload exports belong to the host.
-The demo website's `/brunch` route is one example host: its adapter lives in
-`apps/petrinaut-website/src/main/app/brunch-demo/`.
 
 ## Host Flow
 
@@ -65,8 +63,7 @@ before/after markings.
 
 `createActualModeRecording` builds a normalized recording: the SDCPN, the
 initial marking, the transition firings and the source. `parseActualModeRecording`
-reads one back. `ACTUAL_MODE_RECORDING_VERSION` is `2`; version 1 recordings,
-whose source carried host-specific connection fields, are rejected.
+reads one back.
 
 ## File Map
 

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  ACTUAL_MODE_RECORDING_VERSION,
   createActualModeRecording,
   createActualModeTimelineFrameReader,
   parseActualModeRecording,
@@ -67,20 +66,6 @@ describe("Actual mode recordings", () => {
     });
   });
 
-  it("rejects version 1 recordings", () => {
-    expect(() =>
-      parseActualModeRecording({
-        version: 1,
-        exportedAt: "2026-06-05T10:01:00.000Z",
-        title: "Replay",
-        source: { kind: "host", endpoint: "http://127.0.0.1:5184/stream" },
-        definition,
-        initialState: { queued: 1 },
-        transitionFirings: [],
-      }),
-    ).toThrow();
-  });
-
   it("retimes transition firings relative to the first event", () => {
     const recording = createActualModeRecording({
       title: "Replay",
@@ -116,7 +101,7 @@ describe("Actual mode recordings", () => {
 
   it("fills the collections a recorded definition omits", () => {
     const parsed = parseActualModeRecording({
-      version: ACTUAL_MODE_RECORDING_VERSION,
+      version: 1,
       exportedAt: "2026-06-05T10:01:00.000Z",
       title: "Replay",
       source: null,
@@ -132,7 +117,7 @@ describe("Actual mode recordings", () => {
   it("rejects transition firings with extra fields", () => {
     expect(() =>
       parseActualModeRecording({
-        version: ACTUAL_MODE_RECORDING_VERSION,
+        version: 1,
         exportedAt: "2026-06-05T10:01:00.000Z",
         title: "Replay",
         source: null,
@@ -154,7 +139,7 @@ describe("Actual mode recordings", () => {
   it("rejects transition firings with non-count effect values", () => {
     expect(() =>
       parseActualModeRecording({
-        version: ACTUAL_MODE_RECORDING_VERSION,
+        version: 1,
         exportedAt: "2026-06-05T10:01:00.000Z",
         title: "Replay",
         source: null,

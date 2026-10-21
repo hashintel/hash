@@ -98,33 +98,6 @@ from the same `website.local-copy` plugin as on example pages, saves it at its o
 events, transactions, spans and breadcrumbs have the fragment stripped before
 sending.
 
-## Brunch live runs in Actual mode
-
-The `/brunch` route feeds Petrinaut's Actual mode from a Brunch run. The URL
-names the Brunch stream endpoint, and optionally the run:
-
-```text
-/brunch?sse=<Brunch stream URL>&runId=<run id>
-```
-
-The route connects to the stream with `EventSource`, waits for the Petri net
-definition and initial state, lays out the net if the stream did not include
-node positions, and then shows the net in Actual mode with Petrinaut extensions
-disabled: no colours, stochasticity, dynamics or parameters. The adapter lives
-in `src/main/app/brunch-demo/`.
-
-If the stream connection is interrupted, the route keeps any loaded data
-visible and waits for the browser to reconnect. On reconnect the Brunch stream
-replays the run from the beginning and the route rebuilds the timeline and
-events from that replay, so an interruption neither duplicates transition
-events nor misses ones that fired while disconnected. If the stream sends
-invalid data, the route shows an error page with a link back to the demo site.
-
-`yarn brunch:fixture` serves a local Brunch-compatible stream and prints
-`/brunch` URLs for it. Pass `--recording=<file>` to replay an Export Recording
-file, or an older raw stream file with an `events` array, instead of generated
-events.
-
 ## Example embeds and oEmbed
 
 Canonical example pages live below `/examples`. The JSON oEmbed endpoint at
