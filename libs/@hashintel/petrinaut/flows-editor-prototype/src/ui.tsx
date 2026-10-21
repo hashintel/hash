@@ -193,7 +193,7 @@ export const PropertyRow = ({
       data-invalid={invalid || undefined}
     >
       {tip ? (
-        <Tooltip content={tip} position="left" className={keyTipStyle}>
+        <Tooltip content={tip} position="top" className={keyTipStyle}>
           {key}
         </Tooltip>
       ) : (
@@ -294,6 +294,19 @@ const chipRemoveStyle = css({
 
 export type Tone = "green" | "orange" | "neutral" | "blue";
 
+const moreChipStyle = css({
+  flexShrink: 0,
+  paddingX: "2",
+  paddingY: "1",
+  borderRadius: "md",
+  backgroundColor: "neutral.bgSolid.surface.active",
+  textStyle: "xs",
+  fontWeight: "medium",
+  color: "neutral.fg.muted",
+  cursor: "pointer",
+  _hover: { backgroundColor: "neutral.bgSolid.subtle" },
+});
+
 /**
  * Several chips on one line: the first, then "+N"; hovering +N lists the rest, clicking it shows them all (Aakarsh,
  * 21 Oct: multi-value chips stay on one line).
@@ -335,19 +348,6 @@ export const ChipRow = ({
     </div>
   );
 };
-
-const moreChipStyle = css({
-  flexShrink: 0,
-  paddingX: "2",
-  paddingY: "1",
-  borderRadius: "md",
-  backgroundColor: "neutral.bgSolid.surface.active",
-  textStyle: "xs",
-  fontWeight: "medium",
-  color: "neutral.fg.muted",
-  cursor: "pointer",
-  _hover: { backgroundColor: "neutral.bgSolid.subtle" },
-});
 
 /** The ↳ Current source chip: a 16 px tile with the node's icon, then its name in 12 px. × shows on hover (J3 D1). */
 export const SourceChip = ({

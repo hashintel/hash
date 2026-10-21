@@ -122,6 +122,9 @@ const nodeLook = (
   return { icon: entry?.icon ?? "cube", tone: entry?.tone ?? "green" };
 };
 
+/** An empty value ("Ends here", "Not used yet"): the value's size, in the subtle colour of an empty state. */
+const emptyValueStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
+
 /** "Used by" chips: which steps read a value (D26 A, folded into D27 A). */
 const UsedBy = ({
   match,
@@ -134,7 +137,7 @@ const UsedBy = ({
   const { document, setUi } = useEditor();
   const users = usersOf(document, match);
   if (users.length === 0) {
-    return quiet ? null : <span className={mutedTextStyle}>Not used yet</span>;
+    return quiet ? null : <span className={emptyValueStyle}>Not used yet</span>;
   }
   return (
     <ChipRow
@@ -179,7 +182,7 @@ const Paths = ({
         return (
           <PropertyRow key={port.outputName} label={port.label}>
             {targets.length === 0 ? (
-              <span className={mutedTextStyle}>Ends here</span>
+              <span className={emptyValueStyle}>Ends here</span>
             ) : (
               <ChipRow
                 names={targets.map((wire) => {
@@ -907,12 +910,21 @@ const RunFormFields = () => {
               }
             />
           </PropertyRow>
-          <UsedBy
-            quiet
-            match={(source) =>
-              source.kind === "flow-input" && source.inputName === input.name
-            }
-          />
+          {usersOf(
+            document,
+            (source) =>
+              source.kind === "flow-input" && source.inputName === input.name,
+          ).length > 0 ? (
+            <PropertyRow label="Used by">
+              <UsedBy
+                quiet
+                match={(source) =>
+                  source.kind === "flow-input" &&
+                  source.inputName === input.name
+                }
+              />
+            </PropertyRow>
+          ) : null}
         </div>
       ))}
       <div>

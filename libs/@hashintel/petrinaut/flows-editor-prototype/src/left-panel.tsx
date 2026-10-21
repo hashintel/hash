@@ -181,6 +181,30 @@ const stepLook = (step: DraftStep): { icon: IconName; tone: Tone } => {
   return { icon: entry?.icon ?? "cube", tone: entry?.tone ?? "green" };
 };
 
+/** "N STEPS" and "Collapse all", as the run prototype's list head. */
+const listHeadStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  height: "[32px]",
+  paddingLeft: "3",
+  paddingRight: "4",
+  textStyle: "xs",
+  color: "neutral.fg.muted",
+});
+
+const collapseAllStyle = css({
+  textStyle: "xs",
+  fontWeight: "medium",
+  color: "neutral.fg.muted",
+  borderRadius: "sm",
+  cursor: "pointer",
+  _hover: {
+    color: "neutral.fg.body",
+    backgroundColor: "neutral.bg.surface.active",
+  },
+});
+
 /** "In this flow": triggers, Start, then the steps in order, children of a For each indented under it. */
 const FlowList = () => {
   const { document, ui, setUi } = useEditor();
@@ -195,73 +219,11 @@ const FlowList = () => {
     groups.length > 0 && groups.every((id) => closed.includes(id));
   const total = flattenSteps(document.steps).length;
 
-  /**
-   * D16: siblings that start together (fed by the same step and port, or by nothing inside a For each) show as one
-   * collapsible "In parallel" group.
-   */
-  const withParallel = (
+  const stepRows = (
     steps: DraftStep[],
     depth: number,
-  ): React.ReactNode[] => {
-    const ids = new Set(steps.map((step) => step.stepId));
-    const feed = (step: DraftStep) => {
-      const incoming = document.wires.filter(
-        (wire) => wire.target === step.stepId,
-      );
-      const fromSibling = incoming.find((wire) => ids.has(wire.source));
-      return fromSibling
-        ? `${fromSibling.source}:${fromSibling.sourcePort}`
-        : incoming.length === 0
-          ? "start of group"
-          : `${incoming[0]!.source}:${incoming[0]!.sourcePort}`;
-    };
-    const byFeed = new Map<string, DraftStep[]>();
-    for (const step of steps) {
-      byFeed.set(feed(step), [...(byFeed.get(feed(step)) ?? []), step]);
-    }
-    const shown = new Set<string>();
-    return steps.flatMap((step) => {
-      if (shown.has(step.stepId)) {
-        return [];
-      }
-      const together = byFeed.get(feed(step)) ?? [step];
-      if (together.length < 2) {
-        shown.add(step.stepId);
-        return stepRows([step], depth);
-      }
-      for (const member of together) {
-        shown.add(member.stepId);
-      }
-      const key = `parallel:${feed(step)}`;
-      const open = !closed.includes(key);
-      return [
-        <button
-          key={key}
-          type="button"
-          className={rowStyle}
-          style={{ paddingLeft: 4 + depth * 16 }}
-          aria-expanded={open}
-          onClick={() =>
-            setClosed((current) =>
-              open ? [...current, key] : current.filter((id) => id !== key),
-            )
-          }
-        >
-          <span className={chevronSlotStyle}>
-            <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
-          </span>
-          <Tile icon="diagramNested" tone="neutral" />
-          <span className={cx(labelStyle, css({ fontWeight: "semibold" }))}>
-            In parallel
-          </span>
-          <span className={countStyle}>{together.length} steps</span>
-        </button>,
-        ...(open ? stepRows(together, depth + 1) : []),
-      ];
-    });
-  };
-
-  const stepRows = (steps: DraftStep[], depth: number): React.ReactNode[] =>
+    nested: (steps: DraftStep[], depth: number) => React.ReactNode[],
+  ): React.ReactNode[] =>
     steps.flatMap((step) => {
       const look = stepLook(step);
       const pad = { paddingLeft: 4 + depth * 16 };
@@ -302,7 +264,7 @@ const FlowList = () => {
             </span>
           </button>
         );
-        return open ? [row, ...withParallel(step.steps, depth + 1)] : [row];
+        return open ? [row, ...nested(step.steps, depth + 1)] : [row];
       }
       return [
         <button
@@ -321,6 +283,72 @@ const FlowList = () => {
         </button>,
       ];
     });
+
+  /**
+   * D16: siblings that start together (fed by the same step and port, or by nothing inside a For each) show as one
+   * collapsible "In parallel" group.
+   */
+  const withParallel = (
+    steps: DraftStep[],
+    depth: number,
+  ): React.ReactNode[] => {
+    const ids = new Set(steps.map((step) => step.stepId));
+    const feed = (step: DraftStep) => {
+      const incoming = document.wires.filter(
+        (wire) => wire.target === step.stepId,
+      );
+      const fromSibling = incoming.find((wire) => ids.has(wire.source));
+      return fromSibling
+        ? `${fromSibling.source}:${fromSibling.sourcePort}`
+        : incoming.length === 0
+          ? "start of group"
+          : `${incoming[0]!.source}:${incoming[0]!.sourcePort}`;
+    };
+    const byFeed = new Map<string, DraftStep[]>();
+    for (const step of steps) {
+      byFeed.set(feed(step), [...(byFeed.get(feed(step)) ?? []), step]);
+    }
+    const shown = new Set<string>();
+    return steps.flatMap((step) => {
+      if (shown.has(step.stepId)) {
+        return [];
+      }
+      const together = byFeed.get(feed(step)) ?? [step];
+      if (together.length < 2) {
+        shown.add(step.stepId);
+        return stepRows([step], depth, withParallel);
+      }
+      for (const member of together) {
+        shown.add(member.stepId);
+      }
+      const key = `parallel:${feed(step)}`;
+      const open = !closed.includes(key);
+      return [
+        <button
+          key={key}
+          type="button"
+          className={rowStyle}
+          style={{ paddingLeft: 4 + depth * 16 }}
+          aria-expanded={open}
+          onClick={() =>
+            setClosed((current) =>
+              open ? [...current, key] : current.filter((id) => id !== key),
+            )
+          }
+        >
+          <span className={chevronSlotStyle}>
+            <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
+          </span>
+          <Tile icon="diagramNested" tone="neutral" />
+          <span className={cx(labelStyle, css({ fontWeight: "semibold" }))}>
+            In parallel
+          </span>
+          <span className={countStyle}>{together.length} steps</span>
+        </button>,
+        ...(open ? stepRows(together, depth + 1, withParallel) : []),
+      ];
+    });
+  };
 
   return (
     <div className={css({ display: "flex", flexDirection: "column" })}>
@@ -378,30 +406,6 @@ const FlowList = () => {
     </div>
   );
 };
-
-/** "N STEPS" and "Collapse all", as the run prototype's list head. */
-const listHeadStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  height: "[32px]",
-  paddingLeft: "3",
-  paddingRight: "4",
-  textStyle: "xs",
-  color: "neutral.fg.muted",
-});
-
-const collapseAllStyle = css({
-  textStyle: "xs",
-  fontWeight: "medium",
-  color: "neutral.fg.muted",
-  borderRadius: "sm",
-  cursor: "pointer",
-  _hover: {
-    color: "neutral.fg.body",
-    backgroundColor: "neutral.bg.surface.active",
-  },
-});
 
 /** Where a step from the library goes: after the selected step, else after the end of the main line. */
 const placeFromLibrary = (
