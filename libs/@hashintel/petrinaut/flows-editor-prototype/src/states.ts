@@ -191,7 +191,7 @@ export const screenStates: ScreenState[] = [
     journey: 3,
     row: "Row A · Conditions and typed values",
     title: "J3 · A1 · Conditions",
-    caption: "Where, And, a grey Or group, Add filter, Use a variable.",
+    caption: "Where, And, a grey Or group, Add filter.",
     create: () => ({
       document: journey3(fullQuery),
       ui: { ...initialUi, selectedId: SHIPMENTS },

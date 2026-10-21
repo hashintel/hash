@@ -24,18 +24,12 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
-  DateCalendar,
+  DatePickerSurface,
   formatDate,
   relativeLabel,
-  relativePresets,
-} from "./condition-builder";
+  relativeRowStyle,
+} from "./date-picker";
 import { mockEntities, mockEntityTypes } from "./mock-graph";
-import {
-  menuGroupLabelStyle,
-  menuGroupStyle,
-  menuPanelStyle,
-  menuRowStyle,
-} from "./source-menu";
 import { selectTriggerStyle } from "./ui";
 
 import type { InputFormat } from "./catalog";
@@ -126,7 +120,6 @@ const DateField = ({
 }) => {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const [daysOpen, setDaysOpen] = useState(false);
   const iso =
     typeof value === "string" && value !== "" ? value.slice(0, 10) : null;
   const time =
@@ -165,34 +158,48 @@ const DateField = ({
           triggerRef={triggerRef}
           position="bottom-end"
           gapY={4}
-          onClose={() => {
-            setOpen(false);
-            setDaysOpen(false);
-          }}
+          onClose={() => setOpen(false)}
         >
-          <div
-            className={css({
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "1",
-            })}
-            role="dialog"
-            aria-label={`Choose ${label}`}
-          >
-            <div
-              className={cx(
-                menuPanelStyle,
-                css({ minWidth: "[0]", padding: "2", borderRadius: "xl" }),
-              )}
-            >
-              <DateCalendar value={relative ? null : iso} onPick={pickDate} />
-              {withTime ? (
+          <DatePickerSurface
+            label={`Choose ${label}`}
+            iso={iso}
+            relative={relative}
+            onPickDate={pickDate}
+            onPickRelative={
+              allowRelative
+                ? (next) => {
+                    onChange({ relative: next });
+                    if (next.kind !== "daysAgo") {
+                      setOpen(false);
+                    }
+                  }
+                : undefined
+            }
+            footer={
+              shown ? (
+                <button
+                  type="button"
+                  className={relativeRowStyle}
+                  onClick={() => {
+                    onChange(null);
+                    setOpen(false);
+                  }}
+                >
+                  Clear
+                </button>
+              ) : null
+            }
+            time={
+              withTime ? (
+                // `showTimeSingle`: one time under the month.
                 <div
                   className={css({
                     display: "flex",
                     alignItems: "center",
                     gap: "2",
+                    marginTop: "2",
                     paddingTop: "2",
+                    paddingX: "1",
                     borderTopWidth: "thin",
                     borderTopStyle: "solid",
                     borderTopColor: "neutral.bd.subtle",
@@ -200,9 +207,10 @@ const DateField = ({
                 >
                   <span
                     className={css({
-                      textStyle: "sm",
-                      color: "neutral.fg.muted",
                       flex: "1",
+                      textStyle: "sm",
+                      fontWeight: "medium",
+                      color: "neutral.fg.muted",
                     })}
                   >
                     Time
@@ -222,110 +230,9 @@ const DateField = ({
                     />
                   </div>
                 </div>
-              ) : null}
-            </div>
-            {allowRelative ? (
-              <div className={menuPanelStyle}>
-                <div className={menuGroupStyle}>
-                  <div className={menuGroupLabelStyle}>Relative</div>
-                  {relativePresets.map((preset) => (
-                    <button
-                      key={preset.value.kind}
-                      type="button"
-                      className={menuRowStyle}
-                      data-selected={
-                        relative?.kind === preset.value.kind || undefined
-                      }
-                      title="Editor mock: the engine stores fixed dates only."
-                      onClick={() => {
-                        onChange({ relative: preset.value });
-                        setOpen(false);
-                      }}
-                    >
-                      <Icon
-                        name={
-                          relative?.kind === preset.value.kind
-                            ? "check"
-                            : "calendar"
-                        }
-                        size="xs"
-                      />
-                      <span className={css({ flex: "1" })}>{preset.text}</span>
-                    </button>
-                  ))}
-                  {daysOpen || relative?.kind === "daysAgo" ? (
-                    <div
-                      className={css({
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "2",
-                        paddingX: "1.5",
-                        minHeight: "[32px]",
-                      })}
-                    >
-                      <div className={css({ width: "[72px]" })}>
-                        <NumberInput
-                          size="sm"
-                          width="fullWidth"
-                          min={1}
-                          value={
-                            relative?.kind === "daysAgo" ? relative.days : 3
-                          }
-                          aria-label="Number of days ago"
-                          onChange={(days) =>
-                            onChange({
-                              relative: {
-                                kind: "daysAgo",
-                                days: Math.max(1, days ?? 1),
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                      <span
-                        className={css({
-                          textStyle: "sm",
-                          color: "neutral.fg.body",
-                        })}
-                      >
-                        days ago
-                      </span>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      className={menuRowStyle}
-                      title="Editor mock: the engine stores fixed dates only."
-                      onClick={() => {
-                        setDaysOpen(true);
-                        onChange({ relative: { kind: "daysAgo", days: 3 } });
-                      }}
-                    >
-                      <Icon name="calendar" size="xs" />
-                      <span className={css({ flex: "1" })}>
-                        Number of days ago…
-                      </span>
-                    </button>
-                  )}
-                </div>
-                {shown ? (
-                  <div className={menuGroupStyle}>
-                    <button
-                      type="button"
-                      className={menuRowStyle}
-                      onClick={() => {
-                        onChange(null);
-                        setOpen(false);
-                      }}
-                    >
-                      <Icon name="close" size="xs" />
-                      <span className={css({ flex: "1" })}>Clear</span>
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+              ) : null
+            }
+          />
         </Popover>
       ) : null}
     </>
@@ -385,6 +292,10 @@ const DurationField = ({
             <Select
               size="sm"
               variant="naked"
+              // A picked unit is a value, not a placeholder: body text, as in the field beside it.
+              className={css({
+                "&[class] [data-part=value-text]": { color: "neutral.fg.body" },
+              })}
               items={durationUnits}
               value={shownUnit}
               aria-label={`${label} unit`}

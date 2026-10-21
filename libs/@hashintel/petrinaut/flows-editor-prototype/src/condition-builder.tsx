@@ -18,9 +18,18 @@ import {
   Tooltip,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { HashIcon } from "@hashintel/ds-icons";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import { type CatalogEntry, getCatalogEntry, type InputView } from "./catalog";
+import {
+  DatePickerSurface,
+  formatDate,
+  months,
+  relativeLabel,
+  relativeRowStyle,
+  today,
+} from "./date-picker";
 import {
   type ConditionOperator,
   type ConditionRow,
@@ -29,7 +38,6 @@ import {
   findStep,
   type QueryDraft,
   type QueryGroup,
-  type RelativeDate,
   stepTitle,
   VALUE_SUBJECT,
 } from "./document";
@@ -356,209 +364,6 @@ export const operatorsFor = (
   }
 };
 
-/* ----------------------------------------------------------------------------------------------------------------
- * Dates (relative dates are an editor mock)
- * ------------------------------------------------------------------------------------------------------------- */
-
-const months = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-const shortMonths = months.map((month) => month.slice(0, 3));
-
-const parseIso = (value: string) => {
-  const [year, month, day] = value.split("-").map(Number);
-  return { year: year!, month: (month ?? 1) - 1, day: day ?? 1 };
-};
-const toIso = (year: number, month: number, day: number) =>
-  `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-
-/** "Sep 30, 2026", as the J3 value pill shows a date. */
-export const formatDate = (iso: string) => {
-  const { year, month, day } = parseIso(iso);
-  return `${shortMonths[month]} ${day}, ${year}`;
-};
-
-export const relativePresets: { value: RelativeDate; text: string }[] = [
-  { value: { kind: "today" }, text: "Today" },
-  { value: { kind: "yesterday" }, text: "Yesterday" },
-  { value: { kind: "weekAgo" }, text: "One week ago" },
-  { value: { kind: "monthAgo" }, text: "One month ago" },
-];
-
-export const relativeLabel = (relative: RelativeDate) =>
-  relative.kind === "daysAgo"
-    ? `${relative.days} days ago`
-    : (relativePresets.find((preset) => preset.value.kind === relative.kind)
-        ?.text ?? "");
-
-/** The prototype's "today" (the world's month is October 2026). */
-export const today = { year: 2026, month: 9, day: 21 };
-
-/** A month grid as the DS date picker draws it: Monday first, six weeks, days outside the month muted. */
-export const DateCalendar = ({
-  value,
-  onPick,
-}: {
-  value: string | null;
-  onPick: (iso: string) => void;
-}) => {
-  const initial = value ? parseIso(value) : today;
-  const [view, setView] = useState({
-    year: initial.year,
-    month: initial.month,
-  });
-  const first = new Date(Date.UTC(view.year, view.month, 1));
-  const offset = (first.getUTCDay() + 6) % 7;
-  const cells = Array.from({ length: 42 }, (_, index) => {
-    const date = new Date(Date.UTC(view.year, view.month, 1 - offset + index));
-    return {
-      year: date.getUTCFullYear(),
-      month: date.getUTCMonth(),
-      day: date.getUTCDate(),
-    };
-  });
-  const step = (by: number) =>
-    setView((current) => {
-      const next = new Date(Date.UTC(current.year, current.month + by, 1));
-      return { year: next.getUTCFullYear(), month: next.getUTCMonth() };
-    });
-  const navStyle = css({
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "[24px]",
-    height: "[24px]",
-    borderWidth: "thin",
-    borderStyle: "solid",
-    borderColor: "neutral.bd.solid",
-    borderRadius: "md",
-    color: "neutral.fg.muted",
-    cursor: "pointer",
-    "&[class] svg": {
-      width: "[12px]",
-      height: "[12px]",
-      "--icon-size": "12px",
-    },
-    _hover: { backgroundColor: "neutral.bgSolid.min.hover" },
-    // The popover focuses the first arrow on open; its ring shows only for the keyboard.
-    "&:focus:not(:focus-visible)": { outline: "none" },
-  });
-  return (
-    <div
-      className={css({ width: "[224px]", paddingBottom: "2" })}
-      role="group"
-      aria-label="Exact date"
-    >
-      <div
-        className={css({
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0.5",
-        })}
-      >
-        <button
-          type="button"
-          className={navStyle}
-          aria-label="Previous month"
-          onClick={() => step(-1)}
-        >
-          <Icon name="chevronLeft" size="xs" />
-        </button>
-        <span
-          className={css({
-            textStyle: "sm",
-            fontWeight: "medium",
-            color: "neutral.fg.body",
-          })}
-        >
-          {months[view.month]} {view.year}
-        </span>
-        <button
-          type="button"
-          className={navStyle}
-          aria-label="Next month"
-          onClick={() => step(1)}
-        >
-          <Icon name="chevronRight" size="xs" />
-        </button>
-      </div>
-      <div
-        className={css({
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 32px)",
-          paddingY: "1",
-          borderBottomWidth: "thin",
-          borderBottomStyle: "solid",
-          borderBottomColor: "neutral.bd.subtle",
-        })}
-      >
-        {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((day) => (
-          <span
-            key={day}
-            className={css({
-              textAlign: "center",
-              textStyle: "xs",
-              color: "neutral.fg.subtle",
-            })}
-          >
-            {day}
-          </span>
-        ))}
-      </div>
-      <div
-        className={css({
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 32px)",
-        })}
-      >
-        {cells.map((cell) => {
-          const iso = toIso(cell.year, cell.month, cell.day);
-          const selected = iso === value;
-          const outside = cell.month !== view.month;
-          return (
-            <button
-              key={iso}
-              type="button"
-              aria-label={formatDate(iso)}
-              aria-pressed={selected}
-              onClick={() => onPick(iso)}
-              className={css({
-                width: "[32px]",
-                height: "[32px]",
-                borderRadius: "[10px]",
-                textStyle: "sm",
-                color: outside
-                  ? "neutral.fg.subtle.disabled"
-                  : "neutral.fg.body",
-                cursor: "pointer",
-                _hover: { backgroundColor: "neutral.bg.surface.active" },
-                "&[aria-pressed=true]": {
-                  backgroundColor: "neutral.bg.solid",
-                  color: "neutral.fg.onSolid",
-                },
-              })}
-            >
-              {cell.day}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
 /** The last 12 months, for "is in month" (mock). */
 const recentMonths = Array.from({ length: 12 }, (_, index) => {
   const date = new Date(Date.UTC(today.year, today.month - index, 1));
@@ -567,6 +372,11 @@ const recentMonths = Array.from({ length: 12 }, (_, index) => {
     text: `${months[date.getUTCMonth()]} ${date.getUTCFullYear()}`,
   };
 });
+
+/** A variable, as Figma J3 draws it: the ds-icons `variableBrackets` glyph ([x]), at the DS icon stroke. */
+export const VariableIcon = ({ size = 12 }: { size?: number }) => (
+  <HashIcon name="variableBrackets" size={size} />
+);
 
 /* ----------------------------------------------------------------------------------------------------------------
  * The popover menu every pill opens (DS Menu look; controlled, so a screen state can show it open)
@@ -585,6 +395,8 @@ const MenuRows = ({
     hint?: string;
     onPick: () => void;
     trailing?: IconName;
+    /** "Use a variable": the variable glyph instead of a DS icon. */
+    variable?: boolean;
   }[];
 }) => (
   <div className={menuGroupStyle}>
@@ -600,6 +412,8 @@ const MenuRows = ({
       >
         {item.selected ? (
           <Icon name="check" size="xs" />
+        ) : item.variable ? (
+          <VariableIcon size={14} />
         ) : item.icon ? (
           <Icon name={item.icon} size="xs" />
         ) : null}
@@ -697,8 +511,6 @@ type RowProps = {
   onChange: (change: Partial<ConditionRow>) => void;
   onRemove: () => void;
   onGroup?: () => void;
-  /** The builder's footer "Use a variable": the picker anchors there when opened from it. */
-  footerRef?: React.RefObject<HTMLButtonElement | null>;
   /** False where nothing runs before the condition (a trigger's): values are typed or picked, never variables. */
   allowVariables: boolean;
 };
@@ -714,7 +526,6 @@ const ConditionRowView = ({
   onChange,
   onRemove,
   onGroup,
-  footerRef,
   allowVariables,
 }: RowProps) => {
   const { document, ui, setUi } = useEditor();
@@ -742,10 +553,6 @@ const ConditionRowView = ({
     openPart === "variable" && ui.openField?.mode === "mention"
       ? ""
       : undefined,
-  );
-  const [daysOpen, setDaysOpen] = useState(false);
-  const [exactOpen, setExactOpen] = useState(
-    openPart === "value" && ui.openField?.mode === "mention",
   );
   const [search, setSearch] = useState("");
 
@@ -792,11 +599,23 @@ const ConditionRowView = ({
 
   const close = () => {
     setMention(undefined);
-    setDaysOpen(false);
-    setExactOpen(false);
     setSearch("");
     open(null);
   };
+
+  /** The last row of a value picker: variables live in the value slot (21 Oct), not in a builder footer. */
+  const variableRow = allowVariables ? (
+    <MenuRows
+      items={[
+        {
+          key: "variable",
+          text: "Use a variable",
+          variable: true,
+          onPick: () => open("variable"),
+        },
+      ]}
+    />
+  ) : null;
 
   /* The value pill, by type. */
   let valuePill: React.ReactNode = null;
@@ -1047,8 +866,7 @@ const ConditionRowView = ({
       {openPart === "value" ? (
         <Popover
           triggerRef={valueRef}
-          // Dates open with the calendar to the left of the menu, so the pair ends at the pill's right edge.
-          position={type === "date" ? "bottom-end" : "bottom-start"}
+          position="bottom-start"
           gapY={4}
           onClose={close}
         >
@@ -1075,132 +893,35 @@ const ConditionRowView = ({
               </OverlayScrollArea>
             </div>
           ) : type === "date" ? (
-            <div
-              className={css({
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "1",
-              })}
-            >
-              {exactOpen ? (
-                <div
-                  className={cx(
-                    menuPanelStyle,
-                    css({ minWidth: "[0]", padding: "2", borderRadius: "xl" }),
-                  )}
-                >
-                  <DateCalendar
-                    value={
-                      row.relative
-                        ? null
-                        : row.value === null
-                          ? null
-                          : String(row.value)
-                    }
-                    onPick={(iso) => {
-                      onChange({ value: iso, relative: undefined });
-                      close();
-                    }}
-                  />
-                </div>
-              ) : null}
-              <div
-                className={menuPanelStyle}
-                role="dialog"
-                aria-label="Choose date"
-              >
-                <MenuRows
-                  items={relativePresets.map((preset) => ({
-                    key: preset.value.kind,
-                    text: preset.text,
-                    icon: "calendar" as const,
-                    hint: "Editor mock: the engine stores fixed dates only.",
-                    selected: row.relative?.kind === preset.value.kind,
-                    onPick: () => {
-                      onChange({ relative: preset.value, value: null });
-                      close();
-                    },
-                  }))}
-                />
-                <div className={menuGroupStyle}>
-                  {daysOpen ? (
-                    <div
-                      className={css({
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "2",
-                        paddingX: "1.5",
-                        minHeight: "[32px]",
-                      })}
-                    >
-                      <div className={css({ width: "[72px]" })}>
-                        <NumberInput
-                          size="xs"
-                          width="fullWidth"
-                          value={
-                            row.relative?.kind === "daysAgo"
-                              ? row.relative.days
-                              : 3
-                          }
-                          aria-label="Number of days ago"
-                          onChange={(days) =>
-                            onChange({
-                              relative: {
-                                kind: "daysAgo",
-                                days: Math.max(1, days ?? 1),
-                              },
-                              value: null,
-                            })
-                          }
-                        />
-                      </div>
-                      <span
-                        className={css({
-                          textStyle: "sm",
-                          color: "neutral.fg.body",
-                        })}
-                      >
-                        days ago
-                      </span>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      className={menuRowStyle}
-                      title="Editor mock: the engine stores fixed dates only."
-                      onClick={() => {
-                        setDaysOpen(true);
-                        onChange({
-                          relative: {
-                            kind: "daysAgo",
-                            days:
-                              row.relative?.kind === "daysAgo"
-                                ? row.relative.days
-                                : 3,
-                          },
-                          value: null,
-                        });
-                      }}
-                    >
-                      <Icon name="calendar" size="xs" />
-                      <span className={css({ flex: "1" })}>
-                        Number of days ago…
-                      </span>
-                    </button>
-                  )}
+            <DatePickerSurface
+              label="Choose date"
+              iso={
+                row.relative || row.value === null ? null : String(row.value)
+              }
+              relative={row.relative}
+              onPickDate={(iso) => {
+                onChange({ value: iso, relative: undefined });
+                close();
+              }}
+              onPickRelative={(relative) => {
+                onChange({ relative, value: null });
+                if (relative.kind !== "daysAgo") {
+                  close();
+                }
+              }}
+              footer={
+                allowVariables ? (
                   <button
                     type="button"
-                    className={menuRowStyle}
-                    data-selected={exactOpen || undefined}
-                    onClick={() => setExactOpen((current) => !current)}
+                    className={relativeRowStyle}
+                    onClick={() => open("variable")}
                   >
-                    <Icon name="calendar" size="xs" />
-                    <span className={css({ flex: "1" })}>Exact date…</span>
-                    <Icon name="chevronRight" size="sm" />
+                    <VariableIcon size={14} />
+                    Use a variable
                   </button>
-                </div>
-              </div>
-            </div>
+                ) : null
+              }
+            />
           ) : type === "options" || type === "boolean" ? (
             <div
               className={menuPanelStyle}
@@ -1227,6 +948,7 @@ const ConditionRowView = ({
                   },
                 }))}
               />
+              {variableRow}
             </div>
           ) : type === "entity" ? (
             <div
@@ -1275,6 +997,7 @@ const ConditionRowView = ({
                     }))}
                 />
               </OverlayScrollArea>
+              {variableRow}
             </div>
           ) : null}
         </Popover>
@@ -1299,7 +1022,7 @@ const ConditionRowView = ({
                       {
                         key: "variable",
                         text: "Use a variable",
-                        icon: "bracketsCurly" as const,
+                        variable: true,
                         onPick: () => open("variable"),
                       },
                     ]
@@ -1347,13 +1070,7 @@ const ConditionRowView = ({
 
       {openPart === "variable" || openPart === "footer" ? (
         <SourceMenu
-          anchor={
-            mention !== undefined
-              ? textRef
-              : openPart === "footer" && footerRef
-                ? footerRef
-                : valueAnchor
-          }
+          anchor={mention !== undefined ? textRef : valueAnchor}
           searchAlways={mention === undefined}
           stepId={step.stepId}
           input={valueInput}
@@ -1466,7 +1183,7 @@ export const UseVariable = ({
     data-open={open || undefined}
     onClick={onClick}
   >
-    <Icon name="bracketsCurly" size="xs" />
+    <VariableIcon />
     <span>Use a variable</span>
   </button>
 );
@@ -1491,12 +1208,6 @@ export const ConditionBuilder = ({
   /** False for a trigger's condition: nothing runs before it, so there is nothing to refer to. */
   allowVariables?: boolean;
 }) => {
-  const { ui, setUi } = useEditor();
-  const footerRef = useRef<HTMLButtonElement>(null);
-  const footerOpen =
-    ui.openField?.stepId === step.stepId &&
-    ui.openField.inputName.startsWith(`${input.name}:`) &&
-    ui.openField.inputName.endsWith(":footer");
   const groups = draft.groups ?? [];
   const allIds = [
     ...draft.conditions,
@@ -1528,9 +1239,6 @@ export const ConditionBuilder = ({
       </span>
     );
   }
-
-  const lastRow =
-    [...draft.conditions].at(-1) ?? groups.at(-1)?.conditions.at(-1);
 
   return (
     <div className={builderStyle} data-condition-builder>
@@ -1569,7 +1277,6 @@ export const ConditionBuilder = ({
               draft.conditions.filter((candidate) => candidate.id !== row.id),
             )
           }
-          footerRef={footerRef}
           allowVariables={allowVariables}
           onGroup={() =>
             update({
@@ -1620,7 +1327,6 @@ export const ConditionBuilder = ({
                     ),
                   })
                 }
-                footerRef={footerRef}
                 allowVariables={allowVariables}
                 onRemove={() =>
                   setGroup(group.id, {
@@ -1653,22 +1359,6 @@ export const ConditionBuilder = ({
           properties={properties}
           onAdd={(property) => setRows([...draft.conditions, newRow(property)])}
         />
-        {lastRow && allowVariables ? (
-          <UseVariable
-            buttonRef={footerRef}
-            open={footerOpen}
-            onClick={() =>
-              setUi((current) => ({
-                ...current,
-                openField: {
-                  stepId: step.stepId,
-                  inputName: `${input.name}:condition${lastRow.id}:footer`,
-                  mode: "menu",
-                },
-              }))
-            }
-          />
-        ) : null}
       </div>
     </div>
   );
