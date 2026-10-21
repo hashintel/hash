@@ -9,7 +9,7 @@ import {
 
 import { createExperimentDemoTransport } from "./create-experiment-demo-transport";
 
-import type { PetrinautAiMessage } from "../plugins/_shared/chat/ai-message";
+import type { PetrinautAiMessage } from "../plugins/petrinaut-ai/chat/ai-message";
 
 const startTurn = (messages: PetrinautAiMessage[], abortSignal?: AbortSignal) =>
   createExperimentDemoTransport().sendMessages({
