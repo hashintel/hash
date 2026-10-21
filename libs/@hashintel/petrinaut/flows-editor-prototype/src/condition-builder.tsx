@@ -354,30 +354,29 @@ const filterFitStyle = css({
  * operator, as J3 · B2 and B3 draw it. Layout and corner radii only: the parts keep their DS look.
  */
 const filterStackStyle = css({
+  // The chip's outline moves to the chip itself, so row 1's segments hug their text and the spare width sits after
+  // the operator, inside the outline.
   "&[class]": {
     display: "inline-grid",
-    gridTemplateColumns: "[max-content max-content]",
+    gridTemplateColumns: "[max-content max-content minmax(0, 1fr)]",
     maxWidth: "[100%]",
+    border: "var(--form-border-width) solid var(--filter-outer-border)",
+    borderRadius: "[var(--filter-radius)]",
+    overflow: "hidden",
   },
-  "&[class] > [data-part='property']": {
-    borderEndStartRadius: "[0]",
+  "&[class] > *": {
+    borderBlock: "[none]",
+    borderRadius: "[0]",
   },
+  "&[class] > [data-part='property']": { borderInlineStart: "[none]" },
   "&[class] > [data-scope='select'][data-part='trigger']": {
-    borderInlineEnd:
-      "var(--form-border-width) solid var(--filter-outer-border)",
-    borderStartEndRadius: "[var(--filter-radius)]",
-    borderEndEndRadius: "[0]",
+    borderInlineEnd: "var(--form-border-width) solid var(--filter-divider)",
   },
   "&[class] > [data-part='input-slot']": {
     gridColumn: "[1 / -1]",
     maxWidth: "[100%]",
-    borderBlockStart: "[none]",
-    borderInlineStart:
-      "var(--form-border-width) solid var(--filter-outer-border)",
-    borderInlineEnd:
-      "var(--form-border-width) solid var(--filter-outer-border)",
-    borderEndStartRadius: "[var(--filter-radius)]",
-    borderEndEndRadius: "[var(--filter-radius)]",
+    // No line between the two rows, as J3 · B2 draws it.
+    borderInline: "[none]",
   },
 });
 
