@@ -140,9 +140,18 @@ status.
 
 ## The site
 
-`site/` is an Astro and Starlight project. Before Astro runs, the tool writes
-the bundle into `site/src/content/` and `site/public/`, together with the
-instance's title, logo and favicon, and runs Astro from that directory.
+`site/` is a Vite and React project shipped with the tool: TanStack Router
+for navigation that never leaves the document, MDX compiled by Vite with the
+same remark and rehype steps the pages were written against, code blocks
+highlighted by shiki, and one HTML file per page in the output. Before Vite
+runs, the tool writes the bundle into `site/src/content/` and `site/public/`,
+together with the instance's title, logo and favicon.
+
+`build` bundles the client and a server entry, then renders every page in the
+manifest through the server entry into `dist/<slug>.html`, with the client's
+own script tags kept, so a page is complete on arrival and the browser
+hydrates it and navigates in place from there. Search is a field that says it
+is not available yet.
 
 `dev` serves first and builds second: when a bundle from an earlier run is on
 disk, the server starts on it at once and the first build replaces what
@@ -150,15 +159,10 @@ differs. Rebuilds go through a session that keeps every package's scan and
 every language's facts in memory: a content edit rebuilds the model alone, a
 Python edit re-scans that package, and a TypeScript edit goes to the worker,
 which walks the edited files and their dependents. Only the bundle files that
-differ are written and copied into the site tree, Astro's own reload does the
-rest, and the last good bundle keeps serving while an error stands.
-
-`cookie` is a direct dependency, though no source file imports it. Astro's
-generated prerender entry imports `cookie`, and Node resolves it from this
-package rather than from Astro's own directory; without the dependency the
-lookup reaches the root-hoisted `cookie@0.7.2` that `express` pins and the
-build fails on a missing `parseCookie` export. Keep the pin inside Astro's
-declared `cookie` range when bumping `astro`.
+differ are written and copied into the site tree; Vite's own reload does the
+rest, with a plugin that reloads the pages when a re-rendered diagram lands,
+since the pages inline SVGs at compile time. The last good bundle keeps
+serving while an error stands.
 
 ## Source links
 

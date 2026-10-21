@@ -1,7 +1,8 @@
 /**
- * The website: an Astro and Starlight project shipped with the tool under
- * `site/`. The bundle and the instance's identity are written into it, then
- * Astro builds or serves it.
+ * The website: a Vite and React project shipped with the tool under `site/`.
+ * The bundle and the instance's identity are written into it, then Vite
+ * builds it and every page is prerendered to its own HTML file, or the dev
+ * server serves it.
  */
 
 import { cp, readFile, rm } from "node:fs/promises";
@@ -11,24 +12,10 @@ import { fileURLToPath } from "node:url";
 import { listFiles, syncDirectory } from "./shared/sync-directory";
 import { checkBuiltCss } from "./site/check-built-css";
 
+import type { BundleManifest } from "./bundle/outputs";
 import type { ArchinautConfig } from "./config";
 
 export const siteRoot = fileURLToPath(new URL("../site", import.meta.url));
-
-/**
- * Runs Astro from the site tree. Astro resolves its cache and the prerender
- * step's imports against the working directory, and the site's dependencies
- * are installed under `site/`, not wherever the command was started.
- */
-const inSiteTree = async <T>(work: () => Promise<T>): Promise<T> => {
-  const previous = process.cwd();
-  process.chdir(siteRoot);
-  try {
-    return await work();
-  } finally {
-    process.chdir(previous);
-  }
-};
 
 /** Bundle directory → where it lands under the site. */
 const contentMapping = {
@@ -130,19 +117,41 @@ export const buildSite = async (options: {
   outDir: string;
 }): Promise<void> => {
   await syncSite(options.config, options.bundleRoot);
-  // Built inside the site tree: Astro's prerender step resolves the site's
-  // dependencies relative to the output directory, and they are installed
-  // here, not wherever the caller wants the result.
-  const outDir = join(siteRoot, "dist");
-  const { build } = await import("astro");
-  await inSiteTree(() => build({ root: siteRoot, outDir, logLevel: "warn" }));
-  const failures = await checkBuiltCss(outDir);
+  const { build } = await import("vite");
+  const configFile = join(siteRoot, "vite.config.ts");
+  const clientDirectory = join(siteRoot, "dist/client");
+  const serverDirectory = join(siteRoot, "dist/server");
+  await build({
+    configFile,
+    root: siteRoot,
+    logLevel: "warn",
+    build: { outDir: clientDirectory, emptyOutDir: true },
+  });
+  await build({
+    configFile,
+    root: siteRoot,
+    logLevel: "warn",
+    build: {
+      ssr: "src/entry-server.tsx",
+      outDir: serverDirectory,
+      emptyOutDir: true,
+    },
+  });
+  const { prerender } = await import("../site/prerender");
+  await prerender({
+    clientDirectory,
+    serverEntry: join(serverDirectory, "entry-server.js"),
+    manifest: JSON.parse(
+      await readFile(join(options.bundleRoot, "manifest.json"), "utf8"),
+    ) as BundleManifest,
+  });
+  const failures = await checkBuiltCss(clientDirectory);
   if (failures.length > 0) {
     throw new Error(`built CSS check failed:\n  ${failures.join("\n  ")}`);
   }
-  if (options.outDir !== outDir) {
+  if (options.outDir !== clientDirectory) {
     await rm(options.outDir, { recursive: true, force: true });
-    await cp(outDir, options.outDir, { recursive: true });
+    await cp(clientDirectory, options.outDir, { recursive: true });
   }
 };
 
@@ -156,9 +165,14 @@ export const serveSite = async (options: {
   port: number;
 }): Promise<SiteServer> => {
   await syncSite(options.config, options.bundleRoot);
-  const { dev } = await import("astro");
-  const server = await inSiteTree(() =>
-    dev({ root: siteRoot, server: { port: options.port }, logLevel: "warn" }),
-  );
-  return { stop: () => server.stop() };
+  const { createServer } = await import("vite");
+  const server = await createServer({
+    configFile: join(siteRoot, "vite.config.ts"),
+    root: siteRoot,
+    logLevel: "warn",
+    appType: "spa",
+    server: { port: options.port, strictPort: true },
+  });
+  await server.listen();
+  return { stop: () => server.close() };
 };

@@ -107,7 +107,7 @@ const checks: {
 
 /** Failures found in the built stylesheets under `distDir`, one line each. */
 export const checkBuiltCss = async (distDir: string): Promise<string[]> => {
-  const assetsDir = join(distDir, "_astro");
+  const assetsDir = join(distDir, "assets");
   const files = (await readdir(assetsDir)).filter((name) =>
     name.endsWith(".css"),
   );
