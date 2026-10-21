@@ -7,7 +7,6 @@ import {
 import {
   expectFileUrlEditOnLaterPageShowsNewFile,
   getPdfPage,
-  getSearchHighlights,
   pdf,
   uploadAndOpenFile,
 } from "../../shared/file-preview/utils";
@@ -62,15 +61,12 @@ test.describe("PDF preview", () => {
     await expectFullyShown(searchInput);
     await searchInput.fill(testDocumentSearchWord);
 
-    const shownPageHighlights = {
-      hits: [testDocumentSearchWord],
-      current: [testDocumentSearchWord],
-    };
+    const searchHighlight = pdfPage.locator('span[style*="background-color"]', {
+      hasText: testDocumentSearchWord,
+    });
 
+    await expect(searchHighlight).toBeVisible();
     await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
-    await expect
-      .poll(() => getSearchHighlights(page))
-      .toEqual(shownPageHighlights);
 
     const nextResult = page.getByRole("button", { name: "Next result" });
     await expectFullyShown(nextResult);
@@ -79,9 +75,7 @@ test.describe("PDF preview", () => {
     await expect(
       pdfPage.getByText(thirdPage.heading, { exact: true }),
     ).toBeVisible();
-    await expect
-      .poll(() => getSearchHighlights(page))
-      .toEqual(shownPageHighlights);
+    await expect(searchHighlight).toBeVisible();
   });
 
   test("text selected on a page can be copied and pasted", async ({ page }) => {

@@ -1,8 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { createHitRange } from "../file-preview-search-highlights";
-
-import type { TextPosition } from "../file-preview-search-highlights";
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
 import type { DocumentCallback } from "react-pdf/dist/cjs/shared/types.js";
 
@@ -126,55 +123,9 @@ const findStringInPages = ({
 };
 
 /**
- * Returns a `Range` for each of `hits` in the text layer pdf.js drew from
- * `textLines`. pdf.js draws a `span` for each text item with text, so a hit
- * that starts or ends on an item without text gets no range.
+ * Returns a function that finds the occurrences of a string in the document.
  */
-export const createHitRangesInTextLayer = (
-  textLayer: Element,
-  textLines: readonly Pick<TextItem, "str">[],
-  hits: readonly SearchHit[],
-): (Range | null)[] => {
-  const spans = textLayer.querySelectorAll('span[role="presentation"]');
-
-  let drawnSpanCount = 0;
-  const spanByRow = textLines.map(({ str }) => {
-    if (str === "") {
-      return undefined;
-    }
-    const span = spans[drawnSpanCount];
-    drawnSpanCount += 1;
-    return span;
-  });
-
-  const textPosition = (
-    rowIndex: number,
-    characterIndex: number,
-  ): TextPosition | null => {
-    const element = spanByRow[rowIndex];
-    const text = textLines[rowIndex]?.str;
-    if (!element || text === undefined) {
-      return null;
-    }
-    /** The search ran on the trimmed text of each row. */
-    const leadingWhitespaceLength = text.length - text.trimStart().length;
-    return { element, offset: leadingWhitespaceLength + characterIndex };
-  };
-
-  return hits.map(({ start, end }) => {
-    const startPosition = textPosition(start.rowIndex, start.characterIndex);
-    const endPosition = textPosition(end.rowIndex, end.characterIndex + 1);
-    return startPosition && endPosition
-      ? createHitRange(startPosition, endPosition)
-      : null;
-  });
-};
-
-/**
- * Returns a function that finds the occurrences of a string in the document,
- * and one that builds a `Range` for each hit in a page's text layer.
- */
-export const usePdfSearch = (document: DocumentCallback | null) => {
+export const useFindSearchHits = (document: DocumentCallback | null) => {
   const [pages, setPages] = useState<Page[]>([]);
 
   /**
@@ -225,19 +176,6 @@ export const usePdfSearch = (document: DocumentCallback | null) => {
     void getPages();
   }, [document]);
 
-  const findSearchHits = (searchString: string, ignoreCase: boolean) =>
+  return (searchString: string, ignoreCase: boolean) =>
     findStringInPages({ pages, searchString, ignoreCase });
-
-  /** `hits` must all be on the page that `textLayer` shows. */
-  const createHitRanges = useCallback(
-    (textLayer: Element, hits: readonly SearchHit[]) => {
-      const pageNumber = hits[0]?.pageNumber;
-      const textLines =
-        pages.find((page) => page.pageNumber === pageNumber)?.textLines ?? [];
-      return createHitRangesInTextLayer(textLayer, textLines, hits);
-    },
-    [pages],
-  );
-
-  return { findSearchHits, createHitRanges };
 };
