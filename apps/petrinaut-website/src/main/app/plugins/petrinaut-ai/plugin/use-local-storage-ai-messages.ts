@@ -86,17 +86,18 @@ const writeMessages = (messages: AiMessagesByNetId): void =>
   );
 
 /**
- * The saved transcript of one document and how to replace or clear it. Every
- * document's transcript lives under one storage key, so a write keeps the
- * other documents' transcripts.
+ * The saved transcript of one document, how to replace or clear it, and
+ * whether storage has been read. Every document's transcript lives under one
+ * storage key, so a write keeps the other documents' transcripts.
  */
 export const useLocalStorageAiMessages = (
   documentId: string,
 ): readonly [
   PetrinautAiMessage[] | undefined,
   (messages: PetrinautAiMessage[] | undefined) => void,
+  boolean,
 ] => {
-  const [aiMessagesByNetId, setAiMessagesByNetId] = usePersistedState({
+  const [aiMessagesByNetId, setAiMessagesByNetId, ready] = usePersistedState({
     fallback: noAiMessages,
     read: readMessages,
     storageKey: rootLocalStorageKey,
@@ -111,5 +112,5 @@ export const useLocalStorageAiMessages = (
       return next;
     });
 
-  return [aiMessagesByNetId[documentId], setMessages];
+  return [aiMessagesByNetId[documentId], setMessages, ready];
 };

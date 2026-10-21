@@ -10,7 +10,6 @@ import {
 
 import { getInteractiveTool } from "../interactive-tools/registry";
 import {
-  type AiToolTarget,
   type AiToolSummary,
   summarizePetrinautAiToolCall,
 } from "../tool-summaries";
@@ -95,7 +94,7 @@ const simulateViewModes = {
 const isSimulateViewMode = (value: unknown): value is SimulateViewMode =>
   typeof value === "string" && Object.hasOwn(simulateViewModes, value);
 
-const getAiToolTarget = (value: unknown): AiToolTarget | undefined => {
+const getAiToolTarget = (value: unknown): PetrinautRevealTarget | undefined => {
   if (typeof value !== "object" || value === null) {
     return undefined;
   }
@@ -314,12 +313,10 @@ const toolListStyle = css({
 /** Every tool as its own bordered row, in call order. */
 export const AiAssistantToolList = ({
   onInteractiveToolSubmit,
-  onSelectToolTarget,
   tools,
   stopped = false,
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
-  onSelectToolTarget?: (target: AiToolTarget) => void;
   tools: ToolRenderItem[];
   stopped?: boolean;
 }) =>
@@ -331,7 +328,6 @@ export const AiAssistantToolList = ({
           tool={tool}
           stopped={stopped}
           onInteractiveToolSubmit={onInteractiveToolSubmit}
-          onSelectToolTarget={onSelectToolTarget}
         />
       ))}
     </div>

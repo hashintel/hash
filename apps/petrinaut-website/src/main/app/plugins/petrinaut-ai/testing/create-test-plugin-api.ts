@@ -26,7 +26,7 @@ export type ExperimentRecord = ReturnType<
 interface TestPluginApiOptions {
   /** The title store's first value. */
   readonly title?: string;
-  /** The host's title setter; omitted, `setTitle` is refused. */
+  /** The editor's title setter; omitted, `setTitle` is refused. */
   readonly setTitle?: (title: string) => void;
   /** Read when an edit is called: a refusal refuses every edit. */
   readonly refusal?: () => EditRefusal | null;
@@ -83,7 +83,7 @@ export const createTestPluginApi = (
     requestDiagnostics = noDiagnostics,
     reveal = () => {},
     runExperiment = () =>
-      Promise.reject(new Error("Experiment host unavailable")),
+      Promise.reject(new Error("Experiments unavailable")),
     records = [],
     notify = () => "",
     capture = () => {},
