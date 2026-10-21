@@ -151,17 +151,14 @@ export const copyPlugin = CopyPlugin(useCopyPlugin);
 
 Declare `assistant: true` and return `assistant: { content }`. The editor
 renders `content` in its assistant panel, below the title bar, behind the
-plugin's error boundary, and shows the assistant's entry points: the bottom
-bar button, the toggle shortcut and the empty-canvas prompt. The panel's frame, placement, resizing, dock toggle and
+plugin's error boundary, and opens the panel from the bottom bar button and
+the toggle shortcut. The panel's frame, placement, resizing, dock toggle and
 Close button stay the editor's. The editor shows the first running plugin that
 provides an assistant, and the deprecated `aiAssistant` prop's chat while
 none runs.
 
 Inside `content`, `AssistantPanelTitle` fills the title bar and
-`useAssistantPanel()` reads the panel's state. Sending a message from the
-empty-canvas prompt opens the panel with `{ text }` as its `startRequest`. A
-`startAction` puts a button in the prompt that opens it with `{ action: id }`.
-The content handles the request once and calls `consumeStartRequest()`.
+`useAssistantPanel()` reads the panel's state.
 
 The title bar's parts render inside `content`, so they read the chat's state:
 the Clear button below shows only once there are messages.
@@ -170,7 +167,9 @@ The empty-net prompt shows while the assistant returns `onPrompt`. The editor
 opens the panel and calls it with the message the user sends, so the
 conversation lives in the hook, where `onPrompt` can reach it. When the panel
 opens, the content's element marked `data-autofocus`, such as the composer's
-`<textarea data-autofocus />`, takes focus; without one, the panel does.
+`<textarea data-autofocus />`, takes focus; without one, the panel does. A
+`startAction` adds a button to the prompt, such as a Voice start: the editor
+opens the panel and calls its `run`.
 
 ```tsx
 // `Chat` and `useChat` come from `@ai-sdk/react`, `UIMessage` from `ai`.

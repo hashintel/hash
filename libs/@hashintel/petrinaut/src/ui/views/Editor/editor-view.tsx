@@ -72,7 +72,6 @@ import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 import { autoLayoutShortcut, EditorCommands } from "./use-editor-commands";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
-import type { AssistantStartRequest } from "../../plugins/plugin-assistant";
 import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
 
@@ -224,8 +223,6 @@ const EditorViewContent = ({
     useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
   const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
-  const [assistantStartRequest, setAssistantStartRequest] =
-    useState<AssistantStartRequest | null>(null);
 
   const { enableExperimentalIconPack, showAnimations } =
     use(UserSettingsContext);
@@ -506,10 +503,10 @@ const EditorViewContent = ({
     },
   ];
 
-  // The empty-net prompt hands its message to the built-in chat, to the plugin
-  // assistant's `onPrompt`, or else to its start request.
+  // The empty-net prompt hands its message to the built-in chat, or to the
+  // plugin assistant's `onPrompt`.
   const showEmptyAiHero =
-    assistant.hasAssistant &&
+    (assistant.builtInChat !== undefined || assistant.onPrompt !== undefined) &&
     !isAiAssistantOpen &&
     !isAiCtaDismissed &&
     !pluginOverlay &&
@@ -597,8 +594,6 @@ const EditorViewContent = ({
                           setAiAssistantOpen(true);
                           if (assistant.onPrompt) {
                             assistant.onPrompt(message);
-                          } else if (assistant.plugin) {
-                            setAssistantStartRequest({ text: message });
                           } else {
                             setPendingAiAssistantMessage(message);
                             setPendingAiInteractionMode("text");
@@ -608,9 +603,9 @@ const EditorViewContent = ({
                           assistant.builtInChat?.renderVoiceMode !== undefined
                         }
                         startAction={assistant.startAction}
-                        onStartAction={(action) => {
-                          setAssistantStartRequest({ action });
+                        onStartAction={() => {
                           setAiAssistantOpen(true);
+                          assistant.startAction?.run();
                         }}
                       />
                     )}
@@ -659,8 +654,6 @@ const EditorViewContent = ({
               plugin={assistant.plugin}
               petriNetId={petriNetId}
               focusRequest={aiAssistantFocusRequest}
-              startRequest={assistantStartRequest}
-              consumeStartRequest={() => setAssistantStartRequest(null)}
             />
           )}
           {assistant.builtInChat && (

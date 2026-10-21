@@ -43,7 +43,6 @@ import {
 } from "@hashintel/petrinaut-core";
 import { petrinautDocsContent } from "@hashintel/petrinaut/ui";
 import {
-  type AssistantStartRequest,
   type PluginEdits,
   useAssistantPanel,
   useStoreSelector,
@@ -76,9 +75,9 @@ import {
   VoiceSessionProvider,
 } from "./assistant-chat/voice-session";
 import { executePetrinautAiMutation } from "./execute-petrinaut-ai-mutation";
-import { voiceStartAction } from "./voice-start-action";
 
 import type { PetrinautAiMessage, PetrinautAiTransport } from "./ai-message";
+import type { AssistantChatStart } from "./assistant-chat-start";
 import type {
   PetrinautAiComposerControlContext,
   PetrinautAiComposerStatus,
@@ -470,10 +469,16 @@ const applyPetrinautAiCommand = async ({
 /** The chat: `api`, which reaches the editor, and the assistant's configuration. */
 export type AssistantChatProps = PetrinautAiAssistant & {
   readonly api: AssistantChatApi;
+  /** The empty-net prompt's message or Voice start, from `useAssistantChatStart`. */
+  readonly start?: AssistantChatStart | null;
+  /** Called once the chat has taken `start`. */
+  readonly onStartHandled?: () => void;
 };
 
 const ConversationAssistantChat = ({
   api,
+  start = null,
+  onStartHandled,
   ...aiAssistant
 }: AssistantChatProps) => {
   // The wrapped AI transport reads its latest host value through a ref when
@@ -509,15 +514,12 @@ const ConversationAssistantChat = ({
   }, []);
 
   // The panel owns open and collapsed state; the chat collapses it to the
-  // Voice dock and reads a start request from the editor's entry points.
+  // Voice dock.
   const {
     isOpen: isAiAssistantOpen,
     collapsed: voiceDockCollapsed,
     setCollapsed: setVoiceDockCollapsed,
     close: closePanel,
-    focusRequest,
-    startRequest,
-    consumeStartRequest,
   } = useAssistantPanel();
   const voiceSessionStore = use(VoiceSessionContext);
   // Operational failures — the stream, tool execution, continuation, Stop —
@@ -582,7 +584,7 @@ const ConversationAssistantChat = ({
   const voiceModeControlsRef =
     useRef<PetrinautAiVoiceModeSessionControls | null>(null);
   const queuedVoiceInputRef = useRef<QueuedVoiceInput | null>(null);
-  const handledStartRequestRef = useRef<AssistantStartRequest | null>(null);
+  const handledStartRef = useRef<AssistantChatStart | null>(null);
 
   const readDiagnosticsContext = useCallback(
     () => readCurrentDiagnostics(document),
@@ -2116,26 +2118,23 @@ const ConversationAssistantChat = ({
     submitUserText(input);
   };
 
-  // A start request from the editor's entry points, e.g. the empty-net
-  // prompt: an action selects its input mode, text becomes the first message.
+  // The empty-net prompt's start: Voice selects its input mode, text becomes
+  // the first message.
   useEffect(() => {
-    if (startRequest === null) {
-      handledStartRequestRef.current = null;
+    if (start === null) {
+      handledStartRef.current = null;
 
       return;
     }
-    if (!isAiAssistantOpen || handledStartRequestRef.current === startRequest) {
+    if (!isAiAssistantOpen || handledStartRef.current === start) {
       return;
     }
-    handledStartRequestRef.current = startRequest;
-    consumeStartRequest();
+    handledStartRef.current = start;
+    onStartHandled?.();
 
-    if ("action" in startRequest) {
+    if ("voice" in start) {
       const nextMode =
-        startRequest.action === voiceStartAction.id &&
-        aiAssistant.renderVoiceMode !== undefined
-          ? "voice"
-          : "text";
+        aiAssistant.renderVoiceMode !== undefined ? "voice" : "text";
       // eslint-disable-next-line react/set-state-in-effect -- the mode setter also moves a ref and the voice dock, so it cannot run during render.
       selectInteractionMode(nextMode, {
         collapseVoiceDock: nextMode === "voice",
@@ -2145,7 +2144,7 @@ const ConversationAssistantChat = ({
     }
 
     selectInteractionMode("text");
-    const text = startRequest.text.trim();
+    const text = start.text.trim();
     if (!text) {
       return;
     }
@@ -2156,10 +2155,10 @@ const ConversationAssistantChat = ({
     submitUserText(text);
   }, [
     aiAssistant.renderVoiceMode,
-    consumeStartRequest,
     isAiAssistantOpen,
+    onStartHandled,
     selectInteractionMode,
-    startRequest,
+    start,
     submitUserText,
   ]);
 
@@ -2219,7 +2218,7 @@ const ConversationAssistantChat = ({
       clearMessagesDisabled={
         voiceActive || aiAssistant.canClearMessages === false
       }
-      composerFocusRequest={composerFocusRequest + focusRequest}
+      composerFocusRequest={composerFocusRequest}
       composerControl={composerControl}
       error={streamError ?? error}
       experimentStates={experimentStates}

@@ -41,9 +41,9 @@ import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveToolWidgetProps,
 } from "./interactive-tool";
-import { voiceStartAction } from "./voice-start-action";
 
 import type { PetrinautAiMessage, PetrinautAiTransport } from "./ai-message";
+import type { AssistantChatStart } from "./assistant-chat-start";
 import type {
   PetrinautAiComposerControlContext,
   PetrinautAiInputMode,
@@ -52,7 +52,6 @@ import type {
 import type { PetrinautAiAssistant } from "./petrinaut-ai-assistant";
 import type {
   AddNotificationInput,
-  AssistantStartRequest,
   EditRefusal,
 } from "@hashintel/petrinaut/ui/plugin";
 import type { UIMessageChunk } from "ai";
@@ -183,9 +182,8 @@ const SubmitForSecondConversation = ({
 const testInstances: ReturnType<typeof createPetrinaut>[] = [];
 
 /**
- * The chat under test in the panel the test controls, with a start request
- * built from the initial mode and message. A new mode or message is a new
- * request.
+ * The chat under test in the panel the test controls, with a start built from
+ * the initial mode and message. A new mode or message is a new start.
  */
 const TestChat = ({
   api,
@@ -209,19 +207,19 @@ const TestChat = ({
     setOpen(state.isAiAssistantOpen);
   }
   const requestKey = `${initialInteractionMode ?? ""}:${initialMessage ?? ""}`;
-  const toRequest = (): AssistantStartRequest | null =>
+  const toStart = (): AssistantChatStart | null =>
     initialMessage !== undefined
       ? { text: initialMessage }
       : initialInteractionMode === "voice"
-        ? { action: voiceStartAction.id }
+        ? { voice: true }
         : initialInteractionMode === "text"
           ? { text: "" }
           : null;
-  const [request, setRequest] = useState(toRequest);
+  const [start, setStart] = useState(toStart);
   const [handledKey, setHandledKey] = useState(requestKey);
   if (requestKey !== handledKey) {
     setHandledKey(requestKey);
-    setRequest(toRequest());
+    setStart(toStart());
   }
 
   return (
@@ -234,14 +232,17 @@ const TestChat = ({
         },
         collapsed: compact,
         setCollapsed: setCompact,
-        startRequest: request,
-        consumeStartRequest: () => {
-          setRequest(null);
-          onStartRequestConsumed?.();
-        },
       }}
     >
-      <AssistantChat api={api} {...aiAssistant} />
+      <AssistantChat
+        api={api}
+        {...aiAssistant}
+        start={start}
+        onStartHandled={() => {
+          setStart(null);
+          onStartRequestConsumed?.();
+        }}
+      />
       <output data-testid="window-compact">{String(compact)}</output>
     </AssistantPanelPreview>
   );

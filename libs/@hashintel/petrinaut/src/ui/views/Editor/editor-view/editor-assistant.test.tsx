@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, screen } from "@testing-library/react";
-import { type ReactNode, use, useState } from "react";
+import { type ReactNode, use } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
@@ -8,7 +8,6 @@ import { EditorContext } from "../../../../react/state/editor-context";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import {
   AssistantPanelTitle,
-  type AssistantStartRequest,
   useAssistantPanel,
 } from "../../../plugins/plugin-assistant";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";
@@ -41,23 +40,13 @@ const PluginChat = () => {
         Test assistant
       </AssistantPanelTitle>
       <p>{panel.isOpen ? "Plugin chat open" : "Plugin chat closed"}</p>
-      {panel.startRequest !== null && (
-        <button type="button" onClick={panel.consumeStartRequest}>
-          Start with {JSON.stringify(panel.startRequest)}
-        </button>
-      )}
     </>
   );
 };
 
 const chatPlugin = definePetrinautPlugin(
   { id: "test.chat", name: "Chat", assistant: true },
-  {
-    assistant: {
-      content: <PluginChat />,
-      startAction: { id: "listen", label: "Listen", icon: null },
-    },
-  },
+  { assistant: { content: <PluginChat /> } },
 );
 
 const composerPlugin = definePetrinautPlugin(
@@ -78,36 +67,21 @@ const brokenPlugin = definePetrinautPlugin(
   { assistant: { content: <Throwing /> } },
 );
 
-/** The panel as the editor mounts it, with buttons standing in for the toggle and the empty-canvas prompt. */
+/** The panel as the editor mounts it, with a button standing in for the toggle. */
 const Editor = () => {
-  const assistant = useEditorAssistant();
+  const { plugin } = useEditorAssistant();
   const { setAiAssistantOpen } = use(EditorContext);
-  const [startRequest, setStartRequest] =
-    useState<AssistantStartRequest | null>(null);
 
   return (
     <>
       <button type="button" onClick={() => setAiAssistantOpen(true)}>
         Show AI assistant
       </button>
-      {assistant.startAction && (
-        <button
-          type="button"
-          onClick={() => {
-            setStartRequest({ action: assistant.startAction!.id });
-            setAiAssistantOpen(true);
-          }}
-        >
-          {assistant.startAction.label}
-        </button>
-      )}
-      {assistant.plugin && (
+      {plugin && (
         <EditorAssistantPanel
-          plugin={assistant.plugin}
+          plugin={plugin}
           petriNetId="net"
           focusRequest={0}
-          startRequest={startRequest}
-          consumeStartRequest={() => setStartRequest(null)}
         />
       )}
     </>
@@ -152,18 +126,6 @@ describe("EditorAssistantPanel", () => {
 
     expect(onTitleClose).toHaveBeenCalledOnce();
     expect(screen.getByText("Plugin chat closed")).not.toBeNull();
-  });
-
-  test("hands the start action's request to the content until it is consumed", () => {
-    renderPlugins([chatPlugin], <Editor />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Listen" }));
-    const start = screen.getByRole("button", {
-      name: 'Start with {"action":"listen"}',
-    });
-    fireEvent.click(start);
-
-    expect(screen.queryByRole("button", { name: /^Start with/u })).toBeNull();
   });
 
   test("keeps the panel's frame when the plugin's content throws, and reports it", () => {

@@ -232,9 +232,12 @@ const buttonStyle = css({
  */
 export const PluginAssistantPanel = ({
   panel,
+  focusRequest,
   children,
 }: {
   panel: AssistantPanel;
+  /** Changes each time the user opens the panel; the panel then takes focus. */
+  focusRequest: number;
   children: ReactNode;
 }) => {
   const {
@@ -245,7 +248,7 @@ export const PluginAssistantPanel = ({
     setAiAssistantWidth,
     setAiAssistantDockHeight,
   } = use(EditorContext);
-  const { isOpen, close, collapsed, focusRequest } = panel;
+  const { isOpen, close, collapsed } = panel;
 
   const isFloating = aiAssistantPlacement === "floating";
   const HeaderLabel = isFloating ? "button" : "div";
@@ -438,8 +441,8 @@ export const PluginAssistantPanel = ({
 /**
  * Renders `children` as a plugin's `assistant.content` in the assistant
  * panel, outside an editor, for stories and tests. The panel starts open and
- * docked, with no start request; `state` overrides any of its state. Its dock
- * toggle and resizing work as in the editor.
+ * docked; `state` overrides any of its state. Its dock toggle and resizing
+ * work as in the editor.
  */
 export const AssistantPanelPreview = ({
   state,
@@ -466,13 +469,11 @@ export const AssistantPanelPreview = ({
         panel={{
           isOpen: true,
           close: () => {},
-          focusRequest: 0,
           collapsed: false,
           setCollapsed: () => {},
-          startRequest: null,
-          consumeStartRequest: () => {},
           ...state,
         }}
+        focusRequest={0}
       >
         {children}
       </PluginAssistantPanel>

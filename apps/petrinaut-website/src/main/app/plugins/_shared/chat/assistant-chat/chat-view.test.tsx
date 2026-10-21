@@ -158,14 +158,13 @@ const hostTab = (label: string, content: ReactNode) => ({ label, content });
 
 /**
  * The chat view in the assistant panel, as the chat drives it: the panel
- * collapses with the Voice dock and takes the composer's focus requests.
+ * collapses with the Voice dock.
  */
 const PanelChatView = (props: ComponentProps<typeof ChatView>) => (
   <AssistantPanelPreview
     state={{
       isOpen: props.isOpen ?? true,
       collapsed: props.voiceDockCollapsed ?? false,
-      focusRequest: props.composerFocusRequest ?? 0,
     }}
   >
     <ChatView {...props} />
