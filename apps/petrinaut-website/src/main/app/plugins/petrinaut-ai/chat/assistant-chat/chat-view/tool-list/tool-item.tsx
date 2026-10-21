@@ -3,10 +3,10 @@ import { Collapsible } from "@ark-ui/react/collapsible";
 import { Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+import { useAssistantChatApi } from "../../chat-api";
 import { collapsibleContentStyle } from "../shared/collapsible-content-style";
 import { InteractiveToolItem } from "./tool-item/interactive-tool-item";
 
-import type { AiToolTarget } from "../../tool-summaries";
 import type { OnInteractiveToolSubmit, ToolRenderItem } from "../tool-list";
 
 const toolItemCollapsibleStyle = css({
@@ -161,15 +161,14 @@ const toolProgressSpinnerStyle = css({
 /** One tool call's row: its status, title and detail, expanding to its items. */
 export const ToolItem = ({
   onInteractiveToolSubmit,
-  onSelectToolTarget,
   tool,
   stopped,
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
-  onSelectToolTarget?: (target: AiToolTarget) => void;
   tool: ToolRenderItem;
   stopped: boolean;
 }) => {
+  const { editor } = useAssistantChatApi();
   const cancelled =
     stopped &&
     (tool.state === "input-streaming" || tool.state === "input-available");
@@ -248,7 +247,7 @@ export const ToolItem = ({
       aria-busy={inProgress ? true : undefined}
       onClick={() => {
         if (target) {
-          onSelectToolTarget?.(target);
+          editor.reveal(target);
         }
       }}
     >

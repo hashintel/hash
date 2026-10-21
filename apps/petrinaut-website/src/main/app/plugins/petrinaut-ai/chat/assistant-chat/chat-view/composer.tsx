@@ -1,7 +1,8 @@
-import { type RefObject, useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { useAssistantPanel } from "@hashintel/petrinaut/ui/plugin";
 
 const composerActionGlyphStyle = css({
   display: "inline-flex",
@@ -90,8 +91,6 @@ type ComposerAction = {
 export const AiAssistantComposer = ({
   busy,
   input,
-  inputRef,
-  isOpen,
   onInputChange,
   onStop,
   onSubmit,
@@ -99,14 +98,14 @@ export const AiAssistantComposer = ({
 }: {
   busy: boolean;
   input: string;
-  inputRef: RefObject<HTMLTextAreaElement | null>;
-  isOpen: boolean;
   onInputChange: (value: string) => void;
   onStop: () => void;
   onSubmit: () => void;
   /** Whether the transcript already has messages to continue from. */
   hasHistory: boolean;
 }) => {
+  const { isOpen } = useAssistantPanel();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const canSubmit = input.trim().length > 0 && !busy;
 
   const action: ComposerAction = busy
@@ -148,7 +147,7 @@ export const AiAssistantComposer = ({
     textarea.style.height = `${Math.min(contentHeight, composerMaxHeight)}px`;
     textarea.style.overflowY =
       contentHeight > composerMaxHeight ? "auto" : "hidden";
-  }, [input, inputRef, isOpen]);
+  }, [input, isOpen]);
 
   return (
     <form

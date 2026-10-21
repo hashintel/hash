@@ -5,35 +5,28 @@ import { css } from "@hashintel/ds-helpers/css";
 import { ExperimentalIcon } from "@hashintel/petrinaut/ui";
 import { AssistantPanelTitle } from "@hashintel/petrinaut/ui/plugin";
 
-import { useAssistantChatApi } from "./chat-api";
 import { AiAssistantComposer } from "./chat-view/composer";
-import { errorNotification } from "./chat-view/error-notification";
 import { PromptChips, type PromptChip } from "./chat-view/prompt-chips";
 import { Transcript } from "./chat-view/transcript";
 
 import type { PetrinautAiMessage } from "../ai-message";
 import type { AiExperimentState } from "./chat-view/experiment-card";
 import type { OnInteractiveToolSubmit } from "./chat-view/tool-list";
-import type { AiToolTarget } from "./tool-summaries";
-
-type AiAssistantStatus = "submitted" | "streaming" | "ready" | "error";
 
 type ChatViewProps = {
-  error?: Error;
+  /** Whether the reply is streaming or running its tools. */
+  busy?: boolean;
   experimentStates?: Record<string, AiExperimentState>;
   onCancelExperiment?: (toolCallId: string) => void;
   input: string;
-  isOpen?: boolean;
   messages: PetrinautAiMessage[];
   onClearMessages?: () => void;
   onInputChange: (value: string) => void;
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
-  onSelectToolTarget?: (target: AiToolTarget) => void;
   onSendPrompt?: (prompt: string) => void;
   onStop: () => void;
   onSubmit: () => void;
   promptChips?: PromptChip[];
-  status: AiAssistantStatus;
   stopped?: boolean;
 };
 
@@ -109,42 +102,22 @@ const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string => {
 
 /** The chat's title bar, transcript, prompt chips and composer. */
 export const ChatView = ({
+  busy = false,
   experimentStates,
   onCancelExperiment,
-  error,
   input,
-  isOpen = true,
   messages,
   onClearMessages,
   onInputChange,
   onInteractiveToolSubmit,
-  onSelectToolTarget,
   onSendPrompt,
   onStop,
   onSubmit,
   promptChips,
-  status,
   stopped = false,
 }: ChatViewProps) => {
-  const { notifications } = useAssistantChatApi();
-  const isBusy = status === "submitted" || status === "streaming";
-
   const [chipsDismissed, setChipsDismissed] = useState(false);
 
-  const notifiedErrorRef = useRef<Error | undefined>(undefined);
-  useEffect(() => {
-    if (!error) {
-      notifiedErrorRef.current = undefined;
-      return;
-    }
-    if (notifiedErrorRef.current === error) {
-      return;
-    }
-    notifiedErrorRef.current = error;
-    notifications.add(errorNotification("AI assistant error", error.message));
-  }, [notifications, error]);
-
-  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const messagesScrollKey = getMessagesScrollKey(messages);
 
@@ -153,17 +126,6 @@ export const ChatView = ({
     onSendPrompt !== undefined &&
     promptChips !== undefined &&
     promptChips.length > 0;
-
-  // Stable container for the per-render callbacks so the memoised transcript
-  // messages don't see identity churn from the panel's inline arrow functions
-  // on every render. The ref itself is stable across renders, so memoised
-  // children never re-render due to handler changes — but we refresh
-  // `.current` in an effect so any new closure capture is picked up by the
-  // next event.
-  const handlersRef = useRef({ onInteractiveToolSubmit, onSelectToolTarget });
-  useEffect(() => {
-    handlersRef.current = { onInteractiveToolSubmit, onSelectToolTarget };
-  });
 
   const hasScrolledOnceRef = useRef(false);
 
@@ -182,7 +144,7 @@ export const ChatView = ({
     const frameId = window.requestAnimationFrame(scrollToEnd);
 
     return () => window.cancelAnimationFrame(frameId);
-  }, [messagesScrollKey, status]);
+  }, [messagesScrollKey, busy]);
 
   return (
     <>
@@ -215,12 +177,12 @@ export const ChatView = ({
           </div>
         )}
         <Transcript
+          busy={busy}
           experimentStates={experimentStates}
-          handlersRef={handlersRef}
           messages={messages}
           onCancelExperiment={onCancelExperiment}
-          stopped={stopped && !error}
-          busy={isBusy}
+          onInteractiveToolSubmit={onInteractiveToolSubmit}
+          stopped={stopped}
         />
       </div>
 
@@ -228,17 +190,15 @@ export const ChatView = ({
         {showChips && (
           <PromptChips
             chips={promptChips}
-            disabled={isBusy}
+            disabled={busy}
             onDismiss={() => setChipsDismissed(true)}
             onSelect={(prompt) => onSendPrompt(prompt)}
           />
         )}
         <AiAssistantComposer
-          busy={isBusy}
+          busy={busy}
           hasHistory={messages.length > 0}
           input={input}
-          inputRef={inputRef}
-          isOpen={isOpen}
           onInputChange={onInputChange}
           onStop={onStop}
           onSubmit={onSubmit}

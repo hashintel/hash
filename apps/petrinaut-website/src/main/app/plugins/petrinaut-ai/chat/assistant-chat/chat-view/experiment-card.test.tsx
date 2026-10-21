@@ -206,7 +206,10 @@ it("opens only the matching record on explicit request, preferring the tool resu
     constraintPolicy: null,
     scenario: null,
   };
-  const withRecord = apiWith([record]);
+  const withRecord = createTestPluginApi(instance, {
+    records: [record],
+    reveal,
+  });
   const card = (
     <ExperimentCard
       part={{ ...part, state: "output-available", output: result }}
@@ -214,7 +217,6 @@ it("opens only the matching record on explicit request, preferring the tool resu
         active: true,
         result: { ...result, experimentId: "stale", status: "error" },
       }}
-      onSelectToolTarget={reveal}
     />
   );
   const view = renderElement(

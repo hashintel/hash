@@ -30,13 +30,17 @@ const transport = new DefaultChatTransport<PetrinautAiMessage>({
 });
 
 const usePetrinautAiPlugin: PluginHook<typeof PetrinautAiPlugin> = (api) => {
-  const [messages, setMessages] = useLocalStorageAiMessages(api.document.id);
+  const [messages, setMessages, ready] = useLocalStorageAiMessages(
+    api.document.id,
+  );
   const chatStart = useAssistantChatStart();
 
   return {
     assistant: {
-      content: (
+      // The chat starts from the stored transcript, so it waits for storage.
+      content: ready && (
         <AssistantChat
+          key={api.document.id}
           api={api}
           transport={transport}
           messages={messages}
