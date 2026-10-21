@@ -12,6 +12,7 @@ import {
   isImportEdge,
   type ArchitectureModel,
 } from "../model";
+import { headingsOf, type PageHeading } from "./headings";
 
 import type { AuthoredPage } from "./content";
 import type { GeneratedPage } from "./pages";
@@ -27,6 +28,8 @@ export interface ManifestPage {
   /** `generated` pages are rewritten on every build; `authored` are hand-written. */
   kind: "generated" | "authored";
   order: number;
+  /** The page's own sections, for a host's "On this page". */
+  headings: PageHeading[];
 }
 
 /**
@@ -66,6 +69,7 @@ export const buildManifest = (options: {
       description: page.description,
       kind: "generated" as const,
       order: page.order,
+      headings: headingsOf(page.contents),
     })),
     ...options.authored.map((page) => ({
       path: page.path,
@@ -74,6 +78,7 @@ export const buildManifest = (options: {
       description: page.description,
       kind: "authored" as const,
       order: page.order,
+      headings: headingsOf(page.contents),
     })),
   ].sort(
     (left, right) =>

@@ -8,10 +8,10 @@ import { useEffect, useState } from "react";
 
 import { CaretIcon } from "../shell/icons";
 
-import type { TocEntry } from "../pages";
+import type { PageHeading } from "../../../src/bundle/headings.ts";
 
 /** The id of the heading currently in view, by watching the content scroll. */
-const useActiveHeading = (entries: TocEntry[]): string => {
+const useActiveHeading = (entries: PageHeading[]): string => {
   const [active, setActive] = useState("_top");
   useEffect(() => {
     const main = document.querySelector("main");
@@ -52,7 +52,7 @@ const List = ({
   active,
   mobile,
 }: {
-  entries: TocEntry[];
+  entries: PageHeading[];
   active: string;
   mobile: boolean;
 }) => (
@@ -71,7 +71,7 @@ const List = ({
   </ul>
 );
 
-export const TableOfContents = ({ entries }: { entries: TocEntry[] }) => {
+export const TableOfContents = ({ entries }: { entries: PageHeading[] }) => {
   const all = [{ depth: 2, slug: "_top", text: "Overview" }, ...entries];
   const active = useActiveHeading(entries);
   const current = all.find((entry) => entry.slug === active) ?? all[0];

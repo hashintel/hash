@@ -12,22 +12,14 @@ export const manifest = manifestJson as BundleManifest;
 
 export type PageStatus = "added" | "changed" | "removed";
 
-export interface TocEntry {
-  depth: number;
-  slug: string;
-  text: string;
-}
-
-/** A page's compiled module, as the MDX pipeline exports it. */
+/** A page's compiled module: the component, and nothing else, so an edit hot-swaps it. */
 export interface PageModule {
   default: ComponentType<{ components?: Record<string, ComponentType> }>;
-  toc?: TocEntry[];
 }
 
 export interface LoadedPage {
   page: ManifestPage;
   Content: PageModule["default"];
-  toc: TocEntry[];
 }
 
 const modules = import.meta.glob<PageModule>("./content/docs/**/*.mdx");
@@ -59,7 +51,7 @@ export const loadPage = async (slug: string): Promise<LoadedPage | null> => {
     return null;
   }
   const module = await load();
-  return { page, Content: module.default, toc: module.toc ?? [] };
+  return { page, Content: module.default };
 };
 
 export interface GroupBadge {

@@ -9142,8 +9142,8 @@ __metadata:
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
     "@vitejs/plugin-react": "npm:6.1.1"
+    github-slugger: "npm:2.0.0"
     hast-util-from-html: "npm:2.0.3"
-    hast-util-to-string: "npm:3.0.1"
     js-yaml: "npm:4.3.2"
     oxlint: "npm:1.86.0"
     react: "npm:19.2.6"
@@ -27654,7 +27654,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"github-slugger@npm:^2.0.0":
+"github-slugger@npm:2.0.0, github-slugger@npm:^2.0.0":
   version: 2.0.0
   resolution: "github-slugger@npm:2.0.0"
   checksum: 10c0/21b912b6b1e48f1e5a50b2292b48df0ff6abeeb0691b161b3d93d84f4ae6b1acd6ae23702e914af7ea5d441c096453cf0f621b72d57893946618d21dd1a1c486
@@ -28429,7 +28429,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hast-util-to-string@npm:3.0.1, hast-util-to-string@npm:^3.0.0, hast-util-to-string@npm:^3.0.1":
+"hast-util-to-string@npm:^3.0.0, hast-util-to-string@npm:^3.0.1":
   version: 3.0.1
   resolution: "hast-util-to-string@npm:3.0.1"
   dependencies:

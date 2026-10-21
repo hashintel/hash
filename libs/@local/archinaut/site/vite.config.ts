@@ -20,7 +20,6 @@ import { defineConfig } from "vite";
 
 import { resolveDiffCompareContext } from "./src/diff-context.ts";
 import { rehypeInlineDiagrams } from "./src/plugins/inline-diagrams.mjs";
-import { rehypeToc } from "./src/plugins/rehype-toc.mjs";
 import { reloadDiagrams } from "./src/plugins/reload-diagrams.mjs";
 import { remarkAsides } from "./src/plugins/remark-asides.mjs";
 
@@ -56,7 +55,6 @@ export default defineConfig(async () => ({
         ],
         rehypePlugins: [
           rehypeSlug,
-          rehypeToc,
           rehypeInlineDiagrams,
           [
             rehypeShiki,
@@ -69,6 +67,9 @@ export default defineConfig(async () => ({
       }),
     },
     react({
+      // Compiled pages are React components too; with the refresh runtime on
+      // them an edited page swaps in without a document reload.
+      include: /\.(mdx|js|jsx|ts|tsx)$/u,
       compiler: {
         target: "19",
         compilationMode: "infer",
