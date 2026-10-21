@@ -1,32 +1,39 @@
 /**
- * The condition builder of Find entities, If and Filter list, as rebuilt on Figma J3 (section 470:3681): rows of
- * pills ("Where", then "And" / "Or"), grey groups with their own "Add filter", operators that follow the attribute's
- * type, and a typed value editor per type (dates, statuses, entities, numbers, text). Any value can instead be a
- * variable, picked from the same menu as "@".
+ * The condition builder of Find entities, If and Filter list, on the DS `Filter` as Figma J3 draws it (section
+ * 470:3681, 21 Oct): each condition is one Filter chip (attribute · operator · value), then a ⋮ menu; later rows start
+ * with their group's "And" / "Or"; grey groups hold their own rows and "Add condition". Operators follow the
+ * attribute's type, and each value's menu ends in "Use a variable" (the same picker as "@").
  *
  * MOCK, editor side only: relative dates ("Today", "3 days ago") and "is in month". The engine's condition values are
  * fixed (Attio teardown, 21 Oct); these are marked in their hover.
+ *
+ * Where the DS Filter stops (its value is a text, number or select input):
+ * - an exact date or "N days ago" opens the DS datePicker composition (`DatePickerSurface`) from the value's menu;
+ * - a variable shows as the value's selected item (its step's icon, step name first, middle collapsed);
+ * - "@" in a text value opens the variable picker beside the field, which keeps focus (no DS mention input).
  */
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import {
+  Button,
+  Filter,
+  type FilterOperator,
   Icon,
   type IconName,
-  NumberInput,
+  Menu,
+  type MenuItem,
   Popover,
-  TextInput,
-  Tooltip,
 } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import { HashIcon } from "@hashintel/ds-icons";
 
-import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import { type CatalogEntry, getCatalogEntry, type InputView } from "./catalog";
 import {
   DatePickerSurface,
   formatDate,
   months,
   relativeLabel,
+  relativePresets,
   relativeRowStyle,
   today,
 } from "./date-picker";
@@ -38,6 +45,7 @@ import {
   findStep,
   type QueryDraft,
   type QueryGroup,
+  type RelativeDate,
   stepTitle,
   VALUE_SUBJECT,
 } from "./document";
@@ -49,199 +57,9 @@ import {
   mockEntityTypes,
 } from "./mock-graph";
 import { triggerForInput } from "./shapes";
-import {
-  menuGroupLabelStyle,
-  menuGroupStyle,
-  menuPanelStyle,
-  menuRowStyle,
-  SourceMenu,
-} from "./source-menu";
+import { SourceMenu } from "./source-menu";
 
 import type { StepInputSource } from "./engine";
-
-/* ----------------------------------------------------------------------------------------------------------------
- * Pills
- * ------------------------------------------------------------------------------------------------------------- */
-
-/** One pill of a condition row: 24 px, a hairline, 6 px corners, 12 px medium text, a 12 px icon. */
-const pillStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  height: "[24px]",
-  maxWidth: "[100%]",
-  paddingX: "1.5",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.solid",
-  borderRadius: "md",
-  backgroundColor: "neutral.bgSolid.min",
-  textStyle: "xs",
-  // The DS xs style tracks text out a little; pills read tighter, as drawn.
-  letterSpacing: "normal",
-  fontWeight: "medium",
-  color: "neutral.fg.body",
-  whiteSpace: "nowrap",
-  cursor: "pointer",
-  "& > span": { paddingX: "0.5", overflow: "hidden", textOverflow: "ellipsis" },
-  "&[class] svg": {
-    width: "[12px]",
-    height: "[12px]",
-    "--icon-size": "12px",
-    flexShrink: 0,
-  },
-  _hover: {
-    borderColor: "neutral.bd.solid.hover",
-    backgroundColor: "neutral.bgSolid.min.hover",
-  },
-  "&[data-open]": { borderColor: "neutral.bd.strong" },
-  "&[data-placeholder] > span": { color: "neutral.fg.subtle" },
-  _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
-});
-
-/** The DS tooltip trigger is a line-height 0 span; in a row it must size to its pill. */
-const tipStyle = css({
-  "&[class]": { display: "inline-flex", maxWidth: "[100%]", minWidth: "[0]" },
-});
-
-/** "Where": the first row's prefix, plain muted text. */
-const wherePrefixStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  height: "[24px]",
-  paddingX: "1.5",
-  textStyle: "xs",
-  letterSpacing: "normal",
-  fontWeight: "medium",
-  color: "neutral.fg.subtle",
-});
-
-/** A ghost button of the builder ("Add filter", "Use a variable", the row ⋮): 24 px, 12 px text, no border. */
-const ghostStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1",
-  height: "[24px]",
-  paddingX: "1.5",
-  borderRadius: "md",
-  textStyle: "xs",
-  fontWeight: "medium",
-  color: "neutral.fg.muted",
-  whiteSpace: "nowrap",
-  cursor: "pointer",
-  "& > span": { paddingX: "0.5" },
-  "&[class] svg": { width: "[12px]", height: "[12px]", "--icon-size": "12px" },
-  _hover: {
-    backgroundColor: "neutral.bg.surface.active",
-    color: "neutral.fg.body",
-  },
-  // Pressed while its picker is open (J3 B1).
-  "&[data-open]": {
-    boxShadow: "[inset 0 0 0 1px var(--colors-neutral-bd-solid)]",
-    color: "neutral.fg.body",
-  },
-  _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
-});
-
-const rowMenuStyle = css({
-  "&[class]": {
-    width: "[24px]",
-    paddingX: "[0]",
-    justifyContent: "center",
-    marginLeft: "auto",
-  },
-});
-
-/** The builder: a hairline box, 8 px in, rows 6 px apart. */
-const builderStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1.5",
-  padding: "2",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "lg",
-  backgroundColor: "neutral.bgSolid.min",
-});
-
-/** A group: a grey box inside the builder with its own rows and "Add filter". */
-const groupStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  gap: "1.5",
-  padding: "2",
-  borderRadius: "lg",
-  backgroundColor: "neutral.bgSolid.surface.active",
-});
-
-/** A row: its pills wrap if they must; the ⋮ stays on the first line, at the end. */
-const rowStyle = css({
-  display: "flex",
-  alignItems: "flex-start",
-  gap: "1",
-  width: "[100%]",
-});
-
-const pillsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1",
-  flex: "1",
-  minWidth: "[0]",
-  // Pills keep their size and wrap to a second line in the 384 px panel; only a value longer than the whole row
-  // ends in an ellipsis. The row's ⋮ stays on the first line.
-  flexWrap: "wrap",
-  "& > *": { flexShrink: 0, maxWidth: "[100%]" },
-});
-
-export const Pill = ({
-  icon,
-  label,
-  trailing = "chevronDown",
-  placeholder,
-  open,
-  onClick,
-  ariaLabel,
-  pillRef,
-  tone,
-}: {
-  icon?: IconName;
-  label: React.ReactNode;
-  trailing?: IconName | null;
-  placeholder?: boolean;
-  open?: boolean;
-  onClick?: () => void;
-  ariaLabel?: string;
-  pillRef?: React.Ref<HTMLButtonElement>;
-  /** A variable token: the icon takes the source step's colour. */
-  tone?: "green" | "orange" | "blue" | "neutral";
-}) => (
-  <button
-    ref={pillRef}
-    type="button"
-    className={pillStyle}
-    data-open={open || undefined}
-    data-placeholder={placeholder || undefined}
-    aria-label={ariaLabel}
-    onClick={onClick}
-  >
-    {icon ? (
-      <span
-        className={css({
-          display: "inline-flex",
-          paddingX: "[0]",
-          color: tone ? `${tone}.fg.muted` : "neutral.fg.muted",
-        })}
-      >
-        <Icon name={icon} size="xs" />
-      </span>
-    ) : null}
-    <span>{label}</span>
-    {trailing ? <Icon name={trailing} size="xs" /> : null}
-  </button>
-);
 
 /* ----------------------------------------------------------------------------------------------------------------
  * Operators by type
@@ -388,62 +206,23 @@ export const VariableIcon = ({ size = 12 }: { size?: number }) => (
   />
 );
 
-/* ----------------------------------------------------------------------------------------------------------------
- * The popover menu every pill opens (DS Menu look; controlled, so a screen state can show it open)
- * ------------------------------------------------------------------------------------------------------------- */
+/** "Use a variable" as a DS menu or select row: the glyph where a DS item draws its icon, then the label. */
+const variableRowStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "2",
+  "& svg": { color: "neutral.fg.muted", flexShrink: 0 },
+});
 
-const MenuRows = ({
-  label,
-  items,
-}: {
-  label?: string;
-  items: {
-    key: string;
-    text: string;
-    icon?: IconName;
-    selected?: boolean;
-    hint?: string;
-    onPick: () => void;
-    trailing?: IconName;
-    /** "Use a variable": the variable glyph instead of a DS icon. */
-    variable?: boolean;
-  }[];
-}) => (
-  <div className={menuGroupStyle}>
-    {label ? <div className={menuGroupLabelStyle}>{label}</div> : null}
-    {items.map((item) => (
-      <button
-        key={item.key}
-        type="button"
-        className={menuRowStyle}
-        data-selected={item.selected || undefined}
-        title={item.hint}
-        onClick={item.onPick}
-      >
-        {item.selected ? (
-          <Icon name="check" size="xs" />
-        ) : item.variable ? (
-          <VariableIcon size={14} />
-        ) : item.icon ? (
-          <Icon name={item.icon} size="xs" />
-        ) : null}
-        <span
-          className={css({
-            flex: "1",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          })}
-        >
-          {item.text}
-        </span>
-        {item.trailing ? <Icon name={item.trailing} size="sm" /> : null}
-      </button>
-    ))}
-  </div>
+const VariableRow = ({ label = "Use a variable" }: { label?: string }) => (
+  <span className={variableRowStyle}>
+    <VariableIcon size={14} />
+    {label}
+  </span>
 );
 
 /* ----------------------------------------------------------------------------------------------------------------
- * One condition row
+ * Variable tokens
  * ------------------------------------------------------------------------------------------------------------- */
 
 export type BuilderProperty = {
@@ -491,24 +270,72 @@ export const collapsePath = (parts: string[]) =>
     ? [parts[0], "…", parts.at(-1)].join(" › ")
     : parts.join(" › ");
 
-const tokenLook = (
+const tokenIcon = (
   document: EditorDocument,
   source: StepInputSource,
-): { icon: IconName; tone: "green" | "orange" | "blue" | "neutral" } => {
+): IconName => {
   if (source.kind === "flow-input") {
-    const trigger = triggerForInput(document, source.inputName);
-    return { icon: trigger?.definition.icon ?? "play", tone: "green" };
+    return (
+      triggerForInput(document, source.inputName)?.definition.icon ?? "play"
+    );
   }
   if (source.kind === "step-output") {
     const step = findStep(document, source.stepId)?.step;
-    const entry =
-      step?.kind === "action"
-        ? getCatalogEntry(step.actionDefinitionId)
-        : undefined;
-    return { icon: entry?.icon ?? "rotate", tone: entry?.tone ?? "green" };
+    return (
+      (step?.kind === "action"
+        ? getCatalogEntry(step.actionDefinitionId)?.icon
+        : undefined) ?? "rotate"
+    );
   }
-  return { icon: "rotate", tone: "green" };
+  return "rotate";
 };
+
+/* ----------------------------------------------------------------------------------------------------------------
+ * One condition row: a DS Filter chip and its ⋮ menu
+ * ------------------------------------------------------------------------------------------------------------- */
+
+/** Value-menu rows that act instead of setting a value. */
+const VARIABLE = "__variable";
+const TOKEN = "__token";
+const TYPED = "__typed";
+const PICK_DATE = "__pickDate";
+const SHOW_STEP = "__showStep";
+
+const relativeKey = (relative: RelativeDate) =>
+  relative.kind === "daysAgo"
+    ? `rel:daysAgo:${relative.days}`
+    : `rel:${relative.kind}`;
+
+const parseRelative = (key: string): RelativeDate | undefined => {
+  const [, kind, days] = key.split(":");
+  if (kind === "daysAgo") {
+    return { kind: "daysAgo", days: Number(days) };
+  }
+  return relativePresets.find((preset) => preset.value.kind === kind)?.value;
+};
+
+/** A row, the ⋮ at its end on the first line; the chip wraps inside if the panel is narrow. */
+const rowStyle = css({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "1",
+  width: "[100%]",
+  minWidth: "[0]",
+  "& [data-part=filter-root], & [role=group][data-property]": {
+    flexShrink: 1,
+    minWidth: "[0]",
+  },
+});
+
+/** The selected variable in a value slot: its step's icon, then the path. */
+const tokenValueStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  minWidth: "[0]",
+  "& > svg": { flexShrink: 0, color: "neutral.fg.muted" },
+  "& > span": { overflow: "hidden", textOverflow: "ellipsis" },
+});
 
 type RowProps = {
   step: DraftActionStep;
@@ -524,6 +351,8 @@ type RowProps = {
   /** False where nothing runs before the condition (a trigger's): values are typed or picked, never variables. */
   allowVariables: boolean;
 };
+
+type SelectEntry = { value: string; text: string };
 
 const ConditionRowView = ({
   step,
@@ -546,7 +375,7 @@ const ConditionRowView = ({
       ? ui.openField.inputName.slice(key.length).replace(/^:/, "") || "variable"
       : null;
   const open = (
-    part: "attribute" | "operator" | "value" | "variable" | "menu" | null,
+    part: "operator" | "value" | "variable" | null,
     mode: "menu" | "mention" = "menu",
   ) =>
     setUi((current) => ({
@@ -564,35 +393,34 @@ const ConditionRowView = ({
       ? ""
       : undefined,
   );
-  const [search, setSearch] = useState("");
-
-  const attributeRef = useRef<HTMLButtonElement>(null);
-  const operatorRef = useRef<HTMLButtonElement>(null);
-  const valueRef = useRef<HTMLButtonElement>(null);
-  const textRef = useRef<HTMLInputElement>(null);
+  // Remounts the Filter when a value-menu row acted instead of picking, so the chip shows the stored value again.
+  const [resetCount, setResetCount] = useState(0);
   const rowRef = useRef<HTMLDivElement>(null);
-  const menuRef = useRef<HTMLButtonElement>(null);
+  // The Filter's own text input, for "@": it keeps focus while the variable picker filters.
+  const textRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    textRef.current =
+      rowRef.current?.querySelector<HTMLInputElement>(
+        '[data-part="input-slot"] input',
+      ) ?? null;
+  });
 
   const subject = properties.find(
     (candidate) => candidate.baseUrl === row.propertyBaseUrl,
   );
+  const title = subject?.title ?? "Value";
   const property = subject?.property ?? findPropertyType(row.propertyBaseUrl);
   const type = valueTypeOf(property);
   const operators = operatorsFor(type, forGraph);
-  const operator = operators.items.find(
-    (candidate) => candidate.value === row.operator,
-  );
-  const valueKind = property?.payloadKind ?? "Text";
   const listOperator = row.operator === "isAnyOf";
   const valueInput: InputView = {
     name: key,
-    label: subject?.title ?? "Value",
+    label: title,
     array: listOperator,
     required: true,
     hasDefault: false,
-    kinds: [valueKind],
+    kinds: [property?.payloadKind ?? "Text"],
   };
-  const picked = row.values ?? [];
   const linked = mockEntities.filter(
     (entity) =>
       !property?.linksTo || entity.entityTypeBaseUrl === property.linksTo,
@@ -601,486 +429,511 @@ const ConditionRowView = ({
     (candidate) => candidate.baseUrl === property?.linksTo,
   );
 
-  // The variable picker anchors to the value pill, or (number and text values) to the row.
-  const valueAnchor =
-    row.valueSource || ["date", "options", "boolean", "entity"].includes(type)
-      ? valueRef
-      : rowRef;
+  // A screen state (?state=j3-a2…) opens a part of the chip: click it once mounted, as a user would.
+  const initialPart = useRef(openPart);
+  const currentOperator = row.operator;
+  useEffect(() => {
+    const part = initialPart.current;
+    // Once: the state's part opens on the first mount only.
+    initialPart.current = null;
+    const root = rowRef.current;
+    if (!root || (part !== "operator" && part !== "value")) {
+      return;
+    }
+    if (part === "value" && type === "date" && currentOperator !== "isIn") {
+      return; // The date surface is ours; it is already open.
+    }
+    const target =
+      part === "operator"
+        ? root.querySelector<HTMLElement>(`[aria-label="${title} operator"]`)
+        : root.querySelector<HTMLElement>(
+            '[data-part="input-slot"] [role="combobox"], [data-part="input-slot"] button',
+          );
+    target?.click();
+  }, [title, type, currentOperator]);
 
   const close = () => {
     setMention(undefined);
-    setSearch("");
     open(null);
   };
 
-  /** The last row of a value picker: variables live in the value slot (21 Oct), not in a builder footer. */
-  const variableRow = allowVariables ? (
-    <MenuRows
-      items={[
-        {
-          key: "variable",
-          text: "Use a variable",
-          variable: true,
-          onPick: () => open("variable"),
-        },
-      ]}
-    />
-  ) : null;
+  /* The value's menu items, by type. Every menu ends in "Use a variable". */
+  const variableItems: SelectEntry[] = allowVariables
+    ? [{ value: VARIABLE, text: "Use a variable" }]
+    : [];
+  const tokenParts = row.valueSource
+    ? tokenPath(document, row.valueSource)
+    : null;
 
-  /* The value pill, by type. */
-  let valuePill: React.ReactNode = null;
-  if (operator?.takesValue === false) {
-    valuePill = null;
-  } else if (row.valueSource) {
-    const parts = tokenPath(document, row.valueSource);
-    const look = tokenLook(document, row.valueSource);
-    const source = row.valueSource;
-    valuePill = (
-      <Tooltip content={parts.join(" › ")} className={tipStyle}>
-        <Pill
-          pillRef={valueRef}
-          icon={look.icon}
-          tone={look.tone}
-          label={collapsePath(parts)}
-          trailing={null}
-          ariaLabel={`Change the source of ${valueInput.label}`}
-          onClick={() =>
-            source.kind === "step-output"
-              ? setUi((current) => ({
-                  ...current,
-                  selectedId: source.stepId,
-                  openField: null,
-                }))
-              : open("variable")
-          }
-        />
-      </Tooltip>
-    );
-  } else if (type === "date") {
-    const label =
-      row.operator === "isIn"
-        ? (recentMonths.find((month) => month.value === row.value)?.text ??
-          (row.value === null ? null : String(row.value)))
-        : row.relative
-          ? relativeLabel(row.relative)
-          : row.value
-            ? formatDate(String(row.value))
-            : null;
-    valuePill = (
-      <Pill
-        pillRef={valueRef}
-        icon="calendar"
-        label={label ?? "Select date..."}
-        placeholder={!label}
-        open={openPart === "value"}
-        ariaLabel={`${valueInput.label} value`}
-        onClick={() => open("value")}
-      />
-    );
-  } else if (type === "number") {
-    valuePill = (
-      <div className={css({ width: "[72px]" })}>
-        <NumberInput
-          size="xs"
-          width="fullWidth"
-          value={typeof row.value === "number" ? row.value : null}
-          aria-label={`${valueInput.label} value`}
-          onChange={(value) => onChange({ value: value ?? null })}
-        />
-      </div>
-    );
-  } else if (type === "options" || type === "boolean") {
-    const label =
-      type === "boolean"
-        ? row.value === null
-          ? null
-          : String(row.value) === "true"
-            ? "Yes"
-            : "No"
-        : row.value === null
-          ? null
-          : String(row.value);
-    valuePill = (
-      <Pill
-        pillRef={valueRef}
-        label={label ?? "Select…"}
-        placeholder={!label}
-        open={openPart === "value"}
-        ariaLabel={`${valueInput.label} value`}
-        onClick={() => open("value")}
-      />
-    );
-  } else if (type === "entity") {
-    const label =
-      picked.length === 0
-        ? null
-        : picked.length === 1
-          ? picked[0]
-          : `${picked[0]} +${picked.length - 1}`;
-    valuePill = (
-      <Pill
-        pillRef={valueRef}
-        label={
-          label ??
-          `Select a ${(linkedType?.title ?? "record").toLowerCase()}...`
+  const valueConfig = (): FilterOperator<Record<string, unknown>>["input"] => {
+    if (row.valueSource && tokenParts) {
+      return {
+        type: "select",
+        items: [
+          { value: TOKEN, text: collapsePath(tokenParts) },
+          ...(row.valueSource.kind === "step-output"
+            ? [{ value: SHOW_STEP, text: `Show ${tokenParts[0]}` }]
+            : []),
+          { value: TYPED, text: "Type a value instead" },
+          ...(allowVariables
+            ? [{ value: VARIABLE, text: "Change variable" }]
+            : []),
+        ],
+        renderSelectedItem: () => (
+          <span
+            className={tokenValueStyle}
+            title={tokenParts.join(" › ")}
+            aria-label={`Change the source of ${title}`}
+          >
+            <Icon name={tokenIcon(document, row.valueSource!)} size="xs" />
+            <span>{collapsePath(tokenParts)}</span>
+          </span>
+        ),
+        renderItem: (value: string) =>
+          value === VARIABLE ? (
+            <VariableRow label="Change variable" />
+          ) : value === TOKEN ? (
+            collapsePath(tokenParts)
+          ) : value === SHOW_STEP ? (
+            `Show ${tokenParts[0]}`
+          ) : (
+            "Type a value instead"
+          ),
+      };
+    }
+    let items: SelectEntry[] = [];
+    const renderItem = (value: string) =>
+      value === VARIABLE ? (
+        <VariableRow />
+      ) : value === PICK_DATE ? (
+        <span className={variableRowStyle}>
+          <Icon name="calendar" size="xs" />
+          Pick a date…
+        </span>
+      ) : (
+        (items.find((item) => item.value === value)?.text ?? value)
+      );
+    switch (type) {
+      case "date": {
+        if (row.operator === "isIn") {
+          items = [...recentMonths, ...variableItems];
+          break;
         }
-        placeholder={!label}
-        open={openPart === "value"}
-        ariaLabel={`Choose ${valueInput.label} values`}
-        onClick={() => open("value")}
-      />
-    );
-  } else {
-    // Text: typed in the pill; "@" opens the variable picker with the token shown in the field.
-    valuePill = (
-      <input
-        ref={textRef}
-        className={cx(
-          pillStyle,
-          css({
-            width: "[140px]",
-            cursor: "text",
-            _placeholder: { color: "neutral.fg.subtle" },
-          }),
-        )}
-        value={`${row.value === null ? "" : String(row.value)}${mention === undefined ? "" : `@${mention}`}`}
-        placeholder={allowVariables ? "Value, or @" : "Value"}
-        aria-label={`${valueInput.label} value`}
-        onChange={(event) => {
-          const next = event.target.value;
-          const at = allowVariables ? next.lastIndexOf("@") : -1;
-          if (at >= 0) {
-            setMention(next.slice(at + 1));
-            if (openPart !== "variable") {
-              open("variable", "mention");
-            }
-            onChange({ value: next.slice(0, at) || null });
-            return;
+        const exact =
+          !row.relative && row.value !== null
+            ? [
+                {
+                  value: `date:${String(row.value)}`,
+                  text: formatDate(String(row.value)),
+                },
+              ]
+            : [];
+        const daysAgo =
+          row.relative?.kind === "daysAgo"
+            ? [
+                {
+                  value: relativeKey(row.relative),
+                  text: relativeLabel(row.relative),
+                },
+              ]
+            : [];
+        items = [
+          ...exact,
+          ...relativePresets.map((preset) => ({
+            value: relativeKey(preset.value),
+            text: preset.text,
+          })),
+          ...daysAgo,
+          { value: PICK_DATE, text: "Pick a date…" },
+          ...variableItems,
+        ];
+        return {
+          type: "select",
+          items,
+          placeholder: "Select date…",
+          renderItem,
+          renderSelectedItem: (value: string) => (
+            <span className={tokenValueStyle}>
+              <Icon name="calendar" size="xs" />
+              <span>
+                {items.find((item) => item.value === value)?.text ?? value}
+              </span>
+            </span>
+          ),
+        };
+      }
+      case "number":
+        return { type: "number", placeholder: "0" };
+      case "text":
+        return {
+          type: "string",
+          placeholder: allowVariables ? "Value, or @" : "Value",
+        };
+      case "boolean":
+        items = [
+          { value: "true", text: "Yes" },
+          { value: "false", text: "No" },
+          ...variableItems,
+        ];
+        break;
+      case "options":
+        items = [
+          ...(property?.options ?? []).map((option) => ({
+            value: option,
+            text: option,
+          })),
+          ...variableItems,
+        ];
+        break;
+      case "entity":
+        items = [
+          ...linked.map((entity) => ({
+            value: entity.entityId,
+            text: entity.label,
+          })),
+          ...variableItems,
+        ];
+        if (listOperator) {
+          return {
+            type: "select",
+            multiple: true,
+            searchable: true,
+            items,
+            placeholder: `Select ${(linkedType?.pluralTitle ?? "records").toLowerCase()}…`,
+            renderItem,
+            // One line: the first pick, then "+N" (Aakarsh, 21 Oct).
+            renderSelectedAll: (values: string[]) =>
+              values.length === 0
+                ? null
+                : `${items.find((item) => item.value === values[0])?.text ?? values[0]}${values.length > 1 ? ` +${values.length - 1}` : ""}`,
+          };
+        }
+        return {
+          type: "select",
+          searchable: true,
+          items,
+          placeholder: `Select a ${(linkedType?.title ?? "record").toLowerCase()}…`,
+          renderItem,
+        };
+    }
+    return {
+      type: "select",
+      items,
+      placeholder: "Select…",
+      renderItem,
+    };
+  };
+
+  const filterOperators: FilterOperator<Record<string, unknown>>[] =
+    operators.items.map((choice) => ({
+      key: choice.value,
+      label: choice.text,
+      renderItem: choice.mock ? (
+        <span title={choice.mock}>{choice.text}</span>
+      ) : undefined,
+      input: choice.takesValue ? valueConfig() : null,
+    }));
+
+  /* The stored row as the Filter's value. */
+  const filterValue = (): unknown => {
+    if (!row.operator) {
+      return null;
+    }
+    const choice = operators.items.find((item) => item.value === row.operator);
+    if (!choice?.takesValue) {
+      return null;
+    }
+    if (row.valueSource) {
+      return TOKEN;
+    }
+    switch (type) {
+      case "date":
+        if (row.operator === "isIn") {
+          return row.value === null ? null : String(row.value);
+        }
+        return row.relative
+          ? relativeKey(row.relative)
+          : row.value === null
+            ? null
+            : `date:${String(row.value)}`;
+      case "number":
+        return typeof row.value === "number" ? row.value : null;
+      case "text":
+        return (
+          `${row.value === null ? "" : String(row.value)}${mention === undefined ? "" : `@${mention}`}` ||
+          null
+        );
+      case "entity": {
+        const ids = (row.values ?? []).map(
+          (label) =>
+            linked.find((entity) => entity.label === label)?.entityId ?? label,
+        );
+        return listOperator
+          ? ids
+          : row.value === null
+            ? (ids[0] ?? null)
+            : String(row.value);
+      }
+      default:
+        return row.value === null ? null : String(row.value);
+    }
+  };
+
+  /** A value-menu row that acts instead of storing a value: act, then show the stored value again. */
+  const act = (run: () => void) => {
+    run();
+    setResetCount((count) => count + 1);
+  };
+
+  const apply = (operatorKey: string, value: unknown) => {
+    const operator = operatorKey as ConditionOperator;
+    if (operator !== row.operator) {
+      onChange({
+        operator,
+        ...(operator === "isIn" || row.operator === "isIn"
+          ? { value: null, relative: undefined }
+          : {}),
+        ...(operator === "isAnyOf" || row.operator === "isAnyOf"
+          ? { values: undefined, value: null }
+          : {}),
+      });
+      if (value === null) {
+        return;
+      }
+    }
+    const picks = Array.isArray(value)
+      ? value.filter((pick): pick is string => typeof pick === "string")
+      : null;
+    // A select or text value is a string, a number value a number.
+    const single =
+      picks || (typeof value !== "string" && typeof value !== "number")
+        ? null
+        : value;
+    if (single === VARIABLE || picks?.includes(VARIABLE)) {
+      act(() => open("variable"));
+      return;
+    }
+    if (single === PICK_DATE) {
+      act(() => open("value"));
+      return;
+    }
+    if (single === TYPED) {
+      act(() => onChange({ valueSource: undefined, value: null }));
+      return;
+    }
+    if (single === SHOW_STEP) {
+      const source = row.valueSource;
+      act(() =>
+        setUi((current) => ({
+          ...current,
+          selectedId: source?.kind === "step-output" ? source.stepId : null,
+          openField: null,
+        })),
+      );
+      return;
+    }
+    if (single === TOKEN) {
+      return;
+    }
+    switch (type) {
+      case "date": {
+        const text = single === null ? null : String(single);
+        if (row.operator === "isIn" || operator === "isIn") {
+          onChange({ value: text, relative: undefined });
+        } else if (text?.startsWith("rel:")) {
+          onChange({ relative: parseRelative(text), value: null });
+        } else {
+          onChange({
+            value: text ? text.replace(/^date:/, "") : null,
+            relative: undefined,
+          });
+        }
+        return;
+      }
+      case "number":
+        onChange({ value: typeof single === "number" ? single : null });
+        return;
+      case "text": {
+        const next = single === null ? "" : String(single);
+        const at = allowVariables ? next.lastIndexOf("@") : -1;
+        if (at >= 0) {
+          setMention(next.slice(at + 1));
+          if (openPart !== "variable") {
+            open("variable", "mention");
           }
-          if (mention !== undefined) {
-            setMention(undefined);
-            open(null);
-          }
-          onChange({ value: next === "" ? null : next });
-        }}
-      />
-    );
-  }
+          onChange({ value: next.slice(0, at) || null });
+          return;
+        }
+        if (mention !== undefined) {
+          setMention(undefined);
+          open(null);
+        }
+        onChange({ value: next === "" ? null : next });
+        return;
+      }
+      case "entity": {
+        const ids = picks ?? (single === null ? [] : [String(single)]);
+        const labels = ids.map(
+          (id) => linked.find((entity) => entity.entityId === id)?.label ?? id,
+        );
+        onChange(
+          picks
+            ? { values: labels }
+            : { values: labels, value: ids[0] ?? null },
+        );
+        return;
+      }
+      default:
+        onChange({ value: single === null ? null : String(single) });
+    }
+  };
+
+  const rowMenu: MenuItem[] = [
+    ...(allowVariables
+      ? [
+          {
+            id: "variable",
+            text: <VariableRow />,
+            onClick: () => open("variable"),
+          },
+        ]
+      : []),
+    ...(row.valueSource
+      ? [
+          {
+            id: "typed",
+            text: "Type a value instead",
+            icon: "pencil" as const,
+            onClick: () => onChange({ valueSource: undefined }),
+          },
+        ]
+      : []),
+    ...(onGroup
+      ? [
+          {
+            id: "group",
+            text: "Turn into a group",
+            icon: "layer" as const,
+            onClick: onGroup,
+          },
+        ]
+      : []),
+    {
+      id: "remove",
+      text: "Delete condition",
+      icon: "trash" as const,
+      onClick: onRemove,
+    },
+  ];
+
+  const committed = filterValue();
 
   return (
-    <div
-      ref={rowRef}
-      className={rowStyle}
-      role="group"
-      data-condition-row={row.id}
-    >
-      <div className={pillsStyle}>
-        {prefix}
-        <Pill
-          pillRef={attributeRef}
-          label={subject?.title ?? "Value"}
-          open={openPart === "attribute"}
-          ariaLabel="Attribute"
-          onClick={() => open("attribute")}
-        />
-        <Pill
-          pillRef={operatorRef}
-          label={operator?.text ?? "…"}
-          open={openPart === "operator"}
-          ariaLabel="Operator"
-          onClick={() => open("operator")}
-        />
-        {valuePill}
-      </div>
-      <button
-        ref={menuRef}
-        type="button"
-        className={cx(ghostStyle, rowMenuStyle)}
-        aria-label="Condition options"
-        onClick={() => open("menu")}
-      >
-        <Icon name="ellipsisVertical" size="xs" />
-      </button>
-
-      {openPart === "attribute" ? (
-        <Popover
-          triggerRef={attributeRef}
-          position="bottom-start"
-          gapY={4}
-          onClose={close}
-        >
-          <div
-            className={menuPanelStyle}
-            role="dialog"
-            aria-label="Choose attribute"
-          >
-            <MenuRows
-              label="Attributes"
-              items={properties.map((candidate) => ({
-                key: candidate.baseUrl,
-                text: candidate.title,
-                selected: candidate.baseUrl === row.propertyBaseUrl,
-                onPick: () => {
-                  onChange({
-                    propertyBaseUrl: candidate.baseUrl,
-                    operator:
-                      operatorsFor(valueTypeOf(candidate.property), forGraph)
-                        .items[0]?.value ?? null,
-                    value: null,
-                    values: undefined,
-                    relative: undefined,
-                    valueSource: undefined,
-                  });
-                  close();
-                },
-              }))}
-            />
-          </div>
-        </Popover>
-      ) : null}
-
-      {openPart === "operator" ? (
-        <Popover
-          triggerRef={operatorRef}
-          position="bottom-start"
-          gapY={4}
-          onClose={close}
-        >
-          <div
-            className={menuPanelStyle}
-            role="dialog"
-            aria-label="Choose operator"
-          >
-            <MenuRows
-              label={operators.label}
-              items={operators.items.map((choice) => ({
-                key: choice.value,
-                text: choice.text,
-                hint: choice.mock,
-                selected: choice.value === row.operator,
-                onPick: () => {
-                  onChange({
-                    operator: choice.value,
-                    ...(choice.value === "isIn" || row.operator === "isIn"
-                      ? { value: null, relative: undefined }
-                      : {}),
-                  });
-                  close();
-                },
-              }))}
-            />
-          </div>
-        </Popover>
-      ) : null}
-
-      {openPart === "value" ? (
-        <Popover
-          triggerRef={valueRef}
-          position="bottom-start"
-          gapY={4}
-          onClose={close}
-        >
-          {type === "date" && row.operator === "isIn" ? (
-            <div
-              className={menuPanelStyle}
-              role="dialog"
-              aria-label="Choose month"
-            >
-              <OverlayScrollArea className={css({ maxHeight: "[320px]" })}>
-                <MenuRows
-                  label="Month (editor mock)"
-                  items={recentMonths.map((month) => ({
-                    key: month.value,
-                    text: month.text,
-                    icon: "calendar" as const,
-                    selected: row.value === month.value,
-                    onPick: () => {
-                      onChange({ value: month.value, relative: undefined });
-                      close();
-                    },
-                  }))}
-                />
-              </OverlayScrollArea>
-            </div>
-          ) : type === "date" ? (
-            <DatePickerSurface
-              label="Choose date"
-              iso={
-                row.relative || row.value === null ? null : String(row.value)
-              }
-              relative={row.relative}
-              onPickDate={(iso) => {
-                onChange({ value: iso, relative: undefined });
-                close();
-              }}
-              onPickRelative={(relative) => {
-                onChange({ relative, value: null });
-                if (relative.kind !== "daysAgo") {
-                  close();
-                }
-              }}
-              footer={
-                allowVariables ? (
-                  <button
-                    type="button"
-                    className={relativeRowStyle}
-                    onClick={() => open("variable")}
-                  >
-                    <VariableIcon size={14} />
-                    Use a variable
-                  </button>
-                ) : null
-              }
-            />
-          ) : type === "options" || type === "boolean" ? (
-            <div
-              className={menuPanelStyle}
-              role="dialog"
-              aria-label={`Choose ${valueInput.label}`}
-            >
-              <MenuRows
-                label={type === "boolean" ? valueInput.label : valueInput.label}
-                items={(type === "boolean"
-                  ? ["true", "false"]
-                  : (property?.options ?? [])
-                ).map((option) => ({
-                  key: option,
-                  text:
-                    type === "boolean"
-                      ? option === "true"
-                        ? "Yes"
-                        : "No"
-                      : option,
-                  selected: row.value !== null && String(row.value) === option,
-                  onPick: () => {
-                    onChange({ value: option });
-                    close();
-                  },
-                }))}
-              />
-              {variableRow}
-            </div>
-          ) : type === "entity" ? (
-            <div
-              className={menuPanelStyle}
-              role="dialog"
-              aria-label={`Choose ${valueInput.label}`}
-            >
-              <div className={css({ padding: "1", paddingBottom: "0" })}>
-                <TextInput
-                  value={search}
-                  onChange={setSearch}
-                  placeholder="Search"
-                  size="sm"
-                  prefix={{ iconName: "search", variant: "subtle" }}
-                />
-              </div>
-              <OverlayScrollArea className={css({ maxHeight: "[320px]" })}>
-                <MenuRows
-                  label={linkedType?.pluralTitle ?? "Entities"}
-                  items={linked
-                    .filter((entity) =>
-                      entity.label
-                        .toLowerCase()
-                        .includes(search.trim().toLowerCase()),
-                    )
-                    .map((entity) => ({
-                      key: entity.entityId,
-                      text: entity.label,
-                      icon: "cube" as const,
-                      selected: picked.includes(entity.label),
-                      onPick: () => {
-                        if (listOperator) {
-                          onChange({
-                            values: picked.includes(entity.label)
-                              ? picked.filter((value) => value !== entity.label)
-                              : [...picked, entity.label],
-                          });
-                          return;
-                        }
-                        onChange({
-                          values: [entity.label],
-                          value: entity.entityId,
-                        });
-                        close();
-                      },
-                    }))}
-                />
-              </OverlayScrollArea>
-              {variableRow}
-            </div>
-          ) : null}
-        </Popover>
-      ) : null}
-
-      {openPart === "menu" ? (
-        <Popover
-          triggerRef={menuRef}
-          position="bottom-end"
-          gapY={4}
-          onClose={close}
-        >
-          <div
-            className={menuPanelStyle}
-            role="dialog"
+    <div ref={rowRef} className={rowStyle} data-condition-row={row.id}>
+      {prefix}
+      <Filter
+        key={`${resetCount}:${row.propertyBaseUrl}:${row.valueSource ? "token" : "typed"}`}
+        size="xs"
+        property={`${row.id}:${row.propertyBaseUrl}`}
+        propertyLabel={title}
+        propertyMenu={[
+          {
+            id: "attributes",
+            label: "Attributes",
+            items: properties.map((candidate) => ({
+              id: candidate.baseUrl,
+              text: candidate.title,
+              selected: candidate.baseUrl === row.propertyBaseUrl,
+              selectedStyle: "tick" as const,
+              onClick: () =>
+                onChange({
+                  propertyBaseUrl: candidate.baseUrl,
+                  operator:
+                    operatorsFor(valueTypeOf(candidate.property), forGraph)
+                      .items[0]?.value ?? null,
+                  value: null,
+                  values: undefined,
+                  relative: undefined,
+                  valueSource: undefined,
+                }),
+            })),
+          },
+        ]}
+        operators={filterOperators}
+        value={row.operator ? { key: row.operator, value: committed } : null}
+        removeable={false}
+        onChange={(operatorKey, value) => apply(operatorKey, value)}
+        onInput={(operatorKey, value) => {
+          // Text is stored as it is typed ("@" opens the variable picker); other values when committed.
+          if (
+            type === "text" ||
+            operatorKey !== row.operator ||
+            value === VARIABLE ||
+            value === PICK_DATE ||
+            value === TYPED ||
+            value === SHOW_STEP
+          ) {
+            apply(operatorKey, value);
+          }
+        }}
+      />
+      <Menu
+        position="bottom-end"
+        items={rowMenu}
+        trigger={
+          <Button
+            size="xs"
+            variant="ghost"
+            iconName="ellipsisVertical"
             aria-label="Condition options"
-          >
-            <MenuRows
-              items={[
-                ...(allowVariables
-                  ? [
-                      {
-                        key: "variable",
-                        text: "Use a variable",
-                        variable: true,
-                        onPick: () => open("variable"),
-                      },
-                    ]
-                  : []),
-                ...(row.valueSource
-                  ? [
-                      {
-                        key: "typed",
-                        text: "Type a value instead",
-                        icon: "pencil" as const,
-                        onPick: () => {
-                          onChange({ valueSource: undefined });
-                          close();
-                        },
-                      },
-                    ]
-                  : []),
-                ...(onGroup
-                  ? [
-                      {
-                        key: "group",
-                        text: "Turn into a group",
-                        icon: "layer" as const,
-                        onPick: () => {
-                          onGroup();
-                          close();
-                        },
-                      },
-                    ]
-                  : []),
-                {
-                  key: "remove",
-                  text: "Delete condition",
-                  icon: "trash" as const,
-                  onPick: () => {
-                    onRemove();
-                    close();
-                  },
-                },
-              ]}
-            />
-          </div>
+          />
+        }
+      />
+
+      {openPart === "value" && type === "date" && row.operator !== "isIn" ? (
+        <Popover
+          triggerRef={rowRef}
+          position="bottom-start"
+          gapY={4}
+          onClose={close}
+        >
+          <DatePickerSurface
+            label="Choose date"
+            iso={row.relative || row.value === null ? null : String(row.value)}
+            relative={row.relative}
+            onPickDate={(iso) => {
+              onChange({
+                value: iso,
+                relative: undefined,
+                valueSource: undefined,
+              });
+              close();
+            }}
+            onPickRelative={(relative) => {
+              onChange({ relative, value: null, valueSource: undefined });
+              if (relative.kind !== "daysAgo") {
+                close();
+              }
+            }}
+            footer={
+              allowVariables ? (
+                <button
+                  type="button"
+                  className={relativeRowStyle}
+                  onClick={() => open("variable")}
+                >
+                  <VariableIcon size={14} />
+                  Use a variable
+                </button>
+              ) : null
+            }
+          />
         </Popover>
       ) : null}
 
       {openPart === "variable" || openPart === "footer" ? (
         <SourceMenu
-          anchor={mention !== undefined ? textRef : valueAnchor}
+          anchor={mention !== undefined ? textRef : rowRef}
           searchAlways={mention === undefined}
           stepId={step.stepId}
           input={valueInput}
@@ -1106,96 +959,91 @@ const ConditionRowView = ({
  * The builder
  * ------------------------------------------------------------------------------------------------------------- */
 
-const conjunctionLabel = (conjunction: "and" | "or" | undefined) =>
-  conjunction === "or" ? "Or" : "And";
+/** The builder: a hairline box, 8 px in, rows 6 px apart (J3 A1). */
+const builderStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "1.5",
+  padding: "2",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "lg",
+  backgroundColor: "neutral.bgSolid.min",
+});
 
-const Prefix = ({
-  index,
+/** A group: a grey box inside the builder with its own rows and "Add condition". */
+const groupStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "1.5",
+  alignSelf: "stretch",
+  padding: "2",
+  borderRadius: "lg",
+  backgroundColor: "neutral.bgSolid.surface.active",
+});
+
+/** A later row's "And" / "Or": a DS subtle Button at the chip's size (Figma: outline, which code lacks); it switches the join. */
+const Joiner = ({
   conjunction,
   onToggle,
 }: {
-  index: number;
   conjunction: "and" | "or" | undefined;
   onToggle: () => void;
-}) =>
-  index === 0 ? (
-    <span className={wherePrefixStyle}>Where</span>
-  ) : (
-    <Pill
-      label={conjunctionLabel(conjunction)}
-      trailing="arrowsLeftRight"
-      ariaLabel={`Switch to ${conjunction === "or" ? "And" : "Or"}`}
-      onClick={onToggle}
-    />
-  );
+}) => (
+  <Button
+    size="xs"
+    variant="subtle"
+    aria-label={`Switch to ${conjunction === "or" ? "And" : "Or"}`}
+    tooltip={`Switch to ${conjunction === "or" ? "And" : "Or"}`}
+    onClick={onToggle}
+  >
+    {conjunction === "or" ? "Or" : "And"}
+  </Button>
+);
 
-const AddFilter = ({
+/** "Add condition": a DS subtle Button (code Button has no outline variant; Figma draws outline) that opens the attributes as a DS Menu (J3 A1). */
+const AddCondition = ({
   properties,
   onAdd,
 }: {
   properties: BuilderProperty[];
   onAdd: (property: BuilderProperty) => void;
-}) => {
-  const ref = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button
-        ref={ref}
-        type="button"
-        className={ghostStyle}
-        onClick={() => setOpen(true)}
-      >
-        <Icon name="plus" size="xs" />
-        <span>Add filter</span>
-      </button>
-      {open ? (
-        <Popover
-          triggerRef={ref}
-          position="bottom-start"
-          gapY={4}
-          onClose={() => setOpen(false)}
-        >
-          <div className={menuPanelStyle} role="dialog" aria-label="Add filter">
-            <MenuRows
-              label="Attributes"
-              items={properties.map((property) => ({
-                key: property.baseUrl,
-                text: property.title,
-                onPick: () => {
-                  onAdd(property);
-                  setOpen(false);
-                },
-              }))}
-            />
-          </div>
-        </Popover>
-      ) : null}
-    </>
-  );
-};
+}) => (
+  <Menu
+    items={[
+      {
+        id: "attributes",
+        label: "Attributes",
+        items: properties.map((property) => ({
+          id: property.baseUrl,
+          text: property.title,
+          onClick: () => onAdd(property),
+        })),
+      },
+    ]}
+    trigger={
+      <Button size="xs" variant="subtle" iconName="plus">
+        Add condition
+      </Button>
+    }
+  />
+);
 
-/** "Use a variable": the same picker as "@", for the field it sits under. */
+/** "Use a variable": the same picker as "@", for the field it sits under. A DS ghost Button with the [x] glyph. */
 export const UseVariable = ({
   onClick,
-  buttonRef,
   open,
 }: {
   onClick: () => void;
-  buttonRef?: React.Ref<HTMLButtonElement>;
   /** Pressed while its picker is open. */
   open?: boolean;
 }) => (
-  <button
-    ref={buttonRef}
-    type="button"
-    className={ghostStyle}
-    data-open={open || undefined}
-    onClick={onClick}
-  >
-    <VariableIcon />
-    <span>Use a variable</span>
-  </button>
+  <Button size="xs" variant="ghost" pressed={open} onClick={onClick}>
+    <VariableRow />
+  </Button>
 );
 
 export const ConditionBuilder = ({
@@ -1262,16 +1110,17 @@ export const ConditionBuilder = ({
           properties={properties}
           forGraph={forGraph}
           prefix={
-            <Prefix
-              index={index}
-              conjunction={draft.conjunction}
-              onToggle={() =>
-                update({
-                  ...draft,
-                  conjunction: draft.conjunction === "or" ? "and" : "or",
-                })
-              }
-            />
+            index === 0 ? null : (
+              <Joiner
+                conjunction={draft.conjunction}
+                onToggle={() =>
+                  update({
+                    ...draft,
+                    conjunction: draft.conjunction === "or" ? "and" : "or",
+                  })
+                }
+              />
+            )
           }
           onChange={(change) =>
             setRows(
@@ -1318,15 +1167,17 @@ export const ConditionBuilder = ({
                 properties={properties}
                 forGraph={forGraph}
                 prefix={
-                  <Prefix
-                    index={index}
-                    conjunction={group.conjunction}
-                    onToggle={() =>
-                      setGroup(group.id, {
-                        conjunction: group.conjunction === "or" ? "and" : "or",
-                      })
-                    }
-                  />
+                  index === 0 ? null : (
+                    <Joiner
+                      conjunction={group.conjunction}
+                      onToggle={() =>
+                        setGroup(group.id, {
+                          conjunction:
+                            group.conjunction === "or" ? "and" : "or",
+                        })
+                      }
+                    />
+                  )
                 }
                 onChange={(change) =>
                   setGroup(group.id, {
@@ -1348,7 +1199,7 @@ export const ConditionBuilder = ({
               />
             </Fragment>
           ))}
-          <AddFilter
+          <AddCondition
             properties={properties}
             onAdd={(property) =>
               setGroup(group.id, {
@@ -1358,18 +1209,10 @@ export const ConditionBuilder = ({
           />
         </div>
       ))}
-      <div
-        className={css({
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        })}
-      >
-        <AddFilter
-          properties={properties}
-          onAdd={(property) => setRows([...draft.conditions, newRow(property)])}
-        />
-      </div>
+      <AddCondition
+        properties={properties}
+        onAdd={(property) => setRows([...draft.conditions, newRow(property)])}
+      />
     </div>
   );
 };
