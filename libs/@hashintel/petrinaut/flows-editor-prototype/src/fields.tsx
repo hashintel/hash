@@ -606,10 +606,15 @@ const listModeOf = (input: InputView): ListMode => {
 /** The DS input frame at `sm` (1 px border, 8 px corners), holding chips and the "+" action. */
 const listFieldStyle = css({
   display: "flex",
-  flexWrap: "wrap",
+  flexWrap: "nowrap",
   alignItems: "center",
   gap: "1",
+  minWidth: "[0]",
   minHeight: "[28px]",
+  "& > *": { minWidth: "[0]" },
+  "&[data-all]": { flexWrap: "wrap" },
+  // Spec Error state: a red border with the one line under the field.
+  "&[data-invalid]": { borderColor: "red.bd.strong" },
   paddingY: "[1px]",
   paddingLeft: "[1px]",
   paddingRight: "[1px]",
@@ -619,6 +624,18 @@ const listFieldStyle = css({
   borderRadius: "lg",
   backgroundColor: "neutral.bgSolid.min",
   _hover: { borderColor: "neutral.bd.strong" },
+});
+
+/** "+N" after the first chip: hover lists the rest, click shows them all. */
+const moreStyle = css({
+  flexShrink: 0,
+  paddingX: "1.5",
+  borderRadius: "md",
+  textStyle: "xs",
+  fontWeight: "medium",
+  color: "neutral.fg.muted",
+  cursor: "pointer",
+  _hover: { backgroundColor: "neutral.bg.surface.active" },
 });
 
 /** A file picked from the computer: MOCK, nothing uploads; the chip keeps its name. */
@@ -631,6 +648,7 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
   const { open, setOpen } = useFieldMenu(step.stepId, input.name);
   const [typing, setTyping] = useState("");
   const [showTyping, setShowTyping] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const key = fieldKey(step.stepId, input.name);
   const existing = step.inputs[input.name];
   const items = document.lists[key] ?? (existing ? [existing] : []);
@@ -803,8 +821,36 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
         ) : null
       ) : (
         // Spec F7 `input_withAction`: the chips and "+" sit in one bordered sm field, 28 px when it holds one line.
-        <div ref={anchorRef} className={listFieldStyle}>
-          {items.map(chip)}
+        <div
+          ref={anchorRef}
+          className={listFieldStyle}
+          data-invalid={items.some(badEmail) || undefined}
+          data-all={showAll || undefined}
+        >
+          {/* One line: the first chip (an invalid one first), then "+N" (spec F7). */}
+          {(showAll
+            ? items
+            : items.length > 0
+              ? [items.find(badEmail) ?? items[0]!]
+              : []
+          ).map(chip)}
+          {!showAll && items.length > 1 ? (
+            <Tooltip
+              content={items
+                .filter((item) => item !== (items.find(badEmail) ?? items[0]))
+                .map(itemLabel)
+                .join(", ")}
+            >
+              <button
+                type="button"
+                className={moreStyle}
+                aria-label={`Show ${items.length - 1} more`}
+                onClick={() => setShowAll(true)}
+              >
+                +{items.length - 1}
+              </button>
+            </Tooltip>
+          ) : null}
           {items.length === 0 ? (
             <span
               className={css({
