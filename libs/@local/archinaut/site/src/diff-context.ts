@@ -15,7 +15,7 @@
 
 import { execFileSync } from "node:child_process";
 
-import type { BundleManifest } from "../../src/bundle/outputs";
+import type { BundleManifest } from "../../src/bundle/outputs.ts";
 
 export interface DiffChip {
   /** `#1234` when a PR exists, the branch name otherwise. */
