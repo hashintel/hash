@@ -13,11 +13,15 @@ import type {
   DiagnosticsSnapshot,
   EditRefusal,
   EditResult,
-  ExperimentRecord,
   PetrinautRevealTarget,
   PluginEdits,
   PluginExperiments,
 } from "@hashintel/petrinaut/ui/plugin";
+
+/** A record as `api.experiments.records` holds it. */
+export type ExperimentRecord = ReturnType<
+  PluginExperiments["records"]["get"]
+>[number];
 
 interface TestPluginApiOptions {
   /** The title store's first value. */

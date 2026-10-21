@@ -189,8 +189,6 @@ export type {
   ExperimentalIconTransition,
   ExperimentalIconChoreography,
 } from "./experimental-icons";
-// The assistant icon, for an assistant plugin's own chat.
-export { AiAssistantIcon } from "./components/ai-assistant-icon";
 // The user-guide pages the built-in documentation read serves, so a host
 // tool under its own name can answer with the same text.
 export { petrinautDocsContent } from "./petrinaut-docs-content";

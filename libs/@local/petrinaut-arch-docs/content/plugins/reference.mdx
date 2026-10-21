@@ -222,8 +222,6 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
   `PluginExperimentsReader`, `PluginExperiments`, `PluginEditorReader`,
   `PluginEditor`, `PluginErrors`, `PluginNotifications`, `EditResult`,
   `EditRefusal`, `ReadOnlyReason`.
-- Experiments: `ExperimentRecord`, the records `api.experiments.records`
-  holds.
 - Editor state: `PetrinautNavigationState`, `PetrinautNavigationUpdate`,
   `SelectionItem`, `PetrinautRevealTarget`, `DiagnosticsSnapshot`,
   `AddNotificationInput`, `ReadableStore`.
@@ -245,9 +243,6 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
 - `AssistantPanelTitle`: fills the assistant panel's title bar from inside
   `assistant.content`. `children` render after the assistant icon, such as a
   title or tabs, and `actions` between the dock toggle and the Close button.
-- `AssistantPanelPreview`: renders `children` as a plugin's `assistant.content`
-  in the panel outside an editor, for stories and tests. `state` overrides the
-  panel's state, which starts open.
 
 ### Attributes
 
