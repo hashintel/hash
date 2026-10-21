@@ -298,7 +298,6 @@ const tokenIcon = (
 const VARIABLE = "__variable";
 const TOKEN = "__token";
 const TYPED = "__typed";
-const PICK_DATE = "__pickDate";
 const SHOW_STEP = "__showStep";
 
 const relativeKey = (relative: RelativeDate) =>
@@ -398,11 +397,15 @@ const ConditionRowView = ({
   const rowRef = useRef<HTMLDivElement>(null);
   // The Filter's own text input, for "@": it keeps focus while the variable picker filters.
   const textRef = useRef<HTMLInputElement | null>(null);
+  const valueSlotRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     textRef.current =
       rowRef.current?.querySelector<HTMLInputElement>(
         '[data-part="input-slot"] input',
       ) ?? null;
+    valueSlotRef.current =
+      rowRef.current?.querySelector<HTMLElement>('[data-part="input-slot"]') ??
+      null;
   });
 
   const subject = properties.find(
@@ -505,11 +508,6 @@ const ConditionRowView = ({
     const renderItem = (value: string) =>
       value === VARIABLE ? (
         <VariableRow />
-      ) : value === PICK_DATE ? (
-        <span className={variableRowStyle}>
-          <Icon name="calendar" size="xs" />
-          Pick a date…
-        </span>
       ) : (
         (items.find((item) => item.value === value)?.text ?? value)
       );
@@ -544,8 +542,6 @@ const ConditionRowView = ({
             text: preset.text,
           })),
           ...daysAgo,
-          { value: PICK_DATE, text: "Pick a date…" },
-          ...variableItems,
         ];
         return {
           type: "select",
@@ -713,10 +709,6 @@ const ConditionRowView = ({
       act(() => open("variable"));
       return;
     }
-    if (single === PICK_DATE) {
-      act(() => open("value"));
-      return;
-    }
     if (single === TYPED) {
       act(() => onChange({ valueSource: undefined, value: null }));
       return;
@@ -828,8 +820,41 @@ const ConditionRowView = ({
 
   const committed = filterValue();
 
+  /*
+   * A date value is a Filter item with a calendar icon (ds-map, 21 Oct) that opens the DS datePicker composition,
+   * relative dates and calendar together, as J3 · A3 draws it. The DS Filter's value can only be a text, number or
+   * select input, so the row takes the value slot's press before the Filter's select sees it.
+   */
+  const opensDatePicker =
+    type === "date" && row.operator !== "isIn" && !row.valueSource;
+  const takeDateSlot = (
+    event: React.PointerEvent | React.MouseEvent | React.KeyboardEvent,
+  ) => {
+    if (!opensDatePicker || !(event.target instanceof Element)) {
+      return;
+    }
+    if (!event.target.closest('[data-part="input-slot"]')) {
+      return;
+    }
+    if ("key" in event && !["Enter", " ", "ArrowDown"].includes(event.key)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.type !== "pointerdown") {
+      open("value");
+    }
+  };
+
   return (
-    <div ref={rowRef} className={rowStyle} data-condition-row={row.id}>
+    <div
+      ref={rowRef}
+      className={rowStyle}
+      data-condition-row={row.id}
+      onPointerDownCapture={takeDateSlot}
+      onClickCapture={takeDateSlot}
+      onKeyDownCapture={takeDateSlot}
+    >
       {prefix}
       <Filter
         key={`${resetCount}:${row.propertyBaseUrl}:${row.valueSource ? "token" : "typed"}`}
@@ -869,7 +894,6 @@ const ConditionRowView = ({
             type === "text" ||
             operatorKey !== row.operator ||
             value === VARIABLE ||
-            value === PICK_DATE ||
             value === TYPED ||
             value === SHOW_STEP
           ) {
@@ -892,7 +916,7 @@ const ConditionRowView = ({
 
       {openPart === "value" && type === "date" && row.operator !== "isIn" ? (
         <Popover
-          triggerRef={rowRef}
+          triggerRef={valueSlotRef}
           position="bottom-start"
           gapY={4}
           onClose={close}
