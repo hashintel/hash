@@ -86,7 +86,7 @@ const firstTwoInputs = [
 
 const runStartedWithNumbers: ExpectedEvent = [
   "1.0",
-  { kind: "runStarted", inputs: { numbers: numbers([3, 1, 4]) } },
+  { kind: "runStarted", flowInputs: { numbers: numbers([3, 1, 4]) } },
 ];
 
 const research = stepRun("research");
@@ -95,7 +95,7 @@ const runStartedWithPrompt: ExpectedEvent = [
   "1.0",
   {
     kind: "runStarted",
-    inputs: { prompt: { kind: "Text", value: "Who makes HASH?" } },
+    flowInputs: { prompt: { kind: "Text", value: "Who makes HASH?" } },
   },
 ];
 
@@ -140,7 +140,9 @@ const researchRunCompleted = (position: string): ExpectedEvent => [
   {
     kind: "runFinished",
     status: FlowRunStatus.Completed,
-    outputs: [{ outputName: "proposedEntities", payload: noProposedEntities }],
+    flowOutputs: [
+      { outputName: "proposedEntities", payload: noProposedEntities },
+    ],
     stepErrors: [],
   },
 ];
@@ -171,7 +173,7 @@ const inProgressEvents: ExpectedEvent[] = [
     {
       kind: "progressLogged",
       stepRun: research,
-      attempt: 1,
+      loggedInAttempt: 1,
       log: planLog("CreatedPlan", "Search the web", "2026-10-21T13:36:21.332Z"),
     },
   ],
@@ -249,7 +251,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "runFinished",
           status: FlowRunStatus.Completed,
-          outputs: [
+          flowOutputs: [
             { outputName: "firstTwo", payload: numbers([3, 1]) },
             { outputName: "count", payload: number(2) },
           ],
@@ -296,7 +298,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "runFinished",
           status: FlowRunStatus.Completed,
-          outputs: [{ outputName: "firstTwo", payload: numbers([3, 1]) }],
+          flowOutputs: [{ outputName: "firstTwo", payload: numbers([3, 1]) }],
           stepErrors: [],
         },
       ],
@@ -350,7 +352,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "runFinished",
           status: FlowRunStatus.Failed,
-          error: { message: missingFirstTwoMessage },
+          failure: { message: missingFirstTwoMessage },
           stepErrors: [
             {
               stepRun: stepRun("firstTwo"),
@@ -405,7 +407,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "runFinished",
           status: FlowRunStatus.Failed,
-          error: { message: missingFirstTwoMessage },
+          failure: { message: missingFirstTwoMessage },
           stepErrors: [
             {
               stepRun: stepRun("firstTwo"),
@@ -428,7 +430,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "runFinished",
           status: FlowRunStatus.Failed,
-          error: {
+          failure: {
             message:
               "Definition for inputName 'limit' in step firstTwo not found in action definition takeFirst",
           },
@@ -441,7 +443,7 @@ describe("buildFlowRunEvents", () => {
     const skippedAt = "2026-10-21T13:36:04.312Z";
 
     expectEvents("skipped", [
-      ["1.0", { kind: "runStarted", inputs: { number: number(8) } }],
+      ["1.0", { kind: "runStarted", flowInputs: { number: number(8) } }],
       [
         "35.0",
         {
@@ -505,7 +507,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "runFinished",
           status: FlowRunStatus.Completed,
-          outputs: [],
+          flowOutputs: [],
           stepErrors: [],
         },
       ],
@@ -568,7 +570,9 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "runFinished",
           status: FlowRunStatus.Completed,
-          outputs: [{ outputName: "collected", payload: numbers([3, 1, 4]) }],
+          flowOutputs: [
+            { outputName: "collected", payload: numbers([3, 1, 4]) },
+          ],
           stepErrors: [],
         },
       ],
@@ -577,7 +581,7 @@ describe("buildFlowRunEvents", () => {
 
   it("starts a forEach over no items", () => {
     expectEvents("for-each-empty", [
-      ["1.0", { kind: "runStarted", inputs: { numbers: numbers([]) } }],
+      ["1.0", { kind: "runStarted", flowInputs: { numbers: numbers([]) } }],
       [
         "35.0",
         {
@@ -591,7 +595,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "runFinished",
           status: FlowRunStatus.Completed,
-          outputs: [{ outputName: "collected", payload: numbers([]) }],
+          flowOutputs: [{ outputName: "collected", payload: numbers([]) }],
           stepErrors: [],
         },
       ],
@@ -621,7 +625,7 @@ describe("buildFlowRunEvents", () => {
         "40.0",
         {
           kind: "inputResolved",
-          stepRun: research,
+          requestStepRun: research,
           requestId,
           response: {
             requestId,
@@ -647,7 +651,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "progressLogged",
           stepRun: research,
-          attempt: 1,
+          loggedInAttempt: 1,
           log: planLog(
             "CreatedPlan",
             "Search the web",
@@ -660,7 +664,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "progressLogged",
           stepRun: research,
-          attempt: 1,
+          loggedInAttempt: 1,
           log: planLog(
             "UpdatedPlan",
             "Search the web, then read",
@@ -673,7 +677,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "progressLogged",
           stepRun: research,
-          attempt: 1,
+          loggedInAttempt: 1,
           log: planLog(
             "UpdatedPlan",
             "Read what was found",
@@ -721,7 +725,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "progressLogged",
           stepRun: research,
-          attempt: 1,
+          loggedInAttempt: 1,
           log: planLog(
             "CreatedPlan",
             "Search the web",
@@ -734,7 +738,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "runFinished",
           status: FlowRunStatus.Terminated,
-          error: { message: "aeb17efb-7dec-4d65-a57d-a20772bb3d8d" },
+          failure: { message: "aeb17efb-7dec-4d65-a57d-a20772bb3d8d" },
         },
       ],
     ]);

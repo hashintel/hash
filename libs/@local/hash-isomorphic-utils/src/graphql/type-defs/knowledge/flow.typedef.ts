@@ -258,7 +258,7 @@ export const flowTypedef = gql`
   type FlowRunStartedEvent implements FlowRunEvent {
     position: String!
     occurredAt: String!
-    inputs: FlowInputValues!
+    flowInputs: FlowInputValues!
   }
 
   type FlowRunStepStartedEvent implements FlowRunEvent {
@@ -340,7 +340,7 @@ export const flowTypedef = gql`
     """
     The step that raised the request, if the request is in the history.
     """
-    stepRun: FlowRunEventStepRun
+    requestStepRun: FlowRunEventStepRun
     requestId: String!
     response: ExternalInputResponseWithoutUser!
   }
@@ -349,7 +349,10 @@ export const flowTypedef = gql`
     position: String!
     occurredAt: String!
     stepRun: FlowRunEventStepRun!
-    attempt: Int
+    """
+    The attempt the log came from, when its signal records it.
+    """
+    loggedInAttempt: Int
     log: StepProgressLog!
   }
 
@@ -371,8 +374,8 @@ export const flowTypedef = gql`
     """
     The flow's outputs, when it completed.
     """
-    outputs: [StepOutput!]
-    error: FlowRunEventError
+    flowOutputs: [StepOutput!]
+    failure: FlowRunEventError
     """
     Steps that failed after their action returned (e.g. an output of the wrong kind), when the run records them.
     """

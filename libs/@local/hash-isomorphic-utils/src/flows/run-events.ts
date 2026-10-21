@@ -30,7 +30,7 @@ type FlowRunEventBase = {
 
 export type FlowRunEvent = FlowRunEventBase &
   (
-    | { kind: "runStarted"; inputs: FlowInputValues }
+    | { kind: "runStarted"; flowInputs: FlowInputValues }
     | { kind: "stepStarted"; stepRun: FlowRunEventStepRun; inputs: StepInput[] }
     | {
         kind: "attemptStarted";
@@ -74,7 +74,7 @@ export type FlowRunEvent = FlowRunEventBase &
     | {
         kind: "inputResolved";
         /** The step that raised the request, if the request is in the history. */
-        stepRun?: FlowRunEventStepRun;
+        requestStepRun?: FlowRunEventStepRun;
         requestId: string;
         response: ExternalInputResponseWithoutUser & {
           resolvedBy?: ActorEntityUuid;
@@ -83,7 +83,8 @@ export type FlowRunEvent = FlowRunEventBase &
     | {
         kind: "progressLogged";
         stepRun: FlowRunEventStepRun;
-        attempt?: number;
+        /** The attempt the log came from, when its signal records it. */
+        loggedInAttempt?: number;
         log: StepProgressLog;
       }
     | { kind: "runReset"; fromRunId: string }
@@ -96,8 +97,8 @@ export type FlowRunEvent = FlowRunEventBase &
           | FlowRunStatus.Terminated
           | FlowRunStatus.TimedOut;
         /** The flow's outputs, when it completed. */
-        outputs?: StepOutput[];
-        error?: FlowRunEventError;
+        flowOutputs?: StepOutput[];
+        failure?: FlowRunEventError;
         /** Steps that failed after their action returned (e.g. an output of the wrong kind), when the run records them. */
         stepErrors?: {
           stepRun: FlowRunEventStepRun;

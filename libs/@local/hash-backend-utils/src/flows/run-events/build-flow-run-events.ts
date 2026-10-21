@@ -163,7 +163,7 @@ export const buildFlowRunEvents = (
           "workflow input",
         );
 
-        addEvent({ kind: "runStarted", inputs: params.flowInputs });
+        addEvent({ kind: "runStarted", flowInputs: params.flowInputs });
         break;
       }
 
@@ -391,7 +391,7 @@ export const buildFlowRunEvents = (
               addEvent({
                 kind: "progressLogged",
                 stepRun: toStepRun(log.stepId),
-                attempt,
+                loggedInAttempt: attempt,
                 log,
               });
             }
@@ -439,11 +439,13 @@ export const buildFlowRunEvents = (
               attributes?.input,
               "input response",
             );
-            const stepRun = inputRequestStepRunsById.get(response.requestId);
+            const requestStepRun = inputRequestStepRunsById.get(
+              response.requestId,
+            );
 
             addEvent({
               kind: "inputResolved",
-              ...(stepRun ? { stepRun } : {}),
+              ...(requestStepRun ? { requestStepRun } : {}),
               requestId: response.requestId,
               response,
             });
@@ -479,7 +481,7 @@ export const buildFlowRunEvents = (
         addEvent({
           kind: "runFinished",
           status: FlowRunStatus.Completed,
-          ...(outputs ? { outputs } : {}),
+          ...(outputs ? { flowOutputs: outputs } : {}),
           ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
         });
         break;
@@ -498,7 +500,7 @@ export const buildFlowRunEvents = (
         addEvent({
           kind: "runFinished",
           status: FlowRunStatus.Failed,
-          error: { message: failure?.message ?? unknownErrorMessage },
+          failure: { message: failure?.message ?? unknownErrorMessage },
           ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
         });
         break;
@@ -516,7 +518,7 @@ export const buildFlowRunEvents = (
         addEvent({
           kind: "runFinished",
           status: FlowRunStatus.Terminated,
-          ...(reason ? { error: { message: reason } } : {}),
+          ...(reason ? { failure: { message: reason } } : {}),
         });
         break;
       }
