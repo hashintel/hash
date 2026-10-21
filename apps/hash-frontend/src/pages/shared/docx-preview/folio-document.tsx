@@ -22,8 +22,9 @@ export type DocxDocumentControls = {
   hasPages: () => boolean;
   goToPage: (pageNumber: number) => void;
   zoomBy: (step: number) => void;
-  /** Finds every hit of `text` and returns how many there are. */
+  /** Finds and marks every hit of `text` and returns how many there are. */
   search: (text: string, ignoreCase: boolean) => number;
+  /** Marks a hit as the current one and scrolls to it. */
   showHit: (index: number) => void;
 };
 
@@ -51,7 +52,7 @@ export const FolioDocument = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const reportPages = useReportedPages(editorRef, onPagesChange);
-  const { search, showHit } = useSearchHits(editorRef);
+  const { search, showHit } = useSearchHits(editorRef, containerRef);
 
   useImperativeHandle(
     controlsRef,
@@ -78,17 +79,7 @@ export const FolioDocument = ({
 
   return (
     <IntlProvider locale="en" messages={folioMessages}>
-      <Box
-        ref={containerRef}
-        sx={{
-          height: "100%",
-          // The search shows the current hit as folio's selection. `blue.s75`,
-          // written out because the preview sits outside `.hash-ds-root`, and
-          // multiplied with the page so the text under it stays dark.
-          "& .folio-root": { "--doc-selection": "#77bdf3" },
-          '& [data-testid="selection-overlay"]': { mixBlendMode: "multiply" },
-        }}
-      >
+      <Box ref={containerRef} sx={{ height: "100%" }}>
         <DocxEditor
           ref={editorRef}
           autoOpenReviewSidebar={false}
