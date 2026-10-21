@@ -3,8 +3,8 @@ import { useState } from "react";
 import {
   Banner,
   Button,
-  Dialog,
   NumberInput,
+  Popover,
   Select,
   TextInput,
 } from "@hashintel/ds-components";
@@ -115,8 +115,18 @@ const isFilled = (value: Value | undefined) =>
     ? value.length > 0
     : value !== null && value !== undefined && value !== "";
 
-/** The manual run form, generated from the Start inputs. */
-export const RunDialog = () => {
+/** The DS Popover's width for the Run form: the mock's 224 px fields in 16 px padding, at most 380 px. */
+const formWidthStyle = css({ width: "[256px]", maxWidth: "[380px]" });
+
+/**
+ * The manual run form, generated from the Start inputs: a DS Popover under the Run button, as Figma J4 · B1 draws it
+ * (title, one field per input, Cancel and Run).
+ */
+export const RunForm = ({
+  anchor,
+}: {
+  anchor: React.RefObject<HTMLElement | null>;
+}) => {
   const { document, setUi } = useEditor();
   const [values, setValues] = useState<Record<string, Value>>({});
   const [started, setStarted] = useState(false);
@@ -126,80 +136,95 @@ export const RunDialog = () => {
   );
 
   return (
-    <Dialog size="sm" onClose={close} aria-label={`Run ${document.name}`}>
-      <Dialog.Header title={`Run ${document.name}`} />
-      <Dialog.Body>
-        <div
-          className={css({
-            display: "flex",
-            flexDirection: "column",
-            gap: "4",
-          })}
-        >
-          {document.inputs.length === 0 ? (
+    <Popover triggerRef={anchor} position="bottom-end" gapY={6} onClose={close}>
+      <Popover.Container className={formWidthStyle}>
+        <Popover.Body>
+          <div
+            role="dialog"
+            aria-label={`Run ${document.name}`}
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              gap: "4",
+            })}
+          >
             <span
-              className={css({ textStyle: "sm", color: "neutral.fg.muted" })}
-            >
-              This flow takes no inputs.
-            </span>
-          ) : null}
-          {document.inputs.map((input) => (
-            <label
-              key={input.name}
               className={css({
-                display: "flex",
-                flexDirection: "column",
-                gap: "1",
+                textStyle: "sm",
+                fontWeight: "semibold",
+                color: "neutral.fg.heading",
               })}
             >
-              <span className={labelStyle}>
-                {input.label ?? input.name}
-                {input.required ? null : (
-                  <span className={mutedTextStyle}> · optional</span>
-                )}
+              Run {document.name}
+            </span>
+            {document.inputs.length === 0 ? (
+              <span
+                className={css({ textStyle: "sm", color: "neutral.fg.muted" })}
+              >
+                This flow takes no inputs.
               </span>
-              <InputControl
-                input={input}
-                value={values[input.name] ?? null}
-                onChange={(value) =>
-                  setValues((current) => ({ ...current, [input.name]: value }))
+            ) : null}
+            {document.inputs.map((input) => (
+              <label
+                key={input.name}
+                className={css({
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1",
+                })}
+              >
+                <span className={labelStyle}>
+                  {input.label ?? input.name}
+                  {input.required ? null : (
+                    <span className={mutedTextStyle}> · optional</span>
+                  )}
+                </span>
+                <InputControl
+                  input={input}
+                  value={values[input.name] ?? null}
+                  onChange={(value) =>
+                    setValues((current) => ({
+                      ...current,
+                      [input.name]: value,
+                    }))
+                  }
+                />
+              </label>
+            ))}
+            {started ? (
+              <Banner tone="neutral" variant="soft" icon>
+                <Banner.Title>No backend in this preview</Banner.Title>
+                <Banner.Description>
+                  A run would start now with these inputs. The run view isn’t
+                  linked from this prototype yet.
+                </Banner.Description>
+              </Banner>
+            ) : null}
+          </div>
+        </Popover.Body>
+        <Popover.Footer
+          actions={
+            <>
+              <Button variant="ghost" size="sm" onClick={close}>
+                Cancel
+              </Button>
+              <Button
+                variant="solid"
+                size="sm"
+                disabled={missing.length > 0}
+                tooltip={
+                  missing.length > 0
+                    ? `Fill in ${missing.map((input) => input.label ?? input.name).join(", ")}`
+                    : undefined
                 }
-              />
-            </label>
-          ))}
-          {started ? (
-            <Banner tone="neutral" variant="soft" icon>
-              <Banner.Title>No backend in this preview</Banner.Title>
-              <Banner.Description>
-                A run would start now with these inputs. The run view isn’t
-                linked from this prototype yet.
-              </Banner.Description>
-            </Banner>
-          ) : null}
-        </div>
-      </Dialog.Body>
-      <Dialog.Footer
-        actions={
-          <>
-            <Button variant="ghost" onClick={close}>
-              Cancel
-            </Button>
-            <Button
-              variant="solid"
-              iconName="play"
-              disabled={missing.length > 0}
-              tooltip={
-                missing.length > 0
-                  ? `Fill in ${missing.map((input) => input.label ?? input.name).join(", ")}`
-                  : undefined
-              }
-              onClick={() => setStarted(true)}
-            >
-              Run
-            </Button>
-          </>
-        }
-      />
-    </Dialog>
+                onClick={() => setStarted(true)}
+              >
+                Run
+              </Button>
+            </>
+          }
+        />
+      </Popover.Container>
+    </Popover>
   );
 };

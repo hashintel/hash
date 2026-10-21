@@ -15,7 +15,7 @@ import { FlowCanvas } from "./canvas";
 import { EditorContext, type EditorUi } from "./editor-context";
 import { LeftPanel } from "./left-panel";
 import { PropertiesPanel } from "./properties-panel";
-import { RunDialog } from "./run-dialogs";
+import { RunForm } from "./run-dialogs";
 import { validateDocument } from "./shapes";
 import { journeyTitles, screenStates } from "./states";
 import {
@@ -211,6 +211,7 @@ export const Editor = ({
   };
   const portalRef = useRef<HTMLDivElement>(null);
   const addNodeRef = useRef<HTMLButtonElement>(null);
+  const runRef = useRef<HTMLSpanElement>(null);
   const canvasControls = useRef<{
     fitView: () => void;
     zoom: (by: number) => void;
@@ -288,25 +289,28 @@ export const Editor = ({
               >
                 All screens
               </a>
-              <Button
-                size="sm"
-                variant="ghost"
-                className={cx(barButtonStyle, runStyle)}
-                prefix={<Icon name="play" size="sm" />}
-                tooltip={
-                  errorCount > 0
-                    ? allMessages.slice(0, 6).join(" · ") ||
-                      "Some steps are not set up yet"
-                    : mockCount > 0
-                      ? `The engine's validator finds no errors, but ${mockCount} fields hold values it can't represent yet.`
-                      : "The engine's validator finds no errors"
-                }
-                onClick={() =>
-                  setUiState((current) => ({ ...current, runOpen: true }))
-                }
-              >
-                Run
-              </Button>
+              {/* The Run form opens under this button (J4 · B1). */}
+              <span ref={runRef} className={css({ display: "inline-flex" })}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={cx(barButtonStyle, runStyle)}
+                  prefix={<Icon name="play" size="sm" />}
+                  tooltip={
+                    errorCount > 0
+                      ? allMessages.slice(0, 6).join(" · ") ||
+                        "Some steps are not set up yet"
+                      : mockCount > 0
+                        ? `The engine's validator finds no errors, but ${mockCount} fields hold values it can't represent yet.`
+                        : "The engine's validator finds no errors"
+                  }
+                  onClick={() =>
+                    setUiState((current) => ({ ...current, runOpen: true }))
+                  }
+                >
+                  Run
+                </Button>
+              </span>
               <Menu
                 items={[
                   {
@@ -404,7 +408,7 @@ export const Editor = ({
               <PropertiesPanel />
             </ReactFlowProvider>
           </main>
-          {ui.runOpen ? <RunDialog /> : null}
+          {ui.runOpen ? <RunForm anchor={runRef} /> : null}
           {briefingOpen ? (
             <Briefing
               onClose={() => {
