@@ -47,10 +47,10 @@ const hasDataTypeIds = (property: unknown): boolean => {
   return isRecord(value) && Object.values(value).every(hasDataTypeIds);
 };
 
-const notABaseUrl = (value: unknown) =>
+const notABaseUrlMessage = (value: unknown) =>
   `${JSON.stringify(value)} is not a property type base URL.`;
 
-const missingDataTypeIds = (baseUrl: BaseUrl) =>
+const missingDataTypeIdsMessage = (baseUrl: BaseUrl) =>
   `Property ${baseUrl} must give the data type ID of each of its values.`;
 
 /** Checks the shape of an entity's properties with their metadata, returning why it's invalid. */
@@ -70,11 +70,11 @@ export const validatePropertiesWithMetadata = (
 
   for (const [baseUrl, property] of entries) {
     if (!isPropertyBaseUrl(baseUrl)) {
-      return notABaseUrl(baseUrl);
+      return notABaseUrlMessage(baseUrl);
     }
 
     if (!hasDataTypeIds(property)) {
-      return missingDataTypeIds(baseUrl);
+      return missingDataTypeIdsMessage(baseUrl);
     }
   }
 
@@ -118,7 +118,7 @@ export const validatePropertyPatches = (
     }
 
     if (patch.op !== "remove" && !hasDataTypeIds(patch.property)) {
-      return missingDataTypeIds(baseUrl);
+      return missingDataTypeIdsMessage(baseUrl);
     }
   }
 
