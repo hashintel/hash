@@ -46,6 +46,15 @@ const chatPlugin = definePetrinautPlugin(
   { assistant: { content: <PluginChat /> } },
 );
 
+const composerPlugin = definePetrinautPlugin(
+  { id: "test.composer", name: "Composer", assistant: true },
+  {
+    assistant: {
+      content: <textarea aria-label="Message" data-autofocus />,
+    },
+  },
+);
+
 const Throwing = (): ReactNode => {
   throw new Error("The chat broke");
 };
@@ -94,6 +103,16 @@ describe("EditorAssistantPanel", () => {
       "Clear test chat",
       "Close AI assistant",
     ]);
+    expect(document.activeElement).toBe(panel);
+  });
+
+  test("focuses the content's data-autofocus element when the panel opens", () => {
+    renderPlugins([composerPlugin], <Editor />);
+    fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" }));
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("textbox", { name: "Message" }),
+    );
   });
 
   test("closes the panel from its title bar", () => {

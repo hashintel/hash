@@ -18,7 +18,11 @@ export const useEditorAssistant = (aiAssistant?: PetrinautAiAssistant) => {
 
   return {
     plugin,
+    /** The built-in chat, while no plugin provides the assistant. */
+    builtInChat: plugin === undefined ? aiAssistant : undefined,
     hasAssistant: plugin !== undefined || aiAssistant !== undefined,
+    /** Takes the empty-net prompt's message for the plugin's assistant. */
+    onPrompt: plugin?.contributions.assistant?.onPrompt,
   };
 };
 

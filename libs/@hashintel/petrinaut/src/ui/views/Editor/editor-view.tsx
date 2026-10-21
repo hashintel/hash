@@ -503,10 +503,10 @@ const EditorViewContent = ({
     },
   ];
 
-  // The empty-net prompt hands its message to the built-in chat only.
+  // The empty-net prompt hands its message to the built-in chat, or to the
+  // plugin assistant's `onPrompt`.
   const showEmptyAiHero =
-    aiAssistant !== undefined &&
-    assistant.plugin === undefined &&
+    (assistant.builtInChat !== undefined || assistant.onPrompt !== undefined) &&
     !isAiAssistantOpen &&
     !isAiCtaDismissed &&
     !pluginOverlay &&
@@ -591,12 +591,16 @@ const EditorViewContent = ({
                           setAiAssistantOpen(true);
                         }}
                         onSubmit={(message) => {
-                          setPendingAiAssistantMessage(message);
-                          setPendingAiInteractionMode("text");
                           setAiAssistantOpen(true);
+                          if (assistant.onPrompt) {
+                            assistant.onPrompt(message);
+                          } else {
+                            setPendingAiAssistantMessage(message);
+                            setPendingAiInteractionMode("text");
+                          }
                         }}
                         voiceModeAvailable={
-                          aiAssistant.renderVoiceMode !== undefined
+                          assistant.builtInChat?.renderVoiceMode !== undefined
                         }
                       />
                     )}
@@ -647,11 +651,11 @@ const EditorViewContent = ({
               focusRequest={aiAssistantFocusRequest}
             />
           )}
-          {aiAssistant && assistant.plugin === undefined && (
+          {assistant.builtInChat && (
             <AiAssistantPanel
               /** Reset state (e.g. initial messages) when the active net changes */
               key={`ai-assistant-${petriNetId ?? "no-net"}`}
-              aiAssistant={aiAssistant}
+              aiAssistant={assistant.builtInChat}
               applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
               focusRequest={aiAssistantFocusRequest}
               frameSceneAfterRender={frameSceneAfterRender}

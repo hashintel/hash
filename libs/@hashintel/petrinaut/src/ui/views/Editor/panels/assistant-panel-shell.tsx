@@ -242,12 +242,21 @@ export const PluginAssistantPanel = ({
     null,
   );
 
-  // Opening the panel moves focus into it, unless it is already there.
+  // Opening the panel moves focus to the content's element marked
+  // `data-autofocus`, or else to the panel, unless focus is already inside.
   useEffect(() => {
-    if (!isOpen || panelRef.current?.contains(document.activeElement)) {
+    const panelElement = panelRef.current;
+    if (
+      !isOpen ||
+      panelElement === null ||
+      panelElement.contains(document.activeElement)
+    ) {
       return;
     }
-    panelRef.current?.focus({ preventScroll: true });
+    const target =
+      panelElement.querySelector<HTMLElement>("[data-autofocus]") ??
+      panelElement;
+    target.focus({ preventScroll: true });
   }, [focusRequest, isOpen, panelRef]);
 
   return (

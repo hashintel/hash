@@ -218,6 +218,35 @@ const ChatPanel = () => {
 };
 ```
 
+The empty-net prompt shows while the assistant returns `onPrompt`. The editor
+opens the panel and calls it with the message the user sends, so the
+conversation lives in the hook, where `onPrompt` can reach it. When the panel
+opens, the content's element marked `data-autofocus`, such as the composer's
+`<textarea data-autofocus />`, takes focus; without one, the panel does.
+
+```tsx
+const ChatPlugin = definePetrinautPlugin({
+  id: "example.chat",
+  name: "Chat",
+  assistant: true,
+});
+
+// `Chat` comes from `@ai-sdk/react`. `ChatPanel` reads it with
+// `useChat({ chat })`.
+const useChatPlugin: PluginHook<typeof ChatPlugin> = () => {
+  const [chat] = useState(() => new Chat({ transport }));
+
+  return {
+    assistant: {
+      content: <ChatPanel chat={chat} />,
+      onPrompt: (text) => chat.sendMessage({ text }),
+    },
+  };
+};
+
+export const chatPlugin = ChatPlugin(useChatPlugin);
+```
+
 ## Add settings
 
 Declare each setting under `settings`. The editor renders its row in User

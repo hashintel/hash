@@ -272,8 +272,15 @@ export interface PluginAssistant {
    * transcript and the composer. It renders behind the plugin's error boundary
    * and remounts when another net opens. It fills the title bar with
    * `AssistantPanelTitle` and reads the panel's state with `useAssistantPanel`.
+   * When the panel opens, its element marked `data-autofocus`, such as the
+   * composer, takes focus; without one, the panel does.
    */
   readonly content: ReactNode;
+  /**
+   * Takes the message the user sends from the empty-net prompt, after the
+   * editor opens the panel. The prompt shows only while it is set.
+   */
+  readonly onPrompt?: (text: string) => void;
 }
 
 interface ContributionTable<M extends PetrinautPluginManifest> {

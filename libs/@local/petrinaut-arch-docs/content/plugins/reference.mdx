@@ -181,7 +181,7 @@ type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
 | `buttons`        | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, one of the plugin's command keys. A button has at least one of `onClick`, `command` and `ref`. |
 | `topBarItems`    | Declared     | Per key: a `ReactNode`.                                                                                                                                                                    |
 | `readOnlyAction` | Declared     | `{ run }`: what the read-only notice's button does. The notice shows the action of the first running plugin that declares one, and closes when the button is clicked.                      |
-| `assistant`      | Declared     | `{ content }`, the assistant panel below its title bar, behind the plugin's error boundary. The first running plugin's shows, or the deprecated `aiAssistant` prop's chat.                 |
+| `assistant`      | Declared     | `{ content, onPrompt? }`: `content` fills the panel behind the plugin's error boundary, and `onPrompt(text)` takes the empty-net prompt's message. The first running plugin's shows.       |
 | `provides`       | Declared     | The service type `T` of `pluginService<T>()`.                                                                                                                                              |
 
 Every declared key is required and every undeclared one is a type error.
@@ -243,6 +243,12 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
 - `AssistantPanelTitle`: fills the assistant panel's title bar from inside
   `assistant.content`. `children` render after the assistant icon, such as a
   title or tabs, and `actions` between the dock toggle and the Close button.
+
+### Attributes
+
+- `data-autofocus`: marks the element in `assistant.content` that takes focus
+  when the assistant panel opens, such as the composer. Without one, the panel
+  takes focus.
 
 ### Helpers
 
