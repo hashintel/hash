@@ -40,12 +40,21 @@ export const OpenMenu = ({
   className?: string;
 }) => {
   const triggerRef = useRef<HTMLSpanElement>(null);
-  // The anchor's place when the menu opened; the menu stays where it opened, as a DS Menu does.
-  const [rect] = useState(() => anchor.current?.getBoundingClientRect());
+  // The anchor's place when the menu opened; the menu stays where it opened, as a DS Menu does. Read after mount:
+  // an anchor rendered in the same commit has no element during render.
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  // Callers may pass a fresh ref object each render; the first one names the anchor.
+  const firstAnchor = useRef(anchor);
 
   useEffect(() => {
-    triggerRef.current?.click();
+    setRect(firstAnchor.current.current?.getBoundingClientRect() ?? null);
   }, []);
+
+  useEffect(() => {
+    if (rect) {
+      triggerRef.current?.click();
+    }
+  }, [rect]);
 
   return (
     <Menu

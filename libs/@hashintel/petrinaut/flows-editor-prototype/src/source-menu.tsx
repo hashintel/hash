@@ -154,7 +154,7 @@ const ownerIcon = (document: EditorDocument, option: SourceOption) => {
   if (option.source.kind === "flow-input") {
     const found = triggerForInput(document, option.source.inputName);
     return {
-      icon: found?.definition.icon ?? ("playFilled" as const),
+      icon: found?.definition.icon ?? ("play" as const),
       tone: "neutral" as const,
     };
   }
@@ -412,6 +412,7 @@ export const SourceMenu = ({
   typeValueLabel = "Type a value",
   typeValueIcon = "pencil",
   typeValueSource = "Manual input",
+  position = "bottom-end",
 }: {
   anchor: React.RefObject<Element | null>;
   stepId: string;
@@ -435,6 +436,8 @@ export const SourceMenu = ({
   typeValueIcon?: IconName;
   /** The draft PRD source that allows it: "File upload" for an upload. */
   typeValueSource?: PrdSource;
+  /** Where the DS Menu opens against the anchor. */
+  position?: "bottom-start" | "bottom-end";
 }) => {
   const { document, setDocument, setUi } = useEditor();
   const [search, setSearch] = useState("");
@@ -583,7 +586,7 @@ export const SourceMenu = ({
     return (
       <OpenMenu
         anchor={anchor}
-        position="bottom-end"
+        position={position}
         onClose={onClose}
         label={`Choose ${input.label}`}
         className={sourceMenuWidthStyle}

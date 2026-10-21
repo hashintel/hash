@@ -56,7 +56,6 @@ import {
   mockEntities,
   mockEntityTypes,
 } from "./mock-graph";
-import { triggerForInput } from "./shapes";
 import { SourceMenu } from "./source-menu";
 
 import type { StepInputSource } from "./engine";
@@ -275,9 +274,8 @@ const tokenIcon = (
   source: StepInputSource,
 ): IconName => {
   if (source.kind === "flow-input") {
-    return (
-      triggerForInput(document, source.inputName)?.definition.icon ?? "play"
-    );
+    // A flow input lives on Start: Start's icon, as J3 · B2 draws the token.
+    return "play";
   }
   if (source.kind === "step-output") {
     const step = findStep(document, source.stepId)?.step;
@@ -403,9 +401,10 @@ const ConditionRowView = ({
       rowRef.current?.querySelector<HTMLInputElement>(
         '[data-part="input-slot"] input',
       ) ?? null;
+    // The value slot, or the whole row when the operator takes no value.
     valueSlotRef.current =
       rowRef.current?.querySelector<HTMLElement>('[data-part="input-slot"]') ??
-      null;
+      rowRef.current;
   });
 
   const subject = properties.find(
@@ -957,7 +956,8 @@ const ConditionRowView = ({
 
       {openPart === "variable" || openPart === "footer" ? (
         <SourceMenu
-          anchor={mention !== undefined ? textRef : rowRef}
+          anchor={mention !== undefined ? textRef : valueSlotRef}
+          position="bottom-start"
           searchAlways={mention === undefined}
           stepId={step.stepId}
           input={valueInput}
