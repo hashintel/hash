@@ -140,11 +140,11 @@ body {
 // previews sit outside `.hash-ds-root`, where the design system's token
 // variables are not defined, so the tokens' light values are written out.
 ::highlight(file-preview-hit) {
-  background-color: #c2e5ff; // blue.bgSolid.shaded
+  background-color: #e6f4fe; // blue.bgSolid.subtle
 }
 
 ::highlight(file-preview-current-hit) {
-  background-color: #0090ff; // blue.bg.solid
+  background-color: #77bdf3; // blue.s75
 }
 
 .react-pdf-document {
