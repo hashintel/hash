@@ -6,6 +6,7 @@ import { StatusCode } from "@local/status";
 import { temporalNamespace } from "../temporal.js";
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 import { resolvePayloadValue } from "./payload-storage.js";
+import { nonStepActivityTypes } from "./run-events.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
 import type { ResolvePayloadContext } from "./payload-storage.js";
@@ -435,14 +436,7 @@ const getFlowRunDetailedFields = async ({
         ? getActivityScheduledDetails(event)
         : getActivityStartedDetails(events, nonScheduledAttributes!);
 
-      if (
-        [
-          "getFlowDefinitionActivity",
-          "persistFlowActivity",
-          "generateFlowRunName",
-          "userHasPermissionToRunFlowInWebActivity",
-        ].includes(activityType ?? "")
-      ) {
+      if (nonStepActivityTypes.includes(activityType ?? "")) {
         continue;
       }
 
