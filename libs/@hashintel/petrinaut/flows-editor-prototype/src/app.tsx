@@ -13,6 +13,7 @@ import { AddNodePicker } from "./add-node-picker";
 import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
 import { FlowCanvas } from "./canvas";
 import { EditorContext, type EditorUi } from "./editor-context";
+import { LeftPanel } from "./left-panel";
 import { PropertiesPanel } from "./properties-panel";
 import { RunDialog } from "./run-dialogs";
 import { validateDocument } from "./shapes";
@@ -353,12 +354,14 @@ export const Editor = ({
           </header>
           <main
             className={css({
+              position: "relative",
               display: "flex",
               flex: "1",
               minHeight: "[0]",
             })}
           >
             <ReactFlowProvider>
+              <LeftPanel />
               {/* The canvas and its floating parts, left of the docked panel (↳ Current: canvas, then a 420 panel). */}
               <div
                 className={css({

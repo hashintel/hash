@@ -198,7 +198,11 @@ const pickerTileStyle = cva({
     width: "[22px]",
     height: "[22px]",
     borderRadius: "md",
-    "& svg": { width: "[13px]", height: "[13px]" },
+    "&[class] svg": {
+      width: "[13px]",
+      height: "[13px]",
+      "--icon-size": "13px",
+    },
   },
   variants: {
     tone: {

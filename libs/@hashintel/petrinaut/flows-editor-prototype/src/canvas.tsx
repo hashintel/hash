@@ -1,5 +1,8 @@
 import "@xyflow/react/dist/style.css";
 import {
+  Background,
+  BackgroundVariant,
+  MiniMap,
   type Connection,
   type Edge,
   Handle,
@@ -134,8 +137,13 @@ const cardStyle = cva({
     borderStyle: "solid",
     borderColor: "neutral.s45",
     borderRadius: "lg",
-    transition: "[border-color 0.15s ease]",
+    transition: "[border-color 0.15s ease, box-shadow 0.3s ease]",
     "&:hover [data-port-add]": { opacity: "[1]" },
+    // A step just added for the user (Look up in the graph) glows for a moment.
+    "&[data-flash]": {
+      borderColor: "blue.s80",
+      boxShadow: "[0 0 0 4px var(--colors-blue-a40)]",
+    },
   },
   variants: {
     selected: {
@@ -158,7 +166,11 @@ const cardTileStyle = cva({
     width: "[24px]",
     height: "[24px]",
     borderRadius: "sm",
-    "& svg": { width: "[14px]", height: "[14px]" },
+    "&[class] svg": {
+      width: "[14px]",
+      height: "[14px]",
+      "--icon-size": "14px",
+    },
   },
   variants: {
     tone: {
@@ -363,7 +375,7 @@ const CardText = ({
 );
 
 const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
-  const { document } = useEditor();
+  const { document, ui } = useEditor();
   const step = flatFind(document, id);
   if (!step || step.kind !== "action") {
     return null;
@@ -371,7 +383,10 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const entry = getCatalogEntry(step.actionDefinitionId);
   const ports = portRows(step);
   return (
-    <div className={cardStyle({ selected })}>
+    <div
+      className={cardStyle({ selected })}
+      data-flash={ui.flashId === id || undefined}
+    >
       <Handle
         id="in"
         type="target"
@@ -686,15 +701,28 @@ export const FlowCanvas = ({
   // On first load, wait for the initial fit to finish before panning to the selection.
   const loaded = useRef(false);
 
-  // Keep the selected step in view (the panel is docked beside the canvas, so the whole pane is visible).
+  // A step added for the user flashes for a moment, then the highlight clears.
+  useEffect(() => {
+    if (!ui.flashId) {
+      return;
+    }
+    const timer = setTimeout(
+      () => setUi((current) => ({ ...current, flashId: null })),
+      1800,
+    );
+    return () => clearTimeout(timer);
+  }, [ui.flashId, setUi]);
+
+  // Keep the selected step (or one just added) in view; the panel is docked beside the canvas.
+  const focusId = ui.flashId ?? ui.selectedId;
   useEffect(() => {
     const delay = loaded.current ? 150 : 600;
     loaded.current = true;
-    if (!ui.selectedId) {
+    if (!focusId) {
       return;
     }
     const timer = setTimeout(() => {
-      const node = flow.getInternalNode(ui.selectedId!);
+      const node = flow.getInternalNode(focusId);
       const pane = globalThis.document
         .querySelector(".react-flow")
         ?.getBoundingClientRect();
@@ -725,7 +753,7 @@ export const FlowCanvas = ({
       }
     }, delay);
     return () => clearTimeout(timer);
-  }, [ui.selectedId, flow]);
+  }, [focusId, flow]);
 
   const nodes = toNodes(
     { ...document, positions: { ...document.positions, ...dragPositions } },
@@ -841,7 +869,25 @@ export const FlowCanvas = ({
       maxZoom={2}
       proOptions={{ hideAttribution: true }}
       deleteKeyCode={["Backspace", "Delete"]}
-    />
+    >
+      {/* ↳ Current's canvas: a light dot grid, and a minimap at the top right. */}
+      <Background
+        variant={BackgroundVariant.Dots}
+        gap={16}
+        size={1}
+        color="var(--colors-neutral-s60)"
+      />
+      <MiniMap
+        position="top-right"
+        pannable
+        zoomable
+        ariaLabel="Minimap"
+        style={{ width: 100, height: 64, borderRadius: 6 }}
+        maskColor="rgba(0, 0, 0, 0.08)"
+        nodeColor="var(--colors-neutral-s00)"
+        nodeStrokeColor="var(--colors-neutral-s60)"
+      />
+    </ReactFlow>
   );
 };
 
