@@ -4,7 +4,6 @@ import { useAssistantChatApi } from "../chat-api";
 import { ExperimentExecutionCard } from "./experiment-card/experiment-execution-card";
 
 import type { PetrinautAiMessage } from "../../ai-message";
-import type { AiToolTarget } from "../tool-summaries";
 import type {
   PetrinautExperimentProgress,
   PetrinautExperimentResult,
@@ -25,14 +24,12 @@ export const ExperimentCard = ({
   part,
   state,
   onCancel,
-  onSelectToolTarget,
 }: {
   part: ExperimentToolPart;
   state?: AiExperimentState;
   onCancel?: (toolCallId: string) => void;
-  onSelectToolTarget?: (target: AiToolTarget) => void;
 }) => {
-  const { experiments } = useAssistantChatApi();
+  const { editor, experiments } = useAssistantChatApi();
   const result =
     part.state === "output-available" ? part.output : state?.result;
   const experimentId = result?.experimentId ?? state?.progress?.experimentId;
@@ -52,9 +49,9 @@ export const ExperimentCard = ({
       error={part.state === "output-error" ? part.errorText : undefined}
       onCancel={onCancel ? () => onCancel(part.toolCallId) : undefined}
       onViewExperiment={
-        available && onSelectToolTarget
+        available
           ? () =>
-              onSelectToolTarget({
+              editor.reveal({
                 kind: "simulateView",
                 mode: "experiments",
                 itemId: experimentId,

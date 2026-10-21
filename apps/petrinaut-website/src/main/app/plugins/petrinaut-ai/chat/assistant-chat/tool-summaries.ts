@@ -21,7 +21,7 @@ export type AiToolSummary = {
   title: string;
   detail?: string;
   items?: string[];
-  target?: AiToolTarget;
+  target?: PetrinautRevealTarget;
   /**
    * External URL the tool row links to (opens in a new tab). Set for
    * read-only tools that surface a user-guide page so the user can open the
@@ -45,8 +45,6 @@ export type AiToolOutput =
   | (AiToolSummary & { applied: true })
   | AiToolBlockedOutput
   | AiToolDeclinedOutput;
-
-export type AiToolTarget = PetrinautRevealTarget;
 
 export type AiToolSummaryContext = {
   definition?: SDCPN;
@@ -254,7 +252,7 @@ const endpointNameFromUpdateInput = (
     : componentPortName(definition, endpoint);
 };
 
-const selectionTarget = (item: SelectionItem): AiToolTarget => ({
+const selectionTarget = (item: SelectionItem): PetrinautRevealTarget => ({
   kind: "selection",
   item,
 });

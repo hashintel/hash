@@ -10,7 +10,6 @@ import {
   within,
   waitFor,
 } from "@testing-library/react";
-import { createElement, type ReactElement, type ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
@@ -23,31 +22,18 @@ import { AssistantChatApiContext } from "./chat-api";
 import { ChatView } from "./chat-view";
 
 import type { PetrinautAiMessage } from "../ai-message";
+import type { ReactElement, ReactNode } from "react";
 
 vi.mock("@hashintel/petrinaut/ui/plugin", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@hashintel/petrinaut/ui/plugin")>()),
   ...(await import("../../testing/test-assistant-panel")).assistantPanelMocks,
 }));
 
-const renderMarkdown = vi.hoisted(() => vi.fn());
-
-vi.mock("react-markdown", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("react-markdown")>();
-
-  return {
-    ...actual,
-    default: (props: Parameters<typeof actual.default>[0]) => {
-      renderMarkdown();
-      return createElement(actual.default, props);
-    },
-  };
-});
-
 const noop = () => {};
 
-/** The toasts the chat asks for, through its `api`. */
-const notify = vi.fn((_input: unknown) => "notification-id");
-const chatApi = createTestPluginApi(createEmptyTestInstance(), { notify });
+/** Where the chat asks the editor to reveal a tool's target, through its `api`. */
+const reveal = vi.fn();
+const chatApi = createTestPluginApi(createEmptyTestInstance(), { reveal });
 const WithChatApi = ({ children }: { children: ReactNode }) => (
   <AssistantChatApiContext value={chatApi}>{children}</AssistantChatApiContext>
 );
@@ -68,7 +54,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
         stopped
         messages={[
           {
@@ -101,7 +86,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
         stopped
         messages={[
           {
@@ -124,7 +108,6 @@ describe("ChatView", () => {
       render(
         <ChatView
           input=""
-          status="ready"
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -170,86 +153,6 @@ describe("ChatView", () => {
     },
   );
 
-  test("labels stopped history after a later completed reply without global Stop state", () => {
-    render(
-      <ChatView
-        input=""
-        status="ready"
-        stopped={false}
-        onInputChange={noop}
-        onStop={noop}
-        onSubmit={noop}
-        messages={[
-          {
-            id: "aborted",
-            role: "assistant",
-            metadata: { stopped: true },
-            parts: [{ type: "text", text: "Partial reply" }],
-          },
-          {
-            id: "completed-later",
-            role: "assistant",
-            parts: [{ type: "text", text: "Later completed reply" }],
-          },
-        ]}
-      />,
-    );
-    expect(screen.getByText("Partial reply")).not.toBeNull();
-    expect(screen.getByText("Later completed reply")).not.toBeNull();
-    expect(screen.getAllByText("Response stopped")).toHaveLength(1);
-  });
-
-  test("keeps assistant errors in global notifications", () => {
-    const message =
-      'Elicitor failed.\nCaused by: {"field":"answer","reason":"Required"}';
-    render(
-      <ChatView
-        error={new Error(message)}
-        input=""
-        messages={[]}
-        onInputChange={noop}
-        onStop={noop}
-        onSubmit={noop}
-        status="error"
-      />,
-    );
-
-    expect(notify).toHaveBeenCalledOnce();
-    expect(notify).toHaveBeenCalledWith({
-      detail: message,
-      message: "AI assistant error",
-      tone: "error",
-    });
-    expect(
-      within(screen.getByTestId("ai-transcript")).queryByText(message),
-    ).toBeNull();
-  });
-
-  test("keeps completed messages memoized while the draft changes", () => {
-    const messages: PetrinautAiMessage[] = [
-      {
-        id: "assistant-1",
-        role: "assistant",
-        parts: [{ type: "text", state: "done", text: "Completed response" }],
-      },
-    ];
-    const props = {
-      messages,
-      onInputChange: noop,
-      onStop: noop,
-      onSubmit: noop,
-      status: "ready" as const,
-    };
-
-    const { rerender } = render(<ChatView {...props} input="" />);
-
-    expect(renderMarkdown).toHaveBeenCalledOnce();
-
-    rerender(<ChatView {...props} input="Next message" />);
-
-    expect(renderMarkdown).toHaveBeenCalledOnce();
-  });
-
   test("renders an interactive tool and submits its output once", () => {
     const onInteractiveToolSubmit = vi.fn();
     const awaitingMessages = [
@@ -275,7 +178,6 @@ describe("ChatView", () => {
         onInteractiveToolSubmit={onInteractiveToolSubmit}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -315,7 +217,6 @@ describe("ChatView", () => {
         onInteractiveToolSubmit={onInteractiveToolSubmit}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -349,7 +250,7 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="streaming"
+        busy
       />,
     );
 
@@ -364,7 +265,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -402,7 +302,6 @@ describe("ChatView", () => {
         onInteractiveToolSubmit={onInteractiveToolSubmit}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -426,7 +325,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -449,7 +347,6 @@ describe("ChatView", () => {
         onStop={noop}
         onSubmit={noop}
         promptChips={[{ id: "review", label: "Review", prompt: "Review" }]}
-        status="ready"
       />,
     );
 
@@ -477,7 +374,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -494,7 +390,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
     expect(screen.getByText("AI")).not.toBeNull();
@@ -517,7 +412,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -557,7 +451,7 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="streaming"
+        busy
       />,
     );
 
@@ -602,7 +496,7 @@ describe("ChatView", () => {
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
-      status: "streaming" as const,
+      busy: true,
     };
     const view = render(<ChatView {...props} />);
     const transcript = screen.getByTestId("ai-transcript");
@@ -655,7 +549,7 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="streaming"
+        busy
       />,
     );
 
@@ -698,7 +592,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -732,7 +625,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -775,7 +667,7 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="streaming"
+        busy
       />,
     );
 
@@ -837,7 +729,7 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="streaming"
+        busy
       />,
     );
 
@@ -906,7 +798,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -949,7 +840,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -1030,7 +920,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -1077,7 +966,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="error"
       />,
     );
 
@@ -1126,7 +1014,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -1138,11 +1025,11 @@ describe("ChatView", () => {
   });
 
   test.each([
-    { status: "streaming" as const, live: true },
-    { status: "error" as const, live: false },
+    { busy: true, live: true },
+    { busy: false, live: false },
   ])(
-    "keeps reasoning live only while its reply streams ($status)",
-    ({ status, live }) => {
+    "keeps reasoning live only while its reply streams (busy: $busy)",
+    ({ busy, live }) => {
       render(
         <ChatView
           input=""
@@ -1159,11 +1046,10 @@ describe("ChatView", () => {
               ],
             },
           ]}
-          error={status === "error" ? new Error("Network failed") : undefined}
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
-          status={status}
+          busy={busy}
         />,
       );
 
@@ -1207,7 +1093,6 @@ describe("ChatView", () => {
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -1223,7 +1108,6 @@ describe("ChatView", () => {
   });
 
   test("selects a target from a completed tool summary without a single-item chevron", () => {
-    const onSelectToolTarget = vi.fn();
     const messages: PetrinautAiMessage[] = [
       {
         id: "assistant-1",
@@ -1261,10 +1145,8 @@ describe("ChatView", () => {
         input=""
         messages={messages}
         onInputChange={noop}
-        onSelectToolTarget={onSelectToolTarget}
         onStop={noop}
         onSubmit={noop}
-        status="ready"
       />,
     );
 
@@ -1279,7 +1161,7 @@ describe("ChatView", () => {
     expect(screen.getByTestId("tool-detail").textContent).toBe(
       "Previous name: Queue",
     );
-    expect(onSelectToolTarget).toHaveBeenCalledWith({
+    expect(reveal).toHaveBeenCalledWith({
       kind: "selection",
       item: { type: "place", id: "place__buffer" },
     });
@@ -1293,7 +1175,7 @@ describe("ChatView", () => {
       onInputChange: noop,
       onStop,
       onSubmit: vi.fn(),
-      status: "streaming" as const,
+      busy: true,
     };
     const rendered = render(<ChatView {...props} />);
 
@@ -1301,7 +1183,7 @@ describe("ChatView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
     expect(onStop).toHaveBeenCalledOnce();
 
-    rendered.rerender(<ChatView {...props} input="" status="ready" />);
+    rendered.rerender(<ChatView {...props} input="" busy={false} />);
 
     expect(
       screen.getByRole<HTMLButtonElement>("button", {
@@ -1317,7 +1199,6 @@ describe("ChatView", () => {
       onInputChange: noop,
       onStop: noop,
       onSubmit,
-      status: "ready" as const,
     };
     const rendered = render(<ChatView {...props} input="   " />);
 
@@ -1355,7 +1236,7 @@ describe("ChatView tool rows", () => {
       },
     },
     {
-      label: "stale host",
+      label: "stale document",
       output: {
         applied: false,
         reason:
@@ -1366,7 +1247,7 @@ describe("ChatView tool rows", () => {
       label: "contradictory supplied summary",
       output: {
         applied: false,
-        reason: "Not applied by the host.",
+        reason: "Not applied by the editor.",
         title: "Updated arc weight",
         detail: "Requested value: 4",
       },
@@ -1377,7 +1258,6 @@ describe("ChatView tool rows", () => {
       render(
         <ChatView
           input=""
-          status="ready"
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -1454,7 +1334,7 @@ describe("ChatView tool rows", () => {
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
-      status: "streaming" as const,
+      busy: true,
     };
     const rendered = render(
       <ChatView {...props} messages={createMessages("input-streaming")} />,

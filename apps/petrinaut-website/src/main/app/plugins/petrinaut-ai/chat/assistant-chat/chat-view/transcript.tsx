@@ -1,4 +1,3 @@
-import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -10,9 +9,7 @@ import { markdownStyle } from "./shared/markdown-style";
 import { AiAssistantToolList, type OnInteractiveToolSubmit } from "./tool-list";
 
 import type { PetrinautAiMessage } from "../../ai-message";
-import type { AiToolTarget } from "../tool-summaries";
 import type { AiExperimentState } from "./experiment-card";
-import type { RefObject } from "react";
 
 const messageStyle = cva({
   base: {
@@ -58,138 +55,107 @@ const stoppedNoteStyle = css({
   fontWeight: "medium",
 });
 
-/**
- * Callbacks read through a ref so identity churn from the panel's inline
- * arrow functions doesn't bust the per-message memo.
- */
-export type MessageHandlersRef = RefObject<{
-  onInteractiveToolSubmit?: OnInteractiveToolSubmit;
-  onSelectToolTarget?: (target: AiToolTarget) => void;
-}>;
-
 type TranscriptProps = {
   experimentStates?: Record<string, AiExperimentState>;
-  handlersRef: MessageHandlersRef;
   messages: PetrinautAiMessage[];
   onCancelExperiment?: (toolCallId: string) => void;
+  onInteractiveToolSubmit?: OnInteractiveToolSubmit;
+  /** Whether the last reply is still streaming or running its tools. */
+  busy: boolean;
+  /** Whether the user stopped the last reply. */
   stopped: boolean;
 };
 
-type MessageProps = Omit<TranscriptProps, "messages"> & {
+type MessageProps = Omit<TranscriptProps, "messages" | "busy"> & {
   message: PetrinautAiMessage;
   /** Whether this is the reply currently streaming. */
   active: boolean;
 };
 
-/**
- * Every part in the order it streamed, wrapped in `React.memo`.
- *
- * The AI SDK rebuilds the `messages` array on every reasoning/text delta but
- * uses `slice` for unchanged messages and only `structuredClone`s the active
- * one. That gives every completed message a stable reference between chunks,
- * so memoising by reference equality lets us skip re-rendering the whole
- * transcript on every chunk — only the message currently being streamed has
- * to re-render.
- */
-const Message = memo(
-  ({
-    handlersRef,
-    message,
-    experimentStates,
-    onCancelExperiment,
-    stopped,
-    active,
-  }: MessageProps) => {
-    const role = message.role === "user" ? "user" : "assistant";
-    const wasStopped = stopped || message.metadata?.stopped === true;
-    const renderItems = getChronologicalRenderItems(message);
+/** Every part of a message in the order it streamed. */
+const Message = ({
+  message,
+  experimentStates,
+  onCancelExperiment,
+  onInteractiveToolSubmit,
+  stopped,
+  active,
+}: MessageProps) => {
+  const role = message.role === "user" ? "user" : "assistant";
 
-    return (
-      <div className={messageStyle({ role })} data-role={role}>
-        {renderItems.map((item) => {
-          switch (item.type) {
-            case "text":
-              return role === "user" ? (
-                <div className={userTextStyle} key={item.key}>
-                  <span>{item.part.text}</span>
-                </div>
-              ) : (
-                <div className={markdownStyle} key={item.key}>
-                  <ReactMarkdown>{item.part.text}</ReactMarkdown>
-                </div>
-              );
-            case "reasoning":
-              return (
-                <AiAssistantReasoning
-                  key={item.key}
-                  isStreaming={active && item.part.state === "streaming"}
-                  part={item.part}
-                />
-              );
-            case "experiment":
-              return (
-                <ExperimentCard
-                  key={item.key}
-                  part={item.part}
-                  state={experimentStates?.[item.part.toolCallId]}
-                  onCancel={onCancelExperiment}
-                  onSelectToolTarget={(target) =>
-                    handlersRef.current.onSelectToolTarget?.(target)
-                  }
-                />
-              );
-            case "tools":
-              return (
-                <AiAssistantToolList
-                  key={item.key}
-                  tools={item.tools}
-                  stopped={wasStopped}
-                  onInteractiveToolSubmit={(params) =>
-                    handlersRef.current.onInteractiveToolSubmit?.(params)
-                  }
-                  onSelectToolTarget={(target) =>
-                    handlersRef.current.onSelectToolTarget?.(target)
-                  }
-                />
-              );
-            default: {
-              const exhaustiveCheck: never = item;
-              throw new Error(
-                `Unknown message part: ${JSON.stringify(exhaustiveCheck)}`,
-              );
-            }
+  return (
+    <div className={messageStyle({ role })} data-role={role}>
+      {getChronologicalRenderItems(message).map((item) => {
+        switch (item.type) {
+          case "text":
+            return role === "user" ? (
+              <div className={userTextStyle} key={item.key}>
+                <span>{item.part.text}</span>
+              </div>
+            ) : (
+              <div className={markdownStyle} key={item.key}>
+                <ReactMarkdown>{item.part.text}</ReactMarkdown>
+              </div>
+            );
+          case "reasoning":
+            return (
+              <AiAssistantReasoning
+                key={item.key}
+                isStreaming={active && item.part.state === "streaming"}
+                part={item.part}
+              />
+            );
+          case "experiment":
+            return (
+              <ExperimentCard
+                key={item.key}
+                part={item.part}
+                state={experimentStates?.[item.part.toolCallId]}
+                onCancel={onCancelExperiment}
+              />
+            );
+          case "tools":
+            return (
+              <AiAssistantToolList
+                key={item.key}
+                tools={item.tools}
+                stopped={stopped}
+                onInteractiveToolSubmit={onInteractiveToolSubmit}
+              />
+            );
+          default: {
+            const exhaustiveCheck: never = item;
+            throw new Error(
+              `Unknown message part: ${JSON.stringify(exhaustiveCheck)}`,
+            );
           }
-        })}
-        {role === "assistant" && message.metadata?.stopped && (
-          <div className={stoppedNoteStyle}>Response stopped</div>
-        )}
-      </div>
-    );
-  },
-);
-Message.displayName = "Message";
+        }
+      })}
+    </div>
+  );
+};
 
-/** The conversation's messages, with a note when its last response stopped. */
+/** The conversation's messages, with a note when its last reply stopped. */
 export const Transcript = ({
   messages,
-  stopped,
   busy,
+  stopped,
   ...messageProps
-}: TranscriptProps & { busy: boolean }) => (
+}: TranscriptProps) => (
   <>
-    {messages.map((message, index) => (
-      <Message
-        key={message.id}
-        message={message}
-        {...messageProps}
-        stopped={stopped && index === messages.length - 1}
-        active={
-          busy && index === messages.length - 1 && message.role === "assistant"
-        }
-      />
-    ))}
-    {stopped && !messages.at(-1)?.metadata?.stopped && (
-      <div className={stoppedNoteStyle}>Response stopped</div>
-    )}
+    {messages.map((message, index) => {
+      const last = index === messages.length - 1;
+
+      return (
+        <Message
+          key={message.id}
+          message={message}
+          {...messageProps}
+          stopped={stopped && last}
+          active={busy && last && message.role === "assistant"}
+        />
+      );
+    })}
+    {stopped && <div className={stoppedNoteStyle}>Response stopped</div>}
   </>
 );

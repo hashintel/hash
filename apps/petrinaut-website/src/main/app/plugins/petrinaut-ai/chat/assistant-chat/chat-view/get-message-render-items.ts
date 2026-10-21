@@ -14,7 +14,7 @@ export type TextPart = Extract<MessagePart, { type: "text" }>;
 export type ReasoningMessagePart = Extract<MessagePart, { type: "reasoning" }>;
 
 /** One entry per run of the message, in the order its parts arrived. */
-export type ChronologicalRenderItem =
+type ChronologicalRenderItem =
   | { type: "reasoning"; key: string; part: ReasoningMessagePart }
   | { type: "text"; key: string; part: TextPart }
   | { type: "experiment"; key: string; part: ExperimentToolPart }

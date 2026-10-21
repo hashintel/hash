@@ -17,7 +17,8 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type { ChatTransport, UIDataTypes, UIMessage } from "ai";
 
-type PetrinautAiUiTools = {
+/** Petrinaut AI's tools, each with its input and output. */
+export type PetrinautAiUiTools = {
   [Name in PetrinautAiMutationToolName]: {
     input: PetrinautAiMutationToolInput<Name>;
     output: AiToolOutput;
@@ -54,14 +55,8 @@ type PetrinautAiUiTools = {
   };
 };
 
-/** How a message ended. */
-export type PetrinautAiMessageMetadata = {
-  /** This assistant response was stopped, rather than completed normally. */
-  stopped?: true;
-};
-
 export type PetrinautAiMessage = UIMessage<
-  PetrinautAiMessageMetadata,
+  unknown,
   UIDataTypes,
   PetrinautAiUiTools
 >;
