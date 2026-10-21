@@ -28,12 +28,7 @@ import { useEditor } from "./editor-context";
 import { isMockPayloadKind } from "./mock-action-definitions";
 import { mockEntities } from "./mock-graph";
 import { OpenMenu } from "./open-menu";
-import {
-  acceptedKinds,
-  type SourceOption,
-  sourceOptions,
-  triggerForInput,
-} from "./shapes";
+import { acceptedKinds, type SourceOption, sourceOptions } from "./shapes";
 import { kindLabel } from "./ui";
 
 import type { PayloadKind, StepInputSource } from "./engine";
@@ -152,9 +147,9 @@ const kindPhrase = (kinds: readonly string[], array: boolean) => {
 
 const ownerIcon = (document: EditorDocument, option: SourceOption) => {
   if (option.source.kind === "flow-input") {
-    const found = triggerForInput(document, option.source.inputName);
+    // A flow input lives on Start: Start's outline play icon (J3 · B1).
     return {
-      icon: found?.definition.icon ?? ("play" as const),
+      icon: "play" as const,
       tone: "neutral" as const,
     };
   }

@@ -40,7 +40,7 @@ import {
   mockFiles,
   mockPeopleEmails,
 } from "./mock-graph";
-import { describeSource, getSourceShape, triggerForInput } from "./shapes";
+import { describeSource, getSourceShape } from "./shapes";
 import { entityChoices, SourceMenu } from "./source-menu";
 import {
   errorTextStyle,
@@ -133,9 +133,9 @@ const sourceChipLabel = (
 
 const ownerLook = (document: EditorDocument, source: StepInputSource) => {
   if (source.kind === "flow-input") {
-    const found = triggerForInput(document, source.inputName);
+    // A flow input lives on Start: Start's outline play icon.
     return {
-      icon: found?.definition.icon ?? ("playFilled" as const),
+      icon: "play" as const,
       tone: "neutral" as const,
       owner: "Start",
     };

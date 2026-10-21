@@ -335,14 +335,6 @@ const tipStyle = css({
   },
 });
 
-/**
- * A long value wraps under the attribute inside the chip, as J3 · B3 draws it, rather than squeezing the attribute
- * and operator to "…". Layout only: the chip's parts keep their DS look.
- */
-const filterWrapStyle = css({
-  "&[class]": { flexWrap: "wrap", minWidth: "[0]" },
-});
-
 /** The selected variable in a value slot: its step's icon, then the path. */
 const tokenValueStyle = css({
   display: "inline-flex",
@@ -502,7 +494,11 @@ const ConditionRowView = ({
         ],
         renderSelectedItem: () => (
           // The DS Tooltip shows the whole path; the slot shows it collapsed (J3 · B3).
-          <Tooltip content={tokenParts.join(" › ")} className={tipStyle}>
+          <Tooltip
+            content={tokenParts.join(" › ")}
+            className={tipStyle}
+            position="bottom"
+          >
             <span
               className={tokenValueStyle}
               aria-label={`Change the source of ${title}`}
@@ -879,7 +875,6 @@ const ConditionRowView = ({
       <Filter
         key={`${resetCount}:${row.propertyBaseUrl}:${row.valueSource ? "token" : "typed"}`}
         size="sm"
-        className={filterWrapStyle}
         property={`${row.id}:${row.propertyBaseUrl}`}
         propertyLabel={title}
         propertyMenu={[

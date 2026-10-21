@@ -47,11 +47,18 @@ export const OpenMenu = ({
   const firstAnchor = useRef(anchor);
 
   useEffect(() => {
-    // A frame later: an anchor its parent sets in an effect (which runs after this child's) is there by then.
-    const frame = requestAnimationFrame(() =>
-      setRect(firstAnchor.current.current?.getBoundingClientRect() ?? null),
-    );
-    return () => cancelAnimationFrame(frame);
+    // Two frames later: an anchor its parent sets in an effect, or one inside a DS part that mounts its own pieces
+    // late (a Filter's value slot), is in place by then.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() =>
+        setRect(firstAnchor.current.current?.getBoundingClientRect() ?? null),
+      );
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
   }, []);
 
   useEffect(() => {
