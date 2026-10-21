@@ -5,7 +5,6 @@ import {
   Chip,
   Icon,
   Menu,
-  NumberInput,
   Select,
   TextInput,
   Tooltip,
@@ -33,9 +32,18 @@ import {
   type MockPropertyType,
   mockEntities,
   mockEntityTypes,
+  mockFiles,
+  mockPeopleEmails,
 } from "./mock-graph";
 import { describeSource, getSourceShape, triggerForInput } from "./shapes";
 import { entityChoices, SourceMenu } from "./source-menu";
+import {
+  errorTextStyle,
+  firstAndMore,
+  isEmail,
+  isTypedKind,
+  TypedValue,
+} from "./typed-value";
 import {
   IconTile,
   keyStyle,
@@ -199,104 +207,33 @@ const useFieldMenu = (stepId: string, inputName: string) => {
   };
 };
 
-const typedKinds = [
-  "Text",
-  "Number",
-  "Boolean",
-  "Date",
-  "EntityId",
-  "VersionedUrl",
-];
+/** The entity type an input names by title (`InputView.entityTypeTitle`), as a base URL. */
+const entityTypeFor = (input: InputView) =>
+  input.entityTypeTitle
+    ? mockEntityTypes.find((type) => type.title === input.entityTypeTitle)
+        ?.baseUrl
+    : undefined;
 
-const TypedEditor = ({
-  kind,
-  value,
-  onChange,
-}: {
-  kind: string;
-  value: unknown;
-  onChange: (value: unknown) => void;
-}) => {
-  switch (kind) {
-    case "Number":
-      return (
-        <NumberInput
-          value={typeof value === "number" ? value : null}
-          onChange={(next) => onChange(next)}
-          size="sm"
-          width="fullWidth"
-        />
-      );
-    case "Boolean":
-      return (
-        <Select
-          size="sm"
-          items={[
-            { value: "true", text: "Yes" },
-            { value: "false", text: "No" },
-          ]}
-          value={typeof value === "boolean" ? (value ? "true" : "false") : null}
-          onChange={(next) => onChange(next === "true")}
-          placeholder="Choose"
-        />
-      );
-    case "Date":
-      return (
-        <TextInput
-          type="date"
-          size="sm"
-          value={typeof value === "string" ? value : ""}
-          onChange={(next) => onChange(next)}
-        />
-      );
-    case "EntityId":
-      return (
-        <Select
-          size="sm"
-          searchable
-          items={mockEntities.map((entity) => ({
-            value: entity.entityId,
-            text: entity.label,
-          }))}
-          value={typeof value === "string" ? value : null}
-          onChange={(next) => onChange(next)}
-          placeholder="Choose an entity"
-        />
-      );
-    case "VersionedUrl":
-      return (
-        <Select
-          size="sm"
-          items={mockEntityTypes.map((type) => ({
-            value: type.entityTypeId,
-            text: type.title,
-          }))}
-          value={typeof value === "string" ? value : null}
-          onChange={(next) => onChange(next)}
-          placeholder="Choose a type"
-        />
-      );
-    default:
-      return (
-        <TextInput
-          size="sm"
-          value={typeof value === "string" ? value : ""}
-          onChange={(next) => onChange(next)}
-          placeholder="Type a value"
-        />
-      );
+/**
+ * The kind a field's own control edits: its one payload kind when that kind has a control, or `Text` for an option
+ * field. An input that takes several kinds (If's value) is picked from earlier steps only.
+ */
+const ownKind = (input: InputView) => {
+  const kinds = input.kinds ?? [];
+  if (input.options) {
+    return "Text";
   }
+  return kinds.length === 1 && isTypedKind(kinds[0]) ? kinds[0] : undefined;
 };
 
-/** A field that takes one value: typed, or a reference picked from the source menu. */
+/** A field that takes one value: its data type's control, or a reference picked from the source menu (the "@"). */
 export const ValueField = ({ step, input, entry }: FieldProps) => {
   const { document, setDocument } = useEditor();
   const anchorRef = useRef<HTMLDivElement>(null);
   const { open, setOpen } = useFieldMenu(step.stepId, input.name);
-  const [typing, setTyping] = useState(false);
   const source = step.inputs[input.name];
   const kinds = input.kinds ?? [];
-  const typedKind = kinds.find((kind) => typedKinds.includes(kind));
+  const typedKind = ownKind(input);
 
   const set = (next: StepInputSource | null) =>
     setDocument((current) =>
@@ -318,12 +255,13 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
         typedKind
           ? () => {
               set(null);
-              setTyping(true);
               setOpen(false);
             }
           : undefined
       }
-      typedChoices={kinds.includes("EntityId") ? entityChoices() : []}
+      typedChoices={
+        kinds.includes("EntityId") && !typedKind ? entityChoices() : []
+      }
     />
   ) : null;
 
@@ -347,24 +285,25 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
     );
   }
 
-  if (
-    typedKind &&
-    (source?.kind === "constant" || typing || typedKind !== "EntityId")
-  ) {
+  if (typedKind) {
     return (
       <div
         ref={anchorRef}
-        className={css({ display: "flex", gap: "1", alignItems: "center" })}
+        className={css({ display: "flex", gap: "1", alignItems: "flex-start" })}
       >
         <div className={css({ flex: "1", minWidth: "[0]" })}>
-          <TypedEditor
+          <TypedValue
             kind={typedKind}
+            label={input.label}
+            format={input.format}
+            options={input.options}
+            entityTypeBaseUrl={entityTypeFor(input)}
             value={
               source?.kind === "constant" ? source.payload.value : undefined
             }
             onChange={(value) =>
               set(
-                value === "" || value === null
+                value === "" || value === null || value === undefined
                   ? null
                   : {
                       kind: "constant",
@@ -643,12 +582,34 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
 };
 
 /* ----------------------------------------------------------------------------------------------------------------
- * List fields (To, entities): chips and a + menu (ledger, 12–13 Oct).
+ * List fields (field kinds v2, F7): never raw typed items. People and entities are picked from a searchable multi
+ * select; files are uploaded or picked; emails may be typed, each checked and shown as a chip; anything else comes
+ * from earlier steps. "+" opens the source menu (not "@", because emails contain "@"; ledger, 12 Oct).
  * ------------------------------------------------------------------------------------------------------------- */
+
+type ListMode = "email" | "entity" | "file" | "reference";
+
+const listModeOf = (input: InputView): ListMode => {
+  const kinds = input.kinds ?? [];
+  if (input.format === "email") {
+    return "email";
+  }
+  if (input.format === "file" || kinds.includes("PersistedEntityMetadata")) {
+    return "file";
+  }
+  if (kinds.length === 1 && kinds[0] === "EntityId") {
+    return "entity";
+  }
+  return "reference";
+};
+
+/** A file picked from the computer: MOCK, nothing uploads; the chip keeps its name. */
+const uploadedPrefix = "upload:";
 
 export const ListField = ({ step, input, entry }: FieldProps) => {
   const { document, setDocument } = useEditor();
   const anchorRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const { open, setOpen } = useFieldMenu(step.stepId, input.name);
   const [typing, setTyping] = useState("");
   const [showTyping, setShowTyping] = useState(false);
@@ -656,7 +617,8 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
   const existing = step.inputs[input.name];
   const items = document.lists[key] ?? (existing ? [existing] : []);
   const kinds = input.kinds ?? [];
-  const textKind = kinds.includes("Text");
+  const mode = listModeOf(input);
+  const typeBaseUrl = entityTypeFor(input);
 
   const setItems = (next: StepInputSource[]) =>
     setDocument((current) => ({
@@ -666,81 +628,240 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
 
   const itemLabel = (item: StepInputSource) => {
     if (item.kind === "constant") {
-      const entity = mockEntities.find(
-        (candidate) => candidate.entityId === item.payload.value,
-      );
-      return entity?.label ?? String(item.payload.value);
+      const value = String(item.payload.value);
+      const known =
+        mockEntities.find((candidate) => candidate.entityId === value)?.label ??
+        mockFiles.find((candidate) => candidate.entityId === value)?.label ??
+        mockPeopleEmails.find((candidate) => candidate.email === value)?.label;
+      return known ?? value.replace(uploadedPrefix, "");
     }
     return sourceChipLabel(document, item, step.stepId);
   };
 
+  /** A typed email that fails the check stays, as a red chip (spec F7: never a silent drop). */
+  const badEmail = (item: StepInputSource) =>
+    mode === "email" &&
+    item.kind === "constant" &&
+    !isEmail(String(item.payload.value));
+
+  const addTyped = () => {
+    const address = typing.trim();
+    if (!address) {
+      return;
+    }
+    setItems([
+      ...items,
+      { kind: "constant", payload: { kind: "Text", value: address } },
+    ]);
+    setTyping("");
+  };
+
+  const constants = items.filter((item) => item.kind === "constant");
+  const variables = items.filter((item) => item.kind !== "constant");
   const mixed =
     items.length > 1 && items.some((item) => item.kind !== "constant");
+
+  const chip = (item: StepInputSource) => {
+    const index = items.indexOf(item);
+    const bad = badEmail(item);
+    const content = (
+      <Chip
+        key={JSON.stringify(item)}
+        size="sm"
+        color={bad ? "red" : item.kind === "constant" ? "grey" : "blue"}
+        removeable={{
+          onRemove: () => setItems(items.filter((_, other) => other !== index)),
+          "aria-label": `Remove ${itemLabel(item)}`,
+        }}
+      >
+        {itemLabel(item)}
+      </Chip>
+    );
+    return bad ? (
+      <Tooltip key={JSON.stringify(item)} content="Not an email address">
+        {content}
+      </Tooltip>
+    ) : (
+      content
+    );
+  };
+
+  const addButton = (
+    <Button
+      size="sm"
+      variant="ghost"
+      iconName="plus"
+      aria-label={`Add to ${input.label}`}
+      tooltip={mode === "entity" ? "Use a list from an earlier step" : "Add"}
+      onClick={() => setOpen(true)}
+    />
+  );
+
+  const typedChoices =
+    mode === "email"
+      ? mockPeopleEmails.map((person) => ({
+          label: person.label,
+          hint: person.email,
+          source: {
+            kind: "constant" as const,
+            payload: { kind: "Text" as const, value: person.email },
+          },
+        }))
+      : mode === "file"
+        ? mockFiles.map((file) => ({
+            label: file.label,
+            source: {
+              kind: "constant" as const,
+              payload: { kind: "EntityId" as const, value: file.entityId },
+            },
+          }))
+        : mode === "reference" && kinds.includes("EntityId")
+          ? entityChoices()
+          : [];
 
   return (
     <div
       className={css({ display: "flex", flexDirection: "column", gap: "1" })}
     >
-      <div
-        ref={anchorRef}
-        className={css({
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "1",
-          alignItems: "center",
-        })}
-      >
-        {items.map((item, index) => (
-          <Chip
-            key={JSON.stringify(item)}
-            size="sm"
-            color={item.kind === "constant" ? "grey" : "blue"}
-            removeable={{
-              onRemove: () =>
-                setItems(items.filter((_, other) => other !== index)),
-              "aria-label": "Remove",
-            }}
+      {mode === "entity" ? (
+        <div
+          ref={anchorRef}
+          className={css({ display: "flex", gap: "1", alignItems: "center" })}
+        >
+          <div className={css({ flex: "1", minWidth: "[0]" })}>
+            <Select
+              size="sm"
+              multiple
+              searchable
+              renderSelectedAll={firstAndMore(
+                (value) =>
+                  mockEntities.find((entity) => entity.entityId === value)
+                    ?.label ?? value,
+              )}
+              aria-label={input.label}
+              items={mockEntities
+                .filter(
+                  (candidate) =>
+                    !typeBaseUrl || candidate.entityTypeBaseUrl === typeBaseUrl,
+                )
+                .map((candidate) => ({
+                  value: candidate.entityId as string,
+                  text: candidate.label,
+                }))}
+              value={constants.map((item) =>
+                item.kind === "constant" ? String(item.payload.value) : "",
+              )}
+              placeholder={
+                typeBaseUrl
+                  ? `Choose ${(findEntityType(typeBaseUrl)?.pluralTitle ?? "entities").toLowerCase()}`
+                  : "Choose entities"
+              }
+              onChange={(values) =>
+                setItems([
+                  ...variables,
+                  ...values.map((value): StepInputSource => ({
+                    kind: "constant",
+                    payload: { kind: "EntityId", value: value as never },
+                  })),
+                ])
+              }
+            />
+          </div>
+          {addButton}
+        </div>
+      ) : null}
+      {mode === "entity" ? (
+        variables.length > 0 ? (
+          <div
+            className={css({
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "1",
+              alignItems: "center",
+            })}
           >
-            {itemLabel(item)}
-          </Chip>
-        ))}
-        <Button
-          size="xs"
-          variant="ghost"
-          iconName="plus"
-          aria-label={`Add to ${input.label}`}
-          tooltip="Add"
-          onClick={() => setOpen(true)}
-        />
-      </div>
+            {variables.map(chip)}
+          </div>
+        ) : null
+      ) : (
+        <div
+          ref={anchorRef}
+          className={css({
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "1",
+            alignItems: "center",
+            minHeight: "[28px]",
+          })}
+        >
+          {items.map(chip)}
+          {addButton}
+        </div>
+      )}
       {items.length === 1 && items[0]!.kind !== "constant" ? (
         <SourceLine source={items[0]!} />
       ) : null}
-      {showTyping ? (
+      {mode === "email" && showTyping ? (
         <TextInput
           size="sm"
+          // eslint-disable-next-line jsx-a11y/no-autofocus -- it opens from the user's own "Type an address" pick
+          autoFocus
           value={typing}
-          placeholder="Type and press Enter"
+          aria-label={`Type an address for ${input.label}`}
+          placeholder="name@example.com, then Enter"
+          prefix={{ iconName: "at", variant: "subtle" }}
           onChange={(value) => setTyping(value)}
+          onBlur={() => {
+            addTyped();
+            setShowTyping(false);
+          }}
           onKeyDown={(event) => {
-            if (event.key === "Enter" && typing.trim()) {
-              setItems([
-                ...items,
-                {
-                  kind: "constant",
-                  payload: { kind: "Text", value: typing.trim() },
-                },
-              ]);
+            if (event.key === "Enter") {
+              event.preventDefault();
+              addTyped();
+            } else if (event.key === "Escape") {
               setTyping("");
               setShowTyping(false);
             }
           }}
         />
       ) : null}
+      {items.some(badEmail) ? (
+        <span className={errorTextStyle}>
+          Not an email address: fix or remove the red chip.
+        </span>
+      ) : null}
       {mixed ? (
         <Tooltip content="The engine takes one source per input: a list, or one value wrapped as a list. Several sources in one list are kept in the prototype's mock layer.">
           <span className={mutedTextStyle}>Several sources · mock</span>
         </Tooltip>
+      ) : null}
+      {mode === "file" ? (
+        <input
+          ref={fileRef}
+          type="file"
+          hidden
+          aria-label={`Upload a file to ${input.label}`}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) {
+              setItems([
+                ...items,
+                {
+                  kind: "constant",
+                  payload: {
+                    kind: "EntityId",
+                    value: `${uploadedPrefix}${file.name}` as never,
+                  },
+                },
+              ]);
+            }
+            // Clears the picker, so the same file can be picked again.
+            if (fileRef.current) {
+              fileRef.current.value = "";
+            }
+          }}
+        />
       ) : null}
       {open ? (
         <SourceMenu
@@ -754,14 +875,27 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
             setOpen(false);
           }}
           onTypeValue={
-            textKind
+            mode === "email"
               ? () => {
                   setShowTyping(true);
                   setOpen(false);
                 }
-              : undefined
+              : mode === "file"
+                ? () => {
+                    setOpen(false);
+                    fileRef.current?.click();
+                  }
+                : undefined
           }
-          typedChoices={kinds.includes("EntityId") ? entityChoices() : []}
+          typeValueLabel={
+            mode === "email" ? "Type an address" : "Upload a file"
+          }
+          typeValueIcon={mode === "email" ? "pencil" : "file"}
+          typeValueSource={mode === "file" ? "File upload" : "Manual input"}
+          typedGroupLabel={
+            mode === "email" ? "People" : mode === "file" ? "Files" : undefined
+          }
+          typedChoices={typedChoices}
         />
       ) : null}
     </div>
@@ -887,7 +1021,13 @@ export const QueryField = ({
   entry,
   mode,
   typeHint,
-}: FieldProps & { mode: "query" | "condition"; typeHint?: string }) => {
+  allowVariables,
+}: FieldProps & {
+  mode: "query" | "condition";
+  typeHint?: string;
+  /** False for a trigger's condition, which has nothing earlier to refer to. */
+  allowVariables?: boolean;
+}) => {
   const { document, setDocument } = useEditor();
   const key = fieldKey(step.stepId, input.name);
   const draft: QueryDraft = document.queries[key] ?? { conditions: [] };
@@ -959,6 +1099,7 @@ export const QueryField = ({
           properties={properties}
           forGraph={mode === "query"}
           update={update}
+          allowVariables={allowVariables}
         />
       </div>
     </>
@@ -1037,11 +1178,14 @@ const PatchValue = ({
   input,
   source,
   onChange,
+  entityTypeBaseUrl,
 }: {
   step: DraftActionStep;
   input: InputView;
   source: StepInputSource | null;
   onChange: (source: StepInputSource | null) => void;
+  /** A link property picks entities of the type it links to. */
+  entityTypeBaseUrl?: string;
 }) => {
   const { document } = useEditor();
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -1070,17 +1214,24 @@ const PatchValue = ({
         </>
       ) : (
         <div
-          className={css({ display: "flex", gap: "1", alignItems: "center" })}
+          className={css({
+            display: "flex",
+            gap: "1",
+            alignItems: "flex-start",
+          })}
         >
-          <div className={css({ flex: "1" })}>
-            <TypedEditor
+          <div className={css({ flex: "1", minWidth: "[0]" })}>
+            <TypedValue
               kind={kind}
+              label={input.label}
+              options={input.options}
+              entityTypeBaseUrl={entityTypeBaseUrl}
               value={
                 source?.kind === "constant" ? source.payload.value : undefined
               }
               onChange={(value) =>
                 onChange(
-                  value === "" || value === null
+                  value === "" || value === null || value === undefined
                     ? null
                     : {
                         kind: "constant",
@@ -1154,6 +1305,10 @@ export const PatchField = ({ step, input }: FieldProps) => {
           required: true,
           hasDefault: false,
           kinds: [property?.payloadKind ?? "Text"],
+          options: property?.options?.map((option) => ({
+            value: option,
+            text: option,
+          })),
         };
         return (
           <div
@@ -1194,6 +1349,7 @@ export const PatchField = ({ step, input }: FieldProps) => {
             <PatchValue
               step={step}
               input={patchInput}
+              entityTypeBaseUrl={property?.linksTo}
               source={patch.source}
               onChange={(source) =>
                 setPatches(
@@ -1245,6 +1401,8 @@ export const isFreeText = (input: InputView) =>
   [
     "instructions",
     "context",
+    "displayName",
+    "query",
     "body",
     "subject",
     "prompt",
