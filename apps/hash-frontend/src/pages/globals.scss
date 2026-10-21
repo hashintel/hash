@@ -123,14 +123,14 @@ body {
 .react-pdf-page {
   border: 1px solid rgba(0, 0, 0, 0.05);
   height: 100%;
-  isolation: isolate;
 
   .annotationLayer .popup {
     min-width: 200px;
   }
 
-  // Search marks fill the text layer, which sits over the canvas. Multiplying
-  // the layer with the canvas keeps the glyphs under a mark dark.
+  // Search marks fill the text layer, whose text is transparent and drawn
+  // over the canvas. Multiplying the layer with the page keeps the canvas
+  // glyphs under a mark dark.
   .textLayer {
     mix-blend-mode: multiply;
   }
