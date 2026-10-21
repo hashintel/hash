@@ -1,10 +1,13 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = "==3.14.*"
 
 [options]
 exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
 exclude-newer-span = "P7D"
+
+[options.exclude-newer-package]
+certifi = "2026-10-20T02:24:17Z"
 
 [manifest]
 members = [
@@ -113,11 +116,11 @@ wheels = [
 
 [[package]]
 name = "certifi"
-version = "2026.7.22"
+version = "2026.10.19"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a3/c2/24167ea9858356b47a87a50d39908bfdb72ceeefe0041586e704e5376b3a/certifi-2026.7.22.tar.gz", hash = "sha256:741e2c3b351ddf169a738da9f2c048608ff7f2c5cc02f1ebc6b118bb090d5d55", size = 138112, upload-time = "2026-07-22T03:35:12.644Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a6/bd/1436c50cc46699de0230fbaacc1d1de7bfec413176099949e9d5112e88f2/certifi-2026.10.19.tar.gz", hash = "sha256:035c1e85572b141bf1c3a3eff0e33a8eb74917522f2559075ff8d2fea780a1ae", size = 137598, upload-time = "2026-10-20T02:24:16.604Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0b/a7/71ac2cff56fec219ed242bb11b8efb69fcc4bec75db06fb7bfe35de520e6/certifi-2026.7.22-py3-none-any.whl", hash = "sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775", size = 136983, upload-time = "2026-07-22T03:35:11.276Z" },
+    { url = "https://files.pythonhosted.org/packages/c4/51/29046e48f693c54e5b7412216d447a1d8362c9653148d98c02cdf65fa733/certifi-2026.10.19-py3-none-any.whl", hash = "sha256:42d35340cc5b9ba78e818ddbff0c5b1c2b779de448a340fd1b989f5fa8670e1b", size = 136464, upload-time = "2026-10-20T02:24:15.072Z" },
 ]
 
 [[package]]
@@ -356,15 +359,6 @@ dev = [
     { name = "basedpyright" },
     { name = "ruff" },
     { name = "tach" },
-]
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "basedpyright", specifier = ">=1.39.10,<2" },
-    { name = "ruff", specifier = ">=0.16.8,<0.17" },
-    { name = "tach", specifier = ">=0.35,<0.36" },
 ]
 
 [[package]]
@@ -829,28 +823,6 @@ dev = [
     { name = "pytest" },
 ]
 
-[package.metadata]
-requires-dist = [
-    { name = "fastapi", specifier = ">=0.141.1,<0.142.0" },
-    { name = "opentelemetry-exporter-otlp-proto-grpc", specifier = ">=1.44.0" },
-    { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.44.0" },
-    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0" },
-    { name = "opentelemetry-sdk", specifier = ">=1.44.0" },
-    { name = "optuna", specifier = ">=4.9,<5" },
-    { name = "petrinaut-optimizer-core", editable = "libs/@local/petrinaut-optimizer-core/python" },
-    { name = "petrinaut-python", editable = "libs/@local/petrinaut-python" },
-    { name = "pydantic", specifier = ">=2.13.4" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "starlette", specifier = ">=1.7.0,<2.0.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.39.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx", specifier = ">=0.28" },
-    { name = "pytest", specifier = ">=9.1.1,<10" },
-]
-
 [[package]]
 name = "petrinaut-optimizer-core"
 version = "0.1.0"
@@ -863,12 +835,6 @@ dependencies = [
 dev = [
     { name = "pytest" },
 ]
-
-[package.metadata]
-requires-dist = [{ name = "optuna", specifier = ">=4.9,<5" }]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.1.1,<10" }]
 
 [[package]]
 name = "petrinaut-python"
@@ -889,21 +855,6 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
     { name = "sympy" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pydantic", specifier = ">=2.13.4" },
-    { name = "sympy", marker = "extra == 'sympy'", specifier = ">=1.13" },
-]
-provides-extras = ["sympy"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "datamodel-code-generator", specifier = ">=0.74.0" },
-    { name = "pytest", specifier = ">=9.1.1,<10" },
-    { name = "ruff", specifier = ">=0.16.8,<0.17" },
-    { name = "sympy", specifier = ">=1.13" },
 ]
 
 [[package]]
