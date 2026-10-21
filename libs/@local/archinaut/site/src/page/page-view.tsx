@@ -14,7 +14,7 @@ import type { LoadedPage } from "../pages";
 const site = siteJson as { title: string };
 
 export const PageView = () => {
-  const { page, Content, toc } = useLoaderData({ strict: false }) as LoadedPage;
+  const { page, Content } = useLoaderData({ strict: false }) as LoadedPage;
   useEffect(() => {
     document.title = `${page.title} | ${site.title}`;
   }, [page.title]);
@@ -22,7 +22,7 @@ export const PageView = () => {
     <div className="lg:sl-flex">
       <aside className="right-sidebar-container print:hidden">
         <div className="right-sidebar">
-          <TableOfContents key={page.slug} entries={toc} />
+          <TableOfContents key={page.slug} entries={page.headings} />
         </div>
       </aside>
       <div className="main-pane">
