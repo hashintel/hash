@@ -63,6 +63,8 @@ export const flowTypedef = gql`
   scalar ScheduleSpec
   scalar CreateFlowScheduleInput
   scalar UpdateFlowScheduleInput
+  scalar StepOutput
+  scalar ExternalInputRequestSignal
 
   type StepRun {
     """
@@ -186,6 +188,218 @@ export const flowTypedef = gql`
     The steps in the flow
     """
     steps: [StepRun!]!
+    """
+    What happened in the run, in the order its history records it.
+    Ask again with \`endCursor\` to follow a run, and handle \`restarted\` before appending.
+    """
+    events(
+      """
+      The \`endCursor\` of an earlier page. The page starts after it.
+      """
+      after: String
+      """
+      How many events to return: 500 by default, and at most 2,000.
+      """
+      first: Int
+    ): FlowRunEventsPage!
+  }
+
+  """
+  A run of a step: the step's id in the definition and, inside \`forEach\` steps, its item's index in each, outermost first.
+  """
+  type FlowRunEventStepRun {
+    stepId: String!
+    itemPath: [Int!]!
+  }
+
+  type FlowRunEventError {
+    message: String!
+  }
+
+  """
+  Earlier attempts that failed and were retried, which Temporal doesn't record one by one.
+  """
+  type FlowRunHiddenAttempts {
+    count: Int!
+    lastError: FlowRunEventError
+  }
+
+  enum FlowStepGaveUpReason {
+    """
+    Every attempt the retry policy allows failed
+    """
+    ATTEMPTS_EXHAUSTED
+    """
+    The action threw a failure marked non-retryable
+    """
+    NON_RETRYABLE
+    """
+    The action ran out of time to complete
+    """
+    TIMED_OUT
+    """
+    The action completed with a non-OK status
+    """
+    ERROR_STATUS
+    OTHER
+  }
+
+  interface FlowRunEvent {
+    """
+    \`<eventId>.<index>\`: where the event is in the run's history.
+    """
+    position: String!
+    """
+    When it happened, as an ISO string.
+    """
+    occurredAt: String!
+  }
+
+  type FlowRunStartedEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    inputs: FlowInputValues!
+  }
+
+  type FlowRunStepStartedEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    stepRun: FlowRunEventStepRun!
+    inputs: [StepInput!]!
+  }
+
+  type FlowRunAttemptStartedEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    stepRun: FlowRunEventStepRun!
+    attempt: Int!
+    hiddenAttempts: FlowRunHiddenAttempts
+  }
+
+  type FlowRunAttemptSucceededEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    stepRun: FlowRunEventStepRun!
+    attempt: Int!
+    outputs: [StepOutput!]!
+  }
+
+  type FlowRunAttemptFailedEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    stepRun: FlowRunEventStepRun!
+    attempt: Int!
+    error: FlowRunEventError!
+    retrying: Boolean!
+  }
+
+  type FlowRunStepGaveUpEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    stepRun: FlowRunEventStepRun!
+    attempt: Int!
+    reason: FlowStepGaveUpReason!
+  }
+
+  type FlowRunAttemptCancellationRequestedEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    stepRun: FlowRunEventStepRun!
+  }
+
+  type FlowRunAttemptCancelledEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    stepRun: FlowRunEventStepRun!
+  }
+
+  type FlowRunStepSkippedEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    stepRun: FlowRunEventStepRun!
+    stepType: String!
+  }
+
+  type FlowRunForEachStartedEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    stepRun: FlowRunEventStepRun!
+    itemCount: Int!
+  }
+
+  type FlowRunInputRequestedEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    stepRun: FlowRunEventStepRun!
+    request: ExternalInputRequestSignal!
+  }
+
+  type FlowRunInputResolvedEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    """
+    The step that raised the request, if the request is in the history.
+    """
+    stepRun: FlowRunEventStepRun
+    requestId: String!
+    response: ExternalInputResponseWithoutUser!
+  }
+
+  type FlowRunProgressLoggedEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    stepRun: FlowRunEventStepRun!
+    attempt: Int
+    log: StepProgressLog!
+  }
+
+  type FlowRunResetEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    fromRunId: String!
+  }
+
+  type FlowRunStepError {
+    stepRun: FlowRunEventStepRun!
+    error: FlowRunEventError!
+  }
+
+  type FlowRunFinishedEvent implements FlowRunEvent {
+    position: String!
+    occurredAt: String!
+    status: FlowRunStatus!
+    """
+    The flow's outputs, when it completed.
+    """
+    outputs: [StepOutput!]
+    error: FlowRunEventError
+    """
+    Steps that failed after their action returned (e.g. an output of the wrong kind), when the run records them.
+    """
+    stepErrors: [FlowRunStepError!]
+  }
+
+  type FlowRunEventsPage {
+    events: [FlowRunEvent!]!
+    """
+    The cursor of the page's last event, to ask for the next page with: the cursor given when the page is empty,
+    and null when the run has no events.
+    """
+    endCursor: String
+    hasNextPage: Boolean!
+    """
+    The run of the workflow the events are from, which changes when the run is reset.
+    """
+    runId: String!
+    """
+    Whether the given cursor is from a run that has since been reset past it, so the events the client has after
+    \`keptUpTo\` (or all of them, if it's null) no longer happened.
+    """
+    restarted: Boolean!
+    """
+    When \`restarted\`, the position of the last event the client has that the current run kept.
+    """
+    keptUpTo: String
   }
 
   type PaginatedFlowRuns {

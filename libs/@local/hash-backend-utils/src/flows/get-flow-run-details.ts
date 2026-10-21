@@ -17,6 +17,7 @@ import type {
   ExternalInputRequest,
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
+  FlowRunWithoutEvents,
   FlowSignalType,
   ProgressLogSignal,
   ResolvedPayload,
@@ -764,7 +765,7 @@ export const getFlowRunFromTemporalWorkflowId = async (args: {
   webId: WebId;
   /** Storage provider for resolving stored payload references */
   storageProvider: FileStorageProvider;
-}): Promise<FlowRun> => {
+}): Promise<FlowRunWithoutEvents> => {
   const baseFields = await getSparseFlowRunFromTemporalWorkflowId(args);
   const detailedFields = await getFlowRunDetailedFields({
     workflowId: args.temporalWorkflowId,

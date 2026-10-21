@@ -24,11 +24,11 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import type {
-  FlowRun,
-  FlowRunStatus,
-} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+  FlowRunWithoutEvents,
+  SparseFlowRun,
+} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import type { FlowRun as FlowRunEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
 export { getFlowRunEntityById };
@@ -52,7 +52,7 @@ type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
 
 export async function getFlowRunById(
   args: GetFlowRunByIdFnArgs<true>,
-): Promise<FlowRun | null>;
+): Promise<FlowRunWithoutEvents | null>;
 
 export async function getFlowRunById(
   args: GetFlowRunByIdFnArgs<false>,
@@ -60,7 +60,9 @@ export async function getFlowRunById(
 
 export async function getFlowRunById<IncludeDetails extends boolean>(
   args: GetFlowRunByIdFnArgs<IncludeDetails>,
-): Promise<(IncludeDetails extends true ? FlowRun : SparseFlowRun) | null>;
+): Promise<
+  (IncludeDetails extends true ? FlowRunWithoutEvents : SparseFlowRun) | null
+>;
 
 export async function getFlowRunById({
   flowRunEntityId,
@@ -69,7 +71,9 @@ export async function getFlowRunById({
   storageProvider,
   temporalClient,
   userAuthentication,
-}: GetFlowRunByIdFnArgs<boolean>): Promise<SparseFlowRun | FlowRun | null> {
+}: GetFlowRunByIdFnArgs<boolean>): Promise<
+  SparseFlowRun | FlowRunWithoutEvents | null
+> {
   const existingFlowEntity = await getFlowRunEntityById({
     flowRunEntityId,
     graphApiClient,
@@ -175,7 +179,7 @@ type PaginatedFlowRuns<T> = {
 
 export async function getFlowRuns(
   args: GetFlowRunsFnArgs<true>,
-): Promise<PaginatedFlowRuns<FlowRun>>;
+): Promise<PaginatedFlowRuns<FlowRunWithoutEvents>>;
 
 export async function getFlowRuns(
   args: GetFlowRunsFnArgs<false>,
@@ -184,7 +188,9 @@ export async function getFlowRuns(
 export async function getFlowRuns<IncludeDetails extends boolean>(
   args: GetFlowRunsFnArgs<IncludeDetails>,
 ): Promise<
-  PaginatedFlowRuns<IncludeDetails extends true ? FlowRun : SparseFlowRun>
+  PaginatedFlowRuns<
+    IncludeDetails extends true ? FlowRunWithoutEvents : SparseFlowRun
+  >
 >;
 
 export async function getFlowRuns({
@@ -195,7 +201,7 @@ export async function getFlowRuns({
   storageProvider,
   temporalClient,
 }: GetFlowRunsFnArgs<boolean>): Promise<
-  PaginatedFlowRuns<SparseFlowRun | FlowRun>
+  PaginatedFlowRuns<SparseFlowRun | FlowRunWithoutEvents>
 > {
   const effectiveLimit = Math.min(
     Math.max(filters.limit ?? flowRunsQueryMaxLimit, 0),
@@ -377,7 +383,7 @@ export async function getFlowRuns({
   }
 
   if (includeDetails) {
-    const workflows: FlowRun[] = [];
+    const workflows: FlowRunWithoutEvents[] = [];
 
     for (const temporalWorkflowId of deduplicatedWorkflowIds) {
       const flowDetails = temporalWorkflowIdToFlowDetails[temporalWorkflowId]!;

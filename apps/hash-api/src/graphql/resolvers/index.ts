@@ -4,6 +4,10 @@ import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { cancelFlow } from "./flows/cancel-flow";
 import {
+  flowRunEventsResolver,
+  resolveFlowRunEventType,
+} from "./flows/flow-run-events";
+import {
   archiveFlowScheduleResolver,
   createFlowScheduleResolver,
   pauseFlowScheduleResolver,
@@ -331,6 +335,22 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
 
   Block: {
     blockChildEntity: blockChildEntityResolver,
+  },
+
+  FlowRun: {
+    events: flowRunEventsResolver,
+  },
+
+  FlowRunEvent: {
+    __resolveType: resolveFlowRunEventType,
+  },
+
+  FlowStepGaveUpReason: {
+    ATTEMPTS_EXHAUSTED: "attemptsExhausted",
+    NON_RETRYABLE: "nonRetryable",
+    TIMED_OUT: "timedOut",
+    ERROR_STATUS: "errorStatus",
+    OTHER: "other",
   },
 
   EntityAuthorizationSubject: {

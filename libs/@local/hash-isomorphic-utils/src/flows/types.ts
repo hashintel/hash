@@ -1112,4 +1112,7 @@ export const detailedFlowFields = [
 
 export type DetailedFlowField = (typeof detailedFlowFields)[number];
 
-export type SparseFlowRun = Omit<FlowRun, DetailedFlowField>;
+/** A run as its reader returns it: `events` has a field resolver of its own, which reads the run's history. */
+export type FlowRunWithoutEvents = Omit<FlowRun, "events">;
+
+export type SparseFlowRun = Omit<FlowRunWithoutEvents, DetailedFlowField>;
