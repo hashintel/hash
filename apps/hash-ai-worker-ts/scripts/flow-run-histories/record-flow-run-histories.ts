@@ -14,6 +14,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import { Client, Connection } from "@temporalio/client";
 import proto from "@temporalio/proto";
@@ -42,11 +43,6 @@ const fixturesDirectory = path.join(
 const identity = "flow-run-histories";
 
 const webId: WebId = answeringUserId;
-
-const sleep = (ms: number) =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, ms);
-  });
 
 const temporalAddress = `${new URL(process.env.HASH_TEMPORAL_SERVER_HOST ?? "http://localhost").hostname}:${process.env.HASH_TEMPORAL_SERVER_PORT ?? "7233"}`;
 

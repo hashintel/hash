@@ -1,3 +1,5 @@
+import { setTimeout as sleep } from "node:timers/promises";
+
 import { Context } from "@temporalio/activity";
 import proto from "@temporalio/proto";
 import Long from "long";
@@ -55,19 +57,6 @@ export type RecordingCase = {
 
 export const answeringUserId = "00000000-0000-4000-8000-0000000000a1" as UserId;
 
-const createGate = () => {
-  let open = () => {};
-  const promise = new Promise<void>((resolve) => {
-    open = resolve;
-  });
-  return { promise, open };
-};
-
-const sleep = (ms: number) =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, ms);
-  });
-
 /** An error without a stack, which would put the machine's paths in the history. */
 const errorWithoutStack = (message: string) =>
   Object.assign(new Error(message), { stack: `Error: ${message}` });
@@ -111,7 +100,6 @@ const count: StubAction = ({ inputs }) =>
     },
   ]);
 
-/** An `if` whose condition is never met. */
 const ifNotMet: StubAction = ({ inputs }) =>
   ok([{ outputName: "false", payload: getInput(inputs, "value") }]);
 
@@ -417,7 +405,7 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
     }),
 
     "input-request": (client) => {
-      const requested = createGate();
+      const requested = Promise.withResolvers<void>();
       const requestId = generateUuid();
 
       return {
@@ -434,7 +422,7 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
               type: "human-input",
               data: { questions: ["Which HASH do you mean?"] },
             });
-            requested.open();
+            requested.resolve();
 
             for (;;) {
               const response = await handle.query(
@@ -481,14 +469,14 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
     }),
 
     cancelled: () => {
-      const started = createGate();
+      const started = Promise.withResolvers<void>();
 
       return {
         flow: researchFlow,
         flowInputs: prompt,
         actions: {
           researchEntitiesAction: async () => {
-            started.open();
+            started.resolve();
             await waitInActivity(new Promise(() => {}));
             return researched;
           },
@@ -502,7 +490,7 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
     },
 
     "in-progress": (client) => {
-      const finish = createGate();
+      const finish = Promise.withResolvers<void>();
 
       return {
         flow: researchFlow,
@@ -520,14 +508,14 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
         steer: async ({ handle, record }) => {
           await waitForSignalInHistory(handle, "logProgress");
           await record("in-progress");
-          finish.open();
+          finish.resolve();
         },
         closedFixtureName: "in-progress-finished",
       };
     },
 
     reset: (client) => {
-      const checkpointed = createGate();
+      const checkpointed = Promise.withResolvers<void>();
       let baseRunId: string | undefined;
       let checkpointId: string | undefined;
 
@@ -558,7 +546,7 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
               planLog(activityId, "CreatedPlan", "Search the web"),
             ]);
             await sleep(1_000);
-            checkpointed.open();
+            checkpointed.resolve();
 
             /* The reset closes this run, and the next heartbeat cancels this attempt. */
             await waitInActivity(new Promise(() => {}));
