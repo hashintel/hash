@@ -1,9 +1,9 @@
 /**
- * Renders D2 sources in the bundle to SVG, only the ones named, so a dev
- * rebuild pays for the diagrams that changed rather than all of them. A
- * rendering is cached by the source's content and d2's version, so a
- * branch switch or an edit undone costs a copy; the rest render in
- * parallel, one d2 process per core, since a layer many diagrams show
+ * Brings the bundle's SVGs up to date with its D2 sources. A rendering is
+ * cached by the source's content and d2's version, so a diagram already
+ * rendered costs a read to confirm, a branch switch or an edit undone costs
+ * a copy, and a d2 upgrade re-renders everything; what needs d2 renders in
+ * parallel, one process per core, since a layer many diagrams show
  * rewrites all of them at once.
  */
 
@@ -54,11 +54,12 @@ export const renderDiagrams = async (options: {
   bundleRoot: string;
   /** Absolute; holds one SVG per rendered source content. */
   cacheDirectory: string;
+  /** Every diagram of the bundle. */
   names: string[];
 }): Promise<{
   /** How many came out of d2 this time, as opposed to the cache. */
   rendered: number;
-  /** Bundle-relative paths of every SVG written, cache hits included. */
+  /** Bundle-relative paths of every SVG that changed, cache hits included. */
   written: string[];
   diagnostics: Diagnostic[];
 }> => {
@@ -73,13 +74,16 @@ export const renderDiagrams = async (options: {
       options.cacheDirectory,
       `${cacheKey(await readFile(sourcePath), options.d2.version)}.svg`,
     );
-    const hit = await copyFile(cached, outputPath).then(
-      () => true,
-      () => false,
-    );
-    if (hit) {
-      await readable(outputPath);
-      written.push(`diagrams/${name}.svg`);
+    const [expected, current] = await Promise.all([
+      readFile(cached).catch(() => null),
+      readFile(outputPath).catch(() => null),
+    ]);
+    if (expected !== null) {
+      if (current?.equals(expected) !== true) {
+        await copyFile(cached, outputPath);
+        await readable(outputPath);
+        written.push(`diagrams/${name}.svg`);
+      }
       return;
     }
     const result = await renderD2({
