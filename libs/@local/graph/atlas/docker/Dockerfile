@@ -12,11 +12,15 @@ ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_NODE_COREPACK=1
 ENV PATH="/mise/shims:$PATH"
 
+# TODO(SRE-1221): Remove this override after upgrading Node.js to a release without the affected eMudhra roots: https://github.com/nodejs/node/pull/66871
+ENV NODE_OPTIONS=--use-openssl-ca
+
 COPY .config/mise /etc/mise
 
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419+deb13u1 && \
     /etc/mise/install.sh && \
     mise --version && \
     apt-get clean && \
@@ -61,6 +65,7 @@ COPY rust-toolchain.toml .
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates build-essential && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20260816ubuntu0.24.04.1 && \
     /etc/mise/install.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -107,7 +112,8 @@ RUN cuda="${CUDA_VERSION%.*}" && \
     cuda="${cuda/./-}" && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-    "cuda-nvrtc-${cuda}" "cuda-cudart-dev-${cuda}" "cuda-cccl-${cuda}" && \
+    "cuda-nvrtc-${cuda}" "cuda-cudart-dev-${cuda}" "cuda-cccl-${cuda}" ca-certificates && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20260816ubuntu0.24.04.1 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     ldconfig && \

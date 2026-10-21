@@ -17,6 +17,9 @@ ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_CARGO_HOME="/usr/local/cargo"
 ENV PATH="/mise/shims:/usr/local/cargo/bin:$PATH"
 
+# TODO(SRE-1221): Remove this override after upgrading Node.js to a release without the affected eMudhra roots: https://github.com/nodejs/node/pull/66871
+ENV NODE_OPTIONS=--use-openssl-ca
+
 COPY .config/mise /etc/mise
 
 # turbo reads the Cargo workspace through `cargo metadata`, in the prune as well as in the build.
@@ -24,6 +27,7 @@ COPY rust-toolchain.toml /tmp/rust-toolchain.toml
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419~deb12u2 && \
     /etc/mise/install.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -113,6 +117,9 @@ ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHONUNBUFFERED=1 \
     PETRINAUT_CHILD_NODE_OPTIONS="--permission --allow-fs-read=/opt/petrinaut-runtime --allow-fs-read=/usr/local/bin/petrinaut --disable-proto=throw --max-old-space-size=768 --no-addons --no-global-search-paths"
 
+# gRPC otherwise loads the roots bundled in grpcio.
+ENV GRPC_DEFAULT_SSL_ROOTS_FILE_PATH=/etc/ssl/certs/ca-certificates.crt
+
 WORKDIR /app
 
 # Node is what the bindings' executable runs on today.
@@ -124,6 +131,12 @@ COPY apps/petrinaut-opt/src ./src
 # The bindings' runtime: their focused production dependency graph and the
 # built workspace packages it resolves.
 COPY --from=bindings-runtime / /opt/petrinaut-runtime
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419~deb12u2 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # `petrinaut` is the command the bindings spawn by default, and they give the
 # child a fixed PATH of /usr/local/bin:/usr/bin:/bin, so it is linked there.
