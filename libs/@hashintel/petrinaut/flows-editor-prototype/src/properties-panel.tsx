@@ -10,6 +10,7 @@ import {
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import { forEachEntry, getCatalogEntry, type InputView } from "./catalog";
 import {
   START_ID,
@@ -87,14 +88,19 @@ const panelStyle = css({
   height: "[100%]",
   display: "flex",
   flexDirection: "column",
-  gap: "5",
-  padding: "4",
   backgroundColor: "neutral.s00",
   borderLeftWidth: "thin",
   borderLeftStyle: "solid",
   borderLeftColor: "neutral.a60",
-  overflowY: "auto",
   zIndex: "[5]",
+});
+
+/** The panel's content, inside Petrinaut's thin overlay scrollbar (no native scrollbars). */
+const panelBodyStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "5",
+  padding: "4",
 });
 
 /** The icon and tile colour a node shows on the canvas, for the chips that point at it. */
@@ -1273,21 +1279,25 @@ export const PropertiesPanel = () => {
     trigger || !ui.selectedId ? null : findStep(document, ui.selectedId);
   return (
     <aside className={panelStyle} aria-label="Properties">
-      {!ui.selectedId ? (
-        // J4 B1: with nothing selected, the panel names the flow.
-        <div className={panelHeaderStyle}>
-          <span className={typeLineStyle}>{document.name}</span>
-          <span className={descriptionInputStyle}>Nothing selected</span>
+      <OverlayScrollArea>
+        <div className={panelBodyStyle}>
+          {!ui.selectedId ? (
+            // J4 B1: with nothing selected, the panel names the flow.
+            <div className={panelHeaderStyle}>
+              <span className={typeLineStyle}>{document.name}</span>
+              <span className={descriptionInputStyle}>Nothing selected</span>
+            </div>
+          ) : ui.selectedId === START_ID ? (
+            <StartPanel />
+          ) : trigger ? (
+            <TriggerPanel key={trigger.id} trigger={trigger} />
+          ) : found?.step.kind === "action" ? (
+            <ActionPanel key={found.step.stepId} step={found.step} />
+          ) : found?.step.kind === "for-each" ? (
+            <ForEachPanel key={found.step.stepId} step={found.step} />
+          ) : null}
         </div>
-      ) : ui.selectedId === START_ID ? (
-        <StartPanel />
-      ) : trigger ? (
-        <TriggerPanel key={trigger.id} trigger={trigger} />
-      ) : found?.step.kind === "action" ? (
-        <ActionPanel key={found.step.stepId} step={found.step} />
-      ) : found?.step.kind === "for-each" ? (
-        <ForEachPanel key={found.step.stepId} step={found.step} />
-      ) : null}
+      </OverlayScrollArea>
     </aside>
   );
 };
