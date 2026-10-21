@@ -965,7 +965,6 @@ __metadata:
     sharp: "npm:0.35.5"
     vite: "catalog:"
     vitest: "catalog:"
-    vscode-languageserver-types: "npm:3.17.5"
     zod: "npm:4.4.3"
   languageName: unknown
   linkType: soft
