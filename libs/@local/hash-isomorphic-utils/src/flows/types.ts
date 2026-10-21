@@ -566,7 +566,7 @@ export type ActionDefinition<
 
 /**
  * Whether a connection leaves the value available to other consumers (`read`) or takes it (`consume`). Unset
- * means the default for the input it feeds.
+ * means `read`.
  */
 export type ValueAccess = "read" | "consume";
 
