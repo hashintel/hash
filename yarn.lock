@@ -726,8 +726,8 @@ __metadata:
     "@sigma/edge-curve": "patch:@sigma/edge-curve@npm%3A3.0.0-beta.16#~/.yarn/patches/@sigma-edge-curve-npm-3.0.0-beta.16-3d8b985284.patch"
     "@sigma/node-border": "npm:3.0.0"
     "@sigma/node-image": "npm:3.0.0"
-    "@stll/folio-core": "npm:0.60.0"
-    "@stll/folio-react": "npm:0.28.0"
+    "@stll/folio-core": "npm:0.62.0"
+    "@stll/folio-react": "npm:0.30.0"
     "@svgr/webpack": "npm:8.1.0"
     "@tanstack/react-table": "npm:8.21.3"
     "@testing-library/dom": "npm:10.4.1"
@@ -16720,17 +16720,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stll/docx-core@npm:^0.37.0":
-  version: 0.37.0
-  resolution: "@stll/docx-core@npm:0.37.0"
+"@stll/docx-core@npm:^0.38.0":
+  version: 0.38.0
+  resolution: "@stll/docx-core@npm:0.38.0"
   dependencies:
     "@nodable/entities": "npm:^3.0.0"
     "@stll/docx-utils": "npm:^0.1.0"
+    "@stll/utf8-boundaries": "npm:0.1.0"
     better-result: "npm:3.0.1"
     fast-xml-parser: "npm:^5.10.1"
     jszip: "npm:3.10.2"
     marked: "npm:^18.0.5"
-  checksum: 10c0/6978eabec0fbeec30e49a7976a6cefb8d5478c6e84409ed52af235870736f1dabd511dbd98fc849f323e462aa980cb27a4a89c02901b86145253e97ca7fb5256
+  checksum: 10c0/f50580327ec0d3306a114c02439efe70ebeae18a0e49ed01f18bc4cde4ff3abe658b54518fd5a21db39de57415145b3fd299eb5e46f1c4c0c82760514173767b
   languageName: node
   linkType: hard
 
@@ -16745,13 +16746,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stll/folio-core@npm:0.60.0, @stll/folio-core@npm:^0.60.0":
-  version: 0.60.0
-  resolution: "@stll/folio-core@npm:0.60.0"
+"@stll/folio-core@npm:0.62.0, @stll/folio-core@npm:^0.62.0":
+  version: 0.62.0
+  resolution: "@stll/folio-core@npm:0.62.0"
   dependencies:
-    "@stll/docx-core": "npm:^0.37.0"
+    "@stll/docx-core": "npm:^0.38.0"
     "@stll/docx-utils": "npm:^0.1.0"
     "@stll/template-conditions": "npm:^0.6.2"
+    "@stll/utf8-boundaries": "npm:0.1.0"
     better-result: "npm:3.0.1"
     csstype: "npm:^3.1.3"
     dompurify: "npm:^3.4.16"
@@ -16775,13 +16777,13 @@ __metadata:
     y-prosemirror: ^1.3.7
     y-protocols: ^1.0.6
     yjs: ^13.6.31
-  checksum: 10c0/6e3a7be13ec85547ee3a342dd8937c33e748d4dc881fb9e5e5affe3187808b3e7999d35e00269dceb877d5ad08d700ce4165787eafc1f28698af69afef7cf094
+  checksum: 10c0/c2e318bc27f1a476a8475bc9cd022a48e502e30d8eca8ebe8085dcdfddaf3aef19940485ed7b004f48e0990316f2c167fff5c0dfb64d8373f90957ef97adc7c5
   languageName: node
   linkType: hard
 
-"@stll/folio-react@npm:0.28.0":
-  version: 0.28.0
-  resolution: "@stll/folio-react@npm:0.28.0"
+"@stll/folio-react@npm:0.30.0":
+  version: 0.30.0
+  resolution: "@stll/folio-react@npm:0.30.0"
   dependencies:
     "@base-ui/react": "npm:1.8.0"
     "@fontsource/arimo": "npm:^5.2.8"
@@ -16792,21 +16794,32 @@ __metadata:
     "@fontsource/noto-sans-arabic": "npm:^5.2.7"
     "@fontsource/source-sans-3": "npm:^5.2.9"
     "@fontsource/tinos": "npm:^5.2.7"
-    "@stll/folio-core": "npm:^0.60.0"
+    "@stll/folio-core": "npm:^0.62.0"
+    "@stll/utf8-boundaries": "npm:0.1.0"
+    "@types/react": "npm:^19.2.17"
+    "@types/react-dom": "npm:^19.2.3"
     better-result: "npm:3.0.1"
     lucide-react: "npm:1.24.0"
     react-compiler-runtime: "npm:^1.0.0"
   peerDependencies:
+    prosemirror-commands: ^1.7.1
+    prosemirror-dropcursor: ^1.8.2
+    prosemirror-gapcursor: ^1.4.1
     prosemirror-history: ^1.5.0
+    prosemirror-inputrules: ^1.5.0
+    prosemirror-keymap: ^1.2.3
     prosemirror-model: ^1.25.9
     prosemirror-state: ^1.4.4
     prosemirror-tables: ^1.8.5
+    prosemirror-transform: ^1.12.0
     prosemirror-view: ^1.42.6
     react: ^19.2.0
     react-dom: ^19.2.0
     use-intl: ">=4.0.0"
+    y-prosemirror: ^1.3.7
+    y-protocols: ^1.0.6
     yjs: ^13.6.31
-  checksum: 10c0/37361be518a0b1ddd8b20ee7f207a1a8a9fedf1b1656cba6f85c04c79f1766cc9a4cabef9a7154de683762b270f9996de9517dd1c1ada0922b2a8b9e61c0a1ca
+  checksum: 10c0/cafa2217a130ab915835e5a1b1867ad93826f2d1eeff199a12c27c11662480d3d204c581c8ffae37d5c4e39a12234223604e0841268d51860cb24ce2ebdd9781
   languageName: node
   linkType: hard
 
@@ -16818,6 +16831,23 @@ __metadata:
     better-result: "npm:3.0.1"
     temporal-polyfill: "npm:1.0.5"
   checksum: 10c0/0f4821e885f6f6ec04c0a87cb483983cbd608485a9b0a77233fc71f45b06801415e6099aa7f4b51a75d5be5d384cda9a44b68f603097b0e7fead7bb04b0ae054
+  languageName: node
+  linkType: hard
+
+"@stll/utf8-boundaries@npm:0.1.0":
+  version: 0.1.0
+  resolution: "@stll/utf8-boundaries@npm:0.1.0"
+  dependencies:
+    better-result: "npm:3.0.1"
+  peerDependencies:
+    fast-check: ^4.9.0
+    jszip: ^3.10.2
+  peerDependenciesMeta:
+    fast-check:
+      optional: true
+    jszip:
+      optional: true
+  checksum: 10c0/35dc62c28ed004b81261e50b8019e0b15587234b37517aaa42cd0e040838950b0c4deaceb09993cc75e80dd89cfa42be51ecad62ee68aa9c35b21bbbac59fe5f
   languageName: node
   linkType: hard
 
@@ -18899,6 +18929,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/react-dom@npm:^19.2.3":
+  version: 19.3.0
+  resolution: "@types/react-dom@npm:19.3.0"
+  peerDependencies:
+    "@types/react": ^19.3.0
+  checksum: 10c0/ce0066d28b62bc6afdd17ca84756b8fbe0f6ffc0c8b1e60739abc30e81510da2edbc1007e6ab3d974d30f5a8c25bb0f7de8d7ce09736c909fe84c0f9aed0b946
+  languageName: node
+  linkType: hard
+
 "@types/react-grid-layout@npm:2.1.0":
   version: 2.1.0
   resolution: "@types/react-grid-layout@npm:2.1.0"
@@ -18956,7 +18995,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:*, @types/react@npm:19.2.14":
+"@types/react@npm:*, @types/react@npm:^19.2.17":
+  version: 19.3.0
+  resolution: "@types/react@npm:19.3.0"
+  dependencies:
+    csstype: "npm:^3.2.2"
+  checksum: 10c0/fbcabf303f935ca9f36ed2dcf81751cf84744098c5a683c8a62a0fa7edd31714b48d5c46b12fd0014f7f2dfe4d9ec6de428a850748eec719a70294e51029551b
+  languageName: node
+  linkType: hard
+
+"@types/react@npm:19.2.14":
   version: 19.2.14
   resolution: "@types/react@npm:19.2.14"
   dependencies:
