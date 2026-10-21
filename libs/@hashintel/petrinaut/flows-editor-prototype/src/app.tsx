@@ -1,20 +1,30 @@
 import { ReactFlowProvider } from "@xyflow/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Button,
+  Menu,
   PortalContainerContext,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { AddNodePicker } from "./add-node-picker";
+import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
 import { FlowCanvas } from "./canvas";
 import { EditorContext, type EditorUi } from "./editor-context";
 import { PropertiesPanel } from "./properties-panel";
-import { RunDialog, triggerSummary, TriggersDialog } from "./run-dialogs";
+import { RunDialog } from "./run-dialogs";
 import { validateDocument } from "./shapes";
 import { screenStates } from "./states";
+import {
+  findTask,
+  newSession,
+  type TaskSession,
+  tasks,
+  writeSession,
+} from "./tasks";
+import { FlowToolbar, organize } from "./toolbar";
 
 import type { EditorDocument } from "./document";
 
@@ -59,41 +69,93 @@ const titleInputStyle = css({
   },
 });
 
-const bottomBarStyle = css({
-  position: "absolute",
-  bottom: "[24px]",
-  left: "[50%]",
-  transform: "[translateX(-50%)]",
-  display: "flex",
-  alignItems: "center",
-  gap: "1",
-  padding: "1",
-  backgroundColor: "white.a95",
-  borderWidth: "thin",
-  borderColor: "neutral.a50",
-  borderStyle: "solid",
-  borderRadius: "[8px]",
-  backdropFilter: "[blur(3px)]",
-  boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.1)]",
-  zIndex: "[4]",
-});
-
-const dividerStyle = css({
-  width: "[1px]",
-  height: "[20px]",
-  backgroundColor: "neutral.s40",
-  marginX: "1",
-});
-
 export const Editor = ({
   initialDocument,
   initialUi,
+  showBriefing = false,
+  initialTaskId = null,
+  onBack,
 }: {
   initialDocument: EditorDocument;
   initialUi: EditorUi;
+  showBriefing?: boolean;
+  initialTaskId?: number | null;
+  /** Back to the flows list, handing it the flow as it is now. */
+  onBack?: (document: EditorDocument) => void;
 }) => {
   const [document, setDocumentState] = useState(initialDocument);
   const [ui, setUiState] = useState(initialUi);
+  const [mode, setMode] = useState<"select" | "hand">("select");
+  const [briefingOpen, setBriefingOpen] = useState(showBriefing);
+  const [session, setSession] = useState<TaskSession | null>(() => {
+    if (!findTask(initialTaskId)) {
+      return null;
+    }
+    const started = newSession(initialTaskId!);
+    writeSession(started);
+    return started;
+  });
+
+  // Silent success detection: the first moment the flow does the job is written to the log, never shown. It only
+  // syncs to storage, so the session in state stays as it is.
+  const goalReachedAt = useRef<string | null>(null);
+  useEffect(() => {
+    if (!session || session.doneAt || goalReachedAt.current) {
+      return;
+    }
+    if (findTask(session.taskId)?.grade(document) === "complete") {
+      const at = new Date().toISOString();
+      goalReachedAt.current = at;
+      writeSession({
+        ...session,
+        goalReachedAt: at,
+        events: [...session.events, { type: "goal reached", at }],
+      });
+    }
+  }, [document, session]);
+
+  const startTask = (taskId: number) => {
+    goalReachedAt.current = null;
+    const started = newSession(taskId);
+    writeSession(started);
+    setSession(started);
+  };
+
+  const finishTask = () => {
+    if (!session) {
+      return;
+    }
+    const at = new Date().toISOString();
+    const reached = goalReachedAt.current;
+    const next: TaskSession = {
+      ...session,
+      ...(reached ? { goalReachedAt: reached } : {}),
+      doneAt: at,
+      grade: findTask(session.taskId)?.grade(document) ?? "fail",
+      events: [
+        ...session.events,
+        ...(reached ? [{ type: "goal reached" as const, at: reached }] : []),
+        { type: "done clicked", at },
+      ],
+    };
+    writeSession(next);
+    setSession(next);
+  };
+
+  const reopenBriefing = () => {
+    if (session && !session.doneAt) {
+      const next: TaskSession = {
+        ...session,
+        events: [
+          ...session.events,
+          { type: "briefing reopened", at: new Date().toISOString() },
+        ],
+      };
+      writeSession(next);
+      setSession(next);
+    }
+    setBriefingOpen(true);
+  };
   const portalRef = useRef<HTMLDivElement>(null);
   const addNodeRef = useRef<HTMLButtonElement>(null);
   const canvasControls = useRef<{
@@ -135,9 +197,10 @@ export const Editor = ({
               size="sm"
               variant="ghost"
               iconName="arrowLeft"
-              aria-label="Back"
-              tooltip="Back"
-              disabled
+              aria-label="Back to flows"
+              tooltip="Back to flows"
+              disabled={!onBack}
+              onClick={() => onBack?.(document)}
             />
             <input
               className={titleInputStyle}
@@ -193,17 +256,6 @@ export const Editor = ({
               </Tooltip>
               <Button
                 size="sm"
-                variant="subtle"
-                iconName="calendarClock"
-                tooltip={triggerSummary(document)}
-                onClick={() =>
-                  setUiState((current) => ({ ...current, triggersOpen: true }))
-                }
-              >
-                Triggers
-              </Button>
-              <Button
-                size="sm"
                 variant="solid"
                 iconName="play"
                 onClick={() =>
@@ -212,6 +264,26 @@ export const Editor = ({
               >
                 Run
               </Button>
+              <Menu
+                items={tasks.map((task) => ({
+                  id: String(task.id),
+                  text: `Task ${task.id}`,
+                  onClick: () => startTask(task.id),
+                }))}
+                trigger={
+                  <Button size="sm" variant="ghost">
+                    Tasks
+                  </Button>
+                }
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                iconName="info"
+                aria-label="About this prototype"
+                tooltip="About this prototype"
+                onClick={reopenBriefing}
+              />
             </div>
           </header>
           <main
@@ -223,61 +295,48 @@ export const Editor = ({
           >
             <ReactFlowProvider>
               <FlowCanvas
+                mode={mode}
                 onInit={(fitView, zoom) => {
                   canvasControls.current = { fitView, zoom };
                 }}
               />
-            </ReactFlowProvider>
-            <PropertiesPanel />
-            <div
-              className={bottomBarStyle}
-              role="toolbar"
-              aria-label="Canvas tools"
-            >
-              <Button
-                ref={addNodeRef}
-                size="sm"
-                variant="solid"
-                iconName="plus"
-                onClick={() =>
+              <PropertiesPanel />
+              <FlowToolbar
+                mode={mode}
+                onMode={setMode}
+                addNodeRef={addNodeRef}
+                pickerOpen={ui.picker?.anchor === "toolbar"}
+                onAddNode={() =>
                   setUiState((current) => ({
                     ...current,
                     picker: current.picker ? null : { anchor: "toolbar" },
                   }))
                 }
-              >
-                Add node
-              </Button>
-              <span className={dividerStyle} />
-              <Button
-                size="sm"
-                variant="ghost"
-                iconName="zoomOut"
-                aria-label="Zoom out"
-                tooltip="Zoom out"
-                onClick={() => canvasControls.current?.zoom(1 / 1.2)}
+                onOrganize={() => {
+                  setDocumentState((current) => organize(current));
+                  setTimeout(() => canvasControls.current?.fitView(), 60);
+                }}
               />
-              <Button
-                size="sm"
-                variant="ghost"
-                iconName="zoomIn"
-                aria-label="Zoom in"
-                tooltip="Zoom in"
-                onClick={() => canvasControls.current?.zoom(1.2)}
-              />
-              <Button
-                size="sm"
-                variant="ghost"
-                iconName="expand"
-                aria-label="Fit to screen"
-                tooltip="Fit to screen"
-                onClick={() => canvasControls.current?.fitView()}
-              />
-            </div>
+            </ReactFlowProvider>
             <AddNodePicker toolbarAnchor={addNodeRef} />
+            {session ? (
+              <TaskCard
+                session={session}
+                onDone={finishTask}
+                onReopenBriefing={reopenBriefing}
+                onClose={() => setSession(null)}
+              />
+            ) : null}
           </main>
           {ui.runOpen ? <RunDialog /> : null}
-          {ui.triggersOpen ? <TriggersDialog /> : null}
+          {briefingOpen ? (
+            <Briefing
+              onClose={() => {
+                markBriefingSeen();
+                setBriefingOpen(false);
+              }}
+            />
+          ) : null}
         </div>
       </EditorContext>
     </PortalContainerContext>
@@ -368,6 +427,8 @@ export const Screens = () => {
                         height: "[900px]",
                         border: "[0]",
                         transformOrigin: "[0 0]",
+                        // A static preview: the title link opens the live screen.
+                        pointerEvents: "none",
                       })}
                       style={{ transform: "scale(var(--frame-scale, 0.45))" }}
                     />

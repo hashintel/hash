@@ -15,10 +15,11 @@ const tile = cva({
     tone: {
       green: { backgroundColor: "green.s20", color: "green.s110" },
       orange: { backgroundColor: "orange.s20", color: "orange.s110" },
+      blue: { backgroundColor: "blue.s20", color: "blue.s110" },
       neutral: { backgroundColor: "neutral.s20", color: "neutral.s100" },
     },
     size: {
-      sm: { width: "[20px]", height: "[20px]" },
+      sm: { width: "[24px]", height: "[24px]" },
       md: { width: "[32px]", height: "[32px]" },
     },
   },
@@ -32,11 +33,11 @@ export const IconTile = ({
   size = "md",
 }: {
   icon: IconName;
-  tone?: "green" | "orange" | "neutral";
+  tone?: "green" | "orange" | "neutral" | "blue";
   size?: "sm" | "md";
 }) => (
   <span className={tile({ tone, size })}>
-    <Icon name={icon} size={size === "sm" ? "xxs" : "sm"} />
+    <Icon name={icon} size="sm" />
   </span>
 );
 

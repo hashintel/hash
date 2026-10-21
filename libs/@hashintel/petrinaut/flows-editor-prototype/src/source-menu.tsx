@@ -1,8 +1,9 @@
 import { useState } from "react";
 
-import { Button, Popover, TextInput } from "@hashintel/ds-components";
+import { Icon, Popover, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import {
   type CatalogEntry,
   getCatalogEntry,
@@ -19,7 +20,12 @@ import {
 import { useEditor } from "./editor-context";
 import { isMockPayloadKind } from "./mock-action-definitions";
 import { mockEntities } from "./mock-graph";
-import { acceptedKinds, type SourceOption, sourceOptions } from "./shapes";
+import {
+  acceptedKinds,
+  type SourceOption,
+  sourceOptions,
+  triggerForInput,
+} from "./shapes";
 import { IconTile, kindLabel } from "./ui";
 
 import type { PayloadKind, StepInputSource } from "./engine";
@@ -37,6 +43,7 @@ const rowStyle = css({
   cursor: "pointer",
   fontSize: "sm",
   color: "neutral.s120",
+  whiteSpace: "nowrap",
   _hover: { backgroundColor: "neutral.s15" },
   _focusVisible: { backgroundColor: "neutral.s15", outline: "none" },
   "&[data-active]": { backgroundColor: "neutral.s15" },
@@ -54,21 +61,34 @@ const groupLabelStyle = css({
 });
 
 export const menuPanelStyle = css({
-  width: "[236px]",
+  display: "flex",
+  flexDirection: "column",
+  width: "[max-content]",
+  minWidth: "[240px]",
+  maxWidth: "[380px]",
   maxHeight: "[380px]",
-  overflowY: "auto",
   backgroundColor: "neutral.s00",
   borderWidth: "thin",
   borderStyle: "solid",
   borderColor: "neutral.s40",
   borderRadius: "lg",
   boxShadow: "[0 8px 24px rgba(0, 0, 0, 0.12)]",
-  padding: "2",
+  overflow: "hidden",
+});
+
+const rowTextStyle = css({
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 });
 
 const ownerIcon = (document: EditorDocument, option: SourceOption) => {
   if (option.source.kind === "flow-input") {
-    return { icon: "playFilled" as const, tone: "neutral" as const };
+    const found = triggerForInput(document, option.source.inputName);
+    return {
+      icon: found?.definition.icon ?? ("playFilled" as const),
+      tone: "neutral" as const,
+    };
   }
   if (option.source.kind === "item") {
     return { icon: "rotate" as const, tone: "green" as const };
@@ -182,7 +202,13 @@ export const addLookupStep = (
   return { document: connected, lookupId };
 };
 
-export type TypedChoice = { label: string; source: StepInputSource };
+export type TypedChoice = {
+  label: string;
+  source: StepInputSource;
+  selected?: boolean;
+  /** Shown on hover, e.g. what an entity type is. */
+  hint?: string;
+};
 
 /**
  * The source menu of a field: flow inputs, the current item, earlier steps' outputs, typed choices, and the two ways
@@ -198,6 +224,7 @@ export const SourceMenu = ({
   query,
   onTypeValue: onTypeValueProp,
   typedChoices: typedChoicesProp = [],
+  typedGroupLabel,
   hideSearch = false,
 }: {
   anchor: React.RefObject<Element | null>;
@@ -210,6 +237,8 @@ export const SourceMenu = ({
   query?: string;
   onTypeValue?: () => void;
   typedChoices?: TypedChoice[];
+  /** The heading over the typed choices, e.g. "Entity types". */
+  typedGroupLabel?: string;
   hideSearch?: boolean;
 }) => {
   const { document, setDocument, setUi } = useEditor();
@@ -237,7 +266,7 @@ export const SourceMenu = ({
   const typed = typedChoices.filter(
     (choice) => !text || choice.label.toLowerCase().includes(text),
   );
-  const groups = ["Flow inputs", "This item", "Earlier steps"] as const;
+  const groups = ["Earlier steps", "This item", "Flow inputs"] as const;
 
   const addFlowInput = () => {
     const { document: next, source } = addFlowInputFor(document, input, kinds);
@@ -252,9 +281,14 @@ export const SourceMenu = ({
     onClose();
   };
 
-  const noStepFits = fromSteps && options.length === 0 && !text;
-  const kindName = kindLabel(kinds[0], input.array);
-  const article = /^[aeiou]/i.test(kindName) ? "an" : "a";
+  const nothingFits = options.length === 0 && typed.length === 0;
+  const emptyRowStyle = css({
+    paddingX: "2",
+    paddingY: "[5px]",
+    fontSize: "sm",
+    color: "neutral.s90",
+    whiteSpace: "nowrap",
+  });
 
   return (
     <Popover
@@ -271,165 +305,148 @@ export const SourceMenu = ({
         {query === undefined ? null : (
           <div
             className={css({
-              paddingX: "2",
-              paddingY: "1",
+              paddingX: "3",
+              paddingTop: "2",
               fontSize: "xs",
               color: "neutral.s90",
             })}
           >
-            @{query || " type to search values"}
+            @{query || " type to search"}
           </div>
         )}
         {hideSearch || query !== undefined ? null : (
-          <div className={css({ paddingBottom: "1" })}>
+          <div className={css({ padding: "2", paddingBottom: "0" })}>
             <TextInput
               value={search}
               onChange={(value) => setSearch(value)}
-              placeholder="Search values"
+              placeholder="Search"
               size="sm"
             />
           </div>
         )}
-        {noStepFits ? (
-          <div
-            className={css({
-              padding: "2",
-              display: "flex",
-              flexDirection: "column",
-              gap: "2",
-            })}
-          >
-            <div className={css({ fontSize: "sm", color: "neutral.s110" })}>
-              No earlier step gives{" "}
-              {kindName === "Any"
-                ? "a value that fits"
-                : `${article} ${kindName.toLowerCase()}`}
-              .
-            </div>
-            <div
-              className={css({ display: "flex", gap: "2", flexWrap: "wrap" })}
-            >
-              <Button
-                size="sm"
-                variant="solid"
-                iconName="plus"
-                onClick={addFlowInput}
-              >
-                Add flow input
-              </Button>
-              {onTypeValue ? (
-                <Button size="sm" variant="subtle" onClick={onTypeValue}>
-                  Type a value
-                </Button>
-              ) : null}
-              {kinds.includes("EntityId") && lookupAllowed ? (
-                <Button
-                  size="sm"
-                  variant="subtle"
-                  iconName="search"
-                  onClick={lookUp}
-                >
-                  Look up in the graph
-                </Button>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-        {typed.length > 0 ? (
-          <div>
-            <div className={groupLabelStyle}>
-              {kinds.includes("EntityId") ? "Entities" : "Values"}
-            </div>
-            {typed.map((choice) => (
-              <button
-                key={choice.label}
-                type="button"
-                className={rowStyle}
-                onClick={() => onPick(choice.source)}
-              >
-                <IconTile icon="cube" tone="neutral" size="sm" />
-                {choice.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
-        {groups.map((group) => {
-          const inGroup = options.filter((option) => option.group === group);
-          return inGroup.length === 0 ? null : (
-            <div key={group}>
-              <div className={groupLabelStyle}>{group}</div>
-              {inGroup.map((option) => {
-                const look = ownerIcon(document, option);
-                return (
+        <OverlayScrollArea className={css({ maxHeight: "[300px]" })}>
+          <div className={css({ padding: "1" })}>
+            {typed.length > 0 ? (
+              <div>
+                <div className={groupLabelStyle}>
+                  {typedGroupLabel ??
+                    (kinds.includes("EntityId") ? "Entities" : "Values")}
+                </div>
+                {typed.map((choice) => (
                   <button
-                    key={JSON.stringify(option.source)}
+                    key={choice.label}
                     type="button"
                     className={rowStyle}
-                    title={`${kindLabel(option.shape.payloadKind, option.shape.array)}${option.note ? ` · ${option.note}` : ""}`}
-                    onClick={() => onPick(option.source)}
+                    title={choice.hint}
+                    onClick={() => onPick(choice.source)}
                   >
-                    <IconTile icon={look.icon} tone={look.tone} size="sm" />
                     <span
                       className={css({
-                        flex: "1",
-                        minWidth: "[0]",
-                        overflowWrap: "anywhere",
+                        width: "[16px]",
+                        display: "inline-flex",
+                        flexShrink: 0,
                       })}
                     >
-                      {group === "Earlier steps"
-                        ? `${option.ownerLabel} › ${option.label}`
-                        : option.label}
+                      {choice.selected ? <Icon name="check" size="sm" /> : null}
                     </span>
+                    <span className={rowTextStyle}>{choice.label}</span>
                   </button>
-                );
-              })}
-            </div>
-          );
-        })}
-        {text && options.length === 0 && typed.length === 0 ? (
-          <div
-            className={css({
-              padding: "2",
-              fontSize: "sm",
-              color: "neutral.s90",
+                ))}
+              </div>
+            ) : null}
+            {groups.map((group) => {
+              const inGroup = options.filter(
+                (option) => option.group === group,
+              );
+              // Groups with nothing that fits stay hidden.
+              return inGroup.length === 0 ? null : (
+                <div key={group}>
+                  <div className={groupLabelStyle}>{group}</div>
+                  {inGroup.map((option) => {
+                    const look = ownerIcon(document, option);
+                    return (
+                      <button
+                        key={JSON.stringify(option.source)}
+                        type="button"
+                        className={rowStyle}
+                        title={`${option.ownerLabel} › ${option.label} · ${kindLabel(option.shape.payloadKind, option.shape.array)}${option.note ? ` · ${option.note}` : ""}`}
+                        onClick={() => onPick(option.source)}
+                      >
+                        <IconTile icon={look.icon} tone={look.tone} size="sm" />
+                        <span
+                          className={css({
+                            display: "flex",
+                            flexDirection: "column",
+                            minWidth: "[0]",
+                            flex: "1",
+                          })}
+                        >
+                          <span className={rowTextStyle}>{option.label}</span>
+                          <span
+                            className={css({
+                              fontSize: "xs",
+                              color: "neutral.s90",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            })}
+                          >
+                            {option.ownerLabel}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
             })}
-          >
-            Nothing matches “{query ?? search}”.
+            {nothingFits ? (
+              <div className={emptyRowStyle}>
+                {text
+                  ? `Nothing matches “${query ?? search}”`
+                  : "Nothing earlier fits"}
+              </div>
+            ) : null}
+            {lookupAllowed ? (
+              <div>
+                <div className={groupLabelStyle}>In the graph</div>
+                <button
+                  type="button"
+                  className={rowStyle}
+                  onClick={lookUp}
+                  title="Adds a Find entities step before this one"
+                >
+                  <IconTile icon="search" tone="green" size="sm" />
+                  <span className={css({ flex: "1" })}>
+                    Look up in the graph
+                  </span>
+                  <Icon name="chevronRight" size="xs" />
+                </button>
+              </div>
+            ) : null}
           </div>
-        ) : null}
-        {noStepFits ? null : (
-          <div
-            className={css({
-              marginTop: "2",
-              paddingTop: "2",
-              borderTopWidth: "thin",
-              borderTopStyle: "solid",
-              borderTopColor: "neutral.s30",
-            })}
-          >
-            {onTypeValue ? (
-              <button type="button" className={rowStyle} onClick={onTypeValue}>
-                <IconTile icon="pencil" tone="neutral" size="sm" />
-                Type a value
-              </button>
-            ) : null}
-            {kinds.includes("EntityId") && lookupAllowed ? (
-              <button
-                type="button"
-                className={rowStyle}
-                onClick={lookUp}
-                title="Adds a Find entities step before this one"
-              >
-                <IconTile icon="search" tone="green" size="sm" />
-                Look up in the graph
-              </button>
-            ) : null}
-            <button type="button" className={rowStyle} onClick={addFlowInput}>
-              <IconTile icon="playFilled" tone="neutral" size="sm" />
-              Add flow input
+        </OverlayScrollArea>
+        {/* Pinned at the bottom: the way out when nothing fits (Ciarán, 20 Oct). */}
+        <div
+          className={css({
+            padding: "1",
+            borderTopWidth: "thin",
+            borderTopStyle: "solid",
+            borderTopColor: "neutral.s30",
+            flexShrink: 0,
+          })}
+        >
+          {onTypeValue ? (
+            <button type="button" className={rowStyle} onClick={onTypeValue}>
+              <IconTile icon="pencil" tone="neutral" size="sm" />
+              Type a value
             </button>
-          </div>
-        )}
+          ) : null}
+          <button type="button" className={rowStyle} onClick={addFlowInput}>
+            <IconTile icon="plus" tone="blue" size="sm" />
+            Add flow input
+          </button>
+        </div>
       </div>
     </Popover>
   );

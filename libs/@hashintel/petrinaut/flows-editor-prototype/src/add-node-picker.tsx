@@ -11,6 +11,7 @@ import {
 } from "./catalog";
 import {
   START_ID,
+  addTrigger,
   addStep,
   type EditorDocument,
   findStep,
@@ -18,7 +19,12 @@ import {
 } from "./document";
 import { useEditor } from "./editor-context";
 import { canConnect, type ConnectionSource, type PayloadKind } from "./engine";
-import { getItemShape, getSourceShape } from "./shapes";
+import {
+  type TriggerKind,
+  triggerDefinitions,
+  triggerKinds,
+} from "./mock-triggers";
+import { getItemShape, getSourceShape, triggerFlowInputs } from "./shapes";
 import { IconTile, OriginMark } from "./ui";
 
 /** The values a new step could take, given where it goes: the earlier step's outputs, the flow inputs, the item. */
@@ -35,7 +41,7 @@ const availableShapes = (
     return [];
   }
   if (after.stepId === START_ID) {
-    return document.inputs.map((input) => ({
+    return triggerFlowInputs(document).map(({ input }) => ({
       payloadKind: input.payloadKind,
       array: input.array,
       required: input.required,
@@ -120,7 +126,10 @@ const recommendedFor = (
       catalog.filter((entry) => entry.id === id),
     );
   }
-  const fitting = catalog.filter((entry) => fits(entry, shapes));
+  // Manual journeys only for now: AI steps stay in Browse all but are never recommended.
+  const fitting = catalog.filter(
+    (entry) => entry.category !== "AI" && fits(entry, shapes),
+  );
   // A list feeds a single-value input only through For each, so offer it first.
   fitting.sort(
     (a, b) => Number(b.id === "forEach") - Number(a.id === "forEach"),
@@ -180,6 +189,26 @@ const EntryRow = ({
     ) : null}
   </button>
 );
+
+/** A trigger in the picker: added to the left column and wired to the first actions. */
+const TriggerRow = ({
+  kind,
+  onPick,
+}: {
+  kind: TriggerKind;
+  onPick: (kind: TriggerKind) => void;
+}) => {
+  const definition = triggerDefinitions[kind];
+  return (
+    <button type="button" className={rowStyle} onClick={() => onPick(kind)}>
+      <IconTile icon={definition.icon} tone="blue" size="sm" />
+      <span className={css({ flex: "1" })}>{definition.title}</span>
+      {definition.mock ? (
+        <OriginMark label="mock" hover="No such trigger on main yet." />
+      ) : null}
+    </button>
+  );
+};
 
 export const AddNodePicker = ({
   toolbarAnchor,
@@ -278,6 +307,21 @@ export const AddNodePicker = ({
   const available = catalog.filter(
     (entry) => !(inGroup && entry.id === "forEach"),
   );
+  // Triggers start the flow, so they're only offered from the toolbar, not after a step. One Manual run per flow.
+  const triggerChoices = (
+    picker.anchor === "toolbar" ? triggerKinds : []
+  ).filter(
+    (kind) =>
+      !query ||
+      triggerDefinitions[kind].title.toLowerCase().includes(query) ||
+      "triggers".includes(query),
+  );
+  const pickTrigger = (kind: TriggerKind) => {
+    const { document: next, triggerId } = addTrigger(document, kind);
+    setDocument(() => next);
+    setUi((current) => ({ ...current, picker: null, selectedId: triggerId }));
+    setSearch("");
+  };
   const matches = available.filter(
     (entry) =>
       entry.title.toLowerCase().includes(query) ||
@@ -316,7 +360,10 @@ export const AddNodePicker = ({
         />
         {query ? (
           <div className={css({ paddingTop: "2" })}>
-            {matches.length === 0 ? (
+            {triggerChoices.map((kind) => (
+              <TriggerRow key={kind} kind={kind} onPick={pickTrigger} />
+            ))}
+            {matches.length === 0 && triggerChoices.length === 0 ? (
               <div
                 className={css({
                   padding: "3",
@@ -349,6 +396,23 @@ export const AddNodePicker = ({
               </>
             ) : null}
             <div className={groupLabelStyle}>Browse all</div>
+            {triggerChoices.length > 0 ? (
+              <div>
+                <div
+                  className={css({
+                    fontSize: "xs",
+                    color: "neutral.s90",
+                    paddingX: "2",
+                    paddingTop: "2",
+                  })}
+                >
+                  Triggers
+                </div>
+                {triggerChoices.map((kind) => (
+                  <TriggerRow key={kind} kind={kind} onPick={pickTrigger} />
+                ))}
+              </div>
+            ) : null}
             {categories.map((category) => {
               const entries = available.filter(
                 (entry) => entry.category === category,

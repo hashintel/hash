@@ -22,7 +22,6 @@ export type EditorUi = {
   picker: PickerTarget | null;
   openField: OpenField | null;
   runOpen: boolean;
-  triggersOpen: boolean;
   /** Step kinds added this session, newest first, for "Recent". */
   recent: string[];
 };
@@ -32,7 +31,6 @@ export const initialUi: EditorUi = {
   picker: null,
   openField: null,
   runOpen: false,
-  triggersOpen: false,
   recent: [],
 };
 

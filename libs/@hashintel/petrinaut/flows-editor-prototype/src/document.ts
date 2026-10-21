@@ -4,6 +4,11 @@
  */
 import { getCatalogEntry } from "./catalog";
 import { findPropertyType } from "./mock-graph";
+import {
+  type TriggerKind,
+  type TriggerNode,
+  triggerDefinitions,
+} from "./mock-triggers";
 
 import type {
   EntityQuery,
@@ -13,8 +18,8 @@ import type {
   PayloadKind,
   StepInputSource,
 } from "./engine";
-import type { MockTriggers } from "./mock-triggers";
 
+/** The Start block: always on the canvas, holds the flow's inputs, and can't be deleted. */
 export const START_ID = "start";
 
 /**
@@ -57,13 +62,19 @@ export type ConditionOperator =
   | "lessThan"
   | "lessThanOrEqual"
   | "isEmpty"
-  | "isNotEmpty";
+  | "isNotEmpty"
+  /** A date in a month (Journey 3: "Received date is in October 2026"). */
+  | "isIn"
+  /** A link to any of a list of entities (Journey 3: "Shipment is any of …"). */
+  | "isAnyOf";
 
 export type ConditionRow = {
   id: number;
   propertyBaseUrl: string;
   operator: ConditionOperator | null;
   value: string | number | null;
+  /** MOCK: the value comes from an earlier step or a flow input. The engine's condition values are constants. */
+  valueSource?: StepInputSource;
 };
 
 /** A condition row about the value itself rather than one of its entity's properties. */
@@ -72,6 +83,8 @@ export const VALUE_SUBJECT = "value";
 /** The query builder's state for a Find entities step: a type and rows joined by AND. */
 export type QueryDraft = {
   entityTypeBaseUrl?: string;
+  /** MOCK: the entity type comes from an earlier step or a flow input. The engine's query is one constant. */
+  entityTypeSource?: StepInputSource;
   conditions: ConditionRow[];
 };
 
@@ -105,7 +118,9 @@ export type EditorDocument = {
   queries: Record<string, QueryDraft>;
   /** MOCK: Update entity's changes, keyed by step id. */
   patches: Record<string, PatchDraft[]>;
-  triggers: MockTriggers;
+  /** Trigger nodes left of Start (editor layer: the engine definition has inputs, not triggers). */
+  triggers: TriggerNode[];
+  startDescription: string;
   /** MOCK: the entity type of each `EntityId` flow input. `FlowInputDefinition` has no field for it. */
   inputEntityTypes: Record<string, string>;
 };
@@ -117,14 +132,90 @@ export const emptyDocument = (name = "Untitled flow"): EditorDocument => ({
   name,
   inputs: [],
   steps: [],
-  positions: { [START_ID]: { x: 80, y: 220 } },
+  positions: { [START_ID]: { x: 360, y: 220 } },
   wires: [],
   templates: {},
   lists: {},
   queries: {},
   patches: {},
-  triggers: { schedule: null, entity: null },
+  triggers: [],
+  startDescription: "",
   inputEntityTypes: {},
+});
+
+export const findTrigger = (document: EditorDocument, id: string) =>
+  document.triggers.find((trigger) => trigger.id === id);
+
+export const isTriggerId = (document: EditorDocument, id: string) =>
+  document.triggers.some((trigger) => trigger.id === id);
+
+/** Places a trigger left of Start, under the others, and wires it into Start. */
+export const addTrigger = (
+  document: EditorDocument,
+  kind: TriggerKind,
+): { document: EditorDocument; triggerId: string } => {
+  let triggerId: string = kind;
+  for (let index = 2; isTriggerId(document, triggerId); index += 1) {
+    triggerId = `${kind}${index}`;
+  }
+  const start = document.positions[START_ID] ?? { x: 360, y: 220 };
+  const lowest = Math.max(
+    start.y - 130,
+    ...document.triggers.map(
+      (trigger) => document.positions[trigger.id]?.y ?? 0,
+    ),
+  );
+  return {
+    triggerId,
+    document: {
+      ...document,
+      triggers: [
+        ...document.triggers,
+        {
+          id: triggerId,
+          kind,
+          description: "",
+          settings: triggerDefinitions[kind].defaults(),
+        },
+      ],
+      positions: {
+        ...document.positions,
+        [triggerId]: {
+          x: start.x - 320,
+          y: document.triggers.length === 0 ? start.y : lowest + 130,
+        },
+      },
+      wires: [
+        ...document.wires,
+        {
+          id: `${triggerId}:next->${START_ID}`,
+          source: triggerId,
+          sourcePort: "next",
+          target: START_ID,
+        },
+      ],
+    },
+  };
+};
+
+export const removeTrigger = (
+  document: EditorDocument,
+  triggerId: string,
+): EditorDocument => ({
+  ...document,
+  triggers: document.triggers.filter((trigger) => trigger.id !== triggerId),
+  wires: document.wires.filter((wire) => wire.source !== triggerId),
+});
+
+export const updateTrigger = (
+  document: EditorDocument,
+  triggerId: string,
+  update: (trigger: TriggerNode) => TriggerNode,
+): EditorDocument => ({
+  ...document,
+  triggers: document.triggers.map((trigger) =>
+    trigger.id === triggerId ? update(trigger) : trigger,
+  ),
 });
 
 /** Every step, with the id of the for-each it sits in, outer steps first. */
@@ -166,6 +257,10 @@ export const stepTitle = (step: DraftStep) =>
     : (getCatalogEntry(step.actionDefinitionId)?.title ??
       step.actionDefinitionId);
 
+/** What a step is called on screen: its description, or its type when it has none. */
+export const stepLabel = (step: DraftStep) =>
+  step.description || stepTitle(step);
+
 /** A step id from its title, unique in the document, as the engine's builder writes them (`findSuppliers`). */
 export const newStepId = (document: EditorDocument, title: string) => {
   const base = title
@@ -177,7 +272,13 @@ export const newStepId = (document: EditorDocument, title: string) => {
     flattenSteps(document.steps).map(({ step }) => step.stepId),
   );
   let candidate = base;
-  for (let index = 2; taken.has(candidate) || candidate === START_ID; index++) {
+  for (
+    let index = 2;
+    taken.has(candidate) ||
+    candidate === START_ID ||
+    isTriggerId(document, candidate);
+    index++
+  ) {
     candidate = `${base}${index}`;
   }
   return candidate;
@@ -205,12 +306,12 @@ export const addStep = (
 
   const step: DraftStep =
     catalogId === "forEach"
-      ? { kind: "for-each", stepId, description: "For each item", steps: [] }
+      ? { kind: "for-each", stepId, description: "", steps: [] }
       : {
           kind: "action",
           stepId,
           actionDefinitionId: catalogId,
-          description: title,
+          description: "",
           inputs: {},
         };
 
@@ -364,7 +465,11 @@ export const earlierStepIds = (
       // A step inside a for-each comes after whatever comes before the for-each.
       const before = [...incoming(current), ...(parentId ? [parentId] : [])];
       for (const candidate of before) {
-        if (!seen.has(candidate) && candidate !== START_ID) {
+        if (
+          !seen.has(candidate) &&
+          candidate !== START_ID &&
+          !isTriggerId(document, candidate)
+        ) {
           seen.add(candidate);
           order.push(candidate);
           next.push(candidate);

@@ -152,6 +152,16 @@ const presentation: Record<string, Presentation> = {
     icon: "microscope",
   },
   sendEmail: { title: "Send email", category: "Messages", icon: "at" },
+  requestReview: {
+    title: "Ask a person",
+    category: "Messages",
+    icon: "user",
+    tone: "orange",
+    ports: [
+      { outputName: "approved", label: "Approved" },
+      { outputName: "rejected", label: "Rejected" },
+    ],
+  },
 };
 
 const fromEngine = (id: string): CatalogEntry | null => {

@@ -20,12 +20,15 @@ import {
   START_ID,
   type DraftStep,
   type EditorDocument,
+  isTriggerId,
   removeStep,
+  removeTrigger,
   stepTitle,
 } from "./document";
 import { useEditor } from "./editor-context";
+import { triggerDefinitions } from "./mock-triggers";
 import { describeSource } from "./shapes";
-import { IconTile, kindLabel } from "./ui";
+import { IconTile } from "./ui";
 
 export const STEP_WIDTH = 240;
 const STEP_HEIGHT = 64;
@@ -34,7 +37,7 @@ const GROUP_HEADER = 48;
 const GROUP_PADDING = 32;
 
 type StepData = { stepId: string };
-type StepNode = Node<StepData, "step" | "forEach" | "start">;
+type StepNode = Node<StepData, "step" | "forEach" | "trigger" | "start">;
 
 const portRows = (step: DraftStep) =>
   step.kind === "action"
@@ -72,11 +75,22 @@ const toNodes = (document: EditorDocument, selectedId: string | null) => {
     {
       id: START_ID,
       type: "start",
-      position: document.positions[START_ID] ?? { x: 80, y: 220 },
+      position: document.positions[START_ID] ?? { x: 360, y: 220 },
       data: { stepId: START_ID },
       selected: selectedId === START_ID,
+      // Start holds the flow's inputs, so it stays.
       deletable: false,
     },
+    ...document.triggers.map((trigger, index) => ({
+      id: trigger.id,
+      type: "trigger" as const,
+      position: document.positions[trigger.id] ?? {
+        x: 40,
+        y: 220 + index * 130,
+      },
+      data: { stepId: trigger.id },
+      selected: selectedId === trigger.id,
+    })),
   ];
   const visit = (steps: DraftStep[], parentId?: string) => {
     for (const step of steps) {
@@ -207,14 +221,6 @@ const PortAdd = ({
   );
 };
 
-const titleStyle = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  lineHeight: "[18px]",
-  lineClamp: "2",
-});
-
 const errorDotStyle = css({
   position: "absolute",
   top: "[-4px]",
@@ -269,6 +275,45 @@ const flatFind = (document: EditorDocument, stepId: string) => {
   return visit(document.steps);
 };
 
+const oneLineStyle = cva({
+  base: {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    lineHeight: "[18px]",
+  },
+  variants: {
+    tone: {
+      title: { fontSize: "sm", fontWeight: "medium", color: "neutral.s120" },
+      body: { fontSize: "xs", color: "neutral.s110" },
+      muted: { fontSize: "xs", color: "neutral.s80" },
+    },
+  },
+});
+
+/** Two fixed lines, so every card has one height: the type, then the description or a muted prompt for one. */
+const CardText = ({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) => (
+  <span
+    className={css({
+      display: "flex",
+      flexDirection: "column",
+      minWidth: "[0]",
+      flex: "1",
+    })}
+  >
+    <span className={oneLineStyle({ tone: "title" })}>{title}</span>
+    <span className={oneLineStyle({ tone: description ? "body" : "muted" })}>
+      {description ?? "Add a description…"}
+    </span>
+  </span>
+);
+
 const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const { document } = useEditor();
   const step = flatFind(document, id);
@@ -300,7 +345,14 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
             icon={entry?.icon ?? "cube"}
             tone={entry?.tone ?? "green"}
           />
-          <span className={titleStyle}>{step.description}</span>
+          <CardText
+            title={entry?.title ?? step.actionDefinitionId}
+            description={
+              step.description && step.description !== entry?.title
+                ? step.description
+                : undefined
+            }
+          />
         </div>
       </Tooltip>
       {ports ? (
@@ -358,8 +410,8 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   );
 };
 
-const startStyle = css({
-  width: "[200px]",
+const triggerStyle = css({
+  width: "[240px]",
   backgroundColor: "neutral.s00",
   borderWidth: "thin",
   borderStyle: "solid",
@@ -374,49 +426,73 @@ const startStyle = css({
   },
 });
 
-/** The Start block holds the flow inputs (ledger, 8–9 Oct). */
+/** Triggers sit on the canvas and lead into the first actions (Dora and Aakarsh, 21 Oct). */
+const TriggerNodeView = ({ id, selected }: NodeProps<StepNode>) => {
+  const { document } = useEditor();
+  const trigger = document.triggers.find((candidate) => candidate.id === id);
+  if (!trigger) {
+    return null;
+  }
+  const definition = triggerDefinitions[trigger.kind];
+  return (
+    <div className={triggerStyle} data-selected={selected || undefined}>
+      <Tooltip content={`Trigger · ${definition.title}`} position="top">
+        <div
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            gap: "3",
+            paddingX: "3",
+            height: "[64px]",
+          })}
+        >
+          <IconTile icon={definition.icon} tone="blue" />
+          <CardText
+            title={definition.title}
+            description={trigger.description || undefined}
+          />
+        </div>
+      </Tooltip>
+      <Handle
+        id="next"
+        type="source"
+        position={Position.Right}
+        className={handleStyle}
+        style={{ top: STEP_HEIGHT / 2 }}
+      />
+    </div>
+  );
+};
+
+/** Start: always on the canvas, holds the flow's inputs; triggers lead into it, steps follow it. */
 const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
   const { document } = useEditor();
   return (
-    <div className={startStyle} data-selected={selected || undefined}>
-      <div
-        className={css({
-          display: "flex",
-          alignItems: "center",
-          gap: "3",
-          paddingX: "3",
-          height: "[64px]",
-        })}
-      >
-        <IconTile icon="playFilled" tone="neutral" />
-        <span className={titleStyle}>Start</span>
-      </div>
-      {document.inputs.length > 0 ? (
+    <div className={triggerStyle} data-selected={selected || undefined}>
+      <Handle
+        id="in"
+        type="target"
+        position={Position.Left}
+        className={handleStyle}
+        style={{ top: STEP_HEIGHT / 2 }}
+      />
+      <Tooltip content="Start · holds the flow's inputs" position="top">
         <div
           className={css({
-            borderTopWidth: "thin",
-            borderTopStyle: "solid",
-            borderTopColor: "neutral.s30",
-            paddingX: "3",
-            paddingTop: "2",
-            paddingBottom: "3",
             display: "flex",
-            flexDirection: "column",
-            gap: "1",
+            alignItems: "center",
+            gap: "3",
+            paddingX: "3",
+            height: "[64px]",
           })}
         >
-          {document.inputs.map((input) => (
-            <Tooltip
-              key={input.name}
-              content={kindLabel(input.payloadKind, input.array)}
-            >
-              <span className={css({ fontSize: "xs", color: "neutral.s100" })}>
-                {input.label ?? input.name}
-              </span>
-            </Tooltip>
-          ))}
+          <IconTile icon="playFilled" tone="neutral" />
+          <CardText
+            title="Start"
+            description={document.startDescription || undefined}
+          />
         </div>
-      ) : null}
+      </Tooltip>
       <Handle
         id="next"
         type="source"
@@ -491,7 +567,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
               color: "neutral.s120",
             })}
           >
-            {step.description}
+            {step.description || "For each"}
           </span>
         </Tooltip>
         <button
@@ -552,6 +628,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
 
 const nodeTypes = {
   step: StepNodeView,
+  trigger: TriggerNodeView,
   start: StartNodeView,
   forEach: GroupNodeView,
 };
@@ -565,8 +642,11 @@ const fitOptions = {
 
 export const FlowCanvas = ({
   onInit,
+  mode = "select",
 }: {
   onInit: (fitView: () => void, zoom: (by: number) => void) => void;
+  /** Hand pans on drag; Select drags a selection box (and pans with the middle or right button). */
+  mode?: "select" | "hand";
 }) => {
   const { document, setDocument, ui, setUi } = useEditor();
   const [dragPositions, setDragPositions] = useState<
@@ -703,7 +783,9 @@ export const FlowCanvas = ({
         setDocument((current) =>
           deleted.reduce(
             (next, node) =>
-              node.id === START_ID ? next : removeStep(next, node.id),
+              isTriggerId(next, node.id)
+                ? removeTrigger(next, node.id)
+                : removeStep(next, node.id),
             current,
           ),
         )
@@ -728,6 +810,8 @@ export const FlowCanvas = ({
       }
       fitView
       fitViewOptions={fitOptions}
+      panOnDrag={mode === "hand" ? true : [1, 2]}
+      selectionOnDrag={mode === "select"}
       minZoom={0.2}
       maxZoom={2}
       proOptions={{ hideAttribution: true }}
@@ -737,3 +821,42 @@ export const FlowCanvas = ({
 };
 
 export { stepTitle };
+
+const thumbnailStyle = css({
+  width: "[100%]",
+  height: "[100%]",
+  pointerEvents: "none",
+  "& .react-flow__handle, & [data-port-add], & [data-group-add]": {
+    display: "none",
+  },
+});
+
+/**
+ * A static preview of a flow for the flows list: fitted to its card, with every interaction off and no pointer
+ * events inside. Clicking the card (not the canvas) opens the flow.
+ */
+export const FlowThumbnail = () => {
+  const { document } = useEditor();
+  return (
+    <div className={thumbnailStyle} aria-hidden="true">
+      <ReactFlow
+        nodes={toNodes(document, null)}
+        edges={toEdges(document)}
+        nodeTypes={nodeTypes}
+        fitView
+        fitViewOptions={{ padding: 0.12, maxZoom: 0.8 }}
+        minZoom={0.05}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={false}
+        panOnDrag={false}
+        panOnScroll={false}
+        zoomOnScroll={false}
+        zoomOnPinch={false}
+        zoomOnDoubleClick={false}
+        preventScrolling={false}
+        proOptions={{ hideAttribution: true }}
+      />
+    </div>
+  );
+};

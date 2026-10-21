@@ -1,32 +1,184 @@
 /**
- * How runs start. Triggers live outside the flow (ledger, 8–9 Oct).
+ * Triggers → Start → steps (approved 21 Oct). Trigger nodes sit left of Start and lead into it; a flow can have
+ * several. Start holds the flow's inputs (the engine's `FlowDefinition` inputs); each trigger maps its data onto
+ * those inputs, a trigger field or a fixed value per input. Manual run is not a node: it's the Run button, whose form
+ * is built from Start's inputs. Ports and settings follow Dora's draft PRD database.
  *
- * - Manual runs use the form generated from the Start inputs, as the legacy run modal does.
- * - Schedules use the engine's real `ScheduleSpec` (Temporal schedules exist on `main`).
- * - MOCK: entity triggers. `main` has no trigger on an entity being created or updated, so its shape is made up here.
+ * The engine's flow definition has inputs, not triggers, so all of this is an editor-layer concept.
+ *
+ * - Recurring schedule is backed by the engine's real `CronScheduleSpec` (Temporal schedules exist on `main`).
+ * - MOCK: Entity created, Entity updated and Webhook received. `main` has no such triggers.
  */
-import type { CronScheduleSpec } from "./engine";
+import type { CronScheduleSpec, PayloadKind } from "./engine";
+import type { IconName } from "@hashintel/ds-components";
 
-export type ScheduleDraft = {
-  spec: CronScheduleSpec;
-  /** What the schedule gives each Start input on every run, keyed by input name. */
-  inputValues: Record<string, string | number | null>;
-  enabled: boolean;
+export type TriggerKind =
+  | "entityCreated"
+  | "entityUpdated"
+  | "schedule"
+  | "webhook";
+
+export type TriggerSettings = {
+  /** Entity created / updated: the type to watch. */
+  entityTypeBaseUrl?: string;
+  /** Entity updated: only these properties start a run. Empty means any change. */
+  propertiesToWatch?: string[];
+  /** Entity created / updated: only start when the entity matches. Free text in the draft PRD. */
+  condition?: string;
+  /** Recurring schedule. */
+  spec?: CronScheduleSpec;
+  /** Webhook received: the address to call. */
+  webhookUrl?: string;
+  /** What this trigger gives each Start input, keyed by input name. */
+  inputMap?: Record<string, InputMapping>;
 };
 
-/** MOCK: a trigger on an entity of one type being created or updated. */
-export type EntityTriggerDraft = {
-  entityTypeBaseUrl: string;
-  on: "created" | "updated" | "createdOrUpdated";
-  /** The Start input that receives the entity that changed. */
-  passesTo: string | null;
-  enabled: boolean;
+/** A Start input filled from one of the trigger's fields, or a fixed value. */
+export type InputMapping =
+  | { kind: "field"; output: string }
+  | { kind: "fixed"; value: string | number | null };
+
+export type TriggerNode = {
+  id: string;
+  kind: TriggerKind;
+  /** Every block has an optional description in the draft PRD. */
+  description: string;
+  settings: TriggerSettings;
 };
 
-export type MockTriggers = {
-  schedule: ScheduleDraft | null;
-  entity: EntityTriggerDraft | null;
+export type TriggerOutput = {
+  name: string;
+  label: string;
+  payloadKind: PayloadKind;
+  array: boolean;
 };
+
+export type TriggerDefinition = {
+  kind: TriggerKind;
+  title: string;
+  icon: IconName;
+  /** True for triggers `main` has no backend for. */
+  mock: boolean;
+  /** The trigger's fields, which can fill Start's inputs. */
+  outputs: TriggerOutput[];
+  defaults: () => TriggerSettings;
+};
+
+export const triggerDefinitions: Record<TriggerKind, TriggerDefinition> = {
+  entityCreated: {
+    kind: "entityCreated",
+    title: "Entity created",
+    icon: "cube",
+    mock: true,
+    outputs: [
+      {
+        name: "entity",
+        label: "Entity",
+        payloadKind: "EntityId",
+        array: false,
+      },
+      {
+        name: "linkedEntities",
+        label: "Linked entities",
+        payloadKind: "EntityId",
+        array: true,
+      },
+      {
+        name: "createdBy",
+        label: "Created by",
+        payloadKind: "EntityId",
+        array: false,
+      },
+      {
+        name: "createdAt",
+        label: "Created at",
+        payloadKind: "DateTime",
+        array: false,
+      },
+    ],
+    defaults: () => ({ condition: "" }),
+  },
+  entityUpdated: {
+    kind: "entityUpdated",
+    title: "Entity updated",
+    icon: "pencil",
+    mock: true,
+    outputs: [
+      {
+        name: "entity",
+        label: "Entity",
+        payloadKind: "EntityId",
+        array: false,
+      },
+      {
+        name: "linkedEntities",
+        label: "Linked entities",
+        payloadKind: "EntityId",
+        array: true,
+      },
+      {
+        name: "updatedBy",
+        label: "Updated by",
+        payloadKind: "EntityId",
+        array: false,
+      },
+      {
+        name: "updatedAt",
+        label: "Updated at",
+        payloadKind: "DateTime",
+        array: false,
+      },
+    ],
+    defaults: () => ({ propertiesToWatch: [], condition: "" }),
+  },
+  schedule: {
+    kind: "schedule",
+    title: "Recurring schedule",
+    icon: "calendarClock",
+    mock: false,
+    outputs: [
+      {
+        name: "scheduledFor",
+        label: "Scheduled for",
+        payloadKind: "DateTime",
+        array: false,
+      },
+      {
+        name: "runNumber",
+        label: "Run number",
+        payloadKind: "Number",
+        array: false,
+      },
+    ],
+    defaults: () => ({
+      spec: {
+        type: "cron",
+        cronExpression: "0 9 1 * *",
+        timezone: "Europe/London",
+      },
+    }),
+  },
+  webhook: {
+    kind: "webhook",
+    title: "Webhook received",
+    icon: "plug",
+    mock: true,
+    outputs: [
+      { name: "body", label: "Body", payloadKind: "Text", array: false },
+      {
+        name: "receivedAt",
+        label: "Received at",
+        payloadKind: "DateTime",
+        array: false,
+      },
+    ],
+    defaults: () => ({
+      webhookUrl: `https://app.hash.ai/api/flows/hooks/${Math.random().toString(36).slice(2, 10)}`,
+    }),
+  },
+};
+
+export const triggerKinds = Object.keys(triggerDefinitions) as TriggerKind[];
 
 export type Repeat = "day" | "week" | "month";
 
@@ -79,7 +231,7 @@ export const fromCron = (expression: string) => {
   return { repeat: "day" as const, time, dayOfMonth: 1, dayOfWeek: 1 };
 };
 
-const weekdays = [
+export const weekdays = [
   "Sunday",
   "Monday",
   "Tuesday",
@@ -104,15 +256,12 @@ const ordinal = (day: number) => {
 /** One sentence for a schedule, as Retool writes them ("At 09:00 on the 1st of every month"). */
 export const describeCron = (spec: CronScheduleSpec) => {
   const { repeat, time, dayOfMonth, dayOfWeek } = fromCron(spec.cronExpression);
-  const zone = spec.timezone ? ` (${spec.timezone})` : "";
   switch (repeat) {
     case "day":
-      return `Every day at ${time}${zone}`;
+      return `Every day at ${time}`;
     case "week":
-      return `Every ${weekdays[dayOfWeek] ?? "Monday"} at ${time}${zone}`;
+      return `Every ${weekdays[dayOfWeek] ?? "Monday"} at ${time}`;
     case "month":
-      return `At ${time} on the ${ordinal(dayOfMonth)} of every month${zone}`;
+      return `At ${time} on the ${ordinal(dayOfMonth)} of every month`;
   }
 };
-
-export { weekdays };

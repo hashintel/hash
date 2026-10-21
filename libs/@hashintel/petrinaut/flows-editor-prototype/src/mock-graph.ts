@@ -1,5 +1,5 @@
 /**
- * MOCK: a tiny graph for the supplier review story. The Vercel preview has no API, so entity types, their
+ * MOCK: a tiny graph for the example world (suppliers, shipments, purity checks). The Vercel preview has no API, so entity types, their
  * properties and a few entities live here. Ids follow the graph's URL shapes so they can sit in real engine types
  * (a query's filter, an `EntityId` payload).
  */
@@ -13,10 +13,15 @@ import type {
 export type MockPropertyType = {
   baseUrl: BaseUrl;
   title: string;
-  /** The kind Read entity would read it as, or `null` if it isn't a plain value. */
-  payloadKind: Extract<PayloadKind, "Text" | "Number" | "Boolean" | "Date">;
+  /** The kind Read entity would read it as. A link to other entities is `EntityId`. */
+  payloadKind: Extract<
+    PayloadKind,
+    "Text" | "Number" | "Boolean" | "Date" | "EntityId"
+  >;
   /** Values a query on it can pick from, for a select. */
   options?: string[];
+  /** A link to entities of this type, rather than a plain value. */
+  linksTo?: string;
 };
 
 export type MockEntityType = {
@@ -24,6 +29,10 @@ export type MockEntityType = {
   baseUrl: BaseUrl;
   title: string;
   pluralTitle: string;
+  /** One line for the briefing: what this entity is in the example world. */
+  description: string;
+  /** An example row, for the briefing. */
+  example: string;
   properties: MockPropertyType[];
 };
 
@@ -40,47 +49,105 @@ const propertyType = (
   title: string,
   payloadKind: MockPropertyType["payloadKind"],
   options?: string[],
+  linksTo?: string,
 ): MockPropertyType => ({
   baseUrl: `${web}/property-type/${slug}/` as BaseUrl,
   title,
   payloadKind,
   options,
+  linksTo,
 });
+
+const link = (slug: string, title: string, target: string) =>
+  propertyType(
+    slug,
+    title,
+    "EntityId",
+    undefined,
+    `${web}/entity-type/${target}/`,
+  );
 
 const entityType = (
   slug: string,
   title: string,
   pluralTitle: string,
+  description: string,
+  example: string,
   properties: MockPropertyType[],
 ): MockEntityType => ({
   entityTypeId: `${web}/entity-type/${slug}/v/1` as VersionedUrl,
   baseUrl: `${web}/entity-type/${slug}/` as BaseUrl,
   title,
   pluralTitle,
+  description,
+  example,
   properties,
 });
 
+/**
+ * The example world: a company buys raw materials. Each shipment from a supplier gets a purity check, and each
+ * month the quality team emails the suppliers whose shipments failed.
+ */
 export const mockEntityTypes = [
-  entityType("supplier", "Supplier", "Suppliers", [
-    propertyType("name", "Name", "Text"),
-    propertyType("contact-email", "Contact email", "Text"),
-    propertyType("status", "Status", "Text", [
-      "Active",
-      "On hold",
-      "Offboarded",
-    ]),
-    propertyType("certificate-url", "Certificate link", "Text"),
-    propertyType("last-reviewed", "Last reviewed", "Date"),
-  ]),
-  entityType("shipment", "Shipment", "Shipments", [
-    propertyType("reference", "Reference", "Text"),
-    propertyType("purity", "Measured purity", "Number"),
-    propertyType("received-on", "Received on", "Date"),
-  ]),
-  entityType("person", "Person", "People", [
-    propertyType("name", "Name", "Text"),
-    propertyType("email", "Email", "Text"),
-  ]),
+  entityType(
+    "supplier",
+    "Supplier",
+    "Suppliers",
+    "A company that sells us raw materials.",
+    "Acme Metals · quality@acme.example · Active",
+    [
+      propertyType("name", "Name", "Text"),
+      propertyType("contact-email", "Contact email", "Text"),
+      propertyType("status", "Status", "Text", [
+        "Active",
+        "On hold",
+        "Offboarded",
+      ]),
+      propertyType("certificate-url", "Certificate link", "Text"),
+      propertyType("last-reviewed", "Last reviewed", "Date"),
+      link("shipments", "Shipments", "shipment"),
+    ],
+  ),
+  entityType(
+    "shipment",
+    "Shipment",
+    "Shipments",
+    "One delivery of material from a supplier.",
+    "SH-2041 · from Acme Metals · received 3 Oct 2026",
+    [
+      propertyType("reference", "Reference", "Text"),
+      propertyType("received-date", "Received date", "Date"),
+      propertyType("shipment-status", "Status", "Text", [
+        "Delivered",
+        "In transit",
+      ]),
+      propertyType("days-late", "Days late", "Number"),
+      link("supplier", "Supplier", "supplier"),
+    ],
+  ),
+  entityType(
+    "purity-check",
+    "Purity check",
+    "Purity checks",
+    "The lab's test of one shipment: measured purity, and whether it passed.",
+    "SH-2041 · 97.2% · failed (needs 99%)",
+    [
+      link("checked-shipment", "Shipment", "shipment"),
+      propertyType("measured-purity", "Measured purity", "Number"),
+      propertyType("passed", "Passed", "Boolean"),
+    ],
+  ),
+  entityType(
+    "person",
+    "Person",
+    "People",
+    "Someone at our company, such as a quality lead.",
+    "Maya Patel · maya@example.com",
+    [
+      propertyType("name", "Name", "Text"),
+      propertyType("email", "Email", "Text"),
+    ],
+  ),
 ] as const satisfies readonly MockEntityType[];
 
 export const findEntityType = (baseUrl: string | undefined) =>
@@ -101,14 +168,34 @@ const entity = (
   label,
 });
 
-const [supplierType, shipmentType, personType] = mockEntityTypes;
+const [supplierType, shipmentType, purityCheckType, personType] =
+  mockEntityTypes;
 
 export const mockEntities: MockEntity[] = [
   entity(supplierType, "5b1d0000-0000-4000-8000-000000000001", "Acme Metals"),
   entity(supplierType, "5b1d0000-0000-4000-8000-000000000002", "Borealis Chem"),
   entity(supplierType, "5b1d0000-0000-4000-8000-000000000003", "Cobalt & Co"),
+  entity(
+    supplierType,
+    "5b1d0000-0000-4000-8000-000000000004",
+    "Northfield Chemicals",
+  ),
   entity(shipmentType, "5b1d0000-0000-4000-8000-000000000011", "SH-2041"),
   entity(shipmentType, "5b1d0000-0000-4000-8000-000000000012", "SH-2042"),
-  entity(personType, "5b1d0000-0000-4000-8000-000000000021", "Maya Patel"),
+  entity(
+    purityCheckType,
+    "5b1d0000-0000-4000-8000-000000000031",
+    "SH-2041 · 97.2%",
+  ),
+  entity(
+    purityCheckType,
+    "5b1d0000-0000-4000-8000-000000000032",
+    "SH-2042 · 99.4%",
+  ),
+  entity(
+    personType,
+    "5b1d0000-0000-4000-8000-000000000021",
+    "Maya Patel · quality lead",
+  ),
   entity(personType, "5b1d0000-0000-4000-8000-000000000022", "Tom Okafor"),
 ];

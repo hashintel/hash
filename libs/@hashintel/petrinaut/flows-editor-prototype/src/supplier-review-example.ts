@@ -134,6 +134,7 @@ export const supplierReviewExample = (): EditorDocument => {
     ],
     positions: {
       start: { x: 40, y: 300 },
+      schedule: { x: -280, y: 300 },
       findSuppliers: { x: 340, y: 300 },
       eachSupplier: { x: 660, y: 140 },
       readName: { x: 32, y: 72 },
@@ -150,6 +151,12 @@ export const supplierReviewExample = (): EditorDocument => {
         source: "start",
         sourcePort: "next",
         target: "findSuppliers",
+      },
+      {
+        id: "w1b",
+        source: "schedule",
+        sourcePort: "next",
+        target: "start",
       },
       {
         id: "w2",
@@ -268,17 +275,20 @@ export const supplierReviewExample = (): EditorDocument => {
         },
       ],
     },
-    triggers: {
-      schedule: {
-        spec: {
-          type: "cron",
-          cronExpression: "0 9 1 * *",
-          timezone: "Europe/London",
+    triggers: [
+      {
+        id: "schedule",
+        kind: "schedule",
+        description: "",
+        settings: {
+          spec: {
+            type: "cron",
+            cronExpression: "0 9 1 * *",
+            timezone: "Europe/London",
+          },
+          inputMap: { reviewMonth: { kind: "fixed", value: "2026-10-01" } },
         },
-        inputValues: { reviewMonth: null },
-        enabled: true,
       },
-      entity: null,
-    },
+    ],
   };
 };

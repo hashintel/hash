@@ -62,7 +62,8 @@ export type MockActionDefinitionId =
   | "createEntity"
   | "updateEntity"
   | "draftMessage"
-  | "sendEmail";
+  | "sendEmail"
+  | "requestReview";
 
 export const readEntityKinds = [
   "Text",
@@ -300,6 +301,56 @@ export const mockActionDefinitions: Record<
         name: "sentAt",
         array: false,
         required: true,
+      },
+    ],
+  },
+  requestReview: {
+    kind: "action",
+    actionDefinitionId: "requestReview",
+    name: "Ask a Person",
+    description:
+      "Ask someone to approve or reject before the flow goes on. Approved and Rejected are its paths (ledger, 13 Oct).",
+    origin: {
+      kind: "mock",
+      why: "No such action on main. Ports follow the ledger (Approved, Rejected) and the draft PRD's Request review.",
+    },
+    inputs: [
+      {
+        oneOfPayloadKinds: ["EntityId"],
+        name: "people",
+        description: "Who is asked.",
+        required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "instructions",
+        description: "What to check.",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["EntityId"],
+        name: "entity",
+        description: "The entity to review, if any.",
+        required: false,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "approved",
+        description: "The reviewer's comments, when approved.",
+        array: false,
+        required: false,
+      },
+      {
+        payloadKind: "Text",
+        name: "rejected",
+        description: "The reviewer's comments, when rejected.",
+        array: false,
+        required: false,
       },
     ],
   },

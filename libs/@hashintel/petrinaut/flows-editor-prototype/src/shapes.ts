@@ -9,6 +9,7 @@ import {
   type EditorDocument,
   earlierStepIds,
   fieldKey,
+  stepLabel,
   findStep,
   flattenSteps,
   listToSource,
@@ -26,6 +27,7 @@ import {
   type EditorStep,
   type FlowActionDefinitionId,
   type FlowDefinitionDiagnostic,
+  type FlowInputDefinition,
   type PayloadKind,
   type StepInputSource,
   validateFlowDefinition,
@@ -110,6 +112,18 @@ export const engineSourceFor = (
     return templateToSource(document.templates[key]);
   }
   const query = document.queries[key];
+  // A value or type taken from another step has no engine shape: the query is one constant.
+  const usesReferences =
+    !!query?.entityTypeSource ||
+    !!query?.conditions.some(
+      (row) =>
+        row.valueSource ||
+        row.operator === "isIn" ||
+        row.operator === "isAnyOf",
+    );
+  if (query && usesReferences) {
+    return null;
+  }
   if (query && input.kinds?.includes("EntityQuery")) {
     return {
       kind: "constant",
@@ -132,6 +146,34 @@ export const engineSourceFor = (
     return listToSource(document.lists[key], (kind ?? "Text") as PayloadKind);
   }
   return step.inputs[input.name];
+};
+
+/** A flow input as the editor shows it: Start holds every one. */
+export type TriggerInput = {
+  input: FlowInputDefinition;
+  triggerId: string;
+  label: string;
+};
+
+/** Every flow input the engine sees: Start's inputs. Triggers map their data onto these (editor layer). */
+export const triggerFlowInputs = (document: EditorDocument): TriggerInput[] =>
+  document.inputs.map((input) => ({
+    input,
+    triggerId: START_ID,
+    label: input.label ?? input.name,
+  }));
+
+const startLook = { icon: "playFilled" as const, title: "Start" };
+
+/** The look of the block a flow input comes from: always Start. */
+export const triggerForInput = (
+  document: EditorDocument,
+  inputName: string,
+) => {
+  const found = triggerFlowInputs(document).find(
+    (candidate) => candidate.input.name === inputName,
+  );
+  return found ? { definition: startLook, label: found.label } : undefined;
 };
 
 export type EngineDefinition = {
@@ -206,7 +248,7 @@ export const toEngineDefinition = (
     definition: {
       name: document.name,
       description: "",
-      inputs: document.inputs,
+      inputs: triggerFlowInputs(document).map(({ input }) => input),
       steps: convert(document.steps),
       outputs: [],
     },
@@ -336,7 +378,7 @@ export const sourceOptions = (
 
   const options: SourceOption[] = [];
 
-  for (const flowInput of document.inputs) {
+  for (const { input: flowInput, label } of triggerFlowInputs(document)) {
     const source = { kind: "flow-input" as const, inputName: flowInput.name };
     const shape = resolver.getSourceShape(source, scope);
     const fitted = shape ? fit(source, shape) : null;
@@ -345,7 +387,7 @@ export const sourceOptions = (
         ...fitted,
         group: "Flow inputs",
         ownerLabel: "Start",
-        label: flowInput.label ?? flowInput.name,
+        label,
         shape,
       });
     }
@@ -360,7 +402,7 @@ export const sourceOptions = (
       options.push({
         ...fitted,
         group: "This item",
-        ownerLabel: forEach?.description ?? "For each",
+        ownerLabel: forEach ? stepLabel(forEach) : "For each",
         label: "Current item",
         shape,
       });
@@ -399,7 +441,7 @@ export const sourceOptions = (
         options.push({
           ...fitted,
           group: "Earlier steps",
-          ownerLabel: earlier.description,
+          ownerLabel: stepLabel(earlier),
           label: output?.label ?? outputName,
           shape,
         });
@@ -418,16 +460,16 @@ export const describeSource = (
 ): { owner: string; label: string } => {
   switch (source.kind) {
     case "flow-input": {
-      const input = document.inputs.find(
-        (candidate) => candidate.name === source.inputName,
+      const found = triggerFlowInputs(document).find(
+        (candidate) => candidate.input.name === source.inputName,
       );
-      return { owner: "Start", label: input?.label ?? source.inputName };
+      return { owner: "Start", label: found?.label ?? source.inputName };
     }
     case "item": {
       const parentId = findStep(document, stepId)?.parentId;
       const parent = parentId ? findStep(document, parentId)?.step : undefined;
       return {
-        owner: parent?.description ?? "For each",
+        owner: parent ? stepLabel(parent) : "For each",
         label: "Current item",
       };
     }
@@ -440,7 +482,7 @@ export const describeSource = (
             )
           : undefined;
       return {
-        owner: step?.description ?? source.stepId,
+        owner: step ? stepLabel(step) : source.stepId,
         label: output?.label ?? source.outputName,
       };
     }

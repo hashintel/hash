@@ -3,9 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Button,
   Chip,
-  Filter,
-  FilterGroup,
-  type FilterOperator,
+  Icon,
   Menu,
   NumberInput,
   Select,
@@ -14,6 +12,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { filterRecipe } from "../../../ds-components/src/components/Filter/filter.recipe";
 import { type CatalogEntry, getCatalogEntry, type InputView } from "./catalog";
 import {
   type ConditionOperator,
@@ -21,6 +20,7 @@ import {
   type DraftActionStep,
   type EditorDocument,
   fieldKey,
+  stepLabel,
   findStep,
   type QueryDraft,
   type RefSource,
@@ -36,9 +36,9 @@ import {
   mockEntities,
   mockEntityTypes,
 } from "./mock-graph";
-import { describeSource, getSourceShape } from "./shapes";
+import { describeSource, getSourceShape, triggerForInput } from "./shapes";
 import { entityChoices, SourceMenu } from "./source-menu";
-import { IconTile, kindLabel, mutedTextStyle } from "./ui";
+import { IconTile, kindLabel, mutedTextStyle, PropertyRow } from "./ui";
 
 import type { StepInputSource } from "./engine";
 
@@ -122,8 +122,9 @@ const sourceChipLabel = (
 
 const ownerLook = (document: EditorDocument, source: StepInputSource) => {
   if (source.kind === "flow-input") {
+    const found = triggerForInput(document, source.inputName);
     return {
-      icon: "playFilled" as const,
+      icon: found?.definition.icon ?? ("playFilled" as const),
       tone: "neutral" as const,
       owner: "Start",
     };
@@ -137,7 +138,7 @@ const ownerLook = (document: EditorDocument, source: StepInputSource) => {
     return {
       icon: entry?.icon ?? ("rotate" as const),
       tone: entry?.tone ?? ("green" as const),
-      owner: step?.description ?? source.stepId,
+      owner: step ? stepLabel(step) : source.stepId,
     };
   }
   return null;
@@ -765,76 +766,402 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
 };
 
 /* ----------------------------------------------------------------------------------------------------------------
- * Query builder: UI only, never SQL; copies the DS Filter chip pattern (ledger, 20 Oct).
+ * Query builder (Journey 3): UI only, never SQL (ledger, 20 Oct). Each condition is subject · operator · value, joined
+ * by "and". The value slot takes a typed value, or "@" for an earlier step's output or a flow input.
  * ------------------------------------------------------------------------------------------------------------- */
 
-type ConditionValues = {
-  equals: string;
-  notEquals: string;
-  contains: string;
-  greaterThan: number;
-  greaterThanOrEqual: number;
-  lessThan: number;
-  lessThanOrEqual: number;
-  isEmpty: null;
-  isNotEmpty: null;
+type OperatorChoice = {
+  value: ConditionOperator;
+  text: string;
+  takesValue: boolean;
 };
 
 const operatorsFor = (
-  property: Pick<MockPropertyType, "payloadKind" | "options"> | undefined,
+  property:
+    | Pick<MockPropertyType, "payloadKind" | "options" | "linksTo">
+    | undefined,
   forGraph: boolean,
-): FilterOperator<ConditionValues>[] => {
-  const textInput = property?.options
-    ? {
-        type: "select" as const,
-        items: property.options.map((option) => ({
-          value: option,
-          text: option,
-        })),
-      }
-    : { type: "string" as const };
-  const empty: FilterOperator<ConditionValues>[] = [
-    { key: "isEmpty", label: "is empty", input: null },
-    { key: "isNotEmpty", label: "is not empty", input: null },
+): OperatorChoice[] => {
+  const empty: OperatorChoice[] = [
+    { value: "isEmpty", text: "is empty", takesValue: false },
+    { value: "isNotEmpty", text: "is not empty", takesValue: false },
   ];
-  if (property?.payloadKind === "Number" || property?.payloadKind === "Date") {
-    const input =
-      property.payloadKind === "Number"
-        ? { type: "float" as const }
-        : { type: "string" as const, placeholder: "YYYY-MM-DD" };
+  if (property?.linksTo) {
     return [
-      {
-        key: "equals",
-        label: "=",
-        input: textInput.type === "select" ? textInput : { type: "string" },
-      },
-      { key: "greaterThan", label: ">", input: input as never },
-      { key: "greaterThanOrEqual", label: "≥", input: input as never },
-      { key: "lessThan", label: "<", input: input as never },
-      { key: "lessThanOrEqual", label: "≤", input: input as never },
+      { value: "isAnyOf", text: "is any of", takesValue: true },
+      ...empty,
+    ];
+  }
+  if (property?.payloadKind === "Date") {
+    return [
+      { value: "isIn", text: "is in", takesValue: true },
+      { value: "equals", text: "=", takesValue: true },
+      { value: "greaterThan", text: ">", takesValue: true },
+      { value: "lessThan", text: "<", takesValue: true },
+      ...empty,
+    ];
+  }
+  if (property?.payloadKind === "Number") {
+    return [
+      { value: "equals", text: "=", takesValue: true },
+      { value: "notEquals", text: "≠", takesValue: true },
+      { value: "greaterThan", text: ">", takesValue: true },
+      { value: "greaterThanOrEqual", text: "≥", takesValue: true },
+      { value: "lessThan", text: "<", takesValue: true },
+      { value: "lessThanOrEqual", text: "≤", takesValue: true },
       ...empty,
     ];
   }
   return [
-    { key: "equals", label: "=", input: textInput },
-    { key: "notEquals", label: "≠", input: textInput },
+    { value: "equals", text: "is", takesValue: true },
+    { value: "notEquals", text: "is not", takesValue: true },
     // The graph's filter has no "contains" for text (only `containsSegment`), so Find entities can't offer it.
     ...(forGraph
       ? []
-      : [
-          {
-            key: "contains" as const,
-            label: "contains",
-            input: { type: "string" as const },
-          },
-        ]),
+      : [{ value: "contains" as const, text: "contains", takesValue: true }]),
     ...empty,
   ];
 };
 
+const ConditionRowEditor = ({
+  step,
+  input,
+  entry,
+  row,
+  properties,
+  forGraph,
+  onChange,
+  onRemove,
+}: {
+  step: DraftActionStep;
+  input: InputView;
+  entry: CatalogEntry;
+  row: ConditionRow;
+  properties: { baseUrl: string; title: string; property?: MockPropertyType }[];
+  forGraph: boolean;
+  onChange: (change: Partial<ConditionRow>) => void;
+  onRemove: () => void;
+}) => {
+  const { document, ui, setUi } = useEditor();
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const menuKey = `${input.name}:condition${row.id}`;
+  const open =
+    ui.openField?.stepId === step.stepId && ui.openField.inputName === menuKey;
+  const [mention, setMention] = useState<string | undefined>(
+    open && ui.openField?.mode === "mention" ? "" : undefined,
+  );
+  const setOpen = (next: boolean, mode: "menu" | "mention" = "menu") =>
+    setUi((current) => ({
+      ...current,
+      openField: next
+        ? { stepId: step.stepId, inputName: menuKey, mode }
+        : null,
+    }));
+
+  const subject = properties.find(
+    (candidate) => candidate.baseUrl === row.propertyBaseUrl,
+  );
+  const property = subject?.property ?? findPropertyType(row.propertyBaseUrl);
+  const operators = operatorsFor(property, forGraph);
+  const operator = operators.find(
+    (candidate) => candidate.value === row.operator,
+  );
+  const valueKind = property?.payloadKind ?? "Text";
+  const valueInput: InputView = {
+    name: menuKey,
+    label: subject?.title ?? "Value",
+    array: row.operator === "isAnyOf",
+    required: true,
+    hasDefault: false,
+    kinds: [valueKind],
+  };
+  const sourceLook = row.valueSource
+    ? describeSource(document, row.valueSource, step.stepId)
+    : null;
+
+  // The DS Filter chip's own recipe and slots, so the row matches the Figma DS filter 1:1.
+  const classes = filterRecipe({
+    size: "sm",
+    complete: true,
+    invalid: false,
+    disabled: false,
+  });
+  const sourceIcon =
+    row.valueSource?.kind === "flow-input"
+      ? (triggerForInput(document, row.valueSource.inputName)?.definition
+          .icon ?? "hand")
+      : "search";
+
+  return (
+    <div
+      ref={anchorRef}
+      className={css({ display: "flex", flexDirection: "column", gap: "1" })}
+    >
+      <div className={classes.root} role="group" data-condition-row={row.id}>
+        <Menu
+          items={properties.map((candidate) => ({
+            id: candidate.baseUrl,
+            text: candidate.title,
+            selected: candidate.baseUrl === row.propertyBaseUrl,
+            onClick: () =>
+              onChange({
+                propertyBaseUrl: candidate.baseUrl,
+                operator:
+                  operatorsFor(candidate.property, forGraph)[0]?.value ?? null,
+                value: null,
+                valueSource: undefined,
+              }),
+          }))}
+          trigger={
+            <button
+              type="button"
+              data-part="property"
+              className={classes.property}
+            >
+              {subject?.title ?? "Value"}
+            </button>
+          }
+        />
+        <Menu
+          items={operators.map(({ value, text }) => ({
+            id: value,
+            text,
+            selected: value === row.operator,
+            onClick: () => onChange({ operator: value }),
+          }))}
+          trigger={
+            <button type="button" className={classes.trigger}>
+              <span className={classes.triggerLabel}>
+                {operator?.text ?? "…"}
+              </span>
+            </button>
+          }
+        />
+        {operator?.takesValue === false ? null : row.valueSource &&
+          sourceLook ? (
+          <span data-part="input-slot" className={classes.inputSlot}>
+            <Tooltip
+              content={`${sourceLook.owner} › ${sourceLook.label}. Click to change.`}
+            >
+              <button
+                type="button"
+                className={classes.trigger}
+                onClick={() => setOpen(true)}
+                aria-label={`Change the source of ${valueInput.label}`}
+              >
+                <Icon name={sourceIcon} size="xs" />
+                <span className={classes.triggerLabel}>{sourceLook.label}</span>
+              </button>
+            </Tooltip>
+          </span>
+        ) : property?.options ? (
+          <Menu
+            items={property.options.map((option) => ({
+              id: option,
+              text: option,
+              selected: option === row.value,
+              onClick: () => onChange({ value: option }),
+            }))}
+            trigger={
+              <button type="button" className={classes.trigger}>
+                <span className={classes.triggerLabel}>
+                  {typeof row.value === "string" ? row.value : "Value"}
+                </span>
+              </button>
+            }
+          />
+        ) : (
+          <span data-part="input-slot" className={classes.inputSlot}>
+            <input
+              className={classes.input}
+              value={row.value === null ? "" : String(row.value)}
+              placeholder={valueKind === "Date" ? "Month, or @" : "Value, or @"}
+              aria-label={`${valueInput.label} value`}
+              onChange={(event) => {
+                const next = event.target.value;
+                const at = next.lastIndexOf("@");
+                if (at >= 0) {
+                  setMention(next.slice(at + 1));
+                  setOpen(true, "mention");
+                  onChange({ value: next.slice(0, at) || null });
+                  return;
+                }
+                onChange({
+                  value:
+                    next === ""
+                      ? null
+                      : valueKind === "Number" && !Number.isNaN(Number(next))
+                        ? Number(next)
+                        : next,
+                });
+              }}
+            />
+          </span>
+        )}
+        <Menu
+          items={[
+            {
+              id: "source",
+              text: "Use a value from an earlier step",
+              onClick: () => setOpen(true),
+            },
+            ...(row.valueSource
+              ? [
+                  {
+                    id: "typed",
+                    text: "Type a value instead",
+                    onClick: () => onChange({ valueSource: undefined }),
+                  },
+                ]
+              : []),
+            {
+              id: "remove",
+              text: "Remove condition",
+              tone: "error" as const,
+              onClick: onRemove,
+            },
+          ]}
+          trigger={
+            <button
+              type="button"
+              data-part="remove"
+              className={classes.remove}
+              aria-label="Condition options"
+            >
+              <Icon name="ellipsisVertical" size="xs" />
+            </button>
+          }
+        />
+      </div>
+      {open ? (
+        <SourceMenu
+          anchor={anchorRef}
+          stepId={step.stepId}
+          input={valueInput}
+          entry={entry}
+          query={mention}
+          onClose={() => {
+            setMention(undefined);
+            setOpen(false);
+          }}
+          onPick={(source) => {
+            onChange({ valueSource: source, value: null });
+            setMention(undefined);
+            setOpen(false);
+          }}
+          onTypeValue={() => {
+            onChange({ valueSource: undefined });
+            setMention(undefined);
+            setOpen(false);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+};
+
+/** Entity type with the same source menu: a fixed type, an earlier step, a flow input, or the graph (Journey 3, B2). */
+const EntityTypeField = ({
+  step,
+  entry,
+  draft,
+  update,
+}: {
+  step: DraftActionStep;
+  entry: CatalogEntry;
+  draft: QueryDraft;
+  update: (next: QueryDraft) => void;
+}) => {
+  const { document, ui, setUi } = useEditor();
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const open =
+    ui.openField?.stepId === step.stepId &&
+    ui.openField.inputName === "entityType";
+  const setOpen = (next: boolean) =>
+    setUi((current) => ({
+      ...current,
+      openField: next
+        ? { stepId: step.stepId, inputName: "entityType", mode: "menu" }
+        : null,
+    }));
+  const typeInput: InputView = {
+    name: "entityType",
+    label: "Entity type",
+    array: false,
+    required: true,
+    hasDefault: false,
+    kinds: ["VersionedUrl"],
+    sources: ["HASH graph @lookup", "Previous step"],
+  };
+  const selected = findEntityType(draft.entityTypeBaseUrl);
+  const sourceLook = draft.entityTypeSource
+    ? describeSource(document, draft.entityTypeSource, step.stepId)
+    : null;
+
+  return (
+    <div ref={anchorRef}>
+      <Button
+        size="sm"
+        variant="subtle"
+        iconName="chevronDown"
+        iconPosition="right"
+        onClick={() => setOpen(true)}
+      >
+        {sourceLook
+          ? `${sourceLook.owner} › ${sourceLook.label}`
+          : (selected?.title ?? "Choose a type")}
+      </Button>
+      {open ? (
+        <SourceMenu
+          anchor={anchorRef}
+          stepId={step.stepId}
+          input={typeInput}
+          entry={entry}
+          typedGroupLabel="Entity types"
+          typedChoices={mockEntityTypes.map((type) => ({
+            label: type.title,
+            hint: type.description,
+            selected:
+              !draft.entityTypeSource &&
+              type.baseUrl === draft.entityTypeBaseUrl,
+            source: {
+              kind: "constant",
+              payload: { kind: "VersionedUrl", value: type.entityTypeId },
+            },
+          }))}
+          onClose={() => setOpen(false)}
+          onPick={(source) => {
+            if (source.kind === "constant") {
+              const type = mockEntityTypes.find(
+                (candidate) => candidate.entityTypeId === source.payload.value,
+              );
+              update({
+                entityTypeBaseUrl: type?.baseUrl,
+                entityTypeSource: undefined,
+                conditions:
+                  type?.baseUrl === draft.entityTypeBaseUrl
+                    ? draft.conditions
+                    : [],
+              });
+            } else {
+              update({ ...draft, entityTypeSource: source });
+            }
+            setOpen(false);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+};
+
+/**
+ * Find entities' query, or If / Filter list's condition. The Query block is stacked (key above, builder below), as
+ * in Journey 3.
+ */
 export const QueryField = ({
   step,
   input,
+  entry,
   mode,
   typeHint,
 }: FieldProps & { mode: "query" | "condition"; typeHint?: string }) => {
@@ -875,106 +1202,113 @@ export const QueryField = ({
     });
 
   return (
-    <div
-      className={css({ display: "flex", flexDirection: "column", gap: "2" })}
-    >
+    <>
       {mode === "query" ? (
-        <Select
-          size="sm"
-          items={mockEntityTypes.map((type) => ({
-            value: type.baseUrl,
-            text: type.pluralTitle,
-          }))}
-          value={draft.entityTypeBaseUrl ?? null}
-          onChange={(value) =>
-            update({ entityTypeBaseUrl: value ?? undefined, conditions: [] })
-          }
-          placeholder="Choose what to find"
-        />
+        <PropertyRow
+          label="Entity type"
+          hover="Entity type · the kind of entity to find. At least one of Webs, Entity type or Query."
+        >
+          <EntityTypeField
+            step={step}
+            entry={entry}
+            draft={draft}
+            update={update}
+          />
+        </PropertyRow>
       ) : null}
-      {properties.length > 0 ? (
-        <FilterGroup>
-          {draft.conditions.map((row, index) => {
-            const property = findPropertyType(row.propertyBaseUrl);
-            return (
-              <div
-                key={row.id}
-                className={css({
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "1",
-                })}
-              >
-                {index > 0 ? (
-                  <span
-                    className={css({
-                      fontSize: "[11px]",
-                      fontWeight: "semibold",
-                      color: "neutral.s90",
-                    })}
-                  >
-                    AND
-                  </span>
-                ) : null}
-                <Filter<ConditionValues>
-                  property={`${key}-${row.id}`}
-                  propertyLabel={property?.title ?? "Value"}
-                  operators={operatorsFor(property, mode === "query")}
-                  value={
-                    row.operator
-                      ? ({ key: row.operator, value: row.value } as never)
-                      : null
-                  }
-                  onChange={(operator, value) =>
-                    updateRow(row.id, {
-                      operator: operator as ConditionOperator,
-                      value: value as string | number | null,
-                    })
-                  }
-                  removeable={{
-                    onRemove: () =>
-                      update({
-                        ...draft,
-                        conditions: draft.conditions.filter(
-                          (other) => other.id !== row.id,
-                        ),
-                      }),
-                  }}
-                />
-              </div>
-            );
+      {mode === "query" &&
+      !draft.entityTypeBaseUrl &&
+      !draft.entityTypeSource &&
+      draft.conditions.length === 0 ? (
+        <div
+          className={css({
+            paddingX: "4",
+            fontSize: "xs",
+            color: "neutral.s90",
           })}
-          <Menu
-            items={properties.map((property) => ({
-              id: property.baseUrl,
-              text: property.title,
-              onClick: () =>
+        >
+          Set at least one of Webs, Entity type or Query.
+        </div>
+      ) : null}
+      <div
+        className={css({
+          paddingX: "4",
+          paddingY: "[6px]",
+          display: "flex",
+          flexDirection: "column",
+          gap: "2",
+        })}
+      >
+        <span className={css({ fontSize: "sm", color: "neutral.s90" })}>
+          {mode === "query" ? "Query" : input.label}
+        </span>
+        {draft.conditions.map((row, index) => (
+          <div
+            key={row.id}
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              gap: "1",
+            })}
+          >
+            {index > 0 ? (
+              <span className={css({ fontSize: "xs", color: "neutral.s90" })}>
+                and
+              </span>
+            ) : null}
+            <ConditionRowEditor
+              step={step}
+              input={input}
+              entry={entry}
+              row={row}
+              properties={properties}
+              forGraph={mode === "query"}
+              onChange={(change) => updateRow(row.id, change)}
+              onRemove={() =>
                 update({
                   ...draft,
-                  conditions: [
-                    ...draft.conditions,
-                    {
-                      id: nextId,
-                      propertyBaseUrl: property.baseUrl,
-                      operator: null,
-                      value: null,
-                    },
-                  ],
-                }),
-            }))}
-            trigger={<FilterGroup.AddFilter renderAs="plusLabel" />}
-          />
-        </FilterGroup>
-      ) : mode === "condition" ? null : (
-        <span className={mutedTextStyle}>Choose what to find first.</span>
-      )}
-      {mode === "query" &&
-      draft.conditions.some((row) => row.operator === "contains") ? (
-        <span className={mutedTextStyle}>
-          “contains” is dropped: the graph has no such filter.
-        </span>
-      ) : null}
-    </div>
+                  conditions: draft.conditions.filter(
+                    (other) => other.id !== row.id,
+                  ),
+                })
+              }
+            />
+          </div>
+        ))}
+        {properties.length > 0 ? (
+          <div>
+            <Menu
+              items={properties.map((property) => ({
+                id: property.baseUrl,
+                text: property.title,
+                onClick: () =>
+                  update({
+                    ...draft,
+                    conditions: [
+                      ...draft.conditions,
+                      {
+                        id: nextId,
+                        propertyBaseUrl: property.baseUrl,
+                        operator:
+                          operatorsFor(property.property, mode === "query")[0]
+                            ?.value ?? null,
+                        value: null,
+                      },
+                    ],
+                  }),
+              }))}
+              trigger={
+                <Button size="sm" variant="subtle" iconName="plus">
+                  Add condition
+                </Button>
+              }
+            />
+          </div>
+        ) : (
+          <span className={mutedTextStyle}>Choose an entity type first.</span>
+        )}
+      </div>
+    </>
   );
 };
 
@@ -996,10 +1330,13 @@ export const PropertyField = ({ step, input }: FieldProps) => {
   const groups = (entityType ? [entityType] : mockEntityTypes).map((type) => ({
     id: type.baseUrl,
     label: type.title,
-    items: type.properties.map((property) => ({
-      value: property.baseUrl,
-      text: entityType ? property.title : `${type.title} › ${property.title}`,
-    })),
+    // Read entity reads plain values; links are followed with another step.
+    items: type.properties
+      .filter((property) => !("linksTo" in property && property.linksTo))
+      .map((property) => ({
+        value: property.baseUrl,
+        text: entityType ? property.title : `${type.title} › ${property.title}`,
+      })),
   }));
 
   return (
