@@ -97,7 +97,7 @@ export const AiCtaModal = ({
 }: {
   bottomClearance: number;
   onDismiss: () => void;
-  onStartAction?: (action: string) => void;
+  onStartAction?: () => void;
   onStartVoiceMode: () => void;
   onSubmit: (message: string) => void;
   /** A plugin assistant's button, offered in place of Send while the input is empty. */
@@ -197,7 +197,7 @@ export const AiCtaModal = ({
               <Button
                 aria-label={startAction.label}
                 className={css({ margin: "2" })}
-                onClick={() => onStartAction?.(startAction.id)}
+                onClick={onStartAction}
                 prefix={startAction.icon}
                 size="lg"
                 tone="brand"

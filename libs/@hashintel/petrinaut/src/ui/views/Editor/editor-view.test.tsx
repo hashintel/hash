@@ -79,10 +79,25 @@ vi.mock("./panels/BottomPanel/panel", () => ({ BottomPanel: () => null }));
 vi.mock("./components/BottomBar/bottom-bar", () => ({ BottomBar: () => null }));
 vi.mock("./components/TopBar/top-bar", () => ({ TopBar: () => null }));
 vi.mock("./components/ai-cta-modal", () => ({
-  AiCtaModal: ({ onSubmit }: { onSubmit: (message: string) => void }) => (
-    <button type="button" onClick={() => onSubmit("Build an SIR model")}>
-      Send empty-net prompt
-    </button>
+  AiCtaModal: ({
+    onStartAction,
+    onSubmit,
+    startAction,
+  }: {
+    onStartAction?: () => void;
+    onSubmit: (message: string) => void;
+    startAction?: { label: string };
+  }) => (
+    <>
+      <button type="button" onClick={() => onSubmit("Build an SIR model")}>
+        Send empty-net prompt
+      </button>
+      {startAction && (
+        <button type="button" onClick={onStartAction}>
+          {startAction.label}
+        </button>
+      )}
+    </>
   ),
 }));
 vi.mock("./components/import-error-dialog", () => ({
@@ -111,10 +126,17 @@ const aiAssistant: PetrinautAiAssistant = {
 };
 
 const onPrompt = vi.fn();
+const onListen = vi.fn();
 
 const promptPlugin = definePetrinautPlugin(
   { id: "test.prompt", name: "Prompt", assistant: true },
-  { assistant: { content: <p>Plugin chat</p>, onPrompt } },
+  {
+    assistant: {
+      content: <p>Plugin chat</p>,
+      onPrompt,
+      startAction: { label: "Listen", icon: null, run: onListen },
+    },
+  },
 );
 
 const silentPlugin = definePetrinautPlugin(
@@ -217,17 +239,24 @@ describe("EditorView empty-net prompt", () => {
     ).toContain("Plugin chat");
   });
 
-  test("opens the panel for a plugin assistant without onPrompt", () => {
-    renderPlugins([silentPlugin], <EditorView titleEditable />);
+  test("opens the panel and runs the plugin assistant's start action", () => {
+    renderPlugins([promptPlugin], <EditorView titleEditable />);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Send empty-net prompt" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Listen" }));
 
+    expect(onListen).toHaveBeenCalledOnce();
     expect(onPrompt).not.toHaveBeenCalled();
     expect(
       screen.getByRole("complementary", { name: "AI assistant" }).textContent,
     ).toContain("Plugin chat");
+  });
+
+  test("hides the prompt while the plugin assistant has no onPrompt", () => {
+    renderPlugins([silentPlugin], <EditorView titleEditable />);
+
+    expect(
+      screen.queryByRole("button", { name: "Send empty-net prompt" }),
+    ).toBeNull();
   });
 });
 
