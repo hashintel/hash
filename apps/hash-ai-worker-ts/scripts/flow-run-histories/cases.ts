@@ -237,6 +237,19 @@ const takeFirstFlow = defineFlow(
   }),
 );
 
+/** Gives its step an input its action doesn't define, which validating the definition would have refused. */
+const unknownStepInputFlow: FlowDefinitionWithId = {
+  ...takeFirstFlow,
+  flowDefinition: {
+    ...takeFirstFlow.flowDefinition,
+    steps: takeFirstFlow.flowDefinition.steps.map((step) =>
+      step.kind === "action" && step.inputs.count
+        ? { ...step, inputs: { ...step.inputs, limit: step.inputs.count } }
+        : step,
+    ),
+  },
+};
+
 const skipFlow = defineFlow(
   {
     flowDefinitionId: "00000000-0000-4000-8000-000000002025",
@@ -373,6 +386,12 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
           contents: [],
         }),
       },
+    }),
+
+    "unknown-step-input": () => ({
+      flow: unknownStepInputFlow,
+      flowInputs: numbers,
+      actions: {},
     }),
 
     skipped: () => ({

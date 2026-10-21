@@ -490,11 +490,12 @@ export const buildFlowRunEvents = (
       case EventType.EVENT_TYPE_WORKFLOW_EXECUTION_FAILED: {
         const failure =
           historyEvent.workflowExecutionFailedEventAttributes?.failure;
+        /* Not every failure's details have `contents`, e.g. a step input its action doesn't define. */
         const [details] =
           (parseHistoryItemPayload(failure?.applicationFailureInfo?.details) as
-            | RunFlowWorkflowResponse[]
+            | Partial<RunFlowWorkflowResponse>[]
             | undefined) ?? [];
-        const stepErrors = details?.contents[0]?.stepErrors;
+        const stepErrors = details?.contents?.[0]?.stepErrors;
 
         addEvent({
           kind: "runFinished",

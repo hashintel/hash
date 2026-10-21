@@ -426,6 +426,23 @@ describe("buildFlowRunEvents", () => {
     ]);
   });
 
+  it("fails a run whose failure has no step errors in its details", () => {
+    expectEvents("unknown-step-input", [
+      runStartedWithNumbers,
+      [
+        "35.0",
+        {
+          kind: "runFinished",
+          status: FlowRunStatus.Failed,
+          error: {
+            message:
+              "Definition for inputName 'limit' in step firstTwo not found in action definition takeFirst",
+          },
+        },
+      ],
+    ]);
+  });
+
   it("reports skipped steps when they were skipped, from the memo", () => {
     const skippedAt = "2026-10-21T13:36:04.312Z";
 
