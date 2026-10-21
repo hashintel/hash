@@ -1,8 +1,14 @@
 import { useState } from "react";
 
-import { Popover, TextInput } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import {
+  Icon,
+  type IconName,
+  Popover,
+  TextInput,
+} from "@hashintel/ds-components";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
+import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import {
   type CatalogEntry,
   catalog,
@@ -16,6 +22,7 @@ import {
   type EditorDocument,
   findStep,
   flattenSteps,
+  stepTitle,
 } from "./document";
 import { useEditor } from "./editor-context";
 import { canConnect, type ConnectionSource, type PayloadKind } from "./engine";
@@ -25,7 +32,7 @@ import {
   triggerKinds,
 } from "./mock-triggers";
 import { getItemShape, getSourceShape, triggerFlowInputs } from "./shapes";
-import { IconTile, OriginMark } from "./ui";
+import { fieldStyle, OriginMark } from "./ui";
 
 /** The values a new step could take, given where it goes: the earlier step's outputs, the flow inputs, the item. */
 const availableShapes = (
@@ -137,48 +144,133 @@ const recommendedFor = (
   return fitting.slice(0, 4);
 };
 
+/** Scratch · Add step panel, L2: 13 px rows, 6 px in, 5 px tall padding, 6 px corners, a 22 px tinted tile. */
 const rowStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
   width: "[100%]",
-  paddingX: "2",
+  paddingX: "1.5",
   paddingY: "[5px]",
   borderRadius: "md",
   textAlign: "left",
   cursor: "pointer",
-  fontSize: "sm",
+  fontSize: "[13px]",
+  lineHeight: "[16px]",
   color: "neutral.s120",
-  _hover: { backgroundColor: "neutral.s15" },
-  _focusVisible: { backgroundColor: "neutral.s15", outline: "none" },
+  whiteSpace: "nowrap",
+  _hover: { backgroundColor: "neutral.a30" },
+  _focusVisible: { backgroundColor: "neutral.a30", outline: "none" },
+  "&[data-first]": { backgroundColor: "neutral.a30" },
 });
 
+/** 10 px semibold caps, muted, with 6 px above it. */
 const groupLabelStyle = css({
-  fontSize: "[11px]",
+  fontSize: "[10px]",
+  lineHeight: "[12px]",
   fontWeight: "semibold",
-  color: "neutral.s90",
+  color: "neutral.s100",
   textTransform: "uppercase",
-  letterSpacing: "[0.04em]",
-  paddingX: "2",
-  paddingTop: "3",
-  paddingBottom: "1",
+  letterSpacing: "[0.4px]",
+  paddingTop: "1.5",
+  paddingBottom: "0.5",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const sideTextStyle = css({
+  marginLeft: "auto",
+  fontSize: "[11px]",
+  color: "neutral.s100",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "1",
+  "& svg": { width: "[10px]", height: "[10px]" },
+});
+
+const pickerTileStyle = cva({
+  base: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    width: "[22px]",
+    height: "[22px]",
+    borderRadius: "md",
+    "& svg": { width: "[13px]", height: "[13px]" },
+  },
+  variants: {
+    tone: {
+      green: { backgroundColor: "green.s30", color: "green.s100" },
+      orange: { backgroundColor: "orange.s30", color: "orange.s100" },
+      blue: { backgroundColor: "blue.s30", color: "blue.s100" },
+      neutral: { backgroundColor: "neutral.s30", color: "neutral.s100" },
+    },
+  },
+});
+
+const PickerTile = ({
+  icon,
+  tone,
+}: {
+  icon: IconName;
+  tone: "green" | "orange" | "neutral" | "blue";
+}) => (
+  <span className={pickerTileStyle({ tone })}>
+    <Icon name={icon} size="sm" />
+  </span>
+);
+
+/** Each group's row in Browse all: its own tile, as the Scratch E1 list draws them. */
+const groupLooks: Record<
+  string,
+  { icon: IconName; tone: "green" | "orange" | "neutral" | "blue" }
+> = {
+  Triggers: { icon: "lightning", tone: "blue" },
+  Entities: { icon: "cube", tone: "green" },
+  Logic: { icon: "diagramSubtask", tone: "orange" },
+  AI: { icon: "sparkles", tone: "blue" },
+  "Files and web": { icon: "fileLines", tone: "orange" },
+  Messages: { icon: "at", tone: "green" },
+};
+
+/** The Scratch L2 search popover: 330 wide, 8 px in, 10 px corners, a soft wide shadow. */
+const pickerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.5",
+  width: "[330px]",
+  padding: "2",
+  backgroundColor: "neutral.s00",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a50",
+  borderRadius: "[10px]",
+  boxShadow: "[0 6px 18px rgba(0, 0, 0, 0.12)]",
 });
 
 const EntryRow = ({
   entry,
   onPick,
+  side,
+  first,
 }: {
   entry: CatalogEntry;
   onPick: (entry: CatalogEntry) => void;
+  /** Shown on the right, e.g. the group in search results. */
+  side?: string;
+  first?: boolean;
 }) => (
   <button
     type="button"
     className={rowStyle}
     title={entry.description}
+    data-first={first || undefined}
     onClick={() => onPick(entry)}
   >
-    <IconTile icon={entry.icon} tone={entry.tone} size="sm" />
-    <span className={css({ flex: "1" })}>{entry.title}</span>
+    <PickerTile icon={entry.icon} tone={entry.tone} />
+    <span>{entry.title}</span>
     {entry.origin.kind === "open-pr" ? (
       <OriginMark
         label={`#${entry.origin.pr}`}
@@ -187,25 +279,59 @@ const EntryRow = ({
     ) : entry.origin.kind === "mock" ? (
       <OriginMark label="mock" hover={entry.origin.why} />
     ) : null}
+    {side ? <span className={sideTextStyle}>{side}</span> : null}
   </button>
 );
 
-/** A trigger in the picker: added to the left column and wired to the first actions. */
+/** A trigger in the picker: added left of Start and wired into it. */
 const TriggerRow = ({
   kind,
   onPick,
+  side,
+  first,
 }: {
   kind: TriggerKind;
   onPick: (kind: TriggerKind) => void;
+  side?: string;
+  first?: boolean;
 }) => {
   const definition = triggerDefinitions[kind];
   return (
-    <button type="button" className={rowStyle} onClick={() => onPick(kind)}>
-      <IconTile icon={definition.icon} tone="blue" size="sm" />
-      <span className={css({ flex: "1" })}>{definition.title}</span>
+    <button
+      type="button"
+      className={rowStyle}
+      data-first={first || undefined}
+      onClick={() => onPick(kind)}
+    >
+      <PickerTile icon={definition.icon} tone="blue" />
+      <span>{definition.title}</span>
       {definition.mock ? (
         <OriginMark label="mock" hover="No such trigger on main yet." />
       ) : null}
+      {side ? <span className={sideTextStyle}>{side}</span> : null}
+    </button>
+  );
+};
+
+/** A group in Browse all: tile, name, count and a chevron that drills in. */
+const GroupRow = ({
+  name,
+  count,
+  onOpen,
+}: {
+  name: string;
+  count: number;
+  onOpen: () => void;
+}) => {
+  const look = groupLooks[name] ?? { icon: "cube", tone: "neutral" };
+  return (
+    <button type="button" className={rowStyle} onClick={onOpen}>
+      <PickerTile icon={look.icon} tone={look.tone} />
+      <span>{name}</span>
+      <span className={sideTextStyle}>
+        {count}
+        <Icon name="chevronRight" size="xs" />
+      </span>
     </button>
   );
 };
@@ -217,6 +343,7 @@ export const AddNodePicker = ({
 }) => {
   const { document, setDocument, ui, setUi } = useEditor();
   const [search, setSearch] = useState("");
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
   const picker = ui.picker;
   if (!picker) {
     return null;
@@ -235,6 +362,7 @@ export const AddNodePicker = ({
 
   const close = () => {
     setSearch("");
+    setOpenGroup(null);
     setUi((current) => ({ ...current, picker: null }));
   };
 
@@ -293,10 +421,10 @@ export const AddNodePicker = ({
       ].slice(0, 4),
     }));
     setSearch("");
+    setOpenGroup(null);
   };
 
   const query = search.trim().toLowerCase();
-  const recommended = recommendedFor(document, picker.after, picker.parentId);
   const recent = ui.recent.flatMap((id) =>
     catalog.filter((entry) => entry.id === id),
   );
@@ -321,12 +449,54 @@ export const AddNodePicker = ({
     setDocument(() => next);
     setUi((current) => ({ ...current, picker: null, selectedId: triggerId }));
     setSearch("");
+    setOpenGroup(null);
   };
   const matches = available.filter(
     (entry) =>
       entry.title.toLowerCase().includes(query) ||
       entry.category.toLowerCase().includes(query),
   );
+
+  // "Fits after <step>" when the picker knows where the step goes; on an empty flow, the usual first steps.
+  const afterId =
+    picker.after?.stepId ??
+    (picker.anchor === "toolbar" ? (ui.selectedId ?? undefined) : undefined);
+  const afterName =
+    afterId === START_ID
+      ? "Start"
+      : afterId
+        ? (() => {
+            const found = findStep(document, afterId)?.step;
+            return found ? stepTitle(found) : undefined;
+          })()
+        : undefined;
+  const suggested = recommendedFor(
+    document,
+    picker.after ??
+      (afterId && findStep(document, afterId)?.step.kind !== "for-each"
+        ? { stepId: afterId, port: "next" }
+        : afterId === START_ID
+          ? { stepId: START_ID, port: "next" }
+          : undefined),
+    picker.parentId,
+  ).filter((entry) => available.includes(entry));
+  const suggestedLabel =
+    afterName && availableShapes(document, picker.after, picker.parentId)
+      ? `Fits after ${afterName}`
+      : picker.parentId
+        ? "Fits inside this group"
+        : "Start with";
+  const groups = [
+    ...(picker.anchor === "toolbar"
+      ? [{ name: "Triggers", count: triggerKinds.length }]
+      : []),
+    ...categories
+      .map((category) => ({
+        name: category as string,
+        count: available.filter((entry) => entry.category === category).length,
+      }))
+      .filter((group) => group.count > 0),
+  ];
 
   return (
     <Popover
@@ -336,107 +506,128 @@ export const AddNodePicker = ({
       gapX={8}
       onClose={close}
     >
-      <div
-        role="dialog"
-        aria-label="Add node"
-        className={css({
-          width: "[320px]",
-          maxHeight: "[440px]",
-          overflowY: "auto",
-          backgroundColor: "neutral.s00",
-          borderWidth: "thin",
-          borderStyle: "solid",
-          borderColor: "neutral.s40",
-          borderRadius: "lg",
-          boxShadow: "[0 8px 24px rgba(0, 0, 0, 0.12)]",
-          padding: "2",
-        })}
-      >
+      <div role="dialog" aria-label="Add node" className={pickerStyle}>
         <TextInput
           value={search}
-          onChange={(value) => setSearch(value)}
+          onChange={(value) => {
+            setSearch(value);
+            setOpenGroup(null);
+          }}
           placeholder="Search steps"
           size="sm"
+          className={fieldStyle}
+          prefix={{ iconName: "search", variant: "subtle" }}
         />
-        {query ? (
-          <div className={css({ paddingTop: "2" })}>
-            {triggerChoices.map((kind) => (
-              <TriggerRow key={kind} kind={kind} onPick={pickTrigger} />
-            ))}
-            {matches.length === 0 && triggerChoices.length === 0 ? (
-              <div
-                className={css({
-                  padding: "3",
-                  fontSize: "sm",
-                  color: "neutral.s90",
-                })}
-              >
-                No step matches “{search}”.
-              </div>
-            ) : (
-              matches.map((entry) => (
-                <EntryRow key={entry.id} entry={entry} onPick={pick} />
-              ))
-            )}
-          </div>
-        ) : (
-          <>
-            <div className={groupLabelStyle}>Recommended</div>
-            {recommended
-              .filter((entry) => available.includes(entry))
-              .map((entry) => (
-                <EntryRow key={entry.id} entry={entry} onPick={pick} />
-              ))}
-            {recent.length > 0 ? (
+        <OverlayScrollArea className={css({ maxHeight: "[380px]" })}>
+          <div
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.5",
+              paddingTop: "1",
+            })}
+          >
+            {query ? (
               <>
-                <div className={groupLabelStyle}>Recent</div>
-                {recent.map((entry) => (
-                  <EntryRow key={entry.id} entry={entry} onPick={pick} />
+                {triggerChoices.map((kind, index) => (
+                  <TriggerRow
+                    key={kind}
+                    kind={kind}
+                    onPick={pickTrigger}
+                    side="Triggers"
+                    first={index === 0}
+                  />
                 ))}
-              </>
-            ) : null}
-            <div className={groupLabelStyle}>Browse all</div>
-            {triggerChoices.length > 0 ? (
-              <div>
-                <div
-                  className={css({
-                    fontSize: "xs",
-                    color: "neutral.s90",
-                    paddingX: "2",
-                    paddingTop: "2",
-                  })}
-                >
-                  Triggers
-                </div>
-                {triggerChoices.map((kind) => (
-                  <TriggerRow key={kind} kind={kind} onPick={pickTrigger} />
-                ))}
-              </div>
-            ) : null}
-            {categories.map((category) => {
-              const entries = available.filter(
-                (entry) => entry.category === category,
-              );
-              return entries.length === 0 ? null : (
-                <div key={category}>
+                {matches.length === 0 && triggerChoices.length === 0 ? (
                   <div
                     className={css({
-                      fontSize: "xs",
+                      paddingX: "1.5",
+                      paddingY: "2",
+                      fontSize: "[13px]",
                       color: "neutral.s90",
-                      paddingX: "2",
-                      paddingTop: "2",
                     })}
                   >
-                    {category}
+                    No step matches “{search}”.
                   </div>
-                  {entries.map((entry) => (
-                    <EntryRow key={entry.id} entry={entry} onPick={pick} />
-                  ))}
-                </div>
-              );
-            })}
-          </>
-        )}
+                ) : (
+                  matches.map((entry, index) => (
+                    <EntryRow
+                      key={entry.id}
+                      entry={entry}
+                      onPick={pick}
+                      side={entry.category}
+                      first={index === 0 && triggerChoices.length === 0}
+                    />
+                  ))
+                )}
+              </>
+            ) : openGroup ? (
+              <>
+                <button
+                  type="button"
+                  className={cx(rowStyle, groupLabelStyle)}
+                  onClick={() => setOpenGroup(null)}
+                  aria-label="Back to all groups"
+                >
+                  <Icon name="chevronLeft" size="xs" />
+                  {openGroup}
+                </button>
+                {openGroup === "Triggers"
+                  ? triggerKinds.map((kind, index) => (
+                      <TriggerRow
+                        key={kind}
+                        kind={kind}
+                        onPick={pickTrigger}
+                        first={index === 0}
+                      />
+                    ))
+                  : available
+                      .filter((entry) => entry.category === openGroup)
+                      .map((entry, index) => (
+                        <EntryRow
+                          key={entry.id}
+                          entry={entry}
+                          onPick={pick}
+                          first={index === 0}
+                        />
+                      ))}
+              </>
+            ) : (
+              <>
+                {suggested.length > 0 ? (
+                  <>
+                    <div className={groupLabelStyle}>{suggestedLabel}</div>
+                    {suggested.map((entry, index) => (
+                      <EntryRow
+                        key={entry.id}
+                        entry={entry}
+                        onPick={pick}
+                        first={index === 0}
+                      />
+                    ))}
+                  </>
+                ) : null}
+                {recent.length > 0 ? (
+                  <>
+                    <div className={groupLabelStyle}>Recent</div>
+                    {recent.map((entry) => (
+                      <EntryRow key={entry.id} entry={entry} onPick={pick} />
+                    ))}
+                  </>
+                ) : null}
+                <div className={groupLabelStyle}>Browse all</div>
+                {groups.map((group) => (
+                  <GroupRow
+                    key={group.name}
+                    name={group.name}
+                    count={group.count}
+                    onOpen={() => setOpenGroup(group.name)}
+                  />
+                ))}
+              </>
+            )}
+          </div>
+        </OverlayScrollArea>
       </div>
     </Popover>
   );
