@@ -117,7 +117,7 @@ export const writeBuild = async (
   let diagramsRendered = 0;
   const written = [...summary.written];
   if (d2 !== null) {
-    const names = summary.written
+    const names = [...files.keys()]
       .filter((path) => path.startsWith("diagrams/") && path.endsWith(".d2"))
       .map((path) => path.slice("diagrams/".length, -".d2".length));
     const rendering = await renderDiagrams({
