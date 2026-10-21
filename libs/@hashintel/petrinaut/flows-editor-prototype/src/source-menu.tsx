@@ -26,53 +26,97 @@ import {
   sourceOptions,
   triggerForInput,
 } from "./shapes";
-import { IconTile, kindLabel } from "./ui";
+import { kindLabel } from "./ui";
 
 import type { PayloadKind, StepInputSource } from "./engine";
 import type { PrdSource } from "./mock-prd-ports";
 
-const rowStyle = css({
+/** A DS Menu item as ↳ Current draws it: 32 px tall, 6 px in, 8 px corners, a bare 14 px icon, 14 px medium label. */
+export const menuRowStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
   width: "[100%]",
-  paddingX: "2",
-  paddingY: "[5px]",
-  borderRadius: "md",
+  minHeight: "[32px]",
+  paddingX: "1.5",
+  paddingY: "[1px]",
+  borderRadius: "lg",
   textAlign: "left",
   cursor: "pointer",
   fontSize: "sm",
+  fontWeight: "medium",
+  lineHeight: "[14px]",
   color: "neutral.s120",
   whiteSpace: "nowrap",
-  _hover: { backgroundColor: "neutral.s15" },
-  _focusVisible: { backgroundColor: "neutral.s15", outline: "none" },
-  "&[data-active]": { backgroundColor: "neutral.s15" },
+  "& > svg": {
+    flexShrink: 0,
+    width: "[14px]",
+    height: "[14px]",
+    color: "neutral.s110",
+  },
+  "& > svg:last-child:not(:first-child)": { width: "[16px]", height: "[16px]" },
+  _hover: { backgroundColor: "neutral.a20" },
+  _focusVisible: { backgroundColor: "neutral.a20", outline: "none" },
+  "&[data-active], &[data-selected]": { backgroundColor: "neutral.a20" },
 });
 
-const groupLabelStyle = css({
-  fontSize: "[11px]",
-  fontWeight: "semibold",
-  color: "neutral.s90",
+/** A group of rows, 4 px in, with a hairline between groups. */
+export const menuGroupStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  padding: "1",
+  "& + &": {
+    borderTopWidth: "thin",
+    borderTopStyle: "solid",
+    borderTopColor: "neutral.a40",
+  },
+});
+
+/** The DS group title: 28 px, 12 px medium caps, muted. */
+export const menuGroupLabelStyle = css({
+  display: "flex",
+  alignItems: "center",
+  height: "[28px]",
+  paddingX: "1.5",
+  fontSize: "xs",
+  fontWeight: "medium",
+  lineHeight: "[12px]",
+  letterSpacing: "[0.48px]",
   textTransform: "uppercase",
-  letterSpacing: "[0.04em]",
-  paddingX: "2",
-  paddingTop: "2",
-  paddingBottom: "1",
+  color: "neutral.s90",
 });
 
+/** A disabled row that says why a group is empty (J3 C2). */
+const menuEmptyRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  minHeight: "[32px]",
+  paddingX: "1.5",
+  borderRadius: "lg",
+  backgroundColor: "neutral.a20",
+  fontSize: "sm",
+  fontWeight: "medium",
+  lineHeight: "[14px]",
+  color: "neutral.s120",
+  opacity: "[0.5]",
+  whiteSpace: "nowrap",
+});
+
+/** The DS Menu surface: white, a subtle hairline, 10 px corners and the DS lg shadow. */
 export const menuPanelStyle = css({
   display: "flex",
   flexDirection: "column",
   width: "[max-content]",
   minWidth: "[240px]",
   maxWidth: "[380px]",
-  maxHeight: "[380px]",
+  maxHeight: "[520px]",
   backgroundColor: "neutral.s00",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.s40",
-  borderRadius: "lg",
-  boxShadow: "[0 8px 24px rgba(0, 0, 0, 0.12)]",
+  borderColor: "neutral.a50",
+  borderRadius: "[10px]",
+  boxShadow:
+    "[0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)]",
   overflow: "hidden",
 });
 
@@ -81,6 +125,20 @@ const rowTextStyle = css({
   overflow: "hidden",
   textOverflow: "ellipsis",
 });
+
+/** "a date", "an entity", "a list of entities": the kind a field takes, for the empty-group rows. */
+const kindPhrase = (kinds: readonly string[], array: boolean) => {
+  const kind =
+    kinds.find((candidate) => !isMockPayloadKind(candidate)) ?? kinds[0];
+  if (kind === "VersionedUrl") {
+    return "a type";
+  }
+  const name = kindLabel(kind, false).toLowerCase();
+  if (array) {
+    return name.endsWith("y") ? `${name.slice(0, -1)}ies` : `${name}s`;
+  }
+  return /^[aeiou]/.test(name) ? `an ${name}` : `a ${name}`;
+};
 
 const ownerIcon = (document: EditorDocument, option: SourceOption) => {
   if (option.source.kind === "flow-input") {
@@ -282,13 +340,9 @@ export const SourceMenu = ({
   };
 
   const nothingFits = options.length === 0 && typed.length === 0;
-  const emptyRowStyle = css({
-    paddingX: "2",
-    paddingY: "[5px]",
-    fontSize: "sm",
-    color: "neutral.s90",
-    whiteSpace: "nowrap",
-  });
+  const phrase = kindPhrase(kinds, input.array);
+  // Search only earns its place on a long list; the mocks show short menus without it.
+  const longList = typedChoicesProp.length + options.length > 8;
 
   return (
     <Popover
@@ -303,19 +357,14 @@ export const SourceMenu = ({
         aria-label={`Choose ${input.label}`}
       >
         {query === undefined ? null : (
-          <div
-            className={css({
-              paddingX: "3",
-              paddingTop: "2",
-              fontSize: "xs",
-              color: "neutral.s90",
-            })}
-          >
-            @{query || " type to search"}
+          <div className={menuGroupLabelStyle}>
+            <span className={css({ paddingX: "1" })}>
+              @{query || " type to search"}
+            </span>
           </div>
         )}
-        {hideSearch || query !== undefined ? null : (
-          <div className={css({ padding: "2", paddingBottom: "0" })}>
+        {hideSearch || query !== undefined || !longList ? null : (
+          <div className={css({ padding: "1", paddingBottom: "0" })}>
             <TextInput
               value={search}
               onChange={(value) => setSearch(value)}
@@ -324,129 +373,131 @@ export const SourceMenu = ({
             />
           </div>
         )}
-        <OverlayScrollArea className={css({ maxHeight: "[300px]" })}>
-          <div className={css({ padding: "1" })}>
-            {typed.length > 0 ? (
-              <div>
-                <div className={groupLabelStyle}>
-                  {typedGroupLabel ??
-                    (kinds.includes("EntityId") ? "Entities" : "Values")}
-                </div>
-                {typed.map((choice) => (
-                  <button
-                    key={choice.label}
-                    type="button"
-                    className={rowStyle}
-                    title={choice.hint}
-                    onClick={() => onPick(choice.source)}
-                  >
-                    <span
-                      className={css({
-                        width: "[16px]",
-                        display: "inline-flex",
-                        flexShrink: 0,
-                      })}
-                    >
-                      {choice.selected ? <Icon name="check" size="sm" /> : null}
-                    </span>
-                    <span className={rowTextStyle}>{choice.label}</span>
-                  </button>
-                ))}
+        <OverlayScrollArea className={css({ maxHeight: "[480px]" })}>
+          {typed.length > 0 ? (
+            <div className={menuGroupStyle}>
+              <div className={menuGroupLabelStyle}>
+                {typedGroupLabel ??
+                  (kinds.includes("EntityId") ? "Entities" : "Values")}
               </div>
-            ) : null}
-            {groups.map((group) => {
-              const inGroup = options.filter(
-                (option) => option.group === group,
-              );
-              // Groups with nothing that fits stay hidden.
-              return inGroup.length === 0 ? null : (
-                <div key={group}>
-                  <div className={groupLabelStyle}>{group}</div>
-                  {inGroup.map((option) => {
-                    const look = ownerIcon(document, option);
-                    return (
-                      <button
-                        key={JSON.stringify(option.source)}
-                        type="button"
-                        className={rowStyle}
-                        title={`${option.ownerLabel} › ${option.label} · ${kindLabel(option.shape.payloadKind, option.shape.array)}${option.note ? ` · ${option.note}` : ""}`}
-                        onClick={() => onPick(option.source)}
+              {typed.map((choice) => (
+                <button
+                  key={choice.label}
+                  type="button"
+                  className={menuRowStyle}
+                  data-selected={choice.selected || undefined}
+                  title={choice.hint}
+                  onClick={() => onPick(choice.source)}
+                >
+                  {choice.selected ? <Icon name="check" size="xs" /> : null}
+                  <span className={rowTextStyle}>{choice.label}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {groups.map((group) => {
+            const inGroup = options.filter((option) => option.group === group);
+            // The current item only exists inside a For each; the other two groups say why they are empty.
+            if (inGroup.length === 0 && (group === "This item" || text)) {
+              return null;
+            }
+            return (
+              <div key={group} className={menuGroupStyle}>
+                <div className={menuGroupLabelStyle}>{group}</div>
+                {inGroup.length === 0 ? (
+                  <div className={menuEmptyRowStyle}>
+                    {group === "Earlier steps"
+                      ? `No earlier step gives ${phrase}`
+                      : input.array
+                        ? `No flow input gives ${phrase}`
+                        : `No flow input is ${phrase}`}
+                  </div>
+                ) : null}
+                {inGroup.map((option) => {
+                  const look = ownerIcon(document, option);
+                  return (
+                    <button
+                      key={JSON.stringify(option.source)}
+                      type="button"
+                      className={menuRowStyle}
+                      title={`${option.ownerLabel} › ${option.label} · ${kindLabel(option.shape.payloadKind, option.shape.array)}${option.note ? ` · ${option.note}` : ""}`}
+                      onClick={() => onPick(option.source)}
+                    >
+                      <Icon name={look.icon} size="xs" />
+                      <span
+                        className={css({
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "0.5",
+                          minWidth: "[0]",
+                          flex: "1",
+                        })}
                       >
-                        <IconTile icon={look.icon} tone={look.tone} size="sm" />
+                        <span className={rowTextStyle}>{option.label}</span>
                         <span
                           className={css({
-                            display: "flex",
-                            flexDirection: "column",
-                            minWidth: "[0]",
-                            flex: "1",
+                            fontSize: "xs",
+                            fontWeight: "normal",
+                            lineHeight: "[16px]",
+                            color: "neutral.s90",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
                           })}
                         >
-                          <span className={rowTextStyle}>{option.label}</span>
-                          <span
-                            className={css({
-                              fontSize: "xs",
-                              color: "neutral.s90",
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            })}
-                          >
-                            {option.ownerLabel}
-                          </span>
+                          {option.ownerLabel}
                         </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
-            {nothingFits ? (
-              <div className={emptyRowStyle}>
-                {text
-                  ? `Nothing matches “${query ?? search}”`
-                  : "Nothing earlier fits"}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-            ) : null}
-            {lookupAllowed ? (
-              <div>
-                <div className={groupLabelStyle}>In the graph</div>
-                <button
-                  type="button"
-                  className={rowStyle}
-                  onClick={lookUp}
-                  title="Adds a Find entities step before this one"
-                >
-                  <IconTile icon="search" tone="green" size="sm" />
-                  <span className={css({ flex: "1" })}>
-                    Look up in the graph
-                  </span>
-                  <Icon name="chevronRight" size="xs" />
-                </button>
+            );
+          })}
+          {nothingFits && text ? (
+            <div className={menuGroupStyle}>
+              <div className={menuEmptyRowStyle}>
+                {`Nothing matches “${query ?? search}”`}
               </div>
+            </div>
+          ) : null}
+          {lookupAllowed ? (
+            <div className={menuGroupStyle}>
+              <div className={menuGroupLabelStyle}>In the graph</div>
+              <button
+                type="button"
+                className={menuRowStyle}
+                onClick={lookUp}
+                title="Adds a Find entities step before this one"
+              >
+                <Icon name="diagramNodes" size="xs" />
+                <span className={css({ flex: "1" })}>Look up in the graph</span>
+                <Icon name="chevronRight" size="sm" />
+              </button>
+            </div>
+          ) : null}
+          {/* The way out when nothing fits (Ciarán, 20 Oct), in the same row grammar. */}
+          <div className={menuGroupStyle}>
+            {onTypeValue ? (
+              <button
+                type="button"
+                className={menuRowStyle}
+                onClick={onTypeValue}
+              >
+                <Icon name="pencil" size="xs" />
+                Type a value
+              </button>
             ) : null}
+            <button
+              type="button"
+              className={menuRowStyle}
+              onClick={addFlowInput}
+            >
+              <Icon name="plus" size="xs" />
+              Add flow input
+            </button>
           </div>
         </OverlayScrollArea>
-        {/* Pinned at the bottom: the way out when nothing fits (Ciarán, 20 Oct). */}
-        <div
-          className={css({
-            padding: "1",
-            borderTopWidth: "thin",
-            borderTopStyle: "solid",
-            borderTopColor: "neutral.s30",
-            flexShrink: 0,
-          })}
-        >
-          {onTypeValue ? (
-            <button type="button" className={rowStyle} onClick={onTypeValue}>
-              <IconTile icon="pencil" tone="neutral" size="sm" />
-              Type a value
-            </button>
-          ) : null}
-          <button type="button" className={rowStyle} onClick={addFlowInput}>
-            <IconTile icon="plus" tone="blue" size="sm" />
-            Add flow input
-          </button>
-        </div>
       </div>
     </Popover>
   );
