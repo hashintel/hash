@@ -2,7 +2,7 @@ import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import { Box, Stack, Typography } from "@mui/material";
 import { debounce } from "lodash";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 import { Document, Page, pdfjs } from "react-pdf";
 
@@ -17,6 +17,11 @@ import { typedKeys } from "@local/advanced-types/typed-entries";
 import { fetchPresignedFileUrl } from "./fetch-presigned-file-url";
 import { FilePreviewPageNavigation } from "./file-preview-page-navigation";
 import { FilePreviewSearch } from "./file-preview-search";
+import {
+  clearSearchHits,
+  scrollHitIntoView,
+  showSearchHits,
+} from "./file-preview-search-highlights";
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
 import {
   a4Ratio,
@@ -29,69 +34,15 @@ import { PdfPreviewSkeleton } from "./pdf-preview/pdf-preview-skeleton";
 import {
   type SearchHit,
   type SearchHits,
-  useFindSearchHits,
+  usePdfSearch,
 } from "./pdf-preview/pdf-search";
 import { useElementBorderBoxSize } from "./use-element-dimensions";
 import { useFilePreviewMaxHeight } from "./use-file-preview-max-height";
 
 import type {
-  CustomTextRenderer,
   DocumentCallback,
   OnDocumentLoadSuccess,
 } from "react-pdf/dist/cjs/shared/types.js";
-
-/**
- * Highlights search hits within the text representing a row/line on the page.
- * @param text - The text content of the row
- * @param rowIndex - The index of the row in its page.
- * @param searchHits - An array of occurrences spanning across TextItems.
- * @returns The text with relevant parts wrapped in <mark> tags.
- */
-const highlightOccurrencesInTextItem = (
-  text: string,
-  rowIndex: number,
-  searchHits: SearchHit[],
-  selectedSearchHit: SearchHit | null,
-) => {
-  /** Find occurrences that intersect with this TextItem */
-  const relevantOccurrences = searchHits.filter(({ start, end }) => {
-    return (
-      (start.rowIndex < rowIndex && end.rowIndex >= rowIndex) || // Starts before and ends in or after
-      (start.rowIndex === rowIndex && start.characterIndex < text.length) // Starts within
-    );
-  });
-
-  let textWithHighlights = "";
-  let positionInText = 0;
-
-  for (const { start, end } of relevantOccurrences) {
-    const startCharIndex =
-      start.rowIndex === rowIndex ? start.characterIndex : 0;
-    const endCharIndex =
-      end.rowIndex === rowIndex ? end.characterIndex : text.length - 1;
-
-    const isSelectedHit = selectedSearchHit
-      ? selectedSearchHit.start.rowIndex === start.rowIndex &&
-        selectedSearchHit.start.characterIndex === start.characterIndex
-      : false;
-
-    /** First, append any unhighlighted text between our. current positionInText and this occurrence */
-    textWithHighlights += text.slice(positionInText, startCharIndex);
-
-    /** Apply the highlight */
-    // Design system tokens `blue.s75` and `blue.bgSolid.subtle`, written out
-    // because the preview sits outside `.hash-ds-root`.
-    textWithHighlights += `<span style="background-color: ${isSelectedHit ? "#77bdf3" : "#e6f4fe"}; position: relative;">${text.slice(startCharIndex, endCharIndex + 1)}</span>`;
-
-    /** Update positionInText to continue after the current occurrence */
-    positionInText = endCharIndex + 1;
-  }
-
-  /** Append any remaining text after the last occurrence */
-  textWithHighlights += text.slice(positionInText);
-
-  return textWithHighlights;
-};
 
 const pdfOptions = {
   cMapUrl: "/pdf-cmaps",
@@ -136,7 +87,7 @@ export const PdfPreview = ({
     null,
   );
 
-  const findSearchHits = useFindSearchHits(documentProxy);
+  const { findSearchHits, createHitRanges } = usePdfSearch(documentProxy);
 
   const selectSearchHit = (searchHit: SearchHit | null) => {
     setSelectedSearchHit(searchHit);
@@ -171,24 +122,59 @@ export const PdfPreview = ({
     setDocumentProxy(docProxy);
   };
 
-  const textRenderer: CustomTextRenderer = useCallback(
-    (textItem) => {
-      const relevantSearchHits =
-        searchHits.hitsByPageNumber[textItem.pageNumber] ?? [];
+  const pageRef = useRef<HTMLDivElement>(null);
+  const pageScrollContainerRef = useRef<HTMLDivElement>(null);
 
-      if (!relevantSearchHits.length) {
-        return textItem.str;
-      }
+  const [renderedTextLayer, setRenderedTextLayer] = useState<{
+    element: Element;
+    pageNumber: number;
+  } | null>(null);
 
-      return highlightOccurrencesInTextItem(
-        textItem.str,
-        textItem.itemIndex,
-        relevantSearchHits,
-        selectedSearchHit,
-      );
-    },
-    [searchHits, selectedSearchHit],
-  );
+  /**
+   * react-pdf draws a new text layer for each page and zoom level, which
+   * empties the ranges built on the previous one.
+   */
+  const onRenderTextLayerSuccess = useCallback(() => {
+    const pageElement = pageRef.current;
+    const textLayer = pageElement?.querySelector(".textLayer");
+    if (pageElement && textLayer) {
+      setRenderedTextLayer({
+        element: textLayer,
+        pageNumber: Number(pageElement.dataset.pageNumber),
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!renderedTextLayer?.element.isConnected) {
+      return;
+    }
+
+    const hitsOnPage =
+      searchHits.hitsByPageNumber[renderedTextLayer.pageNumber] ?? [];
+    if (hitsOnPage.length === 0) {
+      return;
+    }
+
+    const hitRanges = createHitRanges(renderedTextLayer.element, hitsOnPage);
+    const currentHitRange =
+      hitRanges[
+        hitsOnPage.findIndex(
+          (hit) => hit.indexInAllHits === selectedSearchHit?.indexInAllHits,
+        )
+      ] ?? null;
+
+    showSearchHits(
+      hitRanges.filter((range) => range !== null),
+      currentHitRange,
+    );
+
+    if (currentHitRange && pageScrollContainerRef.current) {
+      scrollHitIntoView(currentHitRange, pageScrollContainerRef.current);
+    }
+
+    return clearSearchHits;
+  }, [createHitRanges, renderedTextLayer, searchHits, selectedSearchHit]);
 
   const { ref: entireContainerRef, dimensions: entireContainerDimensions } =
     useElementBorderBoxSize<HTMLDivElement>();
@@ -328,6 +314,7 @@ export const PdfPreview = ({
               )}
               <Stack
                 direction="row"
+                ref={pageScrollContainerRef}
                 justifyContent={
                   pageWidth * scale > pageContainerWidth
                     ? "flex-start"
@@ -351,7 +338,7 @@ export const PdfPreview = ({
                 >
                   <Page
                     className="react-pdf-page"
-                    customTextRenderer={textRenderer}
+                    inputRef={pageRef}
                     loading={
                       <Box
                         sx={{
@@ -365,6 +352,7 @@ export const PdfPreview = ({
                     onLoadSuccess={({ height, width }) => {
                       setPageWidthHeightRatioDebounced(height, width);
                     }}
+                    onRenderTextLayerSuccess={onRenderTextLayerSuccess}
                     pageNumber={selectedPageNumber}
                     renderTextLayer
                     scale={scale}
