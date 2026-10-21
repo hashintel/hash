@@ -373,9 +373,19 @@ const recentMonths = Array.from({ length: 12 }, (_, index) => {
   };
 });
 
-/** A variable, as Figma J3 draws it: the ds-icons `variableBrackets` glyph ([x]), at the DS icon stroke. */
+/**
+ * The rendered stroke of the canvas toolbar's Hand and Select icons (DS `Icon`, 16 px): measured 1.25 px on 21 Oct.
+ * The variable glyph matches it at any size, so it reads at the same weight beside them and beside DS menu icons.
+ */
+const TOOL_ICON_STROKE_PX = 1.25;
+
+/** A variable, as Figma J3 draws it: the ds-icons `variableBrackets` glyph ([x]), at the toolbar icons' weight. */
 export const VariableIcon = ({ size = 12 }: { size?: number }) => (
-  <HashIcon name="variableBrackets" size={size} />
+  <HashIcon
+    name="variableBrackets"
+    size={size}
+    strokeWidth={(TOOL_ICON_STROKE_PX * 24) / size}
+  />
 );
 
 /* ----------------------------------------------------------------------------------------------------------------
