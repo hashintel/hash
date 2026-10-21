@@ -2,7 +2,6 @@ import { useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { PetrinautAiAssistantPresentation } from "../../../../petrinaut-ai-assistant";
 import type { OnInteractiveToolSubmit, ToolRenderItem } from "../../tool-list";
 
 const interactiveToolStyle = css({
@@ -11,13 +10,12 @@ const interactiveToolStyle = css({
   gap: "1",
 });
 
+/** A tool call that waits for the user, through its widget. */
 export const InteractiveToolItem = ({
   onInteractiveToolSubmit,
-  presentation,
   tool,
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
-  presentation: PetrinautAiAssistantPresentation;
   tool: ToolRenderItem;
 }) => {
   const interactive = tool.interactive;
@@ -30,36 +28,25 @@ export const InteractiveToolItem = ({
   const submittedOnceRef = useRef(submitted);
   const Widget = definition.Widget;
   const typedInput = definition.parseInput(input);
-  const submitAndWait = (output: unknown): Promise<void> => {
-    if (submittedOnceRef.current) {
-      return Promise.resolve();
+  // A rejected or invalid output leaves the widget waiting for another answer.
+  const submit = (output: unknown) => {
+    if (submittedOnceRef.current || !onInteractiveToolSubmit) {
+      return;
     }
-    if (!onInteractiveToolSubmit) {
-      const submissionPromise = Promise.reject(
-        new Error("Interactive tool submission is unavailable."),
-      );
-      void submissionPromise.catch(() => undefined);
-      return submissionPromise;
-    }
-
     try {
       const parsedOutput = definition.parseOutput(output);
       submittedOnceRef.current = true;
-      const submission = onInteractiveToolSubmit({
-        toolCallId: tool.id,
-        toolName: tool.toolName,
-        output: parsedOutput,
-      });
-      const submissionPromise = Promise.resolve(submission);
-      void submissionPromise.catch(() => {
+      void Promise.resolve(
+        onInteractiveToolSubmit({
+          toolCallId: tool.id,
+          toolName: tool.toolName,
+          output: parsedOutput,
+        }),
+      ).catch(() => {
         submittedOnceRef.current = false;
       });
-      return submissionPromise;
-    } catch (error) {
+    } catch {
       submittedOnceRef.current = false;
-      const submissionPromise = Promise.reject(error);
-      void submissionPromise.catch(() => undefined);
-      return submissionPromise;
     }
   };
 
@@ -68,10 +55,8 @@ export const InteractiveToolItem = ({
       <div className={interactiveToolStyle} data-tool-call-id={tool.id}>
         <Widget
           input={typedInput}
-          presentation={presentation}
           state="submitted"
           submit={() => {}}
-          submitAndWait={() => Promise.resolve()}
           submittedOutput={definition.parseOutput(submittedOutput)}
           toolCallId={tool.id}
         />
@@ -83,12 +68,8 @@ export const InteractiveToolItem = ({
     <div className={interactiveToolStyle} data-tool-call-id={tool.id}>
       <Widget
         input={typedInput}
-        presentation={presentation}
         state="awaiting"
-        submit={(output) => {
-          void submitAndWait(output);
-        }}
-        submitAndWait={submitAndWait}
+        submit={submit}
         toolCallId={tool.id}
       />
     </div>

@@ -31,18 +31,17 @@ const transport = new DefaultChatTransport<PetrinautAiMessage>({
 
 const usePetrinautAiPlugin: PluginHook<typeof PetrinautAiPlugin> = (api) => {
   const [messages, setMessages] = useLocalStorageAiMessages(api.document.id);
-  const chatStart = useAssistantChatStart({ voice: false });
+  const chatStart = useAssistantChatStart();
 
   return {
     assistant: {
       content: (
         <AssistantChat
           api={api}
-          canClearMessages
           transport={transport}
           messages={messages}
-          onMessages={setMessages}
-          onClearMessages={() => setMessages(undefined)}
+          // Clear reports no messages, which removes the saved transcript.
+          onMessages={(next) => setMessages(next.length > 0 ? next : undefined)}
           start={chatStart.start}
           onStartHandled={chatStart.onStartHandled}
         />

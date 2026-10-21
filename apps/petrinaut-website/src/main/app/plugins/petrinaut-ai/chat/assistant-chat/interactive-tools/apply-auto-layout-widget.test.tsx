@@ -22,14 +22,13 @@ describe("ApplyAutoLayoutWidget", () => {
     render(
       <Widget
         input={{ askUserFirst: true }}
-        presentation="brunch"
         submit={submit}
         state="awaiting"
         toolCallId="apply-auto-layout-1"
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Allow" }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes, auto-layout" }));
 
     expect(submit).toHaveBeenCalledTimes(1);
     expect(submit.mock.calls[0]![0]).toEqual({
@@ -44,14 +43,15 @@ describe("ApplyAutoLayoutWidget", () => {
     render(
       <Widget
         input={{ askUserFirst: true }}
-        presentation="brunch"
         submit={submit}
         state="awaiting"
         toolCallId="apply-auto-layout-2"
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Deny" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "No, keep current layout" }),
+    );
 
     expect(submit).toHaveBeenCalledTimes(1);
     expect(submit.mock.calls[0]![0]).toEqual({
@@ -72,25 +72,9 @@ describe("ApplyAutoLayoutWidget", () => {
     );
 
     expect(screen.getByText("Auto-laid out 3 nodes")).toBeDefined();
-    expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
-  });
-
-  test("keeps the stock auto-layout decision labels", () => {
-    render(
-      <Widget
-        input={{ askUserFirst: true }}
-        submit={() => {}}
-        state="awaiting"
-        toolCallId="apply-auto-layout-stock"
-      />,
-    );
-
     expect(
-      screen.getByRole("button", { name: "Yes, auto-layout" }),
-    ).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "No, keep current layout" }),
-    ).toBeTruthy();
+      screen.queryByRole("button", { name: "Yes, auto-layout" }),
+    ).toBeNull();
   });
 });
 

@@ -1,4 +1,3 @@
-import type { PetrinautAiInteractiveToolWidgetProps } from "../../interactive-tool";
 import type { ComponentType } from "react";
 
 /**
@@ -6,8 +5,17 @@ import type { ComponentType } from "react";
  * the AI chat while a tool call is awaiting human input, then becomes a
  * read-only summary once the user submits.
  */
-export type InteractiveToolWidgetProps<Input, Output> =
-  PetrinautAiInteractiveToolWidgetProps<Input, Output>;
+export type InteractiveToolWidgetProps<Input, Output> = {
+  /** Validated input supplied by the AI tool call. */
+  input: Input;
+  /** Submit one output for this tool call. Repeated calls are ignored. */
+  submit: (output: Output) => void;
+  /** Stable AI SDK identifier for this tool call. */
+  toolCallId: string;
+} & (
+  | { state: "awaiting"; submittedOutput?: never }
+  | { state: "submitted"; submittedOutput: Output }
+);
 
 /** A tool call as the interactive-tool registry sees it. */
 export type InteractiveToolCall = {
@@ -18,14 +26,12 @@ export type InteractiveToolCall = {
 
 /**
  * Descriptor for an AI tool that requires synchronous user input rendered
- * inline in the chat. The registry maps tool names to a definition; the panel
- * dispatcher defers `onToolCall` for any tool whose `shouldHandle` returns
- * `true`, and the surface renders the registered {@link Widget} until the
- * user submits.
+ * inline in the chat. The registry maps tool names to a definition; the chat
+ * waits for the user on any tool call whose `shouldHandle` returns `true`, and
+ * the transcript renders the registered {@link Widget} until the user submits.
  */
 export type InteractiveToolDefinition<Input = unknown, Output = unknown> = {
   toolName: string;
-  placement?: "work" | "card";
   /**
    * Whether this tool call should be handled interactively. Lets a single
    * tool branch between interactive and non-interactive paths based on its
@@ -37,7 +43,5 @@ export type InteractiveToolDefinition<Input = unknown, Output = unknown> = {
   parseInput: (raw: unknown) => Input;
   /** Parse the widget's output before submitting it to the AI SDK. */
   parseOutput: (raw: unknown) => Output;
-  /** Map composer text to a validated tool output when the host opts in. */
-  fromComposerText?: (params: { input: Input; text: string }) => Output;
   Widget: ComponentType<InteractiveToolWidgetProps<Input, Output>>;
 };

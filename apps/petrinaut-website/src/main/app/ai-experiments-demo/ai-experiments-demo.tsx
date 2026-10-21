@@ -46,7 +46,6 @@ const useDemoAssistantPlugin: PluginHook<typeof DemoAssistantPlugin> = (
       content: (
         <AssistantChat
           api={api}
-          conversationId="ai-experiments-demo"
           messages={introduction}
           transport={transport}
         />
