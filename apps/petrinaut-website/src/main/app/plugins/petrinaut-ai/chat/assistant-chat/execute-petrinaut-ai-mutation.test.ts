@@ -8,7 +8,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { createTestPluginApi } from "../testing/create-test-plugin-api";
+import { createTestPluginApi } from "../../testing/create-test-plugin-api";
 import { executePetrinautAiMutation } from "./execute-petrinaut-ai-mutation";
 
 import type { EditRefusal } from "@hashintel/petrinaut/ui/plugin";

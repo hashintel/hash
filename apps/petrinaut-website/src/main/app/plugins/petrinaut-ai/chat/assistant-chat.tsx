@@ -55,6 +55,7 @@ import { ChatView } from "./assistant-chat/chat-view";
 import { selectPromptChips } from "./assistant-chat/chat-view/select-prompt-chips";
 import { createDiagnosticsAwareAiTransport } from "./assistant-chat/create-diagnostics-aware-ai-transport";
 import { createReasoningTimingAwareAiTransport } from "./assistant-chat/create-reasoning-timing-aware-ai-transport";
+import { executePetrinautAiMutation } from "./assistant-chat/execute-petrinaut-ai-mutation";
 import { finalizeStreamingMessageParts } from "./assistant-chat/finalize-streaming-message-parts";
 import { getInteractiveTool } from "./assistant-chat/interactive-tools/registry";
 import { readCurrentDiagnostics } from "./assistant-chat/read-current-diagnostics";
@@ -66,7 +67,6 @@ import {
   toRefusalOutput,
 } from "./assistant-chat/tool-summaries";
 import { useLatest } from "./assistant-chat/use-latest";
-import { executePetrinautAiMutation } from "./execute-petrinaut-ai-mutation";
 
 import type { PetrinautAiMessage, PetrinautAiTransport } from "./ai-message";
 import type { AssistantChatStart } from "./assistant-chat-start";

@@ -1,7 +1,7 @@
 import { useStoreSelector } from "@hashintel/petrinaut/ui/plugin";
 
-import { ExperimentExecutionCard } from "../../experiment-execution-card";
 import { useAssistantChatApi } from "../chat-api";
+import { ExperimentExecutionCard } from "./experiment-card/experiment-execution-card";
 
 import type { PetrinautAiMessage } from "../../ai-message";
 import type { AiToolTarget } from "../tool-summaries";

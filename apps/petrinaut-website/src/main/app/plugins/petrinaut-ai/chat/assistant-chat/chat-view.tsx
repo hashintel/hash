@@ -8,7 +8,6 @@ import { AssistantPanelTitle } from "@hashintel/petrinaut/ui/plugin";
 import { useAssistantChatApi } from "./chat-api";
 import { AiAssistantComposer } from "./chat-view/composer";
 import { errorNotification } from "./chat-view/error-notification";
-import { aiFooterMinHeight } from "./chat-view/footer-height";
 import { PromptChips, type PromptChip } from "./chat-view/prompt-chips";
 import { Transcript } from "./chat-view/transcript";
 
@@ -82,7 +81,7 @@ const composerWrapStyle = css({
   backgroundColor: "neutral.s00",
   flexShrink: 0,
   boxSizing: "border-box",
-  minHeight: `[${aiFooterMinHeight}px]`,
+  minHeight: "[56px]",
 });
 
 const getPartScrollSignature = (
