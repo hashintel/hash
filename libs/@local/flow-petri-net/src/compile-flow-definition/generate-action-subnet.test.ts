@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
 
+import { canonicalizePetrinautIds } from "@hashintel/petrinaut-core";
+import { compilePetrinautModel } from "@hashintel/petrinaut-core/compiled-model";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 
 import {
   generateActionSubnetName,
+  generateDonePortKey,
   generateGaveUpPortKey,
   generateInputPortKey,
+  generateInstanceKey,
   generateOneOfPayloadColorKey,
   generateOutputPortKey,
   generatePayloadColorKey,
+  generateStartPortKey,
   generateSubnetElementKey,
   generateSubnetKey,
 } from "../flow-net-keys.js";
@@ -20,30 +25,104 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 
 describe("generateActionSubnet", () => {
-  it("gives an action a port per input and output, and one it gives up through", async () => {
-    const actionDefinition = actionDefinitions.persistEntities;
-    const subnet = await generateActionSubnet(actionDefinition);
-    const subnetName = generateActionSubnetName(
-      actionDefinition.actionDefinitionId,
+  /*
+   * An action with derived kinds gets a subnet per combination of the kinds connected to its kind sources: each is
+   * given the first kind it accepts.
+   */
+  const firstResolvedKinds = (
+    actionDefinition: ActionDefinition<FlowActionDefinitionId>,
+  ) => {
+    const kindSourceNames = new Set(
+      [...actionDefinition.inputs, ...actionDefinition.outputs].flatMap(
+        (inputOrOutput) =>
+          "kindFrom" in inputOrOutput ? [inputOrOutput.kindFrom] : [],
+      ),
     );
 
-    expect(
-      subnet.places
-        .filter(({ isPort }) => isPort)
-        .map(({ id }) => id)
-        .sort(),
-    ).toEqual(
-      [
-        ...actionDefinition.inputs.map(({ name }) =>
-          generateInputPortKey(subnetName, name),
-        ),
-        ...actionDefinition.outputs.map(({ name }) =>
-          generateOutputPortKey(subnetName, name),
-        ),
-        generateGaveUpPortKey(subnetName),
-      ].sort(),
+    return Object.fromEntries(
+      actionDefinition.inputs.flatMap((input) => {
+        const [firstKind] =
+          "oneOfPayloadKinds" in input ? input.oneOfPayloadKinds : [];
+
+        return kindSourceNames.has(input.name) && firstKind
+          ? [[input.name, firstKind] as const]
+          : [];
+      }),
     );
-  });
+  };
+
+  for (const actionDefinition of Object.values(actionDefinitions)) {
+    describe(actionDefinition.actionDefinitionId, () => {
+      const resolvedKinds = firstResolvedKinds(actionDefinition);
+      const subnetName = generateActionSubnetName(
+        actionDefinition.actionDefinitionId,
+        resolvedKinds,
+      );
+
+      it("has a port per input and output, and one it gives up through", async () => {
+        const subnet = await generateActionSubnet(
+          actionDefinition,
+          resolvedKinds,
+        );
+
+        expect(
+          subnet.places
+            .filter(({ isPort }) => isPort)
+            .map(({ id }) => id)
+            .sort(),
+        ).toEqual(
+          [
+            ...(actionDefinition.inputs.length > 0
+              ? actionDefinition.inputs.map(({ name }) =>
+                  generateInputPortKey(subnetName, name),
+                )
+              : [generateStartPortKey(subnetName)]),
+            ...(actionDefinition.outputs.length > 0
+              ? actionDefinition.outputs.map(({ name }) =>
+                  generateOutputPortKey(subnetName, name),
+                )
+              : [generateDonePortKey(subnetName)]),
+            generateGaveUpPortKey(subnetName),
+          ].sort(),
+        );
+      });
+
+      it("builds in Petrinaut", async () => {
+        const subnet = await generateActionSubnet(
+          actionDefinition,
+          resolvedKinds,
+        );
+        const colorIds = new Set(subnet.types.map(({ id }) => id));
+
+        for (const place of subnet.places) {
+          expect(colorIds, place.id).toContain(place.colorId);
+        }
+
+        expect(() =>
+          compilePetrinautModel({
+            sdcpn: canonicalizePetrinautIds({
+              places: [],
+              transitions: [],
+              types: [],
+              differentialEquations: [],
+              parameters: [],
+              subnets: [subnet],
+              componentInstances: [
+                {
+                  id: generateInstanceKey("step"),
+                  name: "step",
+                  subnetId: subnet.id,
+                  parameterValues: {},
+                  x: 0,
+                  y: 0,
+                },
+              ],
+            }),
+          }),
+        ).not.toThrow();
+      });
+    });
+  }
 
   it("starts once every input port has a token, and loops on failure until giving up", async () => {
     const subnet = await generateActionSubnet(
