@@ -151,7 +151,7 @@ const UsedBy = ({
         return (
           <SourceChip
             key={userId}
-            {...nodeLook(document, userId)}
+            icon={nodeLook(document, userId).icon}
             onClick={() =>
               setUi((ui) => ({ ...ui, selectedId: userId, openField: null }))
             }
@@ -193,7 +193,7 @@ const Paths = ({
                 {targets.map((wire) => (
                   <SourceChip
                     key={wire.id}
-                    {...nodeLook(document, wire.target)}
+                    icon={nodeLook(document, wire.target).icon}
                     onClick={() =>
                       setUi((ui) => ({ ...ui, selectedId: wire.target }))
                     }
@@ -557,9 +557,12 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
           >
             {step.over && over ? (
               <SourceChip
-                {...(step.over.kind === "step-output"
-                  ? nodeLook(document, step.over.stepId)
-                  : nodeLook(document, START_ID))}
+                icon={
+                  (step.over.kind === "step-output"
+                    ? nodeLook(document, step.over.stepId)
+                    : nodeLook(document, START_ID)
+                  ).icon
+                }
                 onClick={() =>
                   setUi((current) => ({
                     ...current,
@@ -679,7 +682,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
           {step.collect ? (
             <div>
               <SourceChip
-                {...nodeLook(document, step.collect.stepId)}
+                icon={nodeLook(document, step.collect.stepId).icon}
                 onClick={() =>
                   setUi((current) => ({
                     ...current,
@@ -1291,7 +1294,6 @@ const StartedBy = () => {
             <div>
               <SourceChip
                 icon={definition.icon}
-                tone="blue"
                 onClick={() =>
                   setUi((ui) => ({ ...ui, selectedId: trigger.id }))
                 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Icon, type IconName, Tooltip } from "@hashintel/ds-components";
+import { Chip, Icon, type IconName, Tooltip } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import type { EditorPayloadKind } from "./mock-action-definitions";
@@ -213,85 +213,6 @@ export const PropertyRow = ({
   );
 };
 
-const sourceChipStyle = css({
-  position: "relative",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "1.5",
-  maxWidth: "[100%]",
-  paddingLeft: "1",
-  paddingRight: "2",
-  paddingY: "1",
-  borderRadius: "md",
-  backgroundColor: "neutral.bgSolid.surface.active",
-  textStyle: "sm",
-  color: "neutral.fg.body",
-  textAlign: "left",
-  _hover: { backgroundColor: "neutral.bgSolid.subtle" },
-  _focusWithin: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
-});
-
-const chipTileStyle = cva({
-  base: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-    width: "[16px]",
-    height: "[16px]",
-    borderRadius: "sm",
-    "&[class] svg": {
-      width: "[10px]",
-      height: "[10px]",
-      "--icon-size": "10px",
-    },
-  },
-  variants: {
-    tone: {
-      green: {
-        backgroundColor: "green.bgSolid.surface.active",
-        color: "green.fg.muted",
-      },
-      orange: {
-        backgroundColor: "orange.bgSolid.surface.active",
-        color: "orange.fg.muted",
-      },
-      blue: {
-        backgroundColor: "blue.bgSolid.surface.active",
-        color: "blue.fg.muted",
-      },
-      neutral: {
-        backgroundColor: "neutral.bgSolid.min",
-        color: "neutral.fg.muted",
-      },
-    },
-  },
-  defaultVariants: { tone: "neutral" },
-});
-
-const chipRemoveStyle = css({
-  // Overlays the chip's end on hover, so the resting chip keeps its 8 px right padding.
-  position: "absolute",
-  right: "[4px]",
-  top: "[50%]",
-  transform: "[translateY(-50%)]",
-  backgroundColor: "neutral.bgSolid.subtle",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[16px]",
-  height: "[16px]",
-  borderRadius: "sm",
-  color: "neutral.fg.subtle",
-  cursor: "pointer",
-  opacity: "[0]",
-  _hover: {
-    backgroundColor: "neutral.bgSolid.subtle.hover",
-    color: "neutral.fg.body",
-  },
-  _focusVisible: { opacity: "[1]" },
-});
-
 export type Tone = "green" | "orange" | "neutral" | "blue";
 
 const moreChipStyle = css({
@@ -349,66 +270,34 @@ export const ChipRow = ({
   );
 };
 
-/** The ↳ Current source chip: a 16 px tile with the node's icon, then its name in 12 px. × shows on hover (J3 D1). */
+/**
+ * A source chip (which step a value comes from or goes to): the DS `Chip` as Figma's `Chips` draws it: grey, round,
+ * md (20 px), the step's icon on the left (`_showLeftIcon`). Clicking selects the step; × clears it when it can.
+ */
 export const SourceChip = ({
   icon,
-  tone,
   children,
   onClick,
   onRemove,
   label,
 }: {
   icon: IconName;
-  tone?: Tone;
   children: React.ReactNode;
   onClick?: () => void;
   onRemove?: () => void;
   label?: string;
 }) => (
-  <span
-    className={cx(
-      sourceChipStyle,
-      css({ "&:hover [data-chip-remove]": { opacity: "[1]" } }),
-    )}
+  <Chip
+    size="md"
+    shape="round"
+    color="grey"
+    prefix={{ iconName: icon, variant: "naked" }}
+    onClick={onClick}
+    removeable={onRemove ? { onRemove, "aria-label": "Clear" } : false}
+    aria-label={label}
   >
-    <button
-      type="button"
-      className={css({
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "1.5",
-        minWidth: "[0]",
-        cursor: "pointer",
-        outline: "none",
-      })}
-      onClick={onClick}
-      aria-label={label}
-    >
-      <span className={chipTileStyle({ tone })}>
-        <Icon name={icon} size="xs" />
-      </span>
-      <span
-        className={css({
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        })}
-      >
-        {children}
-      </span>
-    </button>
-    {onRemove ? (
-      <button
-        type="button"
-        className={chipRemoveStyle}
-        data-chip-remove
-        aria-label="Clear"
-        onClick={onRemove}
-      >
-        <Icon name="close" size="xs" />
-      </button>
-    ) : null}
-  </span>
+    {children}
+  </Chip>
 );
 
 export const mutedTextStyle = css({

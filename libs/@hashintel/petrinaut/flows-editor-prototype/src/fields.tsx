@@ -12,7 +12,12 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 
 import { type CatalogEntry, getCatalogEntry, type InputView } from "./catalog";
-import { ConditionBuilder, UseVariable } from "./condition-builder";
+import {
+  collapsePath,
+  ConditionBuilder,
+  tokenPath,
+  UseVariable,
+} from "./condition-builder";
 import {
   type DraftActionStep,
   type EditorDocument,
@@ -45,7 +50,6 @@ import {
   TypedValue,
 } from "./typed-value";
 import {
-  IconTile,
   keyStyle,
   kindLabel,
   mutedTextStyle,
@@ -110,12 +114,6 @@ export const entityTypeOf = (
 /* ---------------------------------------------------------------------------------------------------------------- */
 
 /** The value's own name, for a chip with the source line under it. */
-const valueLabel = (
-  document: EditorDocument,
-  source: StepInputSource,
-  stepId: string,
-) => describeSource(document, source, stepId).label;
-
 const sourceChipLabel = (
   document: EditorDocument,
   source: StepInputSource,
@@ -157,36 +155,54 @@ const ownerLook = (document: EditorDocument, source: StepInputSource) => {
   return null;
 };
 
-/** D27 A: where a value comes from, as a chip under it. The for-each item gets none. */
-const SourceLine = ({ source }: { source: StepInputSource }) => {
+/**
+ * A variable token: the DS `Chip` as Figma's `Chips` draws it (grey, round, md, `_showLeftIcon` with the source
+ * step's icon). The text is step name first, a long path's middle collapsed to "…"; the hover shows the whole path.
+ */
+const TokenChip = ({
+  source,
+  onClick,
+  onRemove,
+}: {
+  source: StepInputSource;
+  onClick: () => void;
+  onRemove: () => void;
+}) => {
   const { document } = useEditor();
-  const look = ownerLook(document, source);
+  const parts = tokenPath(document, source);
+  return (
+    <Tooltip content={parts.join(" › ")}>
+      <Chip
+        size="md"
+        shape="round"
+        color="grey"
+        prefix={{
+          iconName: ownerLook(document, source)?.icon ?? "rotate",
+          variant: "naked",
+        }}
+        onClick={onClick}
+        removeable={{ onRemove, "aria-label": "Clear" }}
+      >
+        {collapsePath(parts)}
+      </Chip>
+    </Tooltip>
+  );
+};
+
+/** D27 A: how a value is read, under its token, only when it is read in a special way (the token names the step). */
+const SourceLine = ({ source }: { source: StepInputSource }) => {
   const notes = [
     "whenMissing" in source && source.whenMissing === "skip"
       ? "Skips this step when missing"
       : null,
     "wrap" in source && source.wrap ? "As a list of one" : null,
   ].filter(Boolean);
-  if (!look) {
+  if (notes.length === 0) {
     return null;
   }
   return (
-    <span
-      title={notes.length > 0 ? notes.join(" · ") : look.owner}
-      className={css({
-        display: "flex",
-        alignItems: "flex-start",
-        gap: "1",
-        textStyle: "xs",
-        color: "neutral.fg.subtle",
-        minWidth: "[0]",
-      })}
-    >
-      <IconTile icon={look.icon} tone={look.tone} size="sm" />
-      <span className={css({ overflowWrap: "anywhere" })}>
-        {look.owner}
-        {notes.length > 0 ? ` · ${notes.join(" · ").toLowerCase()}` : ""}
-      </span>
+    <span className={css({ textStyle: "xs", color: "neutral.fg.subtle" })}>
+      {notes.join(" · ")}
     </span>
   );
 };
@@ -228,7 +244,7 @@ const ownKind = (input: InputView) => {
 
 /** A field that takes one value: its data type's control, or a reference picked from the source menu (the "@"). */
 export const ValueField = ({ step, input, entry }: FieldProps) => {
-  const { document, setDocument } = useEditor();
+  const { setDocument } = useEditor();
   const anchorRef = useRef<HTMLDivElement>(null);
   const { open, setOpen } = useFieldMenu(step.stepId, input.name);
   const source = step.inputs[input.name];
@@ -271,14 +287,11 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
         ref={anchorRef}
         className={css({ display: "flex", flexDirection: "column", gap: "1" })}
       >
-        <Chip
-          size="sm"
-          color="blue"
+        <TokenChip
+          source={source}
           onClick={() => setOpen(true)}
-          removeable={{ onRemove: () => set(null), "aria-label": "Clear" }}
-        >
-          {valueLabel(document, source, step.stepId)}
-        </Chip>
+          onRemove={() => set(null)}
+        />
         <SourceLine source={source} />
         {menu}
       </div>
@@ -671,7 +684,7 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
         mockPeopleEmails.find((candidate) => candidate.email === value)?.label;
       return known ?? value.replace(uploadedPrefix, "");
     }
-    return sourceChipLabel(document, item, step.stepId);
+    return collapsePath(tokenPath(document, item));
   };
 
   /** A typed email that fails the check stays, as a red chip (spec F7: never a silent drop). */
@@ -704,7 +717,16 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
       <Chip
         key={JSON.stringify(item)}
         size="md"
-        color={bad ? "red" : item.kind === "constant" ? "grey" : "blue"}
+        color={bad ? "red" : "grey"}
+        {...(item.kind === "constant"
+          ? {}
+          : {
+              shape: "round" as const,
+              prefix: {
+                iconName: ownerLook(document, item)?.icon ?? "rotate",
+                variant: "naked" as const,
+              },
+            })}
         removeable={{
           onRemove: () => setItems(items.filter((_, other) => other !== index)),
           "aria-label": `Remove ${itemLabel(item)}`,
@@ -1256,7 +1278,6 @@ const PatchValue = ({
   /** A link property picks entities of the type it links to. */
   entityTypeBaseUrl?: string;
 }) => {
-  const { document } = useEditor();
   const anchorRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const kind = input.kinds?.[0] ?? "Text";
@@ -1268,17 +1289,11 @@ const PatchValue = ({
     >
       {source && source.kind !== "constant" ? (
         <>
-          <Chip
-            size="sm"
-            color="blue"
+          <TokenChip
+            source={source}
             onClick={() => setOpen(true)}
-            removeable={{
-              onRemove: () => onChange(null),
-              "aria-label": "Clear",
-            }}
-          >
-            {valueLabel(document, source, step.stepId)}
-          </Chip>
+            onRemove={() => onChange(null)}
+          />
           <SourceLine source={source} />
         </>
       ) : (
