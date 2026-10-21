@@ -216,7 +216,7 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
   `PluginTopBarItemSpec`, `PluginTopBarPlace`.
 - Contributions: `PluginButton`, `PluginCommand`, `PluginReadOnlyAction`,
   `PluginAssistant`, `PluginAssistantStartAction`.
-- Assistant panel: `AssistantPanel`, `AssistantStartRequest`.
+- Assistant panel: `AssistantPanel`.
 - Access: `PluginAccess`, `AccessApi`, `PluginDocumentReader`,
   `PluginDocument`, `PluginDiagnostics`, `PluginEdits`,
   `PluginExperimentsReader`, `PluginExperiments`, `PluginEditorReader`,
@@ -238,8 +238,7 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
 - `useCommand(command, options?)`: a command the manifest cannot declare, such
   as one per record. Declared commands need no hook.
 - `useAssistantPanel()`: the assistant panel's state, from inside
-  `assistant.content`: `isOpen`, `close`, `focusRequest`, `collapsed`,
-  `setCollapsed`, and the start request with `consumeStartRequest`.
+  `assistant.content`: `isOpen`, `close`, `collapsed` and `setCollapsed`.
 
 ### Components
 
@@ -249,7 +248,7 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
   `onClose` runs when the user presses Close, before the panel closes.
 - `AssistantPanelPreview`: renders `children` as a plugin's `assistant.content`
   in the panel outside an editor, for stories and tests. `state` overrides the
-  panel's state, which starts open with no start request.
+  panel's state, which starts open and expanded.
 
 ### Attributes
 

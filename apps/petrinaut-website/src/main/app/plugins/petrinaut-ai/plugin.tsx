@@ -8,6 +8,7 @@ import {
 import { VOICE_REQUEST_ID_HEADER } from "../../../../voice-diagnostics";
 import { stockChatEndpoint } from "../../local-storage-demo/assistant-selection";
 import { AssistantChat } from "../_shared/chat/assistant-chat";
+import { useAssistantChatStart } from "../_shared/chat/assistant-chat-start";
 import { useLocalStorageAiMessages } from "./plugin/use-local-storage-ai-messages";
 
 import type { PetrinautAiMessage } from "../_shared/chat/ai-message";
@@ -30,6 +31,7 @@ const transport = new DefaultChatTransport<PetrinautAiMessage>({
 
 const usePetrinautAiPlugin: PluginHook<typeof PetrinautAiPlugin> = (api) => {
   const [messages, setMessages] = useLocalStorageAiMessages(api.document.id);
+  const chatStart = useAssistantChatStart({ voice: false });
 
   return {
     assistant: {
@@ -41,8 +43,11 @@ const usePetrinautAiPlugin: PluginHook<typeof PetrinautAiPlugin> = (api) => {
           messages={messages}
           onMessages={setMessages}
           onClearMessages={() => setMessages(undefined)}
+          start={chatStart.start}
+          onStartHandled={chatStart.onStartHandled}
         />
       ),
+      onPrompt: chatStart.onPrompt,
     },
   };
 };

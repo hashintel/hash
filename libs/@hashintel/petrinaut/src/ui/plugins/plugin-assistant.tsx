@@ -9,17 +9,10 @@ import { createPortal } from "react-dom";
 import { PluginBoundary } from "./plugin-boundary";
 import { useRunningPluginsSelector } from "./plugins-provider";
 
-/** What the empty-canvas prompt asks for when it opens the assistant panel. */
-export type AssistantStartRequest =
-  | { readonly text: string }
-  | { readonly action: string };
-
 /** The assistant panel's state, as its content reads it. */
 export interface AssistantPanel {
   readonly isOpen: boolean;
   readonly close: () => void;
-  /** Changes each time the user opens the panel, so the content can focus its composer. */
-  readonly focusRequest: number;
   /**
    * `true` while the panel shrinks to a dock in the corner, e.g. during a
    * voice session. The title bar is hidden and the content may overflow the
@@ -27,9 +20,6 @@ export interface AssistantPanel {
    */
   readonly collapsed: boolean;
   readonly setCollapsed: (collapsed: boolean) => void;
-  /** What the empty-canvas prompt asked for, until the content consumes it. */
-  readonly startRequest: AssistantStartRequest | null;
-  readonly consumeStartRequest: () => void;
 }
 
 export const AssistantPanelContext = createContext<AssistantPanel | null>(null);

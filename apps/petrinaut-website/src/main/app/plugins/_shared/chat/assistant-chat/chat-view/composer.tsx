@@ -250,6 +250,7 @@ export const AiAssistantComposer = ({
       <div className={composerStyle} data-brunch={isBrunch || undefined}>
         <textarea
           ref={inputRef}
+          data-autofocus
           className={composerTextareaStyle}
           rows={1}
           value={input}

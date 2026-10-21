@@ -114,7 +114,7 @@ describe("AiCtaModal", () => {
     ).toBe(true);
   });
 
-  test("offers a plugin assistant's start action in place of Send and requests it once", () => {
+  test("offers a plugin assistant's start action in place of Send and runs it once", () => {
     const onStartAction = vi.fn();
     const onSubmit = vi.fn();
     render(
@@ -125,14 +125,13 @@ describe("AiCtaModal", () => {
         onStartAction={onStartAction}
         onStartVoiceMode={vi.fn()}
         onSubmit={onSubmit}
-        startAction={{ id: "listen", label: "Listen", icon: null }}
+        startAction={{ label: "Listen", icon: null, run: vi.fn() }}
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Listen" }));
 
     expect(onStartAction).toHaveBeenCalledOnce();
-    expect(onStartAction).toHaveBeenCalledWith("listen");
     expect(onSubmit).not.toHaveBeenCalled();
   });
 

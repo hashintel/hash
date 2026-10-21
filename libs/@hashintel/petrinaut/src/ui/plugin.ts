@@ -54,10 +54,7 @@ export {
   AssistantPanelTitle,
   useAssistantPanel,
 } from "./plugins/plugin-assistant";
-export type {
-  AssistantPanel,
-  AssistantStartRequest,
-} from "./plugins/plugin-assistant";
+export type { AssistantPanel } from "./plugins/plugin-assistant";
 export { AssistantPanelPreview } from "./views/Editor/panels/assistant-panel-shell";
 export {
   useCommand,
