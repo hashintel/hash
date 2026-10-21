@@ -33,7 +33,10 @@ import type {
   FlowRunStatus,
   StepRun,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type { Client as TemporalClient } from "@temporalio/client";
+import type {
+  Client as TemporalClient,
+  WorkflowExecutionStatusName,
+} from "@temporalio/client";
 
 type IHistoryEvent = proto.temporal.api.history.v1.IHistoryEvent;
 
@@ -168,64 +171,52 @@ const getActivityStartedDetails = (
   };
 };
 
-const getFlowRunDetailedFields = async ({
-  workflowId,
-  temporalClient,
-  storageProvider,
-}: {
-  workflowId: string;
-  temporalClient: TemporalClient;
-  /** Storage provider for resolving stored payload references */
-  storageProvider: FileStorageProvider;
-}): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> => {
-  const { workflow, history: events } = await getFlowRunHistory({
-    temporalClient,
-    workflowId,
-  });
-
-  const workflowExecutionStartedEventAttributes = events.find(
+const findWorkflowExecutionStartedEventAttributes = (events: IHistoryEvent[]) =>
+  events.find(
     (event) =>
       event.eventType ===
       proto.temporal.api.enums.v1.EventType
         .EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
   )?.workflowExecutionStartedEventAttributes;
 
+/**
+ * A run's Temporal description and history, with times as ISO strings: the shape of the recorded history fixtures.
+ */
+export type FlowRunHistoryRecord = {
+  describe: {
+    runId: string;
+    status: WorkflowExecutionStatusName;
+    startTime: string;
+    closeTime?: string | null;
+    memo?: Record<string, unknown>;
+  };
+  history: IHistoryEvent[];
+  /**
+   * When the run's first execution started, if this run was started by resetting or continuing it.
+   */
+  originalRunStartTime?: string;
+};
+
+/**
+ * A run's detailed fields, from its description and history. Stored payloads in outputs are resolved through
+ * `resolvePayloadContext`.
+ */
+export const getFlowRunDetailedFieldsFromHistory = async (
+  {
+    describe: workflow,
+    history: events,
+    originalRunStartTime,
+  }: FlowRunHistoryRecord,
+  resolvePayloadContext: ResolvePayloadContext,
+): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> => {
+  const workflowExecutionStartedEventAttributes =
+    findWorkflowExecutionStartedEventAttributes(events);
+
   /* `runFlow` takes one argument: its params. */
   const [workflowParams] =
     (parseHistoryItemPayload(workflowExecutionStartedEventAttributes?.input) as
       | [RunFlowWorkflowParams]
       | undefined) ?? [];
-
-  /**
-   * If this workflow run has been started after the original was reset or 'continue-as-new'd,
-   * its start time will be the point at which it was reset/continued.
-   * We can check if it has a different firstExecutionRunId and if so, get the start time of the original run.
-   */
-  let workflowStartedAt = workflow.startTime;
-  const firstExecutionRunId =
-    workflowExecutionStartedEventAttributes?.firstExecutionRunId;
-
-  if (firstExecutionRunId && firstExecutionRunId !== workflow.runId) {
-    const originalRunHandle = temporalClient.workflow.getHandle(
-      workflowId,
-      firstExecutionRunId,
-    );
-
-    try {
-      const originalRun = await originalRunHandle.describe();
-
-      workflowStartedAt = originalRun.startTime;
-    } catch {
-      /**
-       * The original run is not available, likely because it is no longer retained by Temporal.
-       * @todo H-3142: save workflow history in our database so we don't rely on Temporal for old runs
-       */
-      // eslint-disable-next-line no-console
-      console.warn(
-        `Could not find original run with id ${firstExecutionRunId} for workflow ${workflowId}`,
-      );
-    }
-  }
 
   const workflowOutputs = parseHistoryItemPayload(
     events.find(
@@ -264,7 +255,7 @@ const getFlowRunDetailedFields = async ({
     "CANCELED",
     "TIMED_OUT",
     "FAILED",
-  ].includes(workflow.status.name);
+  ].includes(workflow.status);
 
   if (events.length) {
     /*
@@ -425,7 +416,7 @@ const getFlowRunDetailedFields = async ({
         stepType: activityType ?? "UNKNOWN",
         startedAt,
         scheduledAt,
-        closedAt: workflowStoppedEarly ? workflow.closeTime?.toISOString() : "",
+        closedAt: workflowStoppedEarly ? (workflow.closeTime ?? undefined) : "",
         inputs,
         logs: [],
         status: workflowStoppedEarly
@@ -650,7 +641,7 @@ const getFlowRunDetailedFields = async ({
 
           const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(
             firstContent.outputs,
-            { storageProvider, workflowId },
+            resolvePayloadContext,
           );
 
           return {
@@ -684,7 +675,7 @@ const getFlowRunDetailedFields = async ({
 
         const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(
           firstContent.outputs,
-          { storageProvider, workflowId },
+          resolvePayloadContext,
         );
 
         return {
@@ -708,8 +699,70 @@ const getFlowRunDetailedFields = async ({
     outputs: resolvedWorkflowOutputs ?? workflowOutputs,
     inputRequests: Object.values(inputRequestsById),
     steps,
-    startedAt: workflowStartedAt.toISOString(),
+    startedAt: originalRunStartTime ?? workflow.startTime,
   };
+};
+
+const getFlowRunDetailedFields = async ({
+  workflowId,
+  temporalClient,
+  storageProvider,
+}: {
+  workflowId: string;
+  temporalClient: TemporalClient;
+  /** Storage provider for resolving stored payload references */
+  storageProvider: FileStorageProvider;
+}): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> => {
+  const { workflow, history } = await getFlowRunHistory({
+    temporalClient,
+    workflowId,
+  });
+
+  /**
+   * If this workflow run has been started after the original was reset or 'continue-as-new'd,
+   * its start time will be the point at which it was reset/continued.
+   * We can check if it has a different firstExecutionRunId and if so, get the start time of the original run.
+   */
+  let originalRunStartTime: string | undefined;
+  const firstExecutionRunId =
+    findWorkflowExecutionStartedEventAttributes(history)?.firstExecutionRunId;
+
+  if (firstExecutionRunId && firstExecutionRunId !== workflow.runId) {
+    const originalRunHandle = temporalClient.workflow.getHandle(
+      workflowId,
+      firstExecutionRunId,
+    );
+
+    try {
+      const originalRun = await originalRunHandle.describe();
+
+      originalRunStartTime = originalRun.startTime.toISOString();
+    } catch {
+      /**
+       * The original run is not available, likely because it is no longer retained by Temporal.
+       * @todo H-3142: save workflow history in our database so we don't rely on Temporal for old runs
+       */
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Could not find original run with id ${firstExecutionRunId} for workflow ${workflowId}`,
+      );
+    }
+  }
+
+  return getFlowRunDetailedFieldsFromHistory(
+    {
+      describe: {
+        runId: workflow.runId,
+        status: workflow.status.name,
+        startTime: workflow.startTime.toISOString(),
+        closeTime: workflow.closeTime?.toISOString(),
+        memo: workflow.memo,
+      },
+      history,
+      originalRunStartTime,
+    },
+    { storageProvider, workflowId },
+  );
 };
 
 export const getSparseFlowRunFromTemporalWorkflowId = async ({
