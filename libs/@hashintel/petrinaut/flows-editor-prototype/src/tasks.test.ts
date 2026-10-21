@@ -135,4 +135,50 @@ describe("task 1: flag a bad batch", () => {
   it("is major when it fires on passed checks", () => {
     expect(grade(1, flagFlow("true", "Maya Patel"))).toBe("major");
   });
+  it("is complete when a trigger's condition picks failed checks and the email goes to her address", () => {
+    const email = addStep(emptyDocument(), "sendEmail", {
+      after: { stepId: START_ID, port: "next" },
+    });
+    const document = {
+      ...email.document,
+      triggers: [
+        {
+          id: "created",
+          kind: "entityCreated" as const,
+          description: "",
+          settings: { entityTypeBaseUrl: typeUrl("Purity check") },
+        },
+      ],
+      wires: [
+        ...email.document.wires,
+        {
+          id: "created->start",
+          source: "created",
+          sourcePort: "next",
+          target: START_ID,
+        },
+      ],
+      queries: {
+        [fieldKey("created", "condition")]: {
+          conditions: [
+            {
+              id: 1,
+              propertyBaseUrl: propertyUrl("Purity check", "Passed"),
+              operator: "equals" as const,
+              value: "false",
+            },
+          ],
+        },
+      },
+      lists: {
+        [fieldKey(email.stepId, "to")]: [
+          {
+            kind: "constant" as const,
+            payload: { kind: "Text" as const, value: "maya@example.com" },
+          },
+        ],
+      },
+    } as EditorDocument;
+    expect(grade(1, document)).toBe("complete");
+  });
 });

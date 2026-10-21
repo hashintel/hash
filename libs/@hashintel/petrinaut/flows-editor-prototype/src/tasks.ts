@@ -176,6 +176,21 @@ const gradeFlagBadBatch = (document: EditorDocument): Grade => {
     return "fail";
   }
 
+  // A trigger on purity checks whose condition matches failed ones gates the whole flow (field kinds v2: the trigger's
+  // condition is a condition builder now, so it can be graded).
+  const failedOnly = document.triggers.some(
+    (trigger) =>
+      trigger.settings.entityTypeBaseUrl === checks &&
+      document.wires.some((wire) => wire.source === trigger.id) &&
+      failedPort(document.queries[fieldKey(trigger.id, "condition")]) ===
+        "true",
+  );
+  if (failedOnly) {
+    return notifies.some((notify) => goesToQualityLead(document, notify.stepId))
+      ? "complete"
+      : "major";
+  }
+
   for (const notify of notifies) {
     for (const gate of steps.filter((step) =>
       ["if", "filterList"].includes(step.actionDefinitionId),
