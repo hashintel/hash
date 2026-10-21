@@ -9,10 +9,10 @@ import {
 } from "@hashintel/petrinaut/ui/plugin";
 
 import { BrowserOptimizationProvider } from "../optimization-demo/browser-optimization-provider";
-import { AssistantChat } from "../plugins/_shared/chat/assistant-chat";
+import { AssistantChat } from "../plugins/petrinaut-ai/chat/assistant-chat";
 import { createExperimentDemoTransport } from "./create-experiment-demo-transport";
 
-import type { PetrinautAiMessage } from "../plugins/_shared/chat/ai-message";
+import type { PetrinautAiMessage } from "../plugins/petrinaut-ai/chat/ai-message";
 
 const introduction: PetrinautAiMessage[] = [
   {

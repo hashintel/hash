@@ -8,7 +8,7 @@ import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 
-import type { PetrinautAiMessage } from "../../_shared/chat/ai-message";
+import type { PetrinautAiMessage } from "../chat/ai-message";
 
 const storageKey = "petrinaut-ai-messages";
 

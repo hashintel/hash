@@ -10,7 +10,7 @@ import {
 import { renderEditorWith } from "../_shared/testing/render-editor-with";
 import { petrinautAiPlugin } from "./plugin";
 
-import type { PetrinautAiMessage } from "../_shared/chat/ai-message";
+import type { PetrinautAiMessage } from "./chat/ai-message";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =

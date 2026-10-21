@@ -7,11 +7,11 @@ import {
 
 import { VOICE_REQUEST_ID_HEADER } from "../../../../voice-diagnostics";
 import { stockChatEndpoint } from "../../local-storage-demo/assistant-selection";
-import { AssistantChat } from "../_shared/chat/assistant-chat";
-import { useAssistantChatStart } from "../_shared/chat/assistant-chat-start";
+import { AssistantChat } from "./chat/assistant-chat";
+import { useAssistantChatStart } from "./chat/assistant-chat-start";
 import { useLocalStorageAiMessages } from "./plugin/use-local-storage-ai-messages";
 
-import type { PetrinautAiMessage } from "../_shared/chat/ai-message";
+import type { PetrinautAiMessage } from "./chat/ai-message";
 
 const PetrinautAiPlugin = definePetrinautPlugin({
   id: "website.petrinaut-ai",
