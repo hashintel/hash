@@ -1,12 +1,4 @@
-import {
-  type ReactNode,
-  use,
-  useEffect,
-  useEffectEvent,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, use, useEffect, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -75,15 +67,6 @@ const shellStyle = cva({
         },
       },
     },
-    collapsed: {
-      true: {
-        top: "[auto]",
-        bottom: "[12px]",
-        right: "[12px]",
-        height: "auto",
-        maxWidth: "[calc(100% - 24px)]",
-      },
-    },
   },
 });
 
@@ -112,10 +95,6 @@ const cardStyle = cva({
     },
   },
   variants: {
-    // A collapsed panel's content may overflow its dock, for a popover above it.
-    collapsed: {
-      true: { overflow: "visible" },
-    },
     floating: {
       true: {
         borderLeftColor: "[transparent]",
@@ -123,15 +102,6 @@ const cardStyle = cva({
         boxShadow:
           "[0 0 0 1px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.12), 0 12px 32px -12px rgba(0,0,0,0.16)]",
       },
-    },
-  },
-});
-
-/** Hides a part of the panel without unmounting it while the panel is collapsed. */
-const panelContentStyle = cva({
-  variants: {
-    visible: {
-      false: { display: "none" },
     },
   },
 });
@@ -227,8 +197,7 @@ const buttonStyle = css({
  * the canvas, its docked or floating placement, resizing, and a title bar with
  * the assistant icon, the dock toggle and Close. The content fills the rest,
  * and the title bar through `AssistantPanelTitle`; it reads `panel` with
- * `useAssistantPanel`. Collapsed, the panel shrinks to a dock in the corner and
- * hides its title bar.
+ * `useAssistantPanel`.
  */
 export const PluginAssistantPanel = ({
   panel,
@@ -246,9 +215,8 @@ export const PluginAssistantPanel = ({
     isPanelAnimating,
     setAiAssistantPlacement,
     setAiAssistantWidth,
-    setAiAssistantDockHeight,
   } = use(EditorContext);
-  const { isOpen, close, collapsed } = panel;
+  const { isOpen, close } = panel;
 
   const isFloating = aiAssistantPlacement === "floating";
   const HeaderLabel = isFloating ? "button" : "div";
@@ -273,67 +241,34 @@ export const PluginAssistantPanel = ({
   const [actionsElement, setActionsElement] = useState<HTMLElement | null>(
     null,
   );
-  const closeHandlerRef = useRef<(() => void) | undefined>(undefined);
-  const [setCloseHandler] = useState(
-    () => (handler: (() => void) | undefined) => {
-      closeHandlerRef.current = handler;
-    },
-  );
-
-  const reportDockHeight = useEffectEvent((height: number | null) => {
-    setAiAssistantDockHeight(height);
-  });
-  useLayoutEffect(() => {
-    const shell = panelRef.current;
-    if (!isOpen || !collapsed || !shell) {
-      return;
-    }
-    const measure = () =>
-      reportDockHeight(shell.getBoundingClientRect().height);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(shell);
-    return () => {
-      observer.disconnect();
-      reportDockHeight(null);
-    };
-  }, [isOpen, collapsed, panelRef]);
 
   // Opening the panel moves focus to the content's element marked
-  // `data-autofocus`, or else to the panel. An expanded panel that already
-  // holds focus keeps it, and a collapsed panel focuses itself.
+  // `data-autofocus`, or else to the panel, unless focus is already inside.
   useEffect(() => {
     const panelElement = panelRef.current;
     if (
       !isOpen ||
       panelElement === null ||
-      (!collapsed && panelElement.contains(document.activeElement))
+      panelElement.contains(document.activeElement)
     ) {
       return;
     }
-    const target = collapsed
-      ? panelElement
-      : (panelElement.querySelector<HTMLElement>("[data-autofocus]") ??
-        panelElement);
+    const target =
+      panelElement.querySelector<HTMLElement>("[data-autofocus]") ??
+      panelElement;
     target.focus({ preventScroll: true });
-  }, [collapsed, focusRequest, isOpen, panelRef]);
+  }, [focusRequest, isOpen, panelRef]);
 
   return (
     <AssistantPanelContext value={panel}>
       <AssistantTitleBarContext
-        value={{
-          title: titleElement,
-          actions: actionsElement,
-          setCloseHandler,
-        }}
+        value={{ title: titleElement, actions: actionsElement }}
       >
         <div
           aria-hidden="true"
           className={dockSpaceStyle}
           data-animating={animating}
-          style={{
-            width: isOpen && !isFloating && !collapsed ? panelWidth : 0,
-          }}
+          style={{ width: isOpen && !isFloating ? panelWidth : 0 }}
         />
         <aside
           ref={panelRef}
@@ -341,29 +276,21 @@ export const PluginAssistantPanel = ({
           aria-label="AI assistant"
           tabIndex={-1}
           inert={!isOpen}
-          className={shellStyle({
-            collapsed,
-            open: isOpen,
-            floating: isFloating && !collapsed,
-          })}
+          className={shellStyle({ open: isOpen, floating: isFloating })}
           data-placement={aiAssistantPlacement}
           data-animating={animating}
           style={{
             width: panelWidth,
-            ...(isFloating && !collapsed ? floatingPositionStyle : {}),
+            ...(isFloating ? floatingPositionStyle : {}),
           }}
         >
-          {isFloating && !collapsed ? (
+          {isFloating ? (
             <FloatingResizeHandles
               label="AI assistant"
               getHandleProps={getResizeHandleProps}
             />
           ) : (
-            <div
-              className={`${resizeAnchorStyle} ${panelContentStyle({
-                visible: !collapsed,
-              })}`}
-            >
+            <div className={resizeAnchorStyle}>
               <ResizeHandle
                 edge="left"
                 appearance="hidden"
@@ -376,17 +303,10 @@ export const PluginAssistantPanel = ({
             </div>
           )}
           <div
-            className={cardStyle({
-              floating: isFloating || collapsed,
-              collapsed,
-            })}
+            className={cardStyle({ floating: isFloating })}
             data-animating={animating}
           >
-            <div
-              className={`${headerStyle} ${panelContentStyle({
-                visible: !collapsed,
-              })}`}
-            >
+            <div className={headerStyle}>
               <HeaderLabel
                 type={isFloating ? "button" : undefined}
                 className={headerLabelStyle}
@@ -422,10 +342,7 @@ export const PluginAssistantPanel = ({
                 variant="ghost"
                 className={buttonStyle}
                 aria-label="Close AI assistant"
-                onClick={() => {
-                  closeHandlerRef.current?.();
-                  close();
-                }}
+                onClick={close}
                 prefix={<ExperimentalIcon name="close" size={14} />}
                 tooltip="Close AI assistant"
               />
@@ -466,13 +383,7 @@ export const AssistantPanelPreview = ({
       }}
     >
       <PluginAssistantPanel
-        panel={{
-          isOpen: true,
-          close: () => {},
-          collapsed: false,
-          setCollapsed: () => {},
-          ...state,
-        }}
+        panel={{ isOpen: true, close: () => {}, ...state }}
         focusRequest={0}
       >
         {children}
