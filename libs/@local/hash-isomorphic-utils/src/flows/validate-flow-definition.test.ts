@@ -848,6 +848,10 @@ describe("validateFlowDefinition", () => {
         }),
       },
       {
+        name: "a constant with no properties",
+        properties: constant({ value: {} }),
+      },
+      {
         name: "a flow input, which is checked when the step runs",
         properties: { kind: "flow-input", inputName: "properties" },
       },
@@ -861,11 +865,6 @@ describe("validateFlowDefinition", () => {
         value: { [nameUrl]: "Ada" },
         message:
           "Properties must be an object whose value is keyed by property type base URL.",
-      },
-      {
-        name: "no properties",
-        value: { value: {} },
-        message: "Properties must give a value for at least one property.",
       },
       {
         name: "a property type versioned URL rather than a base URL",

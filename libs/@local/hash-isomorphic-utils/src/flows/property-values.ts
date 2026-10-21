@@ -62,13 +62,7 @@ export const validatePropertiesWithMetadata = (
     return "Properties must be an object whose value is keyed by property type base URL.";
   }
 
-  const entries = Object.entries(properties.value);
-
-  if (entries.length === 0) {
-    return "Properties must give a value for at least one property.";
-  }
-
-  for (const [baseUrl, property] of entries) {
+  for (const [baseUrl, property] of Object.entries(properties.value)) {
     if (!isPropertyBaseUrl(baseUrl)) {
       return notABaseUrlMessage(baseUrl);
     }

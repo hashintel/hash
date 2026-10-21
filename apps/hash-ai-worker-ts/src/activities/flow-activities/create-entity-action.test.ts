@@ -161,6 +161,19 @@ describe("createEntityAction", () => {
     );
   });
 
+  it("creates an entity without properties", async () => {
+    mockCreated(`${webId}~00000000-0000-4000-8000-000000000002` as EntityId);
+
+    expect(await run({ properties: { value: {} } })).toMatchObject({
+      code: StatusCode.Ok,
+    });
+    expect(create).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ properties: { value: {} } }),
+    );
+  });
+
   it.each([
     {
       name: "an entity type ID that isn't a versioned URL",
@@ -170,11 +183,6 @@ describe("createEntityAction", () => {
       },
       message:
         '"https://example.com/types/entity-type/person/" is not an entity type ID.',
-    },
-    {
-      name: "no properties",
-      params: { properties: { value: {} } },
-      message: "Properties must give a value for at least one property.",
     },
     {
       name: "a value without a data type ID",
