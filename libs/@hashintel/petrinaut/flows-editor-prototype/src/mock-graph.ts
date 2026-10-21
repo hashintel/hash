@@ -202,3 +202,29 @@ export const mockEntities: MockEntity[] = [
   ),
   entity(personType, "5b1d0000-0000-4000-8000-000000000022", "Tom Okafor"),
 ];
+
+/** People's email addresses, for an email list's "People" choices (Send email To and CC). */
+export const mockPeopleEmails: { label: string; email: string }[] = [
+  { label: "Maya Patel", email: "maya@example.com" },
+  { label: "Tom Okafor", email: "tom@example.com" },
+];
+
+/** Addresses the workspace can send from (field kinds v2: Sender is a select of connected senders, not typed). */
+export const mockSenders: { value: string; text: string }[] = [
+  { value: "quality@acme.example", text: "quality@acme.example" },
+  { value: "noreply@acme.example", text: "noreply@acme.example" },
+];
+
+/** File entities in the graph, for file fields (Send email Attachments). */
+export const mockFiles: { entityId: EntityId; label: string }[] = [
+  {
+    entityId:
+      "00000000-0000-4000-8000-0000000000aa~5b1d0000-0000-4000-8000-000000000041" as EntityId,
+    label: "Purity report SH-2041.pdf",
+  },
+  {
+    entityId:
+      "00000000-0000-4000-8000-0000000000aa~5b1d0000-0000-4000-8000-000000000042" as EntityId,
+    label: "Certificate of analysis.pdf",
+  },
+];

@@ -8,6 +8,7 @@ import {
   isMockActionDefinitionId,
   mockActionDefinitions,
 } from "./mock-action-definitions";
+import { mockSenders } from "./mock-graph";
 import { prdBlocks, type PrdSource } from "./mock-prd-ports";
 
 import type { IconName } from "@hashintel/ds-components";
@@ -25,7 +26,15 @@ export type InputView = {
   /** `null` for an input whose kind comes from another input (`kindFrom`). */
   kinds: readonly EditorPayloadKind[] | null;
   kindFrom?: string;
+  /** Field kinds v2: what a `Text` input holds when it is not human text, which picks its control. */
+  format?: InputFormat;
+  /** Field kinds v2 F5: the choices of an option input (a select). */
+  options?: { value: string; text: string }[];
+  /** The entity type an entity input or list picks from, by title ("Person"). */
+  entityTypeTitle?: string;
 };
+
+export type InputFormat = "email" | "url" | "file";
 
 export type OutputView = {
   name: string;
@@ -255,6 +264,31 @@ export const forEachEntry: CatalogEntry = {
   outputs: [],
 };
 
+/**
+ * Field kinds v2 (ops `field-kinds.md`): the engine types these inputs as `Text` or a bare list, but their data type
+ * picks a narrower control. Keyed `actionId.inputName`.
+ */
+const inputHints: Record<
+  string,
+  Pick<InputView, "format" | "options" | "entityTypeTitle">
+> = {
+  "sendEmail.to": { format: "email" },
+  "sendEmail.cc": { format: "email" },
+  "sendEmail.senderAddress": { options: mockSenders },
+  "sendEmail.attachments": { format: "file" },
+  "requestReview.people": { entityTypeTitle: "Person" },
+  "getWebPageByUrl.url": { format: "url" },
+  "getFileFromUrl.url": { format: "url" },
+};
+
+const withHints = (entry: CatalogEntry): CatalogEntry => ({
+  ...entry,
+  inputs: entry.inputs.map((input) => ({
+    ...input,
+    ...inputHints[`${entry.id}.${input.name}`],
+  })),
+});
+
 /** Lays the draft PRD's port names, descriptions, sources and rules over the engine's inputs and outputs. */
 const withPrdPorts = (entry: CatalogEntry): CatalogEntry => {
   const prd = prdBlocks[entry.id];
@@ -287,7 +321,7 @@ const withPrdPorts = (entry: CatalogEntry): CatalogEntry => {
 export const catalog: CatalogEntry[] = [
   ...Object.keys(presentation).flatMap((id) => {
     const entry = fromEngine(id);
-    return entry ? [withPrdPorts(entry)] : [];
+    return entry ? [withHints(withPrdPorts(entry))] : [];
   }),
   forEachEntry,
 ];

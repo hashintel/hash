@@ -389,7 +389,7 @@ export const formatDate = (iso: string) => {
   return `${shortMonths[month]} ${day}, ${year}`;
 };
 
-const relativePresets: { value: RelativeDate; text: string }[] = [
+export const relativePresets: { value: RelativeDate; text: string }[] = [
   { value: { kind: "today" }, text: "Today" },
   { value: { kind: "yesterday" }, text: "Yesterday" },
   { value: { kind: "weekAgo" }, text: "One week ago" },
@@ -403,10 +403,10 @@ export const relativeLabel = (relative: RelativeDate) =>
         ?.text ?? "");
 
 /** The prototype's "today" (the world's month is October 2026). */
-const today = { year: 2026, month: 9, day: 21 };
+export const today = { year: 2026, month: 9, day: 21 };
 
 /** A month grid as the DS date picker draws it: Monday first, six weeks, days outside the month muted. */
-const DateCalendar = ({
+export const DateCalendar = ({
   value,
   onPick,
 }: {
@@ -699,6 +699,8 @@ type RowProps = {
   onGroup?: () => void;
   /** The builder's footer "Use a variable": the picker anchors there when opened from it. */
   footerRef?: React.RefObject<HTMLButtonElement | null>;
+  /** False where nothing runs before the condition (a trigger's): values are typed or picked, never variables. */
+  allowVariables: boolean;
 };
 
 const ConditionRowView = ({
@@ -713,6 +715,7 @@ const ConditionRowView = ({
   onRemove,
   onGroup,
   footerRef,
+  allowVariables,
 }: RowProps) => {
   const { document, ui, setUi } = useEditor();
   const key = `${input.name}:condition${row.id}`;
@@ -912,11 +915,11 @@ const ConditionRowView = ({
           }),
         )}
         value={`${row.value === null ? "" : String(row.value)}${mention === undefined ? "" : `@${mention}`}`}
-        placeholder="Value, or @"
+        placeholder={allowVariables ? "Value, or @" : "Value"}
         aria-label={`${valueInput.label} value`}
         onChange={(event) => {
           const next = event.target.value;
-          const at = next.lastIndexOf("@");
+          const at = allowVariables ? next.lastIndexOf("@") : -1;
           if (at >= 0) {
             setMention(next.slice(at + 1));
             if (openPart !== "variable") {
@@ -1291,12 +1294,16 @@ const ConditionRowView = ({
           >
             <MenuRows
               items={[
-                {
-                  key: "variable",
-                  text: "Use a variable",
-                  icon: "bracketsCurly" as const,
-                  onPick: () => open("variable"),
-                },
+                ...(allowVariables
+                  ? [
+                      {
+                        key: "variable",
+                        text: "Use a variable",
+                        icon: "bracketsCurly" as const,
+                        onPick: () => open("variable"),
+                      },
+                    ]
+                  : []),
                 ...(row.valueSource
                   ? [
                       {
@@ -1472,6 +1479,7 @@ export const ConditionBuilder = ({
   properties,
   forGraph,
   update,
+  allowVariables = true,
 }: {
   step: DraftActionStep;
   input: InputView;
@@ -1480,6 +1488,8 @@ export const ConditionBuilder = ({
   properties: BuilderProperty[];
   forGraph: boolean;
   update: (next: QueryDraft) => void;
+  /** False for a trigger's condition: nothing runs before it, so there is nothing to refer to. */
+  allowVariables?: boolean;
 }) => {
   const { ui, setUi } = useEditor();
   const footerRef = useRef<HTMLButtonElement>(null);
@@ -1560,6 +1570,7 @@ export const ConditionBuilder = ({
             )
           }
           footerRef={footerRef}
+          allowVariables={allowVariables}
           onGroup={() =>
             update({
               ...draft,
@@ -1610,6 +1621,7 @@ export const ConditionBuilder = ({
                   })
                 }
                 footerRef={footerRef}
+                allowVariables={allowVariables}
                 onRemove={() =>
                   setGroup(group.id, {
                     conditions: group.conditions.filter(
@@ -1641,7 +1653,7 @@ export const ConditionBuilder = ({
           properties={properties}
           onAdd={(property) => setRows([...draft.conditions, newRow(property)])}
         />
-        {lastRow ? (
+        {lastRow && allowVariables ? (
           <UseVariable
             buttonRef={footerRef}
             open={footerOpen}

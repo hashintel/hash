@@ -1,6 +1,11 @@
 import { useState } from "react";
 
-import { Icon, Popover, TextInput } from "@hashintel/ds-components";
+import {
+  Icon,
+  type IconName,
+  Popover,
+  TextInput,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
@@ -320,6 +325,9 @@ export const SourceMenu = ({
   hideSearch = false,
   focusRef,
   searchAlways = false,
+  typeValueLabel = "Type a value",
+  typeValueIcon = "pencil",
+  typeValueSource = "Manual input",
 }: {
   anchor: React.RefObject<Element | null>;
   stepId: string;
@@ -338,6 +346,11 @@ export const SourceMenu = ({
   focusRef?: React.RefObject<HTMLElement | null>;
   /** Show the search field however short the list is (a list operator's values). */
   searchAlways?: boolean;
+  /** The way to enter a value by hand: "Type an address" for emails, "Upload a file" for files. */
+  typeValueLabel?: string;
+  typeValueIcon?: IconName;
+  /** The draft PRD source that allows it: "File upload" for an upload. */
+  typeValueSource?: PrdSource;
 }) => {
   const { document, setDocument, setUi } = useEditor();
   const [search, setSearch] = useState("");
@@ -349,7 +362,7 @@ export const SourceMenu = ({
     !input.sources || input.sources.includes(source);
   const fromSteps = allows("Previous step");
   const lookupAllowed = allows("HASH graph @lookup");
-  const onTypeValue = allows("Manual input") ? onTypeValueProp : undefined;
+  const onTypeValue = allows(typeValueSource) ? onTypeValueProp : undefined;
   const typedChoices =
     lookupAllowed || allows("Manual input") ? typedChoicesProp : [];
 
@@ -513,8 +526,8 @@ export const SourceMenu = ({
                 className={menuRowStyle}
                 onClick={onTypeValue}
               >
-                <Icon name="pencil" size="xs" />
-                Type a value
+                <Icon name={typeValueIcon} size="xs" />
+                {typeValueLabel}
               </button>
             ) : null}
             <button
