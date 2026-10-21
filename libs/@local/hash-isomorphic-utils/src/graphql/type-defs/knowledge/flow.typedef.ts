@@ -265,6 +265,10 @@ export const flowTypedef = gql`
     position: String!
     occurredAt: String!
     stepRun: FlowRunEventStepRun!
+    """
+    The step's action definition id, as on \`FlowRunStepSkippedEvent\`.
+    """
+    stepType: String!
     inputs: [StepInput!]!
   }
 

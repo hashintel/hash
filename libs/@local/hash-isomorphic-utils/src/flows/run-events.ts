@@ -31,7 +31,13 @@ type FlowRunEventBase = {
 export type FlowRunEvent = FlowRunEventBase &
   (
     | { kind: "runStarted"; flowInputs: FlowInputValues }
-    | { kind: "stepStarted"; stepRun: FlowRunEventStepRun; inputs: StepInput[] }
+    | {
+        kind: "stepStarted";
+        stepRun: FlowRunEventStepRun;
+        /** The step's action definition id, as on `stepSkipped`. */
+        stepType: string;
+        inputs: StepInput[];
+      }
     | {
         kind: "attemptStarted";
         stepRun: FlowRunEventStepRun;

@@ -104,6 +104,7 @@ const researchStarted = (position: string): ExpectedEvent => [
   {
     kind: "stepStarted",
     stepRun: research,
+    stepType: "researchEntities",
     inputs: [
       {
         inputName: "prompt",
@@ -203,6 +204,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "stepStarted",
           stepRun: stepRun("firstTwo"),
+          stepType: "takeFirst",
           inputs: firstTwoInputs,
         },
       ],
@@ -224,6 +226,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "stepStarted",
           stepRun: stepRun("count"),
+          stepType: "aggregate",
           inputs: [
             {
               inputName: "aggregation",
@@ -269,6 +272,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "stepStarted",
           stepRun: stepRun("firstTwo"),
+          stepType: "takeFirst",
           inputs: firstTwoInputs,
         },
       ],
@@ -313,6 +317,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "stepStarted",
           stepRun: stepRun("firstTwo"),
+          stepType: "takeFirst",
           inputs: firstTwoInputs,
         },
       ],
@@ -376,6 +381,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "stepStarted",
           stepRun: stepRun("firstTwo"),
+          stepType: "takeFirst",
           inputs: firstTwoInputs,
         },
       ],
@@ -449,6 +455,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "stepStarted",
           stepRun: stepRun("check"),
+          stepType: "if",
           inputs: [
             { inputName: "value", payload: number(8) },
             {
@@ -521,6 +528,7 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "stepStarted",
           stepRun: stepRun("wrap", item),
+          stepType: "takeFirst",
           inputs: [
             { inputName: "items", payload: numbers([value]) },
             { inputName: "count", payload: number(1) },

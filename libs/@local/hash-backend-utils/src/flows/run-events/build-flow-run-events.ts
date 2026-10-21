@@ -46,6 +46,9 @@ export const nonStepActivityTypes = [
 
 const unknownErrorMessage = "Unknown error";
 
+/** A step's activity type is its action definition id with this suffix, as `processFlowWorkflow` names it. */
+const actionActivitySuffix = "Action";
+
 const toStepRun = (stepRunId: string): FlowRunEventStepRun => {
   const { stepId, itemIndex } = parseStepRunId(stepRunId);
 
@@ -209,6 +212,12 @@ export const buildFlowRunEvents = (
             });
           }
         } else if (isStep) {
+          if (!activityType.endsWith(actionActivitySuffix)) {
+            throw new Error(
+              `Step activity type ${activityType} doesn't end in "${actionActivitySuffix}", in history event ${eventId}`,
+            );
+          }
+
           const { inputs } = parseFirstPayload<{ inputs: StepInput[] }>(
             attributes.input,
             "step input",
@@ -217,6 +226,7 @@ export const buildFlowRunEvents = (
           addEvent({
             kind: "stepStarted",
             stepRun: toStepRun(activityId),
+            stepType: activityType.slice(0, -actionActivitySuffix.length),
             inputs,
           });
         }
