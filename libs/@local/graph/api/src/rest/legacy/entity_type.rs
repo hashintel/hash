@@ -11,7 +11,10 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::{
     ontology::patch_id_and_parse,
-    store::error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
+    store::error::{
+        BaseUrlAlreadyExists, LinkToLinkConstraint, OntologyVersionDoesNotExist,
+        VersionedUrlAlreadyExists,
+    },
 };
 use hash_graph_store::{
     account::AccountStore as _,
@@ -331,6 +334,10 @@ where
                         "BASE_URI_ALREADY_EXISTS".to_owned(),
                     )],
                 ));
+            }
+
+            if report.contains::<LinkToLinkConstraint>() {
+                return report_to_response(report);
             }
 
             // Insertion/update errors are considered internal server errors.
