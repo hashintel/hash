@@ -5,19 +5,22 @@ import { StatusCode } from "@local/status";
 
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 import { resolvePayloadValue } from "./payload-storage.js";
-import { getFlowRunHistory, nonStepActivityTypes } from "./run-events.js";
+import {
+  buildFlowRunEvents,
+  getFlowRunHistory,
+  nonStepActivityTypes,
+} from "./run-events.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
 import type { ResolvePayloadContext } from "./payload-storage.js";
 import type { FlowRunHistoriesByWorkflowId } from "./run-events.js";
 import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
+import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
   CheckpointLog,
   DetailedFlowField,
   ExternalInputRequest,
-  ExternalInputRequestSignal,
-  ExternalInputResponseSignal,
   FlowRunWithoutEvents,
   FlowSignalType,
   ProgressLogSignal,
@@ -181,6 +184,60 @@ const findWorkflowExecutionStartedEventAttributes = (events: IHistoryEvent[]) =>
   )?.workflowExecutionStartedEventAttributes;
 
 /**
+ * A run's input requests, from its events, latest first. A request takes its data and time from its first signal, and
+ * once answered, its answer and time from its first response. An answered request's `stepId` is `"unresolved"`.
+ */
+const getInputRequests = (
+  runEvents: FlowRunEvent[],
+): ExternalInputRequest[] => {
+  const inputRequestsById = new Map<string, ExternalInputRequest>();
+  const lastEventIndexByRequestId = new Map<string, number>();
+
+  for (const [index, event] of runEvents.entries()) {
+    if (event.kind !== "inputRequested" && event.kind !== "inputResolved") {
+      continue;
+    }
+
+    const requestId =
+      event.kind === "inputRequested"
+        ? event.request.requestId
+        : event.requestId;
+    const existingRequest = inputRequestsById.get(requestId);
+
+    lastEventIndexByRequestId.set(requestId, index);
+
+    if (existingRequest?.resolvedAt) {
+      continue;
+    }
+
+    if (event.kind === "inputRequested") {
+      inputRequestsById.set(requestId, {
+        ...event.request,
+        raisedAt: event.occurredAt,
+      });
+    } else {
+      const { data, type } = event.response;
+
+      inputRequestsById.set(requestId, {
+        data: (existingRequest?.data ?? {}) as never,
+        answers: "answers" in data ? data.answers : undefined,
+        requestId,
+        stepId: "unresolved",
+        type,
+        raisedAt: existingRequest?.raisedAt ?? "",
+        resolvedAt: event.occurredAt,
+      });
+    }
+  }
+
+  return [...inputRequestsById.values()].sort(
+    (left, right) =>
+      (lastEventIndexByRequestId.get(right.requestId) ?? 0) -
+      (lastEventIndexByRequestId.get(left.requestId) ?? 0),
+  );
+};
+
+/**
  * A run's Temporal description and history, with times as ISO strings: the shape of the recorded history fixtures.
  */
 export type FlowRunHistoryRecord = {
@@ -249,7 +306,7 @@ export const getFlowRunDetailedFieldsFromHistory = async (
 
   const checkpointLogs: CheckpointLog[] = [];
 
-  const inputRequestsById: Record<string, ExternalInputRequest> = {};
+  const inputRequests = getInputRequests(buildFlowRunEvents(events));
 
   const workflowStoppedEarly = [
     "TERMINATED",
@@ -310,66 +367,6 @@ export const getFlowRunDetailedFieldsFromHistory = async (
               type: "ResearchActionCheckpoint",
             });
             continue;
-          }
-          case "externalInputRequest": {
-            const signalData = parseHistoryItemPayload(
-              event.workflowExecutionSignaledEventAttributes.input,
-            )?.[0] as ExternalInputRequestSignal | undefined;
-
-            if (!signalData) {
-              throw new Error(
-                `No signal data on requestExternalInput signal event with id ${event.eventId?.toInt()}`,
-              );
-            }
-
-            /**
-             * This is a request for external input
-             */
-            const existingRequest = inputRequestsById[signalData.requestId];
-            const raisedAt = eventTimeIsoStringFromEvent(event);
-            if (!raisedAt) {
-              throw new Error(
-                `No eventTime on requestExternalInput signal event with id ${event.eventId?.toInt()}`,
-              );
-            }
-
-            if (existingRequest) {
-              existingRequest.data = signalData.data;
-              existingRequest.raisedAt = raisedAt;
-            } else {
-              /**
-               * If we haven't already populated the request record, it must not have been resolved yet,
-               * because we are going backwards through the event history from most recent.
-               * We would already have encountered the response signal if one had been provided.
-               */
-              inputRequestsById[signalData.requestId] = {
-                ...signalData,
-                raisedAt,
-              };
-            }
-            continue;
-          }
-          case "externalInputResponse": {
-            const signalData = parseHistoryItemPayload(
-              event.workflowExecutionSignaledEventAttributes.input,
-            )?.[0] as ExternalInputResponseSignal | undefined;
-
-            if (!signalData) {
-              throw new Error(
-                `No signal data on requestExternalInput signal event with id ${event.eventId?.toInt()}`,
-              );
-            }
-            const { requestId, data, type } = signalData;
-
-            inputRequestsById[signalData.requestId] = {
-              data: {} as never, // we will populate this when we hit the original request
-              answers: "answers" in data ? data.answers : undefined,
-              requestId,
-              stepId: "unresolved",
-              type,
-              raisedAt: "", // we will populate this when we hit the original request
-              resolvedAt: eventTimeIsoStringFromEvent(event),
-            };
           }
         }
       }
@@ -583,7 +580,6 @@ export const getFlowRunDetailedFieldsFromHistory = async (
     }
   }
 
-  const inputRequests = Object.values(inputRequestsById);
   for (const inputRequest of inputRequests) {
     if (!workflowStoppedEarly && !inputRequest.resolvedAt) {
       const step = unresolvedStepMap[inputRequest.stepId];
@@ -698,7 +694,7 @@ export const getFlowRunDetailedFieldsFromHistory = async (
     dataSources:
       "dataSources" in workflowParams ? workflowParams.dataSources : undefined,
     outputs: resolvedWorkflowOutputs ?? workflowOutputs,
-    inputRequests: Object.values(inputRequestsById),
+    inputRequests,
     steps,
     startedAt: originalRunStartTime ?? workflow.startTime,
   };
