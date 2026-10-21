@@ -121,22 +121,26 @@ export const buildSite = async (options: {
   const configFile = join(siteRoot, "vite.config.ts");
   const clientDirectory = join(siteRoot, "dist/client");
   const serverDirectory = join(siteRoot, "dist/server");
-  await build({
-    configFile,
-    root: siteRoot,
-    logLevel: "warn",
-    build: { outDir: clientDirectory, emptyOutDir: true },
-  });
-  await build({
-    configFile,
-    root: siteRoot,
-    logLevel: "warn",
-    build: {
-      ssr: "src/entry-server.tsx",
-      outDir: serverDirectory,
-      emptyOutDir: true,
-    },
-  });
+  // The client and the server bundles share nothing but sources, so they
+  // build side by side.
+  await Promise.all([
+    build({
+      configFile,
+      root: siteRoot,
+      logLevel: "warn",
+      build: { outDir: clientDirectory, emptyOutDir: true },
+    }),
+    build({
+      configFile,
+      root: siteRoot,
+      logLevel: "warn",
+      build: {
+        ssr: "src/entry-server.tsx",
+        outDir: serverDirectory,
+        emptyOutDir: true,
+      },
+    }),
+  ]);
   const { prerender } = await import("../site/prerender");
   await prerender({
     clientDirectory,
@@ -156,6 +160,12 @@ export const buildSite = async (options: {
 };
 
 export interface SiteServer {
+  /**
+   * Compiles the shell and the front page before a browser asks for them.
+   * Vite transforms on the main thread, so this waits until the first build
+   * is done rather than competing with it.
+   */
+  warm: () => Promise<void>;
   stop: () => Promise<void>;
 }
 
@@ -174,5 +184,14 @@ export const serveSite = async (options: {
     server: { port: options.port, strictPort: true },
   });
   await server.listen();
-  return { stop: () => server.close() };
+  return {
+    warm: async () => {
+      await Promise.all(
+        ["/src/main.tsx", "/src/content/docs/index.mdx"].map((url) =>
+          server.warmupRequest(url),
+        ),
+      );
+    },
+    stop: () => server.close(),
+  };
 };

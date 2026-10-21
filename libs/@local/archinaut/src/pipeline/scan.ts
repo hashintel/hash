@@ -205,13 +205,16 @@ export const scanDeclarations = async (
   };
 
   // Pass 1: collect declarations, so inheritance resolves in pass 2 whatever
-  // the order files are visited in.
+  // the order files are visited in. Every file is read here once; pass 2
+  // counts lines from the same text.
+  const sources = new Map<string, string>();
   for (const pkg of packages) {
     for (const entry of packageEntries.get(pkg.name) ?? []) {
       if (isPageEntry(entry) || isDiagramEntry(entry)) {
         continue;
       }
       const contents = await readFile(entry.absolutePath, "utf8");
+      sources.set(entry.path, contents);
       const lastSegment = (id: string): string => id.split(".").pop() ?? "";
 
       if (isMarkdownEntry(entry)) {
@@ -314,7 +317,7 @@ export const scanDeclarations = async (
       }
       accumulator.files.push(entry.path);
       accumulator.lineCount += countNonBlankLines(
-        await readFile(entry.absolutePath, "utf8"),
+        sources.get(entry.path) ?? "",
       );
       fileLayers.set(entry.path, layerId);
     }
