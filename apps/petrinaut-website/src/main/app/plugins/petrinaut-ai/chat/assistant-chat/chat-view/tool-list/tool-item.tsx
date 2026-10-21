@@ -4,18 +4,47 @@ import { Icon, LoadingSpinner } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { collapsibleContentStyle } from "../shared/collapsible-content-style";
-import { InteractiveToolItem } from "./shared/interactive-tool-item";
-import {
-  toolDetailStyle,
-  toolItemCollapsibleStyle,
-  toolListStyle,
-  toolSubItemListStyle,
-  toolSubItemStyle,
-  toolTextStyle,
-} from "./shared/tool-row-styles";
+import { InteractiveToolItem } from "./tool-item/interactive-tool-item";
 
 import type { AiToolTarget } from "../../tool-summaries";
 import type { OnInteractiveToolSubmit, ToolRenderItem } from "../tool-list";
+
+const toolItemCollapsibleStyle = css({
+  "& > button": {
+    borderRadius: "[0]",
+  },
+});
+
+const toolTextStyle = css({
+  display: "flex",
+  flex: "[1]",
+  flexDirection: "column",
+  gap: "[2px]",
+});
+
+const toolDetailStyle = css({
+  display: "block",
+  color: "neutral.s80",
+  fontSize: "xs",
+  lineHeight: "[16px]",
+});
+
+const toolSubItemListStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  padding: "[4px 8px 8px 30px]",
+  color: "neutral.s80",
+  fontSize: "xs",
+  fontWeight: "medium",
+  lineHeight: "[16px]",
+});
+
+const toolSubItemStyle = css({
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
 
 const toolItemStyle = cva({
   base: {
@@ -129,7 +158,8 @@ const toolProgressSpinnerStyle = css({
   },
 });
 
-const ToolItem = ({
+/** One tool call's row: its status, title and detail, expanding to its items. */
+export const ToolItem = ({
   onInteractiveToolSubmit,
   onSelectToolTarget,
   tool,
@@ -147,7 +177,6 @@ const ToolItem = ({
     return (
       <InteractiveToolItem
         onInteractiveToolSubmit={onInteractiveToolSubmit}
-        presentation="stock"
         tool={tool}
       />
     );
@@ -164,10 +193,9 @@ const ToolItem = ({
   const href = tool.summary.href;
   const children = tool.summary.items ?? [];
   const expandable = children.length > 0;
-  const title =
-    errored && !tool.hasConfiguredTitle
-      ? (tool.errorText ?? "Tool failed")
-      : tool.summary.title;
+  const title = errored
+    ? (tool.errorText ?? "Tool failed")
+    : tool.summary.title;
 
   if (href && !errored) {
     return (
@@ -249,7 +277,7 @@ const ToolItem = ({
       </span>
       <span className={toolTextStyle}>
         <span>{title}</span>
-        {errored && !tool.hasConfiguredTitle ? (
+        {errored ? (
           <span className={toolDetailStyle} data-testid="tool-detail">
             {tool.toolName}
           </span>
@@ -284,29 +312,3 @@ const ToolItem = ({
     </Collapsible.Root>
   );
 };
-
-/** Every tool as its own bordered row, in call order. */
-export const StockToolList = ({
-  onInteractiveToolSubmit,
-  onSelectToolTarget,
-  tools,
-  stopped,
-}: {
-  onInteractiveToolSubmit?: OnInteractiveToolSubmit;
-  onSelectToolTarget?: (target: AiToolTarget) => void;
-  tools: ToolRenderItem[];
-  stopped: boolean;
-}) =>
-  tools.length === 0 ? null : (
-    <div className={toolListStyle}>
-      {tools.map((tool) => (
-        <ToolItem
-          key={tool.id}
-          tool={tool}
-          stopped={stopped}
-          onInteractiveToolSubmit={onInteractiveToolSubmit}
-          onSelectToolTarget={onSelectToolTarget}
-        />
-      ))}
-    </div>
-  );

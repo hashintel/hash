@@ -7,11 +7,12 @@ import { ExperimentCard } from "./experiment-card";
 import { getChronologicalRenderItems } from "./get-message-render-items";
 import { AiAssistantReasoning } from "./reasoning";
 import { markdownStyle } from "./shared/markdown-style";
-import { SentUsingVoiceMark } from "./shared/sent-using-voice-mark";
-import { AiAssistantToolList } from "./tool-list";
+import { AiAssistantToolList, type OnInteractiveToolSubmit } from "./tool-list";
 
 import type { PetrinautAiMessage } from "../../ai-message";
-import type { TranscriptProps } from "./shared/transcript-props";
+import type { AiToolTarget } from "../tool-summaries";
+import type { AiExperimentState } from "./experiment-card";
+import type { RefObject } from "react";
 
 const messageStyle = cva({
   base: {
@@ -57,7 +58,24 @@ const stoppedNoteStyle = css({
   fontWeight: "medium",
 });
 
-type StockMessageProps = Omit<TranscriptProps, "messages"> & {
+/**
+ * Callbacks read through a ref so identity churn from the panel's inline
+ * arrow functions doesn't bust the per-message memo.
+ */
+export type MessageHandlersRef = RefObject<{
+  onInteractiveToolSubmit?: OnInteractiveToolSubmit;
+  onSelectToolTarget?: (target: AiToolTarget) => void;
+}>;
+
+type TranscriptProps = {
+  experimentStates?: Record<string, AiExperimentState>;
+  handlersRef: MessageHandlersRef;
+  messages: PetrinautAiMessage[];
+  onCancelExperiment?: (toolCallId: string) => void;
+  stopped: boolean;
+};
+
+type MessageProps = Omit<TranscriptProps, "messages"> & {
   message: PetrinautAiMessage;
   /** Whether this is the reply currently streaming. */
   active: boolean;
@@ -73,45 +91,26 @@ type StockMessageProps = Omit<TranscriptProps, "messages"> & {
  * transcript on every chunk — only the message currently being streamed has
  * to re-render.
  */
-const StockMessage = memo(
+const Message = memo(
   ({
     handlersRef,
-    hiddenToolNames,
-    interactiveTools,
     message,
     experimentStates,
     onCancelExperiment,
-    resolveToolPresentation,
     stopped,
     active,
-  }: StockMessageProps) => {
+  }: MessageProps) => {
     const role = message.role === "user" ? "user" : "assistant";
     const wasStopped = stopped || message.metadata?.stopped === true;
-    const renderItems = getChronologicalRenderItems(
-      message,
-      interactiveTools,
-      resolveToolPresentation,
-      hiddenToolNames,
-    );
-    const hasVoiceOrigin =
-      role === "user" && message.metadata?.source === "voice";
-    const firstTextKey =
-      renderItems.find((item) => item.type === "text")?.key ?? null;
+    const renderItems = getChronologicalRenderItems(message);
 
     return (
-      <div
-        className={messageStyle({ role })}
-        data-role={role}
-        data-voice-origin={hasVoiceOrigin || undefined}
-      >
+      <div className={messageStyle({ role })} data-role={role}>
         {renderItems.map((item) => {
           switch (item.type) {
             case "text":
               return role === "user" ? (
                 <div className={userTextStyle} key={item.key}>
-                  {hasVoiceOrigin && item.key === firstTextKey && (
-                    <SentUsingVoiceMark />
-                  )}
                   <span>{item.part.text}</span>
                 </div>
               ) : (
@@ -168,9 +167,10 @@ const StockMessage = memo(
     );
   },
 );
-StockMessage.displayName = "StockMessage";
+Message.displayName = "Message";
 
-export const StockTranscript = ({
+/** The conversation's messages, with a note when its last response stopped. */
+export const Transcript = ({
   messages,
   stopped,
   busy,
@@ -178,7 +178,7 @@ export const StockTranscript = ({
 }: TranscriptProps & { busy: boolean }) => (
   <>
     {messages.map((message, index) => (
-      <StockMessage
+      <Message
         key={message.id}
         message={message}
         {...messageProps}

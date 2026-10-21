@@ -5,102 +5,57 @@ import ReactMarkdown from "react-markdown";
 import { Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+import { StreamingEllipsis } from "./reasoning/streaming-ellipsis";
 import { collapsibleContentStyle } from "./shared/collapsible-content-style";
 import { markdownStyle } from "./shared/markdown-style";
-import { StreamingEllipsis } from "./shared/streaming-ellipsis";
 
 import type { PetrinautReasoningMetadata } from "../../ai-message";
 import type { ReasoningMessagePart } from "./get-message-render-items";
 
-const reasoningGroupStyle = cva({
-  base: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1",
+const reasoningGroupStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  borderRadius: "lg",
+  backgroundColor: "neutral.bg.subtle",
+  padding: "1",
+});
+
+const reasoningHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  width: "full",
+  height: "8",
+  paddingX: "1",
+  border: "none",
+  borderRadius: "lg",
+  backgroundColor: "[transparent]",
+  color: "neutral.s90",
+  cursor: "pointer",
+  fontSize: "sm",
+  fontWeight: "medium",
+  textAlign: "left",
+  _hover: {
+    backgroundColor: "white.a60",
   },
-  variants: {
-    presentation: {
-      stock: {
-        borderRadius: "lg",
-        backgroundColor: "neutral.bg.subtle",
-        padding: "1",
-      },
-      brunch: {},
-    },
+  "& svg[data-chevron]": {
+    transition: "[transform 150ms ease-out]",
+  },
+  "&[data-state=closed] svg[data-chevron]": {
+    transform: "[rotate(180deg)]",
   },
 });
 
-const reasoningHeaderStyle = cva({
-  base: {
-    alignItems: "center",
-    border: "none",
-    backgroundColor: "[transparent]",
-    cursor: "pointer",
-    fontWeight: "medium",
-    textAlign: "left",
-    "& svg[data-chevron]": {
-      transition: "[transform 150ms ease-out]",
-    },
-  },
-  variants: {
-    presentation: {
-      stock: {
-        display: "flex",
-        gap: "2",
-        width: "full",
-        height: "8",
-        paddingX: "1",
-        borderRadius: "lg",
-        color: "neutral.s90",
-        fontSize: "sm",
-        _hover: {
-          backgroundColor: "white.a60",
-        },
-        "&[data-state=closed] svg[data-chevron]": {
-          transform: "[rotate(180deg)]",
-        },
-      },
-      brunch: {
-        display: "inline-flex",
-        alignSelf: "flex-start",
-        gap: "1",
-        maxWidth: "full",
-        padding: "[2px 6px 2px 2px]",
-        borderRadius: "md",
-        color: "neutral.s80",
-        fontSize: "xs",
-        _hover: {
-          color: "neutral.s90",
-          backgroundColor: "neutral.a20",
-        },
-        _focusVisible: { outline: "[2px solid {colors.blue.s90}]" },
-        "&[data-state=closed] svg[data-chevron]": {
-          transform: "[rotate(90deg)]",
-        },
-        "&[data-state=open] svg[data-chevron]": {
-          transform: "[rotate(180deg)]",
-        },
-      },
-    },
-  },
+const reasoningTitleStyle = css({
+  flex: "[1]",
+  minWidth: "[0]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
-const reasoningTitleStyle = cva({
-  base: {
-    minWidth: "[0]",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-  variants: {
-    presentation: {
-      stock: { flex: "[1]" },
-      brunch: {},
-    },
-  },
-});
-
-// In the stock header the elapsed-time span sits between two flexible
+// In the header the elapsed-time span sits between two flexible
 // siblings; without an explicit `flex-shrink: 0` and `nowrap` it can collapse
 // to zero width once the heading appears and consumes the label's `flex: 1`.
 const reasoningElapsedStyle = css({
@@ -115,27 +70,18 @@ const reasoningBodyStyle = cva({
   base: {
     position: "relative",
     overflow: "hidden",
+    padding: "2",
+    borderWidth: "thin",
+    borderStyle: "solid",
+    borderColor: "neutral.a30",
+    borderRadius: "md",
+    backgroundColor: "neutral.s10",
     color: "neutral.s90",
     fontSize: "sm",
     fontWeight: "medium",
     lineHeight: "[1.5]",
   },
   variants: {
-    presentation: {
-      stock: {
-        borderWidth: "thin",
-        borderStyle: "solid",
-        borderColor: "neutral.a30",
-        borderRadius: "md",
-        backgroundColor: "neutral.s10",
-        padding: "2",
-      },
-      brunch: {
-        borderLeft: "[2px solid {colors.neutral.a30}]",
-        marginLeft: "2",
-        paddingLeft: "3",
-      },
-    },
     streaming: {
       true: {
         // Subtle reflective sweep across the body so the user can see the
@@ -222,10 +168,8 @@ const useReasoningElapsed = ({
  *
  * The current backend ([apps/petrinaut-website/api/chat.ts]) sets
  * `reasoningSummary: "auto"` for the OpenAI provider, which emits each summary
- * item as `**Heading**\n\n<body>`. The stock presentation hoists the heading
- * into the trigger so it previews what the model is thinking about; the Brunch
- * presentation keeps it with the expanded body, leaving the compact trigger
- * for status and duration.
+ * item as `**Heading**\n\n<body>`. The trigger shows the heading so it
+ * previews what the model is thinking about.
  *
  * If the convention is not matched (different provider, OpenAI changes the
  * format, or the model just produced an unheaded summary), we fall back to
@@ -264,19 +208,14 @@ const getReasoningTiming = (
   return metadata?.petrinaut ?? {};
 };
 
+/** A reasoning step, open while it streams and closed after. */
 export const AiAssistantReasoning = ({
   isStreaming,
-  expandWhileStreaming = false,
   part,
-  presentation = "stock",
 }: {
   isStreaming: boolean;
-  /** Brunch only; stock reasoning opens while streaming and closes after. */
-  expandWhileStreaming?: boolean;
   part: ReasoningMessagePart;
-  presentation?: "stock" | "brunch";
 }) => {
-  const isBrunch = presentation === "brunch";
   const { startedAt, finishedAt } = getReasoningTiming(part);
   const elapsedTime = useReasoningElapsed({
     isStreaming,
@@ -285,18 +224,12 @@ export const AiAssistantReasoning = ({
   });
   const renderedText = part.text.trim();
   const { heading, body } = extractReasoningHeading(renderedText, isStreaming);
-  // Brunch shows streaming thought immediately, while remaining a normal
-  // controlled disclosure so a reader can close it and keep it closed.
-  const [open, setOpen] = useState(
-    isBrunch ? expandWhileStreaming && isStreaming : isStreaming,
-  );
+  const [open, setOpen] = useState(isStreaming);
 
   const [syncedStreaming, setSyncedStreaming] = useState(isStreaming);
   if (syncedStreaming !== isStreaming) {
     setSyncedStreaming(isStreaming);
-    if (!isBrunch) {
-      setOpen(isStreaming);
-    }
+    setOpen(isStreaming);
   }
 
   if (!isStreaming && !renderedText) {
@@ -305,27 +238,16 @@ export const AiAssistantReasoning = ({
 
   return (
     <Collapsible.Root
-      className={reasoningGroupStyle({ presentation })}
+      className={reasoningGroupStyle}
       open={open}
       onOpenChange={(details) => setOpen(details.open)}
     >
-      <Collapsible.Trigger className={reasoningHeaderStyle({ presentation })}>
-        <Icon
-          name={isBrunch ? "lightbulbOn" : "list"}
-          size={isBrunch ? "xs" : "sm"}
-        />
-        <span className={reasoningTitleStyle({ presentation })}>
-          {!isBrunch
-            ? heading
-              ? `Thinking: ${heading}`
-              : "Thinking"
-            : isStreaming
-              ? "Thinking"
-              : elapsedTime === undefined
-                ? "Thought"
-                : `Thought for ${elapsedTime}`}
+      <Collapsible.Trigger className={reasoningHeaderStyle}>
+        <Icon name="list" size="sm" />
+        <span className={reasoningTitleStyle}>
+          {heading ? `Thinking: ${heading}` : "Thinking"}
         </span>
-        {(!isBrunch || isStreaming) && elapsedTime !== undefined && (
+        {elapsedTime !== undefined && (
           <span
             className={reasoningElapsedStyle}
             aria-label={`Reasoning time ${elapsedTime}`}
@@ -333,18 +255,12 @@ export const AiAssistantReasoning = ({
             {elapsedTime}
           </span>
         )}
-        <Icon name="chevronUp" data-chevron size={isBrunch ? "xs" : "sm"} />
+        <Icon name="chevronUp" data-chevron size="sm" />
       </Collapsible.Trigger>
       <Collapsible.Content className={collapsibleContentStyle}>
-        <div
-          className={reasoningBodyStyle({
-            presentation,
-            streaming: isStreaming,
-          })}
-        >
+        <div className={reasoningBodyStyle({ streaming: isStreaming })}>
           {body ? (
             <div className={markdownStyle}>
-              {isBrunch && heading && <strong>{heading}</strong>}
               <ReactMarkdown>{body}</ReactMarkdown>
             </div>
           ) : isStreaming ? (
