@@ -24,7 +24,7 @@ const typescriptVersion = (
 ).version;
 
 /** Bumped whenever the walkers' output changes for the same input. */
-const walkerVersion = 2;
+const walkerVersion = 3;
 
 /** What, besides the files, decides TypeScript facts. */
 export const typeScriptSalt = (options: FactsOptions): string =>
