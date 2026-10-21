@@ -1,14 +1,15 @@
 import { useReactFlow, useViewport } from "@xyflow/react";
 import { useEffect } from "react";
 
-import { Button, Icon, Menu, Tooltip } from "@hashintel/ds-components";
+import { Button, Icon, Menu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { START_ID, type EditorDocument } from "./document";
 
+/** "Flows toolbar · Attio layout": 4 px in, 4 px gaps, a hairline, 8 px corners and a soft drop shadow. */
 const barStyle = css({
   position: "absolute",
-  bottom: "[24px]",
+  bottom: "[18px]",
   left: "[50%]",
   transform: "[translateX(-50%)]",
   display: "flex",
@@ -17,33 +18,52 @@ const barStyle = css({
   padding: "1",
   backgroundColor: "neutral.s00",
   borderWidth: "thin",
-  borderColor: "neutral.s40",
+  borderColor: "neutral.a60",
   borderStyle: "solid",
   borderRadius: "lg",
-  boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.1)]",
+  boxShadow: "[0 4px 3px rgba(0, 0, 0, 0.1), 0 2px 2px rgba(0, 0, 0, 0.1)]",
   zIndex: "[4]",
 });
 
 const dividerStyle = css({
   width: "[1px]",
   height: "[20px]",
-  backgroundColor: "neutral.s30",
-  marginX: "1",
+  backgroundColor: "neutral.a60",
 });
 
-const keyHintStyle = css({
-  fontSize: "[11px]",
-  lineHeight: "[16px]",
-  paddingX: "1",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.s40",
-  borderRadius: "sm",
-  color: "neutral.s90",
-  marginLeft: "1",
+/** DS icon buttons at the toolbar's 32 px square, icons in #646464 unless active. */
+const toolStyle = css({
+  "&[class]": {
+    width: "[32px]",
+    height: "[32px]",
+    minWidth: "[32px]",
+    padding: "[0]",
+    justifyContent: "center",
+  },
+  "&[class]:not([data-variant=solid])": { color: "neutral.s110" },
 });
 
-const columnGap = 320;
+/** The zoom button's text: 14 px medium #646464 between two 14 px icons. */
+const zoomStyle = css({
+  "&[class]": {
+    color: "neutral.s110",
+    fontWeight: "medium",
+    // The DS button puts zero-width text around its icons; gaps would count them, so space the label instead.
+    gap: "0",
+    paddingX: "2",
+    minWidth: "[0]",
+  },
+  "&[class] > *": { paddingX: "[0]", marginX: "[0]" },
+  "&[class] > span:not(:has(svg))": { paddingX: "0.5", marginX: "1" },
+  "&[class] svg": {
+    width: "[14px]",
+    height: "[14px]",
+    minWidth: "[14px]",
+    "--icon-size": "14px",
+  },
+});
+
+const columnGap = 296;
 const rowGap = 130;
 
 /**
@@ -179,8 +199,9 @@ export const FlowToolbar = ({
             size="sm"
             variant="ghost"
             aria-label="Zoom"
+            className={zoomStyle}
             prefix={<Icon name="search" size="sm" />}
-            suffix={<Icon name="chevronDown" size="xs" />}
+            suffix={<Icon name="chevronDown" size="sm" />}
           >
             {`${Math.round(zoom * 100)}%`}
           </Button>
@@ -188,7 +209,9 @@ export const FlowToolbar = ({
       />
       <Button
         size="sm"
-        variant="ghost"
+        className={toolStyle}
+        variant={mode === "hand" ? "solid" : "ghost"}
+        tone={mode === "hand" ? "brand" : "neutral"}
         iconName="hand"
         aria-label="Hand"
         tooltip="Hand (H)"
@@ -197,7 +220,9 @@ export const FlowToolbar = ({
       />
       <Button
         size="sm"
-        variant="ghost"
+        className={toolStyle}
+        variant={mode === "select" ? "solid" : "ghost"}
+        tone={mode === "select" ? "brand" : "neutral"}
         iconName="cursor"
         aria-label="Select"
         tooltip="Select (V)"
@@ -205,24 +230,23 @@ export const FlowToolbar = ({
         onClick={() => onMode("select")}
       />
       <span className={dividerStyle} />
-      <Tooltip content="Add triggers and steps">
-        <Button
-          ref={addNodeRef}
-          size="sm"
-          variant="ghost"
-          aria-label="Add node"
-          pressed={pickerOpen}
-          prefix={<Icon name="plus" size="sm" />}
-          suffix={<kbd className={keyHintStyle}>N</kbd>}
-          onClick={onAddNode}
-        >
-          Add node
-        </Button>
-      </Tooltip>
+      {/* Icon only, like Hand and Select (Aakarsh, 21 Oct). N still opens the picker, which anchors above it. */}
+      <Button
+        ref={addNodeRef}
+        size="sm"
+        className={toolStyle}
+        variant="ghost"
+        iconName="plus"
+        aria-label="Add node"
+        tooltip="Add node (N)"
+        pressed={pickerOpen}
+        onClick={onAddNode}
+      />
       <Button
         size="sm"
+        className={toolStyle}
         variant="ghost"
-        iconName="diagramNested"
+        iconName="list"
         aria-label="Organize"
         tooltip="Organize"
         onClick={onOrganize}
