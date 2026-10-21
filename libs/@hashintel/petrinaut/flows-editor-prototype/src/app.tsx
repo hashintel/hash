@@ -16,7 +16,7 @@ import { EditorContext, type EditorUi } from "./editor-context";
 import { PropertiesPanel } from "./properties-panel";
 import { RunDialog } from "./run-dialogs";
 import { validateDocument } from "./shapes";
-import { screenStates } from "./states";
+import { journeyTitles, screenStates } from "./states";
 import {
   findTask,
   newSession,
@@ -425,11 +425,79 @@ const screensStyle = css({
   color: "neutral.s120",
 });
 
+/** One screen: a live, scaled copy of the editor in that state, with its name linking to it. */
+const ScreenFrame = ({
+  state,
+  base,
+}: {
+  state: (typeof screenStates)[number];
+  base: string;
+}) => (
+  <figure className={css({ margin: "[0]" })}>
+    <div
+      className={css({
+        position: "relative",
+        width: "[100%]",
+        aspectRatio: "[1440 / 900]",
+        overflow: "hidden",
+        borderRadius: "lg",
+        borderWidth: "thin",
+        borderStyle: "solid",
+        borderColor: "neutral.s40",
+        backgroundColor: "neutral.s00",
+      })}
+    >
+      <iframe
+        title={state.title}
+        src={`${base}?state=${state.id}`}
+        loading="lazy"
+        className={css({
+          position: "absolute",
+          top: "[0]",
+          left: "[0]",
+          width: "[1440px]",
+          height: "[900px]",
+          border: "[0]",
+          transformOrigin: "[0 0]",
+          // A static preview: the title link opens the live screen.
+          pointerEvents: "none",
+        })}
+        style={{ transform: "scale(var(--frame-scale, 0.45))" }}
+      />
+    </div>
+    <figcaption
+      className={css({
+        display: "flex",
+        alignItems: "baseline",
+        gap: "2",
+        marginTop: "2",
+      })}
+    >
+      <a
+        href={`${base}?state=${state.id}`}
+        className={css({
+          fontSize: "sm",
+          fontWeight: "semibold",
+          color: "blue.s100",
+        })}
+      >
+        {state.title}
+      </a>
+      <span className={css({ fontSize: "sm", color: "neutral.s100" })}>
+        {state.caption}
+      </span>
+    </figcaption>
+  </figure>
+);
+
 /**
  * Every screen side by side, in labelled rows of two, each a live copy of the editor in its starting state.
  */
 export const Screens = () => {
-  const rows = [...new Set(screenStates.map((state) => state.row))];
+  // Grouped by Figma journey, in ↳ Current's order; within a journey, the states' own rows.
+  const journeys = ([1, 2, 3, 4] as const).filter((journey) =>
+    screenStates.some((state) => state.journey === journey),
+  );
   const base = `${globalThis.location.pathname}`;
   return (
     <div className={`${screensStyle} petrinaut-root`}>
@@ -451,89 +519,53 @@ export const Screens = () => {
       >
         Each frame is the live editor. Open one to click through it.
       </p>
-      {rows.map((row) => (
-        <section key={row} className={css({ marginBottom: "8" })}>
+      {journeys.map((journey) => (
+        <section key={journey} className={css({ marginBottom: "10" })}>
           <h2
             className={css({
-              fontSize: "sm",
+              fontSize: "lg",
               fontWeight: "semibold",
-              textTransform: "uppercase",
-              letterSpacing: "[0.04em]",
-              color: "neutral.s90",
-              marginBottom: "3",
+              color: "neutral.s120",
+              marginBottom: "4",
             })}
           >
-            {row}
+            {journeyTitles[journey]}
           </h2>
-          <div
-            className={css({
-              display: "grid",
-              gridTemplateColumns: "[repeat(2, minmax(0, 1fr))]",
-              gap: "6",
-            })}
-          >
-            {screenStates
-              .filter((state) => state.row === row)
-              .map((state) => (
-                <figure key={state.id} className={css({ margin: "[0]" })}>
-                  <div
-                    className={css({
-                      position: "relative",
-                      width: "[100%]",
-                      aspectRatio: "[1440 / 900]",
-                      overflow: "hidden",
-                      borderRadius: "lg",
-                      borderWidth: "thin",
-                      borderStyle: "solid",
-                      borderColor: "neutral.s40",
-                      backgroundColor: "neutral.s00",
-                    })}
-                  >
-                    <iframe
-                      title={state.title}
-                      src={`${base}?state=${state.id}`}
-                      loading="lazy"
-                      className={css({
-                        position: "absolute",
-                        top: "[0]",
-                        left: "[0]",
-                        width: "[1440px]",
-                        height: "[900px]",
-                        border: "[0]",
-                        transformOrigin: "[0 0]",
-                        // A static preview: the title link opens the live screen.
-                        pointerEvents: "none",
-                      })}
-                      style={{ transform: "scale(var(--frame-scale, 0.45))" }}
-                    />
-                  </div>
-                  <figcaption
-                    className={css({
-                      display: "flex",
-                      alignItems: "baseline",
-                      gap: "2",
-                      marginTop: "2",
-                    })}
-                  >
-                    <a
-                      href={`${base}?state=${state.id}`}
-                      className={css({
-                        fontSize: "sm",
-                        fontWeight: "semibold",
-                        color: "blue.s100",
-                      })}
-                    >
-                      {state.title}
-                    </a>
-                    <span
-                      className={css({ fontSize: "sm", color: "neutral.s100" })}
-                    >
-                      {state.caption}
-                    </span>
-                  </figcaption>
-                </figure>
-              ))}
-          </div>
+          {[
+            ...new Set(
+              screenStates
+                .filter((state) => state.journey === journey)
+                .map((state) => state.row),
+            ),
+          ].map((row) => (
+            <div key={row} className={css({ marginBottom: "6" })}>
+              <h3
+                className={css({
+                  fontSize: "xs",
+                  fontWeight: "medium",
+                  color: "neutral.s90",
+                  marginBottom: "2",
+                })}
+              >
+                {row}
+              </h3>
+              <div
+                className={css({
+                  display: "grid",
+                  gridTemplateColumns: "[repeat(2, minmax(0, 1fr))]",
+                  gap: "6",
+                })}
+              >
+                {screenStates
+                  .filter(
+                    (state) => state.journey === journey && state.row === row,
+                  )
+                  .map((state) => (
+                    <ScreenFrame key={state.id} state={state} base={base} />
+                  ))}
+              </div>
+            </div>
+          ))}
         </section>
       ))}
     </div>

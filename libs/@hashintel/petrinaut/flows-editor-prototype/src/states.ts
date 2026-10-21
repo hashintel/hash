@@ -21,6 +21,8 @@ export type ScreenState = {
   /** What the screen shows, in one line. */
   caption: string;
   row: string;
+  /** The Figma journey on ↳ Current this screen belongs to (1–4). */
+  journey: 1 | 2 | 3 | 4;
   create: () => { document: EditorDocument; ui: EditorUi };
 };
 
@@ -144,6 +146,7 @@ const conditionMenu = (stepId: string, mode: "menu" | "mention" = "menu") => ({
 export const screenStates: ScreenState[] = [
   {
     id: "blank",
+    journey: 1,
     row: "Adding nodes",
     title: "Blank canvas",
     caption:
@@ -152,6 +155,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "picker",
+    journey: 1,
     row: "Adding nodes",
     title: "Add node picker",
     caption:
@@ -163,6 +167,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "j3-a1",
+    journey: 3,
     row: "Journey 3 · Row A · Typed into the step",
     title: "J3 · A1 · Type a fixed value",
     caption: "Received date is in October 2026, and Status is Delivered.",
@@ -173,6 +178,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "j3-b1",
+    journey: 3,
     row: "Journey 3 · Row B · From an earlier step",
     title: "J3 · B1 · Pick an earlier step's output",
     caption: "Shipment is any of the shipments the step before found.",
@@ -187,6 +193,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "j3-b2",
+    journey: 3,
     row: "Journey 3 · Row B · From an earlier step",
     title: "J3 · B2 · Entity type from an earlier step",
     caption:
@@ -202,6 +209,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "j3-c1",
+    journey: 3,
     row: "Journey 3 · Row C · From the flow's inputs (nothing fits yet)",
     title: "J3 · C1 · Type plain text",
     caption: "The value slot takes typed text.",
@@ -212,6 +220,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "j3-c2",
+    journey: 3,
     row: "Journey 3 · Row C · From the flow's inputs (nothing fits yet)",
     title: "J3 · C2 · Click + · nothing fits yet",
     caption: "Nothing earlier gives a date, so the menu offers Add flow input.",
@@ -226,6 +235,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "j3-c3",
+    journey: 3,
     row: "Journey 3 · Row C · From the flow's inputs (nothing fits yet)",
     title: "J3 · C3 · Add a flow input on Start",
     caption: "Review month, a date, added to Start's inputs.",
@@ -236,6 +246,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "j3-c4",
+    journey: 3,
     row: "Journey 3 · Row C · From the flow's inputs (nothing fits yet)",
     title: "J3 · C4 · Back on the step · pick the flow input",
     caption: "Typing @ in the value slot finds Review month.",
@@ -250,6 +261,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "j3-c5",
+    journey: 3,
     row: "Journey 3 · Row C · From the flow's inputs (nothing fits yet)",
     title: "J3 · C5 · Chip in at the caret",
     caption: "The value is now Review month.",
@@ -260,6 +272,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "j3-d1",
+    journey: 3,
     row: "Journey 3 · Row D · Change or remove a source",
     title: "J3 · D1 · Hover a chip to remove it",
     caption: "The ⋮ on the condition removes it, or types a value instead.",
@@ -270,6 +283,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "j3-d2",
+    journey: 3,
     row: "Journey 3 · Row D · Change or remove a source",
     title: "J3 · D2 · Click a chip to change its source",
     caption: "Clicking the value reopens the source menu.",
@@ -284,6 +298,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "start",
+    journey: 4,
     row: "Triggers → Start → steps",
     title: "Start: flow inputs",
     caption: "Start holds the inputs; Run and every trigger fill them.",
@@ -294,6 +309,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "schedule",
+    journey: 4,
     row: "Triggers → Start → steps",
     title: "Recurring schedule",
     caption: "A trigger left of Start; it maps its data onto Start's inputs.",
@@ -304,6 +320,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "for-each",
+    journey: 2,
     row: "For each and running",
     title: "Monthly supplier review",
     caption: "Steps that run per supplier sit inside the group.",
@@ -314,6 +331,7 @@ export const screenStates: ScreenState[] = [
   },
   {
     id: "run-form",
+    journey: 4,
     row: "For each and running",
     title: "Manual run form",
     caption: "The Run button's form, built from Start's inputs.",
@@ -323,6 +341,14 @@ export const screenStates: ScreenState[] = [
     }),
   },
 ];
+
+/** The journey sections on ↳ Current, in Figma order (file 69r6JuKZ2kAr61h7Ci40kh). */
+export const journeyTitles: Record<ScreenState["journey"], string> = {
+  1: "Journey 1 · Start a new flow",
+  2: "Journey 2 · Build the first steps by hand",
+  3: "Journey 3 · Where each input comes from",
+  4: "Journey 4 · How a flow starts",
+};
 
 export const findScreenState = (id: string | null) =>
   screenStates.find((state) => state.id === id);
