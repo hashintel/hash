@@ -23,9 +23,9 @@ export const getDocxPage = (page: Page, heading: string) =>
   page.locator(".layout-page", { hasText: heading });
 
 /**
- * Returns the text of each search hit the preview marks, and of the current
- * hit. The previews mark hits with the CSS Custom Highlight API, which draws
- * them without adding elements a locator could find.
+ * Returns the text of each search hit the PDF preview marks, and of the
+ * current hit. The preview marks hits with the CSS Custom Highlight API, which
+ * draws them without adding elements a locator could find.
  */
 export const getSearchHighlights = (page: Page) =>
   page.evaluate(() => ({
@@ -34,6 +34,28 @@ export const getSearchHighlights = (page: Page) =>
       String,
     ),
   }));
+
+/**
+ * Returns the index of each search hit folio marks in the DOCX preview, and
+ * of the current hit. folio draws one mark for each line a hit spans.
+ */
+export const getDocxSearchMarks = (page: Page) =>
+  page.evaluate(() => {
+    const marks = [
+      ...document.querySelectorAll<HTMLElement>(
+        "[data-folio-find-overlay] [data-find-match-index]",
+      ),
+    ];
+    const hitIndexes = (marksOfHits: HTMLElement[]) => [
+      ...new Set(marksOfHits.map((mark) => mark.dataset.findMatchIndex)),
+    ];
+    return {
+      hits: hitIndexes(marks),
+      current: hitIndexes(
+        marks.filter((mark) => mark.dataset.current === "true"),
+      ),
+    };
+  });
 
 export const docxMimeType =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";

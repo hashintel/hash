@@ -6,9 +6,14 @@ import clamp from "lodash/clamp";
 import { useImperativeHandle, useRef } from "react";
 import { IntlProvider } from "use-intl";
 
+import {
+  searchDocument,
+  showSearchHit,
+  toSearchResult,
+} from "./folio-document/search-hits";
 import { useReportedPages } from "./folio-document/use-reported-pages";
-import { useSearchHits } from "./folio-document/use-search-hits";
 
+import type { DocxSearchResult } from "./folio-document/search-hits";
 import type { DocxDocumentPages } from "./folio-document/use-reported-pages";
 import type { DocxEditorRef } from "@stll/folio-react";
 import type { Ref } from "react";
@@ -22,19 +27,23 @@ export type DocxDocumentControls = {
   hasPages: () => boolean;
   goToPage: (pageNumber: number) => void;
   zoomBy: (step: number) => void;
-  /** Finds and marks every hit of `text` and returns how many there are. */
-  search: (text: string, ignoreCase: boolean) => number;
+  /**
+   * Finds and marks every hit of `text`, and reports them through
+   * `onSearchResultChange`.
+   */
+  search: (text: string, ignoreCase: boolean) => void;
   /** Marks a hit as the current one and scrolls to it. */
   showHit: (index: number) => void;
 };
 
-export type { DocxDocumentPages };
+export type { DocxDocumentPages, DocxSearchResult };
 
 type FolioDocumentProps = {
   controlsRef: Ref<DocxDocumentControls>;
   data: ArrayBuffer;
   onError: (error: Error) => void;
   onPagesChange: (pages: DocxDocumentPages) => void;
+  onSearchResultChange: (result: DocxSearchResult) => void;
   onZoomChange: (zoom: number) => void;
 };
 
@@ -46,13 +55,13 @@ export const FolioDocument = ({
   data,
   onError,
   onPagesChange,
+  onSearchResultChange,
   onZoomChange,
 }: FolioDocumentProps) => {
   const editorRef = useRef<DocxEditorRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const reportPages = useReportedPages(editorRef, onPagesChange);
-  const { search, showHit } = useSearchHits(editorRef, containerRef);
 
   useImperativeHandle(
     controlsRef,
@@ -71,15 +80,39 @@ export const FolioDocument = ({
         editor.setZoom(clamp(editor.getZoom() + step, minZoom, maxZoom));
         onZoomChange(editor.getZoom());
       },
-      search,
-      showHit,
+      search: (text, ignoreCase) => {
+        const editor = editorRef.current;
+        if (editor) {
+          searchDocument(editor, text, ignoreCase);
+        }
+      },
+      showHit: (index) => {
+        const editor = editorRef.current;
+        if (editor) {
+          showSearchHit(editor, index);
+        }
+      },
     }),
-    [onZoomChange, search, showHit],
+    [onZoomChange],
   );
 
   return (
     <IntlProvider locale="en" messages={folioMessages}>
-      <Box ref={containerRef} sx={{ height: "100%" }}>
+      <Box
+        ref={containerRef}
+        sx={{
+          height: "100%",
+          // folio draws its search marks over the text. The colours are
+          // `blue.bgSolid.subtle` and `blue.s75`, written out because the
+          // preview sits outside `.hash-ds-root`. Multiplying the marks with
+          // the page keeps the text under them dark.
+          "& .folio-root": {
+            "--doc-find-highlight": "#e6f4fe",
+            "--doc-find-current": "#77bdf3",
+          },
+          "& [data-folio-find-overlay]": { mixBlendMode: "multiply" },
+        }}
+      >
         <DocxEditor
           ref={editorRef}
           autoOpenReviewSidebar={false}
@@ -88,6 +121,9 @@ export const FolioDocument = ({
           keyboardShortcuts="none"
           loadingIndicator={<CircularProgress />}
           onError={onError}
+          onFindResultChange={(result) =>
+            onSearchResultChange(toSearchResult(result))
+          }
           onScrollTopChange={reportPages}
           readOnly
           style={{ height: "100%" }}

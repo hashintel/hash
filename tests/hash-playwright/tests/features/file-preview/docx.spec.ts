@@ -13,7 +13,7 @@ import {
   docxMimeType,
   expectFileUrlEditOnLaterPageShowsNewFile,
   getDocxPage,
-  getSearchHighlights,
+  getDocxSearchMarks,
   uploadAndOpenFile,
 } from "../../shared/file-preview/utils";
 import { expect, test } from "../../shared/runtime";
@@ -105,20 +105,19 @@ test.describe("DOCX preview", () => {
     await expectFullyShown(searchInput);
     await searchInput.fill(testDocumentSearchWord);
 
-    const highlights = {
-      hits: [testDocumentSearchWord, testDocumentSearchWord],
-      current: [testDocumentSearchWord],
-    };
-
     await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
-    await expect.poll(() => getSearchHighlights(page)).toEqual(highlights);
+    await expect
+      .poll(() => getDocxSearchMarks(page))
+      .toEqual({ hits: ["0", "1"], current: ["0"] });
 
     const nextResult = page.getByRole("button", { name: "Next result" });
     await expectFullyShown(nextResult);
     await nextResult.click();
     await expect(page.getByText("2 of 2", { exact: true })).toBeVisible();
     await expect(getDocxPage(page, thirdPage.heading)).toBeInViewport();
-    await expect.poll(() => getSearchHighlights(page)).toEqual(highlights);
+    await expect
+      .poll(() => getDocxSearchMarks(page))
+      .toEqual({ hits: ["0", "1"], current: ["1"] });
   });
 
   test("a search without results clears the previous hit", async ({ page }) => {
@@ -127,13 +126,13 @@ test.describe("DOCX preview", () => {
 
     await searchInput.fill(testDocumentSearchWord);
     await expect
-      .poll(() => getSearchHighlights(page))
-      .toMatchObject({ current: [testDocumentSearchWord] });
+      .poll(() => getDocxSearchMarks(page))
+      .toMatchObject({ current: ["0"] });
 
     await searchInput.fill("nonexistentword");
     await expect(page.getByText("0 of 0", { exact: true })).toBeVisible();
     await expect
-      .poll(() => getSearchHighlights(page))
+      .poll(() => getDocxSearchMarks(page))
       .toEqual({ hits: [], current: [] });
   });
 
