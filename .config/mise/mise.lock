@@ -10,9 +10,9 @@ url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9
 url_api = "https://api.github.com/repos/nextest-rs/nextest/releases/assets/430503184"
 
 [tools."aqua:nextest-rs/nextest/cargo-nextest"."platforms.linux-x64"]
-checksum = "sha256:d5a7d2e76a19b65006939e296eb19d776f820cfaa19514c01cf70a5185a885b8"
-url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.137/cargo-nextest-0.9.137-x86_64-unknown-linux-musl.tar.gz"
-url_api = "https://api.github.com/repos/nextest-rs/nextest/releases/assets/430504017"
+checksum = "sha256:38fd6275e111b200bbbed1bd2ae91cbb0d7edd28504879875cff2b3d96f3f311"
+url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.137/cargo-nextest-0.9.137-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/nextest-rs/nextest/releases/assets/430502414"
 
 [tools."aqua:nextest-rs/nextest/cargo-nextest"."platforms.macos-arm64"]
 checksum = "sha256:94e89c20b233c29c042683e885131d76abf95e795c355a4fe7d64d4b128b90be"
@@ -29,15 +29,15 @@ version = "0.8.7"
 backend = "aqua:taiki-e/cargo-llvm-cov"
 
 [tools."aqua:taiki-e/cargo-llvm-cov"."platforms.linux-arm64"]
-checksum = "sha256:b7bb2ad514166f3b19fc06874c577eefde0010e5ac571f9ae33ff45cd19a4785"
-url = "https://github.com/taiki-e/cargo-llvm-cov/releases/download/v0.8.7/cargo-llvm-cov-aarch64-unknown-linux-musl.tar.gz"
-url_api = "https://api.github.com/repos/taiki-e/cargo-llvm-cov/releases/assets/418861713"
+checksum = "sha256:8f399d84993d13998b63fbe1084377713c719b00655c7d88d5b56c8c29105d90"
+url = "https://github.com/taiki-e/cargo-llvm-cov/releases/download/v0.8.7/cargo-llvm-cov-aarch64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/taiki-e/cargo-llvm-cov/releases/assets/418861766"
 provenance = "github-attestations"
 
 [tools."aqua:taiki-e/cargo-llvm-cov"."platforms.linux-x64"]
-checksum = "sha256:967b5cc996c29d8baa52bbb4595ef1f53af35255af8e2036ddbc6468d7b523c7"
-url = "https://github.com/taiki-e/cargo-llvm-cov/releases/download/v0.8.7/cargo-llvm-cov-x86_64-unknown-linux-musl.tar.gz"
-url_api = "https://api.github.com/repos/taiki-e/cargo-llvm-cov/releases/assets/418861752"
+checksum = "sha256:9a75fe29538d3800b3da57f6f6efb64cba5c720a257bf0cb8b51f39d495a9168"
+url = "https://github.com/taiki-e/cargo-llvm-cov/releases/download/v0.8.7/cargo-llvm-cov-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/taiki-e/cargo-llvm-cov/releases/assets/418861574"
 provenance = "github-attestations"
 
 [tools."aqua:taiki-e/cargo-llvm-cov"."platforms.macos-arm64"]
@@ -57,15 +57,15 @@ version = "1.19.1"
 backend = "aqua:cargo-bins/cargo-binstall"
 
 [tools.cargo-binstall."platforms.linux-arm64"]
-checksum = "sha256:2001eee8da26705ad9627e57a25c23eb4639647521205f3e4a7b4e09d067d199"
-url = "https://github.com/cargo-bins/cargo-binstall/releases/download/v1.19.1/cargo-binstall-aarch64-unknown-linux-musl.tgz"
-url_api = "https://api.github.com/repos/cargo-bins/cargo-binstall/releases/assets/413600212"
+checksum = "sha256:738545508156f10fe71b0f2f991a4d94d1ac43ee069ed1a95c535cb24583681c"
+url = "https://github.com/cargo-bins/cargo-binstall/releases/download/v1.19.1/cargo-binstall-aarch64-unknown-linux-gnu.tgz"
+url_api = "https://api.github.com/repos/cargo-bins/cargo-binstall/releases/assets/413600304"
 provenance = "github-attestations"
 
 [tools.cargo-binstall."platforms.linux-x64"]
-checksum = "sha256:4a50fcf01418862e2fa8e4076cb6cb80ff4061b0c0b1464e71a63ce01ee29bde"
-url = "https://github.com/cargo-bins/cargo-binstall/releases/download/v1.19.1/cargo-binstall-x86_64-unknown-linux-musl.tgz"
-url_api = "https://api.github.com/repos/cargo-bins/cargo-binstall/releases/assets/413599465"
+checksum = "sha256:a87972a05b71c697ba811455756cc0a335479f39b9d076e94357ac19484d9f2d"
+url = "https://github.com/cargo-bins/cargo-binstall/releases/download/v1.19.1/cargo-binstall-x86_64-unknown-linux-gnu.tgz"
+url_api = "https://api.github.com/repos/cargo-bins/cargo-binstall/releases/assets/413599573"
 provenance = "github-attestations"
 
 [tools.cargo-binstall."platforms.macos-arm64"]
@@ -99,18 +99,22 @@ backend = "github:WebAssembly/binaryen"
 [tools."github:WebAssembly/binaryen"."platforms.linux-arm64"]
 checksum = "sha256:ba991f677edd9a21d2bc96c0144bc8ac5b112d4d98a3eb266e075e22e557df2a"
 url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-aarch64-linux.tar.gz"
+url_api = "https://api.github.com/repos/WebAssembly/binaryen/releases/assets/478299045"
 
 [tools."github:WebAssembly/binaryen"."platforms.linux-x64"]
 checksum = "sha256:b5bf1f0eaf17c63ee588ff7a5954dc8f6ce2c26989051c66f24dfe9ece3e46db"
 url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-x86_64-linux.tar.gz"
+url_api = "https://api.github.com/repos/WebAssembly/binaryen/releases/assets/478310450"
 
 [tools."github:WebAssembly/binaryen"."platforms.macos-arm64"]
 checksum = "sha256:e441b48dc22163d209b4f05e44dc7210909b01237642b6c9ae48fd710a3ef83e"
 url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-arm64-macos.tar.gz"
+url_api = "https://api.github.com/repos/WebAssembly/binaryen/releases/assets/478294685"
 
 [tools."github:WebAssembly/binaryen"."platforms.macos-x64"]
 checksum = "sha256:d209fadd8a894bdaf3bd3612a23c32a0af184d2f4a979b8c789e6e4f6a4de883"
 url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-x86_64-macos.tar.gz"
+url_api = "https://api.github.com/repos/WebAssembly/binaryen/releases/assets/478294684"
 
 [[tools."github:wasm-bindgen/wasm-pack"]]
 version = "0.15.0"
@@ -129,6 +133,7 @@ url_api = "https://api.github.com/repos/wasm-bindgen/wasm-pack/releases/assets/4
 [tools."github:wasm-bindgen/wasm-pack"."platforms.macos-arm64"]
 checksum = "sha256:0abff4a03d670b6c00ea31d0e1608a72407e355f3d3765e9c30eb45cd5b7e318"
 url = "https://github.com/wasm-bindgen/wasm-pack/releases/download/v0.15.0/wasm-pack-v0.15.0-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/wasm-bindgen/wasm-pack/releases/assets/420850469"
 
 [tools."github:wasm-bindgen/wasm-pack"."platforms.macos-x64"]
 checksum = "sha256:d3f1a4a33e95f8f0d7801b024e08624c479999ac96aa150908b2394015cd0363"
@@ -187,24 +192,24 @@ version = "0.22.1"
 backend = "npm:markdownlint-cli2"
 
 [[tools.node]]
-version = "22.21.1"
+version = "22.23.4"
 backend = "core:node"
 
 [tools.node."platforms.linux-arm64"]
-checksum = "sha256:c86830dedf77f8941faa6c5a9c863bdfdd1927a336a46943decc06a38f80bfb2"
-url = "https://nodejs.org/dist/v22.21.1/node-v22.21.1-linux-arm64.tar.gz"
+checksum = "sha256:f7a1e486dbc8b286847815b477d4fb5e9fb963ed4489c3e1588853d685f589f9"
+url = "https://nodejs.org/dist/v22.23.4/node-v22.23.4-linux-arm64.tar.gz"
 
 [tools.node."platforms.linux-x64"]
-checksum = "sha256:219a152ea859861d75adea578bdec3dce8143853c13c5187f40c40e77b0143b2"
-url = "https://nodejs.org/dist/v22.21.1/node-v22.21.1-linux-x64.tar.gz"
+checksum = "sha256:b8492284c76a54baf58d61668dd0e41ee0fc98adabf9503d30f05d08f55b4406"
+url = "https://nodejs.org/dist/v22.23.4/node-v22.23.4-linux-x64.tar.gz"
 
 [tools.node."platforms.macos-arm64"]
-checksum = "sha256:c170d6554fba83d41d25a76cdbad85487c077e51fa73519e41ac885aa429d8af"
-url = "https://nodejs.org/dist/v22.21.1/node-v22.21.1-darwin-arm64.tar.gz"
+checksum = "sha256:c9e1dbc748b33ed2d14f42445191ecaf14c56259c7a9a26d0042c49ec2b66428"
+url = "https://nodejs.org/dist/v22.23.4/node-v22.23.4-darwin-arm64.tar.gz"
 
 [tools.node."platforms.macos-x64"]
-checksum = "sha256:8e3dc89614debe66c2a6ad2313a1adb06eb37db6cd6c40d7de6f7d987f7d1afd"
-url = "https://nodejs.org/dist/v22.21.1/node-v22.21.1-darwin-x64.tar.gz"
+checksum = "sha256:efcc2b0db6f94bf53eddb038fe2b370277a042bd29e4f19b8f8e23598795b819"
+url = "https://nodejs.org/dist/v22.23.4/node-v22.23.4-darwin-x64.tar.gz"
 
 [[tools."npm:@napi-rs/cli"]]
 version = "3.7.0"
@@ -381,9 +386,9 @@ url_api = "https://api.github.com/repos/mikefarah/yq/releases/assets/398368450"
 provenance = "cosign"
 
 [tools.yq."platforms.macos-arm64"]
-checksum = "sha256:616b0a0f6a5b79d746f05a169c2b9bb40dee00c605ef165b9a1c1681bba738ac"
-url = "https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_darwin_amd64"
-url_api = "https://api.github.com/repos/mikefarah/yq/releases/assets/398368453"
+checksum = "sha256:541ba2287560df70f561955e2d7f7e1cd00cf2a15a884f6b5c87a4bfa887bc07"
+url = "https://github.com/mikefarah/yq/releases/download/v4.53.2/yq_darwin_arm64"
+url_api = "https://api.github.com/repos/mikefarah/yq/releases/assets/398368449"
 provenance = "cosign"
 
 [tools.yq."platforms.macos-x64"]
