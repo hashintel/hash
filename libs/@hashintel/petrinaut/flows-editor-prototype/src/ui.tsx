@@ -202,7 +202,11 @@ const chipTileStyle = cva({
     width: "[16px]",
     height: "[16px]",
     borderRadius: "sm",
-    "& svg": { width: "[10px]", height: "[10px]" },
+    "&[class] svg": {
+      width: "[10px]",
+      height: "[10px]",
+      "--icon-size": "10px",
+    },
   },
   variants: {
     tone: {
