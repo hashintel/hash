@@ -288,26 +288,6 @@ checksum = "sha256:63c6a6a1cf6f1410299b1359bb68f08370e901456933d3d12f21c1ec31365
 url = "https://github.com/getsentry/sentry-cli/releases/download/2.52.0/sentry-cli-Darwin-x86_64"
 url_api = "https://api.github.com/repos/getsentry/sentry-cli/releases/assets/282142099"
 
-[[tools.taplo]]
-version = "0.10.0"
-backend = "aqua:tamasfe/taplo"
-
-[tools.taplo."platforms.linux-arm64"]
-url = "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-linux-aarch64.gz"
-url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257322597"
-
-[tools.taplo."platforms.linux-x64"]
-url = "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-linux-x86_64.gz"
-url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257322600"
-
-[tools.taplo."platforms.macos-arm64"]
-url = "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-darwin-aarch64.gz"
-url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257323110"
-
-[tools.taplo."platforms.macos-x64"]
-url = "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-darwin-x86_64.gz"
-url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257323116"
-
 [[tools.typst]]
 version = "0.15.1"
 backend = "aqua:typst/typst"

@@ -1,10 +1,10 @@
 [project]
-name = "petrinaut-optimizer-core"
-version = "0.1.0"
-description = "Optuna study construction, suggestion and ask/tell loop for the Petrinaut optimizer service, written to load under Pyodide"
-readme = "README.md"
+name            = "petrinaut-optimizer-core"
+version         = "0.1.0"
+description     = "Optuna study construction, suggestion and ask/tell loop for the Petrinaut optimizer service, written to load under Pyodide"
+readme          = "README.md"
 requires-python = ">=3.10"
-dependencies = [
+dependencies    = [
     "optuna>=4.9,<5",
 ]
 

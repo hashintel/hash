@@ -329,14 +329,14 @@ jobs:
         run: |
           yarn lint:skill
 
-      - name: Run yarn lint:taplo
+      - name: Run yarn lint:tombi
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:taplo; then
+          if ! yarn lint:tombi; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running "yarn fix:taplo" locally to apply autofixes.'
+            echo 'Try running "yarn fix:tombi" locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
