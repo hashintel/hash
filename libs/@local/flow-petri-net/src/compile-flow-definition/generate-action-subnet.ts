@@ -26,6 +26,7 @@ import {
   placeEndpoint,
 } from "./shared/net-elements.js";
 
+import type { SubnetMetadata } from "../flow-net-metadata.js";
 import type { ArcEndpoint, Color, Subnet } from "@hashintel/petrinaut-core";
 import type {
   ActionDefinition,
@@ -181,7 +182,7 @@ export const generateActionSubnet = async (
       id: generateSubnetElementKey("t", subnetName, "startAttempt"),
       name: `Start ${name}`,
       description: `Start running ${name} with the step's inputs.`,
-      role: "startAttempt",
+      metadata: { role: "startAttempt" },
       inputArcs: inputPorts.map((port) => inputArc(placeEndpoint(port.id))),
       outputArcs: [outputArc(placeEndpoint(inProgress.id))],
     }),
@@ -189,7 +190,7 @@ export const generateActionSubnet = async (
       id: generateSubnetElementKey("t", subnetName, "succeedAttempt"),
       name: `${name} succeeded`,
       description: `${name} completed, producing its outputs.`,
-      role: "succeedAttempt",
+      metadata: { role: "succeedAttempt" },
       inputArcs: [inputArc(placeEndpoint(inProgress.id))],
       outputArcs: outputPorts.map((port) => outputArc(placeEndpoint(port.id))),
     }),
@@ -197,7 +198,7 @@ export const generateActionSubnet = async (
       id: generateSubnetElementKey("t", subnetName, "failAttempt"),
       name: `${name} failed`,
       description: `An attempt to run ${name} failed.`,
-      role: "failAttempt",
+      metadata: { role: "failAttempt" },
       inputArcs: [inputArc(placeEndpoint(inProgress.id))],
       outputArcs: [outputArc(placeEndpoint(failed.id))],
     }),
@@ -205,7 +206,7 @@ export const generateActionSubnet = async (
       id: generateSubnetElementKey("t", subnetName, "retryAttempt"),
       name: `Retry ${name}`,
       description: `Try ${name} again, while fewer than max_retries attempts have been made.`,
-      role: "retryAttempt",
+      metadata: { role: "retryAttempt" },
       inputArcs: [inputArc(placeEndpoint(failed.id))],
       outputArcs: [outputArc(placeEndpoint(inProgress.id))],
     }),
@@ -213,7 +214,7 @@ export const generateActionSubnet = async (
       id: generateSubnetElementKey("t", subnetName, "giveUp"),
       name: `Give up on ${name}`,
       description: `Stop trying ${name} once max_retries attempts have failed.`,
-      role: "giveUp",
+      metadata: { role: "giveUp" },
       inputArcs: [inputArc(placeEndpoint(failed.id))],
       outputArcs: [outputArc(placeEndpoint(gaveUp.id))],
     }),
@@ -246,7 +247,7 @@ export const generateActionSubnet = async (
     id: generateSubnetKey(subnetName),
     name: actionDefinitionId,
     description,
-    metadata: { actionDefinitionId },
+    metadata: { actionDefinitionId } satisfies SubnetMetadata,
     places: laidOut.places,
     transitions: laidOut.transitions,
     types: [...colors.values()],

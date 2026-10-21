@@ -1,5 +1,9 @@
 import { stepRunIdSeparator } from "@local/hash-isomorphic-utils/flows/step-run-id";
 
+import type {
+  ActionLifecycleRole,
+  TransitionRole,
+} from "./flow-net-metadata.js";
 import type { PayloadKind } from "@local/hash-isomorphic-utils/flows/types";
 
 /*
@@ -90,14 +94,10 @@ export const generateAccumulatorPlaceKey = (forEachStepId: string) =>
  */
 
 /** The roles of the root net's transitions that are each added once per step. */
-export type StepTransitionRole =
-  | "startStep"
-  | "recordStepFailure"
-  | "startForEach"
-  | "startItem"
-  | "startCollecting"
-  | "collectItem"
-  | "finishCollecting";
+export type StepTransitionRole = Exclude<
+  TransitionRole,
+  "copyOutput" | ActionLifecycleRole
+>;
 
 export const generateStepTransitionKey = (
   role: StepTransitionRole,

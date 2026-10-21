@@ -29,6 +29,7 @@ import {
   generatePendingPlaceKey,
 } from "./flow-net-keys.js";
 
+import type { FlowNetMetadata } from "./flow-net-metadata.js";
 import type { ArcEndpoint, SDCPN } from "@hashintel/petrinaut-core";
 import type {
   ActionStepDefinition,
@@ -189,7 +190,7 @@ export const compileFlowDefinition = async (
           toPetrinautEndpoint(endpoint),
         ]),
       ),
-    },
+    } satisfies FlowNetMetadata,
     places: laidOut.places,
     transitions: laidOut.transitions,
     types: [...net.colors.values()],

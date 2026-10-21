@@ -56,25 +56,24 @@ export const compileForEachStep = ({
       id: generateStepTransitionKey("startForEach", step.stepId),
       name: `Start ${step.stepId}`,
       description: `Starts step ${step.stepId} once its array is available.`,
-      role: "startForEach",
-      inputArcs: [
-        inputArc(placeEndpoint(generatePendingPlaceKey(step.stepId))),
-        ...(arrayArc ? [arrayArc] : []),
-      ],
-      outputArcs: [outputArc(placeEndpoint(iteratorPlaceId))],
       metadata: {
+        role: "startForEach",
         stepId: step.stepId,
         ...(step.over.kind === "constant"
           ? { constant: step.over.payload as JsonValue }
           : {}),
       },
+      inputArcs: [
+        inputArc(placeEndpoint(generatePendingPlaceKey(step.stepId))),
+        ...(arrayArc ? [arrayArc] : []),
+      ],
+      outputArcs: [outputArc(placeEndpoint(iteratorPlaceId))],
     }),
     createTransition({
       id: generateStepTransitionKey("startItem", step.stepId),
       name: `Start an item of ${step.stepId}`,
       description: `Starts the next item of step ${step.stepId}, while \`next\` is less than \`item_count\`.`,
-      role: "startItem",
-      metadata: { stepId: step.stepId },
+      metadata: { role: "startItem", stepId: step.stepId },
       inputArcs: [inputArc(placeEndpoint(iteratorPlaceId))],
       outputArcs: [
         outputArc(placeEndpoint(iteratorPlaceId)),
@@ -88,8 +87,7 @@ export const compileForEachStep = ({
       id: generateStepTransitionKey("startCollecting", step.stepId),
       name: `Collect the items of ${step.stepId}`,
       description: `Every item of step ${step.stepId} has started (\`next\` equals \`item_count\`): count them as they finish.`,
-      role: "startCollecting",
-      metadata: { stepId: step.stepId },
+      metadata: { role: "startCollecting", stepId: step.stepId },
       inputArcs: [inputArc(placeEndpoint(iteratorPlaceId))],
       outputArcs: [outputArc(placeEndpoint(accumulatorPlaceId))],
     }),
@@ -97,8 +95,11 @@ export const compileForEachStep = ({
       id: generateStepTransitionKey("collectItem", step.stepId),
       name: `Collect an item of ${step.stepId}`,
       description: `Collects an item's ${step.collect.stepId}.${step.collect.outputName}, counting it as done.`,
-      role: "collectItem",
-      metadata: { stepId: step.stepId, collect: step.collect },
+      metadata: {
+        role: "collectItem",
+        stepId: step.stepId,
+        collect: step.collect,
+      },
       inputArcs: [
         values.collectArc(step.stepId),
         inputArc(placeEndpoint(accumulatorPlaceId)),
@@ -109,8 +110,7 @@ export const compileForEachStep = ({
       id: generateStepTransitionKey("finishCollecting", step.stepId),
       name: `Finish collecting ${step.stepId}`,
       description: `Every item of step ${step.stepId} has finished (\`done\` equals \`expected\`): its collected output is complete.`,
-      role: "finishCollecting",
-      metadata: { stepId: step.stepId },
+      metadata: { role: "finishCollecting", stepId: step.stepId },
       inputArcs: [inputArc(placeEndpoint(accumulatorPlaceId))],
       outputArcs: values.collectedOutputArcs(step.stepId, step.collect.as),
     }),

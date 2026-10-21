@@ -13,6 +13,10 @@
     "./flow-net-keys": {
       "types": "./src/flow-net-keys.ts",
       "default": "./dist/flow-net-keys.js"
+    },
+    "./flow-net-metadata": {
+      "types": "./src/flow-net-metadata.ts",
+      "default": "./dist/flow-net-metadata.js"
     }
   },
   "scripts": {

@@ -21,6 +21,7 @@ import {
 } from "./shared/net-elements.js";
 import { consumes } from "./shared/value-places.js";
 
+import type { InputSource, InstanceMetadata } from "../flow-net-metadata.js";
 import type { FlowSteps } from "./shared/flow-steps.js";
 import type { NetBuilder } from "./shared/net-builder.js";
 import type { ValuePlaces } from "./shared/value-places.js";
@@ -62,12 +63,12 @@ export const compileActionStep = ({
    * Where each of the action's inputs gets its value, as the arcs alone don't say: two inputs of one kind connected
    * the other way round take the same arcs.
    */
-  const inputSources: Record<string, JsonValue> = {};
+  const inputSources: Record<string, InputSource> = {};
 
   const connectedValue = (
     arc: { endpoint: ArcEndpoint },
     source: StepInputSource,
-  ) => ({
+  ): InputSource => ({
     kind: "value",
     from: toPetrinautEndpoint(arc.endpoint),
     access: consumes(source) ? "consume" : "read",
@@ -126,8 +127,7 @@ export const compileActionStep = ({
       id: startStepKey,
       name: `Start ${step.stepId}`,
       description: `Starts step ${step.stepId} once its inputs are available, feeding every input of ${step.actionDefinitionId}: connected values, constants, and absent values for unconnected optional inputs.`,
-      role: "startStep",
-      metadata: { stepId: step.stepId, inputSources },
+      metadata: { role: "startStep", stepId: step.stepId, inputSources },
       inputArcs,
       outputArcs: inputPortIds.map((portId) =>
         outputArc(portEndpoint(generateInstanceKey(step.stepId), portId)),
@@ -137,8 +137,7 @@ export const compileActionStep = ({
       id: generateStepTransitionKey("recordStepFailure", step.stepId),
       name: `${step.stepId} gave up`,
       description: `Records that step ${step.stepId} gave up, failing its run.`,
-      role: "recordStepFailure",
-      metadata: { stepId: step.stepId },
+      metadata: { role: "recordStepFailure", stepId: step.stepId },
       inputArcs: [
         inputArc(
           portEndpoint(
@@ -158,7 +157,7 @@ export const compileActionStep = ({
     metadata: {
       actionDefinitionId: step.actionDefinitionId,
       ...(Object.keys(constants).length > 0 ? { constants } : {}),
-    },
+    } satisfies InstanceMetadata,
     subnetId: generateSubnetKey(subnetName),
     parameterValues: {
       [maxRetriesParameterKey]: String(step.retryCount ?? defaultMaxRetries),

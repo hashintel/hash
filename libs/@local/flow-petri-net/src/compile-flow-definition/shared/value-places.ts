@@ -305,8 +305,7 @@ export const placeValues = ({
           id: generateCopyOutputTransitionKey(stepId, outputName),
           name: `Copy ${value.label}`,
           description: `Puts the ${outputName} output of step ${stepId} where each step that reads or consumes it takes it from.`,
-          role: "copyOutput",
-          metadata: { stepId, outputName },
+          metadata: { role: "copyOutput", stepId, outputName },
           inputArcs: [
             inputArc(portEndpoint(generateInstanceKey(stepId), portId)),
           ],

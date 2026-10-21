@@ -4,6 +4,7 @@ import {
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 
+import type { TransitionMetadata } from "../../flow-net-metadata.js";
 import type {
   ArcEndpoint,
   InputArc,
@@ -12,34 +13,6 @@ import type {
   Place,
   Transition,
 } from "@hashintel/petrinaut-core";
-
-/**
- * What a transition does in a flow net, for the executor that runs it and for anyone reading the net.
- *
- * - `startStep`: starts an action step once its inputs are available, feeding every input port of its instance.
- * - `startForEach`: starts a `forEach` step once its array is available, turning it into an iterator.
- * - `copyOutput`: takes an output from a step's output port, and puts it where each of its readers and consumers takes it from. Only added when more than one place needs the value.
- * - `recordStepFailure`: moves a step's token from its instance's "gave up" port into `FailedStepRuns`, failing the run.
- * - `startItem` / `startCollecting`: start each item of a `forEach` step, then hand over to counting them as they finish.
- * - `collectItem` / `finishCollecting`: collect each item's output, and complete the `forEach` step once all are in.
- * - `startAttempt` / `succeedAttempt` / `failAttempt` / `retryAttempt` / `giveUp`: an action's lifecycle, inside its
- *   subnet. `succeedAttempt` and `failAttempt` fire when the action's activity completes; every other transition fires
- *   as soon as it's enabled.
- */
-export type TransitionRole =
-  | "startStep"
-  | "startForEach"
-  | "copyOutput"
-  | "recordStepFailure"
-  | "startItem"
-  | "startCollecting"
-  | "collectItem"
-  | "finishCollecting"
-  | "startAttempt"
-  | "succeedAttempt"
-  | "failAttempt"
-  | "retryAttempt"
-  | "giveUp";
 
 export const createPlace = ({
   id,
@@ -66,33 +39,31 @@ export const createPlace = ({
 });
 
 /**
- * A transition with no simulation behaviour: the flow executor interprets it by its `role` (see
- * {@link TransitionRole}).
+ * A transition with no simulation behaviour: the flow executor interprets it by the role in its metadata (see
+ * `TransitionRole`). Its kernel is added later, as a placeholder (see `withKernel`).
  *
- * @todo guards and kernels, so that the net simulates too: correlating `run_id` / `item_path` across input
- *   tokens, and the iterator and accumulator conditions of `forEach` steps.
+ * @todo guards, so that the net simulates too: correlating `run_id` / `item_path` across input tokens, and the
+ *   iterator and accumulator conditions of `forEach` steps.
  */
 export const createTransition = ({
   id,
   name,
   description,
-  role,
-  metadata = {},
+  metadata,
   inputArcs,
   outputArcs,
 }: {
   id: string;
   name: string;
   description: string;
-  role: TransitionRole;
-  metadata?: Transition["metadata"];
+  metadata: TransitionMetadata;
   inputArcs: InputArc[];
   outputArcs: OutputArc[];
 }): Transition => ({
   id,
   name,
   description,
-  metadata: { role, ...metadata },
+  metadata,
   inputArcs,
   outputArcs,
   lambdaType: "predicate",
