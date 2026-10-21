@@ -406,6 +406,7 @@ export const SourceMenu = ({
               onChange={(value) => setSearch(value)}
               placeholder="Search"
               size="sm"
+              prefix={{ iconName: "search", variant: "subtle" }}
             />
           </div>
         )}

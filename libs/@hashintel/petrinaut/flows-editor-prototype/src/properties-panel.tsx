@@ -6,7 +6,6 @@ import {
   SegmentedControl,
   Select,
   TextInput,
-  Tooltip,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
@@ -65,7 +64,6 @@ import { SourceMenu } from "./source-menu";
 import {
   descriptionInputStyle,
   HeaderTitle,
-  keyStyle,
   kindLabel,
   mutedTextStyle,
   OriginMark,
@@ -73,6 +71,7 @@ import {
   PropertyRow,
   Section,
   fieldStyle,
+  ChipRow,
   SourceChip,
   type Tone,
   typeLineStyle,
@@ -84,7 +83,7 @@ import type { IconName } from "@hashintel/ds-components";
 const panelStyle = css({
   position: "relative",
   flexShrink: 0,
-  width: "[420px]",
+  width: "[384px]",
   height: "[100%]",
   display: "flex",
   flexDirection: "column",
@@ -138,7 +137,12 @@ const UsedBy = ({
     return quiet ? null : <span className={mutedTextStyle}>Not used yet</span>;
   }
   return (
-    <div className={css({ display: "flex", flexWrap: "wrap", gap: "1.5" })}>
+    <ChipRow
+      names={users.map((userId) => {
+        const user = findStep(document, userId)?.step;
+        return user ? stepLabel(user) : userId;
+      })}
+    >
       {users.map((userId) => {
         const user = findStep(document, userId)?.step;
         return (
@@ -153,7 +157,7 @@ const UsedBy = ({
           </SourceChip>
         );
       })}
-    </div>
+    </ChipRow>
   );
 };
 
@@ -177,11 +181,10 @@ const Paths = ({
             {targets.length === 0 ? (
               <span className={mutedTextStyle}>Ends here</span>
             ) : (
-              <div
-                className={css({
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "1.5",
+              <ChipRow
+                names={targets.map((wire) => {
+                  const target = findStep(document, wire.target)?.step;
+                  return target ? stepLabel(target) : wire.target;
                 })}
               >
                 {targets.map((wire) => (
@@ -202,7 +205,7 @@ const Paths = ({
                     })()}
                   </SourceChip>
                 ))}
-              </div>
+              </ChipRow>
             )}
           </PropertyRow>
         );
@@ -432,13 +435,11 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
               kinds.includes("FilterCondition")
             ) {
               return (
+                // Its rows join the section grid; the builder itself spans both columns.
                 <div
                   key={input.name}
-                  className={css({
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "2",
-                  })}
+                  className={css({ display: "contents" })}
+                  data-row
                 >
                   {fieldFor(document, step, input)}
                 </div>
@@ -733,31 +734,23 @@ const nextInputNumber = (document: EditorDocument) => {
   return index;
 };
 
-const inputRowStyle = css({
+/** One flow input: its fields stacked, Remove top right on hover. */
+const inputBlockStyle = css({
+  position: "relative",
   display: "grid",
-  gridTemplateColumns: "[128px minmax(0, 1fr)]",
+  gridTemplateColumns: "minmax(88px, min(30%, 120px)) minmax(0, 1fr)",
   columnGap: "2",
+  rowGap: "2",
   alignItems: "baseline",
+  "& > :not([data-row])": { gridColumn: "1 / -1" },
   "&:not(:hover):not(:focus-within) [data-row-action]": { opacity: "[0]" },
-});
-
-/** Start's input names edit in place, in the key column's own type. */
-const keyInputStyle = css({
-  width: "[100%]",
-  backgroundColor: "[transparent]",
-  borderWidth: "[0]",
-  borderRadius: "xs",
-  padding: "[0]",
-  outline: "none",
-  _hover: { color: "neutral.fg.muted" },
-  _focusVisible: { boxShadow: "[0 0 0 2px var(--colors-blue-bd-subtle)]" },
 });
 
 const rowActionStyle = css({
   position: "absolute",
-  right: "[2px]",
-  top: "[50%]",
-  transform: "[translateY(-50%)]",
+  right: "[0]",
+  top: "[-4px]",
+  zIndex: "[1]",
   transition: "[opacity 0.15s ease]",
 });
 
@@ -794,56 +787,54 @@ const RunFormFields = () => {
     });
 
   return (
-    <Section
-      title="Inputs"
-      action={
-        <Button size="xs" variant="ghost" iconName="plus" onClick={addInput}>
-          Add
-        </Button>
-      }
-    >
+    <Section title="Inputs">
       {document.inputs.length === 0 ? (
         <span className={mutedTextStyle}>
           No inputs. Add one when a step needs a value nothing earlier gives.
         </span>
       ) : null}
-      {document.inputs.map((input) => (
-        <div key={input.name} className={inputRowStyle}>
-          <span className={css({ position: "relative", minWidth: "[0]" })}>
-            <input
-              className={cx(keyStyle, keyInputStyle)}
-              value={input.label ?? ""}
-              aria-label="Input name"
-              onChange={(event) =>
-                updateInput(input.name, { label: event.target.value })
+      {document.inputs.map((input, index) => (
+        <div
+          key={input.name}
+          className={cx(
+            inputBlockStyle,
+            index > 0
+              ? css({
+                  paddingTop: "2",
+                  borderTopWidth: "thin",
+                  borderTopStyle: "solid",
+                  borderTopColor: "neutral.bd.subtle",
+                })
+              : undefined,
+          )}
+        >
+          <span className={rowActionStyle} data-row-action>
+            <Button
+              size="xs"
+              variant="ghost"
+              iconName="trash"
+              aria-label={`Remove ${input.label ?? input.name}`}
+              tooltip="Remove"
+              onClick={() =>
+                setDocument((current) => ({
+                  ...current,
+                  inputs: current.inputs.filter(
+                    (other) => other.name !== input.name,
+                  ),
+                }))
               }
             />
-            <span className={rowActionStyle} data-row-action>
-              <Button
-                size="xs"
-                variant="ghost"
-                iconName="trash"
-                aria-label={`Remove ${input.label ?? input.name}`}
-                tooltip="Remove"
-                onClick={() =>
-                  setDocument((current) => ({
-                    ...current,
-                    inputs: current.inputs.filter(
-                      (other) => other.name !== input.name,
-                    ),
-                  }))
-                }
-              />
-            </span>
           </span>
-          <div
-            className={css({
-              minWidth: "[0]",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1.5",
-            })}
-          >
+          <PropertyRow label="Name">
+            <TextInput
+              size="sm"
+              className={fieldStyle}
+              value={input.label ?? ""}
+              aria-label="Input name"
+              onChange={(label) => updateInput(input.name, { label })}
+            />
+          </PropertyRow>
+          <PropertyRow label="Type">
             <Select
               size="sm"
               className={fieldStyle}
@@ -860,43 +851,75 @@ const RunFormFields = () => {
                 });
               }}
             />
-            {input.payloadKind === "EntityId" ? (
-              <Tooltip content="Flow inputs have no entity type in the engine. Kept in the prototype's mock layer so the run form can filter its picker.">
-                <div>
-                  <Select
-                    size="sm"
-                    className={fieldStyle}
-                    items={mockEntityTypes.map((type) => ({
-                      value: type.baseUrl,
-                      text: type.title,
-                    }))}
-                    value={document.inputEntityTypes[input.name] ?? null}
-                    placeholder="Any entity type"
-                    onChange={(value) =>
-                      setDocument((current) => ({
-                        ...current,
-                        inputEntityTypes: value
-                          ? { ...current.inputEntityTypes, [input.name]: value }
-                          : Object.fromEntries(
-                              Object.entries(current.inputEntityTypes).filter(
-                                ([name]) => name !== input.name,
-                              ),
-                            ),
-                      }))
-                    }
-                  />
-                </div>
-              </Tooltip>
-            ) : null}
-            <UsedBy
-              quiet
-              match={(source) =>
-                source.kind === "flow-input" && source.inputName === input.name
+          </PropertyRow>
+          {input.payloadKind === "EntityId" ? (
+            <PropertyRow
+              label="Entity type"
+              optional
+              hover="Flow inputs have no entity type in the engine. Kept in the prototype's mock layer so the run form can filter its picker."
+            >
+              <Select
+                size="sm"
+                className={fieldStyle}
+                items={mockEntityTypes.map((type) => ({
+                  value: type.baseUrl,
+                  text: type.title,
+                }))}
+                value={document.inputEntityTypes[input.name] ?? null}
+                placeholder="Any entity type"
+                onChange={(value) =>
+                  setDocument((current) => ({
+                    ...current,
+                    inputEntityTypes: value
+                      ? { ...current.inputEntityTypes, [input.name]: value }
+                      : Object.fromEntries(
+                          Object.entries(current.inputEntityTypes).filter(
+                            ([name]) => name !== input.name,
+                          ),
+                        ),
+                  }))
+                }
+              />
+            </PropertyRow>
+          ) : null}
+          <PropertyRow
+            label="Default value"
+            optional
+            hover="Mock: what the run form fills in. The engine's flow inputs have no default."
+          >
+            <TextInput
+              size="sm"
+              className={fieldStyle}
+              type={input.payloadKind === "Date" ? "date" : "text"}
+              value={document.inputDefaults?.[input.name] ?? ""}
+              placeholder={
+                input.payloadKind === "Date" ? "Select date..." : "No default"
+              }
+              aria-label={`${input.label ?? input.name} default value`}
+              onChange={(value) =>
+                setDocument((current) => ({
+                  ...current,
+                  inputDefaults: {
+                    ...current.inputDefaults,
+                    [input.name]: value,
+                  },
+                }))
               }
             />
-          </div>
+          </PropertyRow>
+          <UsedBy
+            quiet
+            match={(source) =>
+              source.kind === "flow-input" && source.inputName === input.name
+            }
+          />
         </div>
       ))}
+      <div>
+        <Button size="sm" variant="subtle" iconName="plus" onClick={addInput}>
+          Add input
+        </Button>
+      </div>
     </Section>
   );
 };

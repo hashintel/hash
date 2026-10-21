@@ -23,7 +23,7 @@ const journeyFlows = (): FlowListEntry[] => {
   return [
     from("blank", "J1 · Start a new flow", "j1"),
     from("j3-a1", "J2 · Build the first steps by hand", "j2"),
-    from("j3-c5", "J3 · Where each input comes from", "j3"),
+    from("j3-b2", "J3 · Where each input comes from", "j3"),
     from("start", "J4 · How a flow starts", "j4"),
     { id: "supplierReview", document: supplierReviewExample() },
   ];

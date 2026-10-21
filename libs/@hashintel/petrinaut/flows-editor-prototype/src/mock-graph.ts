@@ -120,7 +120,10 @@ export const mockEntityTypes = [
       propertyType("shipment-status", "Status", "Text", [
         "Delivered",
         "In transit",
+        "Received",
+        "Rejected",
       ]),
+      propertyType("purity", "Purity", "Number"),
       propertyType("days-late", "Days late", "Number"),
       link("supplier", "Supplier", "supplier"),
     ],

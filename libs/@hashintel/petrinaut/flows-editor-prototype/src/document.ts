@@ -75,8 +75,22 @@ export type ConditionRow = {
   value: string | number | null;
   /** MOCK: the picked values of a list operator ("is any of"), by label. */
   values?: string[];
+  /** MOCK, editor side: a date relative to the run ("Today", "3 days ago"). The engine stores fixed dates only. */
+  relative?: RelativeDate;
   /** MOCK: the value comes from an earlier step or a flow input. The engine's condition values are constants. */
   valueSource?: StepInputSource;
+};
+
+/** MOCK: a date relative to the run (Attio's date menu). No engine shape. */
+export type RelativeDate =
+  | { kind: "today" | "yesterday" | "weekAgo" | "monthAgo" }
+  | { kind: "daysAgo"; days: number };
+
+/** A group of conditions inside the builder: its own and/or (J3 A1's grey box). */
+export type QueryGroup = {
+  id: number;
+  conjunction: "and" | "or";
+  conditions: ConditionRow[];
 };
 
 /** A condition row about the value itself rather than one of its entity's properties. */
@@ -88,6 +102,10 @@ export type QueryDraft = {
   /** MOCK: the entity type comes from an earlier step or a flow input. The engine's query is one constant. */
   entityTypeSource?: StepInputSource;
   conditions: ConditionRow[];
+  /** How the top-level rows combine; "and" when unset. */
+  conjunction?: "and" | "or";
+  /** Grouped rows, each a nested and/or. */
+  groups?: QueryGroup[];
 };
 
 /** MOCK: one change to a property for Update entity, before it becomes a `PropertyPatch` (#10060). */
@@ -125,6 +143,8 @@ export type EditorDocument = {
   startDescription: string;
   /** MOCK: the entity type of each `EntityId` flow input. `FlowInputDefinition` has no field for it. */
   inputEntityTypes: Record<string, string>;
+  /** MOCK: each flow input's default for the run form. `FlowInputDefinition` has no default. */
+  inputDefaults?: Record<string, string>;
 };
 
 export const fieldKey = (stepId: string, inputName: string) =>
@@ -590,28 +610,42 @@ const graphOperator: Partial<Record<ConditionOperator, string>> = {
  * for text, so that row is dropped here (a hole: two condition languages).
  */
 export const queryDraftToEntityQuery = (draft: QueryDraft): EntityQuery => {
-  const clauses: unknown[] = [];
-  if (draft.entityTypeBaseUrl) {
-    clauses.push({
-      equal: [
-        { path: ["type", "baseUrl"] },
-        { parameter: draft.entityTypeBaseUrl },
-      ],
-    });
-  }
-  for (const row of draft.conditions) {
+  const clause = (row: ConditionRow): unknown => {
     const path = { path: ["properties", row.propertyBaseUrl] };
     if (row.operator === "isEmpty" || row.operator === "isNotEmpty") {
       const exists = { exists: path };
-      clauses.push(row.operator === "isEmpty" ? { not: exists } : exists);
-      continue;
+      return row.operator === "isEmpty" ? { not: exists } : exists;
     }
-    const operator = row.operator ? graphOperator[row.operator] : undefined;
-    if (operator && row.value !== null) {
-      clauses.push({ [operator]: [path, { parameter: row.value }] });
-    }
-  }
-  return { filter: { all: clauses } } as unknown as EntityQuery;
+    // Relative dates and "is in month" are editor mocks: they have no graph filter.
+    const operator =
+      row.operator && !row.relative ? graphOperator[row.operator] : undefined;
+    return operator && row.value !== null
+      ? { [operator]: [path, { parameter: row.value }] }
+      : null;
+  };
+  const combine = (conjunction: "and" | "or" | undefined, parts: unknown[]) =>
+    conjunction === "or" ? { any: parts } : { all: parts };
+  const rows = draft.conditions.map(clause).filter((part) => part !== null);
+  const groups = (draft.groups ?? []).map((group) =>
+    combine(
+      group.conjunction,
+      group.conditions.map(clause).filter((part) => part !== null),
+    ),
+  );
+  const conditions = combine(draft.conjunction, [...rows, ...groups]);
+  const typeClause = draft.entityTypeBaseUrl
+    ? [
+        {
+          equal: [
+            { path: ["type", "baseUrl"] },
+            { parameter: draft.entityTypeBaseUrl },
+          ],
+        },
+      ]
+    : [];
+  return {
+    filter: { all: [...typeClause, conditions] },
+  } as unknown as EntityQuery;
 };
 
 /** The engine condition a condition draft stands for, reading entity properties or the value itself. */
@@ -619,10 +653,10 @@ export const queryDraftToFilterCondition = (
   draft: QueryDraft,
   valueKind: PayloadKind = "Text",
 ): FilterCondition | null => {
-  const leaves: FilterLeaf[] = [];
-  for (const row of draft.conditions) {
-    if (!row.operator) {
-      continue;
+  const leaf = (row: ConditionRow): FilterLeaf | null => {
+    // Relative dates and "is in month" are editor mocks with no engine value.
+    if (!row.operator || row.relative || row.operator === "isIn") {
+      return null;
     }
     const property = findPropertyType(row.propertyBaseUrl);
     const readsEntity = row.propertyBaseUrl !== VALUE_SUBJECT;
@@ -635,19 +669,34 @@ export const queryDraftToFilterCondition = (
         }
       : { kind: "input" as const, payloadKind };
     if (row.operator === "isEmpty" || row.operator === "isNotEmpty") {
-      leaves.push({
+      return {
         kind: "condition",
         subject,
         operator: row.operator,
-      } as FilterLeaf);
-    } else if (row.value !== null) {
-      leaves.push({
-        kind: "condition",
-        subject,
-        operator: row.operator,
-        value: { kind: payloadKind, value: row.value },
-      } as FilterLeaf);
+      } as FilterLeaf;
     }
-  }
-  return leaves.length > 0 ? { kind: "all", conditions: leaves } : null;
+    return row.value === null
+      ? null
+      : ({
+          kind: "condition",
+          subject,
+          operator: row.operator,
+          value: { kind: payloadKind, value: row.value },
+        } as FilterLeaf);
+  };
+  const leaves = (rows: ConditionRow[]) =>
+    rows.map(leaf).filter((candidate): candidate is FilterLeaf => !!candidate);
+  const groups = (draft.groups ?? [])
+    .map((group) => ({
+      kind: group.conjunction === "or" ? "any" : "all",
+      conditions: leaves(group.conditions),
+    }))
+    .filter((group) => group.conditions.length > 0);
+  const all = [...leaves(draft.conditions), ...groups];
+  return all.length > 0
+    ? ({
+        kind: draft.conjunction === "or" ? "any" : "all",
+        conditions: all,
+      } as FilterCondition)
+    : null;
 };

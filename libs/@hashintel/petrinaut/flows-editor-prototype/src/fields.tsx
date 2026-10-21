@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Button,
@@ -10,13 +10,11 @@ import {
   TextInput,
   Tooltip,
 } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
-import { filterRecipe } from "../../../ds-components/src/components/Filter/filter.recipe";
 import { type CatalogEntry, getCatalogEntry, type InputView } from "./catalog";
+import { ConditionBuilder, UseVariable } from "./condition-builder";
 import {
-  type ConditionOperator,
-  type ConditionRow,
   type DraftActionStep,
   type EditorDocument,
   fieldKey,
@@ -771,450 +769,8 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
 };
 
 /* ----------------------------------------------------------------------------------------------------------------
- * Query builder (Journey 3): UI only, never SQL (ledger, 20 Oct). Each condition is subject · operator · value, joined
- * by "and". The value slot takes a typed value, or "@" for an earlier step's output or a flow input.
+ * Query builder (Journey 3): UI only, never SQL (ledger, 20 Oct). The rows live in `condition-builder.tsx`.
  * ------------------------------------------------------------------------------------------------------------- */
-
-type OperatorChoice = {
-  value: ConditionOperator;
-  text: string;
-  takesValue: boolean;
-};
-
-const operatorsFor = (
-  property:
-    | Pick<MockPropertyType, "payloadKind" | "options" | "linksTo">
-    | undefined,
-  forGraph: boolean,
-): OperatorChoice[] => {
-  const empty: OperatorChoice[] = [
-    { value: "isEmpty", text: "is empty", takesValue: false },
-    { value: "isNotEmpty", text: "is not empty", takesValue: false },
-  ];
-  if (property?.linksTo) {
-    return [
-      { value: "isAnyOf", text: "is any of", takesValue: true },
-      ...empty,
-    ];
-  }
-  if (property?.payloadKind === "Date") {
-    return [
-      { value: "isIn", text: "is in", takesValue: true },
-      { value: "equals", text: "=", takesValue: true },
-      { value: "greaterThan", text: ">", takesValue: true },
-      { value: "lessThan", text: "<", takesValue: true },
-      ...empty,
-    ];
-  }
-  if (property?.payloadKind === "Number") {
-    return [
-      { value: "equals", text: "=", takesValue: true },
-      { value: "notEquals", text: "≠", takesValue: true },
-      { value: "greaterThan", text: ">", takesValue: true },
-      { value: "greaterThanOrEqual", text: "≥", takesValue: true },
-      { value: "lessThan", text: "<", takesValue: true },
-      { value: "lessThanOrEqual", text: "≤", takesValue: true },
-      ...empty,
-    ];
-  }
-  return [
-    { value: "equals", text: "is", takesValue: true },
-    { value: "notEquals", text: "is not", takesValue: true },
-    // The graph's filter has no "contains" for text (only `containsSegment`), so Find entities can't offer it.
-    ...(forGraph
-      ? []
-      : [{ value: "contains" as const, text: "contains", takesValue: true }]),
-    ...empty,
-  ];
-};
-
-/**
- * The DS Filter chip at the size ↳ Current draws it: 28 px tall, 14 px medium text in every segment, 8 px corners and
- * one hairline colour for the outline and the dividers. The attribute selector outranks the recipe's own levers.
- */
-const conditionLookStyle = css({
-  "&[data-condition-row]": {
-    "--filter-font-size": "14px",
-    "--filter-padding-x": "6.5px",
-    "--filter-property-padding-x": "6.5px",
-    "--filter-input-padding-x": "6.5px",
-    "--filter-radius": "8px",
-    "--form-padding-y": "0px",
-    "--filter-outer-border": "var(--colors-neutral-bd-solid)",
-    "--filter-divider": "var(--colors-neutral-bd-solid)",
-    "--filter-remove-divider": "var(--colors-neutral-bd-solid)",
-    minHeight: "[28px]",
-    flexWrap: "wrap",
-    backgroundColor: "neutral.bgSolid.min.hover",
-  },
-  "&[data-condition-row]:hover": {
-    "--filter-outer-border": "var(--colors-neutral-bd-strong)",
-    "--filter-divider": "var(--colors-neutral-bd-solid-hover)",
-    "--filter-remove-divider": "var(--colors-neutral-bd-solid-hover)",
-  },
-  // Every segment, including a chip inside a tooltip trigger (which sets line-height 0), gets the 26 px line.
-  "&[data-condition-row] > *, &[data-condition-row] button, &[data-condition-row] input":
-    {
-      fontWeight: "medium",
-      color: "neutral.fg.body",
-    },
-  "&[data-condition-row] input::placeholder": {
-    color: "neutral.fg.muted.disabled",
-  },
-  "&[data-condition-row] [data-part=input-slot] button": { borderWidth: "[0]" },
-  "&[data-condition-row] [data-part=input-slot] > span": {
-    display: "flex",
-  },
-  "&[data-condition-row] [data-part=remove]": {
-    width: "[28px]",
-    paddingInline: "[0]",
-    justifyContent: "center",
-  },
-});
-
-/** "+ Add condition": the same chip shell with one segment, as ↳ Current draws it. */
-const addConditionStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "[3px]",
-  height: "[28px]",
-  paddingX: "[6.5px]",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.solid",
-  borderRadius: "lg",
-  backgroundColor: "neutral.bgSolid.min",
-  textStyle: "sm",
-  fontWeight: "medium",
-  color: "neutral.fg.subtle",
-  cursor: "pointer",
-  "& svg": { width: "[14px]", height: "[14px]" },
-  _hover: { borderColor: "neutral.bd.strong", color: "neutral.fg.muted" },
-  _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
-});
-
-const ConditionRowEditor = ({
-  step,
-  input,
-  entry,
-  row,
-  properties,
-  forGraph,
-  onChange,
-  onRemove,
-}: {
-  step: DraftActionStep;
-  input: InputView;
-  entry: CatalogEntry;
-  row: ConditionRow;
-  properties: { baseUrl: string; title: string; property?: MockPropertyType }[];
-  forGraph: boolean;
-  onChange: (change: Partial<ConditionRow>) => void;
-  onRemove: () => void;
-}) => {
-  const { document, ui, setUi } = useEditor();
-  const anchorRef = useRef<HTMLDivElement>(null);
-  const valueRef = useRef<HTMLInputElement>(null);
-  const menuKey = `${input.name}:condition${row.id}`;
-  const open =
-    ui.openField?.stepId === step.stepId && ui.openField.inputName === menuKey;
-  const [mention, setMention] = useState<string | undefined>(
-    open && ui.openField?.mode === "mention" ? "" : undefined,
-  );
-  const setOpen = (next: boolean, mode: "menu" | "mention" = "menu") =>
-    setUi((current) => ({
-      ...current,
-      openField: next
-        ? { stepId: step.stepId, inputName: menuKey, mode }
-        : null,
-    }));
-
-  const subject = properties.find(
-    (candidate) => candidate.baseUrl === row.propertyBaseUrl,
-  );
-  const property = subject?.property ?? findPropertyType(row.propertyBaseUrl);
-  const operators = operatorsFor(property, forGraph);
-  const operator = operators.find(
-    (candidate) => candidate.value === row.operator,
-  );
-  const valueKind = property?.payloadKind ?? "Text";
-  const valueInput: InputView = {
-    name: menuKey,
-    label: subject?.title ?? "Value",
-    array: row.operator === "isAnyOf",
-    required: true,
-    hasDefault: false,
-    kinds: [valueKind],
-  };
-  const sourceLook = row.valueSource
-    ? describeSource(document, row.valueSource, step.stepId)
-    : null;
-  const listOperator = row.operator === "isAnyOf";
-  const picked = row.values ?? [];
-  // A link property's entities, for a list operator's menu (search sits inside the menu).
-  const linkedChoices = mockEntities
-    .filter(
-      (entity) =>
-        !property?.linksTo || entity.entityTypeBaseUrl === property.linksTo,
-    )
-    .map((entity) => ({
-      label: entity.label,
-      selected: picked.includes(entity.label),
-      source: {
-        kind: "constant" as const,
-        payload: { kind: "EntityId" as const, value: entity.entityId },
-      },
-    }));
-
-  // The DS Filter chip's own recipe and slots, so the row matches the Figma DS filter 1:1.
-  const classes = filterRecipe({
-    size: "sm",
-    complete: true,
-    invalid: false,
-    disabled: false,
-  });
-  const sourceIcon =
-    row.valueSource?.kind === "flow-input"
-      ? (triggerForInput(document, row.valueSource.inputName)?.definition
-          .icon ?? "hand")
-      : row.valueSource?.kind === "step-output"
-        ? (() => {
-            const found = findStep(document, row.valueSource.stepId)?.step;
-            return found?.kind === "action"
-              ? (getCatalogEntry(found.actionDefinitionId)?.icon ?? "search")
-              : "rotate";
-          })()
-        : "search";
-
-  return (
-    <div ref={anchorRef}>
-      <div
-        className={cx(classes.root, conditionLookStyle)}
-        role="group"
-        data-condition-row={row.id}
-      >
-        <Menu
-          items={properties.map((candidate) => ({
-            id: candidate.baseUrl,
-            text: candidate.title,
-            selected: candidate.baseUrl === row.propertyBaseUrl,
-            onClick: () =>
-              onChange({
-                propertyBaseUrl: candidate.baseUrl,
-                operator:
-                  operatorsFor(candidate.property, forGraph)[0]?.value ?? null,
-                value: null,
-                valueSource: undefined,
-              }),
-          }))}
-          trigger={
-            <button
-              type="button"
-              data-part="property"
-              className={classes.property}
-            >
-              {subject?.title ?? "Value"}
-            </button>
-          }
-        />
-        <Menu
-          items={operators.map(({ value, text }) => ({
-            id: value,
-            text,
-            selected: value === row.operator,
-            onClick: () => onChange({ operator: value }),
-          }))}
-          trigger={
-            <button type="button" className={classes.trigger}>
-              <span className={classes.triggerLabel}>
-                {operator?.text ?? "…"}
-              </span>
-            </button>
-          }
-        />
-        {operator?.takesValue === false ? null : row.valueSource &&
-          sourceLook ? (
-          <span data-part="input-slot" className={classes.inputSlot}>
-            <Tooltip content={`${sourceLook.owner} › ${sourceLook.label}`}>
-              <button
-                type="button"
-                className={classes.trigger}
-                onClick={() => {
-                  const source = row.valueSource;
-                  // An earlier step's output: the chip takes you to that step. A flow input: change the source.
-                  if (source?.kind === "step-output") {
-                    setUi((current) => ({
-                      ...current,
-                      selectedId: source.stepId,
-                      openField: null,
-                    }));
-                  } else {
-                    setOpen(true);
-                  }
-                }}
-                aria-label={`Change the source of ${valueInput.label}`}
-              >
-                <Icon name={sourceIcon} size="xs" />
-                <span className={classes.triggerLabel}>
-                  {row.valueSource.kind === "step-output"
-                    ? `${sourceLook.owner} › ${sourceLook.label}`
-                    : sourceLook.label}
-                </span>
-              </button>
-            </Tooltip>
-          </span>
-        ) : listOperator ? (
-          <span data-part="input-slot" className={classes.inputSlot}>
-            <button
-              type="button"
-              className={classes.trigger}
-              data-placeholder={picked.length === 0 || undefined}
-              onClick={() => setOpen(true)}
-              aria-label={`Choose ${valueInput.label} values`}
-            >
-              <span className={classes.triggerLabel}>
-                {picked.length === 0
-                  ? "Choose values"
-                  : picked.length === 1
-                    ? picked[0]
-                    : `${picked[0]} +${picked.length - 1}`}
-              </span>
-            </button>
-          </span>
-        ) : property?.options ? (
-          <Menu
-            items={property.options.map((option) => ({
-              id: option,
-              text: option,
-              selected: option === row.value,
-              onClick: () => onChange({ value: option }),
-            }))}
-            trigger={
-              <button type="button" className={classes.trigger}>
-                <span className={classes.triggerLabel}>
-                  {typeof row.value === "string" ? row.value : "Value"}
-                </span>
-              </button>
-            }
-          />
-        ) : (
-          <span data-part="input-slot" className={classes.inputSlot}>
-            <input
-              ref={valueRef}
-              className={classes.input}
-              // While "@" search is on, the field shows the token ("@sup") after any typed text.
-              value={`${row.value === null ? "" : String(row.value)}${mention === undefined ? "" : `@${mention}`}`}
-              placeholder={valueKind === "Date" ? "Month, or @" : "Value, or @"}
-              aria-label={`${valueInput.label} value`}
-              onChange={(event) => {
-                const next = event.target.value;
-                const at = next.lastIndexOf("@");
-                if (at >= 0) {
-                  setMention(next.slice(at + 1));
-                  if (!open) {
-                    setOpen(true, "mention");
-                  }
-                  onChange({ value: next.slice(0, at) || null });
-                  return;
-                }
-                // Backspace past the "@" ends the search.
-                if (mention !== undefined) {
-                  setMention(undefined);
-                  setOpen(false);
-                }
-                onChange({
-                  value:
-                    next === ""
-                      ? null
-                      : valueKind === "Number" && !Number.isNaN(Number(next))
-                        ? Number(next)
-                        : next,
-                });
-              }}
-            />
-          </span>
-        )}
-        <Menu
-          items={[
-            {
-              id: "source",
-              text: "Use a value from an earlier step",
-              onClick: () => setOpen(true),
-            },
-            ...(row.valueSource
-              ? [
-                  {
-                    id: "typed",
-                    text: "Type a value instead",
-                    onClick: () => onChange({ valueSource: undefined }),
-                  },
-                ]
-              : []),
-            {
-              id: "remove",
-              text: "Remove condition",
-              tone: "error" as const,
-              onClick: onRemove,
-            },
-          ]}
-          trigger={
-            <button
-              type="button"
-              data-part="remove"
-              className={classes.remove}
-              aria-label="Condition options"
-            >
-              <Icon name="ellipsisVertical" size="xs" />
-            </button>
-          }
-        />
-      </div>
-      {open ? (
-        <SourceMenu
-          anchor={anchorRef}
-          stepId={step.stepId}
-          input={valueInput}
-          entry={entry}
-          query={mention}
-          focusRef={mention === undefined ? undefined : valueRef}
-          typedChoices={listOperator ? linkedChoices : undefined}
-          typedGroupLabel={listOperator ? subject?.title : undefined}
-          searchAlways={listOperator}
-          onClose={() => {
-            setMention(undefined);
-            setOpen(false);
-          }}
-          onPick={(source) => {
-            // A list operator collects picked entities; any other source replaces the value.
-            if (listOperator && source.kind === "constant") {
-              const label = linkedChoices.find(
-                (choice) =>
-                  choice.source.payload.value === source.payload.value,
-              )?.label;
-              if (label) {
-                onChange({
-                  valueSource: undefined,
-                  values: picked.includes(label)
-                    ? picked.filter((value) => value !== label)
-                    : [...picked, label],
-                });
-              }
-              return;
-            }
-            onChange({ valueSource: source, value: null });
-            setMention(undefined);
-            setOpen(false);
-          }}
-          onTypeValue={() => {
-            onChange({ valueSource: undefined });
-            setMention(undefined);
-            setOpen(false);
-          }}
-        />
-      ) : null}
-    </div>
-  );
-};
 
 /** Entity type with the same source menu: a fixed type, an earlier step, a flow input, or the graph (Journey 3, B2). */
 const EntityTypeField = ({
@@ -1269,6 +825,15 @@ const EntityTypeField = ({
         </span>
         <Icon name="chevronDown" size="sm" />
       </button>
+      <div
+        className={css({
+          display: "flex",
+          justifyContent: "flex-end",
+          marginTop: "1.5",
+        })}
+      >
+        <UseVariable onClick={() => setOpen(true)} />
+      </div>
       {open ? (
         <SourceMenu
           anchor={anchorRef}
@@ -1349,16 +914,6 @@ export const QueryField = ({
       ? [{ baseUrl: VALUE_SUBJECT, title: "Value" }]
       : [];
 
-  const nextId = Math.max(0, ...draft.conditions.map((row) => row.id)) + 1;
-
-  const updateRow = (id: number, change: Partial<ConditionRow>) =>
-    update({
-      ...draft,
-      conditions: draft.conditions.map((row) =>
-        row.id === id ? { ...row, ...change } : row,
-      ),
-    });
-
   return (
     <>
       {mode === "query" ? (
@@ -1378,12 +933,16 @@ export const QueryField = ({
       !draft.entityTypeBaseUrl &&
       !draft.entityTypeSource &&
       draft.conditions.length === 0 ? (
-        <span className={mutedTextStyle}>
-          Set at least one of Webs, Entity type or Query.
+        <span className={css({ gridColumn: "1 / -1" })}>
+          <span className={mutedTextStyle}>
+            Set at least one of Webs, Entity type or Query.
+          </span>
         </span>
       ) : null}
+      {/* A wide control: its label above, across both columns. */}
       <div
         className={css({
+          gridColumn: "1 / -1",
           display: "flex",
           flexDirection: "column",
           gap: "2",
@@ -1392,81 +951,15 @@ export const QueryField = ({
         <span className={keyStyle}>
           {mode === "query" ? "Query" : input.label}
         </span>
-        <div
-          className={css({
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            gap: "1.5",
-          })}
-        >
-          {draft.conditions.map((row, index) => (
-            <Fragment key={row.id}>
-              {index > 0 ? (
-                <span
-                  className={css({
-                    textStyle: "xs",
-                    color: "neutral.fg.subtle",
-                  })}
-                >
-                  and
-                </span>
-              ) : null}
-              <ConditionRowEditor
-                step={step}
-                input={input}
-                entry={entry}
-                row={row}
-                properties={properties}
-                forGraph={mode === "query"}
-                onChange={(change) => updateRow(row.id, change)}
-                onRemove={() =>
-                  update({
-                    ...draft,
-                    conditions: draft.conditions.filter(
-                      (other) => other.id !== row.id,
-                    ),
-                  })
-                }
-              />
-            </Fragment>
-          ))}
-          {properties.length > 0 ? (
-            <div>
-              <Menu
-                items={properties.map((property) => ({
-                  id: property.baseUrl,
-                  text: property.title,
-                  onClick: () =>
-                    update({
-                      ...draft,
-                      conditions: [
-                        ...draft.conditions,
-                        {
-                          id: nextId,
-                          propertyBaseUrl: property.baseUrl,
-                          operator:
-                            operatorsFor(property.property, mode === "query")[0]
-                              ?.value ?? null,
-                          value: null,
-                        },
-                      ],
-                    }),
-                }))}
-                trigger={
-                  <button type="button" className={addConditionStyle}>
-                    <Icon name="plus" size="xs" />
-                    <span className={css({ paddingX: "[2px]" })}>
-                      Add condition
-                    </span>
-                  </button>
-                }
-              />
-            </div>
-          ) : (
-            <span className={mutedTextStyle}>Choose an entity type first.</span>
-          )}
-        </div>
+        <ConditionBuilder
+          step={step}
+          input={input}
+          entry={entry}
+          draft={draft}
+          properties={properties}
+          forGraph={mode === "query"}
+          update={update}
+        />
       </div>
     </>
   );

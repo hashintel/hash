@@ -1,3 +1,4 @@
+/* eslint-disable no-console, typescript/no-unsafe-call, typescript/no-unsafe-member-access, typescript/no-unsafe-assignment, typescript/no-unsafe-argument -- a Node CLI script that reports on the console; Node's types are outside the prototype's tsconfig */
 // Checks for the Flows editor prototype: DS token discipline, then a type check of the prototype's own files.
 // Run: `yarn check:flows-editor-prototype` (from libs/@hashintel/petrinaut). Prototype branch only.
 //

@@ -7,6 +7,7 @@ import {
   START_ID,
   addStep,
   type ConditionRow,
+  type QueryDraft,
   emptyDocument,
   type EditorDocument,
   fieldKey,
@@ -40,11 +41,12 @@ const property = (typeTitle: string, title: string) =>
     .baseUrl;
 
 /**
- * Journey 3's flow: a Manual run, "Shipments this month", then "Suppliers of those shipments". `variant` sets the
- * first query's condition value and whether the flow has the Review month input yet.
+ * Journey 3's flow (Figma J3, section 470:3681): a Manual run, "Shipments this month", then "Suppliers of those
+ * shipments". `shipments` is the first step's query; `withInput` adds Start's Review month input.
  */
 const journey3 = (
-  variant: "typed" | "typing" | "empty" | "flowInput" | "chip",
+  shipments: Omit<QueryDraft, "entityTypeBaseUrl">,
+  withInput = false,
 ): EditorDocument => {
   const first = addStep(
     emptyDocument("Monthly supplier review"),
@@ -56,31 +58,12 @@ const journey3 = (
   const second = addStep(first.document, "queryEntities", {
     after: { stepId: first.stepId, port: "next" },
   });
-  const shipments = first.stepId;
+  const shipmentsId = first.stepId;
   const suppliers = second.stepId;
-  const received: ConditionRow = {
-    id: 1,
-    propertyBaseUrl: property("Shipment", "Received date"),
-    operator: "isIn",
-    value:
-      variant === "typed"
-        ? "October 2026"
-        : variant === "typing"
-          ? "Octo"
-          : null,
-    ...(variant === "chip"
-      ? {
-          valueSource: {
-            kind: "flow-input" as const,
-            inputName: "reviewMonth",
-          },
-        }
-      : {}),
-  };
-  const hasInput = variant === "flowInput" || variant === "chip";
   return {
     ...second.document,
-    inputs: hasInput
+    startDescription: "Flow inputs",
+    inputs: withInput
       ? [
           {
             name: "reviewMonth",
@@ -94,25 +77,14 @@ const journey3 = (
     steps: second.document.steps.map((step) => ({
       ...step,
       description:
-        step.stepId === shipments
+        step.stepId === shipmentsId
           ? "Shipments this month"
           : "Suppliers of those shipments",
     })),
     queries: {
-      [fieldKey(shipments, "query")]: {
+      [fieldKey(shipmentsId, "query")]: {
         entityTypeBaseUrl: type("Shipment").baseUrl,
-        conditions:
-          variant === "typed"
-            ? [
-                received,
-                {
-                  id: 2,
-                  propertyBaseUrl: property("Shipment", "Status"),
-                  operator: "equals",
-                  value: "Delivered",
-                },
-              ]
-            : [received],
+        ...shipments,
       },
       [fieldKey(suppliers, "query")]: {
         entityTypeBaseUrl: type("Supplier").baseUrl,
@@ -124,7 +96,7 @@ const journey3 = (
             value: null,
             valueSource: {
               kind: "step-output",
-              stepId: shipments,
+              stepId: shipmentsId,
               outputName: "entities",
             },
           },
@@ -134,12 +106,61 @@ const journey3 = (
   };
 };
 
+const received = (change: Partial<ConditionRow> = {}): ConditionRow => ({
+  id: 1,
+  propertyBaseUrl: property("Shipment", "Received date"),
+  operator: "greaterThan",
+  value: "2026-09-30",
+  ...change,
+});
+
+/** J3 A1's query: a date, a number, and a grey group of two suppliers joined by "Or". */
+const fullQuery: Omit<QueryDraft, "entityTypeBaseUrl"> = {
+  conditions: [
+    received(),
+    {
+      id: 2,
+      propertyBaseUrl: property("Shipment", "Purity"),
+      operator: "lessThan",
+      value: 90,
+    },
+  ],
+  groups: [
+    {
+      id: 3,
+      conjunction: "or",
+      conditions: [
+        {
+          id: 4,
+          propertyBaseUrl: property("Shipment", "Supplier"),
+          operator: "equals",
+          value: null,
+          values: ["Acme Metals"],
+        },
+        {
+          id: 5,
+          propertyBaseUrl: property("Shipment", "Supplier"),
+          operator: "equals",
+          value: null,
+          values: ["Borealis Chem"],
+        },
+      ],
+    },
+  ],
+};
+
 const SHIPMENTS = "findEntities";
 const SUPPLIERS = "findEntities2";
 
-const conditionMenu = (stepId: string, mode: "menu" | "mention" = "menu") => ({
+/** Opens a part of a condition row in a screen state: its variable picker, operator menu or value editor. */
+const conditionMenu = (
+  stepId: string,
+  mode: "menu" | "mention" = "menu",
+  part?: "operator" | "value" | "footer",
+  row = 1,
+) => ({
   stepId,
-  inputName: "query:condition1",
+  inputName: `query:condition${row}${part ? `:${part}` : ""}`,
   mode,
 });
 
@@ -168,132 +189,170 @@ export const screenStates: ScreenState[] = [
   {
     id: "j3-a1",
     journey: 3,
-    row: "Journey 3 · Row A · Typed into the step",
-    title: "J3 · A1 · Type a fixed value",
-    caption: "Received date is in October 2026, and Status is Delivered.",
+    row: "Row A · Conditions and typed values",
+    title: "J3 · A1 · Conditions",
+    caption: "Where, And, a grey Or group, Add filter, Use a variable.",
     create: () => ({
-      document: journey3("typed"),
+      document: journey3(fullQuery),
       ui: { ...initialUi, selectedId: SHIPMENTS },
+    }),
+  },
+  {
+    id: "j3-a2",
+    journey: 3,
+    row: "Row A · Conditions and typed values",
+    title: "J3 · A2 · Operators follow the attribute's type",
+    caption:
+      "A date offers is, after, before, at or after, at or before, empty.",
+    create: () => ({
+      document: journey3(fullQuery),
+      ui: {
+        ...initialUi,
+        selectedId: SHIPMENTS,
+        openField: conditionMenu(SHIPMENTS, "menu", "operator"),
+      },
+    }),
+  },
+  {
+    id: "j3-a3",
+    journey: 3,
+    row: "Row A · Conditions and typed values",
+    title: "J3 · A3 · Date value editor",
+    caption:
+      "Today, Yesterday, a week or month ago, a number of days ago, or an exact date.",
+    create: () => ({
+      document: journey3({ conditions: [received({ value: "2026-10-01" })] }),
+      ui: {
+        ...initialUi,
+        selectedId: SHIPMENTS,
+        // "mention" here opens the exact-date calendar beside the menu.
+        openField: conditionMenu(SHIPMENTS, "mention", "value"),
+      },
+    }),
+  },
+  {
+    id: "j3-a4",
+    journey: 3,
+    row: "Row A · Conditions and typed values",
+    title: "J3 · A4 · Status value: options list",
+    caption: "A status picks one of its options.",
+    create: () => ({
+      document: journey3({
+        conditions: [
+          received(),
+          {
+            id: 2,
+            propertyBaseUrl: property("Shipment", "Status"),
+            operator: "equals",
+            value: "Delivered",
+          },
+        ],
+      }),
+      ui: {
+        ...initialUi,
+        selectedId: SHIPMENTS,
+        openField: conditionMenu(SHIPMENTS, "menu", "value", 2),
+      },
+    }),
+  },
+  {
+    id: "j3-a5",
+    journey: 3,
+    row: "Row A · Conditions and typed values",
+    title: "J3 · A5 · Entity value: search list",
+    caption: "A link searches the linked entities.",
+    create: () => ({
+      document: journey3({
+        conditions: [
+          received(),
+          {
+            id: 2,
+            propertyBaseUrl: property("Shipment", "Supplier"),
+            operator: "equals",
+            value: null,
+          },
+        ],
+      }),
+      ui: {
+        ...initialUi,
+        selectedId: SHIPMENTS,
+        openField: conditionMenu(SHIPMENTS, "menu", "value", 2),
+      },
     }),
   },
   {
     id: "j3-b1",
     journey: 3,
-    row: "Journey 3 · Row B · From an earlier step",
-    title: "J3 · B1 · Pick an earlier step's output",
-    caption: "Shipment is any of the shipments the step before found.",
+    row: "Row B · Values from variables",
+    title: "J3 · B1 · Use a variable",
+    caption: "Use a variable opens the same picker as @.",
     create: () => ({
-      document: journey3("typed"),
+      document: journey3({ conditions: [received({ value: null })] }, true),
       ui: {
         ...initialUi,
-        selectedId: SUPPLIERS,
-        openField: conditionMenu(SUPPLIERS),
+        selectedId: SHIPMENTS,
+        openField: conditionMenu(SHIPMENTS, "menu", "footer"),
       },
     }),
   },
   {
     id: "j3-b2",
     journey: 3,
-    row: "Journey 3 · Row B · From an earlier step",
-    title: "J3 · B2 · Entity type from an earlier step",
-    caption:
-      "Entity type takes the same sources: a fixed type, an earlier step, or the graph.",
+    row: "Row B · Values from variables",
+    title: "J3 · B2 · Variable token in the value",
+    caption: "The value reads Start › Review month.",
     create: () => ({
-      document: journey3("typed"),
-      ui: {
-        ...initialUi,
-        selectedId: SUPPLIERS,
-        openField: { stepId: SUPPLIERS, inputName: "entityType", mode: "menu" },
-      },
+      document: journey3(
+        {
+          conditions: [
+            received({
+              value: null,
+              valueSource: { kind: "flow-input", inputName: "reviewMonth" },
+            }),
+          ],
+        },
+        true,
+      ),
+      ui: { ...initialUi, selectedId: SHIPMENTS },
+    }),
+  },
+  {
+    id: "j3-b3",
+    journey: 3,
+    row: "Row B · Values from variables",
+    title: "J3 · B3 · Earlier step token, long path collapsed",
+    caption:
+      "Step name first, the middle collapsed to …; hover shows the whole path.",
+    create: () => ({
+      document: journey3({ conditions: [received()] }),
+      ui: { ...initialUi, selectedId: SUPPLIERS },
     }),
   },
   {
     id: "j3-c1",
     journey: 3,
-    row: "Journey 3 · Row C · From the flow's inputs (nothing fits yet)",
-    title: "J3 · C1 · Type plain text",
-    caption: "The value slot takes typed text.",
+    row: "Row C · Nothing fits yet",
+    title: "J3 · C1 · Nothing fits yet",
+    caption:
+      "Nothing earlier gives a date: look it up, or add a flow input on Start.",
     create: () => ({
-      document: journey3("typing"),
-      ui: { ...initialUi, selectedId: SHIPMENTS },
+      document: journey3({ conditions: [received({ value: null })] }),
+      ui: {
+        ...initialUi,
+        selectedId: SHIPMENTS,
+        openField: conditionMenu(SHIPMENTS, "menu", "footer"),
+      },
     }),
   },
   {
     id: "j3-c2",
     journey: 3,
-    row: "Journey 3 · Row C · From the flow's inputs (nothing fits yet)",
-    title: "J3 · C2 · Click + · nothing fits yet",
-    caption: "Nothing earlier gives a date, so the menu offers Add flow input.",
-    create: () => ({
-      document: journey3("empty"),
-      ui: {
-        ...initialUi,
-        selectedId: SHIPMENTS,
-        openField: conditionMenu(SHIPMENTS),
-      },
-    }),
-  },
-  {
-    id: "j3-c3",
-    journey: 3,
-    row: "Journey 3 · Row C · From the flow's inputs (nothing fits yet)",
-    title: "J3 · C3 · Add a flow input on Start",
+    row: "Row C · Nothing fits yet",
+    title: "J3 · C2 · Add a flow input on Start",
     caption: "Review month, a date, added to Start's inputs.",
     create: () => ({
-      document: journey3("flowInput"),
+      document: journey3({ conditions: [received({ value: null })] }, true),
       ui: { ...initialUi, selectedId: START_ID },
-    }),
-  },
-  {
-    id: "j3-c4",
-    journey: 3,
-    row: "Journey 3 · Row C · From the flow's inputs (nothing fits yet)",
-    title: "J3 · C4 · Back on the step · pick the flow input",
-    caption: "Typing @ in the value slot finds Review month.",
-    create: () => ({
-      document: journey3("flowInput"),
-      ui: {
-        ...initialUi,
-        selectedId: SHIPMENTS,
-        openField: conditionMenu(SHIPMENTS, "mention"),
-      },
-    }),
-  },
-  {
-    id: "j3-c5",
-    journey: 3,
-    row: "Journey 3 · Row C · From the flow's inputs (nothing fits yet)",
-    title: "J3 · C5 · Chip in at the caret",
-    caption: "The value is now Review month.",
-    create: () => ({
-      document: journey3("chip"),
-      ui: { ...initialUi, selectedId: SHIPMENTS },
-    }),
-  },
-  {
-    id: "j3-d1",
-    journey: 3,
-    row: "Journey 3 · Row D · Change or remove a source",
-    title: "J3 · D1 · Hover a chip to remove it",
-    caption: "The ⋮ on the condition removes it, or types a value instead.",
-    create: () => ({
-      document: journey3("chip"),
-      ui: { ...initialUi, selectedId: SHIPMENTS },
-    }),
-  },
-  {
-    id: "j3-d2",
-    journey: 3,
-    row: "Journey 3 · Row D · Change or remove a source",
-    title: "J3 · D2 · Click a chip to change its source",
-    caption: "Clicking the value reopens the source menu.",
-    create: () => ({
-      document: journey3("chip"),
-      ui: {
-        ...initialUi,
-        selectedId: SHIPMENTS,
-        openField: conditionMenu(SHIPMENTS),
-      },
     }),
   },
   {

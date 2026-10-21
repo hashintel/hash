@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { Icon, type IconName, Tooltip } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
@@ -81,58 +83,55 @@ export const sectionTitleStyle = css({
   color: "neutral.fg.muted",
 });
 
-/** A panel section: its title, then rows 8 px apart. Sections sit 20 px apart (the panel's gap). */
+const sectionGridStyle = css({
+  display: "grid",
+  // One label column for the whole panel (Aakarsh, 21 Oct; ops/research/panel-label-layout): every value starts at
+  // the same x in every section. Long labels truncate and show in full on hover.
+  gridTemplateColumns: "minmax(88px, min(30%, 120px)) minmax(0, 1fr)",
+  columnGap: "2",
+  rowGap: "2",
+  // Baselines line the label up with the first line of any value: a chip, a field or plain text.
+  alignItems: "baseline",
+  "& > :not([data-row])": { gridColumn: "1 / -1" },
+});
+
+/**
+ * A panel section (Aakarsh, 21 Oct): its title, then its rows on one grid whose label column fits the section's
+ * longest label (`max-content 1fr`), so values start right after it. Anything that is not a row, and wide controls
+ * (the condition builder, text areas), span both columns with their label above.
+ */
 export const Section = ({
   title,
   children,
   action,
 }: {
-  title: string;
+  title?: string;
   children: React.ReactNode;
   action?: React.ReactNode;
 }) => (
   <section
     className={css({ display: "flex", flexDirection: "column", gap: "2" })}
   >
-    <div
-      className={css({
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        minHeight: "[15px]",
-      })}
-    >
-      <div className={sectionTitleStyle}>{title}</div>
-      {/* The action overhangs the 15 px title line, so it adds no height. */}
-      {action ? (
-        <span
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            height: "[15px]",
-          })}
-        >
-          {action}
-        </span>
-      ) : null}
-    </div>
-    {children}
+    {title ? (
+      <div
+        className={css({
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        })}
+      >
+        <div className={sectionTitleStyle}>{title}</div>
+        {action}
+      </div>
+    ) : null}
+    <div className={sectionGridStyle}>{children}</div>
   </section>
 );
-
-const rowStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[128px minmax(0, 1fr)]",
-  columnGap: "2",
-  // Baselines line the key up with the first line of any value: a chip, a field or plain text.
-  alignItems: "baseline",
-});
 
 export const keyStyle = css({
   // A block, not an inline-block: an inline-block that clips takes its bottom edge as its baseline.
   display: "block",
-  maxWidth: "[128px]",
-  // The DS tooltip trigger sets line-height 0, which would clip an inline block.
+  maxWidth: "[100%]",
   textStyle: "sm",
   color: "neutral.fg.muted",
   overflow: "hidden",
@@ -140,35 +139,65 @@ export const keyStyle = css({
   whiteSpace: "nowrap",
 });
 
+/** "optional", after the label of a field that may stay empty (Attio: only the exception is marked). */
+export const OptionalMark = () => (
+  <span
+    className={css({
+      display: "block",
+      textStyle: "xxs",
+      fontWeight: "medium",
+      color: "neutral.fg.muted.disabled",
+    })}
+  >
+    optional
+  </span>
+);
+
 /** The DS tooltip trigger sets line-height 0, which would lift the key off the value's baseline. */
 const keyTipStyle = css({ "&[class]": { textStyle: "sm" } });
 
 /**
  * D27 A: one row of the properties table. A muted key, the value, and (below the value) where it comes from. The
- * key's hover gives the type; nothing says "from" or "to".
+ * key's hover gives the type; nothing says "from" or "to". An optional field says so under its key.
  */
 export const PropertyRow = ({
   label,
   hover,
   required,
+  optional,
   children,
   invalid,
 }: {
   label: React.ReactNode;
   hover?: string;
   required?: boolean;
+  /** Marks the key "optional". */
+  optional?: boolean;
   children: React.ReactNode;
   invalid?: boolean;
 }) => {
-  const tip = hover && required ? `${hover} · required` : hover;
+  // The label's hover always carries the full label, since a long one truncates.
+  const named = typeof label === "string" ? label : undefined;
+  const detail = hover && required ? `${hover} · required` : hover;
+  const tip = named && detail ? `${named} · ${detail}` : (detail ?? named);
+  const key = (
+    <span className={css({ display: "block", minWidth: "[0]" })}>
+      <span className={keyStyle}>{label}</span>
+      {optional ? <OptionalMark /> : null}
+    </span>
+  );
   return (
-    <div className={rowStyle} data-invalid={invalid || undefined}>
+    <div
+      className={css({ display: "contents" })}
+      data-row
+      data-invalid={invalid || undefined}
+    >
       {tip ? (
         <Tooltip content={tip} position="left" className={keyTipStyle}>
-          <span className={keyStyle}>{label}</span>
+          {key}
         </Tooltip>
       ) : (
-        <span className={keyStyle}>{label}</span>
+        key
       )}
       <div
         className={css({
@@ -264,6 +293,61 @@ const chipRemoveStyle = css({
 });
 
 export type Tone = "green" | "orange" | "neutral" | "blue";
+
+/**
+ * Several chips on one line: the first, then "+N"; hovering +N lists the rest, clicking it shows them all (Aakarsh,
+ * 21 Oct: multi-value chips stay on one line).
+ */
+export const ChipRow = ({
+  children,
+  names,
+}: {
+  children: React.ReactNode[];
+  /** The chips' names, for the +N hover. */
+  names: string[];
+}) => {
+  const [all, setAll] = useState(false);
+  const rest = children.length - 1;
+  return (
+    <div
+      className={css({
+        display: "flex",
+        flexWrap: all ? "wrap" : "nowrap",
+        alignItems: "center",
+        gap: "1.5",
+        minWidth: "[0]",
+        "& > *:first-child": { minWidth: "[0]", flexShrink: 1 },
+      })}
+    >
+      {all ? children : children.slice(0, 1)}
+      {!all && rest > 0 ? (
+        <Tooltip content={names.slice(1).join(", ")}>
+          <button
+            type="button"
+            className={moreChipStyle}
+            aria-label={`Show ${rest} more`}
+            onClick={() => setAll(true)}
+          >
+            +{rest}
+          </button>
+        </Tooltip>
+      ) : null}
+    </div>
+  );
+};
+
+const moreChipStyle = css({
+  flexShrink: 0,
+  paddingX: "2",
+  paddingY: "1",
+  borderRadius: "md",
+  backgroundColor: "neutral.bgSolid.surface.active",
+  textStyle: "xs",
+  fontWeight: "medium",
+  color: "neutral.fg.muted",
+  cursor: "pointer",
+  _hover: { backgroundColor: "neutral.bgSolid.subtle" },
+});
 
 /** The ↳ Current source chip: a 16 px tile with the node's icon, then its name in 12 px. × shows on hover (J3 D1). */
 export const SourceChip = ({
