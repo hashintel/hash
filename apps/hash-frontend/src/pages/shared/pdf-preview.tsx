@@ -79,7 +79,9 @@ const highlightOccurrencesInTextItem = (
     textWithHighlights += text.slice(positionInText, startCharIndex);
 
     /** Apply the highlight */
-    textWithHighlights += `<span style="border-bottom: 4px solid ${isSelectedHit ? "lawngreen" : "yellow"}; position: relative;">${text.slice(startCharIndex, endCharIndex + 1)}</span>`;
+    // Design system tokens `blue.s75` and `blue.bgSolid.subtle`, written out
+    // because the preview sits outside `.hash-ds-root`.
+    textWithHighlights += `<span style="background-color: ${isSelectedHit ? "#77bdf3" : "#e6f4fe"}; position: relative;">${text.slice(startCharIndex, endCharIndex + 1)}</span>`;
 
     /** Update positionInText to continue after the current occurrence */
     positionInText = endCharIndex + 1;

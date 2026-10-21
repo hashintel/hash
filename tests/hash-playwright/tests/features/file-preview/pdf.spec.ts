@@ -61,7 +61,7 @@ test.describe("PDF preview", () => {
     await expectFullyShown(searchInput);
     await searchInput.fill(testDocumentSearchWord);
 
-    const searchHighlight = pdfPage.locator('span[style*="border-bottom"]', {
+    const searchHighlight = pdfPage.locator('span[style*="background-color"]', {
       hasText: testDocumentSearchWord,
     });
 

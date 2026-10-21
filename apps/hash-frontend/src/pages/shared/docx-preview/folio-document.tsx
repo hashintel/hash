@@ -78,7 +78,17 @@ export const FolioDocument = ({
 
   return (
     <IntlProvider locale="en" messages={folioMessages}>
-      <Box ref={containerRef} sx={{ height: "100%" }}>
+      <Box
+        ref={containerRef}
+        sx={{
+          height: "100%",
+          // The search shows the current hit as folio's selection. `blue.s75`,
+          // written out because the preview sits outside `.hash-ds-root`, and
+          // multiplied with the page so the text under it stays dark.
+          "& .folio-root": { "--doc-selection": "#77bdf3" },
+          '& [data-testid="selection-overlay"]': { mixBlendMode: "multiply" },
+        }}
+      >
         <DocxEditor
           ref={editorRef}
           autoOpenReviewSidebar={false}
