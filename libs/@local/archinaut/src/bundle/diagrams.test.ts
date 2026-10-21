@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { withThemeableColours } from "./d2";
+import { withThemeableColours, withoutBadges } from "./d2";
 import { buildNeighbourhoodDiagram } from "./diagrams";
 
 import type { Edge, Layer } from "../model";
@@ -63,6 +63,22 @@ describe("buildNeighbourhoodDiagram", () => {
     expect(diagram).toContain("core -> core_a");
     expect(diagram).toContain("3 file-level dependencies");
     expect(diagram).toContain("2 file-level dependencies");
+  });
+
+  it("links each neighbour to its page relative to the focus page, and nothing else", () => {
+    const diagram = build("core.a", layers, [
+      edge("core.a", "core.b"),
+      edge("core", "core.a"),
+    ]);
+
+    expect(diagram).toContain(
+      'core_b: {class: core; label: "core.b"; tooltip: "role of core.b"; link: "./b"}',
+    );
+    expect(diagram).toContain(
+      'core: {class: core; label: "core"; tooltip: "role of core"; link: "."}',
+    );
+    expect(diagram).toMatch(/core_a: \{class: \[core; focus\][^\n]*\}/u);
+    expect(diagram).not.toMatch(/core_a: \{[^\n]*link:/u);
   });
 
   it("marks the focus and labels nodes with their role", () => {
@@ -201,14 +217,26 @@ describe("withThemeableColours", () => {
    * `d2` masks its connections out from behind their labels with a white rect
    * that shows and black rects that hide, so `white` and `black` there are not
    * colours. Theming them by fill alone inverts the mask and every masked
-   * connection disappears. The badge rule therefore names a `path` carrying
-   * both a fill and a stroke, which a mask's stroke-less rects cannot be.
+   * connection disappears.
    */
   it("does not theme the fills d2 uses as mask channels", () => {
     const themed = withThemeableColours(drawn(""));
 
     expect(themed).not.toContain('[fill="white"]{');
     expect(themed).not.toContain('[fill="black"]{');
-    expect(themed).toContain('path[fill="white"][stroke="#DEE1EB"]{');
+  });
+});
+
+describe("withoutBadges", () => {
+  it("removes every tooltip and link badge and nothing else", () => {
+    const node =
+      '<a href="b"><g class="core"><g class="shape"><rect /></g><title>role</title></g></a>';
+    const badge = (at: string): string =>
+      `<g transform="translate(${at})" class="appendix-icon"><title>role</title><svg width="32" height="32"><g><path d="M1 1" fill="white" stroke="#DEE1EB"/></g><defs><clipPath id="c"/></defs></svg>\n</g>`;
+    const markup = `<svg>${node}${badge("1 2")}<g class="x"><path class="connection" /></g>${badge("3 4")}</svg>`;
+
+    expect(withoutBadges(markup)).toBe(
+      `<svg>${node}<g class="x"><path class="connection" /></g></svg>`,
+    );
   });
 });

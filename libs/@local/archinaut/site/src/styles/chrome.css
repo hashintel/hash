@@ -613,6 +613,36 @@ mobile-starlight-toc summary {
   margin-inline: auto;
 }
 
+/*
+ * A node the generator linked to its layer's page lifts a little under the
+ * pointer. The group is scaled about its own box, so the connections stay
+ * where d2 drew them.
+ */
+.pnd-diagram a > g {
+  cursor: pointer;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 180ms ease;
+}
+
+.pnd-diagram a:hover > g,
+.pnd-diagram a:focus-visible > g {
+  transform: scale(1.015);
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.12));
+}
+
+.pnd-diagram a:focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pnd-diagram a > g {
+    transition: none;
+  }
+}
+
 :root[data-theme="dark"] {
   /*
    * d2's neutral ramp runs dark-to-light, and inverting it is most of what

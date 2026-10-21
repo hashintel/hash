@@ -56,6 +56,13 @@ image and the latter to an SVG import, so the package needs no MDX or D2
 tooling and the bundle stays framework-neutral. Pages that belong to no
 layer, and diagrams several pages share, live under `contentDirectory`.
 
+Every node of a generated diagram carries its layer's role as a tooltip and
+links to the layer's page, relative to the page the diagram is embedded in;
+the badges d2 draws for both are stripped, since the tooltip is the node's
+own `<title>` and the link wraps the node. A host that inlines the SVG gets
+hover text and navigation for free; one that embeds it as an image gets the
+drawing alone.
+
 ## Facts providers
 
 **TypeScript** facts come from the native TypeScript compiler, the 7.1 line,
@@ -123,10 +130,11 @@ Written to `outputDirectory`, framework-neutral, and consumed by the site:
 | `diagrams/**.d2`, `.svg` | Diagram sources, and their renderings when `d2` is installed            |
 
 Only files whose content changed are written, so a watcher downstream sees one
-event per real change. Diagrams render only when their source changed, in
-parallel with one `d2` process per core, and a rendering is cached under
-`cacheDirectory/diagrams` by the source's content and d2's version, so a
-branch switch or an edit undone costs a copy.
+event per real change. Every diagram is checked against the rendering cache
+under `cacheDirectory/diagrams`, keyed by the source's content and d2's
+version, so an unchanged diagram costs a read, a branch switch or an edit
+undone costs a copy, and a d2 upgrade re-renders everything; what needs d2
+renders in parallel with one process per core.
 
 ## Diff mode
 
