@@ -27,7 +27,7 @@ export const getDocxPage = (page: Page, heading: string) =>
  * current hit. The preview marks hits with the CSS Custom Highlight API, which
  * draws them without adding elements a locator could find.
  */
-export const getSearchHighlights = (page: Page) =>
+export const getPdfSearchHighlights = (page: Page) =>
   page.evaluate(() => ({
     hits: [...(CSS.highlights.get("file-preview-hit") ?? [])].map(String),
     current: [...(CSS.highlights.get("file-preview-current-hit") ?? [])].map(
