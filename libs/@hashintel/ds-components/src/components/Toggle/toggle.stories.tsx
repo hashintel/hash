@@ -27,15 +27,7 @@ const ControlledToggle = ({
 
 const meta = {
   title: "Components/Toggle",
-  argTypes: {
-    tone: { control: { type: "select" }, options: tones },
-    offTone: { control: { type: "select" }, options: offTones },
-    size: { control: { type: "select" }, options: formInputSizes },
-    disabled: { control: { type: "boolean" } },
-    invalid: { control: { type: "boolean" } },
-    labelOnText: { control: { type: "text" } },
-    labelOffText: { control: { type: "text" } },
-  },
+  component: Toggle,
   args: {
     tone: "neutral",
     offTone: "neutral",

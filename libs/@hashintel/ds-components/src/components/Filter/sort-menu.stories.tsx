@@ -1,13 +1,23 @@
 import { useState } from "react";
 
-import { formInputSizes, type FormInputSize } from "../../util/form-shared";
+import { formInputSizes } from "../../util/form-shared";
 import { SortMenu } from "./sort-menu";
-import { type SortDirection, type Sorter } from "./sort-menu-util";
+import { type SortDirection } from "./sort-menu-util";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { DistributedOmit } from "type-fest";
+
+type SortMenuProps = React.ComponentProps<typeof SortMenu>;
 
 const meta = {
   title: "Components/SortMenu",
+  component: SortMenu,
+  args: {
+    size: "sm",
+    variant: "ghost",
+    align: "left",
+    searchable: false,
+  },
 } satisfies Meta;
 
 export default meta;
@@ -45,44 +55,22 @@ const Example = ({
   columnLabel,
   initialValue,
   containerMaxWidth,
-  searchable,
-  renderTrigger,
-  size,
-  align,
-  variant,
-  tone,
-}: {
+  ...menuProps
+}: DistributedOmit<Partial<SortMenuProps>, "items" | "value" | "onChange"> & {
   /** Shown above the menu; used for columns within a multi-example row */
   columnLabel?: string;
   initialValue?: Value;
   /** Wraps the menu in a max-width container to exercise trigger overflow */
   containerMaxWidth?: number;
-  searchable?: boolean;
-  renderTrigger?:
-    | "default"
-    | "icon"
-    | ((
-        sorter: Sorter<Key> | undefined,
-        direction: SortDirection | undefined,
-      ) => React.ReactElement);
-  size?: FormInputSize;
-  align?: "left" | "right";
-  variant?: React.ComponentProps<typeof SortMenu>["variant"];
-  tone?: React.ComponentProps<typeof SortMenu>["tone"];
 }) => {
   const [value, setValue] = useState<Value | undefined>(initialValue);
 
   const menu = (
-    <SortMenu
+    <SortMenu<Key>
+      {...menuProps}
       items={sorters}
       value={value}
       onChange={(sortKey, direction) => setValue({ sortKey, direction })}
-      searchable={searchable}
-      renderTrigger={renderTrigger}
-      size={size}
-      align={align}
-      variant={variant}
-      tone={tone}
     />
   );
 
@@ -148,34 +136,44 @@ const Grid = ({ children }: { children: React.ReactNode }) => (
 );
 
 export const Default: Story = {
-  render: () => (
+  render: (args: Partial<SortMenuProps>) => (
     <Grid>
       <Row label="Default trigger">
-        <Example columnLabel="No value selected" />
+        <Example {...args} columnLabel="No value selected" />
         <Example
+          {...args}
           columnLabel="Bidirectional sort"
           initialValue={{ sortKey: "name", direction: "ASCENDING" }}
         />
         <Example
+          {...args}
           columnLabel="Single-direction sort"
           initialValue={{ sortKey: "updatedAt", direction: "DESCENDING" }}
         />
         <Example
+          {...args}
           columnLabel="Direction-less sort"
           initialValue={{ sortKey: "relevance", direction: "ASCENDING" }}
         />
         <Example
+          {...args}
           columnLabel='sortIcon: "numeric"'
           initialValue={{ sortKey: "entityCount", direction: "ASCENDING" }}
         />
         <Example
+          {...args}
           columnLabel='sortIcon: "generic"'
           initialValue={{ sortKey: "priority", direction: "ASCENDING" }}
         />
       </Row>
       <Row label="Icon trigger">
-        <Example columnLabel="No value selected" renderTrigger="icon" />
         <Example
+          {...args}
+          columnLabel="No value selected"
+          renderTrigger="icon"
+        />
+        <Example
+          {...args}
           columnLabel="Sort selected"
           renderTrigger="icon"
           initialValue={{ sortKey: "name", direction: "ASCENDING" }}
@@ -183,6 +181,7 @@ export const Default: Story = {
       </Row>
       <Row label="Trigger variants">
         <Example
+          {...args}
           columnLabel="Custom render"
           initialValue={{ sortKey: "name", direction: "ASCENDING" }}
           renderTrigger={(sorter, direction) => (
@@ -203,21 +202,24 @@ export const Default: Story = {
           )}
         />
         <Example
+          {...args}
           columnLabel='variant="solid"'
           variant="solid"
           initialValue={{ sortKey: "name", direction: "ASCENDING" }}
         />
         <Example
+          {...args}
           columnLabel='tone="brand"'
           tone="brand"
           initialValue={{ sortKey: "name", direction: "ASCENDING" }}
         />
       </Row>
       <Row label="Searchable">
-        <Example searchable />
+        <Example {...args} searchable />
       </Row>
       <Row label="Overflow">
         <Example
+          {...args}
           initialValue={{
             sortKey: "inheritanceDepthScore",
             direction: "ASCENDING",
@@ -230,12 +232,13 @@ export const Default: Story = {
 };
 
 export const Sizes: Story = {
-  render: () => (
+  render: (args: Partial<SortMenuProps>) => (
     <Grid>
       <Row label="Default variant">
         {formInputSizes.map((size) => (
           <Example
             key={size}
+            {...args}
             columnLabel={size}
             size={size}
             initialValue={{ sortKey: "name", direction: "ASCENDING" }}
@@ -246,6 +249,7 @@ export const Sizes: Story = {
         {formInputSizes.map((size) => (
           <Example
             key={size}
+            {...args}
             columnLabel={size}
             size={size}
             align="right"

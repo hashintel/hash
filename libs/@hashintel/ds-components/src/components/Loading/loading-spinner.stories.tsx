@@ -3,27 +3,13 @@ import { css } from "@hashintel/ds-helpers/css";
 import { formInputSizes } from "../../util/form-shared";
 import { LoadingSpinner } from "./loading-spinner";
 
-import type { LoadingSpinnerVariant } from "./loading-spinner";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type LoadingSpinnerProps = React.ComponentProps<typeof LoadingSpinner>;
 
-const variants: LoadingSpinnerVariant[] = ["default", "bars"];
-
 const meta = {
   title: "Components/LoadingSpinner",
-  argTypes: {
-    size: {
-      control: { type: "select" },
-      options: formInputSizes,
-      description: "The size of the spinner",
-    },
-    variant: {
-      control: { type: "select" },
-      options: variants,
-      description: "The visual variant of the spinner",
-    },
-  },
+  component: LoadingSpinner,
   args: {
     size: "md",
     variant: "default",

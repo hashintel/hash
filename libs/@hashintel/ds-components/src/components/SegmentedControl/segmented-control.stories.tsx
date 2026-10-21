@@ -10,11 +10,6 @@ import {
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-const layouts: NonNullable<SegmentedControlProps["layout"]>[] = [
-  "horizontal",
-  "vertical",
-];
-
 const textItems: SegmentedControlProps["items"] = [
   { label: "List", value: "list" },
   { label: "Board", value: "board" },
@@ -55,22 +50,14 @@ type ControlArgs = Pick<
 
 const meta = {
   title: "Components/SegmentedControl",
-  argTypes: {
-    layout: { options: layouts, control: { type: "select" } },
-    variant: {
-      options: ["default", "embossed"],
-      control: { type: "select" },
-    },
-    size: { options: formInputSizes, control: { type: "select" } },
-    disabled: { control: { type: "boolean" } },
-  },
+  component: SegmentedControl,
   args: {
     layout: "horizontal",
     variant: "default",
     size: "md",
     disabled: false,
   },
-} satisfies Meta<ControlArgs>;
+} satisfies Meta<SegmentedControlProps>;
 
 export default meta;
 

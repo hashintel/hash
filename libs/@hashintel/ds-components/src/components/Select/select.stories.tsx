@@ -147,13 +147,17 @@ const ConnectedPair = ({
   left,
   right,
   size,
-}: {
+  ...args
+}: Partial<
+  Omit<SingleSelectProps, "items" | "value" | "onChange" | "required">
+> & {
   left: Pick<SelectProps, "invalid" | "disabled" | "readonly" | "variant">;
   right: Pick<SelectProps, "invalid" | "disabled" | "readonly" | "variant">;
   size: FormInputSize;
 }) => (
   <div style={{ display: "flex", alignItems: "center" }}>
     <Select
+      {...args}
       items={sampleItems}
       value="apple"
       onChange={noop}
@@ -162,6 +166,7 @@ const ConnectedPair = ({
       {...left}
     />
     <Select
+      {...args}
       items={sampleItems}
       value="banana"
       onChange={noop}
@@ -289,52 +294,7 @@ const stateColumns = [
 
 const meta = {
   title: "Components/Select",
-  argTypes: {
-    placeholder: {
-      control: { type: "text" },
-      description: "Placeholder text shown when the input is empty",
-    },
-    disabled: {
-      control: { type: "boolean" },
-      description: "Disable the input",
-    },
-    invalid: {
-      control: { type: "boolean" },
-      description: "Mark the input as invalid",
-    },
-    readonly: {
-      control: { type: "boolean" },
-      description: "Render the input as read-only text",
-    },
-    loading: {
-      control: { type: "boolean" },
-      description: "Show a loading indicator",
-    },
-    variant: {
-      control: { type: "radio" },
-      options: variants,
-      description: "Visual variant of the input",
-    },
-    align: {
-      control: { type: "radio" },
-      options: alignments,
-      description: "Text alignment within the input",
-    },
-    size: {
-      control: { type: "select" },
-      options: formInputSizes,
-      description: "Input height",
-    },
-    width: {
-      control: { type: "select" },
-      options: widths,
-      description: "Preset input width",
-    },
-    hideArrow: {
-      control: { type: "boolean" },
-      description: "Hide the dropdown arrow",
-    },
-  },
+  component: Select,
   args: {
     disabled: false,
     invalid: false,
@@ -763,7 +723,7 @@ export const CustomRender: Story = {
 };
 
 export const Connected: Story = {
-  render: () => (
+  render: (args: Partial<SingleSelectProps>) => (
     <div className={sectionStyle}>
       <div className={groupStyle}>
         <h3 style={headingStyle}>States (md)</h3>
@@ -790,6 +750,7 @@ export const Connected: Story = {
             ...sharedConnectedStates.map((col) => (
               <ConnectedPair
                 key={`${row.key}__${col.key}`}
+                {...args}
                 size="md"
                 left={row.props}
                 right={col.props}
@@ -803,7 +764,7 @@ export const Connected: Story = {
         {formInputSizes.map((size) => (
           <Fragment key={size}>
             <span style={subheadingStyle}>{size}</span>
-            <ConnectedPair size={size} left={{}} right={{}} />
+            <ConnectedPair {...args} size={size} left={{}} right={{}} />
           </Fragment>
         ))}
       </div>

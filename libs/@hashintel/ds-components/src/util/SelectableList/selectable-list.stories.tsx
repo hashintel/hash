@@ -71,12 +71,7 @@ const disabledSelected = defaultSelected.map((id) => `disabled-${id}`);
 
 const meta = {
   title: "Primitives/SelectableList",
-  argTypes: {
-    size: {
-      control: { type: "select" },
-      options: formInputSizes,
-    },
-  },
+  component: SelectableList,
   args: {
     size: "md",
   },

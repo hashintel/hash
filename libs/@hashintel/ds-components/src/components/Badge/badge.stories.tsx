@@ -152,12 +152,7 @@ const Anchors = (
 
 const meta = {
   title: "Components/Badge",
-  argTypes: {
-    color: { control: { type: "select" }, options: colors },
-    shape: { control: { type: "select" }, options: shapes },
-    position: { control: { type: "select" }, options: positions },
-    content: { control: { type: "text" } },
-  },
+  component: Badge,
   args: {
     content: "9",
     color: "red",
@@ -177,7 +172,7 @@ export const Default: Story = {
       <SectionTitle>Colours</SectionTitle>
       <div className={row}>
         {colors.map((color) => (
-          <Badge {...args} key={color} content={9} color={color}>
+          <Badge {...args} key={color} color={color}>
             <Bell />
           </Badge>
         ))}
@@ -186,7 +181,7 @@ export const Default: Story = {
       <SectionTitle>Shape</SectionTitle>
       <div className={row}>
         {shapes.map((shape) => (
-          <Badge {...args} key={shape} content={9} shape={shape} color="red">
+          <Badge {...args} key={shape} shape={shape}>
             <Bell />
           </Badge>
         ))}
@@ -197,11 +192,11 @@ export const Default: Story = {
       <SectionTitle>Content</SectionTitle>
       <div className={row}>
         {[9, 99, 100, 1000].map((count) => (
-          <Badge {...args} key={count} content={count} color="red">
+          <Badge {...args} key={count} content={count}>
             <Bell />
           </Badge>
         ))}
-        <Badge {...args} content="new" color="red">
+        <Badge {...args} content="new">
           <Bell />
         </Badge>
         <Badge
@@ -239,14 +234,14 @@ export const Positions: Story = {
     <div className={column}>
       <div className={wideRow}>
         {positions.map((position) => (
-          <Badge {...args} key={position} content={9} position={position}>
+          <Badge {...args} key={position} position={position}>
             <Bell />
           </Badge>
         ))}
       </div>
 
       <SectionTitle>Attaches to any content</SectionTitle>
-      <Anchors {...args} content={9} />
+      <Anchors {...args} />
       <Anchors {...args} content={null} />
 
       <SectionTitle>…and grows with longer content</SectionTitle>

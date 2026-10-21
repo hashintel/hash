@@ -98,6 +98,20 @@ const resizeCases: {
 
 const meta = {
   title: "Components/TextArea",
+  component: TextArea,
+  args: {
+    variant: "default",
+    align: "left",
+    size: "md",
+    rows: 3,
+    resize: "vertical",
+    autoResize: false,
+    disabled: false,
+    invalid: false,
+    readonly: false,
+    required: false,
+    includeCharCountHeight: false,
+  },
 } satisfies Meta;
 
 export default meta;
@@ -105,7 +119,7 @@ export default meta;
 type Story = StoryObj;
 
 export const Default: Story = {
-  render: () => (
+  render: (args: Partial<TextAreaProps>) => (
     <div className={statesGridClass}>
       <span className={headingClass}>State</span>
       <span className={headingClass}>Default</span>
@@ -113,8 +127,8 @@ export const Default: Story = {
       {states.map(({ label, props }) => (
         <Fragment key={label}>
           <span className={labelClass}>{label}</span>
-          <Controlled {...props} variant="default" />
-          <Controlled {...props} variant="subtle" />
+          <Controlled {...args} {...props} variant="default" />
+          <Controlled {...args} {...props} variant="subtle" />
         </Fragment>
       ))}
     </div>
@@ -122,7 +136,7 @@ export const Default: Story = {
 };
 
 export const Sizes: Story = {
-  render: () => (
+  render: (args: Partial<TextAreaProps>) => (
     <div className={sizesGridClass}>
       <span className={headingClass}>Size</span>
       <span className={headingClass}>Default</span>
@@ -132,17 +146,19 @@ export const Sizes: Story = {
         <Fragment key={size}>
           <span className={labelClass}>{size}</span>
           <Controlled
+            {...args}
             size={size}
             value={sampleText}
             placeholder="Type something…"
           />
           <Controlled
+            {...args}
             size={size}
             variant="subtle"
             value={sampleText}
             placeholder="Type something…"
           />
-          <Controlled size={size} value={sampleText} readonly />
+          <Controlled {...args} size={size} value={sampleText} readonly />
         </Fragment>
       ))}
     </div>
@@ -150,14 +166,14 @@ export const Sizes: Story = {
 };
 
 export const Resize: Story = {
-  render: () => (
+  render: (args: Partial<TextAreaProps>) => (
     <div className={gridClass}>
       <span className={headingClass}>resize</span>
       <span className={headingClass}>TextArea</span>
       {resizeCases.map(({ label, props }) => (
         <Fragment key={label}>
           <span className={labelClass}>{label}</span>
-          <Controlled {...props} value={sampleText} rows={2} />
+          <Controlled {...args} {...props} value={sampleText} rows={2} />
         </Fragment>
       ))}
     </div>
@@ -165,7 +181,7 @@ export const Resize: Story = {
 };
 
 export const WithCharacterCount: Story = {
-  render: () => (
+  render: (args: Partial<TextAreaProps>) => (
     <div
       className={css({
         ...backdrop,
@@ -190,11 +206,11 @@ export const WithCharacterCount: Story = {
               {String(includeCharCountHeight)}
             </span>
             <Controlled
+              {...args}
               variant={variant}
               includeCharCountHeight={includeCharCountHeight}
               value="A short bio."
               characterLimit={80}
-              rows={3}
               placeholder="Tell us about yourself…"
             />
           </div>

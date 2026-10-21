@@ -4,44 +4,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Legacy/Slider",
-  argTypes: {
-    min: {
-      name: "Min",
-      control: {
-        type: "number",
-      },
-      description: "Minimum value for the slider",
-    },
-    max: {
-      name: "Max",
-      control: {
-        type: "number",
-      },
-      description: "Maximum value for the slider",
-    },
-    defaultValue: {
-      name: "Default Value",
-      control: {
-        type: "number",
-      },
-      description: "Initial value for the slider",
-    },
-    label: {
-      name: "Label",
-      control: {
-        type: "text",
-      },
-      description:
-        "Label text to display above the slider. If not provided, no label is shown.",
-    },
-    showValueText: {
-      name: "Show Value Text",
-      control: {
-        type: "boolean",
-      },
-      description: "Whether to show the current value as text above the slider",
-    },
-  },
+  component: Slider,
   args: {
     min: 0,
     max: 100,

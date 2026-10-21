@@ -111,6 +111,7 @@ const kitchenSinkProps = {
 
 const meta = {
   title: "Components/Form",
+  component: Form.Field,
   argTypes: {
     label: {
       control: { type: "text" },

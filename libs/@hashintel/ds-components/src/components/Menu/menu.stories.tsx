@@ -90,29 +90,9 @@ function useToggleSelection(initialSelected: string[] = defaultSelected) {
 
 type MenuProps = React.ComponentProps<typeof Menu>;
 
-const positions = [
-  "bottom",
-  "bottom-start",
-  "bottom-end",
-  "top",
-  "top-start",
-  "top-end",
-  "left",
-  "left-start",
-  "left-end",
-  "right",
-  "right-start",
-  "right-end",
-] as const;
-
 const meta = {
   title: "Components/Menu",
-  argTypes: {
-    position: {
-      control: { type: "select" },
-      options: positions,
-    },
-  },
+  component: Menu,
   args: {
     position: "bottom-start",
   },

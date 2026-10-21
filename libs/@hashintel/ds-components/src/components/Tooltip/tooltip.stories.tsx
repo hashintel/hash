@@ -14,28 +14,6 @@ const tooltipVariants = [
   "dark",
 ] as const satisfies readonly NonNullable<TooltipProps["variant"]>[];
 
-const allPositions = [
-  "top-start",
-  "top",
-  "top-end",
-  "right-start",
-  "right",
-  "right-end",
-  "bottom-start",
-  "bottom",
-  "bottom-end",
-  "left-start",
-  "left",
-  "left-end",
-] as const satisfies readonly NonNullable<TooltipProps["position"]>[];
-
-const delays = [
-  "none",
-  "fast",
-  "medium",
-  "slow",
-] as const satisfies readonly NonNullable<TooltipProps["openDelay"]>[];
-
 const richContent = (
   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
     <strong>Rich tooltip</strong>
@@ -118,32 +96,7 @@ const customTooltipContent = (
 
 const meta = {
   title: "Components/Tooltip",
-  argTypes: {
-    variant: {
-      control: { type: "radio" },
-      options: tooltipVariants,
-      description: "Visual variant",
-    },
-    position: {
-      control: { type: "select" },
-      options: allPositions,
-      description: "Preferred tooltip position",
-    },
-    disableTooltip: {
-      control: { type: "boolean" },
-      description: "Disable the tooltip from opening",
-    },
-    openDelay: {
-      control: { type: "select" },
-      options: delays,
-      description: "Delay before the tooltip opens",
-    },
-    closeDelay: {
-      control: { type: "select" },
-      options: delays,
-      description: "Delay before the tooltip closes",
-    },
-  },
+  component: Tooltip,
   args: {
     variant: "dark",
     position: "bottom",

@@ -25,6 +25,11 @@ const sampleImage = "https://avatars.githubusercontent.com/u/1846056?v=4";
 
 const meta = {
   title: "Components/AvatarGroup",
+  component: AvatarGroup,
+  args: {
+    lastOnTop: false,
+    spacing: "md",
+  },
 } satisfies Meta<AvatarGroupProps>;
 
 export default meta;
@@ -95,25 +100,33 @@ const Rows = ({ rows }: { rows: LabeledRow[] }) => (
 );
 
 export const Default: Story = {
-  render: () => (
+  render: (args: Partial<AvatarGroupProps>) => (
     <Rows
       rows={[
         {
           label: "All avatars",
-          content: <AvatarGroup>{avatarsOf(people)}</AvatarGroup>,
+          content: <AvatarGroup {...args}>{avatarsOf(people)}</AvatarGroup>,
         },
         {
           label: "lastOnTop",
-          content: <AvatarGroup lastOnTop>{avatarsOf(people)}</AvatarGroup>,
+          content: (
+            <AvatarGroup {...args} lastOnTop>
+              {avatarsOf(people)}
+            </AvatarGroup>
+          ),
         },
         {
           label: "max = 4",
-          content: <AvatarGroup max={4}>{avatarsOf(people)}</AvatarGroup>,
+          content: (
+            <AvatarGroup {...args} max={4}>
+              {avatarsOf(people)}
+            </AvatarGroup>
+          ),
         },
         {
           label: "total = 24",
           content: (
-            <AvatarGroup max={4} total={24}>
+            <AvatarGroup {...args} max={4} total={24}>
               {avatarsOf(people)}
             </AvatarGroup>
           ),
@@ -121,7 +134,7 @@ export const Default: Story = {
         {
           label: "custom overflow",
           content: (
-            <AvatarGroup>
+            <AvatarGroup {...args}>
               {avatarsOf(people.slice(0, 3))}
               <AvatarGroup.More alt="99 or more people">
                 <span style={{ fontSize: 11 }}>99+</span>
@@ -132,7 +145,7 @@ export const Default: Story = {
         {
           label: "brand tone",
           content: (
-            <AvatarGroup max={4} tone="brand">
+            <AvatarGroup {...args} max={4} tone="brand">
               {avatarsOf(people)}
             </AvatarGroup>
           ),
@@ -140,17 +153,23 @@ export const Default: Story = {
         {
           label: "square",
           content: (
-            <AvatarGroup max={4}>{avatarsOf(asShape("square"))}</AvatarGroup>
+            <AvatarGroup {...args} max={4}>
+              {avatarsOf(asShape("square"))}
+            </AvatarGroup>
           ),
         },
         {
           label: "mixed shapes",
-          content: <AvatarGroup max={4}>{avatarsOf(mixedShapes)}</AvatarGroup>,
+          content: (
+            <AvatarGroup {...args} max={4}>
+              {avatarsOf(mixedShapes)}
+            </AvatarGroup>
+          ),
         },
         {
           label: "spacing = sm",
           content: (
-            <AvatarGroup max={4} spacing="sm">
+            <AvatarGroup {...args} max={4} spacing="sm">
               {avatarsOf(people)}
             </AvatarGroup>
           ),
@@ -158,7 +177,7 @@ export const Default: Story = {
         {
           label: "with tooltips",
           content: (
-            <AvatarGroup max={4}>
+            <AvatarGroup {...args} max={4}>
               {people.map((props) => (
                 <Tooltip
                   key={props.src ?? props.alt}
@@ -183,13 +202,13 @@ export const Default: Story = {
 };
 
 export const Sizes: Story = {
-  render: () => (
+  render: (args: Partial<AvatarGroupProps>) => (
     <Rows
       rows={[
         ...formInputSizes.map((size) => ({
           label: size,
           content: (
-            <AvatarGroup max={4} size={size}>
+            <AvatarGroup {...args} max={4} size={size}>
               {avatarsOf(people)}
             </AvatarGroup>
           ),
@@ -197,7 +216,12 @@ export const Sizes: Story = {
         {
           label: "custom (64px)",
           content: (
-            <AvatarGroup max={4} size="custom" className={customSizeClass}>
+            <AvatarGroup
+              {...args}
+              max={4}
+              size="custom"
+              className={customSizeClass}
+            >
               {avatarsOf(people)}
             </AvatarGroup>
           ),

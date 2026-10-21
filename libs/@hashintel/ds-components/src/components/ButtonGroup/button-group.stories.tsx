@@ -32,6 +32,13 @@ const mixedVariantPairs = buttonVariants.flatMap((first, index) =>
 
 const meta = {
   title: "Components/ButtonGroup",
+  component: ButtonGroup,
+  args: {
+    spacing: "md",
+    reverse: false,
+    alignedTo: "left",
+    noWrap: false,
+  },
 } satisfies Meta<ButtonGroupProps>;
 
 export default meta;
@@ -128,19 +135,19 @@ const Example = ({
 );
 
 export const Default: Story = {
-  render: () => (
+  render: (args: Partial<ButtonGroupProps>) => (
     <div className={pageClass}>
       <section className={sectionClass}>
         <div className={compactRowsClass}>
           {variants.map((variant) => (
             <div key={variant} className={tightRowClass}>
               <Example framed={false} label={`${variant} · normal`}>
-                <ButtonGroup variant={variant}>
+                <ButtonGroup {...args} variant={variant}>
                   {buttons(shortLabels)}
                 </ButtonGroup>
               </Example>
               <Example framed={false} label={`${variant} · reversed`}>
-                <ButtonGroup variant={variant} reverse>
+                <ButtonGroup {...args} variant={variant} reverse>
                   {buttons(shortLabels)}
                 </ButtonGroup>
               </Example>
@@ -158,7 +165,7 @@ export const Default: Story = {
                 key={`${alignedTo}-${variant}`}
                 label={`${variant} · alignedTo=${alignedTo}`}
               >
-                <ButtonGroup variant={variant} alignedTo={alignedTo}>
+                <ButtonGroup {...args} variant={variant} alignedTo={alignedTo}>
                   {buttons(manyLabels)}
                 </ButtonGroup>
               </Example>
@@ -171,14 +178,14 @@ export const Default: Story = {
 };
 
 export const Spacing: Story = {
-  render: () => (
+  render: (args: Partial<ButtonGroupProps>) => (
     <div className={pageClass}>
       <section className={sectionClass}>
         <span className={sectionHeadingClass}>spaced · all spacing sizes</span>
         <div className={compactRowsClass}>
           {formInputSizes.map((spacing) => (
             <Example key={spacing} framed={false} label={`spacing=${spacing}`}>
-              <ButtonGroup variant="spaced" spacing={spacing}>
+              <ButtonGroup {...args} variant="spaced" spacing={spacing}>
                 {buttons(shortLabels, "subtle", spacing)}
               </ButtonGroup>
             </Example>
@@ -190,7 +197,7 @@ export const Spacing: Story = {
 };
 
 export const Variants: Story = {
-  render: () => (
+  render: (args: Partial<ButtonGroupProps>) => (
     <div className={pageClass}>
       {buttonVariants.map((buttonVariant) => (
         <section key={buttonVariant} className={sectionClass}>
@@ -200,7 +207,7 @@ export const Variants: Story = {
           <div className={tightRowClass}>
             {variants.map((variant) => (
               <Example key={variant} framed={false} label={variant}>
-                <ButtonGroup variant={variant}>
+                <ButtonGroup {...args} variant={variant}>
                   {buttons(shortLabels, buttonVariant)}
                 </ButtonGroup>
               </Example>
@@ -211,7 +218,7 @@ export const Variants: Story = {
 
       <section className={sectionClass}>
         <span className={sectionHeadingClass}>edge-case: segmented mixed</span>
-        <ButtonGroup variant="segmented">
+        <ButtonGroup {...args} variant="segmented">
           {mixedVariantPairs.flatMap(([first, second]) => [
             <Button key={`${first}-${second}-left`} variant={first}>
               {first}

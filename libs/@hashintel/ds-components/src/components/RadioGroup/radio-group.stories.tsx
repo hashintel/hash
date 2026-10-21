@@ -46,11 +46,7 @@ const ControlledRadioGroup = ({
 
 const meta = {
   title: "Components/RadioGroup",
-  argTypes: {
-    layout: { control: { type: "select" }, options: layouts },
-    size: { control: { type: "select" }, options: formInputSizes },
-    disabled: { control: { type: "boolean" } },
-  },
+  component: RadioGroup,
   args: {
     layout: "block",
     size: "md",

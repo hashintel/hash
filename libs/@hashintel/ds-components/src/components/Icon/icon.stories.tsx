@@ -8,11 +8,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Components/Icon",
-  argTypes: {
-    name: { control: { type: "select" }, options: iconNames },
-    size: { control: { type: "select" }, options: formInputSizes },
-    alt: { control: { type: "text" } },
-  },
+  component: Icon,
   args: {
     name: "star",
     size: "md",

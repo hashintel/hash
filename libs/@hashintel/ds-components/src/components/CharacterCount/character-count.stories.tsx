@@ -8,11 +8,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Components/CharacterCount",
-  argTypes: {
-    charactersUsed: { control: { type: "number" } },
-    maxLength: { control: { type: "number" } },
-    takesHeight: { control: { type: "boolean" } },
-  },
+  component: CharacterCount,
   args: {
     charactersUsed: 45,
     maxLength: 100,

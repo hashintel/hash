@@ -10,6 +10,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type Point = NonNullable<PopoverProps["positionFromPoint"]>;
 
+// `children` is omitted: the story harnesses redefine it as a render callback.
+type PopoverArgs = Partial<Omit<PopoverProps, "children">>;
+
 const popoverContent = css({
   backgroundColor: "white",
   color: "fg.body",
@@ -41,13 +44,10 @@ const panelWidth = css({ width: "[260px]" });
  */
 const PopoverExample = ({
   label,
-  position = "bottom-start",
-  closeOnInteractOutside,
   children,
-}: {
+  ...popoverProps
+}: PopoverArgs & {
   label: string;
-  position?: PopoverProps["position"];
-  closeOnInteractOutside?: PopoverProps["closeOnInteractOutside"];
   children: (close: () => void) => PopoverProps["children"];
 }) => {
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -64,12 +64,7 @@ const PopoverExample = ({
         {label}
       </Button>
       {open ? (
-        <Popover
-          triggerRef={triggerRef}
-          position={position}
-          closeOnInteractOutside={closeOnInteractOutside}
-          onClose={close}
-        >
+        <Popover {...popoverProps} triggerRef={triggerRef} onClose={close}>
           {children(close)}
         </Popover>
       ) : null}
@@ -83,7 +78,7 @@ const PopoverExample = ({
  * title, multiple bodies, and multiple footers.
  */
 export const Default: Story = {
-  render: () => (
+  render: (args: PopoverArgs) => (
     <div
       style={{
         display: "flex",
@@ -93,7 +88,7 @@ export const Default: Story = {
         alignItems: "flex-start",
       }}
     >
-      <PopoverExample label="Custom">
+      <PopoverExample {...args} label="Custom">
         {() => (
           <div className={customContent}>
             Fully custom content — no panels, just positioning.
@@ -101,7 +96,7 @@ export const Default: Story = {
         )}
       </PopoverExample>
 
-      <PopoverExample label="Title only">
+      <PopoverExample {...args} label="Title only">
         {() => (
           <Popover.Container className={panelWidth}>
             <Popover.Header title="Account settings" />
@@ -109,7 +104,7 @@ export const Default: Story = {
         )}
       </PopoverExample>
 
-      <PopoverExample label="Title + no close">
+      <PopoverExample {...args} label="Title + no close">
         {() => (
           <Popover.Container className={panelWidth}>
             <Popover.Header title="Notifications" hideCloseButton />
@@ -117,7 +112,7 @@ export const Default: Story = {
         )}
       </PopoverExample>
 
-      <PopoverExample label="Body only">
+      <PopoverExample {...args} label="Body only">
         {() => (
           <Popover.Container className={panelWidth}>
             <Popover.Body>
@@ -127,7 +122,7 @@ export const Default: Story = {
         )}
       </PopoverExample>
 
-      <PopoverExample label="Footer only">
+      <PopoverExample {...args} label="Footer only">
         {(close) => (
           <Popover.Container className={panelWidth}>
             <Popover.Footer
@@ -141,7 +136,11 @@ export const Default: Story = {
         )}
       </PopoverExample>
 
-      <PopoverExample label="No outside close" closeOnInteractOutside={false}>
+      <PopoverExample
+        {...args}
+        label="No outside close"
+        closeOnInteractOutside={false}
+      >
         {(close) => (
           <Popover.Container className={panelWidth}>
             <Popover.Header title="Stays open" />
@@ -160,7 +159,7 @@ export const Default: Story = {
         )}
       </PopoverExample>
 
-      <PopoverExample label="Kitchen sink">
+      <PopoverExample {...args} label="Kitchen sink">
         {(close) => (
           <Popover.Container className={panelWidth}>
             <Popover.Header
@@ -204,12 +203,11 @@ export const Default: Story = {
  */
 const PopoverToggle = ({
   label,
-  position,
   /** When set, the popover positions from a point relative to the trigger's top-left, measured from the rendered trigger when it opens. */
   getPoint,
-}: {
+  ...popoverProps
+}: PopoverArgs & {
   label: string;
-  position?: PopoverProps["position"];
   getPoint?: (rect: DOMRect) => Point;
 }) => {
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -236,8 +234,8 @@ const PopoverToggle = ({
       </Button>
       {open ? (
         <Popover
+          {...popoverProps}
           triggerRef={triggerRef}
-          position={position}
           positionFromPoint={getPoint ? point : undefined}
           onClose={() => setOpen(false)}
         >
@@ -292,7 +290,7 @@ const gridCells: Cell[] = [
 ];
 
 export const Positions: Story = {
-  render: () => (
+  render: (args: PopoverArgs) => (
     <div
       style={{
         display: "grid",
@@ -313,6 +311,7 @@ export const Positions: Story = {
           return (
             <PopoverToggle
               key={cell.label}
+              {...args}
               label={cell.label}
               position={cell.position}
               getPoint={cell.getPoint}
@@ -323,6 +322,7 @@ export const Positions: Story = {
         return (
           <PopoverToggle
             key={cell.position}
+            {...args}
             label={cell.position}
             position={cell.position}
           />
@@ -338,16 +338,20 @@ export const Positions: Story = {
  * (opening/clicking the inner popover must not dismiss the outer one).
  */
 export const Stacking: Story = {
-  render: () => (
+  render: (args: PopoverArgs) => (
     <div style={{ padding: 60 }}>
-      <PopoverExample label="Popover 1">
+      <PopoverExample {...args} label="Popover 1">
         {() => (
           <Popover.Container className={panelWidth}>
             <Popover.Header title="Popover 1" />
             <Popover.Body>
               <div className={css({ display: "grid", gap: "2" })}>
                 <span>Opens a second popover, stacked on top of this one.</span>
-                <PopoverExample label="Popover 2" position="right-start">
+                <PopoverExample
+                  {...args}
+                  label="Popover 2"
+                  position="right-start"
+                >
                   {() => (
                     <Popover.Container className={panelWidth}>
                       <Popover.Header title="Popover 2" />
@@ -375,6 +379,14 @@ export const Stacking: Story = {
 
 const meta = {
   title: "Components/Popover",
+  component: Popover,
+  args: {
+    // The stories' harness default placement, not the component's ("bottom").
+    position: "bottom-start",
+    gapX: 8,
+    gapY: 8,
+    closeOnInteractOutside: true,
+  },
 } satisfies Meta;
 
 export default meta;

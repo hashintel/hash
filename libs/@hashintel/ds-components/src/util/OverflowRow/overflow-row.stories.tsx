@@ -7,6 +7,13 @@ import { OverflowRow, type OverflowRowProps } from "./overflow-row";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+// The args every story instance can take: the matrix pins (items, overflow
+// and its mode-specific companions) stay out so the spread satisfies all
+// three overflow branches.
+type OverflowRowArgs = Partial<
+  Omit<OverflowRowProps, "items" | "overflow" | "renderCountLabel" | "total">
+>;
+
 const names = [
   "Draft",
   "In review",
@@ -135,9 +142,9 @@ const EditableRow = ({
   align,
   showInput = true,
   initialNames = names.slice(0, 3),
-}: {
+  ...rowProps
+}: OverflowRowArgs & {
   overflow: "truncate" | "scroll" | "summary";
-  align?: OverflowRowProps["align"];
   showInput?: boolean;
   initialNames?: string[];
 }) => {
@@ -169,6 +176,7 @@ const EditableRow = ({
   if (overflow === "truncate") {
     return (
       <OverflowRow
+        {...rowProps}
         {...shared}
         overflow="truncate"
         renderCountLabel={chipCountLabel}
@@ -176,13 +184,20 @@ const EditableRow = ({
     );
   }
   if (overflow === "summary") {
-    return <OverflowRow {...shared} overflow="summary" separator=", " />;
+    return (
+      <OverflowRow
+        {...rowProps}
+        {...shared}
+        overflow="summary"
+        separator=", "
+      />
+    );
   }
-  return <OverflowRow {...shared} overflow="scroll" />;
+  return <OverflowRow {...rowProps} {...shared} overflow="scroll" />;
 };
 
 export const Default: Story = {
-  render: () => (
+  render: (args: OverflowRowArgs) => (
     <div className={sections}>
       {(["truncate", "scroll"] as const).map((overflow) => (
         <div key={overflow}>
@@ -191,6 +206,7 @@ export const Default: Story = {
             {rowExamples.map(({ label, width }) => (
               <Example key={label} label={label} width={width}>
                 <OverflowRow
+                  {...args}
                   items={allItems}
                   overflow={overflow}
                   className={
@@ -208,6 +224,7 @@ export const Default: Story = {
           {summaryExamples.map(({ label, items, width }) => (
             <Example key={label} label={label} width={width}>
               <OverflowRow
+                {...args}
                 items={items}
                 overflow="summary"
                 total={6}
@@ -228,6 +245,7 @@ export const Default: Story = {
               width={180}
             >
               <OverflowRow
+                {...args}
                 items={allItems}
                 overflow="truncate"
                 renderCountLabel={truncate}
@@ -242,6 +260,7 @@ export const Default: Story = {
               width={70}
             >
               <OverflowRow
+                {...args}
                 items={allItems.slice(0, 2)}
                 overflow="summary"
                 total={6}
@@ -259,14 +278,14 @@ export const Default: Story = {
         <div className={row}>
           {overflowModes.map((overflow) => (
             <Example key={overflow} label={overflow} width={200}>
-              <EditableRow overflow={overflow} />
+              <EditableRow {...args} overflow={overflow} />
             </Example>
           ))}
           <Example label="no items" width={160}>
-            <EditableRow overflow="scroll" initialNames={[]} />
+            <EditableRow {...args} overflow="scroll" initialNames={[]} />
           </Example>
           <Example label="underflow" width={380}>
-            <EditableRow overflow="scroll" />
+            <EditableRow {...args} overflow="scroll" />
           </Example>
         </div>
       </div>
@@ -277,7 +296,7 @@ export const Default: Story = {
         <div className={row}>
           {overflowModes.map((overflow) => (
             <Example key={overflow} label={overflow} width={150}>
-              <EditableRow overflow={overflow} showInput={false} />
+              <EditableRow {...args} overflow={overflow} showInput={false} />
             </Example>
           ))}
         </div>
@@ -287,7 +306,7 @@ export const Default: Story = {
 };
 
 export const Alignment: Story = {
-  render: () => (
+  render: (args: OverflowRowArgs) => (
     <div className={sections}>
       {(["center", "right"] as const).map((align) => (
         <div key={align}>
@@ -297,10 +316,16 @@ export const Alignment: Story = {
               label="scroll (overflow — start stays reachable)"
               width={200}
             >
-              <OverflowRow items={allItems} overflow="scroll" align={align} />
+              <OverflowRow
+                {...args}
+                items={allItems}
+                overflow="scroll"
+                align={align}
+              />
             </Example>
             <Example label="truncate" width={300}>
               <OverflowRow
+                {...args}
                 items={allItems}
                 overflow="truncate"
                 align={align}
@@ -309,6 +334,7 @@ export const Alignment: Story = {
             </Example>
             <Example label="summary" width={80}>
               <OverflowRow
+                {...args}
                 items={allItems.slice(0, 4)}
                 overflow="summary"
                 total={6}
@@ -318,13 +344,14 @@ export const Alignment: Story = {
             </Example>
             <Example label="scroll (underflow)" width={380}>
               <OverflowRow
+                {...args}
                 items={allItems.slice(0, 3)}
                 overflow="scroll"
                 align={align}
               />
             </Example>
             <Example label="withInput" width={380}>
-              <EditableRow overflow="scroll" align={align} />
+              <EditableRow {...args} overflow="scroll" align={align} />
             </Example>
           </div>
         </div>
@@ -335,6 +362,10 @@ export const Alignment: Story = {
 
 const meta = {
   title: "Primitives/OverflowRow",
+  component: OverflowRow,
+  args: {
+    align: "left",
+  },
 } satisfies Meta;
 
 export default meta;

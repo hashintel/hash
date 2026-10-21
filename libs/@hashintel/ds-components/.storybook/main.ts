@@ -3,7 +3,6 @@ import type { StorybookConfig } from "@storybook/react-vite";
 const config: StorybookConfig = {
   framework: "@storybook/react-vite",
   stories: ["../src/**/*.stories.@(ts|tsx)"],
-  // Serves the favicon (hash.ai logo recolored to black)
   staticDirs: ["./static"],
   core: {
     disableTelemetry: true,
@@ -12,6 +11,13 @@ const config: StorybookConfig = {
   },
   features: {
     sidebarOnboardingChecklist: false,
+  },
+  typescript: {
+    reactDocgen: "react-docgen-typescript",
+    reactDocgenTypescriptOptions: {
+      shouldExtractLiteralValuesFromEnum: true,
+      shouldRemoveUndefinedFromOptional: true,
+    },
   },
 };
 

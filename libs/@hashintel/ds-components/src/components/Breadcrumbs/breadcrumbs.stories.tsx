@@ -8,24 +8,21 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const noop = () => undefined;
 
+type BreadCrumbsProps = React.ComponentProps<typeof BreadCrumbs>;
+
 // Distinct nav labels keep the landmarks unique when several trails share a
 // page (and demonstrate the `aria-label` prop).
 const Trail = ({
-  size,
-  maxItems,
-  ariaLabel,
   withNoCollapse = false,
   withCustomItems = false,
-}: {
-  size: FormInputSize;
-  maxItems?: number;
-  ariaLabel?: string;
+  ...crumbProps
+}: Partial<BreadCrumbsProps> & {
   /** Pins “Workspace” in the trail: it never joins the ellipsis menu. */
   withNoCollapse?: boolean;
   /** Adds a Button-children crumb. */
   withCustomItems?: boolean;
 }) => (
-  <BreadCrumbs size={size} maxItems={maxItems} aria-label={ariaLabel}>
+  <BreadCrumbs {...crumbProps}>
     <BreadCrumbs.Item href="#home">Home</BreadCrumbs.Item>
     <BreadCrumbs.Item href="#workspace" noCollapse={withNoCollapse}>
       Workspace
@@ -46,21 +43,16 @@ const Trail = ({
 );
 
 const IconTrail = ({
-  size,
-  maxItems,
-  ariaLabel,
   withSubItems = false,
   withCustomItems = false,
-}: {
-  size: FormInputSize;
-  maxItems?: number;
-  ariaLabel?: string;
+  ...crumbProps
+}: Partial<BreadCrumbsProps> & {
   /** Renders the “Entities” crumb as a dropdown menu instead of a link. */
   withSubItems?: boolean;
   /** Adds a Button-children crumb. */
   withCustomItems?: boolean;
 }) => (
-  <BreadCrumbs size={size} maxItems={maxItems} aria-label={ariaLabel}>
+  <BreadCrumbs {...crumbProps}>
     <BreadCrumbs.Item href="#home" iconName="grid">
       Home
     </BreadCrumbs.Item>
@@ -139,20 +131,12 @@ type Args = { size: FormInputSize; maxItems: number };
 
 const meta = {
   title: "Components/Breadcrumbs",
-  argTypes: {
-    size: {
-      control: { type: "inline-radio" },
-      options: formInputSizes,
-    },
-    maxItems: {
-      control: { type: "number" },
-    },
-  },
+  component: BreadCrumbs,
   args: {
     size: "md",
     maxItems: undefined,
   },
-} satisfies Meta<Args>;
+} satisfies Meta<BreadCrumbsProps>;
 
 export default meta;
 
@@ -172,22 +156,18 @@ const Example = ({
 );
 
 export const Default: Story = {
-  render: ({ size, maxItems }: Args) => (
+  render: (args: Args) => (
     <div className={column}>
       <Example title="Regular">
-        <Trail size={size} maxItems={maxItems} />
+        <Trail {...args} />
       </Example>
 
       <Example title="With icons">
-        <IconTrail
-          size={size}
-          maxItems={maxItems}
-          ariaLabel="Breadcrumb (icons)"
-        />
+        <IconTrail {...args} aria-label="Breadcrumb (icons)" />
       </Example>
 
       <Example title="Tooltip with custom items">
-        <BreadCrumbs size={size} aria-label="Breadcrumb (tooltips)">
+        <BreadCrumbs {...args} aria-label="Breadcrumb (tooltips)">
           <BreadCrumbs.Item href="#home" tooltip="Go to the home page">
             Home
           </BreadCrumbs.Item>
@@ -209,7 +189,7 @@ export const Default: Story = {
       </Example>
 
       <Example title="maxWidth = 120px (hover a truncated crumb for its full name)">
-        <BreadCrumbs size={size} aria-label="Breadcrumb (maxWidth)">
+        <BreadCrumbs {...args} aria-label="Breadcrumb (maxWidth)">
           <BreadCrumbs.Item href="#home" maxWidth={120}>
             Home
           </BreadCrumbs.Item>
@@ -224,7 +204,7 @@ export const Default: Story = {
       </Example>
 
       <Example title="With sub-items (click a crumb with a chevron)">
-        <BreadCrumbs size={size} aria-label="Breadcrumb (subItems)">
+        <BreadCrumbs {...args} aria-label="Breadcrumb (subItems)">
           <BreadCrumbs.Item href="#home">Home</BreadCrumbs.Item>
           <BreadCrumbs.Item
             subItems={[
@@ -242,7 +222,7 @@ export const Default: Story = {
 
       <Example title="Sub-items collapsed into the ellipsis (nested submenu)">
         <BreadCrumbs
-          size={size}
+          {...args}
           maxItems={2}
           aria-label="Breadcrumb (nested subItems)"
         >
@@ -260,11 +240,7 @@ export const Default: Story = {
       </Example>
 
       <Example title="maxItems = 3 (open the ellipsis: “Projects” renders a custom collapsed label)">
-        <BreadCrumbs
-          size={size}
-          maxItems={3}
-          aria-label="Breadcrumb (maxItems)"
-        >
+        <BreadCrumbs {...args} maxItems={3} aria-label="Breadcrumb (maxItems)">
           <BreadCrumbs.Item href="#home">Home</BreadCrumbs.Item>
           <BreadCrumbs.Item href="#workspace">Workspace</BreadCrumbs.Item>
           <BreadCrumbs.Item
@@ -284,11 +260,10 @@ export const Default: Story = {
       <Example title="Overflow on resize (drag the handle → — “Workspace” never collapses)">
         <div className={resizable}>
           <Trail
-            size={size}
-            maxItems={maxItems}
+            {...args}
             withNoCollapse
             withCustomItems
-            ariaLabel="Breadcrumb (resizable)"
+            aria-label="Breadcrumb (resizable)"
           />
         </div>
       </Example>
@@ -298,15 +273,16 @@ export const Default: Story = {
 
 /** Icons + `maxItems={3}` + sub-items and custom entries across every size. */
 export const Sizes: Story = {
-  render: () => (
+  render: (args: Args) => (
     <div className={column}>
       {formInputSizes.map((size) => (
         <Example key={size} title={size}>
           <IconTrail
+            {...args}
             size={size}
             maxItems={4}
             withSubItems
-            ariaLabel={`Breadcrumb (${size})`}
+            aria-label={`Breadcrumb (${size})`}
           />
         </Example>
       ))}

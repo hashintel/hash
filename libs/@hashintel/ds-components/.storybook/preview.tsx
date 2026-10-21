@@ -41,6 +41,12 @@ const preview: Preview = {
   },
   parameters: {
     layout: "fullscreen",
+    controls: {
+      // Hide plumbing props and event handlers from the controls panel;
+      // the real API controls are inferred from the component types.
+      exclude:
+        /^(className|contentClassName|positionerClassName|style|ref|inputRef|testId|htmlForId|on[A-Z].*)$/,
+    },
     options: {
       storySort: {
         order: ["Tokens", "Components", "Primitives", "Legacy", "*"],

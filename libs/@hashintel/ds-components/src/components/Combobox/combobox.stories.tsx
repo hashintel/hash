@@ -8,7 +8,6 @@ import { Dialog } from "../Dialog/dialog";
 import { Combobox } from "./combobox";
 import { MultipleDemo } from "./multi-combobox.story";
 
-import type { FormInputWidth } from "../../util/form-shared";
 import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { ComboboxItem, ComboboxProps } from "./combobox";
 import type { MultiComboboxProps } from "./multi-combobox.story";
@@ -182,6 +181,13 @@ type ControlledProps = Omit<SingleComboboxProps, "value" | "onChange"> & {
   value?: string;
 };
 
+/**
+ * The controls-panel args threaded through the demo helpers. Stories spread
+ * these first, so pinned props deliberately ignore the control; `multiple` and
+ * `allowNewValue` are excluded because each helper pins its own mode.
+ */
+type ControlArgs = Partial<Omit<ControlledProps, "allowNewValue" | "multiple">>;
+
 const Controlled = ({ value: initialValue, ...props }: ControlledProps) => {
   const [value, setValue] = useState<string | null>(initialValue ?? null);
   return (
@@ -215,7 +221,7 @@ const ControlledNewValue = ({
   );
 };
 
-const DialogExample = () => {
+const DialogExample = (args: ControlArgs) => {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -223,7 +229,7 @@ const DialogExample = () => {
       {open ? (
         <Dialog onClose={() => setOpen(false)}>
           <Dialog.Body>
-            <Controlled placeholder="Pick a fruit…" />
+            <Controlled {...args} placeholder="Pick a fruit…" />
           </Dialog.Body>
         </Dialog>
       ) : null}
@@ -233,6 +239,14 @@ const DialogExample = () => {
 
 const meta = {
   title: "Components/Combobox",
+  component: Combobox,
+  args: {
+    variant: "default",
+    align: "left",
+    size: "md",
+    width: "fullWidth",
+    filterAlgorithm: "contains",
+  },
 } satisfies Meta;
 
 export default meta;
@@ -240,34 +254,41 @@ export default meta;
 type Story = StoryObj;
 
 export const Default: Story = {
-  render: () => (
+  render: (args: ControlArgs) => (
     <div className={sectionStyle}>
       <div className={groupStyle}>
         <h3 style={headingStyle}>No value</h3>
-        <Controlled placeholder="Pick a fruit…" />
+        <Controlled {...args} placeholder="Pick a fruit…" />
         <h3 style={headingStyle}>Value</h3>
-        <Controlled value="banana" />
+        <Controlled {...args} value="banana" />
         <h3 style={headingStyle}>Disabled</h3>
-        <Controlled value="banana" disabled />
+        <Controlled {...args} value="banana" disabled />
         <h3 style={headingStyle}>Invalid</h3>
-        <Controlled value="banana" invalid />
+        <Controlled {...args} value="banana" invalid />
         <h3 style={headingStyle}>Kitchen sink</h3>
-        <Controlled value="banana" {...kitchenSinkProps} />
+        <Controlled {...args} value="banana" {...kitchenSinkProps} />
         <h3 style={headingStyle}>Readonly (kitchen sink)</h3>
-        <Controlled value="banana" {...kitchenSinkProps} readonly />
+        <Controlled {...args} value="banana" {...kitchenSinkProps} readonly />
         <h3 style={headingStyle}>Subtle (kitchen sink)</h3>
-        <Controlled value="banana" {...kitchenSinkProps} variant="subtle" />
+        <Controlled
+          {...args}
+          value="banana"
+          {...kitchenSinkProps}
+          variant="subtle"
+        />
         <h3 style={headingStyle}>Custom render</h3>
         <Controlled
+          {...args}
           value="red"
           items={colorItems}
           renderItem={renderColorItem}
           renderSelectedItem={renderColorSelected}
         />
         <h3 style={headingStyle}>No items</h3>
-        <Controlled items={[]} placeholder="Nothing to pick…" />
+        <Controlled {...args} items={[]} placeholder="Nothing to pick…" />
         <h3 style={headingStyle}>Custom no-match message</h3>
         <Controlled
+          {...args}
           placeholder="Try “xyz”…"
           noMatchMessage={renderNoMatchMessage}
         />
@@ -278,11 +299,12 @@ export const Default: Story = {
         <div className={rowStyle}>
           <div className={cellStyle}>
             <span style={subheadingStyle}>Enabled</span>
-            <ControlledNewValue placeholder="Type anything…" />
+            <ControlledNewValue {...args} placeholder="Type anything…" />
           </div>
           <div className={cellStyle}>
             <span style={subheadingStyle}>Always show option</span>
             <ControlledNewValue
+              {...args}
               allowNewValue={{ alwaysShowOption: true }}
               placeholder="Type anything…"
             />
@@ -290,6 +312,7 @@ export const Default: Story = {
           <div className={cellStyle}>
             <span style={subheadingStyle}>Custom render</span>
             <ControlledNewValue
+              {...args}
               allowNewValue={{
                 renderOption: (input) => <em>Create tag “{input}”</em>,
               }}
@@ -304,19 +327,28 @@ export const Default: Story = {
         <div className={rowStyle}>
           <div className={cellStyle}>
             <span style={subheadingStyle}>contains (default)</span>
-            <Controlled placeholder="Try “an”…" />
+            <Controlled {...args} placeholder="Try “an”…" />
           </div>
           <div className={cellStyle}>
             <span style={subheadingStyle}>startsWith</span>
-            <Controlled filterAlgorithm="startsWith" placeholder="Try “ba”…" />
+            <Controlled
+              {...args}
+              filterAlgorithm="startsWith"
+              placeholder="Try “ba”…"
+            />
           </div>
           <div className={cellStyle}>
             <span style={subheadingStyle}>none (consumer-filtered)</span>
-            <Controlled filterAlgorithm="none" placeholder="Never filters" />
+            <Controlled
+              {...args}
+              filterAlgorithm="none"
+              placeholder="Never filters"
+            />
           </div>
           <div className={cellStyle}>
             <span style={subheadingStyle}>custom (matches value)</span>
             <Controlled
+              {...args}
               filterAlgorithm={(input, _text, optionValue) =>
                 optionValue.includes(input.toLowerCase())
               }
@@ -329,7 +361,7 @@ export const Default: Story = {
       <div className={groupStyle}>
         <h3 style={headingStyle}>Inside a dialog and autofocused</h3>
         <div>
-          <DialogExample />
+          <DialogExample {...args} />
         </div>
       </div>
     </div>
@@ -338,13 +370,21 @@ export const Default: Story = {
 
 // The multiple counterpart of the kitchen sink for the Sizes story. Kept
 // unexported — every export of a stories file becomes a story of its own.
-const SizedMultiKitchenSink = ({ size }: { size: ComboboxProps["size"] }) => {
+const SizedMultiKitchenSink = ({
+  size,
+  ...args
+}: ControlArgs & { size: ComboboxProps["size"] }) => {
+  const spreadArgs = args as Omit<
+    MultiComboboxProps,
+    "items" | "value" | "onChange" | "allowNewValue" | "multiple" | "size"
+  >;
   const [values, setValues] = useState<string[]>(["banana", "apple"]);
   return (
     <Combobox
       multiple
       items={sampleItems}
       renderItem={renderSampleItem}
+      {...spreadArgs}
       size={size}
       {...kitchenSinkProps}
       value={values}
@@ -354,7 +394,7 @@ const SizedMultiKitchenSink = ({ size }: { size: ComboboxProps["size"] }) => {
 };
 
 export const Sizes: Story = {
-  render: () => (
+  render: (args: ControlArgs) => (
     <div className={sectionStyle}>
       <div className={groupStyle} style={{ maxWidth: "none" }}>
         {formInputSizes.map((size) => (
@@ -364,6 +404,7 @@ export const Sizes: Story = {
               <div className={cellStyle}>
                 <span style={subheadingStyle}>single</span>
                 <ControlledNewValue
+                  {...args}
                   value="banana"
                   size={size}
                   {...kitchenSinkProps}
@@ -371,7 +412,7 @@ export const Sizes: Story = {
               </div>
               <div className={cellStyle}>
                 <span style={subheadingStyle}>multiple</span>
-                <SizedMultiKitchenSink size={size} />
+                <SizedMultiKitchenSink {...args} size={size} />
               </div>
             </div>
           </div>
@@ -381,87 +422,7 @@ export const Sizes: Story = {
   ),
 };
 
-type MultiVariant = NonNullable<MultiComboboxProps["variant"]>;
-
-const variants = [
-  "default",
-  "subtle",
-] as const satisfies readonly MultiVariant[];
-const widths = [
-  "xs",
-  "sm",
-  "md",
-  "lg",
-  "fullWidth",
-  "fitContent",
-] as const satisfies readonly FormInputWidth[];
-const overflowModes = ["scroll", "truncate", "summary"] as const;
-const filterAlgorithms = ["contains", "startsWith", "none"] as const;
-
 export const Multiple: StoryObj<MultiComboboxProps> = {
-  argTypes: {
-    placeholder: {
-      control: { type: "text" },
-      description: "Placeholder shown while nothing is selected or typed",
-    },
-    disabled: {
-      control: { type: "boolean" },
-      description: "Disable the input",
-    },
-    invalid: {
-      control: { type: "boolean" },
-      description: "Mark the input as invalid",
-    },
-    readonly: {
-      control: { type: "boolean" },
-      description: "Render the selection as read-only chips",
-    },
-    loading: {
-      control: { type: "boolean" },
-      description: "Show a loading indicator",
-    },
-    clearable: {
-      control: { type: "boolean" },
-      description: "Show a clear button that empties the selection",
-    },
-    allowNewValue: {
-      control: { type: "boolean" },
-      description: "Allow committing typed text that matches no option",
-    },
-    clearInputOnSelect: {
-      control: { type: "boolean" },
-      description: "Clear the typed text when an option is toggled",
-    },
-    variant: {
-      control: { type: "radio" },
-      options: variants,
-      description: "Visual variant of the input",
-    },
-    size: {
-      control: { type: "select" },
-      options: formInputSizes,
-      description: "Input height",
-    },
-    width: {
-      control: { type: "select" },
-      options: widths,
-      description: "Preset input width",
-    },
-    overflow: {
-      control: { type: "radio" },
-      options: overflowModes,
-      description: "How the selected chips overflow the input",
-    },
-    maxItems: {
-      control: { type: "number" },
-      description: "Maximum number of selectable values",
-    },
-    filterAlgorithm: {
-      control: { type: "radio" },
-      options: filterAlgorithms,
-      description: "How options are filtered against the typed text",
-    },
-  },
   args: {
     disabled: false,
     invalid: false,

@@ -15,11 +15,6 @@ const tones: NonNullable<CheckboxProps["tone"]>[] = [
   "success",
 ];
 
-const labelPlacements: NonNullable<CheckboxProps["labelPlacement"]>[] = [
-  "left",
-  "right",
-];
-
 const ControlledCheckbox = ({
   defaultValue = false,
   ...props
@@ -30,15 +25,7 @@ const ControlledCheckbox = ({
 
 const meta = {
   title: "Components/Checkbox",
-  argTypes: {
-    tone: { control: { type: "select" }, options: tones },
-    size: { control: { type: "select" }, options: formInputSizes },
-    disabled: { control: { type: "boolean" } },
-    invalid: { control: { type: "boolean" } },
-    indeterminate: { control: { type: "boolean" } },
-    labelPlacement: { control: { type: "select" }, options: labelPlacements },
-    label: { control: { type: "text" } },
-  },
+  component: Checkbox,
   args: {
     tone: "neutral",
     size: "md",

@@ -46,11 +46,7 @@ const ControlledCheckboxGroup = ({
 
 const meta = {
   title: "Components/CheckboxGroup",
-  argTypes: {
-    layout: { control: { type: "select" }, options: layouts },
-    size: { control: { type: "select" }, options: formInputSizes },
-    disabled: { control: { type: "boolean" } },
-  },
+  component: CheckboxGroup,
   args: {
     layout: "block",
     size: "md",

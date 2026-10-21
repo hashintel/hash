@@ -10,14 +10,25 @@ const aligns = ["top", "center"] as const satisfies readonly NonNullable<
 
 const meta = {
   title: "Components/HelpTooltip",
-} satisfies Meta;
+  component: HelpTooltip,
+  args: {
+    variant: "dark",
+    position: "right",
+    disableTooltip: false,
+    openDelay: "medium",
+    closeDelay: "medium",
+    gapX: 8,
+    gapY: 8,
+    closeOnClick: true,
+  },
+} satisfies Meta<HelpTooltipProps>;
 
 export default meta;
 
 type Story = StoryObj;
 
 export const Default: Story = {
-  render: () => (
+  render: (args: Partial<HelpTooltipProps>) => (
     <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
       {aligns.map((align) => (
         <div key={align}>
@@ -25,11 +36,11 @@ export const Default: Story = {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <span style={{ fontSize: 13 }}>
               Small text
-              <HelpTooltip align={align} content="More information" />
+              <HelpTooltip {...args} align={align} content="More information" />
             </span>
             <span style={{ fontSize: 28 }}>
               Large text
-              <HelpTooltip align={align} content="More information" />
+              <HelpTooltip {...args} align={align} content="More information" />
             </span>
           </div>
         </div>

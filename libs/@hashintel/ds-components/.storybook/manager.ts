@@ -6,4 +6,7 @@ addons.setConfig({
     base: "light",
     brandTitle: "HASH Design System",
   }),
+  panelPosition: window.matchMedia("(min-width: 1401px)").matches
+    ? "right"
+    : "bottom",
 });

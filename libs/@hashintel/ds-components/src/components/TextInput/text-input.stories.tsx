@@ -93,13 +93,15 @@ const ConnectedPair = ({
   left,
   right,
   size,
-}: {
+  ...args
+}: Partial<TextInputProps> & {
   left: ConnectedSideProps;
   right: ConnectedSideProps;
   size: FormInputSize;
 }) => (
   <div style={{ display: "flex", alignItems: "center" }}>
     <TextInput
+      {...args}
       value="Left"
       onChange={noop}
       size={size}
@@ -107,6 +109,7 @@ const ConnectedPair = ({
       {...left}
     />
     <TextInput
+      {...args}
       value="Right"
       onChange={noop}
       size={size}
@@ -206,52 +209,7 @@ const stateColumns = [
 
 const meta = {
   title: "Components/TextInput",
-  argTypes: {
-    placeholder: {
-      control: { type: "text" },
-      description: "Placeholder text shown when the input is empty",
-    },
-    disabled: {
-      control: { type: "boolean" },
-      description: "Disable the input",
-    },
-    invalid: {
-      control: { type: "boolean" },
-      description: "Mark the input as invalid",
-    },
-    readonly: {
-      control: { type: "boolean" },
-      description: "Render the input as read-only text",
-    },
-    loading: {
-      control: { type: "boolean" },
-      description: "Show a loading indicator",
-    },
-    variant: {
-      control: { type: "radio" },
-      options: variants,
-      description: "Visual variant of the input",
-    },
-    align: {
-      control: { type: "radio" },
-      options: alignments,
-      description: "Text alignment within the input",
-    },
-    size: {
-      control: { type: "select" },
-      options: formInputSizes,
-      description: "Input height",
-    },
-    width: {
-      control: { type: "select" },
-      options: widths,
-      description: "Preset input width",
-    },
-    showEditIcon: {
-      control: { type: "boolean" },
-      description: "Show an edit icon inside the input",
-    },
-  },
+  component: TextInput,
   args: {
     disabled: false,
     invalid: false,
@@ -723,7 +681,7 @@ export const PrefixAndSuffix: Story = {
 };
 
 export const Connected: Story = {
-  render: () => (
+  render: (args: Partial<TextInputProps>) => (
     <div className={sectionStyle}>
       <div className={groupStyle}>
         <h3 style={headingStyle}>States (md)</h3>
@@ -750,6 +708,7 @@ export const Connected: Story = {
             ...sharedConnectedStates.map((col) => (
               <ConnectedPair
                 key={`${row.key}__${col.key}`}
+                {...args}
                 size="md"
                 left={row.props}
                 right={col.props}
@@ -763,7 +722,7 @@ export const Connected: Story = {
         {formInputSizes.map((size) => (
           <Fragment key={size}>
             <span style={subheadingStyle}>{size}</span>
-            <ConnectedPair size={size} left={{}} right={{}} />
+            <ConnectedPair {...args} size={size} left={{}} right={{}} />
           </Fragment>
         ))}
       </div>

@@ -15,11 +15,6 @@ const tones: NonNullable<RadioProps["tone"]>[] = [
   "success",
 ];
 
-const labelPlacements: NonNullable<RadioProps["labelPlacement"]>[] = [
-  "left",
-  "right",
-];
-
 const ControlledRadio = ({
   defaultValue = false,
   ...props
@@ -30,14 +25,7 @@ const ControlledRadio = ({
 
 const meta = {
   title: "Components/Radio",
-  argTypes: {
-    tone: { control: { type: "select" }, options: tones },
-    size: { control: { type: "select" }, options: formInputSizes },
-    disabled: { control: { type: "boolean" } },
-    invalid: { control: { type: "boolean" } },
-    labelPlacement: { control: { type: "select" }, options: labelPlacements },
-    label: { control: { type: "text" } },
-  },
+  component: Radio,
   args: {
     tone: "neutral",
     size: "md",

@@ -148,52 +148,7 @@ const stateColumns = [
 
 const meta = {
   title: "Components/NumberInput",
-  argTypes: {
-    placeholder: {
-      control: { type: "text" },
-      description: "Placeholder text shown when the input is empty",
-    },
-    disabled: {
-      control: { type: "boolean" },
-      description: "Disable the input",
-    },
-    invalid: {
-      control: { type: "boolean" },
-      description: "Mark the input as invalid",
-    },
-    readonly: {
-      control: { type: "boolean" },
-      description: "Render the input as read-only text",
-    },
-    loading: {
-      control: { type: "boolean" },
-      description: "Show a loading indicator",
-    },
-    variant: {
-      control: { type: "radio" },
-      options: variants,
-      description: "Visual variant of the input",
-    },
-    align: {
-      control: { type: "radio" },
-      options: alignments,
-      description: "Text alignment within the input",
-    },
-    size: {
-      control: { type: "select" },
-      options: formInputSizes,
-      description: "Input height",
-    },
-    width: {
-      control: { type: "select" },
-      options: widths,
-      description: "Preset input width",
-    },
-    showEditIcon: {
-      control: { type: "boolean" },
-      description: "Show an edit icon inside the input",
-    },
-  },
+  component: NumberInput,
   args: {
     disabled: false,
     invalid: false,

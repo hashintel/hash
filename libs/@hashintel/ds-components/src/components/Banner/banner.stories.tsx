@@ -7,6 +7,7 @@ import { bannerTones, bannerVariants } from "./banner.recipe";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+type BannerProps = React.ComponentProps<typeof Banner>;
 type BannerTone = (typeof bannerTones)[number];
 type BannerVariant = (typeof bannerVariants)[number];
 
@@ -59,11 +60,17 @@ const label = css({
 const KitchenSinkBanner = ({
   tone,
   variant,
-}: {
+  ...bannerProps
+}: Partial<BannerProps> & {
   tone: BannerTone;
   variant: BannerVariant;
 }) => (
-  <Banner tone={tone} variant={variant} dismissible={{ onDismiss: noop }}>
+  <Banner
+    {...bannerProps}
+    tone={tone}
+    variant={variant}
+    dismissible={{ onDismiss: noop }}
+  >
     <Banner.Title>Summarise what happened</Banner.Title>
     <Banner.Description>
       Describe what can be done about it here.
@@ -93,6 +100,7 @@ const longText =
 
 const meta = {
   title: "Components/Banner",
+  component: Banner,
 } satisfies Meta;
 
 export default meta;
@@ -104,7 +112,7 @@ type Story = StoryObj;
  * flex-wrap onto the next line when the viewport is too narrow to fit them.
  */
 export const Default: Story = {
-  render: () => (
+  render: (args: Partial<BannerProps>) => (
     <div className={variantColumns}>
       {Array.from(bannerVariants)
         .reverse()
@@ -113,7 +121,7 @@ export const Default: Story = {
             <div className={variantHeading}>{variant}</div>
             {bannerTones.map((tone) => (
               <Example key={tone} name={tone}>
-                <KitchenSinkBanner tone={tone} variant={variant} />
+                <KitchenSinkBanner {...args} tone={tone} variant={variant} />
               </Example>
             ))}
           </div>
@@ -124,16 +132,16 @@ export const Default: Story = {
 
 /** The range of content a banner can hold — all in the brand soft variant. */
 export const Content: Story = {
-  render: () => (
+  render: (args: Partial<BannerProps>) => (
     <div className={column}>
       <Example name="Title only">
-        <Banner tone="brand" variant="soft" icon={false}>
+        <Banner {...args} tone="brand" variant="soft" icon={false}>
           <Banner.Title>Summarise what happened</Banner.Title>
         </Banner>
       </Example>
 
       <Example name="Description only">
-        <Banner tone="brand" variant="soft" icon={false}>
+        <Banner {...args} tone="brand" variant="soft" icon={false}>
           <Banner.Description>
             Describe what can be done about it here.
           </Banner.Description>
@@ -141,7 +149,7 @@ export const Content: Story = {
       </Example>
 
       <Example name="Actions only">
-        <Banner tone="brand" variant="soft" icon={false}>
+        <Banner {...args} tone="brand" variant="soft" icon={false}>
           <Banner.Actions>
             <Banner.ActionButton>Accept</Banner.ActionButton>
             <Banner.ActionButton>Decline</Banner.ActionButton>
@@ -150,7 +158,7 @@ export const Content: Story = {
       </Example>
 
       <Example name="Title + icon + actions">
-        <Banner tone="brand" variant="soft">
+        <Banner {...args} tone="brand" variant="soft">
           <Banner.Title>Summarise what happened</Banner.Title>
           <Banner.Actions>
             <Banner.ActionButton>Open</Banner.ActionButton>
@@ -160,7 +168,7 @@ export const Content: Story = {
       </Example>
 
       <Example name="Description + icon">
-        <Banner tone="brand" variant="soft">
+        <Banner {...args} tone="brand" variant="soft">
           <Banner.Description>
             Describe what can be done about it here.
           </Banner.Description>
@@ -168,11 +176,12 @@ export const Content: Story = {
       </Example>
 
       <Example name="Kitchen sink">
-        <KitchenSinkBanner tone="brand" variant="soft" />
+        <KitchenSinkBanner {...args} tone="brand" variant="soft" />
       </Example>
 
       <Example name="Custom children">
         <Banner
+          {...args}
           tone="brand"
           variant="soft"
           icon={false}
@@ -199,6 +208,7 @@ export const Content: Story = {
 
       <Example name="Custom icon (Avatar)">
         <Banner
+          {...args}
           tone="brand"
           variant="soft"
           icon={{
@@ -217,6 +227,7 @@ export const Content: Story = {
 
       <Example name="Custom icon (Avatar) + content">
         <Banner
+          {...args}
           tone="brand"
           variant="soft"
           icon={{
@@ -241,7 +252,12 @@ export const Content: Story = {
       </Example>
 
       <Example name="Title + 4 actions">
-        <Banner tone="brand" variant="soft" dismissible={{ onDismiss: noop }}>
+        <Banner
+          {...args}
+          tone="brand"
+          variant="soft"
+          dismissible={{ onDismiss: noop }}
+        >
           <Banner.Title>Summarise what happened</Banner.Title>
           <Banner.Actions>
             <Banner.ActionButton>Approve</Banner.ActionButton>
@@ -253,7 +269,12 @@ export const Content: Story = {
       </Example>
 
       <Example name="Extra long content">
-        <Banner tone="brand" variant="soft" dismissible={{ onDismiss: noop }}>
+        <Banner
+          {...args}
+          tone="brand"
+          variant="soft"
+          dismissible={{ onDismiss: noop }}
+        >
           <Banner.Title>
             Heads up about an upcoming permissions change
           </Banner.Title>
@@ -267,6 +288,7 @@ export const Content: Story = {
 
       <Example name="Max width 400px">
         <Banner
+          {...args}
           tone="brand"
           variant="soft"
           dismissible={{ onDismiss: noop }}

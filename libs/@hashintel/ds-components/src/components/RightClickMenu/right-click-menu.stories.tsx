@@ -16,29 +16,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type RightClickMenuProps = React.ComponentProps<typeof RightClickMenu>;
 
-const positions = [
-  "bottom",
-  "bottom-start",
-  "bottom-end",
-  "top",
-  "top-start",
-  "top-end",
-  "left",
-  "left-start",
-  "left-end",
-  "right",
-  "right-start",
-  "right-end",
-] as const;
-
 const meta = {
   title: "Components/RightClickMenu",
-  argTypes: {
-    position: {
-      control: { type: "select" },
-      options: positions,
-    },
-  },
+  component: RightClickMenu,
   args: {
     position: "bottom-start",
   },

@@ -114,13 +114,7 @@ const KitchenSinkChip = ({
 
 const meta = {
   title: "Components/Chip",
-  argTypes: {
-    color: { control: { type: "select" }, options: colors },
-    variant: { control: { type: "select" }, options: variants },
-    size: { control: { type: "select" }, options: chipSizes },
-    shape: { control: { type: "select" }, options: shapes },
-    children: { control: { type: "text" } },
-  },
+  component: Chip,
   args: {
     children: "Chip",
     color: "grey",
