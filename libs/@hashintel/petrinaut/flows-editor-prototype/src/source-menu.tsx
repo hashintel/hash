@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Icon,
   type IconName,
+  type ItemOrGroup,
+  type MenuItem,
   Popover,
   TextInput,
 } from "@hashintel/ds-components";
@@ -25,6 +27,7 @@ import {
 import { useEditor } from "./editor-context";
 import { isMockPayloadKind } from "./mock-action-definitions";
 import { mockEntities } from "./mock-graph";
+import { OpenMenu } from "./open-menu";
 import {
   acceptedKinds,
   type SourceOption,
@@ -299,6 +302,87 @@ export const addLookupStep = (
   return { document: connected, lookupId };
 };
 
+type SourceGroup = {
+  id: string;
+  label?: string;
+  items: {
+    id: string;
+    text: string;
+    description?: string;
+    icon?: IconName;
+    selected?: boolean;
+    disabled?: boolean;
+    hint?: string;
+    onPick?: () => void;
+  }[];
+};
+
+/** The model as DS Menu groups and items. A tick marks a picked value; a disabled row says why a list is empty. */
+const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<MenuItem>> =>
+  groups.map((group) => ({
+    id: group.id,
+    label: group.label ?? "",
+    items: group.items.map((item) => ({
+      id: item.id,
+      text: item.text,
+      description: item.description,
+      icon: item.icon,
+      selected: item.selected,
+      selectedStyle: "tick" as const,
+      disabled: item.disabled,
+      onClick: () => item.onPick?.(),
+    })),
+  }));
+
+/** The DS Menu at the width the mocks give a source menu: 240 to 380 px. */
+const sourceMenuWidthStyle = css({
+  minWidth: "[240px]",
+  maxWidth: "[380px]",
+});
+
+/** A DS Menu's search: the DS TextInput at sm with a search icon, pinned above the items. */
+export const SearchHeader = ({
+  value,
+  onChange,
+  placeholder = "Search",
+  focusOnOpen = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  /** Type straight away: focus moves here once the DS Menu has focused itself on open. */
+  focusOnOpen?: boolean;
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!focusOnOpen) {
+      return;
+    }
+    // Two frames: the menu focuses its content in the frame after it opens.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() =>
+        ref.current?.querySelector("input")?.focus(),
+      );
+    });
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(inner);
+    };
+  }, [focusOnOpen]);
+  return (
+    <div ref={ref} className={css({ padding: "1", paddingBottom: "0" })}>
+      <TextInput
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        size="sm"
+        prefix={{ iconName: "search", variant: "subtle" }}
+      />
+    </div>
+  );
+};
+
 export type TypedChoice = {
   label: string;
   source: StepInputSource;
@@ -398,6 +482,123 @@ export const SourceMenu = ({
   // Search only earns its place on a long list; the mocks show short menus without it.
   const longList = searchAlways || typedChoicesProp.length + options.length > 8;
 
+  /* One model for both renderings: DS Menu groups and items (icon, description, tick). */
+  const groupsModel: SourceGroup[] = [
+    ...(typed.length > 0
+      ? [
+          {
+            id: "typed",
+            label:
+              typedGroupLabel ??
+              (kinds.includes("EntityId") ? "Entities" : "Values"),
+            items: typed.map((choice) => ({
+              id: `typed:${choice.label}`,
+              text: choice.label,
+              selected: choice.selected,
+              hint: choice.hint,
+              onPick: () => onPick(choice.source),
+            })),
+          },
+        ]
+      : []),
+    ...groups.flatMap((group) => {
+      const inGroup = options.filter((option) => option.group === group);
+      // Empty groups stay hidden (Aakarsh, 21 Oct); one line below says when nothing fits at all.
+      return inGroup.length === 0
+        ? []
+        : [
+            {
+              id: group,
+              label: group,
+              items: inGroup.map((option) => ({
+                id: JSON.stringify(option.source),
+                text: option.label,
+                description: option.ownerLabel,
+                icon: ownerIcon(document, option).icon,
+                hint: `${option.ownerLabel} › ${option.label} · ${kindLabel(option.shape.payloadKind, option.shape.array)}${option.note ? ` · ${option.note}` : ""}`,
+                onPick: () => onPick(option.source),
+              })),
+            },
+          ];
+    }),
+    ...(nothingFits
+      ? [
+          {
+            id: "nothing",
+            items: [
+              {
+                id: "nothing",
+                text: text
+                  ? `Nothing matches “${query ?? search}”`
+                  : `Nothing earlier gives ${phrase}`,
+                disabled: true,
+              },
+            ],
+          },
+        ]
+      : []),
+    ...(lookupAllowed
+      ? [
+          {
+            id: "graph",
+            label: "In the graph",
+            items: [
+              {
+                id: "lookup",
+                text: "Look up in the graph",
+                icon: "diagramNodes" as const,
+                hint: "Adds a Find entities step before this one",
+                onPick: lookUp,
+              },
+            ],
+          },
+        ]
+      : []),
+    // The way out when nothing fits (Ciarán, 20 Oct), in the same row grammar.
+    {
+      id: "out",
+      items: [
+        ...(onTypeValue
+          ? [
+              {
+                id: "type-value",
+                text: typeValueLabel,
+                icon: typeValueIcon,
+                onPick: onTypeValue,
+              },
+            ]
+          : []),
+        {
+          id: "add-flow-input",
+          text: "Add flow input",
+          icon: "plus" as const,
+          onPick: addFlowInput,
+        },
+      ],
+    },
+  ];
+
+  if (query === undefined) {
+    // The DS Menu: groups, icons, descriptions and ticks as shipped; the search is its pinned header.
+    return (
+      <OpenMenu
+        anchor={anchor}
+        position="bottom-end"
+        onClose={onClose}
+        label={`Choose ${input.label}`}
+        className={sourceMenuWidthStyle}
+        header={
+          hideSearch || !longList ? undefined : (
+            <SearchHeader value={search} onChange={setSearch} />
+          )
+        }
+        items={toMenuItems(groupsModel)}
+      />
+    );
+  }
+
+  // "@" typed in a field: the field keeps focus while the list filters, which the DS Menu cannot do (it takes focus
+  // and closes when focus leaves it). DS gap: no mention input (audit section 3 item 6). Same rows, DS Menu look.
   return (
     <Popover
       triggerRef={anchor}
@@ -412,133 +613,32 @@ export const SourceMenu = ({
         role="dialog"
         aria-label={`Choose ${input.label}`}
       >
-        {hideSearch || query !== undefined || !longList ? null : (
-          <div className={css({ padding: "1", paddingBottom: "0" })}>
-            <TextInput
-              value={search}
-              onChange={(value) => setSearch(value)}
-              placeholder="Search"
-              size="sm"
-              prefix={{ iconName: "search", variant: "subtle" }}
-            />
-          </div>
-        )}
         <OverlayScrollArea className={css({ maxHeight: "[480px]" })}>
-          {typed.length > 0 ? (
-            <div className={menuGroupStyle}>
-              <div className={menuGroupLabelStyle}>
-                {typedGroupLabel ??
-                  (kinds.includes("EntityId") ? "Entities" : "Values")}
-              </div>
-              {typed.map((choice) => (
-                <button
-                  key={choice.label}
-                  type="button"
-                  className={menuRowStyle}
-                  data-selected={choice.selected || undefined}
-                  title={choice.hint}
-                  onClick={() => onPick(choice.source)}
-                >
-                  {choice.selected ? <Icon name="check" size="xs" /> : null}
-                  <span className={rowTextStyle}>{choice.label}</span>
-                </button>
-              ))}
+          {groupsModel.map((group) => (
+            <div key={group.id} className={menuGroupStyle}>
+              {group.label ? (
+                <div className={menuGroupLabelStyle}>{group.label}</div>
+              ) : null}
+              {group.items.map((item) =>
+                item.disabled ? (
+                  <div key={item.id} className={menuEmptyRowStyle}>
+                    {item.text}
+                  </div>
+                ) : (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={menuRowStyle}
+                    title={item.hint}
+                    onClick={item.onPick}
+                  >
+                    {item.icon ? <Icon name={item.icon} size="xs" /> : null}
+                    <span className={rowTextStyle}>{item.text}</span>
+                  </button>
+                ),
+              )}
             </div>
-          ) : null}
-          {groups.map((group) => {
-            const inGroup = options.filter((option) => option.group === group);
-            // Empty groups stay hidden (Aakarsh, 21 Oct); one line below says when nothing fits at all.
-            if (inGroup.length === 0) {
-              return null;
-            }
-            return (
-              <div key={group} className={menuGroupStyle}>
-                <div className={menuGroupLabelStyle}>{group}</div>
-                {inGroup.map((option) => {
-                  const look = ownerIcon(document, option);
-                  return (
-                    <button
-                      key={JSON.stringify(option.source)}
-                      type="button"
-                      className={menuRowStyle}
-                      title={`${option.ownerLabel} › ${option.label} · ${kindLabel(option.shape.payloadKind, option.shape.array)}${option.note ? ` · ${option.note}` : ""}`}
-                      onClick={() => onPick(option.source)}
-                    >
-                      <Icon name={look.icon} size="xs" />
-                      <span
-                        className={css({
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "0.5",
-                          minWidth: "[0]",
-                          flex: "1",
-                        })}
-                      >
-                        <span className={rowTextStyle}>{option.label}</span>
-                        <span
-                          className={css({
-                            textStyle: "xs",
-                            fontWeight: "normal",
-                            color: "neutral.fg.subtle",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          })}
-                        >
-                          {option.ownerLabel}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })}
-          {nothingFits ? (
-            <div className={menuGroupStyle}>
-              <div className={menuEmptyRowStyle}>
-                {text
-                  ? `Nothing matches “${query ?? search}”`
-                  : `Nothing earlier gives ${phrase}`}
-              </div>
-            </div>
-          ) : null}
-          {lookupAllowed ? (
-            <div className={menuGroupStyle}>
-              <div className={menuGroupLabelStyle}>In the graph</div>
-              <button
-                type="button"
-                className={menuRowStyle}
-                onClick={lookUp}
-                title="Adds a Find entities step before this one"
-              >
-                <Icon name="diagramNodes" size="xs" />
-                <span className={css({ flex: "1" })}>Look up in the graph</span>
-                <Icon name="chevronRight" size="sm" />
-              </button>
-            </div>
-          ) : null}
-          {/* The way out when nothing fits (Ciarán, 20 Oct), in the same row grammar. */}
-          <div className={menuGroupStyle}>
-            {onTypeValue ? (
-              <button
-                type="button"
-                className={menuRowStyle}
-                onClick={onTypeValue}
-              >
-                <Icon name={typeValueIcon} size="xs" />
-                {typeValueLabel}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className={menuRowStyle}
-              onClick={addFlowInput}
-            >
-              <Icon name="plus" size="xs" />
-              Add flow input
-            </button>
-          </div>
+          ))}
         </OverlayScrollArea>
       </div>
     </Popover>
