@@ -1041,15 +1041,15 @@ const aiFlowActionDefinitionsAsConst = {
     actionDefinitionId: "createEntity",
     name: "Create Entity",
     description:
-      "Create an entity of a type in the web the flow runs in, with values for some of its properties.",
+      "Create an entity of one or more types in the web the flow runs in, with values for some of its properties.",
     kind: "action",
     inputs: [
       {
         oneOfPayloadKinds: ["VersionedUrl"],
-        name: "entityTypeId",
-        description: "The type of the entity to create.",
+        name: "entityTypeIds",
+        description: "The types of the entity to create.",
         required: true,
-        array: false,
+        array: true,
       },
       {
         oneOfPayloadKinds: ["PropertyObjectWithMetadata"],

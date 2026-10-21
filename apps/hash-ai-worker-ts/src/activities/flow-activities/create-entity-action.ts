@@ -25,22 +25,31 @@ const invalidArgument = (message: string) => ({
 });
 
 /**
- * Creates an entity of a type in the flow's web, with the given properties and their metadata, as the web's machine on
- * behalf of the user running the flow. The graph validates the entity; a draft may leave required properties out.
+ * Creates an entity of the given types in the flow's web, with the given properties and their metadata, as the web's
+ * machine on behalf of the user running the flow. The graph validates the entity; a draft may leave required properties
+ * out.
  */
 export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
   inputs,
 }) => {
   const {
-    entityTypeId,
+    entityTypeIds,
     properties,
     draft = false,
   } = getSimplifiedFlowActionInputs({ inputs, actionType: "createEntity" });
 
-  if (validateVersionedUrl(entityTypeId).type !== "Ok") {
-    return invalidArgument(
-      `${JSON.stringify(entityTypeId)} is not an entity type ID.`,
-    );
+  const [firstEntityTypeId, ...otherEntityTypeIds] = entityTypeIds;
+
+  if (!firstEntityTypeId) {
+    return invalidArgument("Give at least one entity type ID.");
+  }
+
+  for (const entityTypeId of entityTypeIds) {
+    if (validateVersionedUrl(entityTypeId).type !== "Ok") {
+      return invalidArgument(
+        `${JSON.stringify(entityTypeId)} is not an entity type ID.`,
+      );
+    }
   }
 
   const propertiesError = validatePropertiesWithMetadata(properties);
@@ -97,7 +106,7 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
           {
             webId,
             entityUuid,
-            entityTypeIds: [entityTypeId],
+            entityTypeIds: [firstEntityTypeId, ...otherEntityTypeIds],
             properties,
             draft,
             provenance: {

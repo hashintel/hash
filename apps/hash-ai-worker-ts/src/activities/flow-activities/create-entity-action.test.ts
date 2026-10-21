@@ -46,6 +46,8 @@ vi.mock("@local/hash-graph-sdk/entity", async (importOriginal) => ({
 
 const personType =
   "https://example.com/types/entity-type/person/v/1" as VersionedUrl;
+const employeeType =
+  "https://example.com/types/entity-type/employee/v/1" as VersionedUrl;
 const nameUrl = "https://example.com/types/property-type/name/" as BaseUrl;
 const emailUrl = "https://example.com/types/property-type/email/" as BaseUrl;
 const text = {
@@ -57,17 +59,17 @@ const ada = {
 } satisfies PropertyObjectWithMetadata;
 
 const run = (params: {
-  entityTypeId?: string;
+  entityTypeIds?: string[];
   properties: PropertyObjectWithMetadata;
   draft?: boolean;
 }) =>
   createEntityAction({
     inputs: [
       {
-        inputName: "entityTypeId",
+        inputName: "entityTypeIds",
         payload: {
           kind: "VersionedUrl",
-          value: (params.entityTypeId ?? personType) as VersionedUrl,
+          value: (params.entityTypeIds ?? [personType]) as VersionedUrl[],
         },
       },
       {
@@ -174,11 +176,31 @@ describe("createEntityAction", () => {
     );
   });
 
+  it("creates an entity with every type given", async () => {
+    mockCreated(`${webId}~00000000-0000-4000-8000-000000000002` as EntityId);
+
+    await run({ entityTypeIds: [personType, employeeType], properties: ada });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ entityTypeIds: [personType, employeeType] }),
+    );
+  });
+
   it.each([
+    {
+      name: "no entity type IDs",
+      params: { entityTypeIds: [], properties: ada },
+      message: "Give at least one entity type ID.",
+    },
     {
       name: "an entity type ID that isn't a versioned URL",
       params: {
-        entityTypeId: "https://example.com/types/entity-type/person/",
+        entityTypeIds: [
+          personType,
+          "https://example.com/types/entity-type/person/",
+        ],
         properties: ada,
       },
       message:

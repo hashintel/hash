@@ -817,11 +817,11 @@ describe("validateFlowDefinition", () => {
             actionDefinitionId: "createEntity",
             description: "",
             inputs: {
-              entityTypeId: {
+              entityTypeIds: {
                 kind: "constant",
                 payload: {
                   kind: "VersionedUrl",
-                  value: "https://example.com/types/entity-type/person/v/1",
+                  value: ["https://example.com/types/entity-type/person/v/1"],
                 },
               },
               properties,
