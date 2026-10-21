@@ -26,8 +26,6 @@ beforeAll(() => {
 
 afterEach(cleanup);
 
-const onTitleClose = vi.fn();
-
 const PluginChat = () => {
   const panel = useAssistantPanel();
 
@@ -35,7 +33,6 @@ const PluginChat = () => {
     <>
       <AssistantPanelTitle
         actions={<button type="button">Clear test chat</button>}
-        onClose={onTitleClose}
       >
         Test assistant
       </AssistantPanelTitle>
@@ -118,13 +115,12 @@ describe("EditorAssistantPanel", () => {
     );
   });
 
-  test("runs the title's onClose, then closes the panel", () => {
+  test("closes the panel from its title bar", () => {
     renderPlugins([chatPlugin], <Editor />);
     fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" }));
 
     fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
 
-    expect(onTitleClose).toHaveBeenCalledOnce();
     expect(screen.getByText("Plugin chat closed")).not.toBeNull();
   });
 
