@@ -142,22 +142,6 @@ export const withThemeableColours = (markup: string): string => {
       `.${scope} [fill="${fill}"]{fill:var(--pnd-diagram-${name}-fill,${fill});}`,
       `.${scope} [stroke="${stroke}"]{stroke:var(--pnd-diagram-${name}-stroke,${stroke});}`,
     ]),
-    /*
-     * The badge that marks a node as carrying a tooltip. `d2` draws it outside
-     * its palette, so without these it stays a white disc with a near-black
-     * glyph whatever the host does.
-     *
-     * Matched on the pair of attributes rather than on `white` alone, and that
-     * is the whole point. `d2` knocks its connections out from behind their
-     * labels with a mask built from a white rect that shows everything and
-     * black rects over each label, where white and black are not colours but
-     * show and hide; theming those inverts the mask and every masked
-     * connection vanishes apart from the stubs behind its own labels. A mask
-     * holds only `rect` elements and none of them carry a stroke, so a
-     * `path` carrying both a fill and this stroke cannot be one.
-     */
-    `.${scope} path[fill="white"][stroke="#DEE1EB"]{fill:var(--pnd-diagram-badge-fill,#FFFFFF);stroke:var(--pnd-diagram-badge-edge,#DEE1EB);}`,
-    `.${scope} [stroke="#2E3346"]{stroke:var(--pnd-diagram-badge-mark,#2E3346);}`,
   ].join("\n");
 
   return markup.replace(
@@ -165,6 +149,15 @@ export const withThemeableColours = (markup: string): string => {
     `<style type="text/css"><![CDATA[\n${rules}\n]]></style></svg>`,
   );
 };
+
+/**
+ * Strips the badges d2 draws beside a node that carries a tooltip or a
+ * link. The tooltip is the node's `<title>`, which browsers show on hover,
+ * and the link wraps the node itself, so the badges only announce what the
+ * node already does, outside the palette and over the connections.
+ */
+export const withoutBadges = (markup: string): string =>
+  markup.replace(/<g[^>]*class="appendix-icon">[\s\S]*?<\/svg>\s*<\/g>/gu, "");
 
 /**
  * Renders a `.d2` file to SVG.
@@ -213,7 +206,7 @@ export const renderD2 = async (options: {
   try {
     await writeFile(
       outputPath,
-      withThemeableColours(await readFile(outputPath, "utf8")),
+      withThemeableColours(withoutBadges(await readFile(outputPath, "utf8"))),
     );
   } catch (error) {
     return { ok: false, error: String(error) };
