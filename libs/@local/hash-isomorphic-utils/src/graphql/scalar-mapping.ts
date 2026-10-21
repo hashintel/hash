@@ -167,9 +167,12 @@ export const scalars = {
   RoleUnassignmentStatus: "@local/hash-graph-client#RoleUnassignmentStatus",
 };
 
-export const _localRelativeScalars = Object.fromEntries(
+export const localRelativeScalars = Object.fromEntries(
   Object.entries(scalars).map(([key, value]) => [
     key,
-    value.replace(/@local\/hash-isomorphic-utils\/([^#]+)(#.*)/g, "../$1.js$2"),
+    value.replaceAll(
+      /@local\/hash-isomorphic-utils\/(?<path>[^#]+)(?<fragment>#.*)/gu,
+      "../$<path>.js$<fragment>",
+    ),
   ]),
 );

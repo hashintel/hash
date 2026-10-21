@@ -22,7 +22,9 @@ export const pageEntityTypeIds: VersionedUrl[] = [
  * inherits from 'Page'. This would be required if we want users to
  * be able to create their own page types which showed where we list 'Pages'.
  */
-export const includesPageEntityTypeId = (entityTypeIds: VersionedUrl[]) =>
+export const includesPageEntityTypeId = (
+  entityTypeIds: VersionedUrl[],
+): boolean =>
   entityTypeIds.some((entityTypeId) =>
     pageEntityTypeIds.includes(entityTypeId),
   );
@@ -32,8 +34,9 @@ export const contentLinkEntityTypeIds: VersionedUrl[] = [
   systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId,
 ];
 
-export const isContentLinkEntityTypeId = (entityTypeId: VersionedUrl) =>
-  contentLinkEntityTypeIds.includes(entityTypeId);
+export const isContentLinkEntityTypeId = (
+  entityTypeId: VersionedUrl,
+): boolean => contentLinkEntityTypeIds.includes(entityTypeId);
 
 /**
  * Generate a structural query filter for the types which link a block in a Block Collection to its content.

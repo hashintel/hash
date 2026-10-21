@@ -1,9 +1,14 @@
-import { textualContentPropertyTypeBaseUrl } from "./entity-store.js";
+import { blockProtocolPropertyTypes } from "./ontology-type-ids.js";
 
 import type { TextProperties } from "./entity.js";
 import type { ComponentNode } from "./prosemirror.js";
 import type { TextToken } from "./types.js";
 import type { Node, Schema } from "prosemirror-model";
+
+const textualContentPropertyTypeBaseUrl =
+  blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl;
+
+type MentionToken = Extract<TextToken, { tokenType: "mention" }>;
 
 export const textBlockNodesFromTokens = (
   tokens: TextToken[],
@@ -34,12 +39,14 @@ export const textBlockNodesFromTokens = (
             ["highlighted", token.highlighted] as const,
             [
               "link",
-              Boolean(token.link),
-              token.link ? { href: token.link } : undefined,
+              token.link !== undefined && token.link !== "",
+              token.link !== undefined && token.link !== ""
+                ? { href: token.link }
+                : undefined,
             ] as const,
           ]
             .filter(([, include]) => include ?? false)
-            .map(([mark, _, attrs]) => schema.mark(mark, attrs)),
+            .map(([mark, , attrs]) => schema.mark(mark, attrs)),
         );
       }
     }
@@ -68,12 +75,16 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
         break;
       }
       case "mention": {
+        // SAFETY: the schema's `mention` node declares exactly these attributes, with these types.
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- prosemirror types `attrs` as an untyped record, so the schema is the only source of these types
+        const mentionAttrs = child.attrs as Omit<MentionToken, "tokenType">;
+
         tokens.push({
           tokenType: "mention",
-          mentionType: child.attrs.mentionType,
-          entityId: child.attrs.entityId,
-          propertyTypeBaseUrl: child.attrs.propertyTypeBaseUrl,
-          linkEntityTypeBaseUrl: child.attrs.linkEntityTypeBaseUrl,
+          mentionType: mentionAttrs.mentionType,
+          entityId: mentionAttrs.entityId,
+          propertyTypeBaseUrl: mentionAttrs.propertyTypeBaseUrl,
+          linkEntityTypeBaseUrl: mentionAttrs.linkEntityTypeBaseUrl,
         });
         break;
       }
@@ -81,6 +92,11 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
         const marks = new Set<string>(
           child.marks.map((mark) => mark.type.name),
         );
+
+        const linkMark = child.marks.find((mark) => mark.type.name === "link");
+        // SAFETY: the schema's `link` mark declares `href` as a string.
+        const linkHref = (linkMark?.attrs as { href?: string } | undefined)
+          ?.href;
 
         tokens.push({
           tokenType: "text",
@@ -90,12 +106,7 @@ export const textBlockNodeToTextTokens = (node: ComponentNode): TextToken[] => {
           ...(marks.has("underlined") ? { underline: true } : {}),
           ...(marks.has("strikethrough") ? { strikethrough: true } : {}),
           ...(marks.has("highlighted") ? { highlighted: true } : {}),
-          ...(marks.has("link")
-            ? {
-                link: child.marks.find((mark) => mark.type.name === "link")
-                  ?.attrs.href,
-              }
-            : {}),
+          ...(marks.has("link") ? { link: linkHref } : {}),
         });
         break;
       }

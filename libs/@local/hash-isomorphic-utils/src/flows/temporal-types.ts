@@ -1,7 +1,7 @@
 import type {
   FlowDataSources,
-  LocalFlowRun,
   FlowInputValues,
+  LocalFlowRun,
 } from "./types.js";
 import type {
   EntityId,
@@ -11,7 +11,7 @@ import type {
 } from "@blockprotocol/type-system";
 import type { Status } from "@local/status";
 
-export type BaseRunFlowWorkflowParams = {
+export interface BaseRunFlowWorkflowParams {
   /**
    * Optionally provide the UUID to use when persisting the Flow Entity.
    * For manually-triggered Flow Runs, so that the user can be instantly given the entity's UUID,
@@ -37,7 +37,7 @@ export type BaseRunFlowWorkflowParams = {
   flowTriggerEntityId?: EntityId;
   userAuthentication: { actorId: UserId };
   webId: WebId;
-};
+}
 
 export type RunAiFlowWorkflowParams = BaseRunFlowWorkflowParams & {
   dataSources: FlowDataSources;

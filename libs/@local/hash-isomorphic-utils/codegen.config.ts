@@ -1,4 +1,4 @@
-import { _localRelativeScalars } from "./src/graphql/scalar-mapping.js";
+import { localRelativeScalars } from "./src/graphql/scalar-mapping.js";
 
 import type { CodegenConfig } from "@graphql-codegen/cli";
 
@@ -16,7 +16,7 @@ const config: CodegenConfig = {
         // the root operation type, so the generated types include it.
         skipTypename: false,
         // Use shared scalars
-        scalars: _localRelativeScalars,
+        scalars: localRelativeScalars,
       },
     },
     "./src/graphql/api-types.gen.ts": {
@@ -27,7 +27,7 @@ const config: CodegenConfig = {
       documents: ["./src/graphql/queries/**/*.ts"],
       config: {
         // Use shared scalars
-        scalars: _localRelativeScalars,
+        scalars: localRelativeScalars,
         importSchemaTypesFrom: "./src/graphql/schema-types.gen.ts",
         importExtension: ".js",
         // Match the `__typename` Apollo Client adds; see `skipTypename` above.

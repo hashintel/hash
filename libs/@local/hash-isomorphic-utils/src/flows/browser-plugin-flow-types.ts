@@ -3,7 +3,7 @@ import type { OutputDefinition, Payload, WebPage } from "./types.js";
 import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 
-export type AutomaticInferenceSettings = {
+export interface AutomaticInferenceSettings {
   createAs: "draft" | "live";
   displayGroupedBy: "type" | "location";
   enabled: boolean;
@@ -13,7 +13,7 @@ export type AutomaticInferenceSettings = {
     restrictToDomains: string[];
     entityTypeId: VersionedUrl;
   }[];
-};
+}
 
 export type AutomaticInferenceInputName = "visitedWebPage";
 
@@ -50,7 +50,9 @@ export type ManualInferenceInputs = Subtype<
   }
 >;
 
-type BaseInferenceArguments = { webId: WebId };
+interface BaseInferenceArguments {
+  webId: WebId;
+}
 
 export type AutomaticInferenceArguments = AutomaticInferenceInputs &
   BaseInferenceArguments;

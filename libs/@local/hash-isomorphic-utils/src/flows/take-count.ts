@@ -24,7 +24,7 @@ export const checkTakeCountInput: ActionStepCheck = ({ step, report }) => {
 
   const error = validateTakeCount(source.payload.value);
 
-  if (error) {
+  if (error !== undefined) {
     report("count", error);
   }
 };

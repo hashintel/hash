@@ -3,12 +3,7 @@ import { isEqual } from "lodash-es";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { v4 as uuid } from "uuid";
 
-import {
-  currentTimestamp,
-  type EntityId,
-  type PropertyObject,
-  type WebId,
-} from "@blockprotocol/type-system";
+import { currentTimestamp } from "@blockprotocol/type-system";
 
 import {
   createEntityStore,
@@ -34,6 +29,11 @@ import type {
 } from "./entity-store.js";
 import type { BlockEntity } from "./entity.js";
 import type { ComponentNode, EntityNode } from "./prosemirror.js";
+import type {
+  EntityId,
+  PropertyObject,
+  WebId,
+} from "@blockprotocol/type-system";
 import type { Draft } from "immer";
 import type { Node } from "prosemirror-model";
 import type { EditorState, Transaction } from "prosemirror-state";
@@ -260,7 +260,7 @@ const entityStoreReducer = (
   action: EntityStorePluginAction,
 ): EntityStorePluginState => {
   switch (action.type) {
-    case "mergeNewPageContents":
+    case "mergeNewPageContents": {
       return {
         ...state,
         store: createEntityStore(
@@ -269,6 +269,7 @@ const entityStoreReducer = (
           action.payload.presetDraftIds,
         ),
       };
+    }
 
     case "store": {
       return {
@@ -376,7 +377,7 @@ const entityStoreReducer = (
       });
     }
 
-    case "newDraftEntity":
+    case "newDraftEntity": {
       if (state.store.draft[action.payload.draftId]) {
         throw new Error("Draft entity already exists");
       }
@@ -419,6 +420,7 @@ const entityStoreReducer = (
           properties: {},
         };
       });
+    }
   }
 
   return state;
@@ -521,7 +523,7 @@ const getRequiredDraftIdFromEntityNode = (entityNode: EntityNode): string => {
 
 class ProsemirrorStateChangeHandler {
   private readonly tr: Transaction;
-  private handled = false;
+  #handled = false;
 
   constructor(
     private state: EditorState,
@@ -531,11 +533,11 @@ class ProsemirrorStateChangeHandler {
   }
 
   handleDoc() {
-    if (this.handled) {
+    if (this.#handled) {
       throw new Error("already used");
     }
 
-    this.handled = true;
+    this.#handled = true;
 
     this.tr.doc.descendants((node, pos) => {
       this.handleNode(node, pos);
@@ -777,7 +779,7 @@ const scheduleNotifyEntityStoreSubscribers = collect<
       const listeners = EntityStoreListeners.get(entityStorePlugin);
 
       if (listeners) {
-        for (const listener of Array.from(listeners)) {
+        for (const listener of [...listeners]) {
           listener(nextPluginState.store);
         }
       }

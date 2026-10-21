@@ -1,4 +1,4 @@
-import { uniq } from "lodash-es";
+import { isNil, uniq } from "lodash-es";
 
 /**
  * This behaves differently from the type `{}`, and will error if you set more properties on it.
@@ -9,28 +9,33 @@ export type EmptyObject = Record<string, never>;
  * @see https://github.com/microsoft/TypeScript/issues/25720#issuecomment-533438205
  */
 export const isUnknownObject = (
-  x: unknown,
-): x is { [key in PropertyKey]: unknown } =>
-  x !== null && typeof x === "object";
+  // oxlint-disable-next-line typescript/no-restricted-types -- a type guard takes arbitrary input by definition
+  value: unknown,
+  // oxlint-disable-next-line typescript/no-restricted-types -- the guarded object's values are not known
+): value is Record<PropertyKey, unknown> =>
+  value !== null && typeof value === "object";
 
 /**
  * This allows you to collect calls to a function to run at the end of a tick
  */
-export const collect = <P extends Array<unknown>>(
+export const collect = <
+  // oxlint-disable-next-line typescript/no-restricted-types -- the constraint accepts any argument list of the collected function
+  P extends unknown[],
+>(
   handler: (calls: P[]) => void,
 ): ((...args: P) => void) => {
-  let id: ReturnType<typeof setImmediate> | null = null;
+  let id: ReturnType<typeof globalThis.setImmediate> | null = null;
   let calls: P[] = [];
 
   return (...args: P) => {
     if (id !== null) {
-      clearImmediate(id);
+      globalThis.clearImmediate(id);
       id = null;
     }
 
     calls.push(args);
 
-    id = setImmediate(() => {
+    id = globalThis.setImmediate(() => {
       const thisCalls = calls;
       calls = [];
       handler(thisCalls);
@@ -40,19 +45,19 @@ export const collect = <P extends Array<unknown>>(
 
 /** A `Map` which creates a default value if the value for a key is not set. */
 export class DefaultMap<K, V> extends Map<K, V> {
-  private makeDefault: () => V;
+  readonly #makeDefault: () => V;
 
   constructor(makeDefault: () => V) {
     super();
-    this.makeDefault = makeDefault;
+    this.#makeDefault = makeDefault;
   }
 
-  get = (key: K) => {
+  get = (key: K): V => {
     let value = super.get(key);
-    if (value) {
+    if (value !== undefined) {
       return value;
     }
-    value = this.makeDefault();
+    value = this.#makeDefault();
     super.set(key, value);
     return value;
   };
@@ -62,16 +67,16 @@ export class DefaultMap<K, V> extends Map<K, V> {
  * Perform a topological sort [1] on an array of `edges` forming a directed acyclic graph.
  * [1] https://en.wikipedia.org/wiki/Topological_sorting
  * @returns a topological ordering of the nodes represented by the graph in `edges`.
- * @throws an error if the graph has a cycle.
+ * @throws {Error} if the graph has a cycle.
  * */
-export const topologicalSort = <T>(edges: [T, T][]) => {
+export const topologicalSort = <T>(edges: [T, T][]): T[] => {
   // Implementation based on Kahn's algorithm. See:
   // https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm)
 
   // Find nodes with no incoming edge, i.e. the root node(s)
-  const nonRootNodes = new Set(edges.map(([_, node]) => node));
+  const nonRootNodes = new Set(edges.map(([, node]) => node));
   const rootNodes = uniq(
-    edges.map(([node, _]) => node).filter((node) => !nonRootNodes.has(node)),
+    edges.map(([node]) => node).filter((node) => !nonRootNodes.has(node)),
   );
 
   // Pre-compute the incoming and outgoing edges for each node as an optimization
@@ -84,14 +89,16 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
     incomingEdges.get(n2).add(n1);
   }
 
-  const sort = [];
+  const sort: T[] = [];
   const stack = [...rootNodes];
 
   while (stack.length > 0) {
-    const node = stack.pop()!;
+    // SAFETY: the loop condition guarantees the stack is non-empty.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- `pop` returns `T | undefined`, and `T` itself may include `undefined`, so the length check cannot be replaced by an `undefined` check
+    const node = stack.pop() as T;
     sort.push(node);
     const nodeOutgoing = outgoingEdges.get(node);
-    for (const child of Array.from(nodeOutgoing.values())) {
+    for (const child of nodeOutgoing.values()) {
       const childIncoming = incomingEdges.get(child);
       // Remove the (node, child) edge from the graph
       nodeOutgoing.delete(child);
@@ -103,8 +110,8 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
   }
 
   // If there are any edges left, then the graph is not acyclic
-  for (const [_, children] of Array.from(outgoingEdges.entries())) {
-    if (children.size !== 0) {
+  for (const children of outgoingEdges.values()) {
+    if (children.size > 0) {
       throw new Error("graph is not acyclic");
     }
   }
@@ -124,26 +131,31 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
  *   tree structure.
  */
 export const treeFromParentReferences = <
-  Element extends {
-    [_ in Key]: string;
-  } & { [_ in Ref]?: string } & { [_ in Rec]?: Element[] },
+  Element extends Record<Key, string> &
+    Partial<Record<Ref, string>> &
+    Partial<Record<Rec, Element[]>>,
   Key extends string,
   Ref extends string,
   Rec extends string,
+  // oxlint-disable-next-line max-params -- the positional signature is part of the public API, used by `@apps/hash-api`
 >(
   elements: Element[],
   key: Key,
   reference: Ref,
   recursive: Rec,
-) => {
+): Element[] => {
   const topologicallySorted = topologicalSort(
     elements
       .filter(
         (element) =>
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-          element[reference] != null,
+          element[reference] !== undefined && element[reference] !== null,
       )
-      .map((element) => [element[key] as string, element[reference]]),
+      .map((element) => {
+        // SAFETY: `key` names a property declared as a string by the `Element` constraint.
+        const id = element[key] as string;
+        return [id, element[reference]];
+      }),
   );
 
   const mapping = new Map<string, Element>();
@@ -154,35 +166,35 @@ export const treeFromParentReferences = <
 
   for (const currentId of topologicallySorted) {
     const current = mapping.get(currentId);
-    if (!current) {
-      continue;
-    }
-    const existingParent = mapping.get(current[reference]);
-    if (!existingParent) {
-      (current[reference] as string | undefined) = undefined;
-      continue;
-    }
+    if (current !== undefined) {
+      const existingParent = mapping.get(current[reference]);
 
-    /**
-     * Topological sorting handles the case of cyclic references.
-     * Otherwise a check like the following could be relevant.
-     * if ((current[key] as string) === existingParent[reference]) {
-     *    throw new Error(
-     *      `Circular references given. Unable to reconstruct tree at ${current[key]}`,
-     *    );
-     *  }
-     * */
+      /**
+       * Topological sorting handles the case of cyclic references.
+       * Otherwise a check like the following could be relevant.
+       * if ((current[key] as string) === existingParent[reference]) {
+       *    throw new Error(
+       *      `Circular references given. Unable to reconstruct tree at ${current[key]}`,
+       *    );
+       *  }
+       * */
 
-    if (existingParent[recursive]) {
-      existingParent[recursive].push(current);
-    } else {
-      (existingParent[recursive] as Element[]) = [current];
+      if (existingParent === undefined) {
+        // SAFETY: `reference` names an optional string property by the `Element` constraint.
+        (current[reference] as string | undefined) = undefined;
+      } else if (existingParent[recursive] === undefined) {
+        // SAFETY: `recursive` names an optional `Element[]` property by the `Element` constraint.
+        (existingParent[recursive] as Element[]) = [current];
+      } else {
+        existingParent[recursive].push(current);
+      }
     }
   }
 
-  return Array.from(mapping.values()).filter(
+  return [...mapping.values()].filter(
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    (element) => element[reference] == null,
+    (element) =>
+      element[reference] === undefined || element[reference] === null,
   );
 };
 
@@ -192,12 +204,18 @@ export const treeFromParentReferences = <
  * @param fn mapping function for each node
  * @returns List of mapped nodes
  */
-export const flatMapTree = <T>(graph: object, fn: (a: unknown) => T[]) => {
-  const queue = [graph];
+export const flatMapTree = <T>(
+  // oxlint-disable-next-line typescript/no-restricted-types -- the graph is any object whose values may be objects
+  graph: object,
+  // oxlint-disable-next-line typescript/no-restricted-types -- the mapping function receives nodes of arbitrary shape
+  fn: (node: unknown) => T[],
+): T[] => {
+  // oxlint-disable-next-line typescript/no-restricted-types -- nodes of the graph are of arbitrary shape
+  const queue: unknown[] = [graph];
   const result: T[] = [];
 
   // BFS traversal using FIFO queue
-  while (queue.length !== 0) {
+  while (queue.length > 0) {
     const currentNode = queue.shift();
 
     // Add current nodes to result array

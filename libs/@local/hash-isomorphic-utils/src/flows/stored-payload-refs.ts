@@ -8,6 +8,13 @@ import type {
   StoredItemRef,
 } from "./types.js";
 
+/**
+ * A payload value of any kind, inline or stored, or an item of one. These helpers work on values whatever their
+ * kind, as workflow code does not know it.
+ */
+// oxlint-disable-next-line typescript/no-restricted-types -- the helpers accept the payload values of every kind, which have no common type
+type UntypedPayloadValue = unknown;
+
 /*
  * Operations on stored payload references that need only their metadata, so workflow code (which can't do
  * I/O) can iterate over and combine stored arrays. Activities resolve the results.
@@ -18,17 +25,17 @@ import type {
  * stored payload references, and a run only resolves references to its own outputs, so one given as an input can
  * never resolve.
  *
- * @throws naming the input whose value, or an item of it, is a stored payload reference.
+ * @throws {Error} naming the input whose value, or an item of it, is a stored payload reference.
  */
 export const assertNoStoredPayloadRefsInFlowInputs = (
   flowInputs: FlowInputValues,
 ): void => {
   /* Inputs from outside aren't validated yet, so a payload may not be an object. */
-  for (const [inputName, payload] of Object.entries<{ value?: unknown } | null>(
-    flowInputs,
-  )) {
+  for (const [inputName, payload] of Object.entries<{
+    value?: UntypedPayloadValue;
+  } | null>(flowInputs)) {
     const value = payload?.value;
-    const items: unknown[] = Array.isArray(value) ? value : [value];
+    const items: UntypedPayloadValue[] = Array.isArray(value) ? value : [value];
 
     if (items.some(isStoredPayloadRef)) {
       throw new Error(
@@ -79,17 +86,17 @@ export const concatStoredArrayRefs = <K extends StorablePayloadKind>(
 /**
  * The number of items in an array payload value, whether inline or stored.
  */
-export const getArrayPayloadLength = (value: unknown): number => {
+export const getArrayPayloadLength = (value: UntypedPayloadValue): number => {
   if (isStoredPayloadRef(value)) {
     if (!value.array) {
-      throw new Error("Cannot get the length of a singular stored payload");
+      throw new TypeError("Cannot get the length of a singular stored payload");
     }
 
     return value.length;
   }
 
   if (!Array.isArray(value)) {
-    throw new Error("Cannot get the length of a singular payload");
+    throw new TypeError("Cannot get the length of a singular payload");
   }
 
   return value.length;
@@ -98,17 +105,19 @@ export const getArrayPayloadLength = (value: unknown): number => {
 /**
  * The items of an array payload value, whether inline or stored: a stored array yields a reference per item.
  */
-export const getArrayPayloadItems = (value: unknown): unknown[] => {
+export const getArrayPayloadItems = (
+  value: UntypedPayloadValue,
+): UntypedPayloadValue[] => {
   if (isStoredPayloadRef(value)) {
     if (!value.array) {
-      throw new Error("Cannot get the items of a singular stored payload");
+      throw new TypeError("Cannot get the items of a singular stored payload");
     }
 
     return getStoredItemRefs(value);
   }
 
   if (!Array.isArray(value)) {
-    throw new Error("Cannot get the items of a singular payload");
+    throw new TypeError("Cannot get the items of a singular payload");
   }
 
   return value;
@@ -120,12 +129,14 @@ export const getArrayPayloadItems = (value: unknown): unknown[] => {
  * Array values are concatenated (stored arrays by reference), and singular values are appended.
  */
 export const appendCollectedValue = (
-  collected: unknown[] | ArrayStoredPayloadRef | undefined,
-  value: unknown,
-): unknown[] | ArrayStoredPayloadRef => {
+  collected: UntypedPayloadValue[] | ArrayStoredPayloadRef | undefined,
+  value: UntypedPayloadValue,
+): UntypedPayloadValue[] | ArrayStoredPayloadRef => {
   if (isStoredPayloadRef(value) && value.array) {
     if (collected !== undefined && !isStoredPayloadRef(collected)) {
-      throw new Error("Cannot concatenate a stored array with an inline array");
+      throw new TypeError(
+        "Cannot concatenate a stored array with an inline array",
+      );
     }
 
     return concatStoredArrayRefs(value.kind, [
@@ -135,11 +146,14 @@ export const appendCollectedValue = (
   }
 
   if (isStoredPayloadRef(collected)) {
-    throw new Error("Cannot concatenate an inline value with a stored array");
+    throw new TypeError(
+      "Cannot concatenate an inline value with a stored array",
+    );
   }
 
-  return [
-    ...(collected ?? []),
-    ...(Array.isArray(value) ? (value as unknown[]) : [value]),
-  ];
+  const valueItems: UntypedPayloadValue[] = Array.isArray(value)
+    ? value
+    : [value];
+
+  return [...(collected ?? []), ...valueItems];
 };

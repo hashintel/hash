@@ -10,25 +10,26 @@ export type HashClientType = (typeof hashClientTypes)[number];
 
 export const hashClientHeaderKey = "x-hash-client-id";
 
+// oxlint-disable-next-line typescript/no-restricted-types -- type guard over an arbitrary header value
 export const isHashClientType = (value: unknown): value is HashClientType =>
-  hashClientTypes.includes(value as HashClientType);
+  hashClientTypes.some((clientType) => clientType === value);
 
 export const getHashClientTypeFromRequest = (
   request: Request,
 ): OriginProvenance["type"] | undefined => {
   const header = request.headers[hashClientHeaderKey];
-  if (!header) {
+  if (header === undefined || header === "") {
     return undefined;
   }
 
   if (Array.isArray(header)) {
-    throw new Error(
+    throw new TypeError(
       `Expected only one ${hashClientHeaderKey} header value, received: ${header.join(", ")}`,
     );
   }
 
   if (!isHashClientType(header)) {
-    throw new Error(
+    throw new TypeError(
       `Unexpected ${hashClientHeaderKey} header value: ${header}. Valid values are: ${hashClientTypes.join(", ")}`,
     );
   }

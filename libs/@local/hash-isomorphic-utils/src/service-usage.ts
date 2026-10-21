@@ -21,7 +21,17 @@ const generateAggregateUsageKey = ({
 }: {
   serviceName: string;
   featureName: string;
-}) => `${serviceName}:${featureName}`;
+}): string => `${serviceName}:${featureName}`;
+
+const hoursPerDay = 24;
+const minutesPerHour = 60;
+const secondsPerMinute = 60;
+const millisecondsPerSecond = 1000;
+const millisecondsPerDay =
+  hoursPerDay * minutesPerHour * secondsPerMinute * millisecondsPerSecond;
+
+const nonNegativeOrZero = (value: number | null | undefined): number =>
+  value !== undefined && value !== null && value >= 0 ? value : 0;
 
 const getServiceFeatureForUsage = ({
   serviceUsageRecordSubgraph,
@@ -29,7 +39,12 @@ const getServiceFeatureForUsage = ({
 }: {
   serviceUsageRecordSubgraph: Subgraph<EntityRootType>;
   usageRecord: HashEntity<UsageRecord>;
-}) => {
+}): {
+  inputUnitCost: number | undefined;
+  outputUnitCost: number | undefined;
+  serviceName: string;
+  featureName: string;
+} => {
   const linkedEntities = getOutgoingLinkAndTargetEntities(
     serviceUsageRecordSubgraph,
     usageRecord.metadata.recordId.entityId,
@@ -37,14 +52,14 @@ const getServiceFeatureForUsage = ({
 
   const serviceFeatureLinkAndEntities = linkedEntities.filter(
     ({ linkEntity }) =>
-      linkEntity[0]!.metadata.entityTypeIds.includes(
+      linkEntity[0]?.metadata.entityTypeIds.includes(
         systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
-      ),
+      ) ?? false,
   );
   const [serviceFeatureLinkAndEntity] = serviceFeatureLinkAndEntities;
 
   if (
-    !serviceFeatureLinkAndEntity ||
+    serviceFeatureLinkAndEntity === undefined ||
     serviceFeatureLinkAndEntities.length !== 1
   ) {
     throw new Error(
@@ -52,11 +67,13 @@ const getServiceFeatureForUsage = ({
     );
   }
 
+  // SAFETY: the link type recordsUsageOf targets service feature entities.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the subgraph is untyped; the link type guarantees the target is a ServiceFeature
   const serviceFeatureEntity = serviceFeatureLinkAndEntity.rightEntity?.[0] as
     | HashEntity<ServiceFeature>
     | undefined;
 
-  if (!serviceFeatureEntity) {
+  if (serviceFeatureEntity === undefined) {
     throw new Error(
       `Service feature entity missing from subgraph for service usage record ${usageRecord.metadata.recordId.entityId}.`,
     );
@@ -65,19 +82,20 @@ const getServiceFeatureForUsage = ({
   const { featureName, serviceName, serviceUnitCost } = simplifyProperties(
     serviceFeatureEntity.properties,
   );
-  if (!serviceUnitCost) {
+  if (serviceUnitCost === undefined) {
     throw new Error("Cannot calculate usage cost without service unit cost.");
   }
 
   const applicablePrice = serviceUnitCost.find((entry) => {
     const { appliesUntil, appliesFrom } = simplifyProperties(entry);
     if (
-      appliesUntil &&
+      appliesUntil !== undefined &&
+      appliesUntil !== "" &&
       appliesUntil <= usageRecord.metadata.provenance.createdAtTransactionTime
     ) {
       return false;
     }
-    if (!appliesFrom) {
+    if (appliesFrom === "") {
       return false;
     }
     return (
@@ -85,7 +103,7 @@ const getServiceFeatureForUsage = ({
     );
   });
 
-  if (!applicablePrice) {
+  if (applicablePrice === undefined) {
     const serviceFeatureKey = generateAggregateUsageKey({
       serviceName,
       featureName,
@@ -101,7 +119,7 @@ const getServiceFeatureForUsage = ({
   return { inputUnitCost, outputUnitCost, serviceName, featureName };
 };
 
-export type AggregatedUsageRecord = {
+export interface AggregatedUsageRecord {
   serviceName: string;
   featureName: string;
   totalInputUnitCount: number;
@@ -112,7 +130,7 @@ export type AggregatedUsageRecord = {
     ClosedTemporalBound,
     ClosedTemporalBound
   > | null;
-};
+}
 
 export const getAggregateUsageRecordsByServiceFeature = ({
   decisionTimeInterval,
@@ -156,23 +174,18 @@ export const getAggregateUsageRecordsByServiceFeature = ({
     };
     const aggregateUsage = aggregateUsageByServiceFeature[serviceFeatureKey];
 
-    aggregateUsage.totalInputUnitCount +=
-      inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0;
-    aggregateUsage.totalOutputUnitCount +=
-      outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0;
+    aggregateUsage.totalInputUnitCount += nonNegativeOrZero(inputUnitCount);
+    aggregateUsage.totalOutputUnitCount += nonNegativeOrZero(outputUnitCount);
 
-    const inputCost =
-      (inputUnitCount ?? 0) *
-      (inputUnitCost && inputUnitCost >= 0 ? inputUnitCost : 0);
+    const inputCost = (inputUnitCount ?? 0) * nonNegativeOrZero(inputUnitCost);
     const outputCost =
-      (outputUnitCount ?? 0) *
-      (outputUnitCost && outputUnitCost >= 0 ? outputUnitCost : 0);
+      (outputUnitCount ?? 0) * nonNegativeOrZero(outputUnitCost);
     const totalCost = inputCost + outputCost;
 
     aggregateUsage.totalCostInUsd += totalCost;
 
     const oneDayEarlier = new Date(
-      new Date().valueOf() - 24 * 60 * 60 * 1000,
+      Date.now() - millisecondsPerDay,
     ).toISOString();
     if (record.metadata.provenance.createdAtTransactionTime > oneDayEarlier) {
       aggregateUsage.last24hoursTotalCostInUsd += totalCost;
@@ -182,12 +195,12 @@ export const getAggregateUsageRecordsByServiceFeature = ({
   return Object.values(aggregateUsageByServiceFeature);
 };
 
-export type AggregatedUsageByTask = {
+export interface AggregatedUsageByTask {
   taskName: string;
   totalInputUnitCount: number;
   totalOutputUnitCount: number;
   totalCostInUsd: number;
-};
+}
 
 export const getAggregateUsageRecordsByTask = ({
   serviceUsageRecords,
@@ -202,40 +215,37 @@ export const getAggregateUsageRecordsByTask = ({
     const { inputUnitCount, outputUnitCount, customMetadata } =
       simplifyProperties(record.properties);
 
-    const taskName =
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive
-      (customMetadata as FlowUsageRecordCustomMetadata | undefined)?.taskName;
-    if (!taskName) {
-      continue;
+    // SAFETY: custom metadata on flow usage records follows FlowUsageRecordCustomMetadata.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive
+    const flowMetadata = customMetadata as
+      | FlowUsageRecordCustomMetadata
+      | undefined;
+    const taskName = flowMetadata?.taskName;
+    if (taskName !== undefined && taskName !== "") {
+      const { inputUnitCost, outputUnitCost } = getServiceFeatureForUsage({
+        serviceUsageRecordSubgraph,
+        usageRecord: record,
+      });
+
+      aggregateUsageByTask[taskName] ??= {
+        taskName,
+        totalCostInUsd: 0,
+        totalInputUnitCount: 0,
+        totalOutputUnitCount: 0,
+      };
+      const aggregateUsage = aggregateUsageByTask[taskName];
+
+      aggregateUsage.totalInputUnitCount += nonNegativeOrZero(inputUnitCount);
+      aggregateUsage.totalOutputUnitCount += nonNegativeOrZero(outputUnitCount);
+
+      const inputCost =
+        (inputUnitCount ?? 0) * nonNegativeOrZero(inputUnitCost);
+      const outputCost =
+        (outputUnitCount ?? 0) * nonNegativeOrZero(outputUnitCost);
+      const totalCost = inputCost + outputCost;
+
+      aggregateUsage.totalCostInUsd += totalCost;
     }
-
-    const { inputUnitCost, outputUnitCost } = getServiceFeatureForUsage({
-      serviceUsageRecordSubgraph,
-      usageRecord: record,
-    });
-
-    aggregateUsageByTask[taskName] ??= {
-      taskName,
-      totalCostInUsd: 0,
-      totalInputUnitCount: 0,
-      totalOutputUnitCount: 0,
-    };
-    const aggregateUsage = aggregateUsageByTask[taskName];
-
-    aggregateUsage.totalInputUnitCount +=
-      inputUnitCount && inputUnitCount >= 0 ? inputUnitCount : 0;
-    aggregateUsage.totalOutputUnitCount +=
-      outputUnitCount && outputUnitCount >= 0 ? outputUnitCount : 0;
-
-    const inputCost =
-      (inputUnitCount ?? 0) *
-      (inputUnitCost && inputUnitCost >= 0 ? inputUnitCost : 0);
-    const outputCost =
-      (outputUnitCount ?? 0) *
-      (outputUnitCost && outputUnitCost >= 0 ? outputUnitCost : 0);
-    const totalCost = inputCost + outputCost;
-
-    aggregateUsage.totalCostInUsd += totalCost;
   }
 
   return Object.values(aggregateUsageByTask);

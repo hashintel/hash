@@ -3,18 +3,18 @@ import type { PayloadKind } from "./types.js";
 /**
  * The shape of a value that can feed an input: a step output, a flow input, a `forEach` item or a constant.
  */
-export type ConnectionSource = {
+export interface ConnectionSource {
   payloadKind: PayloadKind;
   array: boolean;
   /** Whether the value is always present when its producer has run. */
   required: boolean;
-};
+}
 
-export type ConnectionTarget = {
+export interface ConnectionTarget {
   oneOfPayloadKinds: readonly PayloadKind[];
   array: boolean;
   required: boolean;
-};
+}
 
 export type ConnectionProblem =
   | "payloadKind"

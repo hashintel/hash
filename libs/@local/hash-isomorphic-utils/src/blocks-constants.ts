@@ -1,10 +1,15 @@
 /**
- * @todo-0.3 replace this temporary domain with blockprotocol.org
+ * @todo replace (0.3) this temporary domain with blockprotocol.org
  */
-export const blockProtocolHubOrigin =
-  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want empty strings either
-  process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_SITE_HOST ||
-  "https://blockprotocol.org";
+const configuredBlockProtocolHubOrigin =
+  process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_SITE_HOST;
+
+export const blockProtocolHubOrigin: string =
+  // empty strings fall back to the default too
+  configuredBlockProtocolHubOrigin !== undefined &&
+  configuredBlockProtocolHubOrigin !== ""
+    ? configuredBlockProtocolHubOrigin
+    : "https://blockprotocol.org";
 
 /**
  * the componentId is the location of the block source code, which will be in one of two R2 buckets depending on environment
@@ -12,7 +17,7 @@ export const blockProtocolHubOrigin =
  *   – this will also be required for block versioning, where we'll want different source locations for the same componentId
  */
 export const componentIdBase = `https://blockprotocol${
-  !blockProtocolHubOrigin.includes("blockprotocol.org") ? "-preview" : ""
+  blockProtocolHubOrigin.includes("blockprotocol.org") ? "" : "-preview"
 }.hashai.workers.dev`;
 
 export const paragraphBlockComponentId = `${componentIdBase}/blocks/hash/paragraph`;
@@ -24,7 +29,7 @@ const richTextBlockComponentIds = new Set([
 ]);
 
 const componentIdsWithTextualContentProperty = new Set([
-  ...Array.from(richTextBlockComponentIds),
+  ...richTextBlockComponentIds,
   `${componentIdBase}/blocks/hash/code`,
 ]);
 
@@ -37,7 +42,7 @@ const componentIdsWithTextualContentProperty = new Set([
  *    we currently store this in localStorage - see UserBlocksProvider.
  */
 export const defaultBlockComponentIds = [
-  ...Array.from(richTextBlockComponentIds),
+  ...richTextBlockComponentIds,
   `${componentIdBase}/blocks/hash/person`,
   `${componentIdBase}/blocks/hash/image`,
   `${componentIdBase}/blocks/hash/table`,
@@ -51,11 +56,12 @@ export const defaultBlockComponentIds = [
  * which is used to know if the block is compatible for switching from one
  * text block to another
  */
-export const isHashTextBlock = (componentId: string) =>
+export const isHashTextBlock = (componentId: string): boolean =>
   richTextBlockComponentIds.has(componentId);
 
-export const isBlockWithTextualContentProperty = (componentId: string) =>
-  componentIdsWithTextualContentProperty.has(componentId);
+export const isBlockWithTextualContentProperty = (
+  componentId: string,
+): boolean => componentIdsWithTextualContentProperty.has(componentId);
 
 /**
  * In some places, we need to know if the current component and a target
@@ -67,9 +73,11 @@ export const isBlockWithTextualContentProperty = (componentId: string) =>
 export const areComponentsCompatible = (
   currentComponentId: string | null = null,
   targetComponentId: string | null = null,
-) =>
-  currentComponentId &&
-  targetComponentId &&
+): boolean =>
+  currentComponentId !== null &&
+  currentComponentId !== "" &&
+  targetComponentId !== null &&
+  targetComponentId !== "" &&
   (currentComponentId === targetComponentId ||
     (isBlockWithTextualContentProperty(currentComponentId) &&
       isBlockWithTextualContentProperty(targetComponentId)));

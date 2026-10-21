@@ -1,8 +1,21 @@
 import { typedActionDefinitions as actions } from "../action-definitions.js";
-import { defineFlow, flowInput, type StepOutputs } from "../define-flow.js";
+import { defineFlow, flowInput } from "../define-flow.js";
 import { flowDefinitionIds } from "../flow-definition-ids.js";
 
 import type { TypedActionDefinitions } from "../action-definitions.js";
+import type { StepOutputs } from "../define-flow.js";
+
+type QueryOutputs = StepOutputs<
+  TypedActionDefinitions["generateStructuralQuery"]
+>;
+type AnalysisOutputs = StepOutputs<TypedActionDefinitions["analyzeEntityData"]>;
+type ChartOutputs = StepOutputs<TypedActionDefinitions["generateChartConfig"]>;
+
+type DashboardItemOutputs = Pick<QueryOutputs, "structuralQuery"> &
+  Pick<AnalysisOutputs, "pythonScript" | "chartData"> &
+  Pick<ChartOutputs, "chartConfig"> & {
+    chartType: AnalysisOutputs["suggestedChartType"];
+  };
 
 /**
  * The outputs the frontend reads from both dashboard item flows.
@@ -12,10 +25,10 @@ const dashboardItemOutputs = ({
   analysis,
   chart,
 }: {
-  query: StepOutputs<TypedActionDefinitions["generateStructuralQuery"]>;
-  analysis: StepOutputs<TypedActionDefinitions["analyzeEntityData"]>;
-  chart: StepOutputs<TypedActionDefinitions["generateChartConfig"]>;
-}) => ({
+  query: QueryOutputs;
+  analysis: AnalysisOutputs;
+  chart: ChartOutputs;
+}): DashboardItemOutputs => ({
   structuralQuery: query.structuralQuery,
   pythonScript: analysis.pythonScript,
   chartData: analysis.chartData,

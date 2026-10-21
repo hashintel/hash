@@ -1,8 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { parseProductionSchedule } from "../production-schedule.js";
 
 import type { ProductionScheduleLegacy } from "./schema.js";
+
+const first = <Item>(items: Item[]): Item => {
+  const [item] = items;
+  if (item === undefined) {
+    throw new Error("Expected a non-empty array");
+  }
+  return item;
+};
 
 const legacySchedule = (): ProductionScheduleLegacy => ({
   schema_version: "1.1",
@@ -65,28 +73,38 @@ const legacySchedule = (): ProductionScheduleLegacy => ({
 });
 
 describe("parseProductionSchedule", () => {
-  it("accepts a structurally and semantically valid legacy schedule", () => {
-    expect(parseProductionSchedule(legacySchedule(), "product")).toBeTruthy();
+  test("accepts a structurally and semantically valid legacy schedule", () => {
+    expect.hasAssertions();
+
+    expect(
+      parseProductionSchedule(legacySchedule(), "product").product_id,
+    ).toBe("product");
   });
 
-  it("rejects a span that disagrees with the inclusive dates", () => {
+  test("rejects a span that disagrees with the inclusive dates", () => {
+    expect.hasAssertions();
+
     const schedule = legacySchedule();
-    schedule.lanes[0]!.batches[0]!.span_days = 2;
+    first(first(schedule.lanes).batches).span_days = 2;
     expect(() => parseProductionSchedule(schedule, "product")).toThrow(
-      /span_days/,
+      /span_days/u,
     );
   });
 
-  it("rejects malformed dispatch evidence on legacy artifacts", () => {
+  test("rejects malformed dispatch evidence on legacy artifacts", () => {
+    expect.hasAssertions();
+
     expect(() =>
       parseProductionSchedule(
         { ...legacySchedule(), dispatch_events: [{}] },
         "product",
       ),
-    ).toThrow();
+    ).toThrow(/dispatch_events/u);
   });
 
-  it("accepts an optional sales-order number on dispatch deliveries", () => {
+  test("accepts an optional sales-order number on dispatch deliveries", () => {
+    expect.hasAssertions();
+
     const schedule = legacySchedule();
     schedule.dispatch_events = [
       {
@@ -112,12 +130,20 @@ describe("parseProductionSchedule", () => {
       },
     ];
 
-    expect(parseProductionSchedule(schedule, "product")).toBeTruthy();
+    expect(parseProductionSchedule(schedule, "product").product_id).toBe(
+      "product",
+    );
 
-    schedule.dispatch_events[0]!.deliveries[0]!.sales_order = "";
-    expect(() => parseProductionSchedule(schedule, "product")).toThrow();
+    const delivery = first(first(schedule.dispatch_events).deliveries);
 
-    schedule.dispatch_events[0]!.deliveries[0]!.sales_order = " PADDED ";
-    expect(() => parseProductionSchedule(schedule, "product")).toThrow();
+    delivery.sales_order = "";
+    expect(() => parseProductionSchedule(schedule, "product")).toThrow(
+      /sales_order/u,
+    );
+
+    delivery.sales_order = " PADDED ";
+    expect(() => parseProductionSchedule(schedule, "product")).toThrow(
+      /sales_order/u,
+    );
   });
 });

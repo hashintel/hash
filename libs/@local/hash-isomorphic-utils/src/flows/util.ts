@@ -12,8 +12,10 @@ export const getAllStepDefinitionsInFlowDefinition = <
 >(
   flowDefinition: Pick<FlowDefinition<T>, "steps">,
 ): StepDefinition<T>[] =>
-  flowDefinition.steps.flatMap((step) =>
-    step.kind === "for-each"
-      ? [step, ...getAllStepDefinitionsInFlowDefinition(step)]
-      : [step],
-  );
+  flowDefinition.steps.flatMap((step) => {
+    if (step.kind === "for-each") {
+      return [step, ...getAllStepDefinitionsInFlowDefinition(step)];
+    }
+
+    return [step];
+  });

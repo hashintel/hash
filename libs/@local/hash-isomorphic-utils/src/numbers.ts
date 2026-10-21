@@ -1,7 +1,16 @@
-import Big from "big.js";
+import { Big } from "big.js";
 
 Big.DP = 20;
 Big.RM = Big.roundDown;
+
+// oxlint-disable-next-line typescript/no-restricted-types -- caught values are of unknown type
+const describeError = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+};
 
 export const divide = (numerator: Big, denominator: Big): Big => {
   try {
@@ -10,39 +19,39 @@ export const divide = (numerator: Big, denominator: Big): Big => {
     }
 
     return numerator.div(denominator);
-  } catch (error: unknown) {
-    throw new Error(
-      `Division error: ${error instanceof Error ? error.message : String(error)}`,
-    );
+  } catch (error) {
+    throw new Error(`Division error: ${describeError(error)}`, {
+      cause: error,
+    });
   }
 };
 
-export const add = (a: Big, b: Big): Big => {
+export const add = (augend: Big, addend: Big): Big => {
   try {
-    return a.plus(b);
-  } catch (error: unknown) {
-    throw new Error(
-      `Addition error: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    return augend.plus(addend);
+  } catch (error) {
+    throw new Error(`Addition error: ${describeError(error)}`, {
+      cause: error,
+    });
   }
 };
 
-export const subtract = (a: Big, b: Big): Big => {
+export const subtract = (minuend: Big, subtrahend: Big): Big => {
   try {
-    return a.minus(b);
-  } catch (error: unknown) {
-    throw new Error(
-      `Subtraction error: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    return minuend.minus(subtrahend);
+  } catch (error) {
+    throw new Error(`Subtraction error: ${describeError(error)}`, {
+      cause: error,
+    });
   }
 };
 
-export const multiply = (a: Big, b: Big): Big => {
+export const multiply = (multiplicand: Big, multiplier: Big): Big => {
   try {
-    return a.times(b);
-  } catch (error: unknown) {
-    throw new Error(
-      `Multiplication error: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    return multiplicand.times(multiplier);
+  } catch (error) {
+    throw new Error(`Multiplication error: ${describeError(error)}`, {
+      cause: error,
+    });
   }
 };

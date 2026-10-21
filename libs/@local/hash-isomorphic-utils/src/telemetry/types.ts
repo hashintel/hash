@@ -35,11 +35,13 @@ export type FrontendTelemetryEvent =
       type: "page";
       /** Page path/name, e.g. `/supply-chain/product/abc`. */
       name: string;
+      // oxlint-disable-next-line typescript/no-restricted-types -- arbitrary event properties are forwarded as-is
       properties?: Record<string, unknown>;
     }
   | {
       type: "track";
       name: FrontendTrackEventName;
+      // oxlint-disable-next-line typescript/no-restricted-types -- arbitrary event properties are forwarded as-is
       properties?: Record<string, unknown>;
     };
 

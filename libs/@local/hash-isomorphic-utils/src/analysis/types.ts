@@ -17,7 +17,7 @@ export interface AnalysisInvocation {
   /** Registered analysis name, e.g. `"productGraph"`. */
   analysis: string;
   /** Analysis-specific arguments; validated server-side against the analysis. */
-  args?: Record<string, unknown>;
+  args?: JsonObject;
   /**
    * Web the analysis is scoped to. The authenticated actor must hold a role in
    * this web, otherwise the invocation is rejected. Batch multiple invocations

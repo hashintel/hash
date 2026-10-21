@@ -15,12 +15,12 @@ import type {
  * relationship picker: which named relationship was followed, and the entity
  * type at the far end (used to offer further relationships when chaining).
  */
-export type TraversalHopMeta = {
+export interface TraversalHopMeta {
   direction: "outgoing" | "incoming";
   linkTypeBaseUrl?: string;
   /** Base URL of the entity type reached by this hop, if constrained */
   entityTypeBaseUrl?: string;
-};
+}
 
 /**
  * A traversal path with optional UI-only metadata: a human-readable label
@@ -45,10 +45,10 @@ export type LabelledTraversalPath = EntityTraversalPath & {
  * root) is `has-right-entity` incoming then `has-left-entity` outgoing.
  * See {@link outgoingHopEdges} / {@link incomingHopEdges}.
  */
-export type StructuralQueryDefinition = {
+export interface StructuralQueryDefinition {
   filter: Filter;
   traversalPaths?: LabelledTraversalPath[];
-};
+}
 
 /**
  * The edge pair encoding one traversal hop from matched entities to the
@@ -70,6 +70,12 @@ export const incomingHopEdges: EntityTraversalEdge[] = [
 ];
 
 /**
+ * A value that is stored or produced without a schema, such as a stored property value or a row of chart data.
+ */
+// oxlint-disable-next-line typescript/no-restricted-types -- stored property values and chart data rows are arbitrary JSON with no common type
+type UntypedJsonValue = unknown;
+
+/**
  * Normalize a stored structural query property value to a
  * {@link StructuralQueryDefinition}.
  *
@@ -78,13 +84,15 @@ export const incomingHopEdges: EntityTraversalEdge[] = [
  * key, which is not a valid `Filter` operator so cannot clash.
  */
 export const normalizeStructuralQuery = (
-  value: unknown,
+  value: UntypedJsonValue,
 ): StructuralQueryDefinition | null => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return null;
   }
 
   if ("filter" in value) {
+    // SAFETY: a stored value with a `filter` key is a structural query definition, as written by the dashboard item flows.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the stored value is not validated, only distinguished by its `filter` key
     const definition = value as StructuralQueryDefinition;
     return {
       filter: definition.filter,
@@ -92,6 +100,7 @@ export const normalizeStructuralQuery = (
     };
   }
 
+  // SAFETY: a stored object without a `filter` key is a bare `Filter`, as stored before definitions were introduced.
   return { filter: value as Filter, traversalPaths: [] };
 };
 
@@ -107,23 +116,28 @@ export const toApiTraversalPaths = (
 /**
  * React Grid Layout position for a dashboard item
  */
-export type GridPosition = {
+export interface GridPosition {
+  // oxlint-disable-next-line eslint/id-length -- field name fixed by the react-grid-layout `Layout` shape
   i: string; // Unique identifier (usually entityId)
+  // oxlint-disable-next-line eslint/id-length -- field name fixed by the react-grid-layout `Layout` shape
   x: number; // X position in grid units
+  // oxlint-disable-next-line eslint/id-length -- field name fixed by the react-grid-layout `Layout` shape
   y: number; // Y position in grid units
+  // oxlint-disable-next-line eslint/id-length -- field name fixed by the react-grid-layout `Layout` shape
   w: number; // Width in grid units
+  // oxlint-disable-next-line eslint/id-length -- field name fixed by the react-grid-layout `Layout` shape
   h: number; // Height in grid units
   minW?: number;
   maxW?: number;
   minH?: number;
   maxH?: number;
   static?: boolean;
-};
+}
 
 /**
  * React Grid Layout configuration for responsive breakpoints
  */
-export type DashboardGridLayout = {
+export interface DashboardGridLayout {
   layouts: {
     lg?: GridPosition[];
     md?: GridPosition[];
@@ -142,7 +156,7 @@ export type DashboardGridLayout = {
     sm: number;
     xs: number;
   };
-};
+}
 
 export const chartTypes = [
   "bar",
@@ -161,19 +175,20 @@ export type ChartType = (typeof chartTypes)[number];
 /**
  * ECharts series configuration for different chart types
  */
-export type EChartsSeriesConfig = {
+// oxlint-disable-next-line hash/naming-conventions -- exported name used by hash-frontend's chart config builder and by the chart config JSON schema
+export interface EChartsSeriesConfig {
   type: ChartType;
   name?: string;
   dataKey: string;
   color?: string;
   stack?: string; // For stacked bar/line charts
-  areaStyle?: Record<string, unknown>; // For area-style line charts
+  areaStyle?: Record<string, UntypedJsonValue>; // For area-style line charts
   smooth?: boolean; // For smooth line charts
   /** For pie charts: radius as percentage or [innerRadius, outerRadius] */
   radius?: string | [string, string];
   /** For pie charts: center position */
   center?: [string, string];
-};
+}
 
 /**
  * Chart configuration (Apache ECharts-compatible)
@@ -181,7 +196,7 @@ export type EChartsSeriesConfig = {
  * This configuration is transformed into ECharts option format.
  * See: https://echarts.apache.org/en/option.html
  */
-export type ChartConfig = {
+export interface ChartConfig {
   /** The data key for category axis (x-axis for bar/line, name for pie) */
   categoryKey: string;
 
@@ -211,7 +226,7 @@ export type ChartConfig = {
 
   /** Color palette for series (hex colors) */
   colors?: string[];
-};
+}
 
 /**
  * Returns the chart-level type implied by the primary series.
@@ -240,7 +255,7 @@ export const chartConfigDisplayDefaults = {
 /**
  * Configuration stored on a DashboardItem entity
  */
-export type DashboardItemConfig = {
+export interface DashboardItemConfig {
   /** The user's natural language goal for this chart */
   userGoal: string;
 
@@ -251,7 +266,7 @@ export type DashboardItemConfig = {
   pythonScript: string | null;
 
   /** Transformed data ready for charting */
-  chartData: unknown[] | null;
+  chartData: UntypedJsonValue[] | null;
 
   /** Type of chart to render */
   chartType: ChartType;
@@ -267,10 +282,10 @@ export type DashboardItemConfig = {
 
   /** Error message if configuration failed */
   errorMessage?: string;
-};
+}
 
 /** Freshness and timing details for a dashboard item's computed chart data. */
-export type DashboardItemDataGenerationMetadata = {
+export interface DashboardItemDataGenerationMetadata {
   /** When the currently served chart-data artifact was generated. */
   generatedAt?: string;
   /** Duration of the most recent non-AI chart-data computation. */
@@ -279,80 +294,80 @@ export type DashboardItemDataGenerationMetadata = {
   isRefreshing?: boolean;
   /** Artifact timestamp a forced refresh must supersede before it is ready. */
   refreshAfter?: string;
-};
+}
 
 /**
  * Input for the generate-dashboard-query activity
  */
-export type GenerateDashboardQueryInput = {
+export interface GenerateDashboardQueryInput {
   userGoal: string;
   webId: WebId;
   availableEntityTypes?: VersionedUrl[];
-};
+}
 
 /**
  * Output from the generate-dashboard-query activity
  */
-export type GenerateDashboardQueryOutput = {
+export interface GenerateDashboardQueryOutput {
   structuralQuery: StructuralQueryDefinition;
   explanation: string;
-  sampleData?: unknown[];
+  sampleData?: UntypedJsonValue[];
   suggestedChartTypes?: ChartType[];
-};
+}
 
 /**
  * Input for the analyze-dashboard-data activity
  */
-export type AnalyzeDashboardDataInput = {
+export interface AnalyzeDashboardDataInput {
   structuralQuery: StructuralQueryDefinition;
   userGoal: string;
   targetChartType?: ChartType;
   webId: WebId;
-};
+}
 
 /**
  * Output from the analyze-dashboard-data activity
  */
-export type AnalyzeDashboardDataOutput = {
+export interface AnalyzeDashboardDataOutput {
   pythonScript: string;
-  chartData: unknown[];
+  chartData: UntypedJsonValue[];
   suggestedChartType: ChartType;
   explanation: string;
-};
+}
 
 /**
  * Input for the generate-chart-config activity
  */
-export type GenerateChartConfigInput = {
-  chartData: unknown[];
+export interface GenerateChartConfigInput {
+  chartData: UntypedJsonValue[];
   chartType: ChartType;
   userGoal: string;
-};
+}
 
 /**
  * Output from the generate-chart-config activity
  */
-export type GenerateChartConfigOutput = {
+export interface GenerateChartConfigOutput {
   chartConfig: ChartConfig;
   explanation: string;
-};
+}
 
 /**
  * Properties for creating a new Dashboard entity
  */
-export type CreateDashboardInput = {
+export interface CreateDashboardInput {
   name: string;
   description?: string;
   webId: WebId;
-};
+}
 
 /**
  * Properties for creating a new DashboardItem entity
  */
-export type CreateDashboardItemInput = {
+export interface CreateDashboardItemInput {
   name: string;
   userGoal: string;
   gridPosition: GridPosition;
   dashboardEntityId: EntityId;
   webId: WebId;
-};
+}
