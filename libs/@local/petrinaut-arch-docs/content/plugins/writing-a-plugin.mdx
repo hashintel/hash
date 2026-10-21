@@ -158,7 +158,7 @@ provides an assistant, and the deprecated `aiAssistant` prop's chat while
 none runs.
 
 Inside `content`, `AssistantPanelTitle` fills the title bar and
-`useAssistantPanel()` reads the panel's state.
+`useAssistantPanel()` reads whether the panel is open and closes it.
 
 The title bar's parts render inside `content`, so they read the chat's state:
 the Clear button below shows only once there are messages.
@@ -167,9 +167,7 @@ The empty-net prompt shows while the assistant returns `onPrompt`. The editor
 opens the panel and calls it with the message the user sends, so the
 conversation lives in the hook, where `onPrompt` can reach it. When the panel
 opens, the content's element marked `data-autofocus`, such as the composer's
-`<textarea data-autofocus />`, takes focus; without one, the panel does. A
-`startAction` adds a button to the prompt, such as a Voice start: the editor
-opens the panel and calls its `run`.
+`<textarea data-autofocus />`, takes focus; without one, the panel does.
 
 ```tsx
 // `Chat` and `useChat` come from `@ai-sdk/react`, `UIMessage` from `ai`.

@@ -602,11 +602,6 @@ const EditorViewContent = ({
                         voiceModeAvailable={
                           assistant.builtInChat?.renderVoiceMode !== undefined
                         }
-                        startAction={assistant.startAction}
-                        onStartAction={() => {
-                          setAiAssistantOpen(true);
-                          assistant.startAction?.run();
-                        }}
                       />
                     )}
 
