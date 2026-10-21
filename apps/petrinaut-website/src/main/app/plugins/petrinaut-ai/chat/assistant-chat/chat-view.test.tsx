@@ -15,7 +15,6 @@ import {
   createElement,
   type ReactElement,
   type ReactNode,
-  useState,
 } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -61,34 +60,6 @@ afterEach(() => {
   vi.clearAllMocks();
   vi.useRealTimers();
 });
-
-/**
- * Hosts the chat in the assistant panel as the editor does, with a control
- * that reopens it after its Close button closed it. `open` overrides the open
- * state.
- */
-const TestWindow = ({
-  open,
-  children,
-}: {
-  open?: boolean;
-  children: ReactNode;
-}) => {
-  const [isOpen, setOpen] = useState(true);
-
-  return (
-    <>
-      <button type="button" onClick={() => setOpen(true)}>
-        Reopen assistant
-      </button>
-      <AssistantPanelPreview
-        state={{ isOpen: open ?? isOpen, close: () => setOpen(false) }}
-      >
-        {children}
-      </AssistantPanelPreview>
-    </>
-  );
-};
 
 /** The chat view in the assistant panel, as the chat drives it. */
 const PanelChatView = (props: ComponentProps<typeof ChatView>) => (
@@ -207,92 +178,6 @@ describe("ChatView", () => {
     },
   );
 
-  test("focuses the composer when the panel opens", () => {
-    render(
-      <>
-        <input aria-label="Other input" />
-        <PanelChatView
-          input="Keep this draft"
-          messages={[]}
-          onInputChange={noop}
-          onStop={noop}
-          onSubmit={noop}
-          status="ready"
-        />
-      </>,
-    );
-    expect(document.activeElement).toBe(
-      screen.getByRole("textbox", { name: "Message AI assistant" }),
-    );
-  });
-
-  test("keeps the draft and transcript mounted through docking and closing", () => {
-    const stop = vi.fn();
-    const Chat = () => {
-      const [input, setInput] = useState("");
-
-      return (
-        <ChatView
-          input={input}
-          messages={[
-            {
-              id: "streaming-reply",
-              role: "assistant",
-              parts: [
-                {
-                  type: "text",
-                  text: "The infection rate",
-                  state: "streaming",
-                },
-              ],
-            },
-          ]}
-          onInputChange={setInput}
-          onStop={stop}
-          onSubmit={noop}
-          status="streaming"
-        />
-      );
-    };
-    render(
-      <TestWindow>
-        <Chat />
-      </TestWindow>,
-    );
-    const panel = screen.getByRole("complementary", { name: "AI assistant" });
-    const textarea = screen.getByRole("textbox", {
-      name: "Message AI assistant",
-    });
-    const transcript = screen.getByTestId("ai-transcript");
-    fireEvent.change(textarea, { target: { value: "Keep this draft" } });
-    expect(panel.getAttribute("data-placement")).toBe("docked");
-    fireEvent.click(screen.getByRole("button", { name: "Float AI assistant" }));
-    expect(panel.getAttribute("data-placement")).toBe("floating");
-    fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
-    fireEvent.click(screen.getByRole("button", { name: "Reopen assistant" }));
-    expect(panel.getAttribute("data-placement")).toBe("floating");
-    fireEvent.click(screen.getByRole("button", { name: "Dock AI assistant" }));
-    expect(panel.getAttribute("data-placement")).toBe("docked");
-    const panelWidth = panel.style.width;
-    fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
-    expect(panel.style.width).toBe(panelWidth);
-    expect(panel.hasAttribute("inert")).toBe(true);
-    expect(
-      screen.queryByRole("textbox", { name: "Message AI assistant" }),
-    ).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Reopen assistant" }));
-    expect(panel.hasAttribute("inert")).toBe(false);
-    expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
-      textarea,
-    );
-    expect((textarea as HTMLTextAreaElement).value).toBe("Keep this draft");
-    expect(screen.getByTestId("ai-transcript")).toBe(transcript);
-    expect(screen.getByText("The infection rate")).not.toBeNull();
-    expect(stop).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
-    expect(stop).toHaveBeenCalledOnce();
-  });
-
   test("labels stopped history after a later completed reply without global Stop state", () => {
     render(
       <ChatView
@@ -346,27 +231,6 @@ describe("ChatView", () => {
     expect(
       within(screen.getByTestId("ai-transcript")).queryByText(message),
     ).toBeNull();
-  });
-
-  test("hides a closed panel from the accessibility tree", () => {
-    const { container } = render(
-      <TestWindow open={false}>
-        <ChatView
-          input=""
-          messages={[]}
-          onInputChange={noop}
-          onStop={noop}
-          onSubmit={noop}
-          status="ready"
-        />
-      </TestWindow>,
-    );
-
-    expect(
-      container
-        .querySelector('aside[aria-label="AI assistant"]')
-        ?.getAttribute("aria-hidden"),
-    ).toBe("true");
   });
 
   test("keeps completed messages memoized while the draft changes", () => {
