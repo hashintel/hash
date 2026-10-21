@@ -23,8 +23,8 @@ dev = [
 ]
 
 [tool.uv]
-preview = true
-add-bounds = "major" # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
+preview       = true
+add-bounds    = "major"  # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
 exclude-newer = "7 days" # mirrors npm release age
 package       = false
 # Admit the certifi security release without relaxing other packages' age limit.
