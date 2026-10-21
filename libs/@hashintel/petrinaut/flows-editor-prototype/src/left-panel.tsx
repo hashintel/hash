@@ -50,27 +50,40 @@ const panelStyle = css({
 });
 
 /** The DS Tabs header: 40 px, 12 px in on the left, tabs 20 px apart, then a divider and an icon button. */
+/** The panel header: the tabs sit on its bottom edge, 8 px in, as on ↳ Current (Header · tabs, 40 px). */
 const headerStyle = css({
   display: "flex",
-  alignItems: "center",
+  alignItems: "flex-end",
   gap: "2",
-  height: "[41px]",
-  paddingLeft: "3",
+  height: "[40px]",
+  paddingLeft: "2",
   paddingRight: "2",
+  flexShrink: 0,
+});
+
+/**
+ * Figma DS `Tabs` variant=underlined, size=md as shipped (DS file 18895:12227; code has no Tabs): one hairline under
+ * the tab set only, 20 px between tabs, 32 px items 3 px in, the selected one with a 2 px underline. No full-width
+ * header border (21 Oct).
+ */
+const tabListStyle = css({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "5",
   borderBottomWidth: "thin",
   borderBottomStyle: "solid",
-  borderBottomColor: "neutral.bd.subtle",
-  flexShrink: 0,
+  borderBottomColor: "neutral.bd.solid",
 });
 
 const tabStyle = css({
   display: "flex",
   alignItems: "center",
-  height: "[40px]",
+  height: "[32px]",
   paddingX: "[3px]",
   textStyle: "sm",
+  lineHeight: "none",
   fontWeight: "medium",
-  color: "neutral.fg.subtle",
+  color: "neutral.fg.body",
   borderBottomWidth: "[2px]",
   borderBottomStyle: "solid",
   borderBottomColor: "[transparent]",
@@ -78,9 +91,10 @@ const tabStyle = css({
   cursor: "pointer",
   whiteSpace: "nowrap",
   _hover: { color: "neutral.fg.heading" },
+  _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
   "&[aria-selected=true]": {
     color: "neutral.fg.heading",
-    borderBottomColor: "neutral.bd.solid",
+    borderBottomColor: "neutral.bd.strong",
   },
 });
 
@@ -554,16 +568,7 @@ export const LeftPanel = () => {
   return (
     <aside className={panelStyle} aria-label="Steps">
       <div className={headerStyle}>
-        <div
-          role="tablist"
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            gap: "5",
-            flex: "1",
-            minWidth: "[0]",
-          })}
-        >
+        <div role="tablist" className={tabListStyle}>
           <button
             type="button"
             role="tab"
@@ -585,19 +590,20 @@ export const LeftPanel = () => {
         </div>
         <span
           className={css({
-            width: "[1px]",
-            height: "[20px]",
-            backgroundColor: "neutral.bg.subtle.hover",
+            display: "flex",
+            marginLeft: "auto",
+            alignSelf: "center",
           })}
-        />
-        <Button
-          size="xs"
-          variant="ghost"
-          iconName="sidebar"
-          aria-label="Hide the steps panel"
-          tooltip="Hide the steps panel"
-          onClick={() => setCollapsed(true)}
-        />
+        >
+          <Button
+            size="xs"
+            variant="ghost"
+            iconName="sidebar"
+            aria-label="Hide the steps panel"
+            tooltip="Hide the steps panel"
+            onClick={() => setCollapsed(true)}
+          />
+        </span>
       </div>
       <OverlayScrollArea className={css({ flex: "1", minHeight: "[0]" })}>
         {tab === "flow" ? <FlowList /> : <Library />}
