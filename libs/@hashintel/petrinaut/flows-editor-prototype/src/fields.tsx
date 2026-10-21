@@ -603,6 +603,24 @@ const listModeOf = (input: InputView): ListMode => {
   return "reference";
 };
 
+/** The DS input frame at `sm` (1 px border, 8 px corners), holding chips and the "+" action. */
+const listFieldStyle = css({
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: "1",
+  minHeight: "[28px]",
+  paddingY: "[1px]",
+  paddingLeft: "[1px]",
+  paddingRight: "[1px]",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.solid",
+  borderRadius: "lg",
+  backgroundColor: "neutral.bgSolid.min",
+  _hover: { borderColor: "neutral.bd.strong" },
+});
+
 /** A file picked from the computer: MOCK, nothing uploads; the chip keeps its name. */
 const uploadedPrefix = "upload:";
 
@@ -667,7 +685,7 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
     const content = (
       <Chip
         key={JSON.stringify(item)}
-        size="sm"
+        size="md"
         color={bad ? "red" : item.kind === "constant" ? "grey" : "blue"}
         removeable={{
           onRemove: () => setItems(items.filter((_, other) => other !== index)),
@@ -688,7 +706,7 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
 
   const addButton = (
     <Button
-      size="sm"
+      size={mode === "entity" ? "sm" : "xs"}
       variant="ghost"
       iconName="plus"
       aria-label={`Add to ${input.label}`}
@@ -784,18 +802,25 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
           </div>
         ) : null
       ) : (
-        <div
-          ref={anchorRef}
-          className={css({
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "1",
-            alignItems: "center",
-            minHeight: "[28px]",
-          })}
-        >
+        // Spec F7 `input_withAction`: the chips and "+" sit in one bordered sm field, 28 px when it holds one line.
+        <div ref={anchorRef} className={listFieldStyle}>
           {items.map(chip)}
-          {addButton}
+          {items.length === 0 ? (
+            <span
+              className={css({
+                paddingX: "2",
+                textStyle: "sm",
+                color: "neutral.fg.subtle",
+              })}
+            >
+              {mode === "email"
+                ? "Add addresses"
+                : mode === "file"
+                  ? "Add files"
+                  : "Add from earlier steps"}
+            </span>
+          ) : null}
+          <span className={css({ marginLeft: "auto" })}>{addButton}</span>
         </div>
       )}
       {items.length === 1 && items[0]!.kind !== "constant" ? (
@@ -827,9 +852,7 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
         />
       ) : null}
       {items.some(badEmail) ? (
-        <span className={errorTextStyle}>
-          Not an email address: fix or remove the red chip.
-        </span>
+        <span className={errorTextStyle}>Not an email address</span>
       ) : null}
       {mixed ? (
         <Tooltip content="The engine takes one source per input: a list, or one value wrapped as a list. Several sources in one list are kept in the prototype's mock layer.">
