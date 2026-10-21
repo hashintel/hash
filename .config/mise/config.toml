@@ -11,8 +11,10 @@ _.path = ["{{config_root}}/node_modules/.bin"]
 
 [settings]
 idiomatic_version_file_enable_tools = ["rust"]
-lockfile                            = true
-minimum_release_age                 = "7d"
+# A java request without a vendor resolves to Temurin by default; mise.lock pins the OpenJDK build.
+java.shorthand_vendor = "openjdk"
+lockfile              = true
+minimum_release_age   = "7d"
 
 [tools]
 # Basic tools
