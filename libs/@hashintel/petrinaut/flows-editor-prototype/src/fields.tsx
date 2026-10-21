@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import {
   Button,
@@ -10,7 +10,7 @@ import {
   TextInput,
   Tooltip,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { filterRecipe } from "../../../ds-components/src/components/Filter/filter.recipe";
 import { type CatalogEntry, getCatalogEntry, type InputView } from "./catalog";
@@ -38,7 +38,14 @@ import {
 } from "./mock-graph";
 import { describeSource, getSourceShape, triggerForInput } from "./shapes";
 import { entityChoices, SourceMenu } from "./source-menu";
-import { IconTile, kindLabel, mutedTextStyle, PropertyRow } from "./ui";
+import {
+  IconTile,
+  keyStyle,
+  kindLabel,
+  mutedTextStyle,
+  PropertyRow,
+  selectTriggerStyle,
+} from "./ui";
 
 import type { StepInputSource } from "./engine";
 
@@ -823,6 +830,65 @@ const operatorsFor = (
   ];
 };
 
+/**
+ * The DS Filter chip at the size ↳ Current draws it: 28 px tall, 14 px medium text in every segment, 8 px corners and
+ * one hairline colour for the outline and the dividers. The attribute selector outranks the recipe's own levers.
+ */
+const conditionLookStyle = css({
+  "&[data-condition-row]": {
+    "--filter-font-size": "14px",
+    "--filter-padding-x": "6.5px",
+    "--filter-property-padding-x": "6.5px",
+    "--filter-input-padding-x": "6.5px",
+    "--filter-radius": "8px",
+    "--form-padding-y": "0px",
+    "--filter-outer-border": "var(--colors-neutral-a60)",
+    "--filter-divider": "var(--colors-neutral-a60)",
+    "--filter-remove-divider": "var(--colors-neutral-a60)",
+    height: "[28px]",
+    backgroundColor: "neutral.s05",
+  },
+  "&[data-condition-row]:hover": {
+    "--filter-outer-border": "var(--colors-neutral-a80)",
+    "--filter-divider": "var(--colors-neutral-a70)",
+    "--filter-remove-divider": "var(--colors-neutral-a70)",
+  },
+  "&[data-condition-row] > *, &[data-condition-row] > * > button, &[data-condition-row] input":
+    {
+      lineHeight: "[26px]",
+      fontWeight: "medium",
+      color: "neutral.s110",
+    },
+  "&[data-condition-row] input::placeholder": { color: "neutral.s80" },
+  "&[data-condition-row] [data-part=remove]": {
+    width: "[28px]",
+    paddingInline: "[0]",
+    justifyContent: "center",
+  },
+});
+
+/** "+ Add condition": the same chip shell with one segment, as ↳ Current draws it. */
+const addConditionStyle = css({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "[3px]",
+  height: "[28px]",
+  paddingX: "[6.5px]",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a60",
+  borderRadius: "lg",
+  backgroundColor: "neutral.s00",
+  fontSize: "sm",
+  fontWeight: "medium",
+  lineHeight: "[14px]",
+  color: "neutral.s90",
+  cursor: "pointer",
+  "& svg": { width: "[14px]", height: "[14px]" },
+  _hover: { borderColor: "neutral.a80", color: "neutral.s110" },
+  _focusVisible: { outline: "[2px solid var(--colors-blue-s90)]" },
+});
+
 const ConditionRowEditor = ({
   step,
   input,
@@ -893,11 +959,12 @@ const ConditionRowEditor = ({
       : "search";
 
   return (
-    <div
-      ref={anchorRef}
-      className={css({ display: "flex", flexDirection: "column", gap: "1" })}
-    >
-      <div className={classes.root} role="group" data-condition-row={row.id}>
+    <div ref={anchorRef}>
+      <div
+        className={cx(classes.root, conditionLookStyle)}
+        role="group"
+        data-condition-row={row.id}
+      >
         <Menu
           items={properties.map((candidate) => ({
             id: candidate.baseUrl,
@@ -1100,17 +1167,19 @@ const EntityTypeField = ({
 
   return (
     <div ref={anchorRef}>
-      <Button
-        size="sm"
-        variant="subtle"
-        iconName="chevronDown"
-        iconPosition="right"
+      <button
+        type="button"
+        className={selectTriggerStyle}
+        data-placeholder={(!sourceLook && !selected) || undefined}
         onClick={() => setOpen(true)}
       >
-        {sourceLook
-          ? `${sourceLook.owner} › ${sourceLook.label}`
-          : (selected?.title ?? "Choose a type")}
-      </Button>
+        <span>
+          {sourceLook
+            ? `${sourceLook.owner} › ${sourceLook.label}`
+            : (selected?.title ?? "Choose a type")}
+        </span>
+        <Icon name="chevronDown" size="sm" />
+      </button>
       {open ? (
         <SourceMenu
           anchor={anchorRef}
@@ -1220,93 +1289,96 @@ export const QueryField = ({
       !draft.entityTypeBaseUrl &&
       !draft.entityTypeSource &&
       draft.conditions.length === 0 ? (
-        <div
-          className={css({
-            paddingX: "4",
-            fontSize: "xs",
-            color: "neutral.s90",
-          })}
-        >
+        <span className={mutedTextStyle}>
           Set at least one of Webs, Entity type or Query.
-        </div>
+        </span>
       ) : null}
       <div
         className={css({
-          paddingX: "4",
-          paddingY: "[6px]",
           display: "flex",
           flexDirection: "column",
           gap: "2",
         })}
       >
-        <span className={css({ fontSize: "sm", color: "neutral.s90" })}>
+        <span className={keyStyle}>
           {mode === "query" ? "Query" : input.label}
         </span>
-        {draft.conditions.map((row, index) => (
-          <div
-            key={row.id}
-            className={css({
-              display: "flex",
-              flexDirection: "column",
-              gap: "1",
-            })}
-          >
-            {index > 0 ? (
-              <span className={css({ fontSize: "xs", color: "neutral.s90" })}>
-                and
-              </span>
-            ) : null}
-            <ConditionRowEditor
-              step={step}
-              input={input}
-              entry={entry}
-              row={row}
-              properties={properties}
-              forGraph={mode === "query"}
-              onChange={(change) => updateRow(row.id, change)}
-              onRemove={() =>
-                update({
-                  ...draft,
-                  conditions: draft.conditions.filter(
-                    (other) => other.id !== row.id,
-                  ),
-                })
-              }
-            />
-          </div>
-        ))}
-        {properties.length > 0 ? (
-          <div>
-            <Menu
-              items={properties.map((property) => ({
-                id: property.baseUrl,
-                text: property.title,
-                onClick: () =>
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            gap: "1.5",
+          })}
+        >
+          {draft.conditions.map((row, index) => (
+            <Fragment key={row.id}>
+              {index > 0 ? (
+                <span
+                  className={css({
+                    fontSize: "xs",
+                    lineHeight: "[15px]",
+                    color: "neutral.s90",
+                  })}
+                >
+                  and
+                </span>
+              ) : null}
+              <ConditionRowEditor
+                step={step}
+                input={input}
+                entry={entry}
+                row={row}
+                properties={properties}
+                forGraph={mode === "query"}
+                onChange={(change) => updateRow(row.id, change)}
+                onRemove={() =>
                   update({
                     ...draft,
-                    conditions: [
-                      ...draft.conditions,
-                      {
-                        id: nextId,
-                        propertyBaseUrl: property.baseUrl,
-                        operator:
-                          operatorsFor(property.property, mode === "query")[0]
-                            ?.value ?? null,
-                        value: null,
-                      },
-                    ],
-                  }),
-              }))}
-              trigger={
-                <Button size="sm" variant="subtle" iconName="plus">
-                  Add condition
-                </Button>
-              }
-            />
-          </div>
-        ) : (
-          <span className={mutedTextStyle}>Choose an entity type first.</span>
-        )}
+                    conditions: draft.conditions.filter(
+                      (other) => other.id !== row.id,
+                    ),
+                  })
+                }
+              />
+            </Fragment>
+          ))}
+          {properties.length > 0 ? (
+            <div>
+              <Menu
+                items={properties.map((property) => ({
+                  id: property.baseUrl,
+                  text: property.title,
+                  onClick: () =>
+                    update({
+                      ...draft,
+                      conditions: [
+                        ...draft.conditions,
+                        {
+                          id: nextId,
+                          propertyBaseUrl: property.baseUrl,
+                          operator:
+                            operatorsFor(property.property, mode === "query")[0]
+                              ?.value ?? null,
+                          value: null,
+                        },
+                      ],
+                    }),
+                }))}
+                trigger={
+                  <button type="button" className={addConditionStyle}>
+                    <Icon name="plus" size="xs" />
+                    <span className={css({ paddingX: "[2px]" })}>
+                      Add condition
+                    </span>
+                  </button>
+                }
+              />
+            </div>
+          ) : (
+            <span className={mutedTextStyle}>Choose an entity type first.</span>
+          )}
+        </div>
       </div>
     </>
   );

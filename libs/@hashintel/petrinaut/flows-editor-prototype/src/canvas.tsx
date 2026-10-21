@@ -633,9 +633,9 @@ const nodeTypes = {
   forEach: GroupNodeView,
 };
 
-/** Leaves room for the properties panel on the right, and keeps text readable on a big flow. */
+/** Leaves room for the bottom bar, and keeps text readable on a big flow. The panel is docked beside the canvas. */
 const fitOptions = {
-  padding: { top: "48px", left: "48px", bottom: "96px", right: "420px" },
+  padding: { top: "48px", left: "48px", bottom: "96px", right: "48px" },
   maxZoom: 1,
   minZoom: 0.6,
 } as const;
@@ -657,7 +657,7 @@ export const FlowCanvas = ({
   // On first load, wait for the initial fit to finish before panning to the selection.
   const loaded = useRef(false);
 
-  // Keep the selected step in view, left of the properties panel.
+  // Keep the selected step in view (the panel is docked beside the canvas, so the whole pane is visible).
   useEffect(() => {
     const delay = loaded.current ? 150 : 600;
     loaded.current = true;
@@ -680,7 +680,7 @@ export const FlowCanvas = ({
       const right = (position.x + width) * zoom + x;
       const top = position.y * zoom + y;
       const bottom = (position.y + height) * zoom + y;
-      const visibleRight = pane.width - 420;
+      const visibleRight = pane.width - 24;
       if (
         left < 24 ||
         right > visibleRight ||
@@ -688,14 +688,10 @@ export const FlowCanvas = ({
         bottom > pane.height - 96
       ) {
         flow
-          .setCenter(
-            position.x + width / 2 + 210 / zoom,
-            position.y + height / 2,
-            {
-              zoom,
-              duration: 200,
-            },
-          )
+          .setCenter(position.x + width / 2, position.y + height / 2, {
+            zoom,
+            duration: 200,
+          })
           .catch(() => undefined);
       }
     }, delay);

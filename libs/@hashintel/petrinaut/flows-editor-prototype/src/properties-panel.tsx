@@ -2,14 +2,13 @@ import { useRef } from "react";
 
 import {
   Button,
-  Chip,
   NumberInput,
   SegmentedControl,
   Select,
   TextInput,
   Tooltip,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { forEachEntry, getCatalogEntry, type InputView } from "./catalog";
 import {
@@ -63,54 +62,89 @@ import {
 } from "./shapes";
 import { SourceMenu } from "./source-menu";
 import {
-  IconTile,
+  descriptionInputStyle,
+  HeaderTitle,
+  keyStyle,
   kindLabel,
   mutedTextStyle,
   OriginMark,
   panelHeaderStyle,
   PropertyRow,
   Section,
+  fieldStyle,
+  SourceChip,
+  type Tone,
   typeLineStyle,
 } from "./ui";
 
+import type { IconName } from "@hashintel/ds-components";
+
+/** Docked on the right, full height, as on ↳ Current: 420 wide, a hairline on its left, 16 px in, 20 px between blocks. */
 const panelStyle = css({
-  position: "absolute",
-  top: "[12px]",
-  right: "[12px]",
-  bottom: "[12px]",
-  width: "[380px]",
+  position: "relative",
+  flexShrink: 0,
+  width: "[420px]",
+  height: "[100%]",
+  display: "flex",
+  flexDirection: "column",
+  gap: "5",
+  padding: "4",
   backgroundColor: "neutral.s00",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.s40",
-  borderRadius: "lg",
-  boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.08)]",
+  borderLeftWidth: "thin",
+  borderLeftStyle: "solid",
+  borderLeftColor: "neutral.a60",
   overflowY: "auto",
   zIndex: "[5]",
 });
 
+/** The icon and tile colour a node shows on the canvas, for the chips that point at it. */
+const nodeLook = (
+  document: EditorDocument,
+  id: string,
+): { icon: IconName; tone: Tone } => {
+  if (id === START_ID) {
+    return { icon: "play", tone: "neutral" };
+  }
+  const trigger = findTrigger(document, id);
+  if (trigger) {
+    return { icon: triggerDefinitions[trigger.kind].icon, tone: "blue" };
+  }
+  const step = findStep(document, id)?.step;
+  if (step?.kind === "for-each") {
+    return { icon: "rotate", tone: "green" };
+  }
+  const entry = step ? getCatalogEntry(step.actionDefinitionId) : undefined;
+  return { icon: entry?.icon ?? "cube", tone: entry?.tone ?? "green" };
+};
+
 /** "Used by" chips: which steps read a value (D26 A, folded into D27 A). */
-const UsedBy = ({ match }: { match: (source: StepInputSource) => boolean }) => {
+const UsedBy = ({
+  match,
+  quiet = false,
+}: {
+  match: (source: StepInputSource) => boolean;
+  /** Show nothing, rather than "Not used yet", when no step reads the value. */
+  quiet?: boolean;
+}) => {
   const { document, setUi } = useEditor();
   const users = usersOf(document, match);
   if (users.length === 0) {
-    return <span className={mutedTextStyle}>Not used yet</span>;
+    return quiet ? null : <span className={mutedTextStyle}>Not used yet</span>;
   }
   return (
-    <div className={css({ display: "flex", flexWrap: "wrap", gap: "1" })}>
+    <div className={css({ display: "flex", flexWrap: "wrap", gap: "1.5" })}>
       {users.map((userId) => {
         const user = findStep(document, userId)?.step;
         return (
-          <Chip
+          <SourceChip
             key={userId}
-            size="sm"
-            color="grey"
+            {...nodeLook(document, userId)}
             onClick={() =>
               setUi((ui) => ({ ...ui, selectedId: userId, openField: null }))
             }
           >
             {user ? stepLabel(user) : userId}
-          </Chip>
+          </SourceChip>
         );
       })}
     </div>
@@ -138,13 +172,16 @@ const Paths = ({
               <span className={mutedTextStyle}>Ends here</span>
             ) : (
               <div
-                className={css({ display: "flex", flexWrap: "wrap", gap: "1" })}
+                className={css({
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "1.5",
+                })}
               >
                 {targets.map((wire) => (
-                  <Chip
+                  <SourceChip
                     key={wire.id}
-                    size="sm"
-                    color="grey"
+                    {...nodeLook(document, wire.target)}
                     onClick={() =>
                       setUi((ui) => ({ ...ui, selectedId: wire.target }))
                     }
@@ -157,7 +194,7 @@ const Paths = ({
                           ? "Start"
                           : wire.target;
                     })()}
-                  </Chip>
+                  </SourceChip>
                 ))}
               </div>
             )}
@@ -189,8 +226,6 @@ const Checks = ({ stepId }: { stepId: string }) => {
           // eslint-disable-next-line react/no-array-index-key -- messages can repeat
           key={index}
           className={css({
-            paddingX: "4",
-            paddingY: "1",
             fontSize: "xs",
             color: problem.severity === "error" ? "red.s100" : "neutral.s100",
           })}
@@ -203,43 +238,40 @@ const Checks = ({ stepId }: { stepId: string }) => {
 };
 
 const DescriptionInput = ({
-  stepId,
   value,
+  label,
+  onChange,
 }: {
-  stepId: string;
   value: string;
-}) => {
-  const { setDocument } = useEditor();
-  return (
-    <TextInput
-      value={value}
-      variant="subtle"
-      size="sm"
-      placeholder="Add a description…"
-      aria-label="Step description"
-      onChange={(next) =>
-        setDocument((document) =>
-          updateStep(document, stepId, (step) => ({
-            ...step,
-            description: next,
-          })),
-        )
-      }
-    />
-  );
-};
+  label: string;
+  onChange: (next: string) => void;
+}) => (
+  <input
+    className={descriptionInputStyle}
+    value={value}
+    placeholder="Add a description…"
+    aria-label={label}
+    onChange={(event) => onChange(event.target.value)}
+  />
+);
+
+/** Delete sits top right and shows on hover or focus, so the header reads as in Figma at rest. */
+const headerActionStyle = css({
+  position: "absolute",
+  top: "[-6px]",
+  right: "[-4px]",
+  transition: "[opacity 0.15s ease]",
+});
 
 const PanelHeader = ({
   icon,
-  tone,
   type,
   origin,
   stepId,
   description,
   trigger,
 }: {
-  icon: Parameters<typeof IconTile>[0]["icon"];
-  tone: "green" | "orange" | "neutral" | "blue";
+  icon: IconName;
   type: string;
   origin?: React.ReactNode;
   stepId?: string;
@@ -248,91 +280,64 @@ const PanelHeader = ({
   trigger?: TriggerNode;
 }) => {
   const { setDocument, setUi } = useEditor();
-  if (trigger) {
-    return (
-      <div className={panelHeaderStyle}>
-        <IconTile icon={icon} tone={tone} />
-        <div
-          className={css({
-            flex: "1",
-            minWidth: "[0]",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1",
-          })}
-        >
-          <div
-            className={css({ display: "flex", alignItems: "center", gap: "2" })}
-          >
-            <span className={typeLineStyle}>{type}</span>
-            {origin}
-          </div>
-          <TextInput
-            value={trigger.description}
-            variant="subtle"
-            size="sm"
-            placeholder="Add a description…"
-            aria-label="Trigger description"
-            onChange={(next) =>
-              setDocument((document) =>
-                updateTrigger(document, trigger.id, (current) => ({
-                  ...current,
-                  description: next,
-                })),
-              )
-            }
-          />
-        </div>
-        {trigger.id === START_ID ? null : (
-          <Button
-            size="sm"
-            variant="ghost"
-            iconName="trash"
-            aria-label="Delete trigger"
-            tooltip="Delete trigger"
-            onClick={() => {
-              setDocument((document) => removeTrigger(document, trigger.id));
-              setUi((ui) => ({ ...ui, selectedId: null }));
-            }}
-          />
-        )}
-      </div>
-    );
-  }
+  const onDelete = trigger
+    ? trigger.id === START_ID
+      ? null
+      : () => {
+          setDocument((document) => removeTrigger(document, trigger.id));
+          setUi((ui) => ({ ...ui, selectedId: null }));
+        }
+    : stepId
+      ? () => {
+          setDocument((document) => removeStep(document, stepId));
+          setUi((ui) => ({ ...ui, selectedId: null }));
+        }
+      : null;
+  const what = trigger ? "trigger" : "step";
   return (
     <div className={panelHeaderStyle}>
-      <IconTile icon={icon} tone={tone} />
-      <div
-        className={css({
-          flex: "1",
-          minWidth: "[0]",
-          display: "flex",
-          flexDirection: "column",
-          gap: "1",
-        })}
-      >
-        <div
-          className={css({ display: "flex", alignItems: "center", gap: "2" })}
-        >
-          <span className={typeLineStyle}>{type}</span>
-          {origin}
-        </div>
-        {stepId && description !== undefined ? (
-          <DescriptionInput stepId={stepId} value={description} />
-        ) : null}
-      </div>
-      {stepId ? (
-        <Button
-          size="sm"
-          variant="ghost"
-          iconName="trash"
-          aria-label="Delete step"
-          tooltip="Delete step"
-          onClick={() => {
-            setDocument((document) => removeStep(document, stepId));
-            setUi((ui) => ({ ...ui, selectedId: null }));
-          }}
+      <HeaderTitle icon={icon}>
+        <span className={typeLineStyle}>{type}</span>
+        {origin}
+      </HeaderTitle>
+      {trigger ? (
+        <DescriptionInput
+          label="Trigger description"
+          value={trigger.description}
+          onChange={(next) =>
+            setDocument((document) =>
+              updateTrigger(document, trigger.id, (current) => ({
+                ...current,
+                description: next,
+              })),
+            )
+          }
         />
+      ) : stepId && description !== undefined ? (
+        <DescriptionInput
+          label="Step description"
+          value={description}
+          onChange={(next) =>
+            setDocument((document) =>
+              updateStep(document, stepId, (step) => ({
+                ...step,
+                description: next,
+              })),
+            )
+          }
+        />
+      ) : null}
+      {onDelete ? (
+        <span className={headerActionStyle} data-header-action>
+          <Button
+            size="xs"
+            variant="ghost"
+            iconName="trash"
+            aria-label={`Delete ${what}`}
+            tooltip={`Delete ${what}`}
+            onClick={onDelete}
+          />
+        </span>
       ) : null}
     </div>
   );
@@ -403,7 +408,6 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
     <>
       <PanelHeader
         icon={entry.icon}
-        tone={entry.tone}
         type={entry.title}
         origin={origin}
         stepId={step.stepId}
@@ -419,7 +423,16 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
               kinds.includes("FilterCondition")
             ) {
               return (
-                <div key={input.name}>{fieldFor(document, step, input)}</div>
+                <div
+                  key={input.name}
+                  className={css({
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "2",
+                  })}
+                >
+                  {fieldFor(document, step, input)}
+                </div>
               );
             }
             return (
@@ -514,7 +527,6 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
     <>
       <PanelHeader
         icon="rotate"
-        tone="green"
         type="For each"
         stepId={step.stepId}
         description={step.description}
@@ -526,13 +538,15 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
             className={css({
               display: "flex",
               flexDirection: "column",
-              gap: "1",
+              alignItems: "flex-start",
+              gap: "1.5",
             })}
           >
             {step.over && over ? (
-              <Chip
-                size="sm"
-                color="blue"
+              <SourceChip
+                {...(step.over.kind === "step-output"
+                  ? nodeLook(document, step.over.stepId)
+                  : nodeLook(document, START_ID))}
                 onClick={() =>
                   setUi((current) => ({
                     ...current,
@@ -543,21 +557,19 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
                     },
                   }))
                 }
-                removeable={{
-                  onRemove: () =>
-                    setDocument((current) =>
-                      updateStep(current, step.stepId, (candidate) => ({
-                        ...candidate,
-                        over: undefined,
-                      })),
-                    ),
-                  "aria-label": "Clear",
-                }}
+                onRemove={() =>
+                  setDocument((current) =>
+                    updateStep(current, step.stepId, (candidate) => ({
+                      ...candidate,
+                      over: undefined,
+                    })),
+                  )
+                }
               >
                 {over.owner === "Start"
                   ? over.label
                   : `${over.owner} › ${over.label}`}
-              </Chip>
+              </SourceChip>
             ) : (
               <Button
                 size="sm"
@@ -607,9 +619,9 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
         >
           <span
             className={css({
-              fontSize: "sm",
-              color: "neutral.s110",
-              paddingTop: "[6px]",
+              fontSize: "[13px]",
+              lineHeight: "[16px]",
+              color: "neutral.s120",
             })}
           >
             Current item
@@ -624,6 +636,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
         >
           <Select
             size="sm"
+            className={fieldStyle}
             items={collectOptions}
             value={
               step.collect
@@ -653,15 +666,29 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
             }}
           />
           {step.collect ? (
-            <span className={mutedTextStyle}>
-              {(() => {
-                const collected = findStep(document, step.collect.stepId)?.step;
-                return collected ? stepLabel(collected) : "";
-              })()}
-            </span>
+            <div>
+              <SourceChip
+                {...nodeLook(document, step.collect.stepId)}
+                onClick={() =>
+                  setUi((current) => ({
+                    ...current,
+                    selectedId: step.collect?.stepId ?? null,
+                  }))
+                }
+              >
+                {(() => {
+                  const collected = findStep(
+                    document,
+                    step.collect.stepId,
+                  )?.step;
+                  return collected ? stepLabel(collected) : "";
+                })()}
+              </SourceChip>
+            </div>
           ) : null}
           {step.collect ? (
             <UsedBy
+              quiet
               match={(source) =>
                 source.kind === "step-output" &&
                 source.stepId === step.stepId &&
@@ -698,6 +725,34 @@ const nextInputNumber = (document: EditorDocument) => {
   return index;
 };
 
+const inputRowStyle = css({
+  display: "grid",
+  gridTemplateColumns: "[128px minmax(0, 1fr)]",
+  columnGap: "2",
+  alignItems: "baseline",
+  "&:not(:hover):not(:focus-within) [data-row-action]": { opacity: "[0]" },
+});
+
+/** Start's input names edit in place, in the key column's own type. */
+const keyInputStyle = css({
+  width: "[100%]",
+  backgroundColor: "[transparent]",
+  borderWidth: "[0]",
+  borderRadius: "xs",
+  padding: "[0]",
+  outline: "none",
+  _hover: { color: "neutral.s110" },
+  _focusVisible: { boxShadow: "[0 0 0 2px var(--colors-blue-a40)]" },
+});
+
+const rowActionStyle = css({
+  position: "absolute",
+  right: "[2px]",
+  top: "[50%]",
+  transform: "[translateY(-50%)]",
+  transition: "[opacity 0.15s ease]",
+});
+
 const RunFormFields = () => {
   const { document, setDocument } = useEditor();
 
@@ -731,44 +786,33 @@ const RunFormFields = () => {
     });
 
   return (
-    <>
-      <Section
-        title="Flow inputs"
-        action={
-          <Button size="xs" variant="ghost" iconName="plus" onClick={addInput}>
-            Add
-          </Button>
-        }
-      >
-        {document.inputs.length === 0 ? (
-          <div
-            className={css({
-              paddingX: "4",
-              paddingY: "2",
-              fontSize: "sm",
-              color: "neutral.s90",
-            })}
-          >
-            No fields. Add one when a step needs a value nothing earlier gives.
-          </div>
-        ) : null}
-        {document.inputs.map((input) => (
-          <PropertyRow
-            key={input.name}
-            label={input.label ?? input.name}
-            hover={kindLabel(input.payloadKind, input.array)}
-          >
-            <div className={css({ display: "flex", gap: "1" })}>
-              <div className={css({ flex: "1" })}>
-                <TextInput
-                  size="sm"
-                  value={input.label ?? ""}
-                  aria-label="Input name"
-                  onChange={(label) => updateInput(input.name, { label })}
-                />
-              </div>
+    <Section
+      title="Inputs"
+      action={
+        <Button size="xs" variant="ghost" iconName="plus" onClick={addInput}>
+          Add
+        </Button>
+      }
+    >
+      {document.inputs.length === 0 ? (
+        <span className={mutedTextStyle}>
+          No inputs. Add one when a step needs a value nothing earlier gives.
+        </span>
+      ) : null}
+      {document.inputs.map((input) => (
+        <div key={input.name} className={inputRowStyle}>
+          <span className={css({ position: "relative", minWidth: "[0]" })}>
+            <input
+              className={cx(keyStyle, keyInputStyle)}
+              value={input.label ?? ""}
+              aria-label="Input name"
+              onChange={(event) =>
+                updateInput(input.name, { label: event.target.value })
+              }
+            />
+            <span className={rowActionStyle} data-row-action>
               <Button
-                size="sm"
+                size="xs"
                 variant="ghost"
                 iconName="trash"
                 aria-label={`Remove ${input.label ?? input.name}`}
@@ -782,9 +826,19 @@ const RunFormFields = () => {
                   }))
                 }
               />
-            </div>
+            </span>
+          </span>
+          <div
+            className={css({
+              minWidth: "[0]",
+              display: "flex",
+              flexDirection: "column",
+              gap: "1.5",
+            })}
+          >
             <Select
               size="sm"
+              className={fieldStyle}
               items={inputKindChoices}
               value={`${input.payloadKind}${input.array ? "[]" : ""}`}
               onChange={(value) => {
@@ -803,6 +857,7 @@ const RunFormFields = () => {
                 <div>
                   <Select
                     size="sm"
+                    className={fieldStyle}
                     items={mockEntityTypes.map((type) => ({
                       value: type.baseUrl,
                       text: type.title,
@@ -826,14 +881,15 @@ const RunFormFields = () => {
               </Tooltip>
             ) : null}
             <UsedBy
+              quiet
               match={(source) =>
                 source.kind === "flow-input" && source.inputName === input.name
               }
             />
-          </PropertyRow>
-        ))}
-      </Section>
-    </>
+          </div>
+        </div>
+      ))}
+    </Section>
   );
 };
 
@@ -876,11 +932,12 @@ const ScheduleSettings = ({ trigger }: { trigger: TriggerNode }) => {
         <PropertyRow label="On day">
           <NumberInput
             size="sm"
+            className={fieldStyle}
             value={parts.dayOfMonth}
             onChange={(day) =>
               setParts({ dayOfMonth: Math.min(28, Math.max(1, day ?? 1)) })
             }
-            width="sm"
+            width="fullWidth"
           />
         </PropertyRow>
       ) : null}
@@ -888,6 +945,7 @@ const ScheduleSettings = ({ trigger }: { trigger: TriggerNode }) => {
         <PropertyRow label="On">
           <Select
             size="sm"
+            className={fieldStyle}
             items={weekdays.map((day, index) => ({
               value: String(index),
               text: day,
@@ -901,6 +959,7 @@ const ScheduleSettings = ({ trigger }: { trigger: TriggerNode }) => {
         <TextInput
           type="time"
           size="sm"
+          className={fieldStyle}
           value={parts.time}
           onChange={(time) => setParts({ time })}
         />
@@ -908,6 +967,7 @@ const ScheduleSettings = ({ trigger }: { trigger: TriggerNode }) => {
       <PropertyRow label="Time zone" required>
         <Select
           size="sm"
+          className={fieldStyle}
           items={timezones.map((zone) => ({ value: zone, text: zone }))}
           value={spec.timezone ?? "UTC"}
           onChange={(timezone) =>
@@ -915,14 +975,7 @@ const ScheduleSettings = ({ trigger }: { trigger: TriggerNode }) => {
           }
         />
       </PropertyRow>
-      <div
-        className={css({
-          paddingX: "4",
-          paddingTop: "1",
-          fontSize: "sm",
-          color: "neutral.s110",
-        })}
-      >
+      <div className={mutedTextStyle}>
         {describeCron(spec)}
         {spec.timezone ? ` (${spec.timezone})` : ""}
       </div>
@@ -950,6 +1003,7 @@ const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
       >
         <Select
           size="sm"
+          className={fieldStyle}
           items={mockEntityTypes.map((candidate) => ({
             value: candidate.baseUrl,
             text: candidate.title,
@@ -971,6 +1025,7 @@ const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
         >
           <Select
             size="sm"
+            className={fieldStyle}
             multiple
             items={(type?.properties ?? []).map((property) => ({
               value: property.baseUrl,
@@ -985,6 +1040,7 @@ const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
       <PropertyRow label="Condition" hover="Only start when the entity matches">
         <TextInput
           size="sm"
+          className={fieldStyle}
           value={trigger.settings.condition ?? ""}
           placeholder="Any entity"
           onChange={(condition) => set({ condition })}
@@ -999,6 +1055,7 @@ const WebhookSettings = ({ trigger }: { trigger: TriggerNode }) => (
     <PropertyRow label="URL" hover="Calls to this address start a run">
       <TextInput
         size="sm"
+        className={fieldStyle}
         value={trigger.settings.webhookUrl ?? ""}
         readonly
         onChange={() => undefined}
@@ -1032,16 +1089,7 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
   return (
     <Section title="Start inputs">
       {document.inputs.length === 0 ? (
-        <div
-          className={css({
-            paddingX: "4",
-            paddingY: "2",
-            fontSize: "sm",
-            color: "neutral.s90",
-          })}
-        >
-          Start has no inputs yet.
-        </div>
+        <span className={mutedTextStyle}>Start has no inputs yet.</span>
       ) : null}
       {document.inputs.map((input) => {
         const fields = definition.outputs.filter(
@@ -1065,6 +1113,7 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
           >
             <Select
               size="sm"
+              className={fieldStyle}
               items={[
                 ...fields.map((output) => ({
                   value: `field:${output.name}`,
@@ -1091,6 +1140,7 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
               input.payloadKind === "Number" ? (
                 <NumberInput
                   size="sm"
+                  className={fieldStyle}
                   value={
                     typeof mapping.value === "number" ? mapping.value : null
                   }
@@ -1102,6 +1152,7 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
               ) : (
                 <TextInput
                   size="sm"
+                  className={fieldStyle}
                   type={input.payloadKind === "Date" ? "date" : "text"}
                   value={typeof mapping.value === "string" ? mapping.value : ""}
                   onChange={(value) =>
@@ -1117,36 +1168,63 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
   );
 };
 
+/** Which triggers lead into Start, as J4 A1's "Started by" rows: a schedule, or a trigger. */
+const StartedBy = () => {
+  const { document, setUi } = useEditor();
+  const triggers = document.triggers.filter((trigger) =>
+    document.wires.some(
+      (wire) => wire.source === trigger.id && wire.target === START_ID,
+    ),
+  );
+  if (triggers.length === 0) {
+    return null;
+  }
+  return (
+    <Section title="Started by">
+      {triggers.map((trigger) => {
+        const definition = triggerDefinitions[trigger.kind];
+        return (
+          <PropertyRow
+            key={trigger.id}
+            label={trigger.kind === "schedule" ? "Schedule" : "Trigger"}
+          >
+            <div>
+              <SourceChip
+                icon={definition.icon}
+                tone="blue"
+                onClick={() =>
+                  setUi((ui) => ({ ...ui, selectedId: trigger.id }))
+                }
+              >
+                {trigger.description || definition.title}
+              </SourceChip>
+            </div>
+          </PropertyRow>
+        );
+      })}
+    </Section>
+  );
+};
+
 /** Start: the flow's inputs, which the Run button's form and every trigger fill. */
 const StartPanel = () => {
   const { document, setDocument } = useEditor();
   return (
     <>
       <div className={panelHeaderStyle}>
-        <IconTile icon="playFilled" tone="neutral" />
-        <div
-          className={css({
-            flex: "1",
-            minWidth: "[0]",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1",
-          })}
-        >
+        <HeaderTitle icon="play">
           <span className={typeLineStyle}>Start</span>
-          <TextInput
-            value={document.startDescription}
-            variant="subtle"
-            size="sm"
-            placeholder="Add a description…"
-            aria-label="Start description"
-            onChange={(next) =>
-              setDocument((current) => ({ ...current, startDescription: next }))
-            }
-          />
-        </div>
+        </HeaderTitle>
+        <DescriptionInput
+          label="Start description"
+          value={document.startDescription}
+          onChange={(next) =>
+            setDocument((current) => ({ ...current, startDescription: next }))
+          }
+        />
       </div>
       <RunFormFields />
+      <StartedBy />
       <Paths
         stepId={START_ID}
         ports={[{ outputName: "next", label: "Next" }]}
@@ -1162,7 +1240,6 @@ const TriggerPanel = ({ trigger }: { trigger: TriggerNode }) => {
     <>
       <PanelHeader
         icon={definition.icon}
-        tone="blue"
         type={definition.title}
         trigger={trigger}
         origin={
@@ -1191,14 +1268,18 @@ const TriggerPanel = ({ trigger }: { trigger: TriggerNode }) => {
 
 export const PropertiesPanel = () => {
   const { document, ui } = useEditor();
-  if (!ui.selectedId) {
-    return null;
-  }
-  const trigger = findTrigger(document, ui.selectedId);
-  const found = trigger ? null : findStep(document, ui.selectedId);
+  const trigger = ui.selectedId ? findTrigger(document, ui.selectedId) : null;
+  const found =
+    trigger || !ui.selectedId ? null : findStep(document, ui.selectedId);
   return (
     <aside className={panelStyle} aria-label="Properties">
-      {ui.selectedId === START_ID ? (
+      {!ui.selectedId ? (
+        // J4 B1: with nothing selected, the panel names the flow.
+        <div className={panelHeaderStyle}>
+          <span className={typeLineStyle}>{document.name}</span>
+          <span className={descriptionInputStyle}>Nothing selected</span>
+        </div>
+      ) : ui.selectedId === START_ID ? (
         <StartPanel />
       ) : trigger ? (
         <TriggerPanel key={trigger.id} trigger={trigger} />

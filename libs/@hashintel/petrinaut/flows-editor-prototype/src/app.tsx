@@ -288,45 +288,54 @@ export const Editor = ({
           </header>
           <main
             className={css({
-              position: "relative",
+              display: "flex",
               flex: "1",
               minHeight: "[0]",
             })}
           >
             <ReactFlowProvider>
-              <FlowCanvas
-                mode={mode}
-                onInit={(fitView, zoom) => {
-                  canvasControls.current = { fitView, zoom };
-                }}
-              />
+              {/* The canvas and its floating parts, left of the docked panel (↳ Current: canvas, then a 420 panel). */}
+              <div
+                className={css({
+                  position: "relative",
+                  flex: "1",
+                  minWidth: "[0]",
+                })}
+              >
+                <FlowCanvas
+                  mode={mode}
+                  onInit={(fitView, zoom) => {
+                    canvasControls.current = { fitView, zoom };
+                  }}
+                />
+                <FlowToolbar
+                  mode={mode}
+                  onMode={setMode}
+                  addNodeRef={addNodeRef}
+                  pickerOpen={ui.picker?.anchor === "toolbar"}
+                  onAddNode={() =>
+                    setUiState((current) => ({
+                      ...current,
+                      picker: current.picker ? null : { anchor: "toolbar" },
+                    }))
+                  }
+                  onOrganize={() => {
+                    setDocumentState((current) => organize(current));
+                    setTimeout(() => canvasControls.current?.fitView(), 60);
+                  }}
+                />
+                <AddNodePicker toolbarAnchor={addNodeRef} />
+                {session ? (
+                  <TaskCard
+                    session={session}
+                    onDone={finishTask}
+                    onReopenBriefing={reopenBriefing}
+                    onClose={() => setSession(null)}
+                  />
+                ) : null}
+              </div>
               <PropertiesPanel />
-              <FlowToolbar
-                mode={mode}
-                onMode={setMode}
-                addNodeRef={addNodeRef}
-                pickerOpen={ui.picker?.anchor === "toolbar"}
-                onAddNode={() =>
-                  setUiState((current) => ({
-                    ...current,
-                    picker: current.picker ? null : { anchor: "toolbar" },
-                  }))
-                }
-                onOrganize={() => {
-                  setDocumentState((current) => organize(current));
-                  setTimeout(() => canvasControls.current?.fitView(), 60);
-                }}
-              />
             </ReactFlowProvider>
-            <AddNodePicker toolbarAnchor={addNodeRef} />
-            {session ? (
-              <TaskCard
-                session={session}
-                onDone={finishTask}
-                onReopenBriefing={reopenBriefing}
-                onClose={() => setSession(null)}
-              />
-            ) : null}
           </main>
           {ui.runOpen ? <RunDialog /> : null}
           {briefingOpen ? (
