@@ -22,10 +22,10 @@ const headerStyle = css({
   alignItems: "center",
   height: "[56px]",
   paddingLeft: "5",
-  backgroundColor: "neutral.s00",
+  backgroundColor: "neutral.bgSolid.min",
   borderBottomWidth: "thin",
   borderBottomStyle: "solid",
-  borderBottomColor: "neutral.a40",
+  borderBottomColor: "neutral.bd.subtle",
 });
 
 const searchBoxStyle = css({
@@ -38,21 +38,21 @@ const searchBoxStyle = css({
   width: "[380px]",
   height: "[36px]",
   paddingX: "3",
-  backgroundColor: "neutral.s00",
+  backgroundColor: "neutral.bgSolid.min",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.s50",
+  borderColor: "neutral.bd.subtle.hover",
   borderRadius: "lg",
-  color: "neutral.s80",
-  "&:focus-within": { borderColor: "blue.s80" },
+  color: "neutral.fg.muted.disabled",
+  "&:focus-within": { borderColor: "blue.bd.strong" },
   "& input": {
     flex: "1",
     minWidth: "[0]",
-    fontSize: "[13px]",
-    color: "neutral.s120",
+    textStyle: "sm",
+    color: "neutral.fg.heading",
     backgroundColor: "[transparent]",
     outline: "none",
-    _placeholder: { color: "neutral.s80" },
+    _placeholder: { color: "neutral.fg.muted.disabled" },
   },
 });
 
@@ -66,18 +66,18 @@ const cardStyle = css({
   flexDirection: "column",
   textAlign: "left",
   cursor: "pointer",
-  backgroundColor: "neutral.s00",
+  backgroundColor: "neutral.bgSolid.min",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.a50",
+  borderColor: "neutral.bd.subtle.hover",
   borderRadius: "xl",
   overflow: "hidden",
   transition: "[border-color 0.15s ease, box-shadow 0.15s ease]",
   _hover: {
-    borderColor: "neutral.a70",
+    borderColor: "neutral.bd.solid.hover",
     boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.08)]",
   },
-  _focusVisible: { outline: "[2px solid var(--colors-blue-s90)]" },
+  _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
 });
 
 /** A read-only editor context, so the thumbnail can reuse the canvas's own node views. */
@@ -118,9 +118,9 @@ export const Home = ({
     <div
       className={`${css({
         minHeight: "[100vh]",
-        backgroundColor: "neutral.s00",
+        backgroundColor: "neutral.bgSolid.min",
         fontFamily: "body",
-        color: "neutral.s120",
+        color: "neutral.fg.heading",
       })} petrinaut-root`}
     >
       <header className={headerStyle}>
@@ -133,7 +133,7 @@ export const Home = ({
             aria-label="Search flows"
             onChange={(event) => onSearch(event.target.value)}
           />
-          <span className={css({ fontSize: "xs" })}>⌘ K</span>
+          <span className={css({ textStyle: "xs" })}>⌘ K</span>
         </label>
       </header>
       <main
@@ -160,10 +160,9 @@ export const Home = ({
           >
             <h1
               className={css({
-                fontSize: "lg",
-                lineHeight: "[20px]",
+                textStyle: "lg",
                 fontWeight: "semibold",
-                color: "neutral.s120",
+                color: "neutral.fg.heading",
                 margin: "[0]",
               })}
             >
@@ -171,9 +170,8 @@ export const Home = ({
             </h1>
             <span
               className={css({
-                fontSize: "sm",
-                lineHeight: "[21px]",
-                color: "neutral.s80",
+                textStyle: "sm",
+                color: "neutral.fg.muted.disabled",
               })}
             >
               Processes that workers can monitor and manage
@@ -203,7 +201,7 @@ export const Home = ({
               paddingY: "[96px]",
               borderWidth: "thin",
               borderStyle: "solid",
-              borderColor: "neutral.a50",
+              borderColor: "neutral.bd.subtle.hover",
               borderRadius: "xl",
             })}
           >
@@ -215,8 +213,8 @@ export const Home = ({
                 width: "[48px]",
                 height: "[48px]",
                 borderRadius: "xl",
-                backgroundColor: "blue.s20",
-                color: "blue.s100",
+                backgroundColor: "blue.bgSolid.surface.active",
+                color: "blue.fg.muted",
               })}
             >
               <img src={infinityBlue} alt="" width={24} height={24} />
@@ -227,19 +225,23 @@ export const Home = ({
                 flexDirection: "column",
                 alignItems: "center",
                 gap: "1",
-                lineHeight: "[1.5]",
               })}
             >
               <span
                 className={css({
-                  fontSize: "base",
+                  textStyle: "base",
                   fontWeight: "semibold",
-                  color: "neutral.s120",
+                  color: "neutral.fg.heading",
                 })}
               >
                 {flows.length === 0 ? "No flows yet" : "No flow matches"}
               </span>
-              <span className={css({ fontSize: "sm", color: "neutral.s80" })}>
+              <span
+                className={css({
+                  textStyle: "sm",
+                  color: "neutral.fg.muted.disabled",
+                })}
+              >
                 {flows.length === 0
                   ? "A flow runs the same steps each time: by hand, on a schedule, or when data changes."
                   : `Nothing is called “${search}”.`}
@@ -285,7 +287,7 @@ export const Home = ({
                   inert
                   className={css({
                     height: "[160px]",
-                    backgroundColor: "neutral.s10",
+                    backgroundColor: "neutral.bgSolid.surface",
                   })}
                 >
                   <ThumbnailContext document={flow.document} />
@@ -294,12 +296,12 @@ export const Home = ({
                   className={css({
                     paddingX: "4",
                     paddingY: "3",
-                    fontSize: "sm",
+                    textStyle: "sm",
                     fontWeight: "medium",
-                    color: "neutral.s120",
+                    color: "neutral.fg.heading",
                     borderTopWidth: "thin",
                     borderTopStyle: "solid",
-                    borderTopColor: "neutral.a40",
+                    borderTopColor: "neutral.bd.subtle",
                   })}
                 >
                   {flow.document.name}

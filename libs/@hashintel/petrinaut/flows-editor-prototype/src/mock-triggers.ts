@@ -194,7 +194,7 @@ export const toCron = ({
   dayOfMonth: number;
   dayOfWeek: number;
 }) => {
-  const [hours = "9", minutes = "0"] = time.split(":");
+  const [hours = "9", minutes = "0"] = time.split(": ");
   const minute = String(Number(minutes));
   const hour = String(Number(hours));
   switch (repeat) {

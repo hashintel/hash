@@ -155,21 +155,19 @@ const rowStyle = css({
   borderRadius: "md",
   textAlign: "left",
   cursor: "pointer",
-  fontSize: "[13px]",
-  lineHeight: "[16px]",
-  color: "neutral.s120",
+  textStyle: "sm",
+  color: "neutral.fg.heading",
   whiteSpace: "nowrap",
-  _hover: { backgroundColor: "neutral.a30" },
-  _focusVisible: { backgroundColor: "neutral.a30", outline: "none" },
-  "&[data-first]": { backgroundColor: "neutral.a30" },
+  _hover: { backgroundColor: "neutral.bg.subtle" },
+  _focusVisible: { backgroundColor: "neutral.bg.subtle", outline: "none" },
+  "&[data-first]": { backgroundColor: "neutral.bg.subtle" },
 });
 
 /** 10 px semibold caps, muted, with 6 px above it. */
 const groupLabelStyle = css({
-  fontSize: "[10px]",
-  lineHeight: "[12px]",
+  textStyle: "xxs",
   fontWeight: "semibold",
-  color: "neutral.s100",
+  color: "neutral.fg.muted",
   textTransform: "uppercase",
   letterSpacing: "[0.4px]",
   paddingTop: "1.5",
@@ -181,8 +179,8 @@ const groupLabelStyle = css({
 
 const sideTextStyle = css({
   marginLeft: "auto",
-  fontSize: "[11px]",
-  color: "neutral.s100",
+  textStyle: "xxs",
+  color: "neutral.fg.muted",
   display: "inline-flex",
   alignItems: "center",
   gap: "1",
@@ -206,10 +204,19 @@ const pickerTileStyle = cva({
   },
   variants: {
     tone: {
-      green: { backgroundColor: "green.s30", color: "green.s100" },
-      orange: { backgroundColor: "orange.s30", color: "orange.s100" },
-      blue: { backgroundColor: "blue.s30", color: "blue.s100" },
-      neutral: { backgroundColor: "neutral.s30", color: "neutral.s100" },
+      green: {
+        backgroundColor: "green.bgSolid.subtle",
+        color: "green.fg.muted",
+      },
+      orange: {
+        backgroundColor: "orange.bgSolid.subtle",
+        color: "orange.fg.muted",
+      },
+      blue: { backgroundColor: "blue.bgSolid.subtle", color: "blue.fg.muted" },
+      neutral: {
+        backgroundColor: "neutral.bgSolid.subtle",
+        color: "neutral.fg.muted",
+      },
     },
   },
 });
@@ -246,10 +253,10 @@ const pickerStyle = css({
   gap: "0.5",
   width: "[330px]",
   padding: "2",
-  backgroundColor: "neutral.s00",
+  backgroundColor: "neutral.bgSolid.min",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.a50",
+  borderColor: "neutral.bd.subtle.hover",
   borderRadius: "[10px]",
   boxShadow: "[0 6px 18px rgba(0, 0, 0, 0.12)]",
 });
@@ -546,8 +553,8 @@ export const AddNodePicker = ({
                     className={css({
                       paddingX: "1.5",
                       paddingY: "2",
-                      fontSize: "[13px]",
-                      color: "neutral.s90",
+                      textStyle: "sm",
+                      color: "neutral.fg.subtle",
                     })}
                   >
                     No step matches “{search}”.

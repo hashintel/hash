@@ -19,9 +19,9 @@ import type { FlowInputDefinition } from "./engine";
 type Value = string | number | string[] | null;
 
 const labelStyle = css({
-  fontSize: "sm",
+  textStyle: "sm",
   fontWeight: "medium",
-  color: "neutral.s120",
+  color: "neutral.fg.heading",
 });
 
 /**
@@ -131,7 +131,9 @@ export const RunDialog = () => {
           })}
         >
           {document.inputs.length === 0 ? (
-            <span className={css({ fontSize: "sm", color: "neutral.s100" })}>
+            <span
+              className={css({ textStyle: "sm", color: "neutral.fg.muted" })}
+            >
               This flow takes no inputs.
             </span>
           ) : null}

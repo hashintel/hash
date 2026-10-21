@@ -132,25 +132,25 @@ const cardStyle = cva({
   base: {
     position: "relative",
     width: "[200px]",
-    backgroundColor: "neutral.s00",
+    backgroundColor: "neutral.bgSolid.min",
     borderWidth: "thin",
     borderStyle: "solid",
-    borderColor: "neutral.s45",
+    borderColor: "neutral.bd.subtle",
     borderRadius: "lg",
     transition: "[border-color 0.15s ease, box-shadow 0.3s ease]",
     "&:hover [data-port-add]": { opacity: "[1]" },
     // A step just added for the user (Look up in the graph) glows for a moment.
     "&[data-flash]": {
-      borderColor: "blue.s80",
-      boxShadow: "[0 0 0 4px var(--colors-blue-a40)]",
+      borderColor: "blue.bd.strong",
+      boxShadow: "[0 0 0 4px var(--colors-blue-bd-subtle)]",
     },
   },
   variants: {
     selected: {
       true: {
         // 1.5 px blue, drawn inside so the card keeps its size.
-        borderColor: "blue.s80",
-        boxShadow: "[inset 0 0 0 0.5px var(--colors-blue-s80)]",
+        borderColor: "blue.bd.strong",
+        boxShadow: "[inset 0 0 0 0.5px var(--colors-blue-bd-strong)]",
         "& [data-port-add]": { opacity: "[1]" },
       },
     },
@@ -174,10 +174,22 @@ const cardTileStyle = cva({
   },
   variants: {
     tone: {
-      green: { backgroundColor: "green.s20", color: "green.s100" },
-      orange: { backgroundColor: "orange.s20", color: "orange.s100" },
-      blue: { backgroundColor: "blue.s20", color: "blue.s100" },
-      neutral: { backgroundColor: "blue.s20", color: "neutral.s100" },
+      green: {
+        backgroundColor: "green.bgSolid.surface.active",
+        color: "green.fg.muted",
+      },
+      orange: {
+        backgroundColor: "orange.bgSolid.surface.active",
+        color: "orange.fg.muted",
+      },
+      blue: {
+        backgroundColor: "blue.bgSolid.surface.active",
+        color: "blue.fg.muted",
+      },
+      neutral: {
+        backgroundColor: "blue.bgSolid.surface.active",
+        color: "neutral.fg.muted",
+      },
     },
   },
 });
@@ -209,9 +221,9 @@ const handleStyle = css({
     height: "[7px]",
     minWidth: "[7px]",
     minHeight: "[7px]",
-    backgroundColor: "neutral.s00",
+    backgroundColor: "neutral.bgSolid.min",
     borderWidth: "thin",
-    borderColor: "neutral.s90",
+    borderColor: "neutral.bd.strong",
   },
 });
 
@@ -224,20 +236,20 @@ const portAddStyle = css({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: "neutral.s00",
+  backgroundColor: "neutral.bgSolid.min",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.s50",
-  color: "neutral.s100",
+  borderColor: "neutral.bd.subtle.hover",
+  color: "neutral.fg.muted",
   cursor: "pointer",
   opacity: "[0]",
   transition: "[opacity 0.15s ease]",
   transform: "[translateY(-50%)]",
   zIndex: "[2]",
-  _hover: { borderColor: "blue.s90", color: "blue.s100" },
+  _hover: { borderColor: "blue.bd.strong", color: "blue.fg.muted" },
   _focusVisible: {
     opacity: "[1]",
-    outline: "[2px solid var(--colors-blue-s90)]",
+    outline: "[2px solid var(--colors-blue-bd-strong)]",
   },
 });
 
@@ -283,10 +295,10 @@ const errorDotStyle = css({
   width: "[10px]",
   height: "[10px]",
   borderRadius: "full",
-  backgroundColor: "red.s90",
+  backgroundColor: "red.bg.solid",
   borderWidth: "[2px]",
   borderStyle: "solid",
-  borderColor: "neutral.s00",
+  borderColor: "neutral.bgSolid.min",
 });
 
 const ProblemDot = ({ stepId }: { stepId: string }) => {
@@ -338,14 +350,19 @@ const oneLineStyle = cva({
   },
   variants: {
     tone: {
+      // Node title = body, description = muted (DS roles); tight leading keeps the card at the V7 height.
       title: {
-        fontSize: "[13px]",
-        lineHeight: "[16px]",
+        textStyle: "sm",
+        lineHeight: "tight",
         fontWeight: "medium",
-        color: "neutral.s120",
+        color: "neutral.fg.body",
       },
-      body: { fontSize: "xs", lineHeight: "[15px]", color: "neutral.s90" },
-      muted: { fontSize: "xs", lineHeight: "[15px]", color: "neutral.s80" },
+      body: { textStyle: "xs", lineHeight: "tight", color: "neutral.fg.muted" },
+      muted: {
+        textStyle: "xs",
+        lineHeight: "tight",
+        color: "neutral.fg.subtle",
+      },
     },
   },
 });
@@ -362,7 +379,7 @@ const CardText = ({
     className={css({
       display: "flex",
       flexDirection: "column",
-      gap: "0.5",
+      gap: "0",
       minWidth: "[0]",
       flex: "1",
     })}
@@ -415,7 +432,7 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
           className={css({
             borderTopWidth: "thin",
             borderTopStyle: "solid",
-            borderTopColor: "neutral.s40",
+            borderTopColor: "neutral.bd.subtle",
           })}
         >
           {ports.map((port) => (
@@ -428,8 +445,8 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
                 alignItems: "center",
                 justifyContent: "flex-end",
                 paddingRight: "3",
-                fontSize: "xs",
-                color: "neutral.s90",
+                textStyle: "xs",
+                color: "neutral.fg.subtle",
               })}
             >
               {port.label}
@@ -467,17 +484,17 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
 
 const triggerStyle = css({
   width: "[200px]",
-  backgroundColor: "neutral.s00",
+  backgroundColor: "neutral.bgSolid.min",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.s45",
+  borderColor: "neutral.bd.subtle",
   borderRadius: "lg",
   position: "relative",
   "&:hover [data-port-add]": { opacity: "[1]" },
   "&[data-selected] [data-port-add]": { opacity: "[1]" },
   "&[data-selected]": {
-    borderColor: "blue.s80",
-    boxShadow: "[inset 0 0 0 0.5px var(--colors-blue-s80)]",
+    borderColor: "blue.bd.strong",
+    boxShadow: "[inset 0 0 0 0.5px var(--colors-blue-bd-strong)]",
   },
 });
 
@@ -554,7 +571,7 @@ const groupStyle = cva({
     height: "[100%]",
     borderWidth: "thin",
     borderStyle: "solid",
-    borderColor: "neutral.s50",
+    borderColor: "neutral.bd.subtle.hover",
     borderRadius: "xl",
     backgroundColor: "[rgba(250, 250, 250, 0.7)]",
     position: "relative",
@@ -562,8 +579,8 @@ const groupStyle = cva({
   variants: {
     selected: {
       true: {
-        borderColor: "blue.s90",
-        boxShadow: "[0 0 0 3px var(--colors-blue-a30)]",
+        borderColor: "blue.bd.strong",
+        boxShadow: "[0 0 0 3px var(--colors-blue-bd-subtle)]",
       },
     },
   },
@@ -605,10 +622,9 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
         >
           <span
             className={css({
-              fontSize: "[13px]",
-              lineHeight: "[16px]",
+              textStyle: "sm",
               fontWeight: "medium",
-              color: "neutral.s120",
+              color: "neutral.fg.heading",
             })}
           >
             {step.description || "For each"}
@@ -622,13 +638,13 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
             display: "inline-flex",
             alignItems: "center",
             gap: "1",
-            fontSize: "xs",
-            color: "neutral.s100",
+            textStyle: "xs",
+            color: "neutral.fg.muted",
             borderRadius: "md",
             paddingX: "2",
             height: "[24px]",
             cursor: "pointer",
-            _hover: { backgroundColor: "neutral.s20" },
+            _hover: { backgroundColor: "neutral.bgSolid.surface.active" },
           })} nodrag nopan`}
           onClick={(event) => {
             event.stopPropagation();
@@ -650,8 +666,8 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "xs",
-            color: "neutral.s90",
+            textStyle: "xs",
+            color: "neutral.fg.subtle",
           })}
         >
           Steps here run once per item.
@@ -676,6 +692,29 @@ const nodeTypes = {
   start: StartNodeView,
   forEach: GroupNodeView,
 };
+
+/**
+ * No browser focus ring on the canvas itself (a mouse click can focus the pane, and Edge draws its own ring there),
+ * and React Flow's selection box in DS blue rather than its default violet. Keyboard focus on a node keeps the DS ring.
+ */
+const canvasStyle = css({
+  "&, & .react-flow__renderer, & .react-flow__pane, & .react-flow__viewport": {
+    outline: "none",
+  },
+  "& .react-flow__node:focus:not(:focus-visible), & .react-flow__edge:focus:not(:focus-visible)":
+    { outline: "none" },
+  "& .react-flow__node:focus-visible": {
+    outline: "[2px solid var(--colors-blue-bd-strong)]",
+    outlineOffset: "[2px]",
+    borderRadius: "lg",
+  },
+  "& .react-flow__selection, & .react-flow__nodesselection-rect": {
+    backgroundColor: "blue.bg.surface",
+    borderWidth: "thin",
+    borderStyle: "solid",
+    borderColor: "blue.bd.solid",
+  },
+});
 
 /** Leaves room for the bottom bar, and keeps text readable on a big flow. The panel is docked beside the canvas. */
 const fitOptions = {
@@ -811,6 +850,7 @@ export const FlowCanvas = ({
 
   return (
     <ReactFlow
+      className={canvasStyle}
       nodes={nodes}
       edges={toEdges(document)}
       nodeTypes={nodeTypes}
@@ -875,7 +915,7 @@ export const FlowCanvas = ({
         variant={BackgroundVariant.Dots}
         gap={16}
         size={1}
-        color="var(--colors-neutral-s60)"
+        color="var(--colors-neutral-bd-solid)"
       />
       <MiniMap
         position="top-right"
@@ -884,8 +924,8 @@ export const FlowCanvas = ({
         ariaLabel="Minimap"
         style={{ width: 100, height: 64, borderRadius: 6 }}
         maskColor="rgba(0, 0, 0, 0.08)"
-        nodeColor="var(--colors-neutral-s00)"
-        nodeStrokeColor="var(--colors-neutral-s60)"
+        nodeColor="var(--colors-neutral-fg-onSolid)"
+        nodeStrokeColor="var(--colors-neutral-bd-solid)"
       />
     </ReactFlow>
   );

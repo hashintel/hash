@@ -171,8 +171,8 @@ const SourceLine = ({ source }: { source: StepInputSource }) => {
         display: "flex",
         alignItems: "flex-start",
         gap: "1",
-        fontSize: "xs",
-        color: "neutral.s90",
+        textStyle: "xs",
+        color: "neutral.fg.subtle",
         minWidth: "[0]",
       })}
     >
@@ -414,11 +414,10 @@ const chipClass = css({
   paddingX: "[6px]",
   marginX: "[1px]",
   borderRadius: "sm",
-  backgroundColor: "blue.s20",
-  color: "blue.s110",
-  fontSize: "xs",
+  backgroundColor: "blue.bgSolid.surface.active",
+  color: "blue.fg.link",
+  textStyle: "xs",
   fontWeight: "medium",
-  lineHeight: "[18px]",
   userSelect: "all",
   whiteSpace: "nowrap",
 });
@@ -428,24 +427,23 @@ const editorClass = css({
   width: "[100%]",
   paddingX: "2",
   paddingY: "[6px]",
-  fontSize: "sm",
-  lineHeight: "[22px]",
-  color: "neutral.s120",
-  backgroundColor: "neutral.s00",
+  textStyle: "sm",
+  color: "neutral.fg.heading",
+  backgroundColor: "neutral.bgSolid.min",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.s50",
+  borderColor: "neutral.bd.subtle.hover",
   borderRadius: "md",
   whiteSpace: "pre-wrap",
   overflowWrap: "anywhere",
   outline: "none",
   _focus: {
-    borderColor: "blue.s90",
-    boxShadow: "[0 0 0 2px var(--colors-blue-a30)]",
+    borderColor: "blue.bd.strong",
+    boxShadow: "[0 0 0 2px var(--colors-blue-bd-subtle)]",
   },
   "&:empty::before": {
     content: "attr(data-placeholder)",
-    color: "neutral.s80",
+    color: "neutral.fg.muted.disabled",
   },
 });
 
@@ -842,30 +840,30 @@ const conditionLookStyle = css({
     "--filter-input-padding-x": "6.5px",
     "--filter-radius": "8px",
     "--form-padding-y": "0px",
-    "--filter-outer-border": "var(--colors-neutral-a60)",
-    "--filter-divider": "var(--colors-neutral-a60)",
-    "--filter-remove-divider": "var(--colors-neutral-a60)",
+    "--filter-outer-border": "var(--colors-neutral-bd-solid)",
+    "--filter-divider": "var(--colors-neutral-bd-solid)",
+    "--filter-remove-divider": "var(--colors-neutral-bd-solid)",
     minHeight: "[28px]",
     flexWrap: "wrap",
-    backgroundColor: "neutral.s05",
+    backgroundColor: "neutral.bgSolid.min.hover",
   },
   "&[data-condition-row]:hover": {
-    "--filter-outer-border": "var(--colors-neutral-a80)",
-    "--filter-divider": "var(--colors-neutral-a70)",
-    "--filter-remove-divider": "var(--colors-neutral-a70)",
+    "--filter-outer-border": "var(--colors-neutral-bd-strong)",
+    "--filter-divider": "var(--colors-neutral-bd-solid-hover)",
+    "--filter-remove-divider": "var(--colors-neutral-bd-solid-hover)",
   },
   // Every segment, including a chip inside a tooltip trigger (which sets line-height 0), gets the 26 px line.
   "&[data-condition-row] > *, &[data-condition-row] button, &[data-condition-row] input":
     {
-      lineHeight: "[26px]",
       fontWeight: "medium",
-      color: "neutral.s110",
+      color: "neutral.fg.body",
     },
-  "&[data-condition-row] input::placeholder": { color: "neutral.s80" },
+  "&[data-condition-row] input::placeholder": {
+    color: "neutral.fg.muted.disabled",
+  },
   "&[data-condition-row] [data-part=input-slot] button": { borderWidth: "[0]" },
   "&[data-condition-row] [data-part=input-slot] > span": {
     display: "flex",
-    lineHeight: "[26px]",
   },
   "&[data-condition-row] [data-part=remove]": {
     width: "[28px]",
@@ -883,17 +881,16 @@ const addConditionStyle = css({
   paddingX: "[6.5px]",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.a60",
+  borderColor: "neutral.bd.solid",
   borderRadius: "lg",
-  backgroundColor: "neutral.s00",
-  fontSize: "sm",
+  backgroundColor: "neutral.bgSolid.min",
+  textStyle: "sm",
   fontWeight: "medium",
-  lineHeight: "[14px]",
-  color: "neutral.s90",
+  color: "neutral.fg.subtle",
   cursor: "pointer",
   "& svg": { width: "[14px]", height: "[14px]" },
-  _hover: { borderColor: "neutral.a80", color: "neutral.s110" },
-  _focusVisible: { outline: "[2px solid var(--colors-blue-s90)]" },
+  _hover: { borderColor: "neutral.bd.strong", color: "neutral.fg.muted" },
+  _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
 });
 
 const ConditionRowEditor = ({
@@ -1408,9 +1405,8 @@ export const QueryField = ({
               {index > 0 ? (
                 <span
                   className={css({
-                    fontSize: "xs",
-                    lineHeight: "[15px]",
-                    color: "neutral.s90",
+                    textStyle: "xs",
+                    color: "neutral.fg.subtle",
                   })}
                 >
                   and
@@ -1684,9 +1680,9 @@ export const PatchField = ({ step, input }: FieldProps) => {
             >
               <span
                 className={css({
-                  fontSize: "xs",
+                  textStyle: "xs",
                   fontWeight: "medium",
-                  color: "neutral.s110",
+                  color: "neutral.fg.muted",
                 })}
               >
                 {property?.title ?? "Property"}

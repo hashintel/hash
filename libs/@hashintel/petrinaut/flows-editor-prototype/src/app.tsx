@@ -35,9 +35,9 @@ const rootStyle = css({
   flexDirection: "column",
   height: "[100vh]",
   width: "[100vw]",
-  backgroundColor: "neutral.s10",
+  backgroundColor: "neutral.bgSolid.surface",
   fontFamily: "body",
-  color: "neutral.s120",
+  color: "neutral.fg.heading",
 });
 
 /** The DS topBar on ↳ Current: 64 px, 16 px in, near-white, a faint hairline under it. */
@@ -47,10 +47,10 @@ const topBarStyle = css({
   gap: "3",
   height: "[64px]",
   paddingX: "4",
-  backgroundColor: "neutral.s05",
+  backgroundColor: "neutral.bgSolid.min.hover",
   borderBottomWidth: "thin",
   borderBottomStyle: "solid",
-  borderBottomColor: "neutral.a40",
+  borderBottomColor: "neutral.bd.subtle",
   flexShrink: 0,
 });
 
@@ -62,22 +62,21 @@ const backStyle = css({
     minWidth: "[24px]",
     padding: "[0]",
     justifyContent: "center",
-    backgroundColor: "neutral.s00",
+    backgroundColor: "neutral.bgSolid.min",
     borderWidth: "thin",
     borderStyle: "solid",
-    borderColor: "neutral.a60",
+    borderColor: "neutral.bd.solid",
     borderRadius: "md",
-    color: "neutral.s120",
+    color: "neutral.fg.heading",
   },
   "&[class] svg": { width: "[12px]", height: "[12px]" },
 });
 
 /** The flow name, as the breadcrumb's text (14 px medium), editable in place. */
 const titleInputStyle = css({
-  fontSize: "sm",
+  textStyle: "sm",
   fontWeight: "medium",
-  lineHeight: "[14px]",
-  color: "neutral.s120",
+  color: "neutral.fg.heading",
   backgroundColor: "[transparent]",
   borderWidth: "[0]",
   borderRadius: "sm",
@@ -90,22 +89,22 @@ const titleInputStyle = css({
   minWidth: "[40px]",
   maxWidth: "[480px]",
   outline: "none",
-  _hover: { backgroundColor: "neutral.a20" },
-  _focusVisible: { boxShadow: "[0 0 0 2px var(--colors-blue-a40)]" },
+  _hover: { backgroundColor: "neutral.bg.surface.active" },
+  _focusVisible: { boxShadow: "[0 0 0 2px var(--colors-blue-bd-subtle)]" },
 });
 
 /** The top bar's 32 px bordered buttons (Run and ⋮), as the DS IconButton draws them. */
 const barButtonStyle = css({
   "&[class]": {
     height: "[32px]",
-    backgroundColor: "neutral.s00",
+    backgroundColor: "neutral.bgSolid.min",
     borderWidth: "thin",
     borderStyle: "solid",
-    borderColor: "neutral.a60",
+    borderColor: "neutral.bd.solid",
     borderRadius: "lg",
-    color: "neutral.s110",
+    color: "neutral.fg.muted",
   },
-  "&[class]:hover": { backgroundColor: "neutral.s15" },
+  "&[class]:hover": { backgroundColor: "neutral.bgSolid.surface.hover" },
 });
 
 /** Run: 28 px, 14 px regular text after a 14 px play icon. */
@@ -278,11 +277,11 @@ export const Editor = ({
               <a
                 href="?screens"
                 className={css({
-                  fontSize: "xs",
-                  color: "neutral.s90",
+                  textStyle: "xs",
+                  color: "neutral.fg.subtle",
                   marginRight: "2",
                   _hover: {
-                    color: "neutral.s120",
+                    color: "neutral.fg.heading",
                     textDecoration: "underline",
                   },
                 })}
@@ -422,10 +421,10 @@ export const Editor = ({
 
 const screensStyle = css({
   minHeight: "[100vh]",
-  backgroundColor: "neutral.s15",
+  backgroundColor: "neutral.bgSolid.surface.hover",
   padding: "8",
   fontFamily: "body",
-  color: "neutral.s120",
+  color: "neutral.fg.heading",
 });
 
 /** One screen: a live, scaled copy of the editor in that state, with its name linking to it. */
@@ -446,8 +445,8 @@ const ScreenFrame = ({
         borderRadius: "lg",
         borderWidth: "thin",
         borderStyle: "solid",
-        borderColor: "neutral.s40",
-        backgroundColor: "neutral.s00",
+        borderColor: "neutral.bd.subtle",
+        backgroundColor: "neutral.bgSolid.min",
       })}
     >
       <iframe
@@ -479,14 +478,14 @@ const ScreenFrame = ({
       <a
         href={`${base}?state=${state.id}`}
         className={css({
-          fontSize: "sm",
+          textStyle: "sm",
           fontWeight: "semibold",
-          color: "blue.s100",
+          color: "blue.fg.muted",
         })}
       >
         {state.title}
       </a>
-      <span className={css({ fontSize: "sm", color: "neutral.s100" })}>
+      <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
         {state.caption}
       </span>
     </figcaption>
@@ -506,7 +505,7 @@ export const Screens = () => {
     <div className={`${screensStyle} petrinaut-root`}>
       <h1
         className={css({
-          fontSize: "xl",
+          textStyle: "xl",
           fontWeight: "semibold",
           marginBottom: "1",
         })}
@@ -515,8 +514,8 @@ export const Screens = () => {
       </h1>
       <p
         className={css({
-          fontSize: "sm",
-          color: "neutral.s100",
+          textStyle: "sm",
+          color: "neutral.fg.muted",
           marginBottom: "6",
         })}
       >
@@ -526,9 +525,9 @@ export const Screens = () => {
         <section key={journey} className={css({ marginBottom: "10" })}>
           <h2
             className={css({
-              fontSize: "lg",
+              textStyle: "lg",
               fontWeight: "semibold",
-              color: "neutral.s120",
+              color: "neutral.fg.heading",
               marginBottom: "4",
             })}
           >
@@ -544,9 +543,9 @@ export const Screens = () => {
             <div key={row} className={css({ marginBottom: "6" })}>
               <h3
                 className={css({
-                  fontSize: "xs",
+                  textStyle: "xs",
                   fontWeight: "medium",
-                  color: "neutral.s90",
+                  color: "neutral.fg.subtle",
                   marginBottom: "2",
                 })}
               >

@@ -43,21 +43,25 @@ export const menuRowStyle = css({
   borderRadius: "lg",
   textAlign: "left",
   cursor: "pointer",
-  fontSize: "sm",
+  textStyle: "sm",
   fontWeight: "medium",
-  lineHeight: "[14px]",
-  color: "neutral.s120",
+  color: "neutral.fg.heading",
   whiteSpace: "nowrap",
   "& > svg": {
     flexShrink: 0,
     width: "[14px]",
     height: "[14px]",
-    color: "neutral.s110",
+    color: "neutral.fg.muted",
   },
   "& > svg:last-child:not(:first-child)": { width: "[16px]", height: "[16px]" },
-  _hover: { backgroundColor: "neutral.a20" },
-  _focusVisible: { backgroundColor: "neutral.a20", outline: "none" },
-  "&[data-active], &[data-selected]": { backgroundColor: "neutral.a20" },
+  _hover: { backgroundColor: "neutral.bg.surface.active" },
+  _focusVisible: {
+    backgroundColor: "neutral.bg.surface.active",
+    outline: "none",
+  },
+  "&[data-active], &[data-selected]": {
+    backgroundColor: "neutral.bg.surface.active",
+  },
 });
 
 /** A group of rows, 4 px in, with a hairline between groups. */
@@ -68,7 +72,7 @@ export const menuGroupStyle = css({
   "& + &": {
     borderTopWidth: "thin",
     borderTopStyle: "solid",
-    borderTopColor: "neutral.a40",
+    borderTopColor: "neutral.bd.subtle",
   },
 });
 
@@ -78,12 +82,11 @@ export const menuGroupLabelStyle = css({
   alignItems: "center",
   height: "[28px]",
   paddingX: "1.5",
-  fontSize: "xs",
+  textStyle: "xs",
   fontWeight: "medium",
-  lineHeight: "[12px]",
   letterSpacing: "[0.48px]",
   textTransform: "uppercase",
-  color: "neutral.s90",
+  color: "neutral.fg.subtle",
 });
 
 /** A disabled row that says why a group is empty (J3 C2). */
@@ -93,11 +96,10 @@ const menuEmptyRowStyle = css({
   minHeight: "[32px]",
   paddingX: "1.5",
   borderRadius: "lg",
-  backgroundColor: "neutral.a20",
-  fontSize: "sm",
+  backgroundColor: "neutral.bg.surface.active",
+  textStyle: "sm",
   fontWeight: "medium",
-  lineHeight: "[14px]",
-  color: "neutral.s120",
+  color: "neutral.fg.heading",
   opacity: "[0.5]",
   whiteSpace: "nowrap",
 });
@@ -110,10 +112,10 @@ export const menuPanelStyle = css({
   minWidth: "[240px]",
   maxWidth: "[380px]",
   maxHeight: "[520px]",
-  backgroundColor: "neutral.s00",
+  backgroundColor: "neutral.bgSolid.min",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.a50",
+  borderColor: "neutral.bd.subtle.hover",
   borderRadius: "[10px]",
   boxShadow:
     "[0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)]",
@@ -461,10 +463,9 @@ export const SourceMenu = ({
                         <span className={rowTextStyle}>{option.label}</span>
                         <span
                           className={css({
-                            fontSize: "xs",
+                            textStyle: "xs",
                             fontWeight: "normal",
-                            lineHeight: "[16px]",
-                            color: "neutral.s90",
+                            color: "neutral.fg.subtle",
                             whiteSpace: "nowrap",
                             overflow: "hidden",
                             textOverflow: "ellipsis",

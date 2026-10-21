@@ -13,10 +13,22 @@ const tile = cva({
   },
   variants: {
     tone: {
-      green: { backgroundColor: "green.s20", color: "green.s110" },
-      orange: { backgroundColor: "orange.s20", color: "orange.s110" },
-      blue: { backgroundColor: "blue.s20", color: "blue.s110" },
-      neutral: { backgroundColor: "neutral.s20", color: "neutral.s100" },
+      green: {
+        backgroundColor: "green.bgSolid.surface.active",
+        color: "green.fg.link",
+      },
+      orange: {
+        backgroundColor: "orange.bgSolid.surface.active",
+        color: "orange.fg.link",
+      },
+      blue: {
+        backgroundColor: "blue.bgSolid.surface.active",
+        color: "blue.fg.link",
+      },
+      neutral: {
+        backgroundColor: "neutral.bgSolid.surface.active",
+        color: "neutral.fg.muted",
+      },
     },
     size: {
       sm: { width: "[24px]", height: "[24px]" },
@@ -64,10 +76,9 @@ export const kindLabel = (kind: string | undefined, array = false) => {
 
 /** Figma ↳ Current panels: 12 px medium, muted, sentence case. */
 export const sectionTitleStyle = css({
-  fontSize: "xs",
-  fontWeight: "medium",
-  lineHeight: "[15px]",
-  color: "neutral.s90",
+  textStyle: "sm",
+  fontWeight: "semibold",
+  color: "neutral.fg.muted",
 });
 
 /** A panel section: its title, then rows 8 px apart. Sections sit 20 px apart (the panel's gap). */
@@ -122,16 +133,15 @@ export const keyStyle = css({
   display: "block",
   maxWidth: "[128px]",
   // The DS tooltip trigger sets line-height 0, which would clip an inline block.
-  lineHeight: "[16px]",
-  fontSize: "[13px]",
-  color: "neutral.s90",
+  textStyle: "sm",
+  color: "neutral.fg.muted",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
 });
 
 /** The DS tooltip trigger sets line-height 0, which would lift the key off the value's baseline. */
-const keyTipStyle = css({ "&[class]": { lineHeight: "[16px]" } });
+const keyTipStyle = css({ "&[class]": { textStyle: "sm" } });
 
 /**
  * D27 A: one row of the properties table. A muted key, the value, and (below the value) where it comes from. The
@@ -184,13 +194,12 @@ const sourceChipStyle = css({
   paddingRight: "2",
   paddingY: "1",
   borderRadius: "md",
-  backgroundColor: "neutral.s20",
-  fontSize: "xs",
-  lineHeight: "[17px]",
-  color: "neutral.s120",
+  backgroundColor: "neutral.bgSolid.surface.active",
+  textStyle: "sm",
+  color: "neutral.fg.body",
   textAlign: "left",
-  _hover: { backgroundColor: "neutral.s30" },
-  _focusWithin: { outline: "[2px solid var(--colors-blue-s90)]" },
+  _hover: { backgroundColor: "neutral.bgSolid.subtle" },
+  _focusWithin: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
 });
 
 const chipTileStyle = cva({
@@ -210,10 +219,22 @@ const chipTileStyle = cva({
   },
   variants: {
     tone: {
-      green: { backgroundColor: "green.s20", color: "green.s100" },
-      orange: { backgroundColor: "orange.s20", color: "orange.s100" },
-      blue: { backgroundColor: "blue.s20", color: "blue.s100" },
-      neutral: { backgroundColor: "neutral.s00", color: "neutral.s100" },
+      green: {
+        backgroundColor: "green.bgSolid.surface.active",
+        color: "green.fg.muted",
+      },
+      orange: {
+        backgroundColor: "orange.bgSolid.surface.active",
+        color: "orange.fg.muted",
+      },
+      blue: {
+        backgroundColor: "blue.bgSolid.surface.active",
+        color: "blue.fg.muted",
+      },
+      neutral: {
+        backgroundColor: "neutral.bgSolid.min",
+        color: "neutral.fg.muted",
+      },
     },
   },
   defaultVariants: { tone: "neutral" },
@@ -225,17 +246,20 @@ const chipRemoveStyle = css({
   right: "[4px]",
   top: "[50%]",
   transform: "[translateY(-50%)]",
-  backgroundColor: "neutral.s30",
+  backgroundColor: "neutral.bgSolid.subtle",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   width: "[16px]",
   height: "[16px]",
   borderRadius: "sm",
-  color: "neutral.s90",
+  color: "neutral.fg.subtle",
   cursor: "pointer",
   opacity: "[0]",
-  _hover: { backgroundColor: "neutral.s40", color: "neutral.s120" },
+  _hover: {
+    backgroundColor: "neutral.bgSolid.subtle.hover",
+    color: "neutral.fg.body",
+  },
   _focusVisible: { opacity: "[1]" },
 });
 
@@ -304,9 +328,8 @@ export const SourceChip = ({
 );
 
 export const mutedTextStyle = css({
-  fontSize: "xs",
-  lineHeight: "[17px]",
-  color: "neutral.s90",
+  textStyle: "xs",
+  color: "neutral.fg.subtle",
 });
 
 /** A small grey marker for parts that exist only in this prototype's mock layer or an open PR. */
@@ -320,15 +343,14 @@ export const OriginMark = ({
   <Tooltip content={hover}>
     <span
       className={css({
-        fontSize: "[10px]",
+        textStyle: "xxs",
         fontWeight: "medium",
-        color: "neutral.s90",
+        color: "neutral.fg.subtle",
         borderWidth: "thin",
         borderStyle: "dashed",
-        borderColor: "neutral.s50",
+        borderColor: "neutral.bd.subtle.hover",
         borderRadius: "sm",
         paddingX: "1",
-        lineHeight: "[16px]",
         whiteSpace: "nowrap",
       })}
     >
@@ -348,7 +370,7 @@ export const fieldStyle = css({
   },
   "&[class] :is(input, button, [data-part=value-text])": {
     fontWeight: "medium",
-    color: "neutral.s120",
+    color: "neutral.fg.body",
   },
 });
 
@@ -363,13 +385,12 @@ export const selectTriggerStyle = css({
   paddingRight: "2.5",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.a60",
+  borderColor: "neutral.bd.solid",
   borderRadius: "lg",
-  backgroundColor: "neutral.s00",
-  fontSize: "sm",
+  backgroundColor: "neutral.bgSolid.min",
+  textStyle: "sm",
   fontWeight: "medium",
-  lineHeight: "[14px]",
-  color: "neutral.s120",
+  color: "neutral.fg.body",
   textAlign: "left",
   cursor: "pointer",
   "& > span": {
@@ -379,10 +400,10 @@ export const selectTriggerStyle = css({
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
-  "& > svg": { color: "neutral.s100", flexShrink: 0 },
-  "&[data-placeholder]": { color: "neutral.s90" },
-  _hover: { borderColor: "neutral.a80" },
-  _focusVisible: { outline: "[2px solid var(--colors-blue-s90)]" },
+  "& > svg": { color: "neutral.fg.muted", flexShrink: 0 },
+  "&[data-placeholder]": { color: "neutral.fg.subtle" },
+  _hover: { borderColor: "neutral.bd.strong" },
+  _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
 });
 
 /** The panel header block: icon and type on one line, the description 6 px below. */
@@ -397,10 +418,9 @@ export const panelHeaderStyle = css({
 });
 
 export const typeLineStyle = css({
-  fontSize: "sm",
+  textStyle: "sm",
   fontWeight: "semibold",
-  lineHeight: "[14px]",
-  color: "neutral.s110",
+  color: "neutral.fg.heading",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -420,7 +440,7 @@ export const HeaderTitle = ({
       alignItems: "center",
       gap: "2",
       minWidth: "[0]",
-      color: "neutral.s110",
+      color: "neutral.fg.muted",
     })}
   >
     {icon ? <Icon name={icon} size="sm" /> : null}
@@ -431,17 +451,16 @@ export const HeaderTitle = ({
 /** The description under the header's type: 12 px muted text that edits in place. */
 export const descriptionInputStyle = css({
   width: "[100%]",
-  fontSize: "xs",
-  lineHeight: "[15px]",
-  color: "neutral.s90",
+  textStyle: "xs",
+  color: "neutral.fg.subtle",
   backgroundColor: "[transparent]",
   borderWidth: "[0]",
   borderRadius: "xs",
   padding: "[0]",
   outline: "none",
-  _placeholder: { color: "neutral.s80" },
-  _hover: { color: "neutral.s100" },
-  _focusVisible: { boxShadow: "[0 0 0 2px var(--colors-blue-a40)]" },
+  _placeholder: { color: "neutral.fg.muted.disabled" },
+  _hover: { color: "neutral.fg.muted" },
+  _focusVisible: { boxShadow: "[0 0 0 2px var(--colors-blue-bd-subtle)]" },
 });
 
 export { cx };

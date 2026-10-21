@@ -33,10 +33,10 @@ const panelStyle = css({
   flexShrink: 0,
   width: "[248px]",
   height: "[100%]",
-  backgroundColor: "neutral.s00",
+  backgroundColor: "neutral.bgSolid.min",
   borderRightWidth: "thin",
   borderRightStyle: "solid",
-  borderRightColor: "neutral.a40",
+  borderRightColor: "neutral.bd.subtle",
 });
 
 /** The DS Tabs header: 40 px, 12 px in on the left, tabs 20 px apart, then a divider and an icon button. */
@@ -49,7 +49,7 @@ const headerStyle = css({
   paddingRight: "2",
   borderBottomWidth: "thin",
   borderBottomStyle: "solid",
-  borderBottomColor: "neutral.a40",
+  borderBottomColor: "neutral.bd.subtle",
   flexShrink: 0,
 });
 
@@ -58,20 +58,19 @@ const tabStyle = css({
   alignItems: "center",
   height: "[40px]",
   paddingX: "[3px]",
-  fontSize: "sm",
+  textStyle: "sm",
   fontWeight: "medium",
-  lineHeight: "[14px]",
-  color: "neutral.s90",
+  color: "neutral.fg.subtle",
   borderBottomWidth: "[2px]",
   borderBottomStyle: "solid",
   borderBottomColor: "[transparent]",
   marginBottom: "[-1px]",
   cursor: "pointer",
   whiteSpace: "nowrap",
-  _hover: { color: "neutral.s120" },
+  _hover: { color: "neutral.fg.heading" },
   "&[aria-selected=true]": {
-    color: "neutral.s120",
-    borderBottomColor: "neutral.s70",
+    color: "neutral.fg.heading",
+    borderBottomColor: "neutral.bd.solid",
   },
 });
 
@@ -86,12 +85,14 @@ const rowStyle = css({
   borderRadius: "md",
   textAlign: "left",
   cursor: "pointer",
-  fontSize: "[13px]",
-  lineHeight: "[18px]",
-  color: "neutral.s120",
-  _hover: { backgroundColor: "neutral.a20" },
-  _focusVisible: { backgroundColor: "neutral.a20", outline: "none" },
-  "&[aria-current=true]": { backgroundColor: "neutral.a30" },
+  textStyle: "sm",
+  color: "neutral.fg.heading",
+  _hover: { backgroundColor: "neutral.bg.surface.active" },
+  _focusVisible: {
+    backgroundColor: "neutral.bg.surface.active",
+    outline: "none",
+  },
+  "&[aria-current=true]": { backgroundColor: "neutral.bg.subtle" },
 });
 
 const chevronSlotStyle = css({
@@ -101,7 +102,7 @@ const chevronSlotStyle = css({
   flexShrink: 0,
   width: "[12px]",
   height: "[16px]",
-  color: "neutral.s90",
+  color: "neutral.fg.subtle",
   "& svg": { width: "[10px]", height: "[10px]" },
 });
 
@@ -122,10 +123,22 @@ const tileStyle = cva({
   },
   variants: {
     tone: {
-      green: { backgroundColor: "green.s20", color: "green.s100" },
-      orange: { backgroundColor: "orange.s20", color: "orange.s100" },
-      blue: { backgroundColor: "blue.s20", color: "blue.s100" },
-      neutral: { backgroundColor: "blue.s20", color: "neutral.s100" },
+      green: {
+        backgroundColor: "green.bgSolid.surface.active",
+        color: "green.fg.muted",
+      },
+      orange: {
+        backgroundColor: "orange.bgSolid.surface.active",
+        color: "orange.fg.muted",
+      },
+      blue: {
+        backgroundColor: "blue.bgSolid.surface.active",
+        color: "blue.fg.muted",
+      },
+      neutral: {
+        backgroundColor: "blue.bgSolid.surface.active",
+        color: "neutral.fg.muted",
+      },
     },
   },
 });
@@ -138,7 +151,7 @@ const labelStyle = css({
   whiteSpace: "nowrap",
 });
 
-const countStyle = css({ fontSize: "[11px]", color: "neutral.s90" });
+const countStyle = css({ textStyle: "xxs", color: "neutral.fg.subtle" });
 
 const Tile = ({ icon, tone }: { icon: IconName; tone: Tone }) => (
   <span className={tileStyle({ tone })}>
@@ -425,7 +438,7 @@ export const LeftPanel = () => {
           className={css({
             width: "[1px]",
             height: "[20px]",
-            backgroundColor: "neutral.a40",
+            backgroundColor: "neutral.bg.subtle.hover",
           })}
         />
         <Button

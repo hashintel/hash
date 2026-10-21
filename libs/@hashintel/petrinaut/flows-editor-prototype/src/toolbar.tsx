@@ -16,9 +16,9 @@ const barStyle = css({
   alignItems: "center",
   gap: "1",
   padding: "1",
-  backgroundColor: "neutral.s00",
+  backgroundColor: "neutral.bgSolid.min",
   borderWidth: "thin",
-  borderColor: "neutral.a60",
+  borderColor: "neutral.bd.solid",
   borderStyle: "solid",
   borderRadius: "lg",
   boxShadow: "[0 4px 3px rgba(0, 0, 0, 0.1), 0 2px 2px rgba(0, 0, 0, 0.1)]",
@@ -28,7 +28,7 @@ const barStyle = css({
 const dividerStyle = css({
   width: "[1px]",
   height: "[20px]",
-  backgroundColor: "neutral.a60",
+  backgroundColor: "neutral.bd.solid",
 });
 
 /** DS icon buttons at the toolbar's 32 px square, icons in #646464 unless active. */
@@ -40,13 +40,13 @@ const toolStyle = css({
     padding: "[0]",
     justifyContent: "center",
   },
-  "&[class]:not([data-variant=solid])": { color: "neutral.s110" },
+  "&[class]:not([data-variant=solid])": { color: "neutral.fg.muted" },
 });
 
 /** The zoom button's text: 14 px medium #646464 between two 14 px icons. */
 const zoomStyle = css({
   "&[class]": {
-    color: "neutral.s110",
+    color: "neutral.fg.muted",
     fontWeight: "medium",
     // The DS button puts zero-width text around its icons; gaps would count them, so space the label instead.
     gap: "0",

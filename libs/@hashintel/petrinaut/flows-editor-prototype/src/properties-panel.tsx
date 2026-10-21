@@ -88,10 +88,10 @@ const panelStyle = css({
   height: "[100%]",
   display: "flex",
   flexDirection: "column",
-  backgroundColor: "neutral.s00",
+  backgroundColor: "neutral.bgSolid.min",
   borderLeftWidth: "thin",
   borderLeftStyle: "solid",
-  borderLeftColor: "neutral.a60",
+  borderLeftColor: "neutral.bd.solid",
   zIndex: "[5]",
 });
 
@@ -232,8 +232,11 @@ const Checks = ({ stepId }: { stepId: string }) => {
           // eslint-disable-next-line react/no-array-index-key -- messages can repeat
           key={index}
           className={css({
-            fontSize: "xs",
-            color: problem.severity === "error" ? "red.s100" : "neutral.s100",
+            textStyle: "xs",
+            color:
+              problem.severity === "error"
+                ? "red.fg.muted"
+                : "neutral.fg.muted",
           })}
         >
           {problem.message}
@@ -625,9 +628,8 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
         >
           <span
             className={css({
-              fontSize: "[13px]",
-              lineHeight: "[16px]",
-              color: "neutral.s120",
+              textStyle: "sm",
+              color: "neutral.fg.heading",
             })}
           >
             Current item
@@ -747,8 +749,8 @@ const keyInputStyle = css({
   borderRadius: "xs",
   padding: "[0]",
   outline: "none",
-  _hover: { color: "neutral.s110" },
-  _focusVisible: { boxShadow: "[0 0 0 2px var(--colors-blue-a40)]" },
+  _hover: { color: "neutral.fg.muted" },
+  _focusVisible: { boxShadow: "[0 0 0 2px var(--colors-blue-bd-subtle)]" },
 });
 
 const rowActionStyle = css({
@@ -1137,7 +1139,7 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
                   value === "fixed"
                     ? { kind: "fixed", value: null }
                     : value
-                      ? { kind: "field", output: value.slice("field:".length) }
+                      ? { kind: "field", output: value.slice("field: ".length) }
                       : undefined,
                 )
               }

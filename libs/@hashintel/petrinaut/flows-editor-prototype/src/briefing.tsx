@@ -24,8 +24,8 @@ export const Briefing = ({ onClose }: { onClose: () => void }) => (
           display: "flex",
           flexDirection: "column",
           gap: "3",
-          fontSize: "sm",
-          color: "neutral.s120",
+          textStyle: "sm",
+          color: "neutral.fg.heading",
         })}
       >
         <p className={css({ margin: "[0]" })}>
@@ -60,7 +60,7 @@ export const Briefing = ({ onClose }: { onClose: () => void }) => (
                   paddingY: "2",
                   borderTopWidth: "thin",
                   borderTopStyle: "solid",
-                  borderTopColor: "neutral.s30",
+                  borderTopColor: "neutral.bd.subtle",
                 })}
               >
                 <span className={css({ fontWeight: "semibold" })}>
@@ -75,7 +75,10 @@ export const Briefing = ({ onClose }: { onClose: () => void }) => (
                 >
                   <span>{type.description}</span>
                   <span
-                    className={css({ fontSize: "xs", color: "neutral.s90" })}
+                    className={css({
+                      textStyle: "xs",
+                      color: "neutral.fg.subtle",
+                    })}
                   >
                     e.g. {type.example}
                   </span>
@@ -142,10 +145,10 @@ export const TaskCard = ({
         display: "flex",
         flexDirection: "column",
         gap: "3",
-        backgroundColor: "neutral.s00",
+        backgroundColor: "neutral.bgSolid.min",
         borderWidth: "thin",
         borderStyle: "solid",
-        borderColor: "neutral.s40",
+        borderColor: "neutral.bd.subtle",
         borderRadius: "lg",
         boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.08)]",
         zIndex: "[5]",
@@ -160,9 +163,9 @@ export const TaskCard = ({
       >
         <span
           className={css({
-            fontSize: "xs",
+            textStyle: "xs",
             fontWeight: "semibold",
-            color: "neutral.s90",
+            color: "neutral.fg.subtle",
             textTransform: "uppercase",
             letterSpacing: "[0.04em]",
           })}
@@ -181,14 +184,14 @@ export const TaskCard = ({
       <p
         className={css({
           margin: "[0]",
-          fontSize: "sm",
-          color: "neutral.s120",
+          textStyle: "sm",
+          color: "neutral.fg.heading",
         })}
       >
         {task.scenario}
       </p>
       {session.doneAt ? (
-        <span className={css({ fontSize: "sm", color: "neutral.s100" })}>
+        <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
           Thanks. That's recorded.
         </span>
       ) : (
@@ -218,13 +221,13 @@ export const Results = () => {
     padding: "2",
     borderBottomWidth: "thin",
     borderBottomStyle: "solid",
-    borderBottomColor: "neutral.s30",
+    borderBottomColor: "neutral.bd.subtle",
     textAlign: "left",
-    fontSize: "sm",
+    textStyle: "sm",
   });
   return (
     <div
-      className={`${css({ minHeight: "[100vh]", padding: "8", backgroundColor: "neutral.s10", fontFamily: "body", color: "neutral.s120" })} petrinaut-root`}
+      className={`${css({ minHeight: "[100vh]", padding: "8", backgroundColor: "neutral.bgSolid.surface", fontFamily: "body", color: "neutral.fg.heading" })} petrinaut-root`}
     >
       <div
         className={css({
@@ -236,7 +239,7 @@ export const Results = () => {
       >
         <h1
           className={css({
-            fontSize: "xl",
+            textStyle: "xl",
             fontWeight: "semibold",
             flex: "1",
             margin: "[0]",
@@ -270,7 +273,7 @@ export const Results = () => {
         </Button>
       </div>
       {sessions.length === 0 ? (
-        <p className={css({ fontSize: "sm", color: "neutral.s90" })}>
+        <p className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
           No sessions in this browser yet.
         </p>
       ) : (
@@ -278,7 +281,7 @@ export const Results = () => {
           className={css({
             width: "[100%]",
             borderCollapse: "collapse",
-            backgroundColor: "neutral.s00",
+            backgroundColor: "neutral.bgSolid.min",
           })}
         >
           <thead>
