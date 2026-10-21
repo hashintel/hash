@@ -16,7 +16,7 @@ flowchart LR
   validate["validateFlowDefinition"]
   net["SDCPN flow net"]
   engine["Temporal flow engine,<br/>startFlow API"]
-  petrinaut["Petrinaut view<br/>(TODO FE-1897)"]
+  petrinaut["Petrinaut view<br/>on the flow page"]
   executor["Petri net executor<br/>(TODO FE-1904)"]
 
   actions --> builder

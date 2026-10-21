@@ -1,5 +1,4 @@
 import { createContext, useContext, useMemo } from "react";
-import { useNodeId } from "reactflow";
 
 import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
 
@@ -152,12 +151,6 @@ export const useStatusForStep = (
 
     return getShownStepRun(selectedFlowRun.steps, nodeId);
   }, [selectedFlowRun, nodeId]);
-};
-
-export const useStatusForCurrentStep = (): StepRunStatus | null => {
-  const nodeId = useNodeId();
-
-  return useStatusForStep(nodeId);
 };
 
 type StepsStatus = {

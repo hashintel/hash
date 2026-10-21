@@ -3,31 +3,28 @@ import { Backdrop, Box, Slide, Stack } from "@mui/material";
 import { IconButton, XMarkRegularIcon } from "@hashintel/design-system";
 import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
-import { DAG } from "./dag";
+import { FlowNetView } from "./flow-net-view";
 import { Topbar } from "./topbar";
 
-import type { EdgesAndNodes } from "./shared/types";
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
   FlowActionDefinitionId,
   FlowDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-type DagSlideProps = {
-  graph: EdgesAndNodes;
+type FlowNetSlideProps = {
   open: boolean;
   onClose: () => void;
   selectedFlowDefinition: FlowDefinition<FlowActionDefinitionId>;
   flowDefinitionEntityId: EntityId;
 };
 
-export const DagSlide = ({
-  graph,
+export const FlowNetSlide = ({
   open,
   onClose,
   selectedFlowDefinition,
   flowDefinitionEntityId,
-}: DagSlideProps) => {
+}: FlowNetSlideProps) => {
   const isGoal = isGoalFlowDefinitionEntityId(flowDefinitionEntityId);
 
   return (
@@ -46,10 +43,11 @@ export const DagSlide = ({
       >
         <Box
           sx={{
+            display: "flex",
+            flexDirection: "column",
             height: "100vh",
-            overflow: "auto",
             background: ({ palette }) => palette.gray[10],
-            maxWidth: { xs: "90%", md: 800, lg: 1100 },
+            width: "90vw",
           }}
         >
           <Stack
@@ -72,11 +70,8 @@ export const DagSlide = ({
               <XMarkRegularIcon sx={{ fontSize: 22 }} />
             </IconButton>
           </Stack>
-          <Box p={3}>
-            <DAG
-              graph={graph}
-              selectedFlowDefinition={selectedFlowDefinition}
-            />
+          <Box sx={{ flex: 1, minHeight: 0, p: 3 }}>
+            <FlowNetView flowDefinition={selectedFlowDefinition} />
           </Box>
         </Box>
       </Slide>
