@@ -347,7 +347,6 @@ export const AddNodePicker = ({
             id: "group:Triggers",
             text: "Triggers",
             icon: groupIcons.Triggers,
-            suffix: String(triggerKinds.length),
             subItems: triggerKinds.map((kind) => triggerItem(kind)),
           },
         ]
@@ -363,7 +362,6 @@ export const AddNodePicker = ({
               id: `group:${category}`,
               text: category,
               icon: groupIcons[category] ?? ("cube" as const),
-              suffix: String(inCategory.length),
               subItems: inCategory.map((entry) => entryItem(entry, "browse")),
             },
           ];

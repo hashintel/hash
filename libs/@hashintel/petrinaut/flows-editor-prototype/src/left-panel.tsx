@@ -83,7 +83,8 @@ const tabStyle = css({
   textStyle: "sm",
   lineHeight: "none",
   fontWeight: "medium",
-  color: "neutral.fg.body",
+  // `_TabItemUnderlined` variant=simple (ds-map): an unselected tab is subtle, as ↳ Current draws it.
+  color: "neutral.fg.subtle",
   borderBottomWidth: "[2px]",
   borderBottomStyle: "solid",
   borderBottomColor: "[transparent]",

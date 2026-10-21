@@ -47,7 +47,11 @@ export const OpenMenu = ({
   const firstAnchor = useRef(anchor);
 
   useEffect(() => {
-    setRect(firstAnchor.current.current?.getBoundingClientRect() ?? null);
+    // A frame later: an anchor its parent sets in an effect (which runs after this child's) is there by then.
+    const frame = requestAnimationFrame(() =>
+      setRect(firstAnchor.current.current?.getBoundingClientRect() ?? null),
+    );
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {

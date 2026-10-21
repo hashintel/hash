@@ -23,6 +23,7 @@ import {
   Menu,
   type MenuItem,
   Popover,
+  Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { HashIcon } from "@hashintel/ds-icons";
@@ -324,6 +325,24 @@ const rowStyle = css({
   },
 });
 
+/** The DS Tooltip's trigger is a line-height 0 span; around a value it must size to its text. */
+const tipStyle = css({
+  "&[class]": {
+    display: "inline-flex",
+    minWidth: "[0]",
+    maxWidth: "[100%]",
+    lineHeight: "[inherit]",
+  },
+});
+
+/**
+ * A long value wraps under the attribute inside the chip, as J3 · B3 draws it, rather than squeezing the attribute
+ * and operator to "…". Layout only: the chip's parts keep their DS look.
+ */
+const filterWrapStyle = css({
+  "&[class]": { flexWrap: "wrap", minWidth: "[0]" },
+});
+
 /** The selected variable in a value slot: its step's icon, then the path. */
 const tokenValueStyle = css({
   display: "inline-flex",
@@ -482,14 +501,16 @@ const ConditionRowView = ({
             : []),
         ],
         renderSelectedItem: () => (
-          <span
-            className={tokenValueStyle}
-            title={tokenParts.join(" › ")}
-            aria-label={`Change the source of ${title}`}
-          >
-            <Icon name={tokenIcon(document, row.valueSource!)} size="xs" />
-            <span>{collapsePath(tokenParts)}</span>
-          </span>
+          // The DS Tooltip shows the whole path; the slot shows it collapsed (J3 · B3).
+          <Tooltip content={tokenParts.join(" › ")} className={tipStyle}>
+            <span
+              className={tokenValueStyle}
+              aria-label={`Change the source of ${title}`}
+            >
+              <Icon name={tokenIcon(document, row.valueSource!)} size="xs" />
+              <span>{collapsePath(tokenParts)}</span>
+            </span>
+          </Tooltip>
         ),
         renderItem: (value: string) =>
           value === VARIABLE ? (
@@ -857,7 +878,8 @@ const ConditionRowView = ({
       {prefix}
       <Filter
         key={`${resetCount}:${row.propertyBaseUrl}:${row.valueSource ? "token" : "typed"}`}
-        size="xs"
+        size="sm"
+        className={filterWrapStyle}
         property={`${row.id}:${row.propertyBaseUrl}`}
         propertyLabel={title}
         propertyMenu={[
@@ -905,7 +927,7 @@ const ConditionRowView = ({
         items={rowMenu}
         trigger={
           <Button
-            size="xs"
+            size="sm"
             variant="ghost"
             iconName="ellipsisVertical"
             aria-label="Condition options"
@@ -1018,7 +1040,7 @@ const Joiner = ({
   onToggle: () => void;
 }) => (
   <Button
-    size="xs"
+    size="sm"
     variant="subtle"
     aria-label={`Switch to ${conjunction === "or" ? "And" : "Or"}`}
     tooltip={`Switch to ${conjunction === "or" ? "And" : "Or"}`}
@@ -1049,7 +1071,7 @@ const AddCondition = ({
       },
     ]}
     trigger={
-      <Button size="xs" variant="subtle" iconName="plus">
+      <Button size="sm" variant="subtle" iconName="plus">
         Add condition
       </Button>
     }
