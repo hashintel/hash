@@ -1,29 +1,25 @@
-import { DiagnosticSeverity } from "vscode-languageserver-types";
-
 import { parseDocumentUri, type SDCPN } from "@hashintel/petrinaut-core";
 
-import type { Diagnostic, DocumentUri } from "vscode-languageserver-types";
+import type { DiagnosticsSnapshot } from "@hashintel/petrinaut/ui/plugin";
+
+type DiagnosticsByUri = DiagnosticsSnapshot["byUri"];
+type Diagnostic =
+  DiagnosticsByUri extends Map<string, (infer Item)[]> ? Item : never;
 
 const DEFAULT_MAX_DIAGNOSTICS = 25;
 
-const diagnosticSeverityLabel = (
-  severity: DiagnosticSeverity | undefined,
-): string => {
-  switch (severity) {
-    case DiagnosticSeverity.Error:
-      return "error";
-    case DiagnosticSeverity.Warning:
-      return "warning";
-    case DiagnosticSeverity.Information:
-      return "info";
-    case DiagnosticSeverity.Hint:
-      return "hint";
-    default:
-      return "error";
-  }
+/** Labels for the LSP severity codes a diagnostic carries. */
+const severityLabels: Record<number, string> = {
+  1: "error",
+  2: "warning",
+  3: "info",
+  4: "hint",
 };
 
-const getDiagnosticEntityLabel = (uri: DocumentUri, definition: SDCPN) => {
+const diagnosticSeverityLabel = (severity: Diagnostic["severity"]): string =>
+  severityLabels[severity ?? 1] ?? "error";
+
+const getDiagnosticEntityLabel = (uri: string, definition: SDCPN) => {
   const parsed = parseDocumentUri(uri);
   if (!parsed) {
     return `Document: ${uri}`;
@@ -53,7 +49,7 @@ export const formatDiagnosticsForAi = ({
   maxDiagnostics = DEFAULT_MAX_DIAGNOSTICS,
 }: {
   definition: SDCPN;
-  diagnosticsByUri: Map<DocumentUri, Diagnostic[]>;
+  diagnosticsByUri: DiagnosticsByUri;
   maxDiagnostics?: number;
 }): string => {
   const diagnostics = Array.from(diagnosticsByUri.entries()).flatMap(
