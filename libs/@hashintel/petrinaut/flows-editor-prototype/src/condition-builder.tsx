@@ -335,6 +335,20 @@ const tipStyle = css({
   },
 });
 
+/**
+ * The attribute and operator stay whole ("Shipment · is any of", J3 · B3); a long value takes the overflow and ends in
+ * "…" after its own collapsed middle. Layout only: the chip's parts keep their DS look.
+ */
+const filterFitStyle = css({
+  "&[class] > [data-part='property'], &[class] > [data-scope='select'][data-part='trigger']":
+    { flexShrink: 0 },
+  "&[class] > [data-part='input-slot']": {
+    flexShrink: 1,
+    minWidth: "[0]",
+    maxWidth: "[180px]",
+  },
+});
+
 /** The selected variable in a value slot: its step's icon, then the path. */
 const tokenValueStyle = css({
   display: "inline-flex",
@@ -875,6 +889,7 @@ const ConditionRowView = ({
       <Filter
         key={`${resetCount}:${row.propertyBaseUrl}:${row.valueSource ? "token" : "typed"}`}
         size="sm"
+        className={filterFitStyle}
         property={`${row.id}:${row.propertyBaseUrl}`}
         propertyLabel={title}
         propertyMenu={[
