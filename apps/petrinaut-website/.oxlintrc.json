@@ -154,7 +154,7 @@
   },
   "overrides": [
     {
-      "files": ["src/main/app/plugins/_shared/chat/**"],
+      "files": ["src/main/app/plugins/petrinaut-ai/chat/**"],
       "rules": {
         "react/static-components": "error",
         "react/use-memo": "error",

@@ -49,12 +49,14 @@ One folder per plugin, named after it:
   `plugin/use-<name>-plugin.tsx`.
 - `server/` holds code an `api/` route imports.
 
-`_shared/` holds code two plugins share. `_shared/chat/` is the chat an
-assistant plugin renders as its `assistant.content`: `AssistantChat` takes the
-plugin's `api` and the assistant's configuration, the `PetrinautAiAssistant`
-fields the editor's `aiAssistant` prop takes. It edits the net, runs
-experiments and reads diagnostics through `api`. A folder without `plugin.tsx`
-holds code the demo shell wires in itself.
+`_shared/` holds code two plugins share. A folder without `plugin.tsx` holds
+code the demo shell wires in itself.
+
+`petrinaut-ai/chat/` is the chat Petrinaut AI renders as its
+`assistant.content`, and `/ai-experiments` renders it too. `AssistantChat`
+takes the plugin's `api` and the assistant's configuration, the
+`PetrinautAiAssistant` fields the editor's `aiAssistant` prop takes. It edits
+the net, runs experiments and reads diagnostics through `api`.
 
 ## Testing a plugin
 
@@ -64,5 +66,5 @@ net with that plugin. The test file runs in jsdom and calls
 `installPetrinautDomShims()` from `vi.hoisted`, because Petrinaut's modules
 read those globals while they load. To start a plugin with stored settings,
 seed its [settings key](doc:plugins/runtime#settings-storage) in
-`localStorage`. The chat's own tests render it in `AssistantPanelPreview`, with
-an `api` from `createTestPluginApi(instance)`.
+`localStorage`. Petrinaut AI's chat tests render it in `AssistantPanelPreview`,
+with an `api` from `createTestPluginApi(instance)` in `petrinaut-ai/testing/`.
