@@ -6,9 +6,12 @@ import { formInputSizes } from "../../util/form-shared";
 import { Button } from "../Button/button";
 import { Dialog } from "../Dialog/dialog";
 import { Combobox } from "./combobox";
+import { MultipleDemo } from "./multi-combobox.story";
 
+import type { FormInputWidth } from "../../util/form-shared";
 import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { ComboboxItem, ComboboxProps } from "./combobox";
+import type { MultiComboboxProps } from "./multi-combobox.story";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 // Every example's items: ungrouped fruits, a labelled group, and a group of
@@ -229,7 +232,7 @@ const DialogExample = () => {
 };
 
 const meta = {
-  title: "Components / Combobox",
+  title: "Components/Combobox",
 } satisfies Meta;
 
 export default meta;
@@ -376,4 +379,97 @@ export const Sizes: Story = {
       </div>
     </div>
   ),
+};
+
+type MultiVariant = NonNullable<MultiComboboxProps["variant"]>;
+
+const variants = [
+  "default",
+  "subtle",
+] as const satisfies readonly MultiVariant[];
+const widths = [
+  "xs",
+  "sm",
+  "md",
+  "lg",
+  "fullWidth",
+  "fitContent",
+] as const satisfies readonly FormInputWidth[];
+const overflowModes = ["scroll", "truncate", "summary"] as const;
+const filterAlgorithms = ["contains", "startsWith", "none"] as const;
+
+export const Multiple: StoryObj<MultiComboboxProps> = {
+  argTypes: {
+    placeholder: {
+      control: { type: "text" },
+      description: "Placeholder shown while nothing is selected or typed",
+    },
+    disabled: {
+      control: { type: "boolean" },
+      description: "Disable the input",
+    },
+    invalid: {
+      control: { type: "boolean" },
+      description: "Mark the input as invalid",
+    },
+    readonly: {
+      control: { type: "boolean" },
+      description: "Render the selection as read-only chips",
+    },
+    loading: {
+      control: { type: "boolean" },
+      description: "Show a loading indicator",
+    },
+    clearable: {
+      control: { type: "boolean" },
+      description: "Show a clear button that empties the selection",
+    },
+    allowNewValue: {
+      control: { type: "boolean" },
+      description: "Allow committing typed text that matches no option",
+    },
+    clearInputOnSelect: {
+      control: { type: "boolean" },
+      description: "Clear the typed text when an option is toggled",
+    },
+    variant: {
+      control: { type: "radio" },
+      options: variants,
+      description: "Visual variant of the input",
+    },
+    size: {
+      control: { type: "select" },
+      options: formInputSizes,
+      description: "Input height",
+    },
+    width: {
+      control: { type: "select" },
+      options: widths,
+      description: "Preset input width",
+    },
+    overflow: {
+      control: { type: "radio" },
+      options: overflowModes,
+      description: "How the selected chips overflow the input",
+    },
+    maxItems: {
+      control: { type: "number" },
+      description: "Maximum number of selectable values",
+    },
+    filterAlgorithm: {
+      control: { type: "radio" },
+      options: filterAlgorithms,
+      description: "How options are filtered against the typed text",
+    },
+  },
+  args: {
+    disabled: false,
+    invalid: false,
+    readonly: false,
+    loading: false,
+    clearInputOnSelect: true,
+    variant: "default",
+    size: "md",
+  },
+  render: (args: MultiComboboxProps) => <MultipleDemo {...args} />,
 };

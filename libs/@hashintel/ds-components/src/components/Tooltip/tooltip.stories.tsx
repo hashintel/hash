@@ -223,7 +223,7 @@ const gridPositions = [
   "bottom-end",
 ] as const;
 
-export const AllPositions: Story = {
+export const Positions: Story = {
   render: (args: TooltipProps) => (
     <div
       style={{

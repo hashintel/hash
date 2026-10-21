@@ -23,35 +23,6 @@ export default meta;
 
 type Story = StoryObj<React.ComponentProps<typeof Icon>>;
 
-export const Sizes: Story = {
-  render: (args: React.ComponentProps<typeof Icon>) => (
-    <div
-      className={css({
-        display: "flex",
-        gap: "[24px]",
-        alignItems: "center",
-      })}
-    >
-      {formInputSizes.map((size) => (
-        <div
-          key={size}
-          className={css({
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "[8px]",
-          })}
-        >
-          <Icon {...args} size={size} />
-          <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
-            {size}
-          </span>
-        </div>
-      ))}
-    </div>
-  ),
-};
-
 const iconGrid = (args: React.ComponentProps<typeof Icon>, styles?: Styles) => (
   <div
     className={css({
@@ -94,6 +65,35 @@ const iconGrid = (args: React.ComponentProps<typeof Icon>, styles?: Styles) => (
 
 export const Default: Story = {
   render: (args: React.ComponentProps<typeof Icon>) => iconGrid(args),
+};
+
+export const Sizes: Story = {
+  render: (args: React.ComponentProps<typeof Icon>) => (
+    <div
+      className={css({
+        display: "flex",
+        gap: "[24px]",
+        alignItems: "center",
+      })}
+    >
+      {formInputSizes.map((size) => (
+        <div
+          key={size}
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "[8px]",
+          })}
+        >
+          <Icon {...args} size={size} />
+          <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
+            {size}
+          </span>
+        </div>
+      ))}
+    </div>
+  ),
 };
 
 export const ColoredIcons: Story = {

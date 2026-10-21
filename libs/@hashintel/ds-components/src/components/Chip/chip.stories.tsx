@@ -210,7 +210,7 @@ export const Shape: Story = {
     </div>
   ),
 };
-export const Size: Story = {
+export const Sizes: Story = {
   render: (args: ChipProps) => (
     <div className={column}>
       <div className={row}>

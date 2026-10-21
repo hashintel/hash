@@ -43,7 +43,7 @@ const preview: Preview = {
     layout: "fullscreen",
     options: {
       storySort: {
-        order: ["Primitives", "Tokens", "Legacy", "*"],
+        order: ["Tokens", "Components", "Primitives", "Legacy", "*"],
       },
     },
   },

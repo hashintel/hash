@@ -88,7 +88,7 @@ const layoutRowClass = css({
   flexWrap: "wrap",
 });
 
-export const Layouts: Story = {
+export const Default: Story = {
   render: (args) => (
     <div className={sectionClass}>
       {layouts.map((layout) => (

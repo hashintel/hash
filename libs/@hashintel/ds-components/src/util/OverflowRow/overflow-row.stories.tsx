@@ -286,7 +286,7 @@ export const Default: Story = {
   ),
 };
 
-export const Align: Story = {
+export const Alignment: Story = {
   render: () => (
     <div className={sections}>
       {(["center", "right"] as const).map((align) => (

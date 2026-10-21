@@ -367,7 +367,7 @@ export const StyledValue: Story = {
   ),
 };
 
-export const Size: Story = {
+export const Sizes: Story = {
   render: (args) => (
     <div
       style={{

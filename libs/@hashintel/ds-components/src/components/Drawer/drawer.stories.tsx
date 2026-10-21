@@ -260,7 +260,7 @@ const buildExampleEntries = (variant: DrawerVariant): ExampleProps[] => [
   },
 ];
 
-export const Examples: Story = {
+export const Default: Story = {
   render: () => (
     <div
       className={css({ display: "flex", flexDirection: "column", gap: "4" })}

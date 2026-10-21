@@ -138,7 +138,7 @@ const resizable = css({
 type Args = { size: FormInputSize; maxItems: number };
 
 const meta = {
-  title: "Components/BreadCrumbs",
+  title: "Components/Breadcrumbs",
   argTypes: {
     size: {
       control: { type: "inline-radio" },

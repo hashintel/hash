@@ -3,6 +3,7 @@ import { Fragment, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
+import { MultipleDemo } from "./multi-select.story";
 import { Select } from "./select";
 
 import type { FormInputSize, FormInputWidth } from "../../util/form-shared";
@@ -12,6 +13,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type SelectProps = React.ComponentProps<typeof Select>;
 type SingleSelectProps = Extract<SelectProps, { multiple?: false }>;
+type MultiSelectProps = Extract<SelectProps, { multiple: true }>;
 type Variant = NonNullable<SelectProps["variant"]>;
 type Align = NonNullable<SelectProps["align"]>;
 
@@ -415,6 +417,10 @@ export const Default: Story = {
   ),
 };
 
+export const Multiple: StoryObj<MultiSelectProps> = {
+  render: (args: MultiSelectProps) => <MultipleDemo {...args} />,
+};
+
 export const Alignment: Story = {
   render: (args: SingleSelectProps) => (
     <div
@@ -447,7 +453,7 @@ export const Alignment: Story = {
   ),
 };
 
-export const Size: Story = {
+export const Sizes: Story = {
   render: (args: SingleSelectProps) => (
     <div
       style={{
@@ -730,10 +736,6 @@ const CustomRenderDemo = (args: SingleSelectProps) => {
   );
 };
 
-export const CustomRender: Story = {
-  render: (args: SingleSelectProps) => <CustomRenderDemo {...args} />,
-};
-
 export const Widths: Story = {
   render: (args: SingleSelectProps) => (
     <div className={sectionStyle}>
@@ -754,6 +756,10 @@ export const Widths: Story = {
       ))}
     </div>
   ),
+};
+
+export const CustomRender: Story = {
+  render: (args: SingleSelectProps) => <CustomRenderDemo {...args} />,
 };
 
 export const Connected: Story = {

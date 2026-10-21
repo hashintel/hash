@@ -234,7 +234,7 @@ export const Default: Story = {
 // Short content at each corner, then the badge across a range of anchor
 // elements — with short content, and with long content at two corners to show
 // the width clamp extending outward from the anchor's midline.
-export const Position: Story = {
+export const Positions: Story = {
   render: (args) => (
     <div className={column}>
       <div className={wideRow}>
