@@ -3,6 +3,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import proto from "@temporalio/proto";
 import { describe, expect, it } from "vitest";
 
+import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+
 import { getFlowRunDetailedFieldsFromHistory } from "./get-flow-run-details.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
@@ -143,6 +145,33 @@ describe("getFlowRunDetailedFieldsFromHistory", () => {
       {
         stepId: "firstTwo",
         retryState: String(RetryState.RETRY_STATE_MAXIMUM_ATTEMPTS_REACHED),
+      },
+    ]);
+  });
+
+  it("closes a cancelled run's unfinished steps as cancelled", async () => {
+    const fixture = loadFixture("in-progress");
+    const closeTime = "2026-10-21T13:36:23.000Z";
+
+    const { steps } = await getFlowRunDetailedFieldsFromHistory(
+      {
+        ...fixture,
+        describe: { ...fixture.describe, status: "CANCELLED", closeTime },
+      },
+      { storageProvider, workflowId: workflowIdOf(fixture) },
+    );
+
+    expect(
+      steps.map(({ stepId, status, closedAt }) => ({
+        stepId,
+        status,
+        closedAt,
+      })),
+    ).toStrictEqual([
+      {
+        stepId: "research",
+        status: FlowStepStatus.Cancelled,
+        closedAt: closeTime,
       },
     ]);
   });

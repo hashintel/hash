@@ -372,12 +372,13 @@ export const getFlowRunDetailedFieldsFromHistory = async (
 
   const inputRequests = getInputRequests(runEvents);
 
-  const workflowStoppedEarly = [
+  const stoppedEarlyStatuses: WorkflowExecutionStatusName[] = [
     "TERMINATED",
-    "CANCELED",
+    "CANCELLED",
     "TIMED_OUT",
     "FAILED",
-  ].includes(workflow.status);
+  ];
+  const workflowStoppedEarly = stoppedEarlyStatuses.includes(workflow.status);
 
   const stepRunsById = getStepRunsFromActivityEvents(runEvents, {
     workflowStoppedEarly,
