@@ -12,7 +12,7 @@ import {
 } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
 
-import { Icon, Tooltip } from "@hashintel/ds-components";
+import { Icon, type IconName, Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { getCatalogEntry } from "./catalog";
@@ -30,8 +30,9 @@ import { triggerDefinitions } from "./mock-triggers";
 import { describeSource } from "./shapes";
 import { IconTile } from "./ui";
 
-export const STEP_WIDTH = 240;
-const STEP_HEIGHT = 64;
+// The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
+export const STEP_WIDTH = 200;
+const STEP_HEIGHT = 59;
 const PORT_ROW = 26;
 const GROUP_HEADER = 48;
 const GROUP_PADDING = 32;
@@ -121,41 +122,84 @@ const toEdges = (document: EditorDocument): Edge[] =>
     sourceHandle: wire.sourcePort,
     target: wire.target,
     targetHandle: "in",
-    style: { stroke: "var(--colors-neutral-s70)", strokeWidth: 1.5 },
+    style: { stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: 1.5 },
   }));
 
 const cardStyle = cva({
   base: {
     position: "relative",
-    width: "[240px]",
+    width: "[200px]",
     backgroundColor: "neutral.s00",
     borderWidth: "thin",
     borderStyle: "solid",
-    borderColor: "neutral.s40",
+    borderColor: "neutral.s45",
     borderRadius: "lg",
-    boxShadow: "[0 1px 3px rgba(0, 0, 0, 0.06)]",
-    transition: "[border-color 0.15s ease, box-shadow 0.15s ease]",
+    transition: "[border-color 0.15s ease]",
     "&:hover [data-port-add]": { opacity: "[1]" },
   },
   variants: {
     selected: {
       true: {
-        borderColor: "blue.s90",
-        boxShadow: "[0 0 0 3px var(--colors-blue-a30)]",
+        // 1.5 px blue, drawn inside so the card keeps its size.
+        borderColor: "blue.s80",
+        boxShadow: "[inset 0 0 0 0.5px var(--colors-blue-s80)]",
         "& [data-port-add]": { opacity: "[1]" },
       },
     },
   },
 });
 
+const cardTileStyle = cva({
+  base: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    width: "[24px]",
+    height: "[24px]",
+    borderRadius: "sm",
+    "& svg": { width: "[14px]", height: "[14px]" },
+  },
+  variants: {
+    tone: {
+      green: { backgroundColor: "green.s20", color: "green.s100" },
+      orange: { backgroundColor: "orange.s20", color: "orange.s100" },
+      blue: { backgroundColor: "blue.s20", color: "blue.s100" },
+      neutral: { backgroundColor: "blue.s20", color: "neutral.s100" },
+    },
+  },
+});
+
+/** The V7 card's tile: a 14 px icon on a 24 px tile with a pale wash of the step's colour. */
+const CardTile = ({
+  icon,
+  tone,
+}: {
+  icon: IconName;
+  tone: "green" | "orange" | "neutral" | "blue";
+}) => (
+  <span className={cardTileStyle({ tone })}>
+    <Icon name={icon} size="sm" />
+  </span>
+);
+
+const cardHeadStyle = css({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "2",
+  padding: "3",
+});
+
 // Two classes outrank React Flow's own handle style.
 const handleStyle = css({
   "&.react-flow__handle": {
-    width: "[8px]",
-    height: "[8px]",
+    width: "[7px]",
+    height: "[7px]",
+    minWidth: "[7px]",
+    minHeight: "[7px]",
     backgroundColor: "neutral.s00",
-    borderWidth: "[1.5px]",
-    borderColor: "neutral.s80",
+    borderWidth: "thin",
+    borderColor: "neutral.s90",
   },
 });
 
@@ -183,7 +227,6 @@ const portAddStyle = css({
     opacity: "[1]",
     outline: "[2px solid var(--colors-blue-s90)]",
   },
-  "&[data-dangling]": { opacity: "[1]" },
 });
 
 /** E3: the + on a port, which opens the picker and wires the new step to this port. */
@@ -280,13 +323,17 @@ const oneLineStyle = cva({
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
-    lineHeight: "[18px]",
   },
   variants: {
     tone: {
-      title: { fontSize: "sm", fontWeight: "medium", color: "neutral.s120" },
-      body: { fontSize: "xs", color: "neutral.s110" },
-      muted: { fontSize: "xs", color: "neutral.s80" },
+      title: {
+        fontSize: "[13px]",
+        lineHeight: "[16px]",
+        fontWeight: "medium",
+        color: "neutral.s120",
+      },
+      body: { fontSize: "xs", lineHeight: "[15px]", color: "neutral.s90" },
+      muted: { fontSize: "xs", lineHeight: "[15px]", color: "neutral.s80" },
     },
   },
 });
@@ -303,6 +350,7 @@ const CardText = ({
     className={css({
       display: "flex",
       flexDirection: "column",
+      gap: "0.5",
       minWidth: "[0]",
       flex: "1",
     })}
@@ -332,16 +380,8 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
         style={{ top: STEP_HEIGHT / 2 }}
       />
       <Tooltip content={entry?.title ?? step.actionDefinitionId} position="top">
-        <div
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            gap: "3",
-            paddingX: "3",
-            height: "[64px]",
-          })}
-        >
-          <IconTile
+        <div className={cardHeadStyle}>
+          <CardTile
             icon={entry?.icon ?? "cube"}
             tone={entry?.tone ?? "green"}
           />
@@ -360,7 +400,7 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
           className={css({
             borderTopWidth: "thin",
             borderTopStyle: "solid",
-            borderTopColor: "neutral.s30",
+            borderTopColor: "neutral.s40",
           })}
         >
           {ports.map((port) => (
@@ -374,7 +414,7 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
                 justifyContent: "flex-end",
                 paddingRight: "3",
                 fontSize: "xs",
-                color: "neutral.s100",
+                color: "neutral.s90",
               })}
             >
               {port.label}
@@ -411,18 +451,18 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
 };
 
 const triggerStyle = css({
-  width: "[240px]",
+  width: "[200px]",
   backgroundColor: "neutral.s00",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.s40",
+  borderColor: "neutral.s45",
   borderRadius: "lg",
   position: "relative",
   "&:hover [data-port-add]": { opacity: "[1]" },
   "&[data-selected] [data-port-add]": { opacity: "[1]" },
   "&[data-selected]": {
-    borderColor: "blue.s90",
-    boxShadow: "[0 0 0 3px var(--colors-blue-a30)]",
+    borderColor: "blue.s80",
+    boxShadow: "[inset 0 0 0 0.5px var(--colors-blue-s80)]",
   },
 });
 
@@ -437,16 +477,8 @@ const TriggerNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   return (
     <div className={triggerStyle} data-selected={selected || undefined}>
       <Tooltip content={`Trigger · ${definition.title}`} position="top">
-        <div
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            gap: "3",
-            paddingX: "3",
-            height: "[64px]",
-          })}
-        >
-          <IconTile icon={definition.icon} tone="blue" />
+        <div className={cardHeadStyle}>
+          <CardTile icon={definition.icon} tone="blue" />
           <CardText
             title={definition.title}
             description={trigger.description || undefined}
@@ -474,19 +506,15 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
         type="target"
         position={Position.Left}
         className={handleStyle}
-        style={{ top: STEP_HEIGHT / 2 }}
+        // Start's left port only shows once a trigger leads into it (J3 draws Start without one).
+        style={{
+          top: STEP_HEIGHT / 2,
+          opacity: document.triggers.length > 0 ? 1 : 0,
+        }}
       />
       <Tooltip content="Start · holds the flow's inputs" position="top">
-        <div
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            gap: "3",
-            paddingX: "3",
-            height: "[64px]",
-          })}
-        >
-          <IconTile icon="playFilled" tone="neutral" />
+        <div className={cardHeadStyle}>
+          <CardTile icon="play" tone="neutral" />
           <CardText
             title="Start"
             description={document.startDescription || undefined}
@@ -562,8 +590,9 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
         >
           <span
             className={css({
-              fontSize: "sm",
-              fontWeight: "semibold",
+              fontSize: "[13px]",
+              lineHeight: "[16px]",
+              fontWeight: "medium",
               color: "neutral.s120",
             })}
           >

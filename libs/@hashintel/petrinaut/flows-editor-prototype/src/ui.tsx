@@ -206,9 +206,9 @@ const chipTileStyle = cva({
   },
   variants: {
     tone: {
-      green: { backgroundColor: "green.s10", color: "green.s100" },
-      orange: { backgroundColor: "orange.s10", color: "orange.s100" },
-      blue: { backgroundColor: "blue.s10", color: "blue.s100" },
+      green: { backgroundColor: "green.s20", color: "green.s100" },
+      orange: { backgroundColor: "orange.s20", color: "orange.s100" },
+      blue: { backgroundColor: "blue.s20", color: "blue.s100" },
       neutral: { backgroundColor: "neutral.s00", color: "neutral.s100" },
     },
   },

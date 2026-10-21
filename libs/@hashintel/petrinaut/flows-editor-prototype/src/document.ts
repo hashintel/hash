@@ -181,7 +181,7 @@ export const addTrigger = (
       positions: {
         ...document.positions,
         [triggerId]: {
-          x: start.x - 320,
+          x: start.x - 296,
           y: document.triggers.length === 0 ? start.y : lowest + 130,
         },
       },
@@ -292,8 +292,9 @@ export type Placement = {
   position?: { x: number; y: number };
 };
 
-const stepWidth = 240;
-const columnGap = 80;
+// ↳ Current: 200 px cards, 96 px between them.
+const stepWidth = 200;
+const columnGap = 96;
 
 export const addStep = (
   document: EditorDocument,
