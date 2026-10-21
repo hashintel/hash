@@ -33,19 +33,25 @@ const useContentLinks = (): void => {
       if (!isPlainLeftClick(event) || !(event.target instanceof Element)) {
         return;
       }
+      // An inlined diagram's anchors are SVG ones, which carry their href
+      // as an attribute rather than as resolved URL parts.
       const anchor = event.target.closest("a[href]");
       if (
-        !(anchor instanceof HTMLAnchorElement) ||
-        anchor.target !== "" ||
-        anchor.hasAttribute("download") ||
-        anchor.origin !== window.location.origin
+        anchor === null ||
+        anchor.getAttribute("target") !== null ||
+        anchor.hasAttribute("download")
       ) {
         return;
       }
+      const url = new URL(
+        anchor.getAttribute("href") ?? "",
+        window.location.href,
+      );
+      if (url.origin !== window.location.origin) {
+        return;
+      }
       event.preventDefault();
-      void router.navigate({
-        href: `${anchor.pathname}${anchor.search}${anchor.hash}`,
-      });
+      void router.navigate({ href: `${url.pathname}${url.search}${url.hash}` });
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);

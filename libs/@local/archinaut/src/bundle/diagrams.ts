@@ -25,9 +25,23 @@ import {
   type Edge,
   type Layer,
 } from "../model";
+import { layerSlug, relativeTo } from "./shared/page-paths";
 import { classFor, layerPalette, rootSegment } from "./shared/palette";
 
 const quote = (text: string): string => JSON.stringify(text);
+
+/**
+ * The attribute that makes a node a link to its layer's page, written
+ * relative to the page the diagram is embedded in, as the pages link to
+ * each other. d2 wraps a linked shape in an anchor, which a host that
+ * inlines the drawing can follow. The `./` matters: d2 reads a bare
+ * relative path as the name of a board and drops the link when none
+ * exists.
+ */
+const linkTo = (pageSlug: string, layerId: string): string => {
+  const relative = relativeTo(pageSlug, layerSlug(layerId));
+  return `link: ${quote(relative.startsWith(".") ? relative : `./${relative}`)}`;
+};
 
 /** Top-level ancestor of a dotted id, used for colour classing. */
 
@@ -94,6 +108,8 @@ export const buildNeighbourhoodDiagram = (
   layers: Layer[],
   edges: Edge[],
   generatedBy: string,
+  /** The page the diagram is embedded in, which its links are relative to. */
+  pageSlug: string = layerSlug(focusId),
 ): string => {
   const layersById = new Map(layers.map((layer) => [layer.id, layer]));
   const focus = layersById.get(focusId);
@@ -149,7 +165,7 @@ export const buildNeighbourhoodDiagram = (
       const layer = layersById.get(id);
       return `${flatKey(id)}: {class: ${classFor(id)}; label: ${quote(
         layer?.name ?? id,
-      )}; tooltip: ${quote(layer?.role ?? id)}}`;
+      )}; tooltip: ${quote(layer?.role ?? id)}; ${linkTo(pageSlug, id)}}`;
     }),
   ];
 
@@ -164,7 +180,7 @@ export const buildNeighbourhoodDiagram = (
     nodeLines.push(
       `${flatKey(otherId)}: {class: ${classFor(otherId)}; label: ${quote(
         other?.name ?? otherId,
-      )}; tooltip: ${quote(other?.role ?? otherId)}}`,
+      )}; tooltip: ${quote(other?.role ?? otherId)}; ${linkTo(pageSlug, otherId)}}`,
     );
   }
 
@@ -267,6 +283,8 @@ export const buildSubtreeDiagram = (
   layers: Layer[],
   edges: Edge[],
   generatedBy: string,
+  /** The page the diagram is embedded in, which its links are relative to. */
+  pageSlug: string = layerSlug(parentId),
 ): string => {
   const children = layers.filter((layer) => layer.parent === parentId);
   const childIds = children.map((layer) => layer.id);
@@ -301,7 +319,7 @@ export const buildSubtreeDiagram = (
         ? pluralise(totalFiles(child.id), "source file")
         : `${pluralise(totalFiles(child.id), "source file")}, ${pluralise(descendants, "sub-layer")}`;
 
-    return `${key(child.id)}: {class: ${classFor(child.id)}; label: ${quote(child.name)}; tooltip: ${quote(`${detail} · ${child.role}`)}}`;
+    return `${key(child.id)}: {class: ${classFor(child.id)}; label: ${quote(child.name)}; tooltip: ${quote(`${detail} · ${child.role}`)}; ${linkTo(pageSlug, child.id)}}`;
   });
 
   const aggregated = new Map<string, number>();
@@ -358,6 +376,8 @@ export const buildOverviewDiagram = (
   layers: Layer[],
   edges: Edge[],
   generatedBy: string,
+  /** The page the diagram is embedded in, which its links are relative to. */
+  pageSlug = "architecture",
 ): string => {
   interface Group {
     name: string;
@@ -398,7 +418,7 @@ export const buildOverviewDiagram = (
       ([id, group]) =>
         `${id}: {class: ${classFor(id)}; label: ${quote(group.name)}; tooltip: ${quote(
           `${pluralise(group.fileCount, "source file")}${group.roles[0] ? ` · ${group.roles[0]}` : ""}`,
-        )}}`,
+        )}; ${linkTo(pageSlug, id)}}`,
     );
 
   const edgeLines = [...aggregated.entries()]
