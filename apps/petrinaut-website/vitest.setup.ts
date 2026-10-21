@@ -1,6 +1,6 @@
 /**
  * Petrinaut's UI entry probes `matchMedia` while its modules load, which jsdom
- * does not implement; every test that renders the shared chat loads it.
+ * does not implement; every test that renders Petrinaut AI's chat loads it.
  */
 const lacksMatchMedia =
   typeof window !== "undefined" &&

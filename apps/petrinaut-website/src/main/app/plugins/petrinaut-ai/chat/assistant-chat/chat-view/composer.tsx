@@ -1,12 +1,7 @@
-import { type ReactNode, type RefObject, useEffect } from "react";
+import { type RefObject, useEffect } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-
-import { AiVoiceModeIcon } from "../../ai-voice-mode-icon";
-
-import type { PetrinautAiInputMode } from "../../composer-control";
-import type { PetrinautAiAssistant } from "../../petrinaut-ai-assistant";
 
 const composerActionGlyphStyle = css({
   display: "inline-flex",
@@ -24,12 +19,6 @@ const composerActionButtonStyle = css({
   height: "[30px]",
   minWidth: "[30px]",
   borderRadius: "[calc({radii.lg} - {spacing.1})]",
-  "&[data-stop=true]": {
-    width: "[28px]",
-    height: "[28px]",
-    minWidth: "[28px]",
-    borderRadius: "full",
-  },
 });
 
 const composerStyle = css({
@@ -81,24 +70,11 @@ const composerTextareaStyle = css({
   _placeholder: {
     color: "neutral.s70",
   },
-  _disabled: {
-    cursor: "not-allowed",
-    color: "neutral.s90",
-  },
-});
-
-const composerHintStyle = css({
-  flex: "1",
-  paddingX: "2",
-  paddingBottom: "1",
-  color: "neutral.s80",
-  fontSize: "xs",
-  textAlign: "left",
 });
 
 type ComposerAction = {
   disabled: boolean;
-  glyph: "arrowUp" | "stopFilled" | "voice";
+  glyph: "arrowUp" | "stopFilled";
   isSubmit: boolean;
   label: string;
   onClick?: () => void;
@@ -108,46 +84,30 @@ type ComposerAction = {
 };
 
 /**
- * The message form: an auto-growing textarea, an optional host control, and
- * one trailing action that is Stop while busy, Send once there is text, and
- * Voice mode otherwise.
+ * The message form: an auto-growing textarea and one trailing action that is
+ * Stop while busy and Send otherwise.
  */
 export const AiAssistantComposer = ({
   busy,
-  control,
-  disabled,
-  hint,
   input,
   inputRef,
   isOpen,
   onInputChange,
-  onInputModeChange,
   onStop,
   onSubmit,
   hasHistory,
-  presentation,
-  voiceModeAvailable,
 }: {
   busy: boolean;
-  control?: ReactNode;
-  disabled: boolean;
-  /** Brunch only; a status shown beside the actions. */
-  hint?: string;
   input: string;
   inputRef: RefObject<HTMLTextAreaElement | null>;
   isOpen: boolean;
   onInputChange: (value: string) => void;
-  onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   onStop: () => void;
   onSubmit: () => void;
   /** Whether the transcript already has messages to continue from. */
   hasHistory: boolean;
-  presentation: NonNullable<PetrinautAiAssistant["presentation"]>;
-  voiceModeAvailable: boolean;
 }) => {
-  const isBrunch = presentation === "brunch";
-  const hasInput = input.trim().length > 0;
-  const canSubmit = hasInput && !busy && !disabled;
+  const canSubmit = input.trim().length > 0 && !busy;
 
   const action: ComposerAction = busy
     ? {
@@ -156,40 +116,19 @@ export const AiAssistantComposer = ({
         isSubmit: false,
         label: "Stop AI response",
         onClick: onStop,
-        tone: isBrunch ? "brand" : "neutral",
+        tone: "neutral",
         type: "button",
-        variant: isBrunch ? "solid" : "subtle",
+        variant: "subtle",
       }
-    : canSubmit
-      ? {
-          disabled: false,
-          glyph: "arrowUp",
-          isSubmit: true,
-          label: "Send message",
-          tone: "brand",
-          type: "submit",
-          variant: "solid",
-        }
-      : !hasInput && voiceModeAvailable && onInputModeChange
-        ? {
-            disabled: false,
-            glyph: "voice",
-            isSubmit: false,
-            label: "Start voice mode",
-            onClick: () => onInputModeChange("voice"),
-            tone: "brand",
-            type: "button",
-            variant: "solid",
-          }
-        : {
-            disabled: true,
-            glyph: "arrowUp",
-            isSubmit: false,
-            label: "Send message",
-            tone: "brand",
-            type: "submit",
-            variant: "solid",
-          };
+    : {
+        disabled: !canSubmit,
+        glyph: "arrowUp",
+        isSubmit: canSubmit,
+        label: "Send message",
+        tone: "brand",
+        type: "submit",
+        variant: "solid",
+      };
 
   // Auto-grow the composer to fit its content (up to `composerMaxHeight`,
   // after which it scrolls internally). Resetting to `auto` before measuring
@@ -211,32 +150,6 @@ export const AiAssistantComposer = ({
       contentHeight > composerMaxHeight ? "auto" : "hidden";
   }, [input, inputRef, isOpen]);
 
-  const brunchStop = isBrunch && busy;
-  const actionButton = (
-    <Button
-      aria-label={action.label}
-      className={composerActionButtonStyle}
-      data-stop={brunchStop || undefined}
-      data-ai-assistant-submit={action.isSubmit || undefined}
-      disabled={action.disabled}
-      onClick={action.onClick}
-      prefix={
-        <span className={composerActionGlyphStyle} key={action.glyph}>
-          {action.glyph === "voice" ? (
-            <AiVoiceModeIcon size={16} />
-          ) : (
-            <Icon name={action.glyph} size={brunchStop ? "xs" : "sm"} />
-          )}
-        </span>
-      }
-      size="sm"
-      tone={action.tone}
-      tooltip={action.label}
-      type={action.type}
-      variant={action.variant}
-    />
-  );
-
   return (
     <form
       onSubmit={(event) => {
@@ -247,7 +160,7 @@ export const AiAssistantComposer = ({
         }
       }}
     >
-      <div className={composerStyle} data-brunch={isBrunch || undefined}>
+      <div className={composerStyle}>
         <textarea
           ref={inputRef}
           data-autofocus
@@ -272,37 +185,29 @@ export const AiAssistantComposer = ({
             }
           }}
           placeholder={
-            isBrunch || hasHistory
+            hasHistory
               ? "Continue iterating..."
               : "Describe the process you want to create"
           }
           aria-label="Message AI assistant"
-          disabled={disabled}
         />
-        {isBrunch ? (
-          <div
-            className={css({
-              display: "flex",
-              alignItems: "center",
-              gap: "1",
-              "& > :last-child": { marginLeft: "auto" },
-            })}
-            data-brunch
-          >
-            {hint && (
-              <span className={composerHintStyle} role="status">
-                {hint}
-              </span>
-            )}
-            {control}
-            {actionButton}
-          </div>
-        ) : (
-          <>
-            {control}
-            {actionButton}
-          </>
-        )}
+        <Button
+          aria-label={action.label}
+          className={composerActionButtonStyle}
+          data-ai-assistant-submit={action.isSubmit || undefined}
+          disabled={action.disabled}
+          onClick={action.onClick}
+          prefix={
+            <span className={composerActionGlyphStyle} key={action.glyph}>
+              <Icon name={action.glyph} size="sm" />
+            </span>
+          }
+          size="sm"
+          tone={action.tone}
+          tooltip={action.label}
+          type={action.type}
+          variant={action.variant}
+        />
       </div>
     </form>
   );

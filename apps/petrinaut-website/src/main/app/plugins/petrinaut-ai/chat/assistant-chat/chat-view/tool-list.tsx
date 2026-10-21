@@ -1,3 +1,4 @@
+import { css } from "@hashintel/ds-helpers/css";
 import {
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
@@ -13,13 +14,9 @@ import {
   type AiToolSummary,
   summarizePetrinautAiToolCall,
 } from "../tool-summaries";
-import { BrunchToolList } from "./tool-list/brunch-tool-list";
-import { StockToolList } from "./tool-list/stock-tool-list";
+import { ToolItem } from "./tool-list/tool-item";
 
 import type { PetrinautAiMessage } from "../../ai-message";
-import type { PetrinautAiInteractiveTool } from "../../interactive-tool";
-import type { PetrinautAiAssistantPresentation } from "../../petrinaut-ai-assistant";
-import type { PetrinautAiToolPresentationResolver } from "../../tool-presentation";
 import type { InteractiveToolDefinition } from "../interactive-tools/types";
 import type { PetrinautRevealTarget } from "@hashintel/petrinaut/ui/plugin";
 
@@ -41,7 +38,6 @@ export type ToolRenderItem = {
   input?: unknown;
   output?: unknown;
   summary: AiToolSummary;
-  hasConfiguredTitle: boolean;
   tone: ToolTone;
   toolName: string;
   notApplied: boolean;
@@ -56,18 +52,9 @@ export type ToolRenderItem = {
   };
 };
 
-type DefaultToolStateLabels = {
-  readonly inputStreaming: string;
-  readonly inputAvailable: string;
-  readonly outputAvailable: string;
-  readonly outputError: string;
-};
-
-export const defaultPetrinautAiToolStateLabels: DefaultToolStateLabels = {
-  inputStreaming: "Preparing…",
-  inputAvailable: "Running…",
-  outputAvailable: "",
-  outputError: "",
+const toolStateLabels: Record<string, string> = {
+  "input-streaming": "Preparing…",
+  "input-available": "Running…",
 };
 
 export type RenderableToolPart = PetrinautAiMessage["parts"][number] & {
@@ -275,12 +262,10 @@ const getToolTone = ({
 export const toToolRenderItem = (
   message: PetrinautAiMessage,
   part: RenderableToolPart,
-  interactiveTools: readonly PetrinautAiInteractiveTool[] = [],
-  resolveToolPresentation?: PetrinautAiToolPresentationResolver,
 ): ToolRenderItem => {
   const state = part.state ?? "input-available";
   const toolName = getToolName(part);
-  const defaultSummary: AiToolSummary =
+  const summary: AiToolSummary =
     state === "input-streaming"
       ? { title: toolName }
       : getToolSummaryFromPart(part);
@@ -289,45 +274,13 @@ export const toToolRenderItem = (
     state === "output-error" && typeof part.errorText === "string"
       ? part.errorText
       : undefined;
-  const presentation = resolveToolPresentation?.({
-    toolName,
-    state:
-      state === "output-error"
-        ? "error"
-        : state === "output-available"
-          ? "success"
-          : "pending",
-    input: part.input,
-    output: part.output,
-    error: errorText,
-  });
-  const summary = presentation
-    ? {
-        ...defaultSummary,
-        title: presentation.title,
-        detail:
-          state === "output-error"
-            ? (errorText ?? presentation.detail ?? defaultSummary.detail)
-            : (presentation.detail ??
-              (presentation.items === undefined
-                ? defaultSummary.detail
-                : undefined)),
-        items:
-          presentation.items === undefined
-            ? defaultSummary.items
-            : [...presentation.items],
-      }
-    : defaultSummary;
 
   const id =
     typeof part.toolCallId === "string"
       ? part.toolCallId
       : `${message.id}-${part.type}`;
   const interactiveDefinition = hasInteractiveToolInput(state)
-    ? getInteractiveTool(
-        { toolName, toolCallId: id, input: part.input },
-        interactiveTools,
-      )
+    ? getInteractiveTool({ toolName, toolCallId: id, input: part.input })
     : undefined;
   const interactive = interactiveDefinition
     ? {
@@ -343,62 +296,43 @@ export const toToolRenderItem = (
     input: part.input,
     output: part.output,
     summary,
-    hasConfiguredTitle: presentation !== undefined,
-    tone:
-      presentation?.tone ??
-      getToolTone({ state, summary, toolName, notApplied }),
+    tone: getToolTone({ state, summary, toolName, notApplied }),
     toolName,
     notApplied,
-    stateLabel:
-      presentation !== undefined
-        ? ""
-        : state === "input-streaming"
-          ? defaultPetrinautAiToolStateLabels.inputStreaming
-          : state === "input-available"
-            ? defaultPetrinautAiToolStateLabels.inputAvailable
-            : state === "output-error"
-              ? defaultPetrinautAiToolStateLabels.outputError
-              : defaultPetrinautAiToolStateLabels.outputAvailable,
+    stateLabel: toolStateLabels[state] ?? "",
     errorText,
     interactive,
   };
 };
 
+const toolListStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+});
+
+/** Every tool as its own bordered row, in call order. */
 export const AiAssistantToolList = ({
   onInteractiveToolSubmit,
   onSelectToolTarget,
   tools,
-  active = false,
   stopped = false,
-  producedCard = false,
-  preserveOpen = false,
-  presentation = "stock",
 }: {
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   tools: ToolRenderItem[];
   stopped?: boolean;
-  /** Brunch only; the options below shape the fold around the tools. */
-  active?: boolean;
-  producedCard?: boolean;
-  preserveOpen?: boolean;
-  presentation?: PetrinautAiAssistantPresentation;
 }) =>
-  presentation === "stock" ? (
-    <StockToolList
-      tools={tools}
-      stopped={stopped}
-      onInteractiveToolSubmit={onInteractiveToolSubmit}
-      onSelectToolTarget={onSelectToolTarget}
-    />
-  ) : (
-    <BrunchToolList
-      tools={tools}
-      active={active}
-      stopped={stopped}
-      producedCard={producedCard}
-      preserveOpen={preserveOpen}
-      onInteractiveToolSubmit={onInteractiveToolSubmit}
-      onSelectToolTarget={onSelectToolTarget}
-    />
+  tools.length === 0 ? null : (
+    <div className={toolListStyle}>
+      {tools.map((tool) => (
+        <ToolItem
+          key={tool.id}
+          tool={tool}
+          stopped={stopped}
+          onInteractiveToolSubmit={onInteractiveToolSubmit}
+          onSelectToolTarget={onSelectToolTarget}
+        />
+      ))}
+    </div>
   );

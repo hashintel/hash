@@ -54,15 +54,10 @@ type PetrinautAiUiTools = {
   };
 };
 
-/** Message provenance and terminal presentation projected by the host. */
+/** How a message ended. */
 export type PetrinautAiMessageMetadata = {
-  source?: "voice";
   /** This assistant response was stopped, rather than completed normally. */
   stopped?: true;
-  /** Identifies every interactive tool output carrying a spoken answer. */
-  voiceToolCallIds?: string[];
-  /** Legacy single-answer provenance retained for persisted preview messages. */
-  toolCallId?: string;
 };
 
 export type PetrinautAiMessage = UIMessage<
