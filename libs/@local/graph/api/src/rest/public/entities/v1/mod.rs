@@ -1,6 +1,8 @@
 mod create;
 mod entity;
+mod get;
 mod property_metadata;
+mod query;
 
 use aide::openapi::Info;
 use hash_graph_store::pool::StorePool;
@@ -13,7 +15,8 @@ where
 {
     Routes::new()
         .route("/", create::route::<S>())
-        .route("/{entityId}", entity::route::<S>())
+        .route("/query", query::route::<S>())
+        .route("/{entityId}", get::route::<S>())
         .tag("Entity")
 }
 
