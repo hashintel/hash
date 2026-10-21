@@ -349,6 +349,38 @@ const filterFitStyle = css({
   },
 });
 
+/**
+ * A value too long for the chip's line wraps to a line of its own inside the chip, under a whole attribute and
+ * operator, as J3 · B2 and B3 draw it. Layout and corner radii only: the parts keep their DS look.
+ */
+const filterStackStyle = css({
+  "&[class]": {
+    display: "inline-grid",
+    gridTemplateColumns: "[max-content max-content]",
+    maxWidth: "[100%]",
+  },
+  "&[class] > [data-part='property']": {
+    borderEndStartRadius: "[0]",
+  },
+  "&[class] > [data-scope='select'][data-part='trigger']": {
+    borderInlineEnd:
+      "var(--form-border-width) solid var(--filter-outer-border)",
+    borderStartEndRadius: "[var(--filter-radius)]",
+    borderEndEndRadius: "[0]",
+  },
+  "&[class] > [data-part='input-slot']": {
+    gridColumn: "[1 / -1]",
+    maxWidth: "[100%]",
+    borderBlockStart: "[none]",
+    borderInlineStart:
+      "var(--form-border-width) solid var(--filter-outer-border)",
+    borderInlineEnd:
+      "var(--form-border-width) solid var(--filter-outer-border)",
+    borderEndStartRadius: "[var(--filter-radius)]",
+    borderEndEndRadius: "[var(--filter-radius)]",
+  },
+});
+
 /** The selected variable in a value slot: its step's icon, then the path. */
 const tokenValueStyle = css({
   display: "inline-flex",
@@ -360,11 +392,14 @@ const tokenValueStyle = css({
 });
 
 /**
- * A token's text that never loses its last part: the step name shrinks to "…" first, then the fixed " › … › " and
- * the value's own name stay whole ("Find ent… › … › Entities"), as J3 · B3 keeps "… › Shipment".
+ * A token's text: step name first, the middle collapsed to "…", the value's own name last ("Find entities › … ›
+ * Shipment", J3 · B3). When it does not fit on the chip's line, the value moves to its own line (`filterStackStyle`);
+ * only a token longer than the whole row shortens its step name.
  */
 const tokenLabelStyle = css({
   display: "inline-flex",
+  // The space around "›": flex items drop their own leading spaces.
+  gap: "[0.3em]",
   minWidth: "[0]",
   whiteSpace: "nowrap",
   "& > [data-first]": {
@@ -378,38 +413,11 @@ const tokenLabelStyle = css({
 const TokenLabel = ({ parts }: { parts: string[] }) => {
   const [first = "", ...rest] = parts;
   const last = rest.at(-1);
-  const firstRef = useRef<HTMLSpanElement>(null);
-  // Below about four letters a step name says nothing ("St…"): then the step icon alone names it.
-  const [nameHidden, setNameHidden] = useState(false);
-  useLayoutEffect(() => {
-    const element = firstRef.current;
-    if (!element || last === undefined) {
-      return;
-    }
-    const check = () => {
-      const fontSize = Number.parseFloat(getComputedStyle(element).fontSize);
-      setNameHidden(
-        element.scrollWidth > element.clientWidth &&
-          element.clientWidth < fontSize * 2.5,
-      );
-    };
-    check();
-    const observer = new ResizeObserver(check);
-    observer.observe(element.parentElement ?? element);
-    return () => observer.disconnect();
-  }, [last, first]);
   return (
-    <span className={tokenLabelStyle}>
-      <span
-        data-first
-        ref={firstRef}
-        // Hidden for the token's life once too short; the tooltip still names the step.
-        style={nameHidden ? { width: 0, minWidth: 0 } : undefined}
-      >
-        {first}
-      </span>
+    <span className={tokenLabelStyle} data-token-label>
+      <span data-first>{first}</span>
       {last === undefined ? null : (
-        <span>{`${rest.length > 1 ? " › … › " : nameHidden ? "› " : " › "}${last}`}</span>
+        <span>{`${rest.length > 1 ? "› … › " : "› "}${last}`}</span>
       )}
     </span>
   );
@@ -906,6 +914,41 @@ const ConditionRowView = ({
 
   const committed = filterValue();
 
+  // A token that does not fit beside the attribute and operator moves to its own line (J3 · B2, B3).
+  const [stacked, setStacked] = useState(false);
+  const measuredWidth = useRef(0);
+  const tokenText = tokenParts?.join(" › ") ?? null;
+  useLayoutEffect(() => {
+    const rowElement = rowRef.current;
+    if (!rowElement || tokenText === null) {
+      setStacked(false);
+      return;
+    }
+    const measure = () => {
+      const label = rowElement.querySelector<HTMLElement>("[data-token-label]");
+      const first = label?.querySelector<HTMLElement>("[data-first]");
+      const cut =
+        !!label &&
+        (label.scrollWidth > label.clientWidth + 1 ||
+          (!!first && first.scrollWidth > first.clientWidth + 1));
+      if (cut) {
+        setStacked(true);
+      }
+    };
+    measure();
+    const observer = new ResizeObserver(([resized]) => {
+      const width = Math.round(resized?.contentRect.width ?? 0);
+      if (width !== measuredWidth.current) {
+        measuredWidth.current = width;
+        // A new row width: try one line again, then measure.
+        setStacked(false);
+        requestAnimationFrame(measure);
+      }
+    });
+    observer.observe(rowElement);
+    return () => observer.disconnect();
+  }, [tokenText]);
+
   /*
    * A date value is a Filter item with a calendar icon (ds-map, 21 Oct) that opens the DS datePicker composition,
    * relative dates and calendar together, as J3 · A3 draws it. The DS Filter's value can only be a text, number or
@@ -945,7 +988,7 @@ const ConditionRowView = ({
       <Filter
         key={`${resetCount}:${row.propertyBaseUrl}:${row.valueSource ? "token" : "typed"}`}
         size="sm"
-        className={filterFitStyle}
+        className={stacked ? filterStackStyle : filterFitStyle}
         property={`${row.id}:${row.propertyBaseUrl}`}
         propertyLabel={title}
         propertyMenu={[
@@ -988,18 +1031,21 @@ const ConditionRowView = ({
           }
         }}
       />
-      <Menu
-        position="bottom-end"
-        items={rowMenu}
-        trigger={
-          <Button
-            size="sm"
-            variant="ghost"
-            iconName="ellipsisVertical"
-            aria-label="Condition options"
-          />
-        }
-      />
+      {/* On the value's line when the value wraps (J3 · B2). */}
+      <span className={stacked ? css({ alignSelf: "flex-end" }) : undefined}>
+        <Menu
+          position="bottom-end"
+          items={rowMenu}
+          trigger={
+            <Button
+              size="sm"
+              variant="ghost"
+              iconName="ellipsisVertical"
+              aria-label="Condition options"
+            />
+          }
+        />
+      </span>
 
       {openPart === "value" && type === "date" && row.operator !== "isIn" ? (
         <Popover
