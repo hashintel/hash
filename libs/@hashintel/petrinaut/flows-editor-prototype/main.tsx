@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { Editor, Screens } from "./src/app";
 import { Results, shouldShowBriefing } from "./src/briefing";
 import { emptyDocument } from "./src/document";
+import { Guide } from "./src/guide";
 import { type FlowListEntry, Home } from "./src/home";
 import { findScreenState } from "./src/states";
 import { supplierReviewExample } from "./src/supplier-review-example";
@@ -75,6 +76,9 @@ const App = () => {
   }
   if (params.has("results")) {
     return <Results />;
+  }
+  if (params.has("guide")) {
+    return <Guide />;
   }
   if (route.page === "home") {
     return (

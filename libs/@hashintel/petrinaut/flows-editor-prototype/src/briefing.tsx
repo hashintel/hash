@@ -90,9 +90,27 @@ export const Briefing = ({ onClose }: { onClose: () => void }) => (
     </Dialog.Body>
     <Dialog.Footer
       actions={
-        <Button variant="solid" onClick={onClose}>
-          Got it
-        </Button>
+        <div
+          className={css({ display: "flex", alignItems: "center", gap: "3" })}
+        >
+          {/* The tester guide (ops/projects/flows-editor/prototype-guide.md), opened in a new tab. */}
+          <a
+            href="?guide"
+            target="_blank"
+            rel="noreferrer"
+            className={css({
+              textStyle: "sm",
+              color: "neutral.fg.muted",
+              textDecoration: "underline",
+              _hover: { color: "neutral.fg.body" },
+            })}
+          >
+            How to use this prototype
+          </a>
+          <Button variant="solid" onClick={onClose}>
+            Got it
+          </Button>
+        </div>
       }
     />
   </Dialog>
