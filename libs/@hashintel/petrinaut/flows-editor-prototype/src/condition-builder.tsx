@@ -378,6 +378,10 @@ const filterStackStyle = css({
     // No line between the two rows, as J3 · B2 draws it.
     borderInline: "[none]",
   },
+  // The wrapped value starts at the attribute's text edge (the DS trigger pads both its button and its label).
+  "&[class] > [data-part='input-slot'] button > [data-part='trigger']": {
+    paddingInlineStart: "[0]",
+  },
 });
 
 /** The selected variable in a value slot: its step's icon, then the path. */
