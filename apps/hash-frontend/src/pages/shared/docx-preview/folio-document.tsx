@@ -6,6 +6,7 @@ import clamp from "lodash/clamp";
 import { useImperativeHandle, useRef } from "react";
 import { IntlProvider } from "use-intl";
 
+import { searchMarkColors } from "../file-preview-search-mark-colors";
 import {
   searchDocument,
   showSearchHit,
@@ -102,14 +103,12 @@ export const FolioDocument = ({
         ref={containerRef}
         sx={{
           height: "100%",
-          // folio draws its search marks over the text. The colours are
-          // `blue.bgSolid.subtle` and `blue.s75`, written out because the
-          // preview sits outside `.hash-ds-root`. Multiplying the marks with
-          // the page keeps the text under them dark.
           "& .folio-root": {
-            "--doc-find-highlight": "#e6f4fe",
-            "--doc-find-current": "#77bdf3",
+            "--doc-find-highlight": searchMarkColors.hit,
+            "--doc-find-current": searchMarkColors.currentHit,
           },
+          // folio draws its search marks over the text. Multiplying them with
+          // the page keeps the text under them dark.
           "& [data-folio-find-overlay]": { mixBlendMode: "multiply" },
           // folio rounds each mark's corners and outlines the current hit with
           // inline styles, which only `!important` rules override. The marks
