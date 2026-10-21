@@ -223,23 +223,55 @@ export const addLookupStep = (
   input: InputView,
 ): { document: EditorDocument; lookupId: string } => {
   const found = findStep(document, stepId);
+  const parentId = found?.parentId ?? null;
   const position = document.positions[stepId] ?? { x: 0, y: 0 };
   const incoming = document.wires.find((wire) => wire.target === stepId);
+  // Insert, don't stack: the step and everything right of it move one column right, and the lookup takes its place.
+  const siblings = new Set(
+    (parentId
+      ? ((
+          findStep(document, parentId)?.step as
+            | { steps?: { stepId: string }[] }
+            | undefined
+        )?.steps ?? [])
+      : document.steps
+    ).map((step) => step.stepId),
+  );
+  const shifted = Object.fromEntries(
+    Object.entries(document.positions).map(([id, at]) => [
+      id,
+      siblings.has(id) && at.x >= position.x ? { ...at, x: at.x + 296 } : at,
+    ]),
+  );
   const { document: withStep, stepId: lookupId } = addStep(
-    document,
+    { ...document, positions: shifted },
     "queryEntities",
     {
-      parentId: found?.parentId ?? null,
+      parentId,
       after: incoming
         ? { stepId: incoming.source, port: incoming.sourcePort }
         : undefined,
-      position: { x: position.x - 40, y: position.y - 130 },
+      position,
     },
   );
+  // List the lookup before the step it feeds, so "In this flow" reads in flow order.
+  const ordered = withStep.steps.some((step) => step.stepId === stepId)
+    ? withStep.steps
+        .filter((step) => step.stepId !== lookupId)
+        .flatMap((step) =>
+          step.stepId === stepId
+            ? [withStep.steps.find((other) => other.stepId === lookupId)!, step]
+            : [step],
+        )
+    : withStep.steps;
   const wired: EditorDocument = {
     ...withStep,
+    steps: ordered,
     wires: [
-      ...withStep.wires,
+      // The old wire into the step now runs through the lookup.
+      ...withStep.wires.filter(
+        (wire) => wire !== incoming && wire.id !== incoming?.id,
+      ),
       {
         id: `${lookupId}:next->${stepId}`,
         source: lookupId,
@@ -284,6 +316,8 @@ export const SourceMenu = ({
   typedChoices: typedChoicesProp = [],
   typedGroupLabel,
   hideSearch = false,
+  focusRef,
+  searchAlways = false,
 }: {
   anchor: React.RefObject<Element | null>;
   stepId: string;
@@ -298,6 +332,10 @@ export const SourceMenu = ({
   /** The heading over the typed choices, e.g. "Entity types". */
   typedGroupLabel?: string;
   hideSearch?: boolean;
+  /** Keeps focus here while the menu is open (the field being typed in, for "@" search). */
+  focusRef?: React.RefObject<HTMLElement | null>;
+  /** Show the search field however short the list is (a list operator's values). */
+  searchAlways?: boolean;
 }) => {
   const { document, setDocument, setUi } = useEditor();
   const [search, setSearch] = useState("");
@@ -335,14 +373,15 @@ export const SourceMenu = ({
   const lookUp = () => {
     const { document: next, lookupId } = addLookupStep(document, stepId, input);
     setDocument(() => next);
-    setUi((ui) => ({ ...ui, selectedId: lookupId, openField: null }));
-    onClose();
+    // The field now reads the new step's entities, shown as its chip; the canvas pans to the step and flashes it.
+    onPick({ kind: "step-output", stepId: lookupId, outputName: "entities" });
+    setUi((ui) => ({ ...ui, openField: null, flashId: lookupId }));
   };
 
   const nothingFits = options.length === 0 && typed.length === 0;
   const phrase = kindPhrase(kinds, input.array);
   // Search only earns its place on a long list; the mocks show short menus without it.
-  const longList = typedChoicesProp.length + options.length > 8;
+  const longList = searchAlways || typedChoicesProp.length + options.length > 8;
 
   return (
     <Popover
@@ -350,19 +389,14 @@ export const SourceMenu = ({
       position="bottom-end"
       gapY={4}
       onClose={onClose}
+      initialFocusRef={focusRef}
+      returnFocusRef={focusRef}
     >
       <div
         className={menuPanelStyle}
         role="dialog"
         aria-label={`Choose ${input.label}`}
       >
-        {query === undefined ? null : (
-          <div className={menuGroupLabelStyle}>
-            <span className={css({ paddingX: "1" })}>
-              @{query || " type to search"}
-            </span>
-          </div>
-        )}
         {hideSearch || query !== undefined || !longList ? null : (
           <div className={css({ padding: "1", paddingBottom: "0" })}>
             <TextInput
@@ -397,22 +431,13 @@ export const SourceMenu = ({
           ) : null}
           {groups.map((group) => {
             const inGroup = options.filter((option) => option.group === group);
-            // The current item only exists inside a For each; the other two groups say why they are empty.
-            if (inGroup.length === 0 && (group === "This item" || text)) {
+            // Empty groups stay hidden (Aakarsh, 21 Oct); one line below says when nothing fits at all.
+            if (inGroup.length === 0) {
               return null;
             }
             return (
               <div key={group} className={menuGroupStyle}>
                 <div className={menuGroupLabelStyle}>{group}</div>
-                {inGroup.length === 0 ? (
-                  <div className={menuEmptyRowStyle}>
-                    {group === "Earlier steps"
-                      ? `No earlier step gives ${phrase}`
-                      : input.array
-                        ? `No flow input gives ${phrase}`
-                        : `No flow input is ${phrase}`}
-                  </div>
-                ) : null}
                 {inGroup.map((option) => {
                   const look = ownerIcon(document, option);
                   return (
@@ -454,10 +479,12 @@ export const SourceMenu = ({
               </div>
             );
           })}
-          {nothingFits && text ? (
+          {nothingFits ? (
             <div className={menuGroupStyle}>
               <div className={menuEmptyRowStyle}>
-                {`Nothing matches “${query ?? search}”`}
+                {text
+                  ? `Nothing matches “${query ?? search}”`
+                  : `Nothing earlier gives ${phrase}`}
               </div>
             </div>
           ) : null}

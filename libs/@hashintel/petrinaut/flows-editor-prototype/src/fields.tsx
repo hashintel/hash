@@ -845,7 +845,8 @@ const conditionLookStyle = css({
     "--filter-outer-border": "var(--colors-neutral-a60)",
     "--filter-divider": "var(--colors-neutral-a60)",
     "--filter-remove-divider": "var(--colors-neutral-a60)",
-    height: "[28px]",
+    minHeight: "[28px]",
+    flexWrap: "wrap",
     backgroundColor: "neutral.s05",
   },
   "&[data-condition-row]:hover": {
@@ -853,13 +854,19 @@ const conditionLookStyle = css({
     "--filter-divider": "var(--colors-neutral-a70)",
     "--filter-remove-divider": "var(--colors-neutral-a70)",
   },
-  "&[data-condition-row] > *, &[data-condition-row] > * > button, &[data-condition-row] input":
+  // Every segment, including a chip inside a tooltip trigger (which sets line-height 0), gets the 26 px line.
+  "&[data-condition-row] > *, &[data-condition-row] button, &[data-condition-row] input":
     {
       lineHeight: "[26px]",
       fontWeight: "medium",
       color: "neutral.s110",
     },
   "&[data-condition-row] input::placeholder": { color: "neutral.s80" },
+  "&[data-condition-row] [data-part=input-slot] button": { borderWidth: "[0]" },
+  "&[data-condition-row] [data-part=input-slot] > span": {
+    display: "flex",
+    lineHeight: "[26px]",
+  },
   "&[data-condition-row] [data-part=remove]": {
     width: "[28px]",
     paddingInline: "[0]",
@@ -910,6 +917,7 @@ const ConditionRowEditor = ({
 }) => {
   const { document, ui, setUi } = useEditor();
   const anchorRef = useRef<HTMLDivElement>(null);
+  const valueRef = useRef<HTMLInputElement>(null);
   const menuKey = `${input.name}:condition${row.id}`;
   const open =
     ui.openField?.stepId === step.stepId && ui.openField.inputName === menuKey;
@@ -944,6 +952,22 @@ const ConditionRowEditor = ({
   const sourceLook = row.valueSource
     ? describeSource(document, row.valueSource, step.stepId)
     : null;
+  const listOperator = row.operator === "isAnyOf";
+  const picked = row.values ?? [];
+  // A link property's entities, for a list operator's menu (search sits inside the menu).
+  const linkedChoices = mockEntities
+    .filter(
+      (entity) =>
+        !property?.linksTo || entity.entityTypeBaseUrl === property.linksTo,
+    )
+    .map((entity) => ({
+      label: entity.label,
+      selected: picked.includes(entity.label),
+      source: {
+        kind: "constant" as const,
+        payload: { kind: "EntityId" as const, value: entity.entityId },
+      },
+    }));
 
   // The DS Filter chip's own recipe and slots, so the row matches the Figma DS filter 1:1.
   const classes = filterRecipe({
@@ -956,7 +980,14 @@ const ConditionRowEditor = ({
     row.valueSource?.kind === "flow-input"
       ? (triggerForInput(document, row.valueSource.inputName)?.definition
           .icon ?? "hand")
-      : "search";
+      : row.valueSource?.kind === "step-output"
+        ? (() => {
+            const found = findStep(document, row.valueSource.stepId)?.step;
+            return found?.kind === "action"
+              ? (getCatalogEntry(found.actionDefinitionId)?.icon ?? "search")
+              : "rotate";
+          })()
+        : "search";
 
   return (
     <div ref={anchorRef}>
@@ -1007,19 +1038,51 @@ const ConditionRowEditor = ({
         {operator?.takesValue === false ? null : row.valueSource &&
           sourceLook ? (
           <span data-part="input-slot" className={classes.inputSlot}>
-            <Tooltip
-              content={`${sourceLook.owner} › ${sourceLook.label}. Click to change.`}
-            >
+            <Tooltip content={`${sourceLook.owner} › ${sourceLook.label}`}>
               <button
                 type="button"
                 className={classes.trigger}
-                onClick={() => setOpen(true)}
+                onClick={() => {
+                  const source = row.valueSource;
+                  // An earlier step's output: the chip takes you to that step. A flow input: change the source.
+                  if (source?.kind === "step-output") {
+                    setUi((current) => ({
+                      ...current,
+                      selectedId: source.stepId,
+                      openField: null,
+                    }));
+                  } else {
+                    setOpen(true);
+                  }
+                }}
                 aria-label={`Change the source of ${valueInput.label}`}
               >
                 <Icon name={sourceIcon} size="xs" />
-                <span className={classes.triggerLabel}>{sourceLook.label}</span>
+                <span className={classes.triggerLabel}>
+                  {row.valueSource.kind === "step-output"
+                    ? `${sourceLook.owner} › ${sourceLook.label}`
+                    : sourceLook.label}
+                </span>
               </button>
             </Tooltip>
+          </span>
+        ) : listOperator ? (
+          <span data-part="input-slot" className={classes.inputSlot}>
+            <button
+              type="button"
+              className={classes.trigger}
+              data-placeholder={picked.length === 0 || undefined}
+              onClick={() => setOpen(true)}
+              aria-label={`Choose ${valueInput.label} values`}
+            >
+              <span className={classes.triggerLabel}>
+                {picked.length === 0
+                  ? "Choose values"
+                  : picked.length === 1
+                    ? picked[0]
+                    : `${picked[0]} +${picked.length - 1}`}
+              </span>
+            </button>
           </span>
         ) : property?.options ? (
           <Menu
@@ -1040,8 +1103,10 @@ const ConditionRowEditor = ({
         ) : (
           <span data-part="input-slot" className={classes.inputSlot}>
             <input
+              ref={valueRef}
               className={classes.input}
-              value={row.value === null ? "" : String(row.value)}
+              // While "@" search is on, the field shows the token ("@sup") after any typed text.
+              value={`${row.value === null ? "" : String(row.value)}${mention === undefined ? "" : `@${mention}`}`}
               placeholder={valueKind === "Date" ? "Month, or @" : "Value, or @"}
               aria-label={`${valueInput.label} value`}
               onChange={(event) => {
@@ -1049,9 +1114,16 @@ const ConditionRowEditor = ({
                 const at = next.lastIndexOf("@");
                 if (at >= 0) {
                   setMention(next.slice(at + 1));
-                  setOpen(true, "mention");
+                  if (!open) {
+                    setOpen(true, "mention");
+                  }
                   onChange({ value: next.slice(0, at) || null });
                   return;
+                }
+                // Backspace past the "@" ends the search.
+                if (mention !== undefined) {
+                  setMention(undefined);
+                  setOpen(false);
                 }
                 onChange({
                   value:
@@ -1107,11 +1179,31 @@ const ConditionRowEditor = ({
           input={valueInput}
           entry={entry}
           query={mention}
+          focusRef={mention === undefined ? undefined : valueRef}
+          typedChoices={listOperator ? linkedChoices : undefined}
+          typedGroupLabel={listOperator ? subject?.title : undefined}
+          searchAlways={listOperator}
           onClose={() => {
             setMention(undefined);
             setOpen(false);
           }}
           onPick={(source) => {
+            // A list operator collects picked entities; any other source replaces the value.
+            if (listOperator && source.kind === "constant") {
+              const label = linkedChoices.find(
+                (choice) =>
+                  choice.source.payload.value === source.payload.value,
+              )?.label;
+              if (label) {
+                onChange({
+                  valueSource: undefined,
+                  values: picked.includes(label)
+                    ? picked.filter((value) => value !== label)
+                    : [...picked, label],
+                });
+              }
+              return;
+            }
             onChange({ valueSource: source, value: null });
             setMention(undefined);
             setOpen(false);

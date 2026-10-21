@@ -73,6 +73,8 @@ export type ConditionRow = {
   propertyBaseUrl: string;
   operator: ConditionOperator | null;
   value: string | number | null;
+  /** MOCK: the picked values of a list operator ("is any of"), by label. */
+  values?: string[];
   /** MOCK: the value comes from an earlier step or a flow input. The engine's condition values are constants. */
   valueSource?: StepInputSource;
 };

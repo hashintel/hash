@@ -24,6 +24,8 @@ export type EditorUi = {
   runOpen: boolean;
   /** Step kinds added this session, newest first, for "Recent". */
   recent: string[];
+  /** A step just added for the user (Look up in the graph): the canvas pans to it and highlights it briefly. */
+  flashId?: string | null;
 };
 
 export const initialUi: EditorUi = {

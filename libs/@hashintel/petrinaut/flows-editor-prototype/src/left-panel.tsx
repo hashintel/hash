@@ -175,22 +175,20 @@ const FlowList = () => {
           style={{ paddingLeft: 4 + depth * 14 }}
           aria-current={ui.selectedId === step.stepId || undefined}
           data-flow-row={step.stepId}
-          onClick={() => select(step.stepId)}
-        >
-          <span
-            className={chevronSlotStyle}
-            onClick={(event) => {
-              if (step.kind !== "for-each") {
-                return;
-              }
-              event.stopPropagation();
+          onClick={() => {
+            // A selected For each row folds or unfolds its steps on a second click.
+            if (step.kind === "for-each" && ui.selectedId === step.stepId) {
               setCollapsed((current) =>
                 open
                   ? [...current, step.stepId]
                   : current.filter((id) => id !== step.stepId),
               );
-            }}
-          >
+              return;
+            }
+            select(step.stepId);
+          }}
+        >
+          <span className={chevronSlotStyle}>
             {step.kind === "for-each" ? (
               <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
             ) : null}

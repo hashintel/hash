@@ -484,12 +484,11 @@ export const AddNodePicker = ({
           : undefined),
     picker.parentId,
   ).filter((entry) => available.includes(entry));
-  const suggestedLabel =
-    afterName && availableShapes(document, picker.after, picker.parentId)
-      ? `Fits after ${afterName}`
-      : picker.parentId
-        ? "Fits inside this group"
-        : "Start with";
+  const suggestedLabel = afterName
+    ? `Fits after ${afterName}`
+    : picker.parentId
+      ? "Fits inside this group"
+      : "Start with";
   const groups = [
     ...(picker.anchor === "toolbar"
       ? [{ name: "Triggers", count: triggerKinds.length }]
