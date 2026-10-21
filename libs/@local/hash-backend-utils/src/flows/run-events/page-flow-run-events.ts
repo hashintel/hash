@@ -1,11 +1,11 @@
 import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 
-export const defaultFlowRunEventsPageSize = 500;
-export const maxFlowRunEventsPageSize = 2_000;
+const defaultFlowRunEventsPageSize = 500;
+const maxFlowRunEventsPageSize = 2_000;
 
 type FlowRunEventsCursor = { v: 1; runId: string; position: string };
 
-export type FlowRunEventsPage = {
+type FlowRunEventsPage = {
   events: FlowRunEvent[];
   endCursor: string | null;
   hasNextPage: boolean;
@@ -16,10 +16,7 @@ export type FlowRunEventsPage = {
 
 const positionPattern = /^\d+\.\d+$/;
 
-export const encodeFlowRunEventsCursor = (
-  runId: string,
-  position: string,
-): string =>
+const encodeFlowRunEventsCursor = (runId: string, position: string): string =>
   Buffer.from(
     JSON.stringify({
       v: 1,
@@ -74,9 +71,7 @@ export const pageFlowRunEvents = ({
   after,
   first,
 }: {
-  /** The current run's events, from `buildFlowRunEvents`. */
   events: FlowRunEvent[];
-  /** The current run's id. */
   runId: string;
   after?: string | null;
   first?: number | null;

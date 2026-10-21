@@ -37,7 +37,6 @@ type IHistoryEvent = proto.temporal.api.history.v1.IHistoryEvent;
 const { EventType, RetryState, WorkflowTaskFailedCause } =
   proto.temporal.api.enums.v1;
 
-/** Activities the flow workflow runs that aren't steps of the flow. */
 export const nonStepActivityTypes = [
   "getFlowDefinitionActivity",
   "persistFlowActivity",
@@ -242,10 +241,9 @@ export const buildFlowRunEvents = (
               ? {
                   hiddenAttempts: {
                     count: attempt - 1,
-                    ...(lastErrorMessage === undefined ||
-                    lastErrorMessage === null
-                      ? {}
-                      : { lastError: { message: lastErrorMessage } }),
+                    ...(lastErrorMessage
+                      ? { lastError: { message: lastErrorMessage } }
+                      : {}),
                   },
                 }
               : {}),

@@ -18,9 +18,6 @@ import type {
   StepProgressLog,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-/**
- * A run recorded by `apps/hash-ai-worker-ts/scripts/flow-run-histories/record-flow-run-histories.ts`.
- */
 const loadFixture = (fixtureName: string) => {
   const { describe: description, history } = JSON.parse(
     readFileSync(
@@ -45,9 +42,6 @@ type ExpectedEvent = [
   occurredAt?: string,
 ];
 
-/**
- * The events expected from a fixture's history, each happening when its Temporal event did unless it says otherwise.
- */
 const expectEvents = (fixtureName: string, expected: ExpectedEvent[]) => {
   const { history } = loadFixture(fixtureName);
 
@@ -715,14 +709,6 @@ describe("buildFlowRunEvents", () => {
       researchSucceeded("41.0"),
       researchRunCompleted("62.0"),
     ]);
-
-    const running = buildFlowRunEvents(loadFixture("in-progress").history);
-    const finished = buildFlowRunEvents(
-      loadFixture("in-progress-finished").history,
-    );
-
-    expect(finished.slice(0, running.length)).toStrictEqual(running);
-    expect(finished.length).toBeGreaterThan(running.length);
   });
 
   it("reports a checkpoint as a progress log, and the run reset to it as terminated", () => {

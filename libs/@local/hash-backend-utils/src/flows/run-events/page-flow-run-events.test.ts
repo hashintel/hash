@@ -8,9 +8,6 @@ import { pageFlowRunEvents } from "./page-flow-run-events.js";
 
 import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 
-/**
- * The events of a run recorded by `apps/hash-ai-worker-ts/scripts/flow-run-histories/record-flow-run-histories.ts`.
- */
 const loadRun = (fixtureName: string) => {
   const { describe: description, history } = JSON.parse(
     readFileSync(
@@ -127,7 +124,6 @@ describe("pageFlowRunEvents", () => {
     const baseRun = loadRun("reset-base-run");
     const resetRun = loadRun("reset");
 
-    /** The cursor of the base run's event at the given position. */
     const baseRunCursorAt = (position: string) => {
       const count =
         baseRun.events.findIndex((event) => event.position === position) + 1;
