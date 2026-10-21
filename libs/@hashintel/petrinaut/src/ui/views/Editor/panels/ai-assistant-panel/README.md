@@ -3,6 +3,9 @@ layer: ui.views.editor.ai
 role: Renders AI conversations and executes client tools against the editor host
 ---
 
+Deprecated: this is the built-in chat behind the `aiAssistant` prop. A plugin
+that declares `assistant` renders its own chat in the assistant panel.
+
 The assistant renders AI SDK messages and dispatches client tools from the
 parent `ai-assistant-panel.tsx`. Document tools call the core instance.
 Experiment tools call the browser host and show progress until its final result.

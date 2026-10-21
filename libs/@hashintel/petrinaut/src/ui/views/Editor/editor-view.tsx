@@ -53,6 +53,10 @@ import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
 import { applyAutoLayoutAndFrame } from "./editor-view/apply-auto-layout-and-frame";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
+import {
+  EditorAssistantPanel,
+  useEditorAssistant,
+} from "./editor-view/editor-assistant";
 import { emptyPetriNetDefinition } from "./editor-view/empty-petri-net-definition";
 import { UserSettings } from "./editor-view/user-settings";
 import { AiAssistantPanel } from "./panels/ai-assistant-panel";
@@ -210,6 +214,7 @@ const EditorViewContent = ({
     bottomPanelHeight,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
+  const assistant = useEditorAssistant(aiAssistant);
 
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
     string | null
@@ -498,8 +503,10 @@ const EditorViewContent = ({
     },
   ];
 
+  // The empty-net prompt hands its message to the built-in chat, or to the
+  // plugin assistant's `onPrompt`.
   const showEmptyAiHero =
-    aiAssistant !== undefined &&
+    (assistant.builtInChat !== undefined || assistant.onPrompt !== undefined) &&
     !isAiAssistantOpen &&
     !isAiCtaDismissed &&
     !pluginOverlay &&
@@ -513,7 +520,9 @@ const EditorViewContent = ({
       <EditorCommands
         applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
         onNewNet={showNetManagementMenuItems ? handleCreateEmpty : undefined}
-        onToggleAiAssistant={aiAssistant ? toggleAiAssistant : undefined}
+        onToggleAiAssistant={
+          assistant.hasAssistant ? toggleAiAssistant : undefined
+        }
       />
       <PluginRoots />
       <UserSettings settingsLabs={slots?.settingsLabs} />
@@ -582,12 +591,16 @@ const EditorViewContent = ({
                           setAiAssistantOpen(true);
                         }}
                         onSubmit={(message) => {
-                          setPendingAiAssistantMessage(message);
-                          setPendingAiInteractionMode("text");
                           setAiAssistantOpen(true);
+                          if (assistant.onPrompt) {
+                            assistant.onPrompt(message);
+                          } else {
+                            setPendingAiAssistantMessage(message);
+                            setPendingAiInteractionMode("text");
+                          }
                         }}
                         voiceModeAvailable={
-                          aiAssistant.renderVoiceMode !== undefined
+                          assistant.builtInChat?.renderVoiceMode !== undefined
                         }
                       />
                     )}
@@ -626,16 +639,23 @@ const EditorViewContent = ({
                 onEditionModeChange={setEditionMode}
                 cursorMode={cursorMode}
                 onCursorModeChange={setCursorMode}
-                hasAiAssistant={aiAssistant !== undefined}
+                hasAiAssistant={assistant.hasAssistant}
               />
             </Activity>
             <SimulationCreationDrawer />
           </SimulationWorkspace>
-          {aiAssistant && (
+          {assistant.plugin && (
+            <EditorAssistantPanel
+              plugin={assistant.plugin}
+              petriNetId={petriNetId}
+              focusRequest={aiAssistantFocusRequest}
+            />
+          )}
+          {assistant.builtInChat && (
             <AiAssistantPanel
               /** Reset state (e.g. initial messages) when the active net changes */
               key={`ai-assistant-${petriNetId ?? "no-net"}`}
-              aiAssistant={aiAssistant}
+              aiAssistant={assistant.builtInChat}
               applyAutoLayoutAndFrame={runAutoLayoutAndFrame}
               focusRequest={aiAssistantFocusRequest}
               frameSceneAfterRender={frameSceneAfterRender}

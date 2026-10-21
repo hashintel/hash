@@ -80,6 +80,10 @@ const hasToolOutput = (messages: PetrinautAiMessage[]): boolean =>
     ),
   );
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export const createStorybookAiTransport =
   (): ChatTransport<PetrinautAiMessage> => ({
     reconnectToStream: () => Promise.resolve(null),
