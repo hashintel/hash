@@ -1,12 +1,11 @@
 /**
- * Program analysis: every identifier in a file asked of the checker, in one
- * batch per file. A symbol is named by its defining file and name, after
- * aliases are followed to the original declaration; a symbol declared in
- * several files, such as a property of a union, is named by the first, as
- * the checker orders them. An identifier defines a symbol when it names a
- * declaration in the symbol's own file: an import binding resolves
- * elsewhere, and so does an object literal's property typed by another
- * file's interface, so both stay references.
+ * Program analysis: the identifiers of a file that can resolve outside it
+ * asked of the checker, in one batch per file. A symbol is named by its
+ * defining file and name, after aliases are followed to the original
+ * declaration; a symbol declared in several files, such as a property of
+ * a union, is named by the first, as the checker orders them. An
+ * identifier defines a symbol when it names a declaration in the symbol's
+ * own file: an import binding resolves elsewhere, so it stays a reference.
  */
 
 import {
@@ -26,6 +25,7 @@ import {
   moduleSymbol,
   occurrenceRecorder,
 } from "./facts-shape";
+import { createIdentifierFilter } from "./walk-program/identifier-filter";
 
 import type { IndexedDocument } from "../../facts";
 import type { ProgramHost } from "./program-host";
@@ -87,6 +87,7 @@ export const createProgramWalker = (host: ProgramHost): ProgramWalker => {
       const identifiers: Node[] = [];
       const declared: boolean[] = [];
       const moduleSpecifiers: Expression[] = [];
+      const filter = createIdentifierFilter();
       const visit = (node: Node): void => {
         if (isImportDeclaration(node) && node.importClause === undefined) {
           moduleSpecifiers.push(node.moduleSpecifier);
@@ -97,10 +98,15 @@ export const createProgramWalker = (host: ProgramHost): ProgramWalker => {
         ) {
           moduleSpecifiers.push(node.arguments[0]);
         } else if (isIdentifier(node)) {
-          identifiers.push(node);
-          declared.push(namesDeclaration(node));
+          if (filter.query(node)) {
+            identifiers.push(node);
+            declared.push(namesDeclaration(node));
+          }
+          return;
         }
+        filter.enter(node);
         node.forEachChild(visit);
+        filter.leave(node);
       };
       visit(sourceFile);
 

@@ -14,6 +14,7 @@ const files = [
   "src/core/index.ts",
   "src/ui/view.ts",
   "src/ui/consumer.ts",
+  "src/ui/shadow.ts",
 ];
 
 const references = (document: IndexedDocument | undefined): string[] =>
@@ -109,14 +110,44 @@ describe("the two analyses differ on inference", () => {
     ]);
   });
 
-  it("program also records local declarations, which syntactic leaves out", () => {
-    expect(definitions(program.get("src/ui/consumer.ts"))).toContain(
-      "src/ui/consumer.ts#token",
-    );
+  it("program also records member names, which syntactic leaves out", () => {
+    expect(definitions(program.get("src/ui/consumer.ts"))).toEqual([
+      "src/ui/consumer.ts#",
+      "src/ui/consumer.ts#id",
+      "src/ui/consumer.ts#kind",
+      "src/ui/consumer.ts#kindOf",
+      "src/ui/consumer.ts#shown",
+      "src/ui/consumer.ts#text",
+    ]);
     expect(definitions(syntactic.get("src/ui/consumer.ts"))).toEqual([
       "src/ui/consumer.ts#",
       "src/ui/consumer.ts#kindOf",
       "src/ui/consumer.ts#shown",
+    ]);
+  });
+});
+
+describe("program analysis skips what cannot leave the file", () => {
+  it("leaves out names bound below the module scope and labels", () => {
+    const document = program.get("src/ui/shadow.ts");
+    expect(definitions(document)).toEqual([
+      "src/ui/shadow.ts#",
+      "src/ui/shadow.ts#Holder",
+      "src/ui/shadow.ts#id",
+      "src/ui/shadow.ts#kind",
+      "src/ui/shadow.ts#shadowed",
+      "src/ui/shadow.ts#token",
+      "src/ui/shadow.ts#unshadowed",
+    ]);
+    expect(references(document)).not.toContain("src/ui/shadow.ts#outer");
+  });
+
+  it("still asks about the imports a local name shadows, and about members", () => {
+    expect(references(program.get("src/ui/shadow.ts"))).toEqual([
+      "src/core/types.ts#Token",
+      "src/core/types.ts#kind",
+      "src/ui/view.ts#label",
+      "src/ui/view.ts#render",
     ]);
   });
 });
