@@ -615,10 +615,14 @@ mobile-starlight-toc summary {
 
 /*
  * A node the generator linked to its layer's page lifts a little under the
- * pointer. The group is scaled about its own box, so the connections stay
- * where d2 drew them.
+ * pointer and its colour deepens: more saturated in both themes, a touch
+ * darker on the light page and brighter on the dark one, since the fills
+ * are pale tints in light mode and dim ones in dark mode. The group is
+ * scaled about its own box, so the connections stay where d2 drew them.
  */
 .pnd-diagram a > g {
+  --pnd-diagram-hover-filter: saturate(1.35) brightness(0.96);
+
   cursor: pointer;
   transform-box: fill-box;
   transform-origin: center;
@@ -627,10 +631,15 @@ mobile-starlight-toc summary {
     filter 180ms ease;
 }
 
+:root[data-theme="dark"] .pnd-diagram a > g {
+  --pnd-diagram-hover-filter: saturate(1.25) brightness(1.18);
+}
+
 .pnd-diagram a:hover > g,
 .pnd-diagram a:focus-visible > g {
   transform: scale(1.015);
-  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.12));
+  filter: var(--pnd-diagram-hover-filter)
+    drop-shadow(0 1px 3px rgb(0 0 0 / 0.12));
 }
 
 .pnd-diagram a:focus-visible {
