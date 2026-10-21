@@ -6,7 +6,7 @@ import {
   type IconName,
   TextInput,
 } from "@hashintel/ds-components";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import {
@@ -24,7 +24,9 @@ import {
   type DraftStep,
   type EditorDocument,
   findStep,
+  flattenSteps,
   stepLabel,
+  stepTitle,
 } from "./document";
 import { type EditorUi, useEditor } from "./editor-context";
 import { triggerDefinitions } from "./mock-triggers";
@@ -89,7 +91,9 @@ const rowStyle = css({
   gap: "1.5",
   width: "[100%]",
   height: "[32px]",
-  paddingX: "1",
+  paddingLeft: "1",
+  // The count at the right keeps 8 px inside the selected fill.
+  paddingRight: "2",
   borderRadius: "md",
   textAlign: "left",
   cursor: "pointer",
@@ -180,92 +184,224 @@ const stepLook = (step: DraftStep): { icon: IconName; tone: Tone } => {
 /** "In this flow": triggers, Start, then the steps in order, children of a For each indented under it. */
 const FlowList = () => {
   const { document, ui, setUi } = useEditor();
-  const [collapsed, setCollapsed] = useState<string[]>([]);
+  const [closed, setClosed] = useState<string[]>([]);
   const select = (id: string) =>
     setUi((current) => ({ ...current, selectedId: id, openField: null }));
+  const groups = flattenSteps(document.steps)
+    .map(({ step }) => step)
+    .filter((step) => step.kind === "for-each")
+    .map((step) => step.stepId);
+  const allClosed =
+    groups.length > 0 && groups.every((id) => closed.includes(id));
+  const total = flattenSteps(document.steps).length;
+
+  /**
+   * D16: siblings that start together (fed by the same step and port, or by nothing inside a For each) show as one
+   * collapsible "In parallel" group.
+   */
+  const withParallel = (
+    steps: DraftStep[],
+    depth: number,
+  ): React.ReactNode[] => {
+    const ids = new Set(steps.map((step) => step.stepId));
+    const feed = (step: DraftStep) => {
+      const incoming = document.wires.filter(
+        (wire) => wire.target === step.stepId,
+      );
+      const fromSibling = incoming.find((wire) => ids.has(wire.source));
+      return fromSibling
+        ? `${fromSibling.source}:${fromSibling.sourcePort}`
+        : incoming.length === 0
+          ? "start of group"
+          : `${incoming[0]!.source}:${incoming[0]!.sourcePort}`;
+    };
+    const byFeed = new Map<string, DraftStep[]>();
+    for (const step of steps) {
+      byFeed.set(feed(step), [...(byFeed.get(feed(step)) ?? []), step]);
+    }
+    const shown = new Set<string>();
+    return steps.flatMap((step) => {
+      if (shown.has(step.stepId)) {
+        return [];
+      }
+      const together = byFeed.get(feed(step)) ?? [step];
+      if (together.length < 2) {
+        shown.add(step.stepId);
+        return stepRows([step], depth);
+      }
+      for (const member of together) {
+        shown.add(member.stepId);
+      }
+      const key = `parallel:${feed(step)}`;
+      const open = !closed.includes(key);
+      return [
+        <button
+          key={key}
+          type="button"
+          className={rowStyle}
+          style={{ paddingLeft: 4 + depth * 16 }}
+          aria-expanded={open}
+          onClick={() =>
+            setClosed((current) =>
+              open ? [...current, key] : current.filter((id) => id !== key),
+            )
+          }
+        >
+          <span className={chevronSlotStyle}>
+            <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
+          </span>
+          <Tile icon="diagramNested" tone="neutral" />
+          <span className={cx(labelStyle, css({ fontWeight: "semibold" }))}>
+            In parallel
+          </span>
+          <span className={countStyle}>{together.length} steps</span>
+        </button>,
+        ...(open ? stepRows(together, depth + 1) : []),
+      ];
+    });
+  };
 
   const stepRows = (steps: DraftStep[], depth: number): React.ReactNode[] =>
     steps.flatMap((step) => {
       const look = stepLook(step);
-      const open = !collapsed.includes(step.stepId);
-      const row = (
+      const pad = { paddingLeft: 4 + depth * 16 };
+      if (step.kind === "for-each") {
+        const open = !closed.includes(step.stepId);
+        const inside = flattenSteps(step.steps).length;
+        const row = (
+          <button
+            key={step.stepId}
+            type="button"
+            className={rowStyle}
+            style={pad}
+            aria-current={ui.selectedId === step.stepId || undefined}
+            aria-expanded={open}
+            data-flow-row={step.stepId}
+            onClick={() => select(step.stepId)}
+          >
+            <span
+              className={chevronSlotStyle}
+              role="presentation"
+              onClick={(event) => {
+                event.stopPropagation();
+                setClosed((current) =>
+                  open
+                    ? [...current, step.stepId]
+                    : current.filter((id) => id !== step.stepId),
+                );
+              }}
+            >
+              <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
+            </span>
+            <Tile icon={look.icon} tone={look.tone} />
+            <span className={cx(labelStyle, css({ fontWeight: "semibold" }))}>
+              {stepLabel(step)}
+            </span>
+            <span className={countStyle}>
+              {inside === 1 ? "1 step" : `${inside} steps`}
+            </span>
+          </button>
+        );
+        return open ? [row, ...withParallel(step.steps, depth + 1)] : [row];
+      }
+      return [
         <button
           key={step.stepId}
           type="button"
           className={rowStyle}
-          style={{ paddingLeft: 4 + depth * 14 }}
+          style={pad}
           aria-current={ui.selectedId === step.stepId || undefined}
           data-flow-row={step.stepId}
-          onClick={() => {
-            // A selected For each row folds or unfolds its steps on a second click.
-            if (step.kind === "for-each" && ui.selectedId === step.stepId) {
-              setCollapsed((current) =>
-                open
-                  ? [...current, step.stepId]
-                  : current.filter((id) => id !== step.stepId),
-              );
-              return;
-            }
-            select(step.stepId);
-          }}
+          title={`${stepTitle(step)} · ${stepLabel(step)}`}
+          onClick={() => select(step.stepId)}
         >
-          <span className={chevronSlotStyle}>
-            {step.kind === "for-each" ? (
-              <Icon name={open ? "chevronDown" : "chevronRight"} size="xs" />
-            ) : null}
-          </span>
+          <span className={chevronSlotStyle} />
           <Tile icon={look.icon} tone={look.tone} />
           <span className={labelStyle}>{stepLabel(step)}</span>
-        </button>
-      );
-      return step.kind === "for-each" && open
-        ? [row, ...stepRows(step.steps, depth + 1)]
-        : [row];
+        </button>,
+      ];
     });
 
   return (
-    <div
-      className={css({
-        display: "flex",
-        flexDirection: "column",
-        paddingX: "2",
-        paddingY: "[3px]",
-      })}
-    >
-      {document.triggers.map((trigger) => {
-        const definition = triggerDefinitions[trigger.kind];
-        return (
+    <div className={css({ display: "flex", flexDirection: "column" })}>
+      <div className={listHeadStyle}>
+        <span>{total === 1 ? "1 step" : `${total} steps`}</span>
+        {groups.length > 0 ? (
           <button
-            key={trigger.id}
             type="button"
-            className={rowStyle}
-            aria-current={ui.selectedId === trigger.id || undefined}
-            onClick={() => select(trigger.id)}
+            className={collapseAllStyle}
+            onClick={() => setClosed(allClosed ? [] : groups)}
           >
-            <span className={chevronSlotStyle} />
-            <Tile icon={definition.icon} tone="blue" />
-            <span className={labelStyle}>
-              {trigger.description || definition.title}
-            </span>
+            {allClosed ? "Expand all" : "Collapse all"}
           </button>
-        );
-      })}
-      <button
-        type="button"
-        className={rowStyle}
-        aria-current={ui.selectedId === START_ID || undefined}
-        onClick={() => select(START_ID)}
+        ) : null}
+      </div>
+      <div
+        className={css({
+          display: "flex",
+          flexDirection: "column",
+          paddingX: "2",
+        })}
       >
-        <span className={chevronSlotStyle} />
-        <Tile icon="play" tone="neutral" />
-        <span className={labelStyle}>
-          {document.startDescription || "Start"}
-        </span>
-      </button>
-      {stepRows(document.steps, 0)}
+        {document.triggers.map((trigger) => {
+          const definition = triggerDefinitions[trigger.kind];
+          return (
+            <button
+              key={trigger.id}
+              type="button"
+              className={rowStyle}
+              aria-current={ui.selectedId === trigger.id || undefined}
+              onClick={() => select(trigger.id)}
+            >
+              <span className={chevronSlotStyle} />
+              <Tile icon={definition.icon} tone="blue" />
+              <span className={labelStyle}>
+                {trigger.description || definition.title}
+              </span>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          className={rowStyle}
+          aria-current={ui.selectedId === START_ID || undefined}
+          onClick={() => select(START_ID)}
+        >
+          <span className={chevronSlotStyle} />
+          <Tile icon="play" tone="neutral" />
+          <span className={labelStyle}>
+            {document.startDescription || "Start"}
+          </span>
+        </button>
+        {withParallel(document.steps, 0)}
+      </div>
     </div>
   );
 };
+
+/** "N STEPS" and "Collapse all", as the run prototype's list head. */
+const listHeadStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  height: "[32px]",
+  paddingLeft: "3",
+  paddingRight: "4",
+  textStyle: "xs",
+  color: "neutral.fg.muted",
+});
+
+const collapseAllStyle = css({
+  textStyle: "xs",
+  fontWeight: "medium",
+  color: "neutral.fg.muted",
+  borderRadius: "sm",
+  cursor: "pointer",
+  _hover: {
+    color: "neutral.fg.body",
+    backgroundColor: "neutral.bg.surface.active",
+  },
+});
 
 /** Where a step from the library goes: after the selected step, else after the end of the main line. */
 const placeFromLibrary = (
@@ -313,11 +449,12 @@ const Library = () => {
       key={entry.id}
       type="button"
       className={rowStyle}
-      style={indent ? { paddingLeft: 18 } : undefined}
+      // A group's steps sit one 16 px level in, like the Steps tree.
+      style={indent ? { paddingLeft: 20 } : undefined}
       title={entry.description}
       onClick={() => add(entry)}
     >
-      {indent ? null : <span className={chevronSlotStyle} />}
+      <span className={chevronSlotStyle} />
       <Tile icon={entry.icon} tone={entry.tone} />
       <span className={labelStyle}>{entry.title}</span>
     </button>
@@ -430,7 +567,7 @@ export const LeftPanel = () => {
             className={tabStyle}
             onClick={() => setTab("flow")}
           >
-            In this flow
+            Steps
           </button>
           <button
             type="button"
@@ -439,7 +576,7 @@ export const LeftPanel = () => {
             className={tabStyle}
             onClick={() => setTab("add")}
           >
-            Add steps
+            Add
           </button>
         </div>
         <span
