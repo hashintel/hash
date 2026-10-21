@@ -12,11 +12,12 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { useEditor } from "./editor-context";
 import { findEntityType, mockEntities } from "./mock-graph";
+import { TypedValue } from "./typed-value";
 import { mutedTextStyle } from "./ui";
 
 import type { FlowInputDefinition } from "./engine";
 
-type Value = string | number | string[] | null;
+type Value = unknown;
 
 const labelStyle = css({
   textStyle: "sm",
@@ -91,6 +92,18 @@ const InputControl = ({
           type="date"
           value={typeof value === "string" ? value : ""}
           onChange={(next) => onChange(next)}
+        />
+      );
+    case "DateTime":
+    case "Duration":
+    case "VersionedUrl":
+      // Field kinds v2: picked or typed by type, never free text.
+      return (
+        <TypedValue
+          kind={input.payloadKind}
+          label={input.label ?? input.name}
+          value={value ?? undefined}
+          onChange={(next) => onChange(next ?? null)}
         />
       );
     default:

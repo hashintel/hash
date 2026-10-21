@@ -43,7 +43,7 @@ import {
   ValueField,
 } from "./fields";
 import { isMockPayloadKind } from "./mock-action-definitions";
-import { findEntityType, mockEntityTypes } from "./mock-graph";
+import { findEntityType, mockEntities, mockEntityTypes } from "./mock-graph";
 import {
   describeCron,
   fromCron,
@@ -61,6 +61,7 @@ import {
   getSourceShape,
 } from "./shapes";
 import { SourceMenu } from "./source-menu";
+import { firstAndMore, TypedValue } from "./typed-value";
 import {
   descriptionInputStyle,
   HeaderTitle,
@@ -70,7 +71,6 @@ import {
   panelHeaderStyle,
   PropertyRow,
   Section,
-  fieldStyle,
   ChipRow,
   SourceChip,
   type Tone,
@@ -648,7 +648,6 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
         >
           <Select
             size="sm"
-            className={fieldStyle}
             items={collectOptions}
             value={
               step.collect
@@ -723,8 +722,11 @@ const inputKindChoices = [
   { value: "Text", text: "Text" },
   { value: "Number", text: "Number" },
   { value: "Date", text: "Date" },
+  { value: "DateTime", text: "Date and time" },
+  { value: "Duration", text: "Duration" },
   { value: "Boolean", text: "Yes or no" },
   { value: "EntityId", text: "Entity" },
+  { value: "VersionedUrl", text: "Entity type" },
   { value: "EntityId[]", text: "List of entities" },
   { value: "Text[]", text: "List of text" },
 ];
@@ -770,6 +772,17 @@ const RunFormFields = () => {
         input.name === name ? { ...input, ...change } : input,
       ),
     }));
+
+  const setDefault = (name: string, value: unknown) =>
+    setDocument((current) => {
+      const inputDefaults = { ...current.inputDefaults };
+      if (value === null || value === undefined) {
+        delete inputDefaults[name];
+      } else {
+        inputDefaults[name] = value;
+      }
+      return { ...current, inputDefaults };
+    });
 
   const addInput = () =>
     setDocument((current) => {
@@ -831,7 +844,6 @@ const RunFormFields = () => {
           <PropertyRow label="Name">
             <TextInput
               size="sm"
-              className={fieldStyle}
               value={input.label ?? ""}
               aria-label="Input name"
               onChange={(label) => updateInput(input.name, { label })}
@@ -840,7 +852,7 @@ const RunFormFields = () => {
           <PropertyRow label="Type">
             <Select
               size="sm"
-              className={fieldStyle}
+              aria-label="Input type"
               items={inputKindChoices}
               value={`${input.payloadKind}${input.array ? "[]" : ""}`}
               onChange={(value) => {
@@ -852,6 +864,8 @@ const RunFormFields = () => {
                   payloadKind: value.replace("[]", "") as PayloadKind,
                   array,
                 });
+                // A default of the old type would not fit the new one.
+                setDefault(input.name, null);
               }}
             />
           </PropertyRow>
@@ -863,7 +877,6 @@ const RunFormFields = () => {
             >
               <Select
                 size="sm"
-                className={fieldStyle}
                 items={mockEntityTypes.map((type) => ({
                   value: type.baseUrl,
                   text: type.title,
@@ -885,31 +898,57 @@ const RunFormFields = () => {
               />
             </PropertyRow>
           ) : null}
-          <PropertyRow
-            label="Default value"
-            optional
-            hover="Mock: what the run form fills in. The engine's flow inputs have no default."
-          >
-            <TextInput
-              size="sm"
-              className={fieldStyle}
-              type={input.payloadKind === "Date" ? "date" : "text"}
-              value={document.inputDefaults?.[input.name] ?? ""}
-              placeholder={
-                input.payloadKind === "Date" ? "Select date..." : "No default"
-              }
-              aria-label={`${input.label ?? input.name} default value`}
-              onChange={(value) =>
-                setDocument((current) => ({
-                  ...current,
-                  inputDefaults: {
-                    ...current.inputDefaults,
-                    [input.name]: value,
-                  },
-                }))
-              }
-            />
-          </PropertyRow>
+          {input.array && input.payloadKind !== "EntityId" ? null : (
+            <PropertyRow
+              label="Default value"
+              optional
+              hover="Mock: what the run form fills in. The engine's flow inputs have no default."
+            >
+              {input.array ? (
+                <Select
+                  size="sm"
+                  multiple
+                  searchable
+                  renderSelectedAll={firstAndMore(
+                    (value) =>
+                      mockEntities.find((entity) => entity.entityId === value)
+                        ?.label ?? value,
+                  )}
+                  aria-label={`${input.label ?? input.name} default value`}
+                  items={mockEntities
+                    .filter(
+                      (entity) =>
+                        !document.inputEntityTypes[input.name] ||
+                        entity.entityTypeBaseUrl ===
+                          document.inputEntityTypes[input.name],
+                    )
+                    .map((entity) => ({
+                      value: entity.entityId as string,
+                      text: entity.label,
+                    }))}
+                  value={
+                    Array.isArray(document.inputDefaults?.[input.name])
+                      ? (document.inputDefaults[input.name] as string[])
+                      : []
+                  }
+                  placeholder="No default"
+                  onChange={(value) => setDefault(input.name, value)}
+                />
+              ) : (
+                <TypedValue
+                  kind={input.payloadKind}
+                  label={`${input.label ?? input.name} default value`}
+                  allowRelative
+                  entityTypeBaseUrl={document.inputEntityTypes[input.name]}
+                  value={document.inputDefaults?.[input.name]}
+                  placeholder={
+                    input.payloadKind === "Text" ? "No default" : undefined
+                  }
+                  onChange={(value) => setDefault(input.name, value)}
+                />
+              )}
+            </PropertyRow>
+          )}
           {usersOf(
             document,
             (source) =>
@@ -975,7 +1014,6 @@ const ScheduleSettings = ({ trigger }: { trigger: TriggerNode }) => {
         <PropertyRow label="On day">
           <NumberInput
             size="sm"
-            className={fieldStyle}
             value={parts.dayOfMonth}
             onChange={(day) =>
               setParts({ dayOfMonth: Math.min(28, Math.max(1, day ?? 1)) })
@@ -988,7 +1026,6 @@ const ScheduleSettings = ({ trigger }: { trigger: TriggerNode }) => {
         <PropertyRow label="On">
           <Select
             size="sm"
-            className={fieldStyle}
             items={weekdays.map((day, index) => ({
               value: String(index),
               text: day,
@@ -1002,7 +1039,6 @@ const ScheduleSettings = ({ trigger }: { trigger: TriggerNode }) => {
         <TextInput
           type="time"
           size="sm"
-          className={fieldStyle}
           value={parts.time}
           onChange={(time) => setParts({ time })}
         />
@@ -1010,7 +1046,6 @@ const ScheduleSettings = ({ trigger }: { trigger: TriggerNode }) => {
       <PropertyRow label="Time zone" required>
         <Select
           size="sm"
-          className={fieldStyle}
           items={timezones.map((zone) => ({ value: zone, text: zone }))}
           value={spec.timezone ?? "UTC"}
           onChange={(timezone) =>
@@ -1023,6 +1058,45 @@ const ScheduleSettings = ({ trigger }: { trigger: TriggerNode }) => {
         {spec.timezone ? ` (${spec.timezone})` : ""}
       </div>
     </Section>
+  );
+};
+
+/**
+ * A trigger's condition: the condition builder on the watched type's properties (field kinds v2, F10; the draft PRD
+ * types it as long text). Nothing runs before a trigger, so its values are typed or picked, never variables.
+ */
+const TriggerCondition = ({
+  trigger,
+  entityTypeBaseUrl,
+}: {
+  trigger: TriggerNode;
+  entityTypeBaseUrl: string;
+}) => {
+  const entry = getCatalogEntry("if")!;
+  // The builder edits a step's input; the trigger stands in as a step with no inputs, its draft keyed by its id.
+  const step = {
+    kind: "action",
+    stepId: trigger.id,
+    actionDefinitionId: "if",
+    inputs: {},
+  } as unknown as DraftActionStep;
+  const input: InputView = {
+    name: "condition",
+    label: "Condition",
+    array: false,
+    required: false,
+    hasDefault: false,
+    kinds: ["FilterCondition"],
+  };
+  return (
+    <QueryField
+      step={step}
+      input={input}
+      entry={entry}
+      mode="condition"
+      typeHint={entityTypeBaseUrl}
+      allowVariables={false}
+    />
   );
 };
 
@@ -1046,7 +1120,6 @@ const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
       >
         <Select
           size="sm"
-          className={fieldStyle}
           items={mockEntityTypes.map((candidate) => ({
             value: candidate.baseUrl,
             text: candidate.title,
@@ -1068,7 +1141,6 @@ const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
         >
           <Select
             size="sm"
-            className={fieldStyle}
             multiple
             items={(type?.properties ?? []).map((property) => ({
               value: property.baseUrl,
@@ -1080,15 +1152,16 @@ const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
           />
         </PropertyRow>
       ) : null}
-      <PropertyRow label="Condition" hover="Only start when the entity matches">
-        <TextInput
-          size="sm"
-          className={fieldStyle}
-          value={trigger.settings.condition ?? ""}
-          placeholder="Any entity"
-          onChange={(condition) => set({ condition })}
-        />
-      </PropertyRow>
+      {type ? (
+        <TriggerCondition trigger={trigger} entityTypeBaseUrl={type.baseUrl} />
+      ) : (
+        <PropertyRow
+          label="Condition"
+          hover="Only start when the entity matches"
+        >
+          <span className={emptyValueStyle}>Choose an entity type first</span>
+        </PropertyRow>
+      )}
     </Section>
   );
 };
@@ -1098,7 +1171,6 @@ const WebhookSettings = ({ trigger }: { trigger: TriggerNode }) => (
     <PropertyRow label="URL" hover="Calls to this address start a run">
       <TextInput
         size="sm"
-        className={fieldStyle}
         value={trigger.settings.webhookUrl ?? ""}
         readonly
         onChange={() => undefined}
@@ -1156,7 +1228,6 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
           >
             <Select
               size="sm"
-              className={fieldStyle}
               items={[
                 ...fields.map((output) => ({
                   value: `field:${output.name}`,
@@ -1179,30 +1250,17 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
                 )
               }
             />
-            {mapping?.kind === "fixed" ? (
-              input.payloadKind === "Number" ? (
-                <NumberInput
-                  size="sm"
-                  className={fieldStyle}
-                  value={
-                    typeof mapping.value === "number" ? mapping.value : null
-                  }
-                  onChange={(value) =>
-                    setMapping(input.name, { kind: "fixed", value })
-                  }
-                  width="fullWidth"
-                />
-              ) : (
-                <TextInput
-                  size="sm"
-                  className={fieldStyle}
-                  type={input.payloadKind === "Date" ? "date" : "text"}
-                  value={typeof mapping.value === "string" ? mapping.value : ""}
-                  onChange={(value) =>
-                    setMapping(input.name, { kind: "fixed", value })
-                  }
-                />
-              )
+            {mapping?.kind === "fixed" && !input.array ? (
+              <TypedValue
+                kind={input.payloadKind}
+                label={`${input.label ?? input.name} fixed value`}
+                allowRelative
+                entityTypeBaseUrl={document.inputEntityTypes[input.name]}
+                value={mapping.value ?? undefined}
+                onChange={(value) =>
+                  setMapping(input.name, { kind: "fixed", value })
+                }
+              />
             ) : null}
           </PropertyRow>
         );

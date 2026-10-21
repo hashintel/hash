@@ -23,8 +23,6 @@ export type TriggerSettings = {
   entityTypeBaseUrl?: string;
   /** Entity updated: only these properties start a run. Empty means any change. */
   propertiesToWatch?: string[];
-  /** Entity created / updated: only start when the entity matches. Free text in the draft PRD. */
-  condition?: string;
   /** Recurring schedule. */
   spec?: CronScheduleSpec;
   /** Webhook received: the address to call. */
@@ -36,7 +34,7 @@ export type TriggerSettings = {
 /** A Start input filled from one of the trigger's fields, or a fixed value. */
 export type InputMapping =
   | { kind: "field"; output: string }
-  | { kind: "fixed"; value: string | number | null };
+  | { kind: "fixed"; value: unknown };
 
 export type TriggerNode = {
   id: string;
@@ -96,7 +94,7 @@ export const triggerDefinitions: Record<TriggerKind, TriggerDefinition> = {
         array: false,
       },
     ],
-    defaults: () => ({ condition: "" }),
+    defaults: () => ({}),
   },
   entityUpdated: {
     kind: "entityUpdated",
@@ -129,7 +127,7 @@ export const triggerDefinitions: Record<TriggerKind, TriggerDefinition> = {
         array: false,
       },
     ],
-    defaults: () => ({ propertiesToWatch: [], condition: "" }),
+    defaults: () => ({ propertiesToWatch: [] }),
   },
   schedule: {
     kind: "schedule",

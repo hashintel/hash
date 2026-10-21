@@ -444,27 +444,15 @@ export const OriginMark = ({
 );
 
 /**
- * DS fields at the size the Figma DS draws them in panels: 32 px tall, 14 px medium, #202020. The code DS's sm is
- * 28 px and its md is 16 px, so this lifts sm to 32 px. The attribute selector outranks the size recipe.
+ * The DS Select Trigger's look at `sm` (field kinds v2: every side-panel control is 28 px), for pickers the DS has no
+ * part for yet: 8 px corners, 14 px, a chevron on the right.
  */
-export const fieldStyle = css({
-  "&[class]": {
-    "--form-padding-y": "[4px]",
-    "--form-line-height": "[22px]",
-  },
-  "&[class] :is(input, button, [data-part=value-text])": {
-    fontWeight: "medium",
-    color: "neutral.fg.body",
-  },
-});
-
-/** The DS Select Trigger's look (↳ Current, md): 32 px, 8 px corners, 14 px medium, a chevron on the right. */
 export const selectTriggerStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1.5",
   width: "[100%]",
-  height: "[32px]",
+  height: "[28px]",
   paddingLeft: "2.5",
   paddingRight: "2.5",
   borderWidth: "thin",
@@ -473,7 +461,6 @@ export const selectTriggerStyle = css({
   borderRadius: "lg",
   backgroundColor: "neutral.bgSolid.min",
   textStyle: "sm",
-  fontWeight: "medium",
   color: "neutral.fg.body",
   textAlign: "left",
   cursor: "pointer",

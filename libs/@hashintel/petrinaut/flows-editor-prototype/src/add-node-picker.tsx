@@ -33,7 +33,7 @@ import {
   triggerKinds,
 } from "./mock-triggers";
 import { getItemShape, getSourceShape, triggerFlowInputs } from "./shapes";
-import { fieldStyle, OriginMark } from "./ui";
+import { OriginMark } from "./ui";
 
 /** The values a new step could take, given where it goes: the earlier step's outputs, the flow inputs, the item. */
 const availableShapes = (
@@ -525,7 +525,6 @@ export const AddNodePicker = ({
           }}
           placeholder="Search steps"
           size="sm"
-          className={fieldStyle}
           prefix={{ iconName: "search", variant: "subtle" }}
         />
         <OverlayScrollArea className={css({ maxHeight: "[380px]" })}>

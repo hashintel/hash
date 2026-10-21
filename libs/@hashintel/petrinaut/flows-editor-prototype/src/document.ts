@@ -144,7 +144,7 @@ export type EditorDocument = {
   /** MOCK: the entity type of each `EntityId` flow input. `FlowInputDefinition` has no field for it. */
   inputEntityTypes: Record<string, string>;
   /** MOCK: each flow input's default for the run form. `FlowInputDefinition` has no default. */
-  inputDefaults?: Record<string, string>;
+  inputDefaults?: Record<string, unknown>;
 };
 
 export const fieldKey = (stepId: string, inputName: string) =>
