@@ -9,7 +9,15 @@ import {
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
-import { type CatalogEntry, catalog, categories } from "./catalog";
+import {
+  type CatalogEntry,
+  catalog as fullCatalog,
+  categories,
+  isOffered,
+} from "./catalog";
+
+/** Manual journeys only (ledger, 21 Oct): AI steps are parked. */
+const catalog = fullCatalog.filter(isOffered);
 import {
   START_ID,
   addStep,

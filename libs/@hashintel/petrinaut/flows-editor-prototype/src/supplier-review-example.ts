@@ -4,7 +4,7 @@
  * 1. On the 1st of every month, the quality team's review starts.
  * 2. It finds the active suppliers.
  * 3. For each supplier, it reads their name, contact email and certificate link, and fetches the certificate.
- * 4. AI drafts a short review email, which is sent to the supplier.
+ * 4. A short review email, written once with the supplier's name in it, is sent to the supplier.
  * 5. The supplier is marked as reviewed for that month.
  */
 import { emptyDocument, type EditorDocument, fieldKey } from "./document";
@@ -105,13 +105,6 @@ export const supplierReviewExample = (): EditorDocument => {
           },
           {
             kind: "action",
-            stepId: "draftReviewEmail",
-            actionDefinitionId: "draftMessage",
-            description: "Draft review email",
-            inputs: {},
-          },
-          {
-            kind: "action",
             stepId: "sendReviewEmail",
             actionDefinitionId: "sendEmail",
             description: "Send review email",
@@ -141,9 +134,8 @@ export const supplierReviewExample = (): EditorDocument => {
       readEmail: { x: 32, y: 192 },
       readCertificateLink: { x: 32, y: 312 },
       fetchCertificate: { x: 340, y: 312 },
-      draftReviewEmail: { x: 648, y: 132 },
-      sendReviewEmail: { x: 956, y: 192 },
-      markReviewed: { x: 1264, y: 192 },
+      sendReviewEmail: { x: 648, y: 192 },
+      markReviewed: { x: 956, y: 192 },
     },
     wires: [
       {
@@ -168,7 +160,7 @@ export const supplierReviewExample = (): EditorDocument => {
         id: "w3",
         source: "readName",
         sourcePort: "next",
-        target: "draftReviewEmail",
+        target: "sendReviewEmail",
       },
       {
         id: "w4",
@@ -179,12 +171,6 @@ export const supplierReviewExample = (): EditorDocument => {
       {
         id: "w5",
         source: "fetchCertificate",
-        sourcePort: "next",
-        target: "draftReviewEmail",
-      },
-      {
-        id: "w6",
-        source: "draftReviewEmail",
         sourcePort: "next",
         target: "sendReviewEmail",
       },
@@ -215,11 +201,11 @@ export const supplierReviewExample = (): EditorDocument => {
       },
     },
     templates: {
-      [fieldKey("draftReviewEmail", "instructions")]: [
-        {
-          kind: "text",
-          text: "Write a short, friendly monthly quality review for ",
-        },
+      [fieldKey("sendReviewEmail", "subject")]: [
+        { kind: "text", text: "Your monthly quality review" },
+      ],
+      [fieldKey("sendReviewEmail", "body")]: [
+        { kind: "text", text: "Hello " },
         {
           kind: "ref",
           source: {
@@ -231,32 +217,11 @@ export const supplierReviewExample = (): EditorDocument => {
         },
         {
           kind: "text",
-          text: ". Say their certificate is on file and ask them to reply with any questions.",
-        },
-      ],
-      [fieldKey("sendReviewEmail", "subject")]: [
-        {
-          kind: "ref",
-          source: {
-            kind: "step-output",
-            stepId: "draftReviewEmail",
-            outputName: "subject",
-          },
-        },
-      ],
-      [fieldKey("sendReviewEmail", "body")]: [
-        {
-          kind: "ref",
-          source: {
-            kind: "step-output",
-            stepId: "draftReviewEmail",
-            outputName: "body",
-          },
+          text: ", your certificate is on file for this month. Reply with any questions.",
         },
       ],
     },
     lists: {
-      [fieldKey("draftReviewEmail", "entities")]: [{ kind: "item" }],
       [fieldKey("sendReviewEmail", "to")]: [
         {
           kind: "step-output",

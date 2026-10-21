@@ -227,7 +227,6 @@ const sharingSteps = [
   "sendEmail",
   "createEntity",
   "updateEntity",
-  "draftMessage",
   "requestReview",
 ];
 

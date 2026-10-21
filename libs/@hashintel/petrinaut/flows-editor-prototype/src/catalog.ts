@@ -45,13 +45,17 @@ export type Category =
   | "Files and web"
   | "Messages";
 
+/** The groups people browse. AI is parked (ledger, 21 Oct: manual journeys only), so its steps are not offered. */
 export const categories: Category[] = [
   "Entities",
   "Logic",
-  "AI",
   "Files and web",
   "Messages",
 ];
+
+/** Whether a step is offered in the picker and the library (its group is browsable). */
+export const isOffered = (entry: { category: Category }) =>
+  categories.includes(entry.category);
 
 export type Origin =
   | { kind: "engine" }

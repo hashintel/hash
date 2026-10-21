@@ -13,6 +13,7 @@ import {
   type CatalogEntry,
   catalog,
   categories,
+  isOffered,
   popularFirstSteps,
 } from "./catalog";
 import {
@@ -133,9 +134,9 @@ const recommendedFor = (
       catalog.filter((entry) => entry.id === id),
     );
   }
-  // Manual journeys only for now: AI steps stay in Browse all but are never recommended.
+  // Manual journeys only for now (ledger, 21 Oct): AI steps are not offered anywhere.
   const fitting = catalog.filter(
-    (entry) => entry.category !== "AI" && fits(entry, shapes),
+    (entry) => isOffered(entry) && fits(entry, shapes),
   );
   // A list feeds a single-value input only through For each, so offer it first.
   fitting.sort(
@@ -241,7 +242,6 @@ const groupLooks: Record<
   Triggers: { icon: "lightning", tone: "blue" },
   Entities: { icon: "cube", tone: "green" },
   Logic: { icon: "diagramSubtask", tone: "orange" },
-  AI: { icon: "sparkles", tone: "blue" },
   "Files and web": { icon: "fileLines", tone: "orange" },
   Messages: { icon: "at", tone: "green" },
 };
@@ -444,7 +444,7 @@ export const AddNodePicker = ({
     (picker.after && findStep(document, picker.after.stepId)?.parentId);
   // The engine runs no for-each inside another ("nestedForEach"), so the picker leaves it out there.
   const available = catalog.filter(
-    (entry) => !(inGroup && entry.id === "forEach"),
+    (entry) => isOffered(entry) && !(inGroup && entry.id === "forEach"),
   );
   // Triggers start the flow, so they're only offered from the toolbar, not after a step. One Manual run per flow.
   const triggerChoices = (
