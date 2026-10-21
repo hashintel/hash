@@ -77,9 +77,12 @@ bindings are needed.
 
 ## Two analyses
 
-`program` asks the type checker about every identifier, so a reference the
-checker infers counts: a property read off a value whose type another file
-declares, with no import of that file. `syntactic` follows imports and
+`program` asks the type checker about every identifier that can resolve
+outside its file, so a reference the checker infers counts: a property read
+off a value whose type another file declares, with no import of that file.
+A name bound below the module scope, by a parameter, a local declaration or
+a type parameter, is skipped, since no other file can reference it; member
+names are always asked. `syntactic` follows imports and
 `export ... from` chains, including `export *`, to the declaring file, with no
 checker; a namespace import counts as a reference to the module, and a member
 read off it as a reference to that export.
@@ -88,7 +91,7 @@ Measured on the Petrinaut instance, 971 TypeScript files and 86 layers:
 
 |                                  | `program` | `syntactic` |
 | -------------------------------- | --------- | ----------- |
-| cold facts stage                 | 5.2 s     | 0.7 s       |
+| cold facts stage                 | 4.8 s     | 0.7 s       |
 | warm facts stage, from the cache | 0.05 s    | 0.03 s      |
 | import edges                     | 653       | 624         |
 | file dependencies behind them    | 2746      | 2527        |
