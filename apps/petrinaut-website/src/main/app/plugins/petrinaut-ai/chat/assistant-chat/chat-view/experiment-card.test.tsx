@@ -10,13 +10,13 @@ import { afterEach, expect, it, vi } from "vitest";
 import {
   createEmptyTestInstance,
   createTestPluginApi,
+  type ExperimentRecord,
 } from "../../../testing/create-test-plugin-api";
 import { AssistantChatApiContext } from "../chat-api";
 import { ExperimentCard } from "./experiment-card";
 
 import type { ExperimentToolPart } from "./experiment-card";
 import type { PetrinautExperimentResult } from "@hashintel/petrinaut-core";
-import type { ExperimentRecord } from "@hashintel/petrinaut/ui/plugin";
 import type { ReactElement, ReactNode } from "react";
 
 afterEach(cleanup);

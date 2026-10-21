@@ -27,9 +27,9 @@ import {
   setNetTitleToolName,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
-import { AssistantPanelPreview } from "@hashintel/petrinaut/ui/plugin";
 
 import { createTestPluginApi } from "../testing/create-test-plugin-api";
+import { TestAssistantPanel } from "../testing/test-assistant-panel";
 import {
   AssistantChat,
   type AssistantChatProps,
@@ -102,6 +102,11 @@ const textChunks = (id: string, text: string): UIMessageChunk[] => [
 
 const testInstances: ReturnType<typeof createPetrinaut>[] = [];
 
+vi.mock("@hashintel/petrinaut/ui/plugin", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@hashintel/petrinaut/ui/plugin")>()),
+  ...(await import("../testing/test-assistant-panel")).assistantPanelMocks,
+}));
+
 /** What a test passes the chat; the panel supplies `api` and `start`. */
 type TestAssistant = Omit<
   AssistantChatProps,
@@ -123,13 +128,13 @@ const TestChat = ({
   );
 
   return (
-    <AssistantPanelPreview>
+    <TestAssistantPanel>
       <AssistantChat
         {...props}
         start={start}
         onStartHandled={() => setStart(null)}
       />
-    </AssistantPanelPreview>
+    </TestAssistantPanel>
   );
 };
 

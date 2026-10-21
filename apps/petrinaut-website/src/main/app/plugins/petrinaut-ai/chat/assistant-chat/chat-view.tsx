@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { AiAssistantIcon, ExperimentalIcon } from "@hashintel/petrinaut/ui";
+import { ExperimentalIcon } from "@hashintel/petrinaut/ui";
 import { AssistantPanelTitle } from "@hashintel/petrinaut/ui/plugin";
 
 import { useAssistantChatApi } from "./chat-api";
@@ -63,7 +63,6 @@ const emptyStyle = css({
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  gap: "2",
   minHeight: "[240px]",
   color: "neutral.s90",
   textAlign: "center",
@@ -213,10 +212,7 @@ export const ChatView = ({
       >
         {messages.length === 0 && (
           <div className={emptyStyle}>
-            <AiAssistantIcon size={28} />
-            <div>
-              Ask AI to create a Petri net, explain or revise the current model.
-            </div>
+            Ask AI to create a Petri net, explain or revise the current model.
           </div>
         )}
         <Transcript
