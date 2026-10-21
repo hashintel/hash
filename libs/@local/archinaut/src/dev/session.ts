@@ -182,8 +182,8 @@ export const createDevSession = (
           ),
         );
         if (!collected.fresh.includes(language)) {
-          // Deferred past the current turn so the server starts first.
-          setImmediate(() => warm(language));
+          // In its worker from here on, overlapping the emit and the write.
+          warm(language);
         }
       }
       clock.lap("facts");

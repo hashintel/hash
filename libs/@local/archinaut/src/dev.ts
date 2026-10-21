@@ -14,7 +14,7 @@ import { sourceRootOf } from "./pipeline/shared/scope";
 import { countErrors } from "./shared/diagnostics";
 import { toPosix } from "./shared/paths";
 import { report, summarise } from "./shared/report";
-import { serveSite, syncSite } from "./site";
+import { serveSite, syncSite, type SiteServer } from "./site";
 
 import type { ArchinautConfig } from "./config";
 import type { Analysis } from "./pipeline/facts";
@@ -41,29 +41,30 @@ export const serve = async (options: {
   const bundleRoot = join(config.root, config.outputDirectory);
   const session = createDevSession(config, { analysis: options.analysis, log });
 
-  const start = async (): Promise<void> => {
-    await serveSite({ config, bundleRoot, port });
+  const start = async (): Promise<SiteServer> => {
+    const server = await serveSite({ config, bundleRoot, port });
     log(`serving http://localhost:${port}/ · watching for changes`);
+    return server;
   };
-  const servedEarly = existsSync(join(bundleRoot, "manifest.json"));
-  if (servedEarly) {
-    await start();
-  }
+  let site = existsSync(join(bundleRoot, "manifest.json"))
+    ? await start()
+    : null;
   const first = await session.build();
   report(first.result.diagnostics);
   summarise(first.result);
   if (countErrors(first.result.diagnostics) > 0) {
     throw new Error("fix the errors above, then start again");
   }
-  if (servedEarly) {
+  if (site === null) {
+    site = await start();
+  } else {
     const written = await syncSite(config, bundleRoot, [
       ...first.result.written,
       ...first.result.removed,
     ]);
     log(`site brought up to date · ${written.length} site files`);
-  } else {
-    await start();
   }
+  void site.warm();
 
   const rebuild = async (changed: string[]): Promise<void> => {
     const build = await session.rebuild(changed);
