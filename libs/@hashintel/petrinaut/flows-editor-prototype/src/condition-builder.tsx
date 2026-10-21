@@ -345,7 +345,7 @@ const filterFitStyle = css({
   "&[class] > [data-part='input-slot']": {
     flexShrink: 1,
     minWidth: "[0]",
-    maxWidth: "[180px]",
+    maxWidth: "[200px]",
   },
 });
 
@@ -358,6 +358,35 @@ const tokenValueStyle = css({
   "& > svg": { flexShrink: 0, color: "neutral.fg.muted" },
   "& > span": { overflow: "hidden", textOverflow: "ellipsis" },
 });
+
+/**
+ * A token's text that never loses its last part: the step name shrinks to "…" first, then the fixed " › … › " and
+ * the value's own name stay whole ("Find ent… › … › Entities"), as J3 · B3 keeps "… › Shipment".
+ */
+const tokenLabelStyle = css({
+  display: "inline-flex",
+  minWidth: "[0]",
+  whiteSpace: "nowrap",
+  "& > [data-first]": {
+    minWidth: "[2ch]",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  "& > :not([data-first])": { flexShrink: 0 },
+});
+
+const TokenLabel = ({ parts }: { parts: string[] }) => {
+  const [first = "", ...rest] = parts;
+  const last = rest.at(-1);
+  return (
+    <span className={tokenLabelStyle}>
+      <span data-first>{first}</span>
+      {last === undefined ? null : (
+        <span>{`${rest.length > 1 ? " › … › " : " › "}${last}`}</span>
+      )}
+    </span>
+  );
+};
 
 type RowProps = {
   step: DraftActionStep;
@@ -518,7 +547,7 @@ const ConditionRowView = ({
               aria-label={`Change the source of ${title}`}
             >
               <Icon name={tokenIcon(document, row.valueSource!)} size="xs" />
-              <span>{collapsePath(tokenParts)}</span>
+              <TokenLabel parts={tokenParts} />
             </span>
           </Tooltip>
         ),
