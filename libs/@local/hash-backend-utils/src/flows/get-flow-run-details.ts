@@ -3,10 +3,9 @@ import proto from "@temporalio/proto";
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { StatusCode } from "@local/status";
 
-import { temporalNamespace } from "../temporal.js";
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 import { resolvePayloadValue } from "./payload-storage.js";
-import { nonStepActivityTypes } from "./run-events.js";
+import { getFlowRunHistory, nonStepActivityTypes } from "./run-events.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
 import type { ResolvePayloadContext } from "./payload-storage.js";
@@ -178,37 +177,10 @@ const getFlowRunDetailedFields = async ({
   /** Storage provider for resolving stored payload references */
   storageProvider: FileStorageProvider;
 }): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> => {
-  const handle = temporalClient.workflow.getHandle(workflowId);
-
-  const workflow = await handle.describe();
-
-  /**
-   * we need to paginate manually because the event history size can be larger than the 4MB gRPC message limit,
-   * which is not configurable in Temporal.
-   * @see https://github.com/temporalio/sdk-typescript/issues/1469
-   */
-  let nextPageToken: Uint8Array | undefined;
-  const events: IHistoryEvent[] = [];
-  do {
-    const response =
-      await temporalClient.workflowService.getWorkflowExecutionHistory({
-        execution: {
-          workflowId,
-        },
-        maximumPageSize: 100,
-        namespace: temporalNamespace,
-        nextPageToken,
-      });
-
-    nextPageToken = response.nextPageToken;
-
-    events.push(...(response.history?.events ?? []));
-
-    /**
-     * nextPageToken should be null if there are no more pages, but it's actually an empty Array
-     */
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  } while (nextPageToken?.length);
+  const { workflow, history: events } = await getFlowRunHistory({
+    temporalClient,
+    workflowId,
+  });
 
   const workflowExecutionStartedEventAttributes = events.find(
     (event) =>
