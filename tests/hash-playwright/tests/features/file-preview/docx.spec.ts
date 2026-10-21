@@ -13,6 +13,7 @@ import {
   docxMimeType,
   expectFileUrlEditOnLaterPageShowsNewFile,
   getDocxPage,
+  getSearchHighlights,
   uploadAndOpenFile,
 } from "../../shared/file-preview/utils";
 import { expect, test } from "../../shared/runtime";
@@ -96,22 +97,28 @@ test.describe("DOCX preview", () => {
     await expect(pageCounter).toBeVisible();
   });
 
-  test("search selects a word and the next result moves to the next page holding it", async ({
+  test("search highlights every hit and the next result moves to the next page holding it", async ({
     page,
   }) => {
     await page.getByRole("button", { name: "Show search" }).click();
     const searchInput = page.getByPlaceholder("Search the document...");
     await expectFullyShown(searchInput);
     await searchInput.fill(testDocumentSearchWord);
+
+    const highlights = {
+      hits: [testDocumentSearchWord, testDocumentSearchWord],
+      current: [testDocumentSearchWord],
+    };
+
     await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
-    await expect(page.locator("[data-folio-selection-rect]")).toBeVisible();
+    await expect.poll(() => getSearchHighlights(page)).toEqual(highlights);
 
     const nextResult = page.getByRole("button", { name: "Next result" });
     await expectFullyShown(nextResult);
     await nextResult.click();
     await expect(page.getByText("2 of 2", { exact: true })).toBeVisible();
     await expect(getDocxPage(page, thirdPage.heading)).toBeInViewport();
-    await expect(page.locator("[data-folio-selection-rect]")).toBeVisible();
+    await expect.poll(() => getSearchHighlights(page)).toEqual(highlights);
   });
 
   test("a search without results clears the previous hit", async ({ page }) => {
@@ -119,11 +126,15 @@ test.describe("DOCX preview", () => {
     const searchInput = page.getByPlaceholder("Search the document...");
 
     await searchInput.fill(testDocumentSearchWord);
-    await expect(page.locator("[data-folio-selection-rect]")).toBeVisible();
+    await expect
+      .poll(() => getSearchHighlights(page))
+      .toMatchObject({ current: [testDocumentSearchWord] });
 
     await searchInput.fill("nonexistentword");
     await expect(page.getByText("0 of 0", { exact: true })).toBeVisible();
-    await expect(page.locator("[data-folio-selection-rect]")).toHaveCount(0);
+    await expect
+      .poll(() => getSearchHighlights(page))
+      .toEqual({ hits: [], current: [] });
   });
 
   test("offers no Open in new tab button", async ({ page }) => {
