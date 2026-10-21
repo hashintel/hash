@@ -51,7 +51,6 @@
     "lint:deptry": "turbo run lint:deptry --continue=always --filter '!hash-python'",
     "lint:eslint": "CARGO_TERM_PROGRESS_WHEN=never turbo --continue=always lint:eslint --",
     "lint:format": "oxfmt --check",
-    "lint:format:ruff": "turbo run format:ruff --continue=always --filter '!hash-python' -- --check",
     "lint:license-in-workspaces": "yarn workspace @local/repo-chores exe scripts/check-license-in-workspaces.ts",
     "lint:markdownlint": "mise exec --env dev markdownlint-cli2 -- markdownlint-cli2",
     "lint:ruff": "turbo run lint:ruff --continue=always --filter '!hash-python'",
