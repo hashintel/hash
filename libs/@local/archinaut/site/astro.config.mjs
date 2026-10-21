@@ -8,6 +8,7 @@ import { defineConfig, fontProviders } from "astro/config";
 
 import { resolveDiffCompareContext } from "./src/diff-context";
 import { rehypeInlineDiagrams } from "./src/plugins/inline-diagrams.mjs";
+import { reloadDiagrams } from "./src/plugins/reload-diagrams.mjs";
 
 /**
  * Renders an architecture bundle. The bundle, the manifest and the instance's
@@ -288,6 +289,19 @@ export default defineConfig({
     define: {
       __PND_DIFF_COMPARE__: JSON.stringify(diffCompareContext),
     },
+
+    // A re-rendered diagram is inlined at compile time, so it has to reload
+    // the pages itself; see the plugin.
+    plugins: [
+      reloadDiagrams({
+        diagramsDirectory: fileURLToPath(
+          new URL("./src/content/diagrams/", import.meta.url),
+        ),
+        docsDirectory: fileURLToPath(
+          new URL("./src/content/docs/", import.meta.url),
+        ),
+      }),
+    ],
 
     /*
      * Lightning CSS folds the animation longhands into the `animation`
