@@ -65,5 +65,6 @@ net with that plugin. The test file runs in jsdom and calls
 `installPetrinautDomShims()` from `vi.hoisted`, because Petrinaut's modules
 read those globals while they load. To start a plugin with stored settings,
 seed its [settings key](doc:plugins/runtime#settings-storage) in
-`localStorage`. Petrinaut AI's chat tests render it in `AssistantPanelPreview`,
-with an `api` from `createTestPluginApi(instance)` in `petrinaut-ai/testing/`.
+`localStorage`. Petrinaut AI's chat tests take an `api` from
+`createTestPluginApi(instance)` and stand in for the assistant panel with
+`TestAssistantPanel`, both in `petrinaut-ai/testing/`.

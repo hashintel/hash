@@ -10,16 +10,10 @@ import {
   within,
   waitFor,
 } from "@testing-library/react";
-import {
-  type ComponentProps,
-  createElement,
-  type ReactElement,
-  type ReactNode,
-} from "react";
+import { createElement, type ReactElement, type ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
-import { AssistantPanelPreview } from "@hashintel/petrinaut/ui/plugin";
 
 import {
   createEmptyTestInstance,
@@ -29,6 +23,11 @@ import { AssistantChatApiContext } from "./chat-api";
 import { ChatView } from "./chat-view";
 
 import type { PetrinautAiMessage } from "../ai-message";
+
+vi.mock("@hashintel/petrinaut/ui/plugin", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@hashintel/petrinaut/ui/plugin")>()),
+  ...(await import("../../testing/test-assistant-panel")).assistantPanelMocks,
+}));
 
 const renderMarkdown = vi.hoisted(() => vi.fn());
 
@@ -60,13 +59,6 @@ afterEach(() => {
   vi.clearAllMocks();
   vi.useRealTimers();
 });
-
-/** The chat view in the assistant panel, as the chat drives it. */
-const PanelChatView = (props: ComponentProps<typeof ChatView>) => (
-  <AssistantPanelPreview state={{ isOpen: props.isOpen ?? true }}>
-    <ChatView {...props} />
-  </AssistantPanelPreview>
-);
 
 describe("ChatView", () => {
   test("marks unfinished tools cancelled after a stop", () => {
@@ -496,7 +488,7 @@ describe("ChatView", () => {
 
   test("titles the panel AI", () => {
     render(
-      <PanelChatView
+      <ChatView
         input=""
         messages={[]}
         onInputChange={noop}
@@ -512,7 +504,7 @@ describe("ChatView", () => {
     const onClearMessages = vi.fn();
 
     render(
-      <PanelChatView
+      <ChatView
         input=""
         messages={[
           {
