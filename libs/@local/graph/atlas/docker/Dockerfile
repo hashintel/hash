@@ -65,6 +65,7 @@ COPY rust-toolchain.toml .
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates build-essential && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20260816ubuntu0.24.04.1 && \
     /etc/mise/install.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -112,6 +113,7 @@ RUN cuda="${CUDA_VERSION%.*}" && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     "cuda-nvrtc-${cuda}" "cuda-cudart-dev-${cuda}" "cuda-cccl-${cuda}" ca-certificates && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20260816ubuntu0.24.04.1 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     ldconfig && \
