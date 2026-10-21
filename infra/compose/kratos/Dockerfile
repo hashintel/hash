@@ -1,3 +1,4 @@
+# TODO(SRE-1231): Remove this stage and its bundle copy once upstream Kratos rejects the affected eMudhra chains.
 FROM debian:13.3-slim AS ca-certificates
 
 RUN apt-get update && \

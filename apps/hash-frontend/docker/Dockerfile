@@ -6,7 +6,7 @@ ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
 ENV PATH="/mise/shims:$PATH"
 
-# Use the system trust store until updated Node.js removes compromised intermediate CAs, see: https://github.com/nodejs/node/pull/66871
+# TODO(SRE-1221): Remove this override after upgrading Node.js to a release without the affected eMudhra roots: https://github.com/nodejs/node/pull/66871
 ENV NODE_OPTIONS=--use-openssl-ca
 
 COPY .config/mise /etc/mise
