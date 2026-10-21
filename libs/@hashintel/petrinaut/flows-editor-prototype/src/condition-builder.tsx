@@ -12,7 +12,7 @@
  * - a variable shows as the value's selected item (its step's icon, step name first, middle collapsed);
  * - "@" in a text value opens the variable picker beside the field, which keeps focus (no DS mention input).
  */
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {
   Button,
@@ -378,11 +378,38 @@ const tokenLabelStyle = css({
 const TokenLabel = ({ parts }: { parts: string[] }) => {
   const [first = "", ...rest] = parts;
   const last = rest.at(-1);
+  const firstRef = useRef<HTMLSpanElement>(null);
+  // Below about four letters a step name says nothing ("St…"): then the step icon alone names it.
+  const [nameHidden, setNameHidden] = useState(false);
+  useLayoutEffect(() => {
+    const element = firstRef.current;
+    if (!element || last === undefined) {
+      return;
+    }
+    const check = () => {
+      const fontSize = Number.parseFloat(getComputedStyle(element).fontSize);
+      setNameHidden(
+        element.scrollWidth > element.clientWidth &&
+          element.clientWidth < fontSize * 2.5,
+      );
+    };
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(element.parentElement ?? element);
+    return () => observer.disconnect();
+  }, [last, first]);
   return (
     <span className={tokenLabelStyle}>
-      <span data-first>{first}</span>
+      <span
+        data-first
+        ref={firstRef}
+        // Hidden for the token's life once too short; the tooltip still names the step.
+        style={nameHidden ? { width: 0, minWidth: 0 } : undefined}
+      >
+        {first}
+      </span>
       {last === undefined ? null : (
-        <span>{`${rest.length > 1 ? " › … › " : " › "}${last}`}</span>
+        <span>{`${rest.length > 1 ? " › … › " : nameHidden ? "› " : " › "}${last}`}</span>
       )}
     </span>
   );
