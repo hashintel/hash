@@ -84,6 +84,34 @@ const timeSlots = Array.from({ length: 48 }, (_, index) => {
   return { value: time, text: time };
 });
 
+/**
+ * A time of day (the schedule's "At"): the DS searchable Select over half-hour slots with a clock prefix, as the
+ * `datePicker` showTimeSingle row picks a time. Never the browser's native time box.
+ */
+export const TimeField = ({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+}) => (
+  <Select
+    size="sm"
+    searchable
+    prefix={{ iconName: "clock" }}
+    items={
+      timeSlots.some((slot) => slot.value === value)
+        ? timeSlots
+        : [{ value, text: value }, ...timeSlots]
+    }
+    value={value}
+    aria-label={label}
+    onChange={(next) => onChange(next ?? value)}
+  />
+);
+
 const isRelative = (value: unknown): value is RelativeDateValue =>
   typeof value === "object" && value !== null && "relative" in value;
 

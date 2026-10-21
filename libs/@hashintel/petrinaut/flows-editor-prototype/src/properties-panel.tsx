@@ -61,7 +61,7 @@ import {
   getSourceShape,
 } from "./shapes";
 import { SourceMenu } from "./source-menu";
-import { firstAndMore, TypedValue } from "./typed-value";
+import { firstAndMore, TimeField, TypedValue } from "./typed-value";
 import {
   descriptionInputStyle,
   HeaderTitle,
@@ -1036,9 +1036,8 @@ const ScheduleSettings = ({ trigger }: { trigger: TriggerNode }) => {
         </PropertyRow>
       ) : null}
       <PropertyRow label="At" required>
-        <TextInput
-          type="time"
-          size="sm"
+        <TimeField
+          label="At"
           value={parts.time}
           onChange={(time) => setParts({ time })}
         />

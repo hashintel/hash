@@ -87,13 +87,6 @@ const InputControl = ({
         />
       );
     case "Date":
-      return (
-        <TextInput
-          type="date"
-          value={typeof value === "string" ? value : ""}
-          onChange={(next) => onChange(next)}
-        />
-      );
     case "DateTime":
     case "Duration":
     case "VersionedUrl":

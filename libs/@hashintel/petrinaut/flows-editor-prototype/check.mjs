@@ -2,7 +2,7 @@
 // Checks for the Flows editor prototype: DS token discipline, then a type check of the prototype's own files.
 // Run: `yarn check:flows-editor-prototype` (from libs/@hashintel/petrinaut). Prototype branch only.
 //
-// Token guard: text and borders use the DS semantic tokens (neutral.fg.*, neutral.bd.*, blue.fg.*, …) and type uses
+// Token guard: no native date or time inputs; text and borders use the DS semantic tokens (neutral.fg.*, neutral.bd.*, blue.fg.*, …) and type uses
 // DS text styles, never raw scale steps or arbitrary font sizes. A line may opt out with a trailing
 // `// token-guard: allow <reason>`; the reason is required.
 import { execFileSync } from "node:child_process";
@@ -23,6 +23,12 @@ const rules = [
     name: "arbitrary font size",
     pattern: /fontSize:\s*"\[\d+(?:\.\d+)?px\]"/,
     fix: 'use a DS text style: textStyle: "xxs" | "xs" | "sm" | "base" | "lg"',
+  },
+  {
+    // 21 Oct: dates are picked (DS datePicker surface), times are picked (DS Select); never the browser's own box.
+    name: "native date or time input",
+    pattern: /type=\{?\s*["'](?:date|time|datetime-local|month|week)["']/,
+    fix: "use TypedValue (DateField: DS datePicker surface) for a date, TimeField (DS Select) for a time",
   },
 ];
 
