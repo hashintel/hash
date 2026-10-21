@@ -3,6 +3,7 @@ import type { GraphApi } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
+import type { FlowRunHistoriesByWorkflowId } from "@local/hash-backend-utils/flows/run-events";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
@@ -23,6 +24,10 @@ export interface GraphQLContext {
   user?: User;
   provenance: ProvidedEntityEditionProvenance;
   temporal: TemporalClient;
+  /**
+   * Flow run histories read while resolving this request, so fields of the same run read its history once.
+   */
+  flowRunHistories: FlowRunHistoriesByWorkflowId;
   vault?: VaultClient;
 }
 

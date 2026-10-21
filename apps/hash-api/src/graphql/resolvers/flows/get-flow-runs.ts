@@ -21,7 +21,10 @@ export const getFlowRunsResolver: ResolverFn<
     nextCursor: string | null;
   },
   Record<string, never>,
-  Pick<GraphQLContext, "authentication" | "dataSources" | "temporal">,
+  Pick<
+    GraphQLContext,
+    "authentication" | "dataSources" | "flowRunHistories" | "temporal"
+  >,
   QueryGetFlowRunsArgs
 > = async (_parent, args, context, info) => {
   /** Each run's events are read from its whole history, so a list would read every listed run's. */
@@ -33,7 +36,7 @@ export const getFlowRunsResolver: ResolverFn<
 
   const includeDetails = wereDetailedFieldsRequested(info);
 
-  const { authentication, dataSources, temporal } = context;
+  const { authentication, dataSources, flowRunHistories, temporal } = context;
 
   const { flowDefinitionEntityIds, executionStatus, cursor, limit } = args;
 
@@ -46,6 +49,7 @@ export const getFlowRunsResolver: ResolverFn<
       limit,
     },
     graphApiClient: dataSources.graphApi,
+    historiesByWorkflowId: flowRunHistories,
     includeDetails,
     storageProvider: dataSources.uploadProvider,
     temporalClient: temporal,

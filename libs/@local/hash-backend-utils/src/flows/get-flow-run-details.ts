@@ -9,6 +9,7 @@ import { getFlowRunHistory, nonStepActivityTypes } from "./run-events.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
 import type { ResolvePayloadContext } from "./payload-storage.js";
+import type { FlowRunHistoriesByWorkflowId } from "./run-events.js";
 import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
@@ -707,15 +708,18 @@ const getFlowRunDetailedFields = async ({
   workflowId,
   temporalClient,
   storageProvider,
+  historiesByWorkflowId,
 }: {
   workflowId: string;
   temporalClient: TemporalClient;
   /** Storage provider for resolving stored payload references */
   storageProvider: FileStorageProvider;
+  historiesByWorkflowId?: FlowRunHistoriesByWorkflowId;
 }): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> => {
   const { workflow, history } = await getFlowRunHistory({
     temporalClient,
     workflowId,
+    historiesByWorkflowId,
   });
 
   /**
@@ -818,12 +822,15 @@ export const getFlowRunFromTemporalWorkflowId = async (args: {
   webId: WebId;
   /** Storage provider for resolving stored payload references */
   storageProvider: FileStorageProvider;
+  /** Histories already read in this request, to reuse */
+  historiesByWorkflowId?: FlowRunHistoriesByWorkflowId;
 }): Promise<FlowRunWithoutEvents> => {
   const baseFields = await getSparseFlowRunFromTemporalWorkflowId(args);
   const detailedFields = await getFlowRunDetailedFields({
     workflowId: args.temporalWorkflowId,
     temporalClient: args.temporalClient,
     storageProvider: args.storageProvider,
+    historiesByWorkflowId: args.historiesByWorkflowId,
   });
 
   return {
