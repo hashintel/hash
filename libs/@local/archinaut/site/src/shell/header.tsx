@@ -125,6 +125,8 @@ const ThemeSelect = () => {
         className="icon caret"
         aria-hidden="true"
         viewBox="0 0 24 24"
+        width="1em"
+        height="1em"
         fill="currentColor"
       >
         <path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1 1 0 0 0 0-1.42Z" />
