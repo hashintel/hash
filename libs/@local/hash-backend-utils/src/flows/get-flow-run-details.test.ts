@@ -66,13 +66,10 @@ describe("getFlowRunDetailedFieldsFromHistory", () => {
     async (fixtureName) => {
       const fixture = loadFixture(fixtureName);
 
-      const details = await getFlowRunDetailedFieldsFromHistory(fixture, {
-        storageProvider,
-        workflowId: workflowIdOf(fixture),
-      }).then(
-        (fields) => fields as unknown,
-        (error: unknown) => ({ throws: (error as Error).message }),
-      );
+      const details: unknown = await getFlowRunDetailedFieldsFromHistory(
+        fixture,
+        { storageProvider, workflowId: workflowIdOf(fixture) },
+      ).catch((error: unknown) => ({ throws: (error as Error).message }));
 
       /* Compared as GraphQL sends it: as JSON, without `undefined` fields. */
       expect(JSON.parse(JSON.stringify(details))).toStrictEqual(

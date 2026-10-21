@@ -6,7 +6,7 @@ import type {
 } from "@temporalio/client";
 import type proto from "@temporalio/proto";
 
-export type FlowRunHistory = {
+type FlowRunHistory = {
   workflow: WorkflowExecutionDescription;
   history: proto.temporal.api.history.v1.IHistoryEvent[];
 };
