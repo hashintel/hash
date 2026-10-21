@@ -12,7 +12,10 @@ import {
   flattenSteps,
   type QueryDraft,
 } from "./document";
-import { findPropertyType, mockEntityTypes } from "./mock-graph";
+import { entityTypeOf } from "./fields";
+import { findPropertyType, mockEntities, mockEntityTypes } from "./mock-graph";
+
+import type { StepInputSource } from "./engine";
 
 export type Grade = "complete" | "minor" | "major" | "fail";
 
@@ -79,11 +82,45 @@ const reachableFrom = (
   return reached;
 };
 
-const hasRecipient = (document: EditorDocument, stepId: string) => {
+/** The quality lead in the world (mock graph): Maya Patel. */
+const qualityLead = mockEntities.find((entity) =>
+  entity.label.toLowerCase().includes("quality lead"),
+);
+
+/** Whether one recipient source reaches the quality lead: her entity, her name or role typed, or an input named so. */
+const isQualityLead = (document: EditorDocument, source: StepInputSource) => {
+  if (source.kind === "constant") {
+    const value = String(source.payload.value).toLowerCase();
+    return (
+      (!!qualityLead && value === qualityLead.entityId.toLowerCase()) ||
+      value.includes("maya") ||
+      value.includes("quality lead")
+    );
+  }
+  if (source.kind === "flow-input") {
+    const input = document.inputs.find(
+      (candidate) => candidate.name === source.inputName,
+    );
+    return /quality lead|maya/i.test(input?.label ?? input?.name ?? "");
+  }
+  return false;
+};
+
+/** Task 1 needs the notice addressed to the quality lead, not just to someone. */
+const goesToQualityLead = (document: EditorDocument, stepId: string) => {
   const step = findStep(document, stepId)?.step;
+  const sources = [
+    ...(document.lists[fieldKey(stepId, "to")] ?? []),
+    ...(step?.kind === "action" && step.inputs.to ? [step.inputs.to] : []),
+  ];
+  const typed = document.templates[fieldKey(stepId, "to")];
   return (
-    (document.lists[fieldKey(stepId, "to")]?.length ?? 0) > 0 ||
-    (step?.kind === "action" && !!step.inputs.to)
+    sources.some((source) => isQualityLead(document, source)) ||
+    (typed ?? []).some(
+      (part) =>
+        (part.kind === "text" && /quality lead|maya/i.test(part.text)) ||
+        (part.kind === "ref" && isQualityLead(document, part.source)),
+    )
   );
 };
 
@@ -161,56 +198,75 @@ const gradeFlagBadBatch = (document: EditorDocument): Grade => {
           }
           continue;
         }
+        // Right branch; the notice must reach the quality lead, or the job is not done (major).
         if ((onTrue && port === "true") || (onFalse && port === "false")) {
-          return hasRecipient(document, notify.stepId) ? "complete" : "minor";
+          return goesToQualityLead(document, notify.stepId)
+            ? "complete"
+            : "major";
         }
       } else if (
         port !== null &&
         reachableFrom(document, gate.stepId).has(notify.stepId)
       ) {
-        return hasRecipient(document, notify.stepId) ? "complete" : "minor";
+        return goesToQualityLead(document, notify.stepId)
+          ? "complete"
+          : "major";
       }
     }
   }
   return "major";
 };
 
-/** Task 2: one row per supplier with shipments in and failed checks. */
+/**
+ * Task 2: one row per supplier with shipments in and failed checks, then shared. Outcome, not path: any per-supplier
+ * group (a For each over suppliers, however the list is found) holding two counts passes. A count is an Aggregate,
+ * a Find entities (it gives a count), or a Filter list (its matching list counts the failures).
+ */
+const countingSteps = ["aggregate", "queryEntities", "filterList"];
+const sharingSteps = [
+  "sendEmail",
+  "createEntity",
+  "updateEntity",
+  "draftMessage",
+  "requestReview",
+];
+
 const gradeMonthlySummary = (document: EditorDocument): Grade => {
-  const aggregates = actionSteps(document).filter(
-    (step) => step.actionDefinitionId === "aggregate",
-  );
-  if (aggregates.length === 0) {
-    return "fail";
-  }
   const suppliers = typeBaseUrl("Supplier");
-  const perSupplier = flattenSteps(document.steps).find(({ step }) => {
-    if (step.kind !== "for-each" || step.over?.kind !== "step-output") {
-      return false;
-    }
-    const producer = findStep(document, step.over.stepId)?.step;
-    return (
-      producer?.kind === "action" &&
-      document.queries[fieldKey(producer.stepId, "query")]
-        ?.entityTypeBaseUrl === suppliers
+  const counts = (steps: DraftStep[]) =>
+    flattenSteps(steps).filter(
+      ({ step }) =>
+        step.kind === "action" &&
+        countingSteps.includes(step.actionDefinitionId),
+    ).length;
+  const perSupplier = flattenSteps(document.steps)
+    .map(({ step }) => step)
+    .filter(
+      (step) =>
+        step.kind === "for-each" &&
+        !!step.over &&
+        entityTypeOf(document, step.over, step.stepId) === suppliers,
     );
-  })?.step;
-  const inside =
-    perSupplier?.kind === "for-each"
-      ? flattenSteps(perSupplier.steps).filter(
-          ({ step }) =>
-            step.kind === "action" && step.actionDefinitionId === "aggregate",
-        ).length
-      : 0;
-  if (inside === 0) {
-    return "major";
-  }
-  const shared = actionSteps(document).some((step) =>
-    ["sendEmail", "createEntity", "updateEntity"].includes(
-      step.actionDefinitionId,
+  const best = Math.max(
+    0,
+    ...perSupplier.map((group) =>
+      group.kind === "for-each" ? counts(group.steps) : 0,
     ),
   );
-  return inside >= 2 && shared ? "complete" : "minor";
+  const shared = actionSteps(document).some((step) =>
+    sharingSteps.includes(step.actionDefinitionId),
+  );
+  if (best === 0) {
+    // Counts that exist only for the whole month are totals, not per supplier.
+    const anyCount = actionSteps(document).some(
+      (step) => step.actionDefinitionId === "aggregate",
+    );
+    return anyCount ? "major" : "fail";
+  }
+  if (best === 1) {
+    return "minor";
+  }
+  return shared ? "complete" : "minor";
 };
 
 /** Task 3: hold shipments more than two days late for approval. */

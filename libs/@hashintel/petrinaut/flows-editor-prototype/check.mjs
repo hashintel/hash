@@ -87,3 +87,24 @@ if (own.length > 0) {
 console.log(
   "Type check: the prototype's own files are clean (mock-graph.ts waits on built @blockprotocol/type-system).",
 );
+
+// Task grading: the success predicates have their own tests (tasks.test.ts).
+try {
+  execFileSync(
+    process.execPath,
+    [
+      join(here, "../../../../node_modules/vitest/vitest.mjs"),
+      "run",
+      "--config",
+      "vite.config.ts",
+      "src/tasks.test.ts",
+    ],
+    { encoding: "utf8", stdio: "pipe", cwd: here },
+  );
+  console.log("Task grading tests: pass.");
+} catch (error) {
+  console.error(
+    `Task grading tests failed\n${error.stdout ?? ""}${error.stderr ?? ""}`,
+  );
+  process.exit(1);
+}
