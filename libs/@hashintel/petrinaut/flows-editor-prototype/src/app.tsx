@@ -3,11 +3,11 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   Button,
+  Icon,
   Menu,
   PortalContainerContext,
-  Tooltip,
 } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { AddNodePicker } from "./add-node-picker";
 import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
@@ -39,33 +39,86 @@ const rootStyle = css({
   color: "neutral.s120",
 });
 
+/** The DS topBar on ↳ Current: 64 px, 16 px in, near-white, a faint hairline under it. */
 const topBarStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "3",
-  height: "[52px]",
-  paddingX: "3",
-  backgroundColor: "neutral.s00",
+  height: "[64px]",
+  paddingX: "4",
+  backgroundColor: "neutral.s05",
   borderBottomWidth: "thin",
   borderBottomStyle: "solid",
-  borderBottomColor: "neutral.s40",
+  borderBottomColor: "neutral.a40",
   flexShrink: 0,
 });
 
+/** The breadcrumb's back button: 24 px, white, a hairline and 6 px corners, a 12 px arrow. */
+const backStyle = css({
+  "&[class]": {
+    width: "[24px]",
+    height: "[24px]",
+    minWidth: "[24px]",
+    padding: "[0]",
+    justifyContent: "center",
+    backgroundColor: "neutral.s00",
+    borderWidth: "thin",
+    borderStyle: "solid",
+    borderColor: "neutral.a60",
+    borderRadius: "md",
+    color: "neutral.s120",
+  },
+  "&[class] svg": { width: "[12px]", height: "[12px]" },
+});
+
+/** The flow name, as the breadcrumb's text (14 px medium), editable in place. */
 const titleInputStyle = css({
   fontSize: "sm",
-  fontWeight: "semibold",
+  fontWeight: "medium",
+  lineHeight: "[14px]",
   color: "neutral.s120",
   backgroundColor: "[transparent]",
   borderWidth: "[0]",
   borderRadius: "sm",
-  paddingX: "1",
-  height: "[28px]",
-  width: "[280px]",
-  _hover: { backgroundColor: "neutral.s15" },
-  _focus: {
-    outline: "[2px solid var(--colors-blue-s90)]",
+  paddingY: "0.5",
+  paddingRight: "1",
+  paddingLeft: "[0]",
+  // The breadcrumb puts 6 px after the back button; the bar's own gap is 12.
+  marginLeft: "[-6px]",
+  fieldSizing: "content",
+  minWidth: "[40px]",
+  maxWidth: "[480px]",
+  outline: "none",
+  _hover: { backgroundColor: "neutral.a20" },
+  _focusVisible: { boxShadow: "[0 0 0 2px var(--colors-blue-a40)]" },
+});
+
+/** The top bar's 32 px bordered buttons (Run and ⋮), as the DS IconButton draws them. */
+const barButtonStyle = css({
+  "&[class]": {
+    height: "[32px]",
     backgroundColor: "neutral.s00",
+    borderWidth: "thin",
+    borderStyle: "solid",
+    borderColor: "neutral.a60",
+    borderRadius: "lg",
+    color: "neutral.s110",
+  },
+  "&[class]:hover": { backgroundColor: "neutral.s15" },
+});
+
+/** Run: 28 px, 14 px regular text after a 14 px play icon. */
+const runStyle = css({
+  "&[class]": { height: "[28px]", fontWeight: "normal", paddingX: "2" },
+  "&[class] svg": { width: "[14px]", height: "[14px]" },
+});
+
+const squareStyle = css({
+  "&[class]": {
+    width: "[32px]",
+    minWidth: "[32px]",
+    padding: "[0]",
+    justifyContent: "center",
   },
 });
 
@@ -194,9 +247,10 @@ export const Editor = ({
         <div ref={portalRef} className={`${rootStyle} petrinaut-root`}>
           <header className={topBarStyle}>
             <Button
-              size="sm"
+              size="xs"
               variant="ghost"
               iconName="arrowLeft"
+              className={backStyle}
               aria-label="Back to flows"
               tooltip="Back to flows"
               disabled={!onBack}
@@ -216,48 +270,37 @@ export const Editor = ({
                 marginLeft: "auto",
                 display: "flex",
                 alignItems: "center",
-                gap: "2",
+                gap: "3",
               })}
             >
-              <Tooltip
-                content={
+              {/* A small way to every screen state (?screens), for walking a reviewer through. */}
+              <a
+                href="?screens"
+                className={css({
+                  fontSize: "xs",
+                  color: "neutral.s90",
+                  marginRight: "2",
+                  _hover: {
+                    color: "neutral.s120",
+                    textDecoration: "underline",
+                  },
+                })}
+              >
+                All screens
+              </a>
+              <Button
+                size="sm"
+                variant="ghost"
+                className={cx(barButtonStyle, runStyle)}
+                prefix={<Icon name="play" size="sm" />}
+                tooltip={
                   errorCount > 0
                     ? allMessages.slice(0, 6).join(" · ") ||
                       "Some steps are not set up yet"
                     : mockCount > 0
-                      ? `The engine's validator finds no errors, but ${mockCount} fields hold values it can't represent yet (text mixed with values, lists of several sources).`
+                      ? `The engine's validator finds no errors, but ${mockCount} fields hold values it can't represent yet.`
                       : "The engine's validator finds no errors"
                 }
-              >
-                <span
-                  className={css({
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "1",
-                    fontSize: "xs",
-                    color: errorCount === 0 ? "neutral.s100" : "red.s100",
-                  })}
-                >
-                  <span
-                    className={css({
-                      width: "[8px]",
-                      height: "[8px]",
-                      borderRadius: "full",
-                      backgroundColor:
-                        errorCount === 0 ? "green.s90" : "red.s90",
-                    })}
-                  />
-                  {errorCount > 0
-                    ? `${errorCount} to fix`
-                    : mockCount > 0
-                      ? `Ready · ${mockCount} mock`
-                      : "Ready"}
-                </span>
-              </Tooltip>
-              <Button
-                size="sm"
-                variant="solid"
-                iconName="play"
                 onClick={() =>
                   setUiState((current) => ({ ...current, runOpen: true }))
                 }
@@ -265,24 +308,46 @@ export const Editor = ({
                 Run
               </Button>
               <Menu
-                items={tasks.map((task) => ({
-                  id: String(task.id),
-                  text: `Task ${task.id}`,
-                  onClick: () => startTask(task.id),
-                }))}
+                items={[
+                  {
+                    id: "status",
+                    text:
+                      errorCount > 0
+                        ? `${errorCount} to fix`
+                        : mockCount > 0
+                          ? `Ready · ${mockCount} mock`
+                          : "Ready",
+                    icon: errorCount > 0 ? "warning" : "circleCheck",
+                    tone: errorCount > 0 ? "error" : "neutral",
+                    disabled: true,
+                    onClick: () => undefined,
+                  },
+                  {
+                    id: "tasks",
+                    label: "Test tasks",
+                    items: tasks.map((task) => ({
+                      id: String(task.id),
+                      text: `Task ${task.id}`,
+                      onClick: () => startTask(task.id),
+                    })),
+                  },
+                  {
+                    id: "about",
+                    text: "About this prototype",
+                    icon: "info",
+                    onClick: reopenBriefing,
+                  },
+                ]}
                 trigger={
-                  <Button size="sm" variant="ghost">
-                    Tasks
-                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    iconName="ellipsisVertical"
+                    className={cx(barButtonStyle, squareStyle)}
+                    aria-label="More"
+                    tooltip="More"
+                  />
                 }
-              />
-              <Button
-                size="sm"
-                variant="ghost"
-                iconName="info"
-                aria-label="About this prototype"
-                tooltip="About this prototype"
-                onClick={reopenBriefing}
               />
             </div>
           </header>
