@@ -13,9 +13,10 @@ pub struct SecretReference {
 }
 
 /// A table accessible through the PostgreSQL protocol, including Redshift.
-#[derive(Clone, PartialEq, Eq, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Deserialize, derive_more::Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PostgresSource {
+    #[debug(skip)]
     pub connection: Url,
     pub schema: Box<str>,
     pub table: Box<str>,
@@ -70,17 +71,6 @@ impl PostgresSource {
     }
 }
 
-impl core::fmt::Debug for PostgresSource {
-    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        fmt.debug_struct("PostgresSource")
-            .field("connection", &"<redacted>")
-            .field("schema", &self.schema)
-            .field("table", &self.table)
-            .field("credentials", &self.credentials)
-            .finish()
-    }
-}
-
 /// Authentication supplied by a User Secret whose JSON object contains `value`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(
@@ -122,11 +112,13 @@ pub enum Pagination {
 }
 
 /// A paginated JSON endpoint. Response cells are captured as nullable strings.
-#[derive(Clone, PartialEq, Eq, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Deserialize, derive_more::Debug)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RestSource {
+    #[debug(skip)]
     pub url: String,
     #[serde(default)]
+    #[debug(skip)]
     pub params: BTreeMap<String, String>,
     pub auth: Option<RestAuth>,
     pub results_field: Option<String>,
@@ -151,20 +143,5 @@ impl RestSource {
             return Err("REST request interval must not exceed one day");
         }
         Ok(())
-    }
-}
-
-impl core::fmt::Debug for RestSource {
-    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        fmt.debug_struct("RestSource")
-            .field("url", &"<redacted>")
-            .field("params", &"<redacted>")
-            .field("auth", &self.auth)
-            .field("results_field", &self.results_field)
-            .field("pagination", &self.pagination)
-            .field("page_size", &self.page_size)
-            .field("max_pages", &self.max_pages)
-            .field("rate_limit_ms", &self.rate_limit_ms)
-            .finish()
     }
 }
