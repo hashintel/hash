@@ -11,16 +11,12 @@ use url::Url;
 use super::{CaptureLimits, SourceError};
 use crate::{SourceCapture, sql::Identifier};
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct StoredCredentials {
-    username: String,
-    password: String,
-}
-
-#[derive(Debug)]
 struct Credentials {
+    #[serde(deserialize_with = "super::secrets::deserialize_secret")]
     username: Pin<Box<Secret<str>>>,
+    #[serde(deserialize_with = "super::secrets::deserialize_secret")]
     password: Pin<Box<Secret<str>>>,
 }
 
@@ -31,19 +27,15 @@ pub(super) async fn capture(
     target: PathBuf,
     limits: CaptureLimits,
 ) -> Result<SourceCapture, Report<SourceError>> {
-    let stored: StoredCredentials = serde_json::from_slice(secret.expose())
+    let credentials: Credentials = serde_json::from_slice(secret.expose())
         .map_err(|_error| Report::new(SourceError::Secret))?;
-    if stored.username.trim().is_empty()
-        || stored.password.is_empty()
-        || stored.username.contains('\0')
-        || stored.password.contains('\0')
+    if credentials.username.expose().trim().is_empty()
+        || credentials.password.expose().is_empty()
+        || credentials.username.expose().contains('\0')
+        || credentials.password.expose().contains('\0')
     {
         return Err(Report::new(SourceError::Secret));
     }
-    let credentials = Credentials {
-        username: Secret::from_string(stored.username),
-        password: Secret::from_string(stored.password),
-    };
     let source = source.clone();
     tokio::task::spawn_blocking(move || capture_blocking(&source, &credentials, &target, limits))
         .await
