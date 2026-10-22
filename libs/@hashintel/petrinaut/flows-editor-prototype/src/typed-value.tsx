@@ -432,6 +432,8 @@ export type TypedValueProps = {
   /** An entity field picks only entities of this type. */
   entityTypeBaseUrl?: string;
   placeholder?: string;
+  /** A number takes the DS's narrowest width, not the whole row. */
+  compact?: boolean;
 };
 
 export const TypedValue = ({
@@ -444,6 +446,7 @@ export const TypedValue = ({
   allowRelative,
   entityTypeBaseUrl,
   placeholder,
+  compact,
 }: TypedValueProps) => {
   if (options || kind === "ActorType") {
     const items = options ?? actorTypes;
@@ -464,7 +467,7 @@ export const TypedValue = ({
       return (
         <NumberInput
           size="sm"
-          width="fullWidth"
+          width={compact ? "xs" : "fullWidth"}
           value={typeof value === "number" ? value : null}
           aria-label={label}
           placeholder={placeholder ?? "0"}

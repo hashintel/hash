@@ -165,6 +165,7 @@ export const PropertyRow = ({
   hover,
   required,
   optional,
+  wrapLabel,
   children,
   invalid,
 }: {
@@ -173,6 +174,8 @@ export const PropertyRow = ({
   required?: boolean;
   /** Marks the key "optional". */
   optional?: boolean;
+  /** Lets a label too long for the key column wrap instead of truncate. */
+  wrapLabel?: boolean;
   children: React.ReactNode;
   invalid?: boolean;
 }) => {
@@ -182,7 +185,14 @@ export const PropertyRow = ({
   const tip = named && detail ? `${named} · ${detail}` : (detail ?? named);
   const key = (
     <span className={css({ display: "block", minWidth: "[0]" })}>
-      <span className={keyStyle}>{label}</span>
+      <span
+        className={cx(
+          keyStyle,
+          wrapLabel && css({ whiteSpace: "normal", overflow: "visible" }),
+        )}
+      >
+        {label}
+      </span>
       {optional ? <OptionalMark /> : null}
     </span>
   );

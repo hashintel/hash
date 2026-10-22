@@ -22,7 +22,7 @@ import {
   flattenSteps,
   stepTitle,
 } from "./document";
-import { useEditor } from "./editor-context";
+import { showDebug, useEditor } from "./editor-context";
 import { canConnect, type ConnectionSource, type PayloadKind } from "./engine";
 import { OpenMenu } from "./open-menu";
 import { getItemShape, getSourceShape, triggerFlowInputs } from "./shapes";
@@ -149,7 +149,7 @@ const groupIcons: Record<string, IconName> = {
 
 /** Where a step comes from, when it is not on main: the mock or open-PR mark as the item's suffix. */
 const originSuffix = (entry: CatalogEntry) =>
-  entry.origin.kind === "open-pr" ? (
+  !showDebug ? undefined : entry.origin.kind === "open-pr" ? (
     <OriginMark
       label={`#${entry.origin.pr}`}
       hover={`Defined in open PR #${entry.origin.pr}, not on main yet`}
@@ -225,8 +225,7 @@ export const AddNodePicker = ({
     const insideCount = parentId
       ? ((
           findStep(document, parentId)?.step as
-            | { steps?: unknown[] }
-            | undefined
+            { steps?: unknown[] } | undefined
         )?.steps?.length ?? 0)
       : 0;
     const { document: next, stepId } = addStep(document, entry.id, {

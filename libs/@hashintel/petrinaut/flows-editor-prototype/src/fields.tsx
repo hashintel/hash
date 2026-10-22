@@ -1134,7 +1134,8 @@ export const QueryField = ({
           />
         </PropertyRow>
       ) : null}
-      {mode === "query" &&
+      {showEngineNotes &&
+      mode === "query" &&
       !draft.entityTypeBaseUrl &&
       !draft.entityTypeSource &&
       draft.conditions.length === 0 ? (

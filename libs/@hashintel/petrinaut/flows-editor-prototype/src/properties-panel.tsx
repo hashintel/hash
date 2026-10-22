@@ -30,7 +30,7 @@ import {
   updateTrigger,
   usersOf,
 } from "./document";
-import { useEditor } from "./editor-context";
+import { showDebug, showFull, useEditor } from "./editor-context";
 import {
   allPayloadKinds,
   type PayloadKind,
@@ -72,6 +72,7 @@ import { firstAndMore, TimeField, TypedValue } from "./typed-value";
 import {
   descriptionInputStyle,
   HeaderTitle,
+  keyStyle,
   kindLabel,
   mutedTextStyle,
   OriginMark,
@@ -179,6 +180,9 @@ const Paths = ({
   ports: { outputName: string; label: string }[];
 }) => {
   const { document, setUi } = useEditor();
+  if (!showFull) {
+    return null;
+  }
   return (
     <Section title="Paths">
       {ports.map((port) => {
@@ -224,14 +228,25 @@ const Paths = ({
   );
 };
 
-/** Raw engine diagnostics, for engineers only: behind `?debug`, never in the default UI. */
-const showEngineChecks = new URLSearchParams(globalThis.location.search).has(
-  "debug",
-);
+/** Fields and sections the Figma panels leave out; `?full` brings them back. */
+const trimmedInputs: Record<string, string[]> = {
+  sendEmail: ["cc", "body", "senderAddress", "attachments"],
+  getFileFromUrl: ["description", "displayName"],
+};
+
+/** Steps whose Figma panel shows the field right under the title, with no "Inputs" header (J3). */
+const noInputsTitle = ["queryEntities", "sendEmail"];
+
+/** The labels Figma uses where the draft PRD's or the humanized name differs. */
+const inputLabels: Record<string, string> = {
+  "sendEmail.to": "To",
+  "getFileFromUrl.url": "URL",
+  "getWebPageByUrl.url": "URL",
+};
 
 const Checks = ({ stepId }: { stepId: string }) => {
   const { validation } = useEditor();
-  if (!showEngineChecks) {
+  if (!showDebug) {
     return null;
   }
   const problems = validation.byStep.get(stepId) ?? [];
@@ -410,15 +425,19 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
   if (!entry) {
     return null;
   }
-  const origin =
-    entry.origin.kind === "open-pr" ? (
-      <OriginMark
-        label={`#${entry.origin.pr}`}
-        hover={`Defined in open PR #${entry.origin.pr}, not on main yet`}
-      />
-    ) : entry.origin.kind === "mock" ? (
-      <OriginMark label="mock" hover={entry.origin.why} />
-    ) : null;
+  const origin = !showDebug ? null : entry.origin.kind === "open-pr" ? (
+    <OriginMark
+      label={`#${entry.origin.pr}`}
+      hover={`Defined in open PR #${entry.origin.pr}, not on main yet`}
+    />
+  ) : entry.origin.kind === "mock" ? (
+    <OriginMark label="mock" hover={entry.origin.why} />
+  ) : null;
+
+  const hidden = showFull ? [] : (trimmedInputs[step.actionDefinitionId] ?? []);
+  const visibleInputs = entry.inputs.filter(
+    (input) => !hidden.includes(input.name),
+  );
 
   const outputKind = (outputName: string) => {
     const shape = getSourceShape(
@@ -440,9 +459,15 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
         stepId={step.stepId}
         description={step.description}
       />
-      {entry.inputs.length > 0 ? (
-        <Section title="Inputs">
-          {entry.inputs.map((input) => {
+      {visibleInputs.length > 0 ? (
+        <Section
+          title={
+            noInputsTitle.includes(step.actionDefinitionId) && !showFull
+              ? undefined
+              : "Inputs"
+          }
+        >
+          {visibleInputs.map((input) => {
             const kinds = acceptedKinds(document, step.stepId, input, entry);
             // Query builders stack: key above, builder below (Journey 3).
             if (
@@ -460,11 +485,32 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
                 </div>
               );
             }
+            const label =
+              inputLabels[`${step.actionDefinitionId}.${input.name}`] ??
+              input.label;
+            // Free text is a wide control: its label above, the field across the panel (J3 D1).
+            if (isFreeText(input)) {
+              return (
+                <div
+                  key={input.name}
+                  data-row
+                  className={css({
+                    gridColumn: "1 / -1",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1.5",
+                  })}
+                >
+                  <span className={keyStyle}>{label}</span>
+                  {fieldFor(document, step, input)}
+                </div>
+              );
+            }
             return (
               <PropertyRow
                 key={input.name}
-                label={input.label}
-                hover={`${kindHover(input, kinds)}${input.rule ? ` · ${input.rule}` : ""}${input.description ? ` — ${input.description}` : ""}`}
+                label={label}
+                hover={`${kindHover(input, kinds)}${input.rule ? ` � ${input.rule}` : ""}${input.description ? ` � ${input.description}` : ""}`}
                 required={
                   input.required &&
                   !input.hasDefault &&
@@ -480,7 +526,7 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
           })}
         </Section>
       ) : null}
-      {entry.outputs.length > 0 ? (
+      {showFull && entry.outputs.length > 0 ? (
         <Section title="Outputs">
           {entry.outputs.map((output) => (
             <PropertyRow
@@ -552,9 +598,13 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
     <>
       <PanelHeader
         icon="rotate"
-        type="For each"
+        type={step.description || "For each"}
+        subtitle={
+          step.description.startsWith("For each ")
+            ? `Runs its steps once per ${step.description.slice("For each ".length)}`
+            : "Runs its steps once per item of a list"
+        }
         stepId={step.stepId}
-        description={step.description}
       />
       <Section title="Inputs">
         <PropertyRow label="List" hover="List of any kind · required" required>
@@ -639,91 +689,97 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
             />
           ) : null}
         </PropertyRow>
-        <PropertyRow
-          label="Item"
-          hover={
-            itemShape ? kindLabel(itemShape.payloadKind) : "Set the list first"
-          }
-        >
-          <span
-            className={css({
-              textStyle: "sm",
-              color: "neutral.fg.heading",
-            })}
+        {showFull ? (
+          <PropertyRow
+            label="Item"
+            hover={
+              itemShape
+                ? kindLabel(itemShape.payloadKind)
+                : "Set the list first"
+            }
           >
-            {itemName(document, step.stepId)}
-          </span>
-        </PropertyRow>
+            <span
+              className={css({
+                textStyle: "sm",
+                color: "neutral.fg.heading",
+              })}
+            >
+              {itemName(document, step.stepId)}
+            </span>
+          </PropertyRow>
+        ) : null}
       </Section>
-      <Section title="Outputs">
-        <PropertyRow
-          label="Collect"
-          hover="The engine collects one output from every item into a list"
-          required
-        >
-          <Select
-            size="sm"
-            items={collectOptions}
-            value={
-              step.collect
-                ? `${step.collect.stepId}.${step.collect.outputName}`
-                : null
-            }
-            placeholder={
-              collectOptions.length === 0
-                ? "Add a step inside first"
-                : "Choose an output"
-            }
-            onChange={(value) => {
-              const [childId, outputName] = (value ?? "").split(".");
-              setDocument((current) =>
-                updateStep(current, step.stepId, (candidate) => ({
-                  ...candidate,
-                  collect:
-                    childId && outputName
-                      ? {
-                          stepId: childId,
-                          outputName,
-                          as: `collected${outputName.charAt(0).toUpperCase()}${outputName.slice(1)}`,
-                        }
-                      : undefined,
-                })),
-              );
-            }}
-          />
-          {step.collect ? (
-            <div>
-              <SourceChip
-                icon={nodeLook(document, step.collect.stepId).icon}
-                onClick={() =>
-                  setUi((current) => ({
-                    ...current,
-                    selectedId: step.collect?.stepId ?? null,
-                  }))
-                }
-              >
-                {(() => {
-                  const collected = findStep(
-                    document,
-                    step.collect.stepId,
-                  )?.step;
-                  return collected ? stepLabel(collected) : "";
-                })()}
-              </SourceChip>
-            </div>
-          ) : null}
-          {step.collect ? (
-            <UsedBy
-              quiet
-              match={(source) =>
-                source.kind === "step-output" &&
-                source.stepId === step.stepId &&
-                source.outputName === step.collect?.as
+      {showFull ? (
+        <Section title="Outputs">
+          <PropertyRow
+            label="Collect"
+            hover="The engine collects one output from every item into a list"
+            required
+          >
+            <Select
+              size="sm"
+              items={collectOptions}
+              value={
+                step.collect
+                  ? `${step.collect.stepId}.${step.collect.outputName}`
+                  : null
               }
+              placeholder={
+                collectOptions.length === 0
+                  ? "Add a step inside first"
+                  : "Choose an output"
+              }
+              onChange={(value) => {
+                const [childId, outputName] = (value ?? "").split(".");
+                setDocument((current) =>
+                  updateStep(current, step.stepId, (candidate) => ({
+                    ...candidate,
+                    collect:
+                      childId && outputName
+                        ? {
+                            stepId: childId,
+                            outputName,
+                            as: `collected${outputName.charAt(0).toUpperCase()}${outputName.slice(1)}`,
+                          }
+                        : undefined,
+                  })),
+                );
+              }}
             />
-          ) : null}
-        </PropertyRow>
-      </Section>
+            {step.collect ? (
+              <div>
+                <SourceChip
+                  icon={nodeLook(document, step.collect.stepId).icon}
+                  onClick={() =>
+                    setUi((current) => ({
+                      ...current,
+                      selectedId: step.collect?.stepId ?? null,
+                    }))
+                  }
+                >
+                  {(() => {
+                    const collected = findStep(
+                      document,
+                      step.collect.stepId,
+                    )?.step;
+                    return collected ? stepLabel(collected) : "";
+                  })()}
+                </SourceChip>
+              </div>
+            ) : null}
+            {step.collect ? (
+              <UsedBy
+                quiet
+                match={(source) =>
+                  source.kind === "step-output" &&
+                  source.stepId === step.stepId &&
+                  source.outputName === step.collect?.as
+                }
+              />
+            ) : null}
+          </PropertyRow>
+        </Section>
+      ) : null}
       <Paths
         stepId={step.stepId}
         ports={[{ outputName: "next", label: "Next" }]}
@@ -1174,6 +1230,7 @@ const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
       {trigger.kind !== "entityCreated" ? (
         <PropertyRow
           label="Properties to watch"
+          wrapLabel
           hover="Only start when one of these changes. Empty means any change."
         >
           <Select
@@ -1313,6 +1370,7 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
             {(mapping?.kind === "fixed" || valueOnly) && !input.array ? (
               <TypedValue
                 kind={input.payloadKind}
+                compact
                 label={`${input.label ?? input.name} fixed value`}
                 allowRelative
                 entityTypeBaseUrl={document.inputEntityTypes[input.name]}
@@ -1407,12 +1465,13 @@ const StartedBy = () => {
                 id: kind,
                 text: triggerDefinitions[kind].title,
                 icon: triggerDefinitions[kind].icon,
-                suffix: triggerDefinitions[kind].mock ? (
-                  <OriginMark
-                    label="mock"
-                    hover="No such trigger on main yet."
-                  />
-                ) : undefined,
+                suffix:
+                  showDebug && triggerDefinitions[kind].mock ? (
+                    <OriginMark
+                      label="mock"
+                      hover="No such trigger on main yet."
+                    />
+                  ) : undefined,
                 onClick: () => {
                   const { document: next, triggerId } = addTrigger(
                     document,

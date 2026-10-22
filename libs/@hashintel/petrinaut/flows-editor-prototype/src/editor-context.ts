@@ -56,3 +56,9 @@ export const useEditor = () => {
   }
   return value;
 };
+
+const query = new URLSearchParams(globalThis.location.search);
+
+/** `?debug` shows engine diagnostics and origin marks; `?full` shows every field, Outputs and Paths. Neither is in the default UI. */
+export const showDebug = query.has("debug");
+export const showFull = query.has("full");

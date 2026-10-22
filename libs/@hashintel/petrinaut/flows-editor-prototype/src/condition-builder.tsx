@@ -1323,9 +1323,22 @@ export const ConditionBuilder = ({
 
   if (properties.length === 0) {
     return (
-      <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
-        Choose an entity type first.
-      </span>
+      <>
+        <span className={css({ textStyle: "sm", color: "neutral.fg.subtle" })}>
+          All of this type
+        </span>
+        <div>
+          <Button
+            size="sm"
+            variant="subtle"
+            iconName="plus"
+            disabled
+            tooltip="Choose an entity type first"
+          >
+            Add condition
+          </Button>
+        </div>
+      </>
     );
   }
 
