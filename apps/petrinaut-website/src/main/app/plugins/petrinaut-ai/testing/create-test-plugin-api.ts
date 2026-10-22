@@ -82,8 +82,7 @@ export const createTestPluginApi = (
     refusal = () => null,
     requestDiagnostics = noDiagnostics,
     reveal = () => {},
-    runExperiment = () =>
-      Promise.reject(new Error("Experiments unavailable")),
+    runExperiment = () => Promise.reject(new Error("Experiments unavailable")),
     records = [],
     notify = () => "",
     capture = () => {},
