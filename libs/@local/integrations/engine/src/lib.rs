@@ -36,7 +36,10 @@ pub use self::{
         TableAssertions,
     },
     progress::{Progress, ProgressSnapshot},
-    sources::{GraphVaultConfig, GraphVaultSecretStore, SecretStore, SecretValue, SourceError},
+    sources::{
+        CaptureLimits, GraphVaultConfig, GraphVaultSecretStore, SecretStore, SecretValue,
+        SourceError,
+    },
     workspace::{
         CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,
         SnapshotError, StatementError, Workspace, WorkspaceConfig,
