@@ -39,6 +39,7 @@ export type ProxyFlowActivity<
   ActionId extends string,
   CreateActivitiesFn extends CreateFlowActivities<ActionId>,
 > = (params: {
+  actionDefinitionId: FlowActionDefinitionId;
   actionName: ActionName<ActionId>;
   maximumAttempts: number;
   activityId: string;
