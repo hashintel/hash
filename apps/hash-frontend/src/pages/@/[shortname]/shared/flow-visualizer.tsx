@@ -673,7 +673,10 @@ export const FlowVisualizer = () => {
               />
             ) : (
               <Box key={flowDefinitionStateKey} sx={{ flex: 1, minHeight: 0 }}>
-                <FlowNetView flowDefinition={selectedFlowDefinition} />
+                <FlowNetView
+                  flowDefinition={selectedFlowDefinition}
+                  flowDefinitionEntityId={selectedFlow.flowDefinitionEntityId}
+                />
               </Box>
             )}
           </Stack>
