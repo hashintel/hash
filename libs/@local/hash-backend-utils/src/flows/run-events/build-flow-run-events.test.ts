@@ -264,6 +264,29 @@ describe("buildFlowRunEvents", () => {
     ]);
   });
 
+  it("keeps the message of a successful step's status", () => {
+    const { history } = loadFixture("succeeds");
+    const [result] =
+      history.find((event) => event.eventId?.toString() === "37")
+        ?.activityTaskCompletedEventAttributes?.result?.payloads ?? [];
+
+    if (!result?.data) {
+      throw new Error("No result on history event 37 in succeeds");
+    }
+
+    /* The stub actions give no message, where real ones do. */
+    result.data = Buffer.from(
+      JSON.stringify({
+        ...(JSON.parse(Buffer.from(result.data).toString()) as object),
+        message: "Kept 2 of 3 items",
+      }),
+    );
+
+    expect(
+      buildFlowRunEvents(history).find(({ position }) => position === "37.0"),
+    ).toMatchObject({ kind: "attemptSucceeded", message: "Kept 2 of 3 items" });
+  });
+
   it("reports the attempts before a retried step's last as hidden, with the last one's error", () => {
     expectEvents("retried-then-succeeds", [
       runStartedWithNumbers,

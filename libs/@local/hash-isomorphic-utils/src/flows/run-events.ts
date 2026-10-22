@@ -50,6 +50,8 @@ export type FlowRunEvent = FlowRunEventBase &
         stepRun: FlowRunEventStepRun;
         attempt: number;
         outputs: StepOutput[];
+        /** The message of the action's status, if it gave one. */
+        message?: string;
       }
     | {
         kind: "attemptFailed";

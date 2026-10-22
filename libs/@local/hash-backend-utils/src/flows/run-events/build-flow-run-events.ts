@@ -281,6 +281,7 @@ export const buildFlowRunEvents = (
             stepRun,
             attempt,
             outputs: status.contents[0]?.outputs ?? [],
+            ...(status.message ? { message: status.message } : {}),
           });
         } else {
           addEvent({

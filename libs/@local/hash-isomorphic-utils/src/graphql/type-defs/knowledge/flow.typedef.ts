@@ -287,6 +287,10 @@ export const flowTypedef = gql`
     stepRun: FlowRunEventStepRun!
     attempt: Int!
     outputs: [StepOutput!]!
+    """
+    The message of the action's status, if it gave one.
+    """
+    message: String
   }
 
   type FlowRunAttemptFailedEvent implements FlowRunEvent {
