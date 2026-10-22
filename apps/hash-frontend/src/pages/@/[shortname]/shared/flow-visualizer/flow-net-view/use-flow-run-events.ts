@@ -74,7 +74,7 @@ export const useFlowRunEvents = ({
     const readNewEvents = async () => {
       let runId: string | undefined;
 
-      for (let hasNextPage = true; hasNextPage;) {
+      for (let hasNextPage = true; hasNextPage && !cancelled;) {
         const { data } = await apolloClient.query<
           GetFlowRunEventsQuery,
           GetFlowRunEventsQueryVariables
