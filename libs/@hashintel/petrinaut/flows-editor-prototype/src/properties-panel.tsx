@@ -54,9 +54,11 @@ import {
   type Repeat,
   toCron,
   type InputMapping as InputMappingValue,
+  type TriggerKind,
   type TriggerNode,
   triggerDefinitions,
-  triggerKinds,
+  addableTriggerKinds,
+  isEntityTrigger,
   weekdays,
 } from "./mock-triggers";
 import {
@@ -290,6 +292,7 @@ const PanelHeader = ({
   stepId,
   description,
   trigger,
+  subtitle,
 }: {
   icon: IconName;
   type: string;
@@ -298,6 +301,8 @@ const PanelHeader = ({
   description?: string;
   /** A trigger node: its description and delete act on the trigger. */
   trigger?: TriggerNode;
+  /** Static text under the title, in place of the description field. */
+  subtitle?: string;
 }) => {
   const { setDocument, setUi } = useEditor();
   const onDelete = trigger
@@ -320,7 +325,9 @@ const PanelHeader = ({
         <span className={typeLineStyle}>{type}</span>
         {origin}
       </HeaderTitle>
-      {trigger ? (
+      {subtitle ? (
+        <span className={descriptionInputStyle}>{subtitle}</span>
+      ) : trigger ? (
         <DescriptionInput
           label="Trigger description"
           value={trigger.description}
@@ -1108,6 +1115,12 @@ const TriggerCondition = ({
 };
 
 /** MOCK: Entity created / updated settings, from the draft PRD. */
+const whenItems = [
+  { value: "entityCreated", text: "Created" },
+  { value: "entityUpdated", text: "Updated" },
+  { value: "entityChanged", text: "Created or updated" },
+];
+
 const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
   const { setDocument } = useEditor();
   const set = (change: Partial<TriggerNode["settings"]>) =>
@@ -1141,7 +1154,24 @@ const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
           }
         />
       </PropertyRow>
-      {trigger.kind === "entityUpdated" ? (
+      <PropertyRow label="When" hover="Which changes start a run">
+        <Select
+          size="sm"
+          items={whenItems}
+          value={trigger.kind}
+          onChange={(kind) =>
+            kind
+              ? setDocument((document) =>
+                  updateTrigger(document, trigger.id, (current) => ({
+                    ...current,
+                    kind: kind as TriggerKind,
+                  })),
+                )
+              : undefined
+          }
+        />
+      </PropertyRow>
+      {trigger.kind !== "entityCreated" ? (
         <PropertyRow
           label="Properties to watch"
           hover="Only start when one of these changes. Empty means any change."
@@ -1193,6 +1223,11 @@ const WebhookSettings = ({ trigger }: { trigger: TriggerNode }) => (
 const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
   const { document, setDocument } = useEditor();
   const definition = triggerDefinitions[trigger.kind];
+  const entityType = findEntityType(trigger.settings.entityTypeBaseUrl);
+  const outputLabel = (output: { name: string; label: string }) =>
+    output.name === "changedEntities" && entityType
+      ? `The ${entityType.title.toLowerCase()} that changed`
+      : output.label;
   const setMapping = (
     inputName: string,
     mapping: InputMappingValue | undefined,
@@ -1226,6 +1261,12 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
             : mapping?.kind === "fixed"
               ? "fixed"
               : null;
+        const mapped =
+          mapping?.kind === "field"
+            ? fields.find((output) => output.name === mapping.output)
+            : undefined;
+        // With no trigger field to take, the only choice is a value, so show the value field alone (Figma J4 A2).
+        const valueOnly = fields.length === 0 && !input.array;
         return (
           <PropertyRow
             key={input.name}
@@ -1233,37 +1274,53 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
             hover={kindLabel(input.payloadKind, input.array)}
             required={input.required}
           >
-            <Select
-              size="sm"
-              items={[
-                ...fields.map((output) => ({
-                  value: `field:${output.name}`,
-                  text: output.label,
-                })),
-                { value: "fixed", text: "Fixed value" },
-              ]}
-              value={choice}
-              placeholder={
-                fields.length === 0 ? "Fixed value" : "Choose a field"
-              }
-              onChange={(value) =>
-                setMapping(
-                  input.name,
-                  value === "fixed"
-                    ? { kind: "fixed", value: null }
-                    : value
-                      ? { kind: "field", output: value.slice("field: ".length) }
-                      : undefined,
-                )
-              }
-            />
-            {mapping?.kind === "fixed" && !input.array ? (
+            {mapped ? (
+              <SourceChip
+                icon={definition.icon}
+                onRemove={() => setMapping(input.name, undefined)}
+              >
+                {outputLabel(mapped)}
+              </SourceChip>
+            ) : valueOnly ? null : (
+              <Select
+                size="sm"
+                items={[
+                  ...fields.map((output) => ({
+                    value: `field:${output.name}`,
+                    text: outputLabel(output),
+                  })),
+                  { value: "fixed", text: "Fixed value" },
+                ]}
+                value={choice}
+                placeholder={
+                  fields.length === 0 ? "Fixed value" : "Choose a field"
+                }
+                onChange={(value) =>
+                  setMapping(
+                    input.name,
+                    value === "fixed"
+                      ? { kind: "fixed", value: null }
+                      : value
+                        ? {
+                            kind: "field",
+                            output: value.slice("field:".length),
+                          }
+                        : undefined,
+                  )
+                }
+              />
+            )}
+            {(mapping?.kind === "fixed" || valueOnly) && !input.array ? (
               <TypedValue
                 kind={input.payloadKind}
                 label={`${input.label ?? input.name} fixed value`}
                 allowRelative
                 entityTypeBaseUrl={document.inputEntityTypes[input.name]}
-                value={mapping.value ?? undefined}
+                value={
+                  mapping?.kind === "fixed"
+                    ? (mapping.value ?? undefined)
+                    : undefined
+                }
                 onChange={(value) =>
                   setMapping(input.name, { kind: "fixed", value })
                 }
@@ -1346,7 +1403,7 @@ const StartedBy = () => {
             {
               id: "triggers",
               label: "",
-              items: triggerKinds.map((kind) => ({
+              items: addableTriggerKinds.map((kind) => ({
                 id: kind,
                 text: triggerDefinitions[kind].title,
                 icon: triggerDefinitions[kind].icon,
@@ -1408,18 +1465,14 @@ const TriggerPanel = ({ trigger }: { trigger: TriggerNode }) => {
     <>
       <PanelHeader
         icon={definition.icon}
-        type={definition.title}
+        type={trigger.description || definition.title}
+        subtitle="Trigger"
         trigger={trigger}
-        origin={
-          definition.mock ? (
-            <OriginMark label="mock" hover="No such trigger on main yet." />
-          ) : null
-        }
       />
       {trigger.kind === "schedule" ? (
         <ScheduleSettings trigger={trigger} />
       ) : null}
-      {trigger.kind === "entityCreated" || trigger.kind === "entityUpdated" ? (
+      {isEntityTrigger(trigger.kind) ? (
         <EntitySettings trigger={trigger} />
       ) : null}
       {trigger.kind === "webhook" ? (

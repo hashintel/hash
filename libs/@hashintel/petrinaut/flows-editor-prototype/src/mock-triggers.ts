@@ -13,6 +13,7 @@ import type { CronScheduleSpec, PayloadKind } from "./engine";
 import type { IconName } from "@hashintel/ds-components";
 
 export type TriggerKind =
+  | "entityChanged"
   | "entityCreated"
   | "entityUpdated"
   | "schedule"
@@ -70,6 +71,12 @@ export const triggerDefinitions: Record<TriggerKind, TriggerDefinition> = {
     mock: true,
     outputs: [
       {
+        name: "changedEntities",
+        label: "Changed entities",
+        payloadKind: "EntityId",
+        array: true,
+      },
+      {
         name: "entity",
         label: "Entity",
         payloadKind: "EntityId",
@@ -96,12 +103,57 @@ export const triggerDefinitions: Record<TriggerKind, TriggerDefinition> = {
     ],
     defaults: () => ({}),
   },
+  entityChanged: {
+    kind: "entityChanged",
+    title: "Entity changes",
+    icon: "cube",
+    mock: true,
+    outputs: [
+      {
+        name: "changedEntities",
+        label: "Changed entities",
+        payloadKind: "EntityId",
+        array: true,
+      },
+      {
+        name: "entity",
+        label: "Entity",
+        payloadKind: "EntityId",
+        array: false,
+      },
+      {
+        name: "linkedEntities",
+        label: "Linked entities",
+        payloadKind: "EntityId",
+        array: true,
+      },
+      {
+        name: "changedBy",
+        label: "Changed by",
+        payloadKind: "EntityId",
+        array: false,
+      },
+      {
+        name: "changedAt",
+        label: "Changed at",
+        payloadKind: "DateTime",
+        array: false,
+      },
+    ],
+    defaults: () => ({ propertiesToWatch: [] }),
+  },
   entityUpdated: {
     kind: "entityUpdated",
     title: "Entity updated",
     icon: "pencil",
     mock: true,
     outputs: [
+      {
+        name: "changedEntities",
+        label: "Changed entities",
+        payloadKind: "EntityId",
+        array: true,
+      },
       {
         name: "entity",
         label: "Entity",
@@ -177,6 +229,14 @@ export const triggerDefinitions: Record<TriggerKind, TriggerDefinition> = {
 };
 
 export const triggerKinds = Object.keys(triggerDefinitions) as TriggerKind[];
+
+/** The kinds the Add trigger menu offers: Created, Updated and Created or updated sit behind one "When" choice. */
+export const addableTriggerKinds = triggerKinds.filter(
+  (kind) => kind !== "entityCreated" && kind !== "entityUpdated",
+);
+
+export const isEntityTrigger = (kind: TriggerKind) =>
+  kind === "entityChanged" || kind === "entityCreated" || kind === "entityUpdated";
 
 export type Repeat = "day" | "week" | "month";
 

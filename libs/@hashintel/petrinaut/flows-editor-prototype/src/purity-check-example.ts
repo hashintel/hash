@@ -3,7 +3,7 @@
  *
  * 1. A flow takes a list of shipments and a purity threshold.
  * 2. It finds the certificates for those shipments.
- * 3. It starts when a shipment changes (threshold 98) and on a schedule, every month.
+ * 3. It starts when a shipment changes (the shipment that changed, threshold 98) and on a schedule, every month.
  */
 import {
   addStep,
@@ -67,12 +67,13 @@ export const purityCheckExample = (): EditorDocument => {
     triggers: [
       {
         id: "shipmentChanges",
-        kind: "entityUpdated",
+        kind: "entityChanged",
         description: "Shipment changes",
         settings: {
           entityTypeBaseUrl: type("Shipment").baseUrl,
           propertiesToWatch: [],
           inputMap: {
+            shipments: { kind: "field", output: "changedEntities" },
             threshold: { kind: "fixed", value: 98 },
           },
         },
