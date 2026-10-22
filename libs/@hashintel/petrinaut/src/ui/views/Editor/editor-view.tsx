@@ -493,6 +493,10 @@ const EditorViewContent = ({
     },
   ];
 
+  // The prompt's other way to start: the plugin assistant's action. Pressing
+  // it opens the panel first.
+  const promptStartAction = assistant.startAction;
+
   // The empty-net prompt hands its message to the plugin assistant's
   // `onPrompt`.
   const showEmptyAiHero =
@@ -578,6 +582,15 @@ const EditorViewContent = ({
                         setAiAssistantOpen(true);
                         assistant.onPrompt?.(message);
                       }}
+                      startAction={
+                        promptStartAction && {
+                          ...promptStartAction,
+                          run: () => {
+                            setAiAssistantOpen(true);
+                            promptStartAction.run();
+                          },
+                        }
+                      }
                     />
                   )}
 

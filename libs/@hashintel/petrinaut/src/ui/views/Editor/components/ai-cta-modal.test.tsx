@@ -8,12 +8,31 @@ import { AiCtaModal } from "./ai-cta-modal";
 
 afterEach(cleanup);
 
+/** A start action like a Voice start, with its own icon. */
+const startActionWith = (run: () => void) => ({
+  label: "Start voice mode",
+  icon: <svg aria-hidden="true" data-testid="start-icon" />,
+  run,
+});
+
 describe("AiCtaModal", () => {
-  test("asks for the process without mode tabs", () => {
+  test("offers the start action without mode tabs and runs it once", () => {
+    const run = vi.fn();
+    const onSubmit = vi.fn();
     render(
-      <AiCtaModal bottomClearance={0} onDismiss={vi.fn()} onSubmit={vi.fn()} />,
+      <AiCtaModal
+        bottomClearance={0}
+        onDismiss={vi.fn()}
+        onSubmit={onSubmit}
+        startAction={startActionWith(run)}
+      />,
     );
 
+    expect(
+      screen.getByRole("heading", {
+        name: "Describe the process you want to create",
+      }),
+    ).not.toBeNull();
     expect(
       screen
         .getByRole("heading", {
@@ -28,15 +47,32 @@ describe("AiCtaModal", () => {
     ).toBeNull();
     expect(screen.queryByRole("button", { name: "Chat" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Interview" })).toBeNull();
+
+    const voiceButton = screen.getByRole("button", {
+      name: "Start voice mode",
+    });
+    expect(
+      voiceButton.querySelector('[data-testid="start-icon"]'),
+    ).not.toBeNull();
+    expect(voiceButton.parentElement?.getAttribute("data-scope")).toBe(
+      "tooltip",
+    );
+
+    fireEvent.click(voiceButton);
+
+    expect(run).toHaveBeenCalledOnce();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  test("submits the trimmed text", () => {
+  test("switches the trailing action from the start action to trimmed text submission", () => {
+    const run = vi.fn();
     const onSubmit = vi.fn();
     render(
       <AiCtaModal
         bottomClearance={0}
         onDismiss={vi.fn()}
         onSubmit={onSubmit}
+        startAction={startActionWith(run)}
       />,
     );
 
@@ -44,6 +80,11 @@ describe("AiCtaModal", () => {
       "Describe the process you want to create",
     );
     expect(document.activeElement).toBe(input);
+
+    fireEvent.change(input, { target: { value: "   " } });
+    expect(
+      screen.getByRole("button", { name: "Start voice mode" }),
+    ).not.toBeNull();
 
     fireEvent.change(input, {
       target: { value: "  Model an SIR outbreak  " },
@@ -56,18 +97,17 @@ describe("AiCtaModal", () => {
 
     expect(onSubmit).toHaveBeenCalledOnce();
     expect(onSubmit).toHaveBeenCalledWith("Model an SIR outbreak");
+    expect(run).not.toHaveBeenCalled();
   });
 
-  test("disables Send while the input is blank", () => {
+  test("retains a disabled Send action without a start action", () => {
     render(
       <AiCtaModal bottomClearance={0} onDismiss={vi.fn()} onSubmit={vi.fn()} />,
     );
 
-    fireEvent.change(
-      screen.getByLabelText("Describe the process you want to create"),
-      { target: { value: "   " } },
-    );
-
+    expect(
+      screen.queryByRole("button", { name: "Start voice mode" }),
+    ).toBeNull();
     expect(
       screen.getByRole<HTMLButtonElement>("button", {
         name: "Send first AI assistant message",
