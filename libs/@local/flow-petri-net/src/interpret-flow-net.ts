@@ -30,9 +30,9 @@ import type {
 /*
  * Runs a compiled flow net by its transitions' roles (see `TransitionRole`), working out the tokens itself: the
  * net's kernels are placeholders and it has no guards. Every transition fires as soon as it's enabled, except
- * those that need to know something from outside the net: an action attempt's outcome, and how many items a
- * `forEach` step's array has. The executor runs a flow by calling actions and applying their outcomes; a run's
- * view replays the outcomes its events record.
+ * those that need to know something from outside the net: an action attempt's outcome, how many items a
+ * `forEach` step's array has, and, when the run is told when steps start, an action step starting. The executor
+ * runs a flow by calling actions and applying their outcomes; a run's view replays the outcomes its events record.
  */
 
 /** A run of a step: its id in the definition and, inside `forEach` steps, its item's index in each, outermost first. */
@@ -101,10 +101,13 @@ export type FlowNetFiring = {
 /** What the net needs to know from outside to go on. */
 export type FlowNetAwaiting =
   | { kind: "actionOutcome"; stepRun: FlowNetStepRun; attempt: number }
-  | { kind: "itemCount"; stepRun: FlowNetStepRun };
+  | { kind: "itemCount"; stepRun: FlowNetStepRun }
+  /** An action step that has its inputs, in a run that waits for steps to start (see `waitForStepStarts`). */
+  | { kind: "stepStart"; stepRun: FlowNetStepRun };
 
 export type FlowNetOutcome =
   | { kind: "itemCount"; stepRun: FlowNetStepRun; itemCount: number }
+  | { kind: "stepStarted"; stepRun: FlowNetStepRun }
   | {
       kind: "attemptSucceeded";
       stepRun: FlowNetStepRun;
@@ -261,7 +264,18 @@ type RootTransition = { transition: Transition; metadata: TransitionMetadata };
  */
 export const startFlowNetRun = (
   net: SDCPN,
-  { flowInputNames }: { flowInputNames: Iterable<string> },
+  {
+    flowInputNames,
+    waitForStepStarts = false,
+  }: {
+    flowInputNames: Iterable<string>;
+    /**
+     * Whether an action step that has its inputs waits for a `stepStarted` outcome before it starts, rather than
+     * starting at once. A replay waits, as the executor only starts the steps that are ready once every step it
+     * started with the last batch has finished.
+     */
+    waitForStepStarts?: boolean;
+  },
 ): FlowNetRun => {
   const { flowInputs, pendingAtStart } =
     (net.metadata as Partial<FlowNetMetadata> | undefined) ?? {};
@@ -414,7 +428,8 @@ export const startFlowNetRun = (
   /**
    * The tokens a transition would take and read, with `anchor` as the token at `anchorPosition`. Every other input
    * takes a token of the same item or of an enclosing one (`accepts` can say otherwise), and `guard` can refuse a
-   * binding.
+   * binding. Read arcs from one place can read the same token, but a token taken through a standard arc is bound to
+   * that arc alone.
    */
   const bind = ({
     transition,
@@ -467,7 +482,12 @@ export const startFlowNetRun = (
             : tokensAt(position).find(
                 (candidate) =>
                   accepts(anchor, candidate) &&
-                  !bindings.some((binding) => binding.token === candidate),
+                  !bindings.some(
+                    (binding) =>
+                      binding.token === candidate &&
+                      (arc.type === "standard" ||
+                        binding.arc.type === "standard"),
+                  ),
               );
 
         if (!token) {
@@ -672,19 +692,27 @@ export const startFlowNetRun = (
   };
 
   /**
-   * Fires a transition of the root net if it's enabled and fires on its own, returning the firing. `itemCount`
-   * starts a `forEach` step whose array isn't a constant, for `stepRun`.
+   * Fires a transition of the root net if it's enabled and fires on its own, returning the firing. Being `told` an
+   * item count starts a `forEach` step whose array isn't a constant, and being told a step started starts an action
+   * step in a run that waits for steps to start, for the outcome's step run.
    */
   const fireRootTransition = (
     { transition, metadata }: RootTransition,
-    startForEach?: { stepRun: FlowNetStepRun; itemCount: number },
+    told?: Extract<FlowNetOutcome, { kind: "itemCount" | "stepStarted" }>,
   ): FlowNetFiring | null => {
     switch (metadata.role) {
       case "startStep": {
+        if (waitForStepStarts && told?.kind !== "stepStarted") {
+          return null;
+        }
+
         const bindings = bind({
           transition,
           scope: null,
           anchorPosition: pendingPosition(metadata.stepId),
+          anchorAccepts: (anchor) =>
+            told?.kind !== "stepStarted" ||
+            isSamePath(anchor.itemPath, told.stepRun.itemPath),
           guard: (candidate) => !hasMissingSkipInput(metadata, candidate),
         });
 
@@ -706,9 +734,11 @@ export const startFlowNetRun = (
         });
       }
       case "startForEach": {
-        const knownItemCount = constantItemCount(metadata.constant);
+        const itemCount =
+          constantItemCount(metadata.constant) ??
+          (told?.kind === "itemCount" ? told.itemCount : null);
 
-        if (knownItemCount === null && !startForEach) {
+        if (itemCount === null) {
           return null;
         }
 
@@ -717,8 +747,8 @@ export const startFlowNetRun = (
           scope: null,
           anchorPosition: pendingPosition(metadata.stepId),
           anchorAccepts: (anchor) =>
-            !startForEach ||
-            isSamePath(anchor.itemPath, startForEach.stepRun.itemPath),
+            told?.kind !== "itemCount" ||
+            isSamePath(anchor.itemPath, told.stepRun.itemPath),
           guard: (candidate) => !hasMissingArray(candidate),
         });
 
@@ -729,7 +759,6 @@ export const startFlowNetRun = (
         const { itemPath } = bindings.find(({ position }) =>
           isAt(position, pendingPosition(metadata.stepId)),
         )!.token;
-        const itemCount = knownItemCount ?? startForEach!.itemCount;
 
         return fire({
           transition,
@@ -1050,15 +1079,28 @@ export const startFlowNetRun = (
           .get(stepRun.stepId)
           ?.find(({ metadata }) => metadata.role === "startForEach");
         const firing = startForEach
-          ? fireRootTransition(startForEach, {
-              stepRun,
-              itemCount: outcome.itemCount,
-            })
+          ? fireRootTransition(startForEach, outcome)
           : null;
 
         if (!firing) {
           throw new FlowNetInterpreterError(
             `forEach step "${stepRun.stepId}" isn't waiting to start for item [${stepRun.itemPath.join(", ")}]`,
+          );
+        }
+
+        return [firing];
+      }
+      case "stepStarted": {
+        const startStep = rootTransitionsByStep
+          .get(stepRun.stepId)
+          ?.find(({ metadata }) => metadata.role === "startStep");
+        const firing = startStep
+          ? fireRootTransition(startStep, outcome)
+          : null;
+
+        if (!firing) {
+          throw new FlowNetInterpreterError(
+            `Step "${stepRun.stepId}" isn't waiting to start for item [${stepRun.itemPath.join(", ")}]`,
           );
         }
 
@@ -1204,36 +1246,51 @@ export const startFlowNetRun = (
         }
       }
 
-      for (const {
-        transition,
-        metadata: transitionMetadata,
-      } of rootTransitions) {
-        if (
-          transitionMetadata.role !== "startForEach" ||
-          constantItemCount(transitionMetadata.constant) !== null
-        ) {
-          continue;
-        }
-
-        for (const pending of tokensAt(
-          pendingPosition(transitionMetadata.stepId),
-        )) {
-          const bindings = bind({
-            transition,
-            scope: null,
-            anchorPosition: pendingPosition(transitionMetadata.stepId),
-            anchorAccepts: (anchor) => anchor === pending,
-            guard: (candidate) => !hasMissingArray(candidate),
-          });
-
-          if (bindings) {
-            awaiting.push({
-              kind: "itemCount",
-              stepRun: {
+      /** The step runs whose `Pending` token `transition` could take, if told to. */
+      const startableStepRuns = (
+        { transition, metadata: transitionMetadata }: RootTransition,
+        guard: (bindings: Binding[]) => boolean,
+      ): FlowNetStepRun[] =>
+        "stepId" in transitionMetadata
+          ? tokensAt(pendingPosition(transitionMetadata.stepId))
+              .filter(
+                (pending) =>
+                  bind({
+                    transition,
+                    scope: null,
+                    anchorPosition: pendingPosition(transitionMetadata.stepId),
+                    anchorAccepts: (anchor) => anchor === pending,
+                    guard,
+                  }) !== null,
+              )
+              .map(({ itemPath }) => ({
                 stepId: transitionMetadata.stepId,
-                itemPath: pending.itemPath,
-              },
-            });
+                itemPath,
+              }))
+          : [];
+
+      for (const rootTransition of rootTransitions) {
+        const { metadata: transitionMetadata } = rootTransition;
+
+        if (
+          transitionMetadata.role === "startForEach" &&
+          constantItemCount(transitionMetadata.constant) === null
+        ) {
+          for (const stepRun of startableStepRuns(
+            rootTransition,
+            (candidate) => !hasMissingArray(candidate),
+          )) {
+            awaiting.push({ kind: "itemCount", stepRun });
+          }
+        } else if (
+          transitionMetadata.role === "startStep" &&
+          waitForStepStarts
+        ) {
+          for (const stepRun of startableStepRuns(
+            rootTransition,
+            (candidate) => !hasMissingSkipInput(transitionMetadata, candidate),
+          )) {
+            awaiting.push({ kind: "stepStart", stepRun });
           }
         }
       }
