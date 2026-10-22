@@ -7,7 +7,7 @@ import {
 import {
   expectFileUrlEditOnLaterPageShowsNewFile,
   getPdfPage,
-  getSearchHighlights,
+  getPdfSearchHighlights,
   pdf,
   uploadAndOpenFile,
 } from "../../shared/file-preview/utils";
@@ -69,7 +69,7 @@ test.describe("PDF preview", () => {
 
     await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
     await expect
-      .poll(() => getSearchHighlights(page))
+      .poll(() => getPdfSearchHighlights(page))
       .toEqual(shownPageHighlights);
 
     const nextResult = page.getByRole("button", { name: "Next result" });
@@ -80,7 +80,7 @@ test.describe("PDF preview", () => {
       pdfPage.getByText(thirdPage.heading, { exact: true }),
     ).toBeVisible();
     await expect
-      .poll(() => getSearchHighlights(page))
+      .poll(() => getPdfSearchHighlights(page))
       .toEqual(shownPageHighlights);
   });
 
