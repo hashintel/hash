@@ -29,6 +29,10 @@ export type EditorUi = {
   recent: string[];
   /** A step just added for the user (Look up in the graph): the canvas pans to it and highlights it briefly. */
   flashId?: string | null;
+  /** J3 and its Explore screens draw a step's fields right under its title, with no "Inputs" header. */
+  hideInputsHeader?: boolean;
+  /** J2's query has no "Where" label and adds a "condition"; J3's has "Where" / "And" and "Add filter". */
+  plainQuery?: boolean;
 };
 
 export const initialUi: EditorUi = {

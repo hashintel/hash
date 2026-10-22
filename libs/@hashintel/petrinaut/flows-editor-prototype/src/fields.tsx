@@ -1017,7 +1017,14 @@ const EntityTypeField = ({
         data-placeholder={(!sourceLook && !selected) || undefined}
         onClick={() => setOpen(true)}
       >
-        <span>
+        <span
+          className={css({
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "1.5",
+          })}
+        >
+          {!sourceLook && selected ? <Icon name="cube" size="xs" /> : null}
           {sourceLook
             ? `${sourceLook.owner} › ${sourceLook.label}`
             : (selected?.title ?? "Choose a type")}

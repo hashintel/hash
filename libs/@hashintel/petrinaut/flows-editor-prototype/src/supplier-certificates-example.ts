@@ -97,7 +97,7 @@ export const supplierCertificatesExample = (
           conditions: [
             {
               id: 1,
-              propertyBaseUrl: property("Supplier", "Shipments"),
+              propertyBaseUrl: property("Supplier", "Shipment"),
               operator: "isAnyOf",
               value: null,
               valueSource: {

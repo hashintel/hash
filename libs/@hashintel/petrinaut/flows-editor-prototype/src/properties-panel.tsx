@@ -234,9 +234,6 @@ const trimmedInputs: Record<string, string[]> = {
   getFileFromUrl: ["description", "displayName"],
 };
 
-/** Steps whose Figma panel shows the field right under the title, with no "Inputs" header (J3). */
-const noInputsTitle = ["queryEntities", "sendEmail"];
-
 /** The labels Figma uses where the draft PRD's or the humanized name differs. */
 const inputLabels: Record<string, string> = {
   "sendEmail.to": "To",
@@ -420,7 +417,7 @@ const fieldFor = (
 };
 
 const ActionPanel = ({ step }: { step: DraftActionStep }) => {
-  const { document, validation } = useEditor();
+  const { document, ui, validation } = useEditor();
   const entry = getCatalogEntry(step.actionDefinitionId);
   if (!entry) {
     return null;
@@ -462,9 +459,7 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
       {visibleInputs.length > 0 ? (
         <Section
           title={
-            noInputsTitle.includes(step.actionDefinitionId) && !showFull
-              ? undefined
-              : "Inputs"
+            ui.hideInputsHeader && !showFull ? undefined : "Inputs"
           }
         >
           {visibleInputs.map((input) => {
@@ -644,9 +639,11 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
                   )
                 }
               >
-                {over.owner === "Start"
-                  ? over.label
-                  : `${over.owner} › ${over.label}`}
+                {step.over.kind === "item"
+                  ? `${over.owner} › ${over.label}`
+                  : step.over.kind === "flow-input"
+                    ? over.label
+                    : over.owner}
               </SourceChip>
             ) : (
               <Button

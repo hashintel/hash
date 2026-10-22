@@ -105,7 +105,7 @@ export const mockEntityTypes = [
       ]),
       propertyType("certificate-url", "Certificate link", "Text"),
       propertyType("last-reviewed", "Last reviewed", "Date"),
-      link("shipments", "Shipments", "shipment"),
+      link("shipments", "Shipment", "shipment"),
     ],
   ),
   entityType(

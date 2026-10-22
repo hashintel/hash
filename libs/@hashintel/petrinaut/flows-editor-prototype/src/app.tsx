@@ -226,7 +226,7 @@ export const Editor = ({
       .filter((diagnostic) => diagnostic.severity === "error").length +
     validation.incomplete.size;
   const mockCount = validation.mockFields.size;
-  const showRun = showFull || ui.runOpen || document.triggers.length > 0;
+  const showRun = showFull || ui.runOpen;
   const allMessages = [
     ...validation.flowLevel.map((diagnostic) => diagnostic.message),
     ...[...validation.byStep.values()]
@@ -292,7 +292,7 @@ export const Editor = ({
                   All screens
                 </a>
               ) : null}
-              {/* The Run button shows on the Purity check flow (J4), and with ?full. */}
+              {/* The Run button shows with its form open (J4 · B1), and with ?full. */}
               {showRun ? (
                 <>
                   {/* The Run form opens under this button (J4 · B1). */}

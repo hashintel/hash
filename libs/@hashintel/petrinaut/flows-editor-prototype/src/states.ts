@@ -103,7 +103,7 @@ const journey3 = (
               conditions: [
                 {
                   id: 1,
-                  propertyBaseUrl: property("Supplier", "Shipments"),
+                  propertyBaseUrl: property("Supplier", "Shipment"),
                   operator: "isAnyOf" as const,
                   value: null,
                   valueSource: {
@@ -252,7 +252,7 @@ const failedBatchesAlert = (): EditorDocument => {
 
 const recentSteps = ["queryEntities", "getFileFromUrl"];
 
-export const screenStates: ScreenState[] = [
+const figmaStates: ScreenState[] = [
   {
     id: "j1-1",
     journey: 1,
@@ -686,6 +686,27 @@ export const screenStates: ScreenState[] = [
     }),
   },
 ];
+
+/**
+ * Per-state panel switches: J3 and rel-d2 (a J3 Explore screen) draw no "Inputs" header; J2's query reads "Add
+ * condition" with no "Where".
+ */
+export const screenStates: ScreenState[] = figmaStates.map((state) => {
+  const hideInputsHeader = state.journey === 3;
+  const plainQuery = state.journey === 2;
+  return hideInputsHeader || plainQuery
+    ? {
+        ...state,
+        create: () => {
+          const created = state.create();
+          return {
+            ...created,
+            ui: { ...created.ui, hideInputsHeader, plainQuery },
+          };
+        },
+      }
+    : state;
+});
 
 /** The journey sections on ↳ Current, in Figma order (file 69r6JuKZ2kAr61h7Ci40kh). */
 export const journeyTitles: Record<ScreenState["journey"], string> = {

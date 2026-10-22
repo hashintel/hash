@@ -11,7 +11,7 @@
  * - a variable shows as the value's selected item (its step's icon, step name first, middle collapsed);
  * - "@" in a text value opens the variable picker beside the field, which keeps focus (no DS mention input).
  */
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import {
   Button,
@@ -49,7 +49,7 @@ import {
   type QueryDraft,
   type QueryGroup,
   type RelativeDate,
-  stepTitle,
+  stepLabel,
   VALUE_SUBJECT,
 } from "./document";
 import { useEditor } from "./editor-context";
@@ -232,7 +232,7 @@ export type BuilderProperty = {
   property?: MockPropertyType;
 };
 
-/** A variable's path, step name first: "Find entities › Shipments this month › Shipment", or "Start › Review month". */
+/** A variable's path: the step's name ("Shipments this month"), plus an output that is not the main one ("Failed batches › Count"); a flow input is its own name ("Review month"). */
 export const tokenPath = (
   document: EditorDocument,
   source: StepInputSource,
@@ -242,23 +242,24 @@ export const tokenPath = (
     const input = document.inputs.find(
       (candidate) => candidate.name === source.inputName,
     );
-    return ["Start", input?.label ?? source.inputName];
+    return [input?.label ?? source.inputName];
   }
   if (source.kind === "step-output") {
     const step = findStep(document, source.stepId)?.step;
     if (!step) {
       return [source.stepId];
     }
-    const output =
+    // The step's own name; its output's name only when it is not the step's main output.
+    const outputs =
       step.kind === "action"
-        ? getCatalogEntry(step.actionDefinitionId)?.outputs.find(
-            (candidate) => candidate.name === source.outputName,
-          )
-        : undefined;
-    const title = stepTitle(step);
-    const description =
-      step.description && step.description !== title ? [step.description] : [];
-    return [title, ...description, output?.label ?? source.outputName];
+        ? (getCatalogEntry(step.actionDefinitionId)?.outputs ?? [])
+        : [];
+    const output = outputs.find(
+      (candidate) => candidate.name === source.outputName,
+    );
+    return step.kind === "action" && outputs[0]?.name === source.outputName
+      ? [stepLabel(step)]
+      : [stepLabel(step), output?.label ?? source.outputName];
   }
   if (source.kind === "item") {
     const parentId = stepId ? findStep(document, stepId)?.parentId : undefined;
@@ -348,11 +349,11 @@ const joinLabelStyle = css({
   color: "neutral.fg.body",
 });
 
-/** A row, the ⋮ at its end on the first line; the chip wraps inside if the panel is narrow. */
+/** A row: the chip, then its ⋮ segment, on one line. */
 const rowStyle = css({
   display: "flex",
-  alignItems: "flex-start",
-  gap: "1",
+  alignItems: "stretch",
+  gap: "[0]",
   width: "[100%]",
   minWidth: "[0]",
   "& [data-part=filter-root], & [role=group][data-property]": {
@@ -372,51 +373,51 @@ const tipStyle = css({
 });
 
 /**
- * The attribute and operator stay whole ("Shipment · is any of", J3 · B3); a long value takes the overflow and ends in
- * "…" after its own collapsed middle. Layout only: the chip's parts keep their DS look.
+ * One line, at the panel's body text size (the DS Filter's sm is 12 px, the panel's text 14 px; Figma J3 draws the chip
+ * at the panel's size). The attribute and operator stay whole ("Shipment · is any of", J3 · B3); a long value takes the
+ * overflow and ends in "…". The ⋮ that follows is the chip's last segment, so the chip's own last corners square off.
+ * Layout and type size only: the chip's parts keep their DS look.
  */
 const filterFitStyle = css({
+  "&[class]": {
+    textStyle: "sm",
+    "--filter-font-size": "[1em]",
+    "--filter-input-padding-x": "[6px]",
+  },
   "&[class] > [data-part='property'], &[class] > [data-scope='select'][data-part='trigger']":
     { flexShrink: 0 },
   "&[class] > [data-part='input-slot']": {
     flexShrink: 1,
     minWidth: "[0]",
-    maxWidth: "[200px]",
+    maxWidth: "[100%]",
+  },
+  // The DS pads a select value twice (its button and its label); Figma draws it once.
+  "&[class] > [data-part='input-slot'] button > [data-part='trigger']": {
+    paddingInline: "[0]",
+  },
+  "&[class] > :last-child": {
+    borderStartEndRadius: "[0]",
+    borderEndEndRadius: "[0]",
   },
 });
 
-/**
- * A value too long for the chip's line wraps to a line of its own inside the chip, under a whole attribute and
- * operator, as J3 · B2 and B3 draw it. Layout and corner radii only: the parts keep their DS look.
- */
-const filterStackStyle = css({
-  // The chip's outline moves to the chip itself, so row 1's segments hug their text and the spare width sits after
-  // the operator, inside the outline.
+/** The ⋮ as the chip's last segment: the chip's hairline on three sides, its divider on the left. */
+const menuSegmentStyle = css({
   "&[class]": {
-    display: "inline-grid",
-    gridTemplateColumns: "[max-content max-content minmax(0, 1fr)]",
-    maxWidth: "[100%]",
-    border: "var(--form-border-width) solid var(--filter-outer-border)",
-    borderRadius: "[var(--filter-radius)]",
-    overflow: "hidden",
-  },
-  "&[class] > *": {
-    borderBlock: "[none]",
+    alignSelf: "stretch",
+    flexShrink: 0,
+    height: "[auto]",
+    minHeight: "[0]",
+    width: "[22px]",
+    minWidth: "[0]",
+    paddingInline: "[0]",
     borderRadius: "[0]",
-  },
-  "&[class] > [data-part='property']": { borderInlineStart: "[none]" },
-  "&[class] > [data-scope='select'][data-part='trigger']": {
-    borderInlineEnd: "var(--form-border-width) solid var(--filter-divider)",
-  },
-  "&[class] > [data-part='input-slot']": {
-    gridColumn: "[1 / -1]",
-    maxWidth: "[100%]",
-    // No line between the two rows, as J3 · B2 draws it.
-    borderInline: "[none]",
-  },
-  // The wrapped value starts at the attribute's text edge (the DS trigger pads both its button and its label).
-  "&[class] > [data-part='input-slot'] button > [data-part='trigger']": {
-    paddingInlineStart: "[0]",
+    borderStartEndRadius: "[5px]",
+    borderEndEndRadius: "[5px]",
+    borderWidth: "thin",
+    borderStyle: "solid",
+    borderColor: "neutral.bd.subtle",
+    borderInlineStartWidth: "[0]",
   },
 });
 
@@ -431,9 +432,8 @@ const tokenValueStyle = css({
 });
 
 /**
- * A token's text: step name first, the middle collapsed to "…", the value's own name last ("Find entities › … ›
- * Shipment", J3 · B3). When it does not fit on the chip's line, the value moves to its own line (`filterStackStyle`);
- * only a token longer than the whole row shortens its step name.
+ * A token's text: the step's name, then the attribute it supplies after "›" ("Shipments this month › Received
+ * date", J3 · C1b). It stays on the chip's line; a long step name shortens with "…" and the attribute stays whole.
  */
 const tokenLabelStyle = css({
   display: "inline-flex",
@@ -442,12 +442,20 @@ const tokenLabelStyle = css({
   minWidth: "[0]",
   whiteSpace: "nowrap",
   "& > [data-first]": {
-    minWidth: "[2ch]",
+    minWidth: "[1ch]",
     overflow: "hidden",
     textOverflow: "ellipsis",
   },
   "& > :not([data-first])": { flexShrink: 0 },
 });
+
+/** An entity as a value: the cube icon, then its name (J3 · A1). */
+const EntityValue = ({ text }: { text: string }) => (
+  <span className={tokenValueStyle}>
+    <Icon name="cube" size="xs" />
+    <span>{text}</span>
+  </span>
+);
 
 const TokenLabel = ({ parts }: { parts: string[] }) => {
   const [first = "", ...rest] = parts;
@@ -600,10 +608,7 @@ const ConditionRowView = ({
     !listOperator;
   const tokenParts = row.valueSource
     ? [
-        ...tokenPath(document, row.valueSource, step.stepId).slice(
-          0,
-          lookupLeaf ? -1 : undefined,
-        ),
+        ...tokenPath(document, row.valueSource, step.stepId),
         ...(lookupLeaf ? [title] : []),
       ]
     : null;
@@ -745,9 +750,11 @@ const ConditionRowView = ({
             renderItem,
             // One line: the first pick, then "+N" (Aakarsh, 21 Oct).
             renderSelectedAll: (values: string[]) =>
-              values.length === 0
-                ? null
-                : `${items.find((item) => item.value === values[0])?.text ?? values[0]}${values.length > 1 ? ` +${values.length - 1}` : ""}`,
+              values.length === 0 ? null : (
+                <EntityValue
+                  text={`${items.find((item) => item.value === values[0])?.text ?? values[0]}${values.length > 1 ? ` +${values.length - 1}` : ""}`}
+                />
+              ),
           };
         }
         return {
@@ -756,6 +763,11 @@ const ConditionRowView = ({
           items,
           placeholder: `Select a ${(linkedType?.title ?? "record").toLowerCase()}…`,
           renderItem,
+          renderSelectedItem: (value: string) => (
+            <EntityValue
+              text={items.find((item) => item.value === value)?.text ?? value}
+            />
+          ),
         };
     }
     return {
@@ -966,41 +978,6 @@ const ConditionRowView = ({
 
   const committed = filterValue();
 
-  // A token that does not fit beside the attribute and operator moves to its own line (J3 · B2, B3).
-  const [stacked, setStacked] = useState(false);
-  const measuredWidth = useRef(0);
-  const tokenText = tokenParts?.join(" › ") ?? null;
-  useLayoutEffect(() => {
-    const rowElement = rowRef.current;
-    if (!rowElement || tokenText === null) {
-      setStacked(false);
-      return;
-    }
-    const measure = () => {
-      const label = rowElement.querySelector<HTMLElement>("[data-token-label]");
-      const first = label?.querySelector<HTMLElement>("[data-first]");
-      const cut =
-        !!label &&
-        (label.scrollWidth > label.clientWidth + 1 ||
-          (!!first && first.scrollWidth > first.clientWidth + 1));
-      if (cut) {
-        setStacked(true);
-      }
-    };
-    measure();
-    const observer = new ResizeObserver(([resized]) => {
-      const width = Math.round(resized?.contentRect.width ?? 0);
-      if (width !== measuredWidth.current) {
-        measuredWidth.current = width;
-        // A new row width: try one line again, then measure.
-        setStacked(false);
-        requestAnimationFrame(measure);
-      }
-    });
-    observer.observe(rowElement);
-    return () => observer.disconnect();
-  }, [tokenText]);
-
   /*
    * A date value is a Filter item with a calendar icon (ds-map, 21 Oct) that opens the DS datePicker composition,
    * relative dates and calendar together, as J3 · A3 draws it. The DS Filter's value can only be a text, number or
@@ -1041,7 +1018,7 @@ const ConditionRowView = ({
         <Filter
           key={`${resetCount}:${row.propertyBaseUrl}:${row.valueSource ? "token" : "typed"}`}
           size="sm"
-          className={stacked ? filterStackStyle : filterFitStyle}
+          className={filterFitStyle}
           property={`${row.id}:${row.propertyBaseUrl}`}
           propertyLabel={title}
           propertyMenu={[
@@ -1084,21 +1061,19 @@ const ConditionRowView = ({
             }
           }}
         />
-        {/* On the value's line when the value wraps (J3 · B2). */}
-        <span className={stacked ? css({ alignSelf: "flex-end" }) : undefined}>
-          <Menu
-            position="bottom-end"
-            items={rowMenu}
-            trigger={
-              <Button
-                size="sm"
-                variant="ghost"
-                iconName="ellipsisVertical"
-                aria-label="Condition options"
-              />
-            }
-          />
-        </span>
+        <Menu
+          position="bottom-end"
+          items={rowMenu}
+          trigger={
+            <Button
+              size="sm"
+              variant="ghost"
+              className={menuSegmentStyle}
+              iconName="ellipsisVertical"
+              aria-label="Condition options"
+            />
+          }
+        />
 
         {openPart === "value" && type === "date" && row.operator !== "isIn" ? (
           <Popover
@@ -1192,6 +1167,14 @@ const builderStyle = css({
   backgroundColor: "neutral.bgSolid.min",
 });
 
+/** J2's query sits on the panel itself, with no box around it (J2 · B1). */
+const plainBuilderStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "2",
+});
+
 /** The rows (and the groups among them): 8 px apart. */
 const rowsStyle = css({
   display: "flex",
@@ -1239,9 +1222,11 @@ const JoinLabel = ({
 const AddCondition = ({
   properties,
   onAdd,
+  label,
 }: {
   properties: BuilderProperty[];
   onAdd: (property: BuilderProperty) => void;
+  label: string;
 }) => (
   <Menu
     items={[
@@ -1257,7 +1242,7 @@ const AddCondition = ({
     ]}
     trigger={
       <Button size="sm" variant="subtle" iconName="plus">
-        Add filter
+        {label}
       </Button>
     }
   />
@@ -1297,6 +1282,10 @@ export const ConditionBuilder = ({
   /** False for a trigger's condition: nothing runs before it, so there is nothing to refer to. */
   allowVariables?: boolean;
 }) => {
+  const { ui } = useEditor();
+  // J2's query draws no "Where" and adds a "condition"; J3's has "Where" / "And" labels and "Add filter".
+  const plain = ui.plainQuery;
+  const addLabel = plain ? "Add condition" : "Add filter";
   const groups = draft.groups ?? [];
   const allIds = [
     ...draft.conditions,
@@ -1343,7 +1332,10 @@ export const ConditionBuilder = ({
   }
 
   return (
-    <div className={builderStyle} data-condition-builder>
+    <div
+      className={plain ? plainBuilderStyle : builderStyle}
+      data-condition-builder
+    >
       <div className={rowsStyle}>
         {draft.conditions.map((row, index) => (
           <ConditionRowView
@@ -1356,7 +1348,9 @@ export const ConditionBuilder = ({
             forGraph={forGraph}
             prefix={
               index === 0 ? (
-                <JoinLabel />
+                plain ? null : (
+                  <JoinLabel />
+                )
               ) : (
                 <JoinLabel
                   conjunction={draft.conjunction}
@@ -1459,6 +1453,7 @@ export const ConditionBuilder = ({
                 </Fragment>
               ))}
               <AddCondition
+                label={addLabel}
                 properties={properties}
                 onAdd={(property) =>
                   setGroup(group.id, {
@@ -1471,6 +1466,7 @@ export const ConditionBuilder = ({
         ))}
       </div>
       <AddCondition
+        label={addLabel}
         properties={properties}
         onAdd={(property) => setRows([...draft.conditions, newRow(property)])}
       />
