@@ -2,93 +2,13 @@ import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { formInputSizes } from "../../util/form-shared";
 import { Select } from "./select";
 
-import type { FormInputWidth } from "../../util/form-shared";
 import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { MultiSelectItem, SelectItem } from "./select";
-import type { Story, StoryDefault } from "@ladle/react";
 
 type SelectProps = React.ComponentProps<typeof Select>;
 type MultiSelectProps = Extract<SelectProps, { multiple: true }>;
-type Variant = NonNullable<SelectProps["variant"]>;
-type Align = NonNullable<SelectProps["align"]>;
-
-const variants = ["default", "subtle"] as const satisfies readonly Variant[];
-const alignments = [
-  "left",
-  "center",
-  "right",
-] as const satisfies readonly Align[];
-const widths = [
-  "xs",
-  "sm",
-  "md",
-  "lg",
-  "fullWidth",
-  "fitContent",
-] as const satisfies readonly FormInputWidth[];
-
-export default {
-  title: "Components/Select",
-  argTypes: {
-    placeholder: {
-      control: { type: "text" },
-      description: "Placeholder text shown when the input is empty",
-    },
-    disabled: {
-      control: { type: "boolean" },
-      description: "Disable the input",
-    },
-    invalid: {
-      control: { type: "boolean" },
-      description: "Mark the input as invalid",
-    },
-    readonly: {
-      control: { type: "boolean" },
-      description: "Render the input as read-only text",
-    },
-    loading: {
-      control: { type: "boolean" },
-      description: "Show a loading indicator",
-    },
-    variant: {
-      control: { type: "radio" },
-      options: variants,
-      description: "Visual variant of the input",
-    },
-    align: {
-      control: { type: "radio" },
-      options: alignments,
-      description: "Text alignment within the input",
-    },
-    size: {
-      control: { type: "select" },
-      options: formInputSizes,
-      description: "Input height",
-    },
-    width: {
-      control: { type: "select" },
-      options: widths,
-      description: "Preset input width",
-    },
-    hideArrow: {
-      control: { type: "boolean" },
-      description: "Hide the dropdown arrow",
-    },
-  },
-  args: {
-    disabled: false,
-    invalid: false,
-    readonly: false,
-    loading: false,
-    variant: "default",
-    align: "left",
-    size: "md",
-    hideArrow: false,
-  },
-} satisfies StoryDefault<MultiSelectProps>;
 
 const sampleItems: Array<ItemOrGroup<SelectItem>> = [
   { value: "apple", text: "Apple" },
@@ -220,7 +140,7 @@ const overflowItems: Array<MultiSelectItem> = [
   { value: "honeydew", text: "Honeydew" },
 ];
 
-export const Multiple: Story<MultiSelectProps> = (args) => {
+export const MultipleDemo = (args: MultiSelectProps) => {
   const spreadArgs = args as Omit<
     MultiSelectProps,
     "items" | "value" | "onChange" | "required"

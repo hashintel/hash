@@ -13,7 +13,7 @@ It should not own:
 
 - Panda config
 - preset source
-- stories or Ladle config
+- stories or Storybook config
 - Playwright tests
 - token generation scripts
 

@@ -42,7 +42,7 @@ Use `@hashintel/ds-components/tokens` when you need the package-owned Panda toke
 | Token demo stories         | `src/tokens/**`                  |
 | Intro docs                 | `src/stories/Intro.mdx`          |
 | Local demo config          | `panda.local.config.ts`          |
-| Ladle harness              | `.ladle/**`                      |
+| Storybook harness          | `.storybook/**`                  |
 | Snapshot tests             | `tests/**`                       |
 
 ## Common Commands
@@ -60,7 +60,7 @@ yarn test:snapshots
 yarn build
 ```
 
-`yarn dev` is the primary Ladle-based review loop. Use `yarn dev:ladle` for component-story review and `yarn dev:lib` when you only need the library watcher.
+`yarn dev` is the primary Storybook-based review loop. Use `yarn dev:storybook` for component-story review and `yarn dev:lib` when you only need the library watcher.
 `yarn prepare`/`yarn codegen` generates the shared `../ds-helpers/styled-system`
 authoring runtime, and the demo loops rely on Vite/PostCSS for CSS extraction
 while the server is running.

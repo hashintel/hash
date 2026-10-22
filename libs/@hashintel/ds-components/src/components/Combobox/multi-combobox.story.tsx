@@ -2,17 +2,14 @@ import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { formInputSizes } from "../../util/form-shared";
 import { Combobox } from "./combobox";
 
-import type { FormInputWidth } from "../../util/form-shared";
 import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { ComboboxProps, MultiComboboxItem } from "./combobox";
-import type { Story, StoryDefault } from "@ladle/react";
 
 // The multiple, no-new-values arm of the props union: `value`/`onChange` are
 // arrays scoped to the items' values.
-type MultiComboboxProps = Extract<
+export type MultiComboboxProps = Extract<
   ComboboxProps,
   { multiple: true; allowNewValue?: false }
 >;
@@ -27,95 +24,7 @@ type AllowNewValue = NonNullable<
   Exclude<ComboboxProps["allowNewValue"], boolean> | true
 >;
 
-type Variant = NonNullable<MultiComboboxProps["variant"]>;
-
-const variants = ["default", "subtle"] as const satisfies readonly Variant[];
-const widths = [
-  "xs",
-  "sm",
-  "md",
-  "lg",
-  "fullWidth",
-  "fitContent",
-] as const satisfies readonly FormInputWidth[];
 const overflowModes = ["scroll", "truncate", "summary"] as const;
-const filterAlgorithms = ["contains", "startsWith", "none"] as const;
-
-export default {
-  title: "Components / Combobox",
-  argTypes: {
-    placeholder: {
-      control: { type: "text" },
-      description: "Placeholder shown while nothing is selected or typed",
-    },
-    disabled: {
-      control: { type: "boolean" },
-      description: "Disable the input",
-    },
-    invalid: {
-      control: { type: "boolean" },
-      description: "Mark the input as invalid",
-    },
-    readonly: {
-      control: { type: "boolean" },
-      description: "Render the selection as read-only chips",
-    },
-    loading: {
-      control: { type: "boolean" },
-      description: "Show a loading indicator",
-    },
-    clearable: {
-      control: { type: "boolean" },
-      description: "Show a clear button that empties the selection",
-    },
-    allowNewValue: {
-      control: { type: "boolean" },
-      description: "Allow committing typed text that matches no option",
-    },
-    clearInputOnSelect: {
-      control: { type: "boolean" },
-      description: "Clear the typed text when an option is toggled",
-    },
-    variant: {
-      control: { type: "radio" },
-      options: variants,
-      description: "Visual variant of the input",
-    },
-    size: {
-      control: { type: "select" },
-      options: formInputSizes,
-      description: "Input height",
-    },
-    width: {
-      control: { type: "select" },
-      options: widths,
-      description: "Preset input width",
-    },
-    overflow: {
-      control: { type: "radio" },
-      options: overflowModes,
-      description: "How the selected chips overflow the input",
-    },
-    maxItems: {
-      control: { type: "number" },
-      description: "Maximum number of selectable values",
-    },
-    filterAlgorithm: {
-      control: { type: "radio" },
-      options: filterAlgorithms,
-      description: "How options are filtered against the typed text",
-    },
-  },
-  args: {
-    disabled: false,
-    invalid: false,
-    readonly: false,
-    loading: false,
-    clearInputOnSelect: true,
-    variant: "default",
-    size: "md",
-  },
-} satisfies StoryDefault<MultiComboboxProps>;
 
 const selectedStyles = ["checkbox", "tick", "highlight"] as const;
 const selectedTones = ["neutral", "brand", "error"] as const;
@@ -338,7 +247,7 @@ const ControlledTags = ({
   );
 };
 
-export const Multiple: Story<MultiComboboxProps> = (args) => {
+export const MultipleDemo = (args: MultiComboboxProps) => {
   const spreadArgs = args as Omit<
     MultiComboboxProps,
     "items" | "value" | "onChange" | "allowNewValue"

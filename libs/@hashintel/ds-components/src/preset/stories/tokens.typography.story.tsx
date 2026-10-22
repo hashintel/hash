@@ -4,7 +4,6 @@ import { token } from "@hashintel/ds-helpers/tokens";
 
 import type { FontWeightToken, Leading, TextStyle } from "./_types";
 import type { Token } from "@hashintel/ds-helpers/tokens";
-import type { Story } from "@ladle/react";
 
 const textStyles: readonly TextStyle[] = [
   "xs",
@@ -131,9 +130,11 @@ const FontWeightDemo = ({ name, value }: { name: string; value: number }) => (
   </HStack>
 );
 
-export const Typography: Story<{
+export const TypographyDemo = ({
+  leadingFactor,
+}: {
   leadingFactor: Leading;
-}> = ({ leadingFactor }) => (
+}) => (
   <div className={css({ leading: leadingFactor })}>
     <VStack gap="8" alignItems="flex-start" p="6">
       <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
@@ -180,12 +181,3 @@ export const Typography: Story<{
     </VStack>
   </div>
 );
-
-Typography.storyName = "Typography";
-Typography.argTypes = {
-  leadingFactor: {
-    options: ["tight", "normal", "loose"],
-    control: { type: "select" },
-    defaultValue: "normal",
-  },
-};

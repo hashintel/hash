@@ -15,7 +15,7 @@
   "extends": ["@tsconfig/bases/strictest", "@local/tsconfig/policy.json"],
   "include": [
     "src/**/*",
-    ".ladle/**/*",
+    ".storybook/**/*",
     "tests/**/*",
     "scripts/**/*",
     "panda.config.ts",

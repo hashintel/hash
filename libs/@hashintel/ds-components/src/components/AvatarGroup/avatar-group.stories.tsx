@@ -7,7 +7,7 @@ import { Avatar } from "../Avatar/avatar";
 import { Tooltip } from "../Tooltip/tooltip";
 import { AvatarGroup } from "./avatar-group";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type AvatarGroupProps = React.ComponentProps<typeof AvatarGroup>;
 type AvatarProps = React.ComponentProps<typeof Avatar>;
@@ -23,9 +23,18 @@ type PersonAvatar = {
 
 const sampleImage = "https://avatars.githubusercontent.com/u/1846056?v=4";
 
-export default {
+const meta = {
   title: "Components/AvatarGroup",
-} satisfies StoryDefault<AvatarGroupProps>;
+  component: AvatarGroup,
+  args: {
+    lastOnTop: false,
+    spacing: "md",
+  },
+} satisfies Meta<AvatarGroupProps>;
+
+export default meta;
+
+type Story = StoryObj<AvatarGroupProps>;
 
 // Avatars are passed as children; the group sets size/tone via context, so the
 // children below leave those unset.
@@ -90,111 +99,134 @@ const Rows = ({ rows }: { rows: LabeledRow[] }) => (
   </div>
 );
 
-export const Default: Story<AvatarGroupProps> = () => (
-  <Rows
-    rows={[
-      {
-        label: "All avatars",
-        content: <AvatarGroup>{avatarsOf(people)}</AvatarGroup>,
-      },
-      {
-        label: "lastOnTop",
-        content: <AvatarGroup lastOnTop>{avatarsOf(people)}</AvatarGroup>,
-      },
-      {
-        label: "max = 4",
-        content: <AvatarGroup max={4}>{avatarsOf(people)}</AvatarGroup>,
-      },
-      {
-        label: "total = 24",
-        content: (
-          <AvatarGroup max={4} total={24}>
-            {avatarsOf(people)}
-          </AvatarGroup>
-        ),
-      },
-      {
-        label: "custom overflow",
-        content: (
-          <AvatarGroup>
-            {avatarsOf(people.slice(0, 3))}
-            <AvatarGroup.More alt="99 or more people">
-              <span style={{ fontSize: 11 }}>99+</span>
-            </AvatarGroup.More>
-          </AvatarGroup>
-        ),
-      },
-      {
-        label: "brand tone",
-        content: (
-          <AvatarGroup max={4} tone="brand">
-            {avatarsOf(people)}
-          </AvatarGroup>
-        ),
-      },
-      {
-        label: "square",
-        content: (
-          <AvatarGroup max={4}>{avatarsOf(asShape("square"))}</AvatarGroup>
-        ),
-      },
-      {
-        label: "mixed shapes",
-        content: <AvatarGroup max={4}>{avatarsOf(mixedShapes)}</AvatarGroup>,
-      },
-      {
-        label: "spacing = sm",
-        content: (
-          <AvatarGroup max={4} spacing="sm">
-            {avatarsOf(people)}
-          </AvatarGroup>
-        ),
-      },
-      {
-        label: "with tooltips",
-        content: (
-          <AvatarGroup max={4}>
-            {people.map((props) => (
-              <Tooltip
-                key={props.src ?? props.alt}
-                content={props.alt}
-                position="bottom"
-              >
-                <Avatar
-                  {...props}
-                  onClick={() => {
-                    // eslint-disable-next-line no-console
-                    console.log(`Clicked ${props.alt}`);
-                  }}
-                />
-              </Tooltip>
-            ))}
-          </AvatarGroup>
-        ),
-      },
-    ]}
-  />
-);
+export const Default: Story = {
+  render: (args: Partial<AvatarGroupProps>) => (
+    <Rows
+      rows={[
+        {
+          label: "All avatars",
+          content: <AvatarGroup {...args}>{avatarsOf(people)}</AvatarGroup>,
+        },
+        {
+          label: "lastOnTop",
+          content: (
+            <AvatarGroup {...args} lastOnTop>
+              {avatarsOf(people)}
+            </AvatarGroup>
+          ),
+        },
+        {
+          label: "max = 4",
+          content: (
+            <AvatarGroup {...args} max={4}>
+              {avatarsOf(people)}
+            </AvatarGroup>
+          ),
+        },
+        {
+          label: "total = 24",
+          content: (
+            <AvatarGroup {...args} max={4} total={24}>
+              {avatarsOf(people)}
+            </AvatarGroup>
+          ),
+        },
+        {
+          label: "custom overflow",
+          content: (
+            <AvatarGroup {...args}>
+              {avatarsOf(people.slice(0, 3))}
+              <AvatarGroup.More alt="99 or more people">
+                <span style={{ fontSize: 11 }}>99+</span>
+              </AvatarGroup.More>
+            </AvatarGroup>
+          ),
+        },
+        {
+          label: "brand tone",
+          content: (
+            <AvatarGroup {...args} max={4} tone="brand">
+              {avatarsOf(people)}
+            </AvatarGroup>
+          ),
+        },
+        {
+          label: "square",
+          content: (
+            <AvatarGroup {...args} max={4}>
+              {avatarsOf(asShape("square"))}
+            </AvatarGroup>
+          ),
+        },
+        {
+          label: "mixed shapes",
+          content: (
+            <AvatarGroup {...args} max={4}>
+              {avatarsOf(mixedShapes)}
+            </AvatarGroup>
+          ),
+        },
+        {
+          label: "spacing = sm",
+          content: (
+            <AvatarGroup {...args} max={4} spacing="sm">
+              {avatarsOf(people)}
+            </AvatarGroup>
+          ),
+        },
+        {
+          label: "with tooltips",
+          content: (
+            <AvatarGroup {...args} max={4}>
+              {people.map((props) => (
+                <Tooltip
+                  key={props.src ?? props.alt}
+                  content={props.alt}
+                  position="bottom"
+                >
+                  <Avatar
+                    {...props}
+                    onClick={() => {
+                      // eslint-disable-next-line no-console
+                      console.log(`Clicked ${props.alt}`);
+                    }}
+                  />
+                </Tooltip>
+              ))}
+            </AvatarGroup>
+          ),
+        },
+      ]}
+    />
+  ),
+};
 
-export const Sizes: Story<AvatarGroupProps> = () => (
-  <Rows
-    rows={[
-      ...formInputSizes.map((size) => ({
-        label: size,
-        content: (
-          <AvatarGroup max={4} size={size}>
-            {avatarsOf(people)}
-          </AvatarGroup>
-        ),
-      })),
-      {
-        label: "custom (64px)",
-        content: (
-          <AvatarGroup max={4} size="custom" className={customSizeClass}>
-            {avatarsOf(people)}
-          </AvatarGroup>
-        ),
-      },
-    ]}
-  />
-);
+export const Sizes: Story = {
+  render: (args: Partial<AvatarGroupProps>) => (
+    <Rows
+      rows={[
+        ...formInputSizes.map((size) => ({
+          label: size,
+          content: (
+            <AvatarGroup {...args} max={4} size={size}>
+              {avatarsOf(people)}
+            </AvatarGroup>
+          ),
+        })),
+        {
+          label: "custom (64px)",
+          content: (
+            <AvatarGroup
+              {...args}
+              max={4}
+              size="custom"
+              className={customSizeClass}
+            >
+              {avatarsOf(people)}
+            </AvatarGroup>
+          ),
+        },
+      ]}
+    />
+  ),
+};
