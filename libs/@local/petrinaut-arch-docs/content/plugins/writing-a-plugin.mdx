@@ -164,6 +164,10 @@ user chooses it and clean up when they choose another.
 
 Inside `content`, `AssistantPanelTitle` fills the title bar and
 `useAssistantPanel()` reads whether the panel is open and closes it.
+`setCompact(true)` shrinks the panel to a dock in the canvas's corner, such
+as during a voice session. The dock has no title bar, so the content shows its
+own controls there, including a way to close; `setCompact(false)` restores the
+panel's placement and size.
 
 The title bar's parts render inside `content`, so they read the chat's state:
 the Clear button below shows only once there are messages.

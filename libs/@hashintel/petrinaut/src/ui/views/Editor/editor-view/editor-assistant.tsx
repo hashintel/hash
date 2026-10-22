@@ -36,13 +36,20 @@ export const EditorAssistantPanel = ({
   petriNetId: string | null;
   focusRequest: number;
 }) => {
-  const { isAiAssistantOpen, setAiAssistantOpen } = use(EditorContext);
+  const {
+    isAiAssistantOpen,
+    isAiAssistantCollapsed,
+    setAiAssistantCollapsed,
+    setAiAssistantOpen,
+  } = use(EditorContext);
 
   return (
     <PluginAssistantPanel
       panel={{
         isOpen: isAiAssistantOpen,
         close: () => setAiAssistantOpen(false),
+        compact: isAiAssistantCollapsed,
+        setCompact: setAiAssistantCollapsed,
       }}
       focusRequest={focusRequest}
     >

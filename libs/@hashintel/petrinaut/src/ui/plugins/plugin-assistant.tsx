@@ -18,6 +18,15 @@ import {
 export interface AssistantPanel {
   readonly isOpen: boolean;
   readonly close: () => void;
+  /**
+   * `true` while the panel is a compact dock in the canvas's corner, e.g.
+   * during a voice session. The dock takes no width beside the canvas, hides
+   * the title bar and fits the content, which may overflow it for a popover;
+   * the canvas's controls keep clear of it.
+   */
+  readonly compact: boolean;
+  /** Shrinks the panel to the dock, or restores its placement and size. */
+  readonly setCompact: (compact: boolean) => void;
 }
 
 export const AssistantPanelContext = createContext<AssistantPanel | null>(null);
