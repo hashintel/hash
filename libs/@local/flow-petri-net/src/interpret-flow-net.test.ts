@@ -13,12 +13,6 @@ import {
   defineFlow,
   flowInput,
 } from "@local/hash-isomorphic-utils/flows/define-flow";
-import * as browserPluginFlows from "@local/hash-isomorphic-utils/flows/definitions/browser-plugin-flow-definitions";
-import * as fileFlows from "@local/hash-isomorphic-utils/flows/definitions/file-flow-definitions";
-import * as frontendFlows from "@local/hash-isomorphic-utils/flows/definitions/frontend-flow-definitions";
-import { ftseInvestorsFlow } from "@local/hash-isomorphic-utils/flows/definitions/ftse-investors-flow-definition";
-import * as goalFlows from "@local/hash-isomorphic-utils/flows/definitions/goal-flow-definitions";
-import * as integrationFlows from "@local/hash-isomorphic-utils/flows/definitions/integration-flow-definitions";
 
 import { compileFlowDefinition } from "./compile-flow-definition.js";
 import {
@@ -27,6 +21,11 @@ import {
   generatePendingPlaceKey,
 } from "./flow-net-keys.js";
 import { startFlowNetRun } from "./interpret-flow-net.js";
+import {
+  fileFlowDefinition,
+  forEachFlowDefinition,
+  hardcodedFlowDefinitions,
+} from "./testing/flow-definitions.js";
 
 import type { FlowNetMetadata } from "./flow-net-metadata.js";
 import type {
@@ -44,27 +43,8 @@ import type {
 import type {
   FlowActionDefinitionId,
   FlowDefinition,
-  FlowDefinitionWithId,
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
-
-const isFlow = (value: unknown): value is FlowDefinitionWithId =>
-  typeof value === "object" &&
-  value !== null &&
-  "flowDefinitionId" in value &&
-  "flowDefinition" in value;
-
-/** Every hardcoded flow's definition, found among the flow modules' exports so that new flows are covered too. */
-const hardcodedFlowDefinitions = Object.entries({
-  ...browserPluginFlows,
-  ...fileFlows,
-  ...frontendFlows,
-  ...goalFlows,
-  ...integrationFlows,
-  ftseInvestorsFlow,
-}).flatMap(([name, value]: [string, unknown]) =>
-  isFlow(value) ? [[name, value.flowDefinition] as const] : [],
-);
 
 const keyOf = (position: FlowNetPosition) =>
   position.kind === "place"
@@ -277,45 +257,6 @@ const expectActualModeReplays = (run: FlowNetRun) => {
 
 const leftoverKinds = (run: FlowNetRun) =>
   new Set(run.marking().map(({ token }) => token.kind));
-
-const fileFlowDefinition = defineFlow(
-  {
-    flowDefinitionId: "get-file",
-    name: "Get file",
-    description: "Get a file from a URL",
-    inputs: { url: flowInput("Text") },
-  },
-  ({ inputs, step }) => {
-    const getFile = step("get", actions.getFileFromUrl, {
-      description: "Retrieve the file from the URL",
-      inputs: { url: inputs.url },
-    });
-
-    return { outputs: { file: getFile.outputs.fileEntity } };
-  },
-).flowDefinition;
-
-const forEachFlowDefinition = defineFlow(
-  {
-    flowDefinitionId: "get-files",
-    name: "Get files",
-    description: "Get a file from each URL",
-    inputs: { urls: flowInput("Text", { array: true }) },
-  },
-  ({ inputs, forEach }) => {
-    const files = forEach("each", inputs.urls, {
-      description: "Retrieve each file",
-      collectAs: "files",
-      steps: (url, scope) =>
-        scope.step("get", actions.getFileFromUrl, {
-          description: "Retrieve the file",
-          inputs: { url },
-        }).outputs.fileEntity,
-    });
-
-    return { outputs: { files } };
-  },
-).flowDefinition;
 
 describe("startFlowNetRun", () => {
   it("starts a step once its inputs are there, and waits for its action", async () => {

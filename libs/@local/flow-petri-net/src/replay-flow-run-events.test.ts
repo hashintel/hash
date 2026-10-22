@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { typedActionDefinitions as actions } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import {
-  defineFlow,
-  flowInput,
-} from "@local/hash-isomorphic-utils/flows/define-flow";
 import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 import { compileFlowDefinition } from "./compile-flow-definition.js";
 import { startFlowNetRun } from "./interpret-flow-net.js";
 import { replayFlowRunEvents } from "./replay-flow-run-events.js";
+import {
+  fileFlowDefinition,
+  forEachFlowDefinition,
+} from "./testing/flow-definitions.js";
 
 import type { FlowRunReplay } from "./replay-flow-run-events.js";
 import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
@@ -36,45 +35,6 @@ const fileOutput: StepOutput[] = [
 
 const rolesByEvent = (replay: FlowRunReplay) =>
   replay.firings.map(({ eventPosition, role }) => [eventPosition, role]);
-
-const fileFlowDefinition = defineFlow(
-  {
-    flowDefinitionId: "get-file",
-    name: "Get file",
-    description: "Get a file from a URL",
-    inputs: { url: flowInput("Text") },
-  },
-  ({ inputs, step }) => {
-    const getFile = step("get", actions.getFileFromUrl, {
-      description: "Retrieve the file from the URL",
-      inputs: { url: inputs.url },
-    });
-
-    return { outputs: { file: getFile.outputs.fileEntity } };
-  },
-).flowDefinition;
-
-const forEachFlowDefinition = defineFlow(
-  {
-    flowDefinitionId: "get-files",
-    name: "Get files",
-    description: "Get a file from each URL",
-    inputs: { urls: flowInput("Text", { array: true }) },
-  },
-  ({ inputs, forEach }) => {
-    const files = forEach("each", inputs.urls, {
-      description: "Retrieve each file",
-      collectAs: "files",
-      steps: (url, scope) =>
-        scope.step("get", actions.getFileFromUrl, {
-          description: "Retrieve the file",
-          inputs: { url },
-        }).outputs.fileEntity,
-    });
-
-    return { outputs: { files } };
-  },
-).flowDefinition;
 
 const runStarted: UnplacedEvent = {
   kind: "runStarted",
