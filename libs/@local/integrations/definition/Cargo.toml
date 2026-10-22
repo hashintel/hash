@@ -13,6 +13,7 @@ error-stack = { workspace = true, public = true, features = ["unstable"] }
 type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
+uuid = { workspace = true, public = true, features = ["serde"] }
 
 # Private workspace dependencies
 

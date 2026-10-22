@@ -1,6 +1,7 @@
 ---
 source: libs/@local/integrations/definition/tests/ui.rs
+assertion_line: 34
 expression: render(&text)
 input_file: libs/@local/integrations/definition/tests/ui/syntax-unknown-field.yaml
 ---
-6:5: `primaryKeys` is not a field here; expected one of `sql`, `checkpoint`, `primaryKey`, `coverage`
+6:5: `primaryKeys` is not a field here; expected one of `sql`, `checkpoint`, `local`, `postgres`, `redshift`, `rest`, `primaryKey`, `coverage`
