@@ -3,9 +3,7 @@ mod remote;
 use alloc::{boxed::Box, collections::BTreeSet, string::String};
 use core::{array, mem};
 
-pub use self::remote::{
-    Pagination, PostgresSource, RestAuth, RestSource, SecretReference, SslMode,
-};
+pub use self::remote::{Pagination, PostgresSource, RestAuth, RestSource, SecretReference};
 use crate::name::{CheckpointName, ColumnName};
 
 /// Reports that an SQL query contains only whitespace.

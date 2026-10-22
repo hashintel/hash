@@ -1,7 +1,8 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String};
-use core::num::{NonZeroU16, NonZeroU64};
+use core::num::NonZeroU64;
 
 use serde::Deserialize;
+use url::Url;
 use uuid::Uuid;
 
 /// A User Secret entity in the run owner's web.
@@ -11,44 +12,72 @@ pub struct SecretReference {
     pub secret_entity_uuid: Uuid,
 }
 
-/// TLS verification for PostgreSQL and Redshift connections.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum SslMode {
-    Disable,
-    Require,
-    #[default]
-    VerifyFull,
-}
-
 /// A table accessible through the PostgreSQL protocol, including Redshift.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PostgresSource {
-    pub host: Box<str>,
-    #[serde(default = "default_port")]
-    pub port: NonZeroU16,
-    pub database: Box<str>,
+    pub connection: Url,
     pub schema: Box<str>,
     pub table: Box<str>,
-    #[serde(default)]
-    pub ssl_mode: SslMode,
     pub credentials: SecretReference,
-}
-
-const fn default_port() -> NonZeroU16 {
-    NonZeroU16::new(5432).expect("the PostgreSQL port should be nonzero")
 }
 
 impl PostgresSource {
     pub(crate) fn validate(&self) -> Result<(), &'static str> {
-        if [&self.host, &self.database, &self.schema, &self.table]
+        if !matches!(self.connection.scheme(), "postgres" | "postgresql")
+            || self.connection.cannot_be_a_base()
+            || self.connection.fragment().is_some()
+        {
+            return Err("connection must be a PostgreSQL URI without a fragment");
+        }
+        if !self.connection.username().is_empty() || self.connection.password().is_some() {
+            return Err("connection credentials must come from the referenced User Secret");
+        }
+        let mut host = self
+            .connection
+            .host_str()
+            .is_some_and(|host| !host.is_empty());
+        let mut database = !matches!(self.connection.path(), "" | "/");
+        for (name, value) in self.connection.query_pairs() {
+            if name.contains('\0') || value.contains('\0') {
+                return Err("connection parameters must contain no NUL");
+            }
+            match name.as_ref() {
+                "user" | "password" | "passfile" | "service" | "servicefile" => {
+                    return Err("connection credentials must come from the referenced User Secret");
+                }
+                "host" => host = !value.is_empty(),
+                "dbname" => database = !value.is_empty(),
+                "sslmode" if !matches!(value.as_ref(), "disable" | "require" | "verify-full") => {
+                    return Err("sslmode must be disable, require or verify-full");
+                }
+                "port" if value.parse::<core::num::NonZeroU16>().is_err() => {
+                    return Err("connection port must be between 1 and 65535");
+                }
+                _ => {}
+            }
+        }
+        if !host || !database || self.connection.port() == Some(0) {
+            return Err("connection must specify a host, database and nonzero port");
+        }
+        if [&self.schema, &self.table]
             .iter()
             .any(|value| value.trim().is_empty() || value.contains('\0'))
         {
-            return Err("host, database, schema and table must be nonempty and contain no NUL");
+            return Err("schema and table must be nonempty and contain no NUL");
         }
         Ok(())
+    }
+}
+
+impl core::fmt::Debug for PostgresSource {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        fmt.debug_struct("PostgresSource")
+            .field("connection", &"<redacted>")
+            .field("schema", &self.schema)
+            .field("table", &self.table)
+            .field("credentials", &self.credentials)
+            .finish()
     }
 }
 

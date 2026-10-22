@@ -1,6 +1,5 @@
 ---
 source: libs/@local/integrations/definition/tests/ui.rs
-assertion_line: 34
 expression: render(&text)
 input_file: libs/@local/integrations/definition/tests/ui/source-connectors.yaml
 ---
@@ -13,6 +12,9 @@ Definition {
             VariableName(
                 "API",
             ): "https://api.example.org/items",
+            VariableName(
+                "DATABASE",
+            ): "postgresql://database.example.org/demo",
             VariableName(
                 "HOST",
             ): "warehouse.example.org",
@@ -56,6 +58,28 @@ Definition {
             coverage: Complete,
         },
         SourceName(
+            "database",
+        ): Source {
+            kind: Postgres {
+                source: PostgresSource {
+                    connection: "<redacted>",
+                    schema: "public",
+                    table: "items",
+                    credentials: SecretReference {
+                        secret_entity_uuid: 22222222-2222-4222-8222-222222222222,
+                    },
+                },
+                primary_key: PrimaryKey(
+                    [
+                        ColumnName(
+                            "id",
+                        ),
+                    ],
+                ),
+            },
+            coverage: Complete,
+        },
+        SourceName(
             "local",
         ): Source {
             kind: Local {
@@ -75,12 +99,9 @@ Definition {
         ): Source {
             kind: Postgres {
                 source: PostgresSource {
-                    host: "warehouse.example.org",
-                    port: 5439,
-                    database: "demo",
+                    connection: "<redacted>",
                     schema: "public",
                     table: "items",
-                    ssl_mode: Require,
                     credentials: SecretReference {
                         secret_entity_uuid: 22222222-2222-4222-8222-222222222222,
                     },
@@ -101,6 +122,14 @@ Definition {
         EntityPipeline {
             source: SourceName(
                 "local",
+            ),
+            depends_on: [],
+            inputs: {},
+            steps: [],
+        },
+        EntityPipeline {
+            source: SourceName(
+                "database",
             ),
             depends_on: [],
             inputs: {},
