@@ -559,6 +559,61 @@ describe("compileFlowDefinition", () => {
     ).toEqual(await compileFlowDefinition(ftseInvestorsFlow.flowDefinition));
   });
 
+  it("compiles the same net without layout, with every node at the origin", async () => {
+    type Positioned = { x: number; y: number };
+
+    const nodesOf = (sdcpn: SDCPN): Positioned[] => [
+      ...sdcpn.places,
+      ...sdcpn.transitions,
+      ...(sdcpn.componentInstances ?? []),
+      ...(sdcpn.subnets ?? []).flatMap(({ places, transitions }) => [
+        ...places,
+        ...transitions,
+      ]),
+    ];
+
+    const atOrigin = (sdcpn: SDCPN): SDCPN => ({
+      ...sdcpn,
+      places: sdcpn.places.map((place) => ({ ...place, x: 0, y: 0 })),
+      transitions: sdcpn.transitions.map((transition) => ({
+        ...transition,
+        x: 0,
+        y: 0,
+      })),
+      componentInstances: sdcpn.componentInstances?.map((instance) => ({
+        ...instance,
+        x: 0,
+        y: 0,
+      })),
+      subnets: sdcpn.subnets?.map((subnet) => ({
+        ...subnet,
+        places: subnet.places.map((place) => ({ ...place, x: 0, y: 0 })),
+        transitions: subnet.transitions.map((transition) => ({
+          ...transition,
+          x: 0,
+          y: 0,
+        })),
+      })),
+    });
+
+    for (const [name, flowDefinition] of hardcodedFlowDefinitions) {
+      const laidOut = await compileFlowDefinition(flowDefinition);
+      const notLaidOut = await compileFlowDefinition(flowDefinition, {
+        layout: false,
+      });
+
+      expect(
+        nodesOf(laidOut).some(({ x, y }) => x !== 0 || y !== 0),
+        name,
+      ).toBe(true);
+      expect(
+        nodesOf(notLaidOut).every(({ x, y }) => x === 0 && y === 0),
+        name,
+      ).toBe(true);
+      expect(notLaidOut, name).toEqual(atOrigin(laidOut));
+    }
+  });
+
   it("gives each step's instance its retry count, or the default", async () => {
     const sdcpn = await compileFlowDefinition(
       defineFlow(
