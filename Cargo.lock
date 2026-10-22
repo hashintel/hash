@@ -7165,6 +7165,7 @@ dependencies = [
  "tokio",
  "tracing",
  "type-system",
+ "url",
  "uuid",
 ]
 
