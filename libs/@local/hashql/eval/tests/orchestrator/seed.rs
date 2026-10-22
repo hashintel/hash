@@ -17,7 +17,7 @@ use tokio_postgres::Client;
 use type_system::{
     knowledge::{
         Confidence,
-        entity::{EntityId, LinkData, provenance::ProvidedEntityEditionProvenance},
+        entity::{EntityId, Link, LinkEndpoint, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::{
@@ -274,6 +274,7 @@ async fn create_entity(
     Ok(entity.metadata.record_id.entity_id)
 }
 
+#[expect(clippy::too_many_lines)]
 async fn seed_data(
     store: &mut PostgresStore<Client>,
 ) -> Result<SeededEntities, Report<SetupError>> {
@@ -355,13 +356,17 @@ async fn seed_data(
                 properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
                     .expect("could not create property metadata"),
                 confidence: None,
-                link_data: Some(LinkData {
-                    left_entity_id: alice,
-                    right_entity_id: bob,
-                    left_entity_confidence: Confidence::new(0.9),
-                    left_entity_provenance: PropertyProvenance::default(),
-                    right_entity_confidence: Confidence::new(0.8),
-                    right_entity_provenance: PropertyProvenance::default(),
+                link_data: Some(Link::Directed {
+                    source: LinkEndpoint {
+                        entity_id: alice,
+                        confidence: Confidence::new(0.9),
+                        provenance: PropertyProvenance::default(),
+                    },
+                    target: LinkEndpoint {
+                        entity_id: bob,
+                        confidence: Confidence::new(0.8),
+                        provenance: PropertyProvenance::default(),
+                    },
                 }),
                 draft: false,
                 policies: Vec::new(),

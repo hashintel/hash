@@ -12,7 +12,10 @@ pub mod provenance;
 mod link;
 
 pub use self::{
-    id::EntityId, link::LinkData, metadata::EntityMetadata, provenance::EntityProvenance,
+    id::EntityId,
+    link::{Link, LinkEndpoint},
+    metadata::EntityMetadata,
+    provenance::EntityProvenance,
 };
 
 /// A record of an entity that has been persisted in the datastore, with its associated metadata.
@@ -48,8 +51,8 @@ pub struct Entity {
     ///
     /// When present, indicates this entity acts as a link between other entities in the graph.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub link_data: Option<LinkData>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false, value_type = Option<LinkData>))]
+    pub link_data: Option<Link>,
 
     /// Comprehensive metadata describing the entity's identity, provenance, types, and temporal
     /// information.
