@@ -9,6 +9,7 @@ import { useFlowRunEvents } from "./use-flow-run-events";
 
 import type { MockedResponse } from "@apollo/client/testing";
 import type { EntityId } from "@blockprotocol/type-system";
+import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 import type { ReactNode } from "react";
 
 const flowRunEntityId = "web~run" as EntityId;
@@ -19,7 +20,7 @@ const eventsPage = ({
   endCursor,
 }: {
   after: string | null;
-  events: object[];
+  events: FlowRunEvent[];
   endCursor: string | null;
 }): MockedResponse => ({
   request: {
@@ -43,8 +44,8 @@ const eventsPage = ({
   },
 });
 
-const runStartedEvent = {
-  __typename: "FlowRunStartedEvent",
+const runStartedEvent: FlowRunEvent = {
+  kind: "runStarted",
   position: "1.0",
   occurredAt: "2026-10-22T10:00:00.000Z",
   flowInputs: {},
