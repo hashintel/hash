@@ -370,3 +370,31 @@ export const Sizes: Story = () => (
     </div>
   </div>
 );
+
+// A required combobox opts into clearing with `clearable`. It stays
+// required: once cleared it is empty, so this example passes `invalid` to
+// show that.
+const RequiredClearableCombobox = () => {
+  const [value, setValue] = useState<string | null | undefined>("apple");
+  return (
+    <Combobox
+      items={sampleItems}
+      renderItem={renderSampleItem}
+      required
+      clearable
+      invalid={value == null}
+      placeholder="Pick a fruit…"
+      value={value}
+      onChange={setValue}
+    />
+  );
+};
+
+export const RequiredClearable: Story = () => (
+  <div className={sectionStyle}>
+    <div className={groupStyle}>
+      <h3 style={headingStyle}>Required + clearable</h3>
+      <RequiredClearableCombobox />
+    </div>
+  </div>
+);

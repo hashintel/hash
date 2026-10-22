@@ -93,7 +93,7 @@ const Controlled = (
     items?: SingleSelectProps["items"];
   },
 ) => {
-  const { required: _required, ...rest } = props;
+  const { required: _required, clearable: _clearable, ...rest } = props;
   const [value, setValue] = useState<string | null | undefined>(
     props.value ?? "",
   );
@@ -102,7 +102,7 @@ const Controlled = (
       <Select
         {...(rest as Omit<
           SingleSelectProps,
-          "value" | "onChange" | "items" | "required"
+          "value" | "onChange" | "items" | "required" | "clearable"
         >)}
         required
         items={props.items ?? sampleItems}
@@ -525,7 +525,7 @@ export const CustomRender: Story<SingleSelectProps> = (args) => {
   const [nakedValues, setNakedValues] = useState<string[]>(["apple", "cherry"]);
   const spreadArgs = args as Omit<
     SingleSelectProps,
-    "items" | "value" | "onChange" | "required"
+    "items" | "value" | "onChange" | "required" | "clearable"
   >;
 
   return (
@@ -748,6 +748,39 @@ export const Connected: Story = () => (
         <Fragment key={size}>
           <span style={subheadingStyle}>{size}</span>
           <ConnectedPair size={size} left={{}} right={{}} />
+        </Fragment>
+      ))}
+    </div>
+  </div>
+);
+
+// A required select opts into clearing with `clearable`. It stays required:
+// once cleared it is empty, so this example passes `invalid` to show that.
+const RequiredClearableSelect = ({ size }: { size: FormInputSize }) => {
+  const [value, setValue] = useState<string | null | undefined>("apple");
+  return (
+    <Select
+      items={sampleItems}
+      size={size}
+      width="md"
+      required
+      clearable
+      invalid={value == null}
+      placeholder="Pick a fruit…"
+      value={value}
+      onChange={setValue}
+    />
+  );
+};
+
+export const RequiredClearable: Story = () => (
+  <div className={sectionStyle}>
+    <div className={groupStyle}>
+      <h3 style={headingStyle}>Required + clearable</h3>
+      {formInputSizes.map((size) => (
+        <Fragment key={size}>
+          <span style={subheadingStyle}>{size}</span>
+          <RequiredClearableSelect size={size} />
         </Fragment>
       ))}
     </div>

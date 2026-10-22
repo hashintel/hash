@@ -96,8 +96,6 @@ type ComboboxSingleProps<TValue extends string> = {
   maxItems?: never;
   overflow?: never;
   clearInputOnSelect?: never;
-  /** A single combobox is clearable exactly when it is not `required` */
-  clearable?: never;
   renderSelectedAll?: never;
   items?: ReadonlyArray<ItemOrGroup<ComboboxItem<TValue>>>;
   /** Custom renderer for options in the dropdown. Defaults to the option's `text`. */
@@ -109,6 +107,8 @@ type ComboboxSingleProps<TValue extends string> = {
       /** Allow committing typed text that matches no option, offered as an extra dropdown option */
       allowNewValue: true | AllowNewValueOptions;
       required?: boolean;
+      /** Set to let a required combobox be cleared too, showing the clear button. One that is not `required` is always clearable. Pass `invalid` to show the empty field's error state. */
+      clearable?: boolean;
       value: string | null | undefined;
       /**
        * Called when a value is committed. `isNew` is true when the committed value is typed
@@ -119,13 +119,26 @@ type ComboboxSingleProps<TValue extends string> = {
   | {
       allowNewValue?: false;
       required: true;
+      /** Set to let a required combobox be cleared too. It then shows the clear button, and `onChange` can be called with `null`. Pass `invalid` to show the empty field's error state. */
+      clearable?: false;
       value: NoInfer<TValue>;
       /** Called when a value is committed */
       onChange: (value: NoInfer<TValue>) => void;
     }
   | {
       allowNewValue?: false;
+      required: true;
+      /** Set to let a required combobox be cleared too. It then shows the clear button, and `onChange` can be called with `null`. Pass `invalid` to show the empty field's error state. */
+      clearable: true;
+      value: NoInfer<TValue> | null | undefined;
+      /** Called when a value is committed — with `null` when the value is cleared */
+      onChange: (value: NoInfer<TValue> | null) => void;
+    }
+  | {
+      allowNewValue?: false;
       required?: false;
+      /** A combobox that is not `required` is always clearable */
+      clearable?: never;
       value: NoInfer<TValue> | null | undefined;
       /** Called when a value is committed — with `null` when the value is cleared. `value` stays wider (`undefined` allowed in) for consumers holding optional data. */
       onChange: (value: NoInfer<TValue> | null) => void;
@@ -1446,7 +1459,11 @@ export const Combobox = <TValue extends string>({
           // onInputValueChange; commits flow through onChange above.
         }}
         styledValue={resolvedStyledValue}
-        clearable={required === true ? undefined : { onClear: clearSelection }}
+        clearable={
+          required === true && clearable !== true
+            ? undefined
+            : { onClear: clearSelection }
+        }
         inputElementProps={inputElementProps}
       />
       {dropdown}

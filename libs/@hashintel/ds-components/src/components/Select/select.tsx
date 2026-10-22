@@ -117,8 +117,6 @@ type SelectSingleProps<TValue extends string> = {
   multiple?: false;
   maxItems?: never;
   overflow?: never;
-  /** A single select is clearable exactly when it is not `required` */
-  clearable?: never;
   /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. */
   searchable?:
     | boolean
@@ -133,11 +131,22 @@ type SelectSingleProps<TValue extends string> = {
 } & (
   | {
       required: true;
+      /** Set to let a required select be cleared too. It then shows the clear button, and `onChange` can be called with `null`. Pass `invalid` to show the empty field's error state. */
+      clearable?: false;
       value: NoInfer<TValue>;
       onChange: (value: NoInfer<TValue>) => void;
     }
   | {
+      required: true;
+      /** Set to let a required select be cleared too. It then shows the clear button, and `onChange` can be called with `null`. Pass `invalid` to show the empty field's error state. */
+      clearable: true;
+      value: NoInfer<TValue> | null | undefined;
+      onChange: (value: NoInfer<TValue> | null) => void;
+    }
+  | {
       required?: false;
+      /** A select that is not `required` is always clearable */
+      clearable?: never;
       value: NoInfer<TValue> | null | undefined;
       /** Called with the selected value — `null` when the selection is cleared. `value` stays wider (`undefined` allowed in) for consumers holding optional data. */
       onChange: (value: NoInfer<TValue> | null) => void;
@@ -411,7 +420,9 @@ export const Select = <TValue extends string>({
   // with any consumer-supplied item value.
   const noneValue = useId();
 
-  const canClear = multiple ? !!clearable : required !== true;
+  const canClear = multiple
+    ? !!clearable
+    : required !== true || clearable === true;
   const showClear =
     (multiple ? clearable !== undefined : canClear) && !disabled;
   const connectsLeft = connectToLeftInput && variant === "default";
