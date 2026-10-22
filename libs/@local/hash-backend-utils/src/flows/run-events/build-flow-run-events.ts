@@ -34,7 +34,7 @@ type IHistoryEvent = proto.temporal.api.history.v1.IHistoryEvent;
 const { EventType, RetryState, WorkflowTaskFailedCause } =
   proto.temporal.api.enums.v1;
 
-export const nonStepActivityTypes = [
+const nonStepActivityTypes = [
   "getFlowDefinitionActivity",
   "persistFlowActivity",
   "generateFlowRunName",

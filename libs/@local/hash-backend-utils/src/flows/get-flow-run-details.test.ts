@@ -71,27 +71,20 @@ type RecordedDetails = {
  * A run's events keep a step's failure message, but not the rest of Temporal's failure, nor the code of a status
  * that isn't OK, so the recorded details are compared without them.
  */
-const withOnlyWhatEventsKeep = (recorded: RecordedDetails): RecordedDetails =>
-  recorded.steps === undefined
-    ? recorded
-    : {
-        ...recorded,
-        steps: recorded.steps.map((step) => ({
-          ...step,
-          ...(step.lastFailure
-            ? { lastFailure: { message: step.lastFailure.message } }
-            : {}),
-          ...(step.outputs
-            ? {
-                outputs: step.outputs.map((output) =>
-                  output.code === "OK"
-                    ? output
-                    : { ...output, code: "UNKNOWN" },
-                ),
-              }
-            : {}),
-        })),
-      };
+const withOnlyWhatEventsKeep = (recorded: RecordedDetails): RecordedDetails => {
+  for (const step of recorded.steps ?? []) {
+    if (step.lastFailure) {
+      step.lastFailure = { message: step.lastFailure.message };
+    }
+    for (const output of step.outputs ?? []) {
+      if (output.code !== "OK") {
+        output.code = "UNKNOWN";
+      }
+    }
+  }
+
+  return recorded;
+};
 
 describe("getFlowRunDetailedFieldsFromHistory", () => {
   it.each(fixtureNames)(

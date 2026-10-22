@@ -170,9 +170,6 @@ const getStepRunsFromActivityEvents = (
     };
 
     switch (event.kind) {
-      case "stepStarted":
-        break;
-
       case "attemptStarted": {
         if (!workflowStoppedEarly) {
           const lastError = event.hiddenAttempts?.lastError;
@@ -200,22 +197,21 @@ const getStepRunsFromActivityEvents = (
       }
 
       case "stepGaveUp": {
-        const error = activity.attemptFailed?.error ?? {
-          message: "Unknown error",
-        };
+        const message =
+          activity.attemptFailed?.error.message ?? "Unknown error";
 
         stepRun.closedAt = event.occurredAt;
 
         if (event.reason === "errorStatus") {
           /* The event keeps the status's message, not its code. */
           stepRun.outputs = [
-            { code: StatusCode.Unknown, message: error.message, contents: [] },
+            { code: StatusCode.Unknown, message, contents: [] },
           ];
           stepRun.status = FlowStepStatus.Failed;
           break;
         }
 
-        stepRun.lastFailure = error;
+        stepRun.lastFailure = { message };
         stepRun.retryState = retryStateByGaveUpReason[event.reason];
 
         if (event.reason === "timedOut") {
@@ -227,7 +223,7 @@ const getStepRunsFromActivityEvents = (
             stepId: stepRunId,
             recordedAt: event.occurredAt,
             retrying: false,
-            message: error.message,
+            message,
           });
         }
         break;
@@ -389,18 +385,14 @@ export const getFlowRunDetailedFieldsFromHistory = async (
       continue;
     }
 
-    const { log } = event;
-    const stepRun = stepRunsById.get(log.stepId);
-
+    const stepRun = stepRunsById.get(event.log.stepId);
     if (!stepRun) {
       throw new Error(
-        log.type === "ResearchActionCheckpoint"
-          ? `Could not find step with id ${log.stepId} for checkpoint with id ${log.checkpointId}`
-          : `No activity record found for step with id ${log.stepId}`,
+        `No step run ${event.log.stepId} for the log at ${event.position}`,
       );
     }
 
-    stepRun.logs.push(log);
+    stepRun.logs.push(event.log);
   }
 
   for (const inputRequest of inputRequests) {
@@ -445,15 +437,12 @@ export const getFlowRunDetailedFieldsFromHistory = async (
   // Resolve any stored payload references in step outputs
   const steps: StepRun[] = await Promise.all(
     [...stepRunsById.values()].map(async (step) => {
-      // The outputs in stepMap are from Temporal history - Status<{outputs: StepOutput[]}> objects
-      // We need to resolve stored refs in the actual step outputs within those Status objects
       if (!step.outputs) {
         return step as StepRun;
       }
 
       const resolvedOutputs = await Promise.all(
         step.outputs.map(async (output) => {
-          // output is Status<{outputs: StepOutput[]}>
           const firstContent = output.contents[0];
           if (!firstContent?.outputs) {
             return output as ResolvedStepRunOutput;
