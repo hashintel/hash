@@ -117,6 +117,7 @@ export const getFlowRunEventsQuery = gql`
             }
             attempt
             outputs
+            message
           }
           ... on FlowRunAttemptFailedEvent {
             stepRun {
