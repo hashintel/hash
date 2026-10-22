@@ -7041,6 +7041,7 @@ dependencies = [
  "serde-saphyr",
  "simple-mermaid",
  "type-system",
+ "url",
  "uuid",
 ]
 

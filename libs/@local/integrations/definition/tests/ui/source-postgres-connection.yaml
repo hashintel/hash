@@ -1,0 +1,54 @@
+connector: demo
+sources:
+  scheme:
+    postgres:
+      connection: https://database.example/demo
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  inline:
+    postgres:
+      connection: postgresql://sensitive-user:sensitive-password@database.example/demo
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  query:
+    postgres:
+      connection: postgresql://database.example/demo?password=sensitive-password
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  tls:
+    postgres:
+      connection: postgresql://database.example/demo?sslmode=prefer
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  port:
+    postgres:
+      connection: postgresql://database.example:0/demo
+      schema: public
+      table: items
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: scheme
+      steps: []
+    - source: inline
+      steps: []
+    - source: query
+      steps: []
+    - source: tls
+      steps: []
+    - source: port
+      steps: []
