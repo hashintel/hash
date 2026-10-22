@@ -13,6 +13,7 @@ import {
   findStep,
   flattenSteps,
   itemName,
+  itemPropertyOf,
   listToSource,
   queryDraftToEntityQuery,
   queryDraftToFilterCondition,
@@ -469,9 +470,11 @@ export const describeSource = (
     case "item": {
       const parentId = findStep(document, stepId)?.parentId;
       const parent = parentId ? findStep(document, parentId)?.step : undefined;
+      const name = parentId ? itemName(document, parentId) : "item";
+      const property = itemPropertyOf(source);
       return {
-        owner: parent ? stepLabel(parent) : "For each",
-        label: parentId ? itemName(document, parentId) : "item",
+        owner: property ? name : parent ? stepLabel(parent) : "For each",
+        label: property?.title ?? name,
       };
     }
     case "step-output": {

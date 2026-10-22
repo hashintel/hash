@@ -279,6 +279,20 @@ export const entityTypeOf = (
   }
 };
 
+/**
+ * MOCK: an item source that reads one property of the item ("supplier › Certificate link"). The engine's `item`
+ * source carries no property path, so the editor adds the property's base URL to the source object.
+ */
+export const itemPropertySource = (
+  propertyBaseUrl: string,
+): StepInputSource => ({ kind: "item", propertyBaseUrl }) as StepInputSource;
+
+/** The property an item source reads, or undefined when it refers to the whole item. */
+export const itemPropertyOf = (source: StepInputSource) =>
+  source.kind === "item" && "propertyBaseUrl" in source
+    ? findPropertyType(String(source.propertyBaseUrl))
+    : undefined;
+
 /** What a for-each calls the thing it loops over: the entity type's name ("supplier"), or "item" when it is unknown. */
 export const itemName = (document: EditorDocument, forEachId: string) => {
   const forEach = findStep(document, forEachId)?.step;

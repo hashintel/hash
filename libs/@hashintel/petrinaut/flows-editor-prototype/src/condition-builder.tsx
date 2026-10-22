@@ -44,6 +44,7 @@ import {
   type EditorDocument,
   findStep,
   itemName,
+  itemPropertyOf,
   type QueryDraft,
   type QueryGroup,
   type RelativeDate,
@@ -260,7 +261,9 @@ export const tokenPath = (
   }
   if (source.kind === "item") {
     const parentId = stepId ? findStep(document, stepId)?.parentId : undefined;
-    return ["For each", parentId ? itemName(document, parentId) : "item"];
+    const name = parentId ? itemName(document, parentId) : "item";
+    const property = itemPropertyOf(source);
+    return property ? [name, property.title] : ["For each", name];
   }
   return [String(source.payload.value)];
 };

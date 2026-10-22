@@ -12,6 +12,7 @@ import {
   emptyDocument,
   type EditorDocument,
   fieldKey,
+  itemPropertySource,
   START_ID,
 } from "./document";
 import { mockEntityTypes } from "./mock-graph";
@@ -151,7 +152,11 @@ export const supplierCertificatesExample = (
               ...step,
               steps: step.steps.map((inner) =>
                 inner.kind === "action" && inner.stepId === CERTIFICATES
-                  ? { ...inner, inputs: { url: { kind: "item" as const } } }
+                  ? { ...inner, inputs: {
+                      url: itemPropertySource(
+                        property("Supplier", "Certificate link"),
+                      ),
+                    } }
                   : inner,
               ),
             }
