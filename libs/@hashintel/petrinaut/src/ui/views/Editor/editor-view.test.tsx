@@ -67,10 +67,23 @@ vi.mock("./panels/BottomPanel/panel", () => ({ BottomPanel: () => null }));
 vi.mock("./components/BottomBar/bottom-bar", () => ({ BottomBar: () => null }));
 vi.mock("./components/TopBar/top-bar", () => ({ TopBar: () => null }));
 vi.mock("./components/ai-cta-modal", () => ({
-  AiCtaModal: ({ onSubmit }: { onSubmit: (message: string) => void }) => (
-    <button type="button" onClick={() => onSubmit("Build an SIR model")}>
-      Send empty-net prompt
-    </button>
+  AiCtaModal: ({
+    onSubmit,
+    startAction,
+  }: {
+    onSubmit: (message: string) => void;
+    startAction?: { label: string; run: () => void };
+  }) => (
+    <>
+      <button type="button" onClick={() => onSubmit("Build an SIR model")}>
+        Send empty-net prompt
+      </button>
+      {startAction && (
+        <button type="button" onClick={startAction.run}>
+          {startAction.label}
+        </button>
+      )}
+    </>
   ),
 }));
 vi.mock("./components/import-error-dialog", () => ({
@@ -102,6 +115,19 @@ const onPrompt = vi.fn();
 const promptPlugin = definePetrinautPlugin(
   { id: "test.prompt", name: "Prompt", assistant: true },
   { assistant: { content: <p>Plugin chat</p>, onPrompt } },
+);
+
+const startVoice = vi.fn();
+
+const startPlugin = definePetrinautPlugin(
+  { id: "test.start", name: "Start", assistant: true },
+  {
+    assistant: {
+      content: <p>Plugin chat</p>,
+      onPrompt,
+      startAction: { label: "Start Voice", icon: null, run: startVoice },
+    },
+  },
 );
 
 const silentPlugin = definePetrinautPlugin(
@@ -198,6 +224,18 @@ describe("EditorView empty-net prompt", () => {
     );
 
     expect(onPrompt).toHaveBeenCalledWith("Build an SIR model");
+    expect(
+      screen.getByRole("complementary", { name: "AI assistant" }).textContent,
+    ).toContain("Plugin chat");
+  });
+
+  test("opens the panel and runs the plugin assistant's start action once", () => {
+    renderPlugins([startPlugin], <EditorView titleEditable />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Start Voice" }));
+
+    expect(startVoice).toHaveBeenCalledOnce();
+    expect(onPrompt).not.toHaveBeenCalled();
     expect(
       screen.getByRole("complementary", { name: "AI assistant" }).textContent,
     ).toContain("Plugin chat");

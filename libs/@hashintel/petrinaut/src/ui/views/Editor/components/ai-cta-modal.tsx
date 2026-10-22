@@ -5,6 +5,8 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
 
+import type { PluginAssistantStartAction } from "../../../plugins/define-petrinaut-plugin";
+
 const aiCtaModalLayerStyle = css({
   position: "absolute",
   inset: "0",
@@ -83,14 +85,19 @@ const aiCtaModalInputStyle = css({
   },
 });
 
+const trailingActionStyle = css({ margin: "2" });
+
 export const AiCtaModal = ({
   bottomClearance,
   onDismiss,
   onSubmit,
+  startAction,
 }: {
   bottomClearance: number;
   onDismiss: () => void;
   onSubmit: (message: string) => void;
+  /** Offered in place of Send while the input is empty. */
+  startAction?: PluginAssistantStartAction;
 }) => {
   const [promptInput, setPromptInput] = useState("");
 
@@ -170,19 +177,32 @@ export const AiCtaModal = ({
           size="lg"
           suffix={{
             variant: "subtle",
-            content: (
-              <Button
-                aria-label="Send first AI assistant message"
-                className={css({ margin: "2" })}
-                disabled={!canSubmit}
-                iconName="arrowUp"
-                size="lg"
-                tone="brand"
-                tooltip="Send first AI assistant message"
-                type="submit"
-                variant="solid"
-              />
-            ),
+            content:
+              !canSubmit && startAction ? (
+                <Button
+                  aria-label={startAction.label}
+                  className={trailingActionStyle}
+                  onClick={startAction.run}
+                  prefix={startAction.icon}
+                  size="lg"
+                  tone="brand"
+                  tooltip={startAction.label}
+                  type="button"
+                  variant="solid"
+                />
+              ) : (
+                <Button
+                  aria-label="Send first AI assistant message"
+                  className={trailingActionStyle}
+                  disabled={!canSubmit}
+                  iconName="arrowUp"
+                  size="lg"
+                  tone="brand"
+                  tooltip="Send first AI assistant message"
+                  type="submit"
+                  variant="solid"
+                />
+              ),
           }}
           value={promptInput}
         />
