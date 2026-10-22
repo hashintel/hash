@@ -5,7 +5,6 @@ import {
   type PluginHook,
 } from "@hashintel/petrinaut/ui/plugin";
 
-import { VOICE_REQUEST_ID_HEADER } from "../../../../voice-diagnostics";
 import { stockChatEndpoint } from "../../local-storage-demo/assistant-selection";
 import { AssistantChat } from "./chat/assistant-chat";
 import { useAssistantChatStart } from "./chat/assistant-chat-start";
@@ -23,10 +22,9 @@ const PetrinautAiPlugin = definePetrinautPlugin({
   assistant: true,
 });
 
-/** One transport serves every document; `headers` runs per request. */
+/** One transport serves every document. */
 const transport = new DefaultChatTransport<PetrinautAiMessage>({
   api: stockChatEndpoint,
-  headers: () => ({ [VOICE_REQUEST_ID_HEADER]: crypto.randomUUID() }),
 });
 
 const usePetrinautAiPlugin: PluginHook<typeof PetrinautAiPlugin> = (api) => {

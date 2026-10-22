@@ -89,12 +89,7 @@ test("the empty-net prompt starts a chat that edits the net, saving the transcri
   // Two requests and the window's first mount can outlast the default wait.
   await screen.findByText("Added the queue.", {}, { timeout: 4_000 });
   expect(fetch).toHaveBeenCalledTimes(2);
-  // Each request goes to the stock endpoint with its own correlation id.
-  const [url, init] = fetch.mock.calls[0]!;
-  expect(url).toBe("/api/chat");
-  expect(new Headers(init?.headers).get("x-request-id")).toMatch(
-    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
-  );
+  expect(fetch.mock.calls[0]?.[0]).toBe("/api/chat");
   expect(handle.doc()?.places.map(({ name }) => name)).toEqual(["Queue"]);
   const stored = JSON.parse(
     localStorage.getItem("petrinaut-ai-messages") ?? "{}",
