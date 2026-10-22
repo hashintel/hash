@@ -142,12 +142,12 @@ const FlowRunNetPreview = ({
   const { flowRunEntityId, name, live } = flowRun;
   const flowRunEvents = useFlowRunEvents({ flowRunEntityId, live });
 
+  const events =
+    flowRunEvents.status === "loaded" ? flowRunEvents.events : null;
+
   const replay = useMemo(
-    () =>
-      flowRunEvents.status === "loaded"
-        ? replayFlowRunEvents(net, flowRunEvents.events)
-        : null,
-    [flowRunEvents, net],
+    () => (events ? replayFlowRunEvents(net, events) : null),
+    [events, net],
   );
 
   const actualMode = useMemo((): NonNullable<
@@ -197,7 +197,8 @@ const FlowRunNetPreview = ({
     <Stack sx={{ height: "100%" }}>
       {flowRunEvents.status === "failed" ? (
         <Message>
-          This run's events can't be loaded: {flowRunEvents.message}
+          This run's events can't be loaded ({flowRunEvents.message}). Trying
+          again…
         </Message>
       ) : (
         <>
@@ -208,6 +209,16 @@ const FlowRunNetPreview = ({
             >
               The net can't follow {replay.problems.length} of this run's
               events, so it may not show where everything is.
+            </Typography>
+          ) : null}
+          {flowRunEvents.status === "loaded" && flowRunEvents.checkFailure ? (
+            <Typography
+              variant="smallTextParagraphs"
+              sx={{ color: ({ palette }) => palette.gray[60], px: 2, py: 1 }}
+            >
+              Can't check for this run's new events (
+              {flowRunEvents.checkFailure}), so the net may be out of date.
+              Trying again…
             </Typography>
           ) : null}
           <Box sx={{ flex: 1, minHeight: 0 }}>

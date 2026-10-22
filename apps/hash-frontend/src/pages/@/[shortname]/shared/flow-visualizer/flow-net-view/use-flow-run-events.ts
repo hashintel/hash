@@ -224,11 +224,18 @@ const withPage = (
 
 export type FlowRunEvents =
   | { status: "loading" }
-  | { status: "loaded"; events: FlowRunEvent[]; runId: string }
+  | {
+      status: "loaded";
+      events: FlowRunEvent[];
+      runId: string;
+      /** Why the last check for new events failed, while it keeps checking. */
+      checkFailure?: string;
+    }
   | { status: "failed"; message: string };
 
 /**
- * A flow run's events. While the run is `live`, it checks for new ones every couple of seconds.
+ * A flow run's events. While the run is `live`, it checks for new ones every couple of seconds. A read that fails is
+ * tried again until one succeeds, live or not.
  */
 export const useFlowRunEvents = ({
   flowRunEntityId,
@@ -279,22 +286,36 @@ export const useFlowRunEvents = ({
     };
 
     const poll = () => {
+      const pollAgain = () => {
+        if (!cancelled) {
+          pollTimeout = setTimeout(poll, pollIntervalMs);
+        }
+      };
+
       readNewEvents().then(
         () => {
-          if (live && !cancelled) {
-            pollTimeout = setTimeout(poll, pollIntervalMs);
+          if (live) {
+            pollAgain();
           }
         },
         (error: unknown) => {
           if (!cancelled) {
-            setRead({
-              flowRunEntityId,
-              result: {
-                status: "failed",
-                message: error instanceof Error ? error.message : String(error),
-              },
-            });
+            const message =
+              error instanceof Error ? error.message : String(error);
+
+            /* Events already shown stay shown: a check that fails is usually tried again successfully. */
+            setRead((previous) =>
+              previous?.flowRunEntityId === flowRunEntityId &&
+              previous.result.status === "loaded"
+                ? {
+                    flowRunEntityId,
+                    result: { ...previous.result, checkFailure: message },
+                  }
+                : { flowRunEntityId, result: { status: "failed", message } },
+            );
           }
+
+          pollAgain();
         },
       );
     };
