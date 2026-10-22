@@ -60,6 +60,15 @@ const isSameStepRun = (stepRun: FlowNetStepRun, other: FlowRunEventStepRun) =>
 const describeStepRun = ({ stepId, itemPath }: FlowRunEventStepRun) =>
   itemPath.length > 0 ? `${stepId} [${itemPath.join(", ")}]` : stepId;
 
+const isAwaitingStart = (run: FlowNetRun, stepRun: FlowRunEventStepRun) =>
+  run
+    .awaiting()
+    .some(
+      (awaiting) =>
+        awaiting.kind === "stepStart" &&
+        isSameStepRun(awaiting.stepRun, stepRun),
+    );
+
 /**
  * The attempt the net is waiting on the outcome of for a step run, if any.
  */
@@ -104,7 +113,8 @@ export const replayFlowRunEvents = (
     };
 
     /**
-     * Fails the step run's attempts the events didn't record, so the net waits on `attempt`.
+     * Starts the step run if the events didn't record it starting, and fails its attempts they didn't record, so
+     * the net waits on `attempt`.
      *
      * @returns whether the net now waits on `attempt`.
      */
@@ -113,6 +123,10 @@ export const replayFlowRunEvents = (
       stepRun: FlowRunEventStepRun,
       attempt: number,
     ) => {
+      if (isAwaitingStart(startedRun, stepRun)) {
+        apply(startedRun, { kind: "stepStarted", stepRun });
+      }
+
       for (;;) {
         const awaited = awaitedAttempt(startedRun, stepRun);
 
@@ -147,6 +161,7 @@ export const replayFlowRunEvents = (
 
         run = startFlowNetRun(net, {
           flowInputNames: Object.keys(event.flowInputs),
+          waitForStepStarts: true,
         });
         record(run.firings);
         continue;
@@ -161,13 +176,11 @@ export const replayFlowRunEvents = (
         case "stepStarted": {
           const { stepRun } = event;
 
-          if (
-            !run
-              .awaiting()
-              .some((awaiting) => isSameStepRun(awaiting.stepRun, stepRun))
-          ) {
+          if (isAwaitingStart(run, stepRun)) {
+            apply(run, { kind: "stepStarted", stepRun });
+          } else {
             problem(
-              `${describeStepRun(stepRun)} started before the net started it`,
+              `${describeStepRun(stepRun)} started before the net had its inputs`,
             );
           }
           break;

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { applyActualModeTransitionFiring } from "@hashintel/petrinaut-core";
+import { typedActionDefinitions as actions } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import {
+  defineFlow,
+  flowInput,
+} from "@local/hash-isomorphic-utils/flows/define-flow";
 import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 import { compileFlowDefinition } from "./compile-flow-definition.js";
@@ -16,7 +21,10 @@ import {
 
 import type { FlowRunReplay } from "./replay-flow-run-events.js";
 import type { ActualModeMarking } from "@hashintel/petrinaut-core";
-import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
+import type {
+  FlowRunEvent,
+  FlowRunEventStepRun,
+} from "@local/hash-isomorphic-utils/flows/run-events";
 import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
 
 type UnplacedEvent<Event = FlowRunEvent> = Event extends unknown
@@ -109,8 +117,8 @@ describe("replayFlowRunEvents", () => {
 
     expect(replay.problems).toEqual([]);
     expect(rolesByEvent(replay)).toEqual([
-      ["1.0", "startStep"],
-      ["1.0", "startAttempt"],
+      ["2.0", "startStep"],
+      ["2.0", "startAttempt"],
       ["4.0", "failAttempt"],
       ["4.0", "retryAttempt"],
       ["6.0", "succeedAttempt"],
@@ -203,6 +211,135 @@ describe("replayFlowRunEvents", () => {
     expect(replay.awaiting).toEqual([]);
   });
 
+  it("starts a step when its events say it started, not when its inputs arrive", async () => {
+    /* `page` and `file` run in one batch, so `settings`, which only reads `page`'s output, waits for `file` too. */
+    const net = await compileFlowDefinition(
+      defineFlow(
+        {
+          flowDefinitionId: "page-and-file",
+          name: "Page and file",
+          description: "Get a page's settings, and a file",
+          inputs: { url: flowInput("Text") },
+        },
+        ({ inputs, step }) => {
+          const getPage = step("page", actions.getWebPageByUrl, {
+            description: "Retrieve the page",
+            inputs: { url: inputs.url },
+          });
+          const settings = step(
+            "settings",
+            actions.processAutomaticBrowsingSettings,
+            {
+              description: "Work out the page's settings",
+              inputs: { webPage: getPage.outputs.webPage },
+            },
+          );
+          const getFile = step("file", actions.getFileFromUrl, {
+            description: "Retrieve the file",
+            inputs: { url: inputs.url },
+          });
+
+          return {
+            outputs: {
+              model: settings.outputs.model,
+              file: getFile.outputs.fileEntity,
+            },
+          };
+        },
+      ).flowDefinition,
+    );
+    const pageRun: FlowRunEventStepRun = { stepId: "page", itemPath: [] };
+    const settingsRun: FlowRunEventStepRun = {
+      stepId: "settings",
+      itemPath: [],
+    };
+    const fileRun: FlowRunEventStepRun = { stepId: "file", itemPath: [] };
+
+    const untilFileSucceeds: UnplacedEvent[] = [
+      runStarted,
+      { ...getStarted, stepRun: pageRun, stepType: "getWebPageByUrl" },
+      { ...getStarted, stepRun: fileRun },
+      { kind: "attemptStarted", stepRun: pageRun, attempt: 1 },
+      { kind: "attemptStarted", stepRun: fileRun, attempt: 1 },
+      {
+        kind: "attemptSucceeded",
+        stepRun: pageRun,
+        attempt: 1,
+        outputs: [
+          {
+            outputName: "webPage",
+            payload: {
+              kind: "WebPage",
+              value: { url: "https://example.com", title: "", htmlContent: "" },
+            },
+          } as StepOutput,
+        ],
+      },
+    ];
+
+    const whileFileRuns = replayFlowRunEvents(net, placed(untilFileSucceeds));
+
+    expect(whileFileRuns.problems).toEqual([]);
+    expect(
+      whileFileRuns.firings.filter(
+        ({ stepRun }) => stepRun.stepId === "settings",
+      ),
+    ).toEqual([]);
+    expect(whileFileRuns.awaiting).toContainEqual({
+      kind: "stepStart",
+      stepRun: settingsRun,
+    });
+
+    const replay = replayFlowRunEvents(
+      net,
+      placed([
+        ...untilFileSucceeds,
+        {
+          kind: "attemptSucceeded",
+          stepRun: fileRun,
+          attempt: 1,
+          outputs: fileOutput,
+        },
+        {
+          ...getStarted,
+          stepRun: settingsRun,
+          stepType: "processAutomaticBrowsingSettings",
+        },
+      ]),
+    );
+
+    expect(replay.problems).toEqual([]);
+    expect(
+      replay.firings
+        .filter(({ stepRun }) => stepRun.stepId === "settings")
+        .map(({ eventPosition, role }) => [eventPosition, role]),
+    ).toEqual([
+      ["8.0", "startStep"],
+      ["8.0", "startAttempt"],
+    ]);
+  });
+
+  it("starts a step whose attempt started without its start recorded", async () => {
+    const net = await compileFlowDefinition(fileFlowDefinition);
+
+    const replay = replayFlowRunEvents(
+      net,
+      placed([
+        runStarted,
+        { kind: "attemptStarted", stepRun: getStepRun, attempt: 1 },
+      ]),
+    );
+
+    expect(replay.problems).toEqual([]);
+    expect(rolesByEvent(replay)).toEqual([
+      ["2.0", "startStep"],
+      ["2.0", "startAttempt"],
+    ]);
+    expect(replay.awaiting).toEqual([
+      { kind: "actionOutcome", stepRun: getStepRun, attempt: 1 },
+    ]);
+  });
+
   it("starts a forEach step's items when it learns how many there are", async () => {
     const net = await compileFlowDefinition(forEachFlowDefinition);
 
@@ -260,7 +397,7 @@ describe("replayFlowRunEvents", () => {
       },
       {
         eventPosition: "3.0",
-        message: "get [0] started before the net started it",
+        message: "get [0] started before the net had its inputs",
       },
       {
         eventPosition: "4.0",

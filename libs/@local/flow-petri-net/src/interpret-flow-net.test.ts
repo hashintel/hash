@@ -131,12 +131,19 @@ const runToEnd = (
   }
 };
 
-/** Succeeds every attempt with all of its action's outputs, and gives every `forEach` step `itemCount` items. */
+/**
+ * Starts every step waiting to start, succeeds every attempt with all of its action's outputs, and gives every
+ * `forEach` step `itemCount` items.
+ */
 const succeedingEverything =
   (flowDefinition: FlowDefinition, { itemCount = 3 } = {}) =>
   (awaiting: FlowNetAwaiting): FlowNetOutcome => {
     if (awaiting.kind === "itemCount") {
       return { kind: "itemCount", stepRun: awaiting.stepRun, itemCount };
+    }
+
+    if (awaiting.kind === "stepStart") {
+      return { kind: "stepStarted", stepRun: awaiting.stepRun };
     }
 
     const actionDefinitionId = actionsByStepId(flowDefinition).get(
@@ -444,6 +451,86 @@ describe("startFlowNetRun", () => {
     expect(run.awaiting()).toEqual([]);
   });
 
+  it("starts a step whose inputs read the same value", async () => {
+    const net = await compileFlowDefinition(
+      defineFlow(
+        {
+          flowDefinitionId: "get-described-file",
+          name: "Get described file",
+          description: "Get a file, described by its URL",
+          inputs: { url: flowInput("Text") },
+        },
+        ({ inputs, step }) => {
+          const getFile = step("get", actions.getFileFromUrl, {
+            description: "Retrieve the file from the URL",
+            inputs: { url: inputs.url, description: inputs.url },
+          });
+
+          return { outputs: { file: getFile.outputs.fileEntity } };
+        },
+      ).flowDefinition,
+    );
+    const run = startFlowNetRun(net, { flowInputNames: ["url"] });
+
+    expect(run.firings.map(({ role }) => role)).toEqual([
+      "startStep",
+      "startAttempt",
+    ]);
+
+    const [startStep] = run.firings;
+
+    expect(startStep?.read).toHaveLength(2);
+    expect(new Set(startStep?.read.map(({ token }) => token)).size).toBe(1);
+    expectFiringsFollowArcs(net, run);
+    expectActualModeReplays(run);
+  });
+
+  it("waits for an action step to be told it started, when told to wait", async () => {
+    const net = await compileFlowDefinition(forEachFlowDefinition);
+    const run = startFlowNetRun(net, {
+      flowInputNames: ["urls"],
+      waitForStepStarts: true,
+    });
+
+    run.apply({
+      kind: "itemCount",
+      stepRun: { stepId: "each", itemPath: [] },
+      itemCount: 2,
+    });
+
+    expect(run.awaiting()).toEqual([
+      { kind: "stepStart", stepRun: { stepId: "get", itemPath: [0] } },
+      { kind: "stepStart", stepRun: { stepId: "get", itemPath: [1] } },
+    ]);
+
+    expect(
+      run
+        .apply({
+          kind: "stepStarted",
+          stepRun: { stepId: "get", itemPath: [1] },
+        })
+        .map(({ role, stepRun }) => [role, stepRun.itemPath]),
+    ).toEqual([
+      ["startStep", [1]],
+      ["startAttempt", [1]],
+    ]);
+    expect(run.isPending({ stepId: "get", itemPath: [0] })).toBe(true);
+    expect(run.awaiting()).toEqual([
+      {
+        kind: "actionOutcome",
+        stepRun: { stepId: "get", itemPath: [1] },
+        attempt: 1,
+      },
+      { kind: "stepStart", stepRun: { stepId: "get", itemPath: [0] } },
+    ]);
+    expect(() =>
+      run.apply({
+        kind: "stepStarted",
+        stepRun: { stepId: "get", itemPath: [1] },
+      }),
+    ).toThrow("isn't waiting to start");
+  });
+
   it("holds a step whose value to skip on is missing", async () => {
     const net = await compileFlowDefinition(
       defineFlow(
@@ -537,6 +624,18 @@ describe("startFlowNetRun", () => {
         ).toBe(
           run.firings.filter(({ role }) => role === "succeedAttempt").length,
         );
+      });
+
+      it("ends with its outputs when it waits for each step to start", async () => {
+        const net = await compileFlowDefinition(flowDefinition);
+        const run = startFlowNetRun(net, {
+          flowInputNames,
+          waitForStepStarts: true,
+        });
+
+        runToEnd(run, succeedingEverything(flowDefinition));
+
+        expectCompleted(net, run);
       });
 
       it("ends with its outputs when every forEach step has no items", async () => {
