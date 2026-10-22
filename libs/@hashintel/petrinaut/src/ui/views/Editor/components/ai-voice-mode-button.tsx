@@ -1,15 +1,7 @@
-import { Button } from "@hashintel/ds-components";
-
 import {
   VoiceIcon,
   useExperimentalIconPackEnabled,
 } from "../../../experimental-icons";
-
-type AiVoiceModeButtonProps = {
-  className?: string;
-  onClick: () => void;
-  size: "sm" | "lg";
-};
 
 /**
  * @deprecated Part of the built-in AI chat. Provide the assistant with a
@@ -37,25 +29,3 @@ export const AiVoiceModeIcon = ({ size = 16 }: { size?: number }) => {
     </svg>
   );
 };
-
-/**
- * @deprecated Part of the built-in AI chat. Provide the assistant with a
- * plugin that declares `assistant`, which renders its own chat.
- */
-export const AiVoiceModeButton = ({
-  className,
-  onClick,
-  size,
-}: AiVoiceModeButtonProps) => (
-  <Button
-    aria-label="Start voice mode"
-    className={className}
-    onClick={onClick}
-    prefix={<AiVoiceModeIcon size={size === "lg" ? 20 : 16} />}
-    size={size}
-    tone="brand"
-    tooltip="Start voice mode"
-    type="button"
-    variant="solid"
-  />
-);

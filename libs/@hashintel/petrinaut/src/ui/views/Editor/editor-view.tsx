@@ -48,6 +48,7 @@ import { usePluginOverlay } from "../../plugins/plugins-provider";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
+import { AiVoiceModeIcon } from "./components/ai-voice-mode-button";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
@@ -504,6 +505,18 @@ const EditorViewContent = ({
     },
   ];
 
+  // The prompt's other way to start: the plugin assistant's action, or the
+  // built-in chat's Voice. Pressing it opens the panel first.
+  const promptStartAction =
+    assistant.startAction ??
+    (assistant.builtInChat?.renderVoiceMode === undefined
+      ? undefined
+      : {
+          label: "Start voice mode",
+          icon: <AiVoiceModeIcon size={20} />,
+          run: () => setPendingAiInteractionMode("voice"),
+        });
+
   // The empty-net prompt hands its message to the built-in chat, or to the
   // plugin assistant's `onPrompt`.
   const showEmptyAiHero =
@@ -588,10 +601,6 @@ const EditorViewContent = ({
                           isBottomPanelOpen ? bottomPanelHeight : 0
                         }
                         onDismiss={() => setIsAiCtaDismissed(true)}
-                        onStartVoiceMode={() => {
-                          setPendingAiInteractionMode("voice");
-                          setAiAssistantOpen(true);
-                        }}
                         onSubmit={(message) => {
                           setAiAssistantOpen(true);
                           if (assistant.onPrompt) {
@@ -601,8 +610,14 @@ const EditorViewContent = ({
                             setPendingAiInteractionMode("text");
                           }
                         }}
-                        voiceModeAvailable={
-                          assistant.builtInChat?.renderVoiceMode !== undefined
+                        startAction={
+                          promptStartAction && {
+                            ...promptStartAction,
+                            run: () => {
+                              setAiAssistantOpen(true);
+                              promptStartAction.run();
+                            },
+                          }
                         }
                       />
                     )}

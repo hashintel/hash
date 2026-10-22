@@ -172,7 +172,9 @@ The empty-net prompt shows while the assistant returns `onPrompt`. The editor
 opens the panel and calls it with the message the user sends, so the
 conversation lives in the hook, where `onPrompt` can reach it. When the panel
 opens, the content's element marked `data-autofocus`, such as the composer's
-`<textarea data-autofocus />`, takes focus; without one, the panel does.
+`<textarea data-autofocus />`, takes focus; without one, the panel does. A
+`startAction`, such as a Voice start, shows in place of Send while the
+prompt's input is empty: the editor opens the panel, then calls its `run`.
 
 ```tsx
 // `Chat` and `useChat` come from `@ai-sdk/react`, `UIMessage` from `ai`.

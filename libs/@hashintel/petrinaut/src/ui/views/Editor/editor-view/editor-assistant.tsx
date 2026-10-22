@@ -25,6 +25,8 @@ export const useEditorAssistant = (aiAssistant?: PetrinautAiAssistant) => {
     hasAssistant: plugin !== undefined || aiAssistant !== undefined,
     /** Takes the empty-net prompt's message for the plugin's assistant. */
     onPrompt: plugin?.contributions.assistant?.onPrompt,
+    /** The plugin's other way to start from the empty-net prompt. */
+    startAction: plugin?.contributions.assistant?.startAction,
   };
 };
 
