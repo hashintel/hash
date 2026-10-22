@@ -14,6 +14,7 @@ import {
 } from "./document";
 import { type EditorUi, initialUi } from "./editor-context";
 import { mockEntityTypes } from "./mock-graph";
+import { addLookupStep } from "./source-menu";
 import { purityCheckExample } from "./purity-check-example";
 import { supplierReviewExample } from "./supplier-review-example";
 
@@ -164,6 +165,78 @@ const conditionMenu = (
   inputName: `query:condition${row}${part ? `:${part}` : ""}`,
   mode,
 });
+
+/**
+ * J3 C1b: the lookup step "Latest shipment" that the Look up in graph row adds before "Shipments this month", and
+ * the Received date value reading it.
+ */
+const withLatestShipmentLookup = (): EditorDocument => {
+  const base = journey3({ conditions: [received({ value: null })] });
+  const { document, lookupId } = addLookupStep(base, SHIPMENTS, {
+    name: "value",
+    label: "Value",
+    array: false,
+    required: true,
+    hasDefault: false,
+    kinds: ["Date"],
+  });
+  const key = fieldKey(SHIPMENTS, "query");
+  const query = document.queries[key]!;
+  return {
+    ...document,
+    steps: document.steps.map((step) =>
+      step.stepId === lookupId
+        ? { ...step, description: "Latest shipment" }
+        : step,
+    ),
+    queries: {
+      ...document.queries,
+      [key]: {
+        ...query,
+        conditions: query.conditions.map((row) => ({
+          ...row,
+          valueSource: {
+            kind: "step-output" as const,
+            stepId: lookupId,
+            outputName: "entities",
+          },
+        })),
+      },
+    },
+  };
+};
+
+/** J3 D1: Start, "Failed batches", and "Alert to the team" whose Subject is text followed by a value chip. */
+const failedBatchesAlert = (): EditorDocument => {
+  const found = addStep(emptyDocument(), "queryEntities", {
+    after: { stepId: START_ID, port: "next" },
+  });
+  const email = addStep(found.document, "sendEmail", {
+    after: { stepId: found.stepId, port: "next" },
+  });
+  return {
+    ...email.document,
+    startDescription: "Flow inputs",
+    steps: email.document.steps.map((step) => ({
+      ...step,
+      description:
+        step.stepId === found.stepId ? "Failed batches" : "Alert to the team",
+    })),
+    templates: {
+      [fieldKey(email.stepId, "subject")]: [
+        { kind: "text", text: "Failed batches this month: " },
+        {
+          kind: "ref",
+          source: {
+            kind: "step-output",
+            stepId: found.stepId,
+            outputName: "entities",
+          },
+        },
+      ],
+    },
+  };
+};
 
 export const screenStates: ScreenState[] = [
   {
@@ -346,6 +419,18 @@ export const screenStates: ScreenState[] = [
     }),
   },
   {
+    id: "j3-c1b",
+    journey: 3,
+    row: "Row C · Nothing fits yet",
+    title: "J3 · C1b · After Lookup in graph · Find entities step inserted",
+    caption:
+      "Latest shipment is added before Shipments this month; the date reads its Received date.",
+    create: () => ({
+      document: withLatestShipmentLookup(),
+      ui: { ...initialUi, selectedId: SHIPMENTS },
+    }),
+  },
+  {
     id: "j3-c2",
     journey: 3,
     row: "Row C · Nothing fits yet",
@@ -355,6 +440,20 @@ export const screenStates: ScreenState[] = [
       document: journey3({ conditions: [received({ value: null })] }, true),
       ui: { ...initialUi, selectedId: START_ID },
     }),
+  },
+  {
+    id: "j3-d1",
+    journey: 3,
+    row: "Row D · Open values",
+    title: "J3 · D1 · Open value · typed text with a variable",
+    caption: "A Subject of typed text, then a value chip, on one wrapping line.",
+    create: () => {
+      const document = failedBatchesAlert();
+      return {
+        document,
+        ui: { ...initialUi, selectedId: document.steps.at(-1)!.stepId },
+      };
+    },
   },
   {
     id: "j4-a1",
