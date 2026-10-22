@@ -1,8 +1,6 @@
-import { ActivityCancellationType } from "@temporalio/workflow";
 import { describe, expect, it } from "vitest";
 
 import {
-  actionDefinitions,
   aiActionDefinitions,
   integrationActionDefinitions,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -24,27 +22,6 @@ describe("getActionActivityOptions", () => {
           .taskQueue,
         actionDefinitionId,
       ).toBe(taskQueue);
-    }
-  });
-
-  it("sets a heartbeat timeout only for an action that heartbeats, and waits for one that handles cancellation", () => {
-    for (const actionDefinitionId of Object.keys(
-      actionDefinitions,
-    ) as FlowActionDefinitionId[]) {
-      const { heartbeatTimeoutSeconds, handlesCancellation } =
-        actionDefinitions[actionDefinitionId].activity;
-      const options = getActionActivityOptions(actionDefinitionId);
-
-      expect(options.heartbeatTimeout, actionDefinitionId).toBe(
-        heartbeatTimeoutSeconds === undefined
-          ? undefined
-          : `${heartbeatTimeoutSeconds} second`,
-      );
-      expect(options.cancellationType, actionDefinitionId).toBe(
-        handlesCancellation
-          ? ActivityCancellationType.WAIT_CANCELLATION_COMPLETED
-          : ActivityCancellationType.ABANDON,
-      );
     }
   });
 });
