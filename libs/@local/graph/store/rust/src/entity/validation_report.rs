@@ -22,7 +22,7 @@ pub struct EntityTypeRetrieval {
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
-#[display("The entity is a link, and links to links are not supported yet")]
+#[display("The entity `{entity_id}` is a link, and links to links are not supported yet")]
 #[must_use]
 pub struct LinkedEntityIsLink {
     pub entity_id: EntityId,

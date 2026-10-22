@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use super::{
     super::{
-        LINK_ROOT_BASE_URL,
+        LINK_ENTITY_TYPE_BASE_URL,
         sql::{
             AttachmentVocabulary, Axes, MAPPING, Mapping, current_identity_join,
             edition_conjunction, time_axis_conjunction, type_mapping,
@@ -703,7 +703,7 @@ fn example_statement<'params>(
     let mut binder = Binder::default();
     let types_placeholder = binder.bind(types);
     let axes_points = Axes::bind(&mut binder, axes);
-    let link_root = binder.bind(&LINK_ROOT_BASE_URL);
+    let link_root = binder.bind(&LINK_ENTITY_TYPE_BASE_URL);
     let attachments = AttachmentVocabulary::bind(&mut binder);
     let field_separator = binder.bind(&FIELD_SEPARATOR);
     let no_direct_type = binder.bind(&NO_DIRECT_TYPE);
