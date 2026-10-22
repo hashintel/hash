@@ -14,7 +14,8 @@ export type PickerTarget = {
 export type OpenField = {
   stepId: string;
   inputName: string;
-  mode: "menu" | "mention";
+  /** "custom" shows a date picker's "Custom…" interval popover (J3 relative date, Figma D2). */
+  mode: "menu" | "mention" | "custom";
 };
 
 export type EditorUi = {

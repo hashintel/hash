@@ -90,7 +90,24 @@ export type RelativeDate =
         | "startOfMonth"
         | "startOfLastMonth";
     }
-  | { kind: "daysAgo"; days: number };
+  | { kind: "daysAgo"; days: number }
+  | {
+      kind: "interval";
+      amount: number;
+      unit: IntervalUnit;
+      direction: "ago" | "fromNow";
+      /** What the interval counts from: the moment the step runs, or the moment the flow started. */
+      anchor: "stepRun" | "flowStart";
+    };
+
+export const intervalUnits = [
+  "minutes",
+  "hours",
+  "days",
+  "weeks",
+  "months",
+] as const;
+export type IntervalUnit = (typeof intervalUnits)[number];
 
 /** A group of conditions inside the builder: its own and/or (J3 A1's grey box). */
 export type QueryGroup = {

@@ -166,7 +166,7 @@ const SUPPLIERS = "findEntities2";
 /** Opens a part of a condition row in a screen state: its variable picker, operator menu or value editor. */
 const conditionMenu = (
   stepId: string,
-  mode: "menu" | "mention" = "menu",
+  mode: "menu" | "mention" | "custom" = "menu",
   part?: "operator" | "value" | "footer",
   row = 1,
 ) => ({
@@ -332,6 +332,36 @@ export const screenStates: ScreenState[] = [
         selectedId: SHIPMENTS,
         // "mention" here opens the exact-date calendar beside the menu.
         openField: conditionMenu(SHIPMENTS, "mention", "value"),
+      },
+    }),
+  },
+  {
+    id: "rel-d2",
+    journey: 3,
+    row: "Row A · Conditions and typed values",
+    title: "Explore D2 · Custom interval",
+    caption:
+      "Custom… sets how far back, from step run time or flow start: 90 days ago.",
+    create: () => ({
+      document: journey3({
+        conditions: [
+          received({
+            value: null,
+            relative: {
+              kind: "interval",
+              amount: 90,
+              unit: "days",
+              direction: "ago",
+              anchor: "stepRun",
+            },
+          }),
+        ],
+      }),
+      ui: {
+        ...initialUi,
+        selectedId: SHIPMENTS,
+        // "custom" opens the exact-date calendar with the Custom… interval popover beside it.
+        openField: conditionMenu(SHIPMENTS, "custom", "value"),
       },
     }),
   },

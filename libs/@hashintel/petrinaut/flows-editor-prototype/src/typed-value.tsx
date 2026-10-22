@@ -197,7 +197,7 @@ const DateField = ({
               allowRelative
                 ? (next) => {
                     onChange({ relative: next });
-                    if (next.kind !== "daysAgo") {
+                    if (next.kind !== "daysAgo" && next.kind !== "interval") {
                       setOpen(false);
                     }
                   }

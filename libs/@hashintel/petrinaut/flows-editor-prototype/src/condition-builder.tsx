@@ -43,6 +43,7 @@ import {
   type DraftActionStep,
   type EditorDocument,
   findStep,
+  type IntervalUnit,
   itemName,
   itemPropertyOf,
   type QueryDraft,
@@ -306,12 +307,23 @@ const SHOW_STEP = "__showStep";
 const relativeKey = (relative: RelativeDate) =>
   relative.kind === "daysAgo"
     ? `rel:daysAgo:${relative.days}`
-    : `rel:${relative.kind}`;
+    : relative.kind === "interval"
+      ? `rel:interval:${relative.amount}:${relative.unit}:${relative.direction}:${relative.anchor}`
+      : `rel:${relative.kind}`;
 
 const parseRelative = (key: string): RelativeDate | undefined => {
-  const [, kind, days] = key.split(":");
+  const [, kind, days, unit, direction, anchor] = key.split(":");
   if (kind === "daysAgo") {
     return { kind: "daysAgo", days: Number(days) };
+  }
+  if (kind === "interval") {
+    return {
+      kind,
+      amount: Number(days),
+      unit: unit as IntervalUnit,
+      direction: direction as "ago" | "fromNow",
+      anchor: anchor as "stepRun" | "flowStart",
+    };
   }
   return relativePresets.find((preset) => preset.value.kind === kind)?.value;
 };
@@ -489,7 +501,7 @@ const ConditionRowView = ({
       : null;
   const open = (
     part: "operator" | "value" | "variable" | null,
-    mode: "menu" | "mention" = "menu",
+    mode: "menu" | "mention" | "custom" = "menu",
   ) =>
     setUi((current) => ({
       ...current,
@@ -661,7 +673,7 @@ const ConditionRowView = ({
               ]
             : [];
         const daysAgo =
-          row.relative?.kind === "daysAgo"
+          row.relative?.kind === "daysAgo" || row.relative?.kind === "interval"
             ? [
                 {
                   value: relativeKey(row.relative),
@@ -1101,6 +1113,7 @@ const ConditionRowView = ({
                 row.relative || row.value === null ? null : String(row.value)
               }
               relative={row.relative}
+              customOpen={ui.openField?.mode === "custom"}
               onPickDate={(iso) => {
                 onChange({
                   value: iso,
@@ -1111,7 +1124,10 @@ const ConditionRowView = ({
               }}
               onPickRelative={(relative) => {
                 onChange({ relative, value: null, valueSource: undefined });
-                if (relative.kind !== "daysAgo") {
+                if (
+                  relative.kind !== "daysAgo" &&
+                  relative.kind !== "interval"
+                ) {
                   close();
                 }
               }}

@@ -5,12 +5,22 @@
  *
  * MOCK, editor side only: relative dates. The engine stores fixed dates only.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import { Icon, NumberInput } from "@hashintel/ds-components";
+import {
+  Icon,
+  NumberInput,
+  Popover,
+  SegmentedControl,
+  Select,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { RelativeDate } from "./document";
+import {
+  type IntervalUnit,
+  intervalUnits,
+  type RelativeDate,
+} from "./document";
 
 export const months = [
   "January",
@@ -55,11 +65,36 @@ const isStartOfPreset = (preset: { value: RelativeDate }) =>
   preset.value.kind === "startOfMonth" ||
   preset.value.kind === "startOfLastMonth";
 
-export const relativeLabel = (relative: RelativeDate) =>
-  relative.kind === "daysAgo"
-    ? `${relative.days} days ago`
-    : (relativePresets.find((preset) => preset.value.kind === relative.kind)
-        ?.text ?? "");
+/** "90 days ago", "1 week from now". */
+export const relativeLabel = (relative: RelativeDate) => {
+  if (relative.kind === "daysAgo") {
+    return `${relative.days} days ago`;
+  }
+  if (relative.kind === "interval") {
+    const unit =
+      relative.amount === 1 ? relative.unit.slice(0, -1) : relative.unit;
+    return `${relative.amount} ${unit} ${relative.direction === "ago" ? "ago" : "from now"}`;
+  }
+  return (
+    relativePresets.find((preset) => preset.value.kind === relative.kind)
+      ?.text ?? ""
+  );
+};
+
+type Interval = Extract<RelativeDate, { kind: "interval" }>;
+
+const defaultInterval: Interval = {
+  kind: "interval",
+  amount: 90,
+  unit: "days",
+  direction: "ago",
+  anchor: "stepRun",
+};
+
+const anchorText = {
+  stepRun: "Step run time",
+  flowStart: "Flow start",
+} satisfies Record<Interval["anchor"], string>;
 
 /** The prototype's "today" (the world's month is October 2026). */
 export const today = { year: 2026, month: 9, day: 21 };
@@ -310,6 +345,16 @@ const relativeRowStyle = css({
   "&[aria-pressed=true]": { backgroundColor: "neutral.bg.surface.active" },
 });
 
+/** `Custom interval · popover` (Figma 555:16967): 296 px, 16 px in, 12 px between the labelled fields. */
+const customContentStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "3",
+  width: "[264px]",
+});
+
+const customLabelStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
+
 export type DatePickerSurfaceProps = {
   label: string;
   /** The picked fixed date, as `YYYY-MM-DD`. */
@@ -322,6 +367,8 @@ export type DatePickerSurfaceProps = {
   time?: React.ReactNode;
   /** A last row under the relative choices, e.g. "Clear". */
   footer?: React.ReactNode;
+  /** Opens with the "Custom…" interval popover showing (Figma D2). */
+  customOpen?: boolean;
 };
 
 /** One surface, anchored under the value it sets: relative choices on the left (optional), the month on the right. */
@@ -333,8 +380,14 @@ export const DatePickerSurface = ({
   onPickRelative,
   time,
   footer,
+  customOpen: initialCustomOpen = false,
 }: DatePickerSurfaceProps) => {
   const [daysOpen, setDaysOpen] = useState(relative?.kind === "daysAgo");
+  const [customOpen, setCustomOpen] = useState(initialCustomOpen);
+  const customRef = useRef<HTMLButtonElement>(null);
+  const interval = relative?.kind === "interval" ? relative : defaultInterval;
+  const changeInterval = (change: Partial<Interval>) =>
+    onPickRelative?.({ ...interval, ...change });
   const presetRow = (preset: (typeof relativePresets)[number]) => (
     <button
       key={preset.value.kind}
@@ -351,7 +404,11 @@ export const DatePickerSurface = ({
     <div className={surfaceStyle} role="dialog" aria-label={label}>
       {onPickRelative ? (
         <div className={relativeColumnStyle}>
-          <div className={relativeLabelStyle}>Relative to today</div>
+          <div className={relativeLabelStyle}>
+            {relative?.kind === "interval" || customOpen
+              ? `Relative to ${anchorText[interval.anchor].toLowerCase()}`
+              : "Relative to today"}
+          </div>
           {relativePresets.filter((preset) => !isStartOfPreset(preset)).map(presetRow)}
           {daysOpen ? (
             <div
@@ -401,6 +458,21 @@ export const DatePickerSurface = ({
               Number of days ago
             </button>
           )}
+          <button
+            ref={customRef}
+            type="button"
+            className={relativeRowStyle}
+            aria-pressed={relative?.kind === "interval" || customOpen}
+            title="Editor mock: the engine stores fixed dates only."
+            onClick={() => {
+              setCustomOpen(true);
+              if (relative?.kind !== "interval") {
+                onPickRelative(defaultInterval);
+              }
+            }}
+          >
+            Custom…
+          </button>
           {relativePresets.filter(isStartOfPreset).map(presetRow)}
           {footer ? (
             <div className={css({ marginTop: "auto" })}>{footer}</div>
@@ -419,6 +491,75 @@ export const DatePickerSurface = ({
         <DateCalendar value={relative ? null : iso} onPick={onPickDate} />
         {time}
       </div>
+      {customOpen && onPickRelative ? (
+        <Popover
+          triggerRef={customRef}
+          position="left-start"
+          gapX={8}
+          onClose={() => setCustomOpen(false)}
+        >
+          <Popover.Container>
+            <Popover.Body>
+              <div
+                role="dialog"
+                aria-label="Custom interval"
+                className={customContentStyle}
+              >
+                <span className={customLabelStyle}>Relative to</span>
+                <Select
+                  items={Object.entries(anchorText).map(([value, text]) => ({
+                    value,
+                    text,
+                  }))}
+                  value={interval.anchor}
+                  aria-label="Relative to"
+                  onChange={(anchor) =>
+                    changeInterval({ anchor: anchor as Interval["anchor"] })
+                  }
+                />
+                <span className={customLabelStyle}>Amount and unit</span>
+                <div className={css({ display: "flex", gap: "2" })}>
+                  <div className={css({ width: "[70px]", flexShrink: 0 })}>
+                    <NumberInput
+                      width="fullWidth"
+                      min={1}
+                      value={interval.amount}
+                      aria-label="Amount"
+                      onChange={(amount) =>
+                        changeInterval({ amount: Math.max(1, amount ?? 1) })
+                      }
+                    />
+                  </div>
+                  <Select
+                    width="fullWidth"
+                    items={intervalUnits.map((unit) => ({
+                      value: unit,
+                      text: unit,
+                    }))}
+                    value={interval.unit}
+                    aria-label="Unit"
+                    onChange={(unit) =>
+                      changeInterval({ unit: unit as IntervalUnit })
+                    }
+                  />
+                </div>
+                <span className={customLabelStyle}>Direction</span>
+                <div>
+                  <SegmentedControl<Interval["direction"]>
+                    size="sm"
+                    items={[
+                      { value: "ago", label: "ago" },
+                      { value: "fromNow", label: "from now" },
+                    ]}
+                    value={interval.direction}
+                    onChange={(direction) => changeInterval({ direction })}
+                  />
+                </div>
+              </div>
+            </Popover.Body>
+          </Popover.Container>
+        </Popover>
+      ) : null}
     </div>
   );
 };
