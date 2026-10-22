@@ -148,7 +148,17 @@ mod tests {
     use crate::{CaptureLimits, Workspace, WorkspaceConfig};
 
     fn source() -> PostgresSource {
-        serde_json::from_value(json!({"host": "localhost", "database": "postgres", "schema": "public", "table": "be932_capture_fixture", "sslMode": "disable", "credentials": {"secretEntityUuid": uuid::Uuid::new_v4()}})).expect("should describe the fixture source")
+        serde_json::from_value(json!({
+            "host": "localhost",
+            "database": "postgres",
+            "schema": "public",
+            "table": "be932_capture_fixture",
+            "sslMode": "disable",
+            "credentials": {
+                "secretEntityUuid": uuid::Uuid::new_v4(),
+            },
+        }))
+        .expect("should describe the fixture source")
     }
 
     #[test]
@@ -263,11 +273,24 @@ mod credential_tests {
 
     #[tokio::test]
     async fn credentials_redact_malformed_values() {
-        let source = serde_json::from_value(json!({"host": "unavailable.invalid", "database": "db", "schema": "public", "table": "items", "credentials": {"secretEntityUuid": uuid::Uuid::new_v4()}})).expect("should describe a source");
+        let source = serde_json::from_value(json!({
+            "host": "unavailable.invalid",
+            "database": "db",
+            "schema": "public",
+            "table": "items",
+            "credentials": {
+                "secretEntityUuid": uuid::Uuid::new_v4(),
+            },
+        }))
+        .expect("should describe a source");
         let directory = TempDir::new().expect("should create output storage");
         for value in [
             json!({"username": "sensitive-user", "password": 987_654_321}),
-            json!({"username": "sensitive-user", "password": "sensitive-password", "extra-sensitive-field": "extra-sensitive-value"}),
+            json!({
+                "username": "sensitive-user",
+                "password": "sensitive-password",
+                "extra-sensitive-field": "extra-sensitive-value",
+            }),
         ] {
             let secret = Secret::from_vec(
                 serde_json::to_vec(&value).expect("should serialize the malformed fixture"),
