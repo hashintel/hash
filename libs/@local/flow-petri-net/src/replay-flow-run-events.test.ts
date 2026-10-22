@@ -1,16 +1,21 @@
 import { describe, expect, it } from "vitest";
 
+import { applyActualModeTransitionFiring } from "@hashintel/petrinaut-core";
 import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 import { compileFlowDefinition } from "./compile-flow-definition.js";
 import { startFlowNetRun } from "./interpret-flow-net.js";
-import { replayFlowRunEvents } from "./replay-flow-run-events.js";
+import {
+  replayFlowRunEvents,
+  toRootNetActualModeExecution,
+} from "./replay-flow-run-events.js";
 import {
   fileFlowDefinition,
   forEachFlowDefinition,
 } from "./testing/flow-definitions.js";
 
 import type { FlowRunReplay } from "./replay-flow-run-events.js";
+import type { ActualModeMarking } from "@hashintel/petrinaut-core";
 import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -49,6 +54,31 @@ const getStarted: UnplacedEvent = {
   stepType: "getFileFromUrl",
   inputs: [],
 };
+
+/** A run of `forEachFlowDefinition` over two URLs, whose second item finishes first. */
+const forEachRunEvents: UnplacedEvent[] = [
+  {
+    kind: "runStarted",
+    flowInputs: {
+      urls: { kind: "Text", value: ["https://a.com", "https://b.com"] },
+    },
+  },
+  {
+    kind: "forEachStarted",
+    stepRun: { stepId: "each", itemPath: [] },
+    itemCount: 2,
+  },
+  ...[1, 0].flatMap((index): UnplacedEvent[] => {
+    const stepRun = { stepId: "get", itemPath: [index] };
+
+    return [
+      { ...getStarted, stepRun },
+      { kind: "attemptStarted", stepRun, attempt: 1 },
+      { kind: "attemptSucceeded", stepRun, attempt: 1, outputs: fileOutput },
+    ];
+  }),
+  { kind: "runFinished", status: FlowRunStatus.Completed },
+];
 
 describe("replayFlowRunEvents", () => {
   it("follows a step's attempts to its outputs", async () => {
@@ -175,35 +205,8 @@ describe("replayFlowRunEvents", () => {
 
   it("starts a forEach step's items when it learns how many there are", async () => {
     const net = await compileFlowDefinition(forEachFlowDefinition);
-    const eachStepRun = { stepId: "each", itemPath: [] };
 
-    const replay = replayFlowRunEvents(
-      net,
-      placed([
-        {
-          kind: "runStarted",
-          flowInputs: {
-            urls: { kind: "Text", value: ["https://a.com", "https://b.com"] },
-          },
-        },
-        { kind: "forEachStarted", stepRun: eachStepRun, itemCount: 2 },
-        ...[1, 0].flatMap((index): UnplacedEvent[] => {
-          const stepRun = { stepId: "get", itemPath: [index] };
-
-          return [
-            { ...getStarted, stepRun },
-            { kind: "attemptStarted", stepRun, attempt: 1 },
-            {
-              kind: "attemptSucceeded",
-              stepRun,
-              attempt: 1,
-              outputs: fileOutput,
-            },
-          ];
-        }),
-        { kind: "runFinished", status: FlowRunStatus.Completed },
-      ]),
-    );
+    const replay = replayFlowRunEvents(net, placed(forEachRunEvents));
 
     expect(replay.problems).toEqual([]);
     expect(
@@ -299,5 +302,52 @@ describe("replayFlowRunEvents", () => {
       problems: [],
       skippedStepRuns: [],
     });
+  });
+});
+
+describe("toRootNetActualModeExecution", () => {
+  it("replays in Actual mode to the run's tokens in the root net", async () => {
+    const net = await compileFlowDefinition(forEachFlowDefinition);
+    const replay = replayFlowRunEvents(net, placed(forEachRunEvents));
+    const { initialState, transitionFirings } =
+      toRootNetActualModeExecution(replay);
+    const rootTransitionIds = new Set(net.transitions.map(({ id }) => id));
+    const rootPlaceIds = new Set(net.places.map(({ id }) => id));
+
+    let marking: ActualModeMarking = initialState;
+
+    for (const firing of transitionFirings) {
+      expect(rootTransitionIds.has(firing.transitionId)).toBe(true);
+      expect(
+        [...Object.keys(firing.input), ...Object.keys(firing.output)].every(
+          (placeId) => rootPlaceIds.has(placeId),
+        ),
+      ).toBe(true);
+
+      marking = applyActualModeTransitionFiring(marking, firing);
+
+      expect(
+        Object.values(marking).every(
+          (count) => typeof count === "number" && count >= 0,
+        ),
+      ).toBe(true);
+    }
+
+    const rootCounts: Record<string, number> = {};
+
+    for (const { position } of replay.marking) {
+      if (position.kind === "place") {
+        rootCounts[position.placeId] = (rootCounts[position.placeId] ?? 0) + 1;
+      }
+    }
+
+    expect(
+      Object.fromEntries(
+        Object.entries(marking).filter(([, count]) => count !== 0),
+      ),
+    ).toEqual(rootCounts);
+    expect(transitionFirings.at(-1)?.ts).toBe(
+      replay.firings.at(-1)?.occurredAt,
+    );
   });
 });
