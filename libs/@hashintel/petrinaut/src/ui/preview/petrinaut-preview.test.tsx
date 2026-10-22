@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PetrinautPreview } from "./petrinaut-preview";
@@ -121,7 +121,7 @@ describe("PetrinautPreview", () => {
     ).toBeNull();
   });
 
-  it("opens an execution in Actual mode on its latest frame, with its timeline", () => {
+  it("opens an execution in Actual mode on its latest frame, with its timeline", async () => {
     render(
       <PetrinautPreview definition={definition} actualMode={actualMode} />,
     );
@@ -132,7 +132,9 @@ describe("PetrinautPreview", () => {
     expect(Number(canvas.getAttribute("data-total-frames"))).toBeGreaterThan(0);
     expect(tokensOnCanvas()).toEqual({ [placeId]: 1, [otherPlaceId]: 1 });
     expect(
-      screen.getByRole("region", { name: "Execution timeline" }),
+      await within(
+        screen.getByRole("region", { name: "Execution timeline" }),
+      ).findByText("Chart"),
     ).not.toBeNull();
   });
 

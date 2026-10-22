@@ -13,6 +13,11 @@ import type { SubView } from "../../../../../../components/sub-view/types";
 export const ActualTimeline: React.FC<{
   showLegend?: boolean;
 }> = ({ showLegend = true }) => {
+  "use no memo";
+  // `useStreamingData` appends frames to the same store object, so a memoized
+  // render keeps what it drew before them: a run that has finished when the
+  // timeline mounts stays on "no data".
+
   const {
     hiddenTimelineSeriesIds: hiddenSeries,
     setHiddenTimelineSeriesIds: setHiddenSeries,
