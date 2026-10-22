@@ -18,6 +18,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::{
+        self,
         entity::provenance::ProvidedEntityEditionProvenance,
         property::{PropertyObject, PropertyObjectWithMetadata},
     },
@@ -28,13 +29,14 @@ use type_system::{
 
 use super::{
     entity::{Entity, LiveEntityId},
+    link::Link,
     property_metadata::{PropertyMetadataMismatch, PropertyObjectMetadata},
 };
 use crate::rest::{
     ApiState,
     credentials::Actor,
     extract::Json,
-    public::Credentials,
+    public::{Credentials, present::present},
     routing::{self, Route},
 };
 
@@ -80,6 +82,14 @@ struct NewEntityFields {
     properties: PropertyObject,
     /// The data types of the values in `properties`, one for every value.
     property_metadata: PropertyObjectMetadata,
+    /// The entities it connects, for an entity of a link type.
+    #[serde(
+        default,
+        deserialize_with = "present",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[schemars(with = "Link")]
+    link: Option<Link>,
 }
 
 /// An entity to create.
@@ -92,6 +102,7 @@ struct NewEntity {
     web_id: WebId,
     entity_type_ids: EntityTypeIds,
     properties_with_metadata: PropertyObjectWithMetadata,
+    link: Option<Link>,
 }
 
 impl TryFrom<NewEntityFields> for NewEntity {
@@ -102,6 +113,7 @@ impl TryFrom<NewEntityFields> for NewEntity {
             web_id: fields.web_id,
             entity_type_ids: fields.entity_type_ids,
             properties_with_metadata: fields.property_metadata.join(fields.properties)?,
+            link: fields.link,
         })
     }
 }
@@ -203,9 +215,12 @@ impl ProblemVariant for IncompatibleEntityTypes {
     }
 }
 
-/// One or more entities do not match their entity types.
+/// One or more entities do not match their entity types, or link to an entity that does not exist.
 #[derive(Serialize, JsonSchema, derive_more::Display)]
-#[display("One or more entities do not match their entity types.")]
+#[display(
+    "One or more entities do not match their entity types, or link to an entity that does not \
+     exist."
+)]
 struct InvalidEntities;
 
 impl ProblemVariant for InvalidEntities {
@@ -290,7 +305,7 @@ where
             entity_type_ids: entity.entity_type_ids.0.into_iter().collect(),
             properties: entity.properties_with_metadata,
             confidence: None,
-            link_data: None,
+            link_data: entity.link.map(knowledge::entity::Link::from),
             draft: false,
             policies: Vec::new(),
             provenance: ProvidedEntityEditionProvenance {
@@ -343,11 +358,14 @@ mod tests {
 
     use serde_json::json;
 
-    use super::CreateEntitiesRequest;
+    use super::{CreateEntitiesRequest, NewEntities};
 
     const WEB: &str = "8d86c8c3-d66d-43d1-859b-676c3bcaeadc";
     const PERSON: &str = "https://example.com/@alice/types/entity-type/person/v/1";
     const NAME: &str = "https://example.com/@alice/types/property-type/name/";
+    const FRIEND: &str = "https://example.com/@alice/types/entity-type/friend-of/v/1";
+    const ALICE: &str = "8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d";
+    const BOB: &str = "8d86c8c3-d66d-43d1-859b-676c3bcaeadc~1f3b8a4e-6c2d-4e5f-9a7b-3c1d2e4f5a6b";
 
     fn parse(request: serde_json::Value) -> Result<CreateEntitiesRequest, serde_json::Error> {
         serde_json::from_value(request)
@@ -384,6 +402,45 @@ mod tests {
                 "propertyMetadata": {},
             }] })),
             Err(error) if error.to_string().contains(&format!("has no entry for `[\"{NAME}\"]`"))
+        );
+    }
+
+    #[test]
+    fn request_link() {
+        let request = parse(json!({ "entities": [{
+            "webId": WEB,
+            "entityTypeIds": [FRIEND],
+            "properties": {},
+            "propertyMetadata": {},
+            "link": {
+                "kind": "directed",
+                "source": { "entityId": ALICE },
+                "target": { "entityId": BOB },
+            },
+        }] }))
+        .expect("the request should parse");
+
+        let CreateEntitiesRequest {
+            entities: NewEntities(entities),
+        } = request;
+        assert_matches!(
+            entities.as_slice(),
+            [entity] if entity.link.is_some(),
+            "the entity should keep its link"
+        );
+    }
+
+    #[test]
+    fn request_link_null() {
+        assert_matches!(
+            parse(json!({ "entities": [{
+                "webId": WEB,
+                "entityTypeIds": [PERSON],
+                "properties": {},
+                "propertyMetadata": {},
+                "link": null,
+            }] })),
+            Err(error) if error.to_string().contains("expected internally tagged enum Link")
         );
     }
 }

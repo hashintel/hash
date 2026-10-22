@@ -1,7 +1,7 @@
 //! The position of a page in the result of a query.
 
 use schemars::JsonSchema;
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 
 /// An opaque position in a query's result.
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -27,15 +27,4 @@ impl TryFrom<String> for Cursor {
         }
         Ok(Self(cursor))
     }
-}
-
-/// Reads a cursor the request names.
-///
-/// The query string reader reads an empty value of an optional parameter as a missing one, so
-/// `?cursor=` would select the first page instead of being rejected.
-pub(super) fn named<'de, D>(deserializer: D) -> Result<Option<Cursor>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    Cursor::deserialize(deserializer).map(Some)
 }
