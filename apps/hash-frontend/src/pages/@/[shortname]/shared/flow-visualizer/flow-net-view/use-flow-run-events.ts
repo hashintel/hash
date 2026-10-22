@@ -89,6 +89,7 @@ const toFlowRunEvent = (event: QueriedFlowRunEvent): FlowRunEvent => {
         stepRun: toStepRun(event.stepRun),
         attempt: event.attempt,
         outputs: event.outputs,
+        ...(event.message != null ? { message: event.message } : {}),
       };
     case "FlowRunAttemptFailedEvent":
       return {
