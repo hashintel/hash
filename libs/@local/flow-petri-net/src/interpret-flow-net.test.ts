@@ -562,6 +562,37 @@ describe("startFlowNetRun", () => {
     expect(withUrl.isPending({ stepId: "get", itemPath: [] })).toBe(false);
   });
 
+  it("doesn't hold a step whose optional input to skip on is missing", async () => {
+    const net = await compileFlowDefinition(
+      defineFlow(
+        {
+          flowDefinitionId: "get-file-maybe-described",
+          name: "Get file, maybe described",
+          description: "Get a file, with a description if there is one",
+          inputs: {
+            url: flowInput("Text"),
+            description: flowInput("Text", { required: false }),
+          },
+        },
+        ({ inputs, step }) => {
+          const getFile = step("get", actions.getFileFromUrl, {
+            description: "Retrieve the file from the URL",
+            inputs: {
+              url: inputs.url,
+              description: inputs.description.orSkip(),
+            },
+          });
+
+          return { outputs: { file: getFile.outputs.fileEntity } };
+        },
+      ).flowDefinition,
+    );
+
+    const run = startFlowNetRun(net, { flowInputNames: ["url"] });
+
+    expect(run.isPending({ stepId: "get", itemPath: [] })).toBe(false);
+  });
+
   describe.each(hardcodedFlowDefinitions)(
     "the %s flow",
     (_, flowDefinition) => {
