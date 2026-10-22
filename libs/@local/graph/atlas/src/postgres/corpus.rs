@@ -18,7 +18,7 @@ use hash_graph_postgres_store::store::postgres::query::{
 };
 
 use super::{
-    LINK_ROOT_BASE_URL,
+    LINK_ENTITY_TYPE_BASE_URL,
     sql::{
         AttachmentVocabulary, Axes, MAPPING, Mapping, current_identity_join, edition_conjunction,
         type_mapping,
@@ -507,7 +507,7 @@ pub(crate) fn type_table_statement(axes: &TemporalAxes) -> BoundStatement<'_, Ty
 
     let mut binder = Binder::default();
     let axes_points = Axes::bind(&mut binder, axes);
-    let link_root = binder.bind(&LINK_ROOT_BASE_URL);
+    let link_root = binder.bind(&LINK_ENTITY_TYPE_BASE_URL);
     let attachments = AttachmentVocabulary::bind(&mut binder);
 
     // SELECT entity_edition_id FROM scope UNION ALL SELECT entity_edition_id FROM links

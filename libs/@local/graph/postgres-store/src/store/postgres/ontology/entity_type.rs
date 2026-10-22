@@ -54,7 +54,7 @@ use type_system::{
             EntityTypeUuid,
             schema::{
                 EntityTypeResolveData, EntityTypeToPropertyTypeEdge, EntityTypeValidator,
-                PartialEntityType,
+                LINK_ENTITY_TYPE_BASE_URL, PartialEntityType,
             },
         },
         id::{OntologyTypeRecordId, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
@@ -81,9 +81,6 @@ use crate::store::{
     },
     validation::StoreProvider,
 };
-
-/// The base URL of the entity type every link entity type inherits from.
-const LINK_BASE_URL: &str = "https://blockprotocol.org/@blockprotocol/types/entity-type/link/";
 
 impl<C, S> PostgresStore<C, S>
 where
@@ -457,12 +454,12 @@ where
             .query(
                 "
                     SELECT
-                        reference.kind,
+                        reference.is_destination,
                         source.base_url || 'v/' || source.version,
                         target.base_url || 'v/' || target.version
                     FROM (
                         SELECT
-                            'destination' AS kind,
+                            TRUE AS is_destination,
                             source_entity_type_ontology_id AS source_id,
                             target_entity_type_ontology_id AS target_id,
                             target_entity_type_ontology_id AS endpoint_id
@@ -470,7 +467,7 @@ where
                         WHERE source_entity_type_ontology_id = ANY($1)
                         UNION ALL
                         SELECT
-                            'source',
+                            FALSE,
                             source_entity_type_ontology_id,
                             target_entity_type_ontology_id,
                             source_entity_type_ontology_id
@@ -490,7 +487,7 @@ where
                              AND ancestor.base_url = $2
                        );
                 ",
-                &[&entity_types, &LINK_BASE_URL],
+                &[&entity_types, &LINK_ENTITY_TYPE_BASE_URL],
             )
             .instrument(tracing::info_span!(
                 "SELECT",
@@ -504,16 +501,16 @@ where
             .map(|row| {
                 let entity_type_id = row.get(1);
                 let referenced_type_id = row.get(2);
-                Err(Report::new(match row.get::<_, &str>(0) {
-                    "destination" => LinkToLinkConstraint::Destination {
+                Err(Report::new(if row.get(0) {
+                    LinkToLinkConstraint::Destination {
                         entity_type_id,
                         destination_id: referenced_type_id,
-                    },
-                    "source" => LinkToLinkConstraint::Source {
+                    }
+                } else {
+                    LinkToLinkConstraint::Source {
                         entity_type_id,
                         link_type_id: referenced_type_id,
-                    },
-                    _ => unreachable!(),
+                    }
                 }))
             })
             .try_collect_reports::<()>()
