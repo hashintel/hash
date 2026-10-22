@@ -189,7 +189,11 @@ const getStepRunsFromActivityEvents = (
 
       case "attemptSucceeded": {
         stepRun.outputs = [
-          { code: StatusCode.Ok, contents: [{ outputs: event.outputs }] },
+          {
+            code: StatusCode.Ok,
+            ...(event.message ? { message: event.message } : {}),
+            contents: [{ outputs: event.outputs }],
+          },
         ];
         stepRun.status = FlowStepStatus.Completed;
         stepRun.closedAt = event.occurredAt;
