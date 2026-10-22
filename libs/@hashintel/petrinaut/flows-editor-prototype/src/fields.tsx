@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import {
   Button,
@@ -56,6 +57,7 @@ import {
   mutedTextStyle,
   PropertyRow,
   selectTriggerStyle,
+  SourceChip,
 } from "./ui";
 
 import type { StepInputSource } from "./engine";
@@ -316,32 +318,28 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
  * Free text with "@" chips (ledger, 12–13 Oct: a trigger symbol inserts an inline chip, found by search).
  * ------------------------------------------------------------------------------------------------------------- */
 
-const chipClass = css({
+/**
+ * DS gap: the DS has no input that mixes typed text with inline chips. This shell copies the `input_string` md look
+ * (J3 D1, Figma 553:30299) and holds the DS `Chip` that `SourceChip` draws (Figma 553:30301), as static markup.
+ */
+const chipWrapClass = css({
   display: "inline-flex",
-  alignItems: "center",
-  paddingX: "[6px]",
+  verticalAlign: "middle",
   marginX: "[1px]",
-  borderRadius: "sm",
-  backgroundColor: "blue.bgSolid.surface.active",
-  color: "blue.fg.link",
-  textStyle: "xs",
-  fontWeight: "medium",
   userSelect: "all",
-  whiteSpace: "nowrap",
 });
 
 const editorClass = css({
-  minHeight: "[60px]",
   width: "[100%]",
-  paddingX: "2",
-  paddingY: "[6px]",
+  paddingX: "2.5",
+  paddingY: "1.5",
   textStyle: "sm",
   color: "neutral.fg.heading",
   backgroundColor: "neutral.bgSolid.min",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.bd.subtle.hover",
-  borderRadius: "md",
+  borderColor: "neutral.bd.solid",
+  borderRadius: "lg",
   whiteSpace: "pre-wrap",
   overflowWrap: "anywhere",
   outline: "none",
@@ -355,23 +353,35 @@ const editorClass = css({
   },
 });
 
+const makeChip = (
+  document: EditorDocument,
+  source: RefSource,
+  label: (source: RefSource) => string,
+) => {
+  const chip = globalThis.document.createElement("span");
+  chip.contentEditable = "false";
+  chip.className = chipWrapClass;
+  chip.dataset.ref = JSON.stringify(source);
+  chip.innerHTML = renderToStaticMarkup(
+    <SourceChip icon={ownerLook(document, source)?.icon ?? "rotate"}>
+      {label(source)}
+    </SourceChip>,
+  );
+  return chip;
+};
+
 const renderParts = (
   element: HTMLElement,
   parts: TemplatePart[],
+  document: EditorDocument,
   label: (source: RefSource) => string,
 ) => {
   element.replaceChildren(
-    ...parts.map((part) => {
-      if (part.kind === "text") {
-        return globalThis.document.createTextNode(part.text);
-      }
-      const chip = globalThis.document.createElement("span");
-      chip.contentEditable = "false";
-      chip.className = chipClass;
-      chip.dataset.ref = JSON.stringify(part.source);
-      chip.textContent = label(part.source);
-      return chip;
-    }),
+    ...parts.map((part) =>
+      part.kind === "text"
+        ? globalThis.document.createTextNode(part.text)
+        : makeChip(document, part.source, label),
+    ),
   );
 };
 
@@ -395,6 +405,11 @@ const readParts = (element: HTMLElement): TemplatePart[] => {
   }
   return parts;
 };
+
+/** Engine notes are for engineers only: behind `?debug`, never in the default UI. */
+const showEngineNotes = new URLSearchParams(globalThis.location.search).has(
+  "debug",
+);
 
 export const MentionField = ({ step, input, entry }: FieldProps) => {
   const { document, setDocument, ui, setUi } = useEditor();
@@ -426,7 +441,12 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
   useEffect(() => {
     const element = editorRef.current;
     if (element && serialized !== lastWritten.current) {
-      renderParts(element, JSON.parse(serialized) as TemplatePart[], label);
+      renderParts(
+        element,
+        JSON.parse(serialized) as TemplatePart[],
+        document,
+        label,
+      );
       lastWritten.current = serialized;
     }
   });
@@ -469,11 +489,7 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
       return;
     }
     const found = findMention();
-    const chip = globalThis.document.createElement("span");
-    chip.contentEditable = "false";
-    chip.className = chipClass;
-    chip.dataset.ref = JSON.stringify(source);
-    chip.textContent = label(source);
+    const chip = makeChip(document, source, label);
     const space = globalThis.document.createTextNode(" ");
     if (found) {
       const text = found.node.textContent ?? "";
@@ -529,7 +545,7 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
           }
         }}
       />
-      {mixed ? (
+      {mixed && showEngineNotes ? (
         <Tooltip content="The engine takes one value per input, so text mixed with values has no engine shape yet. Kept in the prototype's mock layer.">
           <span className={mutedTextStyle}>Text with values · mock</span>
         </Tooltip>
