@@ -43,17 +43,10 @@ vi.mock("../views/SDCPN/sdcpn-view", async () => {
   };
 });
 
-/* The timelines' charts need a browser's canvas. */
+/* The timelines' chart needs a browser's canvas. */
 vi.mock(
-  "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/actual",
-  () => ({
-    actualTimelineSubView: { component: () => <div>Actual timeline</div> },
-  }),
-);
-
-vi.mock(
-  "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/content",
-  () => ({ SimulationTimeline: () => <div>Simulation timeline</div> }),
+  "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/chart",
+  () => ({ UPlotChart: () => <div>Chart</div> }),
 );
 
 const placeId = "00000000-0000-4000-8000-0000000000a1";
@@ -90,25 +83,28 @@ const definition: SDCPN = {
   parameters: [],
 };
 
+const finishAt = (ts: string) => ({
+  transitionId,
+  input: { [placeId]: 1 },
+  output: { [otherPlaceId]: 1 },
+  ts,
+});
+
 const actualMode: NonNullable<PetrinautPreviewProps["actualMode"]> = {
   available: true,
   source: { id: "run-1" },
   status: "complete",
   title: null,
   definition,
-  initialState: { [placeId]: 1 },
-  transitionFirings: [
-    {
-      transitionId,
-      input: { [placeId]: 1 },
-      output: { [otherPlaceId]: 1 },
-      ts: "2026-10-22T08:00:00.000Z",
-    },
-  ],
+  initialState: { [placeId]: 2 },
+  transitionFirings: [finishAt("2026-10-22T08:00:00.000Z")],
   timelineStartedAtMs: Date.parse("2026-10-22T08:00:00.000Z"),
   timelineNowMs: null,
   error: null,
 };
+
+const tokensOnCanvas = () =>
+  JSON.parse(screen.getByTestId("canvas").getAttribute("data-tokens")!);
 
 afterEach(cleanup);
 
@@ -125,7 +121,7 @@ describe("PetrinautPreview", () => {
     ).toBeNull();
   });
 
-  it("opens an execution in Actual mode, with its timeline", () => {
+  it("opens an execution in Actual mode on its latest frame, with its timeline", () => {
     render(
       <PetrinautPreview definition={definition} actualMode={actualMode} />,
     );
@@ -134,13 +130,32 @@ describe("PetrinautPreview", () => {
 
     expect(canvas.getAttribute("data-mode")).toBe("actual");
     expect(Number(canvas.getAttribute("data-total-frames"))).toBeGreaterThan(0);
-    expect(JSON.parse(canvas.getAttribute("data-tokens")!)).toEqual({
-      [placeId]: 1,
-      [otherPlaceId]: 0,
-    });
+    expect(tokensOnCanvas()).toEqual({ [placeId]: 1, [otherPlaceId]: 1 });
     expect(
-      screen.getByRole("region", { name: "Execution timeline" }).textContent,
-    ).toBe("Actual timeline");
+      screen.getByRole("region", { name: "Execution timeline" }),
+    ).not.toBeNull();
+  });
+
+  it("follows a live execution's new frames", () => {
+    const live = { ...actualMode, status: "streaming" as const };
+    const { rerender } = render(
+      <PetrinautPreview definition={definition} actualMode={live} />,
+    );
+
+    rerender(
+      <PetrinautPreview
+        definition={definition}
+        actualMode={{
+          ...live,
+          transitionFirings: [
+            ...live.transitionFirings,
+            finishAt("2026-10-22T08:00:05.000Z"),
+          ],
+        }}
+      />,
+    );
+
+    expect(tokensOnCanvas()).toEqual({ [placeId]: 0, [otherPlaceId]: 2 });
   });
 
   it("refuses both an execution and Quick Simulation", () => {

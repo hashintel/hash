@@ -3,9 +3,7 @@ import { use } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ExecutionFrameSourceContext } from "../../react/execution-frame/context";
-import { actualTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/actual";
-
-const ActualTimeline = actualTimelineSubView.component;
+import { ActualTimeline } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/actual";
 
 // Floats over the canvas where Quick Simulation's playback bar does, at the
 // width that bar takes once its timeline is expanded.
@@ -40,7 +38,7 @@ export const PreviewActualModeTimeline = () => {
 
   return (
     <section aria-label="Execution timeline" className={timelinePositionStyle}>
-      <ActualTimeline />
+      <ActualTimeline showLegend={false} />
     </section>
   );
 };
