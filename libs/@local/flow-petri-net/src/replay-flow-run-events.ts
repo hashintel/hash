@@ -54,7 +54,7 @@ const isSameStepRun = (stepRun: FlowNetStepRun, other: FlowRunEventStepRun) =>
   );
 
 const describeStepRun = ({ stepId, itemPath }: FlowRunEventStepRun) =>
-  itemPath.length > 0 ? `${stepId} [${itemPath.join(".")}]` : stepId;
+  itemPath.length > 0 ? `${stepId} [${itemPath.join(", ")}]` : stepId;
 
 /**
  * The attempt the net is waiting on the outcome of for a step run, if any.
