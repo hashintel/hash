@@ -6,6 +6,7 @@ import { compileFlowDefinition } from "@local/flow-petri-net/compile-flow-defini
 
 import { flowSectionBorderRadius } from "./shared/styles";
 
+import type { EntityId } from "@blockprotocol/type-system";
 import type { SDCPN } from "@hashintel/petrinaut";
 import type {
   FlowActionDefinitionId,
@@ -115,8 +116,11 @@ const useCompiledFlowNet = (
  */
 export const FlowNetView = ({
   flowDefinition,
+  flowDefinitionEntityId,
 }: {
   flowDefinition: FlowDefinition<FlowActionDefinitionId>;
+  /** Keys the viewport Petrinaut saves, so each flow opens at its own pan and zoom. */
+  flowDefinitionEntityId: EntityId;
 }) => {
   const compiledNet = useCompiledFlowNet(flowDefinition);
 
@@ -134,6 +138,7 @@ export const FlowNetView = ({
       {compiledNet.status === "compiled" ? (
         <PetrinautPreview
           definition={compiledNet.net}
+          documentId={flowDefinitionEntityId}
           title={flowDefinition.name}
         />
       ) : compiledNet.status === "failed" ? (

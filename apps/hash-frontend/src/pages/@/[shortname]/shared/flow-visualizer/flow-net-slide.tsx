@@ -71,7 +71,10 @@ export const FlowNetSlide = ({
             </IconButton>
           </Stack>
           <Box sx={{ flex: 1, minHeight: 0, p: 3 }}>
-            <FlowNetView flowDefinition={selectedFlowDefinition} />
+            <FlowNetView
+              flowDefinition={selectedFlowDefinition}
+              flowDefinitionEntityId={flowDefinitionEntityId}
+            />
           </Box>
         </Box>
       </Slide>
