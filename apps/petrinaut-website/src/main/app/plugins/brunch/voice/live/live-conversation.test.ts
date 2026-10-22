@@ -200,7 +200,7 @@ const setup = ({
   );
   const getUserMedia = vi.fn(async () => stream);
   vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
-  const fetch = vi.fn(async (url: string) =>
+  const fetch = vi.fn(async (url: string, _init?: RequestInit) =>
     Response.json(
       url.endsWith("transcription-session")
         ? { sdp: "v=0\r\no=transcription-answer" }
@@ -1514,6 +1514,90 @@ test("telemetry shows activity but silence and late samples never settle or revi
   release(new Map());
   await vi.advanceTimersByTimeAsync(500);
   expect(fixture.onState).toHaveBeenCalledTimes(calls);
+});
+
+const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+test("sends the startup level once, then one quiet note per turn with the final level", async () => {
+  const fixture = setup();
+  fixture.conversation.setInterviewBudgetLevel("standard");
+  await connect(fixture);
+  const startup = fixture.fetch.mock.calls.find(
+    ([url]) => url === "/api/voice/live-session",
+  );
+  expect(
+    new Headers(startup?.[1]?.headers).get("x-petrinaut-interview-budget"),
+  ).toBe("standard");
+  // A drag or key presses step through levels in separate tasks.
+  for (const level of ["quick", "thorough", "deep"] as const) {
+    fixture.conversation.setInterviewBudgetLevel(level);
+    await nextTask();
+  }
+  expect(fixture.sent[0]).toHaveLength(0);
+  fixture.conversation.appendCommentary("What comes next?", null);
+  expect(fixture.sent[0]).toHaveLength(2);
+  expect(JSON.parse(fixture.sent[0][0]!)).toMatchObject({
+    type: "session.thinking.append",
+    delegation_id: null,
+  });
+  expect(fixture.sent[0][0]).toContain("Deep (No limit)");
+  expect(JSON.parse(fixture.sent[0][1]!)).toMatchObject({
+    type: "session.commentary.append",
+  });
+  // Returning to the level Live already has sends nothing.
+  fixture.conversation.setInterviewBudgetLevel("quick");
+  fixture.conversation.setInterviewBudgetLevel("deep");
+  fixture.conversation.appendCommentary("And then?", null);
+  expect(fixture.sent[0]).toHaveLength(3);
+  expect(fixture.sent[0][2]).not.toContain("Interview length");
+  // The person finishing a turn is also a boundary.
+  fixture.conversation.setInterviewBudgetLevel("off");
+  fixture.emit(1, {
+    type: "input_audio_buffer.speech_started",
+    item_id: "answer",
+  });
+  fixture.emit(1, {
+    type: "input_audio_buffer.committed",
+    item_id: "answer",
+    previous_item_id: null,
+  });
+  fixture.emit(1, {
+    type: "conversation.item.input_audio_transcription.completed",
+    item_id: "answer",
+    content_index: 0,
+    transcript: "Four agents",
+  });
+  expect(fixture.onFinalizedInput).toHaveBeenCalledOnce();
+  expect(fixture.sent[0]).toHaveLength(4);
+  expect(fixture.sent[0][3]).toContain("now Off");
+});
+
+test("a failed pacing note is not retried and never interrupts speech", async () => {
+  const fixture = setup();
+  await connect(fixture);
+  vi.spyOn(fixture.channels[0], "send").mockImplementationOnce(() => {
+    throw new Error("send unavailable");
+  });
+  fixture.conversation.setInterviewBudgetLevel("deep");
+  fixture.conversation.appendCommentary("What comes next?", null);
+  expect(
+    fixture.onAppendResult.mock.calls.map(([result]) => [
+      result.kind,
+      result.status,
+    ]),
+  ).toEqual([
+    ["thinking", "local-failure"],
+    ["commentary", "unknown"],
+  ]);
+  fixture.conversation.appendCommentary("And then?", null);
+  expect(fixture.sent[0]).toHaveLength(2);
+  expect(fixture.sent[0].join("")).not.toContain("Interview length");
+  fixture.conversation.setInterviewBudgetLevel("thorough");
+  fixture.conversation.appendCommentary("One more?", null);
+  expect(fixture.sent[0]).toHaveLength(4);
+  expect(fixture.sent[0][2]).toContain("Thorough");
+  expect(fixture.onState.mock.lastCall![0].phase).toBe("connected");
+  expect(fixture.audio.pause).not.toHaveBeenCalled();
 });
 
 test("progress commentary has a null delegation and only the later wrap-up closes the local delegation", async () => {
