@@ -80,13 +80,19 @@ class UnsentMessageError extends Error {
   }
 }
 
-/** Marks the transport's refusals, which a failure of an accepted message's reply is not. */
+/**
+ * Marks the transport's refusals, which a failure of an accepted message's
+ * reply is not, and neither is a request Stop aborted.
+ */
 const markRefusals = (
   transport: PetrinautAiTransport,
 ): PetrinautAiTransport => ({
   reconnectToStream: (options) => transport.reconnectToStream(options),
   sendMessages: (options) =>
     transport.sendMessages(options).catch((cause: unknown) => {
+      if (options.abortSignal?.aborted) {
+        throw cause;
+      }
       const message = options.messages.at(-1);
       throw new UnsentMessageError(
         message?.role === "user"

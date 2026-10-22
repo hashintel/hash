@@ -757,6 +757,54 @@ describe("AssistantChat composer submissions", () => {
     expect(textarea.value).toBe("Unrelated newer input");
   });
 
+  test("treats a Stop that aborts a follow-up before it streams as no error", async () => {
+    const captureException =
+      vi.fn<(error: unknown, context?: object) => void>();
+    const followUpAborted = vi.fn();
+    const sendMessages = vi
+      .fn<PetrinautAiTransport["sendMessages"]>()
+      .mockResolvedValueOnce(
+        streamChunks([
+          { type: "start-step" },
+          {
+            type: "tool-input-available",
+            toolCallId: "net-read",
+            toolName: getLatestNetDefinitionToolName,
+            input: {},
+          },
+          { type: "finish-step" },
+          { type: "finish", finishReason: "tool-calls" },
+        ]),
+      )
+      // The follow-up is still being prepared, as while diagnostics run, and
+      // fails as fetch does once Stop aborts it.
+      .mockImplementationOnce(
+        ({ abortSignal }) =>
+          new Promise((_resolve, reject) => {
+            abortSignal?.addEventListener("abort", () => {
+              followUpAborted();
+              reject(new DOMException("Aborted", "AbortError"));
+            });
+          }),
+      );
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+      },
+      errorTracker: { captureException },
+      initialMessage: "Read the net",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await waitFor(() => expect(sendMessages).toHaveBeenCalledTimes(2));
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+
+    await waitFor(() => expect(followUpAborted).toHaveBeenCalledOnce());
+    expect(await screen.findByText("Response stopped")).not.toBeNull();
+    expect(captureException).not.toHaveBeenCalled();
+    expect(notifications).toEqual([]);
+  });
+
   test("cancels the local stream on Stop", async () => {
     const localCancellation = vi.fn();
     const transport: PetrinautAiTransport = {
