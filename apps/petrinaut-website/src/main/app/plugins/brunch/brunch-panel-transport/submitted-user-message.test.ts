@@ -7,88 +7,66 @@ import { brunchSubmittedUserMessage } from "./submitted-user-message";
 
 import type { UIMessage } from "ai";
 
-const text = (id: string, value: string): UIMessage => ({
+const message = (
+  id: string,
+  value: string,
+  role: UIMessage["role"] = "user",
+): UIMessage => ({
   id,
-  role: "user",
+  role,
   parts: [{ type: "text", text: value }],
 });
 
 describe("brunchSubmittedUserMessage", () => {
   test("admits an ordinary turn unchanged", () => {
-    expect(brunchSubmittedUserMessage([text("user-1", "Hello.")])).toEqual({
+    expect(brunchSubmittedUserMessage([message("user-1", "Hello.")])).toEqual({
       messageId: "user-1",
       body: "Hello.",
     });
   });
 
-  test("carries reserved diagnostics on the correlated user turn", () => {
-    const context = "Petrinaut diagnostics context only; one current error.";
+  test("leaves Petrinaut's diagnostics context out of the human's turn", () => {
     expect(
       brunchSubmittedUserMessage([
-        text("user-with-context", "Repair the model."),
-        text(petrinautDiagnosticsContextMessageId, context),
+        message("user-1", "Repair the model."),
+        message(petrinautDiagnosticsContextMessageId, "One current error."),
       ]),
-    ).toEqual({
-      messageId: "user-with-context",
-      body: petrinautContextualUserMessageBody({
-        userText: "Repair the model.",
-        diagnosticsContext: context,
-      }),
-    });
+    ).toEqual({ messageId: "user-1", body: "Repair the model." });
   });
 
-  test("carries submission context alongside any diagnostics", () => {
+  test("carries submission context without any diagnostics", () => {
     const submissionContext = { hostKey: { level: 2 } };
-    const context = "Petrinaut diagnostics context only; one current error.";
-    expect(
-      brunchSubmittedUserMessage([text("user-1", "Four agents")], {
-        ...submissionContext,
-      }),
-    ).toEqual({
+    const expected = {
       messageId: "user-1",
       body: petrinautContextualUserMessageBody({
-        userText: "Four agents",
+        userText: "Repair the model.",
         diagnosticsContext: "",
         submissionContext,
       }),
-    });
+    };
+    expect(
+      brunchSubmittedUserMessage([message("user-1", "Repair the model.")], {
+        ...submissionContext,
+      }),
+    ).toEqual(expected);
     expect(
       brunchSubmittedUserMessage(
         [
-          text("user-1", "Repair the model."),
-          text(petrinautDiagnosticsContextMessageId, context),
+          message("user-1", "Repair the model."),
+          message(petrinautDiagnosticsContextMessageId, "One current error."),
         ],
         submissionContext,
       ),
-    ).toEqual({
-      messageId: "user-1",
-      body: petrinautContextualUserMessageBody({
-        userText: "Repair the model.",
-        diagnosticsContext: context,
-        submissionContext,
-      }),
-    });
+    ).toEqual(expected);
   });
 
-  test.each([
-    [
-      "duplicate",
-      [
-        text("user-1", "Repair."),
-        text(petrinautDiagnosticsContextMessageId, "a"),
-        text(petrinautDiagnosticsContextMessageId, "b"),
-      ],
-      "The submission has duplicate diagnostics context.",
-    ],
-    [
-      "stale",
-      [
-        text(petrinautDiagnosticsContextMessageId, "a"),
-        text("user-1", "Repair."),
-      ],
-      "The submission has invalid or stale diagnostics context.",
-    ],
-  ])("refuses %s diagnostics context", (_label, messages, error) => {
-    expect(() => brunchSubmittedUserMessage(messages)).toThrow(error);
+  test("refuses a continuation that carries only diagnostics context", () => {
+    expect(() =>
+      brunchSubmittedUserMessage([
+        message("user-1", "Repair the model."),
+        message("assistant-1", "Changed the kernel.", "assistant"),
+        message(petrinautDiagnosticsContextMessageId, "One current error."),
+      ]),
+    ).toThrow("The submitted user message has no text.");
   });
 });
