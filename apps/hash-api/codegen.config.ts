@@ -24,10 +24,6 @@ const config: CodegenConfig = {
       config: {
         noSchemaStitching: true,
         ...baseGraphQlCodegenConfig,
-        mappers: {
-          FlowRunEvent:
-            "@local/hash-isomorphic-utils/flows/run-events#FlowRunEvent as FlowRunEventModel",
-        },
       },
     },
   },

@@ -14,7 +14,6 @@ import type {
   ResolversTypes,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 
 export const flowRunEventsResolver: ResolverFn<
@@ -49,24 +48,3 @@ export const flowRunEventsResolver: ResolverFn<
     throw Error.badRequest((error as Error).message);
   }
 };
-
-const eventTypeNamesByKind = {
-  runStarted: "FlowRunStartedEvent",
-  stepStarted: "FlowRunStepStartedEvent",
-  attemptStarted: "FlowRunAttemptStartedEvent",
-  attemptSucceeded: "FlowRunAttemptSucceededEvent",
-  attemptFailed: "FlowRunAttemptFailedEvent",
-  stepGaveUp: "FlowRunStepGaveUpEvent",
-  attemptCancellationRequested: "FlowRunAttemptCancellationRequestedEvent",
-  attemptCancelled: "FlowRunAttemptCancelledEvent",
-  stepSkipped: "FlowRunStepSkippedEvent",
-  forEachStarted: "FlowRunForEachStartedEvent",
-  inputRequested: "FlowRunInputRequestedEvent",
-  inputResolved: "FlowRunInputResolvedEvent",
-  progressLogged: "FlowRunProgressLoggedEvent",
-  runReset: "FlowRunResetEvent",
-  runFinished: "FlowRunFinishedEvent",
-} as const satisfies Record<FlowRunEvent["kind"], string>;
-
-export const resolveFlowRunEventType = ({ kind }: FlowRunEvent) =>
-  eventTypeNamesByKind[kind];

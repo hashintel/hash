@@ -154,12 +154,10 @@ export const scalars = {
     "@local/hash-isomorphic-utils/flows/schedule-types#UpdateFlowScheduleInput",
   ExternalInputRequest:
     "@local/hash-isomorphic-utils/flows/types#ExternalInputRequest",
-  ExternalInputRequestSignal:
-    "@local/hash-isomorphic-utils/flows/types#ExternalInputRequestSignal",
   ExternalInputResponseWithoutUser:
     "@local/hash-isomorphic-utils/flows/types#ExternalInputResponseWithoutUser",
   StepInput: "@local/hash-isomorphic-utils/flows/types#StepInput",
-  StepOutput: "@local/hash-isomorphic-utils/flows/types#StepOutput",
+  FlowRunEvent: "@local/hash-isomorphic-utils/flows/run-events#FlowRunEvent",
   FlowInputValues: "@local/hash-isomorphic-utils/flows/types#FlowInputValues",
   ResolvedStepRunOutput:
     "@local/hash-isomorphic-utils/flows/types#ResolvedStepRunOutput",
