@@ -10,7 +10,7 @@ import { useSyncExternalStore } from "react";
 import logoUrl from "../content/logo.png";
 import siteJson from "../content/site.json";
 import { Search } from "../search";
-import { LaptopIcon } from "./icons";
+import { LaptopIcon, MapIcon } from "./icons";
 import { readTheme, setTheme, subscribeTheme, type Theme } from "./theme";
 
 import type { DiffCompareContext } from "../diff-context";
@@ -75,6 +75,26 @@ const DiffBadges = () =>
     </span>
   );
 
+/** The way into the map from every page, and the way back. */
+const MapToggle = ({
+  open,
+  onToggle,
+}: {
+  open: boolean;
+  onToggle: () => void;
+}) => (
+  <button
+    type="button"
+    className="pnd-map-toggle"
+    aria-pressed={open}
+    onClick={onToggle}
+    title={open ? "Back to the docs (Esc)" : "Open the architecture map"}
+  >
+    <MapIcon size="1.25em" />
+    <span className="sl-hidden md:sl-block">Map</span>
+  </button>
+);
+
 const ThemeSelect = () => {
   const theme = useSyncExternalStore(subscribeTheme, readTheme, () => "auto");
   return (
@@ -107,7 +127,13 @@ const ThemeSelect = () => {
   );
 };
 
-export const Header = () => (
+export const Header = ({
+  mapOpen,
+  onToggleMap,
+}: {
+  mapOpen: boolean;
+  onToggleMap: () => void;
+}) => (
   <>
     <div className="header-bar">
       <div className="title-wrapper sl-flex">
@@ -137,7 +163,8 @@ export const Header = () => (
           <span />
         </div>
       </div>
-      <div className="sl-flex print:hidden">
+      <div className="sl-flex pnd-header-tools print:hidden">
+        <MapToggle open={mapOpen} onToggle={onToggleMap} />
         <Search />
       </div>
       <div className="sl-hidden md:sl-flex right-group print:hidden">
