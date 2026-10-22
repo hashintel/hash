@@ -9,7 +9,11 @@ import {
   startFlowNetRun,
 } from "./interpret-flow-net.js";
 
-import type { SDCPN } from "@hashintel/petrinaut-core";
+import type {
+  ActualModeMarking,
+  ActualModeTransitionFiring,
+  SDCPN,
+} from "@hashintel/petrinaut-core";
 import type {
   FlowRunEvent,
   FlowRunEventStepRun,
@@ -263,3 +267,37 @@ export const replayFlowRunEvents = (
     skippedStepRuns,
   };
 };
+
+const countAtRootPlaces = (placedTokens: readonly FlowNetPlacedToken[]) => {
+  const counts: Record<string, number> = {};
+
+  for (const { position } of placedTokens) {
+    if (position.kind === "place") {
+      counts[position.placeId] = (counts[position.placeId] ?? 0) + 1;
+    }
+  }
+
+  return counts;
+};
+
+/**
+ * A replay as an execution for Petrinaut's Actual mode, on the root net only. Actual mode keys a marking by place id
+ * alone, which can't tell the places of one instance of a subnet from another's, so it leaves out the tokens inside
+ * instances and the firings of subnets' transitions.
+ */
+export const toRootNetActualModeExecution = (
+  replay: FlowRunReplay,
+): {
+  initialState: ActualModeMarking;
+  transitionFirings: ActualModeTransitionFiring[];
+} => ({
+  initialState: countAtRootPlaces(replay.initialMarking),
+  transitionFirings: replay.firings
+    .filter(({ componentInstanceId }) => componentInstanceId === undefined)
+    .map((firing) => ({
+      transitionId: firing.transitionId,
+      input: countAtRootPlaces(firing.consumed),
+      output: countAtRootPlaces(firing.produced),
+      ts: firing.occurredAt,
+    })),
+});
