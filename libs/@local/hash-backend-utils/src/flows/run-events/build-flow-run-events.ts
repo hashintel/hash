@@ -1,7 +1,6 @@
 import proto from "@temporalio/proto";
 
 import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
-import { getArrayPayloadLength } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { StatusCode } from "@local/status";
 
@@ -22,9 +21,6 @@ import type {
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
   FlowSignalType,
-  FlowStep,
-  ForEachStep,
-  LocalFlowRun,
   ProgressLogSignal,
   SkippedStep,
   StartedForEachStep,
@@ -79,17 +75,6 @@ const toStepErrors = (
       error: { message: message ?? unknownErrorMessage },
     };
   });
-
-/** `forEach` steps that have fanned out, at any depth, outermost first. */
-const getFannedOutForEachSteps = (steps: FlowStep[]): ForEachStep[] =>
-  steps.flatMap((step) =>
-    step.kind === "for-each"
-      ? [
-          ...(step.steps === undefined ? [] : [step]),
-          ...getFannedOutForEachSteps(step.steps ?? []),
-        ]
-      : [],
-  );
 
 /**
  * The events of a flow run, from its Temporal history. An event depends only on its Temporal event and the ones
@@ -187,36 +172,7 @@ export const buildFlowRunEvents = (
           attempt: 1,
         });
 
-        /*
-         * Runs from before the engine recorded `startedForEachSteps` in its memo only show a fan-out in the next flow
-         * it persists. The memo comes first in the history of later runs, so their steps are already reported.
-         */
-        if (activityType === "persistFlowActivity") {
-          const { flow } = parseFirstPayload<{ flow: LocalFlowRun }>(
-            attributes.input,
-            "persisted flow",
-          );
-
-          for (const forEachStep of getFannedOutForEachSteps(flow.steps)) {
-            if (reportedForEachStepIds.has(forEachStep.stepId)) {
-              continue;
-            }
-
-            if (!forEachStep.over) {
-              throw new Error(
-                `forEach step ${forEachStep.stepId} has fanned out with no array to iterate over, in history event ${eventId}`,
-              );
-            }
-
-            reportedForEachStepIds.add(forEachStep.stepId);
-
-            addEvent({
-              kind: "forEachStarted",
-              stepRun: toStepRun(forEachStep.stepId),
-              itemCount: getArrayPayloadLength(forEachStep.over.value),
-            });
-          }
-        } else if (isStep) {
+        if (isStep) {
           if (!activityType.endsWith(actionActivitySuffix)) {
             throw new Error(
               `Step activity type ${activityType} doesn't end in "${actionActivitySuffix}", in history event ${eventId}`,
