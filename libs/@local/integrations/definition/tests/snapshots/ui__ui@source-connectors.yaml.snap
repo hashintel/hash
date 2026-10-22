@@ -26,8 +26,6 @@ Definition {
         ): Source {
             kind: Rest {
                 endpoint: RestSource {
-                    url: "<redacted>",
-                    params: "<redacted>",
                     auth: Some(
                         Bearer {
                             secret_entity_uuid: 22222222-2222-4222-8222-222222222222,
@@ -46,6 +44,7 @@ Definition {
                         50,
                     ),
                     rate_limit_ms: 100,
+                    ..
                 },
                 primary_key: PrimaryKey(
                     [
@@ -62,12 +61,12 @@ Definition {
         ): Source {
             kind: Postgres {
                 source: PostgresSource {
-                    connection: "<redacted>",
                     schema: "public",
                     table: "items",
                     credentials: SecretReference {
                         secret_entity_uuid: 22222222-2222-4222-8222-222222222222,
                     },
+                    ..
                 },
                 primary_key: PrimaryKey(
                     [
@@ -99,12 +98,12 @@ Definition {
         ): Source {
             kind: Postgres {
                 source: PostgresSource {
-                    connection: "<redacted>",
                     schema: "public",
                     table: "items",
                     credentials: SecretReference {
                         secret_entity_uuid: 22222222-2222-4222-8222-222222222222,
                     },
+                    ..
                 },
                 primary_key: PrimaryKey(
                     [
