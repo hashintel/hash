@@ -52,23 +52,22 @@ const property = (typeTitle: string, title: string) =>
     .baseUrl;
 
 /**
- * Journey 3's flow (Figma J3, section 470:3681): a Manual run, "Shipments this month", then "Suppliers of those
+ * Journey 3's flow (Figma J3, section 470:3681): Start, then "Shipments this month"; `withSuppliers` adds "Suppliers of those
  * shipments". `shipments` is the first step's query; `withInput` adds Start's Review month input.
  */
 const journey3 = (
   shipments: Omit<QueryDraft, "entityTypeBaseUrl">,
   withInput = false,
+  withSuppliers = false,
 ): EditorDocument => {
-  const first = addStep(
-    emptyDocument("Monthly supplier review"),
-    "queryEntities",
-    {
-      after: { stepId: START_ID, port: "next" },
-    },
-  );
-  const second = addStep(first.document, "queryEntities", {
-    after: { stepId: first.stepId, port: "next" },
+  const first = addStep(emptyDocument(), "queryEntities", {
+    after: { stepId: START_ID, port: "next" },
   });
+  const second = withSuppliers
+    ? addStep(first.document, "queryEntities", {
+        after: { stepId: first.stepId, port: "next" },
+      })
+    : { document: first.document, stepId: null };
   const shipmentsId = first.stepId;
   const suppliers = second.stepId;
   return {
@@ -97,22 +96,26 @@ const journey3 = (
         entityTypeBaseUrl: type("Shipment").baseUrl,
         ...shipments,
       },
-      [fieldKey(suppliers, "query")]: {
-        entityTypeBaseUrl: type("Supplier").baseUrl,
-        conditions: [
-          {
-            id: 1,
-            propertyBaseUrl: property("Supplier", "Shipments"),
-            operator: "isAnyOf",
-            value: null,
-            valueSource: {
-              kind: "step-output",
-              stepId: shipmentsId,
-              outputName: "entities",
+      ...(suppliers
+        ? {
+            [fieldKey(suppliers, "query")]: {
+              entityTypeBaseUrl: type("Supplier").baseUrl,
+              conditions: [
+                {
+                  id: 1,
+                  propertyBaseUrl: property("Supplier", "Shipments"),
+                  operator: "isAnyOf" as const,
+                  value: null,
+                  valueSource: {
+                    kind: "step-output" as const,
+                    stepId: shipmentsId,
+                    outputName: "entities",
+                  },
+                },
+              ],
             },
-          },
-        ],
-      },
+          }
+        : {}),
     },
   };
 };
@@ -273,8 +276,7 @@ export const screenStates: ScreenState[] = [
     journey: 1,
     row: "Adding nodes",
     title: "Add node picker",
-    caption:
-      "Recommended, recent (once there is history), browse all.",
+    caption: "Recommended, recent (once there is history), browse all.",
     create: () => ({
       document: emptyDocument(),
       ui: { ...initialUi, picker: { anchor: "toolbar" } },
@@ -459,7 +461,7 @@ export const screenStates: ScreenState[] = [
     caption:
       "Step name first, the middle collapsed to …; hover shows the whole path.",
     create: () => ({
-      document: journey3({ conditions: [received()] }),
+      document: journey3({ conditions: [received()] }, false, true),
       ui: { ...initialUi, selectedId: SUPPLIERS },
     }),
   },
@@ -507,7 +509,8 @@ export const screenStates: ScreenState[] = [
     journey: 3,
     row: "Row D · Open values",
     title: "J3 · D1 · Open value · typed text with a variable",
-    caption: "A Subject of typed text, then a value chip, on one wrapping line.",
+    caption:
+      "A Subject of typed text, then a value chip, on one wrapping line.",
     create: () => {
       const document = failedBatchesAlert();
       return {
@@ -521,7 +524,8 @@ export const screenStates: ScreenState[] = [
     journey: 4,
     row: "Triggers listed on Start",
     title: "J4 · A1 · Start holds the inputs",
-    caption: "Start lists what starts the flow, under Started by, with Add trigger.",
+    caption:
+      "Start lists what starts the flow, under Started by, with Add trigger.",
     create: () => ({
       document: purityCheckExample(),
       ui: { ...initialUi, selectedId: START_ID },
@@ -544,7 +548,8 @@ export const screenStates: ScreenState[] = [
     journey: 4,
     row: "Triggers listed on Start",
     title: "J4 · C1 · Triggers listed on Start, not on the canvas",
-    caption: "The canvas draws Start and the steps only, however many triggers.",
+    caption:
+      "The canvas draws Start and the steps only, however many triggers.",
     create: () => ({
       document: purityCheckExample(),
       ui: { ...initialUi, selectedId: START_ID },

@@ -24,9 +24,10 @@ import {
   type DraftStep,
   type EditorDocument,
   removeStep,
+  startSubtitle,
   stepTitle,
 } from "./document";
-import { useEditor } from "./editor-context";
+import { showDebug, useEditor } from "./editor-context";
 import { describeSource } from "./shapes";
 import { IconTile } from "./ui";
 
@@ -298,7 +299,7 @@ const ProblemDot = ({ stepId }: { stepId: string }) => {
       ? [{ message: "Choose the list to go through and what to collect" }]
       : []),
   ];
-  if (problems.length === 0) {
+  if (!showDebug || problems.length === 0) {
     return null;
   }
   return (
@@ -493,10 +494,7 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
       <Tooltip content="Start · holds the flow's inputs" position="top">
         <div className={cardHeadStyle}>
           <CardTile icon="play" tone="neutral" />
-          <CardText
-            title="Start"
-            description={document.startDescription || undefined}
-          />
+          <CardText title="Start" description={startSubtitle(document)} />
         </div>
       </Tooltip>
       <Handle
@@ -820,10 +818,7 @@ export const FlowCanvas = ({
       }
       onNodesDelete={(deleted) =>
         setDocument((current) =>
-          deleted.reduce(
-            (next, node) => removeStep(next, node.id),
-            current,
-          ),
+          deleted.reduce((next, node) => removeStep(next, node.id), current),
         )
       }
       onEdgesDelete={(deleted) =>

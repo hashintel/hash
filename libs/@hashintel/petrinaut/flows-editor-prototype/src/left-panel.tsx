@@ -118,7 +118,7 @@ const rowStyle = css({
     backgroundColor: "neutral.bg.surface.active",
     outline: "none",
   },
-  "&[aria-current=true]": { backgroundColor: "neutral.bg.subtle" },
+  "&[aria-current=true]": { color: "blue.fg.link" },
 });
 
 const chevronSlotStyle = css({
@@ -210,13 +210,9 @@ const listHeadStyle = css({
 const collapseAllStyle = css({
   textStyle: "xs",
   fontWeight: "medium",
-  color: "neutral.fg.muted",
-  borderRadius: "sm",
+  color: "blue.fg.link",
   cursor: "pointer",
-  _hover: {
-    color: "neutral.fg.body",
-    backgroundColor: "neutral.bg.surface.active",
-  },
+  _hover: { textDecoration: "underline" },
 });
 
 /** "In this flow": Start, then the steps in order, children of a For each indented under it. */
@@ -236,7 +232,8 @@ const FlowList = () => {
     .map((step) => step.stepId);
   const allClosed =
     groups.length > 0 && groups.every((id) => closed.includes(id));
-  const total = flattenSteps(document.steps).length;
+  // Start is a row of the list too.
+  const total = flattenSteps(document.steps).length + 1;
 
   const stepRows = (
     steps: DraftStep[],
@@ -373,15 +370,13 @@ const FlowList = () => {
     <div className={css({ display: "flex", flexDirection: "column" })}>
       <div className={listHeadStyle}>
         <span>{total === 1 ? "1 step" : `${total} steps`}</span>
-        {groups.length > 0 ? (
-          <button
-            type="button"
-            className={collapseAllStyle}
-            onClick={() => setClosed(allClosed ? [] : groups)}
-          >
-            {allClosed ? "Expand all" : "Collapse all"}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className={collapseAllStyle}
+          onClick={() => setClosed(allClosed ? [] : groups)}
+        >
+          {allClosed ? "Expand all" : "Collapse all"}
+        </button>
       </div>
       <div
         className={css({
@@ -399,7 +394,7 @@ const FlowList = () => {
           <span className={chevronSlotStyle} />
           <Tile icon="play" tone="neutral" />
           <span className={labelStyle}>
-            {document.startDescription || "Start"}
+            {document.startDescription || "Flow inputs"}
           </span>
         </button>
         {withParallel(document.steps, 0)}

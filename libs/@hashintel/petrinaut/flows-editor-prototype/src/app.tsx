@@ -12,7 +12,7 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { AddNodePicker } from "./add-node-picker";
 import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
 import { FlowCanvas } from "./canvas";
-import { EditorContext, type EditorUi } from "./editor-context";
+import { EditorContext, type EditorUi, showFull } from "./editor-context";
 import { LeftPanel } from "./left-panel";
 import { PropertiesPanel } from "./properties-panel";
 import { RunForm } from "./run-dialogs";
@@ -226,6 +226,7 @@ export const Editor = ({
       .filter((diagnostic) => diagnostic.severity === "error").length +
     validation.incomplete.size;
   const mockCount = validation.mockFields.size;
+  const showRun = showFull || ui.runOpen || document.triggers.length > 0;
   const allMessages = [
     ...validation.flowLevel.map((diagnostic) => diagnostic.message),
     ...[...validation.byStep.values()]
@@ -274,43 +275,53 @@ export const Editor = ({
                 gap: "3",
               })}
             >
-              {/* A small way to every screen state (?screens), for walking a reviewer through. */}
-              <a
-                href="?screens"
-                className={css({
-                  textStyle: "xs",
-                  color: "neutral.fg.subtle",
-                  marginRight: "2",
-                  _hover: {
-                    color: "neutral.fg.heading",
-                    textDecoration: "underline",
-                  },
-                })}
-              >
-                All screens
-              </a>
-              {/* The Run form opens under this button (J4 · B1). */}
-              <span ref={runRef} className={css({ display: "inline-flex" })}>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className={cx(barButtonStyle, runStyle)}
-                  prefix={<Icon name="play" size="sm" />}
-                  tooltip={
-                    errorCount > 0
-                      ? allMessages.slice(0, 6).join(" · ") ||
-                        "Some steps are not set up yet"
-                      : mockCount > 0
-                        ? `The engine's validator finds no errors, but ${mockCount} fields hold values it can't represent yet.`
-                        : "The engine's validator finds no errors"
-                  }
-                  onClick={() =>
-                    setUiState((current) => ({ ...current, runOpen: true }))
-                  }
+              {/* A small way to every screen state, for walking a reviewer through: ?full shows it. */}
+              {showFull ? (
+                <a
+                  href="?screens"
+                  className={css({
+                    textStyle: "xs",
+                    color: "neutral.fg.subtle",
+                    marginRight: "2",
+                    _hover: {
+                      color: "neutral.fg.heading",
+                      textDecoration: "underline",
+                    },
+                  })}
                 >
-                  Run
-                </Button>
-              </span>
+                  All screens
+                </a>
+              ) : null}
+              {/* The Run button shows on the Purity check flow (J4), and with ?full. */}
+              {showRun ? (
+                <>
+                  {/* The Run form opens under this button (J4 · B1). */}
+                  <span
+                    ref={runRef}
+                    className={css({ display: "inline-flex" })}
+                  >
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className={cx(barButtonStyle, runStyle)}
+                      prefix={<Icon name="play" size="sm" />}
+                      tooltip={
+                        errorCount > 0
+                          ? allMessages.slice(0, 6).join(" · ") ||
+                            "Some steps are not set up yet"
+                          : mockCount > 0
+                            ? `The engine's validator finds no errors, but ${mockCount} fields hold values it can't represent yet.`
+                            : "The engine's validator finds no errors"
+                      }
+                      onClick={() =>
+                        setUiState((current) => ({ ...current, runOpen: true }))
+                      }
+                    >
+                      Run
+                    </Button>
+                  </span>
+                </>
+              ) : null}
               <Menu
                 items={[
                   {

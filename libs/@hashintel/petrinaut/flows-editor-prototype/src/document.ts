@@ -50,8 +50,7 @@ export type RefSource = Exclude<StepInputSource, { kind: "constant" }>;
 
 /** MOCK: a free-text value mixing typed text and references. The engine takes one source per input. */
 export type TemplatePart =
-  | { kind: "text"; text: string }
-  | { kind: "ref"; source: RefSource };
+  { kind: "text"; text: string } | { kind: "ref"; source: RefSource };
 
 export type ConditionOperator =
   | "equals"
@@ -83,7 +82,9 @@ export type ConditionRow = {
 
 /** MOCK: a date relative to the run (Attio's date menu). No engine shape. */
 export type RelativeDate =
-  | { kind: "today"
+  | {
+      kind:
+        | "today"
         | "yesterday"
         | "weekAgo"
         | "monthAgo"
@@ -187,6 +188,14 @@ export const emptyDocument = (name = "Untitled flow"): EditorDocument => ({
   startDescription: "",
   inputEntityTypes: {},
 });
+
+/** Start's second line on the canvas: its description, else the input names once triggers fill them, else "Flow inputs". */
+export const startSubtitle = (document: EditorDocument) =>
+  document.startDescription && document.startDescription !== "Flow inputs"
+    ? document.startDescription
+    : document.triggers.length > 0 && document.inputs.length > 0
+      ? document.inputs.map((input) => input.label).join(", ")
+      : "Flow inputs";
 
 export const findTrigger = (document: EditorDocument, id: string) =>
   document.triggers.find((trigger) => trigger.id === id);
@@ -300,9 +309,8 @@ export const entityTypeOf = (
  * MOCK: an item source that reads one property of the item ("supplier › Certificate link"). The engine's `item`
  * source carries no property path, so the editor adds the property's base URL to the source object.
  */
-export const itemPropertySource = (
-  propertyBaseUrl: string,
-): StepInputSource => ({ kind: "item", propertyBaseUrl }) as StepInputSource;
+export const itemPropertySource = (propertyBaseUrl: string): StepInputSource =>
+  ({ kind: "item", propertyBaseUrl }) as StepInputSource;
 
 /** The property an item source reads, or undefined when it refers to the whole item. */
 export const itemPropertyOf = (source: StepInputSource) =>
