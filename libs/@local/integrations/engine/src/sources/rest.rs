@@ -2,7 +2,7 @@ use alloc::{
     collections::{BTreeMap, BTreeSet},
     sync::Arc,
 };
-use core::time::Duration;
+use core::{pin::Pin, time::Duration};
 use std::{
     fs::File,
     io::{BufRead as _, BufReader, Seek as _, Write as _},
@@ -25,10 +25,11 @@ use tempfile::NamedTempFile;
 use super::{SourceError, http};
 use crate::SourceCapture;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct StoredToken {
-    value: String,
+    #[serde(deserialize_with = "super::secrets::deserialize_secret")]
+    value: Pin<Box<Secret<str>>>,
 }
 
 fn headers(
@@ -43,15 +44,15 @@ fn headers(
                 .expose(),
         )
         .map_err(|_error| Report::new(SourceError::Secret))?;
-        if token.value.is_empty() {
+        if token.value.expose().is_empty() {
             return Err(Report::new(SourceError::Secret));
         }
         let (name, value) = match auth {
-            RestAuth::Bearer { .. } => (AUTHORIZATION, format!("Bearer {}", token.value)),
+            RestAuth::Bearer { .. } => (AUTHORIZATION, format!("Bearer {}", token.value.expose())),
             RestAuth::Header { name, .. } => (
                 HeaderName::from_bytes(name.as_bytes())
                     .map_err(|_error| Report::new(SourceError::Configuration))?,
-                token.value,
+                token.value.expose().to_owned(),
             ),
         };
         if matches!(
