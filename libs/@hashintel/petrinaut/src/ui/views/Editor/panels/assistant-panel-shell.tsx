@@ -4,6 +4,7 @@ import {
   useEffect,
   useEffectEvent,
   useLayoutEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -307,6 +308,14 @@ export const PluginAssistantPanel = ({
   const [actionsElement, setActionsElement] = useState<HTMLElement | null>(
     null,
   );
+  // What the content's title runs when the user presses Close, set from its
+  // effect; Close reads it, so it never re-renders the panel.
+  const closeHandlerRef = useRef<(() => void) | undefined>(undefined);
+  const [setCloseHandler] = useState(
+    () => (handler: (() => void) | undefined) => {
+      closeHandlerRef.current = handler;
+    },
+  );
 
   // The canvas's controls clear the dock's height, measured as it changes.
   const reportDockHeight = useEffectEvent((height: number | null) =>
@@ -351,7 +360,11 @@ export const PluginAssistantPanel = ({
   return (
     <AssistantPanelContext value={panel}>
       <AssistantTitleBarContext
-        value={{ title: titleElement, actions: actionsElement }}
+        value={{
+          title: titleElement,
+          actions: actionsElement,
+          setCloseHandler,
+        }}
       >
         <div
           aria-hidden="true"
@@ -437,7 +450,10 @@ export const PluginAssistantPanel = ({
                 variant="ghost"
                 className={buttonStyle}
                 aria-label="Close AI assistant"
-                onClick={close}
+                onClick={() => {
+                  closeHandlerRef.current?.();
+                  close();
+                }}
                 prefix={<ExperimentalIcon name="close" size={14} />}
                 tooltip="Close AI assistant"
               />
