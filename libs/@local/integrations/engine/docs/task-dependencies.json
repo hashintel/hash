@@ -2,6 +2,7 @@
   "package": "hash-integrations-engine",
   "dependencies": [
     "error-stack",
+    "hash-crypto",
     "hash-integrations-definition",
     "type-system"
   ],
