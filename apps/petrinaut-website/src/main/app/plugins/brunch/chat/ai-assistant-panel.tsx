@@ -533,14 +533,9 @@ const ConversationAiAssistantPanel = ({
     };
   }, []);
 
-  // The panel owns open and collapsed state; the chat collapses it to the
-  // Voice dock and closes it when a collapsed session ends.
-  const {
-    isOpen: isAiAssistantOpen,
-    collapsed: voiceDockCollapsed,
-    setCollapsed: setVoiceDockCollapsed,
-    close: closeAiAssistant,
-  } = useAssistantPanel();
+  // The panel owns open state. Voice runs inside the open panel; the plugin
+  // panel has no compact dock (FE-2046).
+  const { isOpen: isAiAssistantOpen } = useAssistantPanel();
   const revealInEditor = (target: Parameters<typeof api.editor.reveal>[0]) =>
     api.editor.reveal(target);
   // TEMPORARY (FE-2048): the built-in panel's early read-only guard, read
@@ -579,34 +574,17 @@ const ConversationAiAssistantPanel = ({
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
   const [interactionMode, setInteractionMode] =
     useState<PetrinautAiInputMode>("text");
-  const initializedLayoutRef = useRef(false);
-  useLayoutEffect(() => {
-    // A new conversation starts expanded. Effect replay preserves its voice setup.
-    if (initializedLayoutRef.current) {
-      return;
-    }
-    initializedLayoutRef.current = true;
-    if (voiceDockCollapsed) {
-      setVoiceDockCollapsed(false);
-    }
-  }, [setVoiceDockCollapsed, voiceDockCollapsed]);
   const interactionModeRef = useRef<PetrinautAiInputMode>("text");
   const selectInteractionMode = useCallback(
-    (
-      nextMode: PetrinautAiInputMode,
-      options: { collapseVoiceDock?: boolean } = {},
-    ) => {
+    (nextMode: PetrinautAiInputMode) => {
       const previousMode = interactionModeRef.current;
       interactionModeRef.current = nextMode;
       setInteractionMode(nextMode);
-      setVoiceDockCollapsed(
-        nextMode === "voice" && options.collapseVoiceDock === true,
-      );
       if (previousMode === "voice" && nextMode === "text") {
         setComposerFocusRequest((request) => request + 1);
       }
     },
-    [setVoiceDockCollapsed],
+    [],
   );
   const setVoiceActive = useCallback((active: boolean) => {
     voiceActiveRef.current = active;
@@ -615,6 +593,16 @@ const ConversationAiAssistantPanel = ({
   const voiceHandoffPendingRef = useRef(false);
   const voiceModeControlsRef =
     useRef<PetrinautAiVoiceModeSessionControls | null>(null);
+  // The panel's content stays mounted while it is closed, so closing it, by
+  // its Close or the editor's toggle, pauses Voice rather than leaving it
+  // listening out of sight.
+  const wasOpenRef = useRef(isAiAssistantOpen);
+  useEffect(() => {
+    if (wasOpenRef.current && !isAiAssistantOpen) {
+      voiceModeControlsRef.current?.pause();
+    }
+    wasOpenRef.current = isAiAssistantOpen;
+  }, [isAiAssistantOpen]);
   const queuedVoiceInputRef = useRef<QueuedVoiceInput | null>(null);
   const consumedInitialInteractionModeRef = useRef<PetrinautAiInputMode | null>(
     null,
@@ -2205,9 +2193,7 @@ const ConversationAiAssistantPanel = ({
       aiAssistant.renderVoiceMode === undefined
         ? "text"
         : initialInteractionMode;
-    selectInteractionMode(nextMode, {
-      collapseVoiceDock: nextMode === "voice",
-    });
+    selectInteractionMode(nextMode);
     consumedInitialInteractionModeRef.current = initialInteractionMode;
     onInitialInteractionModeConsumed?.();
   }, [
@@ -2351,12 +2337,6 @@ const ConversationAiAssistantPanel = ({
         aiAssistant.onMessages?.([]);
         aiAssistant.onClearMessages?.();
       }}
-      // Runs when the user presses the panel's Close, before it closes, so
-      // Voice pauses in the same event rather than once the panel reports it.
-      onClose={() => {
-        voiceModeControlsRef.current?.pause();
-      }}
-      onCollapsedVoiceEnd={closeAiAssistant}
       onInputChange={setInput}
       onInputModeChange={selectInteractionMode}
       onInteractiveToolSubmit={({ toolCallId, toolName, output }) => {
@@ -2461,7 +2441,6 @@ const ConversationAiAssistantPanel = ({
         void stopComposer();
       }}
       onSubmit={submitComposerInput}
-      onVoiceDockCollapsedChange={setVoiceDockCollapsed}
       promptChips={promptChips}
       primaryAttention={primaryAttention}
       primaryLabel={aiAssistant.primaryLabel}
@@ -2469,7 +2448,6 @@ const ConversationAiAssistantPanel = ({
       status={status}
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}
-      voiceDockCollapsed={voiceDockCollapsed}
       voiceMode={voiceMode}
       voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
       resolveToolPresentation={aiAssistant.resolveToolPresentation}

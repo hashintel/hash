@@ -311,6 +311,26 @@ const sendFirstPrompt = async (text: string) => {
   );
 };
 
+/**
+ * Opens the assistant panel from the toolbar and starts Voice from the
+ * composer's control, where Brunch offers it.
+ */
+const startVoiceInPanel = async () => {
+  await act(async () =>
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Show AI assistant" }),
+    ),
+  );
+  const panel = await screen.findByRole("complementary", {
+    name: "AI assistant",
+  });
+  // Offered once the shell has checked the server's Voice configuration.
+  const startVoice = await within(panel).findByRole("button", {
+    name: "Start voice mode",
+  });
+  await act(async () => fireEvent.click(startVoice));
+};
+
 const bindingOf = (send: ReturnType<typeof refusingFlueClient>, call: number) =>
   (send.mock.calls[call]?.[0].initialData as { binding?: unknown } | undefined)
     ?.binding;
@@ -361,7 +381,7 @@ test("with Stock selected, Petrinaut AI is the assistant and offers no Voice", a
   expect(client.create).not.toHaveBeenCalled();
 });
 
-test("Brunch's Voice starts from the empty-net prompt in its collapsed dock, expands, and closes and reopens without sending", async () => {
+test("Brunch's Voice starts from its composer in the open panel, and closes and reopens without sending", async () => {
   stubBrowser({ voice: true });
   const { id: netId } = startEmptyNetInStorage(localStorage);
   localStorage.setItem(assistantSelectionStorageKey, "brunch");
@@ -373,31 +393,13 @@ test("Brunch's Voice starts from the empty-net prompt in its collapsed dock, exp
     expect(fetch).toHaveBeenCalledWith("/api/voice/config", expect.anything()),
   );
 
-  // The prompt offers Voice once the shell has checked the server's Voice
-  // configuration. Found outside `act`, which would hold back that update.
-  const startVoice = await screen.findByRole("button", {
-    name: "Start voice mode",
+  // The empty-net prompt offers text only; Voice starts inside the panel.
+  await screen.findByRole("textbox", {
+    name: "Describe the process you want to create",
   });
-  await act(async () => fireEvent.click(startVoice));
-
-  // Voice opens the panel collapsed to its corner dock. jsdom applies no
-  // stylesheet, so the hidden title bar shows as the panel's hiding class.
-  const titleBarOf = () =>
-    screen
-      .getByRole("button", { hidden: true, name: "Close AI assistant" })
-      .closest("div");
-  const setupDock = await screen.findByRole("region", { name: "Voice setup" });
+  expect(screen.queryByRole("button", { name: "Start voice mode" })).toBeNull();
+  await startVoiceInPanel();
   expect(await screen.findByLabelText("Voice mode consent")).toBeTruthy();
-  expect(titleBarOf()?.className).toContain("d_none");
-
-  await act(async () =>
-    fireEvent.click(
-      within(setupDock).getByRole("button", { name: "Expand voice setup" }),
-    ),
-  );
-  await vi.waitFor(() =>
-    expect(titleBarOf()?.className).not.toContain("d_none"),
-  );
 
   await act(async () =>
     fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" })),
@@ -421,19 +423,14 @@ test("Brunch's Voice starts from the empty-net prompt in its collapsed dock, exp
 });
 
 test.each(
-  (
-    [
-      "the title bar's Close after expanding",
-      "the toolbar while collapsed",
-    ] as const
-  ).flatMap((closePath) =>
+  (["the title bar's Close", "the toolbar"] as const).flatMap((closePath) =>
     (["Realtime", "Live"] as const).map((provider) => ({
       closePath,
       provider,
     })),
   ),
 )(
-  "$provider: text from the empty-net prompt after Voice was closed through $closePath is sent once as text, in the expanded panel",
+  "$provider: text from the empty-net prompt after Voice was closed through $closePath is sent once as text",
   async ({ closePath, provider }) => {
     stubBrowser({ voice: true });
     const { id: netId } = startEmptyNetInStorage(localStorage);
@@ -451,34 +448,19 @@ test.each(
     localStorage.setItem("petrinaut-website:interview-budget", "quick");
     const send = refusingFlueClient();
     render(<Shell initialNetId={netId} />);
-    const startVoice = await screen.findByRole("button", {
-      name: "Start voice mode",
-    });
-    await act(async () => fireEvent.click(startVoice));
-    const setupDock = await screen.findByRole("region", {
-      name: "Voice setup",
-    });
+    await startVoiceInPanel();
+    await screen.findByLabelText("Voice mode consent");
 
-    if (closePath === "the toolbar while collapsed") {
-      await act(async () =>
-        fireEvent.click(
-          screen.getByRole("button", { name: "Hide AI assistant" }),
-        ),
-      );
-    } else {
-      await act(async () =>
-        fireEvent.click(
-          within(setupDock).getByRole("button", {
-            name: "Expand voice setup",
-          }),
-        ),
-      );
-      await act(async () =>
-        fireEvent.click(
-          screen.getByRole("button", { name: "Close AI assistant" }),
-        ),
-      );
-    }
+    await act(async () =>
+      fireEvent.click(
+        screen.getByRole("button", {
+          name:
+            closePath === "the toolbar"
+              ? "Hide AI assistant"
+              : "Close AI assistant",
+        }),
+      ),
+    );
     await vi.waitFor(() =>
       expect(
         document
@@ -503,11 +485,6 @@ test.each(
     expect(
       screen.getByRole("textbox", { name: "Message AI assistant" }),
     ).toBeTruthy();
-    expect(screen.queryByRole("region", { name: "Voice setup" })).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Close AI assistant" }).closest("div")
-        ?.className,
-    ).not.toContain("d_none");
     expect(send).toHaveBeenCalledOnce();
   },
 );

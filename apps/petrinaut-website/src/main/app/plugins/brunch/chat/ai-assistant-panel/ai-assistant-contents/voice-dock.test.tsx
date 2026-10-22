@@ -40,10 +40,8 @@ test("renders an interrupted session as an unlabeled scoped ribbon with recovery
       canReadFullResponse={false}
       canRepeatQuestion={false}
       canTakeTurn={false}
-      collapsed={false}
       indicator={<span />}
       microphoneMuted={false}
-      onCollapsedToggle={noop}
       onStop={noop}
       phase="error"
       speakerMuted={false}
@@ -61,7 +59,6 @@ test("renders an interrupted session as an unlabeled scoped ribbon with recovery
 
 test("live-capability dock keeps microphone direct and Realtime controls absent", async () => {
   const end = vi.fn();
-  const collapse = vi.fn();
   const setMicrophoneMuted = vi.fn();
   const setSpeakerMuted = vi.fn();
   const setSpeakerVolume = vi.fn();
@@ -78,12 +75,10 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
       canReadFullResponse={false}
       canRepeatQuestion={false}
       canTakeTurn={false}
-      collapsed={false}
       composerControl={<button type="button">Host setting</button>}
       indicator={<span />}
       microphoneMuted={false}
       onStop={noop}
-      onCollapsedToggle={collapse}
       phase="connected"
       speakerMuted={false}
       speakerVolume={1}
@@ -98,8 +93,6 @@ test("live-capability dock keeps microphone direct and Realtime controls absent"
   const microphone = screen.getByRole("button", { name: "Mute microphone" });
   expect(microphone).not.toBeNull();
   expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: "Hide conversation" }));
-  expect(collapse).toHaveBeenCalledOnce();
   fireEvent.click(microphone);
   expect(setMicrophoneMuted).toHaveBeenCalledWith(true);
 
@@ -150,11 +143,9 @@ test("keeps crowded Voice actions fixed while status content can shrink", () => 
       canRepeatQuestion={false}
       canRetryPlayback
       canTakeTurn
-      collapsed={false}
       indicator={<span data-testid="waveform" />}
       microphoneMuted={false}
       notice="Audio blocked. Select Play to listen."
-      onCollapsedToggle={noop}
       onStop={noop}
       phase="speaking"
       speakerMuted={false}
@@ -199,11 +190,9 @@ test("offers a user-gesture retry while session audio is blocked", () => {
     canReadFullResponse: false,
     canRepeatQuestion: false,
     canTakeTurn: false,
-    collapsed: false,
     indicator: <span />,
     microphoneMuted: false,
     notice: "Audio blocked. Select Play to listen.",
-    onCollapsedToggle: noop,
     onStop: noop,
     phase: "connected" as const,
     speakerMuted: false,
@@ -247,10 +236,8 @@ test.each([
         canReadFullResponse={false}
         canRepeatQuestion={false}
         canTakeTurn={false}
-        collapsed={false}
         indicator={<span />}
         microphoneMuted={false}
-        onCollapsedToggle={noop}
         onStop={noop}
         phase={phase}
         speakerMuted={false}
@@ -283,10 +270,8 @@ test.each(["connecting", "error", "paused"] as const)(
         canReadFullResponse={false}
         canRepeatQuestion={false}
         canTakeTurn={false}
-        collapsed={false}
         indicator={<span />}
         microphoneMuted={false}
-        onCollapsedToggle={noop}
         onStop={noop}
         phase={phase}
         speakerMuted={false}
@@ -318,10 +303,8 @@ test.each(["listening", "thinking", "speaking"] as const)(
         canReadFullResponse={false}
         canRepeatQuestion={false}
         canTakeTurn={false}
-        collapsed={false}
         indicator={<span />}
         microphoneMuted={false}
-        onCollapsedToggle={noop}
         onStop={noop}
         phase={phase}
         speakerMuted={false}
@@ -359,11 +342,9 @@ test.each(["connecting", "error"] as const)(
         canReadFullResponse={false}
         canRepeatQuestion={false}
         canTakeTurn={false}
-        collapsed={false}
         indicator={<span />}
         interruptionBySpeaking
         microphoneMuted={false}
-        onCollapsedToggle={noop}
         onStop={noop}
         phase={phase}
         speakerMuted={false}
@@ -422,10 +403,8 @@ test.each(["listening", "thinking", "speaking", "paused"] as const)(
         canReadFullResponse={false}
         canRepeatQuestion={false}
         canTakeTurn={false}
-        collapsed={false}
         indicator={<span />}
         microphoneMuted={false}
-        onCollapsedToggle={noop}
         onStop={noop}
         phase={phase}
         speakerMuted={false}
@@ -486,10 +465,8 @@ test("shows the speed slider immediately with fine keyboard steps", async () => 
       canReadFullResponse={false}
       canRepeatQuestion={false}
       canTakeTurn={false}
-      collapsed={false}
       indicator={<span />}
       microphoneMuted={false}
-      onCollapsedToggle={noop}
       onStop={noop}
       phase="connected"
       speakerMuted={false}
@@ -552,10 +529,8 @@ test("keeps voice visible while toggling devices and refreshes devices when open
       canReadFullResponse={false}
       canRepeatQuestion={false}
       canTakeTurn={false}
-      collapsed={false}
       indicator={<span />}
       microphoneMuted={true}
-      onCollapsedToggle={noop}
       onStop={noop}
       phase="connected"
       speakerMuted={false}
@@ -683,10 +658,8 @@ test("gates voice previews and hides only ordinary status text", async () => {
       canReadFullResponse={false}
       canRepeatQuestion={false}
       canTakeTurn={false}
-      collapsed={false}
       indicator={<span data-testid="waveform" />}
       microphoneMuted={microphoneMuted}
-      onCollapsedToggle={noop}
       onStop={noop}
       phase={phase}
       speakerMuted={false}

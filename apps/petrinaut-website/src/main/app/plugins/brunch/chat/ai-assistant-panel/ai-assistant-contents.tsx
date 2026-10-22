@@ -33,7 +33,7 @@ import {
 import { errorNotification } from "./ai-assistant-contents/shared/error-notification";
 import { StockTranscript } from "./ai-assistant-contents/stock-transcript";
 import { VoiceAlerts } from "./ai-assistant-contents/voice-alerts";
-import { LiveVoiceDock, VoiceDock } from "./ai-assistant-contents/voice-dock";
+import { LiveVoiceDock } from "./ai-assistant-contents/voice-dock";
 import { useAiAssistantEditorApi } from "./editor-api";
 import { getInteractiveTool } from "./interactive-tools/registry";
 
@@ -78,8 +78,6 @@ export type AiAssistantContentsProps = {
   isOpen?: boolean;
   messages: PetrinautAiMessage[];
   onClearMessages?: () => void;
-  onClose: () => void;
-  onCollapsedVoiceEnd?: () => void;
   onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   onInputChange: (value: string) => void;
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
@@ -88,18 +86,16 @@ export type AiAssistantContentsProps = {
   onRetryPrompt?: (prompt: string) => void;
   onStop: () => void;
   onSubmit: () => void;
-  onVoiceDockCollapsedChange?: (collapsed: boolean) => void;
   promptChips?: PromptChip[];
   status: AiAssistantStatus;
   stopped?: boolean;
   voiceHandoffPending?: boolean;
-  voiceDockCollapsed?: boolean;
   voiceMode?: ReactNode;
   voiceModeAvailable?: boolean;
 };
 
 // Everything below the panel's title bar: the shell around it, with its
-// placement, resizing, title bar and collapsed dock, is the plugin panel's.
+// placement, resizing and title bar, is the plugin panel's.
 const contentStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -115,26 +111,12 @@ const panelContentStyle = cva({
   },
 });
 
-const voiceModeStyle = cva({
-  base: {
-    position: "relative",
-    zIndex: "[2]",
-    flexShrink: "0",
-    overflow: "visible",
-    pointerEvents: "auto",
-  },
-  variants: {
-    setupOverlay: {
-      true: {
-        position: "absolute",
-        bottom: "[calc(100% + 8px)]",
-        width: "full",
-        maxHeight: "[calc(100dvh - 120px)]",
-        overflowY: "auto",
-        borderRadius: "[12px]",
-      },
-    },
-  },
+const voiceModeStyle = css({
+  position: "relative",
+  zIndex: "[2]",
+  flexShrink: "0",
+  overflow: "visible",
+  pointerEvents: "auto",
 });
 
 const headerButtonStyle = css({
@@ -287,8 +269,6 @@ export const AiAssistantContents = ({
   hiddenToolNames,
   messages,
   onClearMessages,
-  onClose,
-  onCollapsedVoiceEnd,
   onInputModeChange,
   onInputChange,
   onHostTabSelectedChange,
@@ -298,7 +278,6 @@ export const AiAssistantContents = ({
   onRetryPrompt,
   onStop,
   onSubmit,
-  onVoiceDockCollapsedChange,
   promptChips,
   primaryLabel,
   presentation = "stock",
@@ -306,7 +285,6 @@ export const AiAssistantContents = ({
   status,
   stopped = false,
   voiceHandoffPending = false,
-  voiceDockCollapsed = false,
   voiceMode,
   voiceModeAvailable = false,
   resolveToolPresentation,
@@ -354,12 +332,8 @@ export const AiAssistantContents = ({
         : undefined
     : undefined;
 
-  const isVoiceDockCollapsed =
-    voiceDockCollapsed && (isVoiceSessionLive || inputMode === "voice");
-
   const voiceDockRef = useRef<HTMLDivElement>(null);
-  // The plugin panel owns placement, width, resizing and, while collapsed,
-  // the dock's size and its report to the canvas insets.
+  // The plugin panel owns placement, width and resizing.
   const contentRef = useRef<HTMLDivElement>(null);
 
   const [chipsDismissed, setChipsDismissed] = useState(false);
@@ -420,7 +394,7 @@ export const AiAssistantContents = ({
       <VoiceAlerts
         alerts={voiceAlerts}
         onDismiss={() => setVoiceAlerts([])}
-        docked={isVoiceDockCollapsed || isVoiceSessionLive}
+        docked={isVoiceSessionLive}
         dockRef={voiceDockRef}
       />
     ) : null;
@@ -513,7 +487,7 @@ export const AiAssistantContents = ({
   useEffect(() => {
     if (isOpen) {
       const target = inputRef.current;
-      if (target && !target.disabled && !isVoiceDockCollapsed) {
+      if (target && !target.disabled) {
         target.focus({ preventScroll: true });
       } else {
         // TEMPORARY (FE-2046): the panel API has no focus target. This
@@ -524,7 +498,7 @@ export const AiAssistantContents = ({
           ?.focus({ preventScroll: true });
       }
     }
-  }, [composerFocusRequest, isOpen, isVoiceDockCollapsed]);
+  }, [composerFocusRequest, isOpen]);
 
   const hasScrolledOnceRef = useRef(false);
 
@@ -550,10 +524,8 @@ export const AiAssistantContents = ({
 
   return (
     <>
-      {/* The plugin panel draws the icon, dock toggle and Close; `onClose`
-          runs before it closes. Collapsed, the panel hides its title bar. */}
+      {/* The plugin panel draws the icon, dock toggle and Close. */}
       <AssistantPanelTitle
-        onClose={onClose}
         actions={
           <>
             {showHostActions && headerActions && (
@@ -568,9 +540,7 @@ export const AiAssistantContents = ({
                 {headerActions}
               </div>
             )}
-            {!isVoiceDockCollapsed &&
-              !isVoiceSessionLive &&
-              voiceAlertIndicator}
+            {!isVoiceSessionLive && voiceAlertIndicator}
             {messages.length > 0 && (
               <Button
                 size="xs"
@@ -635,7 +605,7 @@ export const AiAssistantContents = ({
           aria-labelledby={additionalTab ? `tab-${aiTabId}` : undefined}
           hidden={showingHostTab}
           className={`${messagesStyle({ presentation })} ${panelContentStyle({
-            visible: !isVoiceDockCollapsed && !showingHostTab,
+            visible: !showingHostTab,
           })}`}
           data-testid="ai-transcript"
           onScroll={recordDistanceFromEnd}
@@ -677,7 +647,7 @@ export const AiAssistantContents = ({
             aria-labelledby={`tab-${hostTabId}`}
             hidden={!showingHostTab}
             className={`${messagesStyle({ presentation })} ${panelContentStyle({
-              visible: !isVoiceDockCollapsed && showingHostTab,
+              visible: showingHostTab,
             })}`}
           >
             {additionalTab.content}
@@ -685,18 +655,12 @@ export const AiAssistantContents = ({
         )}
 
         {isBrunchChat && showingHostTab && (
-          <BrunchResponseStatus
-            busy={isBusy}
-            className={panelContentStyle({ visible: !isVoiceDockCollapsed })}
-            workingLabel={workingLabel}
-          />
+          <BrunchResponseStatus busy={isBusy} workingLabel={workingLabel} />
         )}
 
         {!isBrunchChat && isBusy && workingLabel && (
           <div
-            className={`${workingStatusStyle} ${panelContentStyle({
-              visible: !isVoiceDockCollapsed,
-            })}`}
+            className={workingStatusStyle}
             role="status"
             aria-live="polite"
             data-testid="ai-working-status"
@@ -707,65 +671,24 @@ export const AiAssistantContents = ({
         )}
 
         {voiceMode && (
-          <div
-            className={`${voiceModeStyle({
-              setupOverlay: isVoiceDockCollapsed && !isVoiceSessionLive,
-            })} ${panelContentStyle({
-              visible: !isVoiceDockCollapsed || !isVoiceSessionLive,
-            })}`}
-            data-testid="ai-voice-mode"
-          >
+          <div className={voiceModeStyle} data-testid="ai-voice-mode">
             {voiceMode}
           </div>
         )}
 
-        {!isVoiceDockCollapsed && composerStatus}
+        {composerStatus}
         {isVoiceSessionLive ? (
           <div ref={voiceDockRef}>
             <LiveVoiceDock
               assistantBusy={isBusy}
-              collapsed={isVoiceDockCollapsed}
               composerControl={composerControl}
               errorIndicator={voiceAlertIndicator}
-              onCollapsedEnd={onCollapsedVoiceEnd}
               onStop={onStop}
-              onCollapsedToggle={() =>
-                onVoiceDockCollapsedChange?.(!isVoiceDockCollapsed)
-              }
             />
           </div>
         ) : (
           <>
-            {isVoiceDockCollapsed && (
-              <div
-                ref={voiceDockRef}
-                className={css({
-                  borderRadius: "[inherit]",
-                  overflow: "hidden",
-                })}
-              >
-                <VoiceDock
-                  actions={null}
-                  canReadFullResponse={false}
-                  canRepeatQuestion={false}
-                  canTakeTurn={false}
-                  collapsed
-                  errorIndicator={voiceAlertIndicator}
-                  indicator={<AiVoiceModeIcon size={16} />}
-                  microphoneMuted={false}
-                  onCollapsedToggle={() => onVoiceDockCollapsedChange?.(false)}
-                  phase="connecting"
-                  purpose="setup"
-                  speakerMuted={false}
-                  speakerVolume={1}
-                />
-              </div>
-            )}
-            <div
-              className={`${composerWrapStyle} ${panelContentStyle({
-                visible: !isVoiceDockCollapsed,
-              })}`}
-            >
+            <div className={composerWrapStyle}>
               {showChips && (
                 <div
                   className={css({

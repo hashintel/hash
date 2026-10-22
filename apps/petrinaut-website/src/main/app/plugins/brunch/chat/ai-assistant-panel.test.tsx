@@ -88,11 +88,10 @@ type ErrorTracker = {
 
 /**
  * The assistant panel's state, named as the built-in panel's editor context
- * named it: open, collapsed, and the setter its Close called.
+ * named it: open, and the setter its Close called.
  */
 type EditorContextValue = {
   isAiAssistantOpen: boolean;
-  isAiAssistantCollapsed: boolean;
   setAiAssistantOpen: (open: boolean) => void;
 };
 
@@ -138,7 +137,6 @@ const nonEmptySDCPN: SDCPN = {
 
 const editorContextValue: EditorContextValue = {
   isAiAssistantOpen: true,
-  isAiAssistantCollapsed: false,
   setAiAssistantOpen: () => {},
 };
 
@@ -297,7 +295,6 @@ const renderTestPanel = ({
       <ToasterBridge />
       <TestAssistantPanel
         isOpen={nextEditorContext.isAiAssistantOpen}
-        initialCollapsed={nextEditorContext.isAiAssistantCollapsed}
         close={() => nextEditorContext.setAiAssistantOpen(false)}
       >
         <AiAssistantPanel
@@ -2123,11 +2120,6 @@ describe("AiAssistantPanel composer submissions", () => {
       strictMode: true,
     });
     await screen.findByText("Voice mode voice");
-    // The chat collapses the panel; its dock geometry and canvas inset are the
-    // editor shell's, tested there. Collapsed, the title bar is hidden.
-    expect(
-      screen.queryByRole("button", { name: "Close AI assistant" }),
-    ).toBeNull();
 
     rendered.rerenderPanelWithInitialRequest(
       "text",
@@ -2625,9 +2617,8 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(sendMessages).toHaveBeenCalledOnce();
   });
 
-  test("pauses active Voice mode before closing and does not resume on reopen", () => {
-    const events: string[] = [];
-    const pauseVoice = vi.fn(() => events.push("pause"));
+  test("pauses active Voice mode once the panel closes and does not resume on reopen", () => {
+    const pauseVoice = vi.fn();
     const VoiceMode = ({
       context,
     }: {
@@ -2653,7 +2644,7 @@ describe("AiAssistantPanel composer submissions", () => {
         </button>
       );
     };
-    const setAiAssistantOpen = vi.fn(() => events.push("close"));
+    const setAiAssistantOpen = vi.fn();
     const openEditorContext = {
       ...editorContextValue,
       setAiAssistantOpen,
@@ -2674,22 +2665,24 @@ describe("AiAssistantPanel composer submissions", () => {
       screen.getByRole("button", { name: "Activate voice session" }),
     );
     fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
+    expect(setAiAssistantOpen).toHaveBeenCalledWith(false);
+    expect(pauseVoice).not.toHaveBeenCalled();
 
-    expect(events).toEqual(["pause", "close"]);
-    expect(pauseVoice).toHaveBeenCalledOnce();
-
+    // The content stays mounted while the panel is closed and pauses Voice
+    // when it sees the panel close.
     rendered.rerenderPanel(aiAssistant, {
       ...openEditorContext,
       isAiAssistantOpen: false,
     });
+    expect(pauseVoice).toHaveBeenCalledOnce();
+
     rendered.rerenderPanel(aiAssistant, openEditorContext);
 
     expect(pauseVoice).toHaveBeenCalledOnce();
   });
 
-  test("pauses registered Voice controls before close while active publication is pending", () => {
-    const events: string[] = [];
-    const pauseVoice = vi.fn(() => events.push("pause"));
+  test("pauses registered Voice controls on close while active publication is pending", () => {
+    const pauseVoice = vi.fn();
     const VoiceMode = ({
       context,
     }: {
@@ -2715,28 +2708,26 @@ describe("AiAssistantPanel composer submissions", () => {
         </button>
       );
     };
-    const setAiAssistantOpen = vi.fn(() => events.push("close"));
-
-    renderTestPanel({
-      aiAssistant: {
-        renderVoiceMode: (context) => <VoiceMode context={context} />,
-        transport: {
-          reconnectToStream: () => Promise.resolve(null),
-          sendMessages: vi.fn(),
-        },
+    const aiAssistant: PetrinautAiAssistant = {
+      renderVoiceMode: (context) => <VoiceMode context={context} />,
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
       },
-      editorContext: {
-        ...editorContextValue,
-        setAiAssistantOpen,
-      },
+    };
+    const rendered = renderTestPanel({
+      aiAssistant,
+      editorContext: editorContextValue,
     });
 
     fireEvent.click(
       screen.getByRole("button", { name: "Select pending voice session" }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
+    rendered.rerenderPanel(aiAssistant, {
+      ...editorContextValue,
+      isAiAssistantOpen: false,
+    });
 
-    expect(events).toEqual(["pause", "close"]);
     expect(pauseVoice).toHaveBeenCalledOnce();
   });
 
@@ -3062,7 +3053,6 @@ describe("AiAssistantPanel composer submissions", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
     expect(screen.getByText("Voice mode voice")).not.toBeNull();
-    expect(screen.queryByRole("region", { name: "Voice setup" })).toBeNull();
     expect(
       screen.getByRole("textbox", { name: "Message AI assistant" }),
     ).not.toBeNull();
@@ -3077,7 +3067,7 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(sendMessages).not.toHaveBeenCalled();
   });
 
-  test("opens initial Voice setup compact once, then falls back to text", () => {
+  test("opens initial Voice mode once the panel opens, then falls back to text", () => {
     let latestInputMode = "text";
     const onInitialInteractionModeConsumed = vi.fn();
     const aiAssistant: PetrinautAiAssistant = {
@@ -3109,28 +3099,10 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(latestInputMode).toBe("voice");
     expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
     expect(screen.getByText("Voice mode")).not.toBeNull();
-    const composer = screen.getByRole("textbox", {
-      hidden: true,
-      name: "Message AI assistant",
-    });
-    const composerWrap = composer.closest("form")?.parentElement;
-    expect(composerWrap?.className).toContain("d_none");
-
-    const setupDock = screen.getByRole("region", { name: "Voice setup" });
-    // The chat collapses the panel; its dock geometry and canvas inset are the
-    // editor shell's, tested there. Collapsed, the title bar is hidden.
+    // Voice runs in the open panel: the composer and title bar stay.
     expect(
-      screen.queryByRole("button", { name: "Close AI assistant" }),
-    ).toBeNull();
-    fireEvent.click(
-      within(setupDock).getByRole("button", { name: "Expand voice setup" }),
-    );
-
-    expect(screen.queryByRole("region", { name: "Voice setup" })).toBeNull();
-    expect(composerWrap?.className).not.toContain("d_none");
-    expect(screen.getByRole("textbox", { name: "Message AI assistant" })).toBe(
-      composer,
-    );
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+    ).not.toBeNull();
     expect(
       screen.getByRole("button", { name: "Close AI assistant" }),
     ).not.toBeNull();
@@ -3147,7 +3119,7 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
   });
 
-  test("ends collapsed Voice and closes the panel without pausing", async () => {
+  test("ends Voice from its dock and leaves the panel open", async () => {
     const events: string[] = [];
     const endVoice = vi.fn(async () => {
       events.push("end");
@@ -3213,10 +3185,10 @@ describe("AiAssistantPanel composer submissions", () => {
       within(dock).getByRole("button", { name: "End voice mode" }),
     );
 
-    expect(events).toEqual(["end", "close"]);
+    expect(events).toEqual(["end"]);
     expect(endVoice).toHaveBeenCalledOnce();
     expect(pauseVoice).not.toHaveBeenCalled();
-    expect(setAiAssistantOpen).toHaveBeenCalledWith(false);
+    expect(setAiAssistantOpen).not.toHaveBeenCalled();
   });
 
   test("accepts one voice input while generic chat is streaming and submits it after settlement", async () => {

@@ -30,7 +30,7 @@ import type { AddNotificationInput } from "@hashintel/petrinaut/ui/plugin";
 
 // The contents fill the plugin panel's title bar; a renderer stand-in draws
 // it here, inside a stand-in panel. The editor's panel draws placement,
-// resizing, the collapsed shell and hides its title bar; it is tested there.
+// resizing and placement; it is tested there.
 // The stand-in loads inside the factory, which runs before this file's imports.
 vi.mock("@hashintel/petrinaut/ui/plugin", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@hashintel/petrinaut/ui/plugin")>()),
@@ -172,7 +172,6 @@ const DockingHarness = ({
               ],
             },
           ]}
-          onClose={noop}
           onInputChange={setInput}
           onStop={onStop}
           onSubmit={noop}
@@ -193,7 +192,6 @@ describe("AiAssistantContents", () => {
     };
     const props = {
       input: "",
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -218,7 +216,6 @@ describe("AiAssistantContents", () => {
   test("voice-only host actions follow the selected mode, not session state", () => {
     const props = {
       input: "",
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -261,7 +258,6 @@ describe("AiAssistantContents", () => {
         input=""
         inputMode="voice"
         interactiveTools={[card]}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -323,7 +319,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         inputMode="voice"
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -348,7 +343,6 @@ describe("AiAssistantContents", () => {
     render(
       <AiAssistantContents
         input=""
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -418,7 +412,6 @@ describe("AiAssistantContents", () => {
     const { container } = render(
       <AiAssistantContents
         input=""
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -461,7 +454,6 @@ describe("AiAssistantContents", () => {
     render(
       <AiAssistantContents
         input=""
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -496,7 +488,6 @@ describe("AiAssistantContents", () => {
     render(
       <AiAssistantContents
         input=""
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -528,7 +519,6 @@ describe("AiAssistantContents", () => {
         <AiAssistantContents
           input=""
           messages={[]}
-          onClose={noop}
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -567,7 +557,6 @@ describe("AiAssistantContents", () => {
           primaryLabel="Chat"
           presentation="brunch"
           input=""
-          onClose={noop}
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -634,7 +623,6 @@ describe("AiAssistantContents", () => {
       primaryLabel: "Chat",
       presentation: "brunch" as const,
       input: "",
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -695,7 +683,6 @@ describe("AiAssistantContents", () => {
   test("opens running tools, then settles stock work while the answer streams", async () => {
     const props = {
       input: "",
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -773,7 +760,6 @@ describe("AiAssistantContents", () => {
         input=""
         inputMode="voice"
         presentation="brunch"
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -810,7 +796,6 @@ describe("AiAssistantContents", () => {
     render(
       <AiAssistantContents
         input="Unsent draft"
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -863,7 +848,6 @@ describe("AiAssistantContents", () => {
     render(
       <AiAssistantContents
         input=""
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -918,7 +902,6 @@ describe("AiAssistantContents", () => {
             parts: [{ type: "text", text: "Ongoing conversation" }],
           },
         ]}
-        onClose={noop}
         onInputChange={noop}
         onStop={onStop}
         onSubmit={noop}
@@ -952,7 +935,6 @@ describe("AiAssistantContents", () => {
         hostAttentionCount: 2,
         input: "",
         messages: [],
-        onClose: noop,
         onInputChange: noop,
         onStop: noop,
         onSubmit: noop,
@@ -996,7 +978,6 @@ describe("AiAssistantContents", () => {
       input: "",
       status: "ready" as const,
       messages: [],
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -1020,7 +1001,6 @@ describe("AiAssistantContents", () => {
         <AiAssistantContents
           input=""
           status="ready"
-          onClose={noop}
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -1066,11 +1046,10 @@ describe("AiAssistantContents", () => {
       expect(screen.queryByText("Not applied")).toBeNull();
     },
   );
-  test("refocuses an open assistant on request and focuses the panel while Voice is compact", () => {
+  test("refocuses an open assistant on request and focuses the panel while the composer is disabled", () => {
     const props = {
       input: "Keep this draft",
       messages: [],
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -1099,9 +1078,7 @@ describe("AiAssistantContents", () => {
         <AiAssistantContents
           {...props}
           composerFocusRequest={2}
-          inputMode="voice"
-          voiceDockCollapsed
-          voiceMode={<div>Voice setup</div>}
+          voiceHandoffPending
         />
       </>,
     );
@@ -1164,7 +1141,6 @@ describe("AiAssistantContents", () => {
           status="ready"
           stopped={false}
           presentation="brunch"
-          onClose={noop}
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -1201,7 +1177,6 @@ describe("AiAssistantContents", () => {
           error={new Error(message)}
           input=""
           messages={[]}
-          onClose={noop}
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -1239,7 +1214,6 @@ describe("AiAssistantContents", () => {
     const props = {
       input: "",
       messages: [] as PetrinautAiMessage[],
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -1271,9 +1245,8 @@ describe("AiAssistantContents", () => {
     expect(voiceModeUnmounts).toBe(0);
   });
 
-  test("shows spoken turns live and collapses an active session without unmounting the panel", () => {
+  test("shows spoken turns live in the open panel and ends the session from its dock", () => {
     const store = createVoiceSessionStore();
-    const onCollapsedVoiceEnd = vi.fn();
     const actions = {
       end: vi.fn(),
       pause: vi.fn(),
@@ -1320,29 +1293,21 @@ describe("AiAssistantContents", () => {
     }: {
       inputMode?: "text" | "voice";
       messages: PetrinautAiMessage[];
-    }) => {
-      const [collapsed, setCollapsed] = useState(false);
-
-      return (
-        <VoiceSessionContext.Provider value={store}>
-          <AiAssistantContents
-            input=""
-            inputMode={inputMode}
-            messages={messages}
-            onClose={noop}
-            onCollapsedVoiceEnd={onCollapsedVoiceEnd}
-            onInputChange={noop}
-            onStop={noop}
-            onSubmit={noop}
-            onVoiceDockCollapsedChange={setCollapsed}
-            presentation="brunch"
-            status="ready"
-            voiceDockCollapsed={collapsed}
-            voiceMode={<div>Host Voice controls</div>}
-          />
-        </VoiceSessionContext.Provider>
-      );
-    };
+    }) => (
+      <VoiceSessionContext.Provider value={store}>
+        <AiAssistantContents
+          input=""
+          inputMode={inputMode}
+          messages={messages}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          presentation="brunch"
+          status="ready"
+          voiceMode={<div>Host Voice controls</div>}
+        />
+      </VoiceSessionContext.Provider>
+    );
 
     const { rerender } = render(<VoiceContents messages={earlierMessages} />);
 
@@ -1352,63 +1317,24 @@ describe("AiAssistantContents", () => {
       screen.queryByRole("textbox", { name: "Message AI assistant" }),
     ).toBeNull();
     expect(screen.getByText("Earlier answer")).not.toBeNull();
-    expect(
-      within(dock)
-        .getByRole("button", { name: "Hide conversation" })
-        .getAttribute("aria-expanded"),
-    ).toBeNull();
 
     rerender(<VoiceContents messages={liveMessages} />);
 
     expect(screen.getByText("Spoken request")).not.toBeNull();
     expect(screen.getByText("Spoken reply")).not.toBeNull();
     expect(screen.getByText("Typed aside")).not.toBeNull();
-
-    // The title bar hides with the editor panel's collapsed state, tested
-    // there; the chat hides its own rows.
-    const transcript = screen.getByTestId("ai-transcript");
-    const voiceMode = screen.getByTestId("ai-voice-mode");
-
-    fireEvent.click(
-      within(dock).getByRole("button", { name: "Hide conversation" }),
-    );
-
-    expect(actions.end).not.toHaveBeenCalled();
-    expect(actions.pause).not.toHaveBeenCalled();
-    expect(actions.reconnect).not.toHaveBeenCalled();
-    expect(actions.resume).not.toHaveBeenCalled();
-    expect(actions.setMicrophoneMuted).not.toHaveBeenCalled();
-    expect(screen.getByTestId("ai-transcript")).toBe(transcript);
-    expect(screen.getByTestId("ai-voice-mode")).toBe(voiceMode);
-    expect(transcript.className).toContain("d_none");
-    expect(voiceMode.className).toContain("d_none");
+    expect(screen.getByTestId("ai-transcript").hidden).toBe(false);
+    expect(screen.getByText("Host Voice controls")).not.toBeNull();
 
     fireEvent.click(
       within(dock).getByRole("button", { name: "End voice mode" }),
     );
 
     expect(actions.end).toHaveBeenCalledOnce();
-    expect(onCollapsedVoiceEnd).toHaveBeenCalledOnce();
-
-    fireEvent.click(
-      within(dock).getByRole("button", { name: "Show conversation" }),
-    );
-
-    expect(transcript.className).not.toContain("d_none");
-    expect(voiceMode.className).not.toContain("d_none");
-    expect(screen.getByText("Spoken request")).not.toBeNull();
-    expect(actions.end).toHaveBeenCalledOnce();
     expect(actions.pause).not.toHaveBeenCalled();
     expect(actions.reconnect).not.toHaveBeenCalled();
     expect(actions.resume).not.toHaveBeenCalled();
     expect(actions.setMicrophoneMuted).not.toHaveBeenCalled();
-
-    fireEvent.click(
-      within(dock).getByRole("button", { name: "End voice mode" }),
-    );
-
-    expect(actions.end).toHaveBeenCalledTimes(2);
-    expect(onCollapsedVoiceEnd).toHaveBeenCalledOnce();
 
     act(() => store.setState(null));
     rerender(<VoiceContents inputMode="text" messages={liveMessages} />);
@@ -1419,52 +1345,6 @@ describe("AiAssistantContents", () => {
     expect(
       screen.getByRole("textbox", { name: "Message AI assistant" }),
     ).not.toBeNull();
-  });
-
-  test("stacks Voice setup above its compact dock while keeping the full panel mounted", () => {
-    const onVoiceDockCollapsedChange = vi.fn();
-    render(
-      <AiAssistantContents
-        input=""
-        inputMode="voice"
-        messages={[]}
-        onClose={noop}
-        onInputChange={noop}
-        onStop={noop}
-        onSubmit={noop}
-        onVoiceDockCollapsedChange={onVoiceDockCollapsedChange}
-        status="ready"
-        voiceDockCollapsed
-        voiceMode={
-          <section aria-label="Voice mode consent">Permission</section>
-        }
-      />,
-    );
-
-    const permission = screen.getByRole("region", {
-      name: "Voice mode consent",
-    });
-    const setupDock = screen.getByRole("region", { name: "Voice setup" });
-    expect(within(setupDock).queryByText(/connecting/i)).toBeNull();
-    expect(within(setupDock).getByText("Voice setup")).not.toBeNull();
-    expect(permission.parentElement?.nextElementSibling).toBe(
-      setupDock.parentElement,
-    );
-    expect(screen.getByTestId("ai-transcript").className).toContain("d_none");
-    expect(
-      screen.getByRole("textbox", {
-        hidden: true,
-        name: "Message AI assistant",
-      }),
-    ).not.toBeNull();
-
-    const expandButton = within(setupDock).getByRole("button", {
-      name: "Expand voice setup",
-    });
-    expect(expandButton.getAttribute("aria-expanded")).toBeNull();
-    fireEvent.click(expandButton);
-
-    expect(onVoiceDockCollapsedChange).toHaveBeenCalledWith(false);
   });
 
   test("toggles interruption by speaking in audio options and reveals manual handover", async () => {
@@ -1495,7 +1375,6 @@ describe("AiAssistantContents", () => {
         <AiAssistantContents
           input=""
           messages={[]}
-          onClose={noop}
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -1558,7 +1437,6 @@ describe("AiAssistantContents", () => {
         <AiAssistantContents
           input=""
           messages={[]}
-          onClose={noop}
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -1720,7 +1598,6 @@ describe("AiAssistantContents", () => {
     const props = {
       input: "",
       messages: [] as PetrinautAiMessage[],
-      onClose: noop,
       onInputChange: noop,
       onStop,
       onSubmit: noop,
@@ -1789,7 +1666,6 @@ describe("AiAssistantContents", () => {
           <AiAssistantContents
             input=""
             messages={[]}
-            onClose={noop}
             onInputChange={noop}
             onStop={noop}
             onSubmit={noop}
@@ -1879,12 +1755,10 @@ describe("AiAssistantContents", () => {
             input=""
             inputMode="voice"
             messages={[]}
-            onClose={noop}
             onInputChange={noop}
             onStop={noop}
             onSubmit={noop}
             status="ready"
-            voiceDockCollapsed
           />
         </VoiceSessionContext.Provider>,
       );
@@ -1892,16 +1766,16 @@ describe("AiAssistantContents", () => {
       expect(
         within(dock)
           .getAllByRole("button")
-          .slice(0, 3)
+          .slice(0, 2)
           .map((button) => button.getAttribute("aria-label")),
-      ).toEqual(["Show conversation", "Show 1 Voice issue", "Audio options"]);
+      ).toEqual(["Show 1 Voice issue", "Audio options"]);
       act(() => store.setActions({ end, pause: noop }));
       expect(
         within(dock)
           .getAllByRole("button")
-          .slice(0, 2)
+          .slice(0, 1)
           .map((button) => button.getAttribute("aria-label")),
-      ).toEqual(["Show conversation", "Show 1 Voice issue"]);
+      ).toEqual(["Show 1 Voice issue"]);
       expect(within(dock).getByText("Connected")).toBeTruthy();
       expect(screen.queryByText(warningMessage)).toBeNull();
       expect(within(dock).getByRole("status").textContent).toBe(
@@ -1936,42 +1810,7 @@ describe("AiAssistantContents", () => {
     },
   );
 
-  test.each(["setup", "listening"] as const)(
-    "omits the status row from the collapsed %s Voice dock",
-    (phase) => {
-      const store = createVoiceSessionStore();
-      if (phase === "listening")
-        store.setState({
-          errorMessage: null,
-          microphoneLevel: 0,
-          microphoneMuted: false,
-          phase,
-        });
-      const contents = (collapsed: boolean) => (
-        <VoiceSessionContext.Provider value={store}>
-          <AiAssistantContents
-            input=""
-            inputMode="voice"
-            messages={[]}
-            composerStatus={<div data-testid="host-status">Host status</div>}
-            onClose={noop}
-            onInputChange={noop}
-            onStop={noop}
-            onSubmit={noop}
-            status="ready"
-            voiceDockCollapsed={collapsed}
-          />
-        </VoiceSessionContext.Provider>
-      );
-      const { rerender } = render(contents(true));
-      expect(screen.getByTestId("ai-voice-dock")).toBeTruthy();
-      expect(screen.queryByTestId("host-status")).toBeNull();
-      rerender(contents(false));
-      expect(screen.getByTestId("host-status").textContent).toBe("Host status");
-    },
-  );
-
-  test("contains voice failures in the collapsed dock without a toast", async () => {
+  test("contains voice failures in the dock without a toast", async () => {
     const store = createVoiceSessionStore();
     store.setState({
       errorMessage: "Microphone unavailable. Check your browser permissions.",
@@ -1986,12 +1825,10 @@ describe("AiAssistantContents", () => {
           <AiAssistantContents
             input=""
             messages={[]}
-            onClose={noop}
             onInputChange={noop}
             onStop={noop}
             onSubmit={noop}
             status="ready"
-            voiceDockCollapsed
           />
         </VoiceSessionContext.Provider>
       </TestEditorApi>,
@@ -2027,7 +1864,6 @@ describe("AiAssistantContents", () => {
           <AiAssistantContents
             input=""
             messages={[]}
-            onClose={noop}
             onInputChange={noop}
             onStop={noop}
             onSubmit={noop}
@@ -2082,7 +1918,6 @@ describe("AiAssistantContents", () => {
             parts: [{ type: "text", state: "done", text: "Completed answer" }],
           },
         ]}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -2114,7 +1949,6 @@ describe("AiAssistantContents", () => {
               parts: [{ type: "text", text: "Host note" }],
             },
           ]}
-          onClose={noop}
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -2151,7 +1985,6 @@ describe("AiAssistantContents", () => {
             parts: [{ type: "text", text: "Short interview" }],
           },
         ]}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -2186,7 +2019,6 @@ describe("AiAssistantContents", () => {
             },
           ]}
           renderSystemMessage={renderSystemMessage}
-          onClose={noop}
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -2221,7 +2053,6 @@ describe("AiAssistantContents", () => {
           },
         ]}
         onClearMessages={vi.fn()}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -2255,7 +2086,6 @@ describe("AiAssistantContents", () => {
             parts: [{ type: "text", text: "Existing transcript" }],
           },
         ]}
-        onClose={noop}
         onInputChange={noop}
         onInputModeChange={onInputModeChange}
         onStop={noop}
@@ -2308,7 +2138,6 @@ describe("AiAssistantContents", () => {
             parts: [{ type: "text", text: "Assistant reply" }],
           },
         ]}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -2338,7 +2167,6 @@ describe("AiAssistantContents", () => {
   test("animates new spoken words without replacing earlier words or losing spacing", () => {
     const props = {
       input: "",
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -2426,7 +2254,6 @@ describe("AiAssistantContents", () => {
         input=""
         interactiveTools={[hostTool]}
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -2448,7 +2275,6 @@ describe("AiAssistantContents", () => {
     ];
     const props = {
       messages,
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -2474,7 +2300,6 @@ describe("AiAssistantContents", () => {
         }
         input=""
         messages={[]}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -2504,7 +2329,6 @@ describe("AiAssistantContents", () => {
           composerControl={<button type="button">Host setting</button>}
           input={input}
           messages={[]}
-          onClose={noop}
           onInputChange={noop}
           onInputModeChange={noop}
           onStop={noop}
@@ -2533,7 +2357,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         messages={[]}
-        onClose={noop}
         onInputChange={noop}
         onInputModeChange={onInputModeChange}
         onStop={noop}
@@ -2562,7 +2385,6 @@ describe("AiAssistantContents", () => {
     const props = {
       input: "",
       messages: [] as PetrinautAiMessage[],
-      onClose: noop,
       onInputChange: noop,
       onSendPrompt: noop,
       onStop: noop,
@@ -2653,7 +2475,6 @@ describe("AiAssistantContents", () => {
       const onSubmit = vi.fn();
       const props = {
         messages: [] as PetrinautAiMessage[],
-        onClose: noop,
         onInputChange: noop,
         onInputModeChange,
         onStop: noop,
@@ -2701,7 +2522,6 @@ describe("AiAssistantContents", () => {
       const props = {
         input: "Draft",
         messages: [] as PetrinautAiMessage[],
-        onClose: noop,
         onInputChange: noop,
         onInputModeChange: noop,
         onStop,
@@ -2748,7 +2568,6 @@ describe("AiAssistantContents", () => {
         )}
         input="Unsaved draft"
         messages={[]}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={onSubmit}
@@ -2831,7 +2650,6 @@ describe("AiAssistantContents", () => {
         input=""
         interactiveTools={[hostTool]}
         messages={awaitingMessages}
-        onClose={noop}
         onInputChange={noop}
         onInteractiveToolSubmit={onInteractiveToolSubmit}
         onStop={noop}
@@ -2874,7 +2692,6 @@ describe("AiAssistantContents", () => {
         input=""
         interactiveTools={[hostTool]}
         messages={submittedMessages}
-        onClose={noop}
         onInputChange={noop}
         onInteractiveToolSubmit={onInteractiveToolSubmit}
         onStop={noop}
@@ -2932,7 +2749,6 @@ describe("AiAssistantContents", () => {
         input=""
         interactiveTools={[hostTool]}
         messages={createMessages("input-streaming", {})}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -2951,7 +2767,6 @@ describe("AiAssistantContents", () => {
         messages={createMessages("input-available", {
           question: "Ship this change?",
         })}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -3000,7 +2815,6 @@ describe("AiAssistantContents", () => {
         input=""
         interactiveTools={[hostTool]}
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onInteractiveToolSubmit={onInteractiveToolSubmit}
         onStop={noop}
@@ -3024,7 +2838,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         messages={[]}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -3045,7 +2858,6 @@ describe("AiAssistantContents", () => {
           parts: [{ type: "text", text: "Review this model" }],
         },
       ] as PetrinautAiMessage[],
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -3124,7 +2936,6 @@ describe("AiAssistantContents", () => {
       const props = {
         input: "",
         inputMode,
-        onClose: noop,
         onInputChange: noop,
         onStop: noop,
         onSubmit: noop,
@@ -3192,7 +3003,6 @@ describe("AiAssistantContents", () => {
     const props = {
       input: "",
       messages: [] as PetrinautAiMessage[],
-      onClose: noop,
       onInputChange: noop,
       onSendPrompt: noop,
       onStop: noop,
@@ -3225,7 +3035,6 @@ describe("AiAssistantContents", () => {
     const props = {
       input: "",
       messages: [],
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -3261,7 +3070,6 @@ describe("AiAssistantContents", () => {
             parts: [{ type: "text", text: "Review this model" }],
           },
         ]}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -3287,7 +3095,6 @@ describe("AiAssistantContents", () => {
         hostTabSelected
         input=""
         messages={[]}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -3306,7 +3113,6 @@ describe("AiAssistantContents", () => {
     const props = {
       input: "",
       messages: [],
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -3341,7 +3147,6 @@ describe("AiAssistantContents", () => {
           parts: [{ type: "text" as const, text: "A stock answer" }],
         },
       ],
-      onClose: noop,
       onInputChange: noop,
       onSendPrompt: noop,
       onStop: noop,
@@ -3372,7 +3177,6 @@ describe("AiAssistantContents", () => {
       additionalTab: { label: "Ledger", content: <p>Ledger body</p> },
       input: "",
       messages: [],
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -3407,7 +3211,6 @@ describe("AiAssistantContents", () => {
           parts: [{ type: "text" as const, text: "A stock answer" }],
         },
       ],
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -3433,7 +3236,6 @@ describe("AiAssistantContents", () => {
     const props = {
       input: "",
       messages: [],
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -3458,7 +3260,6 @@ describe("AiAssistantContents", () => {
       input: "",
       inputMode: "voice" as const,
       messages: [],
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -3498,7 +3299,6 @@ describe("AiAssistantContents", () => {
             ],
           },
         ]}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -3540,7 +3340,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -3588,7 +3387,6 @@ describe("AiAssistantContents", () => {
           },
         ]}
         onClearMessages={onClearMessages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -3629,7 +3427,6 @@ describe("AiAssistantContents", () => {
             parts: [{ type: "text", state: "streaming", text: "Still going" }],
           },
         ]}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -3671,7 +3468,6 @@ describe("AiAssistantContents", () => {
     const props = {
       input: "",
       inputMode: "voice" as const,
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -3720,7 +3516,6 @@ describe("AiAssistantContents", () => {
     ];
     const props = {
       input: "",
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -3756,7 +3551,6 @@ describe("AiAssistantContents", () => {
             parts: [{ type: "text", state: "done", text: "Plain answer" }],
           },
         ]}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -3798,7 +3592,6 @@ describe("AiAssistantContents", () => {
             ],
           },
         ],
-        onClose: noop,
         onInputChange: noop,
         onStop: noop,
         onSubmit: noop,
@@ -3856,7 +3649,6 @@ describe("AiAssistantContents", () => {
           ],
         },
       ],
-      onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
@@ -3918,7 +3710,6 @@ describe("AiAssistantContents", () => {
         presentation="brunch"
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -3962,7 +3753,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -3997,7 +3787,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -4041,7 +3830,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -4102,7 +3890,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onSelectToolTarget={onSelectToolTarget}
         onStop={noop}
@@ -4169,7 +3956,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -4226,7 +4012,6 @@ describe("AiAssistantContents", () => {
         hiddenToolNames={new Set(["layout_petrinaut_net"])}
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -4288,7 +4073,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -4333,7 +4117,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -4417,7 +4200,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -4466,7 +4248,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -4517,7 +4298,6 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -4604,7 +4384,6 @@ describe.each(toolRowPresentations)(
           <AiAssistantContents
             input=""
             status="ready"
-            onClose={noop}
             onInputChange={noop}
             onStop={noop}
             onSubmit={noop}
@@ -4678,7 +4457,6 @@ describe.each(toolRowPresentations)(
         ] as PetrinautAiMessage[];
       const props = {
         input: "",
-        onClose: noop,
         onInputChange: noop,
         onStop: noop,
         onSubmit: noop,
@@ -4789,7 +4567,6 @@ describe.each(toolRowPresentations)(
         <AiAssistantContents
           input=""
           messages={messages}
-          onClose={noop}
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -4916,7 +4693,6 @@ describe.each(toolRowPresentations)(
           <AiAssistantContents
             input=""
             messages={messages}
-            onClose={noop}
             onInputChange={noop}
             onStop={noop}
             onSubmit={noop}
@@ -5068,7 +4844,6 @@ describe("AiAssistantContents in the stock presentation", () => {
             },
           ]}
           error={status === "error" ? new Error("Network failed") : undefined}
-          onClose={noop}
           onInputChange={noop}
           onStop={noop}
           onSubmit={noop}
@@ -5113,7 +4888,6 @@ describe("AiAssistantContents in the stock presentation", () => {
       <AiAssistantContents
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onStop={noop}
         onSubmit={noop}
@@ -5170,7 +4944,6 @@ describe("AiAssistantContents in the stock presentation", () => {
       <AiAssistantContents
         input=""
         messages={messages}
-        onClose={noop}
         onInputChange={noop}
         onSelectToolTarget={onSelectToolTarget}
         onStop={noop}
@@ -5201,7 +4974,6 @@ describe("AiAssistantContents in the stock presentation", () => {
     const props = {
       input: "Draft",
       messages: [] as PetrinautAiMessage[],
-      onClose: noop,
       onInputChange: noop,
       onStop,
       onSubmit: vi.fn(),
@@ -5238,7 +5010,6 @@ describe("AiAssistantContents in the stock presentation", () => {
     const onSubmit = vi.fn();
     const props = {
       messages: [] as PetrinautAiMessage[],
-      onClose: noop,
       onInputChange: noop,
       onInputModeChange,
       onStop: noop,

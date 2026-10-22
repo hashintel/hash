@@ -11,7 +11,6 @@ import {
 } from "@hashintel/petrinaut/ui/plugin";
 
 import { AiAssistantPanel } from "./chat/ai-assistant-panel";
-import { AiVoiceModeIcon } from "./chat/ai-voice-mode-button";
 
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
 
@@ -45,16 +44,14 @@ const BrunchPlugin = definePetrinautPlugin({
   provides: pluginService<BrunchEditorApi>(),
 });
 
-/** What the empty-net prompt hands the chat, which consumes it once. */
-type BrunchChatStart = { readonly text: string } | { readonly voice: true };
-
 /**
  * Renders Brunch's chat as the editor's assistant, and hands its `api` to
  * Brunch's cards.
  */
 const useBrunchPlugin: PluginHook<typeof BrunchPlugin> = (api) => {
   const assistant = use(BrunchAssistantContext);
-  const [start, setStart] = useState<BrunchChatStart | null>(null);
+  // The empty-net prompt's text, which the chat consumes once.
+  const [promptText, setPromptText] = useState<string | null>(null);
   if (assistant === null) {
     throw new Error(
       "The Brunch plugin runs only while its host provides BrunchAssistantContext.",
@@ -68,27 +65,16 @@ const useBrunchPlugin: PluginHook<typeof BrunchPlugin> = (api) => {
         <AiAssistantPanel
           aiAssistant={assistant}
           api={api}
-          initialMessage={start !== null && "text" in start ? start.text : null}
-          onInitialMessageConsumed={() => setStart(null)}
+          initialMessage={promptText}
+          onInitialMessageConsumed={() => setPromptText(null)}
           // Text from the prompt selects text, as the built-in chat's did,
-          // so it never reaches a Voice mode left from an earlier start.
-          initialInteractionMode={
-            start === null ? null : "voice" in start ? "voice" : "text"
-          }
-          onInitialInteractionModeConsumed={() => setStart(null)}
+          // so it never reaches a Voice mode left from an earlier session.
+          initialInteractionMode={promptText === null ? null : "text"}
+          onInitialInteractionModeConsumed={() => setPromptText(null)}
         />
       ),
-      onPrompt: (text) => setStart({ text }),
-      // Voice is Brunch's alone: the prompt offers it only while Brunch does.
-      ...(assistant.renderVoiceMode === undefined
-        ? {}
-        : {
-            startAction: {
-              label: "Start voice mode",
-              icon: <AiVoiceModeIcon size={20} />,
-              run: () => setStart({ voice: true }),
-            },
-          }),
+      // The prompt offers text only; Voice starts from the chat's composer.
+      onPrompt: setPromptText,
     },
   };
 };

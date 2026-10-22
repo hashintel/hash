@@ -25,9 +25,7 @@ import {
   preloadLanguageServer,
 } from "../../../shared/petrinaut-jsdom";
 import { AiAssistantPanel } from "./ai-assistant-panel";
-import { AiVoiceModeIcon } from "./ai-voice-mode-button";
 
-import type { PetrinautAiInputMode } from "./ai-assistant-composer-control";
 import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
@@ -117,19 +115,14 @@ const BrunchChatTestPlugin = definePetrinautPlugin({
   assistant: true,
 });
 
-type ChatStart = { readonly text: string } | { readonly voice: true };
-
 /**
  * A test plugin that draws Brunch's copied chat in the editor's real
- * assistant panel, with the empty-net prompt's text and Voice start, as the
- * Brunch plugin will after the cutover.
+ * assistant panel, with the empty-net prompt's text, as the Brunch plugin
+ * does.
  */
 const chatPlugin = (assistant: PetrinautAiAssistant): PetrinautPlugin => {
   const useChatPlugin: PluginHook<typeof BrunchChatTestPlugin> = (api) => {
-    const [start, setStart] = useState<ChatStart | null>(null);
-    const initialMessage = start && "text" in start ? start.text : null;
-    const initialInteractionMode: PetrinautAiInputMode | null =
-      start && "voice" in start ? "voice" : null;
+    const [promptText, setPromptText] = useState<string | null>(null);
 
     return {
       assistant: {
@@ -137,20 +130,13 @@ const chatPlugin = (assistant: PetrinautAiAssistant): PetrinautPlugin => {
           <AiAssistantPanel
             aiAssistant={assistant}
             api={api}
-            initialMessage={initialMessage}
-            onInitialMessageConsumed={() => setStart(null)}
-            initialInteractionMode={initialInteractionMode}
-            onInitialInteractionModeConsumed={() => setStart(null)}
+            initialMessage={promptText}
+            onInitialMessageConsumed={() => setPromptText(null)}
+            initialInteractionMode={promptText === null ? null : "text"}
+            onInitialInteractionModeConsumed={() => setPromptText(null)}
           />
         ),
-        onPrompt: (text) => setStart({ text }),
-        ...(assistant.renderVoiceMode && {
-          startAction: {
-            label: "Start voice mode",
-            icon: <AiVoiceModeIcon size={20} />,
-            run: () => setStart({ voice: true }),
-          },
-        }),
+        onPrompt: setPromptText,
       },
     };
   };
@@ -367,9 +353,8 @@ test("refuses a static mutation on a read-only net before its host boundary runs
   });
 });
 
-test("starts Voice from the empty-net prompt collapsed, expands, and pauses before the panel's Close", async () => {
+test("starts Voice from the composer in the editor's panel and pauses it when the panel closes", async () => {
   const events: string[] = [];
-  let panelOpenAtPause: boolean | undefined;
   const VoiceMode = ({
     registerVoiceModeControls,
     isAiAssistantOpen,
@@ -383,10 +368,6 @@ test("starts Voice from the empty-net prompt collapsed, expands, and pauses befo
           },
           pause: () => {
             events.push("pause");
-            panelOpenAtPause =
-              document
-                .querySelector('aside[aria-label="AI assistant"]')
-                ?.hasAttribute("inert") === false;
           },
           reconnect: () => {},
           resume: () => {},
@@ -404,33 +385,23 @@ test("starts Voice from the empty-net prompt collapsed, expands, and pauses befo
     renderVoiceMode: (context) => <VoiceMode {...context} />,
   }));
 
+  // The empty-net prompt offers text only; Voice starts inside the panel.
   fireEvent.click(
-    await screen.findByRole("button", { name: "Start voice mode" }),
+    await screen.findByRole("button", { name: "Show AI assistant" }),
   );
-
-  // Voice opens the panel collapsed to its corner dock. jsdom applies no
-  // stylesheet, so the hidden title bar shows as the panel's hiding class.
-  const titleBarOf = () =>
-    screen
-      .getByRole("button", { hidden: true, name: "Close AI assistant" })
-      .closest("div");
-  const setupDock = await screen.findByRole("region", { name: "Voice setup" });
-  expect(screen.getByText("Voice voice open")).toBeTruthy();
-  expect(titleBarOf()?.className).toContain("d_none");
-
+  const panel = await screen.findByRole("complementary", {
+    name: "AI assistant",
+  });
   fireEvent.click(
-    within(setupDock).getByRole("button", { name: "Expand voice setup" }),
+    within(panel).getByRole("button", { name: "Start voice mode" }),
   );
-  await waitFor(() => expect(titleBarOf()?.className).not.toContain("d_none"));
-  const close = screen.getByRole("button", { name: "Close AI assistant" });
-  expect(screen.queryByRole("region", { name: "Voice setup" })).toBeNull();
+  expect(await screen.findByText("Voice voice open")).toBeTruthy();
+  expect(events).toEqual([]);
 
-  act(() => close.click());
+  act(() => screen.getByRole("button", { name: "Close AI assistant" }).click());
 
-  expect(events).toEqual(["pause"]);
-  // The chat paused Voice in the Close press itself, while the panel was open.
-  expect(panelOpenAtPause).toBe(true);
-  // Closed, the panel leaves the accessibility tree and turns inert.
+  // Closed, the panel leaves the accessibility tree and turns inert; its
+  // content stays mounted and pauses Voice.
   await waitFor(() =>
     expect(
       document
@@ -438,5 +409,6 @@ test("starts Voice from the empty-net prompt collapsed, expands, and pauses befo
         ?.hasAttribute("inert"),
     ).toBe(true),
   );
+  expect(events).toEqual(["pause"]);
   expect(screen.getByText("Voice voice closed")).toBeTruthy();
 });
