@@ -17,6 +17,10 @@
     "./flow-net-metadata": {
       "types": "./src/flow-net-metadata.ts",
       "default": "./dist/flow-net-metadata.js"
+    },
+    "./interpret-flow-net": {
+      "types": "./src/interpret-flow-net.ts",
+      "default": "./dist/interpret-flow-net.js"
     }
   },
   "scripts": {
