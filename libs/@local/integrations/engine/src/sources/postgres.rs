@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use duckdb::Config;
 use error_stack::Report;
-use hash_integrations_definition::{PostgresSource, SslMode};
+use hash_integrations_definition::PostgresSource;
 use hash_secret::Secret;
 use serde::Deserialize;
 use url::Url;
@@ -54,25 +54,28 @@ fn literal(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
 
-fn connection_uri(source: &PostgresSource, credentials: &Credentials) -> String {
-    let port = source.port.to_string();
-    let ssl = match source.ssl_mode {
-        SslMode::Disable => "disable",
-        SslMode::Require => "require",
-        SslMode::VerifyFull => "verify-full",
-    };
-    let mut uri = Url::parse("postgresql:///").expect("static PostgreSQL URI should be valid");
-    uri.query_pairs_mut().extend_pairs([
-        ("host", &*source.host),
-        ("port", &port),
-        ("dbname", &source.database),
-        ("user", credentials.username.expose()),
-        ("password", credentials.password.expose()),
-        ("sslmode", ssl),
-        ("connect_timeout", "30"),
-    ]);
+fn connection_uri(source: &PostgresSource, credentials: &Credentials) -> Url {
+    let mut uri = source.connection.clone();
+    let query = uri.query().map(|query| query.replace('+', "%2B"));
+    uri.set_query(query.as_deref());
+    let ssl_mode = uri.query_pairs().any(|(name, _)| name == "sslmode");
+    let timeout = uri.query_pairs().any(|(name, _)| name == "connect_timeout");
+    {
+        let mut parameters = uri.query_pairs_mut();
+        parameters
+            .append_pair("user", credentials.username.expose())
+            .append_pair("password", credentials.password.expose());
+        if !ssl_mode {
+            parameters.append_pair("sslmode", "verify-full");
+        }
+        if !timeout {
+            parameters.append_pair("connect_timeout", "30");
+        }
+    }
     // libpq decodes percent escapes but leaves '+' unchanged in URI parameters.
-    uri.to_string().replace('+', "%20")
+    let query = uri.query().map(|query| query.replace('+', "%20"));
+    uri.set_query(query.as_deref());
+    uri
 }
 
 fn capture_blocking(
@@ -115,7 +118,7 @@ fn capture_blocking(
     connection
         .execute_batch(&format!(
             "ATTACH {} AS _capture (TYPE postgres, READ_ONLY)",
-            literal(&connection_uri(source, credentials))
+            literal(connection_uri(source, credentials).as_str())
         ))
         .map_err(|_error| Report::new(SourceError::Postgres))?;
     let path = partial
@@ -149,11 +152,9 @@ mod tests {
 
     fn source() -> PostgresSource {
         serde_json::from_value(json!({
-            "host": "localhost",
-            "database": "postgres",
+            "connection": "postgresql://localhost/postgres?sslmode=disable",
             "schema": "public",
             "table": "be932_capture_fixture",
-            "sslMode": "disable",
             "credentials": {
                 "secretEntityUuid": uuid::Uuid::new_v4(),
             },
@@ -164,7 +165,10 @@ mod tests {
     #[test]
     fn connection_uri_credentials() {
         let mut source = source();
-        source.database = "sales /%2F?&=\u{e9}".into();
+        source.connection = "postgresql://localhost/sales%20%2F%252F%3F%26%3D%C3%A9?\
+                             application_name=sync+reader&sslmode=disable"
+            .parse()
+            .expect("should parse the connection URI");
         let value = connection_uri(
             &source,
             &Credentials {
@@ -173,10 +177,10 @@ mod tests {
             },
         );
         assert_eq!(
-            value,
-            "postgresql:///?host=localhost&port=5432&dbname=sales%20%2F%252F%3F%26%3D%C3%A9&\
-             user=reader%20%40%2540%2B&password=pa%27ss%5Cword%20%3A%2F%40%3F%26%3D%2B%23%2520%C3%\
-             A9&sslmode=disable&connect_timeout=30",
+            value.as_str(),
+            "postgresql://localhost/sales%20%2F%252F%3F%26%3D%C3%A9?application_name=sync%\
+             2Breader&sslmode=disable&user=reader%20%40%2540%2B&password=pa%27ss%5Cword%20%3A%2F%\
+             40%3F%26%3D%2B%23%2520%C3%A9&connect_timeout=30",
             "URI parameters should preserve spaces, literal percent escapes and reserved \
              characters"
         );
@@ -184,16 +188,13 @@ mod tests {
 
     #[test]
     fn connection_uri_hosts() {
-        for (host, encoded) in [
-            ("::1", "%3A%3A1"),
-            ("/var/run/postgresql", "%2Fvar%2Frun%2Fpostgresql"),
-            (
-                "primary.example,replica.example",
-                "primary.example%2Creplica.example",
-            ),
+        for connection in [
+            "postgresql://[::1]/postgres",
+            "postgresql:///postgres?host=%2Fvar%2Frun%2Fpostgresql",
+            "postgresql:///postgres?host=primary.example%2Creplica.example",
         ] {
             let mut source = source();
-            source.host = host.into();
+            source.connection = connection.parse().expect("should parse the connection URI");
             let value = connection_uri(
                 &source,
                 &Credentials {
@@ -201,8 +202,31 @@ mod tests {
                     password: Secret::from_string("password".to_owned()),
                 },
             );
-            assert!(value.starts_with(&format!("postgresql:///?host={encoded}&")));
+            assert!(value.as_str().starts_with(connection));
         }
+    }
+
+    #[test]
+    fn connection_uri_defaults() {
+        let credentials = Credentials {
+            username: Secret::from_string("reader".to_owned()),
+            password: Secret::from_string("password".to_owned()),
+        };
+        let mut source = source();
+        source.connection.set_query(None);
+        assert_eq!(
+            connection_uri(&source, &credentials).as_str(),
+            "postgresql://localhost/postgres?user=reader&password=password&sslmode=verify-full&\
+             connect_timeout=30",
+        );
+        source
+            .connection
+            .set_query(Some("sslmode=require&connect_timeout=5"));
+        assert_eq!(
+            connection_uri(&source, &credentials).as_str(),
+            "postgresql://localhost/postgres?sslmode=require&connect_timeout=5&user=reader&\
+             password=password",
+        );
     }
 
     #[tokio::test]
@@ -274,8 +298,7 @@ mod credential_tests {
     #[tokio::test]
     async fn credentials_redact_malformed_values() {
         let source = serde_json::from_value(json!({
-            "host": "unavailable.invalid",
-            "database": "db",
+            "connection": "postgresql://unavailable.invalid/db",
             "schema": "public",
             "table": "items",
             "credentials": {
