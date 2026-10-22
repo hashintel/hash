@@ -21,6 +21,7 @@ import {
 import {
   type DraftActionStep,
   type EditorDocument,
+  entityTypeOf,
   fieldKey,
   stepLabel,
   findStep,
@@ -63,52 +64,6 @@ type FieldProps = {
   step: DraftActionStep;
   input: InputView;
   entry: CatalogEntry;
-};
-
-/* ----------------------------------------------------------------------------------------------------------------
- * Tracing what an entity value is, so pickers can offer that type's properties.
- * MOCK-ish: the engine's `EntityId` kind carries no entity type, so the editor follows sources back to a Find
- * entities query to learn it.
- * ------------------------------------------------------------------------------------------------------------- */
-
-export const entityTypeOf = (
-  document: EditorDocument,
-  source: StepInputSource | undefined,
-  stepId: string,
-  depth = 0,
-): string | undefined => {
-  if (!source || depth > 8) {
-    return undefined;
-  }
-  switch (source.kind) {
-    case "item": {
-      const parentId = findStep(document, stepId)?.parentId;
-      const parent = parentId ? findStep(document, parentId)?.step : undefined;
-      return parent?.kind === "for-each"
-        ? entityTypeOf(document, parent.over, parent.stepId, depth + 1)
-        : undefined;
-    }
-    case "step-output": {
-      const producer = findStep(document, source.stepId)?.step;
-      if (producer?.kind !== "action") {
-        return undefined;
-      }
-      if (producer.actionDefinitionId === "queryEntities") {
-        return document.queries[fieldKey(producer.stepId, "query")]
-          ?.entityTypeBaseUrl;
-      }
-      // List steps pass on their items' kind.
-      const passOn =
-        producer.inputs.items ??
-        producer.inputs.value ??
-        producer.inputs.entityId;
-      return entityTypeOf(document, passOn, producer.stepId, depth + 1);
-    }
-    case "flow-input":
-      return document.inputEntityTypes[source.inputName];
-    case "constant":
-      return undefined;
-  }
 };
 
 /* ---------------------------------------------------------------------------------------------------------------- */
@@ -161,15 +116,17 @@ const ownerLook = (document: EditorDocument, source: StepInputSource) => {
  */
 const TokenChip = ({
   source,
+  stepId,
   onClick,
   onRemove,
 }: {
   source: StepInputSource;
+  stepId: string;
   onClick: () => void;
   onRemove: () => void;
 }) => {
   const { document } = useEditor();
-  const parts = tokenPath(document, source);
+  const parts = tokenPath(document, source, stepId);
   return (
     <Tooltip content={parts.join(" › ")}>
       <Chip
@@ -289,6 +246,7 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
       >
         <TokenChip
           source={source}
+          stepId={step.stepId}
           onClick={() => setOpen(true)}
           onRemove={() => set(null)}
         />
@@ -684,7 +642,7 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
         mockPeopleEmails.find((candidate) => candidate.email === value)?.label;
       return known ?? value.replace(uploadedPrefix, "");
     }
-    return collapsePath(tokenPath(document, item));
+    return collapsePath(tokenPath(document, item, step.stepId));
   };
 
   /** A typed email that fails the check stays, as a red chip (spec F7: never a silent drop). */
@@ -1291,6 +1249,7 @@ const PatchValue = ({
         <>
           <TokenChip
             source={source}
+            stepId={step.stepId}
             onClick={() => setOpen(true)}
             onRemove={() => onChange(null)}
           />

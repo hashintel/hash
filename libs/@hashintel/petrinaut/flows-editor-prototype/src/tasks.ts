@@ -9,10 +9,10 @@ import {
   type EditorDocument,
   fieldKey,
   findStep,
+  entityTypeOf,
   flattenSteps,
   type QueryDraft,
 } from "./document";
-import { entityTypeOf } from "./fields";
 import { findPropertyType, mockEntities, mockEntityTypes } from "./mock-graph";
 
 import type { StepInputSource } from "./engine";

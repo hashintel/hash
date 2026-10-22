@@ -18,7 +18,9 @@ import {
   type DraftActionStep,
   type DraftForEachStep,
   type EditorDocument,
+  entityTypeOf,
   findStep,
+  itemName,
   stepLabel,
   findTrigger,
   removeStep,
@@ -34,7 +36,6 @@ import {
   type StepInputSource,
 } from "./engine";
 import {
-  entityTypeOf,
   isFreeText,
   kindHover,
   ListField,
@@ -643,7 +644,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
               color: "neutral.fg.heading",
             })}
           >
-            Current item
+            {itemName(document, step.stepId)}
           </span>
         </PropertyRow>
       </Section>

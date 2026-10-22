@@ -43,6 +43,7 @@ import {
   type DraftActionStep,
   type EditorDocument,
   findStep,
+  itemName,
   type QueryDraft,
   type QueryGroup,
   type RelativeDate,
@@ -233,6 +234,7 @@ export type BuilderProperty = {
 export const tokenPath = (
   document: EditorDocument,
   source: StepInputSource,
+  stepId?: string,
 ): string[] => {
   if (source.kind === "flow-input") {
     const input = document.inputs.find(
@@ -257,7 +259,8 @@ export const tokenPath = (
     return [title, ...description, output?.label ?? source.outputName];
   }
   if (source.kind === "item") {
-    return ["For each", "Current item"];
+    const parentId = stepId ? findStep(document, stepId)?.parentId : undefined;
+    return ["For each", parentId ? itemName(document, parentId) : "item"];
   }
   return [String(source.payload.value)];
 };
@@ -582,7 +585,7 @@ const ConditionRowView = ({
     !listOperator;
   const tokenParts = row.valueSource
     ? [
-        ...tokenPath(document, row.valueSource).slice(
+        ...tokenPath(document, row.valueSource, step.stepId).slice(
           0,
           lookupLeaf ? -1 : undefined,
         ),

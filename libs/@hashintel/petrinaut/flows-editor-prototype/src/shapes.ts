@@ -12,6 +12,7 @@ import {
   stepLabel,
   findStep,
   flattenSteps,
+  itemName,
   listToSource,
   queryDraftToEntityQuery,
   queryDraftToFilterCondition,
@@ -403,7 +404,7 @@ export const sourceOptions = (
         ...fitted,
         group: "This item",
         ownerLabel: forEach ? stepLabel(forEach) : "For each",
-        label: "Current item",
+        label: itemName(document, scope.at(-1)!),
         shape,
       });
     }
@@ -470,7 +471,7 @@ export const describeSource = (
       const parent = parentId ? findStep(document, parentId)?.step : undefined;
       return {
         owner: parent ? stepLabel(parent) : "For each",
-        label: "Current item",
+        label: parentId ? itemName(document, parentId) : "item",
       };
     }
     case "step-output": {

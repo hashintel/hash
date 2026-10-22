@@ -3,7 +3,7 @@
  * has no place for. Each extra is named for the hole it fills (see the holes log).
  */
 import { getCatalogEntry } from "./catalog";
-import { findPropertyType } from "./mock-graph";
+import { findEntityType, findPropertyType } from "./mock-graph";
 import {
   type TriggerKind,
   type TriggerNode,
@@ -229,6 +229,59 @@ export const flattenSteps = (
 
 export const findStep = (document: EditorDocument, stepId: string) =>
   flattenSteps(document.steps).find(({ step }) => step.stepId === stepId);
+
+/** Tracing what an entity value is, so pickers can offer that type's properties (and a for-each can name its item).
+ * MOCK-ish: the engine's `EntityId` kind carries no entity type, so the editor follows sources back to a Find
+ * entities query to learn it. */
+export const entityTypeOf = (
+  document: EditorDocument,
+  source: StepInputSource | undefined,
+  stepId: string,
+  depth = 0,
+): string | undefined => {
+  if (!source || depth > 8) {
+    return undefined;
+  }
+  switch (source.kind) {
+    case "item": {
+      const parentId = findStep(document, stepId)?.parentId;
+      const parent = parentId ? findStep(document, parentId)?.step : undefined;
+      return parent?.kind === "for-each"
+        ? entityTypeOf(document, parent.over, parent.stepId, depth + 1)
+        : undefined;
+    }
+    case "step-output": {
+      const producer = findStep(document, source.stepId)?.step;
+      if (producer?.kind !== "action") {
+        return undefined;
+      }
+      if (producer.actionDefinitionId === "queryEntities") {
+        return document.queries[fieldKey(producer.stepId, "query")]
+          ?.entityTypeBaseUrl;
+      }
+      // List steps pass on their items' kind.
+      const passOn =
+        producer.inputs.items ??
+        producer.inputs.value ??
+        producer.inputs.entityId;
+      return entityTypeOf(document, passOn, producer.stepId, depth + 1);
+    }
+    case "flow-input":
+      return document.inputEntityTypes[source.inputName];
+    case "constant":
+      return undefined;
+  }
+};
+
+/** What a for-each calls the thing it loops over: the entity type's name ("supplier"), or "item" when it is unknown. */
+export const itemName = (document: EditorDocument, forEachId: string) => {
+  const forEach = findStep(document, forEachId)?.step;
+  const typeBaseUrl =
+    forEach?.kind === "for-each"
+      ? entityTypeOf(document, forEach.over, forEachId)
+      : undefined;
+  return findEntityType(typeBaseUrl)?.title.toLowerCase() ?? "item";
+};
 
 export const mapSteps = (
   steps: DraftStep[],
