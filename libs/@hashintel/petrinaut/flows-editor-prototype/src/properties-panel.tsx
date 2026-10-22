@@ -2,6 +2,7 @@ import { useRef } from "react";
 
 import {
   Button,
+  Menu,
   NumberInput,
   SegmentedControl,
   Select,
@@ -13,6 +14,7 @@ import { OverlayScrollArea } from "../../src/ui/components/overlay-scroll-area";
 import { forEachEntry, getCatalogEntry, type InputView } from "./catalog";
 import {
   START_ID,
+  addTrigger,
   type DraftActionStep,
   type DraftForEachStep,
   type EditorDocument,
@@ -52,6 +54,7 @@ import {
   type InputMapping as InputMappingValue,
   type TriggerNode,
   triggerDefinitions,
+  triggerKinds,
   weekdays,
 } from "./mock-triggers";
 import {
@@ -65,6 +68,7 @@ import { firstAndMore, TimeField, TypedValue } from "./typed-value";
 import {
   descriptionInputStyle,
   HeaderTitle,
+  IconTile,
   kindLabel,
   mutedTextStyle,
   OriginMark,
@@ -300,7 +304,7 @@ const PanelHeader = ({
       ? null
       : () => {
           setDocument((document) => removeTrigger(document, trigger.id));
-          setUi((ui) => ({ ...ui, selectedId: null }));
+          setUi((ui) => ({ ...ui, selectedId: START_ID, triggerId: null }));
         }
     : stepId
       ? () => {
@@ -1204,9 +1208,9 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
       }),
     );
   return (
-    <Section title="Start inputs">
+    <Section title="Flow inputs">
       {document.inputs.length === 0 ? (
-        <span className={mutedTextStyle}>Start has no inputs yet.</span>
+        <span className={mutedTextStyle}>No flow inputs yet.</span>
       ) : null}
       {document.inputs.map((input) => {
         const fields = definition.outputs.filter(
@@ -1271,39 +1275,88 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
   );
 };
 
-/** Which triggers lead into Start, as J4 A1's "Started by" rows: a schedule, or a trigger. */
+/** A "Started by" row's value: the trigger's tile and name, as a quiet row; clicking it opens the trigger's panel. */
+const startedByRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+  minHeight: "[32px]",
+  paddingX: "1",
+  borderRadius: "md",
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "neutral.fg.body",
+  textAlign: "left",
+  cursor: "pointer",
+  minWidth: "[0]",
+  _hover: { backgroundColor: "neutral.bg.surface.active" },
+});
+
+/** What starts the flow, listed on Start (J4 A1): one row per trigger, and "Add trigger", a menu that opens a form. */
 const StartedBy = () => {
-  const { document, setUi } = useEditor();
-  const triggers = document.triggers.filter((trigger) =>
-    document.wires.some(
-      (wire) => wire.source === trigger.id && wire.target === START_ID,
-    ),
-  );
-  if (triggers.length === 0) {
-    return null;
-  }
+  const { document, setDocument, setUi } = useEditor();
+  const open = (triggerId: string) =>
+    setUi((ui) => ({
+      ...ui,
+      selectedId: START_ID,
+      triggerId,
+      openField: null,
+    }));
   return (
     <Section title="Started by">
-      {triggers.map((trigger) => {
+      {document.triggers.map((trigger) => {
         const definition = triggerDefinitions[trigger.kind];
         return (
           <PropertyRow
             key={trigger.id}
             label={trigger.kind === "schedule" ? "Schedule" : "Trigger"}
           >
-            <div>
-              <SourceChip
-                icon={definition.icon}
-                onClick={() =>
-                  setUi((ui) => ({ ...ui, selectedId: trigger.id }))
-                }
-              >
-                {trigger.description || definition.title}
-              </SourceChip>
-            </div>
+            <button
+              type="button"
+              className={startedByRowStyle}
+              onClick={() => open(trigger.id)}
+            >
+              <IconTile icon={definition.icon} tone="blue" size="sm" />
+              <span>{trigger.description || definition.title}</span>
+            </button>
           </PropertyRow>
         );
       })}
+      <div>
+        <Menu
+          position="bottom-start"
+          items={[
+            {
+              id: "triggers",
+              label: "",
+              items: triggerKinds.map((kind) => ({
+                id: kind,
+                text: triggerDefinitions[kind].title,
+                icon: triggerDefinitions[kind].icon,
+                suffix: triggerDefinitions[kind].mock ? (
+                  <OriginMark
+                    label="mock"
+                    hover="No such trigger on main yet."
+                  />
+                ) : undefined,
+                onClick: () => {
+                  const { document: next, triggerId } = addTrigger(
+                    document,
+                    kind,
+                  );
+                  setDocument(() => next);
+                  open(triggerId);
+                },
+              })),
+            },
+          ]}
+          trigger={
+            <Button size="sm" variant="link">
+              Add trigger
+            </Button>
+          }
+        />
+      </div>
     </Section>
   );
 };
@@ -1360,19 +1413,21 @@ const TriggerPanel = ({ trigger }: { trigger: TriggerNode }) => {
         <WebhookSettings trigger={trigger} />
       ) : null}
       <InputMapping trigger={trigger} />
-      <Paths
-        stepId={trigger.id}
-        ports={[{ outputName: "next", label: "Next" }]}
-      />
     </>
   );
 };
 
 export const PropertiesPanel = () => {
   const { document, ui } = useEditor();
-  const trigger = ui.selectedId ? findTrigger(document, ui.selectedId) : null;
+  // A trigger opens from Start's "Started by" list: Start stays selected, the panel shows the trigger (J4 A2).
+  const trigger =
+    ui.selectedId === START_ID && ui.triggerId
+      ? findTrigger(document, ui.triggerId)
+      : null;
   const found =
-    trigger || !ui.selectedId ? null : findStep(document, ui.selectedId);
+    !ui.selectedId || ui.selectedId === START_ID
+      ? null
+      : findStep(document, ui.selectedId);
   return (
     <aside className={panelStyle} aria-label="Properties">
       <OverlayScrollArea>
@@ -1383,10 +1438,10 @@ export const PropertiesPanel = () => {
               <span className={typeLineStyle}>{document.name}</span>
               <span className={descriptionInputStyle}>Nothing selected</span>
             </div>
-          ) : ui.selectedId === START_ID ? (
-            <StartPanel />
           ) : trigger ? (
             <TriggerPanel key={trigger.id} trigger={trigger} />
+          ) : ui.selectedId === START_ID ? (
+            <StartPanel />
           ) : found?.step.kind === "action" ? (
             <ActionPanel key={found.step.stepId} step={found.step} />
           ) : found?.step.kind === "for-each" ? (

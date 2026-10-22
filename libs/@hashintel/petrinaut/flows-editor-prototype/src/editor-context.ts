@@ -19,6 +19,8 @@ export type OpenField = {
 
 export type EditorUi = {
   selectedId: string | null;
+  /** With Start selected: the trigger opened from its "Started by" list, shown in the panel (J4 A2). */
+  triggerId?: string | null;
   picker: PickerTarget | null;
   openField: OpenField | null;
   runOpen: boolean;

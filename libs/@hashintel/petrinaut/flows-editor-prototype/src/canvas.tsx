@@ -23,13 +23,10 @@ import {
   START_ID,
   type DraftStep,
   type EditorDocument,
-  isTriggerId,
   removeStep,
-  removeTrigger,
   stepTitle,
 } from "./document";
 import { useEditor } from "./editor-context";
-import { triggerDefinitions } from "./mock-triggers";
 import { describeSource } from "./shapes";
 import { IconTile } from "./ui";
 
@@ -41,7 +38,7 @@ const GROUP_HEADER = 48;
 const GROUP_PADDING = 32;
 
 type StepData = { stepId: string };
-type StepNode = Node<StepData, "step" | "forEach" | "trigger" | "start">;
+type StepNode = Node<StepData, "step" | "forEach" | "start">;
 
 const portRows = (step: DraftStep) =>
   step.kind === "action"
@@ -85,16 +82,6 @@ const toNodes = (document: EditorDocument, selectedId: string | null) => {
       // Start holds the flow's inputs, so it stays.
       deletable: false,
     },
-    ...document.triggers.map((trigger, index) => ({
-      id: trigger.id,
-      type: "trigger" as const,
-      position: document.positions[trigger.id] ?? {
-        x: 40,
-        y: 220 + index * 130,
-      },
-      data: { stepId: trigger.id },
-      selected: selectedId === trigger.id,
-    })),
   ];
   const visit = (steps: DraftStep[], parentId?: string) => {
     for (const step of steps) {
@@ -498,52 +485,11 @@ const triggerStyle = css({
   },
 });
 
-/** Triggers sit on the canvas and lead into the first actions (Dora and Aakarsh, 21 Oct). */
-const TriggerNodeView = ({ id, selected }: NodeProps<StepNode>) => {
-  const { document } = useEditor();
-  const trigger = document.triggers.find((candidate) => candidate.id === id);
-  if (!trigger) {
-    return null;
-  }
-  const definition = triggerDefinitions[trigger.kind];
-  return (
-    <div className={triggerStyle} data-selected={selected || undefined}>
-      <Tooltip content={`Trigger · ${definition.title}`} position="top">
-        <div className={cardHeadStyle}>
-          <CardTile icon={definition.icon} tone="blue" />
-          <CardText
-            title={definition.title}
-            description={trigger.description || undefined}
-          />
-        </div>
-      </Tooltip>
-      <Handle
-        id="next"
-        type="source"
-        position={Position.Right}
-        className={handleStyle}
-        style={{ top: STEP_HEIGHT / 2 }}
-      />
-    </div>
-  );
-};
-
-/** Start: always on the canvas, holds the flow's inputs; triggers lead into it, steps follow it. */
+/** Start: always on the canvas, holds the flow's inputs and lists what starts the flow; steps follow it. */
 const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
   const { document } = useEditor();
   return (
     <div className={triggerStyle} data-selected={selected || undefined}>
-      <Handle
-        id="in"
-        type="target"
-        position={Position.Left}
-        className={handleStyle}
-        // Start's left port only shows once a trigger leads into it (J3 draws Start without one).
-        style={{
-          top: STEP_HEIGHT / 2,
-          opacity: document.triggers.length > 0 ? 1 : 0,
-        }}
-      />
       <Tooltip content="Start · holds the flow's inputs" position="top">
         <div className={cardHeadStyle}>
           <CardTile icon="play" tone="neutral" />
@@ -688,7 +634,6 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
 
 const nodeTypes = {
   step: StepNodeView,
-  trigger: TriggerNodeView,
   start: StartNodeView,
   forEach: GroupNodeView,
 };
@@ -861,6 +806,7 @@ export const FlowCanvas = ({
         setUi((current) => ({
           ...current,
           selectedId: node.id,
+          triggerId: null,
           openField: null,
         }))
       }
@@ -875,10 +821,7 @@ export const FlowCanvas = ({
       onNodesDelete={(deleted) =>
         setDocument((current) =>
           deleted.reduce(
-            (next, node) =>
-              isTriggerId(next, node.id)
-                ? removeTrigger(next, node.id)
-                : removeStep(next, node.id),
+            (next, node) => removeStep(next, node.id),
             current,
           ),
         )

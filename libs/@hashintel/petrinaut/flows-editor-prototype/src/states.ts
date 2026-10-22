@@ -180,7 +180,7 @@ export const screenStates: ScreenState[] = [
     row: "Adding nodes",
     title: "Add node picker",
     caption:
-      "Recommended, recent (once there is history), triggers, browse all.",
+      "Recommended, recent (once there is history), browse all.",
     create: () => ({
       document: emptyDocument(),
       ui: { ...initialUi, picker: { anchor: "toolbar" } },
@@ -356,25 +356,48 @@ export const screenStates: ScreenState[] = [
     }),
   },
   {
-    id: "start",
+    id: "j4-a1",
     journey: 4,
-    row: "Triggers → Start → steps",
-    title: "Start: flow inputs",
-    caption: "Start holds the inputs; Run and every trigger fill them.",
+    row: "Triggers listed on Start",
+    title: "J4 · A1 · Start holds the inputs",
+    caption: "Start lists what starts the flow, under Started by, with Add trigger.",
     create: () => ({
       document: supplierReviewExample(),
       ui: { ...initialUi, selectedId: START_ID },
     }),
   },
   {
-    id: "schedule",
+    id: "j4-a2",
     journey: 4,
-    row: "Triggers → Start → steps",
-    title: "Recurring schedule",
-    caption: "A trigger left of Start; it maps its data onto Start's inputs.",
+    row: "Triggers listed on Start",
+    title: "J4 · A2 · A trigger fills Start's inputs",
+    caption:
+      "A trigger opened from Started by: Start stays selected, the panel shows the trigger.",
     create: () => ({
       document: supplierReviewExample(),
-      ui: { ...initialUi, selectedId: "schedule" },
+      ui: { ...initialUi, selectedId: START_ID, triggerId: "schedule" },
+    }),
+  },
+  {
+    id: "j4-c1",
+    journey: 4,
+    row: "Triggers listed on Start",
+    title: "J4 · C1 · Triggers listed on Start, not on the canvas",
+    caption: "The canvas draws Start and the steps only, however many triggers.",
+    create: () => ({
+      document: supplierReviewExample(),
+      ui: { ...initialUi, selectedId: START_ID },
+    }),
+  },
+  {
+    id: "j4-c2",
+    journey: 4,
+    row: "Triggers listed on Start",
+    title: "J4 · C2 · Open a trigger from Started by",
+    caption: "Same as A2: click a Started by row to open its form.",
+    create: () => ({
+      document: supplierReviewExample(),
+      ui: { ...initialUi, selectedId: START_ID, triggerId: "schedule" },
     }),
   },
   {

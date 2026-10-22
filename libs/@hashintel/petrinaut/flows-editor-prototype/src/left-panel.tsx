@@ -29,7 +29,6 @@ import {
   stepTitle,
 } from "./document";
 import { type EditorUi, useEditor } from "./editor-context";
-import { triggerDefinitions } from "./mock-triggers";
 
 type Tone = "green" | "orange" | "neutral" | "blue";
 
@@ -220,12 +219,17 @@ const collapseAllStyle = css({
   },
 });
 
-/** "In this flow": triggers, Start, then the steps in order, children of a For each indented under it. */
+/** "In this flow": Start, then the steps in order, children of a For each indented under it. */
 const FlowList = () => {
   const { document, ui, setUi } = useEditor();
   const [closed, setClosed] = useState<string[]>([]);
   const select = (id: string) =>
-    setUi((current) => ({ ...current, selectedId: id, openField: null }));
+    setUi((current) => ({
+      ...current,
+      selectedId: id,
+      triggerId: null,
+      openField: null,
+    }));
   const groups = flattenSteps(document.steps)
     .map(({ step }) => step)
     .filter((step) => step.kind === "for-each")
@@ -386,24 +390,6 @@ const FlowList = () => {
           paddingX: "2",
         })}
       >
-        {document.triggers.map((trigger) => {
-          const definition = triggerDefinitions[trigger.kind];
-          return (
-            <button
-              key={trigger.id}
-              type="button"
-              className={rowStyle}
-              aria-current={ui.selectedId === trigger.id || undefined}
-              onClick={() => select(trigger.id)}
-            >
-              <span className={chevronSlotStyle} />
-              <Tile icon={definition.icon} tone="blue" />
-              <span className={labelStyle}>
-                {trigger.description || definition.title}
-              </span>
-            </button>
-          );
-        })}
         <button
           type="button"
           className={rowStyle}

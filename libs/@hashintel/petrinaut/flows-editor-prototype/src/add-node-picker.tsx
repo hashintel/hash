@@ -16,7 +16,6 @@ import {
 } from "./catalog";
 import {
   START_ID,
-  addTrigger,
   addStep,
   type EditorDocument,
   findStep,
@@ -25,11 +24,6 @@ import {
 } from "./document";
 import { useEditor } from "./editor-context";
 import { canConnect, type ConnectionSource, type PayloadKind } from "./engine";
-import {
-  type TriggerKind,
-  triggerDefinitions,
-  triggerKinds,
-} from "./mock-triggers";
 import { OpenMenu } from "./open-menu";
 import { getItemShape, getSourceShape, triggerFlowInputs } from "./shapes";
 import { SearchHeader } from "./source-menu";
@@ -147,14 +141,13 @@ const recommendedFor = (
 
 /** Each group's row in Browse all: its icon, as the Scratch E1 list draws them. */
 const groupIcons: Record<string, IconName> = {
-  Triggers: "lightning",
   Entities: "cube",
   Logic: "diagramSubtask",
   "Files and web": "fileLines",
   Messages: "at",
 };
 
-/** Where a step or trigger comes from, when it is not on main: the mock or open-PR mark as the item's suffix. */
+/** Where a step comes from, when it is not on main: the mock or open-PR mark as the item's suffix. */
 const originSuffix = (entry: CatalogEntry) =>
   entry.origin.kind === "open-pr" ? (
     <OriginMark
@@ -264,21 +257,6 @@ export const AddNodePicker = ({
   const available = catalog.filter(
     (entry) => isOffered(entry) && !(inGroup && entry.id === "forEach"),
   );
-  // Triggers start the flow, so they're only offered from the toolbar, not after a step. One Manual run per flow.
-  const triggerChoices = (
-    picker.anchor === "toolbar" ? triggerKinds : []
-  ).filter(
-    (kind) =>
-      !query ||
-      triggerDefinitions[kind].title.toLowerCase().includes(query) ||
-      "triggers".includes(query),
-  );
-  const pickTrigger = (kind: TriggerKind) => {
-    const { document: next, triggerId } = addTrigger(document, kind);
-    setDocument(() => next);
-    setUi((current) => ({ ...current, picker: null, selectedId: triggerId }));
-    setSearch("");
-  };
   const matches = available.filter(
     (entry) =>
       entry.title.toLowerCase().includes(query) ||
@@ -314,7 +292,7 @@ export const AddNodePicker = ({
       ? "Fits inside this group"
       : "Start with";
 
-  /* DS Menu items: a step, a trigger, and a Browse all group that opens its steps as a DS submenu. */
+  /* DS Menu items: a step, and a Browse all group that opens its steps as a DS submenu. */
   const entryItem = (
     entry: CatalogEntry,
     key: string,
@@ -326,31 +304,7 @@ export const AddNodePicker = ({
     suffix: originSuffix(entry) ?? side,
     onClick: () => pick(entry),
   });
-  const triggerItem = (kind: TriggerKind, side?: string): MenuItem => {
-    const definition = triggerDefinitions[kind];
-    return {
-      id: `trigger:${kind}`,
-      text: definition.title,
-      icon: definition.icon,
-      suffix: definition.mock ? (
-        <OriginMark label="mock" hover="No such trigger on main yet." />
-      ) : (
-        side
-      ),
-      onClick: () => pickTrigger(kind),
-    };
-  };
   const browseAll: MenuItem[] = [
-    ...(picker.anchor === "toolbar"
-      ? [
-          {
-            id: "group:Triggers",
-            text: "Triggers",
-            icon: groupIcons.Triggers,
-            subItems: triggerKinds.map((kind) => triggerItem(kind)),
-          },
-        ]
-      : []),
     ...categories.flatMap((category) => {
       const inCategory = available.filter(
         (entry) => entry.category === category,
@@ -373,7 +327,7 @@ export const AddNodePicker = ({
           id: "results",
           label: "",
           items:
-            matches.length === 0 && triggerChoices.length === 0
+            matches.length === 0
               ? [
                   {
                     id: "nothing",
@@ -383,9 +337,6 @@ export const AddNodePicker = ({
                   },
                 ]
               : [
-                  ...triggerChoices.map((kind) =>
-                    triggerItem(kind, "Triggers"),
-                  ),
                   ...matches.map((entry) =>
                     entryItem(entry, "result", entry.category),
                   ),

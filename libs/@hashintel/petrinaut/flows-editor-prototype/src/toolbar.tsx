@@ -67,14 +67,11 @@ const columnGap = 296;
 const rowGap = 130;
 
 /**
- * Organize: lays the flow out left to right. Triggers in the first column, Start next, then each top-level step one
- * column after the furthest step before it. Steps inside a for-each keep their places in the group.
+ * Organize: lays the flow out left to right. Start first, then each top-level step one column after the furthest
+ * step before it. Steps inside a for-each keep their places in the group.
  */
 export const organize = (document: EditorDocument): EditorDocument => {
-  const column = new Map<string, number>(
-    document.triggers.map((trigger) => [trigger.id, 0]),
-  );
-  column.set(START_ID, document.triggers.length > 0 ? 1 : 0);
+  const column = new Map<string, number>([[START_ID, 0]]);
   const topLevel = new Set(document.steps.map((step) => step.stepId));
   for (let pass = 0; pass < topLevel.size + 2; pass += 1) {
     for (const wire of document.wires) {
@@ -96,11 +93,7 @@ export const organize = (document: EditorDocument): EditorDocument => {
   }
   const rows = new Map<number, number>();
   const positions = { ...document.positions };
-  for (const id of [
-    ...document.triggers.map((trigger) => trigger.id),
-    START_ID,
-    ...topLevel,
-  ]) {
+  for (const id of [START_ID, ...topLevel]) {
     const col = column.get(id) ?? 0;
     const row = rows.get(col) ?? 0;
     rows.set(col, row + 1);

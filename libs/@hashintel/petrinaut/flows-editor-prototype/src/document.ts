@@ -138,7 +138,7 @@ export type EditorDocument = {
   queries: Record<string, QueryDraft>;
   /** MOCK: Update entity's changes, keyed by step id. */
   patches: Record<string, PatchDraft[]>;
-  /** Trigger nodes left of Start (editor layer: the engine definition has inputs, not triggers). */
+  /** Triggers attached to the flow, listed on Start (editor layer: the engine definition has inputs, not triggers). */
   triggers: TriggerNode[];
   startDescription: string;
   /** MOCK: the entity type of each `EntityId` flow input. `FlowInputDefinition` has no field for it. */
@@ -171,7 +171,7 @@ export const findTrigger = (document: EditorDocument, id: string) =>
 export const isTriggerId = (document: EditorDocument, id: string) =>
   document.triggers.some((trigger) => trigger.id === id);
 
-/** Places a trigger left of Start, under the others, and wires it into Start. */
+/** Attaches a trigger to the flow. Triggers are listed on Start, never drawn on the canvas (22 Oct). */
 export const addTrigger = (
   document: EditorDocument,
   kind: TriggerKind,
@@ -180,13 +180,6 @@ export const addTrigger = (
   for (let index = 2; isTriggerId(document, triggerId); index += 1) {
     triggerId = `${kind}${index}`;
   }
-  const start = document.positions[START_ID] ?? { x: 360, y: 220 };
-  const lowest = Math.max(
-    start.y - 130,
-    ...document.triggers.map(
-      (trigger) => document.positions[trigger.id]?.y ?? 0,
-    ),
-  );
   return {
     triggerId,
     document: {
@@ -198,22 +191,6 @@ export const addTrigger = (
           kind,
           description: "",
           settings: triggerDefinitions[kind].defaults(),
-        },
-      ],
-      positions: {
-        ...document.positions,
-        [triggerId]: {
-          x: start.x - 296,
-          y: document.triggers.length === 0 ? start.y : lowest + 130,
-        },
-      },
-      wires: [
-        ...document.wires,
-        {
-          id: `${triggerId}:next->${START_ID}`,
-          source: triggerId,
-          sourcePort: "next",
-          target: START_ID,
         },
       ],
     },

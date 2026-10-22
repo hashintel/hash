@@ -181,7 +181,6 @@ const gradeFlagBadBatch = (document: EditorDocument): Grade => {
   const failedOnly = document.triggers.some(
     (trigger) =>
       trigger.settings.entityTypeBaseUrl === checks &&
-      document.wires.some((wire) => wire.source === trigger.id) &&
       failedPort(document.queries[fieldKey(trigger.id, "condition")]) ===
         "true",
   );
