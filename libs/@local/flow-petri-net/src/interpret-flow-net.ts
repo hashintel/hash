@@ -1,0 +1,1253 @@
+import { getArcEndpoint, toPetrinautId } from "@hashintel/petrinaut-core";
+import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
+
+import {
+  generateAccumulatorPlaceKey,
+  generateIteratorPlaceKey,
+  generatePendingPlaceKey,
+} from "./flow-net-keys.js";
+
+import type {
+  FlowNetMetadata,
+  InstanceMetadata,
+  TransitionMetadata,
+  TransitionRole,
+} from "./flow-net-metadata.js";
+import type {
+  ArcEndpoint,
+  ComponentInstance,
+  InputArc,
+  JsonValue,
+  SDCPN,
+  Subnet,
+  Transition,
+} from "@hashintel/petrinaut-core";
+import type {
+  ActionDefinition,
+  FlowActionDefinitionId,
+} from "@local/hash-isomorphic-utils/flows/types";
+
+/*
+ * Runs a compiled flow net by its transitions' roles (see `TransitionRole`), working out the tokens itself: the
+ * net's kernels are placeholders and it has no guards. Every transition fires as soon as it's enabled, except
+ * those that need to know something from outside the net: an action attempt's outcome, and how many items a
+ * `forEach` step's array has. The executor runs a flow by calling actions and applying their outcomes; a run's
+ * view replays the outcomes its events record.
+ */
+
+/** A run of a step: its id in the definition and, inside `forEach` steps, its item's index in each, outermost first. */
+export type FlowNetStepRun = { stepId: string; itemPath: number[] };
+
+/**
+ * Where a token is: a place of the root net, or a place inside a step's instance of its action's subnet. Every
+ * instance of a subnet shares its places' ids, so a place inside one is only identified with its instance.
+ */
+export type FlowNetPosition =
+  | { kind: "place"; placeId: string }
+  | { kind: "instancePlace"; componentInstanceId: string; placeId: string };
+
+/** Where the value a token refers to comes from. Tokens carry references to values, never the values themselves. */
+export type FlowNetValueRef =
+  | { kind: "flowInput"; inputName: string }
+  | {
+      kind: "stepOutput";
+      stepId: string;
+      outputName: string;
+      itemPath: number[];
+    }
+  /** A constant the step's instance records in its `metadata.constants`. */
+  | { kind: "constant"; stepId: string; inputName: string }
+  /** The default of an input nothing is connected to. */
+  | { kind: "default"; stepId: string; inputName: string }
+  /** One item of a `forEach` step's array: the last index of `itemPath` is the item's. */
+  | { kind: "item"; forEachStepId: string; itemPath: number[] }
+  /** A `forEach` step's collected output, from each of its items in order. */
+  | { kind: "collected"; forEachStepId: string; itemPath: number[] };
+
+export type FlowNetToken = {
+  /** The item the token is for: empty outside any `forEach`, its index in each enclosing one inside. */
+  itemPath: number[];
+} & (
+  | { kind: "pending" }
+  | { kind: "value"; present: true; ref: FlowNetValueRef }
+  /** A value that's missing, such as an optional input nothing is connected to. */
+  | { kind: "value"; present: false }
+  /** Starts an action with no inputs, or records that an action with no outputs succeeded. */
+  | { kind: "signal" }
+  | { kind: "attempt"; attempts: number }
+  | { kind: "stepFailure"; stepId: string }
+  | { kind: "iterator"; itemCount: number; next: number }
+  | { kind: "accumulator"; expected: number; done: number }
+);
+
+export type FlowNetPlacedToken = {
+  position: FlowNetPosition;
+  token: FlowNetToken;
+};
+
+export type FlowNetFiring = {
+  transitionId: string;
+  /** The instance a transition of an action's subnet fired in. */
+  componentInstanceId?: string;
+  role: TransitionRole;
+  /** The step run the transition fired for: a `forEach` step's own run for its iterating and collecting. */
+  stepRun: FlowNetStepRun;
+  consumed: FlowNetPlacedToken[];
+  /** Tokens read through read arcs, which stay where they are. */
+  read: FlowNetPlacedToken[];
+  produced: FlowNetPlacedToken[];
+};
+
+/** What the net needs to know from outside to go on. */
+export type FlowNetAwaiting =
+  | { kind: "actionOutcome"; stepRun: FlowNetStepRun; attempt: number }
+  | { kind: "itemCount"; stepRun: FlowNetStepRun };
+
+export type FlowNetOutcome =
+  | { kind: "itemCount"; stepRun: FlowNetStepRun; itemCount: number }
+  | {
+      kind: "attemptSucceeded";
+      stepRun: FlowNetStepRun;
+      /** The outputs the action produced. Any other output gets a token marked absent. */
+      outputNames: string[];
+    }
+  | {
+      kind: "attemptFailed";
+      stepRun: FlowNetStepRun;
+      /** Whether the action is tried again, which Temporal's retry policy decides. */
+      retrying: boolean;
+    };
+
+export class FlowNetInterpreterError extends Error {
+  override name = "FlowNetInterpreterError";
+}
+
+export type FlowNetRun = {
+  /** The tokens the run started with: its flow inputs, and a `Pending` token for each top-level step. */
+  readonly initialMarking: readonly FlowNetPlacedToken[];
+  /** Every firing so far, in order. */
+  readonly firings: readonly FlowNetFiring[];
+  /** The tokens in the net now. */
+  marking: () => FlowNetPlacedToken[];
+  awaiting: () => FlowNetAwaiting[];
+  /** Whether a step run is still waiting for its inputs: its `Pending` token is still there. */
+  isPending: (stepRun: FlowNetStepRun) => boolean;
+  /**
+   * Applies an outcome, then fires every transition it enables, and returns those firings.
+   *
+   * @throws {FlowNetInterpreterError} if the net isn't waiting for it.
+   */
+  apply: (outcome: FlowNetOutcome) => FlowNetFiring[];
+};
+
+const isPrefixOf = (prefix: number[], path: number[]) =>
+  prefix.length <= path.length &&
+  prefix.every((index, position) => path[position] === index);
+
+const isSamePath = (path: number[], otherPath: number[]) =>
+  path.length === otherPath.length && isPrefixOf(path, otherPath);
+
+const positionKey = (position: FlowNetPosition) =>
+  position.kind === "place"
+    ? `place:${position.placeId}`
+    : `instancePlace:${position.componentInstanceId}:${position.placeId}`;
+
+const placePosition = (placeId: string): FlowNetPosition => ({
+  kind: "place",
+  placeId,
+});
+
+const instancePlacePosition = (
+  componentInstanceId: string,
+  placeId: string,
+): FlowNetPosition => ({ kind: "instancePlace", componentInstanceId, placeId });
+
+/** The position an endpoint of an arc of the root net points at. */
+const rootPosition = (endpoint: ArcEndpoint): FlowNetPosition =>
+  endpoint.kind === "place"
+    ? placePosition(endpoint.placeId)
+    : instancePlacePosition(endpoint.componentInstanceId, endpoint.portPlaceId);
+
+const placeIdOf = (key: string) => toPetrinautId(key);
+
+/** The step an action's subnet runs for, in one of its instances. */
+type InstanceScope = {
+  instance: ComponentInstance;
+  stepId: string;
+  actionDefinition: ActionDefinition<FlowActionDefinitionId>;
+  subnet: IndexedSubnet;
+};
+
+type IndexedSubnet = {
+  subnet: Subnet;
+  transitionsByRole: Map<TransitionRole, Transition>;
+  /** The places `startAttempt` takes from: a port per input, or a `Start` port. */
+  inputPortIds: string[];
+  inProgressPlaceId: string;
+};
+
+/** A token an input arc of a firing takes or reads. */
+type Binding = {
+  arc: InputArc;
+  position: FlowNetPosition;
+  token: FlowNetToken;
+};
+
+const roleOf = (transition: Transition): TransitionRole => {
+  const role = transition.metadata?.role;
+
+  if (typeof role !== "string") {
+    throw new FlowNetInterpreterError(
+      `Transition "${transition.name}" has no role`,
+    );
+  }
+
+  return role as TransitionRole;
+};
+
+const singleOutputPlaceId = (transition: Transition) => {
+  const [arc, ...otherArcs] = transition.outputArcs;
+  const endpoint = arc ? getArcEndpoint(arc) : undefined;
+
+  if (!endpoint || endpoint.kind !== "place" || otherArcs.length > 0) {
+    throw new FlowNetInterpreterError(
+      `Transition "${transition.name}" doesn't put a token in exactly one place`,
+    );
+  }
+
+  return endpoint.placeId;
+};
+
+const indexSubnet = (subnet: Subnet): IndexedSubnet => {
+  const transitionsByRole = new Map(
+    subnet.transitions.map((transition) => [roleOf(transition), transition]),
+  );
+
+  const transitionWithRole = (role: TransitionRole) => {
+    const transition = transitionsByRole.get(role);
+
+    if (!transition) {
+      throw new FlowNetInterpreterError(
+        `Subnet "${subnet.name}" has no ${role} transition`,
+      );
+    }
+
+    return transition;
+  };
+
+  return {
+    subnet,
+    transitionsByRole,
+    inputPortIds: transitionWithRole("startAttempt").inputArcs.map((arc) => {
+      const endpoint = getArcEndpoint(arc);
+
+      if (endpoint.kind !== "place") {
+        throw new FlowNetInterpreterError(
+          `Subnet "${subnet.name}" starts an attempt from outside itself`,
+        );
+      }
+
+      return endpoint.placeId;
+    }),
+    inProgressPlaceId: singleOutputPlaceId(transitionWithRole("startAttempt")),
+  };
+};
+
+type RootTransition = { transition: Transition; metadata: TransitionMetadata };
+
+/**
+ * Starts a run of a compiled flow net: puts each flow input in its places (marked absent if the run wasn't
+ * given it), and a `Pending` token in each top-level step's place, then fires every transition that enables.
+ */
+export const startFlowNetRun = (
+  net: SDCPN,
+  { flowInputNames }: { flowInputNames: Iterable<string> },
+): FlowNetRun => {
+  const { flowInputs, pendingAtStart } =
+    (net.metadata as Partial<FlowNetMetadata> | undefined) ?? {};
+
+  if (!flowInputs || !pendingAtStart) {
+    throw new FlowNetInterpreterError("The net isn't a compiled flow net");
+  }
+
+  const subnetsById = new Map(
+    (net.subnets ?? []).map((subnet) => [subnet.id, indexSubnet(subnet)]),
+  );
+
+  const rootTransitions: RootTransition[] = net.transitions.map(
+    (transition) => ({
+      transition,
+      metadata: transition.metadata as TransitionMetadata,
+    }),
+  );
+
+  const rootTransitionsByStep = new Map<string, RootTransition[]>();
+
+  for (const rootTransition of rootTransitions) {
+    const { metadata: transitionMetadata } = rootTransition;
+
+    if (!("stepId" in transitionMetadata)) {
+      throw new FlowNetInterpreterError(
+        `Transition "${rootTransition.transition.name}" of the root net names no step`,
+      );
+    }
+
+    rootTransitionsByStep.set(transitionMetadata.stepId, [
+      ...(rootTransitionsByStep.get(transitionMetadata.stepId) ?? []),
+      rootTransition,
+    ]);
+  }
+
+  /* A step's instance is the one its `startStep` feeds. */
+  const scopesByInstanceId = new Map<string, InstanceScope>();
+  const scopesByStepId = new Map<string, InstanceScope>();
+
+  for (const { transition, metadata: transitionMetadata } of rootTransitions) {
+    if (transitionMetadata.role !== "startStep") {
+      continue;
+    }
+
+    const [firstArc] = transition.outputArcs;
+    const endpoint = firstArc ? getArcEndpoint(firstArc) : undefined;
+    const instance =
+      endpoint?.kind === "componentPort"
+        ? net.componentInstances?.find(
+            ({ id }) => id === endpoint.componentInstanceId,
+          )
+        : undefined;
+    const subnet = instance ? subnetsById.get(instance.subnetId) : undefined;
+
+    if (!instance || !subnet) {
+      throw new FlowNetInterpreterError(
+        `Step "${transitionMetadata.stepId}" starts no instance of a subnet`,
+      );
+    }
+
+    const { actionDefinitionId } = instance.metadata as InstanceMetadata;
+    const actionDefinition =
+      actionDefinitions[actionDefinitionId as FlowActionDefinitionId];
+
+    if (!(actionDefinitionId in actionDefinitions)) {
+      throw new FlowNetInterpreterError(
+        `Step "${transitionMetadata.stepId}" runs unknown action "${actionDefinitionId}"`,
+      );
+    }
+
+    const scope: InstanceScope = {
+      instance,
+      stepId: transitionMetadata.stepId,
+      actionDefinition,
+      subnet,
+    };
+
+    scopesByInstanceId.set(instance.id, scope);
+    scopesByStepId.set(transitionMetadata.stepId, scope);
+  }
+
+  const scopeOfStep = (stepId: string) => {
+    const scope = scopesByStepId.get(stepId);
+
+    if (!scope) {
+      throw new FlowNetInterpreterError(
+        `Step "${stepId}" isn't an action step`,
+      );
+    }
+
+    return scope;
+  };
+
+  /*
+   * The marking.
+   */
+
+  const tokensByPosition = new Map<
+    string,
+    { position: FlowNetPosition; tokens: FlowNetToken[] }
+  >();
+
+  const tokensAt = (position: FlowNetPosition): readonly FlowNetToken[] =>
+    tokensByPosition.get(positionKey(position))?.tokens ?? [];
+
+  const addToken = ({ position, token }: FlowNetPlacedToken) => {
+    const key = positionKey(position);
+    const entry = tokensByPosition.get(key);
+
+    if (entry) {
+      entry.tokens.push(token);
+    } else {
+      tokensByPosition.set(key, { position, tokens: [token] });
+    }
+  };
+
+  const removeToken = ({ position, token }: FlowNetPlacedToken) => {
+    const tokens = tokensByPosition.get(positionKey(position))?.tokens;
+    const index = tokens?.indexOf(token) ?? -1;
+
+    if (!tokens || index === -1) {
+      throw new FlowNetInterpreterError(
+        `There is no such token at ${positionKey(position)} to take`,
+      );
+    }
+
+    tokens.splice(index, 1);
+  };
+
+  /*
+   * Firing.
+   */
+
+  /** Where an endpoint of a transition's arc points, in the root net or inside an instance. */
+  const positionOf = (endpoint: ArcEndpoint, scope: InstanceScope | null) => {
+    if (!scope) {
+      return rootPosition(endpoint);
+    }
+
+    if (endpoint.kind !== "place") {
+      throw new FlowNetInterpreterError(
+        `Subnet "${scope.subnet.subnet.name}" has an arc to a port of another instance`,
+      );
+    }
+
+    return instancePlacePosition(scope.instance.id, endpoint.placeId);
+  };
+
+  /**
+   * The tokens a transition would take and read, with `anchor` as the token at `anchorPosition`. Every other input
+   * takes a token of the same item or of an enclosing one (`accepts` can say otherwise), and `guard` can refuse a
+   * binding.
+   */
+  const bind = ({
+    transition,
+    scope,
+    anchorPosition,
+    anchorAccepts = () => true,
+    accepts = (anchor, candidate) =>
+      isPrefixOf(candidate.itemPath, anchor.itemPath),
+    guard = () => true,
+  }: {
+    transition: Transition;
+    scope: InstanceScope | null;
+    anchorPosition: FlowNetPosition;
+    anchorAccepts?: (anchor: FlowNetToken) => boolean;
+    accepts?: (anchor: FlowNetToken, candidate: FlowNetToken) => boolean;
+    guard?: (bindings: Binding[]) => boolean;
+  }): Binding[] | null => {
+    const arcs = transition.inputArcs.map((arc) => ({
+      arc,
+      position: positionOf(getArcEndpoint(arc), scope),
+    }));
+
+    const anchorArc = arcs.find(
+      ({ position }) => positionKey(position) === positionKey(anchorPosition),
+    );
+
+    if (!anchorArc) {
+      throw new FlowNetInterpreterError(
+        `Transition "${transition.name}" takes nothing from ${positionKey(anchorPosition)}`,
+      );
+    }
+
+    for (const anchor of tokensAt(anchorPosition)) {
+      if (!anchorAccepts(anchor)) {
+        continue;
+      }
+
+      const bindings: Binding[] = [];
+
+      for (const { arc, position } of arcs) {
+        if (arc.type === "inhibitor") {
+          throw new FlowNetInterpreterError(
+            `Transition "${transition.name}" has an inhibitor arc`,
+          );
+        }
+
+        const token =
+          arc === anchorArc.arc
+            ? anchor
+            : tokensAt(position).find(
+                (candidate) =>
+                  accepts(anchor, candidate) &&
+                  !bindings.some((binding) => binding.token === candidate),
+              );
+
+        if (!token) {
+          break;
+        }
+
+        bindings.push({ arc, position, token });
+      }
+
+      if (bindings.length === arcs.length && guard(bindings)) {
+        return bindings;
+      }
+    }
+
+    return null;
+  };
+
+  const firings: FlowNetFiring[] = [];
+
+  /** Fires a transition with the tokens it's bound to, putting `produced` where its output arcs point. */
+  const fire = ({
+    transition,
+    scope,
+    stepRun,
+    bindings,
+    produce,
+  }: {
+    transition: Transition;
+    scope: InstanceScope | null;
+    stepRun: FlowNetStepRun;
+    bindings: Binding[];
+    /** The token each output arc puts in the position it points at. */
+    produce: (position: FlowNetPosition) => FlowNetToken;
+  }): FlowNetFiring => {
+    const consumed = bindings
+      .filter(({ arc }) => arc.type === "standard")
+      .map(({ position, token }) => ({ position, token }));
+
+    const read = bindings
+      .filter(({ arc }) => arc.type === "read")
+      .map(({ position, token }) => ({ position, token }));
+
+    for (const placedToken of consumed) {
+      removeToken(placedToken);
+    }
+
+    /* Each token is an object of its own: bindings tell tokens apart by identity. */
+    const produced = transition.outputArcs.map((arc) => {
+      const position = positionOf(getArcEndpoint(arc), scope);
+
+      return { position, token: { ...produce(position) } };
+    });
+
+    for (const placedToken of produced) {
+      addToken(placedToken);
+    }
+
+    const firing: FlowNetFiring = {
+      transitionId: transition.id,
+      ...(scope ? { componentInstanceId: scope.instance.id } : {}),
+      role: roleOf(transition),
+      stepRun,
+      consumed,
+      read,
+      produced,
+    };
+
+    firings.push(firing);
+
+    return firing;
+  };
+
+  const pendingPosition = (stepId: string) =>
+    placePosition(placeIdOf(generatePendingPlaceKey(stepId)));
+
+  const iteratorPosition = (forEachStepId: string) =>
+    placePosition(placeIdOf(generateIteratorPlaceKey(forEachStepId)));
+
+  const accumulatorPosition = (forEachStepId: string) =>
+    placePosition(placeIdOf(generateAccumulatorPlaceKey(forEachStepId)));
+
+  const pendingPositionKeys = new Set(
+    [...rootTransitionsByStep.keys()].map((stepId) =>
+      positionKey(pendingPosition(stepId)),
+    ),
+  );
+
+  const onlyInputPosition = (transition: Transition) => {
+    const [arc, ...otherArcs] = transition.inputArcs;
+
+    if (!arc || otherArcs.length > 0) {
+      throw new FlowNetInterpreterError(
+        `Transition "${transition.name}" doesn't take from exactly one place`,
+      );
+    }
+
+    return rootPosition(getArcEndpoint(arc));
+  };
+
+  const isAt = (position: FlowNetPosition, otherPosition: FlowNetPosition) =>
+    positionKey(position) === positionKey(otherPosition);
+
+  /** The token a `startStep` puts in each input port of its step's instance. */
+  const startStepToken = (
+    metadata: Extract<TransitionMetadata, { role: "startStep" }>,
+    itemPath: number[],
+    bindings: Binding[],
+    position: FlowNetPosition,
+  ): FlowNetToken => {
+    const scope = scopeOfStep(metadata.stepId);
+
+    if (scope.actionDefinition.inputs.length === 0) {
+      return { kind: "signal", itemPath };
+    }
+
+    const port =
+      position.kind === "instancePlace"
+        ? scope.subnet.subnet.places.find(({ id }) => id === position.placeId)
+        : undefined;
+    const inputName = port?.name;
+    const source = inputName ? metadata.inputSources[inputName] : undefined;
+
+    if (!inputName || !source) {
+      throw new FlowNetInterpreterError(
+        `Step "${metadata.stepId}" feeds a port of its instance that isn't an input`,
+      );
+    }
+
+    switch (source.kind) {
+      case "value": {
+        const binding = bindings.find(({ position: boundPosition }) =>
+          isAt(boundPosition, rootPosition(source.from)),
+        );
+
+        if (binding?.token.kind !== "value") {
+          throw new FlowNetInterpreterError(
+            `Step "${metadata.stepId}" takes no value for its ${inputName} input`,
+          );
+        }
+
+        return binding.token.present
+          ? { kind: "value", present: true, ref: binding.token.ref, itemPath }
+          : { kind: "value", present: false, itemPath };
+      }
+      case "constant":
+        return {
+          kind: "value",
+          present: true,
+          ref: { kind: "constant", stepId: metadata.stepId, inputName },
+          itemPath,
+        };
+      case "default":
+        return {
+          kind: "value",
+          present: true,
+          ref: { kind: "default", stepId: metadata.stepId, inputName },
+          itemPath,
+        };
+      case "absent":
+        return { kind: "value", present: false, itemPath };
+    }
+  };
+
+  /** A step waits while a value it skips on when missing is missing: the executor fires its `skipStep` instead. */
+  const hasMissingSkipInput = (
+    metadata: Extract<TransitionMetadata, { role: "startStep" }>,
+    bindings: Binding[],
+  ) =>
+    Object.values(metadata.inputSources).some(
+      (source) =>
+        source.kind === "value" &&
+        source.whenMissing === "skip" &&
+        bindings.some(
+          ({ position, token }) =>
+            isAt(position, rootPosition(source.from)) &&
+            token.kind === "value" &&
+            !token.present,
+        ),
+    );
+
+  /** A `forEach` step can't start while its array is missing. */
+  const hasMissingArray = (bindings: Binding[]) =>
+    bindings.some(({ token }) => token.kind === "value" && !token.present);
+
+  const constantItemCount = (constant: JsonValue | undefined) => {
+    if (constant === undefined) {
+      return null;
+    }
+
+    const value =
+      typeof constant === "object" && constant !== null && "value" in constant
+        ? (constant as { value: JsonValue }).value
+        : undefined;
+
+    if (!Array.isArray(value)) {
+      throw new FlowNetInterpreterError(
+        "A forEach step iterates over a constant that isn't an array",
+      );
+    }
+
+    return value.length;
+  };
+
+  /**
+   * Fires a transition of the root net if it's enabled and fires on its own, returning the firing. `itemCount`
+   * starts a `forEach` step whose array isn't a constant, for `stepRun`.
+   */
+  const fireRootTransition = (
+    { transition, metadata }: RootTransition,
+    startForEach?: { stepRun: FlowNetStepRun; itemCount: number },
+  ): FlowNetFiring | null => {
+    switch (metadata.role) {
+      case "startStep": {
+        const bindings = bind({
+          transition,
+          scope: null,
+          anchorPosition: pendingPosition(metadata.stepId),
+          guard: (candidate) => !hasMissingSkipInput(metadata, candidate),
+        });
+
+        if (!bindings) {
+          return null;
+        }
+
+        const { itemPath } = bindings.find(({ position }) =>
+          isAt(position, pendingPosition(metadata.stepId)),
+        )!.token;
+
+        return fire({
+          transition,
+          scope: null,
+          stepRun: { stepId: metadata.stepId, itemPath },
+          bindings,
+          produce: (position) =>
+            startStepToken(metadata, itemPath, bindings, position),
+        });
+      }
+      case "startForEach": {
+        const knownItemCount = constantItemCount(metadata.constant);
+
+        if (knownItemCount === null && !startForEach) {
+          return null;
+        }
+
+        const bindings = bind({
+          transition,
+          scope: null,
+          anchorPosition: pendingPosition(metadata.stepId),
+          anchorAccepts: (anchor) =>
+            !startForEach ||
+            isSamePath(anchor.itemPath, startForEach.stepRun.itemPath),
+          guard: (candidate) => !hasMissingArray(candidate),
+        });
+
+        if (!bindings) {
+          return null;
+        }
+
+        const { itemPath } = bindings.find(({ position }) =>
+          isAt(position, pendingPosition(metadata.stepId)),
+        )!.token;
+        const itemCount = knownItemCount ?? startForEach!.itemCount;
+
+        return fire({
+          transition,
+          scope: null,
+          stepRun: { stepId: metadata.stepId, itemPath },
+          bindings,
+          produce: () => ({ kind: "iterator", itemCount, next: 0, itemPath }),
+        });
+      }
+      case "copyOutput":
+      case "recordStepFailure": {
+        const bindings = bind({
+          transition,
+          scope: null,
+          anchorPosition: onlyInputPosition(transition),
+        });
+
+        if (!bindings) {
+          return null;
+        }
+
+        const [{ token }] = bindings as [Binding];
+
+        return fire({
+          transition,
+          scope: null,
+          stepRun: { stepId: metadata.stepId, itemPath: token.itemPath },
+          bindings,
+          produce: () =>
+            metadata.role === "copyOutput"
+              ? token
+              : {
+                  kind: "stepFailure",
+                  stepId: metadata.stepId,
+                  itemPath: token.itemPath,
+                },
+        });
+      }
+      case "startItem":
+      case "startCollecting": {
+        const isStartItem = metadata.role === "startItem";
+        const bindings = bind({
+          transition,
+          scope: null,
+          anchorPosition: iteratorPosition(metadata.stepId),
+          anchorAccepts: (anchor) =>
+            anchor.kind === "iterator" &&
+            (isStartItem
+              ? anchor.next < anchor.itemCount
+              : anchor.next === anchor.itemCount),
+        });
+
+        if (!bindings) {
+          return null;
+        }
+
+        const [{ token: iterator }] = bindings as [Binding];
+
+        if (iterator.kind !== "iterator") {
+          throw new FlowNetInterpreterError("Unreachable: not an iterator");
+        }
+
+        const { itemPath, itemCount, next } = iterator;
+
+        return fire({
+          transition,
+          scope: null,
+          stepRun: { stepId: metadata.stepId, itemPath },
+          bindings,
+          produce: (position): FlowNetToken => {
+            if (!isStartItem) {
+              return {
+                kind: "accumulator",
+                expected: itemCount,
+                done: 0,
+                itemPath,
+              };
+            }
+
+            const itemItemPath = [...itemPath, next];
+
+            if (isAt(position, iteratorPosition(metadata.stepId))) {
+              return { ...iterator, next: next + 1 };
+            }
+
+            if (pendingPositionKeys.has(positionKey(position))) {
+              return { kind: "pending", itemPath: itemItemPath };
+            }
+
+            return {
+              kind: "value",
+              present: true,
+              ref: {
+                kind: "item",
+                forEachStepId: metadata.stepId,
+                itemPath: itemItemPath,
+              },
+              itemPath: itemItemPath,
+            };
+          },
+        });
+      }
+      case "collectItem": {
+        const bindings = bind({
+          transition,
+          scope: null,
+          anchorPosition: accumulatorPosition(metadata.stepId),
+          anchorAccepts: (anchor) =>
+            anchor.kind === "accumulator" && anchor.done < anchor.expected,
+          accepts: (anchor, candidate) =>
+            candidate.itemPath.length === anchor.itemPath.length + 1 &&
+            isPrefixOf(anchor.itemPath, candidate.itemPath),
+        });
+
+        if (!bindings) {
+          return null;
+        }
+
+        const accumulator = bindings.find(({ position }) =>
+          isAt(position, accumulatorPosition(metadata.stepId)),
+        )!.token;
+
+        if (accumulator.kind !== "accumulator") {
+          throw new FlowNetInterpreterError("Unreachable: not an accumulator");
+        }
+
+        return fire({
+          transition,
+          scope: null,
+          stepRun: { stepId: metadata.stepId, itemPath: accumulator.itemPath },
+          bindings,
+          produce: () => ({ ...accumulator, done: accumulator.done + 1 }),
+        });
+      }
+      case "finishCollecting": {
+        const bindings = bind({
+          transition,
+          scope: null,
+          anchorPosition: accumulatorPosition(metadata.stepId),
+          anchorAccepts: (anchor) =>
+            anchor.kind === "accumulator" && anchor.done === anchor.expected,
+        });
+
+        if (!bindings) {
+          return null;
+        }
+
+        const [{ token: accumulator }] = bindings as [Binding];
+        const { itemPath } = accumulator;
+
+        return fire({
+          transition,
+          scope: null,
+          stepRun: { stepId: metadata.stepId, itemPath },
+          bindings,
+          produce: () => ({
+            kind: "value",
+            present: true,
+            ref: {
+              kind: "collected",
+              forEachStepId: metadata.stepId,
+              itemPath,
+            },
+            itemPath,
+          }),
+        });
+      }
+      case "startAttempt":
+      case "succeedAttempt":
+      case "failAttempt":
+      case "retryAttempt":
+      case "giveUp":
+        throw new FlowNetInterpreterError(
+          `Transition "${transition.name}" of the root net has the role of an action's attempt`,
+        );
+    }
+  };
+
+  /** The transition with `role` in a step's instance. */
+  const subnetTransition = (scope: InstanceScope, role: TransitionRole) => {
+    const transition = scope.subnet.transitionsByRole.get(role);
+
+    if (!transition) {
+      throw new FlowNetInterpreterError(
+        `Step "${scope.stepId}" has no ${role} transition`,
+      );
+    }
+
+    return transition;
+  };
+
+  /** Fires `startAttempt` in a step's instance once every input port has its token. */
+  const fireStartAttempt = (scope: InstanceScope): FlowNetFiring | null => {
+    const transition = subnetTransition(scope, "startAttempt");
+    const [firstPortId] = scope.subnet.inputPortIds;
+
+    if (!firstPortId) {
+      throw new FlowNetInterpreterError(
+        `Step "${scope.stepId}" has no port to start from`,
+      );
+    }
+
+    const bindings = bind({
+      transition,
+      scope,
+      anchorPosition: instancePlacePosition(scope.instance.id, firstPortId),
+      accepts: (anchor, candidate) =>
+        isSamePath(anchor.itemPath, candidate.itemPath),
+    });
+
+    if (!bindings) {
+      return null;
+    }
+
+    const [{ token }] = bindings as [Binding];
+
+    return fire({
+      transition,
+      scope,
+      stepRun: { stepId: scope.stepId, itemPath: token.itemPath },
+      bindings,
+      produce: () => ({
+        kind: "attempt",
+        attempts: 1,
+        itemPath: token.itemPath,
+      }),
+    });
+  };
+
+  /** Fires every transition that's enabled and fires on its own, until none is. */
+  const fireEnabled = (): FlowNetFiring[] => {
+    const fired: FlowNetFiring[] = [];
+    let firedAny = true;
+
+    while (firedAny) {
+      firedAny = false;
+
+      for (const rootTransition of rootTransitions) {
+        for (
+          let firing = fireRootTransition(rootTransition);
+          firing;
+          firing = fireRootTransition(rootTransition)
+        ) {
+          fired.push(firing);
+          firedAny = true;
+        }
+      }
+
+      for (const scope of scopesByInstanceId.values()) {
+        for (
+          let firing = fireStartAttempt(scope);
+          firing;
+          firing = fireStartAttempt(scope)
+        ) {
+          fired.push(firing);
+          firedAny = true;
+        }
+      }
+    }
+
+    return fired;
+  };
+
+  /** The token of a step run's attempt in progress. */
+  const attemptInProgress = (stepRun: FlowNetStepRun) => {
+    const scope = scopeOfStep(stepRun.stepId);
+    const position = instancePlacePosition(
+      scope.instance.id,
+      scope.subnet.inProgressPlaceId,
+    );
+    const token = tokensAt(position).find(({ itemPath }) =>
+      isSamePath(itemPath, stepRun.itemPath),
+    );
+
+    return token?.kind === "attempt" ? { scope, position, token } : null;
+  };
+
+  /** Fires a transition of an action's subnet that takes the one token `from`, producing `produce`'s token. */
+  const fireAttemptTransition = ({
+    scope,
+    role,
+    from,
+    produce,
+  }: {
+    scope: InstanceScope;
+    role: TransitionRole;
+    from: FlowNetPlacedToken;
+    produce: (position: FlowNetPosition) => FlowNetToken;
+  }) => {
+    const transition = subnetTransition(scope, role);
+    const [arc, ...otherArcs] = transition.inputArcs;
+
+    if (
+      !arc ||
+      otherArcs.length > 0 ||
+      !isAt(positionOf(getArcEndpoint(arc), scope), from.position)
+    ) {
+      throw new FlowNetInterpreterError(
+        `Step "${scope.stepId}"'s ${role} transition doesn't take the attempt's token`,
+      );
+    }
+
+    return fire({
+      transition,
+      scope,
+      stepRun: { stepId: scope.stepId, itemPath: from.token.itemPath },
+      bindings: [{ arc, ...from }],
+      produce,
+    });
+  };
+
+  const applyOutcome = (outcome: FlowNetOutcome): FlowNetFiring[] => {
+    const { stepRun } = outcome;
+
+    switch (outcome.kind) {
+      case "itemCount": {
+        const startForEach = rootTransitionsByStep
+          .get(stepRun.stepId)
+          ?.find(({ metadata }) => metadata.role === "startForEach");
+        const firing = startForEach
+          ? fireRootTransition(startForEach, {
+              stepRun,
+              itemCount: outcome.itemCount,
+            })
+          : null;
+
+        if (!firing) {
+          throw new FlowNetInterpreterError(
+            `forEach step "${stepRun.stepId}" isn't waiting to start for item [${stepRun.itemPath.join(", ")}]`,
+          );
+        }
+
+        return [firing];
+      }
+      case "attemptSucceeded":
+      case "attemptFailed": {
+        const attempt = attemptInProgress(stepRun);
+
+        if (!attempt) {
+          throw new FlowNetInterpreterError(
+            `Step "${stepRun.stepId}" has no attempt in progress for item [${stepRun.itemPath.join(", ")}]`,
+          );
+        }
+
+        const { scope, position, token } = attempt;
+        const { itemPath } = token;
+
+        if (outcome.kind === "attemptSucceeded") {
+          const { outputs } = scope.actionDefinition;
+
+          return [
+            fireAttemptTransition({
+              scope,
+              role: "succeedAttempt",
+              from: { position, token },
+              produce: (outputPosition): FlowNetToken => {
+                if (outputs.length === 0) {
+                  return { kind: "signal", itemPath };
+                }
+
+                const outputName =
+                  outputPosition.kind === "instancePlace"
+                    ? scope.subnet.subnet.places.find(
+                        ({ id }) => id === outputPosition.placeId,
+                      )?.name
+                    : undefined;
+
+                if (!outputName) {
+                  throw new FlowNetInterpreterError(
+                    `Step "${scope.stepId}" succeeds into a place that isn't an output`,
+                  );
+                }
+
+                return outcome.outputNames.includes(outputName)
+                  ? {
+                      kind: "value",
+                      present: true,
+                      ref: {
+                        kind: "stepOutput",
+                        stepId: scope.stepId,
+                        outputName,
+                        itemPath,
+                      },
+                      itemPath,
+                    }
+                  : { kind: "value", present: false, itemPath };
+              },
+            }),
+          ];
+        }
+
+        const failure = fireAttemptTransition({
+          scope,
+          role: "failAttempt",
+          from: { position, token },
+          produce: () => token,
+        });
+        const [failed] = failure.produced as [FlowNetPlacedToken];
+
+        return [
+          failure,
+          fireAttemptTransition({
+            scope,
+            role: outcome.retrying ? "retryAttempt" : "giveUp",
+            from: failed,
+            produce: () => ({
+              ...token,
+              attempts: outcome.retrying ? token.attempts + 1 : token.attempts,
+            }),
+          }),
+        ];
+      }
+    }
+  };
+
+  /*
+   * Starting the run.
+   */
+
+  const givenFlowInputs = new Set(flowInputNames);
+
+  const initialMarking: FlowNetPlacedToken[] = [
+    ...Object.entries(flowInputs).flatMap(([inputName, endpoints]) =>
+      endpoints.map((endpoint): FlowNetPlacedToken => ({
+        position: rootPosition(endpoint),
+        token: givenFlowInputs.has(inputName)
+          ? {
+              kind: "value",
+              present: true,
+              ref: { kind: "flowInput", inputName },
+              itemPath: [],
+            }
+          : { kind: "value", present: false, itemPath: [] },
+      })),
+    ),
+    ...pendingAtStart.map((endpoint): FlowNetPlacedToken => ({
+      position: rootPosition(endpoint),
+      token: { kind: "pending", itemPath: [] },
+    })),
+  ];
+
+  for (const placedToken of initialMarking) {
+    addToken(placedToken);
+  }
+
+  fireEnabled();
+
+  return {
+    initialMarking,
+    firings,
+    marking: () =>
+      [...tokensByPosition.values()].flatMap(({ position, tokens }) =>
+        tokens.map((token) => ({ position, token })),
+      ),
+    awaiting: () => {
+      const awaiting: FlowNetAwaiting[] = [];
+
+      for (const scope of scopesByInstanceId.values()) {
+        for (const token of tokensAt(
+          instancePlacePosition(
+            scope.instance.id,
+            scope.subnet.inProgressPlaceId,
+          ),
+        )) {
+          if (token.kind === "attempt") {
+            awaiting.push({
+              kind: "actionOutcome",
+              stepRun: { stepId: scope.stepId, itemPath: token.itemPath },
+              attempt: token.attempts,
+            });
+          }
+        }
+      }
+
+      for (const {
+        transition,
+        metadata: transitionMetadata,
+      } of rootTransitions) {
+        if (
+          transitionMetadata.role !== "startForEach" ||
+          constantItemCount(transitionMetadata.constant) !== null
+        ) {
+          continue;
+        }
+
+        for (const pending of tokensAt(
+          pendingPosition(transitionMetadata.stepId),
+        )) {
+          const bindings = bind({
+            transition,
+            scope: null,
+            anchorPosition: pendingPosition(transitionMetadata.stepId),
+            anchorAccepts: (anchor) => anchor === pending,
+            guard: (candidate) => !hasMissingArray(candidate),
+          });
+
+          if (bindings) {
+            awaiting.push({
+              kind: "itemCount",
+              stepRun: {
+                stepId: transitionMetadata.stepId,
+                itemPath: pending.itemPath,
+              },
+            });
+          }
+        }
+      }
+
+      return awaiting;
+    },
+    isPending: (stepRun) =>
+      tokensAt(pendingPosition(stepRun.stepId)).some(({ itemPath }) =>
+        isSamePath(itemPath, stepRun.itemPath),
+      ),
+    apply: (outcome) => {
+      const applied = applyOutcome(outcome);
+
+      return [...applied, ...fireEnabled()];
+    },
+  };
+};
