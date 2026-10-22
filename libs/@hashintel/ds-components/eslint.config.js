@@ -49,6 +49,14 @@ export default [
     },
   },
   {
+    // Doc blocks are demo-surface code that is never published, so like
+    // stories they may import devDependencies.
+    files: ["docs/**/*.ts{x,}"],
+    rules: {
+      "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
+    },
+  },
+  {
     // Running type-aware lint rules on story files forces ESLint's project
     // service into a slow default-project fallback per file *and*
     // type-instantiates the very heavy generated `styled-system` types for

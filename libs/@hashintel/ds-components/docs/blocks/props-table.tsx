@@ -1,0 +1,103 @@
+import { InlineHighlight } from "../../src/util/InlineHighlight/inline-highlight";
+import { propsTableRecipe } from "./props-table.recipe";
+
+/**
+ * Props reference table for MDX docs pages. react-docgen-typescript cannot see defaults applied via body
+ * destructuring or recipe defaultVariants, so `defaults` lets pages supply them per prop.
+ */
+
+type DocgenType = {
+  name?: string;
+  raw?: string;
+  value?: { value?: string }[];
+};
+
+type DocgenProp = {
+  description?: string;
+  required?: boolean;
+  defaultValue?: { value?: string } | null;
+  type?: DocgenType;
+};
+
+type DocgenInfo = { props?: Record<string, DocgenProp> };
+
+const formatType = (type: DocgenType | undefined): string => {
+  if (!type) {
+    return "unknown";
+  }
+  const literals = (type.value ?? [])
+    .map((member) => member.value)
+    .filter((value): value is string => typeof value === "string");
+  if (literals.length > 0) {
+    const joined = literals.join(" | ");
+    if (joined.length <= 70) {
+      return joined;
+    }
+    const alias = type.raw ?? type.name ?? "";
+    if (alias.length <= 70) {
+      return alias;
+    }
+    const shown = literals.slice(0, 4);
+    return `${shown.join(" | ")} | … ${literals.length - shown.length} more`;
+  }
+  return type.raw ?? type.name ?? "unknown";
+};
+
+const classes = propsTableRecipe();
+
+export const PropsTable = ({
+  of,
+  defaults = {},
+}: {
+  /** The component whose docgen prop info should be rendered. */
+  of: object;
+  /** Per-prop default values docgen cannot infer, e.g. `{ size: '"md"' }`. */
+  defaults?: Record<string, string>;
+}) => {
+  const docgen = (of as { __docgenInfo?: DocgenInfo }).__docgenInfo;
+  const props = Object.entries(docgen?.props ?? {});
+
+  return (
+    <table className={classes.table}>
+      <thead>
+        <tr>
+          {["Prop", "Type", "Description"].map((column) => (
+            <th key={column} className={classes.headerCell}>
+              {column}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {props.map(([name, prop]) => {
+          const defaultValue = defaults[name] ?? prop.defaultValue?.value;
+          return (
+            <tr key={name}>
+              <td className={classes.propCell}>
+                {name}
+                {prop.required ? (
+                  <div>
+                    <span className={classes.requiredChip}>required</span>
+                  </div>
+                ) : null}
+              </td>
+              <td className={classes.typeCell}>
+                <div>
+                  <InlineHighlight>{formatType(prop.type)}</InlineHighlight>
+                </div>
+                {defaultValue === undefined ? null : (
+                  <div className={classes.defaultNote}>
+                    default: <InlineHighlight>{defaultValue}</InlineHighlight>
+                  </div>
+                )}
+              </td>
+              <td className={classes.descriptionCell}>
+                {prop.description ?? ""}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+};
