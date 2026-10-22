@@ -69,6 +69,7 @@ export const hashIconHints = {
   error: "sequence",
   warning: "sequence",
   circleCheck: "sequence",
+  circleClose: "sequence",
   terminal: "detail",
   text: "sequence",
   user: "detail",

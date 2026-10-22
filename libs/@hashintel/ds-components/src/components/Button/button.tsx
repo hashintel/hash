@@ -21,16 +21,17 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
     className?: string;
     /** The overall style of the button */
     variant?: Variant;
-    /** Sets the color treatment of the button for destructive actions. */
+    /** Sets the color treatment of the button, ex: for primary or destructive actions. */
     tone?: Exclude<Tone, "warning" | "success">;
     /** The size (height) of the button */
     size?: FormInputSize;
-    /** The shape of the button. Non default shapes should VERY rarely be used */
+    /** The shape of the button. Non default shapes should very rarely be used */
     shape?: "default" | "round";
     /** Whether the button is in a loading state */
     loading?: boolean;
     /** Whether the button is in a pressed/active state */
     pressed?: boolean;
+    /** Disables the button: it stays visible but cannot be activated */
     disabled?: boolean;
     tabIndex?: number;
     /** Set to true to make the element focused on mount or 'never' to prevent the item being auto-focused */
@@ -45,13 +46,17 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
     onKeyDown?: React.ButtonHTMLAttributes<Element>["onKeyDown"];
     onFocus?: React.ButtonHTMLAttributes<Element>["onFocus"];
     onBlur?: React.ButtonHTMLAttributes<Element>["onBlur"];
+    /** Options forwarded to the tooltip shown when `tooltip` is set */
     tooltipOptions?: Omit<
       React.ComponentProps<typeof Tooltip>,
       "children" | "content"
     >;
   } & RequireAtLeastOne<{
+    /** Accessible name; required when there is no label or tooltip. */
     "aria-label"?: string;
+    /** Tooltip shown on hover/focus; also names icon-only buttons */
     tooltip?: string;
+    /** The button's label */
     children?: React.ReactNode;
   }> &
     React.AriaAttributes;
@@ -74,7 +79,7 @@ type ButtonIconProps = ExclusifyUnion<
 >;
 
 type ButtonElementOnlyProps = {
-  /** Button type - defaults to "button" */
+  /** Button type - unlike <button> defaults to type="button" */
   type?: "button" | "submit" | "reset";
   href?: never;
   target?: never;
@@ -84,8 +89,11 @@ type ButtonElementOnlyProps = {
 };
 
 export type AnchorElementOnlyProps = {
+  /** Renders the button as an anchor that navigates to this URL */
   href: string;
+  /** Opens the link in a new tab */
   target?: "_blank";
+  /** Downloads the linked resource instead of navigating */
   download?: boolean;
   type?: never;
   ref?: React.Ref<HTMLAnchorElement>;
@@ -279,3 +287,5 @@ export const Button = (props: ButtonProps) => {
 
   return element;
 };
+
+Button.displayName = "Button";
