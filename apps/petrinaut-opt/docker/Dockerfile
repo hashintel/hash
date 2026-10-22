@@ -3,7 +3,7 @@
 # Build from the repository root:
 # docker build -f apps/petrinaut-opt/docker/Dockerfile .
 
-ARG NODE_VERSION=22
+ARG NODE_VERSION=22.23.4
 ARG PYTHON_VERSION=3.13
 ARG UV_VERSION=0.13.4
 
@@ -16,9 +16,6 @@ ENV MISE_DATA_DIR="/mise"
 ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_CARGO_HOME="/usr/local/cargo"
 ENV PATH="/mise/shims:/usr/local/cargo/bin:$PATH"
-
-# TODO(SRE-1221): Remove this override after upgrading Node.js to a release without the affected eMudhra roots: https://github.com/nodejs/node/pull/66871
-ENV NODE_OPTIONS=--use-openssl-ca
 
 COPY .config/mise /etc/mise
 

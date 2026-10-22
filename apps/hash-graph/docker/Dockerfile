@@ -9,9 +9,6 @@ ENV MISE_CACHE_DIR="/mise/cache"
 ENV MISE_NODE_COREPACK=1
 ENV PATH="/mise/shims:$PATH"
 
-# TODO(SRE-1221): Remove this override after upgrading Node.js to a release without the affected eMudhra roots: https://github.com/nodejs/node/pull/66871
-ENV NODE_OPTIONS=--use-openssl-ca
-
 COPY .config/mise /etc/mise
 
 # The runner copies this bundle.
