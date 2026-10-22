@@ -69,6 +69,17 @@ fn headers(
     Ok(headers)
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+pub(super) async fn capture(
+    endpoint: &RestSource,
+    key: &PrimaryKey,
+    secret: Option<&Secret<[u8]>>,
+    target: PathBuf,
+) -> Result<SourceCapture, Report<SourceError>> {
+    let client = http::client()?;
+    capture_with_client(endpoint, key, secret, target, &client).await
+}
+
 async fn capture_with_client(
     endpoint: &RestSource,
     key: &PrimaryKey,
