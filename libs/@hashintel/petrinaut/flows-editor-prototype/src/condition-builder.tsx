@@ -1,7 +1,6 @@
 /**
  * The condition builder of Find entities, If and Filter list, on the DS `Filter` as Figma J3 draws it (section
- * 470:3681, 21 Oct): each condition is one Filter chip (attribute · operator · value), then a ⋮ menu; later rows start
- * with their group's "And" / "Or"; grey groups hold their own rows and "Add condition". Operators follow the
+ * 470:3681, 21 Oct): each condition is one Filter chip (attribute · operator · value), then a ⋮ menu; each row sits under a "Where" / its group's "And" / "Or"; grey groups hold their own rows and "Add filter". Operators follow the
  * attribute's type, and each value's menu ends in "Use a variable" (the same picker as "@").
  *
  * MOCK, editor side only: relative dates ("Today", "3 days ago") and "is in month". The engine's condition values are
@@ -69,8 +68,7 @@ type ValueType = "date" | "number" | "options" | "entity" | "boolean" | "text";
 
 export const valueTypeOf = (
   property:
-    | Pick<MockPropertyType, "payloadKind" | "options" | "linksTo">
-    | undefined,
+    Pick<MockPropertyType, "payloadKind" | "options" | "linksTo"> | undefined,
 ): ValueType =>
   property?.linksTo
     ? "entity"
@@ -311,6 +309,26 @@ const parseRelative = (key: string): RelativeDate | undefined => {
   }
   return relativePresets.find((preset) => preset.value.kind === kind)?.value;
 };
+
+/** A row's join label, then its chip on the next line (J3 · A1: label to chip 4 px). */
+const rowStackStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "1",
+  alignSelf: "stretch",
+  minWidth: "[0]",
+});
+
+/** "Where" / "And" / "Or" above a row: 64 px wide, DS label text. */
+const joinLabelStyle = css({
+  display: "flex",
+  alignItems: "center",
+  width: "[64px]",
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "neutral.fg.body",
+});
 
 /** A row, the ⋮ at its end on the first line; the chip wraps inside if the panel is narrow. */
 const rowStyle = css({
@@ -992,139 +1010,147 @@ const ConditionRowView = ({
   };
 
   return (
-    <div
-      ref={rowRef}
-      className={rowStyle}
-      data-condition-row={row.id}
-      onPointerDownCapture={takeDateSlot}
-      onClickCapture={takeDateSlot}
-      onKeyDownCapture={takeDateSlot}
-    >
+    <div className={rowStackStyle}>
       {prefix}
-      <Filter
-        key={`${resetCount}:${row.propertyBaseUrl}:${row.valueSource ? "token" : "typed"}`}
-        size="sm"
-        className={stacked ? filterStackStyle : filterFitStyle}
-        property={`${row.id}:${row.propertyBaseUrl}`}
-        propertyLabel={title}
-        propertyMenu={[
-          {
-            id: "attributes",
-            label: "Attributes",
-            items: properties.map((candidate) => ({
-              id: candidate.baseUrl,
-              text: candidate.title,
-              selected: candidate.baseUrl === row.propertyBaseUrl,
-              selectedStyle: "tick" as const,
-              onClick: () =>
+      <div
+        ref={rowRef}
+        className={rowStyle}
+        data-condition-row={row.id}
+        onPointerDownCapture={takeDateSlot}
+        onClickCapture={takeDateSlot}
+        onKeyDownCapture={takeDateSlot}
+      >
+        <Filter
+          key={`${resetCount}:${row.propertyBaseUrl}:${row.valueSource ? "token" : "typed"}`}
+          size="sm"
+          className={stacked ? filterStackStyle : filterFitStyle}
+          property={`${row.id}:${row.propertyBaseUrl}`}
+          propertyLabel={title}
+          propertyMenu={[
+            {
+              id: "attributes",
+              label: "Attributes",
+              items: properties.map((candidate) => ({
+                id: candidate.baseUrl,
+                text: candidate.title,
+                selected: candidate.baseUrl === row.propertyBaseUrl,
+                selectedStyle: "tick" as const,
+                onClick: () =>
+                  onChange({
+                    propertyBaseUrl: candidate.baseUrl,
+                    operator:
+                      operatorsFor(valueTypeOf(candidate.property), forGraph)
+                        .items[0]?.value ?? null,
+                    value: null,
+                    values: undefined,
+                    relative: undefined,
+                    valueSource: undefined,
+                  }),
+              })),
+            },
+          ]}
+          operators={filterOperators}
+          value={row.operator ? { key: row.operator, value: committed } : null}
+          removeable={false}
+          onChange={(operatorKey, value) => apply(operatorKey, value)}
+          onInput={(operatorKey, value) => {
+            // Text is stored as it is typed ("@" opens the variable picker); other values when committed.
+            if (
+              type === "text" ||
+              operatorKey !== row.operator ||
+              value === VARIABLE ||
+              value === TYPED ||
+              value === SHOW_STEP
+            ) {
+              apply(operatorKey, value);
+            }
+          }}
+        />
+        {/* On the value's line when the value wraps (J3 · B2). */}
+        <span className={stacked ? css({ alignSelf: "flex-end" }) : undefined}>
+          <Menu
+            position="bottom-end"
+            items={rowMenu}
+            trigger={
+              <Button
+                size="sm"
+                variant="ghost"
+                iconName="ellipsisVertical"
+                aria-label="Condition options"
+              />
+            }
+          />
+        </span>
+
+        {openPart === "value" && type === "date" && row.operator !== "isIn" ? (
+          <Popover
+            triggerRef={valueSlotRef}
+            position="bottom-start"
+            gapY={4}
+            onClose={close}
+          >
+            <DatePickerSurface
+              label="Choose date"
+              iso={
+                row.relative || row.value === null ? null : String(row.value)
+              }
+              relative={row.relative}
+              onPickDate={(iso) => {
                 onChange({
-                  propertyBaseUrl: candidate.baseUrl,
-                  operator:
-                    operatorsFor(valueTypeOf(candidate.property), forGraph)
-                      .items[0]?.value ?? null,
-                  value: null,
-                  values: undefined,
+                  value: iso,
                   relative: undefined,
                   valueSource: undefined,
-                }),
-            })),
-          },
-        ]}
-        operators={filterOperators}
-        value={row.operator ? { key: row.operator, value: committed } : null}
-        removeable={false}
-        onChange={(operatorKey, value) => apply(operatorKey, value)}
-        onInput={(operatorKey, value) => {
-          // Text is stored as it is typed ("@" opens the variable picker); other values when committed.
-          if (
-            type === "text" ||
-            operatorKey !== row.operator ||
-            value === VARIABLE ||
-            value === TYPED ||
-            value === SHOW_STEP
-          ) {
-            apply(operatorKey, value);
-          }
-        }}
-      />
-      {/* On the value's line when the value wraps (J3 · B2). */}
-      <span className={stacked ? css({ alignSelf: "flex-end" }) : undefined}>
-        <Menu
-          position="bottom-end"
-          items={rowMenu}
-          trigger={
-            <Button
-              size="sm"
-              variant="ghost"
-              iconName="ellipsisVertical"
-              aria-label="Condition options"
+                });
+                close();
+              }}
+              onPickRelative={(relative) => {
+                onChange({ relative, value: null, valueSource: undefined });
+                if (relative.kind !== "daysAgo") {
+                  close();
+                }
+              }}
+              footer={
+                allowVariables ? (
+                  <button
+                    type="button"
+                    className={relativeRowStyle}
+                    onClick={() => open("variable")}
+                  >
+                    <VariableIcon size={14} />
+                    Use a variable
+                  </button>
+                ) : null
+              }
             />
-          }
-        />
-      </span>
+          </Popover>
+        ) : null}
 
-      {openPart === "value" && type === "date" && row.operator !== "isIn" ? (
-        <Popover
-          triggerRef={valueSlotRef}
-          position="bottom-start"
-          gapY={4}
-          onClose={close}
-        >
-          <DatePickerSurface
-            label="Choose date"
-            iso={row.relative || row.value === null ? null : String(row.value)}
-            relative={row.relative}
-            onPickDate={(iso) => {
+        {openPart === "variable" || openPart === "footer" ? (
+          <SourceMenu
+            anchor={mention !== undefined ? textRef : valueSlotRef}
+            position="bottom-start"
+            searchAlways={mention === undefined}
+            stepId={step.stepId}
+            input={valueInput}
+            entry={entry}
+            query={mention}
+            focusRef={mention === undefined ? undefined : textRef}
+            onClose={close}
+            onPick={(source) => {
               onChange({
-                value: iso,
+                valueSource: source,
+                value: null,
                 relative: undefined,
-                valueSource: undefined,
               });
               close();
             }}
-            onPickRelative={(relative) => {
-              onChange({ relative, value: null, valueSource: undefined });
-              if (relative.kind !== "daysAgo") {
-                close();
-              }
+            onTypeValue={() => {
+              onChange({ valueSource: undefined });
+              close();
             }}
-            footer={
-              allowVariables ? (
-                <button
-                  type="button"
-                  className={relativeRowStyle}
-                  onClick={() => open("variable")}
-                >
-                  <VariableIcon size={14} />
-                  Use a variable
-                </button>
-              ) : null
-            }
           />
-        </Popover>
-      ) : null}
-
-      {openPart === "variable" || openPart === "footer" ? (
-        <SourceMenu
-          anchor={mention !== undefined ? textRef : valueSlotRef}
-          position="bottom-start"
-          searchAlways={mention === undefined}
-          stepId={step.stepId}
-          input={valueInput}
-          entry={entry}
-          query={mention}
-          focusRef={mention === undefined ? undefined : textRef}
-          onClose={close}
-          onPick={(source) => {
-            onChange({ valueSource: source, value: null, relative: undefined });
-            close();
-          }}
-          onTypeValue={() => {
-            onChange({ valueSource: undefined });
-            close();
-          }}
-        />
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 };
@@ -1133,21 +1159,27 @@ const ConditionRowView = ({
  * The builder
  * ------------------------------------------------------------------------------------------------------------- */
 
-/** The builder: a hairline box, 8 px in, rows 6 px apart (J3 A1). */
+/** The builder: a box 8 px in, rows 8 px apart, then the footer 16 px below (J3 A1). */
 const builderStyle = css({
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-start",
-  gap: "1.5",
+  gap: "4",
   padding: "2",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
   borderRadius: "lg",
   backgroundColor: "neutral.bgSolid.min",
 });
 
-/** A group: a grey box inside the builder with its own rows and "Add condition". */
+/** The rows (and the groups among them): 8 px apart. */
+const rowsStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "2",
+  alignSelf: "stretch",
+});
+
+/** A group: a grey box inside the builder with its own rows and "Add filter". */
 const groupStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -1159,26 +1191,29 @@ const groupStyle = css({
   backgroundColor: "neutral.bgSolid.surface.active",
 });
 
-/** A later row's "And" / "Or": a DS subtle Button at the chip's size (Figma: outline, which code lacks); it switches the join. */
-const Joiner = ({
+/** A row's join label: "Where" first, then the group's "And" / "Or" (a press switches the join, mock). */
+const JoinLabel = ({
   conjunction,
   onToggle,
 }: {
-  conjunction: "and" | "or" | undefined;
-  onToggle: () => void;
-}) => (
-  <Button
-    size="sm"
-    variant="subtle"
-    aria-label={`Switch to ${conjunction === "or" ? "And" : "Or"}`}
-    tooltip={`Switch to ${conjunction === "or" ? "And" : "Or"}`}
-    onClick={onToggle}
-  >
-    {conjunction === "or" ? "Or" : "And"}
-  </Button>
-);
+  conjunction?: "and" | "or" | undefined;
+  onToggle?: () => void;
+}) =>
+  onToggle ? (
+    <button
+      type="button"
+      className={joinLabelStyle}
+      aria-label={`Switch to ${conjunction === "or" ? "And" : "Or"}`}
+      title={`Switch to ${conjunction === "or" ? "And" : "Or"}`}
+      onClick={onToggle}
+    >
+      {conjunction === "or" ? "Or" : "And"}
+    </button>
+  ) : (
+    <span className={joinLabelStyle}>Where</span>
+  );
 
-/** "Add condition": a DS subtle Button (code Button has no outline variant; Figma draws outline) that opens the attributes as a DS Menu (J3 A1). */
+/** "Add filter": a DS subtle Button (code Button has no outline variant; Figma draws outline) that opens the attributes as a DS Menu (J3 A1). */
 const AddCondition = ({
   properties,
   onAdd,
@@ -1200,7 +1235,7 @@ const AddCondition = ({
     ]}
     trigger={
       <Button size="sm" variant="subtle" iconName="plus">
-        Add condition
+        Add filter
       </Button>
     }
   />
@@ -1274,18 +1309,66 @@ export const ConditionBuilder = ({
 
   return (
     <div className={builderStyle} data-condition-builder>
-      {draft.conditions.map((row, index) => (
-        <ConditionRowView
-          key={row.id}
-          step={step}
-          input={input}
-          entry={entry}
-          row={row}
-          properties={properties}
-          forGraph={forGraph}
-          prefix={
-            index === 0 ? null : (
-              <Joiner
+      <div className={rowsStyle}>
+        {draft.conditions.map((row, index) => (
+          <ConditionRowView
+            key={row.id}
+            step={step}
+            input={input}
+            entry={entry}
+            row={row}
+            properties={properties}
+            forGraph={forGraph}
+            prefix={
+              index === 0 ? (
+                <JoinLabel />
+              ) : (
+                <JoinLabel
+                  conjunction={draft.conjunction}
+                  onToggle={() =>
+                    update({
+                      ...draft,
+                      conjunction: draft.conjunction === "or" ? "and" : "or",
+                    })
+                  }
+                />
+              )
+            }
+            onChange={(change) =>
+              setRows(
+                draft.conditions.map((candidate) =>
+                  candidate.id === row.id
+                    ? { ...candidate, ...change }
+                    : candidate,
+                ),
+              )
+            }
+            onRemove={() =>
+              setRows(
+                draft.conditions.filter((candidate) => candidate.id !== row.id),
+              )
+            }
+            allowVariables={allowVariables}
+            onGroup={() =>
+              update({
+                ...draft,
+                conditions: draft.conditions.filter(
+                  (candidate) => candidate.id !== row.id,
+                ),
+                groups: [
+                  ...groups,
+                  { id: nextId, conjunction: "or", conditions: [row] },
+                ],
+              })
+            }
+          />
+        ))}
+        {groups.map((group) => (
+          <div key={group.id} className={rowStackStyle}>
+            {draft.conditions.length === 0 && group === groups[0] ? (
+              <JoinLabel />
+            ) : (
+              <JoinLabel
                 conjunction={draft.conjunction}
                 onToggle={() =>
                   update({
@@ -1294,95 +1377,64 @@ export const ConditionBuilder = ({
                   })
                 }
               />
-            )
-          }
-          onChange={(change) =>
-            setRows(
-              draft.conditions.map((candidate) =>
-                candidate.id === row.id
-                  ? { ...candidate, ...change }
-                  : candidate,
-              ),
-            )
-          }
-          onRemove={() =>
-            setRows(
-              draft.conditions.filter((candidate) => candidate.id !== row.id),
-            )
-          }
-          allowVariables={allowVariables}
-          onGroup={() =>
-            update({
-              ...draft,
-              conditions: draft.conditions.filter(
-                (candidate) => candidate.id !== row.id,
-              ),
-              groups: [
-                ...groups,
-                { id: nextId, conjunction: "or", conditions: [row] },
-              ],
-            })
-          }
-        />
-      ))}
-      {groups.map((group) => (
-        <div
-          key={group.id}
-          className={groupStyle}
-          data-condition-group={group.id}
-        >
-          {group.conditions.map((row, index) => (
-            <Fragment key={row.id}>
-              <ConditionRowView
-                step={step}
-                input={input}
-                entry={entry}
-                row={row}
+            )}
+            <div className={groupStyle} data-condition-group={group.id}>
+              {group.conditions.map((row, index) => (
+                <Fragment key={row.id}>
+                  <ConditionRowView
+                    step={step}
+                    input={input}
+                    entry={entry}
+                    row={row}
+                    properties={properties}
+                    forGraph={forGraph}
+                    prefix={
+                      index === 0 ? (
+                        <JoinLabel />
+                      ) : (
+                        <JoinLabel
+                          conjunction={group.conjunction}
+                          onToggle={() =>
+                            setGroup(group.id, {
+                              conjunction:
+                                group.conjunction === "or" ? "and" : "or",
+                            })
+                          }
+                        />
+                      )
+                    }
+                    onChange={(change) =>
+                      setGroup(group.id, {
+                        conditions: group.conditions.map((candidate) =>
+                          candidate.id === row.id
+                            ? { ...candidate, ...change }
+                            : candidate,
+                        ),
+                      })
+                    }
+                    allowVariables={allowVariables}
+                    onRemove={() =>
+                      setGroup(group.id, {
+                        conditions: group.conditions.filter(
+                          (candidate) => candidate.id !== row.id,
+                        ),
+                      })
+                    }
+                  />
+                </Fragment>
+              ))}
+              <AddCondition
                 properties={properties}
-                forGraph={forGraph}
-                prefix={
-                  index === 0 ? null : (
-                    <Joiner
-                      conjunction={group.conjunction}
-                      onToggle={() =>
-                        setGroup(group.id, {
-                          conjunction:
-                            group.conjunction === "or" ? "and" : "or",
-                        })
-                      }
-                    />
-                  )
-                }
-                onChange={(change) =>
+                onAdd={(property) =>
                   setGroup(group.id, {
-                    conditions: group.conditions.map((candidate) =>
-                      candidate.id === row.id
-                        ? { ...candidate, ...change }
-                        : candidate,
-                    ),
-                  })
-                }
-                allowVariables={allowVariables}
-                onRemove={() =>
-                  setGroup(group.id, {
-                    conditions: group.conditions.filter(
-                      (candidate) => candidate.id !== row.id,
-                    ),
+                    conditions: [...group.conditions, newRow(property)],
                   })
                 }
               />
-            </Fragment>
-          ))}
-          <AddCondition
-            properties={properties}
-            onAdd={(property) =>
-              setGroup(group.id, {
-                conditions: [...group.conditions, newRow(property)],
-              })
-            }
-          />
-        </div>
-      ))}
+            </div>
+          </div>
+        ))}
+      </div>
       <AddCondition
         properties={properties}
         onAdd={(property) => setRows([...draft.conditions, newRow(property)])}
