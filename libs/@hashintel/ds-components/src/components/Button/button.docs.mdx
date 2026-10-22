@@ -1,18 +1,25 @@
----
-title: Button
-section: Controls
-description: Allow users to take actions, and make choices, with a single click.
-status: In code
-links:
-  figma: https://www.figma.com/design/WmnosvOvi4Blw0HK0jh1mG/Design-System?node-id=198-41491
-  source: ./button.tsx
-  stories: ./button.stories.tsx
----
+import { Meta } from "@storybook/addon-docs/blocks";
 
 import { Button } from "./button";
 
+<Meta title="Docs/Button" />
+
+export const meta = {
+  title: "Button",
+  section: "Controls",
+  description:
+    "Allow users to take actions, and make choices, with a single click.",
+  links: {
+    figma:
+      "https://www.figma.com/design/WmnosvOvi4Blw0HK0jh1mG/Design-System?node-id=198-41491",
+    source: "./button.tsx",
+    stories: "./button.stories.tsx",
+  },
+};
+
 export const Stage = ({ children }) => (
   <div
+    className="sb-unstyled"
     style={{
       display: "flex",
       flexWrap: "wrap",
