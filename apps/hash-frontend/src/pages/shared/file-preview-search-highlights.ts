@@ -1,11 +1,23 @@
 /**
  * Marks a file preview's search hits with the CSS Custom Highlight API.
- * `globals.scss` styles the two highlights. `CSS.highlights` is one registry
- * for the whole document, so only one preview can show search hits at a time.
+ * `searchHighlightStyles` colours the marks inside the element it styles.
+ * `CSS.highlights` is one registry for the whole document, so only one preview
+ * can show search hits at a time.
  */
+
+import { searchMarkColors } from "./file-preview-search-mark-colors";
 
 const hitHighlightName = "file-preview-hit";
 const currentHitHighlightName = "file-preview-current-hit";
+
+export const searchHighlightStyles = {
+  [`& ::highlight(${hitHighlightName})`]: {
+    backgroundColor: searchMarkColors.hit,
+  },
+  [`& ::highlight(${currentHitHighlightName})`]: {
+    backgroundColor: searchMarkColors.currentHit,
+  },
+};
 
 /**
  * A point in the text of `element`, counted in characters across all of its

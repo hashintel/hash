@@ -20,6 +20,7 @@ import { FilePreviewSearch } from "./file-preview-search";
 import {
   clearSearchHits,
   scrollHitIntoView,
+  searchHighlightStyles,
   showSearchHits,
 } from "./file-preview-search-highlights";
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
@@ -334,6 +335,12 @@ export const PdfPreview = ({
                     background: ({ palette }) => palette.common.white,
                     height: pageContainerHeight * scale - 2,
                     width: pageWidth * scale - 2,
+                    // Search marks fill the text layer, whose text is
+                    // transparent and drawn over the canvas. Multiplying the
+                    // layer with the page keeps the canvas glyphs under a mark
+                    // dark.
+                    "& .textLayer": { mixBlendMode: "multiply" },
+                    ...searchHighlightStyles,
                   }}
                 >
                   <Page
