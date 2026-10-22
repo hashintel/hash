@@ -18,6 +18,7 @@ use error_stack::{
 };
 use serde_saphyr::Spanned;
 use type_system::ontology::VersionedUrl;
+use url::Url;
 
 use crate::{
     definition::DefinitionParts,
@@ -414,13 +415,30 @@ impl SourceSyntax {
                     primary_key,
                 }
             } else if let Some(source) = self.postgres.as_ref().or(self.redshift.as_ref()) {
-                let mut source = source.value.clone();
-                source.host = lowering.resolve(&source.host, path)?.into_boxed_str();
-                source.database = lowering.resolve(&source.database, path)?.into_boxed_str();
-                source.schema = lowering.resolve(&source.schema, path)?.into_boxed_str();
-                source.table = lowering.resolve(&source.table, path)?.into_boxed_str();
+                let path = path.clone().field(if self.postgres.is_some() {
+                    "postgres"
+                } else {
+                    "redshift"
+                });
+                let connection_path = path.clone().field("connection");
+                let connection = lowering.text(&source.value.connection, &connection_path)?;
+                let connection = Url::parse(&connection).map_err(|_error| {
+                    lowering.report(
+                        connection_path,
+                        IssueKind::InvalidSource {
+                            reason: "connection must be a valid PostgreSQL URI",
+                        },
+                    )
+                })?;
+                let schema = lowering.text(&source.value.schema, &path.clone().field("schema"))?;
+                let table = lowering.text(&source.value.table, &path.field("table"))?;
                 SourceKind::Postgres {
-                    source,
+                    source: crate::PostgresSource {
+                        connection,
+                        schema: schema.into_boxed_str(),
+                        table: table.into_boxed_str(),
+                        credentials: source.value.credentials,
+                    },
                     primary_key: primary_key?,
                 }
             } else if let Some(endpoint) = &self.rest {

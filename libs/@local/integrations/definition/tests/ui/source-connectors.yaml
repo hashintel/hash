@@ -1,6 +1,7 @@
 connector: demo
 vars:
   HOST: warehouse.example.org
+  DATABASE: postgresql://database.example.org/demo
   API: https://api.example.org/items
 sources:
   local:
@@ -8,12 +9,17 @@ sources:
     primaryKey: [id]
   warehouse:
     redshift:
-      host: ${HOST}
-      port: 5439
-      database: demo
+      connection: postgresql://${HOST}:5439/demo?sslmode=require
       schema: public
       table: items
-      sslMode: require
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  database:
+    postgres:
+      connection: ${DATABASE}
+      schema: public
+      table: items
       credentials:
         secretEntityUuid: 22222222-2222-4222-8222-222222222222
     primaryKey: [id]
@@ -33,6 +39,8 @@ sources:
 pipelines:
   entities:
     - source: local
+      steps: []
+    - source: database
       steps: []
     - source: warehouse
       steps: []
