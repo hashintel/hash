@@ -1,4 +1,5 @@
-import { interviewBudgetContextKey } from "@hashintel/brunch-agent";
+import { petrinautSubmissionContext } from "@hashintel/brunch-agent";
+import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import {
@@ -34,6 +35,21 @@ export type BrunchPanelAdmissionTarget = Pick<
 >;
 
 export class BrunchPanelConversationTracker {
+  readonly #wordsByMessage = new Map<string, readonly string[]>();
+
+  /**
+   * The words snapshot for one user message, read once so that a retry of the
+   * same message sends the words it was first sent with.
+   */
+  public captureWords(
+    messageId: string,
+    read?: () => readonly string[],
+  ): readonly string[] {
+    const captured = this.#wordsByMessage.get(messageId) ?? read?.() ?? [];
+    this.#wordsByMessage.set(messageId, captured);
+    return captured;
+  }
+
   // Local admissions only, scoped to this conversation tracker. Retain until
   // the tracker is replaced; missing retained history fails closed.
   readonly #admittedSubmissionIds = new Set<string>();
@@ -227,6 +243,8 @@ export const createBrunchPanelTransport = (
   options?: {
     /** The projection shared with this conversation's reopened history. */
     readonly adapter?: BrunchFlueAdapter;
+    /** The conversation's preferred spellings, read when a message is first sent. */
+    readonly readWords?: () => readonly string[];
     readonly initialData?: BrowserContext;
     readonly interviewBudgetLevel?: InterviewBudgetLevel;
     /** The host's canonical count, shared with the estimate above the composer. */
@@ -242,6 +260,13 @@ export const createBrunchPanelTransport = (
   sendMessages: (sendOptions) =>
     tracker.trackSubmission(
       (async () => {
+        const userMessage = sendOptions.messages.findLast(
+          (message) => message.id !== petrinautDiagnosticsContextMessageId,
+        );
+        const words =
+          userMessage === undefined
+            ? []
+            : tracker.captureWords(userMessage.id, options?.readWords);
         const client = await clientPromise;
         const budget = getInterviewBudget(
           options?.interviewBudgetLevel ?? "off",
@@ -249,10 +274,12 @@ export const createBrunchPanelTransport = (
           tracker.inputMode ?? "text",
           options?.interviewRepliesAsked ?? 0,
         );
-        const submissionContext =
-          budget === undefined
-            ? undefined
-            : { [interviewBudgetContextKey]: budget };
+        // An empty context sends an ordinary message, which also clears
+        // Brunch's words snapshot.
+        const submissionContext = petrinautSubmissionContext({
+          ...(budget === undefined ? {} : { interviewBudget: budget }),
+          words,
+        });
         const transport = (
           options?.adapter ?? canonicalBrunchFlueAdapter
         ).chatTransport({

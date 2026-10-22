@@ -4,6 +4,7 @@ import {
 } from "./session/voice-interview-control";
 
 import type { InterviewBudgetLevel } from "../../../../../shared/interview-budget";
+import type { VoiceWord } from "../../../../../shared/voice-words";
 import type {
   BrunchPanelAdmissionTarget,
   BrunchPanelConversationTracker,
@@ -32,6 +33,7 @@ export const getBrunchVoiceMode = (
   mediationHistory?: VoiceMediationHistory,
   interviewBudgetLevel?: InterviewBudgetLevel,
   toolApprovalState?: (toolCallId: string) => ToolApprovalState | null,
+  readWords?: () => readonly VoiceWord[],
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
 
@@ -60,6 +62,7 @@ export const getBrunchVoiceMode = (
       {...context}
       config={config}
       interviewBudgetLevel={interviewBudgetLevel}
+      readWords={readWords}
       mediationHistory={mediationHistory}
       onInputModeChange={recordInputMode}
       toolApprovalState={toolApprovalState}

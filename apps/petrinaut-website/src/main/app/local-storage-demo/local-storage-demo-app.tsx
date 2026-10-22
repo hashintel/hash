@@ -37,6 +37,7 @@ import { useDocumentController } from "./documents/use-document-controller";
 import { useInterviewBudgetPreference } from "./interview-budget-preference";
 import { UnsavedChangeNotice } from "./unsaved-change-notice";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
+import { useWordsPreference } from "./words-preference";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
@@ -122,6 +123,11 @@ export const LocalStorageDemoApp = ({
     setEnabled: setInterviewBudgetEnabled,
     ready: interviewBudgetPreferenceReady,
   } = useInterviewBudgetPreference();
+  const {
+    enabled: wordsEnabled,
+    ready: wordsPreferenceReady,
+    setEnabled: setWordsEnabled,
+  } = useWordsPreference();
   const brunchSelected =
     assistantSelectionReady &&
     isBrunchSelected(
@@ -235,6 +241,7 @@ export const LocalStorageDemoApp = ({
       level: interviewBudgetLevel,
       setLevel: setInterviewBudgetLevel,
     },
+    words: { enabled: wordsPreferenceReady && wordsEnabled },
     plugins: demoPlugins,
   });
   const stockAssistant = useMemo(
@@ -325,6 +332,9 @@ export const LocalStorageDemoApp = ({
                 setVoiceEnabled={setVoiceEnabled}
                 voiceEnabled={brunchSelected && voiceEnabled}
                 voicePreferenceReady={voicePreferenceReady}
+                wordsEnabled={wordsEnabled}
+                wordsPreferenceReady={wordsPreferenceReady}
+                setWordsEnabled={setWordsEnabled}
               />
             ),
           }}

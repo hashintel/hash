@@ -44,6 +44,7 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     | "subscribeToResponseMessageCompleted"
     | "subscribeToStopRequested"
     | "toolApprovalState"
+    | "readWords"
   > & {
     readonly interviewBudgetLevel?: InterviewBudgetLevel;
     readonly mediationHistory?: VoiceMediationHistory;
@@ -96,6 +97,7 @@ const createLiveMediation = (
 export const LiveConversationControl = ({
   interviewBudgetLevel = "off",
   mediationHistory,
+  readWords,
   acknowledgeDisclosure,
   inputMode,
   isAiAssistantOpen,
@@ -378,6 +380,7 @@ export const LiveConversationControl = ({
         closed: () => captions.close(),
       },
       interviewBudgetLevel,
+      readWords,
     );
     next.setMicrophoneMuted(false);
     next.setSpeakerMuted(false);
@@ -414,6 +417,7 @@ export const LiveConversationControl = ({
     phase,
     setVoiceActive,
     interviewBudgetLevel,
+    readWords,
     utteranceJudgment,
   ]);
   useEffect(() => {

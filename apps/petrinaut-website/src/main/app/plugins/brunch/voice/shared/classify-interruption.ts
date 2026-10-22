@@ -19,8 +19,6 @@ const bigramsOf = (tokens: readonly string[]): string[] => {
   return bigrams;
 };
 
-const promptBigrams = bigramsOf(tokensOf(voiceTranscriptionPrompt));
-
 /** Require matching adjacent words in reference order, not a bag of vocabulary. */
 const hasStrongOrderedOverlap = (
   candidate: readonly string[],
@@ -42,6 +40,7 @@ const hasStrongOrderedOverlap = (
 export const classifyInterruption = (
   transcript: string,
   canonicalPlaybackText: readonly string[],
+  transcriptionPrompt = voiceTranscriptionPrompt,
 ): "prompt-regurgitation" | "self-echo" | null => {
   const tokens = tokensOf(transcript);
   const canonicalPlaybackTokens = tokensOf(canonicalPlaybackText.join(" "));
@@ -58,7 +57,10 @@ export const classifyInterruption = (
   if (hasStrongOrderedOverlap(bigrams, bigramsOf(canonicalPlaybackTokens))) {
     return "self-echo";
   }
-  if (tokens.length >= 8 && hasStrongOrderedOverlap(bigrams, promptBigrams)) {
+  if (
+    tokens.length >= 8 &&
+    hasStrongOrderedOverlap(bigrams, bigramsOf(tokensOf(transcriptionPrompt)))
+  ) {
     return "prompt-regurgitation";
   }
   return null;

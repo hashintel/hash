@@ -2,9 +2,9 @@ import { FetchError, FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
 import {
-  interviewBudgetContextKey,
-  parseInterviewBudget,
   parsePetrinautUserMessageBody,
+  petrinautContextualUserMessageBody,
+  readPetrinautSubmissionContext,
 } from "@hashintel/brunch-agent";
 import { FlueChatDisconnectError } from "@local/flue-aisdk-transport";
 
@@ -18,6 +18,70 @@ import {
 import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
 
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
+
+test("captures words before waiting for the client and retains them for the same admission identity", async () => {
+  let words = ["RelayDesk"];
+  let resolveClient!: (client: FlueClient) => void;
+  const clientPromise = new Promise<FlueClient>((resolve) => {
+    resolveClient = resolve;
+  });
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(400, "Rejected");
+  });
+  const tracker = new BrunchPanelConversationTracker();
+  const transport = createBrunchPanelTransport(clientPromise, tracker, {
+    readWords: () => words,
+  });
+  const options = {
+    trigger: "submit-message" as const,
+    chatId: "one",
+    messageId: "user-one",
+    messages: [
+      {
+        id: "user-one",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Use it." }],
+      },
+    ],
+    abortSignal: undefined,
+  };
+  const first = transport.sendMessages(options);
+  words = ["Bay Three"];
+  resolveClient({ send } as unknown as FlueClient);
+  await expect(first).rejects.toThrow();
+  await expect(transport.sendMessages(options)).rejects.toThrow();
+  const expected = petrinautContextualUserMessageBody({
+    userText: "Use it.",
+    diagnosticsContext: "",
+    submissionContext: { words: ["RelayDesk"] },
+  });
+  expect(
+    send.mock.calls.map(([submission]) => submission.message.body),
+  ).toEqual([expected, expected]);
+});
+
+test("an empty words snapshot without an allowance sends an ordinary message", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(400, "Rejected");
+  });
+  const transport = createBrunchPanelTransport(
+    Promise.resolve({ send } as unknown as FlueClient),
+    new BrunchPanelConversationTracker(),
+    { readWords: () => [] },
+  );
+  await expect(
+    transport.sendMessages({
+      trigger: "submit-message",
+      chatId: "one",
+      messageId: "user-one",
+      messages: [
+        { id: "user-one", role: "user", parts: [{ type: "text", text: "Hi" }] },
+      ],
+      abortSignal: undefined,
+    }),
+  ).rejects.toThrow();
+  expect(send.mock.calls[0]?.[0].message.body).toBe("Hi");
+});
 
 test.each(interviewBudgetLevels)(
   "sends current %s budget on each submission, with Off identical to the legacy request",
@@ -96,9 +160,13 @@ test.each(interviewBudgetLevels)(
             kind: "contextual",
             userText: "Four agents",
             diagnosticsContext: "",
-            submissionContext: { [interviewBudgetContextKey]: budget },
+            submissionContext: { interviewBudget: budget },
           });
-          expect(parseInterviewBudget(budget)).toEqual(budget);
+          expect(
+            readPetrinautSubmissionContext(
+              parsePetrinautUserMessageBody(request?.message.body ?? ""),
+            ).interviewBudget,
+          ).toEqual(budget);
         }
       }
     }
@@ -141,7 +209,7 @@ test.each([
       parsePetrinautUserMessageBody(send.mock.lastCall?.[0].message.body ?? ""),
     ).toMatchObject({
       submissionContext: {
-        [interviewBudgetContextKey]: {
+        interviewBudget: {
           level: "standard",
           questionCap,
           asked: 1,

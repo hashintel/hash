@@ -106,6 +106,9 @@ export const AssistantLabsSettings = ({
   setVoiceEnabled,
   voiceEnabled,
   voicePreferenceReady,
+  wordsEnabled,
+  wordsPreferenceReady,
+  setWordsEnabled,
 }: {
   readonly assistantReady: boolean;
   readonly brunchConfigured: boolean;
@@ -121,6 +124,9 @@ export const AssistantLabsSettings = ({
   readonly setVoiceEnabled: (enabled: boolean) => void;
   readonly voiceEnabled: boolean;
   readonly voicePreferenceReady: boolean;
+  readonly wordsEnabled: boolean;
+  readonly wordsPreferenceReady: boolean;
+  readonly setWordsEnabled: (enabled: boolean) => void;
 }) => {
   const brunchDescription = !assistantReady
     ? "Loading your assistant preference…"
@@ -175,6 +181,15 @@ export const AssistantLabsSettings = ({
           label="Realtime mode"
           onChange={setRealtimeEnabled}
           value={realtimeEnabled}
+        />
+      )}
+      {brunchSelected && voicePreferenceReady && voiceEnabled && (
+        <AssistantSetting
+          description="Help recognize and pronounce names and terms."
+          disabled={!wordsPreferenceReady}
+          label="Custom words"
+          onChange={setWordsEnabled}
+          value={wordsEnabled}
         />
       )}
     </section>

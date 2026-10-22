@@ -83,8 +83,11 @@ import {
   loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
 } from "./voice/session/voice-interview-control";
+import { useConversationWords } from "./words/conversation-words";
+import { WordsHeaderAction } from "./words/words-configurer";
 
 import type { InterviewBudgetLevel } from "../../../../shared/interview-budget";
+import type { VoiceWord } from "../../../../shared/voice-words";
 import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
 import type {
   PetrinautAiAssistant,
@@ -167,6 +170,12 @@ export interface BrunchInterviewBudgetPreferences {
   readonly setLevel: (level: InterviewBudgetLevel) => void;
 }
 
+/** Brunch's Custom words choice, as the host stores it. */
+export interface BrunchWordsPreferences {
+  /** The host's Custom words experiment is loaded and on. */
+  readonly enabled: boolean;
+}
+
 export interface BrunchAssistant {
   /**
    * Brunch's assistant configuration for `<Petrinaut aiAssistant>`, or `null`
@@ -196,6 +205,7 @@ export const useBrunchAssistant = ({
   openDocument,
   voice,
   interviewBudget,
+  words,
   plugins,
 }: {
   /** Brunch is configured and chosen as the assistant. */
@@ -204,6 +214,7 @@ export const useBrunchAssistant = ({
   readonly openDocument: BrunchOpenDocument | null;
   readonly voice: BrunchVoicePreferences;
   readonly interviewBudget: BrunchInterviewBudgetPreferences;
+  readonly words: BrunchWordsPreferences;
   /** The plugins the host gives the editor. */
   readonly plugins: readonly PetrinautPlugin[];
 }): BrunchAssistant => {
@@ -286,6 +297,23 @@ export const useBrunchAssistant = ({
     [baseProcessAgentBinding],
   );
   const conversationId = processAgentBinding?.conversationId ?? null;
+  const conversationWords = useConversationWords(
+    brunchPrincipal,
+    conversationId,
+  );
+  // Words are edited from Voice mode, so they apply only while Voice is on.
+  const wordsActive =
+    selected && voice.enabled && words.enabled && conversationId !== null;
+  const readWords = useCallback(
+    (): readonly VoiceWord[] =>
+      wordsActive
+        ? conversationWords.entries.map(({ spelling, pronunciation }) => ({
+            spelling,
+            ...(pronunciation === undefined ? {} : { pronunciation }),
+          }))
+        : [],
+    [wordsActive, conversationWords.entries],
+  );
   // Each binding gets its own non-persisted approval authority.
   const mutationApproval = useMemo(
     () => ({
@@ -444,6 +472,7 @@ export const useBrunchAssistant = ({
         mediationHistory,
         interviewBudgetLevel,
         (toolCallId) => mutationApproval.coordinator.approvalState(toolCallId),
+        readWords,
       ),
     [
       selected,
@@ -454,6 +483,7 @@ export const useBrunchAssistant = ({
       mediationHistory,
       mutationApproval,
       openAIVoiceConfig,
+      readWords,
       voice.enabled,
       voice.realtime,
     ],
@@ -465,6 +495,7 @@ export const useBrunchAssistant = ({
         : createBrunchPanelTransport(flueClientPromise, conversationTracker, {
             interviewBudgetLevel,
             interviewRepliesAsked,
+            readWords: () => readWords().map((word) => word.spelling),
             ...(constructionBrowser
               ? { initialData: { binding: constructionBrowser.binding } }
               : {}),
@@ -502,6 +533,7 @@ export const useBrunchAssistant = ({
       flueHistory.refresh,
       interviewBudgetLevel,
       interviewRepliesAsked,
+      readWords,
       reportBrunchFailure,
     ],
   );
@@ -566,6 +598,16 @@ export const useBrunchAssistant = ({
                 .activityIdentities
         : undefined;
     return {
+      actionsInputMode: "voice",
+      headerActions:
+        wordsActive && conversationWords.key ? (
+          <WordsHeaderAction
+            key={conversationWords.key}
+            entries={conversationWords.entries}
+            notice={conversationWords.notice}
+            save={conversationWords.save}
+          />
+        ) : undefined,
       additionalTab: constructionBrowser
         ? {
             label: "Ledger",
@@ -659,6 +701,7 @@ export const useBrunchAssistant = ({
       messages: flueHistory.messages,
       onClearMessages: () => {
         if (currentNetId === null) return;
+        conversationWords.clear();
         const initialId = ordinaryConstructionConversationIdFrom(currentNetId);
         const nextId = `${initialId}:${crypto.randomUUID()}`;
         replaceBrunchConversationId(initialId, nextId);
@@ -679,6 +722,7 @@ export const useBrunchAssistant = ({
     canonicalHostTools,
     constructionBrowser,
     conversationId,
+    conversationWords,
     conversationTracker,
     currentNetId,
     draftInteractiveTool,
@@ -696,6 +740,7 @@ export const useBrunchAssistant = ({
     mapVoiceMessages,
     mutationApprovalTools,
     setInterviewBudgetLevel,
+    wordsActive,
   ]);
 
   const brunchActive = assistant !== null;
