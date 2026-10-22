@@ -68,6 +68,149 @@ export const getFlowRunById = gql`
   }
 `;
 
+export const getFlowRunEventsQuery = gql`
+  query getFlowRunEvents(
+    $flowRunEntityId: EntityId!
+    $after: String
+    $first: Int
+  ) {
+    getFlowRunById(flowRunEntityId: $flowRunEntityId) {
+      flowRunEntityId
+      events(after: $after, first: $first) {
+        endCursor
+        hasNextPage
+        runId
+        restarted
+        keptUpTo
+        events {
+          __typename
+          position
+          occurredAt
+          ... on FlowRunStartedEvent {
+            flowInputs
+          }
+          ... on FlowRunStepStartedEvent {
+            stepRun {
+              stepId
+              itemPath
+            }
+            stepType
+            inputs
+          }
+          ... on FlowRunAttemptStartedEvent {
+            stepRun {
+              stepId
+              itemPath
+            }
+            attempt
+            hiddenAttempts {
+              count
+              lastError {
+                message
+              }
+            }
+          }
+          ... on FlowRunAttemptSucceededEvent {
+            stepRun {
+              stepId
+              itemPath
+            }
+            attempt
+            outputs
+          }
+          ... on FlowRunAttemptFailedEvent {
+            stepRun {
+              stepId
+              itemPath
+            }
+            attempt
+            error {
+              message
+            }
+            retrying
+          }
+          ... on FlowRunStepGaveUpEvent {
+            stepRun {
+              stepId
+              itemPath
+            }
+            attempt
+            reason
+          }
+          ... on FlowRunAttemptCancellationRequestedEvent {
+            stepRun {
+              stepId
+              itemPath
+            }
+          }
+          ... on FlowRunAttemptCancelledEvent {
+            stepRun {
+              stepId
+              itemPath
+            }
+          }
+          ... on FlowRunStepSkippedEvent {
+            stepRun {
+              stepId
+              itemPath
+            }
+            stepType
+          }
+          ... on FlowRunForEachStartedEvent {
+            stepRun {
+              stepId
+              itemPath
+            }
+            itemCount
+          }
+          ... on FlowRunInputRequestedEvent {
+            stepRun {
+              stepId
+              itemPath
+            }
+            request
+          }
+          ... on FlowRunInputResolvedEvent {
+            requestStepRun {
+              stepId
+              itemPath
+            }
+            requestId
+            response
+          }
+          ... on FlowRunProgressLoggedEvent {
+            stepRun {
+              stepId
+              itemPath
+            }
+            loggedInAttempt
+            log
+          }
+          ... on FlowRunResetEvent {
+            fromRunId
+          }
+          ... on FlowRunFinishedEvent {
+            status
+            flowOutputs
+            failure {
+              message
+            }
+            stepErrors {
+              stepRun {
+                stepId
+                itemPath
+              }
+              error {
+                message
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
 export const submitExternalInputResponseMutation = gql`
   mutation submitExternalInputResponse(
     $flowRunEntityId: EntityId!
