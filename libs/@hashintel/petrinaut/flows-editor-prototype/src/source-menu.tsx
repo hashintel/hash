@@ -31,7 +31,7 @@ import { OpenMenu } from "./open-menu";
 import { acceptedKinds, type SourceOption, sourceOptions } from "./shapes";
 import { kindLabel } from "./ui";
 
-import type { PayloadKind, StepInputSource } from "./engine";
+import type { StepInputSource } from "./engine";
 import type { PrdSource } from "./mock-prd-ports";
 
 /** A DS Menu item as ↳ Current draws it: 32 px tall, 6 px in, 8 px corners, a bare 14 px icon, 14 px medium label. */
@@ -170,54 +170,6 @@ const ownerIcon = (document: EditorDocument, option: SourceOption) => {
   return { icon: "pencil" as const, tone: "neutral" as const };
 };
 
-/** A unique flow input name for a field, as the engine's builder names them (`contactEmail`). */
-const newInputName = (document: EditorDocument, label: string) => {
-  const base = label
-    .toLowerCase()
-    .replace(/[^a-z0-9]+(.)?/g, (_, next: string | undefined) =>
-      next ? next.toUpperCase() : "",
-    );
-  let candidate = base || "input";
-  for (
-    let index = 2;
-    document.inputs.some((input) => input.name === candidate);
-    index++
-  ) {
-    candidate = `${base}${index}`;
-  }
-  return candidate;
-};
-
-/**
- * Adds a flow input on Start that fits a field (Ciarán, 20 Oct: if no earlier step fits, lay down a flow input),
- * and returns the source that reads it.
- */
-export const addFlowInputFor = (
-  document: EditorDocument,
-  input: InputView,
-  kinds: readonly string[],
-): { document: EditorDocument; source: StepInputSource } => {
-  const kind = (kinds.find((candidate) => !isMockPayloadKind(candidate)) ??
-    "Text") as PayloadKind;
-  const name = newInputName(document, input.label);
-  return {
-    document: {
-      ...document,
-      inputs: [
-        ...document.inputs,
-        {
-          name,
-          label: input.label,
-          payloadKind: kind,
-          array: input.array,
-          required: true,
-        },
-      ],
-    },
-    source: { kind: "flow-input", inputName: name },
-  };
-};
-
 /**
  * Graph lookup as a field source has no engine shape: a lookup is a Find entities step. This places one before the
  * step and connects it when the shapes fit.
@@ -308,6 +260,7 @@ type SourceGroup = {
     selected?: boolean;
     disabled?: boolean;
     hint?: string;
+    suffix?: React.ReactNode;
     onPick?: () => void;
   }[];
 };
@@ -323,6 +276,7 @@ const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<MenuItem>> =>
       description: item.description,
       icon: item.icon,
       selected: item.selected,
+      suffix: item.suffix,
       selectedStyle: "tick" as const,
       disabled: item.disabled,
       onClick: () => item.onPick?.(),
@@ -459,13 +413,14 @@ export const SourceMenu = ({
   const typed = typedChoices.filter(
     (choice) => !text || choice.label.toLowerCase().includes(text),
   );
-  const groups = ["Earlier steps", "This item", "Flow inputs"] as const;
-
-  const addFlowInput = () => {
-    const { document: next, source } = addFlowInputFor(document, input, kinds);
-    setDocument(() => next);
-    onPick(source);
-  };
+  // Flow inputs are set on Start: with none that fit, the menu sends the user there (J3 C1, C2).
+  const goToStart = () =>
+    setUi((ui) => ({
+      ...ui,
+      selectedId: START_ID,
+      triggerId: null,
+      openField: null,
+    }));
 
   const lookUp = () => {
     const { document: next, lookupId } = addLookupStep(document, stepId, input);
@@ -475,12 +430,31 @@ export const SourceMenu = ({
     setUi((ui) => ({ ...ui, openField: null, flashId: lookupId }));
   };
 
-  const nothingFits = options.length === 0 && typed.length === 0;
   const phrase = kindPhrase(kinds, input.array);
   // Search only earns its place on a long list; the mocks show short menus without it.
   const longList = searchAlways || typedChoicesProp.length + options.length > 8;
 
-  /* One model for both renderings: DS Menu groups and items (icon, description, tick). */
+  const optionItems = (group: SourceOption["group"]) =>
+    options
+      .filter((option) => option.group === group)
+      .map((option) => ({
+        id: JSON.stringify(option.source),
+        text: option.label,
+        description: option.ownerLabel,
+        icon: ownerIcon(document, option).icon,
+        hint: `${option.ownerLabel} › ${option.label} · ${kindLabel(option.shape.payloadKind, option.shape.array)}${option.note ? ` · ${option.note}` : ""}`,
+        onPick: () => onPick(option.source),
+      }));
+  const searching = text !== "";
+  const earlier = optionItems("Earlier steps");
+  const thisItem = optionItems("This item");
+  const flowInputs = optionItems("Flow inputs");
+  const nothingFits =
+    options.length === 0 && typed.length === 0 && !lookupAllowed;
+
+  /* One model for both renderings: DS Menu groups and items (icon, description, tick). Headers as the team named
+     them (22 Oct): Earlier steps, Flow inputs, Lookup in graph. An empty group says why; Flow inputs then offers
+     "Add flow input on Start". */
   const groupsModel: SourceGroup[] = [
     ...(typed.length > 0
       ? [
@@ -499,26 +473,50 @@ export const SourceMenu = ({
           },
         ]
       : []),
-    ...groups.flatMap((group) => {
-      const inGroup = options.filter((option) => option.group === group);
-      // Empty groups stay hidden (Aakarsh, 21 Oct); one line below says when nothing fits at all.
-      return inGroup.length === 0
-        ? []
-        : [
-            {
-              id: group,
-              label: group,
-              items: inGroup.map((option) => ({
-                id: JSON.stringify(option.source),
-                text: option.label,
-                description: option.ownerLabel,
-                icon: ownerIcon(document, option).icon,
-                hint: `${option.ownerLabel} › ${option.label} · ${kindLabel(option.shape.payloadKind, option.shape.array)}${option.note ? ` · ${option.note}` : ""}`,
-                onPick: () => onPick(option.source),
-              })),
-            },
-          ];
-    }),
+    ...(fromSteps && (earlier.length > 0 || !searching)
+      ? [
+          {
+            id: "Earlier steps",
+            label: "Earlier steps",
+            items:
+              earlier.length > 0
+                ? earlier
+                : [
+                    {
+                      id: "none:earlier",
+                      text: `No earlier step gives ${phrase}`,
+                      disabled: true,
+                    },
+                  ],
+          },
+        ]
+      : []),
+    ...(thisItem.length > 0
+      ? [{ id: "This item", label: "This item", items: thisItem }]
+      : []),
+    ...(fromSteps && (flowInputs.length > 0 || !searching)
+      ? [
+          {
+            id: "Flow inputs",
+            label: "Flow inputs",
+            items:
+              flowInputs.length > 0
+                ? flowInputs
+                : [
+                    {
+                      id: "none:flow-input",
+                      text: `No flow input is ${phrase}`,
+                      disabled: true,
+                    },
+                    {
+                      id: "add-flow-input",
+                      text: "Add flow input on Start",
+                      onPick: goToStart,
+                    },
+                  ],
+          },
+        ]
+      : []),
     ...(nothingFits
       ? [
           {
@@ -535,16 +533,17 @@ export const SourceMenu = ({
           },
         ]
       : []),
-    ...(lookupAllowed
+    ...(lookupAllowed && (!searching || "find entities".includes(text))
       ? [
           {
             id: "graph",
-            label: "In the graph",
+            label: "Lookup in graph",
             items: [
               {
                 id: "lookup",
-                text: "Look up in the graph",
-                icon: "diagramNodes" as const,
+                text: "Find entities",
+                icon: "search" as const,
+                suffix: <Icon name="chevronRight" size="xs" />,
                 hint: "Adds a Find entities step before this one",
                 onPick: lookUp,
               },
@@ -552,28 +551,22 @@ export const SourceMenu = ({
           },
         ]
       : []),
-    // The way out when nothing fits (Ciarán, 20 Oct), in the same row grammar.
-    {
-      id: "out",
-      items: [
-        ...(onTypeValue
-          ? [
+    // Typing a value by hand, where the port allows it, in the same row grammar.
+    ...(onTypeValue
+      ? [
+          {
+            id: "out",
+            items: [
               {
                 id: "type-value",
                 text: typeValueLabel,
                 icon: typeValueIcon,
                 onPick: onTypeValue,
               },
-            ]
-          : []),
-        {
-          id: "add-flow-input",
-          text: "Add flow input",
-          icon: "plus" as const,
-          onPick: addFlowInput,
-        },
-      ],
-    },
+            ],
+          },
+        ]
+      : []),
   ];
 
   if (query === undefined) {
@@ -632,6 +625,7 @@ export const SourceMenu = ({
                   >
                     {item.icon ? <Icon name={item.icon} size="xs" /> : null}
                     <span className={rowTextStyle}>{item.text}</span>
+                    {item.suffix}
                   </button>
                 ),
               )}

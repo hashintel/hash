@@ -555,8 +555,21 @@ const ConditionRowView = ({
   const variableItems: SelectEntry[] = allowVariables
     ? [{ value: VARIABLE, text: "Use a variable" }]
     : [];
+  // MOCK: a lookup's chip ends with the attribute it supplies (Find entities › … › Received date, J3 C1b). The engine
+  // hands the condition the whole found list.
+  const lookupLeaf =
+    row.valueSource?.kind === "step-output" &&
+    row.valueSource.outputName === "entities" &&
+    type !== "entity" &&
+    !listOperator;
   const tokenParts = row.valueSource
-    ? tokenPath(document, row.valueSource)
+    ? [
+        ...tokenPath(document, row.valueSource).slice(
+          0,
+          lookupLeaf ? -1 : undefined,
+        ),
+        ...(lookupLeaf ? [title] : []),
+      ]
     : null;
 
   const valueConfig = (): FilterOperator<Record<string, unknown>>["input"] => {
