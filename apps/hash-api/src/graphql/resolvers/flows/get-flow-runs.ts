@@ -1,6 +1,10 @@
 import { getFlowRuns } from "@local/hash-backend-utils/flows";
 
-import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
+import * as Error from "../../error";
+import {
+  getRequestedFlowRunFieldNames,
+  wereDetailedFieldsRequested,
+} from "./shared/were-detailed-fields-requested";
 
 import type {
   FlowRun,
@@ -20,6 +24,13 @@ export const getFlowRunsResolver: ResolverFn<
   Pick<GraphQLContext, "authentication" | "dataSources" | "temporal">,
   QueryGetFlowRunsArgs
 > = async (_parent, args, context, info) => {
+  /** Each run's events are read from its whole history, so a list would read every listed run's. */
+  if (getRequestedFlowRunFieldNames(info).includes("events")) {
+    throw Error.badRequest(
+      "`events` can only be requested for a single run, with `getFlowRunById`",
+    );
+  }
+
   const includeDetails = wereDetailedFieldsRequested(info);
 
   const { authentication, dataSources, temporal } = context;
