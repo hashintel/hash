@@ -1,4 +1,15 @@
+import {
+  interviewBudgetHeader,
+  liveInterviewBudgetUpdate,
+  type InterviewBudgetLevel,
+} from "../../../../../../shared/interview-budget";
 import { voicePreferenceHeader } from "../../../../../../shared/voice-settings";
+import { buildVoiceTranscriptionPrompt } from "../../../../../../shared/voice-transcription";
+import {
+  encodeVoiceWords,
+  voiceWordsHeader,
+  type VoiceWord,
+} from "../../../../../../shared/voice-words";
 import { logLiveDiagnostic } from "../shared/live-diagnostic";
 import {
   createOutputEchoTrace,
@@ -33,6 +44,8 @@ export interface LiveConversationState {
 }
 
 export interface FinalizedInput {
+  /** Exact session prompt for shadow-only prompt-echo classification. Never traced. */
+  readonly transcriptionPrompt?: string;
   readonly id: string;
   readonly text: string;
   readonly superseded?: boolean;
@@ -72,7 +85,11 @@ export const createLiveConversation = (
     readonly output: (fragment: LiveTranscriptFragment) => void;
     readonly closed: () => void;
   },
+  initialBudgetLevel: InterviewBudgetLevel = "off",
+  readWords?: () => readonly VoiceWord[],
 ) => {
+  let wordsHeader: string | undefined;
+  let transcriptionPrompt: string | undefined;
   const abort = new AbortController();
   const sessionId = crypto.randomUUID();
   const echoTrace = createOutputEchoTrace(sessionId);
@@ -113,6 +130,11 @@ export const createLiveConversation = (
   let speakerMuted = false;
   let speakerVolume = 1;
   let voice = "marin";
+  let budgetLevel = initialBudgetLevel;
+  /** The level Live last received, at session creation or in a quiet note. */
+  let sentBudgetLevel = initialBudgetLevel;
+  // Assigned below `append`, which both uses it and calls it.
+  let sendInterviewBudgetNote: () => void;
   let detachAudioSettings: (() => void) | undefined;
   let started = false;
   let playbackBlocked = false;
@@ -398,8 +420,11 @@ export const createLiveConversation = (
         echoTrace.forget(itemId);
         utteranceLevels.forget(itemId);
         const minLogprob = inputConfidence?.minLogprob;
+        // The person's turn has ended: Live hears the level before it replies.
+        sendInterviewBudgetNote();
         onFinalizedInput({
           ...input,
+          ...(transcriptionPrompt === undefined ? {} : { transcriptionPrompt }),
           ...(latestSpeechItem && latestSpeechItem !== itemId
             ? { superseded: true }
             : {}),
@@ -822,13 +847,26 @@ export const createLiveConversation = (
     abort.signal.throwIfAborted();
     const sdp = connection.localDescription?.sdp;
     if (!sdp) throw new Error("Missing local SDP");
-    if (kind === "live") liveCreationRequested = true;
+    if (kind === "live") {
+      liveCreationRequested = true;
+      sentBudgetLevel = budgetLevel;
+    }
     connectionStages.set(kind, "waiting for session HTTP response");
     const response = await fetch(`/api/voice/${kind}-session`, {
       method: "POST",
       headers: {
         "content-type": "application/sdp",
-        ...(kind === "live" ? { [voicePreferenceHeader]: voice } : {}),
+        ...(wordsHeader === undefined
+          ? {}
+          : { [voiceWordsHeader]: wordsHeader }),
+        ...(kind === "live"
+          ? {
+              [voicePreferenceHeader]: voice,
+              ...(budgetLevel === "off"
+                ? {}
+                : { [interviewBudgetHeader]: budgetLevel }),
+            }
+          : {}),
       },
       body: sdp,
       signal: abort.signal,
@@ -882,6 +920,11 @@ export const createLiveConversation = (
       connectionTimeoutMs,
     );
     try {
+      const words = readWords?.() ?? [];
+      wordsHeader = encodeVoiceWords(words);
+      // Mirrors the prompt the transcription-session handler sends for this
+      // snapshot, so the shadow echo guard compares against what was pinned.
+      transcriptionPrompt = buildVoiceTranscriptionPrompt(words);
       audio = new Audio();
       audio.autoplay = true;
       audio.muted = speakerMuted;
@@ -923,9 +966,10 @@ export const createLiveConversation = (
     kind: LiveAppendResult["kind"],
     text: string,
     delegationId: string | null,
-    progress = false,
+    { progress = false }: { progress?: boolean } = {},
   ): boolean => {
     if (stopping) return false;
+    if (kind === "commentary") sendInterviewBudgetNote();
     const result: LiveAppendResult = {
       eventId: crypto.randomUUID(),
       kind,
@@ -961,6 +1005,19 @@ export const createLiveConversation = (
     return true;
   };
 
+  /**
+   * At a turn boundary, send the level chosen since Live last heard one as a
+   * single quiet note, so stepping through levels sends only the final one
+   * and returning to the sent level sends nothing. A failed note is logged
+   * with the append result and not retried.
+   */
+  sendInterviewBudgetNote = () => {
+    if (stopping || finished || ready.size !== 2) return;
+    if (budgetLevel === sentBudgetLevel) return;
+    sentBudgetLevel = budgetLevel;
+    append("thinking", liveInterviewBudgetUpdate(budgetLevel), null);
+  };
+
   const setMicrophoneMuted = (muted: boolean): void => {
     if (stopping || finished) return;
     microphoneMuted = muted;
@@ -983,6 +1040,11 @@ export const createLiveConversation = (
     retryPlayback: playAudio,
     start,
     stop,
+    setInterviewBudgetLevel: (level: InterviewBudgetLevel) => {
+      // Quiet context for the next turn, never an instruction redirect and
+      // never a reason to interrupt speech.
+      budgetLevel = level;
+    },
     setMicrophoneMuted,
     setSpeakerMuted,
     setSpeakerVolume,
@@ -991,7 +1053,8 @@ export const createLiveConversation = (
     appendCommentary: (text: string, delegationId: string | null) =>
       append("commentary", text, delegationId),
     /** Null-delegation commentary still awaits real-provider verification. */
-    appendProgress: (text: string) => append("commentary", text, null, true),
+    appendProgress: (text: string) =>
+      append("commentary", text, null, { progress: true }),
     appendInstructions: (text: string, delegationId: string | null) =>
       append("instructions", text, delegationId),
     appendThinking: (text: string, delegationId: string | null) =>

@@ -8,7 +8,7 @@ export default defineConfig({
   include: [
     ...(coreConfig.include ?? []),
     "./src/preset/**/*.{ts,tsx}",
-    "./.ladle/**/*.{ts,tsx}",
+    "./.storybook/**/*.{ts,tsx}",
   ],
   staticCss: {
     css: [

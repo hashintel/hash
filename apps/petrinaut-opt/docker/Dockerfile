@@ -3,9 +3,9 @@
 # Build from the repository root:
 # docker build -f apps/petrinaut-opt/docker/Dockerfile .
 
-ARG NODE_VERSION=22
+ARG NODE_VERSION=22.23.4
 ARG PYTHON_VERSION=3.13
-ARG UV_VERSION=0.11.18
+ARG UV_VERSION=0.13.4
 
 
 FROM node:${NODE_VERSION}-bookworm-slim AS bindings-tools
@@ -24,6 +24,7 @@ COPY rust-toolchain.toml /tmp/rust-toolchain.toml
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419~deb12u2 && \
     /etc/mise/install.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -113,6 +114,9 @@ ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHONUNBUFFERED=1 \
     PETRINAUT_CHILD_NODE_OPTIONS="--permission --allow-fs-read=/opt/petrinaut-runtime --allow-fs-read=/usr/local/bin/petrinaut --disable-proto=throw --max-old-space-size=768 --no-addons --no-global-search-paths"
 
+# gRPC otherwise loads the roots bundled in grpcio.
+ENV GRPC_DEFAULT_SSL_ROOTS_FILE_PATH=/etc/ssl/certs/ca-certificates.crt
+
 WORKDIR /app
 
 # Node is what the bindings' executable runs on today.
@@ -124,6 +128,12 @@ COPY apps/petrinaut-opt/src ./src
 # The bindings' runtime: their focused production dependency graph and the
 # built workspace packages it resolves.
 COPY --from=bindings-runtime / /opt/petrinaut-runtime
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419~deb12u2 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # `petrinaut` is the command the bindings spawn by default, and they give the
 # child a fixed PATH of /usr/local/bin:/usr/bin:/bin, so it is linked there.

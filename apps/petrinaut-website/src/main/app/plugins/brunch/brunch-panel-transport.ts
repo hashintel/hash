@@ -1,28 +1,30 @@
-import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent";
+import { petrinautSubmissionContext } from "@hashintel/brunch-agent";
+import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
+import {
+  getInterviewBudget,
+  type InterviewBudgetLevel,
+} from "../../../../shared/interview-budget";
 import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 import { brunchSubmittedUserMessage } from "./brunch-panel-transport/submitted-user-message";
-import { sweepOutputSchema } from "./tools/brunch-sweep-output";
 
 import type { BrunchFlueAdapter } from "./brunch-flue-adapter";
-import type {
-  SweepCapture,
-  SweepCompletionFailure,
-  SweepCompletionReport,
-} from "./tools/brunch-sweep-output";
 import type {
   AgentSendResult,
   FlueClient,
   FlueConversationState,
 } from "@flue/sdk";
-import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
+import type { BrowserContext } from "@hashintel/brunch-agent";
+import type {
+  PetrinautAiChatTransport,
+  PetrinautAiInputMode,
+} from "@hashintel/petrinaut/ui";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
   FlueChatTransportOptions,
 } from "@local/flue-aisdk-transport";
-import type { UIMessageChunk } from "ai";
 
 export type BrunchPanelAdmission = Parameters<
   NonNullable<FlueChatTransportOptions["onAdmission"]>
@@ -33,6 +35,21 @@ export type BrunchPanelAdmissionTarget = Pick<
 >;
 
 export class BrunchPanelConversationTracker {
+  readonly #wordsByMessage = new Map<string, readonly string[]>();
+
+  /**
+   * The words snapshot for one user message, read once so that a retry of the
+   * same message sends the words it was first sent with.
+   */
+  public captureWords(
+    messageId: string,
+    read?: () => readonly string[],
+  ): readonly string[] {
+    const captured = this.#wordsByMessage.get(messageId) ?? read?.() ?? [];
+    this.#wordsByMessage.set(messageId, captured);
+    return captured;
+  }
+
   // Local admissions only, scoped to this conversation tracker. Retain until
   // the tracker is replaced; missing retained history fails closed.
   readonly #admittedSubmissionIds = new Set<string>();
@@ -83,6 +100,20 @@ export class BrunchPanelConversationTracker {
     (event: FlueChatResponseMessageCompletedEvent) => void
   >();
   readonly #stopRequestedListeners = new Set<() => void>();
+  #inputMode: PetrinautAiInputMode | undefined;
+
+  /**
+   * The panel's input surface as reported by Voice, so a text turn sent
+   * during Voice gets the same allowance as the estimate. Undefined until
+   * Voice first mounts, so until then every submission is text.
+   */
+  public get inputMode(): PetrinautAiInputMode | undefined {
+    return this.#inputMode;
+  }
+
+  public recordInputMode(mode: PetrinautAiInputMode): void {
+    this.#inputMode = mode;
+  }
 
   public recordAdmission(admission: BrunchPanelAdmission): void {
     this.#admittedSubmissionIds.add(admission.admission.submissionId);
@@ -205,122 +236,6 @@ export class BrunchPanelConversationTracker {
   }
 }
 
-const formatFailure = (failure: SweepCompletionFailure): string => {
-  const location =
-    failure.nodeId === undefined
-      ? ""
-      : ` at ${failure.nodeId}${failure.slot === undefined ? "" : `.${failure.slot}`}`;
-  const captures =
-    failure.captureIds.length === 0
-      ? ""
-      : ` Captures: ${failure.captureIds.join(", ")}`;
-  return `Completion gap [${failure.diagnostic}]${location}: needs ${failure.requirement}; actual ${failure.actual}. ${failure.message}${captures}`;
-};
-
-const formatCapture = (capture: SweepCapture): string => {
-  const content =
-    "value" in capture.content
-      ? JSON.stringify(capture.content.value)
-      : `absence: ${capture.content.absence}`;
-  const provenance =
-    capture.evidence !== undefined
-      ? capture.evidence.map((evidence) => `“${evidence.excerpt}”`).join("; ")
-      : capture.basis === undefined
-        ? "no provenance"
-        : `${capture.basis.type}: ${capture.basis.description}`;
-  const history = [
-    capture.alternativeGroup === undefined
-      ? undefined
-      : `alternative group ${capture.alternativeGroup}`,
-    capture.supersedes === undefined
-      ? undefined
-      : `supersedes ${capture.supersedes}`,
-  ].filter((fact) => fact !== undefined);
-  return `Capture ${capture.id} (${capture.status}; ${capture.epistemicStatus}; confidence ${capture.confidence}): ${content} — ${provenance}${history.length === 0 ? "" : `; ${history.join("; ")}`}`;
-};
-
-const formatCompletion = (report: SweepCompletionReport): string[] => [
-  `Completion: ${report.complete ? "complete" : "incomplete"} · plugin ${report.pluginVersion} · revision ${report.revision}`,
-  `Completion slice: ${report.sliceNodeIds.join(", ") || "none"}`,
-  ...report.failures.map(formatFailure),
-  ...report.outsideSlice.flatMap((node) => [
-    `Outside completion slice: ${node.nodeId} (${node.kind}); ${node.open.length} open requirement${node.open.length === 1 ? "" : "s"}`,
-    ...node.open.map((failure) => `Outside-slice ${formatFailure(failure)}`),
-  ]),
-];
-
-const summarizeSweepOutput = (
-  output: unknown,
-):
-  | {
-      readonly title: string;
-      readonly detail: string;
-      readonly items?: readonly string[];
-    }
-  | undefined => {
-  const parsed = sweepOutputSchema.safeParse(output);
-  if (!parsed.success) return undefined;
-
-  const sweep = parsed.data;
-  switch (sweep.status) {
-    case "no-settled-range":
-      return {
-        title: "Nothing confirmed to sweep yet",
-        detail: "None of your messages in this conversation are confirmed yet.",
-      };
-    case "refused":
-      return {
-        title: "Sweep refused",
-        detail: sweep.refusal.message,
-        items: [`Refusal: ${sweep.refusal.code}`],
-      };
-    case "applied":
-      return {
-        title: "Sweep applied",
-        detail: `${sweep.appliedCaptureIds.length} new capture${sweep.appliedCaptureIds.length === 1 ? "" : "s"} · ${sweep.captures.length} total · ${sweep.completion?.complete === true ? "complete" : "incomplete"}`,
-        items: [
-          ...sweep.captures.map(formatCapture),
-          ...(sweep.completion === undefined
-            ? []
-            : formatCompletion(sweep.completion)),
-        ],
-      };
-  }
-};
-
-const decorateBrunchStream = (
-  stream: ReadableStream<UIMessageChunk>,
-): ReadableStream<UIMessageChunk> => {
-  const toolNamesByCallId = new Map<string, string>();
-  return stream.pipeThrough(
-    new TransformStream({
-      transform(chunk, controller) {
-        if (chunk.type === "tool-input-available") {
-          toolNamesByCallId.set(chunk.toolCallId, chunk.toolName);
-        }
-        if (
-          chunk.type === "tool-output-available" &&
-          toolNamesByCallId.get(chunk.toolCallId) === SWEEP_TOOL_NAME
-        ) {
-          const summary = summarizeSweepOutput(chunk.output);
-          if (
-            summary !== undefined &&
-            typeof chunk.output === "object" &&
-            chunk.output !== null
-          ) {
-            controller.enqueue({
-              ...chunk,
-              output: { ...chunk.output, ...summary },
-            });
-            return;
-          }
-        }
-        controller.enqueue(chunk);
-      },
-    }),
-  );
-};
-
 /** Adapt one mounted Flue conversation to Petrinaut's AI SDK rendering contract. */
 export const createBrunchPanelTransport = (
   clientPromise: Promise<FlueClient>,
@@ -328,7 +243,12 @@ export const createBrunchPanelTransport = (
   options?: {
     /** The projection shared with this conversation's reopened history. */
     readonly adapter?: BrunchFlueAdapter;
-    readonly initialData?: FlueChatTransportOptions["initialData"];
+    /** The conversation's preferred spellings, read when a message is first sent. */
+    readonly readWords?: () => readonly string[];
+    readonly initialData?: BrowserContext;
+    readonly interviewBudgetLevel?: InterviewBudgetLevel;
+    /** The host's canonical count, shared with the estimate above the composer. */
+    readonly interviewRepliesAsked?: number;
     readonly onAdmission?: (admission: AgentSendResult) => void;
     readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
@@ -340,12 +260,32 @@ export const createBrunchPanelTransport = (
   sendMessages: (sendOptions) =>
     tracker.trackSubmission(
       (async () => {
+        const userMessage = sendOptions.messages.findLast(
+          (message) => message.id !== petrinautDiagnosticsContextMessageId,
+        );
+        const words =
+          userMessage === undefined
+            ? []
+            : tracker.captureWords(userMessage.id, options?.readWords);
         const client = await clientPromise;
+        const budget = getInterviewBudget(
+          options?.interviewBudgetLevel ?? "off",
+          // Voice reports its mode when it mounts, before it can submit.
+          tracker.inputMode ?? "text",
+          options?.interviewRepliesAsked ?? 0,
+        );
+        // An empty context sends an ordinary message, which also clears
+        // Brunch's words snapshot.
+        const submissionContext = petrinautSubmissionContext({
+          ...(budget === undefined ? {} : { interviewBudget: budget }),
+          words,
+        });
         const transport = (
           options?.adapter ?? canonicalBrunchFlueAdapter
         ).chatTransport({
           client,
-          submittedUserMessage: brunchSubmittedUserMessage,
+          submittedUserMessage: (messages) =>
+            brunchSubmittedUserMessage(messages, submissionContext),
           initialData: options?.initialData,
           liveToolStream: options?.liveToolStream,
           onAdmission: (event) => {
@@ -360,9 +300,7 @@ export const createBrunchPanelTransport = (
           onDisconnect: options?.onDisconnect,
         });
         try {
-          return decorateBrunchStream(
-            await transport.sendMessages(sendOptions),
-          );
+          return await transport.sendMessages(sendOptions);
         } catch (error) {
           const messageId =
             sendOptions.messageId ?? sendOptions.messages.at(-1)?.id;

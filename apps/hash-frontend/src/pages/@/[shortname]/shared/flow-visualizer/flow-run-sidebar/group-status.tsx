@@ -1,5 +1,5 @@
 import { Box, Collapse, Stack, Typography } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { CaretDownSolidIcon } from "@hashintel/design-system";
 
@@ -13,24 +13,14 @@ import {
   WaitingIcon,
 } from "./group-status/group-step-status";
 
-import type { EdgesAndNodes } from "../shared/types";
+import type { FlowStepSummary } from "../shared/types";
 
-export const GroupStatus = ({ graph }: { graph: EdgesAndNodes }) => {
-  const groupStepsWithIds = useMemo(
-    () =>
-      graph.nodes.map((node) => ({
-        ...node,
-        stepId: node.id,
-        parentStepId: node.parentNode,
-      })),
-    [graph],
-  );
-
+export const GroupStatus = ({ steps }: { steps: FlowStepSummary[] }) => {
   const {
     closedAt,
     scheduledAt,
     overallStatus: groupStatus,
-  } = useStatusForSteps(groupStepsWithIds) ?? {};
+  } = useStatusForSteps(steps) ?? {};
 
   const [showSteps, setShowSteps] = useState(groupStatus === "In Progress");
 
@@ -130,11 +120,11 @@ export const GroupStatus = ({ graph }: { graph: EdgesAndNodes }) => {
             my: 1,
           }}
         >
-          {groupStepsWithIds.map((step) => (
+          {steps.map((step) => (
             <GroupStepStatus
               key={step.stepId}
-              kind={step.data.kind}
-              label={step.data.label}
+              kind={step.kind}
+              label={step.label}
               stepId={step.stepId}
             />
           ))}

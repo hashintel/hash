@@ -147,6 +147,96 @@ const useCopyPlugin: PluginHook<typeof CopyPlugin> = ({ document }) => ({
 export const copyPlugin = CopyPlugin(useCopyPlugin);
 ```
 
+## Provide the AI assistant
+
+Declare `assistant: true` and return `assistant: { content }`. The editor
+renders `content` in its assistant panel, below the title bar, behind the
+plugin's error boundary, and opens the panel from the bottom bar button and
+the toggle shortcut. The panel's frame, placement, resizing, dock toggle and
+Close button stay the editor's. The editor shows the first running plugin that
+provides an assistant, and the deprecated `aiAssistant` prop's chat while
+none runs.
+
+Inside `content`, `AssistantPanelTitle` fills the title bar and
+`useAssistantPanel()` reads whether the panel is open and closes it.
+
+The title bar's parts render inside `content`, so they read the chat's state:
+the Clear button below shows only once there are messages.
+
+The empty-net prompt shows while the assistant returns `onPrompt`. The editor
+opens the panel and calls it with the message the user sends, so the
+conversation lives in the hook, where `onPrompt` can reach it. When the panel
+opens, the content's element marked `data-autofocus`, such as the composer's
+`<textarea data-autofocus />`, takes focus; without one, the panel does.
+
+```tsx
+// `Chat` and `useChat` come from `@ai-sdk/react`, `UIMessage` from `ai`.
+// `MyChat` and `transport` are the plugin's own.
+const ChatPlugin = definePetrinautPlugin({
+  id: "example.chat",
+  name: "Chat",
+  assistant: true,
+});
+
+const ChatPanel = ({ chat }: { chat: Chat<UIMessage> }) => {
+  const { isOpen } = useAssistantPanel();
+  const { messages, setMessages } = useChat({ chat });
+
+  return (
+    <>
+      <AssistantPanelTitle
+        actions={
+          messages.length > 0 && (
+            <button type="button" onClick={() => setMessages([])}>
+              Clear
+            </button>
+          )
+        }
+      >
+        Chat
+      </AssistantPanelTitle>
+      <MyChat chat={chat} visible={isOpen} />
+    </>
+  );
+};
+
+const useChatPlugin: PluginHook<typeof ChatPlugin> = () => {
+  const [chat] = useState(() => new Chat({ transport }));
+
+  return {
+    assistant: {
+      content: <ChatPanel chat={chat} />,
+      onPrompt: (text) => chat.sendMessage({ text }),
+    },
+  };
+};
+
+export const chatPlugin = ChatPlugin(useChatPlugin);
+```
+
+For a second tab, the content draws the tabs in the title bar and switches its
+own body. `LedgerPane` is the plugin's own.
+
+```tsx
+const ChatPanel = ({ chat }: { chat: Chat<UIMessage> }) => {
+  const [tab, setTab] = useState<"chat" | "ledger">("chat");
+
+  return (
+    <>
+      <AssistantPanelTitle>
+        <button type="button" onClick={() => setTab("chat")}>
+          Chat
+        </button>
+        <button type="button" onClick={() => setTab("ledger")}>
+          Ledger
+        </button>
+      </AssistantPanelTitle>
+      {tab === "chat" ? <MyChat chat={chat} /> : <LedgerPane />}
+    </>
+  );
+};
+```
+
 ## Add settings
 
 Declare each setting under `settings`. The editor renders its row in User

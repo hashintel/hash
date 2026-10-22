@@ -26,6 +26,9 @@ type PetrinautAiMutationCall = Extract<
  * Execute one canonical mutation while Petrinaut owns its no-op detection and
  * model-facing output. Hosts may observe around this synchronous boundary,
  * but do not need a full editor instance to use it.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
  */
 export const executePetrinautAiMutation = ({
   aiToolCall,

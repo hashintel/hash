@@ -169,6 +169,68 @@ const DockingHarness = ({
 };
 
 describe("AiAssistantContents", () => {
+  test("host Words controls coexist with Ledger and can be removed without changing user rows", () => {
+    const message: PetrinautAiMessage = {
+      id: "voice-caption",
+      role: "user",
+      metadata: { source: "voice" },
+      parts: [{ type: "text", text: "relay desk", state: "done" }],
+    };
+    const props = {
+      input: "",
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      presentation: "brunch" as const,
+      status: "ready" as const,
+      messages: [message],
+      additionalTab: { label: "Ledger", content: <p>Ledger stays mounted</p> },
+    };
+    const view = render(
+      <AiAssistantContents
+        {...props}
+        headerActions={<button type="button">Words</button>}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Words" })).toBeDefined();
+    expect(screen.getByRole("tab", { name: /Ledger/u })).toBeDefined();
+    view.rerender(<AiAssistantContents {...props} />);
+    expect(screen.queryByRole("button", { name: "Words" })).toBeNull();
+    expect(screen.getByText("relay desk")).toBeDefined();
+  });
+
+  test("voice-only host actions follow the selected mode, not session state", () => {
+    const props = {
+      input: "",
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      presentation: "brunch" as const,
+      status: "ready" as const,
+      actionsInputMode: "voice" as const,
+      headerActions: <button type="button">Words</button>,
+      messages: [
+        {
+          id: "voice-caption",
+          role: "user" as const,
+          metadata: { source: "voice" as const },
+          parts: [{ type: "text" as const, text: "relay desk" }],
+        },
+      ],
+    };
+    const view = render(<AiAssistantContents {...props} inputMode="text" />);
+    expect(screen.queryByRole("button", { name: "Words" })).toBeNull();
+
+    view.rerender(<AiAssistantContents {...props} inputMode="voice" />);
+    expect(screen.getByRole("button", { name: "Words" })).toBeDefined();
+
+    view.rerender(<AiAssistantContents {...props} inputMode="text" />);
+    expect(screen.queryByRole("button", { name: "Words" })).toBeNull();
+    expect(screen.getByText("relay desk")).toBeDefined();
+  });
+
   test("orders optional voice slots around work and produced cards", async () => {
     const card = definePetrinautAiInteractiveTool({
       toolName: "draft",
@@ -1883,6 +1945,41 @@ describe("AiAssistantContents", () => {
     },
   );
 
+  test.each(["setup", "listening"] as const)(
+    "omits the status row from the collapsed %s Voice dock",
+    (phase) => {
+      const store = createVoiceSessionStore();
+      if (phase === "listening")
+        store.setState({
+          errorMessage: null,
+          microphoneLevel: 0,
+          microphoneMuted: false,
+          phase,
+        });
+      const contents = (collapsed: boolean) => (
+        <VoiceSessionContext.Provider value={store}>
+          <AiAssistantContents
+            input=""
+            inputMode="voice"
+            messages={[]}
+            composerStatus={<div data-testid="host-status">Host status</div>}
+            onClose={noop}
+            onInputChange={noop}
+            onStop={noop}
+            onSubmit={noop}
+            status="ready"
+            voiceDockCollapsed={collapsed}
+          />
+        </VoiceSessionContext.Provider>
+      );
+      const { rerender } = render(contents(true));
+      expect(screen.getByTestId("ai-voice-dock")).toBeTruthy();
+      expect(screen.queryByTestId("host-status")).toBeNull();
+      rerender(contents(false));
+      expect(screen.getByTestId("host-status").textContent).toBe("Host status");
+    },
+  );
+
   test("contains voice failures in the collapsed dock without a toast", async () => {
     const store = createVoiceSessionStore();
     store.setState({
@@ -2010,6 +2107,109 @@ describe("AiAssistantContents", () => {
     ).not.toBeNull();
     expect(renderMarkdown).toHaveBeenCalledOnce();
   });
+
+  test.each(["text", "voice"] as const)(
+    "keeps system notes visible outside assistant activity in %s mode",
+    (inputMode) => {
+      render(
+        <AiAssistantContents
+          input=""
+          inputMode={inputMode}
+          messages={[
+            {
+              id: "host-note",
+              role: "system",
+              parts: [{ type: "text", text: "Host note" }],
+            },
+          ]}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          presentation="brunch"
+          status="ready"
+        />,
+      );
+
+      const note = screen.getByRole("note");
+      expect(note.textContent).toBe("Host note");
+      expect(note.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+      expect(screen.queryByText("Activity")).toBeNull();
+    },
+  );
+
+  test("keeps the streaming reply active beneath a trailing system note", () => {
+    const { container } = render(
+      <AiAssistantContents
+        input=""
+        messages={[
+          {
+            id: "user",
+            role: "user",
+            parts: [{ type: "text", text: "Model the clinic" }],
+          },
+          {
+            id: "reply",
+            role: "assistant",
+            parts: [{ type: "text", state: "streaming", text: "How many" }],
+          },
+          {
+            id: "note",
+            role: "system",
+            parts: [{ type: "text", text: "Short interview" }],
+          },
+        ]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        presentation="brunch"
+        status="streaming"
+      />,
+    );
+    expect(
+      container.querySelector('[data-work-status="streaming"]'),
+    ).not.toBeNull();
+    expect(container.querySelector('[data-work-status="pending"]')).toBeNull();
+  });
+
+  test.each(["text", "voice"] as const)(
+    "uses host presentation only for system notes in %s",
+    (inputMode) => {
+      const renderSystemMessage = vi.fn(() => <span>Custom host note</span>);
+      render(
+        <AiAssistantContents
+          input=""
+          inputMode={inputMode}
+          messages={[
+            {
+              id: "note",
+              role: "system",
+              parts: [{ type: "text", text: "Plain fallback" }],
+            },
+            {
+              id: "reply",
+              role: "assistant",
+              parts: [{ type: "text", text: "Assistant response" }],
+            },
+          ]}
+          renderSystemMessage={renderSystemMessage}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          presentation="brunch"
+          status="ready"
+        />,
+      );
+      expect(screen.getByRole("note").textContent).toBe("Custom host note");
+      expect(screen.queryByText("Plain fallback")).toBeNull();
+      expect(renderSystemMessage).toHaveBeenCalledOnce();
+      expect(renderSystemMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "note", role: "system" }),
+      );
+    },
+  );
 
   test("hides a closed chat-only panel from the accessibility tree", () => {
     const { container } = render(
@@ -2320,6 +2520,41 @@ describe("AiAssistantContents", () => {
     expect(textarea.nextElementSibling?.contains(control)).toBe(true);
     expect(control.nextElementSibling?.contains(sendButton)).toBe(true);
   });
+
+  test.each([
+    ["", "ready", "Start voice mode"],
+    ["Draft", "ready", "Send message"],
+    ["Draft", "streaming", "Stop AI response"],
+  ] as const)(
+    "keeps host controls before the input in the brunch presentation with %s draft and %s status",
+    (input, status, actionLabel) => {
+      render(
+        <AiAssistantContents
+          composerControl={<button type="button">Host setting</button>}
+          input={input}
+          messages={[]}
+          onClose={noop}
+          onInputChange={noop}
+          onInputModeChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          presentation="brunch"
+          status={status}
+          voiceModeAvailable
+        />,
+      );
+      const control = screen.getByRole("button", { name: "Host setting" });
+      const textarea = screen.getByRole("textbox", {
+        name: "Message AI assistant",
+      });
+      expect(control.nextElementSibling).toBe(textarea);
+      expect(
+        textarea.nextElementSibling?.contains(
+          screen.getByRole("button", { name: actionLabel }),
+        ),
+      ).toBe(true);
+    },
+  );
 
   test("keeps one trailing Brunch composer action", () => {
     const onInputModeChange = vi.fn();
@@ -3480,6 +3715,55 @@ describe("AiAssistantContents", () => {
       <AiAssistantContents
         {...props}
         messages={[messageWithReply("I’ll ask Brunch")]}
+      />,
+    );
+
+    expect(scrollTo.mock.instances).toContain(
+      screen.getByTestId("ai-transcript"),
+    );
+    window.HTMLElement.prototype.scrollTo = originalScrollTo;
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+  });
+
+  test("auto-follows a reply that streams beneath a trailing system note", () => {
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- Saved only for restoration.
+    const originalScrollTo = window.HTMLElement.prototype.scrollTo;
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    const scrollTo = vi.fn();
+    window.HTMLElement.prototype.scrollTo = scrollTo;
+    window.requestAnimationFrame = (callback) => {
+      callback(0);
+      return 0;
+    };
+    const messages = (text: string): PetrinautAiMessage[] => [
+      {
+        id: "assistant-1",
+        role: "assistant",
+        parts: [{ type: "text", state: "streaming", text }],
+      },
+      {
+        id: "note-1",
+        role: "system",
+        parts: [{ type: "text", text: "Short interview" }],
+      },
+    ];
+    const props = {
+      input: "",
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "streaming" as const,
+    };
+    const view = render(
+      <AiAssistantContents {...props} messages={messages("How many")} />,
+    );
+    scrollTo.mockClear();
+
+    view.rerender(
+      <AiAssistantContents
+        {...props}
+        messages={messages("How many agents work each shift?")}
       />,
     );
 

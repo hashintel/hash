@@ -25,7 +25,7 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 
 - **Edit** -- Canvas and Definitions views for editing the same net, plus single-run simulation playback on Canvas.
 - **Simulate** -- a separate management surface for scenarios and experiments.
-- **Actual** -- a read-only live-execution view supplied by a host such as Brunch.
+- **Actual** -- a read-only view of an execution supplied by the host application.
 
 ## Contents
 
@@ -37,7 +37,7 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [Ad-hoc Scenarios](ad-hoc-scenarios.md) -- The scenario form: define initial state and parameters inline for one run, or save them as a scenario.
 - [Experiments](experiments.md) -- Run Monte Carlo batches and inspect token-count distributions over time.
 - [Simulation Panels](simulation-panels.md) -- Open scenarios and experiments beside the main view, expand to fullscreen, and use links and browser history.
-- [Actual Mode](actual-mode.md) -- View a host-provided live Petri net execution, currently via Brunch.
+- [Actual Mode](actual-mode.md) -- View a live or completed Petri net execution supplied by the host application.
 - [Embedded Preview](preview.md) -- Explore a compact, read-only Petri net embedded in a host application.
 - [AI Assistant](ai-assistant.md) -- Build, review, and revise nets with text or inline Voice mode.
 - [Code Editor](code-editor.md) -- Edit model functions and expand their sections within the Properties Panel.

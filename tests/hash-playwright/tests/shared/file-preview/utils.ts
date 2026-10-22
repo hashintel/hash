@@ -1,4 +1,7 @@
-import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  extractWebIdFromEntityId,
+} from "@blockprotocol/type-system";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
@@ -19,6 +22,19 @@ export const getPdfPage = (page: Page) => page.locator(".react-pdf-page");
 export const getDocxPage = (page: Page, heading: string) =>
   page.locator(".layout-page", { hasText: heading });
 
+/**
+ * Returns the text of each search hit the preview marks, and of the current
+ * hit. The previews mark hits with the CSS Custom Highlight API, which draws
+ * them without adding elements a locator could find.
+ */
+export const getSearchHighlights = (page: Page) =>
+  page.evaluate(() => ({
+    hits: [...(CSS.highlights.get("file-preview-hit") ?? [])].map(String),
+    current: [...(CSS.highlights.get("file-preview-current-hit") ?? [])].map(
+      String,
+    ),
+  }));
+
 export const docxMimeType =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -38,14 +54,27 @@ const uploadTestFile = async (page: Page, file: TestFile) => {
 
 export const uploadAndOpenFile = async (page: Page, file: TestFile) => {
   const fileEntity = await uploadTestFile(page, file);
+  const { entityId } = fileEntity.metadata.recordId;
+  const entityUuid = extractEntityUuidFromEntityId(entityId);
+
+  const fileEntityFetched = page.waitForResponse((response) => {
+    const postData = response.request().postData() ?? "";
+
+    return (
+      response.url().includes("/graphql") &&
+      postData.includes("queryEntitySubgraph") &&
+      postData.includes(`{"path":["uuid"]},{"parameter":"${entityUuid}"}`)
+    );
+  });
 
   await page.goto(
     generateEntityPath({
-      entityId: fileEntity.metadata.recordId.entityId,
+      entityId,
       includeDraftId: false,
       shortname: "alice",
     }),
   );
+  await fileEntityFetched;
 };
 
 export const uploadTestFileAndGetUrl = async (page: Page, file: TestFile) => {

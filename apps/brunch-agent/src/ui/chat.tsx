@@ -19,6 +19,7 @@ import {
   type ConversationIdentity,
   flueConversationIdWeb,
   localUiPrincipal,
+  petrinautUserMessageText,
 } from "@hashintel/brunch-agent";
 
 /** The local UI always speaks as its one demo principal. */
@@ -84,7 +85,9 @@ function VisibleMessage({ message }: { message: FlueConversationMessage }) {
           return (
             // oxlint-disable-next-line react/no-array-index-key -- Flue text parts expose no stable identifier.
             <p className="message__text" key={partIndex}>
-              {part.text}
+              {message.role === "user"
+                ? petrinautUserMessageText(part.text)
+                : part.text}
             </p>
           );
         }

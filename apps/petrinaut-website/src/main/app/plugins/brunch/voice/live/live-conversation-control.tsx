@@ -24,6 +24,7 @@ import {
 import { LiveSpeechCaptions } from "./live-speech-captions";
 import { createUtteranceJudgmentRequester } from "./request-utterance-judgment";
 
+import type { InterviewBudgetLevel } from "../../../../../../shared/interview-budget";
 import type {
   OpenAIVoiceConfig,
   VoiceInterviewControl,
@@ -43,7 +44,9 @@ type LiveControlsContext = PetrinautAiVoiceModeContext &
     | "subscribeToResponseMessageCompleted"
     | "subscribeToStopRequested"
     | "toolApprovalState"
+    | "readWords"
   > & {
+    readonly interviewBudgetLevel?: InterviewBudgetLevel;
     readonly mediationHistory?: VoiceMediationHistory;
     readonly acknowledgeDisclosure: () => void;
     readonly submit: ConstructorParameters<
@@ -92,7 +95,9 @@ const createLiveMediation = (
 });
 
 export const LiveConversationControl = ({
+  interviewBudgetLevel = "off",
   mediationHistory,
+  readWords,
   acknowledgeDisclosure,
   inputMode,
   isAiAssistantOpen,
@@ -374,6 +379,8 @@ export const LiveConversationControl = ({
         },
         closed: () => captions.close(),
       },
+      interviewBudgetLevel,
+      readWords,
     );
     next.setMicrophoneMuted(false);
     next.setSpeakerMuted(false);
@@ -409,8 +416,13 @@ export const LiveConversationControl = ({
     connectionTimeoutMs,
     phase,
     setVoiceActive,
+    interviewBudgetLevel,
+    readWords,
     utteranceJudgment,
   ]);
+  useEffect(() => {
+    session.current?.setInterviewBudgetLevel(interviewBudgetLevel);
+  }, [interviewBudgetLevel, state.phase]);
   useLayoutEffect(() => {
     if (inputMode !== "voice" || !isAiAssistantOpen) {
       handledVoiceSelection.current = false;

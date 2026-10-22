@@ -8,6 +8,8 @@ import {
   type EditorGlobalMode,
   type EditViewMode,
 } from "../../../react/state/editor-context";
+import { definePetrinautPlugin } from "../../plugins/define-petrinaut-plugin";
+import { renderPlugins } from "../../plugins/plugins-test-harness";
 import { EditorView } from "./editor-view";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
@@ -76,7 +78,13 @@ vi.mock("./panels/PropertiesPanel/panel", () => ({
 vi.mock("./panels/BottomPanel/panel", () => ({ BottomPanel: () => null }));
 vi.mock("./components/BottomBar/bottom-bar", () => ({ BottomBar: () => null }));
 vi.mock("./components/TopBar/top-bar", () => ({ TopBar: () => null }));
-vi.mock("./components/ai-cta-modal", () => ({ AiCtaModal: () => null }));
+vi.mock("./components/ai-cta-modal", () => ({
+  AiCtaModal: ({ onSubmit }: { onSubmit: (message: string) => void }) => (
+    <button type="button" onClick={() => onSubmit("Build an SIR model")}>
+      Send empty-net prompt
+    </button>
+  ),
+}));
 vi.mock("./components/import-error-dialog", () => ({
   ImportErrorDialog: () => null,
 }));
@@ -101,6 +109,18 @@ const aiAssistant: PetrinautAiAssistant = {
       ),
   },
 };
+
+const onPrompt = vi.fn();
+
+const promptPlugin = definePetrinautPlugin(
+  { id: "test.prompt", name: "Prompt", assistant: true },
+  { assistant: { content: <p>Plugin chat</p>, onPrompt } },
+);
+
+const silentPlugin = definePetrinautPlugin(
+  { id: "test.silent", name: "Silent", assistant: true },
+  { assistant: { content: <p>Plugin chat</p> } },
+);
 
 const EditorAtMode = ({
   mode,
@@ -180,6 +200,29 @@ describe("EditorView assistant lifecycle", () => {
 
     unmount();
     expect(lifecycle.cancelPendingRequest).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("EditorView empty-net prompt", () => {
+  test("opens the panel and hands the message to the plugin assistant's onPrompt", () => {
+    renderPlugins([promptPlugin], <EditorView titleEditable />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Send empty-net prompt" }),
+    );
+
+    expect(onPrompt).toHaveBeenCalledWith("Build an SIR model");
+    expect(
+      screen.getByRole("complementary", { name: "AI assistant" }).textContent,
+    ).toContain("Plugin chat");
+  });
+
+  test("hides the prompt while the plugin assistant has no onPrompt", () => {
+    renderPlugins([silentPlugin], <EditorView titleEditable />);
+
+    expect(
+      screen.queryByRole("button", { name: "Send empty-net prompt" }),
+    ).toBeNull();
   });
 });
 

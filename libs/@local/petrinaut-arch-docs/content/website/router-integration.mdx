@@ -46,9 +46,7 @@ so a host that passes a controller replaces the provider's initial state
 outright. That includes the Actual-mode default the provider applies when a
 live stream is available. A page that must open in a non-default mode states
 it in the hook's `initialState`, which seeds the fields the URL does not
-carry; the URL still wins for the fields it owns. `/brunch` seeds
-`mode: "actual"` for exactly this reason, and without it the execution frame
-would read the local simulation instead of the stream.
+carry; the URL still wins for the fields it owns.
 
 ## Validation normalizes the location
 
@@ -66,14 +64,12 @@ navigation drops them, because the routes write a fresh contract-only search
 rather than merging into the existing one. Params an older link may still
 carry (`view=optimizations`, `overlay=create-optimization`, `present`) fall
 under the same rule: `validateSharedExampleSearch` normalises them to the
-baseline location, and the first navigation rewrites the URL. `/brunch` is the exception: its
-`sse` and `runId` params name the stream, so it carries them over and replaces
-only the contract part.
+baseline location, and the first navigation rewrites the URL.
 
 ## Which routes speak the contract
 
 Every page that mounts Petrinaut does: the editable demo at `/local/$netId`,
-the Brunch stream at `/brunch`, the example pages at `/examples/$slug` and
+the example pages at `/examples/$slug` and
 `/embed/examples/$slug`, and snapshots at `/share`.
 
 Each also names its model in the URL. The editable demo names a net saved in
@@ -81,9 +77,7 @@ this browser's local storage by its id, so the link opens that net only in the
 browser that saved it. The demo takes the id as a prop and asks the route to
 open another net, so Back and Forward move between nets. The demo passes the
 net id as the hook's `resetKey`, so opening another net starts the location
-over from the URL, as a fresh page would. `/brunch` names its
-model with the stream keys it carries over, so a copied URL reproduces the
-run. The example pages name the model in the path. `/share` carries the whole
+over from the URL, as a fresh page would. The example pages name the model in the path. `/share` carries the whole
 net in its fragment, `#v1.br.<payload>`, which the browser does not send to
 the server. The route keeps the fragment when the view changes, and keys the
 snapshot page by it, so Back and Forward between snapshots open each one

@@ -55,11 +55,7 @@ const sdcpnContextValue: SDCPNContextValue = {
 
 const availableActualMode: ActualModeContextValue = {
   available: true,
-  source: {
-    kind: "brunch",
-    endpoint: "http://127.0.0.1:5184/stream",
-    runId: "run-1",
-  },
+  source: { id: "run-1", label: "Run 1" },
   status: "complete",
   title: "Run",
   definition,
@@ -72,7 +68,6 @@ const availableActualMode: ActualModeContextValue = {
       ts: "2026-06-05T10:00:00.000Z",
     },
   ],
-  receivedEvents: [],
   timelineStartedAtMs: Date.parse("2026-06-05T10:00:00.000Z"),
   timelineNowMs: Date.parse("2026-06-05T10:00:05.000Z"),
   error: null,
@@ -134,6 +129,7 @@ describe("useActualExecutionFrameSource", () => {
 
     // One initial point plus one transition firing; no live ticks because the
     // stream is complete.
+    expect(captured.source?.sourceId).toMatch(/^actual:run-1:/);
     expect(captured.source?.totalFrames).toBe(2);
     expect(captured.source?.currentFrameIndex).toBe(0);
     expect(captured.source?.currentViewedFrame?.places).toEqual({

@@ -4,7 +4,6 @@ import { token } from "@hashintel/ds-helpers/tokens";
 
 import type { PaletteName } from "./_types";
 import type { Token } from "@hashintel/ds-helpers/tokens";
-import type { Story } from "@ladle/react";
 
 const COLOR_PALETTES: readonly PaletteName[] = [
   "neutral",
@@ -352,7 +351,7 @@ const PaletteSection = ({ palette }: { palette: string }) => (
   </Box>
 );
 
-export const ColorVariants: Story = () => (
+export const ColorVariantsDemo = () => (
   <VStack gap="6" alignItems="flex-start" p="6">
     <VStack gap="1" alignItems="flex-start">
       <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
@@ -396,5 +395,3 @@ export const ColorVariants: Story = () => (
     </Grid>
   </VStack>
 );
-
-ColorVariants.storyName = "Color Variants";

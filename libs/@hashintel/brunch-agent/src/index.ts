@@ -19,7 +19,15 @@ export {
   PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
+  petrinautUserMessageText,
+  type SubmissionContext,
 } from "./petrinaut/contextual-user-message";
+export { type InterviewBudget } from "./petrinaut/interview-budget";
+export {
+  petrinautSubmissionContext,
+  readPetrinautSubmissionContext,
+  type PetrinautSubmissionContext,
+} from "./petrinaut/submission-context";
 export {
   isNetObservationTool,
   netReaderDescriptions,

@@ -11,6 +11,10 @@ type AiVoiceModeButtonProps = {
   size: "sm" | "lg";
 };
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export const AiVoiceModeIcon = ({ size = 16 }: { size?: number }) => {
   const experimentalIcons = useExperimentalIconPackEnabled();
   if (experimentalIcons) {
@@ -34,6 +38,10 @@ export const AiVoiceModeIcon = ({ size = 16 }: { size?: number }) => {
   );
 };
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export const AiVoiceModeButton = ({
   className,
   onClick,

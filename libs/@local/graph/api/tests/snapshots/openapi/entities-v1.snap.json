@@ -1,6 +1,70 @@
 {
   "components": {
     "responses": {
+      "BadRequest": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "detail": "Invalid URL: Cannot parse `limit` with value `many` to a `u8`",
+              "status": 400,
+              "title": "Bad Request",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 400
+                    },
+                    "title": {
+                      "const": "Bad Request"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Bad Request"
+            }
+          }
+        },
+        "description": "A path parameter does not match its documented schema.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
+      },
       "InternalServerError": {
         "content": {
           "application/problem+json": {
@@ -65,13 +129,13 @@
           }
         }
       },
-      "ServiceUnavailable": {
+      "NotFound": {
         "content": {
           "application/problem+json": {
             "example": {
-              "detail": "authentication is temporarily unavailable",
-              "status": 503,
-              "title": "Service Unavailable",
+              "detail": "No entity `8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d` is visible to the caller.",
+              "status": 404,
+              "title": "Not Found",
               "type": "about:blank"
             },
             "schema": {
@@ -82,10 +146,10 @@
                 {
                   "properties": {
                     "status": {
-                      "const": 503
+                      "const": 404
                     },
                     "title": {
-                      "const": "Service Unavailable"
+                      "const": "Not Found"
                     },
                     "type": {
                       "const": "about:blank"
@@ -96,11 +160,117 @@
                   ]
                 }
               ],
-              "title": "Service Unavailable"
+              "title": "Not Found"
             }
           }
         },
-        "description": "Authentication is temporarily unavailable.",
+        "description": "The entity does not exist, is archived, or the caller may not view it.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "content": {
+          "application/problem+json": {
+            "examples": {
+              "about:blank": {
+                "summary": "Service Unavailable: The service is temporarily unavailable.",
+                "value": {
+                  "detail": "The service is temporarily unavailable.",
+                  "status": 503,
+                  "title": "Service Unavailable",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (2)": {
+                "summary": "Service Unavailable: Authentication is temporarily unavailable.",
+                "value": {
+                  "detail": "authentication is temporarily unavailable",
+                  "status": 503,
+                  "title": "Service Unavailable",
+                  "type": "about:blank"
+                }
+              }
+            },
+            "schema": {
+              "anyOf": [
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "title": {
+                          "const": "Service Unavailable"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Service Unavailable: The service is temporarily unavailable."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "title": {
+                          "const": "Service Unavailable"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Service Unavailable: Authentication is temporarily unavailable."
+                }
+              ]
+            }
+          }
+        },
+        "description": "- Service Unavailable: The service is temporarily unavailable.\n- Service Unavailable: Authentication is temporarily unavailable.",
         "headers": {
           "Cache-Control": {
             "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -277,102 +447,53 @@
       }
     },
     "schemas": {
-      "ActorId": {
-        "description": "An actor's type and UUID.",
-        "oneOf": [
-          {
-            "properties": {
-              "actorType": {
-                "const": "user",
-                "type": "string"
-              },
-              "id": {
-                "description": "The UUID of a user.",
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            "required": [
-              "actorType",
-              "id"
-            ],
-            "title": "User",
-            "type": "object"
-          },
-          {
-            "properties": {
-              "actorType": {
-                "const": "machine",
-                "type": "string"
-              },
-              "id": {
-                "description": "The UUID of a machine actor.",
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            "required": [
-              "actorType",
-              "id"
-            ],
-            "title": "Machine",
-            "type": "object"
-          },
-          {
-            "properties": {
-              "actorType": {
-                "const": "ai",
-                "type": "string"
-              },
-              "id": {
-                "description": "The UUID of an AI agent.",
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            "required": [
-              "actorType",
-              "id"
-            ],
-            "title": "AI",
-            "type": "object"
-          }
-        ]
-      },
-      "AuthenticatedCallerResponse": {
-        "description": "The resolved caller.",
+      "Entity": {
+        "description": "An entity the caller may view.",
         "properties": {
-          "actor": {
+          "metadata": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/ActorId"
+                "$ref": "#/components/schemas/EntityMetadata"
               }
             ],
-            "description": "The resolved actor."
+            "description": "What identifies and classifies the entity."
           }
         },
         "required": [
-          "actor"
+          "metadata"
         ],
         "type": "object"
       },
-      "CallerResponse": {
-        "description": "The resolved caller.",
+      "EntityId": {
+        "description": "An entity's web ID and UUID, joined by `~`.",
+        "examples": [
+          "8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d"
+        ],
+        "type": "string"
+      },
+      "EntityMetadata": {
+        "description": "What identifies and classifies an entity.",
         "properties": {
-          "actor": {
-            "anyOf": [
+          "entityId": {
+            "allOf": [
               {
-                "$ref": "#/components/schemas/ActorId"
-              },
-              {
-                "type": "null"
+                "$ref": "#/components/schemas/EntityId"
               }
             ],
-            "description": "The resolved actor, or `null` for an anonymous request."
+            "description": "The ID of the entity."
+          },
+          "entityTypeIds": {
+            "description": "The entity types the entity is an instance of, without the types they inherit from.",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            },
+            "type": "array",
+            "uniqueItems": true
           }
         },
         "required": [
-          "actor"
+          "entityId",
+          "entityTypeIds"
         ],
         "type": "object"
       },
@@ -408,6 +529,16 @@
         ],
         "title": "Problem Details",
         "type": "object"
+      },
+      "VersionedUrl": {
+        "description": "The versioned URL of a SemType ontology type (the $id of the schema). It must be of the form `${baseUrl}v/${version}`, where `version` is a major version number.",
+        "examples": [
+          "https://hash.ai/@h/types/entity-type/user/v/1"
+        ],
+        "format": "uri",
+        "maxLength": 2048,
+        "title": "Versioned URL",
+        "type": "string"
       }
     },
     "securitySchemes": {
@@ -425,19 +556,33 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/entities/v1/authenticated-caller": {
+    "/entities/v1/{entityId}": {
       "get": {
-        "operationId": "getAuthenticatedCaller",
+        "description": "Returns the entity's ID and the entity types of its current edition.",
+        "operationId": "getEntity",
+        "parameters": [
+          {
+            "description": "The ID of the entity to read. An ID that names a draft is answered with `400`.",
+            "in": "path",
+            "name": "entityId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityId",
+              "description": "The ID of the entity to read. An ID that names a draft is answered with `400`."
+            },
+            "style": "simple"
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthenticatedCallerResponse"
+                  "$ref": "#/components/schemas/Entity"
                 }
               }
             },
-            "description": "The resolved caller.",
+            "description": "An entity the caller may view.",
             "headers": {
               "Cache-Control": {
                 "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -466,8 +611,14 @@
               }
             }
           },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
@@ -484,76 +635,9 @@
             "apiToken": []
           }
         ],
-        "summary": "Get the authenticated caller",
+        "summary": "Get an entity",
         "tags": [
-          "Caller"
-        ]
-      }
-    },
-    "/entities/v1/caller": {
-      "get": {
-        "description": "Returns the resolved actor, or `actor: null` for an anonymous request.",
-        "operationId": "getCaller",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CallerResponse"
-                }
-              }
-            },
-            "description": "The resolved caller.",
-            "headers": {
-              "Cache-Control": {
-                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
-                "example": "private, no-store",
-                "required": true,
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit": {
-                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
-                "example": "\"actor\";r=499",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit-Policy": {
-                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
-                "example": "\"actor\";q=500;w=50",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          },
-          "503": {
-            "$ref": "#/components/responses/ServiceUnavailable"
-          }
-        },
-        "security": [
-          {},
-          {
-            "apiToken": []
-          }
-        ],
-        "summary": "Get the caller",
-        "tags": [
-          "Caller"
+          "Entity"
         ]
       }
     }

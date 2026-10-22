@@ -30,12 +30,17 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
+import type { InterviewBudgetLevel } from "../../../../../../shared/interview-budget";
 import type { UtteranceJudgmentMode } from "../../../../../../shared/live-utterance-judgment";
+import type { VoiceWord } from "../../../../../../shared/voice-words";
 import type { VoiceMediationHistory } from "../history/voice-mediation-history";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type { ToolApprovalState } from "../live/live-brunch-bridge";
 import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
-import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
+import type {
+  PetrinautAiInputMode,
+  PetrinautAiVoiceModeContext,
+} from "@hashintel/petrinaut/ui";
 
 type ResolveSubmission = (
   messageId: string,
@@ -299,6 +304,7 @@ const recordLatency = (event: VoiceLatencyEvent): void => {
 const AvailableVoiceInterviewControl = ({
   config,
   context,
+  readWords,
   resolveInputSubmission,
   resolveResponseSubmission,
   settlements,
@@ -310,6 +316,7 @@ const AvailableVoiceInterviewControl = ({
 }: {
   config: OpenAIVoiceConfig;
   context: PetrinautAiVoiceModeContext;
+  readWords: () => readonly VoiceWord[];
   resolveInputSubmission?: ResolveSubmission;
   resolveResponseSubmission?: ResolveSubmissions;
   settlements?: readonly VoiceSubmissionSettlement[];
@@ -334,6 +341,7 @@ const AvailableVoiceInterviewControl = ({
       navigator.mediaDevices,
     );
     const session = new OpenAIRealtimeSession({
+      readWords,
       audioSettings,
       cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
@@ -637,7 +645,10 @@ const AvailableVoiceInterviewControl = ({
 
 const PinnedVoiceInterviewControl = ({
   config,
+  interviewBudgetLevel,
+  readWords,
   mediationHistory,
+  onInputModeChange,
   toolApprovalState,
   resolveInputSubmission,
   resolveResponseSubmission,
@@ -651,7 +662,11 @@ const PinnedVoiceInterviewControl = ({
   ...context
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
+  readonly interviewBudgetLevel?: InterviewBudgetLevel;
+  readonly readWords?: () => readonly VoiceWord[];
   readonly mediationHistory?: VoiceMediationHistory;
+  /** Mirrors the panel's input surface; reports `text` once Voice unmounts. */
+  readonly onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   readonly toolApprovalState?: (toolCallId: string) => ToolApprovalState | null;
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly resolveResponseSubmission?: ResolveSubmissions;
@@ -664,8 +679,21 @@ const PinnedVoiceInterviewControl = ({
   readonly subscribeToStopRequested?: SubscribeToStopRequested;
 }) => {
   // Labs changes apply between Voice sessions, never during an active turn.
-  // The host ends the current session before returning to text mode.
+  const wordsReader = useRef(readWords);
+  const pinnedWords = useRef<readonly VoiceWord[] | undefined>(undefined);
+  // Stable even for the legacy store constructed once. Retries keep this snapshot.
+  const readSessionWords = () => {
+    if (pinnedWords.current === undefined) {
+      pinnedWords.current = wordsReader.current?.() ?? [];
+    }
+    return pinnedWords.current;
+  };
   const [sessionConfig, setSessionConfig] = useState(config);
+  useLayoutEffect(() => {
+    if (!onInputModeChange) return;
+    onInputModeChange(context.inputMode);
+    return () => onInputModeChange("text");
+  }, [context.inputMode, onInputModeChange]);
   if (
     context.inputMode === "text" &&
     (sessionConfig.provider !== config.provider ||
@@ -673,11 +701,22 @@ const PinnedVoiceInterviewControl = ({
   ) {
     setSessionConfig(config);
   }
+  // Returning to text ends any session; closing the panel ends a Live session
+  // but only pauses Realtime, which keeps its words until it ends.
+  const sessionEnded =
+    context.inputMode === "text" ||
+    (sessionConfig.provider === "live" && !context.isAiAssistantOpen);
+  useLayoutEffect(() => {
+    wordsReader.current = readWords;
+    if (sessionEnded) pinnedWords.current = undefined;
+  }, [sessionEnded, readWords]);
   if (sessionConfig.provider === "live") {
     if (!context.registerVoiceModeSessionControls) return null;
     return (
       <LiveConversationControl
         {...context}
+        interviewBudgetLevel={interviewBudgetLevel}
+        readWords={readSessionWords}
         mediationHistory={mediationHistory}
         toolApprovalState={toolApprovalState}
         acknowledgeDisclosure={acknowledgeLiveVoiceInterviewDisclosure}
@@ -712,6 +751,7 @@ const PinnedVoiceInterviewControl = ({
       key={context.conversationId}
       config={sessionConfig}
       context={context}
+      readWords={readSessionWords}
       resolveInputSubmission={resolveInputSubmission}
       resolveResponseSubmission={resolveResponseSubmission}
       settlements={settlements}

@@ -1,8 +1,14 @@
 import { FetchError, FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
+import {
+  parsePetrinautUserMessageBody,
+  petrinautContextualUserMessageBody,
+  readPetrinautSubmissionContext,
+} from "@hashintel/brunch-agent";
 import { FlueChatDisconnectError } from "@local/flue-aisdk-transport";
 
+import { interviewBudgetLevels } from "../../../../shared/interview-budget";
 import { createBrunchFlueAdapter } from "./brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,
@@ -12,6 +18,207 @@ import {
 import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
 
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
+
+test("captures words before waiting for the client and retains them for the same admission identity", async () => {
+  let words = ["RelayDesk"];
+  let resolveClient!: (client: FlueClient) => void;
+  const clientPromise = new Promise<FlueClient>((resolve) => {
+    resolveClient = resolve;
+  });
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(400, "Rejected");
+  });
+  const tracker = new BrunchPanelConversationTracker();
+  const transport = createBrunchPanelTransport(clientPromise, tracker, {
+    readWords: () => words,
+  });
+  const options = {
+    trigger: "submit-message" as const,
+    chatId: "one",
+    messageId: "user-one",
+    messages: [
+      {
+        id: "user-one",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Use it." }],
+      },
+    ],
+    abortSignal: undefined,
+  };
+  const first = transport.sendMessages(options);
+  words = ["Bay Three"];
+  resolveClient({ send } as unknown as FlueClient);
+  await expect(first).rejects.toThrow();
+  await expect(transport.sendMessages(options)).rejects.toThrow();
+  const expected = petrinautContextualUserMessageBody({
+    userText: "Use it.",
+    diagnosticsContext: "",
+    submissionContext: { words: ["RelayDesk"] },
+  });
+  expect(
+    send.mock.calls.map(([submission]) => submission.message.body),
+  ).toEqual([expected, expected]);
+});
+
+test("an empty words snapshot without an allowance sends an ordinary message", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(400, "Rejected");
+  });
+  const transport = createBrunchPanelTransport(
+    Promise.resolve({ send } as unknown as FlueClient),
+    new BrunchPanelConversationTracker(),
+    { readWords: () => [] },
+  );
+  await expect(
+    transport.sendMessages({
+      trigger: "submit-message",
+      chatId: "one",
+      messageId: "user-one",
+      messages: [
+        { id: "user-one", role: "user", parts: [{ type: "text", text: "Hi" }] },
+      ],
+      abortSignal: undefined,
+    }),
+  ).rejects.toThrow();
+  expect(send.mock.calls[0]?.[0].message.body).toBe("Hi");
+});
+
+test.each(interviewBudgetLevels)(
+  "sends current %s budget on each submission, with Off identical to the legacy request",
+  async (level) => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw new FlueApiError(503, "test admission unavailable");
+    });
+    const initialData = {
+      binding: {
+        documentId: "document",
+        conversationId: "conversation",
+        incarnationId: "incarnation",
+      },
+    };
+    for (const inputMode of ["text", "voice"] as const) {
+      for (const asked of [0, 2, 9]) {
+        const tracker = new BrunchPanelConversationTracker();
+        tracker.recordInputMode(inputMode);
+        const transport = createBrunchPanelTransport(
+          Promise.resolve({ send } as unknown as FlueClient),
+          tracker,
+          {
+            initialData,
+            interviewBudgetLevel: level,
+            interviewRepliesAsked: asked,
+          },
+        );
+        await expect(
+          transport.sendMessages({
+            trigger: "submit-message",
+            chatId: "conversation",
+            messageId: undefined,
+            abortSignal: undefined,
+            messages: [
+              // Rendered messages can merge steps or include a wrap-up. They
+              // are deliberately different from the host's canonical count.
+              {
+                id: "reply",
+                role: "assistant",
+                parts: [{ type: "text", text: "Recorded." }],
+              },
+              {
+                id: "answer",
+                role: "user",
+                parts: [{ type: "text", text: "Four agents" }],
+              },
+            ],
+          }),
+        ).rejects.toThrow();
+        const request = send.mock.lastCall?.[0];
+        if (level === "off") {
+          expect(JSON.stringify(request)).toBe(
+            JSON.stringify({
+              idempotencyKey: "ai-sdk:user:answer",
+              message: { kind: "user", body: "Four agents" },
+              initialData,
+            }),
+          );
+        } else {
+          const caps =
+            inputMode === "text"
+              ? { quick: 3, standard: 6, thorough: 10, deep: null }
+              : { quick: 2, standard: 4, thorough: 7, deep: null };
+          const questionCap = caps[level];
+          const budget = {
+            level,
+            questionCap,
+            asked,
+            remaining:
+              questionCap === null ? null : Math.max(0, questionCap - asked),
+          };
+          expect(request?.initialData).toEqual(initialData);
+          expect(
+            parsePetrinautUserMessageBody(request?.message.body ?? ""),
+          ).toEqual({
+            kind: "contextual",
+            userText: "Four agents",
+            diagnosticsContext: "",
+            submissionContext: { interviewBudget: budget },
+          });
+          expect(
+            readPetrinautSubmissionContext(
+              parsePetrinautUserMessageBody(request?.message.body ?? ""),
+            ).interviewBudget,
+          ).toEqual(budget);
+        }
+      }
+    }
+  },
+);
+
+test.each([
+  ["text sent during Voice", undefined, "voice", 4],
+  ["queued Voice input sent after switching to text", "voice", "text", 6],
+] as const)(
+  "budgets %s by the panel's input mode, matching the estimate",
+  async (_case, source, inputMode, questionCap) => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw new FlueApiError(503, "test admission unavailable");
+    });
+    const tracker = new BrunchPanelConversationTracker();
+    tracker.recordInputMode(inputMode);
+    const transport = createBrunchPanelTransport(
+      Promise.resolve({ send } as unknown as FlueClient),
+      tracker,
+      { interviewBudgetLevel: "standard", interviewRepliesAsked: 1 },
+    );
+    await expect(
+      transport.sendMessages({
+        trigger: "submit-message",
+        chatId: "conversation",
+        messageId: undefined,
+        abortSignal: undefined,
+        messages: [
+          {
+            id: "answer",
+            role: "user",
+            ...(source === undefined ? {} : { metadata: { source } }),
+            parts: [{ type: "text", text: "Four agents" }],
+          },
+        ],
+      }),
+    ).rejects.toThrow();
+    expect(
+      parsePetrinautUserMessageBody(send.mock.lastCall?.[0].message.body ?? ""),
+    ).toMatchObject({
+      submissionContext: {
+        interviewBudget: {
+          level: "standard",
+          questionCap,
+          asked: 1,
+          remaining: questionCap - 1,
+        },
+      },
+    });
+  },
+);
 
 test("publishes Stop immediately and supports unsubscribe", () => {
   const tracker = new BrunchPanelConversationTracker();

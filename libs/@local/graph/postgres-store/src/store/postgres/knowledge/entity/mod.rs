@@ -38,7 +38,7 @@ use hash_graph_store::{
         CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
     },
     filter::{Filter, FilterExpression, FilterExpressionList, ParameterList},
-    query::{QueryResult as _, Read},
+    query::QueryResult as _,
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{
@@ -1976,38 +1976,38 @@ where
     }
 
     async fn get_entity_by_id(
-        &self,
+        &mut self,
         actor_id: Option<ActorId>,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
-    ) -> Result<Entity, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self, actor_id)
-            .with_action(ActionName::ViewEntity, MergePolicies::Yes)
-            .await
-            .change_context(QueryError)?;
-
-        let mut filters = vec![Filter::for_entity_by_entity_id(entity_id)];
-
-        let filter = Filter::<Entity>::for_view_entity(&policy_components);
-        filters.push(filter);
-
-        let temporal_axes = QueryTemporalAxesUnresolved::TransactionTime {
-            pinned: PinnedTemporalAxisUnresolved::new(decision_time),
-            variable: VariableTemporalAxisUnresolved::new(
-                transaction_time.map(TemporalBound::Inclusive),
-                transaction_time.map(LimitedTemporalBound::Inclusive),
-            ),
-        }
-        .resolve();
-
-        Read::<Entity>::read_one(
-            self,
-            &filters,
-            Some(&temporal_axes),
-            entity_id.draft_id.is_some(),
-        )
-        .await
+    ) -> Result<Option<Entity>, Report<QueryError>> {
+        let params = QueryEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::TransactionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(decision_time),
+                variable: VariableTemporalAxisUnresolved::new(
+                    transaction_time.map(TemporalBound::Inclusive),
+                    transaction_time.map(LimitedTemporalBound::Inclusive),
+                ),
+            },
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            // At most one edition matches: both temporal axes resolve to a single point in time,
+            // at which the exclusion constraints on `entity_temporal_metadata` admit one live
+            // edition and one edition per draft. `include_drafts` is set only when `entity_id`
+            // names a draft, which the filter then pins. Including drafts for an ID without one
+            // would match its drafts as well.
+            limit: 1,
+            conversions: Vec::new(),
+            include_entity_types: None,
+            include_drafts: entity_id.draft_id.is_some(),
+            include_permissions: false,
+        };
+        let response = self.query_entities(actor_id, params).await?;
+        Ok(response.entities.into_iter().next())
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]

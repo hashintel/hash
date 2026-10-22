@@ -144,9 +144,7 @@ export const useActualExecutionFrameSource = (params: {
   );
 
   return {
-    sourceId: `actual:${source.kind}:${source.endpoint}:${
-      source.runId ?? ""
-    }:${baselineKey}`,
+    sourceId: `actual:${source.id}:${baselineKey}`,
     totalFrames,
     currentFrameIndex,
     currentFrameReader,

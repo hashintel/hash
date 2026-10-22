@@ -1,4 +1,9 @@
-/** Session connectivity or, when known, which side holds the turn. */
+/**
+ * Session connectivity or, when known, which side holds the turn.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiVoiceSessionPhase =
   | "connected"
   | "connecting"
@@ -49,6 +54,9 @@ export type VoiceAudioSettingsActions = {
  * Petrinaut renders every live Voice surface from this snapshot, so hosts
  * report state rather than rendering their own status UI. Report it from an
  * effect: it changes at microphone-sampling rate.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
  */
 export type PetrinautAiVoiceSessionState = {
   audioSettings?: VoiceAudioSettingsState;

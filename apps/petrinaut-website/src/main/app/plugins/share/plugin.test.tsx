@@ -24,6 +24,10 @@ vi.mock(
 
 afterEach(cleanup);
 
+// The dropdown renders inside the full editor, which takes over a second under
+// CI load; the default one-second waits made this test flaky.
+const slowRender = { timeout: 5_000 };
+
 test("shares the document and the current view from the top bar", async () => {
   const { handle } = renderEditorWith([sharePlugin], {
     navigation: {
@@ -33,15 +37,19 @@ test("shares the document and the current view from the top bar", async () => {
     title: "SIR model",
   });
 
-  fireEvent.click(await screen.findByRole("button", { name: "Share" }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Share" }, slowRender),
+  );
 
   expect(
     await screen.findByDisplayValue(
       `${window.location.origin}/share?mode=simulate#v1.br.encoded`,
+      {},
+      slowRender,
     ),
   ).toBeTruthy();
   expect(vi.mocked(prepareSnapshot).mock.calls[0]?.[0]).toEqual({
     title: "SIR model",
     definition: handle.doc(),
   });
-});
+}, 15_000);

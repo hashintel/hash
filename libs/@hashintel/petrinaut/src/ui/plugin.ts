@@ -13,6 +13,7 @@ export type {
   PetrinautPluginDefinition,
   PetrinautPluginManifest,
   PluginApi,
+  PluginAssistant,
   PluginButton,
   PluginButtonPlace,
   PluginButtonSpec,
@@ -48,6 +49,11 @@ export type {
   PluginNotifications,
 } from "./plugins/plugin-access";
 export { usePluginService } from "./plugins/plugins-provider";
+export {
+  AssistantPanelTitle,
+  useAssistantPanel,
+} from "./plugins/plugin-assistant";
+export type { AssistantPanel } from "./plugins/plugin-assistant";
 export {
   useCommand,
   useCommandRegistry,

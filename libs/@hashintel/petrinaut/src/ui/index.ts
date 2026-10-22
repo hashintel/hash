@@ -246,7 +246,7 @@ export type {
   PetrinautAiInteractiveToolSchema,
   PetrinautAiInteractiveToolWidgetProps,
 } from "./types/ai-interactive-tool";
-export { DefaultChatTransport } from "ai";
+export { DefaultChatTransport } from "./views/Editor/panels/ai-assistant-panel/default-chat-transport";
 
 // SDCPN value-equality check exposed for consumers that need to detect
 // no-op changes outside the handle (e.g. memoising Storybook stories).

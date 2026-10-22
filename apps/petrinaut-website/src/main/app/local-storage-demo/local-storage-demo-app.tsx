@@ -34,8 +34,10 @@ import {
 } from "./assistant-selection";
 import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
+import { useInterviewBudgetPreference } from "./interview-budget-preference";
 import { UnsavedChangeNotice } from "./unsaved-change-notice";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
+import { useWordsPreference } from "./words-preference";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
@@ -114,6 +116,18 @@ export const LocalStorageDemoApp = ({
     ready: realtimePreferenceReady,
     setEnabled: setRealtimeEnabled,
   } = useRealtimePreference();
+  const {
+    level: interviewBudgetLevel,
+    setLevel: setInterviewBudgetLevel,
+    enabled: interviewBudgetEnabled,
+    setEnabled: setInterviewBudgetEnabled,
+    ready: interviewBudgetPreferenceReady,
+  } = useInterviewBudgetPreference();
+  const {
+    enabled: wordsEnabled,
+    ready: wordsPreferenceReady,
+    setEnabled: setWordsEnabled,
+  } = useWordsPreference();
   const brunchSelected =
     assistantSelectionReady &&
     isBrunchSelected(
@@ -222,6 +236,12 @@ export const LocalStorageDemoApp = ({
       enabled: voicePreferenceReady && voiceEnabled && realtimePreferenceReady,
       realtime: realtimeEnabled,
     },
+    interviewBudget: {
+      enabled: interviewBudgetPreferenceReady && interviewBudgetEnabled,
+      level: interviewBudgetLevel,
+      setLevel: setInterviewBudgetLevel,
+    },
+    words: { enabled: wordsPreferenceReady && wordsEnabled },
     plugins: demoPlugins,
   });
   const stockAssistant = useMemo(
@@ -301,14 +321,20 @@ export const LocalStorageDemoApp = ({
                 assistantReady={assistantSelectionReady}
                 brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
                 brunchSelected={brunchSelected}
+                interviewBudgetEnabled={interviewBudgetEnabled}
+                interviewBudgetPreferenceReady={interviewBudgetPreferenceReady}
                 openAIVoiceConfig={brunch.openAIVoiceConfig}
                 realtimeEnabled={realtimeEnabled}
                 realtimePreferenceReady={realtimePreferenceReady}
                 selectAssistant={selectAssistant}
+                setInterviewBudgetEnabled={setInterviewBudgetEnabled}
                 setRealtimeEnabled={setRealtimeEnabled}
                 setVoiceEnabled={setVoiceEnabled}
                 voiceEnabled={brunchSelected && voiceEnabled}
                 voicePreferenceReady={voicePreferenceReady}
+                wordsEnabled={wordsEnabled}
+                wordsPreferenceReady={wordsPreferenceReady}
+                setWordsEnabled={setWordsEnabled}
               />
             ),
           }}

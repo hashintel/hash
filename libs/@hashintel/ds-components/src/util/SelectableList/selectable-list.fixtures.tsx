@@ -413,7 +413,7 @@ export const demoFooter = (
         "[calc(-1 * (var(--selectable-list-item-padding-x) + var(--selectable-list-container-padding-x)))]",
       paddingX:
         "[calc(var(--selectable-list-item-padding-x) + var(--selectable-list-container-padding-x))]",
-      marginTop: "[calc(-1 * var(--selectable-list-header-footer-padding-y)))]",
+      marginTop: "[calc(-1 * var(--selectable-list-header-footer-padding-y))]",
       paddingTop:
         "[calc(var(--selectable-list-item-padding-y) + var(--selectable-list-container-padding-y))]",
       borderTop: "1px solid {colors.neutral.s30}",

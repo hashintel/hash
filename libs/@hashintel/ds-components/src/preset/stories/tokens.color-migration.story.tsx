@@ -1,5 +1,3 @@
-import { ThemeState, useLadleContext } from "@ladle/react";
-
 import { css } from "@hashintel/ds-helpers/css";
 import { Box, VStack } from "@hashintel/ds-helpers/jsx";
 import { token } from "@hashintel/ds-helpers/tokens";
@@ -8,7 +6,6 @@ import figmaGray from "./figma-gray-reference.json";
 
 import type { SolidStep } from "./_types";
 import type { Token } from "@hashintel/ds-helpers/tokens";
-import type { Story } from "@ladle/react";
 
 type FigmaStep = keyof typeof figmaGray.gray;
 
@@ -117,15 +114,13 @@ const swatchLabel = css({
   mixBlendMode: "difference",
 });
 
-const FigmaSwatch = ({ step }: { step: string }) => {
+const FigmaSwatch = ({ step, isDark }: { step: string; isDark: boolean }) => {
   const entry = figmaGray.gray[step as keyof typeof figmaGray.gray];
-  const { globalState } = useLadleContext();
 
   if (!entry) {
     return null;
   }
 
-  const isDark = globalState.theme === ThemeState.Dark;
   const color = isDark ? entry._dark : entry._light;
 
   return (
@@ -158,7 +153,7 @@ const RadixSwatch = ({ step }: { step: string }) => {
   );
 };
 
-export const ColorMappings: Story = () => {
+export const ColorMappingsDemo = ({ isDark }: { isDark: boolean }) => {
   const radixIndex = Object.fromEntries(
     RADIX_STEPS.map((step, i) => [step, i]),
   );
@@ -222,7 +217,11 @@ export const ColorMappings: Story = () => {
             (f) => f.radixStep === radixStep,
           );
           return figmaStep ? (
-            <FigmaSwatch key={radixStep} step={figmaStep.figmaStep} />
+            <FigmaSwatch
+              key={radixStep}
+              step={figmaStep.figmaStep}
+              isDark={isDark}
+            />
           ) : (
             <div key={radixStep} />
           );
@@ -322,5 +321,3 @@ export const ColorMappings: Story = () => {
     </VStack>
   );
 };
-
-ColorMappings.storyName = "Color Step Mappings";

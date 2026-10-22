@@ -761,7 +761,7 @@ where
         query_logger.capture(Some(actor_id), OpenApiQuery::DiffEntity(&params));
     }
 
-    let store = store_pool
+    let mut store = store_pool
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?;

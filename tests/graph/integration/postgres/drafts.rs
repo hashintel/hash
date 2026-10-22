@@ -75,10 +75,11 @@ fn charles() -> PropertyObject {
 }
 
 #[must_use]
-async fn check_entity_exists(api: &DatabaseApi<'_>, id: EntityId) -> bool {
+async fn check_entity_exists(api: &mut DatabaseApi<'_>, id: EntityId) -> bool {
     api.get_entity_by_id(Some(api.account_id), id, None, None)
         .await
-        .is_ok()
+        .expect("should query the entity")
+        .is_some()
 }
 
 #[tokio::test]
@@ -112,7 +113,7 @@ async fn initial_draft() {
         .await
         .expect("could not create entity");
     assert!(entity.metadata.record_id.entity_id.draft_id.is_some());
-    assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
+    assert!(check_entity_exists(&mut api, entity.metadata.record_id.entity_id).await);
     assert!(entity.metadata.record_id.entity_id.draft_id.is_some());
     assert!(
         entity
@@ -158,7 +159,7 @@ async fn initial_draft() {
         updated_entity.metadata.record_id.entity_id,
         entity.metadata.record_id.entity_id
     );
-    assert!(check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
+    assert!(check_entity_exists(&mut api, updated_entity.metadata.record_id.entity_id).await);
     assert!(
         updated_entity
             .metadata
@@ -224,8 +225,8 @@ async fn initial_draft() {
             .is_none()
     );
 
-    assert!(!check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
-    assert!(check_entity_exists(&api, updated_live_entity.metadata.record_id.entity_id).await);
+    assert!(!check_entity_exists(&mut api, updated_entity.metadata.record_id.entity_id).await);
+    assert!(check_entity_exists(&mut api, updated_live_entity.metadata.record_id.entity_id).await);
     assert!(
         updated_live_entity
             .metadata
@@ -292,7 +293,7 @@ async fn no_initial_draft() {
         .await
         .expect("could not create entity");
     assert!(entity.metadata.record_id.entity_id.draft_id.is_none());
-    assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
+    assert!(check_entity_exists(&mut api, entity.metadata.record_id.entity_id).await);
 
     let ClosedTemporalBound::Inclusive(undraft_transaction_time) =
         entity.metadata.temporal_versioning.transaction_time.start();
@@ -355,8 +356,8 @@ async fn no_initial_draft() {
                 .draft_id
                 .is_some()
         );
-        assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
-        assert!(check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
+        assert!(check_entity_exists(&mut api, entity.metadata.record_id.entity_id).await);
+        assert!(check_entity_exists(&mut api, updated_entity.metadata.record_id.entity_id).await);
         assert!(
             (updated_entity
                 .metadata
@@ -418,8 +419,10 @@ async fn no_initial_draft() {
                 .draft_id
                 .is_none()
         );
-        assert!(!check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
-        assert!(check_entity_exists(&api, updated_live_entity.metadata.record_id.entity_id).await);
+        assert!(!check_entity_exists(&mut api, updated_entity.metadata.record_id.entity_id).await);
+        assert!(
+            check_entity_exists(&mut api, updated_live_entity.metadata.record_id.entity_id).await
+        );
         assert!(
             (updated_live_entity
                 .metadata
@@ -474,7 +477,7 @@ async fn multiple_drafts() {
         .await
         .expect("could not create entity");
     assert!(entity.metadata.record_id.entity_id.draft_id.is_none());
-    assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
+    assert!(check_entity_exists(&mut api, entity.metadata.record_id.entity_id).await);
     let ClosedTemporalBound::Inclusive(undraft_transaction_time) =
         entity.metadata.temporal_versioning.transaction_time.start();
     let ClosedTemporalBound::Inclusive(undraft_decision_time) =
@@ -543,8 +546,8 @@ async fn multiple_drafts() {
                 .draft_id
                 .is_some()
         );
-        assert!(check_entity_exists(&api, entity.metadata.record_id.entity_id).await);
-        assert!(check_entity_exists(&api, updated_entity.metadata.record_id.entity_id).await);
+        assert!(check_entity_exists(&mut api, entity.metadata.record_id.entity_id).await);
+        assert!(check_entity_exists(&mut api, updated_entity.metadata.record_id.entity_id).await);
         assert!(
             (updated_entity
                 .metadata
@@ -601,8 +604,10 @@ async fn multiple_drafts() {
             entity.metadata.record_id.entity_id,
             updated_live_entity.metadata.record_id.entity_id
         );
-        assert!(!check_entity_exists(&api, draft).await);
-        assert!(check_entity_exists(&api, updated_live_entity.metadata.record_id.entity_id).await);
+        assert!(!check_entity_exists(&mut api, draft).await);
+        assert!(
+            check_entity_exists(&mut api, updated_live_entity.metadata.record_id.entity_id).await
+        );
 
         assert!(
             (updated_live_entity

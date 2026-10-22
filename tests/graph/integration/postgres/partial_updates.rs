@@ -654,7 +654,8 @@ async fn patch_entities_input_order() {
                 None,
             )
             .await
-            .expect("should read the patched entity");
+            .expect("should read the patched entity")
+            .expect("the patched entity should exist");
         assert_eq!(
             stored.metadata.record_id.edition_id, patched.metadata.record_id.edition_id,
             "should persist the returned edition"
@@ -702,7 +703,8 @@ async fn patch_entities_missing_entity() {
     let stored = api
         .get_entity_by_id(Some(api.account_id), entity_id, None, None)
         .await
-        .expect("should read the original entity after rollback");
+        .expect("should read the original entity after rollback")
+        .expect("the original entity should exist");
     assert_eq!(stored, original, "should roll back the earlier patch");
 }
 
@@ -785,7 +787,8 @@ async fn patch_entities_duplicate_ids() {
     let stored = api
         .get_entity_by_id(Some(api.account_id), entity_id, None, None)
         .await
-        .expect("should read the final entity");
+        .expect("should read the final entity")
+        .expect("the final entity should exist");
     assert_eq!(stored, second, "should persist the combined patch result");
 }
 
@@ -844,7 +847,8 @@ async fn patch_entities_live_then_publish() {
     let stored = api
         .get_entity_by_id(Some(api.account_id), live_id, None, None)
         .await
-        .expect("should read the published entity");
+        .expect("should read the published entity")
+        .expect("the published entity should exist");
     assert_eq!(stored, published, "should persist the published edition");
     let history = Read::<Entity>::read_vec(&api.store, &[], None, true)
         .await
@@ -898,7 +902,8 @@ async fn patch_entities_publish_existing_decision_start() {
     let stored = api
         .get_entity_by_id(Some(api.account_id), live_id, None, None)
         .await
-        .expect("should read the published entity");
+        .expect("should read the published entity")
+        .expect("the published entity should exist");
     assert_eq!(stored, published, "should persist the published edition");
     assert_eq!(
         published.properties, draft.properties,
@@ -992,7 +997,8 @@ async fn patch_entities_validation_index() {
                 None,
             )
             .await
-            .expect("should read the original entity after rollback");
+            .expect("should read the original entity after rollback")
+            .expect("the original entity should exist");
         assert_eq!(stored, original, "should roll back the whole invalid batch");
     }
 }
@@ -1039,7 +1045,8 @@ async fn patch_entities_unchanged_then_changed() {
             None,
         )
         .await
-        .expect("should read the changed entity");
+        .expect("should read the changed entity")
+        .expect("the changed entity should exist");
     assert_eq!(
         stored, patched_changed,
         "should persist the patch after the unchanged entity"
