@@ -144,7 +144,8 @@ impl Sink<Entity> for EntitySender {
             .change_context(SnapshotRestoreError::Read)
             .attach("could not send entity temporal metadata")?;
 
-        if let Some(Link::Directed { source, target }) = entity.link_data {
+        if let Some(link) = entity.link_data {
+            let Link::Directed { source, target } = link;
             self.entity_edge
                 .start_send_unpin(EntityEdgeRow {
                     source_web_id: entity.metadata.record_id.entity_id.web_id,
