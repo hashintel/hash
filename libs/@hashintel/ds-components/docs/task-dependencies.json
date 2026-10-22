@@ -17,12 +17,6 @@
         "codegen"
       ]
     },
-    "build:storybook": {
-      "dependsOn": [
-        "@local/eslint#build",
-        "codegen"
-      ]
-    },
     "build:lib": {
       "dependsOn": [
         "@local/eslint#build",
@@ -34,6 +28,12 @@
         "build"
       ],
       "cache": false
+    },
+    "build:storybook": {
+      "dependsOn": [
+        "@local/eslint#build",
+        "codegen"
+      ]
     },
     "codegen": {
       "dependsOn": []
