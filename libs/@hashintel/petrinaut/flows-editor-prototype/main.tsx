@@ -62,11 +62,19 @@ const App = () => {
     findScreenState(params.get("state")) ?? findScreenState("blank")!;
   const [route, setRoute] = useState<
     { page: "home" } | { page: "editor"; id: string }
-  >(params.has("home") ? { page: "home" } : { page: "editor", id: "current" });
-  const [flows, setFlows] = useState<FlowListEntry[]>(() => [
-    { id: "current", document: state.create().document },
-    ...(params.has("state") ? [] : journeyFlows()),
-  ]);
+  >(
+    params.has("home") || state.page === "home"
+      ? { page: "home" }
+      : { page: "editor", id: "current" },
+  );
+  const [flows, setFlows] = useState<FlowListEntry[]>(() =>
+    state.page === "home"
+      ? []
+      : [
+          { id: "current", document: state.create().document },
+          ...(params.has("state") ? [] : journeyFlows()),
+        ],
+  );
   const [search, setSearch] = useState("");
   const [newCount, setNewCount] = useState(1);
   const taskId = params.has("task") ? Number(params.get("task")) : null;

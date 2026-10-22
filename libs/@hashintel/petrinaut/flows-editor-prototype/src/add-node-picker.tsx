@@ -161,6 +161,14 @@ const originSuffix = (entry: CatalogEntry) =>
 /** The Scratch L2 picker's width, on the DS Menu. */
 const pickerWidthStyle = css({ width: "[330px]" });
 
+/**
+ * An anchor found when the menu reads it, after mount: a picker opened with the screen has no port in the DOM yet.
+ */
+const anchorBySelector = (selector: string) =>
+  Object.defineProperty({}, "current", {
+    get: () => globalThis.document.querySelector<HTMLElement>(selector),
+  }) as React.RefObject<HTMLElement | null>;
+
 export const AddNodePicker = ({
   toolbarAnchor,
 }: {
@@ -176,13 +184,11 @@ export const AddNodePicker = ({
   const anchor =
     picker.anchor === "toolbar"
       ? toolbarAnchor
-      : {
-          current: globalThis.document.querySelector<HTMLElement>(
-            picker.anchor === "port" && picker.after
-              ? `[data-port-add="${picker.after.stepId}:${picker.after.port}"]`
-              : `[data-group-add="${picker.parentId ?? ""}"]`,
-          ),
-        };
+      : anchorBySelector(
+          picker.anchor === "port" && picker.after
+            ? `[data-port-add="${picker.after.stepId}:${picker.after.port}"]`
+            : `[data-group-add="${picker.parentId ?? ""}"]`,
+        );
 
   const close = () => {
     setSearch("");

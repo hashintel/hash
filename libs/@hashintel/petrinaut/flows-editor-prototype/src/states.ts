@@ -16,6 +16,13 @@ import { type EditorUi, initialUi } from "./editor-context";
 import { mockEntityTypes } from "./mock-graph";
 import { addLookupStep } from "./source-menu";
 import { purityCheckExample } from "./purity-check-example";
+import {
+  CERTIFICATES,
+  EACH_SUPPLIER,
+  SHIPMENTS as CERTIFICATE_SHIPMENTS,
+  SUPPLIERS as CERTIFICATE_SUPPLIERS,
+  supplierCertificatesExample,
+} from "./supplier-certificates-example";
 import { supplierReviewExample } from "./supplier-review-example";
 
 export type ScreenState = {
@@ -26,6 +33,8 @@ export type ScreenState = {
   row: string;
   /** The Figma journey on ↳ Current this screen belongs to (1–4). */
   journey: 1 | 2 | 3 | 4;
+  /** "home" opens the flows list instead of the editor (J1 · 1). */
+  page?: "home";
   create: () => { document: EditorDocument; ui: EditorUi };
 };
 
@@ -238,7 +247,18 @@ const failedBatchesAlert = (): EditorDocument => {
   };
 };
 
+const recentSteps = ["queryEntities", "getFileFromUrl"];
+
 export const screenStates: ScreenState[] = [
+  {
+    id: "j1-1",
+    journey: 1,
+    page: "home",
+    row: "Adding nodes",
+    title: "J1 · 1 · Flows · no flows yet",
+    caption: "The flows list with nothing in it, and New flow.",
+    create: () => ({ document: emptyDocument(), ui: initialUi }),
+  },
   {
     id: "blank",
     journey: 1,
@@ -259,6 +279,17 @@ export const screenStates: ScreenState[] = [
       document: emptyDocument(),
       ui: { ...initialUi, picker: { anchor: "toolbar" } },
     }),
+  },
+  {
+    id: "j1-4",
+    journey: 1,
+    row: "Adding nodes",
+    title: "J1 · 4 · First step added · properties open",
+    caption: "Find entities after Start, selected, with its properties.",
+    create: () => {
+      const { document, stepId } = withStepAfterStart("queryEntities");
+      return { document, ui: { ...initialUi, selectedId: stepId } };
+    },
   },
   {
     id: "j3-a1",
@@ -498,6 +529,103 @@ export const screenStates: ScreenState[] = [
     create: () => ({
       document: purityCheckExample(),
       ui: { ...initialUi, selectedId: START_ID, triggerId: "shipmentChanges" },
+    }),
+  },
+  {
+    id: "j2-a1",
+    journey: 2,
+    row: "Row A · A step after a step",
+    title: "J2 · A1 · Hover + after Shipments this month",
+    caption: "The + beside the selected step adds the next one.",
+    create: () => ({
+      document: supplierCertificatesExample("shipments"),
+      ui: { ...initialUi, selectedId: CERTIFICATE_SHIPMENTS },
+    }),
+  },
+  {
+    id: "j2-a2",
+    journey: 2,
+    row: "Row A · A step after a step",
+    title: "J2 · A2 · The step menu opens from that step",
+    caption: "Recent steps, then Browse all.",
+    create: () => ({
+      document: supplierCertificatesExample("shipments"),
+      ui: {
+        ...initialUi,
+        selectedId: CERTIFICATE_SHIPMENTS,
+        recent: recentSteps,
+        picker: {
+          anchor: "port",
+          after: { stepId: CERTIFICATE_SHIPMENTS, port: "next" },
+        },
+      },
+    }),
+  },
+  {
+    id: "j2-b1",
+    journey: 2,
+    row: "Row B · A for each",
+    title: "J2 · B1 · Suppliers of those shipments added after it",
+    caption: "The second Find entities reads the first one's list.",
+    create: () => ({
+      document: supplierCertificatesExample("suppliers"),
+      ui: { ...initialUi, selectedId: CERTIFICATE_SUPPLIERS },
+    }),
+  },
+  {
+    id: "j2-b2",
+    journey: 2,
+    row: "Row B · A for each",
+    title: "J2 · B2 · + after it · Flow control › For each",
+    caption: "The step menu from the second step.",
+    create: () => ({
+      document: supplierCertificatesExample("suppliers"),
+      ui: {
+        ...initialUi,
+        selectedId: CERTIFICATE_SUPPLIERS,
+        recent: recentSteps,
+        picker: {
+          anchor: "port",
+          after: { stepId: CERTIFICATE_SUPPLIERS, port: "next" },
+        },
+      },
+    }),
+  },
+  {
+    id: "j2-c1",
+    journey: 2,
+    row: "Row C · The list",
+    title: "J2 · C1 · An empty For each · List is required",
+    caption: "The List menu offers the lists from earlier steps.",
+    create: () => ({
+      document: supplierCertificatesExample("empty-for-each"),
+      ui: {
+        ...initialUi,
+        selectedId: EACH_SUPPLIER,
+        openField: { stepId: EACH_SUPPLIER, inputName: "over", mode: "menu" },
+      },
+    }),
+  },
+  {
+    id: "j2-c2",
+    journey: 2,
+    row: "Row C · The list",
+    title: "J2 · C2 · List picked · the box is named for it",
+    caption: "The box reads For each supplier.",
+    create: () => ({
+      document: supplierCertificatesExample("for-each-list"),
+      ui: { ...initialUi, selectedId: EACH_SUPPLIER },
+    }),
+  },
+  {
+    id: "j2-d1",
+    journey: 2,
+    row: "Row D · Inside the box",
+    title: "J2 · D1 · A step inside uses supplier",
+    caption: "Fetch file's URL reads the supplier.",
+    create: () => ({
+      document: supplierCertificatesExample("fetch-file"),
+      ui: { ...initialUi, selectedId: CERTIFICATES },
     }),
   },
   {
