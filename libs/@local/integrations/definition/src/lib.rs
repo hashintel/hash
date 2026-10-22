@@ -44,7 +44,8 @@ pub use self::{
     },
     pipeline::EntityPipeline,
     source::{
-        Coverage, EmptySqlQuery, InvalidPrimaryKey, PrimaryKey, Source, SourceKind, SqlQuery,
+        Coverage, EmptySqlQuery, InvalidPrimaryKey, Pagination, PostgresSource, PrimaryKey,
+        RestAuth, RestSource, SecretReference, Source, SourceKind, SqlQuery, SslMode,
     },
     step::{
         Accessor, Action, BranchStep, Branches, Coercion, ConflictingPropertyVersions, EntitySink,

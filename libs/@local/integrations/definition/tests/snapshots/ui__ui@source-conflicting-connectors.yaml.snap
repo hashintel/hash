@@ -1,0 +1,7 @@
+---
+source: libs/@local/integrations/definition/tests/ui.rs
+assertion_line: 34
+expression: render(&text)
+input_file: libs/@local/integrations/definition/tests/ui/source-conflicting-connectors.yaml
+---
+3:3: sources.items: `local`, `rest` cannot be used together

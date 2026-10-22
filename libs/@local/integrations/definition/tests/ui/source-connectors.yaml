@@ -1,0 +1,40 @@
+connector: demo
+vars:
+  HOST: warehouse.example.org
+  API: https://api.example.org/items
+sources:
+  local:
+    local: data/items.parquet
+    primaryKey: [id]
+  warehouse:
+    redshift:
+      host: ${HOST}
+      port: 5439
+      database: demo
+      schema: public
+      table: items
+      sslMode: require
+      credentials:
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+    primaryKey: [id]
+  api:
+    rest:
+      url: ${API}
+      resultsField: data.items
+      pagination:
+        type: next-link
+        field: pagination.next
+      auth:
+        type: bearer
+        secretEntityUuid: 22222222-2222-4222-8222-222222222222
+      rateLimitMs: 100
+      maxPages: 50
+    primaryKey: [id]
+pipelines:
+  entities:
+    - source: local
+      steps: []
+    - source: warehouse
+      steps: []
+    - source: api
+      steps: []

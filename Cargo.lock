@@ -7051,6 +7051,7 @@ dependencies = [
  "serde-saphyr",
  "simple-mermaid",
  "type-system",
+ "uuid",
 ]
 
 [[package]]
