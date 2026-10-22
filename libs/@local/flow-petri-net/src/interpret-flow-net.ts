@@ -135,6 +135,10 @@ export type FlowNetRun = {
   awaiting: () => FlowNetAwaiting[];
   /** Whether a step run is still waiting for its inputs: its `Pending` token is still there. */
   isPending: (stepRun: FlowNetStepRun) => boolean;
+  /** Whether `awaiting()` lists a step run as waiting to be told it started, without listing every other one. */
+  isAwaitingStart: (stepRun: FlowNetStepRun) => boolean;
+  /** The attempt `awaiting()` lists a step run as waiting on the outcome of, if any, without listing every other one. */
+  awaitedAttempt: (stepRun: FlowNetStepRun) => number | null;
   /**
    * Applies an outcome, then fires every transition it enables, and returns those firings.
    *
@@ -1310,6 +1314,54 @@ export const startFlowNetRun = (
       tokensAt(pendingPosition(stepRun.stepId)).some(({ itemPath }) =>
         isSamePath(itemPath, stepRun.itemPath),
       ),
+    isAwaitingStart: (stepRun) => {
+      if (!waitForStepStarts) {
+        return false;
+      }
+
+      const pending = tokensAt(pendingPosition(stepRun.stepId)).find(
+        ({ itemPath }) => isSamePath(itemPath, stepRun.itemPath),
+      );
+
+      return (
+        pending !== undefined &&
+        (rootTransitionsByStep.get(stepRun.stepId) ?? []).some(
+          ({ transition, metadata: transitionMetadata }) =>
+            transitionMetadata.role === "startStep" &&
+            bind({
+              transition,
+              scope: null,
+              anchorPosition: pendingPosition(stepRun.stepId),
+              anchorAccepts: (anchor) => anchor === pending,
+              guard: (candidate) =>
+                !hasMissingSkipInput(transitionMetadata, candidate),
+            }) !== null,
+        )
+      );
+    },
+    awaitedAttempt: (stepRun) => {
+      for (const scope of scopesByInstanceId.values()) {
+        if (scope.stepId !== stepRun.stepId) {
+          continue;
+        }
+
+        for (const token of tokensAt(
+          instancePlacePosition(
+            scope.instance.id,
+            scope.subnet.inProgressPlaceId,
+          ),
+        )) {
+          if (
+            token.kind === "attempt" &&
+            isSamePath(token.itemPath, stepRun.itemPath)
+          ) {
+            return token.attempts;
+          }
+        }
+      }
+
+      return null;
+    },
     apply: (outcome) => {
       const applied = applyOutcome(outcome);
 

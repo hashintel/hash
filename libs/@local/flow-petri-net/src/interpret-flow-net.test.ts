@@ -117,6 +117,16 @@ const runToEnd = (
 ) => {
   for (let applied = 0; ; applied++) {
     const waitingOn = run.awaiting();
+
+    for (const awaiting of waitingOn) {
+      expect(run.isAwaitingStart(awaiting.stepRun)).toBe(
+        awaiting.kind === "stepStart",
+      );
+      expect(run.awaitedAttempt(awaiting.stepRun)).toBe(
+        awaiting.kind === "actionOutcome" ? awaiting.attempt : null,
+      );
+    }
+
     const next = take === "first" ? waitingOn[0] : waitingOn.at(-1);
 
     if (!next) {

@@ -60,29 +60,6 @@ const isSameStepRun = (stepRun: FlowNetStepRun, other: FlowRunEventStepRun) =>
 const describeStepRun = ({ stepId, itemPath }: FlowRunEventStepRun) =>
   itemPath.length > 0 ? `${stepId} [${itemPath.join(", ")}]` : stepId;
 
-const isAwaitingStart = (run: FlowNetRun, stepRun: FlowRunEventStepRun) =>
-  run
-    .awaiting()
-    .some(
-      (awaiting) =>
-        awaiting.kind === "stepStart" &&
-        isSameStepRun(awaiting.stepRun, stepRun),
-    );
-
-/**
- * The attempt the net is waiting on the outcome of for a step run, if any.
- */
-const awaitedAttempt = (run: FlowNetRun, stepRun: FlowRunEventStepRun) =>
-  run
-    .awaiting()
-    .find(
-      (
-        awaiting,
-      ): awaiting is Extract<FlowNetAwaiting, { kind: "actionOutcome" }> =>
-        awaiting.kind === "actionOutcome" &&
-        isSameStepRun(awaiting.stepRun, stepRun),
-    )?.attempt ?? null;
-
 export const replayFlowRunEvents = (
   net: SDCPN,
   events: readonly FlowRunEvent[],
@@ -123,12 +100,12 @@ export const replayFlowRunEvents = (
       stepRun: FlowRunEventStepRun,
       attempt: number,
     ) => {
-      if (isAwaitingStart(startedRun, stepRun)) {
+      if (startedRun.isAwaitingStart(stepRun)) {
         apply(startedRun, { kind: "stepStarted", stepRun });
       }
 
       for (;;) {
-        const awaited = awaitedAttempt(startedRun, stepRun);
+        const awaited = startedRun.awaitedAttempt(stepRun);
 
         if (awaited === null) {
           problem(
@@ -176,7 +153,7 @@ export const replayFlowRunEvents = (
         case "stepStarted": {
           const { stepRun } = event;
 
-          if (isAwaitingStart(run, stepRun)) {
+          if (run.isAwaitingStart(stepRun)) {
             apply(run, { kind: "stepStarted", stepRun });
           } else {
             problem(
@@ -212,7 +189,7 @@ export const replayFlowRunEvents = (
 
         case "stepGaveUp":
           /* An `attemptFailed` that isn't retrying has already given up, so only a step still trying gives up here. */
-          if (awaitedAttempt(run, event.stepRun) !== null) {
+          if (run.awaitedAttempt(event.stepRun) !== null) {
             if (catchUpToAttempt(run, event.stepRun, event.attempt)) {
               apply(run, {
                 kind: "attemptFailed",
