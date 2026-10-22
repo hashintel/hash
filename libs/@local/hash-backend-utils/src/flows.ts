@@ -16,6 +16,7 @@ import { getFlowRunEntityById } from "./flows/shared/get-flow-run-entity-by-id.j
 import { getFlowRunLinks } from "./flows/shared/get-flow-run-links.js";
 
 import type { FileStorageProvider } from "./file-storage.js";
+import type { FlowRunHistoriesByWorkflowId } from "./flows/run-events.js";
 import type { TemporalClient } from "./temporal.js";
 import type {
   ActorEntityUuid,
@@ -48,6 +49,8 @@ type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
   storageProvider: FileStorageProvider;
   temporalClient: TemporalClient;
   userAuthentication: { actorId: ActorEntityUuid };
+  /** Histories already read in this request, to reuse when reading details */
+  historiesByWorkflowId?: FlowRunHistoriesByWorkflowId;
 };
 
 export async function getFlowRunById(
@@ -71,6 +74,7 @@ export async function getFlowRunById({
   storageProvider,
   temporalClient,
   userAuthentication,
+  historiesByWorkflowId,
 }: GetFlowRunByIdFnArgs<boolean>): Promise<
   SparseFlowRun | FlowRunWithoutEvents | null
 > {
@@ -119,6 +123,7 @@ export async function getFlowRunById({
       flowDefinitionEntityId,
       flowRunEntityId,
       flowScheduleId,
+      historiesByWorkflowId,
       name,
       storageProvider,
       temporalClient,
@@ -160,6 +165,8 @@ type GetFlowRunsFnArgs<IncludeDetails extends boolean> = {
   graphApiClient: GraphApi;
   storageProvider: FileStorageProvider;
   temporalClient: TemporalClient;
+  /** Histories already read in this request, to reuse when reading details */
+  historiesByWorkflowId?: FlowRunHistoriesByWorkflowId;
 };
 
 type MinimalFlowMetadata = {
@@ -200,6 +207,7 @@ export async function getFlowRuns({
   includeDetails,
   storageProvider,
   temporalClient,
+  historiesByWorkflowId,
 }: GetFlowRunsFnArgs<boolean>): Promise<
   PaginatedFlowRuns<SparseFlowRun | FlowRunWithoutEvents>
 > {
@@ -392,6 +400,7 @@ export async function getFlowRuns({
         flowDefinitionEntityId: flowDetails.flowDefinitionEntityId,
         flowRunEntityId: flowDetails.flowRunEntityId,
         flowScheduleId: flowDetails.flowScheduleId,
+        historiesByWorkflowId,
         name: flowDetails.name,
         storageProvider,
         temporalClient,

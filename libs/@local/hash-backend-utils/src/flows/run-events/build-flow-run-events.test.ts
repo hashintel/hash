@@ -35,6 +35,33 @@ const loadFixture = (fixtureName: string) => {
   };
 };
 
+const { EventType, RetryState } = proto.temporal.api.enums.v1;
+
+type IHistoryEvent = proto.temporal.api.history.v1.IHistoryEvent;
+
+/** A history whose failed attempts time out instead, in `retryState`. */
+const withLastAttemptTimedOut = (
+  history: IHistoryEvent[],
+  retryState: proto.temporal.api.enums.v1.RetryState,
+): IHistoryEvent[] =>
+  history.map((event) => {
+    const failed = event.activityTaskFailedEventAttributes;
+
+    return failed
+      ? {
+          ...event,
+          eventType: EventType.EVENT_TYPE_ACTIVITY_TASK_TIMED_OUT,
+          activityTaskFailedEventAttributes: null,
+          activityTaskTimedOutEventAttributes: {
+            failure: failed.failure,
+            scheduledEventId: failed.scheduledEventId,
+            startedEventId: failed.startedEventId,
+            retryState,
+          },
+        }
+      : event;
+  });
+
 type ExpectedEvent = [
   position: string,
   event: DistributiveOmit<FlowRunEvent, "position" | "occurredAt">,
@@ -395,6 +422,23 @@ describe("buildFlowRunEvents", () => {
       ],
     ]);
   });
+
+  it.each([
+    ["RETRY_STATE_MAXIMUM_ATTEMPTS_REACHED", "attemptsExhausted"],
+    ["RETRY_STATE_TIMEOUT", "timedOut"],
+    ["RETRY_STATE_UNSPECIFIED", "timedOut"],
+  ] as const)(
+    "gives a step whose last attempt timed out in %s up as %s",
+    (retryState, reason) => {
+      const { history } = loadFixture("gives-up");
+
+      expect(
+        buildFlowRunEvents(
+          withLastAttemptTimedOut(history, RetryState[retryState]),
+        ).find(({ position }) => position === "37.1"),
+      ).toMatchObject({ kind: "stepGaveUp", attempt: 3, reason });
+    },
+  );
 
   it("gives a step up when its action completes with an error status", () => {
     expectEvents("error-status", [

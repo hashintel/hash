@@ -6,20 +6,24 @@ import type {
 } from "@temporalio/client";
 import type proto from "@temporalio/proto";
 
+type FlowRunHistory = {
+  workflow: WorkflowExecutionDescription;
+  history: proto.temporal.api.history.v1.IHistoryEvent[];
+};
+
 /**
- * The current run of a flow's workflow, and its whole history. The history is read by run id, so a reset while it's
- * read can't mix the events of two runs.
+ * Histories being read or already read, by workflow id, so the fields of one GraphQL request read each run's history
+ * once. Create one per request: a history goes stale as the run goes on.
  */
-export const getFlowRunHistory = async ({
+export type FlowRunHistoriesByWorkflowId = Map<string, Promise<FlowRunHistory>>;
+
+const readFlowRunHistory = async ({
   temporalClient,
   workflowId,
 }: {
   temporalClient: TemporalClient;
   workflowId: string;
-}): Promise<{
-  workflow: WorkflowExecutionDescription;
-  history: proto.temporal.api.history.v1.IHistoryEvent[];
-}> => {
+}): Promise<FlowRunHistory> => {
   const workflow = await temporalClient.workflow
     .getHandle(workflowId)
     .describe();
@@ -54,4 +58,30 @@ export const getFlowRunHistory = async ({
   } while (nextPageToken?.length);
 
   return { workflow, history };
+};
+
+/**
+ * The current run of a flow's workflow, and its whole history. The history is read by run id, so a reset while it's
+ * read can't mix the events of two runs. With `historiesByWorkflowId`, a history already read there is reused.
+ */
+export const getFlowRunHistory = ({
+  temporalClient,
+  workflowId,
+  historiesByWorkflowId,
+}: {
+  temporalClient: TemporalClient;
+  workflowId: string;
+  historiesByWorkflowId?: FlowRunHistoriesByWorkflowId;
+}): Promise<FlowRunHistory> => {
+  const existingHistory = historiesByWorkflowId?.get(workflowId);
+
+  if (existingHistory) {
+    return existingHistory;
+  }
+
+  const flowRunHistory = readFlowRunHistory({ temporalClient, workflowId });
+
+  historiesByWorkflowId?.set(workflowId, flowRunHistory);
+
+  return flowRunHistory;
 };

@@ -34,7 +34,7 @@ type IHistoryEvent = proto.temporal.api.history.v1.IHistoryEvent;
 const { EventType, RetryState, WorkflowTaskFailedCause } =
   proto.temporal.api.enums.v1;
 
-export const nonStepActivityTypes = [
+const nonStepActivityTypes = [
   "getFlowDefinitionActivity",
   "persistFlowActivity",
   "generateFlowRunName",
@@ -286,12 +286,13 @@ export const buildFlowRunEvents = (
           kind: "stepGaveUp",
           stepRun,
           attempt,
+          /* A timeout on the last attempt the retry policy allows has run out of attempts, not time. */
           reason:
-            historyEvent.eventType ===
+            gaveUpReasonByRetryState[attributes?.retryState ?? 0] ??
+            (historyEvent.eventType ===
             EventType.EVENT_TYPE_ACTIVITY_TASK_TIMED_OUT
               ? "timedOut"
-              : (gaveUpReasonByRetryState[attributes?.retryState ?? 0] ??
-                "other"),
+              : "other"),
         });
         break;
       }
