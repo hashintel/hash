@@ -16,13 +16,13 @@ import {
   openPetrinautSimulationResource,
   prepareExperiment,
 } from "@hashintel/petrinaut/react";
-import {
-  definePetrinautAiInteractiveTool,
-  ExperimentExecutionCard,
-  type PetrinautAiInteractiveToolWidgetProps,
-} from "@hashintel/petrinaut/ui";
 import { useStore } from "@hashintel/petrinaut/ui/plugin";
 
+import { ExperimentExecutionCard } from "../chat/ai-assistant-panel";
+import {
+  definePetrinautAiInteractiveTool,
+  type PetrinautAiInteractiveToolWidgetProps,
+} from "../chat/ai-interactive-tool";
 import {
   WithBrunchEditorApi,
   type BrunchEditorApi,

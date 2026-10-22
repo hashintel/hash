@@ -9,7 +9,7 @@ import type {
   PetrinautAiToolPresentationContext,
   PetrinautAiToolPresentationResolver,
   PetrinautAiToolPresentationState,
-} from "@hashintel/petrinaut/ui";
+} from "../chat/petrinaut";
 
 /** Visible Brunch tools whose cards this host titles. */
 export const visibleOrdinaryBrunchToolNames = [

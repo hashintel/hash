@@ -14,16 +14,14 @@ import {
   resolvePetrinautHandleCapabilities,
   type PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
-import {
-  executePetrinautAiMutation,
-  type PetrinautAiAutomaticTool,
-} from "@hashintel/petrinaut/ui";
 
+import { executePetrinautAiMutation } from "../chat/ai-assistant-panel";
 import {
   type DocumentRevision,
   documentRevisionOf,
 } from "./shared/document-revision";
 
+import type { PetrinautAiAutomaticTool } from "../chat/ai-automatic-tool";
 import type { FlueConversationState } from "@flue/sdk";
 
 type DocumentRevisionMetadata = ClientToolResultMetadata;
@@ -218,7 +216,7 @@ export const createCanonicalPetrinautHostTools = (
     toolName,
     inputSchema: mutationActionInputSchemas[toolName],
     outputSchema: passthrough,
-    execute: ({ toolCallId, input: rawInput, handle, mutations }) => {
+    execute: ({ toolCallId, input: rawInput, handle, edit }) => {
       const prior = priorOutput(toolCallId);
       if (prior.found) return prior.output;
       if (input.replayReadiness.status === "pending")
@@ -250,7 +248,8 @@ export const createCanonicalPetrinautHostTools = (
       const output = executePetrinautAiMutation({
         aiToolCall,
         getDefinition: definition,
-        mutations,
+        // Refused while the editor is read-only: the refusal is the output.
+        edit,
       });
       started.set(toolCallId, { toolName, input: parsed, output });
       return output;

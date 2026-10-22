@@ -4,7 +4,8 @@ import {
   type InterviewBudget,
 } from "@hashintel/brunch-agent/interview-budget";
 
-import type { PetrinautAiInputMode } from "@hashintel/petrinaut/ui";
+/** The Brunch input surface used by both browser controls and server policy. */
+export type BrunchInputMode = "text" | "voice";
 
 export const interviewBudgetLevels = ["off", ...cappedLevels] as const;
 export type InterviewBudgetLevel = (typeof interviewBudgetLevels)[number];
@@ -52,7 +53,7 @@ export const interviewBudgetLevelsConfig = {
   },
 } as const satisfies Record<
   InterviewBudgetLevel,
-  Record<PetrinautAiInputMode, number | null> & {
+  Record<BrunchInputMode, number | null> & {
     readonly name: string;
     readonly guide: string;
     readonly minutes: number;
@@ -68,7 +69,7 @@ export const isInterviewBudgetLevel = (
 
 export const getInterviewBudget = (
   level: InterviewBudgetLevel,
-  mode: PetrinautAiInputMode,
+  mode: BrunchInputMode,
   asked: number,
 ): InterviewBudget | undefined =>
   level === "off"
@@ -77,7 +78,7 @@ export const getInterviewBudget = (
 
 export const interviewBudgetLabel = (
   level: InterviewBudgetLevel,
-  mode: PetrinautAiInputMode,
+  mode: BrunchInputMode,
   asked: number,
   { closing }: { closing: boolean },
 ): string | null => {

@@ -8,13 +8,13 @@ import {
   type PetrinautAiMutationToolName,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
+import { useStore } from "@hashintel/petrinaut/ui/plugin";
+
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveTool,
   type PetrinautAiInteractiveToolWidgetProps,
-} from "@hashintel/petrinaut/ui";
-import { useStore } from "@hashintel/petrinaut/ui/plugin";
-
+} from "../chat/ai-interactive-tool";
 import {
   WithBrunchEditorApi,
   type BrunchEditorApi,

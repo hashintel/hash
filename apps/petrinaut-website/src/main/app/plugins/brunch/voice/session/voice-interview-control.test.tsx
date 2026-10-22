@@ -28,12 +28,12 @@ import {
 } from "./voice-interview-control";
 import { VoiceTurnController } from "./voice-turn-controller";
 
-import type { AgentSendResult } from "@flue/sdk";
 import type {
   PetrinautAiVoiceModeContext,
   PetrinautAiVoiceModeSessionControls,
   PetrinautAiVoiceSessionState,
-} from "@hashintel/petrinaut/ui";
+} from "../../chat/ai-assistant-composer-control";
+import type { AgentSendResult } from "@flue/sdk";
 
 const config = { available: true as const, connectionTimeoutMs: 15_000 };
 
