@@ -36,6 +36,7 @@ export { describeRefusal } from "./plugins/plugin-access";
 export type {
   AccessApi,
   EditRefusal,
+  EditRefusals,
   EditResult,
   PluginAccess,
   PluginDiagnostics,
