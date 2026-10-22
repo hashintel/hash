@@ -2,6 +2,7 @@ use alloc::{collections::BTreeMap, sync::Arc};
 use core::{net::IpAddr, time::Duration};
 use std::sync::{Mutex, OnceLock};
 
+use backon::{ExponentialBuilder, Retryable as _};
 use error_stack::Report;
 use reqwest::{Client, Url};
 use tokio::time::Instant;
@@ -107,55 +108,76 @@ pub(super) async fn fetch(
     let host = url
         .host_str()
         .ok_or_else(|| Report::new(SourceError::Destination))?;
-    for attempt in 0..=10 {
+    let mut response = (|| async {
         PACER
             .get_or_init(Pacer::default)
             .wait(host, interval)
             .await?;
-        let mut response = client
+        let response = client
             .get(url.clone())
             .headers(headers.clone())
             .send()
             .await
             .map_err(|_error| Report::new(SourceError::Request))?;
-        if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS && attempt < 10 {
-            let delay = retry_delay(response.headers(), attempt);
-            drop(response);
-            tokio::time::sleep(delay).await;
-            continue;
-        }
         if !response.status().is_success() {
-            return Err(Report::new(SourceError::Status {
-                status: response.status().as_u16(),
-            }));
+            return Err(RequestFailure {
+                error: Report::new(SourceError::Status {
+                    status: response.status().as_u16(),
+                }),
+                retry_after: retry_after(response.headers()),
+            });
         }
-        let mut bytes = Vec::new();
-        while let Some(chunk) = response
-            .chunk()
-            .await
-            .map_err(|_error| Report::new(SourceError::Response))?
-        {
-            if bytes.len().saturating_add(chunk.len()) > 16 * 1024 * 1024 {
-                return Err(Report::new(SourceError::Response));
-            }
-            bytes.extend_from_slice(&chunk);
+        Ok(response)
+    })
+    .retry(
+        ExponentialBuilder::default()
+            .with_min_delay(Duration::from_millis(500))
+            .with_max_delay(Duration::from_secs(30))
+            .with_max_times(10),
+    )
+    .when(|failure| {
+        matches!(
+            failure.error.current_context(),
+            SourceError::Status { status: 429 }
+        )
+    })
+    .adjust(|failure, delay| delay.map(|delay| failure.retry_after.unwrap_or(delay)))
+    .await
+    .map_err(|failure| failure.error)?;
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|_error| Report::new(SourceError::Response))?
+    {
+        if bytes.len().saturating_add(chunk.len()) > 16 * 1024 * 1024 {
+            return Err(Report::new(SourceError::Response));
         }
-        return serde_json::from_slice(&bytes).map_err(|_error| Report::new(SourceError::Response));
+        bytes.extend_from_slice(&chunk);
     }
-    Err(Report::new(SourceError::Request))
+    serde_json::from_slice(&bytes).map_err(|_error| Report::new(SourceError::Response))
 }
 
-fn retry_delay(headers: &reqwest::header::HeaderMap, attempt: u32) -> Duration {
-    let milliseconds = headers
-        .get("retry-after")
+struct RequestFailure {
+    error: Report<SourceError>,
+    retry_after: Option<Duration>,
+}
+
+impl From<Report<SourceError>> for RequestFailure {
+    fn from(error: Report<SourceError>) -> Self {
+        Self {
+            error,
+            retry_after: None,
+        }
+    }
+}
+
+fn retry_after(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
+    headers
+        .get(reqwest::header::RETRY_AFTER)
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.trim().parse::<u64>().ok())
-        .map_or_else(
-            || 500_u64.saturating_mul(1_u64 << attempt.min(16)),
-            |seconds| seconds.saturating_mul(1000),
-        )
-        .min(30_000);
-    Duration::from_millis(milliseconds)
+        .map(|seconds| Duration::from_secs(seconds.min(30)))
 }
 
 #[cfg(test)]
@@ -167,7 +189,7 @@ mod tests {
         header::{HeaderMap, HeaderValue, RETRY_AFTER},
     };
 
-    use super::{Pacer, client, retry_delay, validate};
+    use super::{Pacer, client, retry_after, validate};
 
     #[tokio::test]
     async fn destinations_reject_private_resolution() {
@@ -265,15 +287,15 @@ mod tests {
             HeaderValue::from_static("18446744073709551615"),
         );
         assert_eq!(
-            retry_delay(&headers, 0),
-            Duration::from_secs(30),
+            retry_after(&headers),
+            Some(Duration::from_secs(30)),
             "server delays should saturate before the cap"
         );
         headers.insert(RETRY_AFTER, HeaderValue::from_static("not-an-integer"));
         assert_eq!(
-            retry_delay(&headers, 2),
-            Duration::from_secs(2),
-            "invalid delays should use exponential backoff"
+            retry_after(&headers),
+            None,
+            "invalid delays should leave the backoff unchanged"
         );
     }
 }
@@ -299,37 +321,120 @@ mod response_tests {
     use crate::sources::tests::{public_client, server};
 
     #[tokio::test]
-    async fn fetch_throttled_response() {
+    async fn fetch_stops_at_retry_budget() {
         let requests = Arc::new(AtomicUsize::new(0));
         let counter = Arc::clone(&requests);
         let server = server(Router::new().route(
             "/",
             get(move || {
-                let counter = Arc::clone(&counter);
-                async move {
-                    if counter.fetch_add(1, Ordering::Relaxed) == 0 {
-                        (StatusCode::TOO_MANY_REQUESTS, [("retry-after", "0")]).into_response()
-                    } else {
-                        Json(json!({"items": [1]})).into_response()
-                    }
-                }
+                counter.fetch_add(1, Ordering::Relaxed);
+                async { (StatusCode::TOO_MANY_REQUESTS, [("retry-after", "0")]) }
             }),
         ))
         .await;
         let (client, url) = public_client(&server);
-        let value = fetch(
+        let error = fetch(
             &client,
             &Url::parse(&url).expect("should parse the URL"),
             &HeaderMap::new(),
             Duration::ZERO,
         )
         .await
-        .expect("should retry a throttled response");
-        assert_eq!(
-            value,
-            json!({"items": [1]}),
-            "should return the successful response"
-        );
-        assert_eq!(requests.load(Ordering::Relaxed), 2, "should retry once");
+        .expect_err("should stop after ten retries");
+        assert!(matches!(
+            error.current_context(),
+            crate::sources::SourceError::Status { status: 429 }
+        ));
+        assert_eq!(requests.load(Ordering::Relaxed), 11);
+    }
+
+    #[tokio::test]
+    async fn fetch_does_not_retry_other_failures() {
+        for status in [
+            StatusCode::SERVICE_UNAVAILABLE,
+            StatusCode::UNAUTHORIZED,
+            StatusCode::OK,
+        ] {
+            let requests = Arc::new(AtomicUsize::new(0));
+            let counter = Arc::clone(&requests);
+            let server = server(Router::new().route(
+                "/",
+                get(move || {
+                    counter.fetch_add(1, Ordering::Relaxed);
+                    async move { (status, [("retry-after", "0")], "invalid JSON") }
+                }),
+            ))
+            .await;
+            let (client, url) = public_client(&server);
+            let error = fetch(
+                &client,
+                &Url::parse(&url).expect("should parse the URL"),
+                &HeaderMap::new(),
+                Duration::ZERO,
+            )
+            .await
+            .expect_err("should return the failure without retrying");
+            if status == StatusCode::OK {
+                assert!(matches!(
+                    error.current_context(),
+                    crate::sources::SourceError::Response
+                ));
+            } else {
+                assert!(
+                    matches!(error.current_context(), crate::sources::SourceError::Status { status: actual } if *actual == status.as_u16())
+                );
+            }
+            assert_eq!(requests.load(Ordering::Relaxed), 1);
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_throttled_response() {
+        for (retry_after, minimum_delay) in [
+            ("0", Duration::ZERO),
+            ("1", Duration::from_secs(1)),
+            ("invalid", Duration::from_millis(500)),
+        ] {
+            let requests = Arc::new(AtomicUsize::new(0));
+            let counter = Arc::clone(&requests);
+            let server = server(Router::new().route(
+                "/",
+                get(move || {
+                    let counter = Arc::clone(&counter);
+                    async move {
+                        if counter.fetch_add(1, Ordering::Relaxed) == 0 {
+                            (
+                                StatusCode::TOO_MANY_REQUESTS,
+                                [("retry-after", retry_after)],
+                            )
+                                .into_response()
+                        } else {
+                            Json(json!({"items": [1]})).into_response()
+                        }
+                    }
+                }),
+            ))
+            .await;
+            let (client, url) = public_client(&server);
+            let start = tokio::time::Instant::now();
+            let value = fetch(
+                &client,
+                &Url::parse(&url).expect("should parse the URL"),
+                &HeaderMap::new(),
+                Duration::ZERO,
+            )
+            .await
+            .expect("should retry a throttled response");
+            assert_eq!(
+                value,
+                json!({"items": [1]}),
+                "should return the successful response"
+            );
+            assert_eq!(requests.load(Ordering::Relaxed), 2, "should retry once");
+            assert!(
+                start.elapsed() >= minimum_delay,
+                "retry delay should be honored"
+            );
+        }
     }
 }
