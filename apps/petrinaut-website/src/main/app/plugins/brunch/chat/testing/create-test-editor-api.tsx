@@ -56,7 +56,7 @@ const noDiagnostics: LanguageClient["requestDiagnostics"] = () =>
   Promise.resolve({ byUri: new Map(), total: 0, errorCount: 0 });
 
 /** A core instance over an empty net, for a test's `api`. */
-export const createEmptyTestInstance = (id?: string): Petrinaut =>
+const createEmptyTestInstance = (id?: string): Petrinaut =>
   createPetrinaut({
     document: createJsonDocHandle({
       id,

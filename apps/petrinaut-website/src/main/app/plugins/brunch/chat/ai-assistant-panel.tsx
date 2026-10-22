@@ -103,7 +103,6 @@ export type {
   PetrinautAiMessageMetadata,
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
-export type { AiAssistantEditorApi } from "./ai-assistant-panel/editor-api";
 // Owned helpers Brunch's tools use beside the chat, which imports them too.
 export { ExperimentExecutionCard } from "./ai-assistant-panel/ai-assistant-contents/experiment-execution-card";
 export { executePetrinautAiMutation } from "./ai-assistant-panel/apply-petrinaut-ai-mutation";
