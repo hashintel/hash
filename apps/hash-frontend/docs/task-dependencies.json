@@ -53,6 +53,7 @@
         "!NEXT_PUBLIC_VERCEL_URL",
         "ANALYZE",
         "API_ORIGIN",
+        "DISABLE_REACT_COMPILER",
         "ENVIRONMENT",
         "GOOGLE_OAUTH_CLIENT_ID",
         "NODE_ENV",

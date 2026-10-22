@@ -225,7 +225,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
 
   const renderDraggable = useDraggableInPortal();
 
-  const isSubmitDisabled = Object.keys(formState.dirtyFields).length === 0;
+  const isSubmitDisabled = !formState.isDirty;
 
   const isDragDisabled = fields.length <= 1;
 
@@ -400,9 +400,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
               Save changes
             </Button>
             <Button variant="tertiary" onClick={handleDiscard}>
-              {Object.keys(formState.dirtyFields).length === 0
-                ? "Cancel"
-                : "Discard"}
+              {formState.isDirty ? "Discard" : "Cancel"}
             </Button>
           </Box>
         </Box>

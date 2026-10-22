@@ -8,7 +8,7 @@ import { EditBarTypeEditor } from "./edit-bar-type-editor";
 import type { ReactNode } from "react";
 
 const formState = vi.hoisted(() => ({
-  dirtyFields: {} as Record<string, boolean>,
+  isDirty: false,
   isSubmitting: false,
 }));
 
@@ -66,7 +66,7 @@ const renderEditor = (isDraft: boolean, major = 1) =>
 
 describe("EditBarTypeEditor", () => {
   beforeEach(() => {
-    formState.dirtyFields = {};
+    formState.isDirty = false;
     confirmButton.disabled = false;
   });
 
@@ -79,7 +79,7 @@ describe("EditBarTypeEditor", () => {
   });
 
   it("shows update actions for an edited existing type at version one", () => {
-    formState.dirtyFields = { title: true };
+    formState.isDirty = true;
 
     const markup = renderEditor(false);
 
@@ -98,7 +98,7 @@ describe("EditBarTypeEditor", () => {
   });
 
   it("disables publishing an update at the maximum version", () => {
-    formState.dirtyFields = { title: true };
+    formState.isDirty = true;
 
     expect(renderEditor(false, 4_294_967_295)).toContain(
       "this type has reached the maximum version and cannot be updated",
@@ -107,7 +107,7 @@ describe("EditBarTypeEditor", () => {
   });
 
   it("allows publishing the last available version", () => {
-    formState.dirtyFields = { title: true };
+    formState.isDirty = true;
 
     expect(renderEditor(false, 4_294_967_294)).toContain(
       "Version 4294967294 -&gt; 4294967295",

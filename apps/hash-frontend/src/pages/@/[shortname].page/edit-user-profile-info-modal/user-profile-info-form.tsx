@@ -91,7 +91,7 @@ export const UserProfileInfoForm: FunctionComponent<{
     register,
     handleSubmit,
     reset,
-    formState: { errors, dirtyFields, touchedFields },
+    formState: { errors, isDirty, touchedFields },
     watch,
     setValue,
   } = formMethods;
@@ -299,7 +299,7 @@ export const UserProfileInfoForm: FunctionComponent<{
   }, [reset, closeModal]);
 
   const isSubmitDisabled =
-    Object.keys(errors).length > 0 || Object.keys(dirtyFields).length === 0;
+    Object.keys(errors).length > 0 || !isDirty;
 
   return (
     <Box
@@ -398,7 +398,7 @@ export const UserProfileInfoForm: FunctionComponent<{
             Save changes
           </Button>
           <Button variant="tertiary" onClick={handleDiscard}>
-            {Object.keys(dirtyFields).length === 0 ? "Cancel" : "Discard"}
+            {isDirty ? "Discard" : "Cancel"}
           </Button>
         </Box>
       </FormProvider>

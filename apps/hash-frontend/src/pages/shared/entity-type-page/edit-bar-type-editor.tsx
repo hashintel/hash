@@ -22,11 +22,11 @@ import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 const useFrozenValue = <T extends string | number | boolean | object>(
   value: T,
 ): T => {
-  const { dirtyFields } = useEntityTypeFormState<EntityTypeEditorFormData>();
+  const { isDirty } = useEntityTypeFormState<EntityTypeEditorFormData>();
 
   const [frozen, setFrozen] = useState(value);
 
-  if (Object.keys(dirtyFields).length > 0 && frozen !== value) {
+  if (isDirty && frozen !== value) {
     setFrozen(value);
   }
 
@@ -46,13 +46,13 @@ export const EditBarTypeEditor = ({
   discardButtonProps: Partial<ButtonProps>;
   errorMessage?: string;
 }) => {
-  const { dirtyFields, isSubmitting } =
+  const { isDirty, isSubmitting } =
     useEntityTypeFormState<EntityTypeEditorFormData>();
   const frozenVersion = useFrozenValue(currentVersion);
   const frozenIsDraft = useFrozenValue(isDraft);
   const ref = useFreezeScrollWhileTransitioning();
 
-  const collapseIn = isDraft || Object.keys(dirtyFields).length > 0;
+  const collapseIn = isDraft || isDirty;
 
   const frozenDiscardButtonProps = useFrozenValue(discardButtonProps);
 
