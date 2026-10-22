@@ -27,6 +27,7 @@ import type {
   LocalFlowRun,
   ProgressLogSignal,
   SkippedStep,
+  StartedForEachStep,
   StepInput,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -186,6 +187,10 @@ export const buildFlowRunEvents = (
           attempt: 1,
         });
 
+        /*
+         * Runs from before the engine recorded `startedForEachSteps` in its memo only show a fan-out in the next flow
+         * it persists. The memo comes first in the history of later runs, so their steps are already reported.
+         */
         if (activityType === "persistFlowActivity") {
           const { flow } = parseFirstPayload<{ flow: LocalFlowRun }>(
             attributes.input,
@@ -359,30 +364,48 @@ export const buildFlowRunEvents = (
       }
 
       case EventType.EVENT_TYPE_WORKFLOW_PROPERTIES_MODIFIED: {
-        const skippedStepsPayload =
+        const memoFields =
           historyEvent.workflowPropertiesModifiedEventAttributes?.upsertedMemo
-            ?.fields?.skippedSteps;
+            ?.fields;
 
-        if (!skippedStepsPayload) {
-          break;
+        if (memoFields?.startedForEachSteps) {
+          const startedForEachSteps = parseFirstPayload<StartedForEachStep[]>(
+            { payloads: [memoFields.startedForEachSteps] },
+            "started forEach steps",
+          );
+
+          for (const { stepId, itemCount, startedAt } of startedForEachSteps) {
+            if (reportedForEachStepIds.has(stepId)) {
+              continue;
+            }
+
+            reportedForEachStepIds.add(stepId);
+
+            addEvent(
+              { kind: "forEachStarted", stepRun: toStepRun(stepId), itemCount },
+              startedAt,
+            );
+          }
         }
 
-        const skippedSteps = parseFirstPayload<SkippedStep[]>(
-          { payloads: [skippedStepsPayload] },
-          "skipped steps",
-        );
-
-        for (const { stepId, stepType, skippedAt } of skippedSteps) {
-          if (skippedStepIds.has(stepId)) {
-            continue;
-          }
-
-          skippedStepIds.add(stepId);
-
-          addEvent(
-            { kind: "stepSkipped", stepRun: toStepRun(stepId), stepType },
-            skippedAt,
+        if (memoFields?.skippedSteps) {
+          const skippedSteps = parseFirstPayload<SkippedStep[]>(
+            { payloads: [memoFields.skippedSteps] },
+            "skipped steps",
           );
+
+          for (const { stepId, stepType, skippedAt } of skippedSteps) {
+            if (skippedStepIds.has(stepId)) {
+              continue;
+            }
+
+            skippedStepIds.add(stepId);
+
+            addEvent(
+              { kind: "stepSkipped", stepRun: toStepRun(stepId), stepType },
+              skippedAt,
+            );
+          }
         }
         break;
       }

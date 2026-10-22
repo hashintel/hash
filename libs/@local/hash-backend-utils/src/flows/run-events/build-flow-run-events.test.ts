@@ -544,7 +544,7 @@ describe("buildFlowRunEvents", () => {
     ]);
   });
 
-  it("starts a forEach when it fans out, before the steps of its items", () => {
+  describe("a forEach over items", () => {
     const wrapStarted = (position: string, item: number, value: number) =>
       [
         position,
@@ -580,34 +580,59 @@ describe("buildFlowRunEvents", () => {
       ],
     ];
 
-    expectEvents("for-each", [
-      runStartedWithNumbers,
-      [
-        "35.0",
-        {
-          kind: "forEachStarted",
-          stepRun: stepRun("eachNumber"),
-          itemCount: 3,
-        },
-      ],
-      wrapStarted("41.0", 0, 3),
-      wrapStarted("42.0", 1, 1),
-      wrapStarted("43.0", 2, 4),
-      ...wrapAttempt("44.0", "45.0", 0, 3),
-      ...wrapAttempt("47.0", "48.0", 2, 4),
-      ...wrapAttempt("49.0", "50.0", 1, 1),
-      [
-        "70.0",
-        {
-          kind: "runFinished",
-          status: FlowRunStatus.Completed,
-          flowOutputs: [
-            { outputName: "collected", payload: numbers([3, 1, 4]) },
-          ],
-          stepErrors: [],
-        },
-      ],
-    ]);
+    const forEachStarted = (
+      position: string,
+      occurredAt?: string,
+    ): ExpectedEvent => {
+      const event = {
+        kind: "forEachStarted",
+        stepRun: stepRun("eachNumber"),
+        itemCount: 3,
+      } as const;
+
+      return occurredAt === undefined
+        ? [position, event]
+        : [position, event, occurredAt];
+    };
+
+    const runFinished = (position: string): ExpectedEvent => [
+      position,
+      {
+        kind: "runFinished",
+        status: FlowRunStatus.Completed,
+        flowOutputs: [{ outputName: "collected", payload: numbers([3, 1, 4]) }],
+        stepErrors: [],
+      },
+    ];
+
+    it("starts when the engine fans it out, before the steps of its items", () => {
+      expectEvents("for-each", [
+        runStartedWithNumbers,
+        forEachStarted("35.0", "2026-10-22T16:36:33.718Z"),
+        wrapStarted("42.0", 0, 3),
+        wrapStarted("43.0", 1, 1),
+        wrapStarted("44.0", 2, 4),
+        ...wrapAttempt("45.0", "46.0", 0, 3),
+        ...wrapAttempt("48.0", "49.0", 2, 4),
+        ...wrapAttempt("50.0", "51.0", 1, 1),
+        runFinished("71.0"),
+      ]);
+    });
+
+    /* A run of the engine from before it recorded its forEach steps' starts, which the recorder can't record. */
+    it("starts when the flow is next persisted, for a run whose memo doesn't record it", () => {
+      expectEvents("for-each-before-memo", [
+        runStartedWithNumbers,
+        forEachStarted("35.0"),
+        wrapStarted("41.0", 0, 3),
+        wrapStarted("42.0", 1, 1),
+        wrapStarted("43.0", 2, 4),
+        ...wrapAttempt("44.0", "45.0", 0, 3),
+        ...wrapAttempt("47.0", "48.0", 2, 4),
+        ...wrapAttempt("49.0", "50.0", 1, 1),
+        runFinished("70.0"),
+      ]);
+    });
   });
 
   it("starts a forEach over no items", () => {
@@ -620,9 +645,10 @@ describe("buildFlowRunEvents", () => {
           stepRun: stepRun("eachNumber"),
           itemCount: 0,
         },
+        "2026-10-22T16:36:36.430Z",
       ],
       [
-        "52.0",
+        "53.0",
         {
           kind: "runFinished",
           status: FlowRunStatus.Completed,

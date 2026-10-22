@@ -1101,6 +1101,17 @@ export type SkippedStep = {
   skippedAt: string;
 };
 
+/**
+ * A for-each step the engine fanned out into a run of its steps per item. Fanning out runs no activity, and a run's
+ * history only records an activity once it finishes, so the engine records when it fanned out in the run's Temporal
+ * memo, under `startedForEachSteps`.
+ */
+export type StartedForEachStep = {
+  stepId: string;
+  itemCount: number;
+  startedAt: string;
+};
+
 export const detailedFlowFields = [
   "failureMessage",
   "flowInputs",
