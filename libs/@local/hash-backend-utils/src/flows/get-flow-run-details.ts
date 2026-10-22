@@ -1,34 +1,32 @@
 import proto from "@temporalio/proto";
 
+import { generateStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { StatusCode } from "@local/status";
 
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 import { resolvePayloadValue } from "./payload-storage.js";
-import {
-  buildFlowRunEvents,
-  getFlowRunHistory,
-  nonStepActivityTypes,
-} from "./run-events.js";
+import { buildFlowRunEvents, getFlowRunHistory } from "./run-events.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
 import type { ResolvePayloadContext } from "./payload-storage.js";
 import type { FlowRunHistoriesByWorkflowId } from "./run-events.js";
 import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
-import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
+import type {
+  FlowRunEvent,
+  FlowRunEventStepRun,
+  FlowStepGaveUpReason,
+} from "@local/hash-isomorphic-utils/flows/run-events";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
-  CheckpointLog,
   DetailedFlowField,
   ExternalInputRequest,
   FlowRunWithoutEvents,
-  FlowSignalType,
-  ProgressLogSignal,
   ResolvedPayload,
   ResolvedStepOutput,
   ResolvedStepRunOutput,
-  SkippedStep,
   SparseFlowRun,
+  StepInput,
   StepOutput,
   StepRunOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -77,102 +75,181 @@ const resolveStoredPayloadsInOutputs = async (
   );
 };
 
-const eventTimeIsoStringFromEvent = (event?: IHistoryEvent) => {
-  const { eventTime } = event ?? {};
-  if (!eventTime?.seconds) {
-    return;
-  }
-
-  return new Date(
-    eventTime.seconds.toInt() * 1000 +
-      (eventTime.nanos ? eventTime.nanos / 1_000_000 : 0),
-  ).toISOString();
+type UnresolvedStepRun = Omit<StepRun, "outputs"> & {
+  outputs?: StepRunOutput[] | null;
 };
 
-/**
- * Get details from an ActivityTaskScheduledEvent
- */
-const getActivityScheduledDetails = (event: IHistoryEvent) => {
-  if (
-    event.eventType !==
-    proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED
-  ) {
-    throw new Error(
-      `Unexpected event type ${event.eventType}, expected ${proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED}`,
-    );
-  }
+type FlowRunEventOfKind<Kind extends FlowRunEvent["kind"]> = Extract<
+  FlowRunEvent,
+  { kind: Kind }
+>;
 
-  if (!event.activityTaskScheduledEventAttributes?.activityId) {
-    throw new Error("No activityId on scheduled event");
-  }
+const { RetryState } = proto.temporal.api.enums.v1;
 
-  const scheduledAt = eventTimeIsoStringFromEvent(event);
-  if (!scheduledAt) {
-    throw new Error("No eventTime on scheduled event");
-  }
-
-  const inputs = parseHistoryItemPayload(
-    event.activityTaskScheduledEventAttributes.input,
-  );
-
-  return {
-    activityId: event.activityTaskScheduledEventAttributes.activityId,
-    activityType: event.activityTaskScheduledEventAttributes.activityType?.name,
-    inputs,
-    scheduledAt,
-    startedAt: undefined,
-    attempt: 1,
+/** The Temporal retry state a step gave up in, as a string, where its reason determines one. */
+const retryStateByGaveUpReason: Partial<Record<FlowStepGaveUpReason, string>> =
+  {
+    attemptsExhausted: String(RetryState.RETRY_STATE_MAXIMUM_ATTEMPTS_REACHED),
+    nonRetryable: String(RetryState.RETRY_STATE_NON_RETRYABLE_FAILURE),
+    timedOut: String(RetryState.RETRY_STATE_TIMEOUT),
   };
-};
+
+const toStepRunId = ({ stepId, itemPath: [itemIndex] }: FlowRunEventStepRun) =>
+  itemIndex === undefined ? stepId : generateStepRunId(stepId, itemIndex);
 
 /**
- * Get the history event where this activity was last scheduled, which is the only one that contains the activityId,
- * and tells us when it was last scheduled.
+ * Each step run's state after its latest activity event, latest first: its last scheduling's inputs, its latest
+ * attempt, and what happened last. A step still scheduled or running when its run stopped early counts as cancelled.
  */
-const getActivityStartedDetails = (
-  events: IHistoryEvent[],
-  attributes:
-    | proto.temporal.api.history.v1.IActivityTaskStartedEventAttributes
-    | proto.temporal.api.history.v1.IActivityTaskCompletedEventAttributes
-    | proto.temporal.api.history.v1.IActivityTaskCanceledEventAttributes
-    | proto.temporal.api.history.v1.IActivityTaskCancelRequestedEventAttributes
-    | proto.temporal.api.history.v1.IActivityTaskTimedOutEventAttributes
-    | proto.temporal.api.history.v1.IActivityTaskFailedEventAttributes,
-) => {
-  const { scheduledEventId } = attributes;
+const getStepRunsFromActivityEvents = (
+  runEvents: FlowRunEvent[],
+  {
+    workflowStoppedEarly,
+    workflowClosedAt,
+  }: { workflowStoppedEarly: boolean; workflowClosedAt?: string },
+): Map<string, UnresolvedStepRun> => {
+  const activitiesByStepRunId = new Map<
+    string,
+    {
+      stepStarted: FlowRunEventOfKind<"stepStarted">;
+      attemptStarted?: FlowRunEventOfKind<"attemptStarted">;
+      attemptFailed?: FlowRunEventOfKind<"attemptFailed">;
+    }
+  >();
+  const stepRunsById = new Map<string, UnresolvedStepRun>();
 
-  const scheduledEvent = events.findLast(
-    (item) =>
-      item.eventId?.toString() === scheduledEventId?.toString() &&
-      item.eventType ===
-        proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_SCHEDULED,
-  );
+  for (const event of runEvents) {
+    if (
+      event.kind !== "stepStarted" &&
+      event.kind !== "attemptStarted" &&
+      event.kind !== "attemptSucceeded" &&
+      event.kind !== "attemptFailed" &&
+      event.kind !== "stepGaveUp" &&
+      event.kind !== "attemptCancellationRequested" &&
+      event.kind !== "attemptCancelled"
+    ) {
+      continue;
+    }
 
-  if (!scheduledEvent) {
-    throw new Error("Could not find scheduled event for activity in history");
+    const stepRunId = toStepRunId(event.stepRun);
+
+    if (event.kind === "stepStarted") {
+      activitiesByStepRunId.set(stepRunId, { stepStarted: event });
+    }
+
+    const activity = activitiesByStepRunId.get(stepRunId);
+    if (!activity) {
+      throw new Error(
+        `Step run ${stepRunId} has a ${event.kind} event at ${event.position} before it started`,
+      );
+    }
+
+    if (event.kind === "attemptStarted") {
+      activity.attemptStarted = event;
+    } else if (event.kind === "attemptFailed") {
+      /* Always followed by the step giving up, which records the step's state. */
+      activity.attemptFailed = event;
+      continue;
+    }
+
+    const { stepStarted, attemptStarted } = activity;
+
+    const stepRun: UnresolvedStepRun = {
+      stepId: stepRunId,
+      stepType: `${stepStarted.stepType}Action`,
+      startedAt: attemptStarted?.occurredAt,
+      scheduledAt: stepStarted.occurredAt,
+      closedAt: workflowStoppedEarly ? workflowClosedAt : "",
+      /* Clients receive the action activity's arguments as a step run's inputs, not the `StepInput`s the schema declares. */
+      inputs: [{ inputs: stepStarted.inputs }] as unknown as StepInput[],
+      logs: [],
+      status: workflowStoppedEarly
+        ? FlowStepStatus.Cancelled
+        : FlowStepStatus.Scheduled,
+      attempt: attemptStarted?.attempt ?? 1,
+    };
+
+    switch (event.kind) {
+      case "stepStarted":
+        break;
+
+      case "attemptStarted": {
+        if (!workflowStoppedEarly) {
+          const lastError = event.hiddenAttempts?.lastError;
+
+          stepRun.status = FlowStepStatus.Started;
+          stepRun.lastFailure = lastError;
+          stepRun.logs.push({
+            type: "ActivityFailed",
+            stepId: stepRunId,
+            recordedAt: event.occurredAt,
+            retrying: true,
+            message: lastError?.message ?? "Unknown error",
+          });
+        }
+        break;
+      }
+
+      case "attemptSucceeded": {
+        stepRun.outputs = [
+          { code: StatusCode.Ok, contents: [{ outputs: event.outputs }] },
+        ];
+        stepRun.status = FlowStepStatus.Completed;
+        stepRun.closedAt = event.occurredAt;
+        break;
+      }
+
+      case "stepGaveUp": {
+        const error = activity.attemptFailed?.error ?? {
+          message: "Unknown error",
+        };
+
+        stepRun.closedAt = event.occurredAt;
+
+        if (event.reason === "errorStatus") {
+          /* The event keeps the status's message, not its code. */
+          stepRun.outputs = [
+            { code: StatusCode.Unknown, message: error.message, contents: [] },
+          ];
+          stepRun.status = FlowStepStatus.Failed;
+          break;
+        }
+
+        stepRun.lastFailure = error;
+        stepRun.retryState = retryStateByGaveUpReason[event.reason];
+
+        if (event.reason === "timedOut") {
+          stepRun.status = FlowStepStatus.TimedOut;
+        } else {
+          stepRun.status = FlowStepStatus.Failed;
+          stepRun.logs.push({
+            type: "ActivityFailed",
+            stepId: stepRunId,
+            recordedAt: event.occurredAt,
+            retrying: false,
+            message: error.message,
+          });
+        }
+        break;
+      }
+
+      case "attemptCancellationRequested": {
+        stepRun.status = FlowStepStatus.CancelRequested;
+        break;
+      }
+
+      case "attemptCancelled": {
+        stepRun.status = FlowStepStatus.Cancelled;
+        stepRun.closedAt = event.occurredAt;
+        break;
+      }
+    }
+
+    stepRunsById.delete(stepRunId);
+    stepRunsById.set(stepRunId, stepRun);
   }
 
-  const { activityId, activityType, scheduledAt, inputs } =
-    getActivityScheduledDetails(scheduledEvent);
-
-  const startedEvent = events.findLast(
-    (item) =>
-      item.eventType ===
-        proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_STARTED &&
-      item.activityTaskStartedEventAttributes?.scheduledEventId?.toString() ===
-        scheduledEventId?.toString(),
-  );
-
-  return {
-    activityId,
-    activityType,
-    scheduledAt,
-    inputs,
-    attempt: startedEvent?.activityTaskStartedEventAttributes?.attempt ?? 1,
-    startedAt: eventTimeIsoStringFromEvent(startedEvent),
-  };
+  return new Map([...stepRunsById].reverse());
 };
 
 const findWorkflowExecutionStartedEventAttributes = (events: IHistoryEvent[]) =>
@@ -246,7 +323,6 @@ export type FlowRunHistoryRecord = {
     status: WorkflowExecutionStatusName;
     startTime: string;
     closeTime?: string | null;
-    memo?: Record<string, unknown>;
   };
   history: IHistoryEvent[];
   /**
@@ -292,21 +368,9 @@ export const getFlowRunDetailedFieldsFromHistory = async (
         .EVENT_TYPE_WORKFLOW_EXECUTION_FAILED,
   )?.workflowExecutionFailedEventAttributes?.failure?.message;
 
-  const unresolvedStepMap: {
-    [activityId: string]: Omit<StepRun, "outputs"> & {
-      outputs?: StepRunOutput[] | null;
-    };
-  } = {};
+  const runEvents = buildFlowRunEvents(events);
 
-  /**
-   * Collect all progress signal events when building the step map,
-   * and assign them to the appropriate step afterwards.
-   */
-  const progressSignalEvents: IHistoryEvent[] = [];
-
-  const checkpointLogs: CheckpointLog[] = [];
-
-  const inputRequests = getInputRequests(buildFlowRunEvents(events));
+  const inputRequests = getInputRequests(runEvents);
 
   const workflowStoppedEarly = [
     "TERMINATED",
@@ -315,274 +379,33 @@ export const getFlowRunDetailedFieldsFromHistory = async (
     "FAILED",
   ].includes(workflow.status);
 
-  if (events.length) {
-    /*
-     * Walk backwards from the most recent event until we have populated the latest state data for each step
-     */
-    for (let i = events.length - 1; i >= 0; i--) {
-      const event = events[i];
-      if (!event) {
-        throw new Error("Somehow out of bounds for events array");
-      }
+  const stepRunsById = getStepRunsFromActivityEvents(runEvents, {
+    workflowStoppedEarly,
+    workflowClosedAt: workflow.closeTime ?? undefined,
+  });
 
-      const signalName =
-        event.workflowExecutionSignaledEventAttributes?.signalName;
-
-      if (event.workflowExecutionSignaledEventAttributes?.signalName) {
-        const time = eventTimeIsoStringFromEvent(event);
-        if (!time) {
-          throw new Error(
-            `No eventTime on checkpoint signal event ${event.eventId?.toInt()}`,
-          );
-        }
-
-        switch (signalName as FlowSignalType) {
-          case "logProgress": {
-            progressSignalEvents.push(event);
-            continue;
-          }
-          case "researchActionCheckpoint": {
-            if (!event.eventId) {
-              throw new Error("No eventId on checkpoint signal event");
-            }
-
-            const signalData = parseHistoryItemPayload(
-              event.workflowExecutionSignaledEventAttributes.input,
-              /**
-               * @todo sort out types
-               */
-            )?.[0] as Omit<CheckpointLog, "eventId"> | undefined;
-
-            if (!signalData) {
-              throw new Error(
-                `No signal data on researchActionCheckpoint signal event with id ${event.eventId.toInt()}`,
-              );
-            }
-
-            checkpointLogs.push({
-              checkpointId: signalData.checkpointId,
-              eventId: event.eventId.toInt() + 2,
-              recordedAt: signalData.recordedAt,
-              stepId: signalData.stepId,
-              type: "ResearchActionCheckpoint",
-            });
-            continue;
-          }
-        }
-      }
-
-      const nonScheduledAttributes =
-        event.activityTaskStartedEventAttributes ??
-        event.activityTaskCompletedEventAttributes ??
-        event.activityTaskCanceledEventAttributes ??
-        event.activityTaskCancelRequestedEventAttributes ??
-        event.activityTaskFailedEventAttributes ??
-        event.activityTaskTimedOutEventAttributes;
-
-      if (
-        !nonScheduledAttributes &&
-        !event.activityTaskScheduledEventAttributes
-      ) {
-        // This is not an activity-related event. It may be a signal, which we handle in bulk below
-        continue;
-      }
-
-      const {
-        activityId,
-        activityType,
-        attempt,
-        inputs,
-        startedAt,
-        scheduledAt,
-      } = event.activityTaskScheduledEventAttributes
-        ? getActivityScheduledDetails(event)
-        : getActivityStartedDetails(events, nonScheduledAttributes!);
-
-      if (nonStepActivityTypes.includes(activityType ?? "")) {
-        continue;
-      }
-
-      if (unresolvedStepMap[activityId]) {
-        // We've already encountered and therefore populated all the details for this step
-        continue;
-      }
-
-      const activityRecord: Omit<StepRun, "outputs"> & {
-        outputs?: StepRunOutput[] | null;
-      } = {
-        stepId: activityId,
-        stepType: activityType ?? "UNKNOWN",
-        startedAt,
-        scheduledAt,
-        closedAt: workflowStoppedEarly ? (workflow.closeTime ?? undefined) : "",
-        inputs,
-        logs: [],
-        status: workflowStoppedEarly
-          ? FlowStepStatus.Cancelled
-          : FlowStepStatus.Scheduled,
-        attempt,
-      };
-
-      unresolvedStepMap[activityId] = activityRecord;
-
-      switch (event.eventType) {
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_SCHEDULED: {
-          if (!workflowStoppedEarly) {
-            activityRecord.status = FlowStepStatus.Scheduled;
-          }
-          break;
-        }
-
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_STARTED: {
-          if (!workflowStoppedEarly) {
-            activityRecord.status = FlowStepStatus.Started;
-            activityRecord.lastFailure =
-              event.activityTaskStartedEventAttributes?.lastFailure;
-            activityRecord.logs.push({
-              type: "ActivityFailed",
-              stepId: activityId,
-              // shaves off some precision, which will make the log appear before any relating to the activity starting again
-              recordedAt: new Date(
-                eventTimeIsoStringFromEvent(event)!,
-              ).toISOString(),
-              retrying: true,
-              message:
-                event.activityTaskStartedEventAttributes?.lastFailure
-                  ?.message ?? "Unknown error",
-            });
-          }
-          break;
-        }
-
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_COMPLETED: {
-          activityRecord.outputs =
-            parseHistoryItemPayload(
-              event.activityTaskCompletedEventAttributes?.result,
-            ) ?? [];
-
-          if (
-            /** @todo H-2604 have some kind of 'partially completed' status when reworking flow return codes */
-            activityRecord.outputs.every(
-              (output) => output.code !== StatusCode.Ok,
-            )
-          ) {
-            activityRecord.status = FlowStepStatus.Failed;
-          } else {
-            activityRecord.status = FlowStepStatus.Completed;
-          }
-
-          activityRecord.closedAt = eventTimeIsoStringFromEvent(event);
-          break;
-        }
-
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_FAILED: {
-          activityRecord.status = FlowStepStatus.Failed;
-          activityRecord.lastFailure =
-            event.activityTaskFailedEventAttributes?.failure;
-          activityRecord.retryState =
-            event.activityTaskFailedEventAttributes?.retryState?.toString();
-          activityRecord.closedAt = eventTimeIsoStringFromEvent(event);
-          activityRecord.logs.push({
-            type: "ActivityFailed",
-            stepId: activityId,
-            // shaves off some precision, which will make the log appear before any relating to the activity starting again
-            recordedAt: new Date(activityRecord.closedAt!).toISOString(),
-            retrying: false,
-            message:
-              event.activityTaskFailedEventAttributes?.failure?.message ??
-              "Unknown error",
-          });
-
-          break;
-        }
-
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_TIMED_OUT: {
-          activityRecord.status = FlowStepStatus.TimedOut;
-          activityRecord.lastFailure =
-            event.activityTaskTimedOutEventAttributes?.failure;
-          activityRecord.retryState =
-            event.activityTaskTimedOutEventAttributes?.retryState?.toString();
-          activityRecord.closedAt = eventTimeIsoStringFromEvent(event);
-          break;
-        }
-
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_CANCELED: {
-          activityRecord.status = FlowStepStatus.Cancelled;
-          activityRecord.closedAt = eventTimeIsoStringFromEvent(event);
-          break;
-        }
-
-        case proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_ACTIVITY_TASK_CANCEL_REQUESTED: {
-          activityRecord.status = FlowStepStatus.CancelRequested;
-          break;
-        }
-
-        default:
-          throw new Error(`Unhandled event type ${event.eventType}`);
-      }
+  for (const event of runEvents) {
+    if (event.kind !== "progressLogged") {
+      continue;
     }
-  }
 
-  for (const checkpoint of checkpointLogs) {
-    const step = unresolvedStepMap[checkpoint.stepId];
-    if (!step) {
+    const { log } = event;
+    const stepRun = stepRunsById.get(log.stepId);
+
+    if (!stepRun) {
       throw new Error(
-        `Could not find step with id ${checkpoint.stepId} for checkpoint with id ${checkpoint.checkpointId}`,
+        log.type === "ResearchActionCheckpoint"
+          ? `Could not find step with id ${log.stepId} for checkpoint with id ${log.checkpointId}`
+          : `No activity record found for step with id ${log.stepId}`,
       );
     }
 
-    step.logs.push(checkpoint);
-  }
-
-  /**
-   * Assign logs to the appropriate step. The earliest logs will be at the end of the array,
-   * as we walked the events from latest to earliest. We want the logs in ascending order, so go backwards again.
-   */
-  for (let i = progressSignalEvents.length - 1; i >= 0; i--) {
-    const progressSignalEvent = progressSignalEvents[i];
-    if (!progressSignalEvent) {
-      throw new Error("Somehow out of bounds for progressSignalEvents array");
-    }
-
-    if (!progressSignalEvent.workflowExecutionSignaledEventAttributes) {
-      throw new Error(
-        `No signal attributes on progress signal event with id ${progressSignalEvent.eventId?.toInt()}`,
-      );
-    }
-
-    const signalData = parseHistoryItemPayload(
-      progressSignalEvent.workflowExecutionSignaledEventAttributes.input,
-    )?.[0] as ProgressLogSignal | undefined;
-
-    if (!signalData) {
-      throw new Error(
-        `No signal data on progress signal event with id ${progressSignalEvent.eventId?.toInt()}`,
-      );
-    }
-
-    const { logs } = signalData;
-    for (const log of logs) {
-      const { stepId } = log;
-
-      const activityRecord = unresolvedStepMap[stepId];
-      if (!activityRecord) {
-        throw new Error(`No activity record found for step with id ${stepId}`);
-      }
-
-      activityRecord.logs.push(log);
-    }
+    stepRun.logs.push(log);
   }
 
   for (const inputRequest of inputRequests) {
     if (!workflowStoppedEarly && !inputRequest.resolvedAt) {
-      const step = unresolvedStepMap[inputRequest.stepId];
+      const step = stepRunsById.get(inputRequest.stepId);
       if (!step) {
         throw new Error(
           `Could not find step with id ${inputRequest.stepId} for input request with id ${inputRequest.requestId}`,
@@ -596,32 +419,32 @@ export const getFlowRunDetailedFieldsFromHistory = async (
     throw new Error("No workflow inputs found");
   }
 
-  /**
-   * A skipped step runs no activity, so it isn't in the history: the engine records it in the memo instead.
-   */
-  const skippedSteps =
-    (workflow.memo?.skippedSteps as SkippedStep[] | undefined) ?? [];
+  for (const event of runEvents) {
+    if (event.kind !== "stepSkipped") {
+      continue;
+    }
 
-  for (const { stepId, stepType, skippedAt } of skippedSteps) {
-    unresolvedStepMap[stepId] = {
-      stepId,
-      stepType,
-      scheduledAt: skippedAt,
-      closedAt: skippedAt,
+    const stepRunId = toStepRunId(event.stepRun);
+
+    stepRunsById.set(stepRunId, {
+      stepId: stepRunId,
+      stepType: event.stepType,
+      scheduledAt: event.occurredAt,
+      closedAt: event.occurredAt,
       attempt: 0,
       inputs: [],
       logs: [],
       status: FlowStepStatus.Skipped,
-    };
+    });
   }
 
-  for (const step of Object.values(unresolvedStepMap)) {
+  for (const step of stepRunsById.values()) {
     step.logs.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
   }
 
   // Resolve any stored payload references in step outputs
   const steps: StepRun[] = await Promise.all(
-    Object.values(unresolvedStepMap).map(async (step) => {
+    [...stepRunsById.values()].map(async (step) => {
       // The outputs in stepMap are from Temporal history - Status<{outputs: StepOutput[]}> objects
       // We need to resolve stored refs in the actual step outputs within those Status objects
       if (!step.outputs) {
@@ -756,7 +579,6 @@ const getFlowRunDetailedFields = async ({
         status: workflow.status.name,
         startTime: workflow.startTime.toISOString(),
         closeTime: workflow.closeTime?.toISOString(),
-        memo: workflow.memo,
       },
       history,
       originalRunStartTime,

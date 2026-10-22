@@ -60,6 +60,39 @@ const workflowIdOf = ({ history }: FlowRunHistoryRecord) => {
   ).flowRunEntityUuid;
 };
 
+type RecordedDetails = {
+  steps?: {
+    lastFailure?: { message?: string } | null;
+    outputs?: { code: string }[] | null;
+  }[];
+};
+
+/**
+ * A run's events keep a step's failure message, but not the rest of Temporal's failure, nor the code of a status
+ * that isn't OK, so the recorded details are compared without them.
+ */
+const withOnlyWhatEventsKeep = (recorded: RecordedDetails): RecordedDetails =>
+  recorded.steps === undefined
+    ? recorded
+    : {
+        ...recorded,
+        steps: recorded.steps.map((step) => ({
+          ...step,
+          ...(step.lastFailure
+            ? { lastFailure: { message: step.lastFailure.message } }
+            : {}),
+          ...(step.outputs
+            ? {
+                outputs: step.outputs.map((output) =>
+                  output.code === "OK"
+                    ? output
+                    : { ...output, code: "UNKNOWN" },
+                ),
+              }
+            : {}),
+        })),
+      };
+
 describe("getFlowRunDetailedFieldsFromHistory", () => {
   it.each(fixtureNames)(
     "returns the recorded details for %s",
@@ -73,11 +106,13 @@ describe("getFlowRunDetailedFieldsFromHistory", () => {
 
       /* Compared as GraphQL sends it: as JSON, without `undefined` fields. */
       expect(JSON.parse(JSON.stringify(details))).toStrictEqual(
-        JSON.parse(
-          readFileSync(
-            new URL(`${fixtureName}.json`, recordedDetailsUrl),
-            "utf8",
-          ),
+        withOnlyWhatEventsKeep(
+          JSON.parse(
+            readFileSync(
+              new URL(`${fixtureName}.json`, recordedDetailsUrl),
+              "utf8",
+            ),
+          ) as RecordedDetails,
         ),
       );
     },
