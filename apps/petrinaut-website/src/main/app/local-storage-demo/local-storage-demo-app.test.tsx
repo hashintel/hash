@@ -1658,6 +1658,7 @@ describe("assistant selection", () => {
           expect.objectContaining({ interviewBudgetLevel: level }),
         );
         const assistant = currentAssistant();
+        if (!assistant) throw new Error("Missing Brunch's assistant");
         const composer = assistant.renderComposerControl?.(context);
         if (!isValidElement<{ children: ReactNode }>(composer))
           throw new Error("Missing composer controls");
@@ -1701,7 +1702,7 @@ describe("assistant selection", () => {
         name: "Interview length",
       });
       await waitFor(() =>
-        expect(currentAssistant().renderVoiceMode).toBeDefined(),
+        expect(currentAssistant()?.renderVoiceMode).toBeDefined(),
       );
       expect(toggle).toHaveProperty("checked", false);
       expectBudget(false);
