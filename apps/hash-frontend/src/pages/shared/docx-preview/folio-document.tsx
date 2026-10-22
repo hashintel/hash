@@ -111,6 +111,13 @@ export const FolioDocument = ({
             "--doc-find-current": "#77bdf3",
           },
           "& [data-folio-find-overlay]": { mixBlendMode: "multiply" },
+          // folio rounds each mark's corners and outlines the current hit with
+          // inline styles, which only `!important` rules override. The marks
+          // are square and fill only, as in the PDF preview.
+          "& [data-find-match-index]": {
+            borderRadius: "0 !important",
+            outline: "none !important",
+          },
         }}
       >
         <DocxEditor
