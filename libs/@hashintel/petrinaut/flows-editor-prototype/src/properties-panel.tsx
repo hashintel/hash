@@ -2,6 +2,7 @@ import { useRef } from "react";
 
 import {
   Button,
+  Icon,
   Menu,
   NumberInput,
   SegmentedControl,
@@ -69,7 +70,6 @@ import { firstAndMore, TimeField, TypedValue } from "./typed-value";
 import {
   descriptionInputStyle,
   HeaderTitle,
-  IconTile,
   kindLabel,
   mutedTextStyle,
   OriginMark,
@@ -1293,6 +1293,20 @@ const startedByRowStyle = css({
   _hover: { backgroundColor: "neutral.bg.surface.active" },
 });
 
+const startedByIconStyle = css({
+  display: "inline-flex",
+  flexShrink: 0,
+  color: "neutral.fg.muted",
+});
+
+const addTriggerStyle = css({
+  textStyle: "sm",
+  fontWeight: "medium",
+  color: "blue.fg.link",
+  cursor: "pointer",
+  _hover: { textDecoration: "underline" },
+});
+
 /** What starts the flow, listed on Start (J4 A1): one row per trigger, and "Add trigger", a menu that opens a form. */
 const StartedBy = () => {
   const { document, setDocument, setUi } = useEditor();
@@ -1317,7 +1331,9 @@ const StartedBy = () => {
               className={startedByRowStyle}
               onClick={() => open(trigger.id)}
             >
-              <IconTile icon={definition.icon} tone="blue" size="sm" />
+              <span className={startedByIconStyle}>
+                <Icon name={definition.icon} size="sm" />
+              </span>
               <span>{trigger.description || definition.title}</span>
             </button>
           </PropertyRow>
@@ -1352,9 +1368,9 @@ const StartedBy = () => {
             },
           ]}
           trigger={
-            <Button size="sm" variant="link">
+            <button type="button" className={addTriggerStyle}>
               Add trigger
-            </Button>
+            </button>
           }
         />
       </div>
@@ -1381,10 +1397,6 @@ const StartPanel = () => {
       </div>
       <RunFormFields />
       <StartedBy />
-      <Paths
-        stepId={START_ID}
-        ports={[{ outputName: "next", label: "Next" }]}
-      />
     </>
   );
 };
