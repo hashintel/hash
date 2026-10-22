@@ -50,12 +50,10 @@ export const FilePreviewSearch = ({
   const throttledSearch = throttle(onSearch, 300);
 
   const previousHitIndex =
-    selectedIndex !== null && selectedIndex > 0 ? selectedIndex - 1 : null;
+    selectedIndex === null ? null : (selectedIndex - 1 + total) % total;
 
   const nextHitIndex =
-    selectedIndex !== null && selectedIndex < total - 1
-      ? selectedIndex + 1
-      : null;
+    selectedIndex === null ? null : (selectedIndex + 1) % total;
 
   useEffect(() => {
     if (showSearch) {
