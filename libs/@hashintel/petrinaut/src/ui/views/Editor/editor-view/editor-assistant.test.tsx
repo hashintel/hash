@@ -7,7 +7,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { type ReactNode, use } from "react";
+import { type ReactNode, use, useEffect } from "react";
 import {
   afterEach,
   beforeAll,
@@ -70,6 +70,29 @@ const PluginChat = () => {
 const chatPlugin = definePetrinautPlugin(
   { id: "test.chat", name: "Chat", assistant: true },
   { assistant: { content: <PluginChat /> } },
+);
+
+/** What the closing chat saw, in order. */
+const closing: string[] = [];
+
+const ClosingChat = () => {
+  const { isOpen } = useAssistantPanel();
+  useEffect(() => {
+    if (!isOpen) {
+      closing.push("closed");
+    }
+  }, [isOpen]);
+
+  return (
+    <AssistantPanelTitle onClose={() => closing.push("onClose")}>
+      Closing assistant
+    </AssistantPanelTitle>
+  );
+};
+
+const closingPlugin = definePetrinautPlugin(
+  { id: "test.closing", name: "Closing", assistant: true },
+  { assistant: { content: <ClosingChat /> } },
 );
 
 const composerPlugin = definePetrinautPlugin(
@@ -169,6 +192,16 @@ describe("EditorAssistantPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
 
     expect(screen.getByText("Plugin chat closed")).not.toBeNull();
+  });
+
+  test("runs the title's onClose before the panel closes", () => {
+    renderPlugins([closingPlugin], <Editor />);
+    fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" }));
+    closing.length = 0;
+
+    fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
+
+    expect(closing).toEqual(["onClose", "closed"]);
   });
 
   test("keeps the panel's frame when the plugin's content throws, and reports it", () => {
