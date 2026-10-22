@@ -17,22 +17,33 @@ export const getRequestedFlowRunFieldNames = (
 ): string[] => {
   const parsedResolveInfoFragment = parseResolveInfo(info);
 
-  let requestedFieldsTree = parsedResolveInfoFragment?.fieldsByTypeName.FlowRun;
+  const flowRunFieldsTree = parsedResolveInfoFragment?.fieldsByTypeName
+    .FlowRun as Record<string, ResolveTree> | undefined;
 
-  if (!requestedFieldsTree) {
-    const paginatedFields = parsedResolveInfoFragment?.fieldsByTypeName
-      .PaginatedFlowRuns as Record<string, ResolveTree> | undefined;
+  /** Selections are keyed by alias, so `flowRuns` may be selected several times under other keys. */
+  const requestedFieldsTrees = flowRunFieldsTree
+    ? [flowRunFieldsTree]
+    : Object.values(
+        (parsedResolveInfoFragment?.fieldsByTypeName.PaginatedFlowRuns ??
+          {}) as Record<string, ResolveTree>,
+      )
+        .filter(({ name }) => name === "flowRuns")
+        .map(
+          ({ fieldsByTypeName }) =>
+            (fieldsByTypeName.FlowRun ?? {}) as Record<string, ResolveTree>,
+        );
 
-    requestedFieldsTree = paginatedFields?.flowRuns?.fieldsByTypeName.FlowRun;
-  }
-
-  if (!requestedFieldsTree) {
+  if (requestedFieldsTrees.length === 0) {
     throw new Error("Expected FlowRun to be requested in query");
   }
 
-  return Object.values(requestedFieldsTree as Record<string, ResolveTree>).map(
-    ({ name }) => name,
-  );
+  return [
+    ...new Set(
+      requestedFieldsTrees.flatMap((requestedFieldsTree) =>
+        Object.values(requestedFieldsTree).map(({ name }) => name),
+      ),
+    ),
+  ];
 };
 
 export const wereDetailedFieldsRequested = (
