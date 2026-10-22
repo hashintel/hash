@@ -23,6 +23,8 @@ export const useEditorAssistant = (aiAssistant?: PetrinautAiAssistant) => {
     hasAssistant: plugin !== undefined || aiAssistant !== undefined,
     /** Takes the empty-net prompt's message for the plugin's assistant. */
     onPrompt: plugin?.contributions.assistant?.onPrompt,
+    /** The plugin's button for the empty-net prompt, offered while its input is empty. */
+    startAction: plugin?.contributions.assistant?.startAction,
   };
 };
 
@@ -36,13 +38,20 @@ export const EditorAssistantPanel = ({
   petriNetId: string | null;
   focusRequest: number;
 }) => {
-  const { isAiAssistantOpen, setAiAssistantOpen } = use(EditorContext);
+  const {
+    isAiAssistantOpen,
+    isAiAssistantCollapsed,
+    setAiAssistantCollapsed,
+    setAiAssistantOpen,
+  } = use(EditorContext);
 
   return (
     <PluginAssistantPanel
       panel={{
         isOpen: isAiAssistantOpen,
         close: () => setAiAssistantOpen(false),
+        collapsed: isAiAssistantCollapsed,
+        setCollapsed: setAiAssistantCollapsed,
       }}
       focusRequest={focusRequest}
     >

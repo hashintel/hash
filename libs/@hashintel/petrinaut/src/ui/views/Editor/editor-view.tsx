@@ -504,7 +504,7 @@ const EditorViewContent = ({
   ];
 
   // The empty-net prompt hands its message to the built-in chat, or to the
-  // plugin assistant's `onPrompt`.
+  // plugin assistant's `onPrompt`, which also offers its `startAction`.
   const showEmptyAiHero =
     (assistant.builtInChat !== undefined || assistant.onPrompt !== undefined) &&
     !isAiAssistantOpen &&
@@ -601,6 +601,15 @@ const EditorViewContent = ({
                         }}
                         voiceModeAvailable={
                           assistant.builtInChat?.renderVoiceMode !== undefined
+                        }
+                        startAction={
+                          assistant.startAction && {
+                            ...assistant.startAction,
+                            run: () => {
+                              setAiAssistantOpen(true);
+                              assistant.startAction?.run();
+                            },
+                          }
                         }
                       />
                     )}

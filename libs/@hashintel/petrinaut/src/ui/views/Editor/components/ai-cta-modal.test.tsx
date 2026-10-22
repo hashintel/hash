@@ -114,6 +114,50 @@ describe("AiCtaModal", () => {
     ).toBe(true);
   });
 
+  test("offers a start action in place of Send only while the input is empty, and runs it once", () => {
+    const run = vi.fn();
+    const onSubmit = vi.fn();
+    render(
+      <AiCtaModal
+        bottomClearance={0}
+        voiceModeAvailable={false}
+        onDismiss={vi.fn()}
+        onStartVoiceMode={vi.fn()}
+        onSubmit={onSubmit}
+        startAction={{
+          label: "Start listening",
+          icon: <svg data-testid="start-icon" />,
+          run,
+        }}
+      />,
+    );
+
+    const input = screen.getByLabelText(
+      "Describe the process you want to create",
+    );
+    const startButton = screen.getByRole("button", { name: "Start listening" });
+    expect(
+      startButton.querySelector('[data-testid="start-icon"]'),
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Send first AI assistant message" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Start voice mode" }),
+    ).toBeNull();
+
+    fireEvent.change(input, { target: { value: "Model a queue" } });
+    expect(
+      screen.queryByRole("button", { name: "Start listening" }),
+    ).toBeNull();
+
+    fireEvent.change(input, { target: { value: "  " } });
+    fireEvent.click(screen.getByRole("button", { name: "Start listening" }));
+
+    expect(run).toHaveBeenCalledOnce();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   test("keeps outside-click and Escape dismissal", () => {
     const onDismiss = vi.fn();
     render(
