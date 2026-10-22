@@ -83,7 +83,13 @@ export type ConditionRow = {
 
 /** MOCK: a date relative to the run (Attio's date menu). No engine shape. */
 export type RelativeDate =
-  | { kind: "today" | "yesterday" | "weekAgo" | "monthAgo" }
+  | { kind: "today"
+        | "yesterday"
+        | "weekAgo"
+        | "monthAgo"
+        | "startOfMonth"
+        | "startOfLastMonth";
+    }
   | { kind: "daysAgo"; days: number };
 
 /** A group of conditions inside the builder: its own and/or (J3 A1's grey box). */

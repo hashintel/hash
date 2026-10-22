@@ -46,7 +46,14 @@ export const relativePresets: { value: RelativeDate; text: string }[] = [
   { value: { kind: "yesterday" }, text: "Yesterday" },
   { value: { kind: "weekAgo" }, text: "One week ago" },
   { value: { kind: "monthAgo" }, text: "One month ago" },
+  { value: { kind: "startOfMonth" }, text: "Start of this month" },
+  { value: { kind: "startOfLastMonth" }, text: "Start of last month" },
 ];
+
+/** The picker lists "Number of days ago" between these two groups (Figma 503:5015). */
+const isStartOfPreset = (preset: { value: RelativeDate }) =>
+  preset.value.kind === "startOfMonth" ||
+  preset.value.kind === "startOfLastMonth";
 
 export const relativeLabel = (relative: RelativeDate) =>
   relative.kind === "daysAgo"
@@ -328,23 +335,24 @@ export const DatePickerSurface = ({
   footer,
 }: DatePickerSurfaceProps) => {
   const [daysOpen, setDaysOpen] = useState(relative?.kind === "daysAgo");
+  const presetRow = (preset: (typeof relativePresets)[number]) => (
+    <button
+      key={preset.value.kind}
+      type="button"
+      className={relativeRowStyle}
+      aria-pressed={relative?.kind === preset.value.kind}
+      title="Editor mock: the engine stores fixed dates only."
+      onClick={() => onPickRelative?.(preset.value)}
+    >
+      {preset.text}
+    </button>
+  );
   return (
     <div className={surfaceStyle} role="dialog" aria-label={label}>
       {onPickRelative ? (
         <div className={relativeColumnStyle}>
           <div className={relativeLabelStyle}>Relative to today</div>
-          {relativePresets.map((preset) => (
-            <button
-              key={preset.value.kind}
-              type="button"
-              className={relativeRowStyle}
-              aria-pressed={relative?.kind === preset.value.kind}
-              title="Editor mock: the engine stores fixed dates only."
-              onClick={() => onPickRelative(preset.value)}
-            >
-              {preset.text}
-            </button>
-          ))}
+          {relativePresets.filter((preset) => !isStartOfPreset(preset)).map(presetRow)}
           {daysOpen ? (
             <div
               className={css({
@@ -390,9 +398,10 @@ export const DatePickerSurface = ({
                 onPickRelative({ kind: "daysAgo", days: 3 });
               }}
             >
-              Number of days ago…
+              Number of days ago
             </button>
           )}
+          {relativePresets.filter(isStartOfPreset).map(presetRow)}
           {footer ? (
             <div className={css({ marginTop: "auto" })}>{footer}</div>
           ) : null}
