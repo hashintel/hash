@@ -33,3 +33,15 @@ pub(super) async fn server(router: Router) -> Server {
         task,
     }
 }
+
+pub(super) fn public_client(server: &Server) -> (reqwest::Client, String) {
+    let parsed = reqwest::Url::parse(&server.url).expect("should parse the test URL");
+    let port = parsed.port().expect("should have an explicit port");
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .redirect(reqwest::redirect::Policy::none())
+        .resolve("public.test", ([127, 0, 0, 1], port).into())
+        .build()
+        .expect("should build the test client");
+    (client, format!("http://public.test:{port}"))
+}
