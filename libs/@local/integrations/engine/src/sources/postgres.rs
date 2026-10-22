@@ -6,6 +6,7 @@ use error_stack::Report;
 use hash_integrations_definition::{PostgresSource, SslMode};
 use hash_secret::Secret;
 use serde::Deserialize;
+use url::Url;
 
 use super::{CaptureLimits, SourceError};
 use crate::{SourceCapture, sql::Identifier};
@@ -53,14 +54,15 @@ fn literal(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
 
-fn connection_string(source: &PostgresSource, credentials: &Credentials) -> String {
+fn connection_uri(source: &PostgresSource, credentials: &Credentials) -> String {
     let port = source.port.to_string();
     let ssl = match source.ssl_mode {
         SslMode::Disable => "disable",
         SslMode::Require => "require",
         SslMode::VerifyFull => "verify-full",
     };
-    [
+    let mut uri = Url::parse("postgresql:///").expect("static PostgreSQL URI should be valid");
+    uri.query_pairs_mut().extend_pairs([
         ("host", &*source.host),
         ("port", &port),
         ("dbname", &source.database),
@@ -68,16 +70,9 @@ fn connection_string(source: &PostgresSource, credentials: &Credentials) -> Stri
         ("password", credentials.password.expose()),
         ("sslmode", ssl),
         ("connect_timeout", "30"),
-    ]
-    .into_iter()
-    .map(|(name, value)| {
-        format!(
-            "{name}='{}'",
-            value.replace('\\', "\\\\").replace('\'', "\\'")
-        )
-    })
-    .collect::<Vec<_>>()
-    .join(" ")
+    ]);
+    // libpq decodes percent escapes but leaves '+' unchanged in URI parameters.
+    uri.to_string().replace('+', "%20")
 }
 
 fn capture_blocking(
@@ -120,7 +115,7 @@ fn capture_blocking(
     connection
         .execute_batch(&format!(
             "ATTACH {} AS _capture (TYPE postgres, READ_ONLY)",
-            literal(&connection_string(source, credentials))
+            literal(&connection_uri(source, credentials))
         ))
         .map_err(|_error| Report::new(SourceError::Postgres))?;
     let path = partial
@@ -149,7 +144,7 @@ mod tests {
     use serde_json::json;
     use tempfile::TempDir;
 
-    use super::{Credentials, capture, connection_string};
+    use super::{Credentials, capture, connection_uri};
     use crate::{CaptureLimits, Workspace, WorkspaceConfig};
 
     fn source() -> PostgresSource {
@@ -157,18 +152,47 @@ mod tests {
     }
 
     #[test]
-    fn connection_quotes_credentials() {
-        let value = connection_string(
-            &source(),
+    fn connection_uri_credentials() {
+        let mut source = source();
+        source.database = "sales /%2F?&=\u{e9}".into();
+        let value = connection_uri(
+            &source,
             &Credentials {
-                username: Secret::from_string("reader".to_owned()),
-                password: Secret::from_string("pa'ss\\word".to_owned()),
+                username: Secret::from_string("reader @%40+".to_owned()),
+                password: Secret::from_string("pa'ss\\word :/@?&=+#%20\u{e9}".to_owned()),
             },
         );
-        assert!(
-            value.contains("password='pa\\'ss\\\\word'"),
-            "should escape quotes and backslashes for libpq"
+        assert_eq!(
+            value,
+            "postgresql:///?host=localhost&port=5432&dbname=sales%20%2F%252F%3F%26%3D%C3%A9&\
+             user=reader%20%40%2540%2B&password=pa%27ss%5Cword%20%3A%2F%40%3F%26%3D%2B%23%2520%C3%\
+             A9&sslmode=disable&connect_timeout=30",
+            "URI parameters should preserve spaces, literal percent escapes and reserved \
+             characters"
         );
+    }
+
+    #[test]
+    fn connection_uri_hosts() {
+        for (host, encoded) in [
+            ("::1", "%3A%3A1"),
+            ("/var/run/postgresql", "%2Fvar%2Frun%2Fpostgresql"),
+            (
+                "primary.example,replica.example",
+                "primary.example%2Creplica.example",
+            ),
+        ] {
+            let mut source = source();
+            source.host = host.into();
+            let value = connection_uri(
+                &source,
+                &Credentials {
+                    username: Secret::from_string("reader".to_owned()),
+                    password: Secret::from_string("password".to_owned()),
+                },
+            );
+            assert!(value.starts_with(&format!("postgresql:///?host={encoded}&")));
+        }
     }
 
     #[tokio::test]
