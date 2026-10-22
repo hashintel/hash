@@ -4,6 +4,8 @@ use error_stack::Report;
 use hash_integrations_definition::SecretReference;
 use hash_secret::Secret;
 use reqwest::{Client, Url};
+#[cfg(test)]
+use serde::{Deserialize as _, Deserializer};
 use serde_json::{Value, json};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
@@ -12,6 +14,13 @@ use super::SourceError;
 
 /// Pinned secret bytes whose storage is zeroed when dropped.
 pub type SecretValue = Pin<Box<Secret<[u8]>>>;
+
+#[cfg(test)]
+pub(super) fn deserialize_secret<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Pin<Box<Secret<str>>>, D::Error> {
+    String::deserialize(deserializer).map(Secret::from_string)
+}
 
 /// Resolves a User Secret using the run owner's permissions and web.
 pub trait SecretStore: Send + Sync {
