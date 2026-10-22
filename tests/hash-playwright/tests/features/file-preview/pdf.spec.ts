@@ -52,7 +52,7 @@ test.describe("PDF preview", () => {
       .toBeGreaterThan(widthBeforeZoom);
   });
 
-  test("search highlights a word and the next result moves to the next page holding it", async ({
+  test("search highlights a word and the next result moves to the next page holding it, then back to the first hit", async ({
     page,
   }) => {
     const pdfPage = getPdfPage(page);
@@ -78,6 +78,15 @@ test.describe("PDF preview", () => {
     await expect(page.getByText("2 of 2", { exact: true })).toBeVisible();
     await expect(
       pdfPage.getByText(thirdPage.heading, { exact: true }),
+    ).toBeVisible();
+    await expect
+      .poll(() => getPdfSearchHighlights(page))
+      .toEqual(shownPageHighlights);
+
+    await nextResult.click();
+    await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
+    await expect(
+      pdfPage.getByText(firstPage.heading, { exact: true }),
     ).toBeVisible();
     await expect
       .poll(() => getPdfSearchHighlights(page))

@@ -97,7 +97,7 @@ test.describe("DOCX preview", () => {
     await expect(pageCounter).toBeVisible();
   });
 
-  test("search highlights every hit and the next result moves to the next page holding it", async ({
+  test("search highlights every hit and the next result moves to the next page holding it, then back to the first hit", async ({
     page,
   }) => {
     await page.getByRole("button", { name: "Show search" }).click();
@@ -118,6 +118,13 @@ test.describe("DOCX preview", () => {
     await expect
       .poll(() => getDocxSearchMarks(page))
       .toEqual({ hits: ["0", "1"], current: ["1"] });
+
+    await nextResult.click();
+    await expect(page.getByText("1 of 2", { exact: true })).toBeVisible();
+    await expect(getDocxPage(page, firstPage.heading)).toBeInViewport();
+    await expect
+      .poll(() => getDocxSearchMarks(page))
+      .toEqual({ hits: ["0", "1"], current: ["0"] });
   });
 
   test("a search without results clears the previous hit", async ({ page }) => {
