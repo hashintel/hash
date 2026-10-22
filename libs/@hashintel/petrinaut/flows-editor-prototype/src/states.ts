@@ -14,6 +14,7 @@ import {
 } from "./document";
 import { type EditorUi, initialUi } from "./editor-context";
 import { mockEntityTypes } from "./mock-graph";
+import { purityCheckExample } from "./purity-check-example";
 import { supplierReviewExample } from "./supplier-review-example";
 
 export type ScreenState = {
@@ -362,7 +363,7 @@ export const screenStates: ScreenState[] = [
     title: "J4 · A1 · Start holds the inputs",
     caption: "Start lists what starts the flow, under Started by, with Add trigger.",
     create: () => ({
-      document: supplierReviewExample(),
+      document: purityCheckExample(),
       ui: { ...initialUi, selectedId: START_ID },
     }),
   },
@@ -374,8 +375,8 @@ export const screenStates: ScreenState[] = [
     caption:
       "A trigger opened from Started by: Start stays selected, the panel shows the trigger.",
     create: () => ({
-      document: supplierReviewExample(),
-      ui: { ...initialUi, selectedId: START_ID, triggerId: "schedule" },
+      document: purityCheckExample(),
+      ui: { ...initialUi, selectedId: START_ID, triggerId: "shipmentChanges" },
     }),
   },
   {
@@ -385,7 +386,7 @@ export const screenStates: ScreenState[] = [
     title: "J4 · C1 · Triggers listed on Start, not on the canvas",
     caption: "The canvas draws Start and the steps only, however many triggers.",
     create: () => ({
-      document: supplierReviewExample(),
+      document: purityCheckExample(),
       ui: { ...initialUi, selectedId: START_ID },
     }),
   },
@@ -396,8 +397,8 @@ export const screenStates: ScreenState[] = [
     title: "J4 · C2 · Open a trigger from Started by",
     caption: "Same as A2: click a Started by row to open its form.",
     create: () => ({
-      document: supplierReviewExample(),
-      ui: { ...initialUi, selectedId: START_ID, triggerId: "schedule" },
+      document: purityCheckExample(),
+      ui: { ...initialUi, selectedId: START_ID, triggerId: "shipmentChanges" },
     }),
   },
   {
@@ -418,7 +419,7 @@ export const screenStates: ScreenState[] = [
     title: "Manual run form",
     caption: "The Run button's form, built from Start's inputs.",
     create: () => ({
-      document: supplierReviewExample(),
+      document: purityCheckExample(),
       ui: { ...initialUi, runOpen: true },
     }),
   },
