@@ -125,6 +125,7 @@ described in [AI-created experiments](doc:experiments/ai-created-experiments).
 | `edit.<mutation>(input)` | write | One method per core mutation. Edits the root net unless `input.targetSubnetId` is set. Returns an `EditResult`.                                     |
 | `edit.applyAutoLayout()` | write | Lays out the viewed subnet in one undo entry, then frames it once drawn. Resolves to `EditResult<ApplyAutoLayoutResult>`.                           |
 | `setTitle(title)`        | write | Calls the host's `setTitle`. Refused with `no-title-setter` when the host passed none, and with the read-only reason while the editor is read-only. |
+| `refusals`               | write | `ReadableStore<EditRefusals>`: why each `edit` method and `setTitle` would be refused now, or `null`. The edits run the same check.                 |
 
 `diagnostics` holds `{ byUri, total, errorCount }`; `byUri` is a `Map` from
 document URI to LSP `Diagnostic[]`. `parseDocumentUri(uri)` returns `{ itemType, itemId }`, where
@@ -170,6 +171,17 @@ type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
 | `actual-mode`       | The editor is in actual mode. Ask the user to switch to edit mode before mutating.         |
 | `simulation-active` | A simulation is currently `<state>`. Ask the user to reset the simulation before mutating. |
 | `no-title-setter`   | The host application does not provide title editing.                                       |
+
+`api.document.refusals` holds why each edit would be refused now, keyed like
+`edit` plus `setTitle`, so a plugin can offer an action only while it can apply.
+Scenario and metric edits stay allowed in Simulate mode.
+
+```tsx
+const layoutRefusal = useStoreSelector(
+  api.document.refusals,
+  (refusals) => refusals.applyAutoLayout,
+);
+```
 
 ## Contributions
 
@@ -221,7 +233,7 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
   `PluginDocument`, `PluginDiagnostics`, `PluginEdits`,
   `PluginExperimentsReader`, `PluginExperiments`, `PluginEditorReader`,
   `PluginEditor`, `PluginErrors`, `PluginNotifications`, `EditResult`,
-  `EditRefusal`, `ReadOnlyReason`.
+  `EditRefusal`, `EditRefusals`, `ReadOnlyReason`.
 - Editor state: `PetrinautNavigationState`, `PetrinautNavigationUpdate`,
   `SelectionItem`, `PetrinautRevealTarget`, `DiagnosticsSnapshot`,
   `AddNotificationInput`, `ReadableStore`.
