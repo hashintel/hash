@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod http;
+#[cfg(test)]
+mod rest;
 mod secrets;
 #[cfg(test)]
 mod tests;
