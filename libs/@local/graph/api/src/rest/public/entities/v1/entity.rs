@@ -15,7 +15,7 @@ use type_system::{
     principal::actor_group::WebId,
 };
 
-use super::property_metadata::PropertyObjectMetadata;
+use super::{link::Link, property_metadata::PropertyObjectMetadata};
 
 /// An entity's web ID and UUID, joined by `~`.
 ///
@@ -76,6 +76,10 @@ pub(super) struct Entity {
     properties: PropertyObject,
     /// The data types of the values in `properties`.
     property_metadata: PropertyObjectMetadata,
+    /// The entities it connects, if the entity is a link.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Link")]
+    link: Option<Link>,
 }
 
 impl Entity {
@@ -88,6 +92,7 @@ impl Entity {
             },
             properties: entity.properties,
             property_metadata: PropertyObjectMetadata::from_stored(entity.metadata.properties),
+            link: entity.link_data.map(Link::from),
         }
     }
 }
