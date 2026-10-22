@@ -24,7 +24,7 @@ pub struct EntityTypeRetrieval {
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("The entity `{entity_id}` is a link, and links to links are not supported yet")]
 #[must_use]
-pub struct LinkedEntityIsLink {
+pub struct LinkedEntityIsLinkError {
     pub entity_id: EntityId,
 }
 
@@ -39,7 +39,7 @@ pub enum LinkedEntityError {
         Report<[EntityTypeRetrieval]>,
     ),
     ResolveClosedEntityType(Report<ResolveClosedEntityTypeError>),
-    Link(Report<LinkedEntityIsLink>),
+    Link(Report<LinkedEntityIsLinkError>),
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]

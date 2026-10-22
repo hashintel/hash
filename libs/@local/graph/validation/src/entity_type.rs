@@ -8,8 +8,8 @@ use error_stack::{
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_store::entity::{
     EntityRetrieval, EntityTypeRetrieval, LinkDataStateError, LinkDataValidationReport, LinkError,
-    LinkTargetError, LinkValidationReport, LinkedEntityError, LinkedEntityIsLink, MissingLinkData,
-    PropertyMetadataValidationReport, UnexpectedEntityType, UnexpectedLinkData,
+    LinkTargetError, LinkValidationReport, LinkedEntityError, LinkedEntityIsLinkError,
+    MissingLinkData, PropertyMetadataValidationReport, UnexpectedEntityType, UnexpectedLinkData,
     ValidateEntityComponents,
 };
 use hash_graph_types::{
@@ -181,9 +181,9 @@ where
     let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(entity_types)
         .map_err(LinkedEntityError::ResolveClosedEntityType)?;
     if entity_type.is_link() {
-        return Err(LinkedEntityError::Link(Report::new(LinkedEntityIsLink {
-            entity_id,
-        })));
+        return Err(LinkedEntityError::Link(Report::new(
+            LinkedEntityIsLinkError { entity_id },
+        )));
     }
     Ok(entity_type)
 }

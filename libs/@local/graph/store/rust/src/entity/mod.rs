@@ -23,7 +23,7 @@ pub use self::{
     validation_report::{
         EmptyEntityTypes, EntityRetrieval, EntityTypeRetrieval, EntityTypesError,
         EntityValidationReport, LinkDataStateError, LinkDataValidationReport, LinkError,
-        LinkTargetError, LinkValidationReport, LinkedEntityError, LinkedEntityIsLink,
+        LinkTargetError, LinkValidationReport, LinkedEntityError, LinkedEntityIsLinkError,
         MetadataValidationReport, MissingLinkData, PropertyMetadataValidationReport,
         UnexpectedEntityType, UnexpectedLinkData,
     },
