@@ -2,6 +2,7 @@ import "@fontsource-variable/geist-mono";
 import "@fontsource-variable/inter";
 import "@fontsource-variable/inter-tight";
 import "./preview.css";
+import "./docs.css";
 import type { Decorator, Preview } from "@storybook/react-vite";
 
 /**
@@ -49,7 +50,7 @@ const preview: Preview = {
     },
     options: {
       storySort: {
-        order: ["Tokens", "Components", "Primitives", "Legacy", "*"],
+        order: ["Docs", "Tokens", "Components", "Primitives", "Legacy", "*"],
       },
     },
   },
