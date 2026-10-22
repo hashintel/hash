@@ -191,6 +191,7 @@ export const flowTypedef = gql`
     """
     What happened in the run, in the order its history records it.
     Ask again with \`endCursor\` to follow a run, and handle \`restarted\` before appending.
+    Only available on a run fetched with \`getFlowRunById\`: \`getFlowRuns\` refuses it.
     """
     events(
       """

@@ -7,12 +7,14 @@ import type { GraphQLResolveInfo } from "graphql";
 import type { ResolveTree } from "graphql-parse-resolve-info";
 
 /**
+ * The names (not aliases) of the `FlowRun` fields a query asks for.
+ *
  * Works for both `getFlowRuns` (returns `PaginatedFlowRuns` wrapping `FlowRun`)
  * and `getFlowRunById` (returns `FlowRun` directly).
  */
-export const wereDetailedFieldsRequested = (
+export const getRequestedFlowRunFieldNames = (
   info: GraphQLResolveInfo,
-): boolean => {
+): string[] => {
   const parsedResolveInfoFragment = parseResolveInfo(info);
 
   let requestedFieldsTree = parsedResolveInfoFragment?.fieldsByTypeName.FlowRun;
@@ -28,7 +30,14 @@ export const wereDetailedFieldsRequested = (
     throw new Error("Expected FlowRun to be requested in query");
   }
 
-  return Object.keys(requestedFieldsTree).some((fieldName) =>
-    detailedFlowFields.includes(fieldName as DetailedFlowField),
+  return Object.values(requestedFieldsTree as Record<string, ResolveTree>).map(
+    ({ name }) => name,
   );
 };
+
+export const wereDetailedFieldsRequested = (
+  info: GraphQLResolveInfo,
+): boolean =>
+  getRequestedFlowRunFieldNames(info).some((fieldName) =>
+    detailedFlowFields.includes(fieldName as DetailedFlowField),
+  );
