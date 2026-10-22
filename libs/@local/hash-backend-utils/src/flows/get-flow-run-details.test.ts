@@ -110,4 +110,40 @@ describe("getFlowRunDetailedFieldsFromHistory", () => {
       );
     },
   );
+
+  it("keeps the retry state of a step whose last allowed attempt timed out", async () => {
+    const { EventType, RetryState } = proto.temporal.api.enums.v1;
+    const fixture = loadFixture("gives-up");
+
+    const details = await getFlowRunDetailedFieldsFromHistory(
+      {
+        ...fixture,
+        history: fixture.history.map((event) => {
+          const failed = event.activityTaskFailedEventAttributes;
+
+          return failed
+            ? {
+                ...event,
+                eventType: EventType.EVENT_TYPE_ACTIVITY_TASK_TIMED_OUT,
+                activityTaskFailedEventAttributes: null,
+                activityTaskTimedOutEventAttributes: {
+                  failure: failed.failure,
+                  scheduledEventId: failed.scheduledEventId,
+                  startedEventId: failed.startedEventId,
+                  retryState: RetryState.RETRY_STATE_MAXIMUM_ATTEMPTS_REACHED,
+                },
+              }
+            : event;
+        }),
+      },
+      { storageProvider, workflowId: workflowIdOf(fixture) },
+    );
+
+    expect(details.steps).toMatchObject([
+      {
+        stepId: "firstTwo",
+        retryState: String(RetryState.RETRY_STATE_MAXIMUM_ATTEMPTS_REACHED),
+      },
+    ]);
+  });
 });
