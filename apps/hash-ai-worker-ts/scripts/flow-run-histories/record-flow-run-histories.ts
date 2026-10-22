@@ -42,6 +42,17 @@ const fixturesDirectory = path.join(
 /** Kept out of the histories in place of the machine's `pid@hostname`. */
 const identity = "flow-run-histories";
 
+/** Left out of the histories, as neither `buildFlowRunEvents` nor `getFlowRunDetails` reads them. */
+const unreadEventTypes = new Set<proto.temporal.api.enums.v1.EventType>([
+  proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_TASK_SCHEDULED,
+  proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_TASK_STARTED,
+  proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_TASK_COMPLETED,
+  proto.temporal.api.enums.v1.EventType.EVENT_TYPE_TIMER_STARTED,
+  proto.temporal.api.enums.v1.EventType.EVENT_TYPE_TIMER_FIRED,
+  proto.temporal.api.enums.v1.EventType
+    .EVENT_TYPE_WORKFLOW_EXECUTION_CANCEL_REQUESTED,
+]);
+
 const webId: WebId = answeringUserId;
 
 const temporalAddress = `${new URL(process.env.HASH_TEMPORAL_SERVER_HOST ?? "http://localhost").hostname}:${process.env.HASH_TEMPORAL_SERVER_PORT ?? "7233"}`;
@@ -90,7 +101,11 @@ const recordRun = async (
          * history is written as protobuf.js writes it, which `History.fromObject` reads.
          */
         history: proto.temporal.api.history.v1.History.toObject(
-          history as proto.temporal.api.history.v1.History,
+          proto.temporal.api.history.v1.History.create({
+            events: history.events?.filter(
+              ({ eventType }) => !unreadEventTypes.has(eventType ?? 0),
+            ),
+          }),
           { longs: String, enums: String, bytes: String },
         ),
       },
