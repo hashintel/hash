@@ -651,15 +651,23 @@ export const startFlowNetRun = (
     }
   };
 
-  /** A step waits while a value it skips on when missing is missing: the executor fires its `skipStep` instead. */
+  /**
+   * A step waits while a value it skips on when missing is missing: the executor fires its `skipStep` instead. Like
+   * the executor, only a required input skips: a missing optional one leaves the step ready.
+   */
   const hasMissingSkipInput = (
     metadata: Extract<TransitionMetadata, { role: "startStep" }>,
     bindings: Binding[],
-  ) =>
-    Object.values(metadata.inputSources).some(
-      (source) =>
+  ) => {
+    const { actionDefinition } = scopeOfStep(metadata.stepId);
+
+    return Object.entries(metadata.inputSources).some(
+      ([inputName, source]) =>
         source.kind === "value" &&
         source.whenMissing === "skip" &&
+        actionDefinition.inputs.some(
+          ({ name, required }) => name === inputName && required,
+        ) &&
         bindings.some(
           ({ position, token }) =>
             isAt(position, rootPosition(source.from)) &&
@@ -667,6 +675,7 @@ export const startFlowNetRun = (
             !token.present,
         ),
     );
+  };
 
   /** A `forEach` step can't start while its array is missing. */
   const hasMissingArray = (bindings: Binding[]) =>
