@@ -175,6 +175,26 @@ rest, with a plugin that reloads the pages when a re-rendered diagram lands,
 since the pages inline SVGs at compile time. The last good bundle keeps
 serving while an error stands.
 
+## The map
+
+The site carries the whole model as an interactive map, opened from the
+**Map** button in the header on every page and closed with the same button
+or `Esc`. It slides down under the header and the page moves below it, so
+the map and the page read together. Every layer sits where the taxonomy
+puts it, in nested boxes; interfaces are chips at the centroid of their
+participants; edges are drawn by provenance, with imports as a faint
+texture until a node is hovered or selected. Opening the map from a
+layer's page selects that layer and brings its top-level box into view, so
+the reader sees where the page sits. Double-clicking a node, or pressing
+`Enter` with it selected, opens its page; `F` centres a node and its
+neighbourhood; the domain, audience and search filters dim what is not
+asked for without moving anything.
+
+The map reads `architecture.json` through a Vite virtual module that keeps
+only what it draws, loaded on first open as its own chunk, so a page costs
+nothing until the map is asked for. Its state outlives the map closing, so
+it comes back as it was left.
+
 ## Source links
 
 Generated pages link to the source they describe at the ref resolved from
