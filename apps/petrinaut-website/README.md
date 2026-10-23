@@ -72,7 +72,7 @@ With Brunch as the assistant, Labs also shows **Interview length**, off by defau
 
 With Petrinaut AI shown, the panel talks to `/api/chat` with the stock tool surface and keeps its messages in the local store. Brunch then creates no Flue client, reads no history, checks no Voice and mounts no tools; its conversation lives in Flue history and is untouched. Choosing Brunch again restores it.
 
-**User settings → Plugins** lists both: **Petrinaut AI**, the `website.petrinaut-ai` plugin in `src/main/app/plugins/petrinaut-ai/plugin.tsx`, and **Brunch**, the `website.brunch` plugin in `src/main/app/plugins/brunch/editor-api-plugin.tsx`. Each renders its chat in the assistant panel while shown. Switching Brunch off there shows Petrinaut AI and closes Brunch's connections, even while Brunch is the chosen assistant. Brunch's cards read the open net, its experiments and the editor's navigation through its plugin `api`.
+**User settings → Plugins** lists both: **Petrinaut AI**, the `website.petrinaut-ai` plugin in `src/main/app/plugins/petrinaut-ai/plugin.tsx`, and **Brunch**, the `website.brunch` plugin in `libs/@hashintel/brunch-agent/src/ui/editor-api-plugin.tsx`. Each renders its chat in the assistant panel while shown. Switching Brunch off there shows Petrinaut AI and closes Brunch's connections, even while Brunch is the chosen assistant. Brunch's cards read the open net, its experiments and the editor's navigation through its plugin `api`.
 
 Voice is available only when Brunch is the assistant, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
 

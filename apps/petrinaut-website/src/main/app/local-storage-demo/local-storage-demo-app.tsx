@@ -5,19 +5,18 @@
 
 import { useMemo, useState } from "react";
 
+import {
+  BrunchAssistantContext,
+  brunchPlugin,
+  useBrunchAssistant,
+} from "@hashintel/brunch-agent/ui";
 import { CommandRegistryProvider } from "@hashintel/petrinaut/react";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { useSharedSearchNavigation } from "../../../examples/use-shared-search-navigation";
 import { StatusPage } from "../../../shared/status-page";
-import {
-  BrunchAssistantContext,
-  brunchPlugin,
-} from "../plugins/brunch/editor-api-plugin";
-import {
-  brunchPreviewConfig,
-  useBrunchAssistant,
-} from "../plugins/brunch/use-brunch-assistant";
+import { resolveBrunchPreviewConfig } from "../plugins/brunch/brunch-preview-config";
+import { getOrCreateBrunchOwnerKey } from "../plugins/brunch/conversation/brunch-owner-key";
 import { demoPlugins } from "../plugins/demo-plugins";
 import { petrinautAiPlugin } from "../plugins/petrinaut-ai/plugin";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
@@ -31,6 +30,14 @@ import { useWordsPreference } from "./words-preference";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
+
+/** Where Brunch's chat is mounted, resolved once per page load. */
+const brunchPreviewConfig = resolveBrunchPreviewConfig(
+  import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
+);
+
+/** This browser's Brunch owner key, kept in local storage. */
+const brunchOwnerKey = getOrCreateBrunchOwnerKey();
 
 /**
  * The editor's plugins, with Petrinaut AI and, once configured, Brunch.
@@ -196,6 +203,8 @@ export const LocalStorageDemoApp = ({
     [currentNetId, brunchEditor],
   );
   const brunch = useBrunchAssistant({
+    ownerKey: brunchOwnerKey,
+    chatEndpoint: brunchPreviewConfig.chatEndpoint,
     selected: brunchShown,
     openDocument: brunchOpenDocument,
     voice: {

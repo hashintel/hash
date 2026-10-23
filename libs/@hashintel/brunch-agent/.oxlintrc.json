@@ -1,6 +1,9 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "extends": ["../../../.config/oxlint/brunch/base.json"],
+  "extends": [
+    "../../../.config/oxlint/brunch/react.json",
+    "../../../.config/oxlint/react-compiler.json"
+  ],
   "categories": {
     "correctness": "error",
     "perf": "warn"
@@ -15,6 +18,12 @@
     "typeCheck": true
   },
   "rules": {
+    "new-cap": [
+      "error",
+      {
+        "capIsNewExceptionPattern": "Plugin$"
+      }
+    ],
     "no-restricted-imports": [
       "error",
       {
@@ -40,8 +49,22 @@
           {
             "group": ["@earendil-works/*"],
             "message": "Lower-level Pi packages stay out of the Brunch library."
+          },
+          {
+            "regex": "^(\\.\\./|\\./)+(client|ui|server)(/|\\.ts$|$)",
+            "message": "The contracts root imports none of ./client, ./ui or ./server."
+          },
+          {
+            "regex": "^@hashintel/brunch-agent/(client|ui|server)$",
+            "message": "The contracts root imports none of ./client, ./ui or ./server."
           }
         ]
+      }
+    ],
+    "jsdoc/check-tag-names": [
+      "error",
+      {
+        "definedTags": ["layerRoot", "role", "vitest-environment"]
       }
     ]
   },
@@ -52,5 +75,198 @@
     "*.gen.*",
     "*.tsbuildinfo",
     ".turbo/**"
+  ],
+  "overrides": [
+    {
+      "files": ["src/ui.ts", "src/ui/**/*.{ts,tsx}"],
+      "rules": {
+        "react/memo-dependencies": "error",
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+((apps|libs|tests|@[a-z0-9-]+)/|[^./][^/]*/(src|dist|test)/)",
+                "message": "Import another workspace package by its package name, not a relative path into it."
+              },
+              {
+                "group": ["@earendil-works/*"],
+                "message": "Lower-level Pi packages stay out of the Brunch library."
+              },
+              {
+                "regex": "^(\\.\\./|\\./)+(server)(/|\\.ts$|$)",
+                "message": "./ui imports ./client and the contracts root, not ./server."
+              },
+              {
+                "regex": "^@hashintel/brunch-agent/(server)$",
+                "message": "./ui imports ./client and the contracts root, not ./server."
+              }
+            ]
+          }
+        ],
+        "react-perf/jsx-no-new-function-as-prop": "off",
+        "react-perf/jsx-no-new-array-as-prop": "off",
+        "react-perf/jsx-no-new-object-as-prop": "off",
+        "react-perf/jsx-no-jsx-as-prop": "off"
+      }
+    },
+    {
+      "files": ["src/client.ts", "src/client/**/*.ts"],
+      "rules": {
+        "react/memo-dependencies": "error",
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+((apps|libs|tests|@[a-z0-9-]+)/|[^./][^/]*/(src|dist|test)/)",
+                "message": "Import another workspace package by its package name, not a relative path into it."
+              },
+              {
+                "group": ["@earendil-works/*"],
+                "message": "Lower-level Pi packages stay out of the Brunch library."
+              },
+              {
+                "regex": "^(\\.\\./|\\./)+ui/chat/",
+                "message": "./client imports only the contracts root and ./client by value; type-only imports from ./ui/chat are the one allowed exception.",
+                "allowTypeImports": true
+              },
+              {
+                "regex": "^(\\.\\./|\\./)+(ui/([^c]|c[^h]|ch[^a]|cha[^t]|chat[^/])|ui$|ui\\.ts$|server(/|\\.ts$|$))",
+                "message": "./client imports only the contracts root and ./client by value; type-only imports from ./ui/chat are the one allowed exception."
+              },
+              {
+                "regex": "^@hashintel/brunch-agent/(ui|server)$",
+                "message": "./client imports only the contracts root and ./client by value; type-only imports from ./ui/chat are the one allowed exception.",
+                "allowTypeImports": true
+              },
+              {
+                "group": [
+                  "react",
+                  "react/*",
+                  "react-dom",
+                  "react-dom/*",
+                  "react-markdown",
+                  "react-icons/*",
+                  "@ai-sdk/react",
+                  "@ark-ui/*"
+                ],
+                "message": "./client has no React or Petrinaut UI value imports.",
+                "allowTypeImports": true
+              },
+              {
+                "group": [
+                  "@hashintel/petrinaut",
+                  "@hashintel/petrinaut/*",
+                  "@hashintel/ds-components",
+                  "@hashintel/ds-components/*",
+                  "@hashintel/ds-helpers",
+                  "@hashintel/ds-helpers/*",
+                  "@hashintel/ds-icons",
+                  "@hashintel/ds-icons/*"
+                ],
+                "message": "./client has no React or Petrinaut UI value imports.",
+                "allowTypeImports": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/server.ts", "src/server/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+((apps|libs|tests|@[a-z0-9-]+)/|[^./][^/]*/(src|dist|test)/)",
+                "message": "Import another workspace package by its package name, not a relative path into it."
+              },
+              {
+                "group": ["@earendil-works/*"],
+                "message": "Lower-level Pi packages stay out of the Brunch library."
+              },
+              {
+                "regex": "^(\\.\\./|\\./)+(client|ui)(/|\\.ts$|$)",
+                "message": "./server imports only the contracts root."
+              },
+              {
+                "regex": "^@hashintel/brunch-agent/(client|ui)$",
+                "message": "./server imports only the contracts root."
+              },
+              {
+                "group": [
+                  "react",
+                  "react/*",
+                  "react-dom",
+                  "react-dom/*",
+                  "react-markdown",
+                  "react-icons/*",
+                  "@ai-sdk/react",
+                  "@ark-ui/*"
+                ],
+                "message": "./server touches nothing in the browser."
+              },
+              {
+                "group": [
+                  "@hashintel/petrinaut",
+                  "@hashintel/petrinaut/*",
+                  "@hashintel/ds-components",
+                  "@hashintel/ds-components/*",
+                  "@hashintel/ds-helpers",
+                  "@hashintel/ds-helpers/*",
+                  "@hashintel/ds-icons",
+                  "@hashintel/ds-icons/*"
+                ],
+                "message": "./server touches nothing in the browser."
+              },
+              {
+                "group": ["@flue/sdk", "@local/flue-aisdk-transport"],
+                "message": "./server touches nothing in the browser."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/**/*.test.{ts,tsx}",
+        "src/ui/testing/**",
+        "src/ui/chat/testing/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(\\.\\./)+((apps|libs|tests|@[a-z0-9-]+)/|[^./][^/]*/(src|dist|test)/)",
+                "message": "Import another workspace package by its package name, not a relative path into it."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/{client,ui,server,shared}/**/*.test.{ts,tsx}"],
+      "rules": {
+        "vitest/require-mock-type-parameters": "off",
+        "vitest/no-conditional-expect": "off",
+        "vitest/require-to-throw-message": "off",
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-return": "off",
+        "typescript/no-unsafe-member-access": "off"
+      }
+    },
+    {
+      "files": ["panda.config.ts"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
   ]
 }

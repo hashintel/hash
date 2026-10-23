@@ -1,4 +1,4 @@
-import { createOpenAITranscriptionSessionHandler } from "../../src/server/voice/openai-transcription-session.js";
+import { createOpenAITranscriptionSessionHandler } from "@hashintel/brunch-agent/server";
 
 declare const process: { env: Record<string, string | undefined> };
 

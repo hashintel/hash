@@ -1,0 +1,82 @@
+import {
+  VoiceInterviewControl,
+  type OpenAIVoiceConfig,
+} from "./session/voice-interview-control";
+
+import type {
+  BrunchPanelAdmissionTarget,
+  BrunchPanelConversationTracker,
+} from "../../client/brunch-panel-transport";
+import type { VoiceMediationHistory } from "../../client/voice/history/voice-mediation-history";
+import type { InterviewBudgetLevel } from "../../shared/interview-budget";
+import type { VoiceWord } from "../../shared/voice-words";
+import type {
+  PetrinautAiVoiceMode,
+  PetrinautAiVoiceModeContext,
+} from "../chat/ai-assistant-composer-control";
+import type { ToolApprovalState } from "../tools/brunch-mutation-approval";
+import type {
+  FlueConversationSettlement,
+  FlueConversationState,
+} from "@flue/sdk";
+
+/**
+ * Binds the Voice interview control to one Brunch conversation: the tracker's
+ * submission and admission methods become the control's props. `undefined`
+ * without a voice configuration, which hides Voice mode.
+ */
+export const getBrunchVoiceMode = (
+  config: OpenAIVoiceConfig | null | undefined,
+  tracker?: BrunchPanelConversationTracker,
+  settlements?: readonly FlueConversationSettlement[],
+  snapshot?: FlueConversationState,
+  mediationHistory?: VoiceMediationHistory,
+  interviewBudgetLevel?: InterviewBudgetLevel,
+  toolApprovalState?: (toolCallId: string) => ToolApprovalState | null,
+  readWords?: () => readonly VoiceWord[],
+): PetrinautAiVoiceMode | undefined => {
+  if (!config) return undefined;
+
+  const resolveInputSubmission = tracker?.submissionForInput.bind(tracker);
+  const resolveResponseSubmission =
+    tracker?.submissionsForResponse.bind(tracker);
+  const subscribeToResponseMessageCompleted =
+    tracker?.subscribeToResponseMessageCompleted.bind(tracker);
+  const subscribeToResponseMessageStarted =
+    tracker?.subscribeToResponseMessageStarted.bind(tracker);
+  const subscribeToStopRequested =
+    tracker?.subscribeToStopRequested.bind(tracker);
+  const subscribeToAdmission =
+    tracker === undefined
+      ? undefined
+      : (target: BrunchPanelAdmissionTarget, listener: (id: string) => void) =>
+          tracker.subscribeToAdmission(target, ({ admission }) =>
+            listener(admission.submissionId),
+          );
+  const subscribeToAdmissionFailure =
+    tracker?.subscribeToAdmissionFailure.bind(tracker);
+  const recordInputMode = tracker?.recordInputMode.bind(tracker);
+
+  return (context: PetrinautAiVoiceModeContext) => (
+    <VoiceInterviewControl
+      {...context}
+      config={config}
+      interviewBudgetLevel={interviewBudgetLevel}
+      readWords={readWords}
+      mediationHistory={mediationHistory}
+      onInputModeChange={recordInputMode}
+      toolApprovalState={toolApprovalState}
+      settlements={settlements}
+      // Voice only observes this snapshot. Message replacement remains gated
+      // independently by followMessages.canReplace in the demo shell.
+      snapshot={snapshot}
+      resolveInputSubmission={resolveInputSubmission}
+      resolveResponseSubmission={resolveResponseSubmission}
+      subscribeToResponseMessageCompleted={subscribeToResponseMessageCompleted}
+      subscribeToResponseMessageStarted={subscribeToResponseMessageStarted}
+      subscribeToStopRequested={subscribeToStopRequested}
+      subscribeToAdmission={subscribeToAdmission}
+      subscribeToAdmissionFailure={subscribeToAdmissionFailure}
+    />
+  );
+};
