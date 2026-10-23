@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 
+import { petrinautContextualUserMessageBody } from "../petrinaut/contextual-user-message";
 import { foldCommits } from "./commits";
 import { traceLedger } from "./trace";
 
@@ -215,5 +216,54 @@ describe("turn excerpts", () => {
     const excerpt = state.turns[0]?.excerpt ?? "";
     expect(Array.from(excerpt)).toHaveLength(240);
     expect(excerpt.endsWith("…")).toBe(true);
+  });
+
+  test("quote the user's words from a contextual message with submission context", () => {
+    const { state } = foldCommits({
+      messages: [
+        {
+          id: "user-1",
+          role: "user",
+          parts: [
+            {
+              type: "text",
+              text: petrinautContextualUserMessageBody({
+                userText: "Cases   wait\nin a queue.",
+                diagnosticsContext: "",
+                submissionContext: { interviewLength: "short" },
+              }),
+            },
+          ],
+        },
+        commit("ledger-1", [entity], ["e1"]),
+      ],
+    });
+    expect(state.turns).toEqual([
+      { id: "user-1", excerpt: "Cases wait in a queue." },
+    ]);
+  });
+
+  test("quote the user's words from a contextual message with diagnostics", () => {
+    const { state } = foldCommits({
+      messages: [
+        {
+          id: "user-1",
+          role: "user",
+          parts: [
+            {
+              type: "text",
+              text: petrinautContextualUserMessageBody({
+                userText: "Cases wait in a queue.",
+                diagnosticsContext: "Place p1 has no arcs.",
+              }),
+            },
+          ],
+        },
+        commit("ledger-1", [entity], ["e1"]),
+      ],
+    });
+    expect(state.turns).toEqual([
+      { id: "user-1", excerpt: "Cases wait in a queue." },
+    ]);
   });
 });

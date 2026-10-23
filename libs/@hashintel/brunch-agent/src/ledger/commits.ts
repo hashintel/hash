@@ -1,6 +1,7 @@
 import * as v from "valibot";
 
 import { brunchTools } from "../constants";
+import { petrinautUserMessageText } from "../petrinaut/contextual-user-message";
 import { vLedgerAppend, type LedgerAppend } from "./append";
 import { owedObligations, projectLedger } from "./projection/project-ledger";
 import { questionStatuses, type Origin } from "./shared/epistemics";
@@ -62,12 +63,14 @@ const turnExcerptLength = 240;
 
 /** The opening of a user message's text, enough to recognise the turn by. */
 const turnExcerpt = (message: LedgerHistoryMessage): string => {
-  const text = message.parts
-    .flatMap((part) => {
-      const parsed = v.safeParse(textPartSchema, part);
-      return parsed.success ? [parsed.output.text] : [];
-    })
-    .join(" ")
+  const text = petrinautUserMessageText(
+    message.parts
+      .flatMap((part) => {
+        const parsed = v.safeParse(textPartSchema, part);
+        return parsed.success ? [parsed.output.text] : [];
+      })
+      .join(" "),
+  )
     .replace(/\s+/g, " ")
     .trim();
   const characters = Array.from(text);
