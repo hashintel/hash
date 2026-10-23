@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Grouped rooted type path
+expression: "(::Foo)"
+info:
+  kind: Ok
+---
+Type#4294967040@3
+  TypeKind (Path)
+    Path#4294967040@3 (rooted: true)
+      PathSegment#4294967040@2 (name: Foo)
