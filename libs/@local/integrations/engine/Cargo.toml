@@ -34,6 +34,7 @@ tracing        = { workspace = true, features = ["attributes"] }
 opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
 pretty_assertions = { workspace = true }
 proptest          = { workspace = true, features = ["attr-macro", "std"] }
+rstest            = { workspace = true }
 serde             = { workspace = true, features = ["derive"] }
 tempfile          = { workspace = true }
 tokio             = { workspace = true, features = ["macros", "rt", "test-util", "time"] }
