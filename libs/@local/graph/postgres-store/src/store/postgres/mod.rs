@@ -75,10 +75,10 @@ use type_system::{
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
     principal::{
-        ActorGroup, PrincipalId, PrincipalType,
+        Actor, ActorGroup, PrincipalId, PrincipalType,
         actor::{ActorEntityUuid, ActorId, ActorType, Ai, AiId, Machine, MachineId, User, UserId},
         actor_group::{ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
-        role::{RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
+        role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
     },
 };
 use uuid::Uuid;
@@ -1377,32 +1377,56 @@ where
         actor_id: ActorId,
         context_builder: &mut ContextBuilder,
     ) -> Result<(), Report<BuildPrincipalContextError>> {
-        // This function performs multiple database queries to collect all entities needed for
-        // policy evaluation, which could become a performance bottleneck for frequently
-        // accessed actors. Future optimizations may include:
-        //   - Combining some queries into a single more complex query
-        //   - Implementing caching strategies for frequently accessed contexts
-        //   - Prefetching contexts for related actors in batch operations
+        self.load_principal_context(actor_id)
+            .await?
+            .extend_context(context_builder);
+        Ok(())
+    }
+}
 
+/// Retains the actor's memberships and ancestor groups for reuse when authorizing pending editions.
+/// These memberships stay fixed while resource attributes change between checks.
+struct PrincipalContext {
+    actor: Actor,
+    roles: Vec<Role>,
+    groups: Vec<ActorGroup>,
+}
+
+impl PrincipalContext {
+    fn extend_context(&self, context: &mut ContextBuilder) {
+        context.add_actor(&self.actor);
+        for role in &self.roles {
+            context.add_role(role);
+        }
+        for group in &self.groups {
+            context.add_actor_group(group);
+        }
+    }
+}
+
+impl<C: AsClient, S: TransactionState> PostgresStore<C, S> {
+    /// Includes ancestor teams and webs so policy checks honor permissions inherited through
+    /// nested groups.
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn load_principal_context(
+        &self,
+        actor_id: ActorId,
+    ) -> Result<PrincipalContext, Report<BuildPrincipalContextError>> {
         let actor = self
             .get_actor(actor_id, actor_id)
             .await
             .change_context(BuildPrincipalContextError::StoreError)?
             .ok_or(BuildPrincipalContextError::ActorNotFound { actor_id })?;
-        context_builder.add_actor(&actor);
-
-        let group_ids = self
+        let roles: Vec<_> = self
             .get_actor_roles(actor_id)
             .await
             .change_context(BuildPrincipalContextError::StoreError)?
             .into_values()
-            .map(|role| {
-                context_builder.add_role(&role);
-                role.actor_group_id()
-            })
-            .collect::<Vec<_>>();
+            .collect();
+        let group_ids = roles.iter().map(Role::actor_group_id).collect::<Vec<_>>();
 
-        self.as_client()
+        let groups = self
+            .as_client()
             .query_raw(
                 "
                 WITH groups AS (
@@ -1473,13 +1497,13 @@ where
             })
             .try_collect::<Vec<_>>()
             .await
-            .change_context(BuildPrincipalContextError::StoreError)?
-            .into_iter()
-            .for_each(|actor_group| {
-                context_builder.add_actor_group(&actor_group);
-            });
+            .change_context(BuildPrincipalContextError::StoreError)?;
 
-        Ok(())
+        Ok(PrincipalContext {
+            actor,
+            roles,
+            groups,
+        })
     }
 }
 
