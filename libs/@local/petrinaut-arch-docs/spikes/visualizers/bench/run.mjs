@@ -11,16 +11,19 @@ const types = {
   ".css": "text/css",
 };
 const server = http.createServer((req, res) => {
-  const p = path.join(dist, decodeURIComponent(req.url.split("?")[0]));
-  if (!fs.existsSync(p)) {
+  // Serve only files inside `dist`: normalise the requested path and refuse
+  // anything that resolves outside it.
+  const requested = decodeURIComponent(req.url.split("?")[0]);
+  const resolved = path.resolve(dist, `.${requested}`);
+  if (!resolved.startsWith(dist + path.sep) || !fs.existsSync(resolved)) {
     res.statusCode = 404;
     return res.end();
   }
   res.setHeader(
     "content-type",
-    types[path.extname(p)] ?? "application/octet-stream",
+    types[path.extname(resolved)] ?? "application/octet-stream",
   );
-  res.end(fs.readFileSync(p));
+  res.end(fs.readFileSync(resolved));
 });
 await new Promise((r) => server.listen(0, r));
 const base = `http://127.0.0.1:${server.address().port}/pages/`;
