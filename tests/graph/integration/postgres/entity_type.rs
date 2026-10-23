@@ -341,24 +341,28 @@ async fn create_parent_not_instantiable() {
     assert_instantiation_denied(result, ACTOR_V1);
 }
 
+/// Machines may instantiate [`ACTOR_V1`], so they may create this type extending it.
+const AGENT_V1: &str = "https://example.com/@alice/types/entity-type/agent/v/1";
+
+async fn create_agent_type(api: &mut DatabaseApi<'_>, web_id: WebId) {
+    let machine = ActorId::from(api.create_machine("test-machine").await);
+    api.assign_web_administrator(ActorEntityUuid::from(machine), web_id)
+        .await;
+    api.create_entity_type(
+        machine,
+        create_params(entity_type_schema(AGENT_V1, &[ACTOR_V1]), web_id, machine),
+    )
+    .await
+    .expect("machines should be able to extend a type they can instantiate");
+}
+
 #[tokio::test]
-async fn create_ancestor_not_instantiable() {
+async fn create_grandparent_not_instantiable() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed_with_actor_type(&mut database).await;
     let user = api.account_id;
     let web_id = WebId::new(user);
-
-    // Machines may instantiate `Actor`, so they may extend it.
-    let machine = ActorId::from(api.create_machine("test-machine").await);
-    api.assign_web_administrator(ActorEntityUuid::from(machine), web_id)
-        .await;
-    let agent_v1 = "https://example.com/@alice/types/entity-type/agent/v/1";
-    api.create_entity_type(
-        machine,
-        create_params(entity_type_schema(agent_v1, &[ACTOR_V1]), web_id, machine),
-    )
-    .await
-    .expect("machines should be able to extend a type they can instantiate");
+    create_agent_type(&mut api, web_id).await;
 
     let result = api
         .create_entity_type(
@@ -366,7 +370,7 @@ async fn create_ancestor_not_instantiable() {
             create_params(
                 entity_type_schema(
                     "https://example.com/@alice/types/entity-type/child/v/1",
-                    &[agent_v1],
+                    &[AGENT_V1],
                 ),
                 web_id,
                 user,
@@ -434,6 +438,44 @@ async fn update_parent_not_instantiable() {
                 schema: entity_type_schema(
                     "https://example.com/@alice/types/entity-type/child/v/2",
                     &[ACTOR_V1],
+                ),
+                provenance: api_provenance(user),
+            },
+        )
+        .await;
+
+    assert_instantiation_denied(result, ACTOR_V1);
+}
+
+#[tokio::test]
+async fn update_grandparent_not_instantiable() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_actor_type(&mut database).await;
+    let user = api.account_id;
+    let web_id = WebId::new(user);
+    create_agent_type(&mut api, web_id).await;
+
+    api.create_entity_type(
+        user,
+        create_params(
+            entity_type_schema(
+                "https://example.com/@alice/types/entity-type/child/v/1",
+                &[],
+            ),
+            web_id,
+            user,
+        ),
+    )
+    .await
+    .expect("should be able to create an entity type without parents");
+
+    let result = api
+        .update_entity_type(
+            user,
+            UpdateEntityTypesParams {
+                schema: entity_type_schema(
+                    "https://example.com/@alice/types/entity-type/child/v/2",
+                    &[AGENT_V1],
                 ),
                 provenance: api_provenance(user),
             },

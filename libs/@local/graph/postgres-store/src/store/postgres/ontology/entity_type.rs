@@ -902,9 +902,10 @@ fn add_stored_parent_entity_types<'a, S>(
     );
 }
 
-/// Fails if the actor may not instantiate every entity type that `entity_type` inherits from.
+/// Fails if the actor may not instantiate every entity type that `entity_type` inherits from,
+/// directly or transitively.
 ///
-/// The policy context has to contain every ancestor of `entity_type`.
+/// The policy context has to contain all of these ancestors.
 fn ensure_ancestors_are_instantiable<C>(
     policy_set: &PolicySet,
     policy_components: &PolicyComponents,
