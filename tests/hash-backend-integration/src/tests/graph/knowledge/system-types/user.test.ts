@@ -81,7 +81,7 @@ const graphQLContextForUser = (user: User): LoggedInGraphQLContext => ({
   user,
   provenance: { ...graphContext.provenance, actorType: "user" },
   temporal: graphContext.temporalClient,
-  flowRunHistories: new Map(),
+  flowRunRecords: new Map(),
 });
 
 const shortname = generateRandomShortname("userTest");

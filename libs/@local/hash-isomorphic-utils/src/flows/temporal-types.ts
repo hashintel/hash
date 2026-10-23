@@ -52,3 +52,28 @@ export type RunFlowWorkflowResponse = Status<{
   outputs?: LocalFlowRun["outputs"];
   stepErrors?: Status<{ stepId: string }>[];
 }>;
+
+/** How a run ended, as the event that closes its workflow's history records it. */
+export type FlowRunEnding =
+  | { kind: "completed"; result: RunFlowWorkflowResponse }
+  | {
+      kind: "failed";
+      failureMessage: string;
+      stepErrors?: Status<{ stepId: string }>[];
+    }
+  | { kind: "cancelled" }
+  | { kind: "terminated"; reason?: string }
+  | { kind: "timedOut" };
+
+/**
+ * How a run is ending, as its workflow gives it to the activity that records the run, which runs before the event that
+ * closes the run is written. A completed run's outputs are read from its history instead, so the workflow doesn't pass
+ * them to the activity as well as returning them.
+ */
+export type RecordedFlowRunEnding =
+  | {
+      kind: "completed";
+      code: RunFlowWorkflowResponse["code"];
+      stepErrors?: Status<{ stepId: string }>[];
+    }
+  | Exclude<FlowRunEnding, { kind: "completed" }>;

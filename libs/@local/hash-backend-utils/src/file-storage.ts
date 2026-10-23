@@ -58,6 +58,10 @@ export const getFlowOutputStorageKey = ({
 }: GetFlowOutputStorageKeyParams) =>
   `${getFlowOutputStoragePrefix(workflowId)}${runId}/${stepId}/${outputName}.json` as const;
 
+/** The storage key for the record of a flow run's history, written when the run ends. */
+export const getFlowRunRecordStorageKey = (workflowId: string) =>
+  `${getFlowOutputStoragePrefix(workflowId)}run.jsonl` as const;
+
 /**
  * Interface describing a storage provider for file upload/download operations.
  * Supports both presigned URLs for client-side operations and direct access
