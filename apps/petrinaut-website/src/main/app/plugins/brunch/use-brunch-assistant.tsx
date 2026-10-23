@@ -27,7 +27,7 @@ import {
   ordinaryConstructionConversationIdFrom,
   replaceBrunchConversationId,
 } from "./conversation/brunch-conversation-id";
-import { getOrCreateBrunchPrincipal } from "./conversation/brunch-principal";
+import { getOrCreateBrunchOwnerKey } from "./conversation/brunch-owner-key";
 import { useFlueChatHistory } from "./conversation/use-flue-chat-history";
 import {
   useProcessAgentBinding,
@@ -99,13 +99,13 @@ export const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
 );
 
-const brunchPrincipal = getOrCreateBrunchPrincipal();
+const brunchOwnerKey = getOrCreateBrunchOwnerKey();
 
 const subscribeToNothing = () => () => {};
 const readNothing = () => undefined;
 
 const createBrunchFlueClient = async (conversationId: string) => {
-  const identity = { conversationId, principalKey: brunchPrincipal };
+  const identity = { conversationId, ownerKey: brunchOwnerKey };
   const instanceId = await flueConversationIdWeb(identity);
   const mountUrl = new URL(
     brunchPreviewConfig.chatEndpoint,
@@ -291,7 +291,7 @@ export const useBrunchAssistant = ({
   );
   const conversationId = processAgentBinding?.conversationId ?? null;
   const conversationWords = useConversationWords(
-    brunchPrincipal,
+    brunchOwnerKey,
     conversationId,
   );
   // Words are edited from Voice mode, so they apply only while Voice is on.
@@ -490,7 +490,7 @@ export const useBrunchAssistant = ({
                   liveToolStream: {
                     headers: agentOwnershipHeaders({
                       conversationId,
-                      principalKey: brunchPrincipal,
+                      ownerKey: brunchOwnerKey,
                     }),
                   },
                 }),
@@ -528,7 +528,7 @@ export const useBrunchAssistant = ({
       constructionBrowser && flueClientPromise
         ? createInBandBrowserCalls({
             client: flueClientPromise,
-            principalKey: brunchPrincipal,
+            ownerKey: brunchOwnerKey,
             binding: constructionBrowser.binding,
             metadataFor: (toolCallId, output) =>
               canonicalHostTools?.clientToolResultMetadataFor(

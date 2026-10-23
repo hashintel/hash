@@ -48,7 +48,7 @@ export const brunchSignals = {
 /** Request headers that carry conversation identity. */
 export const brunchHeaders = {
   conversation: "x-brunch-conversation",
-  principal: "x-brunch-principal",
+  ownerKey: "x-brunch-principal",
 } as const;
 
 /** Server routes and route segments. */
@@ -63,8 +63,8 @@ export const brunchRoutes = {
   health: "/health",
 } as const;
 
-/** Principal for the stock Flue UI at `/`. Not a second ownership rule. */
-export const localUiPrincipal = "local";
+/** Owner key for the stock Flue UI at `/`. Not a second ownership rule. */
+export const localUiOwnerKey = "local";
 
 /** Prefix of the conversation ID the Petrinaut website derives from a net ID. */
 export const previewConversationIdPrefix = "petrinaut-preview:";

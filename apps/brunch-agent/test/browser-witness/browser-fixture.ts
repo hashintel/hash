@@ -194,7 +194,7 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
   }
   const launched = browser;
 
-  /** A fresh browser context, so each case gets its own principal and storage. */
+  /** A fresh browser context, so each case gets its own owner key and storage. */
   const openPage = async () => {
     const page = await launched.newPage({
       viewport: { width: 1440, height: 1000 },
@@ -274,16 +274,16 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
     openStreams.clear();
   };
 
-  const principalOf = async (page: Page) => {
-    const principalKey = await page.evaluate(() => {
+  const ownerKeyOf = async (page: Page) => {
+    const ownerKey = await page.evaluate(() => {
       const key = Object.keys(localStorage).find((entry) =>
         entry.includes("principal"),
       );
       const raw = key === undefined ? null : localStorage.getItem(key);
       return raw?.startsWith('"') ? (JSON.parse(raw) as string) : raw;
     });
-    assert(principalKey, "Missing browser principal");
-    return principalKey;
+    assert(ownerKey, "Missing browser owner key");
+    return ownerKey;
   };
 
   /** The Flue client for the conversation the delivery's binding names. */
@@ -291,7 +291,7 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
     const binding = delivery.initialData?.binding;
     assert(binding, "Missing browser conversation binding");
     const identity = {
-      principalKey: await principalOf(page),
+      ownerKey: await ownerKeyOf(page),
       conversationId: binding.conversationId,
     };
     const client = createFlueClient({

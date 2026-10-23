@@ -124,7 +124,7 @@ faux.setResponses([
 const application = await loadBuiltBrunchApplication();
 try {
   const identity = {
-    principalKey: "guidance-test",
+    ownerKey: "guidance-test",
     conversationId: crypto.randomUUID(),
   };
   const client = createFlueClient({
