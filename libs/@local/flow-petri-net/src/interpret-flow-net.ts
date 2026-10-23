@@ -71,11 +71,8 @@ import type {
 export type FlowNetStepRun = { stepId: string; itemPath: number[] };
 
 /**
- * Where a place or transition is, as ids from the root net down: `[placeId]` for the root net,
- * `[componentInstanceId, placeId]` inside a step's instance. The root is implied. Every instance of a subnet shares
- * its places' and transitions' ids, so one inside an instance is only identified with the instance.
- *
- * Not to be confused with a token's `itemPath`, which is a `forEach` item's index in each enclosing step.
+ * Where a place or transition is, as ids from the root net down, with the root implied: `[placeId]` in the root net,
+ * `[componentInstanceId, placeId]` inside a step's instance. Not to be confused with a token's `itemPath`.
  */
 export type FlowNetPath = readonly [string, ...string[]];
 
@@ -86,7 +83,7 @@ export const isSameFlowNetPath = (path: FlowNetPath, otherPath: FlowNetPath) =>
   path.length === otherPath.length &&
   path.every((id, index) => otherPath[index] === id);
 
-/** A path written with dots, for messages and debugging only. */
+/** For messages only. */
 export const formatFlowNetPath = (path: FlowNetPath) => path.join(".");
 
 /** Where the value a token refers to comes from. Tokens carry references to values, never the values themselves. */
@@ -129,7 +126,6 @@ export type FlowNetPlacedToken = {
 };
 
 export type FlowNetFiring = {
-  /** The transition that fired, inside the instance it fired in for a transition of an action's subnet. */
   transitionPath: FlowNetPath;
   role: TransitionRole;
   /** The step run the transition fired for: a `forEach` step's own run for its iterating and collecting. */
@@ -256,11 +252,9 @@ type InstanceScope = {
   subnet: IndexedSubnet;
 };
 
-/** The path of a place or transition of the root net, or, given a step's scope, of one inside its instance. */
 const pathIn = (scope: InstanceScope | null, id: string): FlowNetPath =>
   scope ? [scope.instance.id, id] : [id];
 
-/** The name of the place a path into a step's instance points at, such as a port's. */
 const instancePlaceName = (scope: InstanceScope, path: FlowNetPath) =>
   path.length === 2
     ? scope.subnet.subnet.places.find(({ id }) => id === path[1])?.name

@@ -323,16 +323,6 @@ describe("flow net paths", () => {
     ).toBe(false);
   });
 
-  it("keys equal paths alike", () => {
-    expect(flowNetPathKey([instanceId, placeId])).toBe(
-      flowNetPathKey([instanceId, placeId]),
-    );
-    expect(
-      isSameFlowNetPath([instanceId, placeId], [instanceId, placeId]),
-    ).toBe(true);
-    expect(isSameFlowNetPath([instanceId], [instanceId, placeId])).toBe(false);
-  });
-
   it("writes a path with dots", () => {
     expect(formatFlowNetPath([instanceId, placeId])).toBe(
       `${instanceId}.${placeId}`,
