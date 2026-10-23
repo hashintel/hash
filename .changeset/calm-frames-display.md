@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-Include a dark Performance monitor with FPS history and collapsible frame timing and plugin activity.
+Include a draggable dark Performance monitor with animated details, FPS history, and command-palette and keyboard access.

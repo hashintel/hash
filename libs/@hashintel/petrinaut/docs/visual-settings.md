@@ -28,7 +28,9 @@ in a group under the plugin's name after the built-in groups.
 
 The included **Performance** plugin adds **Show FPS counter** and **Expand
 performance details** switches. Both start off. Details expand inside the dark
-FPS counter when it is visible; each section can collapse separately. See
+FPS counter when it is visible; each section can collapse separately. Open it
+from the command palette or with **⌘⇧F** / **Ctrl⇧F**, and drag its header to
+move it. Its transitions follow the Animations switch below. See
 [Performance](performance.md) for controls and measurement limits.
 
 ### Animations

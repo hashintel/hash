@@ -1,17 +1,24 @@
 # Performance
 
-The **Performance** plugin is included in Petrinaut. Click **Toggle performance
-monitor** in the top bar to show its FPS counter. Click the counter's FPS header
-to expand frame timing, plugin activity, and measurement guidance in one dark
-widget. Each section collapses separately. Click the header again to return to
-the compact counter, or its close button to hide the whole monitor.
+The **Performance** plugin is included in Petrinaut. Open the command palette
+and run **Toggle performance monitor**, or press **⌘⇧F** on Mac or **Ctrl⇧F** on
+Windows and Linux. The monitor starts hidden and has no top-bar button.
 
-The monitor starts hidden. **User settings → General → Performance** has
-**Show FPS counter** and **Expand performance details** switches. Expansion
-applies when the counter is visible. Hosts with a command palette list **Toggle
-performance monitor**. Visibility and expansion are saved across nets. **User
-settings → Plugins → Performance** switches the whole plugin off, including its
-button and command.
+Click the counter's FPS header to smoothly expand frame timing, plugin activity,
+and measurement guidance in one dark widget. Each section collapses separately.
+Click the header again to return to the compact counter, or its close button to
+hide the whole monitor. Motion follows **User settings → General → Animations**
+and your system's reduced-motion preference.
+
+Drag the FPS header to move the widget within the editor. A drag does not toggle
+its details. With the header focused, use arrow keys to move it, or **Shift**
+plus an arrow key for a larger step. The widget stays within the editor when
+its size or the window size changes. Its position resets when you close it.
+
+**User settings → General → Performance** has **Show FPS counter** and **Expand
+performance details** switches. Expansion applies when the counter is visible.
+Visibility and expansion are saved across nets. **User settings → Plugins →
+Performance** switches the whole plugin off, including its command and shortcut.
 
 ## Browser FPS
 

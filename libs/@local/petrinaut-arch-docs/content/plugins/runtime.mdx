@@ -124,12 +124,16 @@ again and re-renders every outlet.
 
 `<Petrinaut>` includes the Performance plugin alongside the host's plugins.
 Its [monitor](layer:ui.plugins.performance) reads the public performance API.
-The plugin declares persisted visibility and expansion switches, one command,
-a top-bar button and a root contribution. The FPS counter starts hidden and
+The plugin declares persisted visibility and expansion switches, one palette
+command with a keyboard binding, and a root contribution. The FPS counter starts hidden and
 expands into collapsible detail sections. The reader mounts while the counter
 is visible; collapsing details preserves its subscription and frame history.
 Hiding it preserves the host and settings without keeping an idle subscription.
 Snapshot updates stay inside the monitor and do not republish plugin contributions.
+The monitor uses the public React user-settings context for motion preferences.
+Disclosures retain content through their closing transition, then unmount it.
+Pointer capture separates dragging from clicks; resize observations keep the
+widget within the editor bounds.
 
 `PluginEditorRuntime` owns the performance collector. Plugins request its
 read-only capability through `access.performance`; the same API is available

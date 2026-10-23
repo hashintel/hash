@@ -1,4 +1,4 @@
-import { ChartLineIcon } from "@hashintel/ds-icons";
+import { useEffect, useEffectEvent } from "react";
 
 import { definePetrinautPlugin, type PluginHook } from "../plugin";
 import { PerformanceMonitor } from "./performance-plugin/panels";
@@ -28,13 +28,8 @@ const PerformancePlugin = definePetrinautPlugin({
   commands: {
     toggleFps: {
       label: "Toggle performance monitor",
+      shortcut: "mod+shift+f",
       keywords: ["fps", "performance", "frames", "plugins", "timing"],
-    },
-  },
-  buttons: {
-    toggleFps: {
-      label: "Toggle performance monitor",
-      place: "top-bar-end",
     },
   },
   root: true,
@@ -44,14 +39,32 @@ const usePerformancePlugin: PluginHook<typeof PerformancePlugin> = (api) => {
   const showFps = api.settings.get("showFps");
   const expanded = api.settings.get("showInformation");
 
+  const toggle = () =>
+    api.settings.set("showFps", !api.settings.get("showFps"));
+  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (
+      !event.defaultPrevented &&
+      !event.isComposing &&
+      !event.repeat &&
+      !event.altKey &&
+      event.metaKey !== event.ctrlKey &&
+      event.shiftKey &&
+      event.key.toLowerCase() === "f"
+    ) {
+      event.preventDefault();
+      toggle();
+    }
+  });
+  useEffect(() => {
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   return {
     commands: {
       toggleFps: {
-        run: () => api.settings.set("showFps", !api.settings.get("showFps")),
+        run: toggle,
       },
-    },
-    buttons: {
-      toggleFps: { icon: <ChartLineIcon />, command: "toggleFps" },
     },
     root: showFps ? (
       <PerformanceMonitor

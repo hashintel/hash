@@ -255,10 +255,17 @@ test("runs a plugin button's onClick, then its command, through the registry Pet
 });
 
 test("includes the Performance plugin without a host-supplied plugin list", () => {
+  localStorage.removeItem("petrinaut:plugin:hash.performance");
   render(<Petrinaut handle={createHandle()} />);
   expect(
-    screen.getByRole("button", { name: "Toggle performance monitor" }),
-  ).toBeTruthy();
+    screen.queryByRole("button", { name: "Toggle performance monitor" }),
+  ).toBeNull();
+  fireEvent.keyDown(window, { key: "F", metaKey: true, shiftKey: true });
+  expect(
+    JSON.parse(
+      localStorage.getItem("petrinaut:plugin:hash.performance") ?? "{}",
+    ),
+  ).toMatchObject({ showFps: true });
 });
 
 /** One entry per mount of the mount plugin's hook. */

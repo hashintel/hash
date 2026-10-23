@@ -2,12 +2,27 @@
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import { createCommandRegistry } from "@hashintel/petrinaut-core";
+
+import { CommandRegistryProvider } from "../../react/commands/command-registry";
 import { performancePlugin } from "./performance-plugin";
 import { PluginRoots, PluginToolbarItems } from "./plugin-outlets";
 import { renderPlugins } from "./plugins-test-harness";
 
 beforeEach(() => {
+  vi.stubGlobal("matchMedia", () => ({
+    matches: false,
+    addEventListener() {},
+    removeEventListener() {},
+  }));
   localStorage.clear();
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
   vi.useFakeTimers({
     toFake: ["requestAnimationFrame", "cancelAnimationFrame", "performance"],
   });
@@ -22,6 +37,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 const view = (
@@ -38,9 +54,7 @@ it("expands details from the FPS counter without restarting collection", () => {
     screen.queryByRole("region", { name: "Performance monitor" }),
   ).toBeNull();
   expect(vi.getTimerCount()).toBe(0);
-  fireEvent.click(
-    screen.getByRole("button", { name: "Toggle performance monitor" }),
-  );
+  fireEvent.keyDown(window, { key: "F", metaKey: true, shiftKey: true });
   const monitor = screen.getByRole("region", { name: "Performance monitor" });
   const canvas = monitor.querySelector("canvas");
   expect(screen.queryByRole("table")).toBeNull();
@@ -101,10 +115,74 @@ it("keeps an expanded preference hidden until the FPS counter is shown", () => {
     screen.queryByRole("region", { name: "Performance monitor" }),
   ).toBeNull();
   expect(vi.getTimerCount()).toBe(0);
-  fireEvent.click(
-    screen.getByRole("button", { name: "Toggle performance monitor" }),
-  );
+  fireEvent.keyDown(window, { key: "F", metaKey: true, shiftKey: true });
   expect(
     screen.getByRole("button", { name: "Collapse performance details" }),
   ).toBeTruthy();
 });
+
+it("registers the palette command and shortcut without a toolbar button", () => {
+  const registry = createCommandRegistry();
+  const { rerender } = renderPlugins([performancePlugin], view, {
+    Around: ({ children }) => (
+      <CommandRegistryProvider registry={registry}>
+        {children}
+      </CommandRegistryProvider>
+    ),
+  });
+  expect(
+    screen.queryByRole("button", { name: "Toggle performance monitor" }),
+  ).toBeNull();
+  expect(registry.list()).toMatchObject([
+    { id: "hash.performance.toggleFps", shortcut: "mod+shift+f" },
+  ]);
+  act(() => {
+    registry.execute("hash.performance.toggleFps");
+  });
+  expect(
+    screen.getByRole("region", { name: "Performance monitor" }),
+  ).toBeTruthy();
+  rerender([]);
+  expect(registry.list()).toEqual([]);
+  const event = new KeyboardEvent("keydown", {
+    key: "F",
+    metaKey: true,
+    shiftKey: true,
+    cancelable: true,
+  });
+  window.dispatchEvent(event);
+  expect(event.defaultPrevented).toBe(false);
+});
+
+it.each(["ctrlKey", "metaKey"])(
+  "toggles with Shift plus %s and ignores repeats or extra modifiers",
+  (modifier) => {
+    renderPlugins([performancePlugin], view);
+    for (const extras of [
+      { repeat: true },
+      { isComposing: true },
+      { altKey: true },
+      { ctrlKey: true, metaKey: true },
+      { shiftKey: false },
+    ]) {
+      fireEvent.keyDown(window, {
+        key: "F",
+        [modifier]: true,
+        shiftKey: true,
+        ...extras,
+      });
+      expect(
+        screen.queryByRole("region", { name: "Performance monitor" }),
+      ).toBeNull();
+    }
+    fireEvent.keyDown(window, { key: "F", [modifier]: true, shiftKey: true });
+    expect(
+      screen.getByRole("region", { name: "Performance monitor" }),
+    ).toBeTruthy();
+    fireEvent.keyDown(window, { key: "F", [modifier]: true, shiftKey: true });
+    expect(
+      screen.queryByRole("region", { name: "Performance monitor" }),
+    ).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  },
+);

@@ -85,6 +85,8 @@ export function useKeyboardShortcuts(
     if (
       !isInputFocused &&
       (event.metaKey || event.ctrlKey) &&
+      !event.shiftKey &&
+      !event.altKey &&
       event.key.toLowerCase() === "f"
     ) {
       event.preventDefault();

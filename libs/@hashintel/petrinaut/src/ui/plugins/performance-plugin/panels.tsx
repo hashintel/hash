@@ -2,16 +2,25 @@
  * @layerRoot ui.plugins.performance
  * @role Collapsible performance monitor consuming the read-only Plugin API
  */
-import { useId, useLayoutEffect, useRef } from "react";
+import {
+  use,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+} from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import { ChevronDownIcon, CloseIcon } from "@hashintel/ds-icons";
 
+import { UserSettingsContext } from "../../../react";
 import {
   useStore,
   type PluginPerformance,
   type PluginPerformanceSnapshot,
 } from "../../plugin";
+import { Collapse, Disclosure } from "./panels/collapse";
+import { useMonitorDrag } from "./panels/use-monitor-drag";
 
 const fpsColor = (fps: number) =>
   fps >= 50 ? "#3fb950" : fps >= 30 ? "#e3b341" : "#f85149";
@@ -69,30 +78,26 @@ const FpsHistory = ({
   );
 };
 
-const blockStyle = css({
-  borderTop: "[1px solid rgba(255,255,255,0.10)]",
-  paddingTop: "[10px]",
-  marginTop: "[10px]",
-  "& > summary": {
-    cursor: "pointer",
-    fontSize: "[12px]",
-    fontWeight: "medium",
-    color: "[#f6f7f9]",
-    _focusVisible: { outline: "[2px solid #6b8aff]", outlineOffset: "[3px]" },
-  },
-  "&[open] > summary": { marginBottom: "[8px]" },
-});
+const subscribeToReducedMotion = (notify: () => void) => {
+  const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+  query.addEventListener("change", notify);
+  return () => query.removeEventListener("change", notify);
+};
+const prefersReducedMotion = () =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const serverReducedMotion = () => false;
 
 const PerformanceDetails = ({
   snapshot,
+  animate,
 }: {
   snapshot: PluginPerformanceSnapshot;
+  animate: boolean;
 }) => {
   const latest = snapshot.frames.at(-1);
   return (
     <>
-      <details open className={blockStyle}>
-        <summary>Frame timing</summary>
+      <Disclosure title="Frame timing" animate={animate} initiallyOpen>
         <dl
           className={css({
             display: "grid",
@@ -112,9 +117,8 @@ const PerformanceDetails = ({
           </dt>
           <dd>{snapshot.observerMs.toFixed(2)} ms</dd>
         </dl>
-      </details>
-      <details open className={blockStyle}>
-        <summary>Plugin activity</summary>
+      </Disclosure>
+      <Disclosure title="Plugin activity" animate={animate} initiallyOpen>
         <div className={css({ maxHeight: "[180px]", overflow: "auto" })}>
           <table
             className={css({
@@ -192,9 +196,8 @@ const PerformanceDetails = ({
             ? "React profiling callbacks received."
             : "React timings unavailable until profiling callbacks arrive. Standard production builds disable them."}
         </p>
-      </details>
-      <details className={blockStyle}>
-        <summary>What these measurements mean</summary>
+      </Disclosure>
+      <Disclosure title="What these measurements mean" animate={animate}>
         <div className={css({ "& p + p": { marginTop: "[8px]" } })}>
           <p>
             FPS counts browser animation callbacks. Gaps can include work
@@ -222,7 +225,7 @@ const PerformanceDetails = ({
             and React profiling overhead add further cost.
           </p>
         </div>
-      </details>
+      </Disclosure>
     </>
   );
 };
@@ -238,16 +241,26 @@ export const PerformanceMonitor = ({
   setExpanded: (value: boolean) => void;
   onClose: () => void;
 }) => {
+  const { showAnimations } = use(UserSettingsContext);
+  const reducedMotion = useSyncExternalStore(
+    subscribeToReducedMotion,
+    prefersReducedMotion,
+    serverReducedMotion,
+  );
+  const animate = showAnimations && !reducedMotion;
+  const { panelRef, dragging, position, expandedWidth, handleProps } =
+    useMonitorDrag(() => setExpanded(!expanded));
   const snapshot = useStore(performance.snapshot);
   const detailsId = useId();
   const fps = snapshot.frames.at(-1)?.fps;
   return (
     <section
       aria-label="Performance monitor"
+      ref={panelRef}
+      data-animated={animate || undefined}
+      data-dragging={dragging || undefined}
       className={css({
         position: "absolute",
-        left: "[16px]",
-        bottom: "[16px]",
         zIndex: "banner",
         maxWidth: "[calc(100% - 32px)]",
         maxHeight: "[calc(100% - 80px)]",
@@ -260,8 +273,12 @@ export const PerformanceMonitor = ({
         border: "[1px solid rgba(255,255,255,0.10)]",
         boxShadow: "[0 6px 18px rgba(0,0,0,0.18)]",
         pointerEvents: "auto",
+        "&[data-animated]:not([data-dragging])": {
+          transition:
+            "[width 220ms cubic-bezier(0.2, 0, 0, 1), left 220ms ease, bottom 220ms ease]",
+        },
       })}
-      style={{ width: expanded ? 390 : 222 }}
+      style={{ ...position, width: expanded ? expandedWidth : 222 }}
     >
       <div
         className={css({
@@ -280,7 +297,8 @@ export const PerformanceMonitor = ({
           }
           aria-expanded={expanded}
           aria-controls={detailsId}
-          onClick={() => setExpanded(!expanded)}
+          {...handleProps}
+          title="Drag to move; click to expand or collapse. Arrow keys move the focused header."
           className={css({
             display: "flex",
             alignItems: "center",
@@ -288,7 +306,10 @@ export const PerformanceMonitor = ({
             flex: "1",
             minWidth: "[0]",
             textAlign: "left",
-            cursor: "pointer",
+            cursor: "grab",
+            touchAction: "none",
+            userSelect: "none",
+            "[data-dragging] &": { cursor: "grabbing" },
             borderRadius: "[6px]",
             _hover: { color: "[#fff]", background: "[rgba(255,255,255,0.06)]" },
             _focusVisible: {
@@ -325,7 +346,10 @@ export const PerformanceMonitor = ({
           </span>
           <span
             className={css({ display: "flex" })}
-            style={{ transform: expanded ? "rotate(180deg)" : undefined }}
+            style={{
+              transform: expanded ? "rotate(180deg)" : undefined,
+              transition: animate ? "transform 220ms ease" : undefined,
+            }}
           >
             <ChevronDownIcon size={16} />
           </span>
@@ -340,17 +364,18 @@ export const PerformanceMonitor = ({
         </button>
       </div>
       <FpsHistory frames={snapshot.frames} />
-      <div
-        id={detailsId}
-        hidden={!expanded}
-        className={css({
-          fontSize: "[11px]",
-          lineHeight: "[1.5]",
-          color: "[#aeb7c6]",
-        })}
-      >
-        {expanded && <PerformanceDetails snapshot={snapshot} />}
-      </div>
+      <Collapse id={detailsId} open={expanded} animate={animate}>
+        <div
+          className={css({
+            fontSize: "[11px]",
+            lineHeight: "[1.5]",
+            color: "[#aeb7c6]",
+          })}
+          style={{ width: expandedWidth - 32 }}
+        >
+          <PerformanceDetails snapshot={snapshot} animate={animate} />
+        </div>
+      </Collapse>
     </section>
   );
 };
