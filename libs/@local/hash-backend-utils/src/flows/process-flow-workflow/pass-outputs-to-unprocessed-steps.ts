@@ -170,7 +170,7 @@ export const passOutputsToUnprocessedSteps = (params: {
  * The kind of the array a `forEach` step collects, worked out from the flow definition rather than from the
  * collected values, so that a `forEach` over no items still has one.
  */
-const getCollectedPayloadKind = (
+export const getCollectedPayloadKind = (
   flowDefinition: FlowDefinition,
   forEachStepDefinition: ForEachStepDefinition,
 ): PayloadKind | undefined =>

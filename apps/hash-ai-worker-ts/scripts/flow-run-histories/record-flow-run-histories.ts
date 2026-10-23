@@ -219,6 +219,7 @@ const main = async () => {
       persistFlowActivity: () => ({
         flowEntityId: `${webId}~${generateUuid()}`,
       }),
+      recordFlowRunActivity: () => undefined,
       generateFlowRunName: () => currentCase?.flow.flowDefinition.name,
     },
   });
