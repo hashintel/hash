@@ -7,9 +7,9 @@ import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 
 /**
  * FE-2010 probe: an authenticated hop from a signed-in HASH user to the Brunch
- * agent server. NodeAPI authenticates the session and sets Brunch's principal
+ * agent server. NodeAPI authenticates the session and sets Brunch's owner key
  * from it; Brunch keeps its own ownership check, which derives the instance id
- * from that principal plus the conversation id.
+ * from that owner key plus the conversation id.
  *
  * Off unless `HASH_BRUNCH_AGENT_ORIGIN` is set. Brunch's identity headers are
  * only authentication when Brunch is reachable through this hop alone.
@@ -18,7 +18,7 @@ const BRUNCH_AGENT_PROXY_PATH = "/api/brunch";
 
 // Names from `brunchHeaders` in `@hashintel/brunch-agent`, inlined so the
 // probe adds no workspace dependency.
-const principalHeader = "x-brunch-principal";
+const ownerKeyHeader = "x-brunch-principal";
 const conversationHeader = "x-brunch-conversation";
 
 /**
@@ -52,8 +52,8 @@ export const getBrunchAgentOrigin = (
   return value ? new URL(value) : null;
 };
 
-/** Brunch principal for a HASH account: set by NodeAPI, never by the browser. */
-const brunchPrincipalKey = (accountId: string) => `hash:${accountId}`;
+/** Brunch owner key for a HASH account: set by NodeAPI, never by the browser. */
+const brunchOwnerKey = (accountId: string) => `hash:${accountId}`;
 
 const requestBody = (request: Request): string | undefined => {
   if (request.method === "GET" || request.method === "HEAD") {
@@ -74,7 +74,7 @@ export const setupBrunchAgentProxy = (
       response.status(401).json({ error: "Authentication required" });
       return;
     }
-    response.json({ principalKey: brunchPrincipalKey(request.user.accountId) });
+    response.json({ ownerKey: brunchOwnerKey(request.user.accountId) });
   });
 
   app.use(
@@ -104,7 +104,7 @@ export const setupBrunchAgentProxy = (
         }
       }
       // Overwrites anything the browser sent under this name.
-      headers.set(principalHeader, brunchPrincipalKey(request.user.accountId));
+      headers.set(ownerKeyHeader, brunchOwnerKey(request.user.accountId));
 
       const abort = new AbortController();
       response.on("close", () => {
