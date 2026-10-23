@@ -1,4 +1,5 @@
 use axum::Router;
+use reqwest::{Client, Url, redirect::Policy};
 use tokio::{net::TcpListener, task::JoinHandle};
 
 pub(super) struct Server {
@@ -34,12 +35,12 @@ pub(super) async fn server(router: Router) -> Server {
     }
 }
 
-pub(super) fn public_client(server: &Server) -> (reqwest::Client, String) {
-    let parsed = reqwest::Url::parse(&server.url).expect("should parse the test URL");
+pub(super) fn public_client(server: &Server) -> (Client, String) {
+    let parsed = Url::parse(&server.url).expect("should parse the test URL");
     let port = parsed.port().expect("should have an explicit port");
-    let client = reqwest::Client::builder()
+    let client = Client::builder()
         .no_proxy()
-        .redirect(reqwest::redirect::Policy::none())
+        .redirect(Policy::none())
         .resolve("public.test", ([127, 0, 0, 1], port).into())
         .build()
         .expect("should build the test client");
