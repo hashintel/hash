@@ -202,13 +202,11 @@ const expectFiringsFollowArcs = (net: SDCPN, run: FlowNetRun) => {
 
     expect(transitionPath.length).toBeLessThanOrEqual(2);
 
-    const [instanceId, transitionId] =
+    const transitionId = transitionPath.at(-1);
+    const instance =
       transitionPath.length === 2
-        ? transitionPath
-        : [undefined, transitionPath[0]];
-    const instance = instanceId
-      ? net.componentInstances?.find(({ id }) => id === instanceId)
-      : undefined;
+        ? net.componentInstances?.find(({ id }) => id === transitionPath[0])
+        : undefined;
     const transition = (
       instance
         ? net.subnets?.find(({ id }) => id === instance.subnetId)?.transitions
