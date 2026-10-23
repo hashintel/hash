@@ -258,6 +258,13 @@ impl<'heap> Symbol<'heap> {
     }
 }
 
+impl From<ConstantSymbol> for Symbol<'_> {
+    #[inline]
+    fn from(value: ConstantSymbol) -> Self {
+        Self::from_constant(value)
+    }
+}
+
 impl AsRef<Self> for Symbol<'_> {
     #[inline]
     fn as_ref(&self) -> &Self {
