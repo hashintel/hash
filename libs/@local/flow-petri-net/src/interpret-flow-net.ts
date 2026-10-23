@@ -97,7 +97,7 @@ export type FlowNetPlacedToken = {
 };
 
 export type FlowNetFiring = {
-  /** A transition of an action's subnet has the instance it fired in on its path. */
+  /** The transition that fired, inside the instance it fired in for a transition of an action's subnet. */
   transitionPath: FlowNetPath;
   role: TransitionRole;
   /** The step run the transition fired for: a `forEach` step's own run for its iterating and collecting. */
@@ -170,11 +170,6 @@ const rootPath = (endpoint: ArcEndpoint): FlowNetPath =>
   endpoint.kind === "place"
     ? [endpoint.placeId]
     : [endpoint.componentInstanceId, endpoint.portPlaceId];
-
-/** The id, among its subnet's places, of the place a path into an instance points at. */
-const instancePlaceIdOf = (path: FlowNetPath) =>
-  path.length === 2 ? path[1] : undefined;
-
 const placeIdOf = (key: string) => toPetrinautId(key);
 
 /** The step an action's subnet runs for, in one of its instances. */
@@ -184,6 +179,16 @@ type InstanceScope = {
   actionDefinition: ActionDefinition<FlowActionDefinitionId>;
   subnet: IndexedSubnet;
 };
+
+/** The path of a place or transition of the root net, or, given a step's scope, of one inside its instance. */
+const pathIn = (scope: InstanceScope | null, id: string): FlowNetPath =>
+  scope ? [scope.instance.id, id] : [id];
+
+/** The name of the place a path into a step's instance points at, such as a port's. */
+const instancePlaceName = (scope: InstanceScope, path: FlowNetPath) =>
+  path.length === 2
+    ? scope.subnet.subnet.places.find(({ id }) => id === path[1])?.name
+    : undefined;
 
 type IndexedSubnet = {
   subnet: Subnet;
@@ -429,7 +434,7 @@ export const startFlowNetRun = (
       );
     }
 
-    return [scope.instance.id, endpoint.placeId];
+    return pathIn(scope, endpoint.placeId);
   };
 
   /**
@@ -553,9 +558,7 @@ export const startFlowNetRun = (
     }
 
     const firing: FlowNetFiring = {
-      transitionPath: scope
-        ? [scope.instance.id, transition.id]
-        : [transition.id],
+      transitionPath: pathIn(scope, transition.id),
       role: roleOf(transition),
       stepRun,
       consumed,
@@ -611,9 +614,7 @@ export const startFlowNetRun = (
       return { kind: "signal", itemPath };
     }
 
-    const portId = instancePlaceIdOf(portPath);
-    const port = scope.subnet.subnet.places.find(({ id }) => id === portId);
-    const inputName = port?.name;
+    const inputName = instancePlaceName(scope, portPath);
     const source = inputName ? metadata.inputSources[inputName] : undefined;
 
     if (!inputName || !source) {
@@ -979,7 +980,7 @@ export const startFlowNetRun = (
     const bindings = bind({
       transition,
       scope,
-      anchorPath: [scope.instance.id, firstPortId],
+      anchorPath: pathIn(scope, firstPortId),
       accepts: (anchor, candidate) =>
         isSameItemPath(anchor.itemPath, candidate.itemPath),
     });
@@ -1040,10 +1041,7 @@ export const startFlowNetRun = (
   /** The token of a step run's attempt in progress. */
   const attemptInProgress = (stepRun: FlowNetStepRun) => {
     const scope = scopeOfStep(stepRun.stepId);
-    const path: FlowNetPath = [
-      scope.instance.id,
-      scope.subnet.inProgressPlaceId,
-    ];
+    const path = pathIn(scope, scope.subnet.inProgressPlaceId);
     const token = tokensAt(path).find(({ itemPath }) =>
       isSameItemPath(itemPath, stepRun.itemPath),
     );
@@ -1147,10 +1145,7 @@ export const startFlowNetRun = (
                   return { kind: "signal", itemPath };
                 }
 
-                const outputPortId = instancePlaceIdOf(outputPath);
-                const outputName = scope.subnet.subnet.places.find(
-                  ({ id }) => id === outputPortId,
-                )?.name;
+                const outputName = instancePlaceName(scope, outputPath);
 
                 if (!outputName) {
                   throw new FlowNetInterpreterError(
@@ -1243,10 +1238,9 @@ export const startFlowNetRun = (
       const awaiting: FlowNetAwaiting[] = [];
 
       for (const scope of scopesByInstanceId.values()) {
-        for (const token of tokensAt([
-          scope.instance.id,
-          scope.subnet.inProgressPlaceId,
-        ])) {
+        for (const token of tokensAt(
+          pathIn(scope, scope.subnet.inProgressPlaceId),
+        )) {
           if (token.kind === "attempt") {
             awaiting.push({
               kind: "actionOutcome",
@@ -1343,10 +1337,9 @@ export const startFlowNetRun = (
           continue;
         }
 
-        for (const token of tokensAt([
-          scope.instance.id,
-          scope.subnet.inProgressPlaceId,
-        ])) {
+        for (const token of tokensAt(
+          pathIn(scope, scope.subnet.inProgressPlaceId),
+        )) {
           if (
             token.kind === "attempt" &&
             isSameItemPath(token.itemPath, stepRun.itemPath)
