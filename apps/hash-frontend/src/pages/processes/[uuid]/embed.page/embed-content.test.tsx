@@ -11,6 +11,7 @@ import type {
   HostToIframeMessage,
   IframeToHostMessage,
 } from "../../shared/messages";
+import type { EmbedChrome } from "./embed-chrome-context";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { BrunchOpenDocument } from "@hashintel/brunch-agent/ui";
 import type { ErrorTracker, PetrinautDocHandle } from "@hashintel/petrinaut";
@@ -22,6 +23,8 @@ import type * as PetrinautCore from "@hashintel/petrinaut-core";
  */
 const observed = vi.hoisted(() => ({
   petrinautHandles: [] as unknown[],
+  /** The chrome (Save, version picker) each editor render saw. */
+  chromes: [] as unknown[],
   brunchInputs: [] as {
     ownerKey: string;
     chatEndpoint: string;
@@ -39,12 +42,14 @@ vi.mock("@hashintel/petrinaut", async () => {
   const core = await vi.importActual<typeof PetrinautCore>(
     "@hashintel/petrinaut-core",
   );
+  const { EmbedChromeContext } = await import("./embed-chrome-context");
   const errorTrackerContext = createContext<ErrorTracker>({
     captureException: () => {},
   });
   const Petrinaut = ({ handle }: { handle: unknown }) => {
     const { captureException } = use(errorTrackerContext);
     observed.petrinautHandles.push(handle);
+    observed.chromes.push(use(EmbedChromeContext));
     const failure = observed.petrinautFailure;
     useEffect(() => {
       if (failure) {
@@ -148,6 +153,7 @@ const identityRequests: { url: string; credentials: string | undefined }[] = [];
 
 beforeEach(() => {
   observed.petrinautHandles.length = 0;
+  observed.chromes.length = 0;
   observed.brunchInputs.length = 0;
   observed.petrinautFailure = null;
   observed.brunchFailure = null;
@@ -293,4 +299,72 @@ test("Brunch's and Petrinaut's contained failures reach the host's reporter with
       }),
     ]),
   );
+});
+
+test("a save result leaves the revision list the host sent after the save", async () => {
+  const firstRevision = {
+    decisionTime: savedSnapshot.decisionTime,
+    title: "Net",
+  };
+  const savedRevision = {
+    decisionTime: "2026-10-24T01:00:00.000Z",
+    title: "Net (edited)",
+  };
+  const lastChrome = () => observed.chromes.at(-1) as EmbedChrome | undefined;
+  render(<EmbedContent />);
+  sendToEditor({
+    kind: "init",
+    initialDefinition: definition,
+    initialTitle: "Net",
+    readonly: false,
+    mode: savedMode,
+    savedSnapshot,
+    revisions: [firstRevision],
+  });
+  await waitFor(() => expect(lastChrome()?.revisions).toEqual([firstRevision]));
+
+  act(() => {
+    lastChrome()?.onTitleChange("Net (edited)");
+  });
+  act(() => {
+    lastChrome()?.onSave();
+  });
+  const request = posted.find(
+    (
+      message,
+    ): message is Extract<IframeToHostMessage, { kind: "requestSave" }> =>
+      message.kind === "requestSave",
+  );
+  expect(request).toBeDefined();
+
+  // The host's history refetch lands first, then the save's reply. A host
+  // that still attaches the list from before the save must not win.
+  sendToEditor({
+    kind: "revisionsList",
+    revisions: [savedRevision, firstRevision],
+  });
+  const staleList = { revisions: [firstRevision] };
+  sendToEditor({
+    kind: "saveResult",
+    requestId: request?.requestId ?? "",
+    result: {
+      ok: true,
+      mode: savedMode,
+      savedSnapshot: {
+        definition,
+        title: "Net (edited)",
+        decisionTime: savedRevision.decisionTime,
+      },
+      ...staleList,
+    },
+  });
+
+  await waitFor(() =>
+    expect(lastChrome()?.loadedRevisionTime).toBe(savedRevision.decisionTime),
+  );
+  expect(lastChrome()).toMatchObject({
+    revisions: [savedRevision, firstRevision],
+    isDirty: false,
+    persistPending: false,
+  });
 });
