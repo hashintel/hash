@@ -36,7 +36,9 @@ export type EditorDraft = {
   dismissed: boolean;
   run: EditorDraftRun;
   /** One completion turn per local run, independent of the original tool output. */
-  followUp?: "pending" | "sent" | "failed";
+  followUp?: "pending" | "sent" | "failed" | "unconfirmed";
+  /** Retained across retries/remounts, including an ambiguous admission. */
+  followUpMessageId?: string;
 };
 
 type EditorDraftsState = {

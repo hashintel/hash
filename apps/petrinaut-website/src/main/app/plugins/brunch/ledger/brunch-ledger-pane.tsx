@@ -247,14 +247,11 @@ export const BrunchLedgerPane = ({
 
   const addComment = (text: string) => {
     if (!comments || !composing) return;
-    comments.add(
-      {
-        records: composing.records,
-        ...(composing.quote !== "" ? { quote: composing.quote } : {}),
-        text,
-      },
-      ledger?.comments.map((comment) => comment.id) ?? [],
-    );
+    comments.add({
+      records: composing.records,
+      ...(composing.quote !== "" ? { quote: composing.quote } : {}),
+      text,
+    });
     setComposing(undefined);
     document.getSelection()?.removeAllRanges();
   };
@@ -306,7 +303,9 @@ export const BrunchLedgerPane = ({
                   pending: pending.comments,
                   open: projection.openComments,
                   editable:
-                    comments !== undefined && pending.sending !== "pending",
+                    comments !== undefined &&
+                    pending.sending !== "pending" &&
+                    pending.sending !== "uncertain",
                   onEdit: (commentId, text) => comments?.edit(commentId, text),
                   onRemove: (commentId) => comments?.remove(commentId),
                 },

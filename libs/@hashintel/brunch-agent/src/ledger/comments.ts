@@ -9,7 +9,7 @@ const vLedgerComment = v.strictObject({
   id: v.pipe(
     v.string(),
     v.regex(new RegExp(`^${commentIdGrammar}$`)),
-    v.description("The comment's ID, such as n3."),
+    v.description("The comment's opaque ID, issued by the browser."),
   ),
   records: v.pipe(
     v.array(v.pipe(v.string(), v.minLength(1))),

@@ -111,15 +111,28 @@ export interface LedgerDocumentOptions {
   readonly comments?: LedgerCommentMarks;
 }
 
-/** The options, with the block each record first appears in. */
+/** The options, with the occurrence each record first appears at. */
 interface DocumentContext extends LedgerDocumentOptions {
   readonly firstShownIn: ReadonlyMap<string, string>;
 }
 
 /**
- * The block each record address first appears in: an entity's address, an
- * obligation's address for the reflections that met it, or a section's name.
- * Walks the projection in the order `BrunchLedgerDocument` renders it.
+ * A claim's history with a stable key per entry: a shared ancestor can recur
+ * when two superseded branches lead back to it, so the key counts repeats.
+ */
+const historyOccurrences = (history: ProjectedClaim["history"]) => {
+  const seen = new Map<string, number>();
+  return history.map((ancestor) => {
+    const repeat = seen.get(ancestor.address) ?? 0;
+    seen.set(ancestor.address, repeat + 1);
+    return { ancestor, key: `${ancestor.address}#${repeat}` };
+  });
+};
+
+/**
+ * The first occurrence of each record, in document order. Claims include
+ * their entity and history position: an ancestor can appear in several
+ * branches, even within one current claim's history.
  */
 const firstShownIn = (
   projection: LedgerProjection,
@@ -132,9 +145,10 @@ const firstShownIn = (
   const showEntity = ({ record, claims, reflections }: ProjectedEntity) => {
     show(record.address, record.address);
     for (const claim of claims) {
-      show(record.address, claim.record.address);
-      for (const ancestor of claim.history)
-        show(record.address, ancestor.address);
+      const occurrence = `${record.address}/${claim.record.address}`;
+      show(occurrence, claim.record.address);
+      for (const { ancestor, key } of historyOccurrences(claim.history))
+        show(`${occurrence}/${key}`, ancestor.address);
     }
     if (showReflections)
       for (const reflection of reflections)
@@ -183,7 +197,7 @@ const PendingCommentNote = ({
   comment: LedgerComment;
   marks: LedgerCommentMarks;
 }) => {
-  const [draft, setDraft] = useState<string>();
+  const [originalText, setOriginalText] = useState<string>();
   return (
     <div
       className={noteStyle}
@@ -193,7 +207,7 @@ const PendingCommentNote = ({
       {comment.quote !== undefined && (
         <blockquote>“{shortQuote(comment.quote)}”</blockquote>
       )}
-      {draft === undefined ? (
+      {originalText === undefined ? (
         <>
           <span>{comment.text}</span>
           <span className={css({ display: "flex", gap: "1" })}>
@@ -201,7 +215,7 @@ const PendingCommentNote = ({
               size="xs"
               variant="ghost"
               disabled={!marks.editable}
-              onClick={() => setDraft(comment.text)}
+              onClick={() => setOriginalText(comment.text)}
             >
               Edit
             </Button>
@@ -224,16 +238,17 @@ const PendingCommentNote = ({
             autoResize
             rows={2}
             size="sm"
-            value={draft}
-            onChange={setDraft}
+            disabled={!marks.editable}
+            value={comment.text}
+            onChange={(text) => marks.onEdit(comment.id, text)}
           />
           <span className={css({ display: "flex", gap: "1" })}>
             <Button
               size="xs"
-              disabled={draft.trim() === "" || !marks.editable}
+              disabled={comment.text.trim() === "" || !marks.editable}
               onClick={() => {
-                marks.onEdit(comment.id, draft.trim());
-                setDraft(undefined);
+                marks.onEdit(comment.id, comment.text.trim());
+                setOriginalText(undefined);
               }}
             >
               Save
@@ -241,7 +256,11 @@ const PendingCommentNote = ({
             <Button
               size="xs"
               variant="ghost"
-              onClick={() => setDraft(undefined)}
+              disabled={!marks.editable}
+              onClick={() => {
+                marks.onEdit(comment.id, originalText);
+                setOriginalText(undefined);
+              }}
             >
               Cancel
             </Button>
@@ -253,9 +272,8 @@ const PendingCommentNote = ({
 };
 
 /**
- * One record where it appears, `within` the block that holds it. A claim can
- * appear under several entities, so the same address can mark more than one
- * block; its pending comments show only in the first.
+ * One record occurrence, identified by `within`. The same address can mark
+ * several occurrences; its pending comments show only at the first.
  */
 const RecordMark = ({
   address,
@@ -322,11 +340,11 @@ const ClaimItem = ({
     </RecordMark>
     {history.length > 0 && (
       <ul>
-        {history.map((ancestor) => (
-          <li key={ancestor.address}>
+        {historyOccurrences(history).map(({ ancestor, key }) => (
+          <li key={key}>
             <RecordMark
               address={ancestor.address}
-              within={within}
+              within={`${within}/${key}`}
               options={options}
             >
               <s>{ancestor.text}</s>
@@ -403,7 +421,7 @@ const EntityItem = ({
             <ClaimItem
               key={claim.record.address}
               claim={claim}
-              within={record.address}
+              within={`${record.address}/${claim.record.address}`}
               options={options}
             />
           ))}
