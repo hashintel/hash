@@ -7153,6 +7153,7 @@ dependencies = [
  "parquet",
  "pretty_assertions",
  "proptest",
+ "rstest",
  "serde",
  "serde_json",
  "simple-mermaid",
