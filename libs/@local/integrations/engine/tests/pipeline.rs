@@ -487,6 +487,11 @@ async fn definition_aviation_tables() {
                 .get(checkpoint)
                 .cloned()
                 .expect("the checkpoint source should exist"),
+            hash_integrations_definition::SourceKind::Local { .. }
+            | hash_integrations_definition::SourceKind::Postgres { .. }
+            | hash_integrations_definition::SourceKind::Rest { .. } => {
+                panic!("the aviation fixture should use SQL and checkpoint sources")
+            }
         };
         let prepared = workspace
             .prepare_pipeline(pipeline.clone(), table, checkpoints.clone())

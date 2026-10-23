@@ -6,6 +6,7 @@
 mod pipelines;
 
 use alloc::{
+    boxed::Box,
     collections::{BTreeMap, BTreeSet},
     string::String,
     vec::Vec,
@@ -17,6 +18,7 @@ use error_stack::{
 };
 use serde_saphyr::Spanned;
 use type_system::ontology::VersionedUrl;
+use url::Url;
 
 use crate::{
     definition::DefinitionParts,
@@ -326,82 +328,142 @@ impl From<CoverageSyntax> for Coverage {
 }
 
 impl SourceSyntax {
-    const KINDS: &'static [&'static str] = &["sql", "checkpoint"];
+    const KINDS: &'static [&'static str] =
+        &["sql", "checkpoint", "local", "postgres", "redshift", "rest"];
+
+    fn check_kind(&self, lowering: &mut Lowering, path: &DefinitionPath) -> LoweredResult<()> {
+        let found: Box<[_]> = Self::KINDS
+            .iter()
+            .copied()
+            .zip([
+                self.sql.is_some(),
+                self.checkpoint.is_some(),
+                self.local.is_some(),
+                self.postgres.is_some(),
+                self.redshift.is_some(),
+                self.rest.is_some(),
+            ])
+            .filter_map(|(kind, present)| present.then_some(kind))
+            .collect();
+        if found.len() != 1 {
+            let reason = if found.is_empty() {
+                IssueKind::MissingKind {
+                    expected: Self::KINDS,
+                }
+            } else {
+                IssueKind::ConflictingKinds { found }
+            };
+            let kind: LoweredResult<()> = Err(lowering.report(path.clone(), reason));
+            let query = self
+                .sql
+                .as_ref()
+                .map(|sql| lowering.query(sql, &path.clone().field("sql")))
+                .transpose();
+            let checkpoint = self
+                .checkpoint
+                .as_ref()
+                .map(|checkpoint| {
+                    lowering.name::<CheckpointName>(checkpoint, &path.clone().field("checkpoint"))
+                })
+                .transpose();
+            let primary_key = self
+                .primary_key
+                .as_ref()
+                .map(|key| lowering.primary_key(key, &path.clone().field("primaryKey")))
+                .transpose();
+            (kind, query, checkpoint, primary_key).try_collect()?;
+        }
+        Ok(())
+    }
 
     fn lower(&self, lowering: &mut Lowering, path: &DefinitionPath) -> LoweredResult<Source> {
-        let coverage = self.coverage.map_or(Coverage::Complete, Coverage::from);
-
-        let kind = match (&self.sql, &self.checkpoint) {
-            (Some(sql), None) => {
+        self.check_kind(lowering, path)?;
+        let kind = if let Some(checkpoint) = &self.checkpoint {
+            let key = self.primary_key.as_ref().map_or(Ok(()), |key| {
+                let path = path.clone().field("primaryKey");
+                lowering.record_location(&path, SourceLocation::from_spanned(key));
+                Err(lowering.report(
+                    path,
+                    IssueKind::UnexpectedField {
+                        field: "primaryKey",
+                    },
+                ))
+            });
+            let checkpoint = lowering.name(checkpoint, &path.clone().field("checkpoint"));
+            let ((), checkpoint) = (key, checkpoint).try_collect()?;
+            SourceKind::Checkpoint { checkpoint }
+        } else {
+            let primary_key = if let Some(key) = &self.primary_key {
+                lowering.primary_key(key, &path.clone().field("primaryKey"))
+            } else {
+                Err(lowering.report(
+                    path.clone(),
+                    IssueKind::MissingField {
+                        field: "primaryKey",
+                    },
+                ))
+            };
+            if let Some(sql) = &self.sql {
                 let query = lowering.query(sql, &path.clone().field("sql"));
-                let primary_key = if let Some(primary_key) = &self.primary_key {
-                    lowering.primary_key(primary_key, &path.clone().field("primaryKey"))
-                } else {
-                    Err(lowering.report(
-                        path.clone(),
-                        IssueKind::MissingField {
-                            field: "primaryKey",
-                        },
-                    ))
-                };
                 let (query, primary_key) = (query, primary_key).try_collect()?;
                 SourceKind::Sql { query, primary_key }
-            }
-            (None, Some(checkpoint)) => {
-                let primary_key = self.primary_key.as_ref().map_or(Ok(()), |primary_key| {
-                    let primary_key_path = path.clone().field("primaryKey");
-                    lowering.record_location(
-                        &primary_key_path,
-                        SourceLocation::from_spanned(primary_key),
-                    );
-                    Err(lowering.report(
-                        primary_key_path,
-                        IssueKind::UnexpectedField {
-                            field: "primaryKey",
-                        },
-                    ))
-                });
-                let checkpoint = lowering.name(checkpoint, &path.clone().field("checkpoint"));
-                let ((), checkpoint) = (primary_key, checkpoint).try_collect()?;
-                SourceKind::Checkpoint { checkpoint }
-            }
-            (None, None) | (Some(_), Some(_)) => {
-                let reason = if self.sql.is_some() {
-                    IssueKind::ConflictingKinds {
-                        found: Self::KINDS.into(),
-                    }
+            } else if let Some(local) = &self.local {
+                let key = lowering.text(local, &path.clone().field("local"));
+                let (key, primary_key) = (key, primary_key).try_collect()?;
+                SourceKind::Local {
+                    key: key.into_boxed_str(),
+                    primary_key,
+                }
+            } else if let Some(source) = self.postgres.as_ref().or(self.redshift.as_ref()) {
+                let path = path.clone().field(if self.postgres.is_some() {
+                    "postgres"
                 } else {
+                    "redshift"
+                });
+                let connection_path = path.clone().field("connection");
+                let connection = lowering.text(&source.value.connection, &connection_path)?;
+                let connection = Url::parse(&connection).map_err(|_error| {
+                    lowering.report(
+                        connection_path,
+                        IssueKind::InvalidSource {
+                            reason: "connection must be a valid PostgreSQL URI",
+                        },
+                    )
+                })?;
+                let schema = lowering.text(&source.value.schema, &path.clone().field("schema"))?;
+                let table = lowering.text(&source.value.table, &path.field("table"))?;
+                SourceKind::Postgres {
+                    source: crate::PostgresSource {
+                        connection,
+                        schema: schema.into_boxed_str(),
+                        table: table.into_boxed_str(),
+                        credentials: source.value.credentials,
+                    },
+                    primary_key: primary_key?,
+                }
+            } else if let Some(endpoint) = &self.rest {
+                let mut endpoint = endpoint.value.clone();
+                endpoint.url = lowering.resolve(&endpoint.url, path)?;
+                for value in endpoint.params.values_mut() {
+                    *value = lowering.resolve(value, path)?;
+                }
+                SourceKind::Rest {
+                    endpoint,
+                    primary_key: primary_key?,
+                }
+            } else {
+                return Err(lowering.report(
+                    path.clone(),
                     IssueKind::MissingKind {
                         expected: Self::KINDS,
-                    }
-                };
-                let kind: LoweredResult<SourceKind> = Err(lowering.report(path.clone(), reason));
-                let query = self
-                    .sql
-                    .as_ref()
-                    .map(|sql| lowering.query(sql, &path.clone().field("sql")))
-                    .transpose();
-                let checkpoint = self
-                    .checkpoint
-                    .as_ref()
-                    .map(|checkpoint| {
-                        lowering
-                            .name::<CheckpointName>(checkpoint, &path.clone().field("checkpoint"))
-                    })
-                    .transpose();
-                let primary_key = self
-                    .primary_key
-                    .as_ref()
-                    .map(|primary_key| {
-                        lowering.primary_key(primary_key, &path.clone().field("primaryKey"))
-                    })
-                    .transpose();
-                let (kind, _, _, _) = (kind, query, checkpoint, primary_key).try_collect()?;
-                kind
+                    },
+                ));
             }
         };
-
-        Ok(Source { kind, coverage })
+        Ok(Source {
+            kind,
+            coverage: self.coverage.map_or(Coverage::Complete, Coverage::from),
+        })
     }
 }
 
