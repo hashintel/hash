@@ -2,7 +2,10 @@ import { use } from "react";
 
 import { Button, HelpTooltip, Icon, Toggle } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { generatePetrinautId } from "@hashintel/petrinaut-core";
+import {
+  generatePetrinautId,
+  libraryComponentSubnetId,
+} from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
@@ -10,14 +13,21 @@ import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
+import { usePluginComponentLibraries } from "../../../../../plugins/plugins-provider";
+import { useEnsureLibraryComponent } from "../../../../../plugins/use-ensure-library-component";
 import {
   draggedComponentKind,
+  draggedLibraryComponentKind,
   writeDraggedNodeKind,
 } from "../../../../shared/canvas-node-drag";
 import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 
 import type { SubView } from "../../../../../components/sub-view/types";
-import type { Subnet } from "@hashintel/petrinaut-core";
+import type {
+  ComponentLibrary,
+  LibraryComponent,
+  Subnet,
+} from "@hashintel/petrinaut-core";
 
 const panelStyle = css({
   display: "flex",
@@ -124,7 +134,7 @@ const hintStyle = css({
   px: "1",
 });
 
-const portSummary = (subnet: Subnet): string => {
+const portSummary = (subnet: Pick<Subnet, "places">): string => {
   const ports = subnet.places.filter((place) => place.isPort);
   return ports.length === 0
     ? "no ports"
@@ -176,6 +186,105 @@ export const ComponentRow = ({
   );
 };
 
+/**
+ * One component of a plugin's library. Arming or dragging it copies the
+ * component into the document the first time, as a subnet the next uses
+ * share.
+ */
+const LibraryComponentRow = ({
+  library,
+  component,
+  armed,
+  onArm,
+}: {
+  library: ComponentLibrary;
+  component: LibraryComponent;
+  armed: boolean;
+  onArm: () => void;
+}) => {
+  const isReadOnly = useIsReadOnly();
+
+  return (
+    <button
+      type="button"
+      className={rowStyle({ armed })}
+      aria-pressed={armed}
+      disabled={isReadOnly}
+      draggable={!isReadOnly}
+      onClick={onArm}
+      onDragStart={(event) => {
+        // eslint-disable-next-line no-param-reassign
+        event.dataTransfer.effectAllowed = "move";
+        writeDraggedNodeKind(
+          event.dataTransfer,
+          draggedLibraryComponentKind(library.id, component.id),
+        );
+      }}
+      title={component.description ?? component.name}
+    >
+      <span className={rowIconStyle}>
+        <Icon name="cube" size="xs" />
+      </span>
+      <span className={rowTextStyle}>
+        <span className={rowNameStyle}>{component.name}</span>
+        <span className={rowDetailStyle}>
+          {component.description ?? portSummary(component.template)}
+        </span>
+      </span>
+    </button>
+  );
+};
+
+const LibrarySection = ({ library }: { library: ComponentLibrary }) => {
+  const { petriNetDefinition } = use(SDCPNContext);
+  const {
+    editionMode,
+    componentSubnetId,
+    setAddComponentMode,
+    setEditionMode,
+  } = use(EditorContext);
+  const ensureLibraryComponent = useEnsureLibraryComponent();
+  const subnetIds = new Set(
+    (petriNetDefinition.subnets ?? []).map(({ id }) => id),
+  );
+
+  return (
+    <>
+      <div className={groupTitleStyle}>{library.name}</div>
+      <div className={listStyle}>
+        {library.components.map((component) => {
+          const subnetId = libraryComponentSubnetId(library.id, component.id);
+          const armed =
+            editionMode === "add-component" &&
+            componentSubnetId === subnetId &&
+            subnetIds.has(subnetId);
+          return (
+            <LibraryComponentRow
+              key={component.id}
+              library={library}
+              component={component}
+              armed={armed}
+              onArm={() => {
+                if (armed) {
+                  setEditionMode("cursor");
+                  return;
+                }
+                const subnet = ensureLibraryComponent({
+                  libraryId: library.id,
+                  componentId: component.id,
+                });
+                if (subnet) {
+                  setAddComponentMode(subnet.id);
+                }
+              }}
+            />
+          );
+        })}
+      </div>
+    </>
+  );
+};
+
 const ComponentsOnlyToggle: React.FC = () => {
   const { petriNetDefinition } = use(SDCPNContext);
   const { setComponentsOnly } = usePetrinautMutations();
@@ -206,6 +315,7 @@ const ComponentsPanelContent: React.FC = () => {
     setEditionMode,
   } = use(EditorContext);
   const presentation = usePetrinautPresentation();
+  const libraries = usePluginComponentLibraries();
   // A subnet cannot hold an instance of itself.
   const subnets = (petriNetDefinition.subnets ?? []).filter(
     ({ id }) => id !== activeSubnetId,
@@ -243,7 +353,10 @@ const ComponentsPanelContent: React.FC = () => {
           })}
         </div>
       )}
-      {subnets.length > 0 && (
+      {libraries.map((library) => (
+        <LibrarySection key={library.id} library={library} />
+      ))}
+      {(subnets.length > 0 || libraries.length > 0) && (
         <div className={hintStyle}>
           Click a component, then click the canvas to place an instance, or drag
           it onto the canvas. Drag between ports and places to fuse them.
