@@ -24,6 +24,14 @@ export const GrayToBlueIconButton = ({ sx, ...props }: IconButtonProps) => {
             border: `1px solid ${palette.blue[25]}`,
             color: "blue.70",
           },
+          '&[aria-pressed="true"]': {
+            background: palette.blue[20],
+            border: `1px solid ${palette.blue[30]}`,
+            color: palette.blue[70],
+            "&:hover": {
+              background: palette.blue[30],
+            },
+          },
           "& svg": {
             fontSize: 13,
           },

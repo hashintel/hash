@@ -63,6 +63,7 @@ export const flowTypedef = gql`
   scalar ScheduleSpec
   scalar CreateFlowScheduleInput
   scalar UpdateFlowScheduleInput
+  scalar FlowRunEvent
 
   type StepRun {
     """
@@ -125,19 +126,18 @@ export const flowTypedef = gql`
 
   type FlowRun {
     """
-    The uuid of the flow run.
-    This is equivalent to the EntityUuid of the Flow entity.
+    The entity id of the run's Flow Run entity.
     """
-    flowRunId: EntityUuid!
+    flowRunEntityId: EntityId!
     """
     The id of the schedule that triggered this run, if any.
     Only present for flow runs triggered by a FlowSchedule.
     """
     flowScheduleId: EntityUuid
     """
-    The id for the definition of the flow this run is executing (the template for the flow)
+    The entity id of the Flow Definition entity this run is executing.
     """
-    flowDefinitionId: String!
+    flowDefinitionEntityId: EntityId!
     """
     A user-facing name for the flow run to distinguish it from other runs of its kind,
     which might include a key input or a summary of its key inputs.
@@ -187,6 +187,47 @@ export const flowTypedef = gql`
     The steps in the flow
     """
     steps: [StepRun!]!
+    """
+    What happened in the run, in the order its history records it.
+    Ask again with \`endCursor\` to follow a run, and handle \`restarted\` before appending.
+    Only available on a run fetched with \`getFlowRunById\`: \`getFlowRuns\` refuses it.
+    """
+    events(
+      """
+      The \`endCursor\` of an earlier page. The page starts after it.
+      """
+      after: String
+      """
+      How many events to return: 500 by default, and at most 2,000.
+      """
+      first: Int
+    ): FlowRunEventsPage!
+  }
+
+  type FlowRunEventsPage {
+    """
+    Each event is a \`FlowRunEvent\` from \`@local/hash-isomorphic-utils/flows/run-events\`, told apart by its \`kind\`.
+    """
+    events: [FlowRunEvent!]!
+    """
+    The cursor of the page's last event, to ask for the next page with: the cursor given when the page is empty,
+    and null when the run has no events.
+    """
+    endCursor: String
+    hasNextPage: Boolean!
+    """
+    The run of the workflow the events are from, which changes when the run is reset.
+    """
+    runId: String!
+    """
+    Whether the given cursor is from a run that has since been reset past it, so the events the client has after
+    \`keptUpTo\` (or all of them, if it's null) no longer happened.
+    """
+    restarted: Boolean!
+    """
+    When \`restarted\`, the position of the last event the client has that the current run kept.
+    """
+    keptUpTo: String
   }
 
   type PaginatedFlowRuns {
@@ -209,9 +250,9 @@ export const flowTypedef = gql`
   extend type Query {
     getFlowRuns(
       """
-      Return only flow runs that are based off specific definitions
+      Return only flow runs of these Flow Definition entities
       """
-      flowDefinitionIds: [String!]
+      flowDefinitionEntityIds: [EntityId!]
       """
       Return only flows that match the given status
       """
@@ -228,19 +269,19 @@ export const flowTypedef = gql`
       limit: Int
     ): PaginatedFlowRuns!
 
-    getFlowRunById(flowRunId: String!): FlowRun!
+    getFlowRunById(flowRunEntityId: EntityId!): FlowRun!
   }
 
   extend type Mutation {
     """
-    Start a new flow run, and return its flowRunId to allow for identifying it later.
+    Start a new flow run, and return the entity id of its Flow Run entity to allow for identifying it later.
     """
     startFlow(
       dataSources: FlowDataSources
-      flowDefinitionId: EntityUuid!
+      flowDefinitionEntityId: EntityId!
       flowInputs: FlowInputValues!
       webId: WebId!
-    ): EntityUuid!
+    ): EntityId!
 
     """
     Reset a flow to a specific checkpoint, available via the 'checkpoints' field on a run
@@ -250,21 +291,25 @@ export const flowTypedef = gql`
 
     Any API usage incurred at any point will still be recorded, whether or not it is after the checkpoint.
     """
-    resetFlow(flowUuid: ID!, checkpointId: ID!, eventId: Int!): Boolean!
+    resetFlow(
+      flowRunEntityId: EntityId!
+      checkpointId: ID!
+      eventId: Int!
+    ): Boolean!
 
     """
     Cancel a flow, stopping its execution.
 
     This does _NOT_ roll back any database mutations made as part of the flow so far.
     """
-    cancelFlow(flowUuid: ID!): Boolean!
+    cancelFlow(flowRunEntityId: EntityId!): Boolean!
 
     """
     Submit a response to a request from a flow step for external input
     """
     submitExternalInputResponse(
       response: ExternalInputResponseWithoutUser!
-      flowUuid: ID!
+      flowRunEntityId: EntityId!
     ): Boolean!
 
     """

@@ -59,7 +59,7 @@ Every dev server binds a port of its own, so any set of them can run at once:
 | 5173  | `@apps/petrinaut-website`                                        |
 | 6006  | `@hashintel/petrinaut` Storybook                                 |
 | 6007  | `@hashintel/refractive` Storybook                                |
-| 61000 | `@hashintel/ds-components` Ladle                                 |
+| 61000 | `@hashintel/ds-components` Storybook                             |
 
 `PORT` overrides the default for every one of them except the Optimizer service, which the dev script publishes at 4004 and compose moves with `PETRINAUT_OPT_PORT`, and the two Brunch servers, which take `BRUNCH_CHAT_PORT` and `BRUNCH_PANEL_PORT` instead: one variable each, because the pair binds two ports and the panel proxies to whatever the chat variable names. Set them on `yarn dev:brunch`, which passes its environment to both servers. Turbo runs a dev task in strict environment mode and forwards only the variables its `turbo.json` lists in `env` or `passThroughEnv`, so a dev server that reads a port variable declares it there. `.claude/launch.json` names the servers a Claude Code session can preview; keep its `port` in step with the table when a default moves.
 

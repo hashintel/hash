@@ -4,14 +4,12 @@ import {
   getKindSources,
 } from "./action-definitions.js";
 import { type ConnectionSource, canConnect } from "./can-connect.js";
-import {
-  flowDefinitionSchema,
-  payloadKindJsonTypes,
-} from "./flow-definition-schema.js";
+import { flowDefinitionSchema } from "./flow-definition-schema.js";
 import {
   type ActionDefinitions,
   createStepShapeResolver,
 } from "./step-shapes.js";
+import { getPayloadKindJsonType } from "./types.js";
 
 import type {
   ActionDefinition,
@@ -19,9 +17,11 @@ import type {
   FlowActionDefinitionId,
   FlowDefinition,
   ForEachStepDefinition,
+  PayloadJsonType,
   PayloadKind,
   StepDefinition,
   StepInputSource,
+  ValueAccess,
 } from "./types.js";
 
 export type FlowDefinitionDiagnosticCode =
@@ -37,6 +37,8 @@ export type FlowDefinitionDiagnosticCode =
   | "unknownStep"
   | "selfReference"
   | "stepNotInScope"
+  /** A step inside a for-each step consuming a value from outside it, which exists once but is needed per item. */
+  | "consumedIntoForEach"
   | "unknownStepOutput"
   | "itemOutsideForEach"
   | "invalidConstant"
@@ -122,7 +124,7 @@ const isOfJsonType = {
   boolean: (value: unknown) => typeof value === "boolean",
   object: (value: unknown) =>
     typeof value === "object" && value !== null && !Array.isArray(value),
-} satisfies Record<(typeof payloadKindJsonTypes)[PayloadKind], unknown>;
+} satisfies Record<PayloadJsonType, unknown>;
 
 /**
  * Checks a flow definition from any source, reporting every problem found rather than stopping at the first,
@@ -250,6 +252,37 @@ export const validateFlowDefinition = (
       (forEachStepId, index) => consumerScope[index] === forEachStepId,
     );
 
+  /**
+   * A step inside a for-each step runs once per item, but a value from outside the for-each step exists once, so
+   * the step can read it but not consume it: the first item's run would take it, and the others would wait for it
+   * forever.
+   */
+  const checkConsumedIntoForEach = ({
+    access,
+    producerScope,
+    consumer,
+    path,
+  }: {
+    access: ValueAccess | undefined;
+    producerScope: string[];
+    consumer: { stepId: string | null; scope: string[] };
+    path: (string | number)[];
+  }) => {
+    const forEachStepId = consumer.scope.at(-1);
+
+    if (
+      access === "consume" &&
+      forEachStepId !== undefined &&
+      producerScope.length < consumer.scope.length
+    ) {
+      report(
+        "consumedIntoForEach",
+        `A step inside for-each step "${forEachStepId}" runs once per item, so it can read a value from outside it but not consume it`,
+        path,
+      );
+    }
+  };
+
   /** Whether a step has an output of this name, whatever its shape. */
   const hasStepOutput = (step: StepDefinition<string>, outputName: string) =>
     step.kind === "action"
@@ -270,11 +303,13 @@ export const validateFlowDefinition = (
   const resolveStepOutput = ({
     stepId,
     outputName,
+    access,
     consumer,
     path,
   }: {
     stepId: string;
     outputName: string;
+    access?: ValueAccess;
     consumer: { stepId: string | null; scope: string[] };
     path: (string | number)[];
   }): ConnectionSource | null => {
@@ -302,6 +337,13 @@ export const validateFlowDefinition = (
       );
       return null;
     }
+
+    checkConsumedIntoForEach({
+      access,
+      producerScope: producer.scope,
+      consumer,
+      path,
+    });
 
     if (!hasStepOutput(producer.step, outputName)) {
       report(
@@ -349,6 +391,12 @@ export const validateFlowDefinition = (
         }
 
         usedFlowInputs.add(source.inputName);
+        checkConsumedIntoForEach({
+          access: source.access,
+          producerScope: [],
+          consumer,
+          path,
+        });
 
         return {
           payloadKind: flowInput.payloadKind,
@@ -361,6 +409,7 @@ export const validateFlowDefinition = (
         return resolveStepOutput({
           stepId: source.stepId,
           outputName: source.outputName,
+          access: source.access,
           consumer,
           path,
         });
@@ -382,7 +431,7 @@ export const validateFlowDefinition = (
 
       case "constant": {
         const { kind, value } = source.payload;
-        const expectedJsonType = payloadKindJsonTypes[kind];
+        const expectedJsonType = getPayloadKindJsonType(kind);
 
         const values: unknown[] = Array.isArray(value) ? value : [value];
 

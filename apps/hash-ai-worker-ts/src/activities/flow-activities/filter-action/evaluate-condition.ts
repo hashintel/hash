@@ -1,12 +1,20 @@
-import { isEntityId } from "@blockprotocol/type-system";
-import { evaluateFilter } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
 import {
+  extractBaseUrl,
+  isEntityId,
+  validateVersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  evaluateFilter,
+  hasPrimitiveType,
+} from "@local/hash-isomorphic-utils/flows/evaluate-filter";
+import {
+  isScalarKind,
   scalarKinds,
   validateCondition,
 } from "@local/hash-isomorphic-utils/flows/filter-condition";
+import { payloadKindTraits } from "@local/hash-isomorphic-utils/flows/types";
 
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
-import type { FilterValue } from "@local/hash-isomorphic-utils/flows/evaluate-filter";
 import type {
   ConditionError,
   ConditionNode,
@@ -24,6 +32,8 @@ export type ConditionEntity = {
 
 export type ConditionContext = {
   entities?: ReadonlyMap<EntityId, ConditionEntity>;
+  /** The types each entity type inherits from, directly or indirectly. Only loaded for `includeSubtypes`. */
+  entityTypeAncestors?: ReadonlyMap<VersionedUrl, readonly VersionedUrl[]>;
 };
 
 export type ConditionInput = { kind: PayloadKind; value: unknown };
@@ -111,27 +121,46 @@ export const resolveSubject = (
   };
 };
 
-const asScalarValue = (
-  kind: PayloadKind,
-  value: unknown,
-): FilterValue | undefined => {
-  switch (kind) {
-    case "Number":
-      return typeof value === "number" ? { kind, value } : undefined;
-    case "Boolean":
-      return typeof value === "boolean" ? { kind, value } : undefined;
-    case "ActorType":
-    case "Date":
-    case "EntityId":
-    case "GoogleAccountId":
-    case "Text":
-    case "VersionedUrl":
-      return typeof value === "string"
-        ? ({ kind, value } as FilterValue)
-        : undefined;
-    default:
-      return undefined;
+const asScalarValue = (kind: PayloadKind, value: unknown) =>
+  isScalarKind(kind) &&
+  hasPrimitiveType(payloadKindTraits[kind].primitive, value)
+    ? { kind, value }
+    : undefined;
+
+const baseUrlOf = (typeId: string) =>
+  validateVersionedUrl(typeId).type === "Ok"
+    ? extractBaseUrl(typeId as VersionedUrl)
+    : undefined;
+
+const isOfType = (
+  { value, includeSubtypes }: Extract<FilterLeaf, { operator: "isOfType" }>,
+  entityTypeIds: readonly string[],
+  context: ConditionContext,
+): ConditionResult => {
+  const typeIds = [...entityTypeIds];
+  if (includeSubtypes) {
+    for (const typeId of entityTypeIds) {
+      const ancestors = context.entityTypeAncestors?.get(
+        typeId as VersionedUrl,
+      );
+      if (!ancestors) {
+        return {
+          status: "error",
+          code: "entityRequired",
+          message: `Entity type ${typeId} wasn't found or you don't have access to it.`,
+        };
+      }
+      typeIds.push(...ancestors);
+    }
   }
+  return {
+    status: "success",
+    matches: typeIds.some((typeId) =>
+      value.kind === "BaseUrl"
+        ? baseUrlOf(typeId) === value.value
+        : typeId === value.value,
+    ),
+  };
 };
 
 const evaluateLeaf = (
@@ -161,12 +190,13 @@ const evaluateLeaf = (
   const isPresence =
     leaf.operator === "isEmpty" || leaf.operator === "isNotEmpty";
   if (leaf.subject.kind === "entityType") {
-    return {
-      status: "success",
-      matches: isPresence
-        ? present === (leaf.operator === "isNotEmpty")
-        : presentValues.includes(leaf.value?.value),
-    };
+    /* resolveSubject checked that an entity's type IDs are strings. */
+    return leaf.operator === "isOfType"
+      ? isOfType(leaf, presentValues as string[], context)
+      : {
+          status: "success",
+          matches: present === (leaf.operator === "isNotEmpty"),
+        };
   }
   if (leaf.operator === "isOfType") {
     return {
@@ -242,7 +272,9 @@ export const evaluateValidatedCondition = (
  * so it matches empty values and fails if any element is equal. Every
  * child/element is checked so `any` cannot hide bad data, and errors are never
  * negated into a match.
- * Entity type membership is exact (including version), not an ancestry lookup.
+ * Entity type membership is exact (including version) unless the condition
+ * names a base URL, and covers the entity's ancestor types, which must be in
+ * `context`, only with `includeSubtypes`.
  */
 export const evaluateCondition = (
   condition: FilterCondition,

@@ -14,7 +14,6 @@ members = [
     "libs/@local/codegen",
     "libs/@local/config",
     "libs/@local/durable-kernel",
-    "libs/@local/effect-dns/hickory/rust",
     "libs/@local/graph/api",
     "libs/@local/graph/atlas",
     "libs/@local/graph/authentication/",
@@ -246,9 +245,6 @@ mime                               = { version = "0.3.17", default-features = fa
 moka                               = { version = "0.12.15", default-features = false }
 multiaddr                          = { version = "0.18.2", default-features = false }
 multistream-select                 = { version = "0.14.0", default-features = false }
-napi                               = { version = "3.9.0", default-features = false }
-napi-build                         = { version = "2.3.2", default-features = false }
-napi-derive                        = { version = "3.5.6", default-features = false, features = ["type-def"] }
 nextest-filtering                  = { version = "0.21.0", default-features = false }
 nextest-metadata                   = { version = "0.14.0", default-features = false }
 opendata-common                    = { package = "opendata-common", version = ">=0.1.17, <0.1.18", default-features = false }                                                                      # 0.1.18 requires `slatedb` 0.14, but `opendata-log` 1.0.0 requires 0.13. `package` names the crate `opendata_common` in code; its library target is `common`
@@ -260,6 +256,7 @@ opentelemetry-semantic-conventions = { version = "0.32.1", default-features = fa
 opentelemetry_sdk                  = { version = "0.32.1", default-features = false }
 owo-colors                         = { version = "4.2.3", default-features = false }
 oxc                                = { version = "0.95.0", default-features = false }
+percent-encoding                   = { version = "2.3.2", default-features = false }
 pin-project                        = { version = "1.1.10", default-features = false }
 pin-project-lite                   = { version = "0.2.16", default-features = false }
 plist                              = { version = "1.8.0", default-features = false }

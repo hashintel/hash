@@ -5,19 +5,16 @@ import {
   getPrimaryChartType,
   normalizeStructuralQuery,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import {
-  configureDashboardItemFlow,
-  refineDashboardItemFlow,
-} from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
+import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { FlowRunStatus } from "../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
 import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
+import { useGenerateHashFlowDefinitionEntityId } from "../../shared/use-hash-flows";
 
 import type {
-  FlowRun,
   GetFlowRunByIdQuery,
   GetFlowRunByIdQueryVariables,
   StartFlowMutation,
@@ -25,7 +22,7 @@ import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
-import type { JsonValue } from "@blockprotocol/core/.";
+import type { JsonValue } from "@blockprotocol/core";
 import type {
   EntityId,
   PropertyPatchOperation,
@@ -36,7 +33,10 @@ import type {
   ChartType,
   StructuralQueryDefinition,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FlowRunWithoutEvents,
+  StepOutput,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 export type ConfigStep = "goal" | "query" | "analysis" | "chart" | "complete";
 
@@ -52,7 +52,7 @@ export type ConfigState = {
   chartConfig: ChartConfig | null;
   isLoading: boolean;
   error: string | null;
-  flowRunId: string | null;
+  flowRunEntityId: EntityId | null;
 };
 
 const initialState: ConfigState = {
@@ -67,7 +67,7 @@ const initialState: ConfigState = {
   chartConfig: null,
   isLoading: false,
   error: null,
-  flowRunId: null,
+  flowRunEntityId: null,
 };
 
 const configurationReadyPatch: PropertyPatchOperation = {
@@ -114,7 +114,7 @@ type UseDashboardItemConfigParams = {
   /** Called once the flow is running so the dashboard can show its card. */
   onGenerationStarted?: (generation: {
     itemEntityId: EntityId;
-    flowRunId: string;
+    flowRunEntityId: EntityId;
   }) => void;
   onComplete?: () => void;
 };
@@ -208,6 +208,9 @@ export const useDashboardItemConfig = ({
     UpdateEntityMutationVariables
   >(updateEntityMutation);
 
+  const generateHashFlowDefinitionEntityId =
+    useGenerateHashFlowDefinitionEntityId();
+
   const [startFlow] = useMutation<
     StartFlowMutation,
     StartFlowMutationVariables
@@ -259,7 +262,7 @@ export const useDashboardItemConfig = ({
    * Update the dashboard item entity with the flow outputs.
    */
   const updateEntityWithFlowOutputs = useCallback(
-    async (flowRun: FlowRun) => {
+    async (flowRun: FlowRunWithoutEvents) => {
       /**
        * The flow run's `outputs` field is a list of Status objects wrapping
        * the actual step outputs (see `StepRunOutput`) — unwrap to the flat
@@ -398,14 +401,14 @@ export const useDashboardItemConfig = ({
    * before the state update containing the flow run id has been applied.
    */
   const pollFlowForCompletion = useCallback(
-    async (flowRunId: string) => {
+    async (flowRunEntityId: EntityId) => {
       try {
         const { data } = await apolloClient.query<
           GetFlowRunByIdQuery,
           GetFlowRunByIdQueryVariables
         >({
           query: getFlowRunById,
-          variables: { flowRunId },
+          variables: { flowRunEntityId },
           fetchPolicy: "network-only",
         });
 
@@ -510,15 +513,15 @@ export const useDashboardItemConfig = ({
   );
 
   const startPolling = useCallback(
-    (flowRunId: string) => {
+    (flowRunEntityId: EntityId) => {
       if (pollIntervalRef.current) {
         return; // Already polling
       }
 
       // Poll immediately, then every 2 seconds
-      void pollFlowForCompletion(flowRunId);
+      void pollFlowForCompletion(flowRunEntityId);
       pollIntervalRef.current = setInterval(() => {
-        void pollFlowForCompletion(flowRunId);
+        void pollFlowForCompletion(flowRunEntityId);
       }, 2000);
     },
     [pollFlowForCompletion],
@@ -603,7 +606,9 @@ export const useDashboardItemConfig = ({
       // Start the flow
       const { data } = await startFlow({
         variables: {
-          flowDefinitionId: configureDashboardItemFlow.flowDefinitionId,
+          flowDefinitionEntityId: generateHashFlowDefinitionEntityId(
+            flowDefinitionIds.configureDashboardItem,
+          ),
           flowInputs: {
             userGoal: {
               kind: "Text",
@@ -628,13 +633,13 @@ export const useDashboardItemConfig = ({
         const resolvedItemEntityId = await ensureEntityId();
         setState((prev) => ({
           ...prev,
-          flowRunId: data.startFlow,
+          flowRunEntityId: data.startFlow,
           step: "query",
         }));
 
         onGenerationStarted?.({
           itemEntityId: resolvedItemEntityId,
-          flowRunId: data.startFlow,
+          flowRunEntityId: data.startFlow,
         });
 
         /**
@@ -667,6 +672,7 @@ export const useDashboardItemConfig = ({
     onGenerationStarted,
     onComplete,
     markGenerationFailed,
+    generateHashFlowDefinitionEntityId,
   ]);
 
   const refineConfiguration = useCallback(
@@ -721,7 +727,9 @@ export const useDashboardItemConfig = ({
 
         const { data } = await startFlow({
           variables: {
-            flowDefinitionId: refineDashboardItemFlow.flowDefinitionId,
+            flowDefinitionEntityId: generateHashFlowDefinitionEntityId(
+              flowDefinitionIds.refineDashboardItem,
+            ),
             flowInputs: {
               userGoal: { kind: "Text", value: initialGoal },
               refinementInstruction: {
@@ -766,12 +774,12 @@ export const useDashboardItemConfig = ({
         const resolvedItemEntityId = await ensureEntityId();
         setState((previousState) => ({
           ...previousState,
-          flowRunId: data.startFlow,
+          flowRunEntityId: data.startFlow,
           step: "query",
         }));
         onGenerationStarted?.({
           itemEntityId: resolvedItemEntityId,
-          flowRunId: data.startFlow,
+          flowRunEntityId: data.startFlow,
         });
         if (!onGenerationStarted) {
           startPolling(data.startFlow);
@@ -792,6 +800,7 @@ export const useDashboardItemConfig = ({
       initialValues,
       markGenerationFailed,
       onGenerationStarted,
+      generateHashFlowDefinitionEntityId,
       setError,
       startFlow,
       startPolling,

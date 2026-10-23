@@ -44,12 +44,17 @@ const thumbInnerStyles = css({
 export interface SliderProps {
   className?: string;
   style?: React.CSSProperties;
+  /** Minimum value for the slider */
   min?: number;
+  /** Maximum value for the slider */
   max?: number;
   step?: number;
   value?: number;
+  /** Initial value for the slider */
   defaultValue?: number;
+  /** Label text to display above the slider. If not provided, no label is shown. */
   label?: string;
+  /** Whether to show the current value as text above the slider */
   showValueText?: boolean;
   variant?: SliderVariant;
   /** Shows the value without letting the pointer or keyboard move it. */

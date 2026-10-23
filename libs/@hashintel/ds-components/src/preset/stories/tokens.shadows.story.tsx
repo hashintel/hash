@@ -9,7 +9,6 @@ import type {
   InsetShadow,
 } from "./_types";
 import type { Token } from "@hashintel/ds-helpers/tokens";
-import type { Story } from "@ladle/react";
 
 const SHADOW_STEPS: readonly BaseShadow[] = [
   "2xs",
@@ -139,7 +138,7 @@ const ElevationSwatch = ({
   );
 };
 
-export const Shadows: Story = () => (
+export const ShadowsDemo = () => (
   <VStack gap="8" alignItems="flex-start" p="6">
     <h1 className={css({ textStyle: "2xl", fontWeight: "semibold" })}>
       Shadows &amp; Elevation
@@ -227,5 +226,3 @@ export const Shadows: Story = () => (
     </VStack>
   </VStack>
 );
-
-Shadows.storyName = "Shadows & Elevation";

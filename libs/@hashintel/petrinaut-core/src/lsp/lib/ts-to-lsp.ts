@@ -4,7 +4,7 @@
  * These define the stable contract between the TS LanguageService and all LSP
  * consumers (Monaco sync components, diagnostics panel, etc.).
  */
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 import {
   CompletionItemKind,
   type Diagnostic,

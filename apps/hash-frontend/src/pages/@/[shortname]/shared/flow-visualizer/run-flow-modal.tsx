@@ -24,7 +24,7 @@ import type {
   CreateFlowScheduleMutationVariables,
 } from "../../../../../graphql/api-types.gen";
 import type { FormState, LocalPayload } from "./run-flow-modal/types";
-import type { EntityUuid, WebId } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
 import type { CreateFlowScheduleInput } from "@local/hash-isomorphic-utils/flows/schedule-types";
 import type {
   FlowActionDefinitionId,
@@ -116,7 +116,7 @@ const intervalUnitToMs: Record<IntervalUnit, number> = {
 
 type RunFlowModalProps = {
   flowDefinition: FlowDefinition<FlowActionDefinitionId>;
-  flowDefinitionId: EntityUuid;
+  flowDefinitionEntityId: EntityId;
   onClose: () => void;
   open: boolean;
   runFlow: (flowInputs: FlowInputValues, webId: WebId) => Promise<void>;
@@ -125,7 +125,7 @@ type RunFlowModalProps = {
 
 export const RunFlowModal = ({
   flowDefinition,
-  flowDefinitionId,
+  flowDefinitionEntityId,
   open,
   onClose,
   runFlow,
@@ -218,7 +218,7 @@ export const RunFlowModal = ({
 
         const scheduleInput: CreateFlowScheduleInput = {
           name: scheduleName || `${flowDefinition.name} schedule`,
-          flowDefinitionId,
+          flowDefinitionEntityId,
           webId,
           scheduleSpec: {
             type: "interval",

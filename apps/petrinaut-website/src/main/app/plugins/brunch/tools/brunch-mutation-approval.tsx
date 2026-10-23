@@ -1,3 +1,5 @@
+import { useMemo, useSyncExternalStore, type ComponentType } from "react";
+
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -8,13 +10,13 @@ import {
   type PetrinautAiMutationToolName,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
+import { useStore } from "@hashintel/petrinaut/ui/plugin";
+
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveTool,
   type PetrinautAiInteractiveToolWidgetProps,
-} from "@hashintel/petrinaut/ui";
-import { useStore } from "@hashintel/petrinaut/ui/plugin";
-
+} from "../chat/ai-interactive-tool";
 import {
   WithBrunchEditorApi,
   type BrunchEditorApi,
@@ -27,6 +29,9 @@ type BrunchMutationApprovalChoice = "allow" | "always-allow" | "deny";
 type BrunchMutationApprovalDecision =
   | { readonly decision: "allow" }
   | { readonly decision: "deny"; readonly reason: string };
+
+/** Where a call stands at the approval gate; `null` from `approvalState` means it is past it. */
+export type ToolApprovalState = "awaiting" | "refused";
 
 type PendingApproval = {
   readonly resolve: (decision: BrunchMutationApprovalDecision) => void;
@@ -45,9 +50,12 @@ export interface BrunchMutationApprovalCoordinator {
    * A refused call keeps its streamed input-available state until the refusal
    * output round-trips, so its part alone cannot tell it from an executing call.
    */
-  approvalState(toolCallId: string): "awaiting" | "refused" | null;
-  /** Changes whenever a call enters or leaves the approval gate. */
-  getVersion: () => number;
+  approvalState(toolCallId: string): ToolApprovalState | null;
+  /**
+   * The calls waiting for a decision. A new set whenever a call enters or
+   * leaves the approval gate, so rendering from it re-renders on every change.
+   */
+  getPendingSnapshot: () => ReadonlySet<string>;
   subscribe: (listener: () => void) => () => void;
   /** Settles waiting approvals as stopped and refuses new ones until reopened. */
   close(): void;
@@ -66,9 +74,9 @@ export const createBrunchMutationApprovalCoordinator =
     const listeners = new Set<() => void>();
     let alwaysAllow = false;
     let closed = false;
-    let version = 0;
+    let pendingSnapshot: ReadonlySet<string> = new Set();
     const notify = () => {
-      version += 1;
+      pendingSnapshot = new Set(pending.keys());
       listeners.forEach((listener) => listener());
     };
     const settle = (
@@ -122,7 +130,7 @@ export const createBrunchMutationApprovalCoordinator =
           : refused.has(toolCallId)
             ? "refused"
             : null,
-      getVersion: () => version,
+      getPendingSnapshot: () => pendingSnapshot,
       subscribe: (listener) => {
         listeners.add(listener);
         return () => listeners.delete(listener);
@@ -401,23 +409,77 @@ export const createBrunchMutationApprovalWidget = (
 
 const passthrough = { parse: (value: unknown) => value };
 
-export const createBrunchMutationApprovalInteractiveTools = (
+/**
+ * Approval widgets for the calls in `pending`, a coordinator snapshot. Build
+ * them from each new snapshot: a widget shows only while its call waits.
+ */
+type ApprovalComponent = ComponentType<
+  PetrinautAiInteractiveToolWidgetProps<unknown, unknown>
+>;
+
+export type BrunchMutationApprovalComponents = Readonly<
+  Record<DestructiveToolName, ApprovalComponent>
+>;
+
+/**
+ * One approval widget per destructive tool. Create once per coordinator and
+ * reuse across snapshots, so a waiting approval re-renders instead of remounting.
+ */
+export const createBrunchMutationApprovalComponents = (
   coordinator: BrunchMutationApprovalCoordinator,
+): BrunchMutationApprovalComponents =>
+  Object.fromEntries(
+    destructiveToolNames.map((toolName) => {
+      const Widget = createBrunchMutationApprovalWidget(coordinator, toolName);
+      const component: ApprovalComponent = (props) => (
+        <WithBrunchEditorApi>
+          {(api) => <Widget {...props} net={api.document.net} />}
+        </WithBrunchEditorApi>
+      );
+      return [toolName, component];
+    }),
+  ) as Record<DestructiveToolName, ApprovalComponent>;
+
+/**
+ * Approval tools for the calls in `pending`, a coordinator snapshot. Build
+ * them from each new snapshot: a widget shows only while its call waits.
+ */
+export const createBrunchMutationApprovalInteractiveTools = (
+  components: BrunchMutationApprovalComponents,
+  pending: ReadonlySet<string>,
 ): readonly PetrinautAiInteractiveTool[] =>
-  destructiveToolNames.map((toolName) => {
-    const Widget = createBrunchMutationApprovalWidget(coordinator, toolName);
-    return definePetrinautAiInteractiveTool<unknown, unknown>({
+  destructiveToolNames.map((toolName) =>
+    definePetrinautAiInteractiveTool<unknown, unknown>({
       toolName,
       inputSchema: {
         parse: (value) => mutationActionInputSchemas[toolName].parse(value),
       },
       outputSchema: passthrough,
       // Earlier rows of the same tool keep their normal presentation.
-      shouldHandle: ({ toolCallId }) => coordinator.hasPending(toolCallId),
-      component: (props) => (
-        <WithBrunchEditorApi>
-          {(api) => <Widget {...props} net={api.document.net} />}
-        </WithBrunchEditorApi>
-      ),
-    });
-  });
+      shouldHandle: ({ toolCallId }) => pending.has(toolCallId),
+      component: components[toolName],
+    }),
+  );
+
+/**
+ * The approval tools for `coordinator`, rebuilt from each pending snapshot. A
+ * call that starts waiting while nothing else re-renders the transcript, such
+ * as the second removal of a step after the first was allowed, still shows.
+ */
+export const useBrunchMutationApprovalTools = (
+  coordinator: BrunchMutationApprovalCoordinator,
+): readonly PetrinautAiInteractiveTool[] => {
+  const pending = useSyncExternalStore(
+    coordinator.subscribe,
+    coordinator.getPendingSnapshot,
+    coordinator.getPendingSnapshot,
+  );
+  const components = useMemo(
+    () => createBrunchMutationApprovalComponents(coordinator),
+    [coordinator],
+  );
+  return useMemo(
+    () => createBrunchMutationApprovalInteractiveTools(components, pending),
+    [components, pending],
+  );
+};

@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -5,11 +7,16 @@ import {
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import { StatusCode } from "@local/status";
 
 import { findAction } from "./find-action.js";
 
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityId,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { QueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
@@ -35,7 +42,8 @@ vi.mock("../shared/get-flow-context.js", () => ({
   getFlowContext: () =>
     Promise.resolve({
       workflowId,
-      runId: "run",
+      /* A run of its own, so that outputs stored by one test aren't read back from the download cache by another. */
+      runId: randomUUID(),
       stepId: "find",
       userAuthentication: { actorId: "user" },
     }),
@@ -48,6 +56,9 @@ vi.mock(
   }),
 );
 vi.mock("@local/hash-graph-sdk/entity", () => ({ queryEntities: vi.fn() }));
+vi.mock("@local/hash-graph-sdk/entity-type", () => ({
+  queryEntityTypeSubgraph: vi.fn(),
+}));
 
 const run = (items: Payload, condition?: FilterCondition) =>
   findAction({
@@ -130,6 +141,82 @@ describe("findAction", () => {
       code: StatusCode.Ok,
       contents: [{ outputs: [] }],
     });
+  });
+
+  it("finds the first entity of a subtype of any version of a type", async () => {
+    const typeUrl = (name: string, version: number) =>
+      `https://example.com/types/entity-type/${name}/v/${version}` as VersionedUrl;
+    const vertex = (name: string, parents: VersionedUrl[] = []) => ({
+      [`https://example.com/types/entity-type/${name}/`]: {
+        1: {
+          kind: "entityType",
+          inner: {
+            schema: {
+              $id: typeUrl(name, 1),
+              allOf: parents.map(($ref) => ({ $ref })),
+            },
+          },
+        },
+      },
+    });
+    vi.mocked(queryEntityTypeSubgraph).mockResolvedValueOnce({
+      subgraph: {
+        vertices: {
+          ...vertex("person"),
+          ...vertex("startup", [typeUrl("company", 1)]),
+          ...vertex("company"),
+        },
+      },
+    } as unknown as Awaited<ReturnType<typeof queryEntityTypeSubgraph>>);
+    const proposed = ["person", "startup", "company"].map(
+      (name) =>
+        ({
+          localEntityId: name,
+          entityTypeIds: [typeUrl(name, 1)],
+          properties: {},
+        }) as unknown as ProposedEntity,
+    );
+
+    const result = await run(
+      {
+        kind: "ProposedEntity",
+        value: await storePayload({
+          storageProvider,
+          workflowId,
+          runId: "run",
+          stepId: "propose",
+          outputName: "typedEntities",
+          kind: "ProposedEntity",
+          value: proposed,
+        }),
+      },
+      {
+        kind: "all",
+        conditions: [
+          {
+            kind: "condition",
+            subject: { kind: "entityType" },
+            operator: "isOfType",
+            value: {
+              kind: "BaseUrl",
+              value:
+                "https://example.com/types/entity-type/company/" as BaseUrl,
+            },
+            includeSubtypes: true,
+          },
+        ],
+      },
+    );
+
+    const output = result.contents[0]?.outputs[0];
+    expect(
+      output &&
+        (await resolvePayloadValue(
+          { storageProvider, workflowId },
+          output.payload.kind,
+          output.payload.value,
+        )),
+    ).toEqual(proposed[1]);
   });
 
   it("reports an entity the user can't read as not found", async () => {

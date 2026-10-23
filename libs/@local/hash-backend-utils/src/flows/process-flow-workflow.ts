@@ -7,7 +7,14 @@ import {
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
-import { getArrayPayloadItems } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
+import {
+  generateStepRunId,
+  parseStepRunId,
+} from "@local/hash-isomorphic-utils/flows/step-run-id";
+import {
+  assertNoStoredPayloadRefsInFlowInputs,
+  getArrayPayloadItems,
+} from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 import { asPayload } from "@local/hash-isomorphic-utils/flows/types";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
@@ -34,7 +41,7 @@ import type {
   CreateFlowActivities,
   ProxyFlowActivity,
 } from "./action-types.js";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId, Timestamp } from "@blockprotocol/type-system";
 import type { FlowActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   BaseRunFlowWorkflowParams,
@@ -50,6 +57,7 @@ import type {
   Payload,
   StepInputSource,
   SkippedStep,
+  StartedForEachStep,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
@@ -80,10 +88,10 @@ const getProducerRunStepId = ({
   consumerStepId: string;
   producerStepId: string;
 }) => {
-  const [_, branchIndex] = consumerStepId.split("~");
+  const { itemIndex } = parseStepRunId(consumerStepId);
 
-  if (branchIndex !== undefined) {
-    const producerInBranch = `${producerStepId}~${branchIndex}`;
+  if (itemIndex !== undefined) {
+    const producerInBranch = generateStepRunId(producerStepId, itemIndex);
 
     if (
       getAllStepsInFlow(flow).some(({ stepId }) => stepId === producerInBranch)
@@ -295,7 +303,7 @@ const processFlow = async <
   params: BaseRunFlowWorkflowParams & {
     generateFlowRunName?: (params: {
       flowDefinition: FlowDefinition;
-      flowDefinitionId: EntityUuid;
+      flowDefinitionEntityId: EntityId;
       flowInputs: FlowInputValues;
     }) => Promise<string>;
     proxyFlowActivity: ProxyFlowActivity<
@@ -305,8 +313,8 @@ const processFlow = async <
   },
 ): Promise<RunFlowWorkflowResponse> => {
   const {
-    flowDefinitionId,
-    flowRunId,
+    flowDefinitionEntityId,
+    flowRunEntityUuid,
     flowRunName,
     flowInputs,
     flowTriggerEntityId,
@@ -317,10 +325,12 @@ const processFlow = async <
   } = params;
 
   /*
-   * The run executes the definition's edition current when it starts.
+   * The run executes the definition's edition current when it starts: at the start of its execution chain, which a
+   * retry, replay or reset keeps. The frontend draws a run with the edition current then too.
    */
   const flowDefinitionResult = await getFlowDefinitionActivity({
-    flowDefinitionId,
+    atTime: workflowInfo().startTime.toISOString() as Timestamp,
+    flowDefinitionEntityId,
     userAuthentication,
   });
 
@@ -367,6 +377,23 @@ const processFlow = async <
     });
   }
 
+  try {
+    assertNoStoredPayloadRefsInFlowInputs(flowInputs);
+  } catch (error) {
+    const errorMessage = (error as Error).message;
+    throw ApplicationFailure.create({
+      message: errorMessage,
+      nonRetryable: true,
+      details: [
+        {
+          code: StatusCode.InvalidArgument,
+          message: errorMessage,
+          contents: [],
+        },
+      ],
+    });
+  }
+
   const initialFlowName = flowRunName ?? flowDefinition.name;
   log(`Initializing ${initialFlowName} Flow`);
 
@@ -374,7 +401,7 @@ const processFlow = async <
 
   const flow = initializeFlow({
     flowDefinition,
-    flowDefinitionId,
+    flowDefinitionEntityId,
     flowInputs,
     temporalWorkflowId: workflowId,
     /**
@@ -387,7 +414,7 @@ const processFlow = async <
   await persistFlowActivity({
     flow,
     flowDefinitionEntityId: flowDefinitionResult.flowDefinitionEntityId,
-    flowRunId,
+    flowRunEntityUuid,
     flowTriggerEntityId,
     stepIds: ["initialize-flow"],
     userAuthentication,
@@ -397,7 +424,7 @@ const processFlow = async <
   if (generateFlowRunName) {
     const generatedName = await generateFlowRunName({
       flowDefinition,
-      flowDefinitionId,
+      flowDefinitionEntityId,
       flowInputs,
     });
     flow.name = generatedName;
@@ -414,6 +441,7 @@ const processFlow = async <
   /** Steps skipped because a value they need is missing (see `getStepReadiness`); also in `processedStepIds`. */
   const skippedStepIds: string[] = [];
   const skippedSteps: SkippedStep[] = [];
+  const startedForEachSteps: StartedForEachStep[] = [];
   const processStepErrors: Record<string, Omit<Status<never>, "contents">> = {};
 
   // Function to process a single step
@@ -596,14 +624,14 @@ const processFlow = async <
             ? initializeActionStep({
                 flowInputs,
                 stepDefinition,
-                overrideStepId: `${stepDefinition.stepId}~${index}`,
+                overrideStepId: generateStepRunId(stepDefinition.stepId, index),
                 existingFlow: flow,
                 item,
               })
             : initializeForEachStep({
                 flowInputs,
                 stepDefinition,
-                overrideStepId: `${stepDefinition.stepId}~${index}`,
+                overrideStepId: generateStepRunId(stepDefinition.stepId, index),
                 existingFlow: flow,
                 item,
               }),
@@ -614,6 +642,13 @@ const processFlow = async <
        * Add the new steps to the child steps of the for-each step.
        */
       currentStep.steps = [...(currentStep.steps ?? []), ...newSteps];
+
+      startedForEachSteps.push({
+        stepId: currentStep.stepId,
+        itemCount: items.length,
+        startedAt: new Date().toISOString(),
+      });
+      upsertMemo({ startedForEachSteps });
 
       /**
        * We consider the for-each step "processed", even though its child steps may not have finished executing,

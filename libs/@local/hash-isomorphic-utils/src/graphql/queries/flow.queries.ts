@@ -7,8 +7,8 @@ export const getFlowRunsQuery = gql`
       nextCursor
       flowRuns {
         name
-        flowDefinitionId
-        flowRunId
+        flowDefinitionEntityId
+        flowRunEntityId
         flowScheduleId
         webId
         status
@@ -34,11 +34,11 @@ export const getFlowRunsQuery = gql`
 `;
 
 export const getFlowRunById = gql`
-  query getFlowRunById($flowRunId: String!) {
-    getFlowRunById(flowRunId: $flowRunId) {
+  query getFlowRunById($flowRunEntityId: EntityId!) {
+    getFlowRunById(flowRunEntityId: $flowRunEntityId) {
       name
-      flowDefinitionId
-      flowRunId
+      flowDefinitionEntityId
+      flowRunEntityId
       flowScheduleId
       failureMessage
       webId
@@ -70,9 +70,12 @@ export const getFlowRunById = gql`
 
 export const submitExternalInputResponseMutation = gql`
   mutation submitExternalInputResponse(
-    $flowUuid: ID!
+    $flowRunEntityId: EntityId!
     $response: ExternalInputResponseWithoutUser!
   ) {
-    submitExternalInputResponse(flowUuid: $flowUuid, response: $response)
+    submitExternalInputResponse(
+      flowRunEntityId: $flowRunEntityId
+      response: $response
+    )
   }
 `;

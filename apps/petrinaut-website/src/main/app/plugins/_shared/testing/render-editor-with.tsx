@@ -1,5 +1,5 @@
-import { render } from "@testing-library/react";
-import { vi } from "vitest";
+import { cleanup, render, waitFor } from "@testing-library/react";
+import { beforeAll, expect, vi } from "vitest";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { Petrinaut, type PetrinautProps } from "@hashintel/petrinaut/ui";
@@ -27,3 +27,20 @@ export const renderEditorWith = (
     handle,
   };
 };
+
+// The first mount starts loading the editor's bundled Monaco, which in a
+// parallel run outlasts the one-second waits of the test that mounted it. The
+// editor assigns `MonacoEnvironment.getWorker` once that load has finished.
+beforeAll(async () => {
+  renderEditorWith([]);
+  await waitFor(
+    () =>
+      expect(
+        typeof (globalThis as { MonacoEnvironment?: { getWorker?: unknown } })
+          .MonacoEnvironment?.getWorker,
+        "the editor should finish loading Monaco",
+      ).toBe("function"),
+    { timeout: 30_000 },
+  );
+  cleanup();
+}, 30_000);

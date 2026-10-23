@@ -251,7 +251,7 @@ const Checkpoint = ({ log }: { log: CheckpointLog }) => {
 
     void resetFlow({
       variables: {
-        flowUuid: selectedFlowRun.flowRunId,
+        flowRunEntityId: selectedFlowRun.flowRunEntityId,
         checkpointId: log.checkpointId,
         eventId: log.eventId,
       },

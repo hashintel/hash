@@ -12,37 +12,21 @@ import {
 import { type MenuItem } from "../Menu/menu";
 import { RightClickMenu } from "./right-click-menu";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type RightClickMenuProps = React.ComponentProps<typeof RightClickMenu>;
 
-const positions = [
-  "bottom",
-  "bottom-start",
-  "bottom-end",
-  "top",
-  "top-start",
-  "top-end",
-  "left",
-  "left-start",
-  "left-end",
-  "right",
-  "right-start",
-  "right-end",
-] as const;
-
-export default {
+const meta = {
   title: "Components/RightClickMenu",
-  argTypes: {
-    position: {
-      control: { type: "select" },
-      options: positions,
-    },
-  },
+  component: RightClickMenu,
   args: {
     position: "bottom-start",
   },
-} satisfies StoryDefault<RightClickMenuProps>;
+} satisfies Meta<RightClickMenuProps>;
+
+export default meta;
+
+type Story = StoryObj<RightClickMenuProps>;
 
 const dropTargetStyle: React.CSSProperties = {
   display: "flex",
@@ -71,11 +55,15 @@ function withSelectedFlags(entry: ItemOrGroup<Item>): ItemOrGroup<MenuItem> {
   } as MenuItem;
 }
 
-export const Default: Story<RightClickMenuProps> = (args) => {
+const DefaultDemo = (args: RightClickMenuProps) => {
   const items = useMemo(() => groupedItems.map(withSelectedFlags), []);
   return (
     <RightClickMenu {...args} items={items}>
       <div style={dropTargetStyle}>Right click anywhere in this area</div>
     </RightClickMenu>
   );
+};
+
+export const Default: Story = {
+  render: (args) => <DefaultDemo {...args} />,
 };

@@ -184,6 +184,9 @@ and how many of them run.
   the net it can read or change, its buttons and where they sit, its top-bar
   items and settings, a service it offers other plugins, and whether it shows
   something inside the editor.
+- **Assistant** marks a plugin that provides the AI assistant. The assistant
+  panel shows that plugin's content, such as its chat. When several plugins
+  carry the tag, the first running one in this list fills the panel.
 
 Without plugins the section says so.
 

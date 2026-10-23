@@ -5,6 +5,7 @@ import {
   getFlowRuns,
 } from "@local/hash-backend-utils/flows";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
+import { assertNoStoredPayloadRefsInFlowInputs } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 
 import { getUserAndSession } from "../auth/create-auth-handlers";
 import { FlowRunStatus } from "../graphql/api-types.gen";
@@ -13,7 +14,6 @@ import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-in
 
 import type { GraphApi, ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
-import type { EntityUuid } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type {
@@ -48,6 +48,15 @@ const inferEntitiesMessageHandler = async ({
         return;
       }
 
+      const { webId: _webId, ...flowInputs } = message.payload;
+
+      try {
+        assertNoStoredPayloadRefsInFlowInputs(flowInputs);
+      } catch (error) {
+        socket.send((error as Error).message);
+        return;
+      }
+
       await handleInferEntitiesRequest({
         graphApiClient,
         temporalClient,
@@ -79,7 +88,7 @@ const inferEntitiesMessageHandler = async ({
         for (const inputRequest of flowRun.inputRequests) {
           if (!inputRequest.resolvedAt) {
             const requestMessage: ExternalInputWebsocketRequestMessage = {
-              workflowId: flowRun.flowRunId,
+              flowRunEntityId: flowRun.flowRunEntityId,
               payload: inputRequest,
               type: "external-input-request",
             };
@@ -90,11 +99,11 @@ const inferEntitiesMessageHandler = async ({
       return;
     }
     case "external-input-response": {
-      const { workflowId, payload } = message;
+      const { flowRunEntityId, payload } = message;
 
       const flow = await getFlowRunEntityById({
         userAuthentication: { actorId: user.accountId },
-        flowRunId: workflowId as EntityUuid,
+        flowRunEntityId,
         graphApiClient,
       });
 
@@ -102,7 +111,9 @@ const inferEntitiesMessageHandler = async ({
         return;
       }
 
-      const handle = temporalClient.workflow.getHandle(workflowId);
+      const handle = temporalClient.workflow.getHandle(
+        flow.properties["https://hash.ai/@h/types/property-type/workflow-id/"],
+      );
       await handle.signal<[ExternalInputResponseSignal]>(
         externalInputResponseSignal,
         { ...payload, resolvedBy: user.accountId },
@@ -142,7 +153,7 @@ const isInferenceWebsocketClientMessage = (
       );
     case "cancel-inference-request":
       return (
-        typeof message.flowRunId === "string" &&
+        typeof message.flowRunEntityId === "string" &&
         typeof message.requestUuid === "string" &&
         hasValidOptionalCookie(message)
       );
@@ -150,7 +161,7 @@ const isInferenceWebsocketClientMessage = (
       return hasValidOptionalCookie(message);
     case "external-input-response":
       return (
-        typeof message.workflowId === "string" &&
+        typeof message.flowRunEntityId === "string" &&
         typeof message.payload === "object" &&
         message.payload !== null &&
         hasValidOptionalCookie(message)

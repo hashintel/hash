@@ -9,22 +9,25 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import type { EntityUuid } from "@blockprotocol/type-system";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 
 export const getFlowRunByIdResolver: ResolverFn<
   FlowRun | SparseFlowRun,
   Record<string, never>,
-  Pick<GraphQLContext, "authentication" | "dataSources" | "temporal">,
+  Pick<
+    GraphQLContext,
+    "authentication" | "dataSources" | "flowRunHistories" | "temporal"
+  >,
   QueryGetFlowRunByIdArgs
 > = async (_parent, args, context, info) => {
-  const { flowRunId } = args;
+  const { flowRunEntityId } = args;
 
   const includeDetails = wereDetailedFieldsRequested(info);
 
   const flowRun = await getFlowRunById({
-    flowRunId: flowRunId as EntityUuid,
+    flowRunEntityId,
     graphApiClient: context.dataSources.graphApi,
+    historiesByWorkflowId: context.flowRunHistories,
     includeDetails,
     storageProvider: context.dataSources.uploadProvider,
     temporalClient: context.temporal,
@@ -32,7 +35,7 @@ export const getFlowRunByIdResolver: ResolverFn<
   });
 
   if (!flowRun) {
-    throw Error.notFound(`Flow run with id ${flowRunId} not found`);
+    throw Error.notFound(`Flow run with id ${flowRunEntityId} not found`);
   }
 
   return flowRun;

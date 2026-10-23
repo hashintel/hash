@@ -22,9 +22,9 @@ import {
 } from "../session/voice-interview-control";
 import { createLiveConversation } from "./live-conversation";
 
-import type { ToolApprovalState } from "./live-brunch-bridge";
+import type { PetrinautAiVoiceModeContext } from "../../chat/ai-assistant-composer-control";
+import type { ToolApprovalState } from "../../tools/brunch-mutation-approval";
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
-import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 const liveConversationMocks = vi.hoisted(() => ({
   setMicrophoneMuted: vi.fn(),
@@ -43,6 +43,7 @@ vi.mock("./live-conversation", () => ({
     appendInstructions: vi.fn(() => true),
     appendThinking: vi.fn(() => true),
     speechPending: vi.fn(() => true),
+    setInterviewBudgetLevel: vi.fn(),
     setMicrophoneMuted: liveConversationMocks.setMicrophoneMuted,
     setSpeakerMuted: liveConversationMocks.setSpeakerMuted,
     setSpeakerVolume: liveConversationMocks.setSpeakerVolume,
@@ -472,6 +473,43 @@ test("progress accepted after the person speaks again does not hide the new repl
       type: "data-voiceAgentReply",
       data: { text: "Seven it is.", state: "streaming" },
     },
+  ]);
+});
+
+test("closing the panel ends a Live session, so reopening it reads the current words", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => new Promise<Response>(() => {})),
+  );
+  const props = context();
+  const first = () => [{ spelling: "RelayDesk" }];
+  const next = () => [{ spelling: "Bay Three" }];
+  const view = render(
+    <VoiceInterviewControl {...props} config={config} readWords={first} />,
+  );
+  await start();
+  const sessions = vi.mocked(createLiveConversation).mock.calls.length;
+  const firstSession = vi.mocked(createLiveConversation).mock.lastCall!;
+  expect(firstSession[8]?.()).toEqual([{ spelling: "RelayDesk" }]);
+  view.rerender(
+    <VoiceInterviewControl
+      {...props}
+      isAiAssistantOpen={false}
+      config={config}
+      readWords={next}
+    />,
+  );
+  act(() => firstSession[0]({ phase: "ended", message: null }));
+  view.rerender(
+    <VoiceInterviewControl {...props} config={config} readWords={next} />,
+  );
+  await waitFor(() =>
+    expect(vi.mocked(createLiveConversation).mock.calls).toHaveLength(
+      sessions + 1,
+    ),
+  );
+  expect(vi.mocked(createLiveConversation).mock.lastCall![8]?.()).toEqual([
+    { spelling: "Bay Three" },
   ]);
 });
 

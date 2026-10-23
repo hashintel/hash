@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -27,12 +28,12 @@ import {
 } from "./voice-interview-control";
 import { VoiceTurnController } from "./voice-turn-controller";
 
-import type { AgentSendResult } from "@flue/sdk";
 import type {
   PetrinautAiVoiceModeContext,
   PetrinautAiVoiceModeSessionControls,
   PetrinautAiVoiceSessionState,
-} from "@hashintel/petrinaut/ui";
+} from "../../chat/ai-assistant-composer-control";
+import type { AgentSendResult } from "@flue/sdk";
 
 const config = { available: true as const, connectionTimeoutMs: 15_000 };
 
@@ -40,7 +41,13 @@ let registeredVoiceModeControls:
   | PetrinautAiVoiceModeSessionControls
   | undefined;
 
-const VoiceInterviewHarness = () => {
+const VoiceInterviewHarness = ({
+  onInputModeChange,
+  readWords,
+}: {
+  onInputModeChange?: (mode: PetrinautAiVoiceModeContext["inputMode"]) => void;
+  readWords?: () => readonly { spelling: string }[];
+}) => {
   "use no memo";
 
   const [active, setActive] = useState(false);
@@ -114,7 +121,12 @@ const VoiceInterviewHarness = () => {
       <output>{active ? "Voice active" : "Voice inactive"}</output>
       <output>{inputMode === "voice" ? "Voice mode" : "Text mode"}</output>
       <output>{isAiAssistantOpen ? "Panel open" : "Panel closed"}</output>
-      <VoiceInterviewControl {...context} config={config} />
+      <VoiceInterviewControl
+        {...context}
+        config={config}
+        onInputModeChange={onInputModeChange}
+        readWords={readWords}
+      />
     </>
   );
 };
@@ -142,6 +154,34 @@ const stubUnavailableMicrophone = () => {
   });
   return getUserMedia;
 };
+
+test("an interrupted Voice attempt pins its words across edits and retries until explicit end/start", async () => {
+  window.localStorage.setItem(
+    VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+    "acknowledged",
+  );
+  const microphone = stubUnavailableMicrophone();
+  const first = vi.fn(() => [{ spelling: "RelayDesk" }]);
+  const next = vi.fn(() => [{ spelling: "Bay Three" }]);
+  const rendered = render(<VoiceInterviewHarness readWords={first} />);
+  fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+  await screen.findByText("Session: error");
+  expect(first).toHaveBeenCalledOnce();
+  const attempts = microphone.mock.calls.length;
+  rendered.rerender(<VoiceInterviewHarness readWords={next} />);
+  expect(next).not.toHaveBeenCalled();
+  expect(microphone).toHaveBeenCalledTimes(attempts);
+  act(() => {
+    registeredVoiceModeControls?.reconnect?.();
+  });
+  await waitFor(() => expect(microphone).toHaveBeenCalledTimes(attempts + 1));
+  expect(first).toHaveBeenCalledOnce();
+  expect(next).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "End session" }));
+  await screen.findByText("Text mode");
+  fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+  await waitFor(() => expect(next).toHaveBeenCalledOnce());
+});
 
 beforeEach(() => {
   registeredVoiceModeControls = undefined;
@@ -593,6 +633,27 @@ describe("voice interview control", () => {
 
     unmount();
     expect(registeredVoiceModeControls).toBeUndefined();
+  });
+
+  test("reports the panel's input mode until Voice unmounts", async () => {
+    const onInputModeChange = vi.fn();
+    const { unmount } = render(
+      <VoiceInterviewHarness onInputModeChange={onInputModeChange} />,
+    );
+    expect(onInputModeChange).toHaveBeenLastCalledWith("text");
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+    await screen.findByText("Voice mode");
+    expect(onInputModeChange).toHaveBeenLastCalledWith("voice");
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Text" }));
+    await screen.findByText("Text mode");
+    expect(onInputModeChange).toHaveBeenLastCalledWith("text");
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+    await screen.findByText("Voice mode");
+    unmount();
+    expect(onInputModeChange).toHaveBeenLastCalledWith("text");
   });
 
   test("restarts when Voice is reselected before teardown completes", async () => {

@@ -16,7 +16,7 @@ import type { GraphApi } from "@local/hash-graph-client";
  * was `Triggered By`, if any.
  */
 export type FlowRunLinks = {
-  flowDefinitionId: EntityUuid | null;
+  flowDefinitionEntityId: EntityId | null;
   flowTriggerId: EntityUuid | null;
 };
 
@@ -36,7 +36,7 @@ export const getFlowRunLinks = async (params: {
   const linksByFlowRunEntityId = new Map<EntityId, FlowRunLinks>(
     flowRunEntityIds.map((flowRunEntityId) => [
       flowRunEntityId,
-      { flowDefinitionId: null, flowTriggerId: null },
+      { flowDefinitionEntityId: null, flowTriggerId: null },
     ]),
   );
 
@@ -91,36 +91,44 @@ export const getFlowRunLinks = async (params: {
       continue;
     }
 
-    const rightEntityUuid = extractEntityUuidFromEntityId(
-      linkData.rightEntityId,
-    );
-
     const isOfLinkType = (linkEntityTypeBaseUrl: string) =>
       linkEntity.metadata.entityTypeIds.some((entityTypeId) =>
         entityTypeId.startsWith(linkEntityTypeBaseUrl),
       );
 
-    const field = isOfLinkType(systemLinkEntityTypes.uses.linkEntityTypeBaseUrl)
-      ? "flowDefinitionId"
+    const link = isOfLinkType(systemLinkEntityTypes.uses.linkEntityTypeBaseUrl)
+      ? {
+          field: "flowDefinitionEntityId" as const,
+          linkName: "Uses",
+          target: linkData.rightEntityId,
+        }
       : isOfLinkType(systemLinkEntityTypes.triggeredBy.linkEntityTypeBaseUrl)
-        ? "flowTriggerId"
+        ? {
+            field: "flowTriggerId" as const,
+            linkName: "Triggered By",
+            target: extractEntityUuidFromEntityId(linkData.rightEntityId),
+          }
         : null;
 
-    if (!field) {
+    if (!link) {
       continue;
     }
 
     /* A run is created with one link of each kind, so another can only have been added since. The last one read wins. */
-    const existingEntityUuid = links[field];
+    const existingTarget = links[link.field];
 
-    if (existingEntityUuid && existingEntityUuid !== rightEntityUuid) {
+    if (existingTarget && existingTarget !== link.target) {
       // eslint-disable-next-line no-console
       console.warn(
-        `Flow run ${linkData.leftEntityId} has more than one ${field === "flowDefinitionId" ? "Uses" : "Triggered By"} link in its web, to ${existingEntityUuid} and ${rightEntityUuid}`,
+        `Flow run ${linkData.leftEntityId} has more than one ${link.linkName} link in its web, to ${existingTarget} and ${link.target}`,
       );
     }
 
-    links[field] = rightEntityUuid;
+    if (link.field === "flowDefinitionEntityId") {
+      links.flowDefinitionEntityId = link.target;
+    } else {
+      links.flowTriggerId = link.target;
+    }
   }
 
   return linksByFlowRunEntityId;

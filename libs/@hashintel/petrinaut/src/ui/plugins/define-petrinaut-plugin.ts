@@ -174,6 +174,12 @@ export interface PetrinautPluginManifest {
    * `root`, and may return `overlay` while it covers the editor.
    */
   readonly root?: true;
+  /**
+   * The AI assistant. The hook returns the assistant panel's content under
+   * `assistant`. The editor shows the first running plugin that declares one,
+   * and the deprecated `aiAssistant` prop's chat while none runs.
+   */
+  readonly assistant?: true;
   /** The service the hook returns under `provides`, declared with `pluginService<T>()`. */
   readonly provides?: PluginService<unknown>;
 }
@@ -259,9 +265,28 @@ export interface PluginReadOnlyAction {
   readonly run: () => void;
 }
 
+/** The AI assistant a plugin provides. */
+export interface PluginAssistant {
+  /**
+   * Everything inside the assistant panel below its title bar, such as the
+   * transcript and the composer. It renders behind the plugin's error boundary
+   * and remounts when another net opens. It fills the title bar with
+   * `AssistantPanelTitle` and reads the panel's state with `useAssistantPanel`.
+   * When the panel opens, its element marked `data-autofocus`, such as the
+   * composer, takes focus; without one, the panel does.
+   */
+  readonly content: ReactNode;
+  /**
+   * Takes the message the user sends from the empty-net prompt, after the
+   * editor opens the panel. The prompt shows only while it is set.
+   */
+  readonly onPrompt?: (text: string) => void;
+}
+
 interface ContributionTable<M extends PetrinautPluginManifest> {
   /** Rendered inside the editor behind the plugin's error boundary; `null` while there is nothing to show. */
   root: ReactNode;
+  assistant: PluginAssistant;
   commands: {
     readonly [K in keyof NonNullable<M["commands"]>]: PluginCommand;
   };
@@ -320,6 +345,7 @@ export type PluginHook<D extends PluginDefinitionRef> = (
 export interface AnyPluginContributions {
   readonly root?: ReactNode;
   readonly overlay?: boolean;
+  readonly assistant?: PluginAssistant;
   readonly commands?: Readonly<Record<string, PluginCommand>>;
   readonly buttons?: Readonly<Record<string, PluginButton>>;
   readonly topBarItems?: Readonly<Record<string, ReactNode>>;

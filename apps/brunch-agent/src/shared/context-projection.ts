@@ -1,22 +1,26 @@
+import {
+  browserExecutedToolNames,
+  browserToolEnvelopeOf,
+  parsePetrinautUserMessageBody,
+  petrinautContextualUserMessageBody,
+} from "@hashintel/brunch-agent";
+
 import { netResultView } from "./conversation/net-view.ts";
-import { inBandBrowserToolNames } from "./tool-catalogue.ts";
 
 import type {
   ContextProjection,
   ContextProjectionEntry,
   ContextProjectionMessage,
 } from "@flue/runtime";
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
+import type { BrowserToolEnvelope } from "@hashintel/brunch-agent";
 
 const browserEnvelope = (
   message: ContextProjectionMessage,
-): Record<string, unknown> | undefined => {
+): BrowserToolEnvelope | undefined => {
   if (
     message.role !== "toolResult" ||
     message.isError ||
-    !inBandBrowserToolNames.has(message.toolName)
+    !browserExecutedToolNames.has(message.toolName)
   )
     return undefined;
   const text = message.content
@@ -28,11 +32,7 @@ const browserEnvelope = (
   } catch {
     return undefined;
   }
-  return isRecord(envelope) &&
-    envelope.brunchBrowserResult === true &&
-    Object.hasOwn(envelope, "output")
-    ? envelope
-    : undefined;
+  return browserToolEnvelopeOf(envelope);
 };
 
 /**
@@ -86,6 +86,44 @@ const projectInBandBrowserResult = (
   };
 };
 
+/**
+ * Submission context is host data the agent reads from the delivery and
+ * restates in its instructions. The model sees the body the turn would have
+ * had without it: the user's text, or the diagnostics envelope.
+ */
+const withoutSubmissionContext = (text: string): string => {
+  const body = parsePetrinautUserMessageBody(text);
+  if (body.kind !== "contextual" || body.submissionContext === undefined)
+    return text;
+  return body.diagnosticsContext === ""
+    ? body.userText
+    : petrinautContextualUserMessageBody({
+        userText: body.userText,
+        diagnosticsContext: body.diagnosticsContext,
+      });
+};
+
+const projectUserBody = (
+  entry: ContextProjectionEntry,
+): ContextProjectionEntry => {
+  const message = entry.message;
+  if (message.role !== "user") return entry;
+  return {
+    ...entry,
+    message:
+      typeof message.content === "string"
+        ? { ...message, content: withoutSubmissionContext(message.content) }
+        : {
+            ...message,
+            content: message.content.map((part) =>
+              part.type === "text"
+                ? { ...part, text: withoutSubmissionContext(part.text) }
+                : part,
+            ),
+          },
+  };
+};
+
 export type BrunchContextProjectionOptions = {
   /** Receives exactly the canonical entries of the model's next request. */
   observe?: (entries: readonly ContextProjectionEntry[]) => void;
@@ -101,7 +139,9 @@ export const createBrunchContextProjection =
     options.observe?.(entries);
     const readBackIndex = readBackEntryIndex(entries);
     return entries.map((entry, entryIndex) =>
-      projectInBandBrowserResult(entry, entryIndex === readBackIndex),
+      entry.message.role === "user"
+        ? projectUserBody(entry)
+        : projectInBandBrowserResult(entry, entryIndex === readBackIndex),
     );
   };
 

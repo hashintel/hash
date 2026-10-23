@@ -794,6 +794,14 @@ async fn query_after_purge_returns_empty() {
     // If the tombstone caused a read error, this would panic instead of returning 0
     assert_eq!(count_entities(&api, entity_id, false).await, 0);
     assert_eq!(count_entities(&api, entity_id, true).await, 0);
+    assert!(
+        api.store
+            .get_entity_by_id(Some(api.account_id), entity_id, None, None)
+            .await
+            .expect("should read a purged entity without an error")
+            .is_none(),
+        "a purged entity should read as absent"
+    );
 }
 
 /// Verifies provenance records the deleting actor, not the creating actor.

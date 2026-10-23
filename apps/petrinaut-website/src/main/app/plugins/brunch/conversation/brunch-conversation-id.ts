@@ -11,10 +11,7 @@ export const brunchEvaluationConversationIdFrom = (
   conversationId: string,
 ): string => `${conversationId}:evaluation-I`;
 
-interface ConversationStorage {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-}
+type ConversationStorage = Pick<Storage, "getItem" | "setItem">;
 
 /** Change only the pointer; old conversation history and the model are retained. */
 export const replaceBrunchConversationId = (

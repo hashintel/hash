@@ -4,9 +4,11 @@
     "@hashintel/brunch-agent",
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
+    "@hashintel/ds-icons",
     "@hashintel/petrinaut",
     "@hashintel/petrinaut-core",
-    "@local/flue-aisdk-transport"
+    "@local/flue-aisdk-transport",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {
@@ -14,6 +16,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build",
@@ -35,6 +38,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build",
@@ -49,6 +53,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build"
@@ -59,6 +64,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
@@ -71,6 +77,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
@@ -86,6 +93,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build",
@@ -98,6 +106,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build",

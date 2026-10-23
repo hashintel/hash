@@ -1,13 +1,11 @@
 import {
+  browserExecutedToolNames,
   brunchTools,
+  CANONICAL_PETRINAUT_TOOL_NAMES,
   netReaderToolNames,
   type PetrinautToolCapability,
   petrinautToolEffects,
 } from "@hashintel/brunch-agent";
-import {
-  petrinautAiTools,
-  type PetrinautAiToolName,
-} from "@hashintel/petrinaut-core/ai";
 
 export type ToolDefinitionOwner = "flue" | "petrinaut-core" | "brunch-app";
 
@@ -29,7 +27,7 @@ export interface BrunchToolCatalogueEntry {
 }
 
 export const assertPetrinautToolCatalogueConformance = (
-  canonicalNames: readonly string[] = Object.keys(petrinautAiTools),
+  canonicalNames: readonly string[] = CANONICAL_PETRINAUT_TOOL_NAMES,
 ): void => {
   const classifiedNames = Object.keys(petrinautToolEffects);
   const unclassified = canonicalNames.filter(
@@ -46,14 +44,13 @@ export const assertPetrinautToolCatalogueConformance = (
 
 assertPetrinautToolCatalogueConformance();
 
-export const canonicalPetrinautToolCatalogue = Object.keys(
-  petrinautAiTools,
-).map((name): BrunchToolCatalogueEntry => ({
-  name,
-  definitionOwner: "petrinaut-core",
-  executionOwner: "petrinaut-website",
-  capability: petrinautToolEffects[name as PetrinautAiToolName].capability,
-}));
+export const canonicalPetrinautToolCatalogue =
+  CANONICAL_PETRINAUT_TOOL_NAMES.map((name): BrunchToolCatalogueEntry => ({
+    name,
+    definitionOwner: "petrinaut-core",
+    executionOwner: "petrinaut-website",
+    capability: petrinautToolEffects[name].capability,
+  }));
 
 const netReaderTools: readonly BrunchToolCatalogueEntry[] = Object.values(
   netReaderToolNames,
@@ -77,7 +74,7 @@ const draftBrunchTool: BrunchToolCatalogueEntry = {
  */
 export const brunchToolCatalogue: readonly BrunchToolCatalogueEntry[] = [
   {
-    name: "task",
+    name: brunchTools.task,
     definitionOwner: "flue",
     executionOwner: "flue",
     capability: "substrate",
@@ -123,9 +120,23 @@ export const brunchToolCatalogue: readonly BrunchToolCatalogueEntry[] = [
   draftBrunchTool,
 ];
 
-/** Tools the bound browser executes; the server awaits each result in band. */
-export const inBandBrowserToolNames: ReadonlySet<string> = new Set(
-  brunchToolCatalogue
+/** The catalogue's website-executed entries are exactly the tools the library says the browser runs. */
+export const assertBrowserExecutedToolConformance = (
+  catalogue: readonly BrunchToolCatalogueEntry[] = brunchToolCatalogue,
+): void => {
+  const catalogued = catalogue
     .filter(({ executionOwner }) => executionOwner === "petrinaut-website")
-    .map(({ name }) => name),
-);
+    .map(({ name }) => name);
+  const missing = [...browserExecutedToolNames].filter(
+    (name) => !catalogued.includes(name),
+  );
+  const extra = catalogued.filter(
+    (name) => !browserExecutedToolNames.has(name),
+  );
+  if (missing.length > 0 || extra.length > 0)
+    throw new Error(
+      `Browser-executed tool mismatch (missing: ${missing.join(", ") || "none"}; extra: ${extra.join(", ") || "none"}).`,
+    );
+};
+
+assertBrowserExecutedToolConformance();

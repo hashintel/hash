@@ -5,7 +5,7 @@ import { getFlowDefinitionFromEntity } from "@local/hash-isomorphic-utils/flows/
 import * as GraphQLError from "../../../error";
 
 import type { LoggedInGraphQLContext } from "../../../context";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
 
 /**
  * Loads a flow's definition from its `Flow Definition` entity, and checks that the user can run it.
@@ -15,19 +15,19 @@ import type { EntityUuid } from "@blockprotocol/type-system";
  */
 export const getRunnableFlowDefinition = async (
   graphQLContext: LoggedInGraphQLContext,
-  flowDefinitionId: EntityUuid,
+  flowDefinitionEntityId: EntityId,
 ) => {
   const { dataSources, authentication, user } = graphQLContext;
 
   const flowDefinitionEntity = await getFlowDefinitionEntityById({
-    flowDefinitionId,
+    flowDefinitionEntityId,
     graphApiClient: dataSources.graphApi,
     userAuthentication: authentication,
   });
 
   if (!flowDefinitionEntity) {
     throw GraphQLError.notFound(
-      `No flow definition with id ${flowDefinitionId} exists, or you can't view it`,
+      `No flow definition with id ${flowDefinitionEntityId} exists, or you can't view it`,
     );
   }
 
@@ -38,7 +38,7 @@ export const getRunnableFlowDefinition = async (
   } catch (error) {
     /* The definition is stored data, so an invalid one is a fault here, not in the request. */
     throw GraphQLError.internal(
-      `Flow definition ${flowDefinitionId} is invalid: ${(error as Error).message}`,
+      `Flow definition ${flowDefinitionEntityId} is invalid: ${(error as Error).message}`,
     );
   }
 

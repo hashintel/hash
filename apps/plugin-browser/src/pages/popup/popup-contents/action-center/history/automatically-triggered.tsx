@@ -1,7 +1,10 @@
 import { TableCell, TableRow } from "@mui/material";
 import { useMemo } from "react";
 
-import { automaticBrowserInferenceFlow } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
+import {
+  flowDefinitionIds,
+  isHashFlowDefinitionEntityId,
+} from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import { EventTable } from "./shared/event-table";
 import { HistoryRow } from "./shared/history-row";
@@ -18,9 +21,10 @@ export const AutomaticallyTriggered = ({
     () =>
       unfilteredFlowRuns.filter(
         (flow) =>
-          flow.flowDefinitionId ===
-            automaticBrowserInferenceFlow.flowDefinitionId ||
-          flow.requestedPageUrl,
+          isHashFlowDefinitionEntityId(
+            flow.flowDefinitionEntityId,
+            flowDefinitionIds.automaticBrowserInference,
+          ) || flow.requestedPageUrl,
       ),
     [unfilteredFlowRuns],
   );
@@ -38,12 +42,12 @@ export const AutomaticallyTriggered = ({
           </TableRow>
         ) : (
           automaticallyTriggeredFlows.map((flow) => {
-            const flowRunId = flow.flowRunId;
+            const flowRunEntityId = flow.flowRunEntityId;
 
             return (
               <HistoryRow
                 flowRun={flow}
-                key={flowRunId}
+                key={flowRunEntityId}
                 type={
                   flow.requestedPageUrl ? "external-page-request" : "automatic"
                 }

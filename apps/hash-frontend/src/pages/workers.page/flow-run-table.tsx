@@ -14,8 +14,8 @@ import {
   InfinityLightIcon,
   Skeleton,
 } from "@hashintel/design-system";
+import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import { isGoalFlowDefinitionId } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 import { Link } from "../../shared/ui/link";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
@@ -43,7 +43,7 @@ import type {
   VirtualizedTableRow,
 } from "../shared/virtualized-table";
 import type { VirtualizedTableSort } from "../shared/virtualized-table/header/sort";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
@@ -110,7 +110,7 @@ const createColumns: (
 type WorkerSummary = Subtype<
   Record<FieldId, unknown>,
   {
-    flowRunId: EntityUuid;
+    flowRunEntityId: EntityId;
     flowScheduleId: EntityUuid | null;
     executedAt: string | null;
     closedAt: string | null;
@@ -131,7 +131,7 @@ type WorkerSummary = Subtype<
 const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
   const {
     web,
-    flowRunId,
+    flowRunEntityId,
     flowScheduleId,
     type,
     name,
@@ -173,7 +173,7 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
           <Link
             href={generateWorkerRunPath({
               shortname: web.shortname,
-              flowRunId,
+              flowRunEntityId,
             })}
             sx={{
               display: "block",
@@ -271,10 +271,12 @@ const LoadingComponent = ({ columnCount }: { columnCount: number }) => (
 );
 
 type FlowRunTableProps = {
-  flowDefinitionIdFilter?: string[];
+  flowDefinitionEntityIdFilter?: string[];
 };
 
-export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
+export const FlowRunTable = ({
+  flowDefinitionEntityIdFilter,
+}: FlowRunTableProps) => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
     fieldId: "closedAt",
     direction: "desc",
@@ -291,17 +293,20 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const filteredFlowRuns = useMemo(() => {
-    if (!flowDefinitionIdFilter || flowDefinitionIdFilter.length === 0) {
+    if (
+      !flowDefinitionEntityIdFilter ||
+      flowDefinitionEntityIdFilter.length === 0
+    ) {
       return unfilteredFlowRuns;
     }
     return unfilteredFlowRuns.filter((run) =>
-      flowDefinitionIdFilter.includes(run.flowDefinitionId),
+      flowDefinitionEntityIdFilter.includes(run.flowDefinitionEntityId),
     );
-  }, [unfilteredFlowRuns, flowDefinitionIdFilter]);
+  }, [unfilteredFlowRuns, flowDefinitionEntityIdFilter]);
 
   const { isUsageAvailable: usageAvailable, usageByFlowRun } = useFlowRunsUsage(
     {
-      flowRunIds: filteredFlowRuns.map((run) => run.flowRunId),
+      flowRunEntityIds: filteredFlowRuns.map((run) => run.flowRunEntityId),
     },
   );
 
@@ -310,13 +315,14 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
 
     const rowData: VirtualizedTableRow<WorkerSummary>[] = filteredFlowRuns.map(
       (flowRun) => {
-        const type = isGoalFlowDefinitionId(
-          flowRun.flowDefinitionId as EntityUuid,
+        const type = isGoalFlowDefinitionEntityId(
+          flowRun.flowDefinitionEntityId,
         )
           ? "goal"
           : "flow";
 
-        const { webId, flowRunId, executedAt, closedAt, status } = flowRun;
+        const { webId, flowRunEntityId, executedAt, closedAt, status } =
+          flowRun;
 
         let web: WorkerSummary["web"] | undefined = webByWebId[webId];
 
@@ -351,15 +357,15 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
           webByWebId[webId] = web;
         }
 
-        const cost = usageByFlowRun[flowRunId]?.total ?? null;
+        const cost = usageByFlowRun[flowRunEntityId]?.total ?? null;
 
         // Extract flowScheduleId if present (for scheduled runs)
         const flowScheduleId = (flowRun as FlowRun).flowScheduleId ?? null;
 
         return {
-          id: flowRunId,
+          id: flowRunEntityId,
           data: {
-            flowRunId,
+            flowRunEntityId,
             flowScheduleId,
             web,
             type,
@@ -416,10 +422,10 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
     () => (
       <EmptyComponent
         columnCount={columns.length}
-        filtered={!!flowDefinitionIdFilter?.length}
+        filtered={!!flowDefinitionEntityIdFilter?.length}
       />
     ),
-    [columns, flowDefinitionIdFilter],
+    [columns, flowDefinitionEntityIdFilter],
   );
 
   const LoadingPlaceholder = useCallback(

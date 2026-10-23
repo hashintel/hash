@@ -77,6 +77,7 @@ impl From<DraftId> for Uuid {
     }
 }
 
+/// An entity's web ID and UUID joined by `~`, followed by `~` and a draft ID when it names a draft.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct EntityId {
     pub web_id: WebId,

@@ -10,7 +10,7 @@ import { getFlowContext } from "../shared/get-flow-context.js";
 import { find } from "./filter-action/filter-values.js";
 import {
   getConditionContext,
-  getConditionSubjects,
+  getConditionReads,
 } from "./filter-action/get-condition-context.js";
 
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
@@ -36,9 +36,9 @@ export const findAction: FlowActionActivity<"find"> = async ({ inputs }) => {
     condition,
     await getConditionContext({
       authentication: userAuthentication,
-      subjects: condition
-        ? getConditionSubjects(condition, resolvedItems.kind)
-        : [],
+      ...(condition
+        ? getConditionReads(condition, resolvedItems.kind)
+        : { subjects: [] }),
       kind: resolvedItems.kind,
       values: resolvedItems.value,
     }),

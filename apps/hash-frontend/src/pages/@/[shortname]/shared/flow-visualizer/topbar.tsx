@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
   AngleRightRegularIcon,
   PlaySolidIcon,
@@ -35,7 +36,7 @@ import type {
   CancelFlowMutationVariables,
   FlowRun,
 } from "../../../../../graphql/api-types.gen";
-import type { EntityUuid } from "@blockprotocol/type-system";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import type { FunctionComponent } from "react";
 
@@ -167,10 +168,11 @@ export const Topbar = ({
 
   const [cancelling, setCancelling] = useState(false);
 
-  const { flowDefinitions, selectedFlowDefinitionId } =
+  const { flowDefinitions, selectedFlowDefinitionEntityId } =
     useFlowDefinitionsContext();
 
-  const { flowRuns, selectedFlowRunId, selectedFlowRun } = useFlowRunsContext();
+  const { flowRuns, selectedFlowRunEntityId, selectedFlowRun } =
+    useFlowRunsContext();
 
   const [cancelFlow] = useMutation<
     CancelFlowMutation,
@@ -178,11 +180,13 @@ export const Topbar = ({
   >(cancelFlowMutation);
 
   const onCancelFlowClicked = useCallback(async () => {
-    if (selectedFlowRunId) {
+    if (selectedFlowRunEntityId) {
       setCancelling(true);
 
       try {
-        await cancelFlow({ variables: { flowUuid: selectedFlowRunId } });
+        await cancelFlow({
+          variables: { flowRunEntityId: selectedFlowRunEntityId },
+        });
       } catch {
         /**
          * We don't nee to worry about the success case because the cancel flow button will disappear
@@ -190,7 +194,7 @@ export const Topbar = ({
         setCancelling(false);
       }
     }
-  }, [cancelFlow, selectedFlowRunId]);
+  }, [cancelFlow, selectedFlowRunEntityId]);
 
   const onRunFlowClicked = useCallback(() => {
     handleRunFlowClicked();
@@ -198,16 +202,25 @@ export const Topbar = ({
 
   const getOwner = useGetOwnerForEntity();
 
+  /** A definition's page is under the shortname of the web the definition is in. */
+  const getFlowDefinitionPath = (flowDefinitionEntityId: EntityId) =>
+    generateFlowDefinitionPath({
+      shortname: getOwner({
+        webId: extractWebIdFromEntityId(flowDefinitionEntityId),
+      }).shortname,
+      flowDefinitionEntityId,
+    });
+
   const runOptions = useMemo(
     () =>
       flowRuns.filter(
-        (run) => run.flowDefinitionId === selectedFlowDefinitionId,
+        (run) => run.flowDefinitionEntityId === selectedFlowDefinitionEntityId,
       ),
-    [flowRuns, selectedFlowDefinitionId],
+    [flowRuns, selectedFlowDefinitionEntityId],
   );
 
   const selectedFlowDefinition = flowDefinitions.find(
-    (flow) => flow.flowDefinitionId === selectedFlowDefinitionId,
+    (flow) => flow.flowDefinitionEntityId === selectedFlowDefinitionEntityId,
   );
 
   return (
@@ -254,25 +267,22 @@ export const Topbar = ({
           ) : (
             <Select
               selectSx={selectSx}
-              value={selectedFlowDefinitionId ?? "none"}
+              value={selectedFlowDefinitionEntityId ?? "none"}
               onChange={(event) => {
-                /**
-                 * @todo update this to use the flow definition's uuid when stored in the db
-                 *    also then needs to take account of the correct namespace, which might be different from the
-                 *   current
-                 */
-                void push(
-                  generateFlowDefinitionPath({
-                    shortname: "hash",
-                    flowDefinitionId: event.target.value,
-                  }),
+                const flow = flowDefinitions.find(
+                  ({ flowDefinitionEntityId }) =>
+                    flowDefinitionEntityId === event.target.value,
                 );
+
+                if (flow) {
+                  void push(getFlowDefinitionPath(flow.flowDefinitionEntityId));
+                }
               }}
             >
               {flowDefinitions.map((flow) => (
                 <MenuItem
-                  key={flow.flowDefinitionId}
-                  value={flow.flowDefinitionId}
+                  key={flow.flowDefinitionEntityId}
+                  value={flow.flowDefinitionEntityId}
                 >
                   {flow.flowDefinition.name}
                 </MenuItem>
@@ -290,22 +300,21 @@ export const Topbar = ({
             ) : (
               <Select
                 selectSx={{ ...selectSx, minWidth: 100 }}
-                value={selectedFlowRunId ?? "none"}
+                value={selectedFlowRunEntityId ?? "none"}
                 onChange={(event) => {
                   const value = event.target.value;
 
                   if (value === "none") {
-                    void push(
-                      generateFlowDefinitionPath({
-                        shortname: "hash",
-                        flowDefinitionId: selectedFlowDefinitionId ?? "none",
-                      }),
-                    );
+                    if (selectedFlowDefinitionEntityId) {
+                      void push(
+                        getFlowDefinitionPath(selectedFlowDefinitionEntityId),
+                      );
+                    }
                     return;
                   }
 
                   const flowRun = flowRuns.find(
-                    (run) => run.flowRunId === value,
+                    (run) => run.flowRunEntityId === value,
                   );
                   if (!flowRun) {
                     throw new Error(`Flow run with id ${value} not found`);
@@ -316,7 +325,7 @@ export const Topbar = ({
                   void push(
                     generateWorkerRunPath({
                       shortname,
-                      flowRunId: value as EntityUuid,
+                      flowRunEntityId: flowRun.flowRunEntityId,
                     }),
                   );
                 }}
@@ -326,8 +335,8 @@ export const Topbar = ({
                 </MenuItem>
                 {runOptions.map((run) => (
                   <MenuItem
-                    key={run.flowRunId}
-                    value={run.flowRunId}
+                    key={run.flowRunEntityId}
+                    value={run.flowRunEntityId}
                     sx={{ fontFamily: "monospace" }}
                   >
                     {generateRunLabel(run)}

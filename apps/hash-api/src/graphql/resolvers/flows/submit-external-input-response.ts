@@ -8,7 +8,6 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
-import type { EntityUuid } from "@blockprotocol/type-system";
 
 export const submitExternalInputResponse: ResolverFn<
   Promise<boolean>,
@@ -17,20 +16,23 @@ export const submitExternalInputResponse: ResolverFn<
   MutationSubmitExternalInputResponseArgs
 > = async (
   _,
-  { response, flowUuid },
+  { response, flowRunEntityId },
   { authentication, dataSources, temporal },
 ) => {
   const flow = await getFlowRunEntityById({
-    flowRunId: flowUuid as EntityUuid,
+    flowRunEntityId,
     graphApiClient: dataSources.graphApi,
     userAuthentication: authentication,
   });
 
   if (!flow) {
-    throw Error.notFound(`Flow with id ${flowUuid} not found`);
+    throw Error.notFound(`Flow with id ${flowRunEntityId} not found`);
   }
 
-  const handle = temporal.workflow.getHandle(flowUuid);
+  const workflowId =
+    flow.properties["https://hash.ai/@h/types/property-type/workflow-id/"];
+
+  const handle = temporal.workflow.getHandle(workflowId);
 
   await handle.signal(externalInputResponseSignal, response);
 

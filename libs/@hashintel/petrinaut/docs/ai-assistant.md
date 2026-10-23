@@ -28,7 +28,7 @@ Choose **Dock AI assistant** to return it to the right sidebar. Switching betwee
 
 Hovering a floating side highlights its straight border, fading out before each corner. Hovering a corner highlights its rounded border and fades along the two adjoining edges. Drag the corner to resize both dimensions.
 
-The header text is not selectable. Header icons animate on hover and click unless reduced motion is enabled.
+The header text is not selectable. Header icons animate on hover and click unless reduced motion is enabled. A host can add its own buttons beside the header's actions, either in both modes or only in Chat or only in Voice; switching modes hides or shows them without changing the conversation or the Ledger.
 
 ## The conversation
 
@@ -45,6 +45,8 @@ cannot be activated during work. The spinner stays still with reduced motion
 enabled. While viewing Ledger, a status row above the composer reports
 **Working…** instead.
 The stock assistant shows its working label without these Brunch statuses.
+
+A host can add its own controls and status around the composer. In Brunch, host controls sit at the left edge of the composer and of the Voice dock, apart from Send, Voice and Stop. A host status row sits above the composer, or above the Voice dock while the conversation is shown; the collapsed Voice dock omits it. Brunch also shows host notes, such as a change of setting, in the transcript of Chat and Voice: a short line with an information icon unless the host supplies its own content.
 
 Completed Chat answers offer **Copy** and **Retry**. The latest answer keeps these controls visible; older answers reveal them on hover or keyboard focus. Touch screens keep them visible. Copy keeps the answer's Markdown and briefly shows a check mark after copying succeeds. Retry sends that answer's original prompt as a new turn, keeping the previous answer and any unsent draft. It can lead to new tool calls, just like sending the prompt yourself. Retry is unavailable while another response or voice handoff is active.
 

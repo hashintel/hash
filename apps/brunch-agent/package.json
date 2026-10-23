@@ -16,6 +16,7 @@
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
+    "packet:run": "node --experimental-strip-types --disable-warning=ExperimentalWarning evals/petrinaut/run-packet-cli.ts",
     "persona": "node --experimental-strip-types evals/petrinaut/persona/launch.ts",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
     "probe:turn": "node --experimental-strip-types evals/petrinaut/turn-probe.ts",
@@ -53,8 +54,10 @@
   "devDependencies": {
     "@flue/vite": "2.3.0",
     "@local/pi-faux-providers": "workspace:*",
+    "@local/tsconfig": "workspace:*",
     "@playwright/test": "1.58.2",
-    "@types/node": "22.18.13",
+    "@tsconfig/bases": "catalog:",
+    "@types/node": "catalog:",
     "@types/pg": "8.23.1",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
@@ -64,8 +67,8 @@
     "dependency-cruiser": "18.0.0",
     "oxlint": "1.86.0",
     "oxlint-tsgolint": "7.0.2003",
-    "vite": "8.2.2",
-    "vitest": "4.1.11",
+    "vite": "catalog:",
+    "vitest": "catalog:",
     "wait-on": "9.0.1"
   }
 }
