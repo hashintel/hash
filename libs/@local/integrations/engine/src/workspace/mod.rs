@@ -8,7 +8,7 @@ mod rows;
 mod select;
 
 use alloc::{collections::BTreeMap, sync::Arc};
-use core::{error::Error, num::NonZero};
+use core::{error::Error, num::NonZeroUsize};
 use std::{path::PathBuf, thread};
 
 use error_stack::{Report, ResultExt as _};
@@ -40,7 +40,7 @@ use crate::{
 pub struct WorkspaceConfig {
     /// The number of requests that can wait while another runs. Defaults to 64.
     /// Callers wait for queue space when it is full.
-    pub queue_capacity: NonZero<usize>,
+    pub queue_capacity: NonZeroUsize,
     /// The values of the `$NAME` parameters that queries read.
     pub variables: Variables,
     /// The most memory DuckDB uses. A query that needs more spills to the temporary directory,
@@ -58,13 +58,14 @@ pub struct WorkspaceConfig {
     /// files over the limit stays in the database.
     pub disk_limit: Option<ByteSize>,
     /// The number of threads DuckDB runs a query on.
-    pub threads: Option<NonZero<usize>>,
+    pub threads: Option<NonZeroUsize>,
 }
 
 impl Default for WorkspaceConfig {
     fn default() -> Self {
         Self {
-            queue_capacity: NonZero::new(64).expect("the default queue capacity should be nonzero"),
+            queue_capacity: NonZeroUsize::new(64)
+                .expect("the default queue capacity should be nonzero"),
             variables: Variables::default(),
             memory_limit: None,
             temp_directory_limit: None,
