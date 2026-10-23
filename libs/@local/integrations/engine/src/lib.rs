@@ -6,13 +6,13 @@
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![feature(
+    ip,
     const_array,
     const_closures,
     const_trait_impl,
     type_info,
     variant_count
 )]
-#![cfg_attr(test, feature(ip))]
 
 extern crate alloc;
 
@@ -38,8 +38,8 @@ pub use self::{
     },
     progress::{Progress, ProgressSnapshot},
     sources::{
-        CaptureLimits, GraphVaultConfig, GraphVaultSecretStore, SecretStore, SecretValue,
-        SourceError,
+        CaptureLimits, CaptureRun, CaptureStore, GraphVaultConfig, GraphVaultSecretStore,
+        SecretStore, SecretValue, SourceError, SourceReader,
     },
     workspace::{
         CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,
