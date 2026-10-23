@@ -1,5 +1,5 @@
 import { useApolloClient } from "@apollo/client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { getFlowRunEventsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
@@ -65,38 +65,75 @@ export const useFlowRunEvents = ({
     result: FlowRunEvents;
   } | null>(null);
 
+  /** Kept across `live` changes, so a run that closes is not read again from the start. */
+  const readSoFar = useRef<{
+    flowRunEntityId: EntityId;
+    events: FlowRunEvent[];
+    cursor: string | null;
+  } | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     let pollTimeout: ReturnType<typeof setTimeout> | undefined;
-    let events: FlowRunEvent[] = [];
-    let cursor: string | null = null;
+
+    if (readSoFar.current?.flowRunEntityId !== flowRunEntityId) {
+      readSoFar.current = { flowRunEntityId, events: [], cursor: null };
+    }
+    const progress = readSoFar.current;
 
     const readNewEvents = async () => {
       let runId: string | undefined;
+      let changed = false;
 
-      for (let hasNextPage = true; hasNextPage && !cancelled;) {
+      for (let hasNextPage = true; hasNextPage;) {
         const { data } = await apolloClient.query<
           GetFlowRunEventsQuery,
           GetFlowRunEventsQueryVariables
         >({
           query: getFlowRunEventsQuery,
-          variables: { flowRunEntityId, after: cursor, first: pageSize },
+          variables: {
+            flowRunEntityId,
+            after: progress.cursor,
+            first: pageSize,
+          },
           fetchPolicy: "no-cache",
         });
 
+        if (cancelled) {
+          return;
+        }
+
         const page = data.getFlowRunById.events;
 
-        events = withPage(events, page);
-        cursor = page.endCursor ?? cursor;
+        if (page.restarted || page.events.length > 0) {
+          progress.events = withPage(progress.events, page);
+          changed = true;
+        }
+        progress.cursor = page.endCursor ?? progress.cursor;
         runId = page.runId;
         hasNextPage = page.hasNextPage;
       }
 
       if (!cancelled && runId !== undefined) {
-        setRead({
-          flowRunEntityId,
-          result: { status: "loaded", events, runId },
-        });
+        const loadedRunId = runId;
+
+        /* An unchanged result keeps its identity, so the net is not replayed again for nothing. */
+        setRead((previous) =>
+          !changed &&
+          previous?.flowRunEntityId === flowRunEntityId &&
+          previous.result.status === "loaded" &&
+          previous.result.runId === loadedRunId &&
+          previous.result.checkFailure === undefined
+            ? previous
+            : {
+                flowRunEntityId,
+                result: {
+                  status: "loaded",
+                  events: progress.events,
+                  runId: loadedRunId,
+                },
+              },
+        );
       }
     };
 

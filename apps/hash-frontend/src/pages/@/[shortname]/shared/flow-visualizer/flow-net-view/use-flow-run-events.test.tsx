@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getFlowRunEventsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
+import { FlowRunStatus } from "../../../../../../graphql/api-types.gen";
 import { useFlowRunEvents } from "./use-flow-run-events";
 
 import type { MockedResponse } from "@apollo/client/testing";
@@ -51,14 +52,25 @@ const runStartedEvent: FlowRunEvent = {
   flowInputs: {},
 };
 
+const runFinishedEvent: FlowRunEvent = {
+  kind: "runFinished",
+  position: "2.0",
+  occurredAt: "2026-10-22T10:01:00.000Z",
+  status: FlowRunStatus.Completed,
+};
+
 const renderWithMocks = (mocks: MockedResponse[]) =>
-  renderHook(() => useFlowRunEvents({ flowRunEntityId, live: true }), {
+  renderHook(({ live }) => useFlowRunEvents({ flowRunEntityId, live }), {
+    initialProps: { live: true },
     wrapper: ({ children }: { children: ReactNode }) => (
       <MockedProvider mocks={mocks} addTypename={false}>
         {children}
       </MockedProvider>
     ),
   });
+
+const loadedEvents = (result: ReturnType<typeof useFlowRunEvents>) =>
+  result.status === "loaded" ? result.events : null;
 
 describe("useFlowRunEvents", () => {
   beforeEach(() => {
@@ -125,6 +137,55 @@ describe("useFlowRunEvents", () => {
     await act(() => vi.advanceTimersByTimeAsync(2_000));
 
     await waitFor(() => expect(result.current.status).toBe("loaded"));
+
+    unmount();
+  });
+
+  it("keeps the same events when a check finds nothing new", async () => {
+    const { result, unmount } = renderWithMocks([
+      eventsPage({ after: null, events: [runStartedEvent], endCursor: "1.0" }),
+      eventsPage({ after: "1.0", events: [], endCursor: null }),
+      eventsPage({
+        after: "1.0",
+        events: [runFinishedEvent],
+        endCursor: "2.0",
+      }),
+    ]);
+
+    await waitFor(() => expect(result.current.status).toBe("loaded"));
+    const firstEvents = loadedEvents(result.current);
+
+    await act(() => vi.advanceTimersByTimeAsync(2_000));
+    expect(loadedEvents(result.current)).toBe(firstEvents);
+
+    await act(() => vi.advanceTimersByTimeAsync(2_000));
+    await waitFor(() => expect(loadedEvents(result.current)).toHaveLength(2));
+
+    unmount();
+  });
+
+  it("reads on from where it was when the run stops being live", async () => {
+    /* There is no second read from the start, which would fail as unmocked. */
+    const { result, rerender, unmount } = renderWithMocks([
+      eventsPage({ after: null, events: [runStartedEvent], endCursor: "1.0" }),
+      eventsPage({
+        after: "1.0",
+        events: [runFinishedEvent],
+        endCursor: "2.0",
+      }),
+    ]);
+
+    await waitFor(() => expect(result.current.status).toBe("loaded"));
+
+    rerender({ live: false });
+
+    await waitFor(() =>
+      expect(result.current).toEqual({
+        status: "loaded",
+        runId: "run",
+        events: [runStartedEvent, runFinishedEvent],
+      }),
+    );
 
     unmount();
   });
