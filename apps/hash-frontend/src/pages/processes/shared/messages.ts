@@ -112,7 +112,9 @@ export type HostToIframeMessage =
       /**
        * Reply to a `requestSave`. On success carries the new entity id (the
        * host has either created or updated the underlying entity) and the
-       * updated saved snapshot the iframe should treat as canonical.
+       * updated saved snapshot the iframe should treat as canonical. The
+       * revision list that includes the new revision arrives separately, as
+       * `revisionsList`, once the host's history refetch lands.
        */
       kind: "saveResult";
       requestId: string;
@@ -121,7 +123,6 @@ export type HostToIframeMessage =
             ok: true;
             mode: HostNetMode;
             savedSnapshot: NonNullable<SavedSnapshot>;
-            revisions: RevisionSummary[];
           }
         | { ok: false; error: string };
     }
