@@ -257,7 +257,7 @@ test("runs a plugin button's onClick, then its command, through the registry Pet
 test("includes the Performance plugin without a host-supplied plugin list", () => {
   render(<Petrinaut handle={createHandle()} />);
   expect(
-    screen.getByRole("button", { name: "Toggle performance information" }),
+    screen.getByRole("button", { name: "Toggle performance monitor" }),
   ).toBeTruthy();
 });
 

@@ -2,7 +2,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { PerformancePanels } from "./panels";
+import { PerformanceMonitor } from "./panels";
 
 import type { PluginPerformanceSnapshot } from "../../plugin";
 
@@ -46,14 +46,13 @@ it("draws the demo's 24 by 6 square history, newest on the right", () => {
     })),
   };
   render(
-    <PerformancePanels
+    <PerformanceMonitor
       performance={{
         snapshot: { get: () => snapshot, subscribe: () => () => {} },
       }}
-      showFps
-      showInformation={false}
-      setShowFps={() => {}}
-      hideInformation={() => {}}
+      expanded={false}
+      setExpanded={() => {}}
+      onClose={() => {}}
     />,
   );
   expect(fills).toHaveLength(144);

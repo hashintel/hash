@@ -1,15 +1,17 @@
 # Performance
 
-The **Performance** plugin is included in Petrinaut. Its panels start hidden.
-Click **Toggle performance information** in the top bar to open the information
-panel, then use **FPS counter** to show the frame-rate panel too. Each panel has
-its own close button.
+The **Performance** plugin is included in Petrinaut. Click **Toggle performance
+monitor** in the top bar to show its FPS counter. Click the counter's FPS header
+to expand frame timing, plugin activity, and measurement guidance in one dark
+widget. Each section collapses separately. Click the header again to return to
+the compact counter, or its close button to hide the whole monitor.
 
-You can also open **User settings → General → Performance** and toggle **Show
-FPS counter** or **Show performance information**. Hosts with a command palette
-list **Toggle FPS counter** and **Toggle performance information**. Your choices
-are saved across nets. **User settings → Plugins → Performance** switches the
-whole plugin off, including its button and commands.
+The monitor starts hidden. **User settings → General → Performance** has
+**Show FPS counter** and **Expand performance details** switches. Expansion
+applies when the counter is visible. Hosts with a command palette list **Toggle
+performance monitor**. Visibility and expansion are saved across nets. **User
+settings → Plugins → Performance** switches the whole plugin off, including its
+button and command.
 
 ## Browser FPS
 
@@ -33,7 +35,7 @@ which part of the page caused a delay.
 - **Longest frame gap** shows the largest delay between animation callbacks in
   the latest sample.
 - **Collector** shows measured synchronous collection and notification work in
-  the preceding sample. Drawing the panels and React's profiling bookkeeping
+  the preceding sample. Drawing the monitor and React's profiling bookkeeping
   add cost beyond this value.
 - **First publish** shows elapsed time from creation of a plugin host to its
   first contribution publication. Scheduling, other startup work and loading
@@ -51,7 +53,7 @@ Development Strict Mode can repeat work; use production measurements for
 comparisons of user interactions.
 
 The monitor includes its own activity. Compare the same interaction with the
-panels off and on. Both panels share collection, and closing both stops it
-unless another plugin is reading performance data. Collection keeps only a
-short frame history and the active plugin rows. Counts restart when monitoring
-resumes; first-publication latency lasts until that plugin host remounts.
+monitor off and on. Collapsing details keeps collection and FPS history running.
+Closing the monitor stops collection unless another plugin is reading performance
+data. Collection keeps only a short frame history and the active plugin rows.
+Counts restart when monitoring resumes; first-publication latency lasts until that plugin host remounts.

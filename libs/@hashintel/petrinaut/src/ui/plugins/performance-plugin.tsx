@@ -1,13 +1,13 @@
 import { ChartLineIcon } from "@hashintel/ds-icons";
 
 import { definePetrinautPlugin, type PluginHook } from "../plugin";
-import { PerformancePanels } from "./performance-plugin/panels";
+import { PerformanceMonitor } from "./performance-plugin/panels";
 
 const PerformancePlugin = definePetrinautPlugin({
   id: "hash.performance",
   name: "Performance",
   description:
-    "Browser frame timing and plugin activity, collected while a performance panel is visible.",
+    "Browser frame timing and plugin activity, collected while the FPS counter is visible.",
   author: "HASH",
   access: { performance: "read" },
   settings: {
@@ -20,24 +20,20 @@ const PerformancePlugin = definePetrinautPlugin({
     showInformation: {
       type: "boolean",
       default: false,
-      label: "Show performance information",
+      label: "Expand performance details",
       description:
-        "Show frame gaps, plugin activity, and available React timings.",
+        "Expand the FPS counter to show frame timing and plugin activity.",
     },
   },
   commands: {
     toggleFps: {
-      label: "Toggle FPS counter",
-      keywords: ["performance", "frames"],
-    },
-    toggleInformation: {
-      label: "Toggle performance information",
-      keywords: ["performance", "plugins", "timing"],
+      label: "Toggle performance monitor",
+      keywords: ["fps", "performance", "frames", "plugins", "timing"],
     },
   },
   buttons: {
-    toggleInformation: {
-      label: "Toggle performance information",
+    toggleFps: {
+      label: "Toggle performance monitor",
       place: "top-bar-end",
     },
   },
@@ -46,37 +42,25 @@ const PerformancePlugin = definePetrinautPlugin({
 
 const usePerformancePlugin: PluginHook<typeof PerformancePlugin> = (api) => {
   const showFps = api.settings.get("showFps");
-  const showInformation = api.settings.get("showInformation");
+  const expanded = api.settings.get("showInformation");
 
   return {
     commands: {
       toggleFps: {
         run: () => api.settings.set("showFps", !api.settings.get("showFps")),
       },
-      toggleInformation: {
-        run: () =>
-          api.settings.set(
-            "showInformation",
-            !api.settings.get("showInformation"),
-          ),
-      },
     },
     buttons: {
-      toggleInformation: {
-        icon: <ChartLineIcon />,
-        command: "toggleInformation",
-      },
+      toggleFps: { icon: <ChartLineIcon />, command: "toggleFps" },
     },
-    root:
-      showFps || showInformation ? (
-        <PerformancePanels
-          performance={api.performance}
-          showFps={showFps}
-          showInformation={showInformation}
-          setShowFps={(value) => api.settings.set("showFps", value)}
-          hideInformation={() => api.settings.set("showInformation", false)}
-        />
-      ) : null,
+    root: showFps ? (
+      <PerformanceMonitor
+        performance={api.performance}
+        expanded={expanded}
+        setExpanded={(value) => api.settings.set("showInformation", value)}
+        onClose={() => api.settings.set("showFps", false)}
+      />
+    ) : null,
   };
 };
 

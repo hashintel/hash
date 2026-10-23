@@ -26,8 +26,9 @@ in a group under the plugin's name after the built-in groups.
 
 ### Performance
 
-The included **Performance** plugin adds **Show FPS counter** and **Show
-performance information** switches. Both start off. See
+The included **Performance** plugin adds **Show FPS counter** and **Expand
+performance details** switches. Both start off. Details expand inside the dark
+FPS counter when it is visible; each section can collapse separately. See
 [Performance](performance.md) for controls and measurement limits.
 
 ### Animations
