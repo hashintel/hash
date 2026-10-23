@@ -93,7 +93,10 @@ export const humanize = (name: string) => {
     .replace(/Id\b/g, "")
     .trim()
     .toLowerCase();
-  return words.charAt(0).toUpperCase() + words.slice(1);
+  return (words.charAt(0).toUpperCase() + words.slice(1)).replace(
+    /\burl\b/gi,
+    "URL",
+  );
 };
 
 type Presentation = Pick<CatalogEntry, "title" | "category" | "icon"> & {

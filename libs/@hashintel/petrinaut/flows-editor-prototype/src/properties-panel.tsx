@@ -30,7 +30,7 @@ import {
   updateTrigger,
   usersOf,
 } from "./document";
-import { showDebug, showFull, useEditor } from "./editor-context";
+import { inScreenState, showDebug, showFull, useEditor } from "./editor-context";
 import {
   allPayloadKinds,
   type PayloadKind,
@@ -79,6 +79,7 @@ import {
   panelHeaderStyle,
   PropertyRow,
   Section,
+  selectTriggerStyle,
   ChipRow,
   SourceChip,
   type Tone,
@@ -646,10 +647,11 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
                     : over.owner}
               </SourceChip>
             ) : (
-              <Button
-                size="sm"
-                variant="subtle"
-                iconName="plus"
+              <button
+                type="button"
+                className={selectTriggerStyle}
+                style={{ alignSelf: "stretch" }}
+                data-placeholder
                 onClick={() =>
                   setUi((current) => ({
                     ...current,
@@ -661,8 +663,9 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
                   }))
                 }
               >
-                Choose a list
-              </Button>
+                <span>Choose a list</span>
+                <Icon name="chevronDown" size="sm" />
+              </button>
             )}
           </div>
           {open ? (
@@ -671,6 +674,9 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
               stepId={step.stepId}
               input={anyListInput}
               entry={forEachEntry}
+              listsOnly
+              position="bottom-end"
+              alignToPanel
               onClose={() =>
                 setUi((current) => ({ ...current, openField: null }))
               }
@@ -1243,7 +1249,7 @@ const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
           />
         </PropertyRow>
       ) : null}
-      {type ? (
+      {inScreenState && !showFull ? null : type ? (
         <TriggerCondition trigger={trigger} entityTypeBaseUrl={type.baseUrl} />
       ) : (
         <PropertyRow

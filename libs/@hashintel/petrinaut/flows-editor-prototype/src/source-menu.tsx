@@ -21,12 +21,13 @@ import {
   START_ID,
   addStep,
   type EditorDocument,
+  entityTypeOf,
   findStep,
   setInputSource,
 } from "./document";
 import { useEditor } from "./editor-context";
 import { isMockPayloadKind } from "./mock-action-definitions";
-import { mockEntities } from "./mock-graph";
+import { findEntityType, mockEntities } from "./mock-graph";
 import { OpenMenu } from "./open-menu";
 import { acceptedKinds, type SourceOption, sourceOptions } from "./shapes";
 import { kindLabel } from "./ui";
@@ -374,6 +375,7 @@ export const SourceMenu = ({
   typeValueSource = "Manual input",
   position = "bottom-end",
   alignToPanel = false,
+  listsOnly = false,
 }: {
   anchor: React.RefObject<Element | null>;
   stepId: string;
@@ -401,6 +403,8 @@ export const SourceMenu = ({
   position?: "bottom-start" | "bottom-end";
   /** Open under the anchor with the menu's right edge on the properties panel's. */
   alignToPanel?: boolean;
+  /** The For each list menu (Figma J2 · C1): a search row, then the earlier steps in flow order, each with its list. */
+  listsOnly?: boolean;
 }) => {
   const { document, setDocument, setUi } = useEditor();
   const [search, setSearch] = useState("");
@@ -411,14 +415,19 @@ export const SourceMenu = ({
   const allows = (source: PrdSource) =>
     !input.sources || input.sources.includes(source);
   const fromSteps = allows("Previous step");
-  const lookupAllowed = allows("HASH graph @lookup");
-  const onTypeValue = allows(typeValueSource) ? onTypeValueProp : undefined;
+  const lookupAllowed = !listsOnly && allows("HASH graph @lookup");
+  const onTypeValue =
+    !listsOnly && allows(typeValueSource) ? onTypeValueProp : undefined;
   const typedChoices =
-    lookupAllowed || allows("Manual input") ? typedChoicesProp : [];
+    !listsOnly && (lookupAllowed || allows("Manual input"))
+      ? typedChoicesProp
+      : [];
 
   const options = (
     fromSteps ? sourceOptions(document, stepId, input, entry) : []
-  ).filter(
+  )
+    .filter((option) => !listsOnly || option.group === "Earlier steps")
+    .filter(
     (option) =>
       !text ||
       option.label.toLowerCase().includes(text) ||
@@ -446,15 +455,23 @@ export const SourceMenu = ({
 
   const phrase = kindPhrase(kinds, input.array);
   // Search only earns its place on a long list; the mocks show short menus without it.
-  const longList = searchAlways || typedChoicesProp.length + options.length > 8;
+  const longList =
+    searchAlways || listsOnly || typedChoicesProp.length + options.length > 8;
 
+  // A list reads "List of Shipments" under its step's name.
+  const listName = (option: SourceOption) => {
+    const type = findEntityType(
+      entityTypeOf(document, option.source, stepId),
+    )?.title;
+    return type ? `List of ${type}s` : option.label;
+  };
   const optionItems = (group: SourceOption["group"]) =>
-    options
+    (listsOnly ? options.toReversed() : options)
       .filter((option) => option.group === group)
       .map((option) => ({
         id: JSON.stringify(option.source),
-        text: option.label,
-        description: option.ownerLabel,
+        text: listsOnly ? option.ownerLabel : option.label,
+        description: listsOnly ? listName(option) : option.ownerLabel,
         icon: ownerIcon(document, option).icon,
         hint: `${option.ownerLabel} › ${option.label} · ${kindLabel(option.shape.payloadKind, option.shape.array)}${option.note ? ` · ${option.note}` : ""}`,
         onPick: () => onPick(option.source),
@@ -508,7 +525,7 @@ export const SourceMenu = ({
     ...(thisItem.length > 0
       ? [{ id: "This item", label: "This item", items: thisItem }]
       : []),
-    ...(fromSteps && (flowInputs.length > 0 || !searching)
+    ...(fromSteps && !listsOnly && (flowInputs.length > 0 || !searching)
       ? [
           {
             id: "Flow inputs",

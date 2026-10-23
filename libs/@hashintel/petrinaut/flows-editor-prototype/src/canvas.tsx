@@ -53,7 +53,7 @@ const stepHeight = (step: DraftStep) => {
 
 const groupSize = (document: EditorDocument, step: DraftStep) => {
   if (step.kind !== "for-each" || step.steps.length === 0) {
-    return { width: 420, height: 180 };
+    return { width: 264, height: 168 };
   }
   let right = 0;
   let bottom = 0;
@@ -67,8 +67,8 @@ const groupSize = (document: EditorDocument, step: DraftStep) => {
     bottom = Math.max(bottom, position.y + size.height);
   }
   return {
-    width: Math.max(420, right + GROUP_PADDING + 24),
-    height: Math.max(180, bottom + GROUP_PADDING),
+    width: Math.max(264, right + GROUP_PADDING + 8),
+    height: Math.max(168, bottom + GROUP_PADDING + 4),
   };
 };
 
@@ -574,33 +574,6 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
             {step.description || "For each"}
           </span>
         </Tooltip>
-        <button
-          type="button"
-          data-group-add={id}
-          className={`${css({
-            marginLeft: "auto",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "1",
-            textStyle: "xs",
-            color: "neutral.fg.muted",
-            borderRadius: "md",
-            paddingX: "2",
-            height: "[24px]",
-            cursor: "pointer",
-            _hover: { backgroundColor: "neutral.bgSolid.surface.active" },
-          })} nodrag nopan`}
-          onClick={(event) => {
-            event.stopPropagation();
-            setUi((ui) => ({
-              ...ui,
-              picker: { parentId: id, anchor: "group" },
-            }));
-          }}
-        >
-          <Icon name="plus" size="xxs" />
-          Add step inside
-        </button>
       </div>
       {step.steps.length === 0 ? (
         <div
@@ -610,11 +583,37 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            textStyle: "xs",
-            color: "neutral.fg.subtle",
           })}
         >
-          Steps here run once per item.
+          <button
+            type="button"
+            data-group-add={id}
+            aria-label="Add step inside"
+            className={`${css({
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "[24px]",
+              height: "[24px]",
+              borderRadius: "full",
+              borderWidth: "thin",
+              borderStyle: "solid",
+              borderColor: "neutral.bd.solid",
+              backgroundColor: "neutral.bgSolid.min",
+              color: "neutral.fg.muted",
+              cursor: "pointer",
+              _hover: { backgroundColor: "neutral.bgSolid.surface.active" },
+            })} nodrag nopan`}
+            onClick={(event) => {
+              event.stopPropagation();
+              setUi((ui) => ({
+                ...ui,
+                picker: { parentId: id, anchor: "group" },
+              }));
+            }}
+          >
+            <Icon name="plus" size="xs" />
+          </button>
         </div>
       ) : null}
       <Handle

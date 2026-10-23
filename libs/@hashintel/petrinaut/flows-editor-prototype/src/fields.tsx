@@ -127,7 +127,7 @@ const TokenChip = ({
   onClick: () => void;
   onRemove: () => void;
 }) => {
-  const { document } = useEditor();
+  const { document, ui } = useEditor();
   const parts = tokenPath(document, source, stepId);
   return (
     <Tooltip content={parts.join(" › ")}>
@@ -140,7 +140,12 @@ const TokenChip = ({
           variant: "naked",
         }}
         onClick={onClick}
-        removeable={{ onRemove, "aria-label": "Clear" }}
+        // J2's Figma frame draws the item chip with no ×.
+        removeable={
+          ui.plainQuery && source.kind === "item"
+            ? false
+            : { onRemove, "aria-label": "Clear" }
+        }
       >
         {collapsePath(parts)}
       </Chip>

@@ -140,10 +140,9 @@ export const supplierCertificatesExample = (
   if (reached("fetch-file")) {
     const fetched = addStep(document, "getFileFromUrl", {
       parentId: EACH_SUPPLIER,
+      position: { x: 24, y: 72 },
     });
-    document = describe(fetched.document, {
-      [CERTIFICATES]: "Certificates of analysis",
-    });
+    document = fetched.document;
     document = {
       ...document,
       steps: document.steps.map((step) =>
@@ -152,7 +151,7 @@ export const supplierCertificatesExample = (
               ...step,
               steps: step.steps.map((inner) =>
                 inner.kind === "action" && inner.stepId === CERTIFICATES
-                  ? { ...inner, inputs: {
+                  ? { ...inner, description: "Certificates of analysis", inputs: {
                       url: itemPropertySource(
                         property("Supplier", "Certificate link"),
                       ),
