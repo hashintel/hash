@@ -8,6 +8,8 @@ import {
   colorSchema,
   componentInstanceSchema,
   differentialEquationSchema,
+  fusionMemberSchema,
+  fusionSchema,
   idSchema,
   inputArcSchema,
   nodePositionCommitSchema,
@@ -29,7 +31,10 @@ export {
   colorElementSchema,
   colorSchema,
   componentInstanceSchema,
+  componentSourceSchema,
   differentialEquationSchema,
+  fusionMemberSchema,
+  fusionSchema,
   idSchema,
   nodePositionCommitSchema,
   parameterSchema,
@@ -127,17 +132,27 @@ export const componentInstanceUpdateSchema = componentInstanceSchema
 export const subnetUpdateSchema = subnetSchema
   .omit({
     id: true,
+    source: true,
     places: true,
     transitions: true,
     types: true,
     differentialEquations: true,
     parameters: true,
     componentInstances: true,
+    fusions: true,
   })
   .partial()
   .meta({
     description:
       "Fields to assign to an existing subnet. Omitted fields are left unchanged.",
+  });
+
+export const fusionUpdateSchema = fusionSchema
+  .omit({ id: true, members: true })
+  .partial()
+  .meta({
+    description:
+      "Fields to assign to an existing fusion. Members change through `addFusionMember` and `removeFusionMember`.",
   });
 
 const targetSubnetIdSchema = idSchema.nullable().optional().meta({
@@ -223,6 +238,7 @@ export const itemTypeAndIdSchema = z
     z.strictObject({ type: z.literal("transition"), id: idSchema }),
     z.strictObject({ type: z.literal("arc"), id: arcIdSchema }),
     z.strictObject({ type: z.literal("componentInstance"), id: idSchema }),
+    z.strictObject({ type: z.literal("fusion"), id: idSchema }),
     z.strictObject({ type: z.literal("type"), id: idSchema }),
     z.strictObject({ type: z.literal("differentialEquation"), id: idSchema }),
     z.strictObject({ type: z.literal("parameter"), id: idSchema }),
@@ -523,6 +539,58 @@ export const mutationActionInputSchemas = {
       targetSubnetId: targetSubnetIdSchema,
     })
     .meta({ description: "Remove a component instance." }),
+  addFusion: fusionSchema
+    .extend({ targetSubnetId: targetSubnetIdSchema })
+    .meta({
+      description:
+        "Fuse a place of the net with ports of its component instances, or ports with each other, so they are one place in simulation. A member already in another fusion of the same net moves into this one.",
+    }),
+  updateFusion: z
+    .strictObject({
+      fusionId: idSchema,
+      update: fusionUpdateSchema,
+      targetSubnetId: targetSubnetIdSchema,
+    })
+    .meta({ description: "Update the name or description of a fusion." }),
+  removeFusion: z
+    .strictObject({
+      fusionId: idSchema,
+      targetSubnetId: targetSubnetIdSchema,
+    })
+    .meta({
+      description: "Remove a fusion. Its members become separate places again.",
+    }),
+  addFusionMember: z
+    .strictObject({
+      fusionId: idSchema,
+      member: fusionMemberSchema,
+      targetSubnetId: targetSubnetIdSchema,
+    })
+    .meta({
+      description:
+        "Add a place or an instance port to a fusion. A member already in another fusion of the same net brings that fusion's members along, and that fusion is removed.",
+    }),
+  removeFusionMember: z
+    .strictObject({
+      fusionId: idSchema,
+      member: fusionMemberSchema,
+      targetSubnetId: targetSubnetIdSchema,
+    })
+    .meta({
+      description:
+        "Take a place or an instance port out of a fusion. A fusion left with fewer than two members is removed.",
+    }),
+  setComponentsOnly: z
+    .strictObject({
+      componentsOnly: z.boolean().meta({
+        description:
+          "Whether the root net is composed from component instances and fusions alone, with no place or transition tools.",
+      }),
+    })
+    .meta({
+      description:
+        "Switch the root net between free drawing and components-only composition.",
+    }),
   deleteItemsByIds: z
     .strictObject({
       items: z.array(itemTypeAndIdSchema).meta({
@@ -555,6 +623,7 @@ export type ScenarioInput = z.infer<typeof simulationScenarioSchema>;
 export type MetricInput = z.infer<typeof simulationMetricSchema>;
 export type ComponentInstanceInput = z.infer<typeof componentInstanceSchema>;
 export type SubnetInput = z.infer<typeof subnetSchema>;
+export type FusionInput = z.infer<typeof fusionSchema>;
 export type NodePositionCommitInput = z.infer<typeof nodePositionCommitSchema>;
 
 export type MutationActionName = keyof typeof mutationActionInputSchemas;

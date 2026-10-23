@@ -21,6 +21,7 @@ export const selectionItemTypes = [
   "transition",
   "arc",
   "componentInstance",
+  "fusion",
   "type",
   "differentialEquation",
   "parameter",
@@ -33,6 +34,7 @@ export type SelectionItem =
   | { type: "transition"; id: string }
   | { type: "arc"; id: string }
   | { type: "componentInstance"; id: string }
+  | { type: "fusion"; id: string }
   | { type: "type"; id: string }
   | { type: "differentialEquation"; id: string }
   | { type: "parameter"; id: string };

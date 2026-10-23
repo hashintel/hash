@@ -263,7 +263,7 @@ export const isSelectionTypeAvailableForExtensions = (
   if (type === "parameter") {
     return extensions.parameters;
   }
-  if (type === "componentInstance") {
+  if (type === "componentInstance" || type === "fusion") {
     return extensions.subnets;
   }
   return true;
@@ -332,6 +332,7 @@ type SanitizableNet = Pick<
   "places" | "transitions" | "types" | "differentialEquations" | "parameters"
 > & {
   componentInstances?: SDCPN["componentInstances"];
+  fusions?: SDCPN["fusions"];
 };
 
 const stripDisabledExtensionDataFromNet = (
@@ -356,6 +357,11 @@ const stripDisabledExtensionDataFromNet = (
     if (!extensions.colors) {
       delete place.visualizerCode;
     }
+  }
+
+  if (!extensions.subnets && net.fusions !== undefined) {
+    const targetNet = net;
+    delete targetNet.fusions;
   }
 
   for (const transition of net.transitions) {
@@ -409,6 +415,14 @@ const cloneComponentInstances = (
     parameterValues: { ...instance.parameterValues },
   }));
 
+const cloneFusions = (
+  fusions: NonNullable<SDCPN["fusions"]>,
+): NonNullable<SDCPN["fusions"]> =>
+  fusions.map((fusion) => ({
+    ...fusion,
+    members: fusion.members.map((member) => ({ ...member })),
+  }));
+
 const cloneSubnet = (
   subnet: NonNullable<SDCPN["subnets"]>[number],
 ): NonNullable<SDCPN["subnets"]>[number] => {
@@ -441,10 +455,18 @@ const cloneSubnet = (
     next.metadata = { ...subnet.metadata };
   }
 
+  if (subnet.source !== undefined) {
+    next.source = { ...subnet.source };
+  }
+
   if (subnet.componentInstances) {
     next.componentInstances = cloneComponentInstances(
       subnet.componentInstances,
     );
+  }
+
+  if (subnet.fusions) {
+    next.fusions = cloneFusions(subnet.fusions);
   }
 
   return next;
@@ -532,11 +554,21 @@ export const sanitizeSDCPNForExtensions = (
     next.componentInstances = cloneComponentInstances(sdcpn.componentInstances);
   }
 
+  if (sdcpn.fusions) {
+    next.fusions = cloneFusions(sdcpn.fusions);
+  }
+
+  if (sdcpn.componentsOnly !== undefined) {
+    next.componentsOnly = sdcpn.componentsOnly;
+  }
+
   stripDisabledExtensionData(next, extensions);
 
   if (!extensions.subnets) {
     delete next.subnets;
     delete next.componentInstances;
+    delete next.fusions;
+    delete next.componentsOnly;
   }
 
   return next;
