@@ -22,7 +22,7 @@ runs:
         cp -R oxfmt.config.ts infra/ out/
 
         # Every dot-file except `.git`, merged into what `turbo prune` already wrote there (the
-        # pruned `.cargo/config.toml`, the `.claude/hooks` workspace), which stays as it is.
+        # pruned `.cargo/config.toml`), which stays as it is.
         shopt -s dotglob nullglob
         for entry in .[!.]*; do
           [ "$entry" = .git ] && continue

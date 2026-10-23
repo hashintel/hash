@@ -1,25 +1,24 @@
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { mapFlowInputValuesToInputsProperty } from "@local/hash-isomorphic-utils/flows/mappings";
 import {
   defaultScheduleCatchupWindowMs,
   defaultScheduleOverlapPolicy,
   defaultSchedulePauseOnFailure,
 } from "@local/hash-isomorphic-utils/flows/schedule-types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
+  systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import {
-  createEntity,
-  getLatestEntityById,
-  updateEntity,
-} from "../primitive/entity";
+import { getLatestEntityById, updateEntity } from "../primitive/entity";
 
 import type { ImpureGraphFunction } from "../../context-types";
-import type { EntityId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type {
   CreateFlowScheduleInput,
   UpdateFlowScheduleInput,
@@ -29,7 +28,8 @@ import type {
   FlowSchedulePropertiesWithMetadata,
   SchedulePauseStatePropertyValueWithMetadata,
   ScheduleStatusPropertyValueWithMetadata,
-} from "@local/hash-isomorphic-utils/system-types/shared";
+} from "@local/hash-isomorphic-utils/system-types/flowschedule";
+import type { FlowTriggerUsesLink } from "@local/hash-isomorphic-utils/system-types/shared";
 
 const isEntityFlowScheduleEntity = (
   entity: HashEntity,
@@ -44,18 +44,15 @@ export const createFlowSchedule: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const {
     name,
-    flowDefinition,
+    flowDefinitionEntityId,
     webId,
     scheduleSpec,
     overlapPolicy = defaultScheduleOverlapPolicy,
     catchupWindowMs = defaultScheduleCatchupWindowMs,
     pauseOnFailure = defaultSchedulePauseOnFailure,
     dataSources,
-    flowDefinitionId,
     flowInputs,
   } = params;
-
-  const flowType = getFlowType(flowDefinition);
 
   const properties: FlowSchedulePropertiesWithMetadata = {
     value: {
@@ -66,19 +63,8 @@ export const createFlowSchedule: ImpureGraphFunction<
             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
-      "https://hash.ai/@h/types/property-type/flow-definition-id/": {
-        value: flowDefinitionId,
-        metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-        },
-      },
-      "https://hash.ai/@h/types/property-type/flow-type/": {
-        value: flowType,
-        metadata: {
-          dataTypeId: "https://hash.ai/@h/types/data-type/flow-type/v/1",
-        },
-      },
+      "https://hash.ai/@h/types/property-type/inputs/":
+        mapFlowInputValuesToInputsProperty(flowInputs),
       "https://hash.ai/@h/types/property-type/schedule-spec/": {
         value: scheduleSpec,
         metadata: {
@@ -97,31 +83,6 @@ export const createFlowSchedule: ImpureGraphFunction<
         value: "active",
         metadata: {
           dataTypeId: "https://hash.ai/@h/types/data-type/schedule-status/v/1",
-        },
-      },
-      /**
-       * The `Flow Schedule` entity type still requires a `Trigger`, from when flows had trigger definitions. Flows
-       * now declare inputs instead, so the values the schedule gives them are recorded as the trigger's outputs.
-       * Nothing reads this property back: FE-1894 replaces it with an `Inputs` property.
-       */
-      "https://hash.ai/@h/types/property-type/trigger/": {
-        value: {
-          "https://hash.ai/@h/types/property-type/trigger-definition-id/": {
-            value: "scheduledTrigger",
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            },
-          },
-          "https://hash.ai/@h/types/property-type/outputs/": {
-            value: Object.entries(flowInputs).map(([inputName, payload]) => ({
-              value: { outputName: inputName, payload },
-              metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-              },
-            })),
-          },
         },
       },
       "https://hash.ai/@h/types/property-type/schedule-catchup-window/": {
@@ -151,11 +112,33 @@ export const createFlowSchedule: ImpureGraphFunction<
     },
   };
 
-  const entity = await createEntity<FlowSchedule>(context, authentication, {
-    webId,
-    properties,
-    entityTypeIds: [systemEntityTypes.flowSchedule.entityTypeId],
-  });
+  const entityUuid = generateUuid() as EntityUuid;
+
+  /*
+   * A schedule is a kind of flow trigger: it `Uses` the flow definition it starts runs of. The schedule and its link
+   * are created in one request, which the graph applies in one transaction, so a schedule is never left without it.
+   */
+  const [entity] = await HashEntity.createMultiple<
+    [FlowSchedule, FlowTriggerUsesLink["linkEntity"]]
+  >(context.graphApi, authentication, [
+    {
+      webId,
+      entityUuid,
+      properties,
+      entityTypeIds: [systemEntityTypes.flowSchedule.entityTypeId],
+      provenance: context.provenance,
+    },
+    {
+      webId,
+      entityTypeIds: [systemLinkEntityTypes.uses.linkEntityTypeId],
+      properties: { value: {} },
+      linkData: {
+        leftEntityId: entityIdFromComponents(webId, entityUuid),
+        rightEntityId: flowDefinitionEntityId,
+      },
+      provenance: context.provenance,
+    },
+  ]);
 
   return entity;
 };

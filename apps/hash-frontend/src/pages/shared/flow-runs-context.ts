@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo } from "react";
-import { useNodeId } from "reactflow";
+
+import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
 
 import { FlowRunStatus, FlowStepStatus } from "../../graphql/api-types.gen";
 
@@ -8,6 +9,8 @@ import type {
   GetFlowRunsQuery,
   StepRun,
 } from "../../graphql/api-types.gen";
+import type { EntityId } from "@blockprotocol/type-system";
+import type { FlowRunWithoutEvents } from "@local/hash-isomorphic-utils/flows/types";
 
 export type FlowRunsPaginationState = {
   currentCursor: string | null;
@@ -23,8 +26,8 @@ export type FlowRunsContextType = {
   nextCursor: string | null;
   loading: boolean;
   pagination: FlowRunsPaginationState | null;
-  selectedFlowRun: FlowRun | null;
-  selectedFlowRunId: string | null;
+  selectedFlowRun: FlowRunWithoutEvents | null;
+  selectedFlowRunEntityId: EntityId | null;
 };
 
 export const FlowRunsContext = createContext<FlowRunsContextType | null>(null);
@@ -43,30 +46,6 @@ export type StepRunStatus = Pick<
   StepRun,
   "inputs" | "outputs" | "status" | "closedAt" | "scheduledAt" | "logs"
 >;
-
-export const useStatusForStep = (
-  nodeId: string | null,
-): StepRunStatus | null => {
-  const { selectedFlowRun } = useFlowRunsContext();
-
-  return useMemo(() => {
-    if (!selectedFlowRun || !nodeId) {
-      return null;
-    }
-
-    if (nodeId === "trigger") {
-      return null;
-    }
-
-    return selectedFlowRun.steps.find((step) => step.stepId === nodeId) ?? null;
-  }, [selectedFlowRun, nodeId]);
-};
-
-export const useStatusForCurrentStep = (): StepRunStatus | null => {
-  const nodeId = useNodeId();
-
-  return useStatusForStep(nodeId);
-};
 
 export type SimpleStatus =
   | "Waiting"
@@ -108,105 +87,190 @@ export const statusToSimpleStatus = (
   return simpleStatus;
 };
 
-export const useStatusForSteps = (
-  steps: { stepId: string }[],
-): {
+/**
+ * The id of the step in the flow definition that a step run is of. The engine runs the steps inside a `for-each` once
+ * per item, each with its own step run id.
+ */
+const getDefinitionStepId = (stepRunId: string) =>
+  parseStepRunId(stepRunId).stepId;
+
+/**
+ * The status shown for a step that has several runs, as a step inside a `for-each` does: the first in this list that
+ * any of its runs has.
+ */
+const statusPrecedence: SimpleStatus[] = [
+  "Errored",
+  "Information Required",
+  "In Progress",
+  "Waiting",
+  "Cancelled",
+  "Complete",
+  "Skipped",
+];
+
+const combineStatuses = (
+  status: SimpleStatus | undefined,
+  otherStatus: SimpleStatus,
+): SimpleStatus =>
+  status !== undefined &&
+  statusPrecedence.indexOf(status) <= statusPrecedence.indexOf(otherStatus)
+    ? status
+    : otherStatus;
+
+/**
+ * The run of a step, or for a step inside a `for-each`, the run of it whose status is shown (see `statusPrecedence`).
+ */
+export const getShownStepRun = <Run extends StepRunStatus & { stepId: string }>(
+  stepRuns: Run[],
+  stepId: string,
+): Run | null =>
+  stepRuns
+    .filter((stepRun) => getDefinitionStepId(stepRun.stepId) === stepId)
+    .reduce<Run | null>(
+      (shownStepRun, stepRun) =>
+        !shownStepRun ||
+        statusPrecedence.indexOf(statusToSimpleStatus(stepRun.status)) <
+          statusPrecedence.indexOf(statusToSimpleStatus(shownStepRun.status))
+          ? stepRun
+          : shownStepRun,
+      null,
+    );
+
+export const useStatusForStep = (
+  nodeId: string | null,
+): StepRunStatus | null => {
+  const { selectedFlowRun } = useFlowRunsContext();
+
+  return useMemo(() => {
+    if (!selectedFlowRun || !nodeId) {
+      return null;
+    }
+
+    if (nodeId === "trigger") {
+      return null;
+    }
+
+    return getShownStepRun(selectedFlowRun.steps, nodeId);
+  }, [selectedFlowRun, nodeId]);
+};
+
+type StepsStatus = {
   closedAt?: string;
   scheduledAt?: string;
   overallStatus: SimpleStatus;
   statusByStep: Record<string, SimpleStatus>;
-} | null => {
-  const { selectedFlowRun } = useFlowRunsContext();
+};
 
-  return useMemo(() => {
-    const statusByStep: Record<string, SimpleStatus> = {};
+/**
+ * The status of each of `steps` in a flow run, and of them together. A step inside a `for-each` (`parentStepId`) has a
+ * run per item: those count towards it and towards the `for-each`, which has no run of its own.
+ */
+export const getStatusForSteps = (
+  flowRun: Pick<FlowRun, "closedAt" | "status" | "steps">,
+  steps: { stepId: string; parentStepId?: string }[],
+): StepsStatus => {
+  const statusByStep: Record<string, SimpleStatus> = {};
 
-    if (!selectedFlowRun) {
-      return null;
-    }
+  const stepsById = new Map(steps.map((step) => [step.stepId, step]));
 
-    const stepRuns = selectedFlowRun.steps.filter((stepRun) =>
-      steps.find((step) => step.stepId === stepRun.stepId),
-    );
+  const stepRuns = flowRun.steps.filter((stepRun) =>
+    stepsById.has(getDefinitionStepId(stepRun.stepId)),
+  );
 
-    const flowCompletedUnsuccessfully =
-      selectedFlowRun.closedAt &&
-      selectedFlowRun.status !== FlowRunStatus.Completed;
+  const flowCompletedUnsuccessfully =
+    flowRun.closedAt && flowRun.status !== FlowRunStatus.Completed;
 
-    if (stepRuns.length === 0) {
-      return {
-        overallStatus: flowCompletedUnsuccessfully ? "Cancelled" : "Waiting",
-        statusByStep,
-      };
-    }
-
-    let scheduledAt: string | undefined;
-    let latestClosedAt: string | undefined;
-    let allStepsClosed = true;
-    let status: SimpleStatus =
-      stepRuns.at(-1)!.status === FlowStepStatus.Cancelled
-        ? "Cancelled"
-        : "Complete";
-
-    let hasError: boolean = false;
-    let hasWaiting: boolean = false;
-    let hasInProgress: boolean = false;
-
-    for (const stepRun of stepRuns) {
-      if (!scheduledAt || stepRun.scheduledAt < scheduledAt) {
-        scheduledAt = stepRun.scheduledAt;
-      }
-
-      if (stepRun.closedAt) {
-        if (!latestClosedAt || stepRun.closedAt > latestClosedAt) {
-          latestClosedAt = stepRun.closedAt;
-        }
-      } else {
-        allStepsClosed = false;
-      }
-
-      let simpleStatus = statusToSimpleStatus(stepRun.status);
-
-      if (
-        selectedFlowRun.closedAt &&
-        ["In Progress", "Waiting", "Information Required"].includes(
-          simpleStatus,
-        )
-      ) {
-        simpleStatus = "Cancelled";
-      }
-
-      statusByStep[stepRun.stepId] = simpleStatus;
-
-      if (simpleStatus === "Errored") {
-        hasError = true;
-      } else if (
-        simpleStatus === "In Progress" ||
-        simpleStatus === "Information Required"
-      ) {
-        hasInProgress = true;
-      } else if (simpleStatus === "Waiting") {
-        hasWaiting = true;
-      }
-    }
-
-    if (hasError) {
-      status = "Errored";
-    } else if (hasInProgress) {
-      status = "In Progress";
-    } else if (hasWaiting) {
-      status = "Waiting";
-    }
-
-    if (flowCompletedUnsuccessfully) {
-      status = "Cancelled";
-    }
-
+  if (stepRuns.length === 0) {
     return {
-      closedAt: allStepsClosed ? latestClosedAt : undefined,
-      scheduledAt,
-      overallStatus: status,
+      overallStatus: flowCompletedUnsuccessfully ? "Cancelled" : "Waiting",
       statusByStep,
     };
-  }, [selectedFlowRun, steps]);
+  }
+
+  let scheduledAt: string | undefined;
+  let latestClosedAt: string | undefined;
+  let allStepsClosed = true;
+  let status: SimpleStatus =
+    stepRuns.at(-1)!.status === FlowStepStatus.Cancelled
+      ? "Cancelled"
+      : "Complete";
+
+  let hasError: boolean = false;
+  let hasWaiting: boolean = false;
+  let hasInProgress: boolean = false;
+
+  for (const stepRun of stepRuns) {
+    if (!scheduledAt || stepRun.scheduledAt < scheduledAt) {
+      scheduledAt = stepRun.scheduledAt;
+    }
+
+    if (stepRun.closedAt) {
+      if (!latestClosedAt || stepRun.closedAt > latestClosedAt) {
+        latestClosedAt = stepRun.closedAt;
+      }
+    } else {
+      allStepsClosed = false;
+    }
+
+    let simpleStatus = statusToSimpleStatus(stepRun.status);
+
+    if (
+      flowRun.closedAt &&
+      ["In Progress", "Waiting", "Information Required"].includes(simpleStatus)
+    ) {
+      simpleStatus = "Cancelled";
+    }
+
+    const step = stepsById.get(getDefinitionStepId(stepRun.stepId))!;
+
+    for (const stepId of [step.stepId, step.parentStepId]) {
+      if (stepId !== undefined) {
+        statusByStep[stepId] = combineStatuses(
+          statusByStep[stepId],
+          simpleStatus,
+        );
+      }
+    }
+
+    if (simpleStatus === "Errored") {
+      hasError = true;
+    } else if (
+      simpleStatus === "In Progress" ||
+      simpleStatus === "Information Required"
+    ) {
+      hasInProgress = true;
+    } else if (simpleStatus === "Waiting") {
+      hasWaiting = true;
+    }
+  }
+
+  if (hasError) {
+    status = "Errored";
+  } else if (hasInProgress) {
+    status = "In Progress";
+  } else if (hasWaiting) {
+    status = "Waiting";
+  }
+
+  if (flowCompletedUnsuccessfully) {
+    status = "Cancelled";
+  }
+
+  return {
+    closedAt: allStepsClosed ? latestClosedAt : undefined,
+    scheduledAt,
+    overallStatus: status,
+    statusByStep,
+  };
+};
+
+export const useStatusForSteps = (
+  steps: { stepId: string; parentStepId?: string }[],
+): StepsStatus | null => {
+  const { selectedFlowRun } = useFlowRunsContext();
+
+  return useMemo(
+    () => (selectedFlowRun ? getStatusForSteps(selectedFlowRun, steps) : null),
+    [selectedFlowRun, steps],
+  );
 };

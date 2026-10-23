@@ -54,6 +54,32 @@ describe("createServicePetrinautOptimization", () => {
     ]);
   });
 
+  it.each(["", "null", '{"run_id":42}'])(
+    "create_missing_run_body_%j",
+    async (body) => {
+      const optimization = createServicePetrinautOptimization({
+        endpoint,
+        fetchImpl: async () =>
+          new Response(body, {
+            status: 201,
+            headers: {
+              "content-type": "application/json",
+              "x-optimization-run-id": "run-incomplete",
+            },
+          }),
+      });
+
+      await expect(
+        optimization.createOptimizationRun(input),
+      ).rejects.toMatchObject({
+        name: "PetrinautOptimizerHttpError",
+        category: "http",
+        httpStatus: 201,
+        optimizationRunId: "run-incomplete",
+      });
+    },
+  );
+
   it("classifies a body that dies mid-stream as a network failure", async () => {
     // A dropped connection surfaces as a `TypeError` from the body reader,
     // after the response headers already arrived. Classifying that as

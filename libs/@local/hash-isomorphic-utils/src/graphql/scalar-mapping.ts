@@ -145,11 +145,7 @@ export const scalars = {
 
   OntologyTemporalMetadata: "@local/hash-graph-client#OntologyTemporalMetadata",
 
-  FlowActionDefinitionId:
-    "@local/hash-isomorphic-utils/flows/types#FlowActionDefinitionId",
   FlowDataSources: "@local/hash-isomorphic-utils/flows/types#FlowDataSources",
-  FlowDefinition:
-    "@local/hash-isomorphic-utils/flows/types#FlowDefinition<FlowActionDefinitionId>",
   ScheduleSpec:
     "@local/hash-isomorphic-utils/flows/schedule-types#ScheduleSpec",
   CreateFlowScheduleInput:
@@ -161,6 +157,7 @@ export const scalars = {
   ExternalInputResponseWithoutUser:
     "@local/hash-isomorphic-utils/flows/types#ExternalInputResponseWithoutUser",
   StepInput: "@local/hash-isomorphic-utils/flows/types#StepInput",
+  FlowRunEvent: "@local/hash-isomorphic-utils/flows/run-events#FlowRunEvent",
   FlowInputValues: "@local/hash-isomorphic-utils/flows/types#FlowInputValues",
   ResolvedStepRunOutput:
     "@local/hash-isomorphic-utils/flows/types#ResolvedStepRunOutput",

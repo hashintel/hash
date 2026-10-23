@@ -1,29 +1,10 @@
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
-import {
-  Box,
-  Collapse,
-  outlinedInputClasses,
-  Stack,
-  Tooltip,
-  Typography,
-} from "@mui/material";
-import debounce from "lodash/debounce";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import {
-  ArrowDownRegularIcon,
-  ArrowUpRegularIcon,
-  FontAwesomeIcon,
-  IconButton,
-  TextField,
-} from "@hashintel/design-system";
-import { typedKeys } from "@local/advanced-types/typed-entries";
+import { createHitRange } from "../file-preview-search-highlights";
 
-import { FontCaseRegularIcon } from "../../../shared/icons/font-case-regular-icon";
-import { GrayToBlueIconButton } from "../gray-to-blue-icon-button";
-
+import type { TextPosition } from "../file-preview-search-highlights";
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
-import type { DocumentCallback } from "react-pdf/dist/cjs/shared/types";
+import type { DocumentCallback } from "react-pdf/dist/cjs/shared/types.js";
 
 type PositionInPage = {
   rowIndex: number;
@@ -144,31 +125,57 @@ const findStringInPages = ({
   return results;
 };
 
-type PdfSearchProps = {
-  closeSearch: () => void;
-  document: DocumentCallback | null;
-  searchHits: SearchHits;
-  setSearchHits: (hits: SearchHits) => void;
-  selectedSearchHit: SearchHit | null;
-  setSelectedSearchHit: (hit: SearchHit | null) => void;
-  showSearch: boolean;
+/**
+ * Returns a `Range` for each of `hits` in the text layer pdf.js drew from
+ * `textLines`. pdf.js draws a `span` for each text item with text, so a hit
+ * that starts or ends on an item without text gets no range.
+ */
+export const createHitRangesInTextLayer = (
+  textLayer: Element,
+  textLines: readonly Pick<TextItem, "str">[],
+  hits: readonly SearchHit[],
+): (Range | null)[] => {
+  const spans = textLayer.querySelectorAll('span[role="presentation"]');
+
+  let drawnSpanCount = 0;
+  const spanByRow = textLines.map(({ str }) => {
+    if (str === "") {
+      return undefined;
+    }
+    const span = spans[drawnSpanCount];
+    drawnSpanCount += 1;
+    return span;
+  });
+
+  const textPosition = (
+    rowIndex: number,
+    characterIndex: number,
+  ): TextPosition | null => {
+    const element = spanByRow[rowIndex];
+    const text = textLines[rowIndex]?.str;
+    if (!element || text === undefined) {
+      return null;
+    }
+    /** The search ran on the trimmed text of each row. */
+    const leadingWhitespaceLength = text.length - text.trimStart().length;
+    return { element, offset: leadingWhitespaceLength + characterIndex };
+  };
+
+  return hits.map(({ start, end }) => {
+    const startPosition = textPosition(start.rowIndex, start.characterIndex);
+    const endPosition = textPosition(end.rowIndex, end.characterIndex + 1);
+    return startPosition && endPosition
+      ? createHitRange(startPosition, endPosition)
+      : null;
+  });
 };
 
-export const PdfSearch = ({
-  closeSearch,
-  document,
-  searchHits,
-  setSearchHits,
-  selectedSearchHit,
-  setSelectedSearchHit,
-  showSearch,
-}: PdfSearchProps) => {
-  const [ignoreCase, setIgnoreCase] = useState(true);
-  const [searchText, setSearchText] = useState("");
-
+/**
+ * Returns a function that finds the occurrences of a string in the document,
+ * and one that builds a `Range` for each hit in a page's text layer.
+ */
+export const usePdfSearch = (document: DocumentCallback | null) => {
   const [pages, setPages] = useState<Page[]>([]);
-
-  const inputRef = useRef<HTMLInputElement>(null);
 
   /**
    * Build the information we need to identify search hits within the document.
@@ -218,169 +225,19 @@ export const PdfSearch = ({
     void getPages();
   }, [document]);
 
-  const getSearchHits = debounce(
-    (currentText: string, shouldIgnoreCase: boolean) => {
-      if (!currentText) {
-        setSearchHits({ hitsByPageNumber: {}, total: 0 });
-        setSelectedSearchHit(null);
-        return;
-      }
+  const findSearchHits = (searchString: string, ignoreCase: boolean) =>
+    findStringInPages({ pages, searchString, ignoreCase });
 
-      const hits = findStringInPages({
-        pages,
-        searchString: currentText,
-        ignoreCase: shouldIgnoreCase,
-      });
-      setSearchHits(hits);
-
-      const firstPageWithHit = typedKeys(hits.hitsByPageNumber)[0];
-      const firstHit = firstPageWithHit
-        ? hits.hitsByPageNumber[firstPageWithHit]?.[0]
-        : null;
-
-      setSelectedSearchHit(firstHit ?? null);
+  /** `hits` must all be on the page that `textLayer` shows. */
+  const createHitRanges = useCallback(
+    (textLayer: Element, hits: readonly SearchHit[]) => {
+      const pageNumber = hits[0]?.pageNumber;
+      const textLines =
+        pages.find((page) => page.pageNumber === pageNumber)?.textLines ?? [];
+      return createHitRangesInTextLayer(textLayer, textLines, hits);
     },
-    300,
+    [pages],
   );
 
-  const { total, hitsByPageNumber } = searchHits;
-
-  useEffect(() => {
-    if (showSearch) {
-      inputRef.current?.focus();
-    }
-  }, [showSearch]);
-
-  const allHits = Object.values(hitsByPageNumber).flat();
-
-  return (
-    <Collapse orientation="horizontal" in={showSearch}>
-      <Box>
-        <TextField
-          autoFocus
-          inputRef={inputRef}
-          InputProps={{
-            endAdornment: (
-              <Tooltip title="Clear Search">
-                <IconButton
-                  onClick={() => {
-                    setSearchText("");
-                    setSelectedSearchHit(null);
-                    setSearchHits({ hitsByPageNumber: {}, total: 0 });
-                    closeSearch();
-                  }}
-                  sx={{ mr: 0.5 }}
-                  size="small"
-                  unpadded
-                >
-                  <FontAwesomeIcon icon={faXmark} />
-                </IconButton>
-              </Tooltip>
-            ),
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              if (
-                selectedSearchHit &&
-                selectedSearchHit.indexInAllHits < total - 1
-              ) {
-                setSelectedSearchHit(
-                  allHits[selectedSearchHit.indexInAllHits + 1]!,
-                );
-              }
-            }
-          }}
-          onChange={(event) => {
-            const text = event.target.value;
-            setSearchText(text);
-            getSearchHits(text, ignoreCase);
-          }}
-          placeholder="Search the document..."
-          sx={{
-            width: 200,
-            [`.${outlinedInputClasses.root} input`]: {
-              fontSize: 13,
-              py: 0.8,
-              px: 1.5,
-            },
-          }}
-          value={searchText}
-        />
-        <Stack direction="row" gap={2} mt={0.8} justifyContent="flex-start">
-          <GrayToBlueIconButton
-            onClick={() => {
-              getSearchHits(searchText, !ignoreCase);
-              setIgnoreCase(!ignoreCase);
-              inputRef.current?.focus();
-            }}
-            sx={{ "& svg": { fontSize: 13 }, p: 0.5 }}
-          >
-            <FontCaseRegularIcon
-              sx={{
-                fill: ({ palette }) =>
-                  ignoreCase ? undefined : palette.blue[70],
-                transition: ({ transitions }) => transitions.create("fill"),
-              }}
-            />
-          </GrayToBlueIconButton>
-          <Collapse orientation="horizontal" in={!!searchText} timeout={200}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              gap={1}
-              sx={{ height: 22 }}
-            >
-              <GrayToBlueIconButton
-                disabled={
-                  !selectedSearchHit || selectedSearchHit.indexInAllHits === 0
-                }
-                onClick={() => {
-                  if (
-                    selectedSearchHit &&
-                    selectedSearchHit.indexInAllHits > 0
-                  ) {
-                    setSelectedSearchHit(
-                      allHits[selectedSearchHit.indexInAllHits - 1]!,
-                    );
-                  }
-                }}
-                sx={{ "& svg": { fontSize: 10 }, p: 0.6 }}
-              >
-                <ArrowUpRegularIcon />
-              </GrayToBlueIconButton>
-              <Typography
-                component="span"
-                sx={{
-                  fontSize: 12,
-                  color: ({ palette }) => palette.gray[90],
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {`${(selectedSearchHit?.indexInAllHits ?? -1) + 1} of ${total}`}
-              </Typography>
-              <GrayToBlueIconButton
-                disabled={
-                  !selectedSearchHit ||
-                  selectedSearchHit.indexInAllHits === total - 1
-                }
-                onClick={() => {
-                  if (
-                    selectedSearchHit &&
-                    selectedSearchHit.indexInAllHits < total - 1
-                  ) {
-                    setSelectedSearchHit(
-                      allHits[selectedSearchHit.indexInAllHits + 1]!,
-                    );
-                  }
-                }}
-                sx={{ "& svg": { fontSize: 10 }, p: 0.6 }}
-              >
-                <ArrowDownRegularIcon />
-              </GrayToBlueIconButton>
-            </Stack>
-          </Collapse>
-        </Stack>
-      </Box>
-    </Collapse>
-  );
+  return { findSearchHits, createHitRanges };
 };

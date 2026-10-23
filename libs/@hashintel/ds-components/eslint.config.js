@@ -10,7 +10,7 @@ export default [
   {
     ignores: [
       ".build/**",
-      ".ladle/**",
+      ".storybook/**",
       "tests/**",
       "playwright.config.ts",
       "postcss.config.cjs",

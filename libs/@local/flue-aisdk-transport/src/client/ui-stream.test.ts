@@ -365,12 +365,13 @@ const liveEvent = (
         readonly toolCallId: string;
         readonly toolName: string;
       },
+  turnId = "turn-1",
 ): LiveToolEvent => ({
   ...event,
   instanceId: "instance-1",
   sequence,
   submissionId: "submission-1",
-  turnId: "turn-1",
+  turnId,
   v: 1,
 });
 
@@ -627,4 +628,223 @@ test("observed: a live tool call can precede the canonical text that preceded it
     "tool-lookup",
     "text",
   ]);
+});
+
+const emptyReset = (index: number): ConversationStreamChunk => ({
+  type: "conversation-reset",
+  conversationId: "conversation-1",
+  snapshot: {
+    v: 1,
+    conversationId: "conversation-1",
+    offset: "0",
+    messages: [],
+    settlements: [],
+  },
+  position: position(index),
+});
+
+// Once a response replaces a failed model attempt, Flue folds the start of
+// each later step into a `conversation-reset`, so those steps arrive without
+// a `message-started` or a turn id.
+test("steps whose start Flue folds into a reset keep their boundaries and live tool input", () => {
+  const written = recordChunks();
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.accept({
+    type: "message-completed",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    position: position(1),
+  });
+  // The replacement step's live input arrives before the reset that folds
+  // its start.
+  projector.acceptLive(
+    liveEvent(
+      0,
+      {
+        kind: "tool-input-start",
+        toolCallId: "replacement-call",
+        toolName: "lookup",
+      },
+      "turn-2",
+    ),
+  );
+  projector.accept(emptyReset(2));
+  projector.acceptLive(
+    liveEvent(
+      1,
+      {
+        kind: "tool-input-delta",
+        inputTextDelta: "{}",
+        toolCallId: "replacement-call",
+        toolName: "lookup",
+      },
+      "turn-2",
+    ),
+  );
+  projector.accept({
+    type: "tool-input",
+    conversationId: "conversation-1",
+    input: {},
+    messageId: "message-1",
+    position: position(3),
+    toolCallId: "replacement-call",
+    toolName: "lookup",
+  });
+  projector.accept({
+    type: "message-completed",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    position: position(4),
+  });
+  // A later step with no live event: its first canonical content opens it.
+  projector.accept(emptyReset(5));
+  projector.accept({
+    type: "message-delta",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    kind: "text",
+    delta: "Done.",
+    position: position(6),
+  });
+  projector.accept({
+    type: "message-completed",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    position: position(7),
+  });
+  projector.accept({
+    type: "submission-settled",
+    conversationId: "conversation-1",
+    submissionId: "submission-1",
+    outcome: "completed",
+    position: position(8),
+  });
+
+  expect(written.map((chunk) => chunk.type)).toEqual([
+    "start",
+    "start-step",
+    "finish-step",
+    "start-step",
+    "tool-input-start",
+    "tool-input-delta",
+    "tool-input-available",
+    "finish-step",
+    "start-step",
+    "text-start",
+    "text-delta",
+    "text-end",
+    "finish-step",
+    "finish",
+  ]);
+});
+
+test("a live proposal in a folded step that is never admitted ends as not executed at settlement", () => {
+  const written = recordChunks();
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.accept({
+    type: "message-completed",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    position: position(1),
+  });
+  projector.accept(emptyReset(2));
+  projector.acceptLive(
+    liveEvent(
+      0,
+      {
+        kind: "tool-input-start",
+        toolCallId: "abandoned-call",
+        toolName: "lookup",
+      },
+      "turn-2",
+    ),
+  );
+  projector.accept({
+    type: "message-completed",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    position: position(3),
+  });
+  expect(written.some((chunk) => chunk.type === "tool-input-error")).toBe(
+    false,
+  );
+
+  projector.accept({
+    type: "submission-settled",
+    conversationId: "conversation-1",
+    submissionId: "submission-1",
+    outcome: "failed",
+    position: position(4),
+  });
+  expect(written).toContainEqual({
+    type: "tool-input-error",
+    toolCallId: "abandoned-call",
+    toolName: "lookup",
+    input: undefined,
+    errorText: "This tool proposal was not executed.",
+  });
+});
+
+test("a step start after a reset restores turn-scoped live input", () => {
+  const written = recordChunks();
+  const projector = createFlueUiStream({
+    submissionId: "submission-1",
+    clientToolNames: new Set(),
+    write: (chunk) => written.push(chunk),
+  });
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-1",
+    position: position(0),
+  });
+  projector.accept(emptyReset(1));
+  projector.accept({
+    type: "message-started",
+    conversationId: "conversation-1",
+    messageId: "message-1",
+    submissionId: "submission-1",
+    turnId: "turn-2",
+    position: position(2),
+  });
+  const before = [...written];
+  projector.acceptLive(
+    liveEvent(
+      0,
+      {
+        kind: "tool-input-start",
+        toolCallId: "next-turn-call",
+        toolName: "lookup",
+      },
+      "turn-3",
+    ),
+  );
+
+  expect(written).toEqual(before);
 });

@@ -358,6 +358,16 @@ const kratosProxy = guardKratosProxy({
   }),
 });
 
+/**
+ * Whether `error` is the one `raw-body` raises when the client closes the
+ * connection before the request body has arrived.
+ */
+const isRequestAbortedError = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "type" in error &&
+  error.type === "request.aborted";
+
 const main = async () => {
   logger.info("Type System initialized");
 
@@ -921,17 +931,17 @@ const main = async () => {
    * 2. Come BEFORE all error controllers/middleware
    */
   Sentry.setupExpressErrorHandler(app, {
-    shouldHandleError(_error) {
-      /**
-       * Capture all errors for now – we can selectively filter out errors based on code if needed.
-       */
-      return true;
+    /** Sentry's default skips every error with a status below 500. */
+    shouldHandleError(error) {
+      return !isRequestAbortedError(error);
     },
   });
 
   // Fallback error handler for errors that haven't been caught and sent as a response already
   const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
-    Sentry.captureException(err);
+    if (!isRequestAbortedError(err)) {
+      Sentry.captureException(err);
+    }
 
     res.status(500).send(err.message);
   };

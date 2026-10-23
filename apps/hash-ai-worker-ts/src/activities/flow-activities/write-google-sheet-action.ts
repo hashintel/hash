@@ -31,6 +31,7 @@ import { getFilterFromBlockProtocolQueryEntity } from "./write-google-sheet-acti
 import { getSubgraphFromFilter } from "./write-google-sheet-action/get-subgraph-from-filter.js";
 
 import type {
+  EntityId,
   OriginProvenance,
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
@@ -154,7 +155,8 @@ export const writeGoogleSheetAction: FlowActionActivity<
   let sheetRequests: sheets_v4.Schema$Request[] | undefined;
 
   let resolvedDataToWrite:
-    | NonNullable<typeof dataToWrite>
+    | Exclude<NonNullable<typeof dataToWrite>, { kind: "EntityId" }>
+    | { kind: "EntityId"; value: EntityId }
     | { kind: "PersistedEntityMetadata"; value: PersistedEntityMetadata[] };
 
   if (persistedEntitiesInput) {
@@ -164,6 +166,16 @@ export const writeGoogleSheetAction: FlowActionActivity<
         { storageProvider: getStorageProvider(), workflowId },
         "PersistedEntityMetadata",
         persistedEntitiesInput,
+      ),
+    };
+  } else if (dataToWrite?.kind === "EntityId") {
+    /* An item of a stored list of entity IDs, e.g. in a for-each step, is a reference to it. */
+    resolvedDataToWrite = {
+      kind: "EntityId",
+      value: await resolvePayloadValue(
+        { storageProvider: getStorageProvider(), workflowId },
+        "EntityId",
+        dataToWrite.value,
       ),
     };
   } else if (dataToWrite) {

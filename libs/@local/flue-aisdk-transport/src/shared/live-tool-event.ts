@@ -3,21 +3,14 @@ import type { FlueConversationSettlement } from "@flue/sdk";
 type SubmissionOutcome = FlueConversationSettlement["outcome"];
 
 /** Every Flue outcome, for runtime parsing; checked against Flue in both directions. */
-const submissionOutcomes = [
-  "aborted",
-  "completed",
-  "failed",
-] as const satisfies readonly SubmissionOutcome[];
-
-type UnparsedOutcome = Exclude<
-  SubmissionOutcome,
-  (typeof submissionOutcomes)[number]
->;
-const _everyOutcomeParsed: [UnparsedOutcome] extends [never] ? true : never =
-  true;
+const submissionOutcomes = {
+  aborted: true,
+  completed: true,
+  failed: true,
+} satisfies Record<SubmissionOutcome, true>;
 
 const isSubmissionOutcome = (value: unknown): value is SubmissionOutcome =>
-  submissionOutcomes.some((outcome) => outcome === value);
+  typeof value === "string" && Object.hasOwn(submissionOutcomes, value);
 
 /**
  * The route segment of the live channel: the client reads

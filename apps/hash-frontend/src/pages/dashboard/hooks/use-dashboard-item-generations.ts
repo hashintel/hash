@@ -9,7 +9,6 @@ import { FlowRunStatus } from "../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
 
 import type {
-  FlowRun,
   GetFlowRunByIdQuery,
   GetFlowRunByIdQueryVariables,
   UpdateEntityMutation,
@@ -25,7 +24,10 @@ import type {
   ChartType,
   StructuralQueryDefinition,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FlowRunWithoutEvents,
+  StepOutput,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 export type DashboardItemGenerationPhase =
   | "building-query"
@@ -50,7 +52,7 @@ export const dashboardItemGenerationPhaseLabel = (
 
 export type DashboardItemGeneration = {
   itemEntityId: EntityId;
-  flowRunId: string;
+  flowRunEntityId: EntityId;
   phase: DashboardItemGenerationPhase;
   structuralQuery?: StructuralQueryDefinition;
   pythonScript?: string;
@@ -66,7 +68,9 @@ const getOutputValue = <Value>(
   (outputs?.find((output) => output.outputName === outputName)?.payload
     .value as Value | undefined) ?? null;
 
-const getFlowOutputs = (flowRun: FlowRun): StepOutput[] | undefined =>
+const getFlowOutputs = (
+  flowRun: FlowRunWithoutEvents,
+): StepOutput[] | undefined =>
   (
     flowRun.outputs as { contents: { outputs?: StepOutput[] }[] }[] | undefined
   )?.flatMap((status) =>
@@ -74,7 +78,7 @@ const getFlowOutputs = (flowRun: FlowRun): StepOutput[] | undefined =>
   );
 
 const getStepOutputs = (
-  step: FlowRun["steps"][number] | undefined,
+  step: FlowRunWithoutEvents["steps"][number] | undefined,
 ): StepOutput[] | undefined =>
   (
     step?.outputs as
@@ -97,7 +101,7 @@ const parseJson = <Value>(value: string | null): Value | undefined => {
 };
 
 export const getDashboardItemGenerationOutputs = (
-  flowRun: FlowRun,
+  flowRun: FlowRunWithoutEvents,
 ): Partial<
   Pick<
     DashboardItemGeneration,
@@ -143,7 +147,7 @@ export const getDashboardItemGenerationOutputs = (
 };
 
 export const getDashboardItemGenerationPhase = (
-  flowRun: FlowRun,
+  flowRun: FlowRunWithoutEvents,
 ): DashboardItemGenerationPhase => {
   const queryStep = flowRun.steps.find((step) => step.stepId === "1");
   const analysisStep = flowRun.steps.find((step) => step.stepId === "2");
@@ -236,7 +240,7 @@ export const useDashboardItemGenerations = ({
   );
 
   const finalizeGeneration = useCallback(
-    async (itemEntityId: EntityId, flowRun: FlowRun) => {
+    async (itemEntityId: EntityId, flowRun: FlowRunWithoutEvents) => {
       const outputs = getFlowOutputs(flowRun);
       const structuralQueryJson = getOutputValue<string>(
         outputs,
@@ -335,7 +339,7 @@ export const useDashboardItemGenerations = ({
           GetFlowRunByIdQueryVariables
         >({
           query: getFlowRunById,
-          variables: { flowRunId: generation.flowRunId },
+          variables: { flowRunEntityId: generation.flowRunEntityId },
           fetchPolicy: "network-only",
         });
         const flowRun = data.getFlowRunById;

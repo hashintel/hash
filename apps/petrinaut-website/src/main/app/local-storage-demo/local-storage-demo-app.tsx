@@ -9,45 +9,31 @@ import {
   CommandRegistryProvider,
   useCommand,
 } from "@hashintel/petrinaut/react";
-import {
-  DefaultChatTransport,
-  Petrinaut,
-  type PetrinautAiAssistant,
-  type PetrinautAiMessage,
-} from "@hashintel/petrinaut/ui";
+import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { useSharedSearchNavigation } from "../../../examples/use-shared-search-navigation";
 import { StatusPage } from "../../../shared/status-page";
-import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import {
   brunchPreviewConfig,
   useBrunchAssistant,
 } from "../plugins/brunch/use-brunch-assistant";
 import { demoPlugins } from "../plugins/demo-plugins";
-import { useLocalStorageAiMessages } from "../plugins/petrinaut-ai/plugin/use-local-storage-ai-messages";
+import { petrinautAiPlugin } from "../plugins/petrinaut-ai/plugin";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import {
   isBrunchSelected,
-  stockChatEndpoint,
   type AssistantSelection,
   useAssistantSelection,
 } from "./assistant-selection";
 import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
+import { useInterviewBudgetPreference } from "./interview-budget-preference";
 import { UnsavedChangeNotice } from "./unsaved-change-notice";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
+import { useWordsPreference } from "./words-preference";
 
 import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
-
-// The stock assistant's transport is the same whether or not Brunch is
-// configured: selecting the stock assistant must not route it through Brunch.
-const stockChatTransport = new DefaultChatTransport({
-  api: stockChatEndpoint,
-  headers: () => ({
-    [VOICE_REQUEST_ID_HEADER]: crypto.randomUUID(),
-  }),
-});
 
 /**
  * The demo's own palette commands, registered beside Petrinaut's.
@@ -114,6 +100,18 @@ export const LocalStorageDemoApp = ({
     ready: realtimePreferenceReady,
     setEnabled: setRealtimeEnabled,
   } = useRealtimePreference();
+  const {
+    level: interviewBudgetLevel,
+    setLevel: setInterviewBudgetLevel,
+    enabled: interviewBudgetEnabled,
+    setEnabled: setInterviewBudgetEnabled,
+    ready: interviewBudgetPreferenceReady,
+  } = useInterviewBudgetPreference();
+  const {
+    enabled: wordsEnabled,
+    ready: wordsPreferenceReady,
+    setEnabled: setWordsEnabled,
+  } = useWordsPreference();
   const brunchSelected =
     assistantSelectionReady &&
     isBrunchSelected(
@@ -137,8 +135,6 @@ export const LocalStorageDemoApp = ({
     // per document, but not a controlled one, so the host resets this one.
     resetKey: netId,
   });
-  const { aiMessagesByNetId, setAiMessagesByNetId } =
-    useLocalStorageAiMessages();
   const { controller } = useDocumentController({
     documentId: netId,
     onOpenDocument: onOpenNet,
@@ -222,40 +218,19 @@ export const LocalStorageDemoApp = ({
       enabled: voicePreferenceReady && voiceEnabled && realtimePreferenceReady,
       realtime: realtimeEnabled,
     },
+    interviewBudget: {
+      enabled: interviewBudgetPreferenceReady && interviewBudgetEnabled,
+      level: interviewBudgetLevel,
+      setLevel: setInterviewBudgetLevel,
+    },
+    words: { enabled: wordsPreferenceReady && wordsEnabled },
     plugins: demoPlugins,
   });
-  const stockAssistant = useMemo(
-    (): PetrinautAiAssistant => ({
-      canClearMessages: true,
-      automaticTools: [],
-      interactiveTools: [],
-      transport: stockChatTransport,
-      messages: currentNetId ? aiMessagesByNetId[currentNetId] : undefined,
-      onMessages: (messages: PetrinautAiMessage[]) => {
-        if (!currentNetId) {
-          return;
-        }
-
-        setAiMessagesByNetId((prev) => ({
-          ...prev,
-          [currentNetId]: messages,
-        }));
-      },
-      onClearMessages: () => {
-        if (!currentNetId) {
-          return;
-        }
-
-        setAiMessagesByNetId((prev) => {
-          const next = { ...prev };
-          delete next[currentNetId];
-          return next;
-        });
-      },
-    }),
-    [aiMessagesByNetId, currentNetId, setAiMessagesByNetId],
-  );
-  const aiAssistant = brunch.assistant ?? stockAssistant;
+  // Petrinaut AI is the assistant until Brunch's is ready.
+  const plugins =
+    brunch.assistant === null
+      ? [...brunch.plugins, petrinautAiPlugin]
+      : brunch.plugins;
 
   if (repository.status.state === "ready" && currentDocument === null) {
     return (
@@ -286,13 +261,13 @@ export const LocalStorageDemoApp = ({
       {notice !== null ? <UnsavedChangeNotice message={notice} /> : null}
       <CommandRegistryProvider>
         <Petrinaut
-          aiAssistant={aiAssistant}
+          aiAssistant={brunch.assistant ?? undefined}
           handle={activeHandle.handle}
           existingNets={existingNets}
           createNewNet={createNewNet}
           loadPetriNet={loadPetriNet}
           navigation={navigation}
-          plugins={brunch.plugins}
+          plugins={plugins}
           readonly={false}
           setTitle={setTitle}
           slots={{
@@ -301,14 +276,20 @@ export const LocalStorageDemoApp = ({
                 assistantReady={assistantSelectionReady}
                 brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
                 brunchSelected={brunchSelected}
+                interviewBudgetEnabled={interviewBudgetEnabled}
+                interviewBudgetPreferenceReady={interviewBudgetPreferenceReady}
                 openAIVoiceConfig={brunch.openAIVoiceConfig}
                 realtimeEnabled={realtimeEnabled}
                 realtimePreferenceReady={realtimePreferenceReady}
                 selectAssistant={selectAssistant}
+                setInterviewBudgetEnabled={setInterviewBudgetEnabled}
                 setRealtimeEnabled={setRealtimeEnabled}
                 setVoiceEnabled={setVoiceEnabled}
                 voiceEnabled={brunchSelected && voiceEnabled}
                 voicePreferenceReady={voicePreferenceReady}
+                wordsEnabled={wordsEnabled}
+                wordsPreferenceReady={wordsPreferenceReady}
+                setWordsEnabled={setWordsEnabled}
               />
             ),
           }}

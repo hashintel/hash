@@ -9,7 +9,7 @@
  * from. A URL that does not name a field means "the baseline's value", which is
  * what makes Back undo a mode change or close an overlay: the entry Back
  * returns to simply omits the field. The baseline is the editor's own default
- * everywhere except `/brunch`, which starts in Actual mode.
+ * unless the page seeds another one.
  */
 import { defaultPetrinautNavigationState } from "@hashintel/petrinaut/react";
 

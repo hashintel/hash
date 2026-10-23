@@ -18,11 +18,8 @@ import {
   BullseyeLightIcon,
   TextField,
 } from "@hashintel/design-system";
+import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import {
-  goalFlow,
-  type GoalFlowInputName,
-} from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
@@ -38,6 +35,7 @@ import { Button } from "../../shared/ui/button";
 import { WorkersHeader } from "../../shared/workers-header";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
+import { useGenerateHashFlowDefinitionEntityId } from "../shared/use-hash-flows";
 import { WebSelector } from "../shared/web-selector";
 import { defaultBrowserPluginDomains } from "./new.page/default-browser-plugin-domains";
 import { DeliverableSettings } from "./new.page/deliverable-settings";
@@ -48,6 +46,7 @@ import type { NextPageWithLayout } from "../../shared/layout";
 import type { DeliverableSettingsState } from "./new.page/deliverable-settings";
 import type { FileSettingsState } from "./new.page/file-settings";
 import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
+import type { GoalFlowInputName } from "@local/hash-isomorphic-utils/flows/definitions/goal-flow-definitions";
 import type {
   FlowDataSources,
   Payload,
@@ -191,6 +190,9 @@ const NewGoalPageContent = () => {
   const getOwner = useGetOwnerForEntity();
   const { push } = useRouter();
 
+  const generateHashFlowDefinitionEntityId =
+    useGenerateHashFlowDefinitionEntityId();
+
   const [startFlow, { called }] = useMutation<
     StartFlowMutation,
     StartFlowMutationVariables
@@ -286,15 +288,16 @@ const NewGoalPageContent = () => {
           },
           internetAccess: internetSettings,
         },
-        flowDefinition: goalFlow.flowDefinition,
-        flowDefinitionId: goalFlow.flowDefinitionId,
+        flowDefinitionEntityId: generateHashFlowDefinitionEntityId(
+          flowDefinitionIds.goal,
+        ),
         flowInputs,
         webId,
       },
     });
 
-    const flowRunId = data?.startFlow;
-    if (!flowRunId) {
+    const flowRunEntityId = data?.startFlow;
+    if (!flowRunEntityId) {
       throw new Error("Failed to start flow");
     }
 
@@ -304,7 +307,7 @@ const NewGoalPageContent = () => {
 
     const { shortname } = getOwner({ webId });
 
-    void push(generateWorkerRunPath({ shortname, flowRunId }));
+    void push(generateWorkerRunPath({ shortname, flowRunEntityId }));
   };
 
   return (

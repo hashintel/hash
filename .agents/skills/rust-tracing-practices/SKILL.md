@@ -2,19 +2,6 @@
 name: rust-tracing-practices
 description: "HASH tracing and instrumentation practices for Rust. Use when adding spans, events, or #[tracing::instrument] to Rust code."
 license: AGPL-3.0
-metadata:
-  triggers:
-    type: domain
-    enforcement: suggest
-    priority: medium
-    keywords:
-      - tracing
-      - instrument
-      - span
-      - rust log
-    intent-patterns:
-      - "\\b(tracing|instrument|span)\\b"
-      - "\\b(info|debug|trace|warn|error)!"
 ---
 
 # Rust Tracing Practices

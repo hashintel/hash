@@ -1,15 +1,25 @@
 {
   "package": "@hashintel/petrinaut-core",
   "dependencies": [
-    "@local/petrinaut-optimizer-core"
+    "@local/petrinaut-optimizer-core",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {
       "dependsOn": []
     },
+    "build:pack": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
+    },
     "fix:eslint": {
       "dependsOn": [
         "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "@local/eslint"
       ]
     },
     "lint:eslint": {
@@ -18,6 +28,9 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@local/eslint"
       ]
     },
     "lint:tsc": {

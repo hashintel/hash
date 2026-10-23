@@ -1,9 +1,17 @@
 {
   "package": "@hashintel/refractive",
-  "dependencies": [],
+  "dependencies": [
+    "@local/tsconfig"
+  ],
   "tasks": {
     "build": {
       "dependsOn": []
+    },
+    "build:pack": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
     },
     "dev": {
       "dependsOn": [],
@@ -13,6 +21,9 @@
     "fix:eslint": {
       "dependsOn": [
         "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "@local/eslint"
       ]
     },
     "lint:eslint": {
@@ -21,6 +32,9 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@local/eslint"
       ]
     },
     "lint:tsc": {

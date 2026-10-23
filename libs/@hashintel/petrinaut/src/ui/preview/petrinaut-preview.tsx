@@ -20,12 +20,14 @@ import {
 import { Button, Icon, PortalContainerContext } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
+  type ActualModeContextValue,
   createJsonDocHandle,
   createPetrinaut,
   type Petrinaut as PetrinautInstance,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
+import { ActualModeContext } from "../../react/actual-mode-context";
 import {
   PetrinautNavigationProvider,
   type PetrinautNavigationController,
@@ -42,6 +44,7 @@ import {
   createPreviewNavigationAdapter,
   type PetrinautPreviewNavigationState,
 } from "./navigation-adapter";
+import { PreviewActualModeTimeline } from "./preview-actual-mode-timeline";
 import { PreviewNetNavigation } from "./preview-net-navigation";
 import {
   PreviewSimulationConfiguration,
@@ -165,6 +168,13 @@ export type PetrinautPreviewProps = {
    * model's named scenarios without mounting Petrinaut's language tooling.
    */
   quickSimulation?: PetrinautPreviewQuickSimulation;
+  /**
+   * An execution from outside Petrinaut to show on the model, as the editor's
+   * Actual mode does. Preview opens in Actual mode, showing the latest frame
+   * under a timeline that can scrub back through it. Not combined with
+   * `quickSimulation`.
+   */
+  actualMode?: Extract<ActualModeContextValue, { available: true }>;
 };
 
 /**
@@ -176,6 +186,7 @@ export type PetrinautPreviewProps = {
  * bounded Quick Simulation surface by supplying precompiled artifacts.
  */
 export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
+  actualMode,
   definition,
   documentId,
   fullViewUrl,
@@ -186,6 +197,12 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
   const generatedDocumentId = useId();
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const hasQuickSimulation = quickSimulation !== undefined;
+  if (hasQuickSimulation && actualMode) {
+    throw new Error(
+      "PetrinautPreview takes either `quickSimulation` or `actualMode`, not both",
+    );
+  }
+  const mode = actualMode ? "actual" : hasQuickSimulation ? "simulate" : "edit";
   const handle = useMemo(
     () =>
       createJsonDocHandle({
@@ -207,13 +224,8 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
   );
   const navigationAdapter = useMemo(
     () =>
-      navigation
-        ? createPreviewNavigationAdapter(
-            navigation,
-            hasQuickSimulation ? "simulate" : "edit",
-          )
-        : undefined,
-    [hasQuickSimulation, navigation],
+      navigation ? createPreviewNavigationAdapter(navigation, mode) : undefined,
+    [mode, navigation],
   );
   const hirArtifacts = quickSimulation?.hirArtifacts;
   const scenarioHirById = quickSimulation?.scenarioHirById;
@@ -321,6 +333,7 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
                 allowedPlaybackSpeeds={playbackOptions?.allowedPlaybackSpeeds}
               />
             )}
+            {actualMode && <PreviewActualModeTimeline />}
           </div>
           <PreviewPropertiesPanel />
         </main>
@@ -328,7 +341,7 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
     </PetrinautCanvasProvider>
   );
 
-  return (
+  const preview = (
     <PortalContainerContext value={portalContainerRef}>
       <PetrinautDocumentProvider
         key={documentKey}
@@ -338,7 +351,7 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
         <PetrinautNavigationProvider
           controller={navigationAdapter}
           initialState={{
-            mode: hasQuickSimulation ? "simulate" : "edit",
+            mode,
             simulateView: "scenarios",
           }}
           key={handle.id}
@@ -366,5 +379,11 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
         </PetrinautNavigationProvider>
       </PetrinautDocumentProvider>
     </PortalContainerContext>
+  );
+
+  return actualMode ? (
+    <ActualModeContext value={actualMode}>{preview}</ActualModeContext>
+  ) : (
+    preview
   );
 };

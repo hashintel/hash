@@ -1,0 +1,234 @@
+import { Box, CircularProgress, Stack, Typography } from "@mui/material";
+import * as Sentry from "@sentry/nextjs";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { FullScreen, useFullScreenHandle } from "react-full-screen";
+
+import {
+  ArrowDownLeftAndArrowUpRightToCenterIcon,
+  ArrowUpRightAndArrowDownLeftFromCenterIcon,
+  MagnifyingGlassMinusLightIcon,
+  MagnifyingGlassPlusLightIcon,
+} from "@hashintel/design-system";
+
+import { FolioDocument } from "./docx-preview/folio-document";
+import { fetchPresignedFileUrl } from "./fetch-presigned-file-url";
+import { FilePreviewPageNavigation } from "./file-preview-page-navigation";
+import { FilePreviewSearch } from "./file-preview-search";
+import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
+import { useFilePreviewMaxHeight } from "./use-file-preview-max-height";
+
+import type {
+  DocxDocumentControls,
+  DocxDocumentPages,
+  DocxSearchResult,
+} from "./docx-preview/folio-document";
+
+const zoomStep = 0.2;
+
+type DocxPreviewProps = {
+  /**
+   * Called when the document cannot be shown at all, so the caller can show
+   * the file's icon instead.
+   */
+  onUnavailable: () => void;
+  showSearch: boolean;
+  setShowSearch: (showSearch: boolean) => void;
+  url: string;
+};
+
+export const DocxPreview = ({
+  onUnavailable,
+  showSearch,
+  setShowSearch,
+  url,
+}: DocxPreviewProps) => {
+  const [data, setData] = useState<ArrayBuffer | null>(null);
+  const [pages, setPages] = useState<DocxDocumentPages>({
+    current: 1,
+    total: 0,
+  });
+  const [zoom, setZoom] = useState(1);
+  const [searchHitCount, setSearchHitCount] = useState(0);
+  const [selectedSearchHit, setSelectedSearchHit] = useState<number | null>(
+    null,
+  );
+
+  const controlsRef = useRef<DocxDocumentControls>(null);
+
+  const fullScreenHandle = useFullScreenHandle();
+
+  const height = useFilePreviewMaxHeight(fullScreenHandle.active);
+
+  /**
+   * An error before any page is laid out means the document cannot be shown.
+   * A later one, such as a part folio cannot draw, leaves the pages in place.
+   */
+  const handleError = (error: unknown) => {
+    Sentry.captureException(error);
+    if (!controlsRef.current?.hasPages()) {
+      onUnavailable();
+    }
+  };
+
+  const handleDownloadError = useEffectEvent(handleError);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setData(null);
+
+    fetchPresignedFileUrl(url)
+      .then((presignedUrl) => fetch(presignedUrl))
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(
+            `Downloading ${url} failed with HTTP ${response.status}`,
+          );
+        }
+        return response.arrayBuffer();
+      })
+      .then((buffer) => {
+        if (!cancelled) {
+          setData(buffer);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          handleDownloadError(error);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  const showSearchResult = ({
+    hitCount,
+    currentHitIndex,
+  }: DocxSearchResult) => {
+    setSearchHitCount(hitCount);
+    setSelectedSearchHit(currentHitIndex);
+  };
+
+  return (
+    <FullScreen
+      className="full-height-and-width-for-react-full-screen"
+      handle={fullScreenHandle}
+    >
+      <Box
+        sx={({ palette }) => ({
+          background: palette.blue[10],
+          border: `1px solid ${palette.gray[30]}`,
+          borderRadius: 2,
+          height,
+          overflow: "hidden",
+          position: "relative",
+          width: "100%",
+        })}
+      >
+        {data ? (
+          <Sentry.ErrorBoundary onError={onUnavailable}>
+            <FolioDocument
+              controlsRef={controlsRef}
+              data={data}
+              onError={handleError}
+              onPagesChange={setPages}
+              onSearchResultChange={showSearchResult}
+              onZoomChange={setZoom}
+            />
+          </Sentry.ErrorBoundary>
+        ) : (
+          <Stack alignItems="center" justifyContent="center" height="100%">
+            <CircularProgress />
+          </Stack>
+        )}
+        <Box sx={{ position: "absolute", top: 20, left: 20, zIndex: 100 }}>
+          <FilePreviewSearch
+            closeSearch={() => setShowSearch(false)}
+            onSearch={(text, ignoreCase) =>
+              controlsRef.current?.search(text, ignoreCase)
+            }
+            onSelectHit={(index) => controlsRef.current?.showHit(index)}
+            selectedIndex={selectedSearchHit}
+            showSearch={showSearch}
+            total={searchHitCount}
+          />
+        </Box>
+        {pages.total > 0 && (
+          <>
+            <Stack
+              direction="row"
+              alignItems="center"
+              gap={1}
+              sx={{
+                background: "rgba(255, 255, 255, 0.9)",
+                borderRadius: "4px",
+                position: "absolute",
+                bottom: 20,
+                left: 20,
+                zIndex: 20,
+              }}
+            >
+              <FilePreviewPageNavigation
+                currentPage={pages.current}
+                onSelectPage={(pageNumber) =>
+                  controlsRef.current?.goToPage(pageNumber)
+                }
+                totalPages={pages.total}
+              />
+            </Stack>
+            <Stack
+              alignItems="center"
+              direction="row"
+              gap={1.5}
+              sx={{
+                position: "absolute",
+                bottom: 20,
+                right: 20,
+                zIndex: 20,
+              }}
+            >
+              <Stack direction="row" alignItems="center" gap={1}>
+                <GrayToBlueIconButton
+                  aria-label="Zoom out"
+                  onClick={() => controlsRef.current?.zoomBy(-zoomStep)}
+                >
+                  <MagnifyingGlassMinusLightIcon />
+                </GrayToBlueIconButton>
+                <GrayToBlueIconButton
+                  aria-label="Zoom in"
+                  onClick={() => controlsRef.current?.zoomBy(zoomStep)}
+                >
+                  <MagnifyingGlassPlusLightIcon />
+                </GrayToBlueIconButton>
+                <Typography
+                  sx={{
+                    fontSize: 12,
+                    color: ({ palette }) => palette.gray[70],
+                  }}
+                >
+                  {Math.round(zoom * 100)}%
+                </Typography>
+              </Stack>
+              <GrayToBlueIconButton
+                aria-label={
+                  fullScreenHandle.active ? "Exit full screen" : "Full screen"
+                }
+                onClick={
+                  fullScreenHandle[fullScreenHandle.active ? "exit" : "enter"]
+                }
+              >
+                {fullScreenHandle.active ? (
+                  <ArrowDownLeftAndArrowUpRightToCenterIcon />
+                ) : (
+                  <ArrowUpRightAndArrowDownLeftFromCenterIcon />
+                )}
+              </GrayToBlueIconButton>
+            </Stack>
+          </>
+        )}
+      </Box>
+    </FullScreen>
+  );
+};

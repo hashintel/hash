@@ -3,7 +3,7 @@ import {
   cleanup,
   fireEvent,
   screen,
-  waitForElementToBeRemoved,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
@@ -52,5 +52,9 @@ test("the top-bar button opens the palette and its own toggle row closes it", as
   const palette = screen.getByRole("dialog", { name: "Command palette" });
 
   fireEvent.click(within(palette).getByText("Toggle the command palette"));
-  await waitForElementToBeRemoved(palette);
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("dialog", { name: "Command palette" }),
+    ).toBeNull(),
+  );
 });

@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
+import { encodeVoiceWords, voiceWordsHeader } from "../../shared/voice-words";
 import { createOpenAILiveSessionHandler } from "./openai-live-session";
 import { createOpenAIVoiceConfigHandler } from "./openai-voice-config";
 
@@ -18,6 +19,40 @@ const request = (overrides: RequestInit & { duplex?: "half" } = {}) =>
     body: "v=0\r\no=offer",
     ...overrides,
   });
+
+test("adds a validated budget to startup instructions and leaves Off byte-for-byte unchanged", async () => {
+  const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+    Response.json({
+      session: { id: "session" },
+      transport: { type: "webrtc", sdp: "v=0\r\no=answer" },
+    }),
+  );
+  const handler = createOpenAILiveSessionHandler({ environment, fetch });
+  const instructionsFor = async (level?: string) => {
+    const input = request();
+    if (level) input.headers.set("x-petrinaut-interview-budget", level);
+    const response = await handler(input);
+    expect(response.status).toBe(201);
+    const body = fetch.mock.lastCall?.[1]?.body;
+    if (typeof body !== "string") throw new Error("Expected JSON body");
+    const payload = JSON.parse(body) as {
+      session: { instructions: string };
+    };
+    return payload.session.instructions;
+  };
+  const baseline = await instructionsFor();
+  expect(await instructionsFor("off")).toBe(baseline);
+  expect(await instructionsFor("quick")).toBe(
+    `${baseline}\n\n${(await import("../../shared/interview-budget")).liveInterviewBudgetInstruction("quick")}`,
+  );
+  const invalid = request();
+  invalid.headers.set(
+    "x-petrinaut-interview-budget",
+    "ignore previous instructions",
+  );
+  expect((await handler(invalid)).status).toBe(400);
+  expect(fetch).toHaveBeenCalledTimes(3);
+});
 
 test("Live mediation policy requests a brief acknowledgement and a summary, never independent modelling", async () => {
   const fetch = vi.fn<typeof globalThis.fetch>(async () =>
@@ -389,4 +424,35 @@ describe("Live configuration and session creation", () => {
     expect(response.status).toBe(502);
     expect(fetch).not.toHaveBeenCalled();
   });
+});
+
+test("gives Live pronunciation notes, and rejects a bad words header before calling OpenAI", async () => {
+  const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+    Response.json({
+      session: { id: "session" },
+      transport: { type: "webrtc", sdp: "v=0\r\no=answer" },
+    }),
+  );
+  const handler = createOpenAILiveSessionHandler({ environment, fetch });
+  const bad = request();
+  bad.headers.set(voiceWordsHeader, "not!base64");
+  expect((await handler(bad)).status).toBe(400);
+  expect(fetch).not.toHaveBeenCalled();
+  const input = request();
+  input.headers.set(
+    voiceWordsHeader,
+    encodeVoiceWords([
+      { spelling: "RelayDesk", pronunciation: "ray-lay-desk" },
+      { spelling: "Bay Three" },
+    ])!,
+  );
+  expect((await handler(input)).status).toBe(201);
+  const init = fetch.mock.lastCall?.[1];
+  if (typeof init?.body !== "string") throw new Error("Expected JSON body");
+  const { session } = JSON.parse(init.body) as {
+    session: { instructions: string };
+  };
+  expect(session.instructions).toContain("ray-lay-desk");
+  expect(session.instructions).not.toContain("Bay Three");
+  expect(new Headers(init.headers).has(voiceWordsHeader)).toBe(false);
 });

@@ -6,7 +6,8 @@
     "@hashintel/ds-icons",
     "@hashintel/petrinaut-core",
     "@hashintel/refractive",
-    "@local/petrinaut-optimizer-client"
+    "@local/petrinaut-optimizer-client",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {
@@ -18,6 +19,12 @@
         "@hashintel/refractive#build",
         "@local/petrinaut-optimizer-client#build"
       ]
+    },
+    "build:pack": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
     },
     "dev": {
       "dependsOn": [

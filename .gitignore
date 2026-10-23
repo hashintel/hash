@@ -185,5 +185,7 @@ out/
 # Jujutsu
 .jj/
 
-# napi
-libs/@local/effect-dns/hickory/npm
+# lefthook local overrides
+/lefthook-local.*
+/.lefthook-local.*
+/.config/lefthook-local.*

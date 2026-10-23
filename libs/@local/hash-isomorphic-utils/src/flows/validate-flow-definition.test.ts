@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { ftseInvestorsFlow } from "./ftse-investors-flow-definition.js";
-import { goalFlow } from "./goal-flow-definitions.js";
+import { ftseInvestorsFlow } from "./definitions/ftse-investors-flow-definition.js";
+import { goalFlow } from "./definitions/goal-flow-definitions.js";
 import {
   type FlowDefinitionDiagnostic,
   validateFlowDefinition,
@@ -416,6 +416,68 @@ describe("validateFlowDefinition", () => {
       ]);
     });
 
+    it("rejects consuming a value from outside a for-each step inside it", () => {
+      const consumingInside = (context: unknown) =>
+        diagnosticsOf({
+          ...baseDefinition,
+          steps: [
+            {
+              kind: "action",
+              stepId: "queries",
+              actionDefinitionId: "generateWebQueries",
+              description: "",
+              inputs: { prompt: { kind: "flow-input", inputName: "question" } },
+            },
+            {
+              kind: "for-each",
+              stepId: "each",
+              description: "",
+              over: {
+                kind: "step-output",
+                stepId: "queries",
+                outputName: "queries",
+              },
+              steps: [
+                answerStep("answer", {
+                  question: { kind: "item", access: "consume" },
+                  context,
+                }),
+              ],
+              collect: {
+                stepId: "answer",
+                outputName: "explanation",
+                as: "explanations",
+              },
+            },
+          ],
+        });
+
+      expect(
+        consumingInside({
+          kind: "flow-input",
+          inputName: "question",
+          access: "consume",
+        }),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "consumedIntoForEach",
+          path: ["steps", 1, "steps", 0, "inputs", "context"],
+        },
+      ]);
+      expect(
+        consumingInside({
+          kind: "step-output",
+          stepId: "queries",
+          outputName: "queries",
+          access: "consume",
+        }).map(({ code }) => code),
+      ).toContain("consumedIntoForEach");
+      expect(
+        consumingInside({ kind: "flow-input", inputName: "question" }),
+      ).toEqual([]);
+    });
+
     it("rejects an item outside a for-each step", () => {
       expect(
         diagnosticsOf({
@@ -704,7 +766,7 @@ describe("validateFlowDefinition", () => {
         name: "of a kind that can't be sorted",
         subject: { kind: "field", path: ["url"], payloadKind: "WebPage" },
         message:
-          "A sort key's subject must be of kind Text, Number, Date, Boolean.",
+          "A sort key's subject must be of kind ActorType, Boolean, Date, DateTime, EntityId, GoogleAccountId, Number, Text, VersionedUrl.",
       },
       {
         name: "that doesn't fit the items",

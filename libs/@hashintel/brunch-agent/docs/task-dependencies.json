@@ -1,7 +1,8 @@
 {
   "package": "@hashintel/brunch-agent",
   "dependencies": [
-    "@hashintel/petrinaut-core"
+    "@hashintel/petrinaut-core",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {
@@ -13,6 +14,9 @@
       "dependsOn": [
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "@local/eslint"
       ]
     },
     "lint:eslint": {
@@ -22,6 +26,9 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@local/eslint"
       ]
     },
     "lint:tsc": {

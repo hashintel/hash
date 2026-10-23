@@ -1,10 +1,14 @@
 import type {
   FlowDataSources,
-  FlowDefinition,
   LocalFlowRun,
   FlowInputValues,
 } from "./types.js";
-import type { EntityUuid, UserId, WebId } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  EntityUuid,
+  UserId,
+  WebId,
+} from "@blockprotocol/type-system";
 import type { Status } from "@local/status";
 
 export type BaseRunFlowWorkflowParams = {
@@ -17,16 +21,20 @@ export type BaseRunFlowWorkflowParams = {
    * 1. The first run might not start immediately, so we don't do any re-routing.
    * 2. Schedules result in multiple runs, so there's no single entity UUID to return.
    */
-  flowRunId?: EntityUuid;
-  /** The definition to run, which the caller has validated. */
-  flowDefinition: FlowDefinition;
-  flowDefinitionId: EntityUuid;
+  flowRunEntityUuid?: EntityUuid;
+  /**
+   * The `Flow Definition` entity to run. The run loads the definition when it starts, so it runs the edition current
+   * at that time.
+   */
+  flowDefinitionEntityId: EntityId;
   /**
    * Optional name for the flow run. If not provided, the flow definition name is used.
    * For scheduled flows, this is typically the schedule name.
    */
   flowRunName?: string;
   flowInputs: FlowInputValues;
+  /** The `Flow Trigger` entity that started the run, if any (e.g. a `Flow Schedule`). */
+  flowTriggerEntityId?: EntityId;
   userAuthentication: { actorId: UserId };
   webId: WebId;
 };

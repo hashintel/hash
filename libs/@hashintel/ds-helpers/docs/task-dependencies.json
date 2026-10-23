@@ -1,5 +1,15 @@
 {
   "package": "@hashintel/ds-helpers",
   "dependencies": [],
-  "tasks": {}
+  "tasks": {
+    "build:pack": {
+      "dependsOn": [
+        "@hashintel/ds-components#codegen"
+      ],
+      "cache": false,
+      "affectedBy": [
+        "@hashintel/ds-components"
+      ]
+    }
+  }
 }

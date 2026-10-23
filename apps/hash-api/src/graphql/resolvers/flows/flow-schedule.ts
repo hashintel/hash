@@ -18,6 +18,7 @@ import {
 } from "../../../graph/knowledge/system-types/flow-schedule";
 import * as GraphQLError from "../../error";
 import { graphQLContextToImpureGraphContext } from "../util";
+import { assertClientFlowInputs } from "./shared/assert-client-flow-inputs";
 import { getRunnableFlowDefinition } from "./shared/get-runnable-flow-definition";
 
 import type {
@@ -42,21 +43,24 @@ export const createFlowScheduleResolver: ResolverFn<
   const context = graphQLContextToImpureGraphContext(graphQLContext);
   const { authentication } = graphQLContext;
 
-  const { flowDefinitionId } = input;
+  const { flowDefinitionEntityId } = input;
 
-  const { flowDefinition, flowType } = getRunnableFlowDefinition(
+  const { flowType } = await getRunnableFlowDefinition(
     graphQLContext,
-    input.flowDefinition,
+    flowDefinitionEntityId,
   );
 
   if (flowType === "ai" && !input.dataSources) {
     throw GraphQLError.badRequest("Data sources are required for AI flows");
   }
 
-  const schedule = await createFlowScheduleEntity(context, authentication, {
-    ...input,
-    flowDefinition,
-  });
+  assertClientFlowInputs(input.flowInputs);
+
+  const schedule = await createFlowScheduleEntity(
+    context,
+    authentication,
+    input,
+  );
 
   const props = simplifyProperties(schedule.properties);
   const scheduleId = extractEntityUuidFromEntityId(
@@ -69,10 +73,10 @@ export const createFlowScheduleResolver: ResolverFn<
     ...(flowType === "ai" && input.dataSources
       ? { dataSources: input.dataSources }
       : {}),
-    flowDefinition,
-    flowDefinitionId,
+    flowDefinitionEntityId,
     flowRunName: input.name,
     flowInputs: input.flowInputs,
+    flowTriggerEntityId: schedule.metadata.recordId.entityId,
     userAuthentication: { actorId: user.accountId },
     webId: input.webId,
   };
@@ -87,7 +91,7 @@ export const createFlowScheduleResolver: ResolverFn<
         taskQueue,
         args: [workflowParams],
         memo: {
-          flowDefinitionId,
+          flowDefinitionEntityId,
           userAccountId: user.accountId,
           webId: input.webId,
         },

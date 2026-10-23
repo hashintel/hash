@@ -357,6 +357,11 @@ optimizer, so it does not require the Python service or Docker.
 
 ## Host-owned interactive AI tools
 
+Deprecated with the built-in chat: a plugin that declares `assistant` renders
+its own chat, with its own tools, in the assistant panel. The architecture
+docs' [Writing a plugin](../../@local/petrinaut-arch-docs/content/plugins/writing-a-plugin.mdx)
+page shows how.
+
 Hosts can render their own dynamic AI tools inline in Petrinaut's chat panel.
 Define each tool with runtime input and output schemas, then pass the resulting
 registration through `aiAssistant.interactiveTools`:

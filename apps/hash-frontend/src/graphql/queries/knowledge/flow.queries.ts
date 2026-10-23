@@ -3,15 +3,13 @@ import { gql } from "@apollo/client";
 export const startFlowMutation = gql`
   mutation startFlow(
     $dataSources: FlowDataSources
-    $flowDefinition: FlowDefinition!
-    $flowDefinitionId: EntityUuid!
+    $flowDefinitionEntityId: EntityId!
     $flowInputs: FlowInputValues!
     $webId: WebId!
   ) {
     startFlow(
       dataSources: $dataSources
-      flowDefinition: $flowDefinition
-      flowDefinitionId: $flowDefinitionId
+      flowDefinitionEntityId: $flowDefinitionEntityId
       flowInputs: $flowInputs
       webId: $webId
     )
@@ -19,18 +17,22 @@ export const startFlowMutation = gql`
 `;
 
 export const resetFlowMutation = gql`
-  mutation resetFlow($flowUuid: ID!, $checkpointId: ID!, $eventId: Int!) {
+  mutation resetFlow(
+    $flowRunEntityId: EntityId!
+    $checkpointId: ID!
+    $eventId: Int!
+  ) {
     resetFlow(
       checkpointId: $checkpointId
       eventId: $eventId
-      flowUuid: $flowUuid
+      flowRunEntityId: $flowRunEntityId
     )
   }
 `;
 
 export const cancelFlowMutation = gql`
-  mutation cancelFlow($flowUuid: ID!) {
-    cancelFlow(flowUuid: $flowUuid)
+  mutation cancelFlow($flowRunEntityId: EntityId!) {
+    cancelFlow(flowRunEntityId: $flowRunEntityId)
   }
 `;
 

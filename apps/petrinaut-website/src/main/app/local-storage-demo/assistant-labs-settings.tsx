@@ -95,26 +95,38 @@ export const AssistantLabsSettings = ({
   assistantReady,
   brunchConfigured,
   brunchSelected,
+  interviewBudgetEnabled,
+  interviewBudgetPreferenceReady,
   openAIVoiceConfig,
   realtimeEnabled,
   realtimePreferenceReady,
   selectAssistant,
+  setInterviewBudgetEnabled,
   setRealtimeEnabled,
   setVoiceEnabled,
   voiceEnabled,
   voicePreferenceReady,
+  wordsEnabled,
+  wordsPreferenceReady,
+  setWordsEnabled,
 }: {
   readonly assistantReady: boolean;
   readonly brunchConfigured: boolean;
   readonly brunchSelected: boolean;
+  readonly interviewBudgetEnabled: boolean;
+  readonly interviewBudgetPreferenceReady: boolean;
   readonly openAIVoiceConfig: OpenAIVoiceConfig | null | undefined;
   readonly realtimeEnabled: boolean;
   readonly realtimePreferenceReady: boolean;
   readonly selectAssistant: (selection: AssistantSelection) => void;
+  readonly setInterviewBudgetEnabled: (enabled: boolean) => void;
   readonly setRealtimeEnabled: (enabled: boolean) => void;
   readonly setVoiceEnabled: (enabled: boolean) => void;
   readonly voiceEnabled: boolean;
   readonly voicePreferenceReady: boolean;
+  readonly wordsEnabled: boolean;
+  readonly wordsPreferenceReady: boolean;
+  readonly setWordsEnabled: (enabled: boolean) => void;
 }) => {
   const brunchDescription = !assistantReady
     ? "Loading your assistant preference…"
@@ -141,6 +153,15 @@ export const AssistantLabsSettings = ({
         onChange={(enabled) => selectAssistant(enabled ? "brunch" : "stock")}
         value={brunchSelected}
       />
+      {brunchSelected && (
+        <AssistantSetting
+          description="Choose how many questions Brunch asks before wrapping up."
+          disabled={!interviewBudgetPreferenceReady}
+          label="Interview length"
+          onChange={setInterviewBudgetEnabled}
+          value={interviewBudgetEnabled}
+        />
+      )}
       <AssistantSetting
         description={voiceDescription}
         disabled={
@@ -160,6 +181,15 @@ export const AssistantLabsSettings = ({
           label="Realtime mode"
           onChange={setRealtimeEnabled}
           value={realtimeEnabled}
+        />
+      )}
+      {brunchSelected && voicePreferenceReady && voiceEnabled && (
+        <AssistantSetting
+          description="Help recognize and pronounce names and terms."
+          disabled={!wordsPreferenceReady}
+          label="Custom words"
+          onChange={setWordsEnabled}
+          value={wordsEnabled}
         />
       )}
     </section>

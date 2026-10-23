@@ -20,7 +20,7 @@ const WorkersPageContent = () => {
     query: { [workerFlowFilterParam]: definitionFilterQueryParam },
   } = useRouter();
 
-  const flowDefinitionIdFilter = useMemo(() => {
+  const flowDefinitionEntityIdFilter = useMemo(() => {
     if (!definitionFilterQueryParam) {
       return undefined;
     }
@@ -48,7 +48,9 @@ const WorkersPageContent = () => {
             <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
               Flow Runs
             </Typography>
-            <FlowRunTable flowDefinitionIdFilter={flowDefinitionIdFilter} />
+            <FlowRunTable
+              flowDefinitionEntityIdFilter={flowDefinitionEntityIdFilter}
+            />
           </Box>
 
           <Box>
@@ -96,7 +98,10 @@ const WorkersPage: NextPageWithLayout = () => {
   );
 
   return (
-    <FlowRunsContextProvider pagination={pagination} selectedFlowRunId={null}>
+    <FlowRunsContextProvider
+      pagination={pagination}
+      selectedFlowRunEntityId={null}
+    >
       <WorkersPageContent />
     </FlowRunsContextProvider>
   );

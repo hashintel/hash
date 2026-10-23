@@ -1,7 +1,8 @@
 {
   "package": "@hashintel/petrinaut-cli",
   "dependencies": [
-    "@hashintel/petrinaut-core"
+    "@hashintel/petrinaut-core",
+    "@local/tsconfig"
   ],
   "tasks": {
     "build": {
@@ -19,6 +20,9 @@
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@local/eslint"
       ]
     },
     "lint:eslint": {
@@ -29,6 +33,9 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@local/eslint"
       ]
     },
     "lint:tsc": {

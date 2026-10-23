@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { generateStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
 import {
   appendCollectedValue,
   getArrayPayloadItems,
@@ -127,9 +128,12 @@ describe("stored arrays", () => {
     const { storageProvider, getDownloadCount } = createMemoryStorageProvider();
 
     const branches = await Promise.all([
-      storeEntities(storageProvider, "3.2~0", [entity(0)]),
-      storeEntities(storageProvider, "3.2~1", [entity(1), entity(2)]),
-      storeEntities(storageProvider, "3.2~2", [entity(3)]),
+      storeEntities(storageProvider, generateStepRunId("3.2", 0), [entity(0)]),
+      storeEntities(storageProvider, generateStepRunId("3.2", 1), [
+        entity(1),
+        entity(2),
+      ]),
+      storeEntities(storageProvider, generateStepRunId("3.2", 2), [entity(3)]),
     ]);
 
     const collected = branches.reduce<
@@ -168,8 +172,11 @@ describe("stored arrays", () => {
     const { storageProvider, getDownloadCount } = createMemoryStorageProvider();
 
     const branches = await Promise.all([
-      storeEntities(storageProvider, "3.2~0", [entity(0)]),
-      storeEntities(storageProvider, "3.2~1", [entity(1), entity(2)]),
+      storeEntities(storageProvider, generateStepRunId("3.2", 0), [entity(0)]),
+      storeEntities(storageProvider, generateStepRunId("3.2", 1), [
+        entity(1),
+        entity(2),
+      ]),
     ]);
 
     const collected = appendCollectedValue(
@@ -198,7 +205,11 @@ describe("stored arrays", () => {
   it("refuses to mix stored and inline arrays when collecting", async () => {
     const { storageProvider } = createMemoryStorageProvider();
 
-    const stored = await storeEntities(storageProvider, "3.2~0", [entity(0)]);
+    const stored = await storeEntities(
+      storageProvider,
+      generateStepRunId("3.2", 0),
+      [entity(0)],
+    );
 
     expect(() => appendCollectedValue([entity(1)], stored)).toThrow();
     expect(() => appendCollectedValue(stored, [entity(1)])).toThrow();

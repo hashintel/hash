@@ -1,27 +1,45 @@
+import { getFlowDefinitionEntityById } from "@local/hash-backend-utils/flows/shared/get-flow-definition-entity-by-id";
 import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
-import { assertValidFlowDefinition } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
+import { getFlowDefinitionFromEntity } from "@local/hash-isomorphic-utils/flows/mappings";
 
 import * as GraphQLError from "../../../error";
 
 import type { LoggedInGraphQLContext } from "../../../context";
+import type { EntityId } from "@blockprotocol/type-system";
 
 /**
- * Checks a flow definition given by the client, and that the user can run it.
+ * Loads a flow's definition from its `Flow Definition` entity, and checks that the user can run it.
  *
- * @throws a GraphQL error if the definition is invalid, or if it's an AI flow and the user can't run AI flows.
+ * @throws a GraphQL error if the definition doesn't exist or the user can't view it, if it's invalid, or if it's
+ *   an AI flow and the user can't run AI flows.
  */
-export const getRunnableFlowDefinition = (
+export const getRunnableFlowDefinition = async (
   graphQLContext: LoggedInGraphQLContext,
-  flowDefinitionInput: unknown,
+  flowDefinitionEntityId: EntityId,
 ) => {
-  const { user } = graphQLContext;
+  const { dataSources, authentication, user } = graphQLContext;
+
+  const flowDefinitionEntity = await getFlowDefinitionEntityById({
+    flowDefinitionEntityId,
+    graphApiClient: dataSources.graphApi,
+    userAuthentication: authentication,
+  });
+
+  if (!flowDefinitionEntity) {
+    throw GraphQLError.notFound(
+      `No flow definition with id ${flowDefinitionEntityId} exists, or you can't view it`,
+    );
+  }
 
   let flowDefinition;
 
   try {
-    flowDefinition = assertValidFlowDefinition(flowDefinitionInput);
+    flowDefinition = getFlowDefinitionFromEntity(flowDefinitionEntity);
   } catch (error) {
-    throw GraphQLError.badRequest((error as Error).message);
+    /* The definition is stored data, so an invalid one is a fault here, not in the request. */
+    throw GraphQLError.internal(
+      `Flow definition ${flowDefinitionEntityId} is invalid: ${(error as Error).message}`,
+    );
   }
 
   const flowType = getFlowType(flowDefinition);
@@ -30,5 +48,5 @@ export const getRunnableFlowDefinition = (
     throw GraphQLError.forbidden("AI flows are not enabled for this user");
   }
 
-  return { flowDefinition, flowType };
+  return { flowDefinition, flowDefinitionEntity, flowType };
 };

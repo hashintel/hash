@@ -1,0 +1,687 @@
+[
+  {
+    "flowDefinitionId": "ea4ac27d-7fe2-5400-ac72-ab4b41de9f67",
+    "flowDefinition": {
+      "name": "Research goal",
+      "description": "Discover entities according to a research brief and save them to HASH, optionally writing a report and saving the entities to a Google Sheet",
+      "inputs": [
+        {
+          "name": "researchGuidance",
+          "payloadKind": "Text",
+          "array": false,
+          "required": true,
+          "label": "Research guidance"
+        },
+        {
+          "name": "entityTypes",
+          "payloadKind": "VersionedUrl",
+          "array": true,
+          "required": true,
+          "label": "Entity Types"
+        },
+        {
+          "name": "draft",
+          "payloadKind": "Boolean",
+          "array": false,
+          "required": true,
+          "label": "Create as draft"
+        },
+        {
+          "name": "reportSpecification",
+          "payloadKind": "Text",
+          "array": false,
+          "required": false,
+          "label": "Report specification",
+          "description": "What the report should cover. Without one, the flow writes no report."
+        },
+        {
+          "name": "googleAccount",
+          "payloadKind": "GoogleAccountId",
+          "array": false,
+          "required": false,
+          "label": "Google Account"
+        },
+        {
+          "name": "googleSheet",
+          "payloadKind": "GoogleSheet",
+          "array": false,
+          "required": false,
+          "label": "Google Sheet",
+          "description": "The spreadsheet to write the discovered entities to. Without one (or a Google account), the flow writes no spreadsheet."
+        }
+      ],
+      "steps": [
+        {
+          "kind": "action",
+          "stepId": "1",
+          "actionDefinitionId": "researchEntities",
+          "description": "Discover entities according to research specification, using public web sources",
+          "inputs": {
+            "prompt": {
+              "kind": "flow-input",
+              "inputName": "researchGuidance"
+            },
+            "entityTypeIds": {
+              "kind": "flow-input",
+              "inputName": "entityTypes"
+            },
+            "reportSpecification": {
+              "kind": "flow-input",
+              "inputName": "reportSpecification"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "2",
+          "actionDefinitionId": "persistEntities",
+          "description": "Save discovered entities and relationships to HASH graph",
+          "inputs": {
+            "proposedEntities": {
+              "kind": "step-output",
+              "stepId": "1",
+              "outputName": "proposedEntities"
+            },
+            "draft": {
+              "kind": "flow-input",
+              "inputName": "draft"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "3",
+          "actionDefinitionId": "answerQuestion",
+          "description": "Write report based on the research specification",
+          "inputs": {
+            "question": {
+              "kind": "flow-input",
+              "inputName": "reportSpecification",
+              "whenMissing": "skip"
+            },
+            "entities": {
+              "kind": "step-output",
+              "stepId": "2",
+              "outputName": "persistedEntities"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "4",
+          "actionDefinitionId": "writeGoogleSheet",
+          "description": "Save discovered entities to Google Sheet",
+          "inputs": {
+            "audience": {
+              "kind": "constant",
+              "payload": {
+                "kind": "ActorType",
+                "value": "user"
+              }
+            },
+            "googleAccountId": {
+              "kind": "flow-input",
+              "inputName": "googleAccount",
+              "whenMissing": "skip"
+            },
+            "googleSheet": {
+              "kind": "flow-input",
+              "inputName": "googleSheet",
+              "whenMissing": "skip"
+            },
+            "persistedEntities": {
+              "kind": "step-output",
+              "stepId": "2",
+              "outputName": "persistedEntities"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "report",
+          "stepId": "3",
+          "outputName": "answer"
+        },
+        {
+          "name": "googleSheetEntity",
+          "stepId": "4",
+          "outputName": "googleSheetEntity"
+        }
+      ]
+    }
+  },
+  {
+    "flowDefinitionId": "a7bc5e44-f1ce-5126-b5db-8eb4cf054116",
+    "flowDefinition": {
+      "name": "Analyze webpage",
+      "description": "Find entities of the requested types in a web page",
+      "inputs": [
+        {
+          "name": "visitedWebPage",
+          "payloadKind": "WebPage",
+          "array": false,
+          "required": true,
+          "description": "The web page visited"
+        },
+        {
+          "name": "entityTypeIds",
+          "payloadKind": "VersionedUrl",
+          "array": true,
+          "required": true,
+          "description": "The ids of the entity types to create entities of"
+        },
+        {
+          "name": "model",
+          "payloadKind": "Text",
+          "array": false,
+          "required": true,
+          "description": "The model to use for inference"
+        },
+        {
+          "name": "draft",
+          "payloadKind": "Boolean",
+          "array": false,
+          "required": true,
+          "description": "Whether the entities should be created as drafts or not"
+        }
+      ],
+      "steps": [
+        {
+          "kind": "action",
+          "stepId": "0",
+          "actionDefinitionId": "inferEntitiesFromContent",
+          "description": "Find entities in web page content",
+          "inputs": {
+            "content": {
+              "kind": "flow-input",
+              "inputName": "visitedWebPage"
+            },
+            "entityTypeIds": {
+              "kind": "flow-input",
+              "inputName": "entityTypeIds"
+            },
+            "model": {
+              "kind": "flow-input",
+              "inputName": "model"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "1",
+          "actionDefinitionId": "persistEntities",
+          "description": "Save proposed entities to database",
+          "inputs": {
+            "proposedEntities": {
+              "kind": "step-output",
+              "stepId": "0",
+              "outputName": "proposedEntities"
+            },
+            "draft": {
+              "kind": "flow-input",
+              "inputName": "draft"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "persistedEntities",
+          "stepId": "1",
+          "outputName": "persistedEntities",
+          "description": "The entities created or updated by the flow run"
+        },
+        {
+          "name": "failedEntityProposals",
+          "stepId": "1",
+          "outputName": "failedEntityProposals",
+          "description": "The proposed entities that could not be saved"
+        }
+      ]
+    }
+  },
+  {
+    "flowDefinitionId": "a4385fa8-a457-584e-b81e-f7e49f3d0b3c",
+    "flowDefinition": {
+      "name": "Auto-analyze webpage",
+      "description": "Find entities in a web page according to the user's passive analysis settings",
+      "inputs": [
+        {
+          "name": "visitedWebPage",
+          "payloadKind": "WebPage",
+          "array": false,
+          "required": true,
+          "description": "The web page visited"
+        }
+      ],
+      "steps": [
+        {
+          "kind": "action",
+          "stepId": "0",
+          "actionDefinitionId": "processAutomaticBrowsingSettings",
+          "description": "Decide which types of entity to find given the web page visited",
+          "inputs": {
+            "webPage": {
+              "kind": "flow-input",
+              "inputName": "visitedWebPage"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "1",
+          "actionDefinitionId": "inferEntitiesFromContent",
+          "description": "Infer entities from web page content",
+          "inputs": {
+            "content": {
+              "kind": "flow-input",
+              "inputName": "visitedWebPage"
+            },
+            "model": {
+              "kind": "step-output",
+              "stepId": "0",
+              "outputName": "model"
+            },
+            "entityTypeIds": {
+              "kind": "step-output",
+              "stepId": "0",
+              "outputName": "entityTypeIds"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "2",
+          "actionDefinitionId": "persistEntities",
+          "description": "Save proposed entities to database",
+          "inputs": {
+            "proposedEntities": {
+              "kind": "step-output",
+              "stepId": "1",
+              "outputName": "proposedEntities"
+            },
+            "draft": {
+              "kind": "step-output",
+              "stepId": "0",
+              "outputName": "draft"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "persistedEntities",
+          "stepId": "2",
+          "outputName": "persistedEntities",
+          "description": "The entities created or updated by the flow run"
+        },
+        {
+          "name": "failedEntityProposals",
+          "stepId": "2",
+          "outputName": "failedEntityProposals",
+          "description": "The proposed entities that could not be saved"
+        }
+      ]
+    }
+  },
+  {
+    "flowDefinitionId": "936f6a29-a964-533b-ae1a-03bed7da6471",
+    "flowDefinition": {
+      "name": "Infer metadata from document",
+      "description": "Infer metadata from a document, assign appropriate type to document, and create associated entities.",
+      "inputs": [
+        {
+          "name": "fileEntityId",
+          "payloadKind": "EntityId",
+          "array": false,
+          "required": true
+        }
+      ],
+      "steps": [
+        {
+          "kind": "action",
+          "stepId": "1",
+          "actionDefinitionId": "inferMetadataFromDocument",
+          "description": "Infer metadata from document, assign appropriate type, propose associated entities",
+          "inputs": {
+            "documentEntityId": {
+              "kind": "flow-input",
+              "inputName": "fileEntityId"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "2",
+          "actionDefinitionId": "persistEntities",
+          "description": "Save proposed entities to database",
+          "inputs": {
+            "proposedEntities": {
+              "kind": "step-output",
+              "stepId": "1",
+              "outputName": "proposedEntities"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "persistedEntities",
+          "stepId": "2",
+          "outputName": "persistedEntities"
+        },
+        {
+          "name": "failedEntityProposals",
+          "stepId": "2",
+          "outputName": "failedEntityProposals"
+        }
+      ]
+    }
+  },
+  {
+    "flowDefinitionId": "bf7f36a2-221e-5e7d-9879-289c1f56c148",
+    "flowDefinition": {
+      "name": "Configure Dashboard Item",
+      "description": "Generate query, analyze data, and create chart configuration for a dashboard item",
+      "inputs": [
+        {
+          "name": "userGoal",
+          "payloadKind": "Text",
+          "array": false,
+          "required": true
+        }
+      ],
+      "steps": [
+        {
+          "kind": "action",
+          "stepId": "1",
+          "actionDefinitionId": "generateStructuralQuery",
+          "description": "Generate a structural query based on the user's goal",
+          "inputs": {
+            "userGoal": {
+              "kind": "flow-input",
+              "inputName": "userGoal"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "2",
+          "actionDefinitionId": "analyzeEntityData",
+          "description": "Analyze entity data and generate Python transformation script",
+          "inputs": {
+            "structuralQuery": {
+              "kind": "step-output",
+              "stepId": "1",
+              "outputName": "structuralQuery"
+            },
+            "userGoal": {
+              "kind": "flow-input",
+              "inputName": "userGoal"
+            },
+            "targetChartType": {
+              "kind": "step-output",
+              "stepId": "1",
+              "outputName": "suggestedChartTypes"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "3",
+          "actionDefinitionId": "generateChartConfig",
+          "description": "Generate ECharts configuration",
+          "inputs": {
+            "chartData": {
+              "kind": "step-output",
+              "stepId": "2",
+              "outputName": "chartData"
+            },
+            "chartType": {
+              "kind": "step-output",
+              "stepId": "2",
+              "outputName": "suggestedChartType"
+            },
+            "userGoal": {
+              "kind": "flow-input",
+              "inputName": "userGoal"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "structuralQuery",
+          "stepId": "1",
+          "outputName": "structuralQuery"
+        },
+        {
+          "name": "pythonScript",
+          "stepId": "2",
+          "outputName": "pythonScript"
+        },
+        {
+          "name": "chartData",
+          "stepId": "2",
+          "outputName": "chartData"
+        },
+        {
+          "name": "chartType",
+          "stepId": "2",
+          "outputName": "suggestedChartType"
+        },
+        {
+          "name": "chartConfig",
+          "stepId": "3",
+          "outputName": "chartConfig"
+        }
+      ]
+    }
+  },
+  {
+    "flowDefinitionId": "6216ef71-5b7b-5468-bf12-9a34e30604b5",
+    "flowDefinition": {
+      "name": "Refine Dashboard Item",
+      "description": "Plan and apply a scoped refinement to an existing dashboard item",
+      "inputs": [
+        {
+          "name": "userGoal",
+          "payloadKind": "Text",
+          "array": false,
+          "required": true
+        },
+        {
+          "name": "refinementInstruction",
+          "payloadKind": "Text",
+          "array": false,
+          "required": true
+        },
+        {
+          "name": "existingStructuralQuery",
+          "payloadKind": "Text",
+          "array": false,
+          "required": true
+        },
+        {
+          "name": "existingPythonScript",
+          "payloadKind": "Text",
+          "array": false,
+          "required": true
+        },
+        {
+          "name": "existingChartType",
+          "payloadKind": "Text",
+          "array": false,
+          "required": true
+        },
+        {
+          "name": "existingChartConfig",
+          "payloadKind": "Text",
+          "array": false,
+          "required": true
+        }
+      ],
+      "steps": [
+        {
+          "kind": "action",
+          "stepId": "plan",
+          "actionDefinitionId": "planDashboardRefinement",
+          "description": "Determine which configuration stages need refinement",
+          "inputs": {
+            "userGoal": {
+              "kind": "flow-input",
+              "inputName": "userGoal"
+            },
+            "refinementInstruction": {
+              "kind": "flow-input",
+              "inputName": "refinementInstruction"
+            },
+            "existingStructuralQuery": {
+              "kind": "flow-input",
+              "inputName": "existingStructuralQuery"
+            },
+            "existingPythonScript": {
+              "kind": "flow-input",
+              "inputName": "existingPythonScript"
+            },
+            "existingChartType": {
+              "kind": "flow-input",
+              "inputName": "existingChartType"
+            },
+            "existingChartConfig": {
+              "kind": "flow-input",
+              "inputName": "existingChartConfig"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "1",
+          "actionDefinitionId": "generateStructuralQuery",
+          "description": "Preserve or refine the structural query",
+          "inputs": {
+            "userGoal": {
+              "kind": "flow-input",
+              "inputName": "userGoal"
+            },
+            "refinementInstruction": {
+              "kind": "flow-input",
+              "inputName": "refinementInstruction"
+            },
+            "existingStructuralQuery": {
+              "kind": "flow-input",
+              "inputName": "existingStructuralQuery"
+            },
+            "existingChartType": {
+              "kind": "flow-input",
+              "inputName": "existingChartType"
+            },
+            "refinementScope": {
+              "kind": "step-output",
+              "stepId": "plan",
+              "outputName": "refinementScope"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "2",
+          "actionDefinitionId": "analyzeEntityData",
+          "description": "Preserve or refine data analysis",
+          "inputs": {
+            "structuralQuery": {
+              "kind": "step-output",
+              "stepId": "1",
+              "outputName": "structuralQuery"
+            },
+            "targetChartType": {
+              "kind": "step-output",
+              "stepId": "1",
+              "outputName": "suggestedChartTypes"
+            },
+            "userGoal": {
+              "kind": "flow-input",
+              "inputName": "userGoal"
+            },
+            "refinementInstruction": {
+              "kind": "flow-input",
+              "inputName": "refinementInstruction"
+            },
+            "existingPythonScript": {
+              "kind": "flow-input",
+              "inputName": "existingPythonScript"
+            },
+            "refinementScope": {
+              "kind": "step-output",
+              "stepId": "plan",
+              "outputName": "refinementScope"
+            }
+          }
+        },
+        {
+          "kind": "action",
+          "stepId": "3",
+          "actionDefinitionId": "generateChartConfig",
+          "description": "Preserve or refine chart configuration",
+          "inputs": {
+            "chartData": {
+              "kind": "step-output",
+              "stepId": "2",
+              "outputName": "chartData"
+            },
+            "chartType": {
+              "kind": "step-output",
+              "stepId": "2",
+              "outputName": "suggestedChartType"
+            },
+            "userGoal": {
+              "kind": "flow-input",
+              "inputName": "userGoal"
+            },
+            "refinementInstruction": {
+              "kind": "flow-input",
+              "inputName": "refinementInstruction"
+            },
+            "existingChartConfig": {
+              "kind": "flow-input",
+              "inputName": "existingChartConfig"
+            },
+            "refinementScope": {
+              "kind": "step-output",
+              "stepId": "plan",
+              "outputName": "refinementScope"
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "structuralQuery",
+          "stepId": "1",
+          "outputName": "structuralQuery"
+        },
+        {
+          "name": "pythonScript",
+          "stepId": "2",
+          "outputName": "pythonScript"
+        },
+        {
+          "name": "chartData",
+          "stepId": "2",
+          "outputName": "chartData"
+        },
+        {
+          "name": "chartType",
+          "stepId": "2",
+          "outputName": "suggestedChartType"
+        },
+        {
+          "name": "chartConfig",
+          "stepId": "3",
+          "outputName": "chartConfig"
+        }
+      ]
+    }
+  }
+]

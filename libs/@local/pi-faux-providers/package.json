@@ -21,10 +21,12 @@
     "lint:tsc": "tsgo --noEmit"
   },
   "dependencies": {
-    "@earendil-works/pi-ai": "0.83.0"
+    "@earendil-works/pi-ai": "1.2.0"
   },
   "devDependencies": {
-    "@types/node": "22.18.13",
+    "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
+    "@types/node": "catalog:",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxlint": "1.86.0",
     "oxlint-tsgolint": "7.0.2003"

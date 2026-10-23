@@ -525,7 +525,7 @@ const DashboardPage: NextPageWithLayout = () => {
   }, [refetch]);
 
   const handleItemGenerationStarted = useCallback(
-    (generation: { itemEntityId: EntityId; flowRunId: string }) => {
+    (generation: { itemEntityId: EntityId; flowRunEntityId: EntityId }) => {
       setConfigModalItemEntityId(generation.itemEntityId);
       registerGeneration(generation);
       void refetch();

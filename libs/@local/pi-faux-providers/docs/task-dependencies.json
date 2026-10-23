@@ -1,10 +1,15 @@
 {
   "package": "@local/pi-faux-providers",
-  "dependencies": [],
+  "dependencies": [
+    "@local/tsconfig"
+  ],
   "tasks": {
     "fix:eslint": {
       "dependsOn": [
         "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "@local/eslint"
       ]
     },
     "lint:eslint": {
@@ -13,6 +18,9 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@local/eslint"
       ]
     },
     "lint:tsc": {

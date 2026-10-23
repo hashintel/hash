@@ -4,6 +4,7 @@ import {
   fauxProvider,
   fauxText,
   fauxToolCall,
+  normalizeContext,
   type Provider,
   type AssistantMessageEvent,
 } from "@earendil-works/pi-ai";
@@ -16,6 +17,8 @@ import {
   modelStreamIdleTimeoutDefaults,
   withBufferedToolAdmission,
 } from "./provider-admission";
+
+const emptyTranscript = normalizeContext({ messages: [] });
 
 const collect = async (stream: ReturnType<Provider["streamSimple"]>) => {
   const events = [];
@@ -66,7 +69,7 @@ test.each(["stream", "streamSimple"] as const)(
       ),
     ]);
     const events: AssistantMessageEvent[] = [];
-    const stream = provider[method](model, { messages: [] });
+    const stream = provider[method](model, emptyTranscript);
     await expect(
       (async () => {
         for await (const event of stream) events.push(event);
@@ -98,7 +101,7 @@ test.each(["stream", "streamSimple"] as const)(
     faux.setResponses([message]);
 
     const { events, result } = await collect(
-      provider[method](model, { messages: [] }),
+      provider[method](model, emptyTranscript),
     );
 
     expect(result.content).toEqual(message.content);
@@ -148,7 +151,7 @@ test.each(["final", "streamed"] as const)(
       new Set(["browser"]),
     );
     const events: AssistantMessageEvent[] = [];
-    const stream = provider.streamSimple(model, { messages: [] });
+    const stream = provider.streamSimple(model, emptyTranscript);
 
     await expect(
       (async () => {
@@ -177,11 +180,9 @@ test.each(["stream", "streamSimple"] as const)(
       new Set(["browser"]),
     );
     const abort = new AbortController();
-    const stream = provider[method](
-      model,
-      { messages: [] },
-      { signal: abort.signal },
-    );
+    const stream = provider[method](model, emptyTranscript, {
+      signal: abort.signal,
+    });
     const published: AssistantMessageEvent[] = [];
     const reading = (async () => {
       for await (const event of stream) published.push(event);
@@ -297,7 +298,7 @@ test("gives newly opened reasoning its longer first-delta grace", async () => {
     const message = fauxAssistantMessage([
       { type: "thinking", thinking: "", thinkingSignature: "synthetic" },
     ]);
-    const reading = collect(provider.streamSimple(model, { messages: [] }));
+    const reading = collect(provider.streamSimple(model, emptyTranscript));
     void reading.catch(() => {});
     upstream.push({ partial: message, type: "start" });
     upstream.push({
@@ -365,7 +366,7 @@ test("active reasoning continues below its configured threshold and retries once
         thinkingSignature: "synthetic",
       },
     ]);
-    const reading = collect(provider.streamSimple(model, { messages: [] }));
+    const reading = collect(provider.streamSimple(model, emptyTranscript));
     void reading.catch(() => {});
     upstream.push({ partial: message, type: "start" });
     upstream.push({
@@ -429,7 +430,7 @@ test("stops without claiming a retry when idle cancellation is not acknowledged"
     const message = fauxAssistantMessage([toolCall], {
       stopReason: "toolUse",
     });
-    const stream = provider.streamSimple(model, { messages: [] });
+    const stream = provider.streamSimple(model, emptyTranscript);
     const reading = collect(stream);
     void reading.catch(() => {});
     upstream.push({ partial: message, type: "start" });
@@ -488,7 +489,7 @@ test("admits a completed call that wins the idle race", async () => {
     const message = fauxAssistantMessage([toolCall], {
       stopReason: "toolUse",
     });
-    const reading = collect(provider.streamSimple(model, { messages: [] }));
+    const reading = collect(provider.streamSimple(model, emptyTranscript));
     upstream.push({ partial: message, type: "start" });
     upstream.push({
       contentIndex: 0,
@@ -555,7 +556,7 @@ test("does not retry after a complete tool call wins the idle race", async () =>
     const message = fauxAssistantMessage([toolCall], {
       stopReason: "toolUse",
     });
-    const reading = collect(provider.streamSimple(model, { messages: [] }));
+    const reading = collect(provider.streamSimple(model, emptyTranscript));
     void reading.catch(() => {});
     upstream.push({ partial: message, type: "start" });
     upstream.push({
@@ -616,7 +617,7 @@ test.each(["missing", "arguments", "identity"] as const)(
       new Set(["browser"]),
     );
     await expect(
-      collect(provider.streamSimple(model, { messages: [] })),
+      collect(provider.streamSimple(model, emptyTranscript)),
     ).rejects.toThrow(/browser.*proposal/iu);
   },
 );
@@ -641,41 +642,53 @@ test("preserves one browser call across key-order-equivalent stream and final re
     new Set(["browser"]),
   );
   expect(
-    (await collect(provider.streamSimple(model, { messages: [] }))).result,
+    (await collect(provider.streamSimple(model, emptyTranscript))).result,
   ).toEqual(message);
 });
 
 test("leaves unrelated provider use and its streaming behavior untouched", async () => {
   const { faux, provider, model } = fixture(false);
-  const response = fauxAssistantMessage(
-    [fauxToolCall("server", {}), fauxToolCall("browser", {})],
-    { stopReason: "toolUse" },
-  );
+  // A preset duration keeps each stream from timing the shared response.
+  const response = {
+    ...fauxAssistantMessage(
+      [fauxToolCall("server", {}), fauxToolCall("browser", {})],
+      { stopReason: "toolUse" },
+    ),
+    durationMs: 0,
+  };
   faux.setResponses([response]);
   const original = await collect(
-    faux.provider.streamSimple(model, { messages: [] }),
+    faux.provider.streamSimple(model, emptyTranscript),
   );
   faux.setResponses([response]);
   expect(
-    (await collect(provider.streamSimple(model, { messages: [] }))).result,
+    (await collect(provider.streamSimple(model, emptyTranscript))).result,
   ).toEqual(original.result);
 });
 
 test("preserves admitted text, Unicode arguments, ids, usage and finish reason", async () => {
   const { faux, provider, model } = fixture();
-  const response = fauxAssistantMessage(
-    [
-      fauxText("Café\r\n"),
-      fauxToolCall("browser", { markdown: "  é\r\n  " }, { id: "exact-call" }),
-    ],
-    { stopReason: "toolUse" },
-  );
+  // A preset duration keeps each stream from timing the shared response.
+  const response = {
+    ...fauxAssistantMessage(
+      [
+        fauxText("Café\r\n"),
+        fauxToolCall(
+          "browser",
+          { markdown: "  é\r\n  " },
+          { id: "exact-call" },
+        ),
+      ],
+      { stopReason: "toolUse" },
+    ),
+    durationMs: 0,
+  };
   faux.setResponses([response]);
   const original = await collect(
-    faux.provider.streamSimple(model, { messages: [] }),
+    faux.provider.streamSimple(model, emptyTranscript),
   );
   faux.setResponses([response]);
-  const result = await collect(provider.streamSimple(model, { messages: [] }));
+  const result = await collect(provider.streamSimple(model, emptyTranscript));
   expect(result.result).toEqual(original.result);
   expect(
     result.events.some(
@@ -701,11 +714,9 @@ test("cancels a signal-ignoring provider without leaking buffered or late events
     new Set(["browser"]),
   );
   const abort = new AbortController();
-  const stream = provider.streamSimple(
-    model,
-    { messages: [] },
-    { signal: abort.signal },
-  );
+  const stream = provider.streamSimple(model, emptyTranscript, {
+    signal: abort.signal,
+  });
   const pending = collect(stream);
   const assertion = expect(pending).rejects.toThrow("cancelled");
   abort.abort();
@@ -726,7 +737,7 @@ test("refuses oversize buffering and aborts the upstream", async () => {
     ]),
   ]);
   await expect(
-    collect(provider.streamSimple(model, { messages: [] })),
+    collect(provider.streamSimple(model, emptyTranscript)),
   ).rejects.toThrow("buffering limit");
 });
 
@@ -744,7 +755,7 @@ test("pre-aborted calls never start the upstream provider", async () => {
   abort.abort();
   await expect(
     collect(
-      provider.streamSimple(model, { messages: [] }, { signal: abort.signal }),
+      provider.streamSimple(model, emptyTranscript, { signal: abort.signal }),
     ),
   ).rejects.toThrow("cancelled");
   expect(start).not.toHaveBeenCalled();
@@ -756,11 +767,9 @@ test("cancellation after approval but before replay still releases no events", a
     fauxAssistantMessage([fauxText("Approved but not yet released.")]),
   ]);
   const abort = new AbortController();
-  const stream = provider.streamSimple(
-    model,
-    { messages: [] },
-    { signal: abort.signal },
-  );
+  const stream = provider.streamSimple(model, emptyTranscript, {
+    signal: abort.signal,
+  });
   await stream.result();
   abort.abort();
   const events: AssistantMessageEvent[] = [];
@@ -797,7 +806,7 @@ test("async browser mode admits allowlisted mixes but refuses a call beside the 
   faux.setResponses([proposal("write", "query"), proposal("read", "query")]);
   const inScope = () =>
     modelAdmissionScope.run({ idleRetryAvailable: false }, () =>
-      collect(provider.streamSimple(model, { messages: [] })),
+      collect(provider.streamSimple(model, emptyTranscript)),
     );
 
   expect((await inScope()).result.stopReason).toBe("toolUse");
@@ -825,7 +834,7 @@ test("checks the tool inputs Flue publishes as well as the final response calls"
     new Set(["browser"]),
   );
   await expect(
-    collect(provider.streamSimple(model, { messages: [] })),
+    collect(provider.streamSimple(model, emptyTranscript)),
   ).rejects.toThrow("Mixed browser/server proposal");
 });
 
@@ -848,11 +857,9 @@ for (const method of ["stream", "streamSimple"] as const) {
           new Set(["browser"]),
         );
         const abort = new AbortController();
-        const stream = provider[method](
-          model,
-          { messages: [] },
-          { signal: abort.signal },
-        );
+        const stream = provider[method](model, emptyTranscript, {
+          signal: abort.signal,
+        });
         const published: AssistantMessageEvent[] = [];
         const reading = (async () => {
           for await (const event of stream) published.push(event);
@@ -920,6 +927,6 @@ test("bounds event count even when individual chunks are tiny", async () => {
     new Set(["browser"]),
   );
   await expect(
-    collect(provider.streamSimple(model, { messages: [] })),
+    collect(provider.streamSimple(model, emptyTranscript)),
   ).rejects.toThrow("buffering limit");
 });

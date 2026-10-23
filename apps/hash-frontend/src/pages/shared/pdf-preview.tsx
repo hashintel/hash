@@ -1,19 +1,28 @@
 import "react-pdf/dist/Page/TextLayer.css";
-import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/AnnotationLayer.css";
 import { Box, Stack, Typography } from "@mui/material";
 import { debounce } from "lodash";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 import { Document, Page, pdfjs } from "react-pdf";
 
 import {
   ArrowDownLeftAndArrowUpRightToCenterIcon,
-  ArrowRightRegularIcon,
   ArrowUpRightAndArrowDownLeftFromCenterIcon,
   MagnifyingGlassMinusLightIcon,
   MagnifyingGlassPlusLightIcon,
 } from "@hashintel/design-system";
+import { typedKeys } from "@local/advanced-types/typed-entries";
 
+import { fetchPresignedFileUrl } from "./fetch-presigned-file-url";
+import { FilePreviewPageNavigation } from "./file-preview-page-navigation";
+import { FilePreviewSearch } from "./file-preview-search";
+import {
+  clearSearchHits,
+  scrollHitIntoView,
+  searchHighlightStyles,
+  showSearchHits,
+} from "./file-preview-search-highlights";
 import { GrayToBlueIconButton } from "./gray-to-blue-icon-button";
 import {
   a4Ratio,
@@ -24,68 +33,17 @@ import {
 import { PageThumbnail } from "./pdf-preview/page-thumbnail";
 import { PdfPreviewSkeleton } from "./pdf-preview/pdf-preview-skeleton";
 import {
-  PdfSearch,
   type SearchHit,
   type SearchHits,
+  usePdfSearch,
 } from "./pdf-preview/pdf-search";
 import { useElementBorderBoxSize } from "./use-element-dimensions";
+import { useFilePreviewMaxHeight } from "./use-file-preview-max-height";
 
 import type {
-  CustomTextRenderer,
   DocumentCallback,
   OnDocumentLoadSuccess,
-} from "react-pdf/dist/cjs/shared/types";
-
-/**
- * Highlights search hits within the text representing a row/line on the page.
- * @param text - The text content of the row
- * @param rowIndex - The index of the row in its page.
- * @param searchHits - An array of occurrences spanning across TextItems.
- * @returns The text with relevant parts wrapped in <mark> tags.
- */
-const highlightOccurrencesInTextItem = (
-  text: string,
-  rowIndex: number,
-  searchHits: SearchHit[],
-  selectedSearchHit: SearchHit | null,
-) => {
-  /** Find occurrences that intersect with this TextItem */
-  const relevantOccurrences = searchHits.filter(({ start, end }) => {
-    return (
-      (start.rowIndex < rowIndex && end.rowIndex >= rowIndex) || // Starts before and ends in or after
-      (start.rowIndex === rowIndex && start.characterIndex < text.length) // Starts within
-    );
-  });
-
-  let textWithHighlights = "";
-  let positionInText = 0;
-
-  for (const { start, end } of relevantOccurrences) {
-    const startCharIndex =
-      start.rowIndex === rowIndex ? start.characterIndex : 0;
-    const endCharIndex =
-      end.rowIndex === rowIndex ? end.characterIndex : text.length - 1;
-
-    const isSelectedHit = selectedSearchHit
-      ? selectedSearchHit.start.rowIndex === start.rowIndex &&
-        selectedSearchHit.start.characterIndex === start.characterIndex
-      : false;
-
-    /** First, append any unhighlighted text between our. current positionInText and this occurrence */
-    textWithHighlights += text.slice(positionInText, startCharIndex);
-
-    /** Apply the highlight */
-    textWithHighlights += `<span style="border-bottom: 4px solid ${isSelectedHit ? "lawngreen" : "yellow"}; position: relative;">${text.slice(startCharIndex, endCharIndex + 1)}</span>`;
-
-    /** Update positionInText to continue after the current occurrence */
-    positionInText = endCharIndex + 1;
-  }
-
-  /** Append any remaining text after the last occurrence */
-  textWithHighlights += text.slice(positionInText);
-
-  return textWithHighlights;
-};
+} from "react-pdf/dist/cjs/shared/types.js";
 
 const pdfOptions = {
   cMapUrl: "/pdf-cmaps",
@@ -113,21 +71,7 @@ export const PdfPreview = ({
   const [url, setUrl] = useState("");
 
   useEffect(() => {
-    /**
-     * The API normally handles file downloads by:
-     * 1. Accepting a request with a cookie
-     * 2. Checking if the authenticated user can access the file
-     * 3. Automatically redirecting the request to a presigned URL to fetch the file
-     *
-     * This doesn't work for JS fetch because the request to the redirected URL will have origin: null,
-     * which the object storage's CORS headers don't permit (at least in our deployed configuration).
-     * So we instead ask the API for the presigned URL only, and pass that to react-pdf.
-     */
-    void fetch(`${initialUrl}?urlOnly=true`, { credentials: "include" })
-      .then((resp) => resp.json())
-      .then((response) => {
-        setUrl(response.url);
-      });
+    void fetchPresignedFileUrl(initialUrl).then(setUrl);
   }, [initialUrl]);
 
   const [documentProxy, setDocumentProxy] = useState<DocumentCallback | null>(
@@ -144,29 +88,94 @@ export const PdfPreview = ({
     null,
   );
 
+  const { findSearchHits, createHitRanges } = usePdfSearch(documentProxy);
+
+  const selectSearchHit = (searchHit: SearchHit | null) => {
+    setSelectedSearchHit(searchHit);
+
+    if (searchHit) {
+      setSelectedPageNumber(searchHit.pageNumber);
+    }
+  };
+
+  const search = (text: string, ignoreCase: boolean) => {
+    if (!text) {
+      setSearchHits({ hitsByPageNumber: {}, total: 0 });
+      selectSearchHit(null);
+      return;
+    }
+
+    const hits = findSearchHits(text, ignoreCase);
+    setSearchHits(hits);
+
+    const firstPageWithHit = typedKeys(hits.hitsByPageNumber)[0];
+    const firstHit = firstPageWithHit
+      ? hits.hitsByPageNumber[firstPageWithHit]?.[0]
+      : null;
+
+    selectSearchHit(firstHit ?? null);
+  };
+
+  const allSearchHits = Object.values(searchHits.hitsByPageNumber).flat();
+
   const onDocumentLoadSuccess: OnDocumentLoadSuccess = (docProxy) => {
     setTotalPages(docProxy.numPages);
     setDocumentProxy(docProxy);
   };
 
-  const textRenderer: CustomTextRenderer = useCallback(
-    (textItem) => {
-      const relevantSearchHits =
-        searchHits.hitsByPageNumber[textItem.pageNumber] ?? [];
+  const pageRef = useRef<HTMLDivElement>(null);
+  const pageScrollContainerRef = useRef<HTMLDivElement>(null);
 
-      if (!relevantSearchHits.length) {
-        return textItem.str;
-      }
+  const [renderedTextLayer, setRenderedTextLayer] = useState<{
+    element: Element;
+    pageNumber: number;
+  } | null>(null);
 
-      return highlightOccurrencesInTextItem(
-        textItem.str,
-        textItem.itemIndex,
-        relevantSearchHits,
-        selectedSearchHit,
-      );
-    },
-    [searchHits, selectedSearchHit],
-  );
+  /**
+   * react-pdf draws a new text layer for each page and zoom level, which
+   * empties the ranges built on the previous one.
+   */
+  const onRenderTextLayerSuccess = useCallback(() => {
+    const pageElement = pageRef.current;
+    const textLayer = pageElement?.querySelector(".textLayer");
+    if (pageElement && textLayer) {
+      setRenderedTextLayer({
+        element: textLayer,
+        pageNumber: Number(pageElement.dataset.pageNumber),
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!renderedTextLayer?.element.isConnected) {
+      return;
+    }
+
+    const hitsOnPage =
+      searchHits.hitsByPageNumber[renderedTextLayer.pageNumber] ?? [];
+    if (hitsOnPage.length === 0) {
+      return;
+    }
+
+    const hitRanges = createHitRanges(renderedTextLayer.element, hitsOnPage);
+    const currentHitRange =
+      hitRanges[
+        hitsOnPage.findIndex(
+          (hit) => hit.indexInAllHits === selectedSearchHit?.indexInAllHits,
+        )
+      ] ?? null;
+
+    showSearchHits(
+      hitRanges.filter((range) => range !== null),
+      currentHitRange,
+    );
+
+    if (currentHitRange && pageScrollContainerRef.current) {
+      scrollHitIntoView(currentHitRange, pageScrollContainerRef.current);
+    }
+
+    return clearSearchHits;
+  }, [createHitRanges, renderedTextLayer, searchHits, selectedSearchHit]);
 
   const { ref: entireContainerRef, dimensions: entireContainerDimensions } =
     useElementBorderBoxSize<HTMLDivElement>();
@@ -187,28 +196,11 @@ export const PdfPreview = ({
 
   const fullPageHeight = pageContainerWidth * pageWidthHeightRatio;
 
-  const [viewportHeight, setViewportHeight] = useState(
-    document.documentElement.clientHeight,
-  );
-
-  useEffect(() => {
-    const handleResize = () => {
-      setViewportHeight(document.documentElement.clientHeight);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   const fullScreenHandle = useFullScreenHandle();
 
-  const viewportVerticalPadding = fullScreenHandle.active ? 0 : 120;
+  const maxHeight = useFilePreviewMaxHeight(fullScreenHandle.active);
 
-  const pageContainerHeight = Math.ceil(
-    fullPageHeight > viewportHeight - viewportVerticalPadding
-      ? viewportHeight - viewportVerticalPadding
-      : fullPageHeight,
-  );
+  const pageContainerHeight = Math.ceil(Math.min(fullPageHeight, maxHeight));
 
   const pageWidth = Math.ceil(pageContainerHeight / pageWidthHeightRatio);
 
@@ -257,20 +249,13 @@ export const PdfPreview = ({
             zIndex: 100,
           }}
         >
-          <PdfSearch
+          <FilePreviewSearch
             closeSearch={() => setShowSearch(false)}
-            document={documentProxy}
-            searchHits={searchHits}
-            setSearchHits={setSearchHits}
-            selectedSearchHit={selectedSearchHit}
-            setSelectedSearchHit={(searchHit) => {
-              setSelectedSearchHit(searchHit);
-
-              if (searchHit) {
-                setSelectedPageNumber(searchHit.pageNumber);
-              }
-            }}
+            onSearch={search}
+            onSelectHit={(index) => selectSearchHit(allSearchHits[index]!)}
+            selectedIndex={selectedSearchHit?.indexInAllHits ?? null}
             showSearch={showSearch}
+            total={searchHits.total}
           />
         </Box>
         {url ? (
@@ -311,6 +296,7 @@ export const PdfPreview = ({
                     alignItems="center"
                     sx={{
                       background: "rgba(255, 255, 255, 0.9)",
+                      borderRadius: "4px",
                       position: "sticky",
                       bottom: 0,
                       margin: "0 auto",
@@ -318,40 +304,18 @@ export const PdfPreview = ({
                     }}
                   >
                     <Stack direction="row" alignItems="center" gap={1}>
-                      <GrayToBlueIconButton
-                        disabled={selectedPageNumber === 1}
-                        onClick={() =>
-                          setSelectedPageNumber(selectedPageNumber - 1)
-                        }
-                      >
-                        <ArrowRightRegularIcon
-                          sx={{ transform: "rotate(180deg)" }}
-                        />
-                      </GrayToBlueIconButton>
-                      <Typography
-                        sx={{
-                          fontSize: 12,
-                          color: ({ palette }) => palette.gray[70],
-                          textAlign: "center",
-                          width: (totalPages.toString().length * 2 + 4) * 7,
-                        }}
-                      >
-                        {`${selectedPageNumber} of ${totalPages}`}
-                      </Typography>
-                      <GrayToBlueIconButton
-                        disabled={selectedPageNumber === totalPages}
-                        onClick={() =>
-                          setSelectedPageNumber(selectedPageNumber + 1)
-                        }
-                      >
-                        <ArrowRightRegularIcon />
-                      </GrayToBlueIconButton>
+                      <FilePreviewPageNavigation
+                        currentPage={selectedPageNumber}
+                        onSelectPage={setSelectedPageNumber}
+                        totalPages={totalPages}
+                      />
                     </Stack>
                   </Stack>
                 </Stack>
               )}
               <Stack
                 direction="row"
+                ref={pageScrollContainerRef}
                 justifyContent={
                   pageWidth * scale > pageContainerWidth
                     ? "flex-start"
@@ -371,11 +335,17 @@ export const PdfPreview = ({
                     background: ({ palette }) => palette.common.white,
                     height: pageContainerHeight * scale - 2,
                     width: pageWidth * scale - 2,
+                    // Search marks fill the text layer, whose text is
+                    // transparent and drawn over the canvas. Multiplying the
+                    // layer with the page keeps the canvas glyphs under a mark
+                    // dark.
+                    "& .textLayer": { mixBlendMode: "multiply" },
+                    ...searchHighlightStyles,
                   }}
                 >
                   <Page
                     className="react-pdf-page"
-                    customTextRenderer={textRenderer}
+                    inputRef={pageRef}
                     loading={
                       <Box
                         sx={{
@@ -389,6 +359,7 @@ export const PdfPreview = ({
                     onLoadSuccess={({ height, width }) => {
                       setPageWidthHeightRatioDebounced(height, width);
                     }}
+                    onRenderTextLayerSuccess={onRenderTextLayerSuccess}
                     pageNumber={selectedPageNumber}
                     renderTextLayer
                     scale={scale}
@@ -407,11 +378,13 @@ export const PdfPreview = ({
                 >
                   <Stack direction="row" alignItems="center" gap={1}>
                     <GrayToBlueIconButton
+                      aria-label="Zoom out"
                       onClick={() => setScale((prev) => prev - 0.2)}
                     >
                       <MagnifyingGlassMinusLightIcon />
                     </GrayToBlueIconButton>
                     <GrayToBlueIconButton
+                      aria-label="Zoom in"
                       onClick={() => setScale((prev) => prev + 0.2)}
                     >
                       <MagnifyingGlassPlusLightIcon />
@@ -426,6 +399,11 @@ export const PdfPreview = ({
                     </Typography>
                   </Stack>
                   <GrayToBlueIconButton
+                    aria-label={
+                      fullScreenHandle.active
+                        ? "Exit full screen"
+                        : "Full screen"
+                    }
                     onClick={
                       fullScreenHandle[
                         fullScreenHandle.active ? "exit" : "enter"

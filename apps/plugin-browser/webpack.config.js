@@ -3,14 +3,12 @@ import { fileURLToPath } from "node:url";
 
 import ReactRefreshWebpackPlugin from "@pmmmwh/react-refresh-webpack-plugin";
 import { sentryWebpackPlugin } from "@sentry/webpack-plugin";
-import { CleanWebpackPlugin } from "clean-webpack-plugin";
 import CopyWebpackPlugin from "copy-webpack-plugin";
 import dotenv from "dotenv-flow";
 import fileSystem from "fs-extra";
 import HtmlWebpackPlugin from "html-webpack-plugin";
 import ReactRefreshTypeScript from "react-refresh-typescript";
 import TerserPlugin from "terser-webpack-plugin";
-import { TsconfigPathsPlugin } from "tsconfig-paths-webpack-plugin";
 import webpack from "webpack";
 
 dotenv.config();
@@ -164,29 +162,9 @@ const options = {
     extensions: fileExtensions
       .map((extension) => `.${extension}`)
       .concat([".js", ".jsx", ".ts", ".tsx", ".css"]),
-    extensionAlias: isDevelopment
-      ? {
-          ".js": [".ts", ".tsx", ".jsx", ".js"],
-          ".mjs": [".mts", ".mjs"],
-          ".cjs": [".cts", ".cjs"],
-        }
-      : {},
-    /**
-     * Because we are bundling the TypeScript directly via webpack, we need to use the 'paths' in the base tsconfig.json
-     * This tells TypeScript where to resolve the imports from, overwriting the 'exports' in local dependencies' package.jsons.
-     */
-    plugins: isDevelopment
-      ? [
-          new TsconfigPathsPlugin({
-            configFile:
-              "../../libs/@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-          }),
-        ]
-      : [],
   },
   plugins: [
     isDevelopment && new ReactRefreshWebpackPlugin(),
-    new CleanWebpackPlugin({ verbose: false }),
     new webpack.ProvidePlugin({
       process: "process/browser",
     }),

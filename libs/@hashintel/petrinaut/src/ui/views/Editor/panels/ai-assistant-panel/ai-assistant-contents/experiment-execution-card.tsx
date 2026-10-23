@@ -7,6 +7,10 @@ import type {
   PetrinautExperimentResult,
 } from "@hashintel/petrinaut-core";
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type ExperimentExecutionCardProps = {
   /** The approved canonical request, absent while a tool has yet to supply it or failed without one. */
   request?: PetrinautExperimentRequest;
@@ -211,7 +215,12 @@ const actionsStyle = css({
   marginLeft: "[auto]",
 });
 
-/** Execution presentation only; callers own execution, records and navigation. */
+/**
+ * Execution presentation only; callers own execution, records and navigation.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export const ExperimentExecutionCard = ({
   request,
   active,

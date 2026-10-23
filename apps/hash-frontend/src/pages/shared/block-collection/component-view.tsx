@@ -36,7 +36,11 @@ import type {
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import type { Node } from "prosemirror-model";
 import type { Transaction } from "prosemirror-state";
-import type { EditorView, NodeView } from "prosemirror-view";
+import type {
+  EditorView,
+  NodeView,
+  ViewMutationRecord,
+} from "prosemirror-view";
 
 const getChildEntity = (
   entity: DraftEntity | null | undefined,
@@ -369,14 +373,7 @@ export class ComponentView implements NodeView {
 
   // This condition is designed to check that the event isn’t coming from React-handled code.
   // Not doing so leads to cycles of mutation records.
-  ignoreMutation(
-    event:
-      | MutationRecord
-      | {
-          type: "selection";
-          target: Element;
-        },
-  ) {
+  ignoreMutation(event: ViewMutationRecord) {
     // We still want ProseMirror to know about all selection events to track cursor moves
     if (event.type === "selection") {
       return false;

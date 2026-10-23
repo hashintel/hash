@@ -4,6 +4,7 @@ import PDFParser from "pdf2json";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import {
   getStorageProvider,
+  resolvePayloadValue,
   storePayload,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -53,10 +54,18 @@ export const inferMetadataFromDocumentAction: FlowActionActivity<
     workflowId,
   } = await getFlowContext();
 
-  const { documentEntityId } = getSimplifiedFlowActionInputs({
-    inputs,
-    actionType: "inferMetadataFromDocument",
-  });
+  const { documentEntityId: documentEntityIdInput } =
+    getSimplifiedFlowActionInputs({
+      inputs,
+      actionType: "inferMetadataFromDocument",
+    });
+
+  /* An item of a stored list of entity IDs, e.g. in a for-each step, is a reference to it. */
+  const documentEntityId = await resolvePayloadValue(
+    { storageProvider: getStorageProvider(), workflowId },
+    "EntityId",
+    documentEntityIdInput,
+  );
 
   const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
     authentication: { actorId: userActorId },

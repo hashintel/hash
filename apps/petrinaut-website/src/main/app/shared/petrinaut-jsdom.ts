@@ -8,7 +8,9 @@ import type { LspWorkerFactory } from "@hashintel/petrinaut-core";
 
 /**
  * Call from `vi.hoisted`: Petrinaut's dependencies read these while their
- * modules load, before any test hook runs.
+ * modules load, before any test hook runs. The website's `vitest.setup.ts`
+ * also installs `matchMedia`, for its tests that skip this call; suites in
+ * other packages rely on this one.
  */
 export const installPetrinautDomShims = () => {
   window.matchMedia = (media) => ({
@@ -63,6 +65,18 @@ export const installPetrinautDomShims = () => {
  */
 export const preloadMonaco = async () => {
   await import("monaco-editor");
+};
+
+/**
+ * The editor imports the language server's worker module, a large inline
+ * bundle, when it mounts, and `diagnose()` waits for that worker. Import it
+ * during setup, with `Worker` stubbed, so a test's own waits leave out the
+ * cold import. Give the hook 30 seconds, as for {@link preloadMonaco}.
+ */
+export const preloadLanguageServer = async () => {
+  const { createLanguageServerWorker } =
+    await import("@hashintel/petrinaut-core/workers/lsp");
+  (await createLanguageServerWorker()).terminate();
 };
 
 export class NoopResizeObserver {

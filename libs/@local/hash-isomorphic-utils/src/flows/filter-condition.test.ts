@@ -7,6 +7,7 @@ import type {
   FilterCondition,
   FilterLeaf,
 } from "./filter-condition.js";
+import type { PayloadKind } from "./types.js";
 
 const all = (...conditions: ConditionNode[]): FilterCondition => ({
   kind: "all",
@@ -79,39 +80,118 @@ describe("validateCondition", () => {
   });
 
   it.each([
-    { value: "https://example.com/types/entity-type/company/v/1", valid: true },
-    { value: "https://example.com/types/entity-type/company/", valid: false },
     {
+      kind: "VersionedUrl",
+      value: "https://example.com/types/entity-type/company/v/1",
+      valid: true,
+    },
+    {
+      kind: "VersionedUrl",
+      value: "https://example.com/types/entity-type/company/",
+      valid: false,
+    },
+    {
+      kind: "VersionedUrl",
       value: "https://example.com/types/entity-type/company/v/0",
       valid: false,
     },
-    { value: 1, valid: false },
-    { value: undefined, valid: false },
-  ])(
-    "checks that $value is a versioned entity type URL",
-    ({ value, valid }) => {
-      expect(
-        validateCondition(
-          all({
-            kind: "condition",
-            subject: { kind: "entityType" },
-            operator: "isOfType",
-            value: { kind: "VersionedUrl", value },
-          } as never),
-          "ProposedEntity",
-        ),
-      ).toEqual(
-        valid
-          ? undefined
-          : {
-              status: "error",
-              code: "invalidCondition",
-              message:
-                "Entity type conditions require isOfType and a versioned type URL.",
-            },
-      );
+    {
+      kind: "BaseUrl",
+      value: "https://example.com/types/entity-type/company/",
+      valid: true,
     },
-  );
+    {
+      kind: "BaseUrl",
+      value: "https://example.com/types/entity-type/company/v/1",
+      valid: false,
+    },
+    {
+      kind: "Text",
+      value: "https://example.com/types/entity-type/company/",
+      valid: false,
+    },
+    { kind: "VersionedUrl", value: 1, valid: false },
+    { kind: "BaseUrl", value: undefined, valid: false },
+  ])("checks that $value is a $kind type URL", ({ kind, value, valid }) => {
+    expect(
+      validateCondition(
+        all({
+          kind: "condition",
+          subject: { kind: "entityType" },
+          operator: "isOfType",
+          value: { kind, value },
+        } as never),
+        "ProposedEntity",
+      ),
+    ).toEqual(
+      valid
+        ? undefined
+        : {
+            status: "error",
+            code: "invalidCondition",
+            message:
+              "Entity type conditions require isOfType and a versioned or base type URL.",
+          },
+    );
+  });
+
+  const isCompany: FilterLeaf = {
+    kind: "condition",
+    subject: { kind: "entityType" },
+    operator: "isOfType",
+    value: {
+      kind: "VersionedUrl",
+      value: "https://example.com/types/entity-type/company/v/1",
+    },
+  };
+
+  it("accepts isOfType with includeSubtypes", () => {
+    expect(
+      validateCondition(
+        all({ ...isCompany, includeSubtypes: true }),
+        "EntityId",
+      ),
+    ).toBeUndefined();
+  });
+
+  it.each<{
+    name: string;
+    leaf: unknown;
+    inputKind: PayloadKind;
+    message: string;
+  }>([
+    {
+      name: "a scalar condition",
+      leaf: { ...scoreCondition, includeSubtypes: true },
+      inputKind: "WebPage",
+      message: "only applies to isOfType",
+    },
+    {
+      name: "a presence check on the entity type",
+      leaf: {
+        kind: "condition",
+        subject: { kind: "entityType" },
+        operator: "isNotEmpty",
+        includeSubtypes: false,
+      },
+      inputKind: "EntityId",
+      message: "only applies to isOfType",
+    },
+    {
+      name: "isOfType, when not a boolean",
+      leaf: { ...isCompany, includeSubtypes: "true" },
+      inputKind: "EntityId",
+      message: "must be a boolean",
+    },
+  ])("rejects includeSubtypes on $name", ({ leaf, inputKind, message }) => {
+    expect(validateCondition(all(leaf as FilterLeaf), inputKind)).toMatchObject(
+      {
+        status: "error",
+        code: "invalidCondition",
+        message: expect.stringContaining(message),
+      },
+    );
+  });
 
   it("rejects field subjects on primitive input kinds", () => {
     expect(validateCondition(all(scoreCondition), "Number")).toMatchObject({
@@ -133,6 +213,32 @@ describe("validateCondition", () => {
       ),
     ).toMatchObject({ status: "error", code: "invalidCondition" });
   });
+
+  it.each([
+    {
+      subjectKind: "DateTime",
+      value: { kind: "Date", value: "2026-10-16" },
+    },
+    {
+      subjectKind: "Date",
+      value: { kind: "DateTime", value: "2026-10-16T14:00:00Z" },
+    },
+  ] as const)(
+    "rejects comparing a $subjectKind with a $value.kind",
+    ({ subjectKind, value }) => {
+      // @ts-expect-error -- a comparison value must have its subject's kind
+      const leaf: FilterLeaf = {
+        kind: "condition",
+        subject: { kind: "input", payloadKind: subjectKind },
+        operator: "lessThan",
+        value,
+      };
+      expect(validateCondition(all(leaf), subjectKind)).toMatchObject({
+        status: "error",
+        code: "invalidCondition",
+      });
+    },
+  );
 
   it("rejects scalar operators on a non-scalar subject", () => {
     expect(
