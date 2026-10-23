@@ -11,7 +11,7 @@ use hash_graph_authorization::policies::{
 use hash_graph_store::{
     entity::{EntityQueryPath, PatchEntityParams},
     error::UpdateError,
-    filter::{Filter, FilterExpression, Parameter},
+    filter::{Filter, FilterExpression, FilterExpressionList, ParameterList},
     query::Read,
     subgraph::temporal_axes::{PinnedTemporalAxis, QueryTemporalAxes, VariableTemporalAxis},
 };
@@ -334,48 +334,63 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
             }
         }
 
-        let mut history = Vec::new();
+        let mut web_ids = Vec::with_capacity(entity_ids.len());
+        let mut entity_uuids = Vec::with_capacity(entity_ids.len());
+        let mut draft_ids = Vec::with_capacity(entity_ids.len());
+
         for id in entity_ids {
-            let rows = self
-                .as_client()
-                .query(
-                    "
-                    SELECT
-                        entity_temporal_metadata.web_id,
-                        entity_temporal_metadata.entity_uuid,
-                        entity_temporal_metadata.draft_id,
-                        entity_temporal_metadata.entity_edition_id,
-                        entity_temporal_metadata.decision_time,
-                        entity_temporal_metadata.transaction_time
-                    FROM entity_temporal_metadata
-                    WHERE entity_temporal_metadata.web_id = $1
-                        AND entity_temporal_metadata.entity_uuid = $2
-                        AND entity_temporal_metadata.draft_id IS NOT DISTINCT FROM $3
-                        AND entity_temporal_metadata.transaction_time @> $4::TIMESTAMPTZ
-                    FOR NO KEY UPDATE NOWAIT
-                    ",
-                    &[&id.web_id, &id.entity_uuid, &id.draft_id, &transaction_time],
-                )
-                .await
-                .map_err(|error| {
-                    if error.code() == Some(&SqlState::LOCK_NOT_AVAILABLE) {
-                        Report::new(error)
-                            .change_context(RaceConditionOnUpdate)
-                            .change_context(UpdateError)
-                    } else {
-                        Report::new(error).change_context(UpdateError)
-                    }
-                })?;
-            history.extend(rows.into_iter().map(|row| EntityTemporalMetadataRow {
+            web_ids.push(id.web_id);
+            entity_uuids.push(id.entity_uuid);
+            draft_ids.push(id.draft_id);
+        }
+
+        let rows = self
+            .as_client()
+            .query(
+                "
+                SELECT
+                    temporal.web_id,
+                    temporal.entity_uuid,
+                    temporal.draft_id,
+                    temporal.entity_edition_id,
+                    temporal.decision_time,
+                    temporal.transaction_time
+                FROM entity_temporal_metadata AS temporal
+                WHERE
+                    EXISTS (
+                        SELECT 1
+                        FROM
+                            unnest($1::UUID [], $2::UUID [], $3::UUID [])
+                                AS requested (web_id, entity_uuid, draft_id)
+                        WHERE temporal.web_id = requested.web_id
+                            AND temporal.entity_uuid = requested.entity_uuid
+                            AND temporal.draft_id IS NOT DISTINCT FROM requested.draft_id
+                    )
+                    AND temporal.transaction_time @> $4::TIMESTAMPTZ
+                FOR NO KEY UPDATE NOWAIT
+                ",
+                &[&web_ids, &entity_uuids, &draft_ids, &transaction_time],
+            )
+            .await
+            .map_err(|error| {
+                if error.code() == Some(&SqlState::LOCK_NOT_AVAILABLE) {
+                    Report::new(error)
+                        .change_context(RaceConditionOnUpdate)
+                        .change_context(UpdateError)
+                } else {
+                    Report::new(error).change_context(UpdateError)
+                }
+            })?;
+        Ok(EntityHistory::new(rows.into_iter().map(|row| {
+            EntityTemporalMetadataRow {
                 web_id: row.get("web_id"),
                 entity_uuid: row.get("entity_uuid"),
                 draft_id: row.get("draft_id"),
                 entity_edition_id: row.get("entity_edition_id"),
                 decision_time: row.get("decision_time"),
                 transaction_time: row.get("transaction_time"),
-            }));
-        }
-        Ok(EntityHistory::new(history))
+            }
+        })))
     }
 
     /// Supplies authorization attributes absent from the loaded entity payloads.
@@ -385,12 +400,10 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         edition_ids: &[EntityEditionId],
         transaction_time: Timestamp<TransactionTime>,
     ) -> Result<Vec<EntityPatchResource>, Report<UpdateError>> {
-        let mut resources = Vec::new();
-        for edition_id in edition_ids {
-            let rows = self
-                .as_client()
-                .query(
-                    "
+        let rows = self
+            .as_client()
+            .query(
+                "
                 SELECT
                     temporal.entity_edition_id,
                     edition_cache.versioned_urls,
@@ -408,21 +421,22 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
                     AND temporal.entity_uuid = entities.entity_uuid
                 INNER JOIN actor AS creator
                     ON entities.created_by_id = creator.id
-                WHERE temporal.entity_edition_id = $1
+                WHERE temporal.entity_edition_id = any($1::UUID [])
                     AND temporal.transaction_time @> $2::TIMESTAMPTZ
                 ",
-                    &[edition_id, &transaction_time],
-                )
-                .await
-                .change_context(UpdateError)?;
-            resources.extend(rows.into_iter().map(|row| EntityPatchResource {
+                &[&edition_ids, &transaction_time],
+            )
+            .await
+            .change_context(UpdateError)?;
+        Ok(rows
+            .into_iter()
+            .map(|row| EntityPatchResource {
                 edition_id: row.get("entity_edition_id"),
                 entity_types: row.get("versioned_urls"),
                 edition_creator_type: actor_type(row.get("edition_creator_type")),
                 creator_type: actor_type(row.get("creator_type")),
-            }));
-        }
-        Ok(resources)
+            })
+            .collect())
     }
 
     /// Establishes the batch's working state while holding locks until transaction completion.
@@ -437,33 +451,27 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
             .lock_entity_patch_history(params, transaction_time)
             .await?;
         let edition_ids: Vec<_> = history.edition_ids().collect();
-        let mut entities = Vec::new();
-        for edition_id in &edition_ids {
-            entities.extend(
-                Read::<Entity>::read_vec(
-                    self,
-                    &[Filter::Equal(
-                        FilterExpression::Path {
-                            path: EntityQueryPath::EditionId,
-                        },
-                        FilterExpression::Parameter {
-                            parameter: Parameter::Uuid(edition_id.into_uuid()),
-                            convert: None,
-                        },
-                    )],
-                    Some(&QueryTemporalAxes::DecisionTime {
-                        pinned: PinnedTemporalAxis::new(transaction_time),
-                        variable: VariableTemporalAxis::new(
-                            TemporalBound::Unbounded,
-                            LimitedTemporalBound::Inclusive(transaction_time.cast()),
-                        ),
-                    }),
-                    true,
-                )
-                .await
-                .change_context(UpdateError)?,
-            );
-        }
+        let entities = Read::<Entity>::read_vec(
+            self,
+            &[Filter::In(
+                FilterExpression::Path {
+                    path: EntityQueryPath::EditionId,
+                },
+                FilterExpressionList::ParameterList {
+                    parameters: ParameterList::EntityEditionIds(&edition_ids),
+                },
+            )],
+            Some(&QueryTemporalAxes::DecisionTime {
+                pinned: PinnedTemporalAxis::new(transaction_time),
+                variable: VariableTemporalAxis::new(
+                    TemporalBound::Unbounded,
+                    LimitedTemporalBound::Inclusive(transaction_time.cast()),
+                ),
+            }),
+            true,
+        )
+        .await
+        .change_context(UpdateError)?;
         let editions: HashMap<_, _> = entities
             .into_iter()
             .map(|entity| (entity.metadata.record_id.edition_id, entity))
@@ -563,6 +571,19 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         patches: &mut EntityPatchSet,
         transaction_time: Timestamp<TransactionTime>,
     ) -> Result<Vec<Entity>, Report<UpdateError>> {
+        let policies = self
+            .build_entity_patch_policy_components(actor_id, &params, patches)
+            .await?;
+        let view_policies = policies
+            .build_policy_set([ActionName::ViewEntity])
+            .change_context(UpdateError)?;
+        let write_policies = policies
+            .build_policy_set([
+                ActionName::Instantiate,
+                ActionName::UpdateEntity,
+                ActionName::ArchiveEntity,
+            ])
+            .change_context(UpdateError)?;
         let principals = self
             .load_principal_context(actor_id)
             .await
@@ -580,23 +601,6 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
                         .attach(params.entity_id)
                         .change_context(UpdateError)
                 })?;
-            let policies = self
-                .build_entity_patch_policy_components(
-                    actor_id,
-                    core::slice::from_ref(&params),
-                    patches,
-                )
-                .await?;
-            let view_policies = policies
-                .build_policy_set([ActionName::ViewEntity])
-                .change_context(UpdateError)?;
-            let write_policies = policies
-                .build_policy_set([
-                    ActionName::Instantiate,
-                    ActionName::UpdateEntity,
-                    ActionName::ArchiveEntity,
-                ])
-                .change_context(UpdateError)?;
             let context = entity_context(
                 &principals,
                 patches
