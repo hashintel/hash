@@ -30,16 +30,14 @@ const serializeError = (
 };
 
 /**
- * Posts a `reportError` message to the parent. No-op when the document is
- * loaded outside an iframe (so directly-visiting `/processes/<id>/embed`
- * doesn't recursively post errors to itself).
+ * Posts a `reportError` message to the host, which listens on this window.
  */
 const post = (
   source: ReportError["source"],
   raw: unknown,
   tags?: ReportError["tags"],
 ) => {
-  if (typeof window === "undefined" || window === window.parent) {
+  if (typeof window === "undefined") {
     return;
   }
   const message: IframeToHostMessage = {
@@ -49,11 +47,7 @@ const post = (
     mode: activeMode,
     tags,
   };
-  /**
-   * Target origin is "*" — see `use-iframe-bridge.ts` for why a stricter
-   * value isn't readable from a null-origin sandbox.
-   */
-  window.parent.postMessage(message, "*");
+  window.postMessage(message, window.location.origin);
 };
 
 /**
