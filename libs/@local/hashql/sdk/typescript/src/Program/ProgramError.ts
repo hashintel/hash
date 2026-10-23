@@ -37,8 +37,8 @@ export const Reason = Schema.TaggedUnion({
   RelativeModulePath: { path: Schema.String },
   /** A generic type's declared arity is not a nonnegative safe integer. */
   InvalidTypeArity: {
-    /** Retains the rejected input, including fractions, NaN and infinities. */
-    arity: Schema.Int.pipe(Schema.check(Schema.isGreaterThanOrEqualTo(0))),
+    // oxlint-disable-next-line effecttsgo/schema-number -- this error must retain rejected NaN and infinite arities
+    arity: Schema.Number,
   },
   /** A type application supplied a different number of arguments from its declared arity. */
   TypeArgumentCountMismatch: {
