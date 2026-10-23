@@ -1,10 +1,15 @@
 import {
   type EntityUuid,
-  validateVersionedUrl,
+  isEntityId,
+  type LinkData,
 } from "@blockprotocol/type-system";
+import {
+  getStorageProvider,
+  resolvePayloadValue,
+} from "@local/hash-backend-utils/flows/payload-storage";
 import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
-import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { linkEndsMessage } from "@local/hash-isomorphic-utils/flows/entity-steps";
 import { validatePropertiesWithMetadata } from "@local/hash-isomorphic-utils/flows/property-values";
 import { generateUuidFromName } from "@local/hash-isomorphic-utils/generate-uuid";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -13,6 +18,11 @@ import { StatusCode } from "@local/status";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
+import {
+  checkUserCanInstantiate,
+  validateEntityTypeIds,
+} from "./shared/entity-types.js";
+import { findEntity } from "./shared/find-entity.js";
 import { getSavingActorId, retrySave } from "./shared/save-entity.js";
 
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
@@ -27,8 +37,8 @@ const invalidArgument = (message: string) => ({
 
 /**
  * Creates an entity of the given types in the flow's web, with the given properties and their metadata, as the web's
- * machine on behalf of the user running the flow. The graph validates the entity; a draft may leave required properties
- * out.
+ * machine on behalf of the user running the flow. Given the entities at its two ends, it creates a link between them.
+ * The graph validates the entity; a draft may leave required properties out.
  */
 export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
   inputs,
@@ -37,6 +47,8 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
     entityTypeIds,
     properties,
     draft = false,
+    leftEntityId,
+    rightEntityId,
   } = getSimplifiedFlowActionInputs({ inputs, actionType: "createEntity" });
 
   const [firstEntityTypeId, ...otherEntityTypeIds] = entityTypeIds;
@@ -45,12 +57,10 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
     return invalidArgument("Give at least one entity type ID.");
   }
 
-  for (const entityTypeId of entityTypeIds) {
-    if (validateVersionedUrl(entityTypeId).type !== "Ok") {
-      return invalidArgument(
-        `${JSON.stringify(entityTypeId)} is not an entity type ID.`,
-      );
-    }
+  const entityTypeIdsError = validateEntityTypeIds(entityTypeIds);
+
+  if (entityTypeIdsError) {
+    return invalidArgument(entityTypeIdsError);
   }
 
   const propertiesError = validatePropertiesWithMetadata(properties);
@@ -59,33 +69,60 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
     return invalidArgument(propertiesError);
   }
 
-  const { flowEntityId, runId, stepId, userAuthentication, webId } =
+  if ((leftEntityId === undefined) !== (rightEntityId === undefined)) {
+    return invalidArgument(linkEndsMessage);
+  }
+
+  const { flowEntityId, runId, stepId, userAuthentication, webId, workflowId } =
     await getFlowContext();
 
-  /*
-   * The web's machine saves the entity, and may instantiate types the user can't, so the user's own permission to
-   * instantiate each type, and the types it inherits from, is checked here.
-   */
-  const instantiableEntityTypeIds = new Set(
-    await hasPermissionForEntityTypes(graphApiClient, userAuthentication, {
-      entityTypeIds,
-      action: "instantiate",
-    }),
+  const instantiateError = await checkUserCanInstantiate(
+    userAuthentication,
+    entityTypeIds,
   );
 
-  const forbiddenEntityTypeIds = entityTypeIds.filter(
-    (entityTypeId) => !instantiableEntityTypeIds.has(entityTypeId),
-  );
-
-  if (forbiddenEntityTypeIds.length > 0) {
+  if (instantiateError) {
     return {
       code: StatusCode.PermissionDenied,
-      message:
-        forbiddenEntityTypeIds.length === 1
-          ? `Entity type ${forbiddenEntityTypeIds[0]} doesn't exist or can't be instantiated by the user running the flow.`
-          : `Entity types ${forbiddenEntityTypeIds.join(", ")} don't exist or can't be instantiated by the user running the flow.`,
+      message: instantiateError,
       contents: [],
     };
+  }
+
+  let linkData: LinkData | undefined;
+
+  if (leftEntityId !== undefined && rightEntityId !== undefined) {
+    /* An item of a stored list of entity IDs, e.g. in a for-each step, is a reference to it. */
+    const storage = { storageProvider: getStorageProvider(), workflowId };
+    const [left, right] = await Promise.all([
+      resolvePayloadValue(storage, "EntityId", leftEntityId),
+      resolvePayloadValue(storage, "EntityId", rightEntityId),
+    ]);
+
+    if (!isEntityId(left) || !isEntityId(right)) {
+      return invalidArgument(
+        `${String(isEntityId(left) ? right : left)} is not a valid EntityId.`,
+      );
+    }
+
+    /*
+     * The web's machine saves the link, and may read entities the user can't, so the user's own permission to read
+     * each end is checked here.
+     */
+    const [leftFound, rightFound] = await Promise.all([
+      findEntity(userAuthentication, left),
+      findEntity(userAuthentication, right),
+    ]);
+
+    if (!leftFound || !rightFound) {
+      return {
+        code: StatusCode.NotFound,
+        message: `Entity ${leftFound ? right : left} doesn't exist or can't be read by the user running the flow.`,
+        contents: [],
+      };
+    }
+
+    linkData = { leftEntityId: left, rightEntityId: right };
   }
 
   const savingActorId = await getSavingActorId({
@@ -135,6 +172,7 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
             entityUuid,
             entityTypeIds: [firstEntityTypeId, ...otherEntityTypeIds],
             properties,
+            linkData,
             draft,
             provenance: {
               actorType: "machine",

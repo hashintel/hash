@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { storePayload } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
+import { linkEndsMessage } from "@local/hash-isomorphic-utils/flows/entity-steps";
 import { StatusCode } from "@local/status";
 
 import { createEntityAction } from "./create-entity-action.js";
@@ -13,13 +15,27 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
+import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type {
   HashEntity,
   QueryEntitiesResponse,
 } from "@local/hash-graph-sdk/entity";
-import type { StepInput } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  PayloadValue,
+  StepInput,
+} from "@local/hash-isomorphic-utils/flows/types";
 
+const workflowId = "workflow";
 const webId = "00000000-0000-4000-8000-000000000001" as WebId;
+const objects = new Map<string, string>();
+const storageProvider = {
+  uploadDirect: ({ key, body }: { key: string; body: string }) => {
+    objects.set(key, body);
+    return Promise.resolve();
+  },
+  downloadDirect: ({ key }: { key: string }) =>
+    Promise.resolve(Buffer.from(objects.get(key) ?? "null")),
+} as unknown as FileStorageProvider;
 
 vi.mock("../shared/graph-api-client.js", () => ({ graphApiClient: {} }));
 vi.mock("../shared/get-flow-context.js", () => ({
@@ -30,8 +46,16 @@ vi.mock("../shared/get-flow-context.js", () => ({
       stepId: "create",
       userAuthentication: { actorId: "user" },
       webId,
+      workflowId,
     }),
 }));
+vi.mock(
+  "@local/hash-backend-utils/flows/payload-storage",
+  async (importOriginal) => ({
+    ...(await importOriginal<object>()),
+    getStorageProvider: () => storageProvider,
+  }),
+);
 vi.mock("./shared/save-entity.js", () => ({
   getSavingActorId: () => Promise.resolve("bot"),
   retrySave: (save: () => unknown) => save(),
@@ -53,6 +77,8 @@ const personType =
   "https://example.com/types/entity-type/person/v/1" as VersionedUrl;
 const employeeType =
   "https://example.com/types/entity-type/employee/v/1" as VersionedUrl;
+const worksForType =
+  "https://example.com/types/entity-type/works-for/v/1" as VersionedUrl;
 const nameUrl = "https://example.com/types/property-type/name/" as BaseUrl;
 const emailUrl = "https://example.com/types/property-type/email/" as BaseUrl;
 const text = {
@@ -63,10 +89,15 @@ const ada = {
   value: { [nameUrl]: { value: "Ada", metadata: text } },
 } satisfies PropertyObjectWithMetadata;
 
+const entityIdOf = (index: number) =>
+  `${webId}~00000000-0000-4000-8000-${String(index).padStart(12, "0")}` as EntityId;
+
 const run = (params: {
   entityTypeIds?: string[];
   properties: PropertyObjectWithMetadata;
   draft?: boolean;
+  leftEntityId?: PayloadValue<"EntityId", false>;
+  rightEntityId?: PayloadValue<"EntityId", false>;
 }) =>
   createEntityAction({
     inputs: [
@@ -92,8 +123,22 @@ const run = (params: {
               payload: { kind: "Boolean" as const, value: params.draft },
             },
           ]),
+      ...(["leftEntityId", "rightEntityId"] as const).flatMap((inputName) => {
+        const value = params[inputName];
+
+        return value === undefined
+          ? []
+          : [{ inputName, payload: { kind: "EntityId" as const, value } }];
+      }),
     ] satisfies StepInput[],
   });
+
+/** Answers the graph query for an end of a link as the user, with the entity if it's given. */
+const mockLinkEnd = (entityId: EntityId | null) =>
+  vi.mocked(queryEntities).mockResolvedValueOnce({
+    entities: entityId ? [{ entityId }] : [],
+    cursor: null,
+  } as unknown as QueryEntitiesResponse);
 
 /** Answers the graph's creation with an entity with the given ID. */
 const mockCreated = (entityId: EntityId) =>
@@ -155,6 +200,7 @@ describe("createEntityAction", () => {
         },
       }),
     );
+    expect(create.mock.calls[0]?.[2].linkData).toBeUndefined();
   });
 
   it("creates a draft", async () => {
@@ -198,6 +244,100 @@ describe("createEntityAction", () => {
     );
   });
 
+  it("creates a link between the entities given, which the user running the flow can read", async () => {
+    mockLinkEnd(entityIdOf(1));
+    mockLinkEnd(entityIdOf(2));
+    mockCreated(entityIdOf(3));
+
+    expect(
+      await run({
+        entityTypeIds: [worksForType],
+        properties: { value: {} },
+        leftEntityId: entityIdOf(1),
+        rightEntityId: entityIdOf(2),
+      }),
+    ).toMatchObject({
+      code: StatusCode.Ok,
+      contents: [{ outputs: [{ payload: { value: entityIdOf(3) } }] }],
+    });
+
+    const [left, right] = vi.mocked(queryEntities).mock.calls;
+    expect([left?.[1], right?.[1]]).toEqual([
+      { actorId: "user" },
+      { actorId: "user" },
+    ]);
+    expect(create).toHaveBeenCalledWith(
+      expect.anything(),
+      { actorId: "bot" },
+      expect.objectContaining({
+        entityTypeIds: [worksForType],
+        linkData: {
+          leftEntityId: entityIdOf(1),
+          rightEntityId: entityIdOf(2),
+        },
+      }),
+    );
+  });
+
+  it("creates a link to the entity an item of a stored list of entity IDs names", async () => {
+    const stored = await storePayload({
+      storageProvider,
+      workflowId,
+      runId: "run",
+      stepId: "query",
+      outputName: "entities",
+      kind: "EntityId",
+      value: [entityIdOf(2), entityIdOf(4)],
+    });
+
+    mockLinkEnd(entityIdOf(1));
+    mockLinkEnd(entityIdOf(4));
+    mockCreated(entityIdOf(3));
+
+    await run({
+      entityTypeIds: [worksForType],
+      properties: { value: {} },
+      leftEntityId: entityIdOf(1),
+      rightEntityId: {
+        __stored: true,
+        kind: "EntityId",
+        array: false,
+        of: stored,
+        index: 1,
+      },
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({
+        linkData: {
+          leftEntityId: entityIdOf(1),
+          rightEntityId: entityIdOf(4),
+        },
+      }),
+    );
+  });
+
+  it("fails for an end of a link that is missing or the user can't read, without creating anything", async () => {
+    mockLinkEnd(entityIdOf(1));
+    mockLinkEnd(null);
+
+    expect(
+      await run({
+        entityTypeIds: [worksForType],
+        properties: { value: {} },
+        leftEntityId: entityIdOf(1),
+        rightEntityId: entityIdOf(2),
+      }),
+    ).toEqual({
+      code: StatusCode.NotFound,
+      message: `Entity ${entityIdOf(2)} doesn't exist or can't be read by the user running the flow.`,
+      contents: [],
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it.each([
     {
       name: "no entity type IDs",
@@ -226,6 +366,25 @@ describe("createEntityAction", () => {
         },
       },
       message: `Property ${nameUrl} must give the data type ID of each of its values.`,
+    },
+    {
+      name: "the entity a link links from without the one it links to",
+      params: { properties: ada, leftEntityId: entityIdOf(1) },
+      message: linkEndsMessage,
+    },
+    {
+      name: "the entity a link links to without the one it links from",
+      params: { properties: ada, rightEntityId: entityIdOf(2) },
+      message: linkEndsMessage,
+    },
+    {
+      name: "an end of a link that isn't an entity ID",
+      params: {
+        properties: ada,
+        leftEntityId: entityIdOf(1),
+        rightEntityId: "" as EntityId,
+      },
+      message: " is not a valid EntityId.",
     },
   ])(
     "fails for $name, without creating anything",
