@@ -3,19 +3,15 @@ import {
   netReaderToolNames,
   petrinautToolEffects,
 } from "@hashintel/brunch-agent";
+import {
+  createExperimentToolName,
+  getLatestNetDefinitionToolName,
+  getNetCompilationErrorsToolName,
+  readPetrinautDocToolName,
+} from "@hashintel/petrinaut-core/ai";
 
 /** What a tool call spends a step on, for turn-time accounting. */
-export type ToolCategory =
-  | "ledger"
-  | "skills"
-  | "net-read"
-  | "compile-check"
-  | "layout"
-  | "net-change"
-  | "experiment"
-  | "other";
-
-export const toolCategories: readonly ToolCategory[] = [
+export const toolCategories = [
   "ledger",
   "skills",
   "net-read",
@@ -24,11 +20,13 @@ export const toolCategories: readonly ToolCategory[] = [
   "net-change",
   "experiment",
   "other",
-];
+] as const;
+
+export type ToolCategory = (typeof toolCategories)[number];
 
 const netReadTools = new Set<string>([
-  "getLatestNetDefinition",
-  "readPetrinautDoc",
+  getLatestNetDefinitionToolName,
+  readPetrinautDocToolName,
   ...Object.values(netReaderToolNames),
 ]);
 
@@ -54,11 +52,11 @@ export const toolCategoryOf = (toolName: string): ToolCategory => {
     return "skills";
   }
   if (netReadTools.has(toolName)) return "net-read";
-  if (toolName === "getNetCompilationErrors") return "compile-check";
+  if (toolName === getNetCompilationErrorsToolName) return "compile-check";
   if (layoutTools.has(toolName)) return "layout";
   if (
     toolName === brunchTools.draftPetrinautExperiment ||
-    toolName === "createExperiment"
+    toolName === createExperimentToolName
   ) {
     return "experiment";
   }

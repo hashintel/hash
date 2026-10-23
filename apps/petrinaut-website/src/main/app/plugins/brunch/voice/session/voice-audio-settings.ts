@@ -9,15 +9,13 @@ import type {
   PetrinautAiVoiceModeControls,
   PetrinautAiVoiceSessionState,
 } from "../../chat/ai-assistant-composer-control";
+import type { PreviewOutput } from "./voice-audio-settings/preview";
 
 type SettingsState = NonNullable<PetrinautAiVoiceSessionState["audioSettings"]>;
 type SettingsActions = NonNullable<
   PetrinautAiVoiceModeControls["audioSettings"]
 >;
-type AudioOutput = {
-  muted: boolean;
-  volume: number;
-  sinkId?: string;
+type AudioOutput = PreviewOutput & {
   setSinkId?: (deviceId: string) => Promise<void>;
 };
 type AudioDevices = Pick<

@@ -1,10 +1,10 @@
-import { CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH } from "../client-tools";
-
 export const PETRINAUT_CONTEXTUAL_USER_MESSAGE_PREFIX =
   "petrinaut-contextual-user-message:v1\n";
 const submissionContextPrefix = "petrinaut-contextual-user-message:v2\n";
 export const PETRINAUT_CONTEXTUAL_USER_TEXT_MAX_LENGTH = 32_000;
 const PETRINAUT_CONTEXTUAL_USER_BODY_MAX_LENGTH = 256_000;
+/** Keep diagnostics context comfortably below Flue's delivered-message limit. */
+const diagnosticsContextMaxLength = 32_000;
 
 /**
  * Host data for one submission. The envelope never reads its keys; each
@@ -58,8 +58,7 @@ export const petrinautContextualUserMessageBody = (
     (payload.submissionContext === undefined
       ? payload.diagnosticsContext.length === 0
       : !isSubmissionContext(payload.submissionContext)) ||
-    Array.from(payload.diagnosticsContext).length >
-      CLIENT_TOOL_RESULT_CONTEXT_MAX_LENGTH
+    Array.from(payload.diagnosticsContext).length > diagnosticsContextMaxLength
   ) {
     throw new Error(
       "The contextual user message payload is invalid or too long.",

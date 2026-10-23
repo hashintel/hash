@@ -1,37 +1,22 @@
 import {
-  type NetElementKind,
-  netReaderLevelOf,
+  type ArcElement,
+  type NetElementAddress,
+  browserNetToolNames,
+  browserToolEnvelopeOf,
+  generatedArcId,
+  namesId,
   parseClientToolResultMetadata,
   petrinautToolTargets,
+  type NetStructure,
 } from "@hashintel/brunch-agent";
-import {
-  canonicalizeArcId,
-  generateArcId,
-  getArcEndpointKey,
-  placeArcEndpoint,
-  toPetrinautId,
-} from "@hashintel/petrinaut-core";
-import {
-  petrinautAiTools,
-  getLatestNetDefinitionToolName,
-} from "@hashintel/petrinaut-core/ai";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import { netResultView } from "./net-view.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
-export interface ArcElement {
-  readonly transitionId: string;
-  readonly arcDirection: "input" | "output";
-  readonly placeId: string;
-}
-
-export interface NetElement {
-  readonly kind: NetElementKind;
-  readonly id: string;
-  readonly arc?: ArcElement;
-}
+export type NetElement = NetElementAddress & { readonly arc?: ArcElement };
 
 export interface NetCall {
   readonly toolCallId: string;
@@ -53,24 +38,13 @@ export const netCalls = (snapshot: FlueConversationSnapshot): NetCall[] =>
       ? message.parts.flatMap((part, partIndex) => {
           if (
             part.type !== "dynamic-tool" ||
-            !(
-              part.toolName in petrinautAiTools ||
-              netReaderLevelOf(part.toolName) !== undefined
-            ) ||
+            !browserNetToolNames.has(part.toolName) ||
             part.state !== "output-available"
           )
             return [];
-          const envelope = part.output;
-          if (
-            typeof envelope !== "object" ||
-            envelope === null ||
-            !("brunchBrowserResult" in envelope) ||
-            envelope.brunchBrowserResult !== true
-          )
-            return [];
-          if (!("output" in envelope)) return [];
-          const recordedMetadata =
-            "metadata" in envelope ? envelope.metadata : undefined;
+          const envelope = browserToolEnvelopeOf(part.output);
+          if (!envelope) return [];
+          const recordedMetadata = envelope.metadata;
           const metadata = parseClientToolResultMetadata(recordedMetadata);
           return [
             {
@@ -98,17 +72,6 @@ export const isAppliedChange = (call: NetCall): boolean =>
     call.output.applied === false
   );
 
-/**
- * Whether `written` names `id`: as written, or as the converted id the
- * document stores for an id the model invented. Flue keeps the model's raw
- * arguments, while ids read from the document are converted.
- */
-export const namesId = (written: unknown, id: string): boolean =>
-  typeof written === "string" &&
-  (written === id ||
-    toPetrinautId(written) === id ||
-    canonicalizeArcId(written) === id);
-
 /** Only values under an id key (`id` or `...Id`) are converted; names and code compare exactly. */
 const hasId = (value: unknown, id: string, underIdKey = false): boolean => {
   if (underIdKey ? namesId(value, id) : value === id) return true;
@@ -121,14 +84,6 @@ const hasId = (value: unknown, id: string, underIdKey = false): boolean => {
       hasId(item, id, key === "id" || key.endsWith("Id")),
     )
   );
-};
-
-/** The ID Petrinaut generates for an arc, which `deleteItemsByIds` uses. */
-const generatedArcId = (arc: ArcElement): string => {
-  const place = getArcEndpointKey(placeArcEndpoint(arc.placeId));
-  return arc.arcDirection === "input"
-    ? generateArcId({ inputId: place, outputId: arc.transitionId })
-    : generateArcId({ inputId: arc.transitionId, outputId: place });
 };
 
 /** Arcs have no standalone ID: the arc actions identify their transition, direction and endpoint, and a batch deletion uses the generated arc ID. */
@@ -213,14 +168,15 @@ export const latestCanonicalNetReadBefore = (
  */
 export const latestNetDefinition = (
   snapshot: FlueConversationSnapshot,
-): { readonly definition: SDCPN; readonly call: NetCall } | undefined => {
+):
+  | { readonly definition: NetStructure; readonly call: NetCall }
+  | undefined => {
   const call = netCalls(snapshot).findLast(
     (entry) => netResultView(entry.toolName, entry.metadata) !== undefined,
   );
   if (!call) return undefined;
   const view = netResultView(call.toolName, call.metadata);
-  if (view?.kind === "change")
-    return { definition: view.readBack as SDCPN, call };
+  if (view?.kind === "change") return { definition: view.readBack, call };
   return typeof call.output === "object" &&
     call.output !== null &&
     "definition" in call.output

@@ -925,7 +925,6 @@ __metadata:
     react-dom: "npm:19.2.6"
     react-icons: "npm:5.5.0"
     react-markdown: "npm:10.1.0"
-    remark-gfm: "npm:4.0.1"
     sharp: "npm:0.35.5"
     vite: "catalog:"
     vitest: "catalog:"

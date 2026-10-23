@@ -152,7 +152,9 @@ const finalNetOf = (net: unknown): FinalNetSummary | null => {
 const isHistoryMessage = (message: unknown): message is LedgerHistoryMessage =>
   isRecord(message) &&
   typeof message.id === "string" &&
-  typeof message.role === "string" &&
+  (message.role === "user" ||
+    message.role === "assistant" ||
+    message.role === "system") &&
   Array.isArray(message.parts);
 
 const finalLedgerOf = (history: unknown): FinalLedgerSummary | null => {

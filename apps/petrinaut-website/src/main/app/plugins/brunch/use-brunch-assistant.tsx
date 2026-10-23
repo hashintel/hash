@@ -51,7 +51,7 @@ import {
   type InterviewBudgetLevelChange,
 } from "./interview-budget/interview-budget-level-changes";
 import { foldBrunchLedgerHistory } from "./ledger/brunch-ledger-history";
-import { BrunchLedgerPane } from "./ledger/brunch-ledger-pane";
+import { BrunchLedgerTab } from "./ledger/brunch-ledger-tab";
 import {
   brunchPetrinautClientToolNames,
   canonicalPetrinautClientToolNames,
@@ -70,8 +70,8 @@ import {
   createCanonicalPetrinautHostTools,
   issuedCanonicalCallsFromHistory,
   EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  type CanonicalPetrinautHostToolsInput,
   type CanonicalPetrinautReplay,
-  type CanonicalPetrinautReplayReadiness,
 } from "./tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "./tools/brunch-tool-presentation";
 import { createInBandBrowserCalls } from "./tools/in-band-browser-call";
@@ -91,7 +91,7 @@ import type { VoiceWord } from "../../../../shared/voice-words";
 import type { PetrinautAiComposerControlContext } from "./chat/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
-import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
+import type { SdcpnInitialData } from "@hashintel/brunch-agent";
 import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 export const brunchPreviewConfig = resolveBrunchPreviewConfig(
@@ -138,10 +138,10 @@ const useProcessAgentSession = (input: {
 };
 
 /** The open document as Brunch's browser tools reach it. */
-export interface BrunchEditorDocument {
-  readonly handle: PetrinautDocHandle;
-  readonly readTitle: () => string;
-}
+export type BrunchEditorDocument = Pick<
+  CanonicalPetrinautHostToolsInput,
+  "handle" | "readTitle"
+>;
 
 /** The document open in the editor. */
 export interface BrunchOpenDocument {
@@ -419,7 +419,7 @@ export const useBrunchAssistant = ({
     historyPhase: flueHistory.phase,
     snapshot: flueHistory.snapshot,
     derive: deriveCanonicalReplay,
-  }) satisfies CanonicalPetrinautReplayReadiness;
+  });
   const canonicalHostTools = useMemo(() => {
     if (!constructionBrowser || !editor) return undefined;
     return createCanonicalPetrinautHostTools({
@@ -483,7 +483,11 @@ export const useBrunchAssistant = ({
             interviewRepliesAsked,
             readWords: () => readWords().map((word) => word.spelling),
             ...(constructionBrowser
-              ? { initialData: { binding: constructionBrowser.binding } }
+              ? {
+                  initialData: {
+                    binding: constructionBrowser.binding,
+                  } satisfies SdcpnInitialData,
+                }
               : {}),
             ...(conversationId === null
               ? {}
@@ -599,7 +603,7 @@ export const useBrunchAssistant = ({
             label: "Ledger",
             activityIdentities,
             content: (
-              <BrunchLedgerPane
+              <BrunchLedgerTab
                 messages={flueHistory.snapshot?.messages ?? []}
               />
             ),

@@ -15,16 +15,14 @@ import {
 import { createFlueClient } from "@flue/sdk";
 
 import {
+  agentOwnershipHeaders,
   brunchTools,
   petrinautContextualUserMessageBody,
   petrinautSubmissionContext,
 } from "@hashintel/brunch-agent";
 import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 
-import {
-  agentOwnershipHeaders,
-  flueConversationIdFrom,
-} from "../../src/shared/conversation/identity.ts";
+import { flueConversationId } from "../../src/shared/conversation/identity.ts";
 import { loadBuiltBrunchApplication } from "../load-built-application.ts";
 
 const directory = mkdtempSync(join(tmpdir(), "brunch-words-"));
@@ -44,7 +42,7 @@ const identity = {
   conversationId: `words-${crypto.randomUUID()}`,
 };
 const client = createFlueClient({
-  url: `http://brunch.local/agents/petrinaut/${flueConversationIdFrom(identity)}`,
+  url: `http://brunch.local/agents/petrinaut/${flueConversationId(identity)}`,
   headers: agentOwnershipHeaders(identity),
   fetch: async (input, init) =>
     application.fetch(
