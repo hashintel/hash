@@ -73,3 +73,6 @@ export const RightClickMenu = ({
     </ArkMenu.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+RightClickMenu.displayName = "RightClickMenu";

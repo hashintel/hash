@@ -96,3 +96,5 @@ export const Label = ({
     </div>
   );
 };
+
+Label.displayName = "Form.Field.Label";

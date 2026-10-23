@@ -1,0 +1,252 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Icon, IconProvider } from "./icon";
+
+<Meta title="Docs/Icon" />
+
+export const meta = {
+  title: "Icon",
+  description:
+    "Display a glyph from the shared icon set to reinforce nearby text and actions.",
+  alternativeNames: ["SvgIcon", "Glyph"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Icon/icon.tsx",
+    stories: "https://tokens.hash.design/?path=/story/components-icon--default",
+  },
+  referenceLinks: {
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/SVG/Element/svg",
+  },
+  related: ["Button", "LoadingSpinner", "Avatar"],
+};
+
+# Icon
+
+Display a glyph from the shared icon set to reinforce nearby text and actions.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Icon name="cube" />
+  <Icon name="sparkles" />
+  <Icon name="diagramProject" />
+  <Icon name="warning" />
+  <Icon name="lockClosed" size="lg" />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Icon } from "@hashintel/ds-components";
+
+export const FlowRunStatus = () => (
+  <span>
+    <Icon name="circleCheck" size="sm" /> Flow completed
+  </span>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Icon to reinforce meaning next to text: status rows, metadata labels, empty states.",
+    "Use Icon in custom layouts with no icon slot, so glyphs stay on the shared set instead of one-off SVGs.",
+    <>
+      Use <code>alt</code> when an icon stands alone and carries meaning of its
+      own.
+    </>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    <>
+      Don't make a bare Icon clickable — use Button's <code>iconName</code> and{" "}
+      <code>tooltip</code>, which add focus, hover, and an accessible name.
+    </>,
+    <>
+      Don't place Icon manually inside components with an <code>iconName</code>{" "}
+      prop (Button, Chip, Banner, Select) — the slot sizes and spaces it for
+      you.
+    </>,
+    "Don't use a static icon to indicate loading — use LoadingSpinner.",
+    "Don't use icons for people or workspaces — use Avatar, which handles images and fallback initials.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+`name` picks a glyph from the set. Icons render at `md` (24px) and are hidden
+from assistive technology by default.
+
+<Stage>
+  <Icon name="gear" />
+</Stage>
+
+### Sizes
+
+Five fixed steps: `xxs` (8px), `xs` (12px), `sm` (16px), `md` (24px, the
+default), and `lg` (32px). Match the step to the surrounding text or control —
+`sm` pairs with body text, `md` and up with headings and empty states.
+
+<Stage>
+  <Icon name="cube" size="xxs" />
+  <Icon name="cube" size="xs" />
+  <Icon name="cube" size="sm" />
+  <Icon name="cube" size="md" />
+  <Icon name="cube" size="lg" />
+</Stage>
+
+### Color
+
+Glyphs fill with `currentColor`, so an icon takes the surrounding text color —
+including the hover and state colors of a parent component. There is no color
+prop; set a text color on the icon or a wrapper.
+
+```tsx
+import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
+export const FailedRunLabel = () => (
+  <span className={css({ color: "red.s100" })}>
+    <Icon name="warning" size="sm" /> Run failed
+  </span>
+);
+```
+
+### Inline with text
+
+Icons are `inline-block` and vertically centered against the text middle, so
+they drop into labels and sentences without wrappers. Use `sm` next to body
+text.
+
+<Stage>
+  <span>
+    <Icon name="lockClosed" size="sm" /> Visible to web members only
+  </span>
+</Stage>
+
+### Accessible labels
+
+Icons are decorative by default — next to text that already carries the
+meaning, leave them that way. Set `alt` when the icon stands alone: the SVG
+becomes `role="img"` with `alt` as its accessible name.
+
+<Stage>
+  <span>
+    <Icon name="lockClosed" size="sm" /> Private
+  </span>
+  <Icon name="lockClosed" size="sm" alt="Private entity type" />
+</Stage>
+
+### Finding an icon
+
+The set holds about 140 glyphs registered under semantic names — `close`,
+`search`, `trash` — and the same names power every `iconName` prop across the
+system. Browse the full set with names in the
+[icon gallery story](https://tokens.hash.design/?path=/story/components-icon--default);
+`name` autocompletes from the `IconName` union, and `iconNames` exports the
+list at runtime.
+
+```tsx
+import { iconNames, type IconName } from "@hashintel/ds-components";
+
+const sortIcons: IconName[] = iconNames.filter((name) =>
+  name.startsWith("sort"),
+);
+```
+
+### Custom icon packs
+
+`IconProvider` swaps glyphs by name for a whole subtree: every `Icon` below it
+— including icons that components render via `iconName` — checks the pack
+first, and names not in the pack fall back to the built-in set.
+
+```tsx
+import { IconProvider, type IconPack } from "@hashintel/ds-components";
+
+import type { PropsWithChildren, SVGProps } from "react";
+
+const BrandCube = (props: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 640 640" fill="currentColor" {...props}>
+    <path d="M64 64h512v512H64z" />
+  </svg>
+);
+
+const icons: IconPack = { cube: BrandCube };
+
+export const WorkspaceRoot = ({ children }: PropsWithChildren) => (
+  <IconProvider icons={icons}>{children}</IconProvider>
+);
+```
+
+Spread the received props onto the `<svg>` — they carry the sizing class and
+ARIA attributes — and fill with `currentColor` so the glyph recolors with its
+context. Nested providers replace the pack rather than merging it; `icons={{}}`
+restores the defaults.
+
+## Behavior
+
+- Icons reserve a fixed square — `min-width` matches the size step — so they
+  never shrink or distort inside flex rows and truncating labels.
+- `vertical-align: middle` centers the glyph against a single line of
+  surrounding text rather than sitting it on the baseline.
+
+## Accessibility
+
+### What Icon provides
+
+- Renders `aria-hidden="true"` by default, so decorative icons are invisible to
+  assistive technology.
+- Setting `alt` switches the SVG to `role="img"` with the text as its
+  `aria-label`, announcing it like an image.
+
+### What you must do
+
+- Set `alt` only when the icon carries meaning nearby text doesn't — labelling
+  an icon that sits next to the same words announces it twice.
+- Describe the meaning, not the glyph: `alt="Private entity type"`, not
+  `alt="Lock"`.
+- Never attach click handlers to a bare Icon — interactive glyphs belong on
+  Button, which provides focus and an accessible name.
+
+## API reference
+
+### Icon
+
+<PropsTable of={Icon} defaults={{ size: '"md"' }} />
+
+### IconProvider
+
+<PropsTable of={IconProvider} />
+
+## Styling
+
+- Each size step sets the `--icon-size` CSS variable, which drives `width`,
+  `min-width`, and `height`; color always comes from `currentColor`.
+- To add a glyph to the set, add the SVG under `svgs/` and register a semantic
+  name in `IconMap` (`icon-util.ts`) — the `IconName` union, the gallery story,
+  and every `iconName` prop pick it up automatically.
+- To replace glyphs app-wide, use an [icon pack](#custom-icon-packs).

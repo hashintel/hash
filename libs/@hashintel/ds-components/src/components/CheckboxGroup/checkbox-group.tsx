@@ -123,3 +123,6 @@ export const CheckboxGroup = <const ValueType extends string>({
     </ArkCheckboxGroup>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+CheckboxGroup.displayName = "CheckboxGroup";

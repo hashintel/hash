@@ -32,6 +32,16 @@ const config: StorybookConfig = {
   typescript: {
     reactDocgen: "react-docgen-typescript",
     reactDocgenTypescriptOptions: {
+      // react-docgen-typescript names every component in a file after the
+      // first top-level `X.displayName = "…"` string literal it finds, then
+      // dedupes docs by name — collapsing multi-component files (Banner,
+      // Icon, Popover…) to a single prop table. Name docs by export symbol
+      // instead; runtime displayName assignments are unaffected.
+      componentNameResolver: (exp) => exp.getName(),
+      // The plugin defaults to injecting `X.displayName = "<doc name>"` after
+      // each module, which would overwrite the hand-set displayNames the docs
+      // Stage serializer relies on (e.g. "Form.Field") with export names.
+      setDisplayName: false,
       shouldExtractLiteralValuesFromEnum: true,
       shouldRemoveUndefinedFromOptional: true,
       // Keep prop tables on the public API: drop inherited DOM/aria props

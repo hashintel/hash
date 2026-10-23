@@ -274,4 +274,7 @@ const BreadCrumbsRoot = ({
   );
 };
 
+// Stable name for the docs Stage code serializer under minification
+BreadCrumbsRoot.displayName = "BreadCrumbs";
+
 export const BreadCrumbs = Object.assign(BreadCrumbsRoot, { Item });

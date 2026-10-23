@@ -79,7 +79,7 @@ type ButtonIconProps = ExclusifyUnion<
 >;
 
 type ButtonElementOnlyProps = {
-  /** Button type - unlike <button> defaults to type="button" */
+  /** Button type - unlike native <button> defaults to type="button" */
   type?: "button" | "submit" | "reset";
   href?: never;
   target?: never;

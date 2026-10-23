@@ -1,0 +1,324 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Slider } from "./slider";
+
+<Meta title="Docs/Slider" />
+
+export const meta = {
+  title: "Slider",
+  description:
+    "Select a numeric value from a fixed range by dragging a thumb along a track.",
+  alternativeNames: ["Range", "RangeSlider"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Slider/slider.tsx",
+    stories: "https://tokens.hash.design/?path=/story/legacy-slider--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/slider/",
+    ark: "https://ark-ui.com/docs/components/slider",
+  },
+  related: ["NumberInput", "SegmentedControl"],
+};
+
+# Slider
+
+Select a numeric value from a fixed range by dragging a thumb along a track.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Slider
+    label="Match confidence"
+    showValueText
+    min={0}
+    max={100}
+    defaultValue={70}
+    style={{ width: 280 }}
+  />
+  <Slider
+    label="Edge opacity"
+    variant="plain"
+    min={0}
+    max={100}
+    defaultValue={40}
+    style={{ width: 280 }}
+  />
+  <Slider
+    label="Node spacing"
+    disabled
+    min={0}
+    max={100}
+    defaultValue={55}
+    style={{ width: 280 }}
+  />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Slider } from "@hashintel/ds-components";
+
+export const MatchConfidenceSlider = () => (
+  <Slider
+    label="Match confidence"
+    showValueText
+    min={0}
+    max={100}
+    defaultValue={70}
+  />
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Slider for a numeric setting with fixed bounds where relative position matters more than the exact figure — opacity, weights, confidence thresholds.",
+    "Use Slider when the surface responds while the user drags, such as tuning a graph view live.",
+    <>
+      Use <code>step</code> to snap to meaningful increments when intermediate
+      values are noise.
+    </>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use Slider when users need to enter an exact value — use NumberInput.",
+    "Don't use Slider for very large ranges (1–1,000+) — each pixel covers several values; use NumberInput.",
+    "Don't use Slider to pick between a few named options — use SegmentedControl, or RadioGroup in forms.",
+    "Don't use Slider to select the two ends of a range — it renders a single thumb; use two NumberInputs.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+A slider needs bounds, a starting value, and a `label` for its accessible
+name. `min`, `max` and `step` default to 0, 100 and 1.
+
+<Stage>
+  <Slider
+    label="Zoom level"
+    min={0}
+    max={100}
+    defaultValue={25}
+    style={{ width: 320 }}
+  />
+</Stage>
+
+### Value text
+
+`showValueText` prints the live value above the track. Use it whenever the
+number itself matters — the track alone only communicates "roughly here".
+
+<Stage>
+  <Slider
+    label="Edge opacity"
+    showValueText
+    min={0}
+    max={100}
+    defaultValue={80}
+    style={{ width: 320 }}
+  />
+</Stage>
+
+### Step
+
+`step` snaps dragging and arrow keys to the same increments, and steps can be
+fractional. Keep every increment meaningful — values the product ignores are
+noise.
+
+<Stage>
+  <Slider
+    label="Sync interval (minutes)"
+    showValueText
+    min={0}
+    max={60}
+    step={5}
+    defaultValue={15}
+    style={{ width: 280 }}
+  />
+  <Slider
+    label="Sampling temperature"
+    showValueText
+    min={0}
+    max={2}
+    step={0.1}
+    defaultValue={0.7}
+    style={{ width: 280 }}
+  />
+</Stage>
+
+### Disabled
+
+`disabled` shows the value without letting the pointer or keyboard move it;
+the whole slider dims. Pair it with nearby text explaining why the setting is
+locked.
+
+<Stage>
+  <Slider
+    label="Match confidence"
+    showValueText
+    disabled
+    min={0}
+    max={100}
+    defaultValue={70}
+    style={{ width: 320 }}
+  />
+</Stage>
+
+### Controlled
+
+Pass `value` with `onChange` to own the state. `onChange` fires on every
+increment of a drag, so keep the handler cheap — update state, not the server.
+
+```tsx
+import { useState } from "react";
+
+import { Slider } from "@hashintel/ds-components";
+
+export const NodeSpacingControl = () => {
+  const [spacing, setSpacing] = useState(40);
+
+  return (
+    <Slider
+      label="Node spacing"
+      showValueText
+      min={0}
+      max={100}
+      value={spacing}
+      onChange={setSpacing}
+    />
+  );
+};
+```
+
+### Committing on release
+
+`onChangeEnd` fires once when a drag or keyboard interaction settles. Put
+expensive follow-ups there — persisting the setting, re-running a query —
+while `onChange` keeps the preview live.
+
+```tsx
+import { useState } from "react";
+
+import { Slider } from "@hashintel/ds-components";
+
+export const SimilarityThreshold = ({
+  onCommit,
+}: {
+  onCommit: (threshold: number) => void;
+}) => {
+  const [threshold, setThreshold] = useState(70);
+
+  return (
+    <Slider
+      label="Similarity threshold"
+      showValueText
+      min={0}
+      max={100}
+      value={threshold}
+      onChange={setThreshold}
+      onChangeEnd={onCommit}
+    />
+  );
+};
+```
+
+### Plain variant
+
+The default thumb is a pill that swells while dragged. `variant="plain"` swaps
+in a small round thumb of one fixed size, for dense control rows where the
+swelling thumb would cover its neighbours.
+
+<Stage>
+  <Slider
+    label="Default"
+    variant="default"
+    min={0}
+    max={100}
+    defaultValue={40}
+    style={{ width: 240 }}
+  />
+  <Slider
+    label="Plain"
+    variant="plain"
+    min={0}
+    max={100}
+    defaultValue={40}
+    style={{ width: 240 }}
+  />
+</Stage>
+
+## Behavior
+
+- Slider has no intrinsic width: it fills its container as a block, and
+  collapses to its label's width in centered or inline-flex layouts — give it
+  a width there via `style` or `className`.
+- `value` and `onChange` carry a single number; the underlying Ark slider's
+  multi-thumb range mode isn't exposed.
+
+## Content
+
+- Label the quantity, not an action: "Match confidence", "Node spacing" —
+  1–3 words, sentence case, one line, no punctuation.
+- Value text prints the bare number; put units in the label when the number is
+  ambiguous: "Sync interval (minutes)".
+
+## Accessibility
+
+Slider implements the
+[WAI-ARIA slider pattern](https://www.w3.org/WAI/ARIA/apg/patterns/slider/);
+the interaction model comes from
+[Ark UI Slider](https://ark-ui.com/docs/components/slider).
+
+### What Slider provides
+
+- The thumb is the focusable control: `role="slider"` with value and bounds
+  announced, arrow keys step by `step`, Shift and PageUp/PageDown jump by 10×
+  that, Home/End hit the bounds.
+- `label` renders a real label element that names the thumb via
+  `aria-labelledby`.
+- Disabled sliders set `aria-disabled` and leave the tab order.
+
+### What you must do
+
+- Always pass `label` — without it the slider has no accessible name, and
+  there is no `aria-label` passthrough.
+- Keep `onChange` cheap — keyboard users fire it on every key press while
+  stepping to their value.
+
+## API reference
+
+<PropsTable
+  of={Slider}
+  defaults={{
+    min: "0",
+    max: "100",
+    step: "1",
+    showValueText: "false",
+    variant: '"default"',
+  }}
+/>

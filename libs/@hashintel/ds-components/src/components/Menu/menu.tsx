@@ -107,3 +107,6 @@ export const Menu = ({
     </ArkMenu.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+Menu.displayName = "Menu";

@@ -296,6 +296,8 @@ const PopoverRoot = ({
   );
 };
 
+PopoverRoot.displayName = "Popover";
+
 export const Popover = Object.assign(PopoverRoot, {
   Container: PopoverContainer,
   Header: PopoverHeader,

@@ -33,7 +33,7 @@ export type BannerRootProps = {
    * `outline` sits on an opaque surface.
    */
   variant?: BannerVariant;
-  /** Set to render a trailing dismiss button. `false` hides it. */
+  /** Set to render a trailing dismiss button. */
   dismissible?: false | { onDismiss: () => void };
   /**
    * The ARIA role for the banner. Not set by default — pass e.g. `"status"`
@@ -100,6 +100,7 @@ export const BannerActions = ({
   children,
 }: {
   className?: string;
+  /** The `Banner.ActionButton`s for resolving the condition in place. */
   children: React.ReactNode;
 }) => {
   const { actions } = styles();
@@ -192,3 +193,11 @@ export const Banner = Object.assign(BannerRoot, {
   Actions: BannerActions,
   ActionButton: BannerActionButton,
 });
+
+// Stable names for the docs Stage code serializer under minification; the
+// dotted part names intentionally serialize transparently.
+BannerRoot.displayName = "Banner";
+BannerTitle.displayName = "Banner.Title";
+BannerDescription.displayName = "Banner.Description";
+BannerActions.displayName = "Banner.Actions";
+BannerActionButton.displayName = "Banner.ActionButton";

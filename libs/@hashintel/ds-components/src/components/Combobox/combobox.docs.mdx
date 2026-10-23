@@ -1,0 +1,732 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Combobox } from "./combobox";
+
+<Meta title="Docs/Combobox" />
+
+export const meta = {
+  title: "Combobox",
+  description:
+    "A single field combining a text input with a filtered list of options.",
+  alternativeNames: ["Autocomplete", "MultiSelect", "TagsInput", "Typeahead"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Combobox/combobox.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-combobox--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/combobox/",
+    ark: "https://ark-ui.com/docs/components/combobox",
+  },
+  related: ["Select", "Menu", "TextInput"],
+};
+
+export const entityTypeItems = [
+  { value: "person", text: "Person" },
+  { value: "company", text: "Company" },
+  { value: "project", text: "Project" },
+  { value: "document", text: "Document" },
+  {
+    id: "system-types",
+    label: "System types",
+    items: [
+      { value: "actor", text: "Actor" },
+      { value: "organization", text: "Organization" },
+    ],
+  },
+];
+
+export const teammateItems = [
+  { value: "amara", text: "Amara Okafor" },
+  { value: "dev", text: "Dev Patel" },
+  { value: "ines", text: "Inés Fernández" },
+  { value: "jonas", text: "Jonas Weber" },
+  { value: "mei", text: "Mei Tanaka" },
+  { value: "noah", text: "Noah Levy" },
+];
+
+export const noop = () => {};
+
+# Combobox
+
+A single field combining a text input with a filtered list of options.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Combobox
+    width="sm"
+    placeholder="Search entity types…"
+    items={entityTypeItems}
+    value="person"
+    onChange={noop}
+  />
+  <Combobox
+    width="sm"
+    multiple
+    placeholder="Add teammates…"
+    items={teammateItems}
+    value={["amara", "dev"]}
+    onChange={noop}
+  />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { Combobox } from "@hashintel/ds-components";
+
+const entityTypeItems = [
+  { value: "person", text: "Person" },
+  { value: "company", text: "Company" },
+];
+
+export const EntityTypePicker = () => {
+  const [entityType, setEntityType] = useState<string | null>(null);
+  return (
+    <Combobox
+      items={entityTypeItems}
+      value={entityType}
+      onChange={setEntityType}
+      placeholder="Search entity types…"
+    />
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Combobox to pick from a long list — roughly 10+ options — where typing to filter beats scrolling.",
+    <>
+      Use <code>multiple</code> to select several values from one list, rendered
+      as removable chips inside the field.
+    </>,
+    <>
+      Use <code>allowNewValue</code> when typed text is as valid as the
+      predefined options: tags, labels, units.
+    </>,
+    <>
+      Use <code>filterAlgorithm="none"</code> with <code>onChangeInput</code>{" "}
+      for options fetched as the user types.
+    </>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use Combobox for short lists users should scan whole — use Select for under ~10 options, or RadioGroup for 5 or fewer.",
+    "Don't use the dropdown to run actions or navigate — use Menu.",
+    "Don't use Combobox for free text without meaningful suggestions — use TextInput.",
+    "Don't use a multiple Combobox for a handful of choices that should stay visible — use CheckboxGroup.",
+  ]}
+/>
+
+## Anatomy
+
+Combobox renders its parts — the input, the selected-value chips, and the
+dropdown list — from props rather than JSX children. Options are objects with
+a `value` (what `onChange` receives) and a `text` (what the user sees and
+filters against), optionally wrapped in labelled groups:
+
+```tsx
+<Combobox
+  items={[
+    // an option
+    { value: "person", text: "Person" },
+    // a labelled group of options
+    {
+      id: "system-types",
+      label: "System types",
+      items: [
+        { value: "actor", text: "Actor" },
+        { value: "organization", text: "Organization" },
+      ],
+    },
+  ]}
+  value={value}
+  onChange={setValue}
+  placeholder="Search entity types…"
+/>
+```
+
+With `multiple`, options also accept `suffix`, `showOnlyButton`, and
+`selectedTone`, and `value`/`onChange` carry arrays.
+
+## Examples
+
+### Basic
+
+Pass `items`, the committed `value` (or `null` for none), and `onChange`.
+Typing filters the dropdown; a selection commits and fills the input, and
+abandoning typed text — Escape, or closing without selecting — reverts it.
+
+<Stage>
+  <Combobox width="sm" items={entityTypeItems} value="person" onChange={noop} />
+</Stage>
+
+### Disabled and invalid
+
+`disabled` blocks all interaction; `invalid` marks the field for error
+styling — pair it with a visible error message in the surrounding form.
+Options can also be disabled individually via each item's `disabled` flag.
+
+<Stage>
+  <Combobox
+    width="sm"
+    disabled
+    placeholder="Disabled"
+    items={entityTypeItems}
+    value={null}
+    onChange={noop}
+  />
+  <Combobox
+    width="sm"
+    invalid
+    placeholder="Invalid"
+    items={entityTypeItems}
+    value={null}
+    onChange={noop}
+  />
+</Stage>
+
+### Sizes
+
+`md` is the default. Use `xxs`–`sm` in dense chrome such as toolbars and
+table rows, and `lg` for spacious forms. Chips inside a multiple combobox
+scale with the field.
+
+<Stage>
+  <Combobox
+    width="sm"
+    size="xxs"
+    placeholder="xxs"
+    items={entityTypeItems}
+    value={null}
+    onChange={noop}
+  />
+  <Combobox
+    width="sm"
+    size="xs"
+    placeholder="xs"
+    items={entityTypeItems}
+    value={null}
+    onChange={noop}
+  />
+  <Combobox
+    width="sm"
+    size="sm"
+    placeholder="sm"
+    items={entityTypeItems}
+    value={null}
+    onChange={noop}
+  />
+  <Combobox
+    width="sm"
+    size="md"
+    placeholder="md"
+    items={entityTypeItems}
+    value={null}
+    onChange={noop}
+  />
+  <Combobox
+    width="sm"
+    size="lg"
+    placeholder="lg"
+    items={entityTypeItems}
+    value={null}
+    onChange={noop}
+  />
+</Stage>
+
+### Subtle variant
+
+`subtle` drops the border so the field reads as inline text until hovered or
+focused — for toolbars and inline editing. The default variant belongs in
+forms.
+
+<Stage>
+  <Combobox
+    width="sm"
+    variant="default"
+    placeholder="Default"
+    items={entityTypeItems}
+    value={null}
+    onChange={noop}
+  />
+  <Combobox
+    width="sm"
+    variant="subtle"
+    placeholder="Subtle"
+    items={entityTypeItems}
+    value={null}
+    onChange={noop}
+  />
+</Stage>
+
+### Grouped options
+
+Wrap related options in `{ id, label, items }` entries. Filtering keeps a
+group's label while any of its options match and removes the group entirely
+when none do.
+
+```tsx
+const typeItems = [
+  { value: "note", text: "Note" },
+  { value: "task", text: "Task" },
+  {
+    id: "system-types",
+    label: "System types",
+    items: [
+      { value: "person", text: "Person" },
+      { value: "organization", text: "Organization" },
+    ],
+  },
+];
+
+<Combobox
+  items={typeItems}
+  value={entityType}
+  onChange={setEntityType}
+  placeholder="Search entity types…"
+/>;
+```
+
+### Custom rendering
+
+`renderItem` draws each dropdown option (and, with `multiple`, each chip);
+`renderSelectedItem` overrides how the committed value shows in the input —
+while unfocused for a single combobox, per chip for a multiple one. Each
+option's `text` still drives filtering, so keep the rendered output's words
+aligned with it.
+
+```tsx
+const statusItems = [
+  { value: "draft", text: "Draft" },
+  { value: "in-review", text: "In review" },
+  { value: "published", text: "Published" },
+];
+
+const statusColors: Record<string, string> = {
+  draft: "#9CA3AF",
+  "in-review": "#F59E0B",
+  published: "#10B981",
+};
+
+const renderStatus = (value: string) => (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+    <span
+      aria-hidden
+      style={{
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        background: statusColors[value],
+      }}
+    />
+    {statusItems.find((item) => item.value === value)?.text ?? value}
+  </span>
+);
+
+<Combobox
+  items={statusItems}
+  value={status}
+  onChange={setStatus}
+  renderItem={renderStatus}
+  renderSelectedItem={renderStatus}
+/>;
+```
+
+With `multiple`, `renderSelectedAll` replaces the whole chip row instead:
+
+```tsx
+<Combobox
+  multiple
+  items={statusItems}
+  value={statuses}
+  onChange={setStatuses}
+  renderSelectedAll={(values) => <>{values.length} statuses selected</>}
+/>
+```
+
+### Filtering
+
+The default filter matches options whose `text` contains the typed text,
+case-insensitively. Switch to `startsWith`, supply your own predicate, or
+pass `"none"` to show every option regardless of input (when filtering
+happens elsewhere — see Async search).
+
+```tsx
+// Match from the start of the option's text
+<Combobox
+  items={teammateItems}
+  value={assignee}
+  onChange={setAssignee}
+  filterAlgorithm="startsWith"
+/>
+
+// Match your own rule — here, the option's value too
+<Combobox
+  items={propertyItems}
+  value={property}
+  onChange={setProperty}
+  filterAlgorithm={(input, text, optionValue) =>
+    text.toLowerCase().includes(input.toLowerCase()) ||
+    optionValue.includes(input.toLowerCase())
+  }
+/>
+```
+
+### No-match and empty states
+
+`noMatchMessage` replaces the default "No matching options" when typed text
+filters everything out; `emptyState` replaces "No options available" when
+there are no options at all. Say what to do next, not just that nothing
+matched.
+
+```tsx
+<Combobox
+  items={teammateItems}
+  value={assignee}
+  onChange={setAssignee}
+  noMatchMessage={(input) => <>No teammates match “{input}”</>}
+  emptyState="No teammates in this workspace yet"
+  placeholder="Assign a teammate…"
+/>
+```
+
+### Allowing new values
+
+Set `allowNewValue` to let typed text that matches no option commit as a
+value of its own, offered as an extra dropdown option (and committed by Enter).
+`onChange` then receives `isNew` to distinguish typed values from picked ones.
+
+```tsx
+const unitItems = [
+  { value: "metres", text: "Metres" },
+  { value: "kilograms", text: "Kilograms" },
+  { value: "seconds", text: "Seconds" },
+];
+
+export const UnitPicker = () => {
+  const [unit, setUnit] = useState("");
+  return (
+    <Combobox
+      items={unitItems}
+      allowNewValue
+      value={unit}
+      onChange={(next, isNew) => {
+        // isNew is true when `next` is typed text matching no option
+        setUnit(next);
+      }}
+      placeholder="Choose or type a unit…"
+    />
+  );
+};
+```
+
+Pass an options object to always show the option or restyle it:
+
+```tsx
+<Combobox
+  items={unitItems}
+  allowNewValue={{
+    alwaysShowOption: true,
+    renderOption: (input) => <>Use custom unit “{input}”</>,
+  }}
+  value={unit}
+  onChange={(next, isNew) => setUnit(next)}
+/>
+```
+
+### Async search
+
+For options fetched as the user types, drive the fetch from `onChangeInput`,
+turn off built-in filtering with `filterAlgorithm="none"` (the server already
+filtered), and show `loading` while the request runs.
+
+<Stage>
+  <Combobox
+    width="sm"
+    loading
+    placeholder="Searching entities…"
+    items={[]}
+    value={null}
+    onChange={noop}
+  />
+</Stage>
+
+```tsx
+import { useState } from "react";
+
+import { Combobox } from "@hashintel/ds-components";
+
+import type { ComboboxItem } from "@hashintel/ds-components";
+
+export const EntitySearch = () => {
+  const [results, setResults] = useState<ComboboxItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [entityId, setEntityId] = useState<string | null>(null);
+
+  const search = async (query: string) => {
+    setLoading(true);
+    const entities = await fetchEntities(query); // your API
+    setResults(
+      entities.map((entity) => ({ value: entity.id, text: entity.name })),
+    );
+    setLoading(false);
+  };
+
+  return (
+    <Combobox
+      items={results}
+      value={entityId}
+      onChange={setEntityId}
+      onChangeInput={(text) => void search(text)}
+      filterAlgorithm="none"
+      loading={loading}
+      placeholder="Search entities…"
+    />
+  );
+};
+```
+
+### Multiple selection
+
+Set `multiple` to select several values: `value` and `onChange` carry arrays,
+selected values render as removable chips inside the field, and the dropdown
+stays open while toggling options. Typed text is a transient filter — it
+clears on selection and discards on close.
+
+<Stage>
+  <Combobox
+    multiple
+    width="md"
+    items={teammateItems}
+    value={["amara", "dev", "ines"]}
+    onChange={noop}
+  />
+</Stage>
+
+### Chip overflow
+
+`overflow` decides how chips behave when they outgrow the field: `scroll`
+(default) scrolls them horizontally, `truncate` collapses the rest into a
+"+X" badge while unfocused, and `summary` shows a plain-text list of names,
+falling back to "X of Y" once they no longer fit.
+
+<Stage>
+  <Combobox
+    multiple
+    width="sm"
+    overflow="scroll"
+    items={teammateItems}
+    value={["amara", "dev", "ines", "jonas", "mei", "noah"]}
+    onChange={noop}
+  />
+  <Combobox
+    multiple
+    width="sm"
+    overflow="truncate"
+    items={teammateItems}
+    value={["amara", "dev", "ines", "jonas", "mei", "noah"]}
+    onChange={noop}
+  />
+  <Combobox
+    multiple
+    width="sm"
+    overflow="summary"
+    items={teammateItems}
+    value={["amara", "dev", "ines", "jonas", "mei", "noah"]}
+    onChange={noop}
+  />
+</Stage>
+
+### Limiting selection
+
+`maxItems` caps the selection; once reached, unselected options disable until
+a value is deselected. Say the limit in the placeholder or label so users
+aren't surprised.
+
+```tsx
+<Combobox
+  multiple
+  maxItems={3}
+  items={teammateItems}
+  value={reviewers}
+  onChange={setReviewers}
+  placeholder="Add up to three reviewers…"
+/>
+```
+
+### Item suffixes and the Only button
+
+With `multiple`, an item's `suffix` aligns extra content to the option's
+right edge — counts, shortcuts — and `showOnlyButton` offers an "Only"
+button on hover that narrows the selection to just that item, as in filter
+panels.
+
+```tsx
+const typeFilterItems = [
+  { value: "person", text: "Person", suffix: "1,204", showOnlyButton: true },
+  { value: "company", text: "Company", suffix: "87", showOnlyButton: true },
+  { value: "project", text: "Project", suffix: "32", showOnlyButton: true },
+];
+
+<Combobox
+  multiple
+  items={typeFilterItems}
+  value={visibleTypes}
+  onChange={setVisibleTypes}
+  placeholder="Filter by entity type…"
+/>;
+```
+
+### Tag input
+
+Combine `multiple` with `allowNewValue` for free-form tagging: typed text
+becomes a chip through its dropdown option or Enter, and committed new values
+list as selected leading options so they can be deselected like any other.
+
+```tsx
+import { useState } from "react";
+
+import { Combobox } from "@hashintel/ds-components";
+
+const tagItems = [
+  { value: "needs-review", text: "needs-review" },
+  { value: "verified", text: "verified" },
+  { value: "imported", text: "imported" },
+];
+
+export const EntityTags = () => {
+  const [tags, setTags] = useState<string[]>(["needs-review"]);
+  return (
+    <Combobox
+      multiple
+      allowNewValue={{ renderOption: (input) => <>Create tag “{input}”</> }}
+      items={tagItems}
+      value={tags}
+      onChange={(next) => setTags(next)}
+      placeholder="Add tags…"
+    />
+  );
+};
+```
+
+## Behavior
+
+- Typed text is a draft. Closing the dropdown without selecting reverts a
+  single combobox to the committed value and clears a multiple one's filter —
+  closing never commits.
+- Enter with nothing highlighted commits typed text that names an enabled
+  option: an exact `value` match or a case-insensitive `text` match. Disabled
+  options never match.
+- Reopening while the input shows the committed value lists every option —
+  filtering only applies to freshly typed text.
+- Escape reverts the draft; in a multiple combobox it also restores the
+  selection from when the dropdown opened.
+- Selected values missing from `items` still render — chips show the raw
+  value — and list as leading dropdown options so they can be deselected.
+  This keeps `allowNewValue` selections and stale data removable.
+- The dropdown is at least as wide as the field and grows to fit option
+  content, up to 18rem — or the field's own width when that is wider.
+- In forms, a single combobox is a real input carrying `name` and `required`;
+  a multiple one mirrors the selection into a hidden multi-`select`, so
+  validity tracks the selection rather than the typed filter.
+
+## Content
+
+- Write option `text` as short, unique noun phrases in sentence case —
+  filtering and typed-text commits match against it, so front-load the words
+  users will type.
+- Order options by expected frequency of use, or alphabetically when no
+  ordering is obvious.
+- Placeholders name the action — "Search entity types…", "Add teammates…" —
+  and never carry information users must remember; they disappear on input.
+- Make `noMatchMessage` name the next step: "No teammates match — invite one
+  from Settings" beats "No results".
+- Keep group labels to one or two category words: "System types", "Recently
+  used".
+
+## Accessibility
+
+Combobox wraps [Ark UI Combobox](https://ark-ui.com/docs/components/combobox),
+which implements the
+[WAI-ARIA combobox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) —
+see those pages for the standard interaction model.
+
+### What Combobox provides
+
+- A real text input with `role="combobox"` wired to its listbox popup:
+  expanded state, option selection, and keyboard highlighting are announced
+  by the underlying Ark machine.
+- Label association through the surrounding `FormField` (or an explicit
+  `htmlForId`).
+- Labelled controls for pointer interactions: each chip's remove button is
+  named "Remove [option text]" and the clear button "Clear input".
+- Native form participation: `required` on a multiple combobox validates the
+  selection, not the typed filter, and failed validation focuses the input.
+
+### What you must do
+
+- Label every combobox — wrap it in `FormField` with a `Label`, or pass
+  `aria-label`. A placeholder is not a label.
+- Keep `renderItem` output textual and consistent with the option's `text`,
+  which is what filtering matches and the input displays.
+- Don't convey meaning through a suffix or custom rendering alone — the
+  option's text must stand on its own.
+
+### Keyboard
+
+Beyond the standard combobox pattern:
+
+| Key                               | Action                                                                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Enter                             | Selects the highlighted option; with nothing highlighted, commits typed text that names an option (or any text with `allowNewValue`). |
+| Escape                            | Reverts the draft text; a multiple combobox also restores the selection from when the dropdown opened.                                |
+| Backspace (multiple, empty input) | Removes the last chip.                                                                                                                |
+| ArrowLeft / ArrowRight (multiple) | Move between chips — even while the dropdown is open.                                                                                 |
+
+A multiple combobox never submits the surrounding form on Enter; in a single
+one, Enter that abandons uncommittable typed text is suppressed too.
+
+## API reference
+
+<PropsTable
+  of={Combobox}
+  defaults={{
+    items: "[]",
+    multiple: "false",
+    filterAlgorithm: '"contains"',
+    allowNewValue: "false",
+    clearInputOnSelect: "true",
+    overflow: '"scroll"',
+    variant: '"default"',
+    size: '"md"',
+    width: '"fullWidth"',
+  }}
+/>

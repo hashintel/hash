@@ -6,6 +6,7 @@ export const FormSection = ({
   className,
   children,
 }: {
+  /** The fields and `Form.Row`s the section groups. */
   children: React.ReactNode;
   className?: string;
 }) => {
@@ -17,3 +18,5 @@ export const FormSection = ({
     </div>
   );
 };
+
+FormSection.displayName = "Form.Section";

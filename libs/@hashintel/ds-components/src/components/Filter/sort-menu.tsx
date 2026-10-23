@@ -348,3 +348,5 @@ export const SortMenu = <SortKey extends string = string>({
     />
   );
 };
+
+SortMenu.displayName = "SortMenu";

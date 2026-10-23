@@ -176,6 +176,9 @@ const FormField = ({
   );
 };
 
+// Stable name for the docs Stage code serializer under minification
+FormField.displayName = "Form.Field";
+
 FormField.Label = Label;
 FormField.Description = Description;
 FormField.Errors = Errors;

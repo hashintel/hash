@@ -179,3 +179,5 @@ export const BaseTooltip = ({
     </ArkTooltip.Root>
   );
 };
+
+BaseTooltip.displayName = "BaseTooltip";

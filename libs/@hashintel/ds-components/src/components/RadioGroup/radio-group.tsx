@@ -126,3 +126,6 @@ export const RadioGroup = <const ValueType extends string>({
     </ArkRadioGroup.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+RadioGroup.displayName = "RadioGroup";

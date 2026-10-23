@@ -1,0 +1,657 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { DoList, DontList } from "../../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../../docs/blocks/reference-links";
+import { NetworkGraph } from "./network-graph";
+
+<Meta title="Docs/NetworkGraph" />
+
+export const meta = {
+  title: "NetworkGraph",
+  description:
+    "Plots large node-and-edge graphs as an explorable, zoomable map.",
+  alternativeNames: ["Graph", "NetworkChart", "NodeLinkDiagram"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Chart/NetworkGraph/network-graph.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-chart-networkgraph--default",
+  },
+  related: ["Popover", "Tooltip", "Icon", "LoadingSpinner"],
+};
+
+# NetworkGraph
+
+Plots large node-and-edge graphs as an explorable, zoomable map.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+The graph renders to a WebGL canvas via deck.gl, so it stays responsive into
+the hundreds of thousands of nodes — there is no live preview on this page;
+open the [stories](https://tokens.hash.design/?path=/story/components-chart-networkgraph--default)
+to interact with one.
+
+```tsx
+import { NetworkGraph } from "@hashintel/ds-components";
+
+export const WorkspaceGraph = () => (
+  // The graph fills its parent, which must have a real width and height.
+  <div style={{ width: "100%", height: 480 }}>
+    <NetworkGraph
+      points={[
+        {
+          id: "acme",
+          x: 0,
+          y: 0,
+          color: "#0775E3",
+          label: "Acme Corp",
+          icon: "cube",
+        },
+        {
+          id: "nadia",
+          x: 14,
+          y: -6,
+          color: "#E36E0C",
+          label: "Nadia Kim",
+          icon: "user",
+        },
+        {
+          id: "sam",
+          x: 16,
+          y: 8,
+          color: "#E36E0C",
+          label: "Sam Ortiz",
+          icon: "user",
+        },
+        {
+          id: "q3-report",
+          x: -12,
+          y: 9,
+          color: "#0E9F6E",
+          label: "Q3 report",
+          icon: "fileLines",
+        },
+      ]}
+      edges={[
+        { id: "e1", fromId: "nadia", toId: "acme", label: "Employed by" },
+        { id: "e2", fromId: "sam", toId: "acme", label: "Employed by" },
+        { id: "e3", fromId: "q3-report", toId: "acme", label: "Authored by" },
+      ]}
+      graphBounds={{ minX: -12, maxX: 16, minY: -6, maxY: 9 }}
+    />
+  </div>
+);
+```
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { NetworkGraph } from "@hashintel/ds-components";
+
+export const EntityGraph = () => (
+  <div style={{ width: "100%", height: 480 }}>
+    <NetworkGraph
+      points={[
+        { id: "hash", x: 0, y: 0, color: "#0775E3", label: "HASH" },
+        { id: "nadia", x: 10, y: 4, color: "#E36E0C", label: "Nadia Kim" },
+      ]}
+      edges={[{ id: "e1", fromId: "nadia", toId: "hash", label: "Member of" }]}
+      graphBounds={{ minX: 0, maxX: 10, minY: 0, maxY: 4 }}
+    />
+  </div>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use NetworkGraph to show the shape of a whole graph — clusters, hubs, outliers — at anywhere from tens to hundreds of thousands of entities.",
+    "Use it when local connectivity is explored on demand: hovering a node reveals its edges and neighbours without cluttering the rest of the view.",
+    "Use it with coordinates computed upstream — it plots the x/y positions you give it and does not run a layout algorithm.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use it for diagrams the user arranges or edits — nodes aren't draggable; use a purpose-built editor canvas instead.",
+    "Don't use it where users must read or copy exact values — canvas text is not selectable; render a table or list alongside instead.",
+    "Don't make it the only route to the data — it is pointer-only; pair it with search, lists, or detail panels driven by the same callbacks.",
+  ]}
+/>
+
+## Examples
+
+The graph renders to a WebGL canvas with no live preview on this page, and
+most features involve callbacks and state, so every example is a standalone
+snippet. Advanced examples take their graph data as props to stay short;
+any `GraphData` shape matching `points`/`edges`/`graphBounds` works.
+
+### Basic
+
+`points`, `edges`, and `graphBounds` are required. `graphBounds` is the
+bounding box over the node coordinates: it frames the initial view and clamps
+panning to the network.
+
+```tsx
+import { NetworkGraph } from "@hashintel/ds-components";
+
+export const TeamGraph = () => (
+  <div style={{ width: "100%", height: 480 }}>
+    <NetworkGraph
+      points={[
+        { id: "hash", x: 0, y: 0, color: "#0775E3", label: "HASH" },
+        { id: "nadia", x: 10, y: -4, color: "#E36E0C", label: "Nadia Kim" },
+        { id: "sam", x: 12, y: 6, color: "#E36E0C", label: "Sam Ortiz" },
+      ]}
+      edges={[
+        { id: "e1", fromId: "nadia", toId: "hash", label: "Member of" },
+        { id: "e2", fromId: "sam", toId: "hash", label: "Member of" },
+      ]}
+      graphBounds={{ minX: 0, maxX: 12, minY: -4, maxY: 6 }}
+    />
+  </div>
+);
+```
+
+### Node colors, labels and icons
+
+Each point carries a hex `color` (typically keyed off its entity type), an
+optional `label`, and an optional `icon` — a design-system icon name or an SVG
+served by your app. Labels and icons only appear in the zoomed-in detail view;
+zoomed out, nodes draw as colored dots.
+
+```tsx
+import { NetworkGraph } from "@hashintel/ds-components";
+
+export const TypedEntityGraph = () => (
+  <div style={{ width: "100%", height: 480 }}>
+    <NetworkGraph
+      points={[
+        {
+          id: "acme",
+          x: 0,
+          y: 0,
+          color: "#0775E3",
+          label: "Acme Corp",
+          icon: "cube",
+        },
+        {
+          id: "nadia",
+          x: 9,
+          y: -3,
+          color: "#E36E0C",
+          label: "Nadia Kim",
+          icon: "user",
+        },
+        {
+          id: "q3-report",
+          x: -8,
+          y: 5,
+          color: "#0E9F6E",
+          label: "Q3 report",
+          icon: "fileLines",
+        },
+        // An SVG your app serves, rasterised as a tintable mask. Must be
+        // same-origin or CORS-enabled.
+        {
+          id: "sf-office",
+          x: 2,
+          y: 10,
+          color: "#7A50E3",
+          label: "SF office",
+          icon: { svgUrl: "/icons/types/building.svg" },
+        },
+      ]}
+      edges={[]}
+      graphBounds={{ minX: -8, maxX: 9, minY: -3, maxY: 10 }}
+    />
+  </div>
+);
+```
+
+### Zoom limits
+
+Derive `maxZoom` from the closest node spacing with
+`maxZoomForNodeMinDistance`, so the camera stops once the two closest nodes
+are resolvable rather than zooming into empty space. A bare number instead
+allows that many doublings in from the framed-out view — a tiled consumer
+passes its deepest tile depth — and omitting the prop falls back to a fixed
+offset.
+
+```tsx
+import { useMemo } from "react";
+
+import {
+  maxZoomForNodeMinDistance,
+  minimumNearestNeighbourWorld,
+  NetworkGraph,
+  type NetworkGraphProps,
+} from "@hashintel/ds-components";
+
+type GraphData = Pick<NetworkGraphProps, "points" | "edges" | "graphBounds">;
+
+export const FittedGraph = ({ data }: { data: GraphData }) => {
+  const maxZoom = useMemo(
+    () =>
+      maxZoomForNodeMinDistance(minimumNearestNeighbourWorld(data.points) ?? 0),
+    [data.points],
+  );
+
+  return (
+    <div style={{ width: "100%", height: 480 }}>
+      <NetworkGraph {...data} maxZoom={maxZoom} />
+    </div>
+  );
+};
+```
+
+### Controlled selection
+
+Selection is controlled: clicks report what was hit, and whatever you pass
+back as `selected` gets the highlight — a node's edges and neighbours, or an
+edge's bold stroke, direction arrow, and label pill. Only one node or edge is
+selectable at a time; a click on empty space reports `point: null`, which
+clears here.
+
+```tsx
+import { useState } from "react";
+
+import {
+  NetworkGraph,
+  type NetworkGraphProps,
+  type NetworkGraphSelection,
+} from "@hashintel/ds-components";
+
+type GraphData = Pick<NetworkGraphProps, "points" | "edges" | "graphBounds">;
+
+export const SelectableGraph = ({ data }: { data: GraphData }) => {
+  const [selected, setSelected] = useState<NetworkGraphSelection | null>(null);
+
+  return (
+    <div style={{ width: "100%", height: 480 }}>
+      <NetworkGraph
+        {...data}
+        selected={selected}
+        onNodeClick={({ point }) =>
+          setSelected(point ? { node: point.id } : null)
+        }
+        onEdgeClick={({ edge }) => {
+          if (edge) {
+            setSelected({ edge: edge.id });
+          }
+        }}
+      />
+    </div>
+  );
+};
+```
+
+### Selecting beyond the loaded graph
+
+To select something the current `points`/`edges` don't contain — a search hit
+in a sampled or tiled view — pass the selection with its own data: a node as a
+neighbourhood (`point`, `edges`, `neighbours`), or an edge with its two
+`endpoints`. Items already in the graph are reused; the rest are drawn as an
+overlay.
+
+```tsx
+import { useState } from "react";
+
+import {
+  Button,
+  NetworkGraph,
+  type NetworkGraphNeighbourhood,
+  type NetworkGraphProps,
+  type NetworkGraphSelection,
+} from "@hashintel/ds-components";
+
+type GraphData = Pick<NetworkGraphProps, "points" | "edges" | "graphBounds">;
+
+// Your API: the entity with its links and linked entities, as graph items.
+declare function fetchNeighbourhood(
+  entityId: string,
+): Promise<NetworkGraphNeighbourhood>;
+
+export const SearchFocusGraph = ({ data }: { data: GraphData }) => {
+  const [selected, setSelected] = useState<NetworkGraphSelection | null>(null);
+
+  const focusSearchHit = async (entityId: string) => {
+    const neighbourhood = await fetchNeighbourhood(entityId);
+    setSelected({ node: neighbourhood });
+  };
+
+  return (
+    <div style={{ position: "relative", width: "100%", height: 480 }}>
+      <NetworkGraph {...data} selected={selected} />
+      <Button onClick={() => void focusSearchHit("acme-corp")}>
+        Focus Acme Corp
+      </Button>
+    </div>
+  );
+};
+```
+
+### External hover
+
+`hoveredByExternal` applies the hover highlight from outside the graph — for
+example while the pointer is over a result row elsewhere in the UI. It takes
+the same shape as `selected`, and a live pointer hover inside the graph always
+takes precedence over it.
+
+```tsx
+import { useState } from "react";
+
+import {
+  NetworkGraph,
+  type NetworkGraphProps,
+  type NetworkGraphSelection,
+} from "@hashintel/ds-components";
+
+type GraphData = Pick<NetworkGraphProps, "points" | "edges" | "graphBounds">;
+
+export const GraphWithResultList = ({
+  data,
+  results,
+}: {
+  data: GraphData;
+  results: { entityId: string; name: string }[];
+}) => {
+  const [hovered, setHovered] = useState<NetworkGraphSelection | null>(null);
+
+  return (
+    <div style={{ display: "flex", width: "100%", height: 480 }}>
+      <ul>
+        {results.map((result) => (
+          <li
+            key={result.entityId}
+            onMouseEnter={() => setHovered({ node: result.entityId })}
+            onMouseLeave={() => setHovered(null)}
+          >
+            {result.name}
+          </li>
+        ))}
+      </ul>
+      <div style={{ flex: 1 }}>
+        <NetworkGraph {...data} hoveredByExternal={hovered} />
+      </div>
+    </div>
+  );
+};
+```
+
+### Reacting to hover
+
+`onNodeHover` fires when the hovered node changes, with the node (or `null`)
+and its pixel position; `onEdgeHover` does the same for edges, which are
+hoverable in the detail view and — while a node is selected — in the compact
+view. Hovered edges already draw their `label` in a pill, so reserve custom
+hover UI for node detail.
+
+```tsx
+import { useState } from "react";
+
+import {
+  NetworkGraph,
+  type NetworkGraphPoint,
+  type NetworkGraphProps,
+} from "@hashintel/ds-components";
+
+type GraphData = Pick<NetworkGraphProps, "points" | "edges" | "graphBounds">;
+
+export const GraphWithHoverCard = ({ data }: { data: GraphData }) => {
+  const [hovered, setHovered] = useState<{
+    point: NetworkGraphPoint;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  return (
+    <div style={{ position: "relative", width: "100%", height: 480 }}>
+      <NetworkGraph
+        {...data}
+        onNodeHover={({ point, x, y, nodeRadius }) =>
+          setHovered(point ? { point, x, y: y - nodeRadius } : null)
+        }
+      />
+      {hovered ? (
+        <div
+          style={{
+            position: "absolute",
+            left: hovered.x,
+            top: hovered.y,
+            pointerEvents: "none",
+          }}
+        >
+          {hovered.point.label}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+```
+
+### Anchoring an overlay to the selection
+
+`onSelectedPositionChange` reports the selection's on-screen anchor on every
+zoom and pan — a node with its drawn radius (to offset clear of it), an edge
+at its visible centre, or `null` off screen. Feed it to a `Popover` via
+`positionFromPoint` so a card tracks the selection.
+
+```tsx
+import { useRef, useState } from "react";
+
+import {
+  NetworkGraph,
+  Popover,
+  type NetworkGraphPoint,
+  type NetworkGraphProps,
+  type NetworkGraphSelection,
+} from "@hashintel/ds-components";
+
+type GraphData = Pick<NetworkGraphProps, "points" | "edges" | "graphBounds">;
+
+export const GraphWithEntityCard = ({ data }: { data: GraphData }) => {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [selected, setSelected] = useState<NetworkGraphSelection | null>(null);
+  const [point, setPoint] = useState<NetworkGraphPoint | null>(null);
+  const [anchor, setAnchor] =
+    useState<
+      Parameters<NonNullable<NetworkGraphProps["onSelectedPositionChange"]>>[0]
+    >(null);
+
+  return (
+    <div
+      ref={frameRef}
+      style={{ position: "relative", width: "100%", height: 480 }}
+    >
+      <NetworkGraph
+        {...data}
+        selected={selected}
+        onNodeClick={(interaction) => {
+          setSelected(
+            interaction.point ? { node: interaction.point.id } : null,
+          );
+          setPoint(interaction.point);
+        }}
+        onSelectedPositionChange={setAnchor}
+      />
+      {point && anchor?.type === "node" ? (
+        <Popover
+          triggerRef={frameRef}
+          position="bottom-start"
+          positionFromPoint={anchor}
+          gapX={anchor.nodeRadius + 4}
+          gapY={anchor.nodeRadius + 4}
+          onClose={() => setSelected(null)}
+        >
+          <div>{point.label}</div>
+        </Popover>
+      ) : null}
+    </div>
+  );
+};
+```
+
+### Zoom controls
+
+The `ref` handle drives the camera without controlling the view state:
+`zoomIn`/`zoomOut` step one level, `zoomBy` moves by a delta, and
+`revealPoint` zooms out and pans until a world-space point is visible. `onZoom`
+reports the framing-normalised zoom (`0` is fully framed out, `+1` per
+doubling); `onPan` reports the viewport centre in world coordinates.
+
+```tsx
+import { useRef, useState } from "react";
+
+import {
+  Button,
+  NetworkGraph,
+  type NetworkGraphHandle,
+  type NetworkGraphProps,
+} from "@hashintel/ds-components";
+
+type GraphData = Pick<NetworkGraphProps, "points" | "edges" | "graphBounds">;
+
+export const GraphWithZoomControls = ({ data }: { data: GraphData }) => {
+  const graphRef = useRef<NetworkGraphHandle>(null);
+  const [zoom, setZoom] = useState(0);
+
+  return (
+    <div style={{ position: "relative", width: "100%", height: 480 }}>
+      <NetworkGraph ref={graphRef} {...data} onZoom={setZoom} />
+      <div style={{ position: "absolute", top: 8, left: 8, display: "flex" }}>
+        <Button
+          variant="subtle"
+          iconName="zoomIn"
+          tooltip="Zoom in"
+          onClick={() => graphRef.current?.zoomIn()}
+        />
+        <Button
+          variant="subtle"
+          iconName="zoomOut"
+          tooltip="Zoom out"
+          onClick={() => graphRef.current?.zoomOut()}
+        />
+        <span>{zoom.toFixed(1)}</span>
+      </div>
+    </div>
+  );
+};
+```
+
+### Streaming data
+
+Changing `points` animates the difference: added nodes grow in, removed nodes
+shrink out, and the first non-empty set appears at full size. Compute
+`graphBounds` (and `maxZoom`) over the eventual node set, not the loaded
+slice, so the view doesn't reframe as batches arrive.
+
+```tsx
+import { useEffect, useState } from "react";
+
+import { NetworkGraph, type NetworkGraphProps } from "@hashintel/ds-components";
+
+type GraphData = Pick<NetworkGraphProps, "points" | "edges" | "graphBounds">;
+
+export const StreamingGraph = ({ target }: { target: GraphData }) => {
+  const [count, setCount] = useState(100);
+
+  useEffect(() => {
+    const timer = setInterval(
+      () => setCount((current) => Math.min(target.points.length, current + 50)),
+      500,
+    );
+    return () => clearInterval(timer);
+  }, [target]);
+
+  return (
+    <div style={{ width: "100%", height: 480 }}>
+      <NetworkGraph
+        points={target.points.slice(0, count)}
+        edges={target.edges}
+        // Framed over the eventual extent, so the view holds still while
+        // nodes stream in. Edges to not-yet-loaded nodes are simply skipped.
+        graphBounds={target.graphBounds}
+      />
+    </div>
+  );
+};
+```
+
+## Behavior
+
+- **Sizing** — the graph fills its parent and refits on resize; a parent
+  without a real width and height renders nothing.
+- **Edge visibility** — zoomed out, edges are hidden except the hovered or
+  selected item's own; this keeps dense graphs legible. The zoomed-in detail
+  view draws every edge touching visible nodes as faint bundled curves, with
+  the hovered/selected edge emphasised by width, a direction arrow, and its
+  label pill.
+- **Compact and detailed rendering** — within the top half zoom level below
+  `maxZoom`, dots switch to 40px nodes showing each point's `icon` and
+  `label`. The switch latches: it survives further zoom-in and threshold
+  movement, and only a deliberate zoom-out returns to dots.
+- **Density-adaptive dots** — zoomed-out node size and opacity track how
+  tightly the visible nodes pack, easing over 200ms, so sparse views get
+  legible dots and dense views read as shape.
+- **Click vs pan** — pointer travel beyond 4px before release counts as a pan,
+  not a click; clicks pick the node within a 4px radius.
+- **Hover precedence** — a live pointer hover beats `hoveredByExternal`, which
+  beats `selected`; a selection backgrounded by a hover keeps a dimmed ring
+  until the hover ends.
+- **Canvas rendering** — everything draws to a WebGL canvas via deck.gl.
+  Nodes are not DOM elements, so they can't be targeted with CSS or DOM test
+  selectors; use the interaction callbacks instead.
+
+## Content
+
+- Name the entity in node labels and keep them under ~16 characters — the
+  detail view's pill truncates longer labels with an ellipsis: "Acme Corp",
+  "Q3 report".
+- Pass edge labels already resolved to display text, 1–3 words, sentence case —
+  the link type's name: "Employed by", "Authored by". Omit the label to draw
+  no pill.
+
+## Accessibility
+
+No WAI-ARIA pattern covers network visualisations, and the graph renders to a
+canvas: it has no per-node semantics, no text alternative, and no keyboard
+operability — hover, click, scroll-zoom, and drag-pan are pointer-only.
+
+### What NetworkGraph provides
+
+- Cursor feedback: `grab` over the canvas, `grabbing` while panning, `pointer`
+  over a node or edge.
+- Interaction callbacks (`onNodeClick`, `onNodeHover`, `onEdgeClick`,
+  `onEdgeHover`, `onSelectedPositionChange`) that let you mirror graph state
+  into accessible UI.
+
+### What you must do
+
+- Always provide a parallel route to the same data — search, lists, or detail
+  panels — the graph is a view of the data, never the only way to reach it.
+- Mirror the selection into real DOM (an entity panel, a `Popover` card) so
+  screen-reader and keyboard users can follow what pointer users click.
+- Don't encode meaning in node color alone — icons and labels only show in the
+  zoomed-in detail view, so pair the graph with a visible legend or key.
+
+## API reference
+
+<PropsTable of={NetworkGraph} />

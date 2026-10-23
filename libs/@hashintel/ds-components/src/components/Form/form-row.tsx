@@ -29,3 +29,5 @@ export const FormRow = ({
     </div>
   );
 };
+
+FormRow.displayName = "Form.Row";

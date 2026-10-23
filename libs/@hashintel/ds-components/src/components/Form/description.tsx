@@ -30,3 +30,5 @@ export const Description = ({
     </span>
   );
 };
+
+Description.displayName = "Form.Field.Description";

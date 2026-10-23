@@ -57,6 +57,8 @@ export const PopoverHeader = ({
   );
 };
 
+PopoverHeader.displayName = "PopoverHeader";
+
 /** A single Header / Body / Footer panel accepted by `Popover.Container`. */
 type PopoverPanel =
   | React.ReactElement<PopoverHeaderProps, typeof PopoverHeader>
@@ -79,3 +81,5 @@ export const PopoverContainer = ({
 }: PopoverContainerProps) => (
   <div className={cx(containerStyles, className)}>{children}</div>
 );
+
+PopoverContainer.displayName = "PopoverContainer";

@@ -1,0 +1,230 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { HelpTooltip } from "../HelpTooltip/help-tooltip";
+import { Icon } from "../Icon/icon";
+import { TextMark } from "./text-mark";
+
+<Meta title="Docs/TextMark" />
+
+export const meta = {
+  title: "TextMark",
+  description:
+    "Keeps a trailing mark — an asterisk, footnote, or icon — attached to the word before it.",
+  alternativeNames: ["NoWrap", "Nobr"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/TextMark/text-mark.tsx",
+  },
+  referenceLinks: {
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/span",
+  },
+  related: ["HelpTooltip", "Tooltip", "Icon", "Label"],
+};
+
+# TextMark
+
+Keeps a trailing mark — an asterisk, footnote, or icon — attached to the word
+before it.
+
+<ReferenceLinks
+  links={[{ label: "Source", href: meta.links.source, iconName: "code" }]}
+/>
+
+<Stage>
+  <span>Projected revenue<TextMark>*</TextMark></span>
+
+<span>
+  View in GitHub
+  <TextMark>
+    <Icon name="externalLink" size="sm" />
+  </TextMark>
+</span>
+
+  <span>Draft entities<TextMark><HelpTooltip content="Created by a flow and awaiting review" /></TextMark></span>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { TextMark } from "@hashintel/ds-components";
+
+export const ProjectedRevenueLabel = () => (
+  <span>
+    Projected revenue<TextMark>*</TextMark>
+  </span>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use TextMark around a mark that ends a label or sentence — a required asterisk, footnote symbol, or info icon — so it never wraps onto a line of its own.",
+    "Use it when text ends in an icon or tooltip trigger: browsers put a wrap point before inline-block elements, so a bare trailing icon can start a line by itself.",
+    "Use it in text whose width you don't control — card titles, table cells, prose — where the wrap point is the browser's choice.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    <>
+      Don't mark required fields by hand in forms — pass <code>required</code>{" "}
+      to <code>Form.Field</code>, which renders the standard mark with the
+      label.
+    </>,
+    <>
+      Don't use it to keep items together in flex or grid rows — those don't
+      text-wrap; control spacing with the container's <code>gap</code>.
+    </>,
+    <>
+      Don't wrap a multi-word phrase just to stop it breaking — TextMark also
+      glues it to the preceding word; give the phrase{" "}
+      <code>white-space: nowrap</code> instead.
+    </>,
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+Put the mark inside TextMark, written flush against the final word — no space
+before it. The word and mark then wrap as one unit.
+
+<Stage>
+  <span>
+    1,204 entities<TextMark>†</TextMark>
+  </span>
+</Stage>
+
+### With an icon
+
+A trailing icon is the classic orphan: icons are inline-block, and browsers
+will wrap an inline-block onto a line of its own. TextMark removes that wrap
+point.
+
+<Stage>
+  <span>
+    Open run logs
+    <TextMark>
+      <Icon name="arrowUpRight" size="sm" />
+    </TextMark>
+  </span>
+</Stage>
+
+### With a help tooltip
+
+Interactive marks work too — TextMark is a plain span, so the trigger inside
+stays hoverable and focusable.
+
+<Stage>
+  <span>
+    Sync interval
+    <TextMark>
+      <HelpTooltip content="How often the integration pulls new records" />
+    </TextMark>
+  </span>
+</Stage>
+
+### Multi-word marks
+
+A space typed before TextMark is a wrap point it can't remove. For a
+parenthetical or count, move the joining space inside, where the no-wrap rule
+neutralizes it.
+
+```tsx
+import { TextMark } from "@hashintel/ds-components";
+
+export const DraftsNavLabel = () => (
+  <span>
+    Draft entities<TextMark> (12)</TextMark>
+  </span>
+);
+```
+
+### Styled marks
+
+TextMark is unstyled apart from the no-wrap rule; style the mark through
+`className`. Margins don't create wrap points, so a small gap before an icon is
+safe.
+
+```tsx
+import { css } from "@hashintel/ds-helpers/css";
+
+import { Icon, TextMark } from "@hashintel/ds-components";
+
+export const LinkedEntityName = () => (
+  <span>
+    Acme Corp
+    <TextMark className={css({ marginLeft: "[0.3em]", color: "fg.subtle" })}>
+      <Icon name="arrowUpRight" size="sm" />
+    </TextMark>
+  </span>
+);
+```
+
+### Narrow containers
+
+When the text wraps, the final word and its mark move to the next line
+together — TextMark only removes the wrap point between them. The demo
+container is 260px wide.
+
+<Stage>
+  <div style={{ maxWidth: "260px" }}>
+    Entities created by a flow stay in draft until a teammate approves them
+    <TextMark>
+      <HelpTooltip content="Review pending drafts from the activity feed" />
+    </TextMark>
+  </div>
+</Stage>
+
+## Behavior
+
+- Write TextMark flush against the word before it — a space or `{" "}` in
+  between is a wrap point outside its reach. A newline in JSX source collapses
+  to nothing and is safe.
+- It glues to preceding text and inline elements only. After an image or
+  inline-block element the wrap point sits before TextMark; move that element
+  inside the mark instead.
+- Its content never wraps internally, so keep marks to a glyph, an icon, or a
+  short parenthetical — longer phrases overflow narrow containers.
+- The glue is a leading zero-width space, which is part of `textContent` and
+  copied text — tests that assert on the rendered text must include it
+  (`\u200B`).
+
+## Accessibility
+
+TextMark is presentational and adds no interaction of its own.
+
+### What TextMark provides
+
+- A plain `<span>` with no role or accessible name: children keep their own
+  semantics, and an interactive mark such as a tooltip trigger stays focusable.
+- The leading zero-width space is a formatting character; screen readers don't
+  announce it.
+
+### What you must do
+
+- Don't let a symbol carry meaning alone — screen readers may skip `*`
+  depending on punctuation verbosity; pair a required mark with
+  `required`/`aria-required` on the control, or with visible text.
+- Give an icon mark that carries information an accessible name via Icon's
+  `alt`; leave purely decorative marks hidden (Icon's default).
+
+## API reference
+
+<PropsTable of={TextMark} />
