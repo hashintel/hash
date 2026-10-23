@@ -5,7 +5,7 @@ mod tests;
 #[cfg(test)]
 mod postgres;
 
-use core::num::NonZeroUsize;
+use core::num::NonZero;
 
 pub use self::secrets::{GraphVaultConfig, GraphVaultSecretStore, SecretStore, SecretValue};
 use crate::ByteSize;
@@ -44,5 +44,5 @@ pub enum SourceError {
 pub struct CaptureLimits {
     pub memory_limit: Option<ByteSize>,
     pub temp_directory_limit: Option<ByteSize>,
-    pub threads: Option<NonZeroUsize>,
+    pub threads: Option<NonZero<usize>>,
 }

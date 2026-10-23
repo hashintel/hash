@@ -1,7 +1,7 @@
 use core::pin::Pin;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use duckdb::Config;
+use duckdb::{Config, Connection};
 use error_stack::Report;
 use hash_integrations_definition::PostgresSource;
 use hash_secret::Secret;
@@ -9,7 +9,7 @@ use serde::Deserialize;
 use url::Url;
 
 use super::{CaptureLimits, SourceError};
-use crate::{SourceCapture, sql::Identifier};
+use crate::{ByteSize, SourceCapture, sql::Identifier};
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -73,7 +73,7 @@ fn connection_uri(source: &PostgresSource, credentials: &Credentials) -> Url {
 fn capture_blocking(
     source: &PostgresSource,
     credentials: &Credentials,
-    target: &std::path::Path,
+    target: &Path,
     limits: CaptureLimits,
 ) -> Result<SourceCapture, Report<SourceError>> {
     let partial = SourceCapture::stage(target).map_err(|_error| Report::new(SourceError::Write))?;
@@ -81,13 +81,10 @@ fn capture_blocking(
         .with("allow_community_extensions", "false")
         .map_err(|_error| Report::new(SourceError::Configuration))?;
     for (name, value) in [
-        (
-            "memory_limit",
-            limits.memory_limit.map(crate::ByteSize::setting),
-        ),
+        ("memory_limit", limits.memory_limit.map(ByteSize::setting)),
         (
             "max_temp_directory_size",
-            limits.temp_directory_limit.map(crate::ByteSize::setting),
+            limits.temp_directory_limit.map(ByteSize::setting),
         ),
         (
             "threads",
@@ -102,14 +99,24 @@ fn capture_blocking(
                 .map_err(|_error| Report::new(SourceError::Configuration))?;
         }
     }
-    let connection = duckdb::Connection::open_in_memory_with_flags(config)
+    let connection = Connection::open_in_memory_with_flags(config)
         .map_err(|_error| Report::new(SourceError::Postgres))?;
     connection
-        .execute_batch("INSTALL postgres; LOAD postgres")
+        .execute_batch(
+            "
+                INSTALL postgres;
+                LOAD postgres;
+                ",
+        )
         .map_err(|_error| Report::new(SourceError::Postgres))?;
     connection
         .execute_batch(&format!(
-            "ATTACH {} AS _capture (TYPE postgres, READ_ONLY)",
+            "
+                ATTACH {} AS _capture (
+                    TYPE postgres,
+                    READ_ONLY
+                )
+                ",
             literal(connection_uri(source, credentials).as_str())
         ))
         .map_err(|_error| Report::new(SourceError::Postgres))?;
@@ -119,7 +126,15 @@ fn capture_blocking(
         .ok_or_else(|| Report::new(SourceError::Write))?;
     connection
         .execute_batch(&format!(
-            "COPY (SELECT * FROM _capture.{}.{}) TO {} (FORMAT PARQUET, COMPRESSION SNAPPY)",
+            "
+                COPY (
+                    SELECT *
+                    FROM _capture.{}.{}
+                ) TO {} (
+                    FORMAT PARQUET,
+                    COMPRESSION SNAPPY
+                )
+                ",
             Identifier::new(&source.schema),
             Identifier::new(&source.table),
             literal(path)
@@ -134,10 +149,17 @@ fn capture_blocking(
 
 #[cfg(test)]
 mod tests {
+    use alloc::collections::BTreeMap;
+
+    use duckdb::types::Value;
     use hash_integrations_definition::PostgresSource;
     use hash_secret::Secret;
+    use rstest::rstest;
     use serde_json::json;
     use tempfile::TempDir;
+    use testcontainers::{ImageExt as _, runners::AsyncRunner as _};
+    use testcontainers_modules::postgres::Postgres;
+    use uuid::Uuid;
 
     use super::{Credentials, capture, connection_uri};
     use crate::{CaptureLimits, Workspace, WorkspaceConfig};
@@ -146,9 +168,9 @@ mod tests {
         serde_json::from_value(json!({
             "connection": "postgresql://localhost/postgres?sslmode=disable",
             "schema": "public",
-            "table": "be932_capture_fixture",
+            "table": "capture_fixture",
             "credentials": {
-                "secretEntityUuid": uuid::Uuid::new_v4(),
+                "secretEntityUuid": Uuid::new_v4(),
             },
         }))
         .expect("should describe the fixture source")
@@ -178,64 +200,119 @@ mod tests {
         );
     }
 
-    #[test]
-    fn connection_uri_hosts() {
-        for connection in [
-            "postgresql://[::1]/postgres",
-            "postgresql:///postgres?host=%2Fvar%2Frun%2Fpostgresql",
-            "postgresql:///postgres?host=primary.example%2Creplica.example",
-        ] {
-            let mut source = source();
-            source.connection = connection.parse().expect("should parse the connection URI");
-            let value = connection_uri(
-                &source,
-                &Credentials {
-                    username: Secret::from_string("reader".to_owned()),
-                    password: Secret::from_string("password".to_owned()),
-                },
-            );
-            assert!(value.as_str().starts_with(connection));
-        }
+    #[rstest]
+    #[case::ipv6("postgresql://[::1]/postgres")]
+    #[case::unix_socket("postgresql:///postgres?host=%2Fvar%2Frun%2Fpostgresql")]
+    #[case::multiple_hosts("postgresql:///postgres?host=primary.example%2Creplica.example")]
+    fn connection_uri_hosts(#[case] connection: &str) {
+        let mut source = source();
+        source.connection = connection.parse().expect("should parse the connection URI");
+        let value = connection_uri(
+            &source,
+            &Credentials {
+                username: Secret::from_string("reader".to_owned()),
+                password: Secret::from_string("password".to_owned()),
+            },
+        );
+        assert!(
+            value.as_str().starts_with(connection),
+            "the configured host should be preserved"
+        );
     }
 
-    #[test]
-    fn connection_uri_defaults() {
+    #[rstest]
+    #[case::defaults(None, "verify-full", "30")]
+    #[case::configured(Some("sslmode=require&connect_timeout=5"), "require", "5")]
+    fn connection_uri_defaults(
+        #[case] query: Option<&str>,
+        #[case] ssl_mode: &str,
+        #[case] timeout: &str,
+    ) {
         let credentials = Credentials {
             username: Secret::from_string("reader".to_owned()),
             password: Secret::from_string("password".to_owned()),
         };
         let mut source = source();
-        source.connection.set_query(None);
+        source.connection.set_query(query);
+        let uri = connection_uri(&source, &credentials);
+        let parameters: BTreeMap<_, _> = uri.query_pairs().collect();
         assert_eq!(
-            connection_uri(&source, &credentials).as_str(),
-            "postgresql://localhost/postgres?user=reader&password=password&sslmode=verify-full&\
-             connect_timeout=30",
-        );
-        source
-            .connection
-            .set_query(Some("sslmode=require&connect_timeout=5"));
-        assert_eq!(
-            connection_uri(&source, &credentials).as_str(),
-            "postgresql://localhost/postgres?sslmode=require&connect_timeout=5&user=reader&\
-             password=password",
+            parameters,
+            BTreeMap::from([
+                ("user".into(), "reader".into()),
+                ("password".into(), "password".into()),
+                ("sslmode".into(), ssl_mode.into()),
+                ("connect_timeout".into(), timeout.into()),
+            ]),
+            "credentials and connection options should be supplied independently of parameter \
+             order"
         );
     }
 
     #[tokio::test]
-    #[ignore = "requires local PostgreSQL with the be932_capture_fixture table and the DuckDB \
-                postgres extension"]
     async fn capture_postgres_table() {
+        let postgres = Postgres::default()
+            .with_init_sql(
+                b"
+                    CREATE TABLE capture_fixture (
+                        id INTEGER PRIMARY KEY,
+                        label TEXT,
+                        amount NUMERIC(12, 2)
+                    );
+                    INSERT INTO capture_fixture (id, label, amount)
+                    VALUES
+                        (1, 'first', 12.30),
+                        (2, NULL, NULL);
+                    "
+                .to_vec(),
+            )
+            .with_tag("18-alpine")
+            .start()
+            .await
+            .expect("the PostgreSQL fixture should start");
+        let host = postgres
+            .get_host()
+            .await
+            .expect("the PostgreSQL host should resolve");
+        let port = postgres
+            .get_host_port_ipv4(5432)
+            .await
+            .expect("the PostgreSQL port should be mapped");
+        let mut source = source();
+        source
+            .connection
+            .set_host(Some(&host.to_string()))
+            .expect("the PostgreSQL host should be valid");
+        source
+            .connection
+            .set_port(Some(port))
+            .expect("the PostgreSQL port should be valid");
+        let expected = [
+            vec![
+                Value::Int(1),
+                Value::Text("first".to_owned()),
+                Value::Text("12.30".to_owned()),
+            ],
+            vec![Value::Int(2), Value::Null, Value::Null],
+        ];
         let directory = TempDir::new().expect("should create output storage");
-        let secret = Secret::from_vec(br#"{"username":"postgres","password":"postgres"}"#.to_vec());
+        let secret = Secret::from_vec(
+            serde_json::to_vec(&json!({"username": "postgres", "password": "postgres"}))
+                .expect("should serialize fixture credentials"),
+        );
         let capture = capture(
-            &source(),
+            &source,
             &secret,
             directory.path().join("source.parquet"),
             CaptureLimits::default(),
         )
         .await
         .expect("should capture the PostgreSQL fixture");
-        assert_eq!(capture.rows(), 2, "should capture both fixture rows");
+        assert_eq!(
+            capture.rows(),
+            u64::try_from(expected.len()).expect("the fixture row count should fit in u64"),
+            "should capture every fixture row"
+        );
         let workspace = Workspace::open(
             directory.path().join("run.duckdb"),
             WorkspaceConfig::default(),
@@ -247,32 +324,21 @@ mod tests {
             .await
             .expect("should load PostgreSQL capture");
         let rows = workspace
-            .query("SELECT id, label, amount::VARCHAR FROM raw ORDER BY id".into())
+            .query(
+                "
+                    SELECT id, label, amount::VARCHAR
+                    FROM raw
+                    ORDER BY id
+                    "
+                .into(),
+            )
             .await
             .expect("should read PostgreSQL values");
         assert_eq!(
-            rows.iter().next(),
-            Some(
-                [
-                    duckdb::types::Value::Int(1),
-                    duckdb::types::Value::Text("first".to_owned()),
-                    duckdb::types::Value::Text("12.30".to_owned())
-                ]
-                .as_slice()
-            ),
-            "should preserve decimal values through Parquet and workspace loading"
-        );
-        assert_eq!(
-            rows.iter().nth(1),
-            Some(
-                [
-                    duckdb::types::Value::Int(2),
-                    duckdb::types::Value::Null,
-                    duckdb::types::Value::Null
-                ]
-                .as_slice()
-            ),
-            "should preserve SQL nulls"
+            rows.iter().collect::<Vec<_>>(),
+            expected.iter().map(Vec::as_slice).collect::<Vec<_>>(),
+            "all fixture values, including decimals and SQL nulls, should survive capture and \
+             loading"
         );
         workspace.close().await.expect("should close the workspace");
     }
@@ -281,59 +347,63 @@ mod tests {
 #[cfg(test)]
 mod credential_tests {
     use hash_secret::Secret;
-    use serde_json::json;
+    use rstest::rstest;
+    use serde_json::{Value, json};
     use tempfile::TempDir;
+    use uuid::Uuid;
 
     use super::capture;
     use crate::{CaptureLimits, SourceError};
 
+    #[rstest]
+    #[case::invalid_password_type(json!({
+        "username": "sensitive-user",
+        "password": 987_654_321,
+    }))]
+    #[case::unknown_field(json!({
+        "username": "sensitive-user",
+        "password": "sensitive-password",
+        "extra-sensitive-field": "extra-sensitive-value",
+    }))]
     #[tokio::test]
-    async fn credentials_redact_malformed_values() {
+    async fn credentials_redact_malformed_values(#[case] value: Value) {
         let source = serde_json::from_value(json!({
             "connection": "postgresql://unavailable.invalid/db",
             "schema": "public",
             "table": "items",
             "credentials": {
-                "secretEntityUuid": uuid::Uuid::new_v4(),
+                "secretEntityUuid": Uuid::new_v4(),
             },
         }))
         .expect("should describe a source");
         let directory = TempDir::new().expect("should create output storage");
-        for value in [
-            json!({"username": "sensitive-user", "password": 987_654_321}),
-            json!({
-                "username": "sensitive-user",
-                "password": "sensitive-password",
-                "extra-sensitive-field": "extra-sensitive-value",
-            }),
+        let secret = Secret::from_vec(
+            serde_json::to_vec(&value).expect("should serialize the malformed fixture"),
+        );
+        let error = capture(
+            &source,
+            &secret,
+            directory.path().join("invalid.parquet"),
+            CaptureLimits::default(),
+        )
+        .await
+        .expect_err("should reject malformed credentials before connecting");
+        assert!(
+            matches!(error.current_context(), SourceError::Secret),
+            "should report invalid credentials"
+        );
+        let diagnostic = format!("{error:?}");
+        for sentinel in [
+            "sensitive-user",
+            "sensitive-password",
+            "extra-sensitive-field",
+            "extra-sensitive-value",
+            "987654321",
         ] {
-            let secret = Secret::from_vec(
-                serde_json::to_vec(&value).expect("should serialize the malformed fixture"),
-            );
-            let error = capture(
-                &source,
-                &secret,
-                directory.path().join("invalid.parquet"),
-                CaptureLimits::default(),
-            )
-            .await
-            .expect_err("should reject malformed credentials before connecting");
             assert!(
-                matches!(error.current_context(), SourceError::Secret),
-                "should report invalid credentials"
+                !diagnostic.contains(sentinel),
+                "should omit credential values and field names from diagnostics"
             );
-            let diagnostic = format!("{error:?}");
-            for sentinel in [
-                "sensitive-user",
-                "sensitive-password",
-                "extra-sensitive-field",
-                "987654321",
-            ] {
-                assert!(
-                    !diagnostic.contains(sentinel),
-                    "should omit credential values and field names from diagnostics"
-                );
-            }
         }
     }
 }
