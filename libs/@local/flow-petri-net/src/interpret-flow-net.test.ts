@@ -304,6 +304,100 @@ const expectActualModeReplays = (run: FlowNetRun) => {
 const leftoverKinds = (run: FlowNetRun) =>
   new Set(run.marking().map(({ token }) => token.kind));
 
+describe("flow net paths", () => {
+  const placeId = toPetrinautId("p.place");
+  const instanceId = toPetrinautId(generateInstanceKey("a"));
+  const otherInstanceId = toPetrinautId(generateInstanceKey("b"));
+
+  it("keys a root place apart from the place with its id in an instance", () => {
+    expect(flowNetPathKey([placeId])).not.toBe(
+      flowNetPathKey([instanceId, placeId]),
+    );
+    expect(isSameFlowNetPath([placeId], [instanceId, placeId])).toBe(false);
+  });
+
+  it("keys the same place in two instances apart", () => {
+    expect(flowNetPathKey([instanceId, placeId])).not.toBe(
+      flowNetPathKey([otherInstanceId, placeId]),
+    );
+    expect(
+      isSameFlowNetPath([instanceId, placeId], [otherInstanceId, placeId]),
+    ).toBe(false);
+  });
+
+  it("keys equal paths alike", () => {
+    expect(flowNetPathKey([instanceId, placeId])).toBe(
+      flowNetPathKey([instanceId, placeId]),
+    );
+    expect(
+      isSameFlowNetPath([instanceId, placeId], [instanceId, placeId]),
+    ).toBe(true);
+    expect(isSameFlowNetPath([instanceId], [instanceId, placeId])).toBe(false);
+  });
+
+  it("writes a path with dots", () => {
+    expect(formatFlowNetPath([instanceId, placeId])).toBe(
+      `${instanceId}.${placeId}`,
+    );
+  });
+
+  it("keeps apart two steps' tokens in the places their action's subnet shares", async () => {
+    const net = await compileFlowDefinition(
+      defineFlow(
+        {
+          flowDefinitionId: "get-two-files",
+          name: "Get two files",
+          description: "Get two files from one URL",
+          inputs: { url: flowInput("Text") },
+        },
+        ({ inputs, step }) => {
+          const first = step("first", actions.getFileFromUrl, {
+            description: "Retrieve the file from the URL",
+            inputs: { url: inputs.url },
+          });
+          const second = step("second", actions.getFileFromUrl, {
+            description: "Retrieve the file from the URL again",
+            inputs: { url: inputs.url },
+          });
+
+          return {
+            outputs: {
+              first: first.outputs.fileEntity,
+              second: second.outputs.fileEntity,
+            },
+          };
+        },
+      ).flowDefinition,
+    );
+    const run = startFlowNetRun(net, { flowInputNames: ["url"] });
+
+    const attempts = run
+      .marking()
+      .filter(({ token }) => token.kind === "attempt")
+      .map(({ path }) => path);
+
+    expect(attempts).toHaveLength(2);
+
+    const [firstAttempt, secondAttempt] = attempts as [
+      FlowNetPath,
+      FlowNetPath,
+    ];
+
+    expect(firstAttempt.at(-1)).toBe(secondAttempt.at(-1));
+    expect(new Set([firstAttempt[0], secondAttempt[0]])).toEqual(
+      new Set([
+        toPetrinautId(generateInstanceKey("first")),
+        toPetrinautId(generateInstanceKey("second")),
+      ]),
+    );
+    expect(flowNetPathKey(firstAttempt)).not.toBe(
+      flowNetPathKey(secondAttempt),
+    );
+    expect(tokensAt(run, firstAttempt)).toHaveLength(1);
+    expect(tokensAt(run, secondAttempt)).toHaveLength(1);
+  });
+});
+
 describe("startFlowNetRun", () => {
   it("starts a step once its inputs are there, and holds its attempt's end", async () => {
     const net = await compileFlowDefinition(fileFlowDefinition);
