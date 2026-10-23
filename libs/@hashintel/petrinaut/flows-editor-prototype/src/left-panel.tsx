@@ -208,7 +208,7 @@ const listHeadStyle = css({
 });
 
 const collapseAllStyle = css({
-  textStyle: "xs",
+  textStyle: "sm",
   fontWeight: "medium",
   color: "blue.fg.link",
   cursor: "pointer",

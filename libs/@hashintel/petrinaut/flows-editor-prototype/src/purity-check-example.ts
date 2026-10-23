@@ -12,7 +12,7 @@ import {
   fieldKey,
   START_ID,
 } from "./document";
-import { mockEntityTypes } from "./mock-graph";
+import { mockEntities, mockEntityTypes } from "./mock-graph";
 
 const type = (title: string) =>
   mockEntityTypes.find((candidate) => candidate.title === title)!;
@@ -46,6 +46,14 @@ export const purityCheckExample = (): EditorDocument => {
       },
     ],
     inputEntityTypes: { shipments: type("Shipment").baseUrl },
+    // What the run form fills in (Figma J4 · B1): two sample shipments and the usual threshold.
+    inputDefaults: {
+      shipments: ["SH-2041", "SH-2042"].map(
+        (label) =>
+          mockEntities.find((candidate) => candidate.label === label)!.entityId,
+      ),
+      threshold: 98,
+    },
     steps: document.steps.map((step) => ({
       ...step,
       description: "Certificates for these shipments",

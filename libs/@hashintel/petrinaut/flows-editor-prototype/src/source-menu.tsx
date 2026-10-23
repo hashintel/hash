@@ -320,12 +320,23 @@ export const SearchHeader = ({
     };
   }, [focusOnOpen]);
   return (
-    <div ref={ref} className={css({ padding: "1", paddingBottom: "0" })}>
+    <div
+      ref={ref}
+      className={css({
+        borderBottomWidth: "thin",
+        borderBottomStyle: "solid",
+        borderBottomColor: "neutral.bd.subtle",
+        // A full-width row, not a boxed input: the focus and hover outline stay off.
+        "& *::before": { borderColor: "[transparent !important]" },
+      })}
+    >
       <TextInput
         value={value}
         onChange={onChange}
         placeholder={placeholder}
         size="sm"
+        variant="subtle"
+        width="fullWidth"
         prefix={{ iconName: "search", variant: "subtle" }}
       />
     </div>
@@ -362,6 +373,7 @@ export const SourceMenu = ({
   typeValueIcon = "pencil",
   typeValueSource = "Manual input",
   position = "bottom-end",
+  alignToPanel = false,
 }: {
   anchor: React.RefObject<Element | null>;
   stepId: string;
@@ -387,6 +399,8 @@ export const SourceMenu = ({
   typeValueSource?: PrdSource;
   /** Where the DS Menu opens against the anchor. */
   position?: "bottom-start" | "bottom-end";
+  /** Open under the anchor with the menu's right edge on the properties panel's. */
+  alignToPanel?: boolean;
 }) => {
   const { document, setDocument, setUi } = useEditor();
   const [search, setSearch] = useState("");
@@ -575,6 +589,7 @@ export const SourceMenu = ({
       <OpenMenu
         anchor={anchor}
         position={position}
+        alignToPanel={alignToPanel}
         onClose={onClose}
         label={`Choose ${input.label}`}
         className={sourceMenuWidthStyle}

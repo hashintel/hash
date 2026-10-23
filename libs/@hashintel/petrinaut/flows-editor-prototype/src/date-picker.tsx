@@ -5,7 +5,7 @@
  *
  * MOCK, editor side only: relative dates. The engine stores fixed dates only.
  */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Icon,
@@ -290,7 +290,7 @@ export const DateCalendar = ({
 /** The DS popover surface: white, a hairline, 10 px corners and the DS lg shadow; its parts sit side by side. */
 const surfaceStyle = css({
   display: "flex",
-  alignItems: "stretch",
+  flexDirection: "column",
   backgroundColor: "neutral.bgSolid.min",
   borderWidth: "thin",
   borderStyle: "solid",
@@ -299,6 +299,23 @@ const surfaceStyle = css({
   boxShadow:
     "[0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)]",
   overflow: "hidden",
+});
+
+/** The popover's first focus lands here, not on the first row, so no ring shows at open. */
+const focusTargetStyle = css({ "&:focus": { outline: "none" } });
+
+const partsStyle = css({ display: "flex", alignItems: "stretch" });
+
+/** A full-width row under both columns, with a hairline above it. */
+const footerRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  paddingX: "[3px]",
+  paddingY: "[3px]",
+  borderTopWidth: "thin",
+  borderTopStyle: "solid",
+  borderTopColor: "neutral.bd.subtle",
 });
 
 /** `relativeSelection`: 176 px, a sidebar gradient, a hairline on its right. */
@@ -345,12 +362,26 @@ const relativeRowStyle = css({
   "&[aria-pressed=true]": { backgroundColor: "neutral.bg.surface.active" },
 });
 
-/** `Custom interval · popover` (Figma 555:16967): 296 px, 16 px in, 12 px between the labelled fields. */
+/** How far the panel's right edge is inside the window edge in Figma (J3 · A3: 1436 of 1440). */
+const panelInset = 4;
+
+/** The custom popover's top sits this far above the picker's top (Figma 555:15477: y 152 against 272). */
+const customPopoverRise = -120;
+
+/** `Custom interval · popover` (Figma 555:16967): one DS popover surface, 296 px, 16 px in, 12 px between the fields. */
 const customContentStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "3",
-  width: "[264px]",
+  width: "[296px]",
+  padding: "4",
+  backgroundColor: "neutral.bgSolid.min",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle.hover",
+  borderRadius: "[10px]",
+  boxShadow:
+    "[0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)]",
 });
 
 const customLabelStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
@@ -385,6 +416,7 @@ export const DatePickerSurface = ({
   const [daysOpen, setDaysOpen] = useState(relative?.kind === "daysAgo");
   const [customOpen, setCustomOpen] = useState(initialCustomOpen);
   const customRef = useRef<HTMLButtonElement>(null);
+  const surfaceRef = useRef<HTMLDivElement>(null);
   const interval = relative?.kind === "interval" ? relative : defaultInterval;
   const changeInterval = (change: Partial<Interval>) =>
     onPickRelative?.({ ...interval, ...change });
@@ -401,166 +433,225 @@ export const DatePickerSurface = ({
     </button>
   );
   return (
-    <div className={surfaceStyle} role="dialog" aria-label={label}>
-      {onPickRelative ? (
-        <div className={relativeColumnStyle}>
-          <div className={relativeLabelStyle}>
-            {relative?.kind === "interval" || customOpen
-              ? `Relative to ${anchorText[interval.anchor].toLowerCase()}`
-              : "Relative to today"}
-          </div>
-          {relativePresets.filter((preset) => !isStartOfPreset(preset)).map(presetRow)}
-          {daysOpen ? (
-            <div
-              className={css({
-                display: "flex",
-                alignItems: "center",
-                gap: "2",
-                paddingX: "2.5",
-                minHeight: "[28px]",
-              })}
+    <div
+      ref={surfaceRef}
+      className={surfaceStyle}
+      role="dialog"
+      aria-label={label}
+    >
+      <div className={partsStyle}>
+        {onPickRelative ? (
+          <div className={relativeColumnStyle}>
+            <div className={relativeLabelStyle}>
+              {relative?.kind === "interval" || customOpen
+                ? `Relative to ${anchorText[interval.anchor].toLowerCase()}`
+                : "Relative to today"}
+            </div>
+            {relativePresets
+              .filter((preset) => !isStartOfPreset(preset))
+              .map(presetRow)}
+            {daysOpen ? (
+              <div
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "2",
+                  paddingX: "2.5",
+                  minHeight: "[28px]",
+                })}
+              >
+                <div className={css({ width: "[64px]" })}>
+                  <NumberInput
+                    size="sm"
+                    width="fullWidth"
+                    min={1}
+                    value={relative?.kind === "daysAgo" ? relative.days : 3}
+                    aria-label="Number of days ago"
+                    onChange={(days) =>
+                      onPickRelative({
+                        kind: "daysAgo",
+                        days: Math.max(1, days ?? 1),
+                      })
+                    }
+                  />
+                </div>
+                <span
+                  className={css({
+                    textStyle: "sm",
+                    fontWeight: "medium",
+                    color: "neutral.fg.body",
+                  })}
+                >
+                  days ago
+                </span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className={relativeRowStyle}
+                title="Editor mock: the engine stores fixed dates only."
+                onClick={() => {
+                  setDaysOpen(true);
+                  onPickRelative({ kind: "daysAgo", days: 3 });
+                }}
+              >
+                Number of days ago
+              </button>
+            )}
+            <button
+              ref={customRef}
+              type="button"
+              className={relativeRowStyle}
+              aria-pressed={relative?.kind === "interval" || customOpen}
+              title="Editor mock: the engine stores fixed dates only."
+              onClick={() => {
+                setCustomOpen(true);
+                if (relative?.kind !== "interval") {
+                  onPickRelative(defaultInterval);
+                }
+              }}
             >
-              <div className={css({ width: "[64px]" })}>
+              Custom…
+            </button>
+            {relativePresets.filter(isStartOfPreset).map(presetRow)}
+          </div>
+        ) : null}
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            paddingX: "1",
+            paddingTop: "1",
+            paddingBottom: "2",
+          })}
+        >
+          <DateCalendar value={relative ? null : iso} onPick={onPickDate} />
+          {time}
+        </div>
+      </div>
+      {footer ? <div className={footerRowStyle}>{footer}</div> : null}
+      {customOpen && onPickRelative ? (
+        <Popover
+          triggerRef={surfaceRef}
+          position="left-start"
+          positionFromPoint={{ x: 0, y: customPopoverRise }}
+          gapX={8}
+          gapY={0}
+          onClose={() => setCustomOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-label="Custom interval"
+            className={customContentStyle}
+          >
+            <span className={customLabelStyle}>Relative to</span>
+            <Select
+              size="sm"
+              items={Object.entries(anchorText).map(([value, text]) => ({
+                value,
+                text,
+              }))}
+              value={interval.anchor}
+              aria-label="Relative to"
+              onChange={(anchor) =>
+                changeInterval({ anchor: anchor as Interval["anchor"] })
+              }
+            />
+            <span className={customLabelStyle}>Amount and unit</span>
+            <div className={css({ display: "flex", gap: "2" })}>
+              <div className={css({ width: "[70px]", flexShrink: 0 })}>
                 <NumberInput
                   size="sm"
                   width="fullWidth"
                   min={1}
-                  value={relative?.kind === "daysAgo" ? relative.days : 3}
-                  aria-label="Number of days ago"
-                  onChange={(days) =>
-                    onPickRelative({
-                      kind: "daysAgo",
-                      days: Math.max(1, days ?? 1),
-                    })
+                  value={interval.amount}
+                  aria-label="Amount"
+                  onChange={(amount) =>
+                    changeInterval({ amount: Math.max(1, amount ?? 1) })
                   }
                 />
               </div>
-              <span
-                className={css({
-                  textStyle: "sm",
-                  fontWeight: "medium",
-                  color: "neutral.fg.body",
-                })}
-              >
-                days ago
-              </span>
+              <Select
+                size="sm"
+                width="fullWidth"
+                items={intervalUnits.map((unit) => ({
+                  value: unit,
+                  text: unit,
+                }))}
+                value={interval.unit}
+                aria-label="Unit"
+                onChange={(unit) =>
+                  changeInterval({ unit: unit as IntervalUnit })
+                }
+              />
             </div>
-          ) : (
-            <button
-              type="button"
-              className={relativeRowStyle}
-              title="Editor mock: the engine stores fixed dates only."
-              onClick={() => {
-                setDaysOpen(true);
-                onPickRelative({ kind: "daysAgo", days: 3 });
-              }}
-            >
-              Number of days ago
-            </button>
-          )}
-          <button
-            ref={customRef}
-            type="button"
-            className={relativeRowStyle}
-            aria-pressed={relative?.kind === "interval" || customOpen}
-            title="Editor mock: the engine stores fixed dates only."
-            onClick={() => {
-              setCustomOpen(true);
-              if (relative?.kind !== "interval") {
-                onPickRelative(defaultInterval);
-              }
-            }}
-          >
-            Custom…
-          </button>
-          {relativePresets.filter(isStartOfPreset).map(presetRow)}
-          {footer ? (
-            <div className={css({ marginTop: "auto" })}>{footer}</div>
-          ) : null}
-        </div>
-      ) : null}
-      <div
-        className={css({
-          display: "flex",
-          flexDirection: "column",
-          paddingX: "1",
-          paddingTop: "1",
-          paddingBottom: "2",
-        })}
-      >
-        <DateCalendar value={relative ? null : iso} onPick={onPickDate} />
-        {time}
-      </div>
-      {customOpen && onPickRelative ? (
-        <Popover
-          triggerRef={customRef}
-          position="left-start"
-          gapX={8}
-          onClose={() => setCustomOpen(false)}
-        >
-          <Popover.Container>
-            <Popover.Body>
-              <div
-                role="dialog"
-                aria-label="Custom interval"
-                className={customContentStyle}
-              >
-                <span className={customLabelStyle}>Relative to</span>
-                <Select
-                  items={Object.entries(anchorText).map(([value, text]) => ({
-                    value,
-                    text,
-                  }))}
-                  value={interval.anchor}
-                  aria-label="Relative to"
-                  onChange={(anchor) =>
-                    changeInterval({ anchor: anchor as Interval["anchor"] })
-                  }
-                />
-                <span className={customLabelStyle}>Amount and unit</span>
-                <div className={css({ display: "flex", gap: "2" })}>
-                  <div className={css({ width: "[70px]", flexShrink: 0 })}>
-                    <NumberInput
-                      width="fullWidth"
-                      min={1}
-                      value={interval.amount}
-                      aria-label="Amount"
-                      onChange={(amount) =>
-                        changeInterval({ amount: Math.max(1, amount ?? 1) })
-                      }
-                    />
-                  </div>
-                  <Select
-                    width="fullWidth"
-                    items={intervalUnits.map((unit) => ({
-                      value: unit,
-                      text: unit,
-                    }))}
-                    value={interval.unit}
-                    aria-label="Unit"
-                    onChange={(unit) =>
-                      changeInterval({ unit: unit as IntervalUnit })
-                    }
-                  />
-                </div>
-                <span className={customLabelStyle}>Direction</span>
-                <div>
-                  <SegmentedControl<Interval["direction"]>
-                    size="sm"
-                    items={[
-                      { value: "ago", label: "ago" },
-                      { value: "fromNow", label: "from now" },
-                    ]}
-                    value={interval.direction}
-                    onChange={(direction) => changeInterval({ direction })}
-                  />
-                </div>
-              </div>
-            </Popover.Body>
-          </Popover.Container>
+            <span className={customLabelStyle}>Direction</span>
+            <div>
+              <SegmentedControl<Interval["direction"]>
+                size="sm"
+                items={[
+                  { value: "ago", label: "ago" },
+                  { value: "fromNow", label: "from now" },
+                ]}
+                value={interval.direction}
+                onChange={(direction) => changeInterval({ direction })}
+              />
+            </div>
+          </div>
         </Popover>
       ) : null}
     </div>
+  );
+};
+
+/**
+ * The picker's popover. With `alignToPanel` it sits under its trigger with its right edge on the properties panel's
+ * (Figma J3 · A3); the date picker is wider than the panel, so it grows leftward over the canvas edge.
+ */
+export const DatePopover = ({
+  triggerRef,
+  alignToPanel = false,
+  onClose,
+  ...surface
+}: DatePickerSurfaceProps & {
+  triggerRef: React.RefObject<HTMLElement | null>;
+  alignToPanel?: boolean;
+  onClose: () => void;
+}) => {
+  const focusRef = useRef<HTMLDivElement | null>(null);
+  const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    // The trigger may be set by its parent's effect: look once it is in place.
+    const frame = requestAnimationFrame(() => {
+      const trigger = triggerRef.current;
+      const panel = trigger?.closest("aside");
+      if (trigger && panel) {
+        const rect = trigger.getBoundingClientRect();
+        setPoint({
+          x: panel.getBoundingClientRect().right - panelInset - rect.left,
+          y: rect.height,
+        });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [triggerRef]);
+  if (alignToPanel && !point) {
+    return null;
+  }
+  return (
+    <Popover
+      triggerRef={triggerRef}
+      position="bottom-end"
+      positionFromPoint={alignToPanel ? (point ?? undefined) : undefined}
+      gapX={0}
+      gapY={4}
+      initialFocusRef={focusRef}
+      onClose={onClose}
+    >
+      <div ref={focusRef} tabIndex={-1} className={focusTargetStyle}>
+        <DatePickerSurface {...surface} />
+      </div>
+    </Popover>
   );
 };
 

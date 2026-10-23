@@ -12,7 +12,12 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { AddNodePicker } from "./add-node-picker";
 import { Briefing, markBriefingSeen, TaskCard } from "./briefing";
 import { FlowCanvas } from "./canvas";
-import { EditorContext, type EditorUi, showFull } from "./editor-context";
+import {
+  EditorContext,
+  type EditorUi,
+  inScreenState,
+  showFull,
+} from "./editor-context";
 import { LeftPanel } from "./left-panel";
 import { PropertiesPanel } from "./properties-panel";
 import { RunForm } from "./run-dialogs";
@@ -226,7 +231,9 @@ export const Editor = ({
       .filter((diagnostic) => diagnostic.severity === "error").length +
     validation.incomplete.size;
   const mockCount = validation.mockFields.size;
-  const showRun = showFull || ui.runOpen;
+  // In normal use a flow with a trigger can be run; a `?state=` screen shows Run only with its form open.
+  const showRun =
+    showFull || ui.runOpen || (!inScreenState && document.triggers.length > 0);
   const allMessages = [
     ...validation.flowLevel.map((diagnostic) => diagnostic.message),
     ...[...validation.byStep.values()]
@@ -292,7 +299,7 @@ export const Editor = ({
                   All screens
                 </a>
               ) : null}
-              {/* The Run button shows with its form open (J4 · B1), and with ?full. */}
+              {/* The Run button shows with its form open (J4 · B1), with ?full, and in normal use once a trigger exists. */}
               {showRun ? (
                 <>
                   {/* The Run form opens under this button (J4 · B1). */}

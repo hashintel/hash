@@ -16,7 +16,6 @@ import { useRef, useState } from "react";
 import {
   Icon,
   NumberInput,
-  Popover,
   Select,
   TextInput,
   Toggle,
@@ -24,7 +23,7 @@ import {
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import {
-  DatePickerSurface,
+  DatePopover,
   formatDate,
   relativeLabel,
   relativeRowStyle,
@@ -182,86 +181,79 @@ const DateField = ({
         <Icon name="chevronDown" size="sm" />
       </button>
       {open ? (
-        <Popover
+        <DatePopover
           triggerRef={triggerRef}
-          position="bottom-end"
-          gapY={4}
           onClose={() => setOpen(false)}
-        >
-          <DatePickerSurface
-            label={`Choose ${label}`}
-            iso={iso}
-            relative={relative}
-            onPickDate={pickDate}
-            onPickRelative={
-              allowRelative
-                ? (next) => {
-                    onChange({ relative: next });
-                    if (next.kind !== "daysAgo" && next.kind !== "interval") {
-                      setOpen(false);
-                    }
-                  }
-                : undefined
-            }
-            footer={
-              shown ? (
-                <button
-                  type="button"
-                  className={relativeRowStyle}
-                  onClick={() => {
-                    onChange(null);
+          label={`Choose ${label}`}
+          iso={iso}
+          relative={relative}
+          onPickDate={pickDate}
+          onPickRelative={
+            allowRelative
+              ? (next) => {
+                  onChange({ relative: next });
+                  if (next.kind !== "daysAgo" && next.kind !== "interval") {
                     setOpen(false);
-                  }}
-                >
-                  Clear
-                </button>
-              ) : null
-            }
-            time={
-              withTime ? (
-                // `showTimeSingle`: one time under the month.
-                <div
+                  }
+                }
+              : undefined
+          }
+          footer={
+            shown ? (
+              <button
+                type="button"
+                className={relativeRowStyle}
+                onClick={() => {
+                  onChange(null);
+                  setOpen(false);
+                }}
+              >
+                Clear
+              </button>
+            ) : null
+          }
+          time={
+            withTime ? (
+              // `showTimeSingle`: one time under the month.
+              <div
+                className={css({
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "2",
+                  marginTop: "2",
+                  paddingTop: "2",
+                  paddingX: "1",
+                  borderTopWidth: "thin",
+                  borderTopStyle: "solid",
+                  borderTopColor: "neutral.bd.subtle",
+                })}
+              >
+                <span
                   className={css({
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "2",
-                    marginTop: "2",
-                    paddingTop: "2",
-                    paddingX: "1",
-                    borderTopWidth: "thin",
-                    borderTopStyle: "solid",
-                    borderTopColor: "neutral.bd.subtle",
+                    flex: "1",
+                    textStyle: "sm",
+                    fontWeight: "medium",
+                    color: "neutral.fg.muted",
                   })}
                 >
-                  <span
-                    className={css({
-                      flex: "1",
-                      textStyle: "sm",
-                      fontWeight: "medium",
-                      color: "neutral.fg.muted",
-                    })}
-                  >
-                    Time
-                  </span>
-                  <div className={css({ width: "[104px]" })}>
-                    <Select
-                      size="sm"
-                      searchable
-                      items={timeSlots}
-                      value={time}
-                      aria-label={`${label} time`}
-                      onChange={(next) =>
-                        onChange(
-                          `${iso ?? "2026-10-21"}T${next ?? "09:00"}:00Z`,
-                        )
-                      }
-                    />
-                  </div>
+                  Time
+                </span>
+                <div className={css({ width: "[104px]" })}>
+                  <Select
+                    size="sm"
+                    searchable
+                    items={timeSlots}
+                    value={time}
+                    aria-label={`${label} time`}
+                    onChange={(next) =>
+                      onChange(`${iso ?? "2026-10-21"}T${next ?? "09:00"}:00Z`)
+                    }
+                  />
                 </div>
-              ) : null
-            }
-          />
-        </Popover>
+              </div>
+            ) : null
+          }
+        />
       ) : null}
     </>
   );
@@ -465,14 +457,16 @@ export const TypedValue = ({
   switch (kind) {
     case "Number":
       return (
-        <NumberInput
-          size="sm"
-          width={compact ? "xs" : "fullWidth"}
-          value={typeof value === "number" ? value : null}
-          aria-label={label}
-          placeholder={placeholder ?? "0"}
-          onChange={(next) => onChange(next)}
-        />
+        <div className={compact ? css({ width: "[70px]" }) : undefined}>
+          <NumberInput
+            size="sm"
+            width="fullWidth"
+            value={typeof value === "number" ? value : null}
+            aria-label={label}
+            placeholder={placeholder ?? "0"}
+            onChange={(next) => onChange(next)}
+          />
+        </div>
       );
     case "Boolean":
       return (

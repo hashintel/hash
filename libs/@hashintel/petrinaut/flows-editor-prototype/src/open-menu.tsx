@@ -16,6 +16,9 @@ import {
   type MenuItem,
 } from "@hashintel/ds-components";
 
+/** How far the panel's right edge is inside the window edge in Figma (1436 of 1440). */
+const panelInset = 4;
+
 type Position = React.ComponentProps<typeof Menu>["position"];
 
 export const OpenMenu = ({
@@ -27,6 +30,7 @@ export const OpenMenu = ({
   footer,
   className,
   label,
+  alignToPanel = false,
 }: {
   /** The menu's name: the DS Menu content is labelled by its trigger. */
   label: string;
@@ -38,6 +42,8 @@ export const OpenMenu = ({
   header?: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
+  /** Open with the menu's right edge on the properties panel's, under the anchor (Figma J3 · C1). */
+  alignToPanel?: boolean;
 }) => {
   const triggerRef = useRef<HTMLSpanElement>(null);
   // The anchor's place when the menu opened; the menu stays where it opened, as a DS Menu does. Read after mount:
@@ -51,15 +57,28 @@ export const OpenMenu = ({
     // late (a Filter's value slot), is in place by then.
     let inner = 0;
     const outer = requestAnimationFrame(() => {
-      inner = requestAnimationFrame(() =>
-        setRect(firstAnchor.current.current?.getBoundingClientRect() ?? null),
-      );
+      inner = requestAnimationFrame(() => {
+        const element = firstAnchor.current.current;
+        const box = element?.getBoundingClientRect() ?? null;
+        const panel = element?.closest("aside");
+        setRect(
+          box && panel && alignToPanel
+            ? new DOMRect(
+                panel.getBoundingClientRect().right - panelInset - box.width,
+                box.top,
+                box.width,
+                box.height,
+              )
+            : box,
+        );
+      });
     });
     return () => {
       cancelAnimationFrame(outer);
       cancelAnimationFrame(inner);
     };
-  }, []);
+    // The anchor names the place once, as the first anchor does.
+  }, [alignToPanel]);
 
   useEffect(() => {
     if (rect) {
