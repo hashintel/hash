@@ -15,16 +15,18 @@ struct TemporalEntry {
     original: Option<EntityTemporalMetadataRow>,
 }
 
-/// Tracks the final replacement of each loaded row while retaining earlier history
+/// Tracks the final replacement or removal of each loaded row while retaining earlier history
 /// across both time axes.
 pub(crate) struct EntityHistory {
     current: HashMap<EntityId, Vec<TemporalEntry>>,
+    removed: Vec<EntityTemporalMetadataRow>,
 }
 
 impl EntityHistory {
     pub(super) fn new(rows: impl IntoIterator<Item = EntityTemporalMetadataRow>) -> Self {
         let mut history = Self {
             current: HashMap::new(),
+            removed: Vec::new(),
         };
         for row in rows {
             history.push(TemporalEntry {
@@ -136,6 +138,31 @@ impl EntityHistory {
         }
         entry.row = row;
         self.push(entry);
+    }
+
+    /// Ends the live state that a published draft supersedes while retaining its past on both
+    /// time axes. A row is deleted only when neither earlier interval survives.
+    pub(super) fn close(
+        &mut self,
+        row: &EntityTemporalMetadataRow,
+        transaction_time: Timestamp<TransactionTime>,
+        decision_time: Timestamp<DecisionTime>,
+    ) {
+        let mut entry = self.take(row);
+        let mut fragments = Self::split(row, transaction_time, decision_time);
+        if let Some(row) = fragments.pop() {
+            entry.row = row;
+            self.push(entry);
+        } else {
+            self.removed.extend(entry.original);
+        }
+        for fragment in fragments {
+            self.insert(fragment);
+        }
+    }
+
+    pub(super) fn removed(&self) -> impl Iterator<Item = &EntityTemporalMetadataRow> {
+        self.removed.iter()
     }
 
     /// Pairs each changed persisted row with its final replacement. Repeated edits are combined
@@ -286,5 +313,26 @@ mod tests {
                 "should persist only resolved rows"
             );
         }
+    }
+
+    #[test]
+    fn close_same_transaction_start() {
+        let original = row();
+        let mut history = EntityHistory::new([original.clone()]);
+        history.close(
+            &original,
+            Timestamp::from_unix_timestamp(0),
+            Timestamp::from_unix_timestamp(0),
+        );
+        assert_eq!(
+            history.inserted().count(),
+            0,
+            "should omit empty historical intervals"
+        );
+        assert_eq!(
+            history.removed().count(),
+            1,
+            "should remove the superseded row"
+        );
     }
 }
