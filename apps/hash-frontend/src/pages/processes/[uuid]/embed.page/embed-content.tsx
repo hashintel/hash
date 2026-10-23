@@ -1,5 +1,5 @@
 /**
- * Petrinaut's stylesheet. Within this embed document its Panda-generated
+ * Petrinaut's stylesheet. Within HASH's pages its Panda-generated
  * atomic utilities are intentionally shadowed by `ds-components-styles.gen.css`
  * (imported in `_app.page.tsx`), which compiles Petrinaut's shipped Panda
  * build info through the app's single Panda pipeline at a strictly higher
@@ -49,7 +49,7 @@ const embedErrorTracker: ErrorTracker = {
 
 const noNetSwitchingError = () => {
   throw new Error(
-    "Net switching from inside the Petrinaut iframe is not supported; " +
+    "Net switching from inside the Petrinaut editor is not supported; " +
       "the host (process-editor) drives all net loads via the bridge.",
   );
 };
@@ -90,7 +90,7 @@ const computeIsDirty = (
 };
 
 /**
- * Petrinaut embed content — runs inside a sandboxed null-origin iframe.
+ * Petrinaut embed content — rendered in the process page by the host.
  *
  * Owns the doc handle, title, panels, simulation/Monte-Carlo workers,
  * Monaco, and dirty tracking. The host (`process-editor.tsx`) only handles
@@ -142,7 +142,7 @@ export const EmbedContent = () => {
       setIframeErrorReporterMode(payload.mode);
       /**
        * Reset any in-flight save state. A re-init means the host has
-       * decided to throw away whatever the iframe was doing (e.g. user
+       * decided to throw away whatever the editor was doing (e.g. user
        * navigated to a different net via URL while a save was pending).
        */
       setPendingSaveRequestId(null);
@@ -308,11 +308,11 @@ export const EmbedContent = () => {
 
   if (!state) {
     /**
-     * Host is expected to send `init` immediately after the iframe's
+     * Host is expected to send `init` immediately after the editor's
      * `ready`. A blank box is fine for that brief window — anything more
      * elaborate (spinner, etc.) tends to flash visibly on every load.
      */
-    return <Box sx={{ height: "100vh" }} />;
+    return <Box sx={{ height: "100%" }} />;
   }
 
   const chrome: EmbedChrome = {
@@ -331,7 +331,7 @@ export const EmbedContent = () => {
   };
 
   return (
-    <Box sx={{ height: "100vh", overflow: "hidden" }}>
+    <Box sx={{ height: "100%", overflow: "hidden" }}>
       <EmbedChromeContext value={chrome}>
         <ErrorTrackerContext value={embedErrorTracker}>
           {/* The title is the breadcrumbs' final crumb, so the editor's
