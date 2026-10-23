@@ -1,0 +1,11 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Incomplete generic path after an underscore-prefixed name
+expression: _0<T
+info:
+  kind: Err
+---
+_0<T
+    ^
+invalid path
+expected `>`

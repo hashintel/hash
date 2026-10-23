@@ -6,6 +6,13 @@
     "hashql-diagnostics"
   ],
   "tasks": {
+    "build:parse:debug": {
+      "dependsOn": [],
+      "affectedBy": [
+        "darwin-kperf-codegen",
+        "error-stack-macros"
+      ]
+    },
     "doc:dependency-diagram": {
       "dependsOn": [
         "hash-repo-chores#build"
