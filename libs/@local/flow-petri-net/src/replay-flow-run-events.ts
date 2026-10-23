@@ -261,9 +261,11 @@ export const replayFlowRunEvents = (
 const countAtRootPlaces = (placedTokens: readonly FlowNetPlacedToken[]) => {
   const counts: Record<string, number> = {};
 
-  for (const { position } of placedTokens) {
-    if (position.kind === "place") {
-      counts[position.placeId] = (counts[position.placeId] ?? 0) + 1;
+  for (const { path } of placedTokens) {
+    if (path.length === 1) {
+      const [placeId] = path;
+
+      counts[placeId] = (counts[placeId] ?? 0) + 1;
     }
   }
 
@@ -283,9 +285,9 @@ export const toRootNetActualModeExecution = (
 } => ({
   initialState: countAtRootPlaces(replay.initialMarking),
   transitionFirings: replay.firings
-    .filter(({ componentInstanceId }) => componentInstanceId === undefined)
+    .filter(({ transitionPath }) => transitionPath.length === 1)
     .map((firing) => ({
-      transitionId: firing.transitionId,
+      transitionId: firing.transitionPath[0],
       input: countAtRootPlaces(firing.consumed),
       output: countAtRootPlaces(firing.produced),
       ts: firing.occurredAt,
