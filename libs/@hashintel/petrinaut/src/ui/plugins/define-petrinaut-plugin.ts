@@ -12,6 +12,7 @@
 
 import type { PetrinautSettingsSection } from "../../react/navigation";
 import type { AccessApi, PluginAccess } from "./plugin-access";
+import type { LibraryComponent } from "@hashintel/petrinaut-core";
 import type { ReactNode, Ref } from "react";
 
 /** Where the editor renders a plugin button. */
@@ -127,6 +128,39 @@ export interface PluginTopBarItemSpec {
   readonly place: PluginTopBarPlace;
 }
 
+/**
+ * An edit view the plugin declares, beside Canvas and Definitions; its content
+ * comes from the hook under the same key. The view's id in the editor's
+ * location is `<plugin id>:<key>`, see {@link pluginViewId}.
+ */
+export interface PluginViewSpec {
+  /** The tab's text in the view selector, e.g. "Code". */
+  readonly label: string;
+  /** A sentence under the tag in User settings. */
+  readonly description?: string;
+}
+
+/**
+ * The id of a declared view in the editor's location: the plugin's id, a
+ * colon, the key. Built-in views carry no colon, so the two never collide.
+ */
+export const pluginViewId = (
+  pluginId: string,
+  key: string,
+): `${string}:${string}` => `${pluginId}:${key}`;
+
+/**
+ * A component library the plugin declares; the hook returns its components
+ * under `componentLibrary`. The Components panel lists them under `name`,
+ * and a component used in a document is copied into it as a subnet whose
+ * `source` names the plugin and the component.
+ */
+export interface PluginComponentLibrarySpec {
+  /** The library's heading in the Components panel. */
+  readonly name: string;
+  readonly description?: string;
+}
+
 /** What a plugin declares, as plain data Petrinaut reads before running the plugin. */
 export interface PetrinautPluginManifest {
   /**
@@ -159,6 +193,13 @@ export interface PetrinautPluginManifest {
   readonly buttons?: Readonly<Record<string, PluginButtonSpec>>;
   /** Content in the top bar; the hook returns each item's node under the same key. */
   readonly topBarItems?: Readonly<Record<string, PluginTopBarItemSpec>>;
+  /**
+   * Edit views beside Canvas and Definitions; the hook returns each view's
+   * content under the same key. Keys contain no colon.
+   */
+  readonly views?: Readonly<Record<string, PluginViewSpec>>;
+  /** A library of components; the hook returns them under `componentLibrary`. */
+  readonly componentLibrary?: PluginComponentLibrarySpec;
   /**
    * A button on the notice that explains a blocked edit on a document the
    * host made read-only, such as one that saves an editable copy. The hook
@@ -297,6 +338,10 @@ interface ContributionTable<M extends PetrinautPluginManifest> {
   topBarItems: {
     readonly [K in keyof NonNullable<M["topBarItems"]>]: ReactNode;
   };
+  views: {
+    readonly [K in keyof NonNullable<M["views"]>]: ReactNode;
+  };
+  componentLibrary: readonly LibraryComponent[];
   readOnlyAction: PluginReadOnlyAction;
   provides: ServiceOf<M>;
 }
@@ -348,6 +393,8 @@ export interface AnyPluginContributions {
   readonly commands?: Readonly<Record<string, PluginCommand>>;
   readonly buttons?: Readonly<Record<string, PluginButton>>;
   readonly topBarItems?: Readonly<Record<string, ReactNode>>;
+  readonly views?: Readonly<Record<string, ReactNode>>;
+  readonly componentLibrary?: readonly LibraryComponent[];
   readonly readOnlyAction?: PluginReadOnlyAction;
   readonly provides?: unknown;
 }
@@ -453,6 +500,15 @@ type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
         };
       }
     : unknown) &
+  (M extends { readonly views: infer Specs }
+    ? {
+        readonly views: {
+          readonly [
+            K in keyof Specs as K extends `${string}:${string}` ? K : never
+          ]: never;
+        };
+      }
+    : unknown) &
   (M extends { readonly access: infer A }
     ? { readonly access: RejectUnknownKeys<A, keyof PluginAccess> }
     : unknown) &
@@ -465,7 +521,16 @@ type ManifestChecks<M> = RejectUnknownKeys<M, keyof PetrinautPluginManifest> &
     ? { readonly readOnlyAction: RejectUnknownKeys<Spec, "label"> }
     : unknown) &
   EntryChecks<M, "buttons", keyof PluginButtonSpec> &
-  EntryChecks<M, "topBarItems", keyof PluginTopBarItemSpec>;
+  EntryChecks<M, "topBarItems", keyof PluginTopBarItemSpec> &
+  EntryChecks<M, "views", keyof PluginViewSpec> &
+  (M extends { readonly componentLibrary: infer Spec }
+    ? {
+        readonly componentLibrary: RejectUnknownKeys<
+          Spec,
+          keyof PluginComponentLibrarySpec
+        >;
+      }
+    : unknown);
 
 /** A plugin's implementation, whatever its manifest. */
 type AnyImplementation = PluginRuntime["hook"] | AnyPluginContributions;
@@ -477,6 +542,7 @@ const assertValidManifest = ({
   id,
   commands,
   settings,
+  views,
 }: PetrinautPluginManifest) => {
   if (id === "petrinaut" || id.startsWith("petrinaut.")) {
     throw new Error(
@@ -487,6 +553,13 @@ const assertValidManifest = ({
     if (key.includes(".")) {
       throw new Error(
         `Plugin "${id}" command "${key}" contains a dot. Command keys contain no dot.`,
+      );
+    }
+  }
+  for (const key of Object.keys(views ?? {})) {
+    if (key.includes(":")) {
+      throw new Error(
+        `Plugin "${id}" view "${key}" contains a colon. View keys contain no colon.`,
       );
     }
   }
