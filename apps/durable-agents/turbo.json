@@ -17,6 +17,10 @@
     "test:unit": {
       "dependsOn": ["^build"],
       "env": ["TEST_COVERAGE"]
+    },
+    "proof:browser-call": {
+      "dependsOn": ["^build"],
+      "cache": false
     }
   }
 }
