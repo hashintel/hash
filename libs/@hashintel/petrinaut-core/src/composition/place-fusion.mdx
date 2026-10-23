@@ -1,0 +1,162 @@
+---
+title: Composition by place fusion
+description: How components join a net through fused places, what a port's direction promises, the checks on a fusion, how flattening merges fused places, and where the model stops today.
+sidebar_order: 10
+---
+
+A net composes components, subnets drawn once and instantiated many times,
+by fusing places: a place of the net and ports of its instances become one
+place when the net runs. This page is the proposal behind the code in
+`petrinaut-core/src/composition/`, written as that code stands. The two
+other pages of the proposal cover the [plugin
+extensions](doc:ui.plugins/plugin-extensions) and the
+[DSL](doc:core.dsl/dsl).
+
+![Place fusion, drawn and flattened](./composition-fusion.d2)
+
+## Why fusion, and why keep port arcs
+
+The first version of subnets connects a component to its surroundings with
+arcs only: a transition of the containing net reads from or writes to a port,
+a place inside the instance, through a `componentPort` arc endpoint. That
+works for a component used by one net, but it makes every connection pass
+through a transition of the containing net, and two components can only
+exchange tokens through such a transition. A buffer shared by two machines
+needs a place of its own.
+
+Place fusion is the classical answer: a fusion set names places that are one
+place. Petrinaut's version keeps it small on purpose.
+
+- A fusion belongs to the net that holds the instances. Its members are
+  places of that net and ports of those instances, named the way an arc
+  endpoint names them (`FusionMember = ArcEndpoint`), so the endpoint helpers
+  and the id canonicalization apply unchanged.
+- At most one member is a place of the net itself: the **anchor**. It gives
+  the fused place its name, its initial marking, its visualizer, and the
+  thing metrics and scenarios refer to. The other members are ports. A
+  fusion without an anchor, two ports joined directly, makes a place that
+  exists only inside the composition.
+- Fusions are sets: a member belongs to one fusion, and a connection that
+  joins two fusions merges them. `addFusion` and `addFusionMember` absorb a
+  fusion that already holds one of the members; a member removed from a
+  fusion of two members removes the fusion.
+- Removing a place, an instance, a subnet, or a port's `isPort` mark takes
+  it out of every fusion that named it, the way arcs on it go away.
+
+Port arcs stay. A transition's arc to `Instance.Port` means the same thing
+as an arc to the place that port is fused with: flattening resolves the port
+to its scoped place and the fusion then maps that place onto the fused one,
+so the two mechanisms compose. The two differ only in what the canvas shows,
+a place of the net that the user can mark, watch and measure, against a port
+reachable through its instance alone. Nothing forbids using both on one port.
+
+## Ports and their directions
+
+A port is a place of a component marked `isPort`. A port may also declare a
+direction, `in`, `out` or `inout`, which is a promise about how the
+component uses it, seen from inside the component:
+
+| Direction | The component's transitions… | Typical use                       |
+| --------- | ---------------------------- | --------------------------------- |
+| `in`      | only consume from the port   | what the component works on       |
+| `out`     | only produce into the port   | what it hands on                  |
+| `inout`   | both                         | a shared resource pool, a counter |
+
+A port without a declaration takes the direction its arcs give it, `inout`
+when no transition touches it. The checks hold a declaration against the
+arcs and report a port written to that declares `in`. The direction has no
+effect on what a fusion may join: a port is a place, and a place has no
+direction. It decides three things.
+
+- **Where the port draws**: an input port's dot and label sit on the left of
+  the instance, an output port's on the right, a two-way port's on both.
+  Links draw from the giving end to the taking end.
+- **Dataflow checks**: a fusion in which every member only consumes gets a
+  warning, nothing puts tokens into it; one in which every member only
+  produces gets a note, it accumulates. Arcs of the containing net on the
+  anchor, and port arcs on the member ports, count as producers and
+  consumers too.
+- **Interfaces, later**: a component's ports with their directions and token
+  types are its signature. FE-630 asks for composition against an interface
+  without naming the concrete subnet; the signature is what two components
+  would have to share.
+
+What two ports can and cannot be joined:
+
+- `out` to `in` is the pipe. `out` to `out` is a merge; `in` to `in` is a
+  shared source that something else has to fill. Both are allowed, and the
+  dataflow checks say what is missing.
+- Two ports of the same instance may be fused; it closes a loop through the
+  component. Allowed, not reported.
+- A port can be fused only with places and ports of the net that holds its
+  instance. To reach a port of a nested instance from further out, the
+  containing component declares a port of its own and fuses it with the
+  nested port inside; the flattener follows the chain. The test in
+  `flatten-component-instances.test.ts` named "applies fusions declared
+  inside a subnet" shows the forwarding.
+
+## What members must agree on
+
+The fused place is one place, so its members must describe one place.
+`checkFusions` reports, as errors, members that no longer resolve, a
+duplicate member, a second anchor, a fusion of fewer than two members, and
+the three disagreements:
+
+- **Token type**: compared structurally, the same dimensions in the same
+  order with the same value types, because a component's type and the net's
+  type are different `Color` entities even when they say the same thing. The
+  packed token layout is what has to match.
+- **Capacity**: two declared capacities that differ. A declared capacity
+  beside unbounded members bounds the fused place.
+- **Dynamics**: two members that run different equations. One member's
+  equation drives the fused place; two instances of one subnet share an
+  equation and agree.
+
+The same conditions make `applyFusions` throw, so a document the editor
+flags as broken does not simulate with a surprise.
+
+## Flattening
+
+`flattenComponentInstancesForSimulation` scopes every entity of an instance
+under its id, `Instance::entity`, as before. It now also collects each
+fusion, at each net it walks, as a group of flat place ids, then
+`applyFusions` runs union-find over the groups. The place with the fewest
+`::` separators leads its set, so a root anchor keeps its id and its name,
+and the scoped ones merge into it. Merging moves every arc onto the leader,
+adds the weights of two arcs of one kind that now land on the same place,
+takes a member's capacity and equation onto the leader, and drops the merged
+places. The result carries `fusedPlaceAliases`, which maps each merged id to
+its leader, for anyone holding a scoped id.
+
+A fusion without an anchor keeps the first port's scoped place as the
+leader, renamed after the fusion when it has a name, so a port-only fusion
+reads as one place in the timeline.
+
+## Components-only nets
+
+A root net can be marked `componentsOnly`. The editor then withholds the
+place and transition tools on the root, and the composition checks report
+any place or transition the root still holds. The flag is a property of the
+document, not of the editor, so a net meant to be assembled from a library
+stays that way wherever it opens. Composition is then port-to-port fusion
+alone: nothing of the root is a place, so nothing anchors.
+
+## Where the model stops today
+
+- **Initial markings** address root places. A component with internal
+  state, a pool of workers say, has no marking of its own: the standard
+  `Server` exposes its pool as a port so the net supplies the workers. A
+  per-instance marking, or markings written into the component, is the next
+  step.
+- **Metrics** read root places. A port-only fusion is measurable only through
+  the timeline's flattened places. Letting metrics name `Instance.Port`
+  would follow the DSL's own naming.
+- **The GPU path** does not flatten instances yet, so a composed net runs on
+  the CPU engine.
+- **Clipboard**: copying instances copies no fusion. Fusions among copied
+  instances could come along.
+- **Interfaces** (FE-630): the port signature is in place; binding an
+  instance to an interface, and choosing an implementation per scenario, is
+  not.
+- **Layout**: fusion links are edges for auto-layout, so fused nodes land
+  near each other, but a port's side is not yet a layout constraint.
