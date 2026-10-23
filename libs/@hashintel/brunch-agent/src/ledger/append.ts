@@ -3,7 +3,7 @@ import * as v from "valibot";
 import { vObligation } from "./construction/obligations";
 import { vReflection } from "./construction/reflections";
 import { vClaim } from "./elicitation/claims";
-import { vEntity } from "./elicitation/entities";
+import { vEntity, vEntityUpdate } from "./elicitation/entities";
 import { entityIdGrammar } from "./shared/references";
 
 const vEntityUpdateRoute = v.pipe(
@@ -12,14 +12,14 @@ const vEntityUpdateRoute = v.pipe(
   // The regex guarantees the template-literal shape; the cast restores it for discrimination.
   v.transform((route) => route as `entity/update/e${number}`),
   v.description(
-    "entity/update/<existing entity ID>, such as entity/update/e45. The payload replaces every field of the addressed entity.",
+    "entity/update/<existing entity ID>, such as entity/update/e45.",
   ),
 );
 
 export const vLedgerEntry = v.pipe(
   v.union([
     v.strictTuple([v.literal("entity/create"), vEntity]),
-    v.strictTuple([vEntityUpdateRoute, vEntity]),
+    v.strictTuple([vEntityUpdateRoute, vEntityUpdate]),
     v.strictTuple([v.literal("claim/create"), vClaim]),
     v.strictTuple([v.literal("reflection/create"), vReflection]),
     v.strictTuple([v.literal("obligation/create"), vObligation]),
@@ -107,6 +107,14 @@ export const vLedgerAppend = v.pipe(
       }),
       v.description(
         "An ordered queue of [route, payload] tuples. $index references the zero-based position in this entire queue, never a per-kind index. References may target any matching entry; supersedes must target an earlier claim. Empty queues are allowed.",
+      ),
+    ),
+    endTurn: v.optional(
+      v.pipe(
+        v.boolean(),
+        v.description(
+          "True when this call closes the exchange: once the batch is recorded, the turn ends without another response. A refused batch leaves the turn open for its repair.",
+        ),
       ),
     ),
   }),
