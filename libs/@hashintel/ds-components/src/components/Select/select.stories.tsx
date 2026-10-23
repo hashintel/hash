@@ -3,15 +3,17 @@ import { Fragment, useState } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { formInputSizes } from "../../util/form-shared";
+import { MultipleDemo } from "./multi-select.story";
 import { Select } from "./select";
 
 import type { FormInputSize, FormInputWidth } from "../../util/form-shared";
 import type { ItemOrGroup } from "../../util/SelectableList/selectable-list";
 import type { SelectItem } from "./select";
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type SelectProps = React.ComponentProps<typeof Select>;
 type SingleSelectProps = Extract<SelectProps, { multiple?: false }>;
+type MultiSelectProps = Extract<SelectProps, { multiple: true }>;
 type Variant = NonNullable<SelectProps["variant"]>;
 type Align = NonNullable<SelectProps["align"]>;
 
@@ -145,13 +147,17 @@ const ConnectedPair = ({
   left,
   right,
   size,
-}: {
+  ...args
+}: Partial<
+  Omit<SingleSelectProps, "items" | "value" | "onChange" | "required">
+> & {
   left: Pick<SelectProps, "invalid" | "disabled" | "readonly" | "variant">;
   right: Pick<SelectProps, "invalid" | "disabled" | "readonly" | "variant">;
   size: FormInputSize;
 }) => (
   <div style={{ display: "flex", alignItems: "center" }}>
     <Select
+      {...args}
       items={sampleItems}
       value="apple"
       onChange={noop}
@@ -160,6 +166,7 @@ const ConnectedPair = ({
       {...left}
     />
     <Select
+      {...args}
       items={sampleItems}
       value="banana"
       onChange={noop}
@@ -285,54 +292,9 @@ const stateColumns = [
   { key: "readonly", label: "Read-only", withValue: true, readonly: true },
 ];
 
-export default {
+const meta = {
   title: "Components/Select",
-  argTypes: {
-    placeholder: {
-      control: { type: "text" },
-      description: "Placeholder text shown when the input is empty",
-    },
-    disabled: {
-      control: { type: "boolean" },
-      description: "Disable the input",
-    },
-    invalid: {
-      control: { type: "boolean" },
-      description: "Mark the input as invalid",
-    },
-    readonly: {
-      control: { type: "boolean" },
-      description: "Render the input as read-only text",
-    },
-    loading: {
-      control: { type: "boolean" },
-      description: "Show a loading indicator",
-    },
-    variant: {
-      control: { type: "radio" },
-      options: variants,
-      description: "Visual variant of the input",
-    },
-    align: {
-      control: { type: "radio" },
-      options: alignments,
-      description: "Text alignment within the input",
-    },
-    size: {
-      control: { type: "select" },
-      options: formInputSizes,
-      description: "Input height",
-    },
-    width: {
-      control: { type: "select" },
-      options: widths,
-      description: "Preset input width",
-    },
-    hideArrow: {
-      control: { type: "boolean" },
-      description: "Hide the dropdown arrow",
-    },
-  },
+  component: Select,
   args: {
     disabled: false,
     invalid: false,
@@ -343,131 +305,151 @@ export default {
     size: "md",
     hideArrow: false,
   },
-} satisfies StoryDefault<SingleSelectProps>;
+} satisfies Meta<SingleSelectProps>;
 
-export const Default: Story<SingleSelectProps> = (args) => (
-  <div className={sectionStyle}>
-    {variants.map((variant) => (
-      <div key={variant} className={groupStyle}>
-        <h3 style={headingStyle}>{variant}</h3>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "auto auto auto",
-            columnGap: 32,
-            rowGap: 12,
-            alignItems: "center",
-            justifyContent: "start",
-          }}
-        >
-          {stateColumns.map((col) => (
-            <span key={col.key} style={subheadingStyle}>
-              {col.label}
-            </span>
-          ))}
-          {stateRows.flatMap((row) => {
-            const itemsForRow: Array<ItemOrGroup<SelectItem>> =
-              row.key === "loading"
-                ? []
-                : row.grouped
-                  ? groupedItemsForRow(row.label)
-                  : [{ value: row.label, text: row.label }, ...sampleItems];
-            return stateColumns.map((col) => {
-              const value =
+export default meta;
+
+type Story = StoryObj<SingleSelectProps>;
+
+export const Default: Story = {
+  render: (args: SingleSelectProps) => (
+    <div className={sectionStyle}>
+      {variants.map((variant) => (
+        <div key={variant} className={groupStyle}>
+          <h3 style={headingStyle}>{variant}</h3>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "auto auto auto",
+              columnGap: 32,
+              rowGap: 12,
+              alignItems: "center",
+              justifyContent: "start",
+            }}
+          >
+            {stateColumns.map((col) => (
+              <span key={col.key} style={subheadingStyle}>
+                {col.label}
+              </span>
+            ))}
+            {stateRows.flatMap((row) => {
+              const itemsForRow: Array<ItemOrGroup<SelectItem>> =
                 row.key === "loading"
-                  ? "loading"
-                  : col.withValue
-                    ? row.label
-                    : "";
-              const cellKey = `${row.key}-${col.key}`;
-              return row.clearable ? (
-                <ClearableSelect
-                  key={cellKey}
-                  {...args}
-                  items={itemsForRow}
-                  value={value}
-                  variant={variant}
-                  readonly={col.readonly}
-                  {...row.extraProps}
-                />
-              ) : (
-                <Controlled
-                  key={cellKey}
-                  {...args}
-                  items={itemsForRow}
-                  value={value}
-                  variant={variant}
-                  readonly={col.readonly}
-                  {...row.extraProps}
-                />
-              );
-            });
-          })}
+                  ? []
+                  : row.grouped
+                    ? groupedItemsForRow(row.label)
+                    : [{ value: row.label, text: row.label }, ...sampleItems];
+              return stateColumns.map((col) => {
+                const value =
+                  row.key === "loading"
+                    ? "loading"
+                    : col.withValue
+                      ? row.label
+                      : "";
+                const cellKey = `${row.key}-${col.key}`;
+                return row.clearable ? (
+                  <ClearableSelect
+                    key={cellKey}
+                    {...args}
+                    items={itemsForRow}
+                    value={value}
+                    variant={variant}
+                    readonly={col.readonly}
+                    {...row.extraProps}
+                  />
+                ) : (
+                  <Controlled
+                    key={cellKey}
+                    {...args}
+                    items={itemsForRow}
+                    value={value}
+                    variant={variant}
+                    readonly={col.readonly}
+                    {...row.extraProps}
+                  />
+                );
+              });
+            })}
+          </div>
         </div>
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  ),
+};
 
-export const Alignment: Story<SingleSelectProps> = (args) => (
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: "auto auto auto",
-      columnGap: 32,
-      rowGap: 12,
-      alignItems: "center",
-      justifyContent: "start",
-    }}
-  >
-    <span />
-    <span style={subheadingStyle}>Editable</span>
-    <span style={subheadingStyle}>Read-only</span>
-    {alignments.map((align) => (
-      <Fragment key={align}>
-        <span style={subheadingStyle}>{align}</span>
-        <Controlled {...args} value="apple" align={align} width="sm" />
-        <Controlled {...args} value="apple" align={align} width="sm" readonly />
-      </Fragment>
-    ))}
-  </div>
-);
+export const Multiple: StoryObj<MultiSelectProps> = {
+  render: (args: MultiSelectProps) => <MultipleDemo {...args} />,
+};
 
-export const Size: Story<SingleSelectProps> = (args) => (
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: `auto repeat(${formInputSizes.length}, minmax(0, 1fr))`,
-      columnGap: 32,
-      rowGap: 12,
-      alignItems: "center",
-      width: "100%",
-      maxWidth: "100%",
-    }}
-  >
-    <span />
-    {formInputSizes.map((size) => (
-      <span key={size} style={subheadingStyle}>
-        {size}
-      </span>
-    ))}
-    {rowVariants.flatMap((rv) => [
-      <span key={`${rv.label}-label`} style={subheadingStyle}>
-        {rv.label}
-      </span>,
-      ...formInputSizes.map((size) => (
-        <Controlled
-          key={`${rv.label}-${size}`}
-          {...args}
-          value="apple"
-          size={size}
-          variant={rv.variant}
-          readonly={rv.readonly}
-        />
-      )),
-    ])}
-  </div>
-);
+export const Alignment: Story = {
+  render: (args: SingleSelectProps) => (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "auto auto auto",
+        columnGap: 32,
+        rowGap: 12,
+        alignItems: "center",
+        justifyContent: "start",
+      }}
+    >
+      <span />
+      <span style={subheadingStyle}>Editable</span>
+      <span style={subheadingStyle}>Read-only</span>
+      {alignments.map((align) => (
+        <Fragment key={align}>
+          <span style={subheadingStyle}>{align}</span>
+          <Controlled {...args} value="apple" align={align} width="sm" />
+          <Controlled
+            {...args}
+            value="apple"
+            align={align}
+            width="sm"
+            readonly
+          />
+        </Fragment>
+      ))}
+    </div>
+  ),
+};
+
+export const Sizes: Story = {
+  render: (args: SingleSelectProps) => (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `auto repeat(${formInputSizes.length}, minmax(0, 1fr))`,
+        columnGap: 32,
+        rowGap: 12,
+        alignItems: "center",
+        width: "100%",
+        maxWidth: "100%",
+      }}
+    >
+      <span />
+      {formInputSizes.map((size) => (
+        <span key={size} style={subheadingStyle}>
+          {size}
+        </span>
+      ))}
+      {rowVariants.flatMap((rv) => [
+        <span key={`${rv.label}-label`} style={subheadingStyle}>
+          {rv.label}
+        </span>,
+        ...formInputSizes.map((size) => (
+          <Controlled
+            key={`${rv.label}-${size}`}
+            {...args}
+            value="apple"
+            size={size}
+            variant={rv.variant}
+            readonly={rv.readonly}
+          />
+        )),
+      ])}
+    </div>
+  ),
+};
 
 // Declared `as const` so the `Select` below can narrow `value` / `onChange` to
 // the literal union of these values — see `CustomRender` for the assertion.
@@ -536,7 +518,7 @@ const renderColorHalfHeight = (value: string): React.ReactNode => (
   </span>
 );
 
-export const CustomRender: Story<SingleSelectProps> = (args) => {
+const CustomRenderDemo = (args: SingleSelectProps) => {
   const [valueA, setValueA] = useState<ColorValue | null>("red");
   const [valueB, setValueB] = useState<ColorValue | null>("green");
   const [valueC, setValueC] = useState<ColorValue | null>("blue");
@@ -714,69 +696,78 @@ export const CustomRender: Story<SingleSelectProps> = (args) => {
   );
 };
 
-export const Widths: Story<SingleSelectProps> = (args) => (
-  <div className={sectionStyle}>
-    {rowVariants.map((rv) => (
-      <div key={rv.label} className={groupStyle}>
-        <h3 style={headingStyle}>{rv.label}</h3>
-        {widths.map((width) => (
-          <Controlled
-            key={width}
-            {...args}
-            value="apple"
-            variant={rv.variant}
-            readonly={rv.readonly}
-            width={width}
-          />
-        ))}
-      </div>
-    ))}
-  </div>
-);
-
-export const Connected: Story = () => (
-  <div className={sectionStyle}>
-    <div className={groupStyle}>
-      <h3 style={headingStyle}>States (md)</h3>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `auto repeat(${sharedConnectedStates.length}, auto)`,
-          columnGap: 24,
-          rowGap: 12,
-          alignItems: "center",
-          justifyContent: "start",
-        }}
-      >
-        <span />
-        {sharedConnectedStates.map((col) => (
-          <span key={`col-${col.key}`} style={subheadingStyle}>
-            Right: {col.label}
-          </span>
-        ))}
-        {sharedConnectedStates.flatMap((row) => [
-          <span key={`row-${row.key}`} style={subheadingStyle}>
-            Left: {row.label}
-          </span>,
-          ...sharedConnectedStates.map((col) => (
-            <ConnectedPair
-              key={`${row.key}__${col.key}`}
-              size="md"
-              left={row.props}
-              right={col.props}
+export const Widths: Story = {
+  render: (args: SingleSelectProps) => (
+    <div className={sectionStyle}>
+      {rowVariants.map((rv) => (
+        <div key={rv.label} className={groupStyle}>
+          <h3 style={headingStyle}>{rv.label}</h3>
+          {widths.map((width) => (
+            <Controlled
+              key={width}
+              {...args}
+              value="apple"
+              variant={rv.variant}
+              readonly={rv.readonly}
+              width={width}
             />
-          )),
-        ])}
-      </div>
-    </div>
-    <div className={groupStyle}>
-      <h3 style={headingStyle}>Sizes</h3>
-      {formInputSizes.map((size) => (
-        <Fragment key={size}>
-          <span style={subheadingStyle}>{size}</span>
-          <ConnectedPair size={size} left={{}} right={{}} />
-        </Fragment>
+          ))}
+        </div>
       ))}
     </div>
-  </div>
-);
+  ),
+};
+
+export const CustomRender: Story = {
+  render: (args: SingleSelectProps) => <CustomRenderDemo {...args} />,
+};
+
+export const Connected: Story = {
+  render: (args: Partial<SingleSelectProps>) => (
+    <div className={sectionStyle}>
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>States (md)</h3>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `auto repeat(${sharedConnectedStates.length}, auto)`,
+            columnGap: 24,
+            rowGap: 12,
+            alignItems: "center",
+            justifyContent: "start",
+          }}
+        >
+          <span />
+          {sharedConnectedStates.map((col) => (
+            <span key={`col-${col.key}`} style={subheadingStyle}>
+              Right: {col.label}
+            </span>
+          ))}
+          {sharedConnectedStates.flatMap((row) => [
+            <span key={`row-${row.key}`} style={subheadingStyle}>
+              Left: {row.label}
+            </span>,
+            ...sharedConnectedStates.map((col) => (
+              <ConnectedPair
+                key={`${row.key}__${col.key}`}
+                {...args}
+                size="md"
+                left={row.props}
+                right={col.props}
+              />
+            )),
+          ])}
+        </div>
+      </div>
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>Sizes</h3>
+        {formInputSizes.map((size) => (
+          <Fragment key={size}>
+            <span style={subheadingStyle}>{size}</span>
+            <ConnectedPair {...args} size={size} left={{}} right={{}} />
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  ),
+};

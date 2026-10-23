@@ -7,11 +7,26 @@ import { Dialog } from "../Dialog/dialog";
 import { Icon } from "../Icon/icon";
 import { Drawer, type DrawerPosition, type DrawerSize } from "./drawer";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
-export default {
+type DrawerProps = React.ComponentProps<typeof Drawer>;
+
+const meta = {
   title: "Components/Drawer",
-} satisfies StoryDefault;
+  component: Drawer,
+  args: {
+    size: "md",
+    variant: "partitionedFooter",
+    position: "right",
+    showBackdrop: true,
+    shouldCloseOn: "closeButtonAndOverlay",
+    loading: false,
+  },
+} satisfies Meta<DrawerProps>;
+
+export default meta;
+
+type Story = StoryObj;
 
 const sampleBody = (
   <p>
@@ -47,11 +62,14 @@ const stackStyles = css({
 
 type DrawerVariant = "partitionedFooter" | "plain";
 
-const buildExampleEntries = (variant: DrawerVariant): ExampleProps[] => [
+const buildExampleEntries = (
+  variant: DrawerVariant,
+  args: Partial<DrawerProps>,
+): ExampleProps[] => [
   {
     buttonLabel: "Title only",
     renderDrawer: (close) => (
-      <Drawer variant={variant} onClose={close}>
+      <Drawer {...args} variant={variant} onClose={close}>
         <Drawer.Header title="Account settings" />
         <Drawer.Body>{sampleBody}</Drawer.Body>
       </Drawer>
@@ -60,7 +78,7 @@ const buildExampleEntries = (variant: DrawerVariant): ExampleProps[] => [
   {
     buttonLabel: "Title + icon",
     renderDrawer: (close) => (
-      <Drawer variant={variant} onClose={close}>
+      <Drawer {...args} variant={variant} onClose={close}>
         <Drawer.Header title="Settings" iconName="gear" />
         <Drawer.Body>{sampleBody}</Drawer.Body>
       </Drawer>
@@ -69,7 +87,7 @@ const buildExampleEntries = (variant: DrawerVariant): ExampleProps[] => [
   {
     buttonLabel: "Description only",
     renderDrawer: (close) => (
-      <Drawer variant={variant} onClose={close}>
+      <Drawer {...args} variant={variant} onClose={close}>
         <Drawer.Header description="A description without a title, written long enough that it wraps onto a second line so we can check how the header lays out when only the subtext is present." />
         <Drawer.Body>{sampleBody}</Drawer.Body>
       </Drawer>
@@ -78,7 +96,7 @@ const buildExampleEntries = (variant: DrawerVariant): ExampleProps[] => [
   {
     buttonLabel: "Footer actions",
     renderDrawer: (close) => (
-      <Drawer variant={variant} onClose={close}>
+      <Drawer {...args} variant={variant} onClose={close}>
         <Drawer.Body>
           <p>
             Do you want to save your changes before closing? Select close to go
@@ -103,7 +121,7 @@ const buildExampleEntries = (variant: DrawerVariant): ExampleProps[] => [
   {
     buttonLabel: "Kitchen sink",
     renderDrawer: (close) => (
-      <Drawer variant={variant} onClose={close}>
+      <Drawer {...args} variant={variant} onClose={close}>
         <Drawer.Header
           title="Edit workspace"
           iconName="gear"
@@ -138,7 +156,7 @@ const buildExampleEntries = (variant: DrawerVariant): ExampleProps[] => [
   {
     buttonLabel: "Custom header",
     renderDrawer: (close) => (
-      <Drawer variant={variant} onClose={close}>
+      <Drawer {...args} variant={variant} onClose={close}>
         <Drawer.Header>
           <div
             className={css({
@@ -179,7 +197,7 @@ const buildExampleEntries = (variant: DrawerVariant): ExampleProps[] => [
   {
     buttonLabel: "Custom footer",
     renderDrawer: (close) => (
-      <Drawer variant={variant} onClose={close}>
+      <Drawer {...args} variant={variant} onClose={close}>
         <Drawer.Header title="Custom footer" />
         <Drawer.Body>{sampleBody}</Drawer.Body>
         <Drawer.Footer>
@@ -215,7 +233,7 @@ const buildExampleEntries = (variant: DrawerVariant): ExampleProps[] => [
   {
     buttonLabel: "Kitchen sink (no padding)",
     renderDrawer: (close) => (
-      <Drawer variant={variant} onClose={close}>
+      <Drawer {...args} variant={variant} onClose={close}>
         <Drawer.Header
           title="Edit workspace"
           iconName="gear"
@@ -245,7 +263,7 @@ const buildExampleEntries = (variant: DrawerVariant): ExampleProps[] => [
   {
     buttonLabel: "No backdrop",
     renderDrawer: (close) => (
-      <Drawer variant={variant} showBackdrop={false} onClose={close}>
+      <Drawer {...args} variant={variant} showBackdrop={false} onClose={close}>
         <Drawer.Header
           title="No backdrop"
           description="Rendered with showBackdrop={false}, so the page behind stays visible with no dimmed overlay."
@@ -256,32 +274,36 @@ const buildExampleEntries = (variant: DrawerVariant): ExampleProps[] => [
   },
 ];
 
-export const Examples: Story = () => (
-  <div className={css({ display: "flex", flexDirection: "column", gap: "4" })}>
-    {(["partitionedFooter", "plain"] as const).map((variant) => (
-      <div
-        key={variant}
-        className={css({
-          display: "flex",
-          gap: "3",
-          alignItems: "center",
-          flexWrap: "wrap",
-        })}
-      >
-        <div className={css({ minWidth: "[8rem]", fontWeight: "medium" })}>
-          {variant}
+export const Default: Story = {
+  render: (args: Partial<DrawerProps>) => (
+    <div
+      className={css({ display: "flex", flexDirection: "column", gap: "4" })}
+    >
+      {(["partitionedFooter", "plain"] as const).map((variant) => (
+        <div
+          key={variant}
+          className={css({
+            display: "flex",
+            gap: "3",
+            alignItems: "center",
+            flexWrap: "wrap",
+          })}
+        >
+          <div className={css({ minWidth: "[8rem]", fontWeight: "medium" })}>
+            {variant}
+          </div>
+          {buildExampleEntries(variant, args).map((entry) => (
+            <DrawerExample
+              key={entry.buttonLabel}
+              buttonLabel={entry.buttonLabel}
+              renderDrawer={entry.renderDrawer}
+            />
+          ))}
         </div>
-        {buildExampleEntries(variant).map((entry) => (
-          <DrawerExample
-            key={entry.buttonLabel}
-            buttonLabel={entry.buttonLabel}
-            renderDrawer={entry.renderDrawer}
-          />
-        ))}
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  ),
+};
 
 const positions = [
   "left",
@@ -290,42 +312,45 @@ const positions = [
   "bottom",
 ] as const satisfies readonly DrawerPosition[];
 
-export const Positions: Story = () => (
-  <div className={stackStyles}>
-    {positions.map((position) => (
-      <DrawerExample
-        key={position}
-        buttonLabel={position}
-        renderDrawer={(close) => (
-          <Drawer position={position} onClose={close}>
-            <Drawer.Header
-              title={`${position} drawer`}
-              iconName="gear"
-              description={`Anchored to the ${position} edge of the viewport.`}
-            />
-            <Drawer.Body>{sampleBody}</Drawer.Body>
-            <Drawer.Footer
-              actions={
-                <Button variant="solid" tone="brand" onClick={close}>
-                  Done
-                </Button>
-              }
-            />
-          </Drawer>
-        )}
-      />
-    ))}
-  </div>
-);
+export const Positions: Story = {
+  render: (args: Partial<DrawerProps>) => (
+    <div className={stackStyles}>
+      {positions.map((position) => (
+        <DrawerExample
+          key={position}
+          buttonLabel={position}
+          renderDrawer={(close) => (
+            <Drawer {...args} position={position} onClose={close}>
+              <Drawer.Header
+                title={`${position} drawer`}
+                iconName="gear"
+                description={`Anchored to the ${position} edge of the viewport.`}
+              />
+              <Drawer.Body>{sampleBody}</Drawer.Body>
+              <Drawer.Footer
+                actions={
+                  <Button variant="solid" tone="brand" onClick={close}>
+                    Done
+                  </Button>
+                }
+              />
+            </Drawer>
+          )}
+        />
+      ))}
+    </div>
+  ),
+};
 
 const sizes = ["sm", "md", "lg", "xl"] as const satisfies readonly DrawerSize[];
 
 const renderKitchenSink = (
+  args: Partial<DrawerProps>,
   size: DrawerSize,
   close: () => void,
   options?: { loading?: boolean },
 ) => (
-  <Drawer size={size} loading={options?.loading} onClose={close}>
+  <Drawer {...args} size={size} loading={options?.loading} onClose={close}>
     <Drawer.Header
       title={`Kitchen sink (${size})`}
       iconName="gear"
@@ -357,11 +382,77 @@ const renderKitchenSink = (
   </Drawer>
 );
 
-export const Sizes: Story = () => (
-  <div className={css({ display: "flex", flexDirection: "column", gap: "4" })}>
-    {sizes.map((size) => (
+export const Sizes: Story = {
+  render: (args: Partial<DrawerProps>) => (
+    <div
+      className={css({ display: "flex", flexDirection: "column", gap: "4" })}
+    >
+      {sizes.map((size) => (
+        <div
+          key={size}
+          className={css({
+            display: "flex",
+            gap: "3",
+            alignItems: "center",
+            flexWrap: "wrap",
+          })}
+        >
+          <div className={css({ minWidth: "[6rem]", fontWeight: "medium" })}>
+            {size}
+          </div>
+          <DrawerExample
+            buttonLabel={`Kitchen sink — ${size}`}
+            renderDrawer={(close) => renderKitchenSink(args, size, close)}
+          />
+          <DrawerExample
+            buttonLabel={`Loading — ${size}`}
+            renderDrawer={(close) =>
+              renderKitchenSink(args, size, close, { loading: true })
+            }
+          />
+          <DrawerExample
+            buttonLabel={`Bottom — ${size}`}
+            renderDrawer={(close) => (
+              <Drawer {...args} size={size} position="bottom" onClose={close}>
+                <Drawer.Header
+                  title={`Bottom drawer (${size})`}
+                  iconName="gear"
+                  description="Anchored to the bottom edge, sized for this height."
+                />
+                <Drawer.Body>{sampleBody}</Drawer.Body>
+                <Drawer.Footer
+                  actions={
+                    <Button variant="solid" tone="brand" onClick={close}>
+                      Done
+                    </Button>
+                  }
+                />
+              </Drawer>
+            )}
+          />
+          {size === "sm" ? (
+            <>
+              <DrawerExample
+                buttonLabel={`No header — ${size}`}
+                renderDrawer={(close) => (
+                  <Drawer {...args} size={size} onClose={close}>
+                    <Drawer.Body>{sampleBody}</Drawer.Body>
+                  </Drawer>
+                )}
+              />
+              <DrawerExample
+                buttonLabel={`No header, no padding — ${size}`}
+                renderDrawer={(close) => (
+                  <Drawer {...args} size={size} onClose={close}>
+                    <Drawer.Body withPadding={false}>{sampleBody}</Drawer.Body>
+                  </Drawer>
+                )}
+              />
+            </>
+          ) : null}
+        </div>
+      ))}
       <div
-        key={size}
         className={css({
           display: "flex",
           gap: "3",
@@ -370,116 +461,59 @@ export const Sizes: Story = () => (
         })}
       >
         <div className={css({ minWidth: "[6rem]", fontWeight: "medium" })}>
-          {size}
+          custom
         </div>
         <DrawerExample
-          buttonLabel={`Kitchen sink — ${size}`}
-          renderDrawer={(close) => renderKitchenSink(size, close)}
-        />
-        <DrawerExample
-          buttonLabel={`Loading — ${size}`}
-          renderDrawer={(close) =>
-            renderKitchenSink(size, close, { loading: true })
-          }
-        />
-        <DrawerExample
-          buttonLabel={`Bottom — ${size}`}
+          buttonLabel="Custom width (480px)"
           renderDrawer={(close) => (
-            <Drawer size={size} position="bottom" onClose={close}>
+            <Drawer
+              {...args}
+              className={css({ maxWidth: "[480px]" })}
+              onClose={close}
+            >
               <Drawer.Header
-                title={`Bottom drawer (${size})`}
-                iconName="gear"
-                description="Anchored to the bottom edge, sized for this height."
+                title="Custom width (480px)"
+                description="maxWidth is overridden via className."
               />
               <Drawer.Body>{sampleBody}</Drawer.Body>
               <Drawer.Footer
                 actions={
                   <Button variant="solid" tone="brand" onClick={close}>
-                    Done
+                    Save changes
                   </Button>
                 }
               />
             </Drawer>
           )}
         />
-        {size === "sm" ? (
-          <>
-            <DrawerExample
-              buttonLabel={`No header — ${size}`}
-              renderDrawer={(close) => (
-                <Drawer size={size} onClose={close}>
-                  <Drawer.Body>{sampleBody}</Drawer.Body>
-                </Drawer>
-              )}
-            />
-            <DrawerExample
-              buttonLabel={`No header, no padding — ${size}`}
-              renderDrawer={(close) => (
-                <Drawer size={size} onClose={close}>
-                  <Drawer.Body withPadding={false}>{sampleBody}</Drawer.Body>
-                </Drawer>
-              )}
-            />
-          </>
-        ) : null}
+        <DrawerExample
+          buttonLabel="Custom height (320px, bottom)"
+          renderDrawer={(close) => (
+            <Drawer
+              {...args}
+              position="bottom"
+              className={css({ maxHeight: "[320px]" })}
+              onClose={close}
+            >
+              <Drawer.Header
+                title="Custom height (320px)"
+                description="maxHeight is overridden via className on a bottom drawer."
+              />
+              <Drawer.Body>{sampleBody}</Drawer.Body>
+              <Drawer.Footer
+                actions={
+                  <Button variant="solid" tone="brand" onClick={close}>
+                    Save changes
+                  </Button>
+                }
+              />
+            </Drawer>
+          )}
+        />
       </div>
-    ))}
-    <div
-      className={css({
-        display: "flex",
-        gap: "3",
-        alignItems: "center",
-        flexWrap: "wrap",
-      })}
-    >
-      <div className={css({ minWidth: "[6rem]", fontWeight: "medium" })}>
-        custom
-      </div>
-      <DrawerExample
-        buttonLabel="Custom width (480px)"
-        renderDrawer={(close) => (
-          <Drawer className={css({ maxWidth: "[480px]" })} onClose={close}>
-            <Drawer.Header
-              title="Custom width (480px)"
-              description="maxWidth is overridden via className."
-            />
-            <Drawer.Body>{sampleBody}</Drawer.Body>
-            <Drawer.Footer
-              actions={
-                <Button variant="solid" tone="brand" onClick={close}>
-                  Save changes
-                </Button>
-              }
-            />
-          </Drawer>
-        )}
-      />
-      <DrawerExample
-        buttonLabel="Custom height (320px, bottom)"
-        renderDrawer={(close) => (
-          <Drawer
-            position="bottom"
-            className={css({ maxHeight: "[320px]" })}
-            onClose={close}
-          >
-            <Drawer.Header
-              title="Custom height (320px)"
-              description="maxHeight is overridden via className on a bottom drawer."
-            />
-            <Drawer.Body>{sampleBody}</Drawer.Body>
-            <Drawer.Footer
-              actions={
-                <Button variant="solid" tone="brand" onClick={close}>
-                  Save changes
-                </Button>
-              }
-            />
-          </Drawer>
-        )}
-      />
     </div>
-  </div>
-);
+  ),
+};
 
 const overflowingTitle =
   "A really, really long title that probably wraps onto multiple lines and helps verify how the header handles wrapped text without breaking the layout";
@@ -501,10 +535,11 @@ const overflowingBody = (
 );
 
 const renderOverflowKitchenSink = (
+  args: Partial<DrawerProps>,
   close: () => void,
   options?: { loading?: boolean },
 ) => (
-  <Drawer loading={options?.loading} onClose={close}>
+  <Drawer {...args} loading={options?.loading} onClose={close}>
     <Drawer.Header
       title={overflowingTitle}
       iconName="gear"
@@ -555,10 +590,11 @@ const renderOverflowKitchenSink = (
 );
 
 const renderOverflowCustom = (
+  args: Partial<DrawerProps>,
   close: () => void,
   options?: { loading?: boolean },
 ) => (
-  <Drawer loading={options?.loading} onClose={close}>
+  <Drawer {...args} loading={options?.loading} onClose={close}>
     <Drawer.Header>
       <div
         className={css({
@@ -607,52 +643,62 @@ const renderOverflowCustom = (
 );
 
 const renderOverflowBodyOnly = (
+  args: Partial<DrawerProps>,
   close: () => void,
   options?: { loading?: boolean },
 ) => (
-  <Drawer loading={options?.loading} onClose={close}>
+  <Drawer {...args} loading={options?.loading} onClose={close}>
     <Drawer.Body>{overflowingBody}</Drawer.Body>
   </Drawer>
 );
 
-export const Overflow: Story = () => (
-  <div className={css({ display: "flex", flexDirection: "column", gap: "4" })}>
-    {([false, true] as const).map((loading) => (
-      <div
-        key={String(loading)}
-        className={css({
-          display: "flex",
-          gap: "3",
-          alignItems: "center",
-          flexWrap: "wrap",
-        })}
-      >
-        <div className={css({ minWidth: "[6rem]", fontWeight: "medium" })}>
-          {loading ? "loading" : "default"}
+export const Overflow: Story = {
+  render: (args: Partial<DrawerProps>) => (
+    <div
+      className={css({ display: "flex", flexDirection: "column", gap: "4" })}
+    >
+      {([false, true] as const).map((loading) => (
+        <div
+          key={String(loading)}
+          className={css({
+            display: "flex",
+            gap: "3",
+            alignItems: "center",
+            flexWrap: "wrap",
+          })}
+        >
+          <div className={css({ minWidth: "[6rem]", fontWeight: "medium" })}>
+            {loading ? "loading" : "default"}
+          </div>
+          <DrawerExample
+            buttonLabel={`Kitchen sink${loading ? " — loading" : ""}`}
+            renderDrawer={(close) =>
+              renderOverflowKitchenSink(args, close, { loading })
+            }
+          />
+          <DrawerExample
+            buttonLabel={`Custom header + footer${loading ? " — loading" : ""}`}
+            renderDrawer={(close) =>
+              renderOverflowCustom(args, close, { loading })
+            }
+          />
+          <DrawerExample
+            buttonLabel={`No header + footer${loading ? " — loading" : ""}`}
+            renderDrawer={(close) =>
+              renderOverflowBodyOnly(args, close, { loading })
+            }
+          />
         </div>
-        <DrawerExample
-          buttonLabel={`Kitchen sink${loading ? " — loading" : ""}`}
-          renderDrawer={(close) =>
-            renderOverflowKitchenSink(close, { loading })
-          }
-        />
-        <DrawerExample
-          buttonLabel={`Custom header + footer${loading ? " — loading" : ""}`}
-          renderDrawer={(close) => renderOverflowCustom(close, { loading })}
-        />
-        <DrawerExample
-          buttonLabel={`No header + footer${loading ? " — loading" : ""}`}
-          renderDrawer={(close) => renderOverflowBodyOnly(close, { loading })}
-        />
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  ),
+};
 
 const StackedExample = ({
   buttonLabel,
   position,
-}: {
+  ...drawerArgs
+}: Partial<DrawerProps> & {
   buttonLabel: string;
   position: DrawerPosition;
 }) => {
@@ -668,7 +714,12 @@ const StackedExample = ({
     <>
       <Button onClick={() => setL1(true)}>{buttonLabel}</Button>
       {l1 ? (
-        <Drawer size="lg" position={position} onClose={() => setL1(false)}>
+        <Drawer
+          {...drawerArgs}
+          size="lg"
+          position={position}
+          onClose={() => setL1(false)}
+        >
           <Drawer.Header
             title="Drawer 1 (lg)"
             iconName="gear"
@@ -685,7 +736,12 @@ const StackedExample = ({
         </Drawer>
       ) : null}
       {l2 ? (
-        <Drawer size="lg" position={position} onClose={() => setL2(false)}>
+        <Drawer
+          {...drawerArgs}
+          size="lg"
+          position={position}
+          onClose={() => setL2(false)}
+        >
           <Drawer.Header
             title="Drawer 2 (lg)"
             iconName="gear"
@@ -702,7 +758,12 @@ const StackedExample = ({
         </Drawer>
       ) : null}
       {l3 ? (
-        <Drawer size="sm" position={position} onClose={() => setL3(false)}>
+        <Drawer
+          {...drawerArgs}
+          size="sm"
+          position={position}
+          onClose={() => setL3(false)}
+        >
           <Drawer.Header
             title="Drawer 3 (sm)"
             iconName="gear"
@@ -719,7 +780,12 @@ const StackedExample = ({
         </Drawer>
       ) : null}
       {l4 ? (
-        <Drawer size="md" position={position} onClose={() => setL4(false)}>
+        <Drawer
+          {...drawerArgs}
+          size="md"
+          position={position}
+          onClose={() => setL4(false)}
+        >
           <Drawer.Header
             title="Drawer 4 (md)"
             iconName="gear"
@@ -753,7 +819,12 @@ const StackedExample = ({
         </Dialog>
       ) : null}
       {l6 ? (
-        <Drawer size="lg" position={position} onClose={() => setL6(false)}>
+        <Drawer
+          {...drawerArgs}
+          size="lg"
+          position={position}
+          onClose={() => setL6(false)}
+        >
           <Drawer.Header
             title="Drawer 5 (lg)"
             iconName="info"
@@ -790,98 +861,111 @@ const StackedExample = ({
   );
 };
 
-export const Stacked: Story = () => (
-  <div className={stackStyles}>
-    <StackedExample buttonLabel="Open stacked drawers" position="right" />
-    <StackedExample
-      buttonLabel="Open stacked bottom drawers"
-      position="bottom"
-    />
-  </div>
-);
+export const Stacked: Story = {
+  render: (args: Partial<DrawerProps>) => (
+    <div className={stackStyles}>
+      <StackedExample
+        {...args}
+        buttonLabel="Open stacked drawers"
+        position="right"
+      />
+      <StackedExample
+        {...args}
+        buttonLabel="Open stacked bottom drawers"
+        position="bottom"
+      />
+    </div>
+  ),
+};
 
-export const ShouldCloseOn: Story = () => (
-  <div className={stackStyles}>
-    <DrawerExample
-      buttonLabel="closeButtonAndOverlay (default)"
-      renderDrawer={(close) => (
-        <Drawer shouldCloseOn="closeButtonAndOverlay" onClose={close}>
-          <Drawer.Header
-            title="Close button and overlay"
-            iconName="info"
-            description="Escape, the close button, and clicking the overlay all close the drawer."
-          />
-          <Drawer.Body>{sampleBody}</Drawer.Body>
-          <Drawer.Footer
-            actions={
-              <Button variant="solid" tone="brand" onClick={close}>
-                Done
-              </Button>
-            }
-          />
-        </Drawer>
-      )}
-    />
+export const ShouldCloseOn: Story = {
+  render: (args: Partial<DrawerProps>) => (
+    <div className={stackStyles}>
+      <DrawerExample
+        buttonLabel="closeButtonAndOverlay (default)"
+        renderDrawer={(close) => (
+          <Drawer
+            {...args}
+            shouldCloseOn="closeButtonAndOverlay"
+            onClose={close}
+          >
+            <Drawer.Header
+              title="Close button and overlay"
+              iconName="info"
+              description="Escape, the close button, and clicking the overlay all close the drawer."
+            />
+            <Drawer.Body>{sampleBody}</Drawer.Body>
+            <Drawer.Footer
+              actions={
+                <Button variant="solid" tone="brand" onClick={close}>
+                  Done
+                </Button>
+              }
+            />
+          </Drawer>
+        )}
+      />
 
-    <DrawerExample
-      buttonLabel="closeButton"
-      renderDrawer={(close) => (
-        <Drawer shouldCloseOn="closeButton" onClose={close}>
-          <Drawer.Header
-            title="Close button only"
-            iconName="info"
-            description="Escape and the close button close the drawer. Overlay clicks do not."
-          />
-          <Drawer.Body>{sampleBody}</Drawer.Body>
-          <Drawer.Footer
-            actions={
-              <Button variant="solid" tone="brand" onClick={close}>
-                Done
-              </Button>
-            }
-          />
-        </Drawer>
-      )}
-    />
+      <DrawerExample
+        buttonLabel="closeButton"
+        renderDrawer={(close) => (
+          <Drawer {...args} shouldCloseOn="closeButton" onClose={close}>
+            <Drawer.Header
+              title="Close button only"
+              iconName="info"
+              description="Escape and the close button close the drawer. Overlay clicks do not."
+            />
+            <Drawer.Body>{sampleBody}</Drawer.Body>
+            <Drawer.Footer
+              actions={
+                <Button variant="solid" tone="brand" onClick={close}>
+                  Done
+                </Button>
+              }
+            />
+          </Drawer>
+        )}
+      />
 
-    <DrawerExample
-      buttonLabel="none"
-      renderDrawer={(close) => (
-        <Drawer shouldCloseOn="none" onClose={close}>
-          <Drawer.Header
-            title="No default close"
-            iconName="info"
-            description="No close button is rendered, and neither escape nor overlay clicks close the drawer."
-          />
-          <Drawer.Body>{sampleBody}</Drawer.Body>
-          <Drawer.Footer
-            actions={
-              <Button variant="solid" tone="brand" onClick={close}>
-                Done
-              </Button>
-            }
-          />
-        </Drawer>
-      )}
-    />
+      <DrawerExample
+        buttonLabel="none"
+        renderDrawer={(close) => (
+          <Drawer {...args} shouldCloseOn="none" onClose={close}>
+            <Drawer.Header
+              title="No default close"
+              iconName="info"
+              description="No close button is rendered, and neither escape nor overlay clicks close the drawer."
+            />
+            <Drawer.Body>{sampleBody}</Drawer.Body>
+            <Drawer.Footer
+              actions={
+                <Button variant="solid" tone="brand" onClick={close}>
+                  Done
+                </Button>
+              }
+            />
+          </Drawer>
+        )}
+      />
 
-    <DrawerExample
-      buttonLabel="none + no header"
-      renderDrawer={(close) => (
-        <Drawer shouldCloseOn="none" onClose={close}>
-          <Drawer.Body>{sampleBody}</Drawer.Body>
-          <Drawer.Footer
-            actions={
-              <Button variant="solid" tone="brand" onClick={close}>
-                Done
-              </Button>
-            }
-          />
-        </Drawer>
-      )}
-    />
-  </div>
-);
+      <DrawerExample
+        buttonLabel="none + no header"
+        renderDrawer={(close) => (
+          <Drawer {...args} shouldCloseOn="none" onClose={close}>
+            <Drawer.Body>{sampleBody}</Drawer.Body>
+            <Drawer.Footer
+              actions={
+                <Button variant="solid" tone="brand" onClick={close}>
+                  Done
+                </Button>
+              }
+            />
+          </Drawer>
+        )}
+      />
+    </div>
+  ),
+};
 
 const groupedPanels = [
   { key: "account", title: "Account", iconName: "gear" },
@@ -894,7 +978,10 @@ const groupedPanels = [
  * `swapKey`, so switching between them swaps the panel in place; when not, each
  * switch slides the old panel out and the new one back in.
  */
-const GroupedExample = ({ grouped }: { grouped: boolean }) => {
+const GroupedExample = ({
+  grouped,
+  ...drawerArgs
+}: Partial<DrawerProps> & { grouped: boolean }) => {
   const [active, setActive] = useState<string | null>(null);
 
   return (
@@ -910,6 +997,7 @@ const GroupedExample = ({ grouped }: { grouped: boolean }) => {
         active === panel.key ? (
           <Drawer
             key={panel.key}
+            {...drawerArgs}
             swapKey={grouped ? "settings-demo" : undefined}
             onClose={() => setActive(null)}
             showBackdrop={false}
@@ -976,19 +1064,23 @@ const GroupedExample = ({ grouped }: { grouped: boolean }) => {
   );
 };
 
-export const Grouped: Story = () => (
-  <div className={css({ display: "flex", flexDirection: "column", gap: "6" })}>
-    <div>
-      <div className={css({ fontWeight: "medium", marginBottom: "2" })}>
-        Grouped (shared swapKey) — switching swaps in place
+export const Grouped: Story = {
+  render: (args: Partial<DrawerProps>) => (
+    <div
+      className={css({ display: "flex", flexDirection: "column", gap: "6" })}
+    >
+      <div>
+        <div className={css({ fontWeight: "medium", marginBottom: "2" })}>
+          Grouped (shared swapKey) — switching swaps in place
+        </div>
+        <GroupedExample {...args} grouped />
       </div>
-      <GroupedExample grouped />
-    </div>
-    <div>
-      <div className={css({ fontWeight: "medium", marginBottom: "2" })}>
-        Ungrouped — each switch slides out and back in
+      <div>
+        <div className={css({ fontWeight: "medium", marginBottom: "2" })}>
+          Ungrouped — each switch slides out and back in
+        </div>
+        <GroupedExample {...args} grouped={false} />
       </div>
-      <GroupedExample grouped={false} />
     </div>
-  </div>
-);
+  ),
+};

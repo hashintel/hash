@@ -1,7 +1,7 @@
 import { memo, use, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { NotificationsContext } from "../../../../../../react/notifications/context";
@@ -19,6 +19,7 @@ import { markdownStyle } from "./shared/markdown-style";
 import { SentUsingVoiceMark } from "./shared/sent-using-voice-mark";
 import { AiAssistantToolList } from "./tool-list";
 
+import type { PetrinautAiAssistant } from "../../../../../petrinaut";
 import type { PetrinautAiMessage } from "../types";
 import type { TranscriptProps } from "./shared/transcript-props";
 
@@ -99,6 +100,23 @@ const answerStyle = css({
   },
 });
 
+const systemNoteStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  paddingX: "3",
+  paddingY: "0.5",
+  color: "neutral.fg.body",
+  fontSize: "[11px]",
+  fontWeight: "medium",
+  lineHeight: "[16px]",
+});
+
+const systemNoteIconStyle = css({
+  flexShrink: 0,
+  color: "neutral.s90",
+});
+
 const stoppedNoteStyle = css({
   alignSelf: "center",
   marginTop: "1.5",
@@ -146,6 +164,7 @@ const StreamingWords = ({
 
 type BrunchMessageProps = Omit<TranscriptProps, "messages"> & {
   message: PetrinautAiMessage;
+  renderSystemMessage?: PetrinautAiAssistant["renderSystemMessage"];
   voice: boolean;
   active: boolean;
   canRetry: boolean;
@@ -172,6 +191,7 @@ const BrunchMessage = memo(
     experimentStates,
     onCancelExperiment,
     resolveToolPresentation,
+    renderSystemMessage,
     voice,
     active,
     stopped,
@@ -194,6 +214,26 @@ const BrunchMessage = memo(
     );
     const { work, answers, cards, brief, voiceAgentReply, voiceAgentWrapUp } =
       renderItems;
+    if (message.role === "system") {
+      const content = renderSystemMessage?.(message);
+      if (content !== undefined) {
+        return (
+          <div role="note" data-role="system">
+            {content}
+          </div>
+        );
+      }
+      return (
+        <div role="note" data-role="system" className={systemNoteStyle}>
+          <Icon name="info" size="xs" className={systemNoteIconStyle} />
+          <div>
+            {answers.map((item) => (
+              <div key={item.key}>{item.part.text}</div>
+            ))}
+          </div>
+        </div>
+      );
+    }
     const wasStopped = stopped || message.metadata?.stopped === true;
     const awaitingApproval = work.tools.some(
       (tool) => tool.interactive && tool.state === "input-available",
@@ -414,12 +454,14 @@ export const BrunchTranscript = ({
   stopped,
   busy,
   canRetry,
+  renderSystemMessage,
   voice,
   ...messageProps
 }: TranscriptProps & {
   busy: boolean;
   /** Whether a finished answer may be retried at all right now. */
   canRetry: boolean;
+  renderSystemMessage?: PetrinautAiAssistant["renderSystemMessage"];
   voice: boolean;
 }) => {
   const firstUserIndex = messages.findIndex(
@@ -432,8 +474,9 @@ export const BrunchTranscript = ({
         (part) => part.type === "text" && part.text.trim().length > 0,
       ),
   )?.id;
+  // Host system notes can trail the turn they annotate while it streams.
   const responseIndex = messages.findLastIndex(
-    (message) => !isSpokenLine(message),
+    (message) => message.role !== "system" && !isSpokenLine(message),
   );
   const responseRole = messages[responseIndex]?.role;
 
@@ -444,6 +487,9 @@ export const BrunchTranscript = ({
           key={message.id}
           message={message}
           {...messageProps}
+          renderSystemMessage={
+            message.role === "system" ? renderSystemMessage : undefined
+          }
           voice={voice}
           latestAnswer={message.id === latestAnswerId}
           canRetry={canRetry && firstUserIndex >= 0 && index > firstUserIndex}

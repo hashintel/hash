@@ -2,7 +2,13 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/inter-tight";
 import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
-import { type FunctionComponent, useEffect, useMemo, useRef } from "react";
+import {
+  type FunctionComponent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -43,6 +49,7 @@ const editorRootStyle = css({
 
 import type {
   PetrinautAiComposerControl,
+  PetrinautAiInputMode,
   PetrinautAiVoiceMode,
 } from "./types/ai-assistant-composer-control";
 import type { PetrinautAiAutomaticTool } from "./types/ai-automatic-tool";
@@ -53,14 +60,34 @@ import type {
 } from "./views/Editor/panels/ai-assistant-panel";
 import type { PetrinautAiMutationExecutor } from "./views/Editor/panels/ai-assistant-panel/types";
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiChatTransport = PetrinautAiTransport;
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiStopResult = "already-settled" | "stop-requested";
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiAssistantPresentation = "stock" | "brunch";
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiToolPresentationState = "pending" | "success" | "error";
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiToolPresentationTone =
   | "danger"
   | "info"
@@ -68,6 +95,10 @@ export type PetrinautAiToolPresentationTone =
   | "pending"
   | "success";
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiToolPresentationContext = {
   toolName: string;
   state: PetrinautAiToolPresentationState;
@@ -76,6 +107,10 @@ export type PetrinautAiToolPresentationContext = {
   error: string | undefined;
 };
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiToolPresentation = {
   title: string;
   detail?: string;
@@ -83,13 +118,25 @@ export type PetrinautAiToolPresentation = {
   items?: readonly string[];
 };
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiToolPresentationResolver = (
   context: PetrinautAiToolPresentationContext,
 ) => PetrinautAiToolPresentation | undefined;
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiAssistant = {
   /** Selects the assistant's visual presentation. Defaults to "stock". */
   presentation?: PetrinautAiAssistantPresentation;
+  /** Optional host controls alongside the assistant header. */
+  headerActions?: React.ReactNode;
+  /** Restrict header actions to this input mode. Omitted: both modes. */
+  actionsInputMode?: PetrinautAiInputMode;
   /**
    * Host-owned content beside the AI transcript in the panel's tab bar.
    * Switching tabs keeps both bodies mounted and the composer/Voice controls
@@ -159,6 +206,11 @@ export type PetrinautAiAssistant = {
     messages: PetrinautAiMessage[],
   ) => PetrinautAiMessage[];
   /**
+   * Render display-only system-note content; return undefined for the default
+   * note. Only `presentation: "brunch"` shows system messages as notes.
+   */
+  renderSystemMessage?: (message: PetrinautAiMessage) => ReactNode;
+  /**
    * Opt into following host history while locally idle. The predicate must
    * describe the exact snapshot supplied in `messages`, including settlement
    * of every local admission; message IDs alone cannot prove catch-up.
@@ -176,6 +228,8 @@ export type PetrinautAiAssistant = {
   requestStop?: () => Promise<PetrinautAiStopResult>;
   /** Render a host-owned control inside the assistant composer. */
   renderComposerControl?: PetrinautAiComposerControl;
+  /** Render host-owned status above the text composer or Voice dock. */
+  renderComposerStatus?: PetrinautAiComposerControl;
   /** Render one persistent, provider-neutral Voice mode. */
   renderVoiceMode?: PetrinautAiVoiceMode;
   transport: PetrinautAiTransport;
@@ -211,6 +265,11 @@ export type PetrinautProps = {
   existingNets?: MinimalNetMetadata[];
   createNewNet?: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   loadPetriNet?: (petriNetId: string) => void;
+  /**
+   * @deprecated Provide the assistant with a plugin that declares
+   * `assistant`, which renders its own chat. While such a plugin runs, the
+   * editor ignores this prop.
+   */
   aiAssistant?: PetrinautAiAssistant;
   /**
    * Host-supplied components to inject at specific locations in the editor.

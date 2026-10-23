@@ -1,0 +1,10 @@
+{
+  "extends": ["@tsconfig/bases/recommended", "@local/tsconfig/policy.json"],
+  "include": ["src", "eslint.config.js"],
+  "compilerOptions": {
+    "checkJs": true,
+    "lib": ["ES2024"],
+    "module": "NodeNext",
+    "types": ["node"]
+  }
+}

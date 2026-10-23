@@ -14,7 +14,7 @@ import type {
   Item,
   ItemOrGroup,
 } from "../../util/SelectableList/selectable-list";
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 function prefixIds(
   entry: ItemOrGroup<Item>,
@@ -90,35 +90,19 @@ function useToggleSelection(initialSelected: string[] = defaultSelected) {
 
 type MenuProps = React.ComponentProps<typeof Menu>;
 
-const positions = [
-  "bottom",
-  "bottom-start",
-  "bottom-end",
-  "top",
-  "top-start",
-  "top-end",
-  "left",
-  "left-start",
-  "left-end",
-  "right",
-  "right-start",
-  "right-end",
-] as const;
-
-export default {
+const meta = {
   title: "Components/Menu",
-  argTypes: {
-    position: {
-      control: { type: "select" },
-      options: positions,
-    },
-  },
+  component: Menu,
   args: {
     position: "bottom-start",
   },
-} satisfies StoryDefault<MenuProps>;
+} satisfies Meta<MenuProps>;
 
-export const Default: Story<MenuProps> = (args) => {
+export default meta;
+
+type Story = StoryObj<MenuProps>;
+
+const DefaultDemo = (args: MenuProps) => {
   const { selected, toggle } = useToggleSelection();
   const items = useMemo(
     () => groupedItems.map((entry) => withSelection(entry, selected, toggle)),
@@ -133,7 +117,11 @@ export const Default: Story<MenuProps> = (args) => {
   );
 };
 
-export const Nested: Story<MenuProps> = (args) => {
+export const Default: Story = {
+  render: (args) => <DefaultDemo {...args} />,
+};
+
+const NestedDemo = (args: MenuProps) => {
   const { selected, toggle } = useToggleSelection();
   const items = useMemo(
     () =>
@@ -151,7 +139,11 @@ export const Nested: Story<MenuProps> = (args) => {
   );
 };
 
-export const PlainButtonTrigger: Story<MenuProps> = (args) => {
+export const Nested: Story = {
+  render: (args) => <NestedDemo {...args} />,
+};
+
+const PlainButtonTriggerDemo = (args: MenuProps) => {
   const { selected, toggle } = useToggleSelection();
   const items = useMemo(
     () => groupedItems.map((entry) => withSelection(entry, selected, toggle)),
@@ -166,7 +158,11 @@ export const PlainButtonTrigger: Story<MenuProps> = (args) => {
   );
 };
 
-export const LongHeaderAndFooter: Story<MenuProps> = (args) => {
+export const PlainButtonTrigger: Story = {
+  render: (args) => <PlainButtonTriggerDemo {...args} />,
+};
+
+const LongHeaderAndFooterDemo = (args: MenuProps) => {
   const { selected, toggle } = useToggleSelection();
   const items = useMemo(
     () => groupedItems.map((entry) => withSelection(entry, selected, toggle)),
@@ -196,7 +192,11 @@ export const LongHeaderAndFooter: Story<MenuProps> = (args) => {
   );
 };
 
-export const EllipsisMenu: Story<MenuProps> = (args) => {
+export const LongHeaderAndFooter: Story = {
+  render: (args) => <LongHeaderAndFooterDemo {...args} />,
+};
+
+const EllipsisMenuDemo = (args: MenuProps) => {
   const ellipsis = useToggleSelection(
     defaultSelected.map((id) => `ellipsis-${id}`),
   );
@@ -246,4 +246,8 @@ export const EllipsisMenu: Story<MenuProps> = (args) => {
       <EllipsisMenuComponent {...args} items={disabledItems} disabled />
     </div>
   );
+};
+
+export const EllipsisMenu: Story = {
+  render: (args) => <EllipsisMenuDemo {...args} />,
 };

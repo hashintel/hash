@@ -10,6 +10,16 @@
       "types": "./src/index.ts",
       "@dev/source": "./src/index.ts",
       "import": "./dist/index.js"
+    },
+    "./interview-budget": {
+      "types": "./src/petrinaut/interview-budget.ts",
+      "@dev/source": "./src/petrinaut/interview-budget.ts",
+      "import": "./dist/interview-budget.js"
+    },
+    "./words": {
+      "types": "./src/petrinaut/words.ts",
+      "@dev/source": "./src/petrinaut/words.ts",
+      "import": "./dist/words.js"
     }
   },
   "scripts": {

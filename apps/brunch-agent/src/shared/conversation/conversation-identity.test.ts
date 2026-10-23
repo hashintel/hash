@@ -2,11 +2,7 @@ import { expect, test } from "vitest";
 
 import { flueConversationIdWeb } from "@hashintel/brunch-agent";
 
-import {
-  flueConversationId,
-  flueConversationIdFrom,
-  ownsFlueInstance,
-} from "./identity.ts";
+import { flueConversationId, ownsFlueInstance } from "./identity.ts";
 
 test("the same principal and conversation id always hash to the same Flue instance", () => {
   const identity = {
@@ -35,7 +31,7 @@ test("ownsFlueInstance admits only the principal and conversation that hashed th
     principalKey: "principal-a",
     conversationId: "conversation-1",
   };
-  const instanceId = flueConversationIdFrom(identity);
+  const instanceId = flueConversationId(identity);
   expect(ownsFlueInstance(identity, instanceId)).toBe(true);
   expect(
     ownsFlueInstance({ ...identity, principalKey: "principal-b" }, instanceId),

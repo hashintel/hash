@@ -4,7 +4,6 @@ import { css } from "@hashintel/ds-helpers/css";
 import { Box, Grid, HStack, VStack } from "@hashintel/ds-helpers/jsx";
 
 import type { PaletteName } from "./_types";
-import type { Story } from "@ladle/react";
 
 const COLOR_PALETTES: readonly PaletteName[] = [
   "neutral",
@@ -167,7 +166,7 @@ const MixedLevels = ({ palette }: { palette: PaletteName }) => (
   </Box>
 );
 
-export const ColorLayering: Story = () => {
+export const ColorLayeringDemo = () => {
   const [palette, setPalette] = useState<PaletteName>("neutral");
 
   return (
@@ -230,5 +229,3 @@ export const ColorLayering: Story = () => {
     </VStack>
   );
 };
-
-ColorLayering.storyName = "Color Layering";

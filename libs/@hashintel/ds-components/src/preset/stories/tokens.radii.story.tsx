@@ -4,7 +4,6 @@ import { token } from "@hashintel/ds-helpers/tokens";
 
 import type { Roundness } from "./_types";
 import type { Token } from "@hashintel/ds-helpers/tokens";
-import type { Story } from "@ladle/react";
 
 const steps = [
   "xs",
@@ -110,7 +109,7 @@ const ComponentDemo = ({ roundness }: { roundness: Roundness }) => {
   );
 };
 
-export const Radii: Story<{ roundness: Roundness }> = ({ roundness }) => (
+export const RadiiDemo = ({ roundness }: { roundness: Roundness }) => (
   <div className={css({ roundness })}>
     <VStack gap="8" alignItems="flex-start" p="6">
       <VStack gap="2" alignItems="flex-start">
@@ -195,13 +194,3 @@ export const Radii: Story<{ roundness: Roundness }> = ({ roundness }) => (
     </VStack>
   </div>
 );
-
-Radii.storyName = "Border Radii";
-
-Radii.argTypes = {
-  roundness: {
-    options: ["none", "sm", "md", "lg", "xl"],
-    control: { type: "select" },
-    defaultValue: "md",
-  },
-};

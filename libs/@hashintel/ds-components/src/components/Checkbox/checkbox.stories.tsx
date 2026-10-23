@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { formInputSizes } from "../../util/form-shared";
 import { Checkbox } from "./checkbox";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type CheckboxProps = React.ComponentProps<typeof Checkbox>;
 
@@ -13,11 +13,6 @@ const tones: NonNullable<CheckboxProps["tone"]>[] = [
   "neutral",
   "brand",
   "success",
-];
-
-const labelPlacements: NonNullable<CheckboxProps["labelPlacement"]>[] = [
-  "left",
-  "right",
 ];
 
 const ControlledCheckbox = ({
@@ -28,17 +23,9 @@ const ControlledCheckbox = ({
   return <Checkbox {...props} value={value} onChange={setValue} />;
 };
 
-export default {
+const meta = {
   title: "Components/Checkbox",
-  argTypes: {
-    tone: { control: { type: "select" }, options: tones },
-    size: { control: { type: "select" }, options: formInputSizes },
-    disabled: { control: { type: "boolean" } },
-    invalid: { control: { type: "boolean" } },
-    indeterminate: { control: { type: "boolean" } },
-    labelPlacement: { control: { type: "select" }, options: labelPlacements },
-    label: { control: { type: "text" } },
-  },
+  component: Checkbox,
   args: {
     tone: "neutral",
     size: "md",
@@ -47,7 +34,11 @@ export default {
     indeterminate: false,
     labelPlacement: "right",
   },
-} satisfies StoryDefault<CheckboxProps>;
+} satisfies Meta<CheckboxProps>;
+
+export default meta;
+
+type Story = StoryObj<CheckboxProps>;
 
 type Example = {
   label: string;
@@ -115,74 +106,87 @@ const labelClass = css({
   color: "neutral.s80",
 });
 
-export const Default: Story<CheckboxProps> = (args) => (
-  <div
-    className={css({
-      display: "grid",
-      gridTemplateColumns: "[200px max-content max-content]",
-      alignItems: "center",
-      columnGap: "[32px]",
-      rowGap: "[12px]",
-    })}
-  >
-    <span />
-    <span className={headingClass}>Default</span>
-    <span className={headingClass}>Disabled</span>
-    {examples.map(({ label, props, defaultValue, withDisabled }) => (
-      <Fragment key={label}>
-        <span className={labelClass}>{label}</span>
-        <ControlledCheckbox {...args} {...props} defaultValue={defaultValue} />
-        {withDisabled ? (
+export const Default: Story = {
+  render: (args) => (
+    <div
+      className={css({
+        display: "grid",
+        gridTemplateColumns: "[200px max-content max-content]",
+        alignItems: "center",
+        columnGap: "[32px]",
+        rowGap: "[12px]",
+      })}
+    >
+      <span />
+      <span className={headingClass}>Default</span>
+      <span className={headingClass}>Disabled</span>
+      {examples.map(({ label, props, defaultValue, withDisabled }) => (
+        <Fragment key={label}>
+          <span className={labelClass}>{label}</span>
           <ControlledCheckbox
             {...args}
             {...props}
-            disabled
             defaultValue={defaultValue}
           />
-        ) : (
-          <span />
-        )}
-      </Fragment>
-    ))}
-  </div>
-);
+          {withDisabled ? (
+            <ControlledCheckbox
+              {...args}
+              {...props}
+              disabled
+              defaultValue={defaultValue}
+            />
+          ) : (
+            <span />
+          )}
+        </Fragment>
+      ))}
+    </div>
+  ),
+};
 
-export const Sizes: Story<CheckboxProps> = (args) => (
-  <div
-    className={css({
-      display: "flex",
-      flexDirection: "column",
-      gap: "[16px]",
-    })}
-  >
-    {formInputSizes.map((size) => (
-      <div
-        key={size}
-        className={css({
-          display: "flex",
-          alignItems: "flex-start",
-          gap: "[24px]",
-        })}
-      >
-        <span
+export const Sizes: Story = {
+  render: (args) => (
+    <div
+      className={css({
+        display: "flex",
+        flexDirection: "column",
+        gap: "[16px]",
+      })}
+    >
+      {formInputSizes.map((size) => (
+        <div
+          key={size}
           className={css({
-            width: "[40px]",
-            fontSize: "[12px]",
-            color: "neutral.s80",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "[24px]",
           })}
         >
-          {size}
-        </span>
-        <ControlledCheckbox {...args} size={size} defaultValue />
-        <ControlledCheckbox {...args} size={size} label="Label" defaultValue />
-        <ControlledCheckbox
-          {...args}
-          size={size}
-          label="I agree to the terms of service and privacy policy"
-          className={wrappingLabelClass}
-          defaultValue
-        />
-      </div>
-    ))}
-  </div>
-);
+          <span
+            className={css({
+              width: "[40px]",
+              fontSize: "[12px]",
+              color: "neutral.s80",
+            })}
+          >
+            {size}
+          </span>
+          <ControlledCheckbox {...args} size={size} defaultValue />
+          <ControlledCheckbox
+            {...args}
+            size={size}
+            label="Label"
+            defaultValue
+          />
+          <ControlledCheckbox
+            {...args}
+            size={size}
+            label="I agree to the terms of service and privacy policy"
+            className={wrappingLabelClass}
+            defaultValue
+          />
+        </div>
+      ))}
+    </div>
+  ),
+};

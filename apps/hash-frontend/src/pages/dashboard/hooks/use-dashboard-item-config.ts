@@ -15,7 +15,6 @@ import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queri
 import { useGenerateHashFlowDefinitionEntityId } from "../../shared/use-hash-flows";
 
 import type {
-  FlowRun,
   GetFlowRunByIdQuery,
   GetFlowRunByIdQueryVariables,
   StartFlowMutation,
@@ -34,7 +33,10 @@ import type {
   ChartType,
   StructuralQueryDefinition,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FlowRunWithoutEvents,
+  StepOutput,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 export type ConfigStep = "goal" | "query" | "analysis" | "chart" | "complete";
 
@@ -260,7 +262,7 @@ export const useDashboardItemConfig = ({
    * Update the dashboard item entity with the flow outputs.
    */
   const updateEntityWithFlowOutputs = useCallback(
-    async (flowRun: FlowRun) => {
+    async (flowRun: FlowRunWithoutEvents) => {
       /**
        * The flow run's `outputs` field is a list of Status objects wrapping
        * the actual step outputs (see `StepRunOutput`) — unwrap to the flat

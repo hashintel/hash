@@ -52,6 +52,8 @@ vi.hoisted(() => {
   });
 });
 
+import type { PetrinautAiComposerControlContext } from "../chat/ai-assistant-composer-control";
+import type { PetrinautAiInteractiveToolWidgetProps } from "../chat/ai-interactive-tool";
 import type {
   DraftPetrinautExperimentInput,
   DraftPetrinautExperimentOutput,
@@ -66,10 +68,6 @@ import type {
   SDCPN,
 } from "@hashintel/petrinaut-core";
 import type { ExperimentRecord } from "@hashintel/petrinaut/react";
-import type {
-  PetrinautAiInteractiveToolWidgetProps,
-  PetrinautAiComposerControlContext,
-} from "@hashintel/petrinaut/ui";
 
 // Distributive so the awaiting/submitted discriminant survives the Pick.
 type DistributivePick<T, K extends keyof T> = T extends unknown

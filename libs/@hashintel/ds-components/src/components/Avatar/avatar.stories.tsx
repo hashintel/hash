@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { formInputSizes } from "../../util/form-shared";
 import { Avatar } from "./avatar";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const sampleImage = "https://avatars.githubusercontent.com/u/1846056?v=4";
 
@@ -13,9 +13,22 @@ const noop = () => {};
 
 type AvatarProps = React.ComponentProps<typeof Avatar>;
 
-export default {
+// Control args without the onClick/href exclusive union, so cells can spread
+// them and still pin their own onClick.
+type AvatarArgs = Partial<Omit<AvatarProps, "onClick" | "href" | "target">>;
+
+const meta = {
   title: "Components/Avatar",
-} satisfies StoryDefault<AvatarProps>;
+  component: Avatar,
+  args: {
+    size: "md",
+    tone: "neutral",
+  },
+} satisfies Meta<AvatarProps>;
+
+export default meta;
+
+type Story = StoryObj<AvatarProps>;
 
 const grid = css({
   display: "inline-grid",
@@ -77,11 +90,13 @@ const placeholderColumns = [
 ];
 
 const defaultCells = (
+  args: AvatarArgs,
   shape: AvatarProps["shape"],
   tone: AvatarProps["tone"],
 ): ReactNode[] => [
   <Avatar
     key="image"
+    {...args}
     shape={shape}
     tone={tone}
     alt="Christian Busch"
@@ -91,6 +106,7 @@ const defaultCells = (
   />,
   <Avatar
     key="initial-1"
+    {...args}
     shape={shape}
     tone={tone}
     alt="Christian"
@@ -99,6 +115,7 @@ const defaultCells = (
   />,
   <Avatar
     key="initials-2"
+    {...args}
     shape={shape}
     tone={tone}
     alt="Christian Busch"
@@ -107,6 +124,7 @@ const defaultCells = (
   />,
   <Avatar
     key="icon"
+    {...args}
     shape={shape}
     tone={tone}
     alt="Christian Busch"
@@ -115,6 +133,7 @@ const defaultCells = (
   />,
   <Avatar
     key="custom"
+    {...args}
     shape={shape}
     tone={tone}
     alt="Fox"
@@ -123,6 +142,7 @@ const defaultCells = (
   />,
   <Avatar
     key="static"
+    {...args}
     shape={shape}
     tone={tone}
     alt="Christian Busch"
@@ -130,16 +150,27 @@ const defaultCells = (
   />,
 ];
 
-export const Default: Story<AvatarProps> = () => (
-  <LabeledGrid
-    columnLabels={placeholderColumns}
-    rows={[
-      { label: "Circle · neutral", cells: defaultCells("circle", "neutral") },
-      { label: "Square · neutral", cells: defaultCells("square", "neutral") },
-      { label: "Circle · brand", cells: defaultCells("circle", "brand") },
-    ]}
-  />
-);
+export const Default: Story = {
+  render: (args: AvatarArgs) => (
+    <LabeledGrid
+      columnLabels={placeholderColumns}
+      rows={[
+        {
+          label: "Circle · neutral",
+          cells: defaultCells(args, "circle", "neutral"),
+        },
+        {
+          label: "Square · neutral",
+          cells: defaultCells(args, "square", "neutral"),
+        },
+        {
+          label: "Circle · brand",
+          cells: defaultCells(args, "circle", "brand"),
+        },
+      ]}
+    />
+  ),
+};
 
 // With size="custom" the consumer sets --avatar-size and the component derives
 // the box (aspect-ratio squares it), typography, and border radius — here 100×100.
@@ -148,6 +179,7 @@ const customSizeClass = css({
 });
 
 const sizeCells = (
+  args: AvatarArgs,
   shape: AvatarProps["shape"],
   placeholder: AvatarProps["placeholder"],
   alt = "Christian Busch",
@@ -155,6 +187,7 @@ const sizeCells = (
   ...formInputSizes.map((size) => (
     <Avatar
       key={size}
+      {...args}
       shape={shape}
       size={size}
       alt={alt}
@@ -163,6 +196,7 @@ const sizeCells = (
   )),
   <Avatar
     key="custom"
+    {...args}
     shape={shape}
     size="custom"
     className={customSizeClass}
@@ -171,19 +205,27 @@ const sizeCells = (
   />,
 ];
 
-export const Sizes: Story<AvatarProps> = () => (
-  <LabeledGrid
-    columnLabels={[...formInputSizes, "Custom"]}
-    rows={[
-      { label: "Circle", cells: sizeCells("circle", { initials: "CB" }) },
-      { label: "Square", cells: sizeCells("square", { initials: "CB" }) },
-      {
-        label: "Circle · icon",
-        cells: sizeCells("circle", { icon: "user" }, "Christian Busch"),
-      },
-    ]}
-  />
-);
+export const Sizes: Story = {
+  render: (args: AvatarArgs) => (
+    <LabeledGrid
+      columnLabels={[...formInputSizes, "Custom"]}
+      rows={[
+        {
+          label: "Circle",
+          cells: sizeCells(args, "circle", { initials: "CB" }),
+        },
+        {
+          label: "Square",
+          cells: sizeCells(args, "square", { initials: "CB" }),
+        },
+        {
+          label: "Circle · icon",
+          cells: sizeCells(args, "circle", { icon: "user" }, "Christian Busch"),
+        },
+      ]}
+    />
+  ),
+};
 
 const svgAvatar = (body: string) =>
   `data:image/svg+xml,${encodeURIComponent(
@@ -216,11 +258,13 @@ const imageColumns = [
 ];
 
 const imageCells = (
+  args: AvatarArgs,
   shape: AvatarProps["shape"],
   tone: AvatarProps["tone"],
 ): ReactNode[] => [
   <Avatar
     key="error"
+    {...args}
     shape={shape}
     tone={tone}
     size="lg"
@@ -231,6 +275,7 @@ const imageCells = (
   />,
   <Avatar
     key="loading"
+    {...args}
     shape={shape}
     tone={tone}
     size="lg"
@@ -241,6 +286,7 @@ const imageCells = (
   />,
   <Avatar
     key="transparent"
+    {...args}
     shape={shape}
     tone={tone}
     size="lg"
@@ -251,6 +297,7 @@ const imageCells = (
   />,
   <Avatar
     key="white"
+    {...args}
     shape={shape}
     tone={tone}
     size="lg"
@@ -261,6 +308,7 @@ const imageCells = (
   />,
   <Avatar
     key="dark-green"
+    {...args}
     shape={shape}
     tone={tone}
     size="lg"
@@ -271,13 +319,24 @@ const imageCells = (
   />,
 ];
 
-export const Images: Story<AvatarProps> = () => (
-  <LabeledGrid
-    columnLabels={imageColumns}
-    rows={[
-      { label: "Circle · neutral", cells: imageCells("circle", "neutral") },
-      { label: "Square · neutral", cells: imageCells("square", "neutral") },
-      { label: "Circle · brand", cells: imageCells("circle", "brand") },
-    ]}
-  />
-);
+export const Images: Story = {
+  render: (args: AvatarArgs) => (
+    <LabeledGrid
+      columnLabels={imageColumns}
+      rows={[
+        {
+          label: "Circle · neutral",
+          cells: imageCells(args, "circle", "neutral"),
+        },
+        {
+          label: "Square · neutral",
+          cells: imageCells(args, "square", "neutral"),
+        },
+        {
+          label: "Circle · brand",
+          cells: imageCells(args, "circle", "brand"),
+        },
+      ]}
+    />
+  ),
+};

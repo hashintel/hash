@@ -30,7 +30,9 @@ export const LoadingSpinner = ({
   className,
   ...dataAttributes
 }: {
+  /** The size of the spinner */
   size?: FormInputSize;
+  /** The visual variant of the spinner */
   variant?: LoadingSpinnerVariant;
   className?: string;
 } & DataAttributes) => {

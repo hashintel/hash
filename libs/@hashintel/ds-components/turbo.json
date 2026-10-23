@@ -10,13 +10,13 @@
       "dependsOn": ["codegen"],
       "outputs": ["dist/panda.buildinfo.json"]
     },
-    "build:ladle": {
-      "dependsOn": ["codegen", "^build"],
-      "outputs": [".build/ladle/**"]
-    },
     "build:lib": {
       "dependsOn": ["codegen", "^build"],
       "outputs": ["dist/**"]
+    },
+    "build:storybook": {
+      "dependsOn": ["codegen", "^build"],
+      "outputs": [".build/storybook/**"]
     },
     "codegen": {
       "outputs": ["src/preset/**/*.gen.ts", "../ds-helpers/styled-system/**"]
@@ -27,7 +27,7 @@
       "passThroughEnv": ["PORT"],
       "persistent": true
     },
-    "dev:ladle": {
+    "dev:storybook": {
       "cache": false,
       "dependsOn": ["codegen", "^build"],
       "passThroughEnv": ["PORT"],
@@ -39,14 +39,14 @@
     "lint": {
       "dependsOn": ["codegen"]
     },
-    "preview:ladle": {
-      "dependsOn": ["build:ladle"]
+    "preview:storybook": {
+      "dependsOn": ["build:storybook"]
     },
     "test:snapshots": {
-      "dependsOn": ["build:ladle"]
+      "dependsOn": ["build:storybook"]
     },
     "test:snapshots:update": {
-      "dependsOn": ["build:ladle"]
+      "dependsOn": ["build:storybook"]
     },
     "test:unit": {
       "dependsOn": ["build:buildinfo"],

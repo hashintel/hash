@@ -2286,6 +2286,7 @@ const ConversationAiAssistantPanel = ({
 
   const composerControlContext: PetrinautAiComposerControlContext = {
     conversationId,
+    inputMode: interactionMode,
     messages,
     status,
     stopped,
@@ -2294,6 +2295,10 @@ const ConversationAiAssistantPanel = ({
     reportExperimentRunning,
   };
   const composerControl = aiAssistant.renderComposerControl?.(
+    // eslint-disable-next-line react/refs -- the context's callbacks read refs when called, not while rendering; see the "use no memo" comment above.
+    composerControlContext,
+  );
+  const composerStatus = aiAssistant.renderComposerStatus?.(
     // eslint-disable-next-line react/refs -- the context's callbacks read refs when called, not while rendering; see the "use no memo" comment above.
     composerControlContext,
   );
@@ -2319,12 +2324,15 @@ const ConversationAiAssistantPanel = ({
   return (
     <AiAssistantContents
       additionalTab={aiAssistant.additionalTab}
+      headerActions={aiAssistant.headerActions}
+      actionsInputMode={aiAssistant.actionsInputMode}
       attentionAnnouncement={attentionAnnouncement}
       clearMessagesDisabled={
         voiceActive || aiAssistant.canClearMessages === false
       }
       composerFocusRequest={composerFocusRequest + focusRequest}
       composerControl={composerControl}
+      composerStatus={composerStatus}
       error={streamError ?? error}
       experimentStates={experimentStates}
       hostExperimentRunning={hostExperimentReport?.running ?? false}
@@ -2337,6 +2345,7 @@ const ConversationAiAssistantPanel = ({
       hostTabSelected={hostTabSelected}
       hiddenToolNames={hiddenAutomaticToolNames}
       messages={aiAssistant.mapMessagesForDisplay?.(messages) ?? messages}
+      renderSystemMessage={aiAssistant.renderSystemMessage}
       onClearMessages={() => {
         abortAutomaticTools();
         for (const controller of experimentControllersRef.current.values())
@@ -2483,7 +2492,12 @@ const ConversationAiAssistantPanel = ({
   );
 };
 
-/** Replace every conversation-owned hook and callback together when identity changes. */
+/**
+ * Replace every conversation-owned hook and callback together when identity changes.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export const AiAssistantPanel = (props: AiAssistantPanelProps) => (
   <ConversationAiAssistantPanel
     key={props.aiAssistant.conversationId ?? "generated-conversation"}

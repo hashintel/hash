@@ -416,6 +416,68 @@ describe("validateFlowDefinition", () => {
       ]);
     });
 
+    it("rejects consuming a value from outside a for-each step inside it", () => {
+      const consumingInside = (context: unknown) =>
+        diagnosticsOf({
+          ...baseDefinition,
+          steps: [
+            {
+              kind: "action",
+              stepId: "queries",
+              actionDefinitionId: "generateWebQueries",
+              description: "",
+              inputs: { prompt: { kind: "flow-input", inputName: "question" } },
+            },
+            {
+              kind: "for-each",
+              stepId: "each",
+              description: "",
+              over: {
+                kind: "step-output",
+                stepId: "queries",
+                outputName: "queries",
+              },
+              steps: [
+                answerStep("answer", {
+                  question: { kind: "item", access: "consume" },
+                  context,
+                }),
+              ],
+              collect: {
+                stepId: "answer",
+                outputName: "explanation",
+                as: "explanations",
+              },
+            },
+          ],
+        });
+
+      expect(
+        consumingInside({
+          kind: "flow-input",
+          inputName: "question",
+          access: "consume",
+        }),
+      ).toEqual([
+        {
+          severity: "error",
+          code: "consumedIntoForEach",
+          path: ["steps", 1, "steps", 0, "inputs", "context"],
+        },
+      ]);
+      expect(
+        consumingInside({
+          kind: "step-output",
+          stepId: "queries",
+          outputName: "queries",
+          access: "consume",
+        }).map(({ code }) => code),
+      ).toContain("consumedIntoForEach");
+      expect(
+        consumingInside({ kind: "flow-input", inputName: "question" }),
+      ).toEqual([]);
+    });
+
     it("rejects an item outside a for-each step", () => {
       expect(
         diagnosticsOf({

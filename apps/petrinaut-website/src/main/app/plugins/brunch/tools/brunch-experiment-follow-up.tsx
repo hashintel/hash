@@ -7,8 +7,8 @@ import {
   type EditorDraft,
 } from "./shared/brunch-draft-experiment-drafts";
 
+import type { PetrinautAiComposerControlContext } from "../chat/ai-assistant-composer-control";
 import type { BrunchEditorApi } from "../editor-api-plugin";
-import type { PetrinautAiComposerControlContext } from "@hashintel/petrinaut/ui";
 
 const sendResults = (
   drafts: ReturnType<typeof editorDraftsFor>,

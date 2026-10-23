@@ -5,9 +5,18 @@ import type {
   PetrinautMutations,
 } from "@hashintel/petrinaut-core";
 
+/**
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiViewportFrameResult = FrameSceneResult;
 
-/** Runtime parser used at a host-owned automatic dynamic-tool boundary. */
+/**
+ * Runtime parser used at a host-owned automatic dynamic-tool boundary.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiAutomaticToolSchema<Value> = {
   parse: (value: unknown) => Value;
 };
@@ -15,6 +24,9 @@ export type PetrinautAiAutomaticToolSchema<Value> = {
 /**
  * Capability passed to a host automatic tool: the same mutations, commands,
  * handle and diagnostics the built-in assistant tools execute against.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
  */
 export type PetrinautAiAutomaticToolExecuteParams = {
   input: unknown;
@@ -36,7 +48,12 @@ export type PetrinautAiAutomaticToolExecuteParams = {
   signal: AbortSignal;
 };
 
-/** A host-owned dynamic tool that executes without an inline user interaction. */
+/**
+ * A host-owned dynamic tool that executes without an inline user interaction.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiAutomaticTool = {
   /** Must match the dynamic tool name emitted by the host's AI transport. */
   toolName: string;

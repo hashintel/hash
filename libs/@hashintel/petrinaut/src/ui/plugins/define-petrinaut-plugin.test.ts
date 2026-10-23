@@ -30,6 +30,12 @@ const RootPlugin = definePetrinautPlugin({
   root: true,
 });
 
+const AssistantPlugin = definePetrinautPlugin({
+  id: "test.assistant",
+  name: "Assistant",
+  assistant: true,
+});
+
 const NoticePlugin = definePetrinautPlugin({
   id: "test.notice",
   name: "Notice",
@@ -153,6 +159,24 @@ describe("definePetrinautPlugin", () => {
 
     expect(plugin[pluginRuntime].hook(undefined as never)).toEqual({
       readOnlyAction: { run },
+    });
+  });
+
+  it("requires the assistant's content exactly when the manifest declares an assistant", () => {
+    const content = "Transcript";
+    const plugin = AssistantPlugin({ assistant: { content } });
+    // @ts-expect-error A declared assistant the contributions leave out.
+    AssistantPlugin({});
+    // @ts-expect-error An assistant without its content.
+    AssistantPlugin({ assistant: {} });
+    PalettePlugin({
+      buttons: { toggle: { icon: null, onClick: noop } },
+      // @ts-expect-error An assistant the manifest does not declare.
+      assistant: { content },
+    });
+
+    expect(plugin[pluginRuntime].hook(undefined as never)).toEqual({
+      assistant: { content },
     });
   });
 

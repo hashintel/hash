@@ -8,11 +8,17 @@
     "build": {
       "dependsOn": [
         "@hashintel/petrinaut-core#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "codegen": {
       "dependsOn": [
         "@hashintel/petrinaut-core#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "fix:eslint": {
@@ -22,7 +28,8 @@
         "codegen"
       ],
       "affectedBy": [
-        "@local/eslint"
+        "@local/eslint",
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:eslint": {
@@ -35,13 +42,17 @@
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
-        "@local/eslint"
+        "@local/eslint",
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:tsc": {
       "dependsOn": [
         "@hashintel/petrinaut-core#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     },
     "test:unit": {
@@ -52,6 +63,9 @@
       ],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     }
   }

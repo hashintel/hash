@@ -3,20 +3,22 @@ import {
   type OpenAIVoiceConfig,
 } from "./session/voice-interview-control";
 
+import type { InterviewBudgetLevel } from "../../../../../shared/interview-budget";
+import type { VoiceWord } from "../../../../../shared/voice-words";
 import type {
   BrunchPanelAdmissionTarget,
   BrunchPanelConversationTracker,
 } from "../brunch-panel-transport";
+import type {
+  PetrinautAiVoiceMode,
+  PetrinautAiVoiceModeContext,
+} from "../chat/ai-assistant-composer-control";
+import type { ToolApprovalState } from "../tools/brunch-mutation-approval";
 import type { VoiceMediationHistory } from "./history/voice-mediation-history";
-import type { ToolApprovalState } from "./live/live-brunch-bridge";
 import type {
   FlueConversationSettlement,
   FlueConversationState,
 } from "@flue/sdk";
-import type {
-  PetrinautAiVoiceMode,
-  PetrinautAiVoiceModeContext,
-} from "@hashintel/petrinaut/ui";
 
 /**
  * Binds the Voice interview control to one Brunch conversation: the tracker's
@@ -29,7 +31,9 @@ export const getBrunchVoiceMode = (
   settlements?: readonly FlueConversationSettlement[],
   snapshot?: FlueConversationState,
   mediationHistory?: VoiceMediationHistory,
+  interviewBudgetLevel?: InterviewBudgetLevel,
   toolApprovalState?: (toolCallId: string) => ToolApprovalState | null,
+  readWords?: () => readonly VoiceWord[],
 ): PetrinautAiVoiceMode | undefined => {
   if (!config) return undefined;
 
@@ -51,12 +55,16 @@ export const getBrunchVoiceMode = (
           );
   const subscribeToAdmissionFailure =
     tracker?.subscribeToAdmissionFailure.bind(tracker);
+  const recordInputMode = tracker?.recordInputMode.bind(tracker);
 
   return (context: PetrinautAiVoiceModeContext) => (
     <VoiceInterviewControl
       {...context}
       config={config}
+      interviewBudgetLevel={interviewBudgetLevel}
+      readWords={readWords}
       mediationHistory={mediationHistory}
+      onInputModeChange={recordInputMode}
       toolApprovalState={toolApprovalState}
       settlements={settlements}
       // Voice only observes this snapshot. Message replacement remains gated
