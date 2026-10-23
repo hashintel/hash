@@ -4,9 +4,13 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use core::time::Duration;
-use std::{fs, fs::File, path::Path};
+use std::{
+    fs::{self, File},
+    path::Path,
+};
 
 use arrow_array::{Array as _, Int64Array, ListArray, StringArray};
+use duckdb::types::Value;
 use hash_integrations_definition::{VariableName, Variables};
 use hash_integrations_engine::{
     CaptureError, SourceCapture, StatementError, Workspace, WorkspaceConfig,
@@ -193,7 +197,7 @@ async fn capture_restricted_sql() {
         .expect("the setting should be readable");
     assert_eq!(
         setting.iter().next().expect("should return a row").first(),
-        Some(&duckdb::types::Value::Boolean(false))
+        Some(&Value::Boolean(false))
     );
 }
 
@@ -316,10 +320,10 @@ async fn load_capture_types_and_empty_schema() {
         rows.iter().next(),
         Some(
             [
-                duckdb::types::Value::BigInt(5000),
-                duckdb::types::Value::Text("12.30".to_owned()),
-                duckdb::types::Value::BigInt(5000),
-                duckdb::types::Value::Text("a".to_owned())
+                Value::BigInt(5000),
+                Value::Text("12.30".to_owned()),
+                Value::BigInt(5000),
+                Value::Text("a".to_owned())
             ]
             .as_slice()
         ),
@@ -372,7 +376,7 @@ async fn load_invalid_capture_preserves_table() {
         .expect("should preserve the original table");
     assert_eq!(
         rows.iter().next(),
-        Some([duckdb::types::Value::Int(1)].as_slice()),
+        Some([Value::Int(1)].as_slice()),
         "should retain the original rows after a failed import"
     );
     let error = workspace
