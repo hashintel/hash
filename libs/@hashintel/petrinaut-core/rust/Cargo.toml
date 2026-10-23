@@ -1,0 +1,28 @@
+[package]
+name = "petrinaut-core"
+version.workspace = true
+edition.workspace = true
+license = "MIT OR Apache-2.0"
+publish = false
+authors.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+serde_json = { workspace = true, public = true }
+wasm-bindgen = { workspace = true, public = true, features = ["std"] }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+serde = { workspace = true, features = ["derive"] }
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lints]
+workspace = true

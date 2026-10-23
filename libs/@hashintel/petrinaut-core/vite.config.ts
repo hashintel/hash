@@ -20,6 +20,7 @@ export default defineConfig(({ command }) => ({
     lib: {
       entry: {
         index: resolve(packageRoot, "src/index.ts"),
+        rust: resolve(packageRoot, "src/rust/index.ts"),
         // Dedicated edge-safe entry exposing only the AI prompt + tool schemas.
         ai: resolve(packageRoot, "src/ai.ts"),
         // Node/tooling-only reusable model compiler. This depends on the
