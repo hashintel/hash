@@ -96,6 +96,7 @@ test("one delta then silence reports the silence as last-delta to terminal and n
       {
         turnId: "t1",
         purpose: "prompt",
+        startedAt: at(0),
         timeToFirstEventMs: 1_200,
         durationMs: 21_700,
         terminal: "turn",
@@ -128,6 +129,7 @@ test("one delta then silence reports the silence as last-delta to terminal and n
       {
         turnId: "t2",
         purpose: "prompt",
+        startedAt: at(22_000),
         timeToFirstEventMs: 100,
         durationMs: 30_100,
         terminal: "settlement",

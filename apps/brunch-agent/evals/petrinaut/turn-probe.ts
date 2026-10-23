@@ -2,7 +2,7 @@
  * One real Brunch turn through the built app, with no browser and no persona.
  * Sends a case's opening message in a conversation with no document binding,
  * so only the guidance and Ledger tools are mounted, then reports the reply,
- * the tool calls and what the Ledger recorded.
+ * the tool calls and what the Ledger recorded, and writes a run packet.
  *
  *   yarn workspace @apps/brunch-agent probe:turn [case] [provider/model] [thinking]
  *
@@ -32,6 +32,7 @@ import {
   flueConversationIdFrom,
 } from "../../src/shared/conversation/identity.ts";
 import { loadBuiltBrunchApplication } from "../../test/load-built-application.ts";
+import { writeRunPacket } from "./run-packet.ts";
 
 const [
   caseName = "pharma-cold-chain",
@@ -61,6 +62,10 @@ const report = (text: string) => process.stdout.write(`${text}\n`);
 
 const application = await loadBuiltBrunchApplication();
 const started = Date.now();
+const stop = new AbortController();
+const interrupt = () => stop.abort(new Error("Probe interrupted"));
+const stopSignals = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
+for (const signal of stopSignals) process.once(signal, interrupt);
 try {
   const identity = {
     principalKey: "probe",
@@ -76,7 +81,7 @@ try {
   });
   await client.wait(
     await client.send({ message: { kind: "user", body: opening } }),
-    { signal: AbortSignal.timeout(600_000) },
+    { signal: AbortSignal.any([AbortSignal.timeout(600_000), stop.signal]) },
   );
   const history = await client.history();
   writeFileSync(
@@ -117,4 +122,13 @@ try {
   report(`\nhistory: ${join(directory, "history.json")}`);
 } finally {
   await application.stop();
+  for (const signal of stopSignals) process.removeListener(signal, interrupt);
+  // After the app stops, the conversation store is final.
+  await writeRunPacket(directory).then(
+    () => report(`packet: ${join(directory, "evidence", "packet.md")}`),
+    (error: unknown) =>
+      process.stderr.write(
+        `Could not write the run packet (retry with \`yarn workspace @apps/brunch-agent packet:run ${directory}\`): ${String(error)}\n`,
+      ),
+  );
 }

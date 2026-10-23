@@ -354,7 +354,10 @@ test("refuses a static mutation on a read-only net before its host boundary runs
 });
 
 test("starts Voice from the composer in the editor's panel and pauses it when the panel closes", async () => {
-  const events: string[] = [];
+  // Controls are spies, not closures over test state: the React Compiler
+  // hoists a closure the component doesn't capture out of the test's scope.
+  const endVoice = vi.fn(async () => {});
+  const pauseVoice = vi.fn();
   const VoiceMode = ({
     registerVoiceModeControls,
     isAiAssistantOpen,
@@ -363,12 +366,8 @@ test("starts Voice from the composer in the editor's panel and pauses it when th
     useEffect(
       () =>
         registerVoiceModeControls({
-          end: async () => {
-            events.push("end");
-          },
-          pause: () => {
-            events.push("pause");
-          },
+          end: endVoice,
+          pause: pauseVoice,
           reconnect: () => {},
           resume: () => {},
           setMicrophoneMuted: () => {},
@@ -396,7 +395,7 @@ test("starts Voice from the composer in the editor's panel and pauses it when th
     within(panel).getByRole("button", { name: "Start voice mode" }),
   );
   expect(await screen.findByText("Voice voice open")).toBeTruthy();
-  expect(events).toEqual([]);
+  expect(pauseVoice).not.toHaveBeenCalled();
 
   act(() => screen.getByRole("button", { name: "Close AI assistant" }).click());
 
@@ -409,6 +408,7 @@ test("starts Voice from the composer in the editor's panel and pauses it when th
         ?.hasAttribute("inert"),
     ).toBe(true),
   );
-  expect(events).toEqual(["pause"]);
+  expect(pauseVoice).toHaveBeenCalledOnce();
+  expect(endVoice).not.toHaveBeenCalled();
   expect(screen.getByText("Voice voice closed")).toBeTruthy();
 });
