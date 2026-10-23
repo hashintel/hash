@@ -192,12 +192,9 @@ export const EmbedContent = () => {
       }
       setPendingSaveRequestId(null);
       if (payload.result.ok) {
-        const {
-          savedSnapshot,
-          mode,
-          revisions: updatedRevisions,
-        } = payload.result;
-        setRevisions(updatedRevisions);
+        // The revision list comes only from `revisionsList`, which the host
+        // sends again once its history refetch includes this save.
+        const { savedSnapshot, mode } = payload.result;
         setState((prev) =>
           prev
             ? {
