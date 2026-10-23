@@ -254,6 +254,13 @@ test("runs a plugin button's onClick, then its command, through the registry Pet
   expect(runCalls).toEqual(["onClick", "command"]);
 });
 
+test("includes the Performance plugin without a host-supplied plugin list", () => {
+  render(<Petrinaut handle={createHandle()} />);
+  expect(
+    screen.getByRole("button", { name: "Toggle performance information" }),
+  ).toBeTruthy();
+});
+
 /** One entry per mount of the mount plugin's hook. */
 const hookMounts: string[] = [];
 

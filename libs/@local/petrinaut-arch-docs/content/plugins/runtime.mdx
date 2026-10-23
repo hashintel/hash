@@ -122,6 +122,14 @@ again and re-renders every outlet.
 
 ## Performance measurements
 
+`<Petrinaut>` includes the Performance plugin alongside the host's plugins.
+Its [panels](layer:ui.plugins.performance) read the public performance API.
+The plugin declares persisted switches, two commands, a top-bar button and
+a root contribution. Both panels start hidden. The reader mounts while
+either panel is visible, so toggling the panels preserves the host and its
+settings without keeping an idle subscription. Snapshot updates stay inside
+the panel component and do not republish plugin contributions.
+
 `PluginEditorRuntime` owns the performance collector. Plugins request its
 read-only capability through `access.performance`; the same API is available
 to first-party and third-party plugins. Subscription owns collection, so a
