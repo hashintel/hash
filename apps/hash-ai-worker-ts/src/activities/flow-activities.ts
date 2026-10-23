@@ -2,6 +2,7 @@ import { aggregateAction } from "./flow-activities/aggregate-action.js";
 import { analyzeEntityDataAction } from "./flow-activities/analyze-entity-data-action.js";
 import { answerQuestionAction } from "./flow-activities/answer-question-action.js";
 import { createEntityAction } from "./flow-activities/create-entity-action.js";
+import { draftMessageAction } from "./flow-activities/draft-message-action.js";
 import { filterListAction } from "./flow-activities/filter-list-action.js";
 import { findAction } from "./flow-activities/find-action.js";
 import { generateChartConfigAction } from "./flow-activities/generate-chart-config-action.js";
@@ -38,6 +39,7 @@ export const createFlowActionActivities: CreateFlowActivities<
   generateStructuralQueryAction,
   answerQuestionAction,
   createEntityAction,
+  draftMessageAction,
   filterListAction,
   findAction,
   generateChartConfigAction,
