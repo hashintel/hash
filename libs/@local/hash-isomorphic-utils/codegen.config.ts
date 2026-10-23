@@ -12,7 +12,8 @@ const config: CodegenConfig = {
     "./src/graphql/schema-types.gen.ts": {
       plugins: ["typescript"],
       config: {
-        skipTypename: true,
+        // TODO: set `skipTypename: true` if Apollo Client stops adding
+        // `__typename` at runtime.
         // Use shared scalars
         scalars: _localRelativeScalars,
       },
@@ -28,6 +29,11 @@ const config: CodegenConfig = {
         scalars: _localRelativeScalars,
         importSchemaTypesFrom: "./src/graphql/schema-types.gen.ts",
         importExtension: ".js",
+        // Apollo Client adds `__typename` to every selection set except the
+        // root operation type.
+        // TODO: remove both options if Apollo Client stops adding `__typename`.
+        nonOptionalTypename: true,
+        skipTypeNameForRoot: true,
       },
     },
   },
