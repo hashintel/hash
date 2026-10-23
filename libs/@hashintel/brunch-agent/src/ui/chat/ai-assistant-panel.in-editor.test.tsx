@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
+import { canonicalContent } from "@hashintel/brunch-agent";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 import {
@@ -19,6 +20,8 @@ import {
   type PluginHook,
 } from "@hashintel/petrinaut/ui/plugin";
 
+import { createInBandBrowserCalls } from "../../client/tools/in-band-browser-call";
+import { BrunchAssistantContext, brunchPlugin } from "../editor-api-plugin";
 import {
   InProcessLspWorker,
   NoopResizeObserver,
@@ -31,6 +34,7 @@ import type {
   PetrinautAiTransport,
 } from "./ai-assistant-panel";
 import type { PetrinautAiAssistant } from "./petrinaut";
+import type { FlueClient } from "@flue/sdk";
 import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
 import type { UIMessageChunk } from "ai";
 
@@ -411,4 +415,168 @@ test("starts Voice from the composer in the editor's panel and pauses it when th
   expect(pauseVoice).toHaveBeenCalledOnce();
   expect(endVoice).not.toHaveBeenCalled();
   expect(screen.getByText("Voice voice closed")).toBeTruthy();
+});
+
+test("a call claimed in one editor never runs in a replacement with identical content, and posts no result (T1)", async () => {
+  const place = {
+    id: "queue",
+    name: "Queue",
+    colorId: null,
+    dynamicsEnabled: false,
+    differentialEquationId: null,
+    x: 0,
+    y: 0,
+  };
+  const binding = { conversationId: "conversation", documentId: "net" };
+  const requests: { readonly method: string; readonly url: string }[] = [];
+  // The Brunch server, as the browser calls see it: a claim is granted, and
+  // a result or failure is accepted.
+  const brunchFetch = vi.fn<typeof fetch>(async (url, init) => {
+    const method = init?.method ?? "GET";
+    requests.push({
+      method,
+      url: url instanceof Request ? url.url : url.toString(),
+    });
+    return method === "GET"
+      ? Response.json({
+          capability: "capability",
+          binding: canonicalContent(binding),
+          toolName: "addPlace",
+          input: place,
+        })
+      : new Response(null, { status: 200 });
+  });
+  // The first editor's call waits at admission, after its claim, until the
+  // editor has been replaced.
+  let admit = () => {};
+  const admission = new Promise<void>((resolve) => {
+    admit = resolve;
+  });
+  const ranOn: PetrinautDocHandle[] = [];
+  /** Whether each in-band run was already stopped when it reached its tool. */
+  const reachedToolStopped: boolean[] = [];
+  const passthrough = { parse: (raw: unknown) => raw };
+  const assistantFor = (
+    documentHandle: PetrinautDocHandle,
+    history: {
+      readonly transport: PetrinautAiTransport;
+      readonly messages: PetrinautAiMessage[];
+      readonly waitForAdmission: boolean;
+    },
+  ): PetrinautAiAssistant => {
+    const calls = createInBandBrowserCalls({
+      client: Promise.resolve({
+        url: "http://brunch.local/agents/petrinaut/instance",
+      } as FlueClient),
+      ownerKey: "owner",
+      fetch: brunchFetch,
+      binding,
+      metadataFor: () => undefined,
+      prepareInput: () => {},
+      ...(history.waitForAdmission
+        ? { admit: () => admission.then(() => ({ admitted: true }) as const) }
+        : {}),
+      // The replacement holds the same content, so its revision matches.
+      acceptsRevision: () => true,
+    });
+    return {
+      presentation: "brunch",
+      conversationId: binding.conversationId,
+      transport: history.transport,
+      // Brunch's history arrives as followed messages.
+      messages: history.messages,
+      followMessages: { canReplace: () => true },
+      documentHandle,
+      automaticTools: [
+        {
+          toolName: "addPlace",
+          inputSchema: passthrough,
+          outputSchema: passthrough,
+          execute: ({ edit, handle }) => {
+            ranOn.push(handle);
+            return edit.addPlace(place as Parameters<typeof edit.addPlace>[0]);
+          },
+        },
+      ],
+      inBandBrowserTools: {
+        has: calls.has,
+        run: (call, execute) =>
+          calls.run(call, (input) => {
+            reachedToolStopped.push(call.signal.aborted);
+            return execute(input);
+          }),
+      },
+    };
+  };
+
+  const firstHandle = createJsonDocHandle({ initial: emptyNet });
+  const firstTransport = transportOf([toolCall("add", "addPlace", place)]);
+  const { rerender } = render(
+    <BrunchAssistantContext
+      value={assistantFor(firstHandle, {
+        transport: firstTransport,
+        messages: [],
+        waitForAdmission: true,
+      })}
+    >
+      <Petrinaut handle={firstHandle} plugins={[brunchPlugin]} />
+    </BrunchAssistantContext>,
+  );
+  await sendFromComposer("Add a queue");
+  await waitFor(() =>
+    expect(requests).toEqual([
+      {
+        method: "GET",
+        url: expect.stringContaining("/browser-calls/add?binding=") as string,
+      },
+    ]),
+  );
+
+  // The host loads the same saved net again, into a new handle. The
+  // replacement's history shows the call, still pending.
+  const secondHandle = createJsonDocHandle({ initial: emptyNet });
+  const secondTransport = transportOf([]);
+  rerender(
+    <BrunchAssistantContext
+      value={assistantFor(secondHandle, {
+        transport: secondTransport,
+        messages: [
+          ...(firstTransport.requests[0] ?? []),
+          {
+            id: "turn",
+            role: "assistant",
+            parts: [
+              {
+                type: "dynamic-tool",
+                toolName: "addPlace",
+                toolCallId: "add",
+                state: "input-available",
+                input: place,
+              },
+            ],
+          },
+        ],
+        waitForAdmission: false,
+      })}
+    >
+      <Petrinaut handle={secondHandle} plugins={[brunchPlugin]} />
+    </BrunchAssistantContext>,
+  );
+  // Open the replacement's panel, if it isn't open already, on the same
+  // conversation.
+  const show = screen.queryByRole("button", { name: "Show AI assistant" });
+  if (show !== null) fireEvent.click(show);
+  await screen.findByRole("textbox", { name: "Message AI assistant" });
+  admit();
+  await waitFor(() => expect(reachedToolStopped).toEqual([true]));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+  expect(secondHandle.id).not.toBe(firstHandle.id);
+  // The replacement never claims or runs the call.
+  expect(ranOn).not.toContain(secondHandle);
+  expect(secondHandle.doc()?.places).toEqual([]);
+  expect(secondTransport.requests).toEqual([]);
+  // The first editor's run, stopped with its editor, posts no result and no
+  // failure: the claim is the only request.
+  expect(requests).toHaveLength(1);
 });
