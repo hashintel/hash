@@ -3,12 +3,20 @@ import { readdirSync, readFileSync } from "node:fs";
 import proto from "@temporalio/proto";
 import { describe, expect, it } from "vitest";
 
+import {
+  parseFlowRunRecord,
+  serializeFlowRunRecord,
+} from "@local/hash-isomorphic-utils/flows/run-record";
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
-import { getFlowRunDetailedFieldsFromHistory } from "./get-flow-run-details.js";
+import {
+  getFlowRunDetailedFieldsFromHistory,
+  getFlowRunDetailedFieldsFromRecord,
+} from "./get-flow-run-details.js";
+import { getFlowRunRecordFromHistory } from "./run-record.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
-import type { FlowRunHistoryRecord } from "./get-flow-run-details.js";
+import type { FlowRunHistoryRecord } from "./run-record.js";
 
 const fixturesUrl = new URL(
   "../../tests/fixtures/flow-run-histories/",
@@ -175,4 +183,41 @@ describe("getFlowRunDetailedFieldsFromHistory", () => {
       },
     ]);
   });
+});
+
+describe("getFlowRunDetailedFieldsFromRecord", () => {
+  it.each(fixtureNames)(
+    "returns the same details from the stored record of %s as from its history",
+    async (fixtureName) => {
+      const fixture = loadFixture(fixtureName);
+      const workflowId = workflowIdOf(fixture);
+      const resolvePayloadContext = { storageProvider, workflowId };
+
+      const storedRecord = parseFlowRunRecord(
+        serializeFlowRunRecord(
+          getFlowRunRecordFromHistory(fixture, { workflowId }),
+        ),
+      );
+
+      expect(
+        JSON.parse(
+          JSON.stringify(
+            await getFlowRunDetailedFieldsFromRecord(
+              storedRecord,
+              resolvePayloadContext,
+            ),
+          ),
+        ),
+      ).toStrictEqual(
+        JSON.parse(
+          JSON.stringify(
+            await getFlowRunDetailedFieldsFromHistory(
+              fixture,
+              resolvePayloadContext,
+            ),
+          ),
+        ),
+      );
+    },
+  );
 });
