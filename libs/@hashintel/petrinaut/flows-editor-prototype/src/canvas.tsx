@@ -736,6 +736,17 @@ export const FlowCanvas = ({
     return () => clearTimeout(timer);
   }, [focusId, flow]);
 
+  const [startViewport] = useState(() => {
+    const start = document.positions[START_ID] ?? { x: 360, y: 220 };
+    return ui.viewport
+      ? {
+          x: ui.viewport.left - start.x * ui.viewport.zoom,
+          y: ui.viewport.top - start.y * ui.viewport.zoom,
+          zoom: ui.viewport.zoom,
+        }
+      : undefined;
+  });
+
   const nodes = toNodes(
     { ...document, positions: { ...document.positions, ...dragPositions } },
     ui.selectedId,
@@ -838,8 +849,9 @@ export const FlowCanvas = ({
           },
         )
       }
-      fitView
+      fitView={!startViewport}
       fitViewOptions={fitOptions}
+      defaultViewport={startViewport}
       panOnDrag={mode === "hand" ? true : [1, 2]}
       selectionOnDrag={mode === "select"}
       minZoom={0.2}

@@ -247,6 +247,7 @@ export const AddNodePicker = ({
       label="Add node"
       position={picker.anchor === "toolbar" ? "top" : "bottom-start"}
       className={pickerWidthStyle}
+      keepInCanvasWidth={picker.anchor === "toolbar" ? undefined : 240}
       onClose={close}
       header={
         <SearchHeader

@@ -836,6 +836,8 @@ const rowActionStyle = css({
   transition: "[opacity 0.15s ease]",
 });
 
+const tableHeadStyle = css({ textStyle: "xs", color: "neutral.fg.subtle" });
+
 const RunFormFields = () => {
   const { document, setDocument } = useEditor();
 
@@ -878,6 +880,53 @@ const RunFormFields = () => {
         ],
       };
     });
+
+  // Figma J4: Start lists its inputs as a Name | Type table; the per-input editor (Default value, Add input) is `?full`.
+  if (inScreenState && !showFull) {
+    const typeChoices = (input: EditorDocument["inputs"][number]) => {
+      const entityType = findEntityType(
+        document.inputEntityTypes[input.name] ?? "",
+      );
+      return inputKindChoices.map((choice) =>
+        choice.value === (input.array ? "EntityId[]" : "EntityId") && entityType
+          ? {
+              ...choice,
+              text: input.array
+                ? `List of ${entityType.title}`
+                : entityType.title,
+            }
+          : choice,
+      );
+    };
+    return (
+      <Section title="Inputs">
+        <div className={css({ display: "contents" })} data-row>
+          <span className={tableHeadStyle}>Name</span>
+          <span className={tableHeadStyle}>Type</span>
+        </div>
+        {document.inputs.map((input) => (
+          <PropertyRow key={input.name} label={input.label ?? input.name}>
+            <Select
+              size="sm"
+              aria-label={`${input.label ?? input.name} type`}
+              items={typeChoices(input)}
+              value={`${input.payloadKind}${input.array ? "[]" : ""}`}
+              onChange={(value) => {
+                if (!value) {
+                  return;
+                }
+                updateInput(input.name, {
+                  payloadKind: value.replace("[]", "") as PayloadKind,
+                  array: value.endsWith("[]"),
+                });
+                setDefault(input.name, null);
+              }}
+            />
+          </PropertyRow>
+        ))}
+      </Section>
+    );
+  }
 
   return (
     <Section title="Inputs">

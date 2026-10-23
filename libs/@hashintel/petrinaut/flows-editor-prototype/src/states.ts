@@ -687,6 +687,14 @@ const figmaStates: ScreenState[] = [
   },
 ];
 
+/** Where Start sits in the canvas in the Figma frames (px from the canvas's top-left): J2 A at 100%, J2 B at the 90% scale its nodes are drawn at. */
+const figmaViewports: Record<string, EditorUi["viewport"]> = {
+  "j2-a1": { left: 40, top: 349, zoom: 1 },
+  "j2-a2": { left: 40, top: 349, zoom: 1 },
+  "j2-b1": { left: 40, top: 346, zoom: 0.9 },
+  "j2-b2": { left: 40, top: 346, zoom: 0.9 },
+};
+
 /**
  * Per-state panel switches: J3 and rel-d2 (a J3 Explore screen) draw no "Inputs" header; J2's query reads "Add
  * condition" with no "Where".
@@ -694,6 +702,7 @@ const figmaStates: ScreenState[] = [
 export const screenStates: ScreenState[] = figmaStates.map((state) => {
   const hideInputsHeader = state.journey === 3;
   const plainQuery = state.journey <= 2;
+  const viewport = figmaViewports[state.id];
   return hideInputsHeader || plainQuery
     ? {
         ...state,
@@ -701,7 +710,7 @@ export const screenStates: ScreenState[] = figmaStates.map((state) => {
           const created = state.create();
           return {
             ...created,
-            ui: { ...created.ui, hideInputsHeader, plainQuery },
+            ui: { ...created.ui, hideInputsHeader, plainQuery, viewport },
           };
         },
       }

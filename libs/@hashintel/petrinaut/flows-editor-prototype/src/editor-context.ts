@@ -33,6 +33,8 @@ export type EditorUi = {
   hideInputsHeader?: boolean;
   /** J2's query has no "Where" label and adds a "condition"; J3's has "Where" / "And" and "Add filter". */
   plainQuery?: boolean;
+  /** Opens the canvas at this zoom with Start's top-left this far (px) inside the canvas, instead of fitting the flow. */
+  viewport?: { left: number; top: number; zoom: number };
 };
 
 export const initialUi: EditorUi = {

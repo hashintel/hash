@@ -19,6 +19,9 @@ import {
 /** How far the panel's right edge is inside the window edge in Figma (1436 of 1440). */
 const panelInset = 4;
 
+/** The gap kept between a clamped menu and the canvas edge (the canvas's fit padding). */
+const canvasInset = 48;
+
 type Position = React.ComponentProps<typeof Menu>["position"];
 
 export const OpenMenu = ({
@@ -31,6 +34,7 @@ export const OpenMenu = ({
   className,
   label,
   alignToPanel = false,
+  keepInCanvasWidth,
 }: {
   /** The menu's name: the DS Menu content is labelled by its trigger. */
   label: string;
@@ -44,6 +48,8 @@ export const OpenMenu = ({
   className?: string;
   /** Open with the menu's right edge on the properties panel's, under the anchor (Figma J3 · C1). */
   alignToPanel?: boolean;
+  /** The menu's width: it opens no closer to the canvas's right edge than fits it, so it never covers the panel. */
+  keepInCanvasWidth?: number;
 }) => {
   const triggerRef = useRef<HTMLSpanElement>(null);
   // The anchor's place when the menu opened; the menu stays where it opened, as a DS Menu does. Read after mount:
@@ -61,6 +67,7 @@ export const OpenMenu = ({
         const element = firstAnchor.current.current;
         const box = element?.getBoundingClientRect() ?? null;
         const panel = element?.closest("aside");
+        const canvas = element?.closest(".react-flow");
         setRect(
           box && panel && alignToPanel
             ? new DOMRect(
@@ -69,7 +76,19 @@ export const OpenMenu = ({
                 box.width,
                 box.height,
               )
-            : box,
+            : box && canvas && keepInCanvasWidth
+              ? new DOMRect(
+                  Math.min(
+                    box.left,
+                    canvas.getBoundingClientRect().right -
+                      canvasInset -
+                      keepInCanvasWidth,
+                  ),
+                  box.top,
+                  box.width,
+                  box.height,
+                )
+              : box,
         );
       });
     });
@@ -78,7 +97,7 @@ export const OpenMenu = ({
       cancelAnimationFrame(inner);
     };
     // The anchor names the place once, as the first anchor does.
-  }, [alignToPanel]);
+  }, [alignToPanel, keepInCanvasWidth]);
 
   useEffect(() => {
     if (rect) {
