@@ -10,6 +10,7 @@ import {
   createContext,
   type ReactNode,
   use,
+  useEffect,
   useLayoutEffect,
   useState,
 } from "react";
@@ -37,6 +38,11 @@ import { ActiveNetContext } from "../../react/state/active-net-context";
 import { useReadOnlyReason } from "../../react/state/use-read-only-reason";
 import { createAccessFamilies } from "./plugin-access";
 import { useCanvasControllerRegistration } from "./plugin-editor/use-canvas-controller-registration";
+import {
+  createPluginPerformance,
+  type PluginPerformanceRuntime,
+} from "./plugin-performance";
+import { PluginPerformanceContext } from "./plugin-profile";
 
 import type { ExperimentRecord } from "../../react/experiments/context";
 import type { PetrinautNavigationState } from "../../react/navigation";
@@ -61,6 +67,7 @@ interface PluginEditorSnapshot {
 
 /** The editor as plugins see it, one per core instance. */
 export interface PluginEditorRuntime {
+  readonly performance: PluginPerformanceRuntime;
   /** Counts the editors a provider has built; hosts key by it, so they remount with a new one. */
   readonly generation: number;
   readonly instance: Petrinaut;
@@ -78,6 +85,7 @@ const createPluginEditor = (
   canvas: CanvasRegistration,
   snapshot: PluginEditorSnapshot,
 ): PluginEditorRuntime => {
+  const performance = createPluginPerformance();
   const latest = createReadableStore(snapshot.state);
   const title = createReadableStore(snapshot.title);
   const diagnostics = createReadableStore(snapshot.diagnostics);
@@ -88,10 +96,12 @@ const createPluginEditor = (
   const navigation = createReadableStore(snapshot.navigation);
 
   return {
+    performance,
     generation,
     instance,
     canvas,
     families: createAccessFamilies({
+      performance: performance.api,
       instance,
       latest,
       title,
@@ -222,10 +232,14 @@ export const PluginEditorProvider = ({ children }: { children: ReactNode }) => {
     );
   }
 
+  useEffect(() => editor.performance.connect(), [editor]);
+
   return (
     <PluginEditorContext value={editor}>
-      <PluginEditorSync editor={editor} snapshot={snapshot} />
-      {children}
+      <PluginPerformanceContext value={editor.performance}>
+        <PluginEditorSync editor={editor} snapshot={snapshot} />
+        {children}
+      </PluginPerformanceContext>
     </PluginEditorContext>
   );
 };

@@ -68,6 +68,7 @@ match the built-in buttons.
 ```ts
 access: {
   document?: "read" | "write";
+  performance?: "read";
   experiments?: "read" | "write";
   editor?: "read" | "write";
 }
@@ -78,6 +79,7 @@ access: {
 | `document`    | `PluginDocumentReader`: `id`, `net`, `title` and `diagnostics` (stores), `extensions`, `diagnose()` | `PluginDocument`: `edit.*` (including `applyAutoLayout`), `setTitle()` |
 | `experiments` | `PluginExperimentsReader`: `records`, `optimizationUnavailableReason` (stores)                      | `PluginExperiments`: `run()`                                           |
 | `editor`      | `PluginEditorReader`: `navigation` (store)                                                          | `PluginEditor`: `navigate()`, `reveal()`                               |
+| `performance` | `PluginPerformance`: `snapshot` (store)                                                             | Unavailable                                                            |
 
 - **Undeclared means absent.** A family left out of `access` is missing from
   the `api` type and from the object, as is a writer member at `"read"`.
@@ -99,6 +101,7 @@ access: {
 | `document`                                      | `access.document`    | See [`api.document`](#apidocument).                                                                                              |
 | `experiments`                                   | `access.experiments` | `records` and `optimizationUnavailableReason` are stores. `run(request, options?)` is not refused while the editor is read-only. |
 | `editor`                                        | `access.editor`      | See [`api.editor`](#apieditor).                                                                                                  |
+| `performance`                                   | `access.performance` | See [`api.performance`](#apiperformance).                                                                                        |
 
 `errors.capture` takes `context` as `{ source?, tags? }`, with string, number
 or boolean tags. `source` defaults to `plugin.<id>`, and `tags.pluginId` is
@@ -111,6 +114,49 @@ adds a button that runs `onClick` and closes the toast.
 
 `run` is the experiment host's `runExperiment(request, { signal, onProgress })`,
 described in [AI-created experiments](doc:experiments/ai-created-experiments).
+
+### `api.performance`
+
+Declare `access: { performance: "read" }` and subscribe to
+`api.performance.snapshot` with `useStore` in a mounted component. Mount
+that component only while measurements are wanted. Reading `get()` alone
+returns the last snapshot without starting collection. The host shares one
+collector across subscribers; the last unsubscribe stops it.
+
+```tsx
+const PerformancePlugin = definePetrinautPlugin({
+  id: "example.performance",
+  name: "Performance",
+  access: { performance: "read" },
+  root: true,
+});
+
+const Frames = ({ performance }: { performance: PluginPerformance }) => {
+  const snapshot = useStore(performance.snapshot);
+  return <output>{snapshot.frames.at(-1)?.fps.toFixed(0) ?? "Waiting"}</output>;
+};
+
+const usePerformancePlugin: PluginHook<typeof PerformancePlugin> = (api) => ({
+  root: <Frames performance={api.performance} />,
+});
+```
+
+| Field                  | Meaning                                                                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `collecting`, `hidden` | Whether a subscriber requests collection, and whether the document is hidden.                                                                                |
+| `frames`               | Up to 24 samples, oldest first. Each holds a monotonic timestamp, actual elapsed milliseconds, callback rate in FPS, and longest callback gap.               |
+| `observedMs`           | Elapsed foreground time since this observation window started.                                                                                               |
+| `plugins`              | Up to 128 active hosts, with id, name, first-publication latency, publication count and average rate, profiled commit count, and summed render milliseconds. |
+| `omittedPlugins`       | Active hosts beyond the snapshot's limit.                                                                                                                    |
+| `reactProfiling`       | `waiting-for-callback` until React sends a profiling callback during this window, then `observed`.                                                           |
+| `observerMs`           | Measured synchronous collector work from the preceding sample, including listener delivery.                                                                  |
+
+Snapshots, their arrays and entries are frozen. Publications occur at most
+once every 250 ms of foreground animation callbacks. Collection restarts
+with empty samples and counters after a visibility change or a new first
+subscriber. First-publication latency survives those restarts and lasts for
+the host's lifetime. The [measurement contract](doc:plugins/runtime#performance-measurements)
+defines which work each metric covers.
 
 ### `api.document`
 

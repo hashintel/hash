@@ -49,6 +49,12 @@ export type {
   PluginNotifications,
 } from "./plugins/plugin-access";
 export { usePluginService } from "./plugins/plugins-provider";
+export type {
+  PluginPerformance,
+  PluginPerformanceSnapshot,
+  PluginPerformanceEntry,
+  PluginFrameSample,
+} from "./plugins/plugin-performance";
 export {
   AssistantPanelTitle,
   useAssistantPanel,
