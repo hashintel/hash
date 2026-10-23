@@ -7051,6 +7051,8 @@ dependencies = [
  "duckdb",
  "error-stack",
  "hash-integrations-definition",
+ "opentelemetry",
+ "opentelemetry_sdk",
  "pretty_assertions",
  "proptest",
  "serde",
