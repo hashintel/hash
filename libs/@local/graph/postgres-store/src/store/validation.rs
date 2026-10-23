@@ -130,6 +130,27 @@ pub struct StoreProvider<'a, S> {
 }
 
 impl<'a, S> StoreProvider<'a, S> {
+    /// The caller must authorize the supplied edition before caching it. Validation reads it
+    /// directly, including changes that have not yet been persisted.
+    pub(crate) async fn grant_entity_access(&self, entity: Entity)
+    where
+        S: Sync,
+    {
+        self.cache
+            .entities
+            .grant(entity.metadata.record_id.entity_id, entity)
+            .await;
+    }
+
+    /// Records a missing or hidden endpoint as denied so validation cannot fall back to its older
+    /// database state.
+    pub(crate) async fn deny_entity_access(&self, entity_id: EntityId)
+    where
+        S: Sync,
+    {
+        self.cache.entities.deny(entity_id).await;
+    }
+
     pub fn new(store: &'a S, policy_components: &'a PolicyComponents) -> Self {
         Self {
             store,
