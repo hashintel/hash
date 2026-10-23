@@ -188,19 +188,28 @@ const createDefaults = (
         );
 
         if (options.frameworks?.includes("effect") ?? false) {
-          const effectTesters = ["it.effect", "it.live"].flatMap((tester) => [
-            tester,
-            `${tester}.skip`,
-            `${tester}.only`,
-            `${tester}.each`,
-          ]);
+          const effectTesters = ["it.effect", "it.live", "it.prop"].flatMap(
+            (tester) => [
+              tester,
+              `${tester}.skip`,
+              `${tester}.only`,
+              `${tester}.each`,
+            ],
+          );
 
           Object.assign(
             rules,
             defineRules({
               "vitest/no-standalone-expect": [
                 "deny", // @effect/vitest declares tests through `it.effect` and `it.live`, and `layer` hands its tests an `it` of their own.
-                { additionalTestBlockFunctions: ["it", ...effectTesters] },
+                {
+                  additionalTestBlockFunctions: [
+                    "it",
+                    "it.effect.prop",
+                    "it.live.prop",
+                    ...effectTesters,
+                  ],
+                },
               ],
               "vitest/require-hook": [
                 "deny", // @effect/vitest's `layer` provides services to the tests it groups.
@@ -394,6 +403,7 @@ const createDefaults = (
       "unicorn/no-negated-condition": "allow", // ESLint checks the same condition forms without duplicate diagnostics.
       "unicorn/no-nested-ternary": "allow", // ESLint forbids all nested ternaries, including parenthesized ones.
       "unicorn/no-null": "allow", // `null` is a useful type to indicate explicit absence of a value
+      "unicorn/number-literal-case": "allow", // oxfmt owns numeric-literal formatting
       "func-names": ["deny", "always", { generators: "never" }], // Name functions for stack traces without naming generator callbacks.
       "typescript/no-empty-interface": ["deny", { allowSingleExtends: true }], // Permit named interfaces for readable editor type hints.
       "typescript/no-empty-object-type": [
