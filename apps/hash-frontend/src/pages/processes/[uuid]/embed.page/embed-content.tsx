@@ -18,7 +18,6 @@ import {
   type ErrorTracker,
   ErrorTrackerContext,
   isSDCPNEqual,
-  Petrinaut,
   type PetrinautDocHandle,
   type SDCPN,
 } from "@hashintel/petrinaut";
@@ -36,10 +35,8 @@ import {
 } from "../../shared/messages";
 import { useIframeBridge } from "../../shared/use-iframe-bridge";
 import { type EmbedChrome, EmbedChromeContext } from "./embed-chrome-context";
-import { embedChromePlugin } from "./embed-chrome-plugin";
+import { EmbedPetrinaut } from "./embed-petrinaut";
 import { HASHPetrinautOptimizationProvider } from "./hash-petrinaut-optimization-provider";
-
-const embedPlugins = [embedChromePlugin];
 
 /**
  * Errors Petrinaut catches itself, such as a failing plugin's, never reach the
@@ -47,13 +44,6 @@ const embedPlugins = [embedChromePlugin];
  */
 const embedErrorTracker: ErrorTracker = {
   captureException: reportIframePetrinautError,
-};
-
-const noNetSwitchingError = () => {
-  throw new Error(
-    "Net switching from inside the Petrinaut editor is not supported; " +
-      "the host (process-editor) drives all net loads via the bridge.",
-  );
 };
 
 type EditorState = {
@@ -121,7 +111,16 @@ export const EmbedContent = () => {
    */
   const titleRef = useRef<string>("");
   titleRef.current = state?.title ?? "";
+  const readTitle = useCallback(() => titleRef.current, []);
 
+  /**
+   * Every `init` and `load` creates a new handle, even when the content is
+   * unchanged (a revision of the same net), and with no `id`, so each gets a
+   * fresh one. A new handle starts a new editor, which remounts Petrinaut's
+   * assistant panel: runs started against the previous handle abort, and
+   * Brunch stops the turn that editor sent. An assistant action is never
+   * carried into an editor that didn't send it.
+   */
   const bridge = useIframeBridge({
     onInit: (payload) => {
       const handle = createJsonDocHandle({
@@ -342,15 +341,12 @@ export const EmbedContent = () => {
       >
         <EmbedChromeContext value={chrome}>
           <ErrorTrackerContext value={embedErrorTracker}>
-            {/* The title is the breadcrumbs' final crumb, so the editor's
-                own title field stays hidden. */}
-            <Petrinaut
+            <EmbedPetrinaut
               handle={state.handle}
-              createNewNet={noNetSwitchingError}
-              existingNets={[]}
-              hideNetManagementControls="all"
-              loadPetriNet={noNetSwitchingError}
-              plugins={embedPlugins}
+              savedEntityId={
+                state.mode.kind === "saved" ? state.mode.entityId : null
+              }
+              readTitle={readTitle}
               readonly={state.readonly}
               setTitle={handleSetTitle}
               title={state.title}

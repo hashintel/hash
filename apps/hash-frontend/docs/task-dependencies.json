@@ -4,6 +4,7 @@
     "@blockprotocol/graph",
     "@blockprotocol/type-system",
     "@hashintel/block-design-system",
+    "@hashintel/brunch-agent",
     "@hashintel/design-system",
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
@@ -26,6 +27,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -138,6 +140,7 @@
     },
     "codegen": {
       "dependsOn": [
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
@@ -167,6 +170,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -207,6 +211,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -245,6 +250,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -286,6 +292,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",
@@ -388,6 +395,7 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
+        "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
         "@hashintel/ds-icons#build",

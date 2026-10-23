@@ -40,6 +40,7 @@
     "@fortawesome/free-solid-svg-icons": "6.7.2",
     "@glideapps/glide-data-grid": "patch:@glideapps/glide-data-grid@npm%3A6.0.3#~/.yarn/patches/@glideapps-glide-data-grid-npm-6.0.3-f71d586425.patch",
     "@hashintel/block-design-system": "workspace:*",
+    "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/design-system": "workspace:*",
     "@hashintel/ds-components": "workspace:*",
     "@hashintel/ds-helpers": "workspace:*",
