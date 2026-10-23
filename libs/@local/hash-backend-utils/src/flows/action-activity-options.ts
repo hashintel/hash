@@ -6,7 +6,7 @@ import type { FlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/
 import type { ActivityOptions } from "@temporalio/workflow";
 
 /**
- * The Temporal options for running an action's activity, from its definition's `activity` settings.
+ * The Temporal options for running an action's activity, from its definition's `activitySettings`.
  *
  * Note that, for an action that heartbeats:
  *  - it learns that its run was cancelled or closed by catching `Context.current().cancelled`;
@@ -25,7 +25,7 @@ export const getActionActivityOptions = (
     startToCloseTimeoutSeconds,
     heartbeatTimeoutSeconds,
     handlesCancellation,
-  } = actionDefinitions[actionDefinitionId].activity;
+  } = actionDefinitions[actionDefinitionId].activitySettings;
 
   return {
     taskQueue,

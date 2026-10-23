@@ -582,7 +582,7 @@ export type ActionDefinition<
   actionDefinitionId: ActionDefinitionId;
   name: string;
   description: string;
-  activity: ActionActivitySettings;
+  activitySettings: ActionActivitySettings;
   inputs: InputDefinition[];
   outputs: OutputDefinition[];
   /** Run when a flow is validated, for each step of the action. */

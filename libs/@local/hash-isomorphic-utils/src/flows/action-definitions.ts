@@ -60,14 +60,14 @@ export type IntegrationFlowActionDefinitionId =
 /* How each action's activity is run (see `ActionActivitySettings`). */
 
 /** An AI action that finishes within 5 minutes. */
-const aiActivity = {
+const aiActivitySettings = {
   taskQueue: "ai",
   startToCloseTimeoutSeconds: 300,
   handlesCancellation: false,
 } as const satisfies ActionActivitySettings;
 
 /** An AI action that heartbeats, so can run for up to 10 hours. */
-const heartbeatingAiActivity = {
+const heartbeatingAiActivitySettings = {
   taskQueue: "ai",
   startToCloseTimeoutSeconds: 36_000,
   heartbeatTimeoutSeconds: 10,
@@ -75,20 +75,20 @@ const heartbeatingAiActivity = {
 } as const satisfies ActionActivitySettings;
 
 /** An AI action that heartbeats and handles cancellation, so can run for up to 10 hours, and a cancelled run waits for it. */
-const cancellableAiActivity = {
-  ...heartbeatingAiActivity,
+const cancellableAiActivitySettings = {
+  ...heartbeatingAiActivitySettings,
   handlesCancellation: true,
 } as const satisfies ActionActivitySettings;
 
 /** An integration action that finishes within 5 minutes. */
-const integrationActivity = {
+const integrationActivitySettings = {
   taskQueue: "integration",
   startToCloseTimeoutSeconds: 300,
   handlesCancellation: false,
 } as const satisfies ActionActivitySettings;
 
 /** An integration action that heartbeats, so can run for up to 10 hours. */
-const heartbeatingIntegrationActivity = {
+const heartbeatingIntegrationActivitySettings = {
   taskQueue: "integration",
   startToCloseTimeoutSeconds: 36_000,
   heartbeatTimeoutSeconds: 60,
@@ -98,7 +98,7 @@ const heartbeatingIntegrationActivity = {
 const aiFlowActionDefinitionsAsConst = {
   analyzeEntityData: {
     actionDefinitionId: "analyzeEntityData",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Analyze Entity Data",
     description: "Analyze entity data using Python code execution.",
     kind: "action",
@@ -176,7 +176,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   generateWebQueries: {
     actionDefinitionId: "generateWebQueries",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Generate Web Query",
     description: "Generate a web query based on a prompt and model.",
     kind: "action",
@@ -209,7 +209,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   webSearch: {
     actionDefinitionId: "webSearch",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Web Search",
     description:
       "Perform a web search based on a query, and receive a list of URLs.",
@@ -243,7 +243,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   getWebPageByUrl: {
     actionDefinitionId: "getWebPageByUrl",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Get Web Page From URL",
     description: "Get the title and content of a web page from its URL.",
     kind: "action",
@@ -266,7 +266,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   processAutomaticBrowsingSettings: {
     actionDefinitionId: "processAutomaticBrowsingSettings",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Process Automatic Browsing Settings",
     description:
       "Given a web page, determine which entities to find based on the user's settings.",
@@ -305,7 +305,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   inferEntitiesFromContent: {
     actionDefinitionId: "inferEntitiesFromContent",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Infer Entities From Content",
     description: "Generate proposals for entities based on text content.",
     kind: "action",
@@ -350,7 +350,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   inferMetadataFromDocument: {
     actionDefinitionId: "inferMetadataFromDocument",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Infer Metadata From Document",
     description:
       "Infer metadata from a document file (document kind, title, number of pages, etc), add the relevant type to the associated entity, and propose new entities representing its author, publisher etc.",
@@ -382,7 +382,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   persistEntity: {
     actionDefinitionId: "persistEntity",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Persist Entity",
     description: "Persist a proposed entity in the database.",
     kind: "action",
@@ -415,7 +415,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   persistEntities: {
     actionDefinitionId: "persistEntities",
-    activity: heartbeatingAiActivity,
+    activitySettings: heartbeatingAiActivitySettings,
     name: "Persist Entities",
     description: "Persist multiple proposed entities in the database.",
     kind: "action",
@@ -456,7 +456,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   getFileFromUrl: {
     actionDefinitionId: "getFileFromUrl",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Get File From URL",
     description: "Download a file from a URL and upload a copy to HASH",
     kind: "action",
@@ -491,7 +491,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   researchEntities: {
     actionDefinitionId: "researchEntities",
-    activity: cancellableAiActivity,
+    activitySettings: cancellableAiActivitySettings,
     name: "Research Entities",
     description: "Find entities on the web based on a research prompt.",
     kind: "action",
@@ -545,7 +545,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   getWebPageSummary: {
     actionDefinitionId: "getWebPageSummary",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Get Web Page Summary",
     description: "Get a human-readable text summary of a web page.",
     kind: "action",
@@ -594,7 +594,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   answerQuestion: {
     actionDefinitionId: "answerQuestion",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Answer Question Action",
     description:
       "Answer a question using the provided context. Question may specify any text output format, e.g. string, CSV, markdown, etc.",
@@ -654,7 +654,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   generateChartConfig: {
     actionDefinitionId: "generateChartConfig",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Generate Chart Config",
     description:
       "Generate Apache ECharts configuration for chart data based on the user's visualization goal.",
@@ -719,7 +719,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   generateStructuralQuery: {
     actionDefinitionId: "generateStructuralQuery",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Generate Structural Query",
     description:
       "Generate a structural query for entity data based on a natural language goal.",
@@ -783,7 +783,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   planDashboardRefinement: {
     actionDefinitionId: "planDashboardRefinement",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Plan Dashboard Refinement",
     description:
       "Determine the earliest dashboard configuration stage affected by a refinement instruction.",
@@ -839,7 +839,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   writeGoogleSheet: {
     actionDefinitionId: "writeGoogleSheet",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Write Google Sheet Action",
     description: "Writes the requested data to the specified Google Sheet",
     kind: "action",
@@ -897,7 +897,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   aggregate: {
     actionDefinitionId: "aggregate",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Aggregate",
     description:
       "Count the items of a list, or take the sum, average, minimum or maximum of a number read from each, ignoring items without one.",
@@ -930,7 +930,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   filterList: {
     actionDefinitionId: "filterList",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Filter List",
     description:
       "Split a list into the items that match a condition and those that don't, keeping their order.",
@@ -967,7 +967,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   find: {
     actionDefinitionId: "find",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Find",
     description:
       "Find the first item of a list that matches a condition, or the first item if there is no condition.",
@@ -999,7 +999,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   if: {
     actionDefinitionId: "if",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "If",
     description:
       "Pass a value on unchanged to the true or false output, depending on whether it matches a condition.",
@@ -1038,7 +1038,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   orderBy: {
     actionDefinitionId: "orderBy",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Order By",
     description:
       "Sort a list by the items, one of their fields or an entity property, keeping equal items in their order. Items without a value go last.",
@@ -1069,7 +1069,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   queryEntities: {
     actionDefinitionId: "queryEntities",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Query Entities",
     description:
       "Get the entities in the web that match a graph query. Archived entities are left out.",
@@ -1095,7 +1095,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   takeFirst: {
     actionDefinitionId: "takeFirst",
-    activity: aiActivity,
+    activitySettings: aiActivitySettings,
     name: "Take First",
     description:
       "Keep the first items of a list, up to a count: all of them if the list is shorter.",
@@ -1133,7 +1133,7 @@ const aiFlowActionDefinitionsAsConst = {
 const integrationFlowActionDefinitionsAsConst = {
   getHistoricalFlightArrivals: {
     actionDefinitionId: "getHistoricalFlightArrivals",
-    activity: heartbeatingIntegrationActivity,
+    activitySettings: heartbeatingIntegrationActivitySettings,
     name: "Get Historical Flight Arrivals",
     description:
       "Fetch historical flight arrivals from AeroAPI for a given airport and date range.",
@@ -1176,7 +1176,7 @@ const integrationFlowActionDefinitionsAsConst = {
   },
   getLiveFlightPositions: {
     actionDefinitionId: "getLiveFlightPositions",
-    activity: integrationActivity,
+    activitySettings: integrationActivitySettings,
     name: "Get Live Flight Positions",
     description:
       "Fetch live flight positions from FlightRadar24 for flights that have departed or recently arrived.",
@@ -1203,7 +1203,7 @@ const integrationFlowActionDefinitionsAsConst = {
   },
   getScheduledFlights: {
     actionDefinitionId: "getScheduledFlights",
-    activity: integrationActivity,
+    activitySettings: integrationActivitySettings,
     name: "Get Scheduled Flights",
     description:
       "Fetch scheduled flight arrivals from AeroAPI for a given airport and date.",
@@ -1238,7 +1238,7 @@ const integrationFlowActionDefinitionsAsConst = {
   },
   persistIntegrationEntities: {
     actionDefinitionId: "persistIntegrationEntities",
-    activity: heartbeatingIntegrationActivity,
+    activitySettings: heartbeatingIntegrationActivitySettings,
     name: "Persist Integration Entities",
     description:
       "Persist proposed entities from an integration to the graph database.",

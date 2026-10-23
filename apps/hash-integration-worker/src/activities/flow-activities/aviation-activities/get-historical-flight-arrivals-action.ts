@@ -60,7 +60,7 @@ export const getHistoricalFlightArrivalsAction: FlowActionActivity<
   "getHistoricalFlightArrivals"
 > = async ({ inputs }) => {
   const secondsBetweenHeartbeats =
-    typedActionDefinitions.getHistoricalFlightArrivals.activity
+    typedActionDefinitions.getHistoricalFlightArrivals.activitySettings
       .heartbeatTimeoutSeconds - 5;
 
   const heartbeatInterval = setInterval(() => {

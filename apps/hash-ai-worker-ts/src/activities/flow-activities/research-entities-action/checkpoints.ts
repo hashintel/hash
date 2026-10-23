@@ -35,8 +35,8 @@ export const heartbeatAndWaitCancellation = async (
   state: CoordinatingAgentState,
 ) => {
   const secondsBetweenHeartbeats =
-    typedActionDefinitions.researchEntities.activity.heartbeatTimeoutSeconds -
-    5;
+    typedActionDefinitions.researchEntities.activitySettings
+      .heartbeatTimeoutSeconds - 5;
 
   const heartbeatInterval = setInterval(() => {
     Context.current().heartbeat({
