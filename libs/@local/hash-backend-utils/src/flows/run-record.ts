@@ -111,7 +111,7 @@ export const getFlowRunRecordFromHistory = (
  * The record of a run that is about to end as `ending`, from its record while still running. Its history doesn't yet
  * have the event that closes it, so the event for how it ended is placed after the last event in its history.
  */
-export const endFlowRunRecord = ({
+const endFlowRunRecord = ({
   record: { header, events },
   ending,
   endedAt,
@@ -269,30 +269,30 @@ export const recordEndedFlowRun = async ({
   });
   const record = getFlowRunRecordFromHistory(historyRecord, { workflowId });
 
+  const endingWithOutputs: FlowRunEnding =
+    ending.kind === "completed"
+      ? {
+          kind: "completed",
+          result: {
+            code: ending.code,
+            contents: [
+              {
+                outputs: getFlowOutputs({
+                  history: historyRecord.history,
+                  events: record.events,
+                }),
+                ...(ending.stepErrors ? { stepErrors: ending.stepErrors } : {}),
+              },
+            ],
+          },
+        }
+      : ending;
+
   await writeFlowRunRecord({
     storageProvider,
     record: endFlowRunRecord({
       record,
-      ending:
-        ending.kind === "completed"
-          ? {
-              kind: "completed",
-              result: {
-                code: ending.code,
-                contents: [
-                  {
-                    outputs: getFlowOutputs({
-                      history: historyRecord.history,
-                      events: record.events,
-                    }),
-                    ...(ending.stepErrors
-                      ? { stepErrors: ending.stepErrors }
-                      : {}),
-                  },
-                ],
-              },
-            }
-          : ending,
+      ending: endingWithOutputs,
       endedAt: new Date().toISOString(),
       lastHistoryEventId: Number(historyRecord.history.at(-1)?.eventId ?? 0),
     }),

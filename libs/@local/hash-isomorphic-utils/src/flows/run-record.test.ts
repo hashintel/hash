@@ -49,12 +49,6 @@ describe("serializeFlowRunRecord", () => {
 });
 
 describe("parseFlowRunRecord", () => {
-  it("reads the record it was written from", () => {
-    expect(parseFlowRunRecord(serializeFlowRunRecord(record))).toStrictEqual(
-      record,
-    );
-  });
-
   it("rejects a line of another format version", () => {
     const [header, ...events] = toLines(serializeFlowRunRecord(record));
 

@@ -9,13 +9,11 @@ import {
 } from "@local/hash-isomorphic-utils/flows/run-record";
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
-import {
-  getFlowRunDetailedFieldsFromHistory,
-  getFlowRunDetailedFieldsFromRecord,
-} from "./get-flow-run-details.js";
+import { getFlowRunDetailedFieldsFromRecord } from "./get-flow-run-details.js";
 import { getFlowRunRecordFromHistory } from "./run-record.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
+import type { ResolvePayloadContext } from "./payload-storage.js";
 import type { FlowRunHistoryRecord } from "./run-record.js";
 
 const fixturesUrl = new URL(
@@ -69,6 +67,17 @@ const workflowIdOf = ({ history }: FlowRunHistoryRecord) => {
     }
   ).flowRunEntityUuid;
 };
+
+const getFlowRunDetailedFieldsFromHistory = (
+  historyRecord: FlowRunHistoryRecord,
+  resolvePayloadContext: ResolvePayloadContext,
+) =>
+  getFlowRunDetailedFieldsFromRecord(
+    getFlowRunRecordFromHistory(historyRecord, {
+      workflowId: resolvePayloadContext.workflowId,
+    }),
+    resolvePayloadContext,
+  );
 
 type RecordedDetails = {
   steps?: {
