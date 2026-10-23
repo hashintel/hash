@@ -8,6 +8,7 @@ import {
   parseFlowRunRecord,
   serializeFlowRunRecord,
 } from "@local/hash-isomorphic-utils/flows/run-record";
+import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 import { getFlowRunRecordStorageKey } from "../file-storage.js";
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
@@ -196,6 +197,27 @@ describe("getFlowRunRecord", () => {
 
     expect(getWorkflowExecutionHistory).toHaveBeenCalled();
     expect(record.header.runId).toBe(fixture.describe.runId);
+    expect(readStoredRecord()).toStrictEqual(record);
+  });
+
+  it("replaces the stored record of a run terminated after writing it", async () => {
+    const fixture = loadFixture("reset-base-run");
+    const { temporalClient } = createTemporalClient(fixture);
+    const recordBeforeTermination = getFlowRunRecordFromHistory(fixture, {
+      workflowId,
+    });
+    recordBeforeTermination.header.status = FlowRunStatus.Completed;
+    const { storageProvider, readStoredRecord } = createStorageProvider(
+      recordBeforeTermination,
+    );
+
+    const record = await getFlowRunRecord({
+      temporalClient,
+      storageProvider,
+      workflowId,
+    });
+
+    expect(record.header.status).toBe(FlowRunStatus.Terminated);
     expect(readStoredRecord()).toStrictEqual(record);
   });
 
