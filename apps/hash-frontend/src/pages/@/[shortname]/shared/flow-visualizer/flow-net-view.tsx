@@ -25,8 +25,8 @@ import type {
 import type { ReactNode } from "react";
 
 /**
- * Demo only: shows a run on its net flattened, so the tokens inside each step's instance of its action's subnet show
- * too. The run is still replayed on the net with subnets. Remove with `flatten-flow-net` once Petrinaut composes nets.
+ * Shows a run on its net flattened, so the tokens inside each step's instance of its action's subnet show too. The
+ * run is still replayed on the net with subnets. Remove with `flatten-flow-net` once Petrinaut composes nets.
  */
 const showRunOnFlatNet = true as boolean;
 

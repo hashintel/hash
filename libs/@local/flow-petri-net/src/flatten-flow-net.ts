@@ -165,6 +165,9 @@ const stepIdsByInstanceId = (net: SDCPN) => {
  * Inner nodes sit where their instance's box was, at their offset in the subnet's own layout, and the root's nodes
  * move apart to make room for them.
  *
+ * A subnet's parameters, such as `max_retries`, and each instance's values for them are dropped, as no transition's
+ * code reads them.
+ *
  * @throws if a subnet has instances of its own: the compiler only nests one level.
  */
 export const flattenFlowNet = (net: SDCPN): FlatFlowNet => {

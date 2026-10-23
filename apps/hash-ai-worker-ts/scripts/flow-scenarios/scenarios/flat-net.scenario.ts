@@ -15,7 +15,7 @@ const number = { kind: "input", payloadKind: "Number" } as const;
 const forEachFlow = defineFlow(
   {
     flowDefinitionId: "00000000-0000-4000-8000-00000000f1a7",
-    name: "Flat net demo: forEach",
+    name: "Flat net: forEach",
     description: "Ranks each score's list, then adds up the scores",
     inputs: {
       scores: flowInput("Number", { array: true }),
@@ -67,7 +67,7 @@ const forEachFlow = defineFlow(
 const retryFlow = defineFlow(
   {
     flowDefinitionId: "00000000-0000-4000-8000-00000000f1a8",
-    name: "Flat net demo: retries",
+    name: "Flat net: retries",
     description: "Counts the entities a query finds, with a query that fails",
     inputs: {},
   },
@@ -95,7 +95,7 @@ const retryFlow = defineFlow(
 );
 
 export const scenario = defineScenario({
-  name: "Flat net demo",
+  name: "Flat net",
   purpose:
     "Runs to watch on the flattened flow net: a forEach with two steps per item, and a step that fails on every attempt.",
   runs: [
