@@ -3,6 +3,7 @@ mod entity;
 mod get;
 mod link;
 mod property_metadata;
+mod provenance;
 mod query;
 
 use aide::openapi::Info;
