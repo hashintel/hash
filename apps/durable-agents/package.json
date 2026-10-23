@@ -9,6 +9,7 @@
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:unit": "vitest run"
   },
   "dependencies": {
