@@ -263,9 +263,7 @@ const countAtRootPlaces = (placedTokens: readonly FlowNetPlacedToken[]) => {
 
   for (const { path } of placedTokens) {
     if (path.length === 1) {
-      const [placeId] = path;
-
-      counts[placeId] = (counts[placeId] ?? 0) + 1;
+      counts[path[0]] = (counts[path[0]] ?? 0) + 1;
     }
   }
 

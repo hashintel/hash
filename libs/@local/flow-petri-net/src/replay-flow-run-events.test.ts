@@ -474,9 +474,7 @@ describe("toRootNetActualModeExecution", () => {
 
     for (const { path } of replay.marking) {
       if (path.length === 1) {
-        const [placeId] = path;
-
-        rootCounts[placeId] = (rootCounts[placeId] ?? 0) + 1;
+        rootCounts[path[0]] = (rootCounts[path[0]] ?? 0) + 1;
       }
     }
 
