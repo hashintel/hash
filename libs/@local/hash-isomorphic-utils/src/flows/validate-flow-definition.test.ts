@@ -996,6 +996,18 @@ describe("validateFlowDefinition", () => {
         message: `Property patch 2 changes part of property ${emailUrl}, which isn't supported yet: give its whole value.`,
       },
       {
+        name: "two patches to the same property, which fail if applied again",
+        value: [
+          {
+            op: "replace",
+            path: [nameUrl],
+            property: { value: "Ada", metadata: text },
+          },
+          { op: "remove", path: [nameUrl] },
+        ],
+        message: `Property patch 2 changes property ${nameUrl} again: give one patch per property.`,
+      },
+      {
         name: "a value without a data type ID",
         value: [
           {

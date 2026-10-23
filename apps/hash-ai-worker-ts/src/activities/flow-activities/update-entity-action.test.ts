@@ -243,6 +243,15 @@ describe("updateEntityAction", () => {
       message: `Property patch 1 changes part of property ${emailUrl}, which isn't supported yet: give its whole value.`,
     },
     {
+      name: "two patches to the same property, which fail if applied again",
+      entityId: entityIdOf(1),
+      propertyPatches: [
+        { ...setName, op: "replace" },
+        { op: "remove", path: [nameUrl] },
+      ],
+      message: `Property patch 2 changes property ${nameUrl} again: give one patch per property.`,
+    },
+    {
       name: "a value without a data type ID",
       entityId: entityIdOf(1),
       propertyPatches: [

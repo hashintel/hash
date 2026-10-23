@@ -79,7 +79,9 @@ const patchOps: PropertyPatchOperation["op"][] = ["add", "remove", "replace"];
 
 /**
  * Checks the shape of patches to an entity's properties, returning why they're invalid. Each patch changes a whole
- * property: a patch inside a list could change it twice if the step is retried, e.g. adding an item at an index.
+ * property, and no two change the same one, so that applying them again if the step is retried leaves the same
+ * properties: a patch inside a list could add an item twice, and replacing a property then removing it fails once
+ * it's gone.
  */
 export const validatePropertyPatches = (
   patches: PropertyPatchOperation[],
@@ -92,6 +94,8 @@ export const validatePropertyPatches = (
   if (patches.length === 0) {
     return "Give at least one property patch.";
   }
+
+  const patchedBaseUrls = new Set<BaseUrl>();
 
   for (const [index, patch] of patches.entries()) {
     const position = `Property patch ${index + 1}`;
@@ -110,6 +114,12 @@ export const validatePropertyPatches = (
     if (path.length > 1) {
       return `${position} changes part of property ${baseUrl}, which isn't supported yet: give its whole value.`;
     }
+
+    if (patchedBaseUrls.has(baseUrl)) {
+      return `${position} changes property ${baseUrl} again: give one patch per property.`;
+    }
+
+    patchedBaseUrls.add(baseUrl);
 
     if (patch.op !== "remove" && !hasDataTypeIds(patch.property)) {
       return missingDataTypeIdsMessage(baseUrl);
