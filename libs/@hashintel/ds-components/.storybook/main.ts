@@ -36,11 +36,10 @@ const config: StorybookConfig = {
       shouldRemoveUndefinedFromOptional: true,
       // Keep prop tables on the public API: drop inherited DOM/aria props
       // (the node_modules check the default filter would otherwise apply)
-      // plus styling/plumbing props and event handlers, mirroring
-      // preview.tsx's controls.exclude.
+      // plus styling/plumbing props, mostly mirroring preview.tsx's controls.exclude.
       propFilter: (prop) =>
         (prop.parent ? !/node_modules/.test(prop.parent.fileName) : true) &&
-        !/^(className|contentClassName|positionerClassName|style|ref|inputRef|testId|htmlForId|on[A-Z].*)$/.test(
+        !/^(className|contentClassName|positionerClassName|style|ref|inputRef|testId|htmlForId)$/.test(
           prop.name,
         ),
     },
