@@ -76,6 +76,7 @@ percent-encoding     = { workspace = true, features = ["alloc"] }
 reqwest              = { workspace = true }
 scalar_api_reference = { workspace = true }
 schemars             = { workspace = true, features = ["uuid1"] }
+semver               = { workspace = true }
 sentry               = { workspace = true }
 serde                = { workspace = true, features = ['derive'] }
 serde_json           = { workspace = true, features = ["raw_value"] }
@@ -84,6 +85,7 @@ time                 = { workspace = true }
 tokio                = { workspace = true, features = ["rt", "time"] }
 tokio-util           = { workspace = true, features = ["codec", "io"] }
 tower                = { workspace = true }
+url                  = { workspace = true }
 utoipa               = { workspace = true }
 uuid                 = { workspace = true }
 
