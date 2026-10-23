@@ -1,17 +1,30 @@
 use alloc::{collections::BTreeMap, sync::Arc};
 use core::{net::IpAddr, time::Duration};
-use std::sync::{Mutex, OnceLock};
+use std::{
+    io,
+    sync::{Mutex, OnceLock},
+};
 
 use backon::{ExponentialBuilder, Retryable as _};
 use error_stack::Report;
-use reqwest::{Client, Url};
-use tokio::time::Instant;
+use reqwest::{
+    Client, Url,
+    dns::{Addrs, Name, Resolve, Resolving},
+    header::{HeaderMap, RETRY_AFTER},
+    redirect::Policy,
+};
+use serde_json::Value;
+use tokio::{
+    net::lookup_host,
+    time::{Instant, sleep_until},
+};
+use url::Host;
 
 use super::SourceError;
 
 pub(super) fn client() -> Result<Client, Report<SourceError>> {
     Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
+        .redirect(Policy::none())
         .no_proxy()
         .timeout(Duration::from_secs(60))
         .dns_resolver(Arc::new(PublicResolver))
@@ -21,18 +34,18 @@ pub(super) fn client() -> Result<Client, Report<SourceError>> {
 
 struct PublicResolver;
 
-impl reqwest::dns::Resolve for PublicResolver {
-    fn resolve(&self, name: reqwest::dns::Name) -> reqwest::dns::Resolving {
+impl Resolve for PublicResolver {
+    fn resolve(&self, name: Name) -> Resolving {
         Box::pin(async move {
-            let addresses: Vec<_> = tokio::net::lookup_host((name.as_str(), 0)).await?.collect();
+            let addresses: Vec<_> = lookup_host((name.as_str(), 0)).await?.collect();
             if addresses.is_empty() || addresses.iter().any(|address| !public(address.ip())) {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::PermissionDenied,
+                return Err(io::Error::new(
+                    io::ErrorKind::PermissionDenied,
                     "destination is not exclusively public",
                 )
                 .into());
             }
-            Ok(Box::new(addresses.into_iter()) as reqwest::dns::Addrs)
+            Ok(Box::new(addresses.into_iter()) as Addrs)
         })
     }
 }
@@ -56,8 +69,8 @@ pub(super) fn validate(url: &Url) -> Result<(), Report<SourceError>> {
         return Err(Report::new(SourceError::Destination));
     }
     let address = match url.host() {
-        Some(url::Host::Ipv4(address)) => Some(IpAddr::V4(address)),
-        Some(url::Host::Ipv6(address)) => Some(IpAddr::V6(address)),
+        Some(Host::Ipv4(address)) => Some(IpAddr::V4(address)),
+        Some(Host::Ipv6(address)) => Some(IpAddr::V6(address)),
         _ => None,
     };
     if address.is_some_and(|address| !public(address)) {
@@ -92,7 +105,7 @@ impl Pacer {
             slots.insert(host.to_owned(), (slot, interval));
             slot
         };
-        tokio::time::sleep_until(slot).await;
+        sleep_until(slot).await;
         Ok(())
     }
 }
@@ -100,9 +113,9 @@ impl Pacer {
 pub(super) async fn fetch(
     client: &Client,
     url: &Url,
-    headers: &reqwest::header::HeaderMap,
+    headers: &HeaderMap,
     interval: Duration,
-) -> Result<serde_json::Value, Report<SourceError>> {
+) -> Result<Value, Report<SourceError>> {
     static PACER: OnceLock<Pacer> = OnceLock::new();
     validate(url)?;
     let host = url
@@ -172,9 +185,9 @@ impl From<Report<SourceError>> for RequestFailure {
     }
 }
 
-fn retry_after(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
+fn retry_after(headers: &HeaderMap) -> Option<Duration> {
     headers
-        .get(reqwest::header::RETRY_AFTER)
+        .get(RETRY_AFTER)
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.trim().parse::<u64>().ok())
         .map(|seconds| Duration::from_secs(seconds.min(30)))
@@ -184,18 +197,24 @@ fn retry_after(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
 mod tests {
     use core::time::Duration;
 
+    use axum::{Router, routing::get};
     use reqwest::{
         Url,
         header::{HeaderMap, HeaderValue, RETRY_AFTER},
     };
+    use rstest::rstest;
+    use tokio::time::Instant;
 
     use super::{Pacer, client, retry_after, validate};
+    use crate::sources::{SourceError, tests::server};
 
     #[tokio::test]
     async fn destinations_reject_private_resolution() {
+        let server = server(Router::new().route("/", get(|| async { "ok" }))).await;
+        let url = server.url().replace("127.0.0.1", "localhost");
         let guarded = client().expect("should build a guarded client");
         let error = guarded
-            .get("http://localhost:9/secret")
+            .get(url)
             .send()
             .await
             .expect_err("should block private DNS destinations");
@@ -203,30 +222,33 @@ mod tests {
             error.is_request() || error.is_connect(),
             "should fail before an HTTP response"
         );
-        for address in [
-            "http://127.0.0.1",
-            "http://[::1]",
-            "http://[::ffff:127.0.0.1]",
-            "http://169.254.169.254",
-            "http://100.64.0.1",
-            "http://0.1.2.3",
-            "http://224.0.0.1",
-            "http://192.0.2.1",
-            "http://[fc00::1]",
-            "http://user:password@example.org",
-            "file:///etc/passwd",
-        ] {
-            assert!(
-                validate(&Url::parse(address).expect("should parse the URL")).is_err(),
-                "should reject the unsafe destination {address}"
-            );
-        }
+    }
+
+    #[rstest]
+    #[case::ipv4_loopback("http://127.0.0.1")]
+    #[case::ipv6_loopback("http://[::1]")]
+    #[case::mapped_loopback("http://[::ffff:127.0.0.1]")]
+    #[case::link_local("http://169.254.169.254")]
+    #[case::shared_address("http://100.64.0.1")]
+    #[case::zero_network("http://0.1.2.3")]
+    #[case::multicast("http://224.0.0.1")]
+    #[case::documentation_address("http://192.0.2.1")]
+    #[case::ipv6_private("http://[fc00::1]")]
+    #[case::inline_credentials("http://user:password@example.org")]
+    #[case::file_scheme("file:///etc/passwd")]
+    fn destinations_invalid_url(#[case] address: &str) {
+        let error = validate(&Url::parse(address).expect("should parse the URL"))
+            .expect_err("should reject the unsafe destination");
+        assert!(
+            matches!(error.current_context(), SourceError::Destination),
+            "should identify an invalid destination"
+        );
     }
 
     #[tokio::test(start_paused = true)]
     async fn pacing_across_callers() {
         let pacer = Pacer::default();
-        let start = tokio::time::Instant::now();
+        let start = Instant::now();
         pacer
             .wait("one.test", Duration::from_millis(50))
             .await
@@ -279,23 +301,19 @@ mod tests {
         );
     }
 
-    #[test]
-    fn retry_after_saturates() {
+    #[rstest]
+    #[case::zero("0", Some(Duration::ZERO))]
+    #[case::seconds("1", Some(Duration::from_secs(1)))]
+    #[case::capped("31", Some(Duration::from_secs(30)))]
+    #[case::maximum("18446744073709551615", Some(Duration::from_secs(30)))]
+    #[case::invalid("not-an-integer", None)]
+    fn retry_after_values(#[case] value: &'static str, #[case] expected: Option<Duration>) {
         let mut headers = HeaderMap::new();
-        headers.insert(
-            RETRY_AFTER,
-            HeaderValue::from_static("18446744073709551615"),
-        );
+        headers.insert(RETRY_AFTER, HeaderValue::from_static(value));
         assert_eq!(
             retry_after(&headers),
-            Some(Duration::from_secs(30)),
-            "server delays should saturate before the cap"
-        );
-        headers.insert(RETRY_AFTER, HeaderValue::from_static("not-an-integer"));
-        assert_eq!(
-            retry_after(&headers),
-            None,
-            "invalid delays should leave the backoff unchanged"
+            expected,
+            "numeric delays should be capped and invalid values should leave the backoff unchanged"
         );
     }
 }
@@ -315,10 +333,15 @@ mod response_tests {
         routing::get,
     };
     use reqwest::Url;
+    use rstest::rstest;
     use serde_json::json;
+    use tokio::time::Instant;
 
     use super::fetch;
-    use crate::sources::tests::{public_client, server};
+    use crate::sources::{
+        SourceError,
+        tests::{public_client, server},
+    };
 
     #[tokio::test]
     async fn fetch_stops_at_retry_budget() {
@@ -343,98 +366,94 @@ mod response_tests {
         .expect_err("should stop after ten retries");
         assert!(matches!(
             error.current_context(),
-            crate::sources::SourceError::Status { status: 429 }
+            SourceError::Status { status: 429 }
         ));
         assert_eq!(requests.load(Ordering::Relaxed), 11);
     }
 
+    #[rstest]
+    #[case::unavailable(StatusCode::SERVICE_UNAVAILABLE)]
+    #[case::unauthorized(StatusCode::UNAUTHORIZED)]
+    #[case::invalid_json(StatusCode::OK)]
     #[tokio::test]
-    async fn fetch_does_not_retry_other_failures() {
-        for status in [
-            StatusCode::SERVICE_UNAVAILABLE,
-            StatusCode::UNAUTHORIZED,
-            StatusCode::OK,
-        ] {
-            let requests = Arc::new(AtomicUsize::new(0));
-            let counter = Arc::clone(&requests);
-            let server = server(Router::new().route(
-                "/",
-                get(move || {
-                    counter.fetch_add(1, Ordering::Relaxed);
-                    async move { (status, [("retry-after", "0")], "invalid JSON") }
-                }),
-            ))
-            .await;
-            let (client, url) = public_client(&server);
-            let error = fetch(
-                &client,
-                &Url::parse(&url).expect("should parse the URL"),
-                &HeaderMap::new(),
-                Duration::ZERO,
-            )
-            .await
-            .expect_err("should return the failure without retrying");
-            if status == StatusCode::OK {
-                assert!(matches!(
-                    error.current_context(),
-                    crate::sources::SourceError::Response
-                ));
-            } else {
-                assert!(
-                    matches!(error.current_context(), crate::sources::SourceError::Status { status: actual } if *actual == status.as_u16())
-                );
-            }
-            assert_eq!(requests.load(Ordering::Relaxed), 1);
+    async fn fetch_does_not_retry_other_failures(#[case] status: StatusCode) {
+        let requests = Arc::new(AtomicUsize::new(0));
+        let counter = Arc::clone(&requests);
+        let server = server(Router::new().route(
+            "/",
+            get(move || {
+                counter.fetch_add(1, Ordering::Relaxed);
+                async move { (status, [("retry-after", "0")], "invalid JSON") }
+            }),
+        ))
+        .await;
+        let (client, url) = public_client(&server);
+        let error = fetch(
+            &client,
+            &Url::parse(&url).expect("should parse the URL"),
+            &HeaderMap::new(),
+            Duration::ZERO,
+        )
+        .await
+        .expect_err("should return the failure without retrying");
+        if status == StatusCode::OK {
+            assert!(matches!(error.current_context(), SourceError::Response));
+        } else {
+            assert!(
+                matches!(error.current_context(), SourceError::Status { status: actual } if *actual == status.as_u16())
+            );
         }
+        assert_eq!(requests.load(Ordering::Relaxed), 1);
     }
 
+    #[rstest]
+    #[case::immediate("0", Duration::ZERO)]
+    #[case::server_delay("1", Duration::from_secs(1))]
+    #[case::fallback("invalid", Duration::from_millis(500))]
     #[tokio::test]
-    async fn fetch_throttled_response() {
-        for (retry_after, minimum_delay) in [
-            ("0", Duration::ZERO),
-            ("1", Duration::from_secs(1)),
-            ("invalid", Duration::from_millis(500)),
-        ] {
-            let requests = Arc::new(AtomicUsize::new(0));
-            let counter = Arc::clone(&requests);
-            let server = server(Router::new().route(
-                "/",
-                get(move || {
-                    let counter = Arc::clone(&counter);
-                    async move {
-                        if counter.fetch_add(1, Ordering::Relaxed) == 0 {
-                            (
-                                StatusCode::TOO_MANY_REQUESTS,
-                                [("retry-after", retry_after)],
-                            )
-                                .into_response()
-                        } else {
-                            Json(json!({"items": [1]})).into_response()
-                        }
+    async fn fetch_throttled_response(
+        #[case] retry_after: &'static str,
+        #[case] minimum_delay: Duration,
+    ) {
+        let requests = Arc::new(AtomicUsize::new(0));
+        let counter = Arc::clone(&requests);
+        let server = server(Router::new().route(
+            "/",
+            get(move || {
+                let counter = Arc::clone(&counter);
+                async move {
+                    if counter.fetch_add(1, Ordering::Relaxed) == 0 {
+                        (
+                            StatusCode::TOO_MANY_REQUESTS,
+                            [("retry-after", retry_after)],
+                        )
+                            .into_response()
+                    } else {
+                        Json(json!({"items": [1]})).into_response()
                     }
-                }),
-            ))
-            .await;
-            let (client, url) = public_client(&server);
-            let start = tokio::time::Instant::now();
-            let value = fetch(
-                &client,
-                &Url::parse(&url).expect("should parse the URL"),
-                &HeaderMap::new(),
-                Duration::ZERO,
-            )
-            .await
-            .expect("should retry a throttled response");
-            assert_eq!(
-                value,
-                json!({"items": [1]}),
-                "should return the successful response"
-            );
-            assert_eq!(requests.load(Ordering::Relaxed), 2, "should retry once");
-            assert!(
-                start.elapsed() >= minimum_delay,
-                "retry delay should be honored"
-            );
-        }
+                }
+            }),
+        ))
+        .await;
+        let (client, url) = public_client(&server);
+        let start = Instant::now();
+        let value = fetch(
+            &client,
+            &Url::parse(&url).expect("should parse the URL"),
+            &HeaderMap::new(),
+            Duration::ZERO,
+        )
+        .await
+        .expect("should retry a throttled response");
+        assert_eq!(
+            value,
+            json!({"items": [1]}),
+            "should return the successful response"
+        );
+        assert_eq!(requests.load(Ordering::Relaxed), 2, "should retry once");
+        assert!(
+            start.elapsed() >= minimum_delay,
+            "retry delay should be honored"
+        );
     }
 }
