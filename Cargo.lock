@@ -7161,10 +7161,13 @@ dependencies = [
  "serde_json",
  "simple-mermaid",
  "tempfile",
+ "testcontainers",
+ "testcontainers-modules",
  "time",
  "tokio",
  "tracing",
  "type-system",
+ "url",
  "uuid",
 ]
 
