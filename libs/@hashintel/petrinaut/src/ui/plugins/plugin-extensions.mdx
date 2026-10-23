@@ -1,0 +1,89 @@
+---
+title: Composition through plugins
+description: What the plugin API gained so composition and the Code view could live outside the editor's core, what the two built-in plugins showed about the API, and the extensions worth adding next.
+sidebar_order: 60
+---
+
+The composition work asked a question of the plugin API: how much of a
+feature like this can be a plugin? The answer so far is two new
+contributions and two plugins the package ships, `standardComponentsPlugin`
+and `codeViewPlugin`, which a host passes to `<Petrinaut plugins>` like any
+other. The rest of the proposal is in [Composition by place
+fusion](doc:core.composition/place-fusion) and [The Petrinaut
+DSL](doc:core.dsl/dsl).
+
+## What was added
+
+| Manifest key       | The hook returns         | Where it shows                                                                                                                                                     |
+| ------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `views`            | a node per key           | A tab in the Canvas / Definitions selector, located as `<plugin id>:<key>`. The editor keeps the view mounted while another tab shows, as it does for Definitions. |
+| `componentLibrary` | the library's components | A section of the Components panel named after the library. Arming or dragging a component copies it into the document as a subnet with a `source`.                 |
+
+A view's content renders inside the plugin's error boundary and fills the
+workspace under the floating selector. A location that names a view of a
+plugin that is off or failed shows Canvas, so a shared URL never opens on
+nothing. The website's URL contract accepts a plugin view id in `editView`.
+
+A library component is a subnet template with local ids. Its copy in a
+document gets ids derived from the library's and the component's, so the
+same component instantiated twice is one subnet, and a document that used a
+library stays complete when the plugin is gone: the copy is the document's
+own, with `source` saying where it came from.
+
+## What the built-in plugins showed
+
+`standardComponentsPlugin` needed nothing beyond the contribution. Its data
+lives in core (`composition/standard-components.ts`), where the CLI and the
+AI tools can reach it without the UI.
+
+`codeViewPlugin` reads the net and the title through `access: { document:
+"read" }` and the selection and active subnet through `access: { editor:
+"read" }`, prints the DSL, and reveals the selected item's lines. It stays
+inside the package because of two things the public entry lacks, which a
+plugin written outside the package would need:
+
+- **The Monaco editor.** The plugin imports `CodeEditor` from the package's
+  internals. Exporting it from `@hashintel/petrinaut/ui/plugin`, with the
+  `MonacoContext` promise so a plugin can register a language, is the first
+  gap to close.
+- **A view selector that plugins can read.** The view id is the plugin's to
+  compute (`pluginViewId`), and `api.editor.navigate({ editView })` opens it.
+  A plugin that wants a button for its view has what it needs; it has no way
+  yet to know whether the user is looking at it except by comparing
+  navigation state, which is enough.
+
+## Extensions worth adding next
+
+Each of these came up while building the two plugins, in the order they
+would pay off.
+
+1. **Diagnostics.** `checkComposition` runs inside the Diagnostics panel. A
+   `diagnostics` contribution, a function from the net to problems with a
+   target to reveal, would let a library ship its own checks, say a
+   component that requires its `Workers` port to be fused.
+2. **Libraries from elsewhere.** A component library is a list of templates,
+   so a plugin can fetch one from a URL, a package, or the host's own
+   storage, and `source` already records where a copy came from. Refreshing a
+   copy from its source, with a diff against the user's edits, is the
+   feature that turns copies into imports.
+3. **Commands over the composition.** `api.document.edit` has the fusion
+   mutations, so a plugin can wire components by rule, such as "fuse every
+   `out` port named X with the place named X". A palette command with a
+   reveal is the natural shape.
+4. **Interfaces.** A plugin that declares interfaces (port signatures) and
+   which of its components implement them, with the editor binding instances
+   to interfaces, is the FE-630 feature. It needs a document field for the
+   binding before it needs a plugin key.
+5. **Node kinds and renderers.** The canvas draws three node kinds. A
+   contribution that supplies a renderer for instances of a given library,
+   an icon or a small live view, is further out and touches the renderer's
+   contract.
+
+## Isolation and trust
+
+A plugin's view runs in the editor's React tree behind an error boundary, as
+roots do. A component template is data the editor validates with the subnet
+schema when it enters the document, so a library cannot write what the
+mutations would refuse. Code inside a template, rates and kernels, is user
+code like any other and runs through the same HIR pipeline with the same
+subset.

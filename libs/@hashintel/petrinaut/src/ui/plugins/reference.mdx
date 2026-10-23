@@ -9,22 +9,24 @@ together.
 
 ## Manifest
 
-| Key              | Value                                                                                                                                          | Adds to `api`                       | The hook returns |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ---------------- |
-| `id`             | Namespaced, stable and unique among the editor's plugins, such as `example.counter`. Ids starting `petrinaut.` are reserved.                   |                                     |                  |
-| `name`           | Titles the plugin's row in User settings → Plugins and the group of its setting rows.                                                          |                                     |                  |
-| `description`    | Shown when the plugin's row opens.                                                                                                             |                                     |                  |
-| `author`         | Shown beside the name, as in "by HASH".                                                                                                        |                                     |                  |
-| `required`       | `true`: the user cannot switch the plugin off, and its row in User settings → Plugins has no switch. A hook that throws still marks it failed. |                                     |                  |
-| `access`         | A level per family; see [`access`](#access).                                                                                                   | `document`, `experiments`, `editor` |                  |
-| `settings`       | A spec per key; see [Settings](#settings).                                                                                                     | `settings`                          |                  |
-| `commands`       | Per key: `{ label, category?, keywords?, shortcut? }`; see [Commands](#commands). Keys contain no dot.                                         |                                     | `commands`       |
-| `buttons`        | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                               |                                     | `buttons`        |
-| `topBarItems`    | Per key: `{ place }`.                                                                                                                          |                                     | `topBarItems`    |
-| `readOnlyAction` | `{ label }`: a button on the notice of a blocked edit on a document the host made read-only.                                                   |                                     | `readOnlyAction` |
-| `root`           | `true`: the plugin renders UI inside the editor.                                                                                               |                                     | `root`           |
-| `assistant`      | `true`: the plugin provides the AI assistant panel.                                                                                            |                                     | `assistant`      |
-| `provides`       | `pluginService<T>()`, the type of the service the hook provides.                                                                               |                                     | `provides`       |
+| Key                | Value                                                                                                                                          | Adds to `api`                       | The hook returns   |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------ |
+| `id`               | Namespaced, stable and unique among the editor's plugins, such as `example.counter`. Ids starting `petrinaut.` are reserved.                   |                                     |                    |
+| `name`             | Titles the plugin's row in User settings → Plugins and the group of its setting rows.                                                          |                                     |                    |
+| `description`      | Shown when the plugin's row opens.                                                                                                             |                                     |                    |
+| `author`           | Shown beside the name, as in "by HASH".                                                                                                        |                                     |                    |
+| `required`         | `true`: the user cannot switch the plugin off, and its row in User settings → Plugins has no switch. A hook that throws still marks it failed. |                                     |                    |
+| `access`           | A level per family; see [`access`](#access).                                                                                                   | `document`, `experiments`, `editor` |                    |
+| `settings`         | A spec per key; see [Settings](#settings).                                                                                                     | `settings`                          |                    |
+| `commands`         | Per key: `{ label, category?, keywords?, shortcut? }`; see [Commands](#commands). Keys contain no dot.                                         |                                     | `commands`         |
+| `buttons`          | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                               |                                     | `buttons`          |
+| `topBarItems`      | Per key: `{ place }`.                                                                                                                          |                                     | `topBarItems`      |
+| `views`            | Per key: `{ label, description? }`; see [Views](#views). Keys contain no colon.                                                                |                                     | `views`            |
+| `componentLibrary` | `{ name, description? }`: a library of components the Components panel lists; see [Component libraries](#component-libraries).                 |                                     | `componentLibrary` |
+| `readOnlyAction`   | `{ label }`: a button on the notice of a blocked edit on a document the host made read-only.                                                   |                                     | `readOnlyAction`   |
+| `root`             | `true`: the plugin renders UI inside the editor.                                                                                               |                                     | `root`             |
+| `assistant`        | `true`: the plugin provides the AI assistant panel.                                                                                            |                                     | `assistant`        |
+| `provides`         | `pluginService<T>()`, the type of the service the hook provides.                                                                               |                                     | `provides`         |
 
 Every key but `id` and `name` is optional. Stored settings and the user's
 switch are keyed by `id`.
@@ -41,6 +43,29 @@ At each place, each plugin's buttons render before its top-bar items, in the
 order of the `plugins` array. Plugin items render before the host's
 `slots.topBarStart` and `slots.topBarEnd`, and after its `viewportActions`. The toolbar sets a button's size and variant to
 match the built-in buttons.
+
+### Views
+
+A view is a tab in the Canvas / Definitions selector. The hook returns its
+content under the same key; the editor renders it behind the plugin's error
+boundary, under the floating selector, and keeps it mounted while another
+tab shows. Its id in the editor's location is `pluginViewId(id, key)`, that
+is `<plugin id>:<key>`; `api.editor.navigate({ editView })` opens it. A
+location naming a view no running plugin provides shows Canvas.
+
+| Field         | Notes                                          |
+| ------------- | ---------------------------------------------- |
+| `label`       | The tab's text, e.g. "Code".                   |
+| `description` | Optional. Shown with the tag in User settings. |
+
+### Component libraries
+
+The hook returns `LibraryComponent[]` under `componentLibrary`: each a stable
+`id`, a `name`, an optional `description` and `keywords`, and a `template`,
+a subnet without id or source. The Components panel lists the library under
+the manifest's `name`. Using a component copies the template into the
+document as a subnet whose id derives from the plugin's and the component's
+ids, so a second use finds the copy, and whose `source` names them both.
 
 ### Settings
 
