@@ -7,8 +7,18 @@ import { useStableItems } from "../../../use-stable-items";
 import { portInHandleId, portOutHandleId } from "./port-handles";
 import { getOutlineArcPath, getOutlineNode } from "./shared/outline-arcs";
 
-import type { CanvasArc, CanvasNode, CanvasScene } from "../../../canvas-scene";
-import type { ArcEdgeType, NodeType } from "./react-flow-types";
+import type {
+  CanvasArc,
+  CanvasFusionLink,
+  CanvasNode,
+  CanvasScene,
+} from "../../../canvas-scene";
+import type {
+  ArcEdgeType,
+  CanvasEdgeType,
+  FusionEdgeType,
+  NodeType,
+} from "./react-flow-types";
 
 const ARC_STROKE_WIDTH = 2;
 const ARC_MARKER_SIZE = 20;
@@ -74,6 +84,27 @@ const toReactFlowEdge = (arc: CanvasArc): ArcEdgeType => {
   };
 };
 
+const toFusionEdge = (link: CanvasFusionLink): FusionEdgeType => ({
+  id: link.id,
+  source: link.sourceId,
+  target: link.targetId,
+  sourceHandle: link.sourcePortId
+    ? portOutHandleId(link.sourcePortId)
+    : undefined,
+  targetHandle: link.targetPortId
+    ? portInHandleId(link.targetPortId)
+    : undefined,
+  type: "fusion",
+  className: link.focus === "none" ? undefined : "canvas-focus-role",
+  selected: link.selected,
+  data: {
+    fusionId: link.fusionId,
+    name: link.name,
+    focus: link.focus,
+    severity: link.severity,
+  },
+});
+
 /**
  * The scene as React Flow nodes and edges. No per-frame value rides here: a
  * place's token count and a transition's firing state reach them by
@@ -81,7 +112,7 @@ const toReactFlowEdge = (arc: CanvasArc): ArcEdgeType => {
  */
 export const useReactFlowElements = (
   scene: CanvasScene,
-): { nodes: NodeType[]; edges: ArcEdgeType[] } => {
+): { nodes: NodeType[]; edges: CanvasEdgeType[] } => {
   const { enableAutomaticArcConnections } = use(UserSettingsContext);
   const nodesById = new Map(scene.nodes.map((node) => [node.id, node]));
   const connections = new Set(
@@ -94,8 +125,8 @@ export const useReactFlowElements = (
   // nothing changed, so React Flow re-renders only what a hover touched.
   return {
     nodes: useStableItems(scene.nodes.map(toReactFlowNode)),
-    edges: useStableItems(
-      scene.arcs.map((arc) => {
+    edges: useStableItems<CanvasEdgeType>([
+      ...scene.arcs.map((arc): ArcEdgeType => {
         const edge = toReactFlowEdge(arc);
         if (enableAutomaticArcConnections && edge.data) {
           const source = nodesById.get(arc.sourceId);
@@ -112,6 +143,7 @@ export const useReactFlowElements = (
         }
         return edge;
       }),
-    ),
+      ...scene.fusions.map(toFusionEdge),
+    ]),
   };
 };

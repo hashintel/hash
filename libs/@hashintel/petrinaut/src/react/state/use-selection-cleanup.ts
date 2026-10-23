@@ -70,6 +70,9 @@ export function useSelectionCleanup() {
     for (const instance of activeNet.componentInstances) {
       validIds.add(instance.id);
     }
+    for (const fusion of activeNet.fusions) {
+      validIds.add(fusion.id);
+    }
 
     // Check if any selected ID is stale
     let hasStale = false;

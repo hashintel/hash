@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { sirModel } from "@hashintel/petrinaut-core/examples";
+import { assemblyLine, sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
   createJsonDocHandle,
@@ -629,6 +629,17 @@ export const SubnetsWithoutColors: Story = {
       capabilities={subnetsWithoutColorsCapabilities}
       initial={sirModel.petriNetDefinition}
       initialTitle={sirModel.title}
+    />
+  ),
+};
+
+export const CompositionAssemblyLine: Story = {
+  name: "Composition — assembly line",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithColorsCapabilities}
+      initial={assemblyLine.petriNetDefinition}
+      initialTitle={assemblyLine.title}
     />
   ),
 };

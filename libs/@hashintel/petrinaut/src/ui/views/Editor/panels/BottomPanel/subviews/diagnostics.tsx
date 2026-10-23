@@ -1,17 +1,23 @@
 import { use, useCallback, useMemo, useState } from "react";
 
 import { Banner, Icon } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
+import { checkComposition } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
+import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 
 import type { SubView } from "../../../../../components/sub-view/types";
-import type { Diagnostic, SelectionItemType } from "@hashintel/petrinaut-core";
+import type {
+  CompositionProblem,
+  Diagnostic,
+  SelectionItemType,
+} from "@hashintel/petrinaut-core";
 
 const emptyMessageStyle = css({
   color: "neutral.s100",
@@ -129,6 +135,94 @@ const SELECTION_TYPES: Record<EntityType, SelectionItemType> = {
   transition: "transition",
   "differential-equation": "differentialEquation",
   place: "place",
+};
+
+const compositionProblemStyle = css({
+  marginBottom: "[4px]",
+});
+
+const compositionSeverityStyle = css({
+  "&[data-severity=error]": { color: "[#dc2626]" },
+  "&[data-severity=warning]": { color: "[#b45309]" },
+  "&[data-severity=info]": { color: "neutral.s100" },
+});
+
+/**
+ * The problems with the net's composition: its fusions, its ports and a
+ * components-only root net's own places. Clicking one opens the net it is in
+ * and selects the fusion or the port.
+ */
+const CompositionDiagnostics = ({
+  problems,
+}: {
+  problems: CompositionProblem[];
+}) => {
+  const { setActiveSubnetId } = use(ActiveNetContext);
+  const { selectItem } = use(EditorContext);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const errorCount = problems.filter(
+    ({ severity }) => severity === "error",
+  ).length;
+
+  const reveal = (problem: CompositionProblem) => {
+    if (problem.kind === "components-only") {
+      setActiveSubnetId(null);
+      return;
+    }
+    setActiveSubnetId(problem.subnetId);
+    selectItem(
+      problem.kind === "fusion"
+        ? { type: "fusion", id: problem.fusionId }
+        : { type: "place", id: problem.placeId },
+    );
+  };
+
+  return (
+    <div className={entityGroupStyle}>
+      <button
+        type="button"
+        onClick={() => setIsExpanded((expanded) => !expanded)}
+        className={entityButtonStyle}
+      >
+        {isExpanded ? (
+          <Icon name="chevronDown" size="xs" />
+        ) : (
+          <Icon name="chevronRight" size="xs" />
+        )}
+        <span>Composition</span>
+        <span className={errorCountStyle}>
+          ({errorCount} error{errorCount !== 1 ? "s" : ""},{" "}
+          {problems.length - errorCount} note
+          {problems.length - errorCount !== 1 ? "s" : ""})
+        </span>
+      </button>
+      {isExpanded && (
+        <div className={expandedContentStyle}>
+          <ul className={diagnosticsListStyle}>
+            {problems.map((problem) => (
+              <li
+                key={`${problem.kind}:${"fusionId" in problem ? problem.fusionId : "placeId" in problem ? problem.placeId : "root"}:${"code" in problem ? problem.code : problem.kind}`}
+                className={compositionProblemStyle}
+              >
+                <button
+                  type="button"
+                  onClick={() => reveal(problem)}
+                  className={cx(
+                    diagnosticButtonStyle,
+                    compositionSeverityStyle,
+                  )}
+                  data-severity={problem.severity}
+                >
+                  <span className={bulletStyle}>•</span>
+                  {problem.message}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
 };
 
 interface GroupedDiagnostics {
@@ -250,8 +344,13 @@ const DiagnosticsContent: React.FC = () => {
   }, []);
 
   const hasSimulationError = simulationState === "Error" && !!simulationError;
+  const compositionProblems = checkComposition(petriNetDefinition);
 
-  if (totalDiagnosticsCount === 0 && !hasSimulationError) {
+  if (
+    totalDiagnosticsCount === 0 &&
+    !hasSimulationError &&
+    compositionProblems.length === 0
+  ) {
     return (
       <div className={emptyMessageStyle}>No errors detected in your model</div>
     );
@@ -259,6 +358,9 @@ const DiagnosticsContent: React.FC = () => {
 
   return (
     <>
+      {compositionProblems.length > 0 && (
+        <CompositionDiagnostics problems={compositionProblems} />
+      )}
       {/* Simulation runtime error */}
       {hasSimulationError && (
         <Banner tone="error" className={simulationBannerStyle}>

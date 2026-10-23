@@ -9,6 +9,7 @@ import { usePanelTarget } from "../../../../../react/state/use-selection";
 import { ArcProperties } from "./arc-properties/main";
 import { ComponentInstanceProperties } from "./component-instance-properties/main";
 import { DifferentialEquationProperties } from "./differential-equation-properties/main";
+import { FusionProperties } from "./fusion-properties/main";
 import { MultiSelectionPanel } from "./multi-selection-panel";
 import { ParameterProperties } from "./parameter-properties/main";
 import { PlaceProperties } from "./place-properties/main";
@@ -165,6 +166,13 @@ const SelectedItemPropertiesContent: React.FC = () => {
             updateComponentInstance={updateComponentInstance}
           />
         );
+      }
+
+      case "fusion": {
+        const fusion = petriNetDefinition.fusions.find(
+          (candidate) => candidate.id === item.id,
+        );
+        return fusion ? <FusionProperties fusion={fusion} /> : null;
       }
     }
   }
