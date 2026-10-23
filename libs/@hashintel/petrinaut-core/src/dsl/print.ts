@@ -11,7 +11,7 @@
 import { getArcEndpoint } from "../arc-endpoints";
 import { effectivePortDirection } from "../composition/ports";
 import { dedentLines, toBodyForm } from "./code-bodies";
-import { dslName } from "./identifiers";
+import { dslName, plainWords } from "./identifiers";
 
 import type {
   ArcEndpoint,
@@ -165,9 +165,6 @@ const placeRef = (scope: NetScope, endpoint: ArcEndpoint): string => {
     ? `${dslName(instance.name)}.${dslName(port.name)}`
     : `?${endpoint.componentInstanceId}.${endpoint.portPlaceId}`;
 };
-
-const plainWords = (text: string): string =>
-  text.toLowerCase().replace(/[^a-z0-9]/gu, "");
 
 const typeName = (scope: NetScope, colorId: string | null): string | null => {
   if (colorId === null) {
@@ -392,7 +389,7 @@ const printScenario = (
       } else if (initialState.type === "per_place") {
         const entries = Object.entries(initialState.content);
         if (entries.length > 0) {
-          writer.line("initial {");
+          writer.line("marking {");
           writer.indented(() => {
             for (const [placeId, value] of entries) {
               const place = root.places.find(({ id }) => id === placeId);
