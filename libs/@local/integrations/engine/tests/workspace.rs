@@ -4,7 +4,7 @@ extern crate alloc;
 
 use alloc::collections::BTreeMap;
 use core::{
-    future::poll_fn, num::NonZero, pin::Pin, str::FromStr as _, task::Poll, time::Duration,
+    future::poll_fn, num::NonZeroUsize, pin::Pin, str::FromStr as _, task::Poll, time::Duration,
 };
 use std::{
     fs,
@@ -409,7 +409,7 @@ async fn dropping_queued_request_skips_it() {
     let workspace = Workspace::open(
         database_path(&directory),
         WorkspaceConfig {
-            queue_capacity: NonZero::<usize>::MIN,
+            queue_capacity: NonZeroUsize::MIN,
             ..WorkspaceConfig::default()
         },
     )
@@ -596,7 +596,7 @@ async fn open_applies_limits() {
         WorkspaceConfig {
             memory_limit: Some(ByteSize::from_bytes(256 * MIB)),
             temp_directory_limit: Some(ByteSize::from_bytes(1024 * MIB)),
-            threads: NonZero::new(2),
+            threads: NonZeroUsize::new(2),
             ..WorkspaceConfig::default()
         },
     )

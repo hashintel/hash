@@ -1,5 +1,5 @@
 use alloc::collections::BTreeMap;
-use core::{num::NonZero, ops::ControlFlow};
+use core::{num::NonZeroU64, ops::ControlFlow};
 
 use error_stack::Report;
 use serde_saphyr::Spanned;
@@ -10,8 +10,8 @@ impl SourceLocation {
     /// Converts a location from the YAML parser, which uses line 0 for an unknown location.
     pub(super) fn from_yaml(location: &serde_saphyr::Location) -> Option<Self> {
         Some(Self {
-            line: NonZero::new(location.line())?,
-            column: NonZero::new(location.column())?,
+            line: NonZeroU64::new(location.line())?,
+            column: NonZeroU64::new(location.column())?,
         })
     }
 

@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String};
-use core::num::NonZero;
+use core::num::NonZeroU64;
 
 use serde::Deserialize;
 use url::Url;
@@ -52,7 +52,7 @@ impl PostgresSource {
                 "sslmode" if !matches!(value.as_ref(), "disable" | "require" | "verify-full") => {
                     return Err("sslmode must be disable, require or verify-full");
                 }
-                "port" if value.parse::<NonZero<u16>>().is_err() => {
+                "port" if value.parse::<core::num::NonZeroU16>().is_err() => {
                     return Err("connection port must be between 1 and 65535");
                 }
                 _ => {}
@@ -124,14 +124,14 @@ pub struct RestSource {
     pub results_field: Option<String>,
     pub pagination: Option<Pagination>,
     #[serde(default = "default_page_size")]
-    pub page_size: NonZero<u64>,
-    pub max_pages: Option<NonZero<u64>>,
+    pub page_size: NonZeroU64,
+    pub max_pages: Option<NonZeroU64>,
     #[serde(default)]
     pub rate_limit_ms: u64,
 }
 
-const fn default_page_size() -> NonZero<u64> {
-    NonZero::new(100).expect("the page size should be nonzero")
+const fn default_page_size() -> NonZeroU64 {
+    NonZeroU64::new(100).expect("the page size should be nonzero")
 }
 
 impl RestSource {
