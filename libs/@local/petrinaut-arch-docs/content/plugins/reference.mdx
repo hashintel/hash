@@ -10,22 +10,22 @@ together.
 
 ## Manifest
 
-| Key              | Value                                                                                                                                          | Adds to `api`                       | The hook returns |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ---------------- |
-| `id`             | Namespaced, stable and unique among the editor's plugins, such as `example.counter`. Ids starting `petrinaut.` are reserved.                   |                                     |                  |
-| `name`           | Titles the plugin's row in User settings → Plugins and the group of its setting rows.                                                          |                                     |                  |
-| `description`    | Shown when the plugin's row opens.                                                                                                             |                                     |                  |
-| `author`         | Shown beside the name, as in "by HASH".                                                                                                        |                                     |                  |
-| `required`       | `true`: the user cannot switch the plugin off, and its row in User settings → Plugins has no switch. A hook that throws still marks it failed. |                                     |                  |
+| Key              | Value                                                                                                                                          | Adds to `api`                                      | The hook returns |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ---------------- |
+| `id`             | Namespaced, stable and unique among the editor's plugins, such as `example.counter`. Ids starting `petrinaut.` are reserved.                   |                                                    |                  |
+| `name`           | Titles the plugin's row in User settings → Plugins and the group of its setting rows.                                                          |                                                    |                  |
+| `description`    | Shown when the plugin's row opens.                                                                                                             |                                                    |                  |
+| `author`         | Shown beside the name, as in "by HASH".                                                                                                        |                                                    |                  |
+| `required`       | `true`: the user cannot switch the plugin off, and its row in User settings → Plugins has no switch. A hook that throws still marks it failed. |                                                    |                  |
 | `access`         | A level per family; see [`access`](#access).                                                                                                   | `document`, `experiments`, `editor`, `performance` |                  |
-| `settings`       | A spec per key; see [Settings](#settings).                                                                                                     | `settings`                          |                  |
-| `commands`       | Per key: `{ label, category?, keywords?, shortcut? }`; see [Commands](#commands). Keys contain no dot.                                         |                                     | `commands`       |
-| `buttons`        | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                               |                                     | `buttons`        |
-| `topBarItems`    | Per key: `{ place }`.                                                                                                                          |                                     | `topBarItems`    |
-| `readOnlyAction` | `{ label }`: a button on the notice of a blocked edit on a document the host made read-only.                                                   |                                     | `readOnlyAction` |
-| `root`           | `true`: the plugin renders UI inside the editor.                                                                                               |                                     | `root`           |
-| `assistant`      | `true`: the plugin provides the AI assistant panel.                                                                                            |                                     | `assistant`      |
-| `provides`       | `pluginService<T>()`, the type of the service the hook provides.                                                                               |                                     | `provides`       |
+| `settings`       | A spec per key; see [Settings](#settings).                                                                                                     | `settings`                                         |                  |
+| `commands`       | Per key: `{ label, category?, keywords?, shortcut? }`; see [Commands](#commands). Keys contain no dot.                                         |                                                    | `commands`       |
+| `buttons`        | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                               |                                                    | `buttons`        |
+| `topBarItems`    | Per key: `{ place }`.                                                                                                                          |                                                    | `topBarItems`    |
+| `readOnlyAction` | `{ label }`: a button on the notice of a blocked edit on a document the host made read-only.                                                   |                                                    | `readOnlyAction` |
+| `root`           | `true`: the plugin renders UI inside the editor.                                                                                               |                                                    | `root`           |
+| `assistant`      | `true`: the plugin provides the AI assistant panel.                                                                                            |                                                    | `assistant`      |
+| `provides`       | `pluginService<T>()`, the type of the service the hook provides.                                                                               |                                                    | `provides`       |
 
 Every key but `id` and `name` is optional. Stored settings and the user's
 switch are keyed by `id`.
