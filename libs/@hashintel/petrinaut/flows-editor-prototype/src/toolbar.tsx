@@ -5,6 +5,7 @@ import { Button, Icon, Menu } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { START_ID, type EditorDocument } from "./document";
+import { showFull, useEditor } from "./editor-context";
 
 /** "Flows toolbar · Attio layout": 4 px in, 4 px gaps, a hairline, 8 px corners and a soft drop shadow. */
 const barStyle = css({
@@ -128,6 +129,7 @@ export const FlowToolbar = ({
 }) => {
   const flow = useReactFlow();
   const { zoom } = useViewport();
+  const { ui } = useEditor();
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -196,7 +198,7 @@ export const FlowToolbar = ({
             prefix={<Icon name="search" size="sm" />}
             suffix={<Icon name="chevronDown" size="sm" />}
           >
-            {`${Math.round(zoom * 100)}%`}
+            {`${Math.round((zoom / (showFull ? 1 : (ui.zoomBase ?? 1))) * 100)}%`}
           </Button>
         }
       />

@@ -27,7 +27,7 @@ import {
   startSubtitle,
   stepTitle,
 } from "./document";
-import { showDebug, useEditor } from "./editor-context";
+import { showDebug, showFull, useEditor } from "./editor-context";
 import { describeSource } from "./shapes";
 import { IconTile } from "./ui";
 
@@ -640,6 +640,11 @@ const nodeTypes = {
  * and React Flow's selection box in DS blue rather than its default violet. Keyboard focus on a node keeps the DS ring.
  */
 const canvasStyle = css({
+  // A screen state draws the + beside a step on hover only (Figma J2 A and B2 show it beside the selected step).
+  "&[data-quiet-port-add] [data-port-add]": { opacity: "[0]" },
+  "&[data-quiet-port-add] .react-flow__node:hover [data-port-add]": {
+    opacity: "[1]",
+  },
   "&, & .react-flow__renderer, & .react-flow__pane, & .react-flow__viewport": {
     outline: "none",
   },
@@ -849,6 +854,7 @@ export const FlowCanvas = ({
           },
         )
       }
+      data-quiet-port-add={(ui.quietPortAdd && !showFull) || undefined}
       fitView={!startViewport}
       fitViewOptions={fitOptions}
       defaultViewport={startViewport}

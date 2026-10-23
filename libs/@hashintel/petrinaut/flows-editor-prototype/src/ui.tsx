@@ -78,8 +78,7 @@ export const kindLabel = (kind: string | undefined, array = false) => {
 
 /** Figma ↳ Current panels: 12 px medium, muted, sentence case. */
 export const sectionTitleStyle = css({
-  textStyle: "sm",
-  fontWeight: "semibold",
+  textStyle: "xs",
   color: "neutral.fg.muted",
 });
 

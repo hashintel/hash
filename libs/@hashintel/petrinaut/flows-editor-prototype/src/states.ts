@@ -704,6 +704,12 @@ const figmaViewports: Record<string, EditorUi["viewport"]> = {
   "j2-b2": { left: 40, top: 346, zoom: 0.9 },
 };
 
+/** The Figma frames that draw the + beside the selected step; every other state shows it on hover only. */
+const plusShownStates = ["j2-a1", "j2-a2", "j2-b2"];
+
+/** The frames whose nodes are drawn at 90% scale but labelled 100%. */
+const figmaZoomBase = ["j2-b1", "j2-b2", "j3-c1b", "j3-d1"];
+
 /**
  * Per-state panel switches: J3 and rel-d2 (a J3 Explore screen) draw no "Inputs" header; J2's query reads "Add
  * condition" with no "Where".
@@ -712,18 +718,25 @@ export const screenStates: ScreenState[] = figmaStates.map((state) => {
   const hideInputsHeader = state.journey === 3;
   const plainQuery = state.journey <= 2;
   const viewport = figmaViewports[state.id];
-  return hideInputsHeader || plainQuery
-    ? {
-        ...state,
-        create: () => {
-          const created = state.create();
-          return {
-            ...created,
-            ui: { ...created.ui, hideInputsHeader, plainQuery, viewport },
-          };
+  const quietPortAdd = !plusShownStates.includes(state.id);
+  const zoomBase = figmaZoomBase.includes(state.id) ? 0.9 : undefined;
+  return {
+    ...state,
+    create: () => {
+      const created = state.create();
+      return {
+        ...created,
+        ui: {
+          ...created.ui,
+          hideInputsHeader,
+          plainQuery,
+          viewport,
+          quietPortAdd,
+          zoomBase,
         },
-      }
-    : state;
+      };
+    },
+  };
 });
 
 /** The journey sections on ↳ Current, in Figma order (file 69r6JuKZ2kAr61h7Ci40kh). */

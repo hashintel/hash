@@ -1250,6 +1250,7 @@ const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
       >
         <Select
           size="sm"
+          prefix={type ? { iconName: "cube" } : undefined}
           items={mockEntityTypes.map((candidate) => ({
             value: candidate.baseUrl,
             text: candidate.title,
@@ -1388,7 +1389,12 @@ const InputMapping = ({ trigger }: { trigger: TriggerNode }) => {
             {mapped ? (
               <SourceChip
                 icon={definition.icon}
-                onRemove={() => setMapping(input.name, undefined)}
+                // Figma J4 A2 draws the chip with no ×; clearing it is `?full`.
+                onRemove={
+                  inScreenState && !showFull
+                    ? undefined
+                    : () => setMapping(input.name, undefined)
+                }
               >
                 {outputLabel(mapped)}
               </SourceChip>

@@ -35,6 +35,10 @@ export type EditorUi = {
   plainQuery?: boolean;
   /** Opens the canvas at this zoom with Start's top-left this far (px) inside the canvas, instead of fitting the flow. */
   viewport?: { left: number; top: number; zoom: number };
+  /** The zoom the Figma frame labels 100% (its nodes are drawn at that scale): the bottom bar shows zoom against it. */
+  zoomBase?: number;
+  /** A screen state's + handles show on hover only; the Figma frame draws the + beside the selected step in J2 A and B2 alone. */
+  quietPortAdd?: boolean;
 };
 
 export const initialUi: EditorUi = {
