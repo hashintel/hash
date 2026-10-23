@@ -32,7 +32,7 @@
     "@opentelemetry/api-logs": "0.220.0",
     "@opentelemetry/instrumentation": "0.220.0",
     "@opentelemetry/instrumentation-grpc": "0.220.0",
-    "@sentry/node": "10.64.0",
+    "@sentry/node": "10.75.2",
     "@temporalio/activity": "1.20.2",
     "@temporalio/client": "1.20.2",
     "@temporalio/common": "1.20.2",

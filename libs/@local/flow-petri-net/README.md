@@ -37,7 +37,7 @@ flowchart LR
 
 ## Entry points
 
-- `@local/flow-petri-net/compile-flow-definition` exports `compileFlowDefinition(flowDefinition): Promise<SDCPN>`. It's async because it lays the net out with Petrinaut's ELK layout.
+- `@local/flow-petri-net/compile-flow-definition` exports `compileFlowDefinition(flowDefinition, { layout }): Promise<SDCPN>`. It's async because it lays the net out with Petrinaut's ELK layout. With `layout: false` it leaves every node at the origin, for a net that runs rather than one that's shown, such as in a Temporal workflow, where ELK can't run.
 - `@local/flow-petri-net/flow-net-keys` exports the functions every key in a compiled net is made with (see **Ids** below), so that anything reading a net, such as an executor or a run's view, can work out an element's id.
 - `@local/flow-petri-net/flow-net-metadata` exports the types of what a compiled net records in its metadata (see **Metadata** below): `TransitionRole`, each role's `TransitionMetadata`, `InputSource`, and the root's, instances' and subnets' metadata.
 
