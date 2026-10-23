@@ -354,8 +354,14 @@ const readFlowRunRecord = async ({
     workflowId,
   });
 
-  /* A record from another run of the workflow is from before the run was reset. */
-  if (storedRecord?.header.runId === workflow.runId) {
+  /*
+   * A record from another run of the workflow is from before the run was reset. One with another status was written
+   * by a run that was then terminated before it could close.
+   */
+  if (
+    storedRecord?.header.runId === workflow.runId &&
+    storedRecord.header.status === (workflow.status.name as FlowRunStatus)
+  ) {
     return storedRecord;
   }
 
