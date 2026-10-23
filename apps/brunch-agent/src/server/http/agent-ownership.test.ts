@@ -11,7 +11,7 @@ const app = new Hono();
 app.use(`${mount}/*`, agentOwnershipGuard(`${mount}/`, "test-agent"));
 app.all(`${mount}/*`, (context) => context.text("admitted"));
 const identity = {
-  principalKey: "principal-a",
+  ownerKey: "owner-a",
   conversationId: "conversation-1",
 };
 const url = `http://brunch.test${mount}/${flueConversationId(identity)}`;
@@ -24,7 +24,7 @@ test("the mounted route requires the exact owner", async () => {
         new Request(url, {
           headers: agentOwnershipHeaders({
             ...identity,
-            principalKey: "other",
+            ownerKey: "other",
           }),
         }),
       )

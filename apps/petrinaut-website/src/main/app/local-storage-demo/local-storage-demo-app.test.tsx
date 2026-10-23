@@ -148,8 +148,8 @@ const editorProps = vi.hoisted(() => ({
   } | null,
 }));
 
-vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
-  getOrCreateBrunchPrincipal: () => "test-principal",
+vi.mock("../plugins/brunch/conversation/brunch-owner-key", () => ({
+  getOrCreateBrunchOwnerKey: () => "test-owner",
 }));
 vi.mock("../plugins/brunch/brunch-flue-adapter", async (importOriginal) => {
   const actual =

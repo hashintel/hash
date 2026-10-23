@@ -59,8 +59,8 @@ vi.mock("../plugins/brunch/brunch-preview-config", () => ({
     isBrunchConfigured: true,
   }),
 }));
-vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
-  getOrCreateBrunchPrincipal: () => "prompt-test-principal",
+vi.mock("../plugins/brunch/conversation/brunch-owner-key", () => ({
+  getOrCreateBrunchOwnerKey: () => "prompt-test-owner",
 }));
 // The real editor, observed: the props the shell hands it.
 const editorProps = vi.hoisted(() => ({
@@ -114,7 +114,7 @@ test("empty-canvas and composer text share one Brunch conversation and its budge
     ordinaryConstructionConversationIdFrom(netId),
   );
   localStorage.setItem(
-    conversationWordsKey("prompt-test-principal", conversationId),
+    conversationWordsKey("prompt-test-owner", conversationId),
     JSON.stringify({
       version: 1,
       entries: [

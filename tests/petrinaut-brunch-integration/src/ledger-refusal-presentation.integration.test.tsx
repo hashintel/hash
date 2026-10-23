@@ -168,7 +168,7 @@ test("presents pending calls as pending, and renders applied green, typed refusa
   setProvider(faux.provider);
   const identity = {
     conversationId: `ledger-refusal-${crypto.randomUUID()}`,
-    principalKey: "ledger-refusal-principal",
+    ownerKey: "ledger-refusal-owner",
   };
   const headers = agentOwnershipHeaders(identity);
   const instanceId = await flueConversationIdWeb(identity);
