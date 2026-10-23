@@ -6,50 +6,41 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { useMemo } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
+
+import {
+  createJsonDocHandle,
+  type SDCPN,
+  type PetrinautDocHandle,
+} from "@hashintel/petrinaut-core";
+import { ErrorTrackerContext } from "@hashintel/petrinaut/react";
+import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
-} from "@hashintel/brunch-agent/client";
-import {
-  createCanonicalPetrinautHostTools,
-  EMPTY_CANONICAL_PETRINAUT_REPLAY,
-} from "@hashintel/brunch-agent/ui";
-import { createJsonDocHandle, type SDCPN } from "@hashintel/petrinaut-core";
-
+} from "../client/conversation/brunch-conversation-id";
+import { BrunchAssistantContext } from "./editor-api-plugin";
 import {
   InProcessLspWorker,
   NoopResizeObserver,
   preloadMonaco,
-} from "../shared/petrinaut-jsdom";
-import { assistantSelectionStorageKey } from "./assistant-selection";
-import { LocalStorageDemoApp } from "./local-storage-demo-app";
+} from "./testing/petrinaut-jsdom";
+import {
+  createCanonicalPetrinautHostTools,
+  EMPTY_CANONICAL_PETRINAUT_REPLAY,
+} from "./tools/brunch-petrinaut-tools";
+import { useBrunchAssistant } from "./use-brunch-assistant";
 
-import type {
-  DocumentController,
-  DocumentRecord,
-} from "./documents/document-repository";
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("../shared/petrinaut-jsdom");
+    await import("./testing/petrinaut-jsdom");
   installPetrinautDomShims();
 });
-
-const fixture = vi.hoisted(() => ({
-  client: null as FlueClient | null,
-  controller: null as DocumentController | null,
-  binding: null as {
-    documentId: string;
-    conversationId: string;
-  } | null,
-  baseBinding: null as {
-    documentId: string;
-    conversationId: string;
-  } | null,
-}));
+const fixture = vi.hoisted(() => ({ client: null as FlueClient | null }));
 vi.mock(
   "@hashintel/petrinaut-core/workers/monte-carlo",
   async (importOriginal) => {
@@ -70,39 +61,38 @@ vi.mock("@flue/sdk", async (importOriginal) => ({
     return fixture.client;
   },
 }));
-vi.mock("../plugins/brunch/brunch-preview-config", () => ({
-  resolveBrunchPreviewConfig: () => ({
+
+const HookPanel = ({ handle }: { handle: PetrinautDocHandle }) => {
+  const openDocument = useMemo(
+    () => ({
+      documentId: "document",
+      editor: { handle, readTitle: () => "Queue" },
+    }),
+    [handle],
+  );
+  const brunch = useBrunchAssistant({
+    ownerKey: "test-owner",
     chatEndpoint: "/agents/petrinaut",
-    isBrunchConfigured: true,
-  }),
-}));
-vi.mock("../plugins/brunch/conversation/brunch-owner-key", () => ({
-  getOrCreateBrunchOwnerKey: () => "test-owner",
-}));
-vi.mock("./documents/use-document-controller", () => ({
-  useDocumentController: () => {
-    if (!fixture.controller)
-      throw new Error("Missing test document controller");
-    return { controller: fixture.controller };
-  },
-}));
-vi.mock(
-  "../../../../../../libs/@hashintel/brunch-agent/src/ui/conversation/use-process-agent-binding",
-  () => ({
-    useProcessAgentBinding: () => {
-      if (!fixture.baseBinding)
-        throw new Error("Missing test process agent binding");
-      return fixture.baseBinding;
-    },
-  }),
-);
+    selected: true,
+    openDocument,
+    voice: { enabled: false, realtime: false },
+    interviewBudget: { enabled: false, level: "off", setLevel: () => {} },
+    words: { enabled: false },
+    plugins: [],
+  });
+  return (
+    <BrunchAssistantContext value={brunch.assistant}>
+      <Petrinaut handle={handle} plugins={brunch.plugins} />
+    </BrunchAssistantContext>
+  );
+};
 
 beforeAll(preloadMonaco, 30_000);
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  // A lazy language-server import may finish after unmount; keep this isolated
-  // file's Worker shim alive until Vitest disposes its jsdom environment.
+  // A lazy language-server import may finish after unmount; retain the Worker
+  // stand-in until Vitest disposes this isolated file's jsdom environment.
 });
 
 const definition: SDCPN = {
@@ -144,53 +134,27 @@ const proposal = {
 };
 
 test.each(["Dismiss", "Run"] as const)(
-  "real LocalStorageDemoApp panel settles a host-authorized draft in band; %s stays out of Flue",
+  "the real Brunch hook panel settles a host-authorized draft in band; %s stays out of Flue",
   async (action) => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
     // Only the browser Worker boundary is emulated; Petrinaut and its assistant panel are real.
     vi.stubGlobal("Worker", InProcessLspWorker);
     vi.stubGlobal("ResizeObserver", NoopResizeObserver);
-    // Brunch is the chosen assistant and the welcome guide was dismissed.
-    const stored = new Map([
-      [assistantSelectionStorageKey, "brunch"],
-      [
-        "petrinaut:plugin:website.walkthrough",
-        JSON.stringify({ showOnInit: false }),
-      ],
-    ]);
+    const stored = new Map<string, string>();
     vi.stubGlobal("localStorage", {
       get length() {
-        return 0;
+        return stored.size;
       },
-      clear() {},
+      clear: () => stored.clear(),
       getItem: (key: string) => stored.get(key) ?? null,
-      key: () => null,
-      removeItem() {},
-      setItem() {},
+      key: (index: number) => [...stored.keys()][index] ?? null,
+      removeItem: (key: string) => stored.delete(key),
+      setItem: (key: string, value: string) => stored.set(key, value),
     } satisfies Storage);
     const baseId = ordinaryConstructionConversationIdFrom("document");
     const binding = {
       conversationId: brunchEvaluationConversationIdFrom(baseId),
       documentId: "document",
-    };
-    fixture.binding = binding;
-    fixture.baseBinding = { ...binding, conversationId: baseId };
-    const documentRecord: DocumentRecord = {
-      documentId: binding.documentId,
-      revisionId: "initial-revision",
-      title: "Queue",
-      definition,
-    };
-    fixture.controller = {
-      repository: {
-        records: [documentRecord],
-        current: documentRecord,
-        status: { state: "ready" },
-        open() {},
-        actions: { create: () => documentRecord, rename() {} },
-        persistRevision: async () => {},
-      },
-      createAndOpen() {},
     };
     const handle = createJsonDocHandle({
       id: binding.documentId,
@@ -268,6 +232,8 @@ test.each(["Dismiss", "Run"] as const)(
           );
           return Response.json({ settled: true });
         }
+        if (target === "/api/voice/config")
+          return Response.json({ available: false });
         throw new Error(`Unexpected fetch ${target}`);
       }),
     );
@@ -381,7 +347,7 @@ test.each(["Dismiss", "Run"] as const)(
       observe: () => ({
         close() {},
         getSnapshot: () => ({
-          phase: "ready",
+          phase: "live",
           conversation: history,
           offset: "1",
         }),
@@ -391,12 +357,9 @@ test.each(["Dismiss", "Run"] as const)(
     } as unknown as FlueClient;
     fixture.client = client;
     render(
-      <LocalStorageDemoApp
-        netId={binding.documentId}
-        onOpenNet={() => {}}
-        search={{}}
-        onSearchChange={() => {}}
-      />,
+      <ErrorTrackerContext value={{ captureException: vi.fn() }}>
+        <HookPanel handle={handle} />
+      </ErrorTrackerContext>,
     );
     const showPanel = await screen.findByRole("button", {
       name: "Show AI assistant",

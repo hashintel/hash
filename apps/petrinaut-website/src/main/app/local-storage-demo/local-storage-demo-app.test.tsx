@@ -19,23 +19,15 @@ import {
 } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { brunchTools } from "@hashintel/brunch-agent";
 import {
-  BrunchPanelConversationTracker,
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
-  canonicalPetrinautClientToolNames,
-  brunchPetrinautClientToolNames,
-  OpenAIRealtimeSession,
 } from "@hashintel/brunch-agent/client";
 import {
   BrunchAssistantContext,
   InterviewBudgetControl,
 } from "@hashintel/brunch-agent/ui";
-import {
-  createExperimentToolName,
-  toPetrinautId,
-} from "@hashintel/petrinaut-core";
+import { toPetrinautId } from "@hashintel/petrinaut-core";
 import {
   defaultPetrinautNavigationHistoryPolicy,
   useCommandRegistry,
@@ -53,7 +45,6 @@ import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import { latestOrNewNetInStorage } from "./use-local-storage-sdcpns";
 import { voicePreferenceStorageKey } from "./voice-preference";
 
-import type { AgentConversationObservationSnapshot } from "@flue/sdk";
 import type {
   PetrinautAiMessage,
   PetrinautAiAssistant,
@@ -71,21 +62,6 @@ const netTwoId = toPetrinautId("net-2");
 const freshNetId = toPetrinautId("net-fresh");
 const staleNetId = toPetrinautId("net-stale");
 
-const brunchFlueAdapterTools = vi.hoisted(() => ({
-  current: null as unknown,
-}));
-const brunchPanelTransportOptions = vi.hoisted(() => ({
-  current: null as unknown,
-}));
-const brunchPanelTransportTracker = vi.hoisted(() => ({
-  current: null as BrunchPanelConversationTracker | null,
-}));
-const brunchPanelTransportSessions = vi.hoisted(() => ({
-  current: [] as {
-    readonly client: unknown;
-    readonly tracker: BrunchPanelConversationTracker;
-  }[],
-}));
 const flueClientMock = vi.hoisted(() => ({ current: null as unknown }));
 const flueClientOptions = vi.hoisted(() => ({ current: null as unknown }));
 const renderedPetrinaut = vi.hoisted(() => ({
@@ -94,9 +70,6 @@ const renderedPetrinaut = vi.hoisted(() => ({
 }));
 const renderedAssistants = vi.hoisted(
   () => [] as (PetrinautAiAssistant | undefined)[],
-);
-const mutationApprovalCoordinators = vi.hoisted(
-  () => [] as { close: () => void }[],
 );
 vi.mock("@flue/sdk", () => ({
   createFlueClient: (options: unknown) => {
@@ -112,25 +85,6 @@ const brunchPreviewConfig = vi.hoisted(() => ({
 vi.mock("../plugins/brunch/brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => brunchPreviewConfig,
 }));
-
-vi.mock(
-  "../../../../../../libs/@hashintel/brunch-agent/src/ui/tools/brunch-mutation-approval",
-  async (importOriginal) => {
-    const actual =
-      await importOriginal<
-        typeof import("../../../../../../libs/@hashintel/brunch-agent/src/ui/tools/brunch-mutation-approval")
-      >();
-    return {
-      ...actual,
-      createBrunchMutationApprovalCoordinator: () => {
-        const coordinator = actual.createBrunchMutationApprovalCoordinator();
-        vi.spyOn(coordinator, "close");
-        mutationApprovalCoordinators.push(coordinator);
-        return coordinator;
-      },
-    };
-  },
-);
 
 const editorProps = vi.hoisted(() => ({
   current: null as {
@@ -153,47 +107,6 @@ const editorProps = vi.hoisted(() => ({
 vi.mock("../plugins/brunch/conversation/brunch-owner-key", () => ({
   getOrCreateBrunchOwnerKey: () => "test-owner",
 }));
-vi.mock(
-  "../../../../../../libs/@hashintel/brunch-agent/src/client/brunch-flue-adapter",
-  async (importOriginal) => {
-    const actual =
-      await importOriginal<
-        typeof import("../../../../../../libs/@hashintel/brunch-agent/src/client/brunch-flue-adapter")
-      >();
-    return {
-      ...actual,
-      createBrunchFlueAdapter: (
-        ...args: Parameters<typeof actual.createBrunchFlueAdapter>
-      ) => {
-        brunchFlueAdapterTools.current = args[0];
-        return actual.createBrunchFlueAdapter(...args);
-      },
-    };
-  },
-);
-vi.mock(
-  "../../../../../../libs/@hashintel/brunch-agent/src/client/brunch-panel-transport",
-  async (importOriginal) => {
-    const actual =
-      await importOriginal<
-        typeof import("../../../../../../libs/@hashintel/brunch-agent/src/client/brunch-panel-transport")
-      >();
-    return {
-      ...actual,
-      createBrunchPanelTransport: (
-        client: Parameters<typeof actual.createBrunchPanelTransport>[0],
-        tracker: Parameters<typeof actual.createBrunchPanelTransport>[1],
-        options?: Parameters<typeof actual.createBrunchPanelTransport>[2],
-      ) => {
-        brunchPanelTransportOptions.current = options;
-        brunchPanelTransportTracker.current = tracker;
-        brunchPanelTransportSessions.current.push({ client, tracker });
-        return actual.createBrunchPanelTransport(client, tracker, options);
-      },
-    };
-  },
-);
-
 vi.mock("../plugins/petrinaut-ai/plugin", () => ({
   petrinautAiPlugin: {
     manifest: { id: "website.petrinaut-ai", name: "Petrinaut AI" },
@@ -296,191 +209,6 @@ const DemoApp = (
   );
   return <LocalStorageDemoApp {...props} netId={netId} onOpenNet={setNetId} />;
 };
-
-describe("local storage demo Brunch voice integration", () => {
-  test("registers no brunch_ask tool in the production Brunch preview", async () => {
-    renderedPetrinaut.aiAssistant = null;
-    stubStorage();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = {
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => ({ phase: "absent" }),
-        refresh: vi.fn(),
-        subscribe: () => () => undefined,
-      }),
-    };
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof globalThis.fetch>(async () =>
-        Response.json({ available: false }),
-      ),
-    );
-
-    const rendered = render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
-    const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
-
-    expect(aiAssistant.requestStop).toBeTypeOf("function");
-    expect(aiAssistant.executeMutation).toBeUndefined();
-    expect(
-      aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
-    ).toEqual(
-      expect.arrayContaining([
-        brunchTools.draftPetrinautExperiment,
-        "removePlace",
-      ]),
-    );
-    expect(aiAssistant.resolveToolPresentation).toBeTypeOf("function");
-    expect(aiAssistant.workingLabel).toBe("Working…");
-    expect(
-      aiAssistant.resolveToolPresentation?.({
-        toolName: "layout_petrinaut_net",
-        state: "success",
-        input: {},
-        output: {},
-        error: undefined,
-      }),
-    ).toBeUndefined();
-    expect(
-      aiAssistant.interactiveTools?.some(
-        ({ toolName }) => toolName === "brunch_ask",
-      ),
-    ).toBe(false);
-    expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
-      [
-        "getLatestNetDefinition",
-        "readNetOutline",
-        "readNetStructure",
-        "getNetCompilationErrors",
-        "addPlace",
-        "addTransition",
-        "addArc",
-      ],
-    );
-
-    const mutationApprovalCoordinator = mutationApprovalCoordinators.at(-1);
-    expect(mutationApprovalCoordinator).toBeDefined();
-    rendered.unmount();
-    expect(mutationApprovalCoordinator?.close).toHaveBeenCalledOnce();
-    vi.unstubAllGlobals();
-  });
-
-  test("waits for a durable offset before baselining present Ledger history", async () => {
-    renderedPetrinaut.aiAssistant = null;
-    stubStorage();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = {
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => ({
-          conversation: {
-            conversationId: "present-without-offset",
-            settlements: [],
-            messages: [],
-          },
-          offset: undefined,
-          phase: "live",
-          error: undefined,
-        }),
-        refresh: vi.fn(),
-        subscribe: () => () => undefined,
-      }),
-    };
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof globalThis.fetch>(async () =>
-        Response.json({ available: false }),
-      ),
-    );
-
-    const rendered = render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
-
-    expect(
-      (renderedPetrinaut.aiAssistant as PetrinautAiAssistant).additionalTab
-        ?.activityIdentities,
-    ).toBeUndefined();
-
-    rendered.unmount();
-    vi.unstubAllGlobals();
-  });
-
-  test("keeps durable Flue Stop distinct from local playback cancellation", async () => {
-    renderedPetrinaut.aiAssistant = null;
-    stubStorage();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    let snapshot: AgentConversationObservationSnapshot = {
-      conversation: {
-        conversationId: "conversation-stop",
-        settlements: [],
-        messages: [],
-      },
-      offset: "offset-before-stop",
-      phase: "live" as const,
-      error: undefined,
-    };
-    const listeners = new Set<() => void>();
-    const localPlaybackCancellation = vi.spyOn(
-      OpenAIRealtimeSession.prototype,
-      "cancelOutput",
-    );
-    const abort = vi.fn(async () => {
-      snapshot = {
-        conversation: {
-          conversationId: "conversation-stop",
-          settlements: [
-            { submissionId: "submission-stop", outcome: "aborted" as const },
-          ],
-          messages: [],
-        },
-        offset: "offset-after-stop",
-        phase: "live" as const,
-        error: undefined,
-      };
-      for (const listener of listeners) listener();
-      return { aborted: true };
-    });
-    flueClientMock.current = {
-      abort,
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => snapshot,
-        refresh: vi.fn(),
-        subscribe: (listener: () => void) => {
-          listeners.add(listener);
-          return () => listeners.delete(listener);
-        },
-      }),
-    };
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof globalThis.fetch>(async () =>
-        Response.json({ available: false }),
-      ),
-    );
-
-    const rendered = render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() =>
-      expect(
-        (renderedPetrinaut.aiAssistant as PetrinautAiAssistant).requestStop,
-      ).toBeTypeOf("function"),
-    );
-    const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
-
-    await expect(aiAssistant.requestStop?.()).resolves.toBe("stop-requested");
-    expect(abort).toHaveBeenCalledOnce();
-    expect(localPlaybackCancellation).not.toHaveBeenCalled();
-    expect(
-      (renderedPetrinaut.aiAssistant as PetrinautAiAssistant)
-        .renderComposerControl,
-    ).toBeTypeOf("function");
-
-    rendered.unmount();
-    localPlaybackCancellation.mockRestore();
-    vi.unstubAllGlobals();
-  });
-});
 
 /**
  * `navigation` is an optional prop, so dropping it from the editor compiles
@@ -1089,7 +817,7 @@ describe("local document revision persistence", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  test("keeps one session across revisions and replaces one client/tracker pair when document identity changes", async () => {
+  test("keeps Brunch bound to the editor's active handle across saves and document switches", async () => {
     seedStoredNet("first-revision");
     const stored = JSON.parse(
       localStorage.getItem("petrinaut-sdcpn") ?? "{}",
@@ -1101,7 +829,6 @@ describe("local document revision persistence", () => {
     });
     localStorage.setItem("petrinaut-sdcpn", JSON.stringify(stored));
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    brunchPanelTransportSessions.current = [];
     flueClientMock.current = {
       observe: () => ({
         close: vi.fn(),
@@ -1112,19 +839,10 @@ describe("local document revision persistence", () => {
     };
     render(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>
-      expect(brunchPanelTransportSessions.current.length).toBeGreaterThan(0),
+      expect(editorProps.current?.bridgedAssistant?.documentHandle).toBe(
+        editorProps.current?.handle,
+      ),
     );
-    const uniqueSessions = () => [
-      ...new Map(
-        brunchPanelTransportSessions.current.map((session) => [
-          session.client,
-          session,
-        ]),
-      ).values(),
-    ];
-    const [firstSession] = uniqueSessions();
-    expect(firstSession).toBeDefined();
-
     const handle = editorProps.current?.handle as PetrinautDocHandle;
     act(() => {
       handle.change((draft) => {
@@ -1151,19 +869,18 @@ describe("local document revision persistence", () => {
         persisted[netOneId]?.sdcpn.places.map((place) => place.id),
       ).toEqual(["first-place"]);
     });
-    expect(uniqueSessions()).toEqual([firstSession]);
+    expect(editorProps.current?.bridgedAssistant?.documentHandle).toBe(handle);
 
     const loadPetriNet = editorProps.current?.loadPetriNet as (
       petriNetId: string,
     ) => void;
     act(() => loadPetriNet(netTwoId));
 
-    await waitFor(() => {
-      expect(uniqueSessions()).toHaveLength(2);
-    });
-    const [, secondSession] = uniqueSessions();
-    expect(secondSession?.client).not.toBe(firstSession?.client);
-    expect(secondSession?.tracker).not.toBe(firstSession?.tracker);
+    await waitFor(() => expect(editorProps.current?.title).toBe("Second net"));
+    expect(editorProps.current?.handle).not.toBe(handle);
+    expect(editorProps.current?.bridgedAssistant?.documentHandle).toBe(
+      editorProps.current?.handle,
+    );
   });
 });
 
@@ -1215,89 +932,7 @@ describe("local storage demo Brunch controls", () => {
     );
   });
 
-  test("a destructive edit waiting for approval settles when the conversation is replaced", async () => {
-    seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = {
-      url: "http://brunch.local/agents/petrinaut/instance",
-      history: async () => ({
-        conversation: { settlements: [], messages: [] },
-        offset: "0",
-      }),
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => ({ phase: "absent" }),
-        refresh: vi.fn(),
-        subscribe: () => () => {},
-      }),
-    };
-    const posted: unknown[] = [];
-    const claimed = vi.fn();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof fetch>(async (url, init) => {
-        const target = new URL(url instanceof Request ? url.url : url);
-        if (!target.pathname.includes("/browser-calls/remove-1"))
-          return new Response(null, { status: 404 });
-        if (init?.method === "POST") {
-          posted.push(
-            typeof init.body === "string" ? JSON.parse(init.body) : init.body,
-          );
-          return new Response(null, { status: 200 });
-        }
-        claimed();
-        return Response.json({
-          capability: "capability",
-          binding: target.searchParams.get("binding"),
-          toolName: "removePlace",
-          input: { placeId: toPetrinautId("queue") },
-        });
-      }),
-    );
-    try {
-      render(<DemoApp onSearchChange={() => {}} search={{}} />);
-      await waitFor(() =>
-        expect(
-          editorProps.current?.bridgedAssistant?.inBandBrowserTools,
-        ).toBeDefined(),
-      );
-      const assistant = editorProps.current
-        ?.bridgedAssistant as PetrinautAiAssistant;
-      const initialTools = assistant.interactiveTools;
-      const execute = vi.fn(async () => ({ applied: true }));
-      const run = assistant.inBandBrowserTools?.run(
-        {
-          toolCallId: "remove-1",
-          toolName: "removePlace",
-          input: { placeId: toPetrinautId("queue") },
-          signal: new AbortController().signal,
-        },
-        execute,
-      );
-      const interactiveTools = () =>
-        editorProps.current?.bridgedAssistant?.interactiveTools;
-      await waitFor(() => expect(claimed).toHaveBeenCalled());
-      await waitFor(() => expect(interactiveTools()).not.toBe(initialTools));
-      const waitingTools = interactiveTools();
-      act(() => assistant.onClearMessages?.());
-
-      await run;
-      expect(interactiveTools()).not.toBe(waitingTools);
-      expect(execute).not.toHaveBeenCalled();
-      expect(posted).toEqual([
-        expect.objectContaining({
-          output: {
-            applied: false,
-            reason: "The destructive edit was stopped before approval.",
-          },
-        }),
-      ]);
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
-
-  test("mounts document-bound Brunch with canonical overrides and the complete static catalogue", async () => {
+  test("bridges document-bound Brunch through context with the editor's handle", async () => {
     seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = {
@@ -1323,77 +958,14 @@ describe("local storage demo Brunch controls", () => {
     );
     const aiAssistant = editorProps.current
       ?.bridgedAssistant as PetrinautAiAssistant;
-    const transportOptions = brunchPanelTransportOptions.current as {
-      readonly initialData?: { readonly binding?: unknown };
-    };
-    const adapterTools = brunchFlueAdapterTools.current as {
-      readonly clientToolNames?: ReadonlySet<string>;
-      readonly dynamicClientToolNames?: ReadonlySet<string>;
-    };
-
-    const conversationId = brunchEvaluationConversationIdFrom(
-      ordinaryConstructionConversationIdFrom(netOneId),
+    expect(aiAssistant.conversationId).toBe(
+      brunchEvaluationConversationIdFrom(
+        ordinaryConstructionConversationIdFrom(netOneId),
+      ),
     );
-    expect(aiAssistant.conversationId).toBe(conversationId);
-    expect(aiAssistant.executeMutation).toBeUndefined();
-    // The editor gets no built-in chat; its tools run on the editor's handle.
+    // Brunch reaches the editor through context, not its built-in assistant prop.
     expect(editorProps.current).not.toHaveProperty("aiAssistant");
     expect(aiAssistant.documentHandle).toBe(editorProps.current?.handle);
-    expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
-      [
-        "getLatestNetDefinition",
-        "readNetOutline",
-        "readNetStructure",
-        "getNetCompilationErrors",
-        "addPlace",
-        "addTransition",
-        "addArc",
-      ],
-    );
-    expect(aiAssistant.primaryLabel).toBe("Chat");
-    expect(aiAssistant.additionalTab?.label).toBe("Ledger");
-    expect(
-      aiAssistant.resolveToolPresentation?.({
-        toolName: "layout_petrinaut_net",
-        state: "pending",
-        input: {},
-        output: undefined,
-        error: undefined,
-      }),
-    ).toBeUndefined();
-    expect(transportOptions.initialData?.binding).toEqual({
-      conversationId,
-      documentId: netOneId,
-      incarnationId: netOneId,
-    });
-    expect([...(adapterTools.clientToolNames ?? [])].toSorted()).toEqual(
-      [...brunchPetrinautClientToolNames].toSorted(),
-    );
-    expect(
-      aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
-    ).toEqual(
-      expect.arrayContaining([
-        brunchTools.draftPetrinautExperiment,
-        "removePlace",
-      ]),
-    );
-    // Every configured Brunch browser tool, the draft included, settles in band.
-    expect(aiAssistant.inBandBrowserTools?.has(createExperimentToolName)).toBe(
-      true,
-    );
-    expect(
-      aiAssistant.inBandBrowserTools?.has(brunchTools.draftPetrinautExperiment),
-    ).toBe(false);
-    // I captures the experiment source at the browser lane barrier, not while projecting transport input.
-    expect([...(adapterTools.dynamicClientToolNames ?? [])].toSorted()).toEqual(
-      [
-        ...canonicalPetrinautClientToolNames,
-        "readNetOutline",
-        "readNetStructure",
-        brunchTools.draftPetrinautExperiment,
-      ].toSorted(),
-    );
-    expect(aiAssistant.inBandBrowserTools?.has("readNetOutline")).toBe(true);
   });
 });
 
@@ -1446,62 +1018,6 @@ describe("assistant selection", () => {
     }
     return settingsLabs.props.openAIVoiceConfig;
   };
-  const placeInput = {
-    id: "queue",
-    name: "Queue",
-    colorId: null,
-    dynamicsEnabled: false,
-    differentialEquationId: null,
-    x: 0,
-    y: 0,
-    targetSubnetId: null,
-  };
-  // The editor is mocked, so its edits are too: each is accepted and changes
-  // nothing, and the chat's mutation runner reports the document unchanged.
-  const acceptedNoOp = () => ({ applied: true, value: undefined });
-  const noOpEdits = {
-    addPlace: acceptedNoOp,
-    addTransition: acceptedNoOp,
-    addArc: acceptedNoOp,
-  };
-  /** The bridged assistant's bound handle, which must be the editor's own. */
-  const currentDocumentHandle = () => {
-    const handle = currentAssistant()?.documentHandle;
-    expect(handle).toBe(editorProps.current?.handle);
-    return handle;
-  };
-  const executeCurrentCanonicalMutation = (
-    toolCallId: string,
-    toolName: "addPlace" | "addTransition" | "addArc",
-    input: unknown,
-  ) => {
-    const tool = currentAssistant()?.automaticTools?.find(
-      (candidate) => candidate.toolName === toolName,
-    );
-    expect(tool).toBeDefined();
-    return tool?.execute({
-      edit: noOpEdits,
-      handle: currentDocumentHandle(),
-      input,
-      readDiagnosticsContext: async () => "",
-      signal: new AbortController().signal,
-      toolCallId,
-    } as never);
-  };
-  const executeCurrentReadCall = (toolCallId: string) => {
-    const tool = currentAssistant()?.automaticTools?.find(
-      ({ toolName }) => toolName === "getLatestNetDefinition",
-    );
-    expect(tool).toBeDefined();
-    return tool?.execute({
-      edit: noOpEdits,
-      handle: currentDocumentHandle(),
-      input: {},
-      readDiagnosticsContext: async () => "",
-      signal: new AbortController().signal,
-      toolCallId,
-    } as never);
-  };
   const currentVoiceProvider = () => {
     const control = currentAssistant()?.renderVoiceMode?.({
       canAcceptVoiceInput: true,
@@ -1527,7 +1043,6 @@ describe("assistant selection", () => {
   afterEach(() => {
     cleanup();
     editorProps.current = null;
-    brunchPanelTransportOptions.current = null;
     brunchPreviewConfig.isBrunchConfigured = true;
     vi.unstubAllGlobals();
   });
@@ -1672,9 +1187,6 @@ describe("assistant selection", () => {
       };
       const expectBudget = (enabled: boolean) => {
         const level = enabled ? expectedLevel : "off";
-        expect(brunchPanelTransportOptions.current).toEqual(
-          expect.objectContaining({ interviewBudgetLevel: level }),
-        );
         const assistant = currentAssistant();
         if (assistant === undefined)
           throw new Error("Brunch's assistant is not bridged to the editor");
@@ -1709,10 +1221,6 @@ describe("assistant selection", () => {
         )
           throw new Error("Missing Voice control");
         expect(voice.props.interviewBudgetLevel).toBe(level);
-        voice.props.onInputModeChange?.("voice");
-        expect(brunchPanelTransportTracker.current?.inputMode).toBe("voice");
-        voice.props.onInputModeChange?.("text");
-        expect(brunchPanelTransportTracker.current?.inputMode).toBe("text");
       };
       const firstView = render(
         <DemoApp onSearchChange={() => {}} search={{}} />,
@@ -1933,295 +1441,6 @@ describe("assistant selection", () => {
     switchAssistant(/Use the stock Petrinaut assistant/);
     await waitFor(() => expect(currentAssistant()).toBeUndefined());
     expect(editorProps.current?.plugins).toContain(petrinautAiPlugin);
-  });
-
-  test("an absent replay baseline stays immutable when admission refresh publishes its live calls", async () => {
-    seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    let snapshot: AgentConversationObservationSnapshot = {
-      conversation: undefined,
-      offset: undefined,
-      phase: "absent",
-      error: undefined,
-    };
-    const subscribers = new Set<() => void>();
-    const refresh = vi.fn(() => {
-      for (const subscriber of subscribers) subscriber();
-    });
-    flueClientMock.current = {
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => snapshot,
-        refresh,
-        subscribe: (subscriber: () => void) => {
-          subscribers.add(subscriber);
-          return () => subscribers.delete(subscriber);
-        },
-      }),
-    };
-
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => expect(currentAssistant()?.requestStop).toBeDefined());
-    // The baseline is the history the editor first shows: wait until it is the
-    // absent one, before the admission publishes live calls.
-    await waitFor(() =>
-      expect(currentAssistant()?.additionalTab?.activityIdentities).toEqual([]),
-    );
-    const initialTools = currentAssistant()?.automaticTools;
-    const canonicalInput = {
-      id: "canonical-live",
-      name: "CanonicalLive",
-      colorId: null,
-      dynamicsEnabled: false,
-      differentialEquationId: null,
-      x: 0,
-      y: 0,
-      targetSubnetId: null,
-    };
-    const conversationId = currentAssistant()?.conversationId ?? "";
-    snapshot = {
-      conversation: {
-        conversationId,
-        settlements: [],
-        messages: [
-          {
-            role: "assistant",
-            purpose: "assistant",
-            parts: [
-              {
-                type: "dynamic-tool",
-                toolName: "query_basis",
-                toolCallId: "ledger-query",
-                state: "output-available",
-                input: {},
-                output: {
-                  binding: {
-                    conversationId,
-                    documentId: netOneId,
-                    incarnationId: netOneId,
-                  },
-                  disposition: "not-found",
-                  changes: [],
-                },
-              },
-              {
-                type: "dynamic-tool",
-                toolName: "getLatestNetDefinition",
-                toolCallId: "live-read",
-                state: "input-available",
-                input: {},
-              },
-              {
-                type: "dynamic-tool",
-                toolName: "addPlace",
-                toolCallId: "live-mutation",
-                state: "input-available",
-                input: canonicalInput,
-              },
-            ],
-          },
-        ] as never,
-      },
-      offset: "admitted-offset",
-      phase: "live",
-      error: undefined,
-    };
-
-    act(() => {
-      (
-        brunchPanelTransportOptions.current as { onAdmission?: () => void }
-      ).onAdmission?.();
-    });
-    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
-
-    for (const initialTool of initialTools ?? []) {
-      expect(
-        currentAssistant()?.automaticTools?.find(
-          ({ toolName }) => toolName === initialTool.toolName,
-        ),
-      ).toBe(initialTool);
-    }
-    const readOutput = executeCurrentReadCall("live-read");
-    expect(
-      typeof readOutput === "object" &&
-        readOutput !== null &&
-        "definition" in readOutput,
-    ).toBe(true);
-    const canonicalOutput = (await executeCurrentCanonicalMutation(
-      "live-mutation",
-      "addPlace",
-      canonicalInput,
-    )) as { applied?: boolean; reason?: string } | undefined;
-    expect(canonicalOutput?.applied).toBe(false);
-    const handle = editorProps.current?.handle as
-      | PetrinautDocHandle
-      | undefined;
-    expect(handle?.doc()?.places).toHaveLength(0);
-
-    const toolsAfterCalls = currentAssistant()?.automaticTools;
-    snapshot = { ...snapshot, offset: "terminal-offset" };
-    act(() => refresh());
-    for (const retainedTool of toolsAfterCalls ?? []) {
-      expect(
-        currentAssistant()?.automaticTools?.find(
-          ({ toolName }) => toolName === retainedTool.toolName,
-        ),
-      ).toBe(retainedTool);
-    }
-    expect(executeCurrentReadCall("live-read")).toEqual(readOutput);
-    expect(
-      executeCurrentCanonicalMutation(
-        "live-mutation",
-        "addPlace",
-        canonicalInput,
-      ),
-    ).toEqual(canonicalOutput);
-  });
-
-  test("a document change resets the replay baseline and live-call adapter", async () => {
-    seedStoredNet();
-    const stored = JSON.parse(
-      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
-    ) as Record<string, unknown>;
-    stored[netTwoId] = storedNet({
-      id: netTwoId,
-      lastUpdated: "2019-01-01T00:00:00.000Z",
-      title: "Second net",
-    });
-    localStorage.setItem("petrinaut-sdcpn", JSON.stringify(stored));
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = flueHistoryClient();
-
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => expect(currentAssistant()?.requestStop).toBeDefined());
-    const firstMutation = currentAssistant()?.automaticTools?.find(
-      ({ toolName }) => toolName === "addPlace",
-    );
-    const firstInput = {
-      ...placeInput,
-      id: "first-place",
-      name: "FirstPlace",
-    };
-    // History loads asynchronously; a call refused before it starts records nothing.
-    const firstOutput = (await waitFor(() =>
-      executeCurrentCanonicalMutation("reused-call", "addPlace", firstInput),
-    )) as { applied?: boolean } | undefined;
-    // Edits are stubbed, so the chat's runner reports its own unchanged result;
-    // the point is that each document's call reaches it rather than being refused.
-    expect(firstOutput).toHaveProperty("applied");
-
-    const loadPetriNet = editorProps.current?.loadPetriNet as
-      | ((id: string) => void)
-      | undefined;
-    expect(loadPetriNet).toBeDefined();
-    act(() => loadPetriNet?.(netTwoId));
-    await waitFor(() => expect(editorProps.current?.title).toBe("Second net"));
-    await waitFor(() => {
-      expect(
-        currentAssistant()?.automaticTools?.find(
-          ({ toolName }) => toolName === "addPlace",
-        ),
-      ).not.toBe(firstMutation);
-    });
-    const secondOutput = (await waitFor(() =>
-      executeCurrentCanonicalMutation("reused-call", "addPlace", {
-        ...placeInput,
-        id: "second-place",
-        name: "SecondPlace",
-      }),
-    )) as { applied?: boolean } | undefined;
-    expect(secondOutput).toHaveProperty("applied");
-  });
-
-  test("I does not execute a canonical write while history is loading", async () => {
-    seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    flueClientMock.current = {
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => ({ phase: "loading" }),
-        refresh: vi.fn(),
-        subscribe: () => () => undefined,
-      }),
-    };
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => expect(currentAssistant()?.requestStop).toBeDefined());
-    expect(() => executeCurrentReadCall("loading-read")).toThrow(
-      "Conversation history is not ready",
-    );
-    expect(() =>
-      executeCurrentCanonicalMutation("loading-place", "addPlace", {
-        id: "blocked",
-        name: "Blocked",
-        colorId: null,
-        dynamicsEnabled: false,
-        differentialEquationId: null,
-        x: 0,
-        y: 0,
-        targetSubnetId: null,
-      }),
-    ).toThrow("Conversation history is not ready");
-    const handle = editorProps.current?.handle as PetrinautDocHandle;
-    expect(handle.doc()?.places).toEqual([]);
-  });
-
-  test("a pending bound mutation in history is not executed again after reload", async () => {
-    seedStoredNet();
-    localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    const pendingPlace = {
-      id: "pending",
-      name: "Pending",
-      colorId: null,
-      dynamicsEnabled: false,
-      differentialEquationId: null,
-      x: 0,
-      y: 0,
-      targetSubnetId: null,
-    };
-    flueClientMock.current = {
-      observe: () => ({
-        close: vi.fn(),
-        getSnapshot: () => ({
-          conversation: {
-            conversationId: "pending-conversation",
-            settlements: [],
-            messages: [
-              {
-                role: "assistant",
-                purpose: "assistant",
-                parts: [
-                  {
-                    type: "dynamic-tool",
-                    toolName: "addPlace",
-                    toolCallId: "pending-mutation",
-                    state: "input-available",
-                    input: pendingPlace,
-                  },
-                ],
-              },
-            ],
-          },
-          offset: "pending-offset",
-          phase: "live",
-          error: undefined,
-        }),
-        refresh: vi.fn(),
-        subscribe: () => () => undefined,
-      }),
-    };
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => expect(currentAssistant()?.requestStop).toBeDefined());
-    await waitFor(() =>
-      expect(() =>
-        executeCurrentCanonicalMutation(
-          "pending-mutation",
-          "addPlace",
-          pendingPlace,
-        ),
-      ).toThrow(/already attempted/u),
-    );
-    const handle = editorProps.current?.handle as PetrinautDocHandle;
-    expect(handle.doc()?.places).toEqual([]);
   });
 
   test("gives the editor the demo's plugins and the registry holding the switch command", () => {
