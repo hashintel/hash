@@ -21,7 +21,9 @@ export interface BrunchConnection {
   readonly chatEndpoint: string;
   /**
    * Carries every request Brunch makes: Flue's, the browser calls' and the
-   * live-tool stream's. The global `fetch` when omitted.
+   * live-tool stream's. The global `fetch` when omitted. Pass a stable
+   * function (module-level or memoized): a new identity recreates the
+   * conversation's client and tracker.
    */
   readonly fetch?: BrunchFetch;
 }

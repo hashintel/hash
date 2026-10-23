@@ -1,6 +1,7 @@
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
+import type { UserId } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { Express, Request, Response } from "express";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
@@ -53,7 +54,7 @@ export const getBrunchAgentOrigin = (
 };
 
 /** Brunch owner key for a HASH account: set by NodeAPI, never by the browser. */
-const brunchOwnerKey = (accountId: string) => `hash:${accountId}`;
+const brunchOwnerKey = (accountId: UserId) => `hash:${accountId}`;
 
 const requestBody = (request: Request): string | undefined => {
   if (request.method === "GET" || request.method === "HEAD") {
