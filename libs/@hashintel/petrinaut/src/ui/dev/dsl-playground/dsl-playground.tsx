@@ -2,9 +2,12 @@ import { useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  mergeDslDocument,
+  parsePetrinautDsl,
   parseSDCPNDocument,
   printPetrinautDsl,
   serializeSDCPN,
+  type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
   assemblyLine,
@@ -61,16 +64,45 @@ const paneTitleStyle = css({
   color: "neutral.s85",
 });
 
+const roundTripStyle = css({
+  fontSize: "xs",
+  color: "neutral.s85",
+  whiteSpace: "pre-wrap",
+});
+
 const errorStyle = css({
   color: "[#dc2626]",
   fontSize: "sm",
   whiteSpace: "pre-wrap",
 });
 
+/** The projection read back and merged onto its document, printed again: the same text, or why not. */
+const roundTrip = (sdcpn: SDCPN, title: string | undefined, text: string) => {
+  const parsed = parsePetrinautDsl(text);
+  const describe = (
+    diagnostics: readonly { message: string; range: { startLine: number } }[],
+  ) =>
+    diagnostics
+      .map(({ message, range }) => `line ${range.startLine}: ${message}`)
+      .join("\n");
+  if (parsed.diagnostics.length > 0) {
+    return `Round trip: the text does not parse.\n${describe(parsed.diagnostics)}`;
+  }
+  const merged = mergeDslDocument(sdcpn, parsed.document);
+  if (!merged.ok) {
+    return `Round trip: the text does not merge.\n${describe(merged.diagnostics)}`;
+  }
+  const again = printPetrinautDsl({ sdcpn: merged.sdcpn, title }).text;
+  return again === text
+    ? "Round trip: parsed, merged and printed again, the text is the same."
+    : "Round trip: the merged net prints differently.";
+};
+
 /**
  * Two panes: a YAML document on the left, edited freely, and its DSL
  * projection on the right, re-printed on every keystroke. An example picker
- * fills the left pane.
+ * fills the left pane; under the projection, whether it reads back as the
+ * same document.
  */
 export const DslPlayground = () => {
   const [source, setSource] = useState(() =>
@@ -127,6 +159,11 @@ export const DslPlayground = () => {
       </div>
       <div className={paneStyle}>
         <div className={paneTitleStyle}>Petrinaut DSL (projection)</div>
+        {projection !== null && parsed.ok ? (
+          <div className={roundTripStyle}>
+            {roundTrip(parsed.sdcpn, parsed.sdcpn.title, projection.text)}
+          </div>
+        ) : null}
         {projection === null ? (
           <div className={errorStyle}>{parsed.ok ? "" : parsed.error}</div>
         ) : (

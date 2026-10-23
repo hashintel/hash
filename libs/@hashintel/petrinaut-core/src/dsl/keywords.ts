@@ -17,6 +17,7 @@ export const dslDeclarationKeywords = [
   "fuse",
   "metric",
   "scenario",
+  "marking",
 ] as const;
 
 export const dslAttributeKeywords = [

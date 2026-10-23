@@ -13,3 +13,7 @@ export const isDslIdentifier = (name: string): boolean =>
 /** `name` bare when it is an identifier, else as a JSON string. */
 export const dslName = (name: string): string =>
   isDslIdentifier(name) ? name : JSON.stringify(name);
+
+/** `name` lowercased with everything but letters and digits removed, to compare spellings. */
+export const plainWords = (name: string): string =>
+  name.toLowerCase().replace(/[^a-z0-9]/gu, "");

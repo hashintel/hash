@@ -131,6 +131,35 @@ export {
 } from "./dsl/keywords";
 export { dslName, isDslIdentifier } from "./dsl/identifiers";
 export { toBodyForm } from "./dsl/code-bodies";
+export { parsePetrinautDsl, skipCodeBlock } from "./dsl/parse";
+export type { DslParseResult } from "./dsl/parse";
+export { mergeDslDocument } from "./dsl/merge";
+export type { DslMergeOptions, DslMergeResult } from "./dsl/merge";
+export type {
+  DslArc,
+  DslBinding,
+  DslComponentDeclaration,
+  DslDiagnostic,
+  DslDiagnosticSeverity,
+  DslDocument,
+  DslDynamicsDeclaration,
+  DslFusionDeclaration,
+  DslInitialState,
+  DslInstanceDeclaration,
+  DslMetricDeclaration,
+  DslParameterDeclaration,
+  DslPlaceDeclaration,
+  DslPlaceReference,
+  DslRange,
+  DslScenarioDeclaration,
+  DslScenarioParameter,
+  DslScope,
+  DslTransitionDeclaration,
+  DslTypeDeclaration,
+  DslTypeElement,
+  DslWord,
+} from "./dsl/ast";
+export { nextTypeColor, typeColorPool } from "./lib/type-colors";
 
 // --- Command registry (palette commands) ---
 export {

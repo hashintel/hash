@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -6,8 +6,9 @@ import { css } from "@hashintel/ds-helpers/css";
 import { CodeEditor } from "../../monaco/code-editor";
 import { dslLanguageId, registerDslLanguage } from "./dsl-language";
 
-import type { DslSpan } from "@hashintel/petrinaut-core";
+import type { DslDiagnostic } from "@hashintel/petrinaut-core";
 import type { editor } from "monaco-editor";
+import type * as Monaco from "monaco-editor/esm/vs/editor/editor.api.js";
 
 const containerStyle = css({
   display: "flex",
@@ -45,6 +46,10 @@ const toolbarHintStyle = css({
   whiteSpace: "nowrap",
 });
 
+const toolbarWarningStyle = css({
+  color: "[#b45309]",
+});
+
 const editorStyle = css({
   flex: "[1]",
   minHeight: "[0]",
@@ -54,29 +59,89 @@ const editorStyle = css({
 /** The lines of the entity the editor's selection names. */
 export type RevealedLines = { startLine: number; endLine: number } | null;
 
+/** What the text is to the net right now, which the toolbar tells. */
+export type DslViewStatus =
+  | { kind: "clean" }
+  | { kind: "readOnly"; reason: string }
+  | {
+      kind: "editing";
+      errors: number;
+      /** The net changed since the draft began: applying overwrites that change. */
+      stale: boolean;
+      canApply: boolean;
+    };
+
+type MountedEditor = {
+  instance: editor.IStandaloneCodeEditor;
+  monaco: typeof Monaco;
+};
+
+const markerOwner = "petrinaut-dsl";
+
+const toMarker = (
+  monaco: typeof Monaco,
+  diagnostic: DslDiagnostic,
+): editor.IMarkerData => ({
+  severity:
+    diagnostic.severity === "error"
+      ? monaco.MarkerSeverity.Error
+      : monaco.MarkerSeverity.Warning,
+  message: diagnostic.message,
+  startLineNumber: diagnostic.range.startLine,
+  startColumn: diagnostic.range.startColumn,
+  endLineNumber: diagnostic.range.endLine,
+  endColumn: diagnostic.range.endColumn,
+});
+
+const statusText = (status: DslViewStatus): string => {
+  switch (status.kind) {
+    case "clean":
+      return "Edit the text and apply it to the net. Select an item on the canvas to find it here.";
+    case "readOnly":
+      return status.reason;
+    case "editing":
+      if (status.errors > 0) {
+        return `${status.errors} ${status.errors === 1 ? "error" : "errors"} to fix before applying.`;
+      }
+      if (status.stale) {
+        return "The net changed since you started editing. Applying replaces that change.";
+      }
+      return "Unsaved changes. Apply with ⌘S or Ctrl+S.";
+  }
+};
+
 /**
- * The net as DSL text in a read-only Monaco editor. The lines of the selected
- * entity are highlighted and scrolled into view.
+ * The net as DSL text in a Monaco editor. Clean, the text follows the net
+ * and the lines of the selected entity are highlighted and scrolled into
+ * view; edited, the diagnostics mark the text and Apply writes it back.
  */
 export const DslView = ({
   text,
+  diagnostics,
   revealed,
+  status,
+  onChange,
+  onApply,
+  onDiscard,
 }: {
   text: string;
-  spans: readonly DslSpan[];
+  diagnostics: readonly DslDiagnostic[];
   revealed: RevealedLines;
+  status: DslViewStatus;
+  onChange: (text: string) => void;
+  onApply: () => void;
+  onDiscard: () => void;
 }) => {
-  const [editorInstance, setEditorInstance] =
-    useState<editor.IStandaloneCodeEditor | null>(null);
+  const [mounted, setMounted] = useState<MountedEditor | null>(null);
   const [copied, setCopied] = useState(false);
 
   // Monaco is imperative: the highlight and the scroll are applied to the
   // editor instance whenever the selection's lines change.
   useEffect(() => {
-    if (editorInstance === null || revealed === null) {
+    if (mounted === null || revealed === null) {
       return;
     }
-    const decorations = editorInstance.createDecorationsCollection([
+    const decorations = mounted.instance.createDecorationsCollection([
       {
         range: {
           startLineNumber: revealed.startLine,
@@ -91,21 +156,109 @@ export const DslView = ({
         },
       },
     ]);
-    editorInstance.revealLinesInCenterIfOutsideViewport(
+    mounted.instance.revealLinesInCenterIfOutsideViewport(
       revealed.startLine,
       revealed.endLine,
     );
     return () => decorations.clear();
-  }, [editorInstance, revealed]);
+  }, [mounted, revealed]);
+
+  useEffect(() => {
+    const model = mounted?.instance.getModel() ?? null;
+    if (mounted === null || model === null) {
+      return;
+    }
+    mounted.monaco.editor.setModelMarkers(
+      model,
+      markerOwner,
+      diagnostics.map((diagnostic) => toMarker(mounted.monaco, diagnostic)),
+    );
+    return () => mounted.monaco.editor.setModelMarkers(model, markerOwner, []);
+  }, [mounted, diagnostics]);
+
+  // While the editor has focus the code editor leaves its model alone, so a
+  // text applied or discarded from the keyboard would stay on screen as the
+  // draft it was. Clean, the model is made to read the net's text, keeping
+  // the scroll position.
+  useEffect(() => {
+    const model = mounted?.instance.getModel() ?? null;
+    if (
+      mounted === null ||
+      model === null ||
+      status.kind === "editing" ||
+      model.getValue() === text
+    ) {
+      return;
+    }
+    const viewState = mounted.instance.saveViewState();
+    model.setValue(text);
+    if (viewState !== null) {
+      mounted.instance.restoreViewState(viewState);
+    }
+  }, [mounted, status.kind, text]);
+
+  // The editor's save shortcut applies the text. Monaco keeps the action
+  // for the editor's life; it reads the handler committed last.
+  const onApplyRef = useRef(onApply);
+  useLayoutEffect(() => {
+    onApplyRef.current = onApply;
+  });
+  useEffect(() => {
+    if (mounted === null) {
+      return;
+    }
+    const { KeyMod, KeyCode } = mounted.monaco;
+    // oxlint-disable-next-line no-bitwise -- a keybinding is the modifier's and the key's flags together
+    const save = KeyMod.CtrlCmd | KeyCode.KeyS;
+    const action = mounted.instance.addAction({
+      id: "petrinaut-dsl.apply",
+      label: "Apply the text to the net",
+      keybindings: [save],
+      run: () => onApplyRef.current(),
+    });
+    return () => action.dispose();
+  }, [mounted]);
+
+  const readOnly = status.kind === "readOnly";
+  const mount = (
+    instance: editor.IStandaloneCodeEditor,
+    monaco: typeof Monaco,
+  ): void => setMounted({ instance, monaco });
 
   return (
     <div className={containerStyle}>
       <div className={toolbarStyle}>
         <div aria-hidden className={toolbarSpaceStyle} />
-        <span className={toolbarHintStyle}>
-          Read-only projection of the net as Petrinaut DSL. Edit on Canvas or in
-          Definitions; select an item to find it here.
+        <span
+          className={`${toolbarHintStyle} ${
+            status.kind === "editing" && (status.errors > 0 || status.stale)
+              ? toolbarWarningStyle
+              : ""
+          }`}
+        >
+          {statusText(status)}
         </span>
+        {status.kind === "editing" ? (
+          <>
+            <Button size="xs" variant="ghost" onClick={onDiscard}>
+              Discard
+            </Button>
+            <Button
+              size="xs"
+              variant="subtle"
+              iconName="check"
+              disabled={!status.canApply}
+              tooltip={
+                status.canApply
+                  ? "Write the text to the net (⌘S / Ctrl+S)"
+                  : "Fix the errors first"
+              }
+              onClick={onApply}
+            >
+              Apply
+            </Button>
+          </>
+        ) : null}
         <Button
           size="xs"
           variant="ghost"
@@ -130,14 +283,15 @@ export const DslView = ({
           value={text}
           height="100%"
           beforeMount={registerDslLanguage}
-          onMount={(instance) => setEditorInstance(instance)}
+          onMount={mount}
+          onChange={(value) => onChange(value ?? "")}
           options={{
-            readOnly: true,
-            domReadOnly: true,
+            readOnly,
+            domReadOnly: readOnly,
             lineNumbers: "on",
             lineNumbersMinChars: 3,
             folding: true,
-            renderLineHighlight: "none",
+            renderLineHighlight: readOnly ? "none" : "line",
             wordWrap: "on",
           }}
         />
