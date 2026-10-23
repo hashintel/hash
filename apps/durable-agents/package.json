@@ -17,12 +17,14 @@
     "@earendil-works/pi-durable": "1.4.0",
     "@hashintel/brunch-agent": "workspace:*",
     "@valibot/to-json-schema": "1.7.1",
+    "pg": "8.23.0",
     "valibot": "1.4.2"
   },
   "devDependencies": {
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
     "@types/node": "catalog:",
+    "@types/pg": "8.23.1",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxlint": "1.86.0",
     "oxlint-tsgolint": "7.0.2003",
