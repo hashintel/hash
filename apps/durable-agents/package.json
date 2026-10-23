@@ -9,6 +9,7 @@
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
+    "proof:browser-call": "tsx test/browser-call/proof.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:unit": "vitest run"
   },
@@ -29,6 +30,7 @@
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxlint": "1.86.0",
     "oxlint-tsgolint": "7.0.2003",
+    "tsx": "catalog:",
     "vitest": "catalog:"
   }
 }

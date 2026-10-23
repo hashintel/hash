@@ -31,6 +31,12 @@
         "@hashintel/brunch-agent#build"
       ]
     },
+    "proof:browser-call": {
+      "dependsOn": [
+        "@hashintel/brunch-agent#build"
+      ],
+      "cache": false
+    },
     "test:integration": {
       "dependsOn": [
         "@hashintel/brunch-agent#build"
