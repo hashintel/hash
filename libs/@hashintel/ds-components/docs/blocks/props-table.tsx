@@ -21,6 +21,15 @@ type DocgenProp = {
 
 type DocgenInfo = { props?: Record<string, DocgenProp> };
 
+/**
+ * Glue each `|` to the member after it so wraps read like multi-line TS unions (`| member` starts the
+ * line) and never strand a `|` alone. An nbsp alone can't glue it: `|` is a break-after character, and
+ * UAX #14 rule LB12a allows a break between those and a following nbsp — the U+2060 WORD JOINER
+ * (rule LB11, no exceptions) bridges the two.
+ */
+const glueUnionPipes = (text: string): string =>
+  text.replace(/\s*\|\s*/g, " |\u2060\u00A0");
+
 const formatType = (type: DocgenType | undefined): string => {
   if (!type) {
     return "unknown";
@@ -28,19 +37,22 @@ const formatType = (type: DocgenType | undefined): string => {
   const literals = (type.value ?? [])
     .map((member) => member.value)
     .filter((value): value is string => typeof value === "string");
+  let formatted: string;
   if (literals.length > 0) {
     const joined = literals.join(" | ");
-    if (joined.length <= 70) {
-      return joined;
-    }
     const alias = type.raw ?? type.name ?? "";
-    if (alias.length <= 70) {
-      return alias;
+    if (joined.length <= 70) {
+      formatted = joined;
+    } else if (alias.length <= 70) {
+      formatted = alias;
+    } else {
+      const shown = literals.slice(0, 4);
+      formatted = `${shown.join(" | ")} | … ${literals.length - shown.length} more`;
     }
-    const shown = literals.slice(0, 4);
-    return `${shown.join(" | ")} | … ${literals.length - shown.length} more`;
+  } else {
+    formatted = type.raw ?? type.name ?? "unknown";
   }
-  return type.raw ?? type.name ?? "unknown";
+  return glueUnionPipes(formatted);
 };
 
 const classes = propsTableRecipe();
