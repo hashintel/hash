@@ -44,7 +44,6 @@ import {
   type ApplyAutoLayoutResult,
 } from "@hashintel/petrinaut-core";
 import { formatReadOnlyReason } from "@hashintel/petrinaut/react";
-import { petrinautDocsContent } from "@hashintel/petrinaut/ui";
 import {
   describeRefusal,
   type EditResult,
@@ -79,6 +78,7 @@ import {
   toPetrinautAiToolOutput,
 } from "./ai-assistant-panel/tool-summaries";
 import { useLatest } from "./ai-assistant-panel/use-latest";
+import { readUserGuidePage } from "./docs/user-guide";
 import { VoiceSessionContext } from "./voice-session/context";
 import { VoiceSessionProvider } from "./voice-session/provider";
 
@@ -1054,7 +1054,7 @@ const ConversationAiAssistantPanel = ({
       await addAutomaticToolOutput({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,
-        output: petrinautDocsContent[doc],
+        output: readUserGuidePage(doc),
       });
       return;
     }

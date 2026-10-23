@@ -7,6 +7,7 @@ import {
   setNetTitleToolName,
 } from "@hashintel/petrinaut-core";
 
+import { userGuidePageUrl } from "../../docs/user-guide-url";
 import { getInteractiveTool } from "../interactive-tools/registry";
 import {
   type AiToolTarget,
@@ -26,11 +27,6 @@ import type { PetrinautAiMessage } from "../types";
 import type { SimulateViewMode } from "@hashintel/petrinaut/react";
 
 export type ToolTone = "danger" | "info" | "neutral" | "pending" | "success";
-
-// User-guide pages are published in the repo, so a doc tool row links to the
-// matching markdown page on GitHub (matching the editor "Docs" menu entry).
-const petrinautDocsBaseUrl =
-  "https://github.com/hashintel/hash/blob/main/libs/%40hashintel/petrinaut/docs";
 
 export type ToolRenderItem = {
   id: string;
@@ -171,7 +167,9 @@ export const getToolSummaryFromPart = (
         : undefined;
     return {
       title: docName ? `Read user guide: ${docName}` : "Read user guide",
-      href: docName ? `${petrinautDocsBaseUrl}/${docName}.md` : undefined,
+      // User-guide pages are published in the repo, so a doc tool row links
+      // to the matching markdown page on GitHub.
+      href: docName ? userGuidePageUrl(docName) : undefined,
     };
   }
   if (isNotAppliedResult(part)) {
