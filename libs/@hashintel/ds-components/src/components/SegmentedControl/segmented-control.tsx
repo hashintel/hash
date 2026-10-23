@@ -14,28 +14,41 @@ import { styles } from "./segmented-control.recipe";
 import type { FormInputSize, SharedInputProps } from "../../util/form-shared";
 
 export type SegmentedControlItem<ValueType extends string = string> = (
-  | { label: React.ReactNode; iconName?: IconName }
   | {
+      /** The segment's visible content */
+      label: React.ReactNode;
+      /** Rendered before the label */
+      iconName?: IconName;
+    }
+  | {
+      /** The segment's only content — pair with `tooltip` for a readable accessible name */
       iconName: IconName;
     }
 ) & {
+  /** Identifies the segment; reported to `onChange` when selected */
   value: ValueType;
+  /** Prevents selecting the segment */
   disabled?: boolean;
   /** Shown on hover/focus of the segment. Also serves as the accessible label of icon-only segments. */
   tooltip?: string;
+  /** Adjusts the segment's tooltip, e.g. its position or delay */
   tooltipOptions?: Omit<
     React.ComponentProps<typeof Tooltip>,
     "children" | "content"
   >;
 };
 
+// Docs-only marker: renders nothing, exists so react-docgen can surface the
+// `items` entry shape in the docs prop table.
+export const SegmentedControlItemDoc = (_props: SegmentedControlItem): null =>
+  null;
+
 export type SegmentedControlProps<ValueType extends string = string> = {
-  /** How the segments are arranged (defaults to `horizontal`) */
+  /** How the segments are arranged. */
   layout?: "horizontal" | "vertical";
   /**
    * The track style: `default` is filled with a hairline ring; `embossed` has
-   * no fill or ring, just a recessed inset shadow — and its selected segment is
-   * subtly raised out of that recess with a soft elevation shadow.
+   * no fill or ring, just a recessed inset shadow.
    */
   variant?: "default" | "embossed";
   /** The size (height) of the control */
@@ -164,3 +177,6 @@ export const SegmentedControl = <const ValueType extends string>({
     </SegmentGroup.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+SegmentedControl.displayName = "SegmentedControl";

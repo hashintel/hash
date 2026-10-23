@@ -35,16 +35,21 @@ export const Label = ({
   as?: "label" | "legend" | "span";
 
   size?: FormInputSize;
+  /** `right` right-aligns the label row and text */
   direction?: "left" | "right";
 
+  /** A HelpTooltip beside the label text */
   tooltip?: string | React.ReactNode;
+  /** Content at the row's far edge */
   actions?: React.ReactNode;
   required?: boolean;
   disabled?: boolean;
+  /** Visually hides the label while keeping it announced to screen readers */
   hide?: boolean;
 } & (
   | {
       as?: "label";
+      /** The id of the input this label points at. Supplied automatically inside Form.Field */
       htmlFor: string;
     }
   | {
@@ -96,3 +101,5 @@ export const Label = ({
     </div>
   );
 };
+
+Label.displayName = "Form.Field.Label";

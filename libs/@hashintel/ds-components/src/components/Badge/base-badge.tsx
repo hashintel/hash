@@ -14,11 +14,7 @@ export interface BaseBadgeProps {
   content: React.ReactNode;
   /** Which corner of the anchor the overlay overhangs. */
   position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
-  /**
-   * Set to `"circle"` to align the overlay to a circular anchor (e.g. a round
-   * avatar) — it sits on the circle's edge instead of the empty bounding-box
-   * corner. Assumes a square/circular anchor.
-   */
+  /** Set to `"circle"` to align the overlay to a circular anchor (e.g. a round avatar). */
   alignTo?: "circle";
   /** When true, the overlay is not rendered — only the anchor shows. */
   hide?: boolean;
@@ -48,3 +44,6 @@ export const BaseBadge = ({
     )}
   </span>
 );
+
+// Stable name for the docs Stage code serializer under minification
+BaseBadge.displayName = "BaseBadge";

@@ -1,3 +1,6 @@
+import Markdown from "react-markdown";
+
+import { Chip } from "../../src/components/Chip/chip";
 import { InlineHighlight } from "../../src/util/InlineHighlight/inline-highlight";
 import { propsTableRecipe } from "./props-table.recipe";
 
@@ -6,6 +9,7 @@ import type {
   PropItem,
   PropItemType,
 } from "react-docgen-typescript";
+import type { Components } from "react-markdown";
 
 /**
  * Props reference table for MDX docs pages. react-docgen-typescript cannot see defaults applied via body
@@ -60,6 +64,33 @@ const formatType = (type: DocgenType): string => {
   return glueUnionPipes(formatted);
 };
 
+/**
+ * TSDoc's `{@link target}` / `{@link target | label}` inline tags are not
+ * markdown — docgen passes them through literally. Rewrite URL targets into
+ * markdown links and symbol targets into code spans before rendering.
+ */
+const unwrapLinkTags = (text: string): string =>
+  text.replace(
+    /\{@link(?:code|plain)?\s+([^}|]+?)(?:\s*\|\s*([^}]+))?\s*\}/g,
+    (_match, target: string, label?: string) => {
+      const trimmedTarget = target.trim();
+      const name = label?.trim() ?? trimmedTarget;
+      return /^https?:\/\//.test(trimmedTarget)
+        ? `[${name}](${trimmedTarget})`
+        : `\`${name}\``;
+    },
+  );
+
+const markdownComponents: Components = {
+  // Inline code matches the type column; fenced blocks keep a plain <code>.
+  code: ({ className, children }) =>
+    /language-/.test(className ?? "") ? (
+      <code className={className}>{children}</code>
+    ) : (
+      <InlineHighlight>{children}</InlineHighlight>
+    ),
+};
+
 const classes = propsTableRecipe();
 
 export const PropsTable = ({
@@ -72,13 +103,20 @@ export const PropsTable = ({
   defaults?: Record<string, string>;
 }) => {
   const docgen = (of as { __docgenInfo?: DocgenInfo }).__docgenInfo;
-  const props = Object.entries(docgen?.props ?? {});
+  // Required props first; the stable sort keeps declaration order within each group.
+  const props = Object.entries(docgen?.props ?? {}).sort(
+    ([, a], [, b]) => Number(b.required) - Number(a.required),
+  );
+  const hasDescriptions = props.some(([, prop]) => !!prop.description);
+  const columns = hasDescriptions
+    ? ["Prop", "Type", "Description"]
+    : ["Prop", "Type"];
 
   return (
     <table className={classes.table}>
       <thead>
         <tr>
-          {["Prop", "Type", "Description"].map((column) => (
+          {columns.map((column) => (
             <th key={column} className={classes.headerCell}>
               {column}
             </th>
@@ -93,8 +131,10 @@ export const PropsTable = ({
               <td className={classes.propCell}>
                 {name}
                 {prop.required ? (
-                  <div>
-                    <span className={classes.requiredChip}>required</span>
+                  <div className={classes.requiredChip}>
+                    <Chip size="xxs" color="red" variant="defined">
+                      required
+                    </Chip>
                   </div>
                 ) : null}
               </td>
@@ -108,7 +148,15 @@ export const PropsTable = ({
                   </div>
                 )}
               </td>
-              <td className={classes.descriptionCell}>{prop.description}</td>
+              {hasDescriptions ? (
+                <td className={classes.descriptionCell}>
+                  {prop.description ? (
+                    <Markdown components={markdownComponents}>
+                      {unwrapLinkTags(prop.description)}
+                    </Markdown>
+                  ) : null}
+                </td>
+              ) : null}
             </tr>
           );
         })}

@@ -41,7 +41,7 @@ An exported `meta` block containing exactly these fields:
 
 ### 1. Title + one-line description
 
-The H1 is the component name; the one-liner sits directly under it (and duplicated in `meta.description`).
+The H1 is the component name; the one-liner sits directly under it (and duplicated in `meta.description`). Directly below, a `ReferenceLinks` block (`docs/blocks/reference-links`) links `meta.links.source` and `meta.links.stories`.
 
 Formula: **essence + primary purpose, ≤ 15 words, no feature list, no specs, do not repeat the component name.** It should complete "Use this to…" in the reader's head.
 
@@ -119,7 +119,7 @@ The bulk of the page: one `## Examples` heading, then one `###` subsection per c
 
 ### 7. Behavior
 
-Only for non-obvious runtime rules a reader would otherwise discover by surprise: text overflow and truncation, minimum/flexible width, focus movement on open/close, timing (e.g. "the loading state appears only after 300ms"), scroll handling. Skip it when there's nothing to say.
+Only for non-obvious runtime rules a reader would otherwise discover by surprise: text overflow and truncation, minimum/flexible width, focus movement on open/close, timing (e.g. "the loading state appears only after a short delay"), scroll handling. Skip it when there's nothing to say.
 
 ### 8. Content
 
@@ -131,22 +131,33 @@ For components that display consumer-written text (buttons, banners, inputs, too
 
 ### 9. Accessibility
 
-Required for anything interactive. **If the [WAI-ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/patterns/) has a pattern for the UI pattern the component implements, link it** — it carries the standard interaction model so the page doesn't restate it. Then two parts, in this order:
+Required for anything interactive. **If the [WAI-ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/patterns/) has a pattern for the UI pattern the component implements, link it** — it carries the standard interaction model so the page doesn't restate it. Then up to two parts, in this order:
 
-1. **What the component provides** — built-in semantics, focus management, announcements. ("Icon-only buttons require a `tooltip`, which doubles as the accessible name.")
+1. **What \<Component\> provides** (omit when empty) — guarantees the consumer would otherwise have to add or verify themselves, each tying a prop or part to its effect on assistive technology:
+   - accessible-name and description wiring: which prop becomes the name (`alt`, `tooltip`), automatic label-id adoption;
+   - built-in labels on internal controls ("Close dialog", "Remove [option text]");
+   - focus behavior: initial focus, trapping, return target, tab order;
+   - announcements: live regions, `aria-busy`, `role="alert"`;
+   - form integration via hidden native inputs;
+   - what assistive technology does **not** perceive (`aria-hidden` icons and dots).
+
+   Don't restate the linked pattern's standard mechanics. Omit the subsection for thin conforming wrappers (Checkbox, NumberInput) — the intro link already says it all.
+
 2. **What you must do** — the consumer's obligations: provide labels, don't disable without explanation, contrast rules for custom tones.
 
 Add a **Keyboard** subsection (a Key | Action table) only when the component adds custom keyboard handling or strays from the APG pattern or native element behavior — and then document the deviation, not the standard. For standard-conformant components, the APG link covers it. For Ark-wrapped components, link the Ark UI component page for the underlying interaction model rather than restating it.
 
 ### 10. API reference
 
-Generated, per exported part. Hand-written prose about a prop is not allowed, instead the JSDoc descriptions should be updated
+Generated, per exported part, with the `PropsTable` block (`docs/blocks/props-table`), which renders the react-docgen prop info attached to the component. Hand-written prose about a prop is not allowed — update the component's JSDoc descriptions instead.
 
 ```mdx
-<ArgTypes of={ComponentStories} />
+<PropsTable of={Component} defaults={{ variant: '"solid"', size: '"md"' }} />
 ```
 
-Compound components get one table per part under `###` headings matching the anatomy. .
+Docgen cannot see defaults applied via body destructuring or recipe `defaultVariants`, so supply those per prop in `defaults`, as code strings.
+
+Compound components get one table per part under `###` headings matching the anatomy.
 
 ### 11. Styling
 
@@ -165,6 +176,7 @@ Use side-by-side rendered pairs (not screenshots — they stay true to the code)
 - **Guideline budget: ≤ 2 sentences each; sentences ≤ 25 words.** Lists over paragraphs. If a guideline needs more, it's probably two guidelines or an example.
 - **Attach the reason as one clause.** "Avoid disabled buttons where possible — they have poor contrast and don't explain why they're unusable." A rule without a why gets relitigated.
 - **Quantify.** "Keep labels under 4 words" beats "keep labels short".
+- **Don't document implementation constants.** Concrete values such as `24px` or `100ms` are implementation details that drift as tokens change; describe the effect instead ("a short delay", "the narrowest preset"). Quantify guidance, not internals.
 - **Two-tier modality.** _Always/Never/Must_ only for true invariants (mostly accessibility). _Use/Don't_ for defaults. _Consider/Avoid/Prefer_ for judgment calls.
 - **Positive framing by default.** Say what to do; when you must say what not to do, provide a solution ("Instead, use…").
 - **Headings are descriptive and searchable**, never "Overview", "Introduction", "Misc".
@@ -173,16 +185,18 @@ Use side-by-side rendered pairs (not screenshots — they stay true to the code)
 
 - File: `src/components/<Name>/<name>.docs.mdx`
 - MDX is not type-checked: prop values the compiler would catch in TSX (e.g. an invalid `iconName`) crash at render time instead, so test every doc change.
+- MDX wraps multiline JSX text children in a `<p>`; the docs pipeline (`.storybook/rehype-markdown-class.ts`) unwraps it again when it is a component's only child, so multiline text children are safe to write naturally. Only deliberate multi-paragraph content inside a component keeps its paragraphs.
 
 ## Page skeleton
 
 ```mdx
-import { ArgTypes, Meta } from "@storybook/addon-docs/blocks";
+import { Meta } from "@storybook/addon-docs/blocks";
 
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
 import { Stage } from "../../../docs/blocks/stage";
 import { Component } from "./component";
-import * as ComponentStories from "./component.stories";
 
 <Meta title="Docs/Component" />
 
@@ -208,6 +222,13 @@ export const meta = {
 
 One-liner, identical to `meta.description`.
 
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
 <Stage>{/* representative range */}</Stage>
 
 ## Installation {/* two numbered steps: npm install + import-with-usage, see §3 */}
@@ -230,7 +251,7 @@ One-liner, identical to `meta.description`.
 
 ## API reference
 
-<ArgTypes of={ComponentStories} />
+<PropsTable of={Component} defaults={{ size: '"md"' }} />
 ```
 
 ## References

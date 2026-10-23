@@ -10,6 +10,13 @@ import type {} from "mdast-util-mdx-jsx";
  * around a multiline JSX child) is skipped too, so component content never
  * picks up docs typography. The docs prose rules in docs.css hang off this
  * class alone, which keeps them free of :not() guards.
+ *
+ * It also unwraps the paragraph MDX wraps around a JSX element's multiline
+ * text children: inside a component that wrapper is an artifact, not authored
+ * structure — a block element whose UA margins inflate fit-content components
+ * (Chip) and whose element-ness defeats text-child detection (BreadCrumbs
+ * label truncation). A lone paragraph unwraps; two or more are kept as
+ * authored multi-paragraph content.
  */
 
 const jsxNodeTypes = new Set(["mdxJsxFlowElement", "mdxJsxTextElement"]);
@@ -21,12 +28,33 @@ const skippedTags = new Set(["code", "pre"]);
 
 const markdownClass = "hash-md";
 
+const isWhitespaceText = (node: RootContent): boolean =>
+  node.type === "text" && node.value.trim() === "";
+
+const unwrapLoneParagraph = (node: { children: RootContent[] }): void => {
+  const significant = node.children.filter((child) => !isWhitespaceText(child));
+  const [only] = significant;
+  if (
+    significant.length === 1 &&
+    only !== undefined &&
+    only.type === "element" &&
+    only.tagName === "p"
+  ) {
+    node.children = node.children.flatMap((child) =>
+      child === only ? only.children : [child],
+    );
+  }
+};
+
 const tagNode = (node: Root | RootContent, insideJsx: boolean): void => {
   if (node.type === "element" && !insideJsx && !skippedTags.has(node.tagName)) {
     node.properties["className"] = [
       ...(node.properties["className"] ?? []),
       markdownClass,
     ];
+  }
+  if (jsxNodeTypes.has(node.type) && "children" in node) {
+    unwrapLoneParagraph(node);
   }
   const childInsideJsx = insideJsx || jsxNodeTypes.has(node.type);
   if ("children" in node) {

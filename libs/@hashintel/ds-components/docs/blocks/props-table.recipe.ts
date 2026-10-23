@@ -63,20 +63,30 @@ export const propsTableRecipe = sva({
       verticalAlign: "top",
       textAlign: "left",
       color: "fg.body",
+      // Flatten react-markdown's block output to read as table-cell prose.
+      "& p": {
+        margin: "0",
+      },
+      "& p + p, & ul, & ol": {
+        marginTop: "1.5",
+      },
+      "& ul, & ol": {
+        marginBottom: "0",
+        paddingInlineStart: "4",
+      },
+      "& a": {
+        color: "fg.link",
+        textDecoration: "underline",
+        textUnderlineOffset: "[2px]",
+      },
     },
     defaultNote: {
       marginTop: "1.5",
       color: "fg.body",
     },
+    // Visuals come from the Chip the cell renders; this only spaces it.
     requiredChip: {
-      display: "inline-block",
       marginTop: "1",
-      paddingBlock: "[1px]",
-      paddingInline: "[5px]",
-      background: "red.s30",
-      border: "1px solid {colors.red.s40}",
-      borderRadius: "[4px]",
-      color: "red.s110",
     },
   },
 });

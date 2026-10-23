@@ -7,7 +7,7 @@ import { Avatar } from "./avatar";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-const sampleImage = "https://avatars.githubusercontent.com/u/1846056?v=4";
+const sampleImage = "https://avatars.githubusercontent.com/u/2991143?v=4";
 
 const noop = () => {};
 
@@ -99,9 +99,9 @@ const defaultCells = (
     {...args}
     shape={shape}
     tone={tone}
-    alt="Christian Busch"
+    alt="Chris Feijoo"
     src={sampleImage}
-    placeholder={{ initials: "CB" }}
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
   <Avatar
@@ -109,7 +109,7 @@ const defaultCells = (
     {...args}
     shape={shape}
     tone={tone}
-    alt="Christian"
+    alt="Chris"
     placeholder={{ initials: "C" }}
     onClick={noop}
   />,
@@ -118,8 +118,8 @@ const defaultCells = (
     {...args}
     shape={shape}
     tone={tone}
-    alt="Christian Busch"
-    placeholder={{ initials: "CB" }}
+    alt="Chris Feijoo"
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
   <Avatar
@@ -127,7 +127,7 @@ const defaultCells = (
     {...args}
     shape={shape}
     tone={tone}
-    alt="Christian Busch"
+    alt="Chris Feijoo"
     placeholder={{ icon: "user" }}
     onClick={noop}
   />,
@@ -145,8 +145,8 @@ const defaultCells = (
     {...args}
     shape={shape}
     tone={tone}
-    alt="Christian Busch"
-    placeholder={{ initials: "CB" }}
+    alt="Chris Feijoo"
+    placeholder={{ initials: "CF" }}
   />,
 ];
 
@@ -182,7 +182,7 @@ const sizeCells = (
   args: AvatarArgs,
   shape: AvatarProps["shape"],
   placeholder: AvatarProps["placeholder"],
-  alt = "Christian Busch",
+  alt = "Chris Feijoo",
 ): ReactNode[] => [
   ...formInputSizes.map((size) => (
     <Avatar
@@ -212,15 +212,15 @@ export const Sizes: Story = {
       rows={[
         {
           label: "Circle",
-          cells: sizeCells(args, "circle", { initials: "CB" }),
+          cells: sizeCells(args, "circle", { initials: "CF" }),
         },
         {
           label: "Square",
-          cells: sizeCells(args, "square", { initials: "CB" }),
+          cells: sizeCells(args, "square", { initials: "CF" }),
         },
         {
           label: "Circle · icon",
-          cells: sizeCells(args, "circle", { icon: "user" }, "Christian Busch"),
+          cells: sizeCells(args, "circle", { icon: "user" }, "Chris Feijoo"),
         },
       ]}
     />
@@ -270,7 +270,7 @@ const imageCells = (
     size="lg"
     alt="Failed to load"
     src={brokenImage}
-    placeholder={{ initials: "CB" }}
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
   <Avatar
@@ -281,7 +281,7 @@ const imageCells = (
     size="lg"
     alt="Loading"
     src={loadingImage}
-    placeholder={{ initials: "CB" }}
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
   <Avatar
@@ -292,7 +292,7 @@ const imageCells = (
     size="lg"
     alt="Transparent image"
     src={transparentImage}
-    placeholder={{ initials: "CB" }}
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
   <Avatar
@@ -303,7 +303,7 @@ const imageCells = (
     size="lg"
     alt="White background image"
     src={whiteImage}
-    placeholder={{ initials: "CB" }}
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
   <Avatar
@@ -314,7 +314,7 @@ const imageCells = (
     size="lg"
     alt="Dark green background image"
     src={darkGreenImage}
-    placeholder={{ initials: "CB" }}
+    placeholder={{ initials: "CF" }}
     onClick={noop}
   />,
 ];

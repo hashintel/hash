@@ -112,9 +112,15 @@ export const OverlayHeader = ({
 };
 
 export type OverlayFooterProps = ExclusifyUnion<
-  | { children?: React.ReactNode; className?: string }
+  | {
+      /** Replaces the footer's action layout entirely with custom content — mutually exclusive with `actions`/`secondaryActions`. */
+      children?: React.ReactNode;
+      className?: string;
+    }
   | RequireAtLeastOne<{
+      /** The overlay's main actions — confirm, cancel — aligned to the footer's end. */
       actions?: React.ReactNode;
+      /** Supporting actions aligned to the footer's start, kept apart from the main ones. */
       secondaryActions?: React.ReactNode;
     }>
 >;
