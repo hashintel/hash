@@ -10,7 +10,6 @@ import time
 from typing import Any
 
 import pytest
-from conftest import FakeProcess, spawn
 
 from petrinaut import (
     OptimizationDescribeResult,
@@ -22,8 +21,10 @@ from petrinaut import (
 )
 from petrinaut import _transport as petrinaut_transport
 
+from .conftest import FakeProcess, spawn
 
-def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
+
+def test_manifest_routes_methods(
     optimization_manifest: dict,
     optimization_description: dict,
     monkeypatch: pytest.MonkeyPatch,
@@ -84,7 +85,7 @@ def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
     assert process.returncode == 0
 
 
-def test_optimization_session_from_a_manifest_file(
+def test_manifest_file(
     optimization_description: dict,
 ) -> None:
     process = FakeProcess([{"id": 1, "result": optimization_description}])
@@ -110,7 +111,7 @@ def test_optimization_session_from_a_manifest_file(
     session.close()
 
 
-def test_manifest_factories_mirror_the_model_factories(
+def test_manifest_factories(
     optimization_manifest: dict,
 ) -> None:
     """Both classes construct the same way: name the source, get the session."""
@@ -142,7 +143,7 @@ def test_manifest_factories_mirror_the_model_factories(
     session.close()
 
 
-def test_optimization_session_requires_exactly_one_source(
+def test_manifest_ambiguous_source(
     optimization_manifest: dict,
 ) -> None:
     with pytest.raises(ValueError, match="exactly one"):
@@ -151,7 +152,7 @@ def test_optimization_session_requires_exactly_one_source(
         OptimizationSession()
 
 
-def test_evaluate_returns_the_full_result_including_replicates(
+def test_evaluate_replicates(
     optimization_manifest: dict,
     optimization_description: dict,
 ) -> None:
@@ -181,7 +182,7 @@ def test_evaluate_returns_the_full_result_including_replicates(
     session.close()
 
 
-def test_bootstrap_timeout_terminates_a_stuck_process(
+def test_bootstrap_timeout(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -200,7 +201,7 @@ def test_bootstrap_timeout_terminates_a_stuck_process(
     assert time.monotonic() - started_at < 2
 
 
-def test_protocol_timeout_terminates_a_stuck_process(
+def test_protocol_timeout(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -230,7 +231,7 @@ time.sleep(60)
     assert time.monotonic() - started_at < 2
 
 
-def test_rejects_an_oversized_protocol_line(
+def test_protocol_oversized_line(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -250,7 +251,7 @@ def test_rejects_an_oversized_protocol_line(
     model.close()
 
 
-def test_drains_stderr_after_the_ready_line(
+def test_stderr_drain(
     optimization_manifest: dict,
 ) -> None:
     drained = threading.Event()
@@ -275,7 +276,7 @@ def test_drains_stderr_after_the_ready_line(
     model.close()
 
 
-def test_close_signals_the_isolated_process_group(
+def test_close_process_group(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -306,7 +307,7 @@ def test_close_signals_the_isolated_process_group(
     ]
 
 
-def test_prompt_close_signals_the_group_before_any_shutdown_wait(
+def test_close_signals_before_wait(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -338,7 +339,7 @@ def test_prompt_close_signals_the_group_before_any_shutdown_wait(
     assert events == ["killpg:SIGTERM", "wait"]
 
 
-def test_prompt_close_terminates_a_busy_process_quickly(
+def test_close_busy_child(
     optimization_manifest: dict,
 ) -> None:
     """A mid-trial CLI never notices stdin EOF, so cancellation must signal."""
@@ -363,7 +364,7 @@ while True:
     assert time.monotonic() - started_at < 2
 
 
-def test_cli_error_during_evaluation_is_recoverable(
+def test_evaluation_error_recovery(
     optimization_manifest: dict,
     optimization_description: dict,
 ) -> None:
@@ -388,7 +389,7 @@ def test_cli_error_during_evaluation_is_recoverable(
 
 
 @pytest.mark.parametrize("objective", [True, None, "12.5"])
-def test_a_non_numeric_objective_is_a_protocol_error(
+def test_objective_nonnumeric(
     optimization_manifest: dict,
     optimization_description: dict,
     objective: Any,
@@ -412,7 +413,7 @@ def test_a_non_numeric_objective_is_a_protocol_error(
         model.objective({"rate": 1})
 
 
-def test_rejects_a_non_finite_numeric_objective(
+def test_objective_nonfinite(
     optimization_manifest: dict,
     optimization_description: dict,
 ) -> None:
@@ -435,7 +436,7 @@ def test_rejects_a_non_finite_numeric_objective(
     model.close()
 
 
-def test_rejects_a_mismatched_protocol_response(
+def test_response_mismatched_id(
     optimization_manifest: dict,
 ) -> None:
     process = FakeProcess([{"id": 99, "result": {"objective": 12.5}}])
@@ -452,7 +453,7 @@ def test_rejects_a_mismatched_protocol_response(
     model.close()
 
 
-def test_scales_the_request_timeout_by_the_described_seeds_per_trial(
+def test_timeout_seed_count(
     optimization_manifest: dict,
     optimization_description: dict,
 ) -> None:
@@ -474,7 +475,7 @@ def test_scales_the_request_timeout_by_the_described_seeds_per_trial(
     model.close()
 
 
-def test_evaluate_without_describe_scales_the_timeout_first(
+def test_evaluate_scales_timeout(
     optimization_manifest: dict,
     optimization_description: dict,
 ) -> None:
@@ -501,7 +502,7 @@ def test_evaluate_without_describe_scales_the_timeout_first(
     model.close()
 
 
-def test_rejects_an_invalid_described_seeds_per_trial(
+def test_description_invalid_seed_count(
     optimization_manifest: dict,
     optimization_description: dict,
 ) -> None:

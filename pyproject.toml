@@ -1,0 +1,43 @@
+[project]
+name            = "hash"
+version         = "0.1.0"
+description     = "HASH Monorepo"
+readme          = "README.md"
+requires-python = ">=3.14,<3.15"
+dependencies    = []
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.39.10,<2",
+    "ruff>=0.16.8,<0.17",
+    "tach>=0.35,<0.36",
+]
+
+[tool.uv]
+preview       = true
+add-bounds    = "major"  # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
+exclude-newer = "7 days" # mirrors npm release age
+package       = false
+# Admit the certifi security release without relaxing other packages' age limit.
+# Remove this ceiling after 2026-10-27T02:24:17Z and regenerate the lockfile.
+exclude-newer-package = { certifi = "2026-10-20T02:24:17Z" }
+
+[tool.uv.workspace]
+members = [
+    "apps/petrinaut-opt",
+    "libs/@local/petrinaut-optimizer-core/python",
+    "libs/@local/petrinaut-python",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q --import-mode=importlib"
+testpaths = [
+    "apps/petrinaut-opt/tests",
+    "libs/@local/petrinaut-optimizer-core/python/tests",
+    "libs/@local/petrinaut-python/tests",
+]
+# The service imports its application as `src`; the libraries are installed packages.
+pythonpath = ["apps/petrinaut-opt"]
+
+[tool.turbo]
+name = "hash-python"
