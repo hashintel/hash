@@ -25,7 +25,8 @@ pub use self::{
     rows::Rows,
 };
 use crate::{
-    ByteSize, PreparationError, PreparedLink, PreparedPipeline, TableAssertions,
+    ByteSize, CaptureError, PreparationError, PreparedLink, PreparedPipeline, SourceCapture,
+    TableAssertions,
     pipeline::{LinkRequest, PipelineRequest, StagingRequest},
     workspace::{
         connection::Connection,
@@ -76,6 +77,16 @@ impl Default for WorkspaceConfig {
 
 /// A request to the workspace thread, with the channel for its reply.
 enum Command {
+    LoadCapture {
+        capture: SourceCapture,
+        table: Box<str>,
+        reply: Reply<(), CaptureError>,
+    },
+    Capture {
+        sql: Box<str>,
+        target: PathBuf,
+        reply: Reply<SourceCapture, CaptureError>,
+    },
     Link {
         request: Box<LinkRequest>,
         reply: Reply<PreparedLink, PreparationError>,
@@ -132,6 +143,56 @@ pub struct Workspace {
 }
 
 impl Workspace {
+    /// Loads an immutable capture into `table`, preserving its schema even when it has no rows.
+    ///
+    /// The replacement is transactional. Queries retain their restrictions on external access.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CaptureError::Read`] for invalid Parquet, [`CaptureError::Query`] for a failed
+    /// import, or [`CaptureError::Stopped`] if the workspace thread stops.
+    pub async fn load_capture(
+        &self,
+        capture: SourceCapture,
+        table: Box<str>,
+    ) -> Result<(), Report<CaptureError>> {
+        self.request(
+            |reply| Command::LoadCapture {
+                capture,
+                table,
+                reply,
+            },
+            CaptureError::Stopped,
+        )
+        .await
+    }
+
+    /// Captures the rows of `sql` in a new immutable Parquet file at `target`.
+    ///
+    /// SQL has the same restrictions and named parameters as [`query`](Self::query). Rows are
+    /// streamed to a temporary file beside `target`, then synced and published without replacing
+    /// an existing file. Dropped requests can finish publication if cancellation races with it.
+    /// The caller records the path under its source and run identity and uses
+    /// [`SourceCapture::open`] to recover it on retry.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CaptureError::Query`] for invalid SQL or a workspace limit failure,
+    /// [`CaptureError::WorkspaceFile`] if `target` names a workspace file,
+    /// [`CaptureError::Exists`] if `target` already exists, [`CaptureError::Write`] for a failed
+    /// write, or [`CaptureError::Stopped`] if the workspace thread stops.
+    pub async fn capture(
+        &self,
+        sql: Box<str>,
+        target: PathBuf,
+    ) -> Result<SourceCapture, Report<CaptureError>> {
+        self.request(
+            |reply| Command::Capture { sql, target, reply },
+            CaptureError::Stopped,
+        )
+        .await
+    }
+
     /// Opens the database at `path` with `config`, creating it if it does not exist.
     ///
     /// # Errors
