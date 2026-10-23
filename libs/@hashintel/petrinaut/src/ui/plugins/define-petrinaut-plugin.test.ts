@@ -330,6 +330,14 @@ describe("definePetrinautPlugin", () => {
         commands: { "a.b": { label: "A" } },
       }),
     ).toThrow('Plugin "test.dots" command "a.b" contains a dot.');
+    expect(() =>
+      definePetrinautPlugin({
+        id: "test.colons",
+        name: "Colons",
+        // @ts-expect-error A view key with a colon.
+        views: { "a:b": { label: "A" } },
+      }),
+    ).toThrow('Plugin "test.colons" view "a:b" contains a colon.');
   });
 
   it("keeps an enum setting's default among its options", () => {

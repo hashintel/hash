@@ -11,6 +11,8 @@
 
 export { KeyboardShortcut } from "./keyboard-shortcut";
 export { Petrinaut } from "./petrinaut";
+// Plugins the package ships; a host passes them to `<Petrinaut plugins>`.
+export { standardComponentsPlugin } from "./builtin-plugins/standard-components-plugin";
 
 export {
   Petricon,

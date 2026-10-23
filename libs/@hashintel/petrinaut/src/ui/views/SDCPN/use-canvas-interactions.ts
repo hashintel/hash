@@ -15,15 +15,18 @@ import {
 
 import { usePetrinautMutations } from "../../../react/hooks/use-petrinaut-mutations";
 import { useReadOnlyFeedback } from "../../../react/hooks/use-read-only-feedback";
+import { NotificationsContext } from "../../../react/notifications/context";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
+import { useEnsureLibraryComponent } from "../../plugins/use-ensure-library-component";
 import {
   type DraggedNodeKind,
   draggedComponentSubnetId,
+  draggedLibraryComponent,
 } from "../shared/canvas-node-drag";
 
 import type { CanvasNode, CanvasPoint, CanvasScene } from "./canvas-scene";
@@ -155,6 +158,8 @@ export const useCanvasInteractions = (
   const { snapToGrid } = use(UserSettingsContext);
   const readonly = useIsReadOnly();
   const notifyReadOnly = useReadOnlyFeedback();
+  const { addNotification } = use(NotificationsContext);
+  const ensureLibraryComponent = useEnsureLibraryComponent();
 
   const isAddMode =
     editionMode === "add-place" ||
@@ -237,6 +242,26 @@ export const useCanvasInteractions = (
   };
 
   const fuse = (first: FusionMember, second: FusionMember) => {
+    // The fused place is one place of this net at most: a connection that
+    // would give the fusion a second anchor is refused with a notice.
+    const anchors = new Set(
+      [
+        first,
+        second,
+        ...(findFusionWithMember(activeNet, first)?.members ?? []),
+        ...(findFusionWithMember(activeNet, second)?.members ?? []),
+      ].flatMap((member) => (member.kind === "place" ? [member.placeId] : [])),
+    );
+    if (anchors.size > 1) {
+      addNotification({
+        id: "fusion:second-anchor",
+        message:
+          "A fusion holds one place of this net. Fuse the port with that place instead.",
+        tone: "neutral",
+        durationMs: 4500,
+      });
+      return;
+    }
     const existing =
       findFusionWithMember(activeNet, first) ??
       findFusionWithMember(activeNet, second);
@@ -358,6 +383,14 @@ export const useCanvasInteractions = (
     const subnetId = draggedComponentSubnetId(kind);
     if (subnetId !== null) {
       createComponentInstanceAt(rawPosition, subnetId);
+      return;
+    }
+    const libraryComponent = draggedLibraryComponent(kind);
+    if (libraryComponent !== null) {
+      const subnet = ensureLibraryComponent(libraryComponent);
+      if (subnet !== null) {
+        createComponentInstanceAt(rawPosition, subnet.id);
+      }
       return;
     }
     if (componentsOnly) {

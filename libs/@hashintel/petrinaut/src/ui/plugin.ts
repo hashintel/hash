@@ -7,6 +7,7 @@ export {
   definePetrinautPlugin,
   pluginCommandId,
   pluginService,
+  pluginViewId,
 } from "./plugins/define-petrinaut-plugin";
 export type {
   PetrinautPlugin,
@@ -19,6 +20,7 @@ export type {
   PluginButtonSpec,
   PluginCommand,
   PluginCommandSpec,
+  PluginComponentLibrarySpec,
   PluginContributions,
   PluginDefinitionRef,
   PluginHook,
@@ -29,6 +31,7 @@ export type {
   PluginSettingSpec,
   PluginTopBarItemSpec,
   PluginTopBarPlace,
+  PluginViewSpec,
   ServiceOf,
 } from "./plugins/define-petrinaut-plugin";
 export { describeRefusal } from "./plugins/plugin-access";
@@ -65,7 +68,10 @@ export type { AddNotificationInput } from "../react/notifications/context";
 export type { ReadOnlyReason } from "../react/state/use-read-only-reason";
 export { parseDocumentUri } from "@hashintel/petrinaut-core";
 export type {
+  ComponentLibrary,
+  ComponentTemplate,
   DiagnosticsSnapshot,
+  LibraryComponent,
   ReadableStore,
   SelectionItem,
 } from "@hashintel/petrinaut-core";

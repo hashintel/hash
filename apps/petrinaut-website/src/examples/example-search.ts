@@ -26,6 +26,10 @@ const sharedModes = ["edit", "simulate", "actual"] as const;
 
 const sharedEditViews = ["canvas", "definitions"] as const;
 
+/** A view a plugin declares, `<plugin id>:<key>`; the editor shows Canvas when no running plugin provides it. */
+const pluginEditViewPattern = /^[a-z0-9][a-z0-9.-]*:[a-zA-Z0-9_-]+$/u;
+type PluginEditView = `${string}:${string}`;
+
 export const sharedSimulateViews = [
   "scenarios",
   "metrics",
@@ -49,7 +53,7 @@ const sharedSettingsSections = [
 
 const sharedResourceTypes = ["scenario", "metric", "experiment"] as const;
 
-export type SharedEditView = (typeof sharedEditViews)[number];
+export type SharedEditView = (typeof sharedEditViews)[number] | PluginEditView;
 export type SharedMode = (typeof sharedModes)[number];
 export type SharedSimulateView = (typeof sharedSimulateViews)[number];
 export type SharedOverlay = (typeof sharedOverlays)[number];
@@ -107,7 +111,16 @@ const optionalSelectionItemType = z
   .optional()
   .catch(undefined);
 
-const optionalEditView = z.enum(sharedEditViews).optional().catch(undefined);
+const optionalEditView = z
+  .union([
+    z.enum(sharedEditViews),
+    z
+      .string()
+      .regex(pluginEditViewPattern)
+      .transform((view) => view as PluginEditView),
+  ])
+  .optional()
+  .catch(undefined);
 const optionalMode = z.enum(sharedModes).optional().catch(undefined);
 const optionalSimulateView = z
   .enum(sharedSimulateViews)
