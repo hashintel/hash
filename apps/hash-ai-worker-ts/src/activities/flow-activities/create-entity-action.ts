@@ -80,7 +80,10 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
   if (forbiddenEntityTypeIds.length > 0) {
     return {
       code: StatusCode.PermissionDenied,
-      message: `The user running the flow can't create entities of type ${forbiddenEntityTypeIds.join(", ")}.`,
+      message:
+        forbiddenEntityTypeIds.length === 1
+          ? `Entity type ${forbiddenEntityTypeIds[0]} doesn't exist or can't be instantiated by the user running the flow.`
+          : `Entity types ${forbiddenEntityTypeIds.join(", ")} don't exist or can't be instantiated by the user running the flow.`,
       contents: [],
     };
   }

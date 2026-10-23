@@ -247,7 +247,7 @@ describe("createEntityAction", () => {
       await run({ entityTypeIds: [personType, employeeType], properties: ada }),
     ).toEqual({
       code: StatusCode.PermissionDenied,
-      message: `The user running the flow can't create entities of type ${employeeType}.`,
+      message: `Entity type ${employeeType} doesn't exist or can't be instantiated by the user running the flow.`,
       contents: [],
     });
 
