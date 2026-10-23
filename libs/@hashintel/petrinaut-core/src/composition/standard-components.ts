@@ -4,7 +4,12 @@ import type {
   ComponentLibrary,
   LibraryComponent,
 } from "../composition/component-library";
-import type { Parameter, Place, Transition } from "../types/sdcpn";
+import type {
+  Parameter,
+  Place,
+  PortDirection,
+  Transition,
+} from "../types/sdcpn";
 
 /**
  * The standard component library: the building blocks of a flow of untyped
@@ -28,6 +33,7 @@ const rateParameter = (
 const port = (
   id: string,
   name: string,
+  direction: PortDirection,
   x: number,
   y: number,
   description?: string,
@@ -39,6 +45,7 @@ const port = (
   dynamicsEnabled: false,
   differentialEquationId: null,
   isPort: true,
+  portDirection: direction,
   x: x * GRID_SIZE,
   y: y * GRID_SIZE,
 });
@@ -100,7 +107,7 @@ const source: LibraryComponent = {
     parameters: [rateParameter("rate", "Rate", "1")],
     types: [],
     differentialEquations: [],
-    places: [port("out", "Out", 8, 0, "The tokens the source creates.")],
+    places: [port("out", "Out", "out", 8, 0, "The tokens the source creates.")],
     transitions: [
       stochastic({
         id: "emit",
@@ -127,7 +134,7 @@ const sink: LibraryComponent = {
     parameters: [rateParameter("rate", "Rate", "1")],
     types: [],
     differentialEquations: [],
-    places: [port("in", "In", 0, 0, "The tokens the sink removes.")],
+    places: [port("in", "In", "in", 0, 0, "The tokens the sink removes.")],
     transitions: [
       stochastic({
         id: "absorb",
@@ -154,7 +161,7 @@ const stage: LibraryComponent = {
     parameters: [rateParameter("rate", "Rate", "1")],
     types: [],
     differentialEquations: [],
-    places: [port("in", "In", 0, 0), port("out", "Out", 16, 0)],
+    places: [port("in", "In", "in", 0, 0), port("out", "Out", "out", 16, 0)],
     transitions: [
       stochastic({
         id: "process",
@@ -183,16 +190,17 @@ const server: LibraryComponent = {
     types: [],
     differentialEquations: [],
     places: [
-      port("in", "In", 0, 0),
+      port("in", "In", "in", 0, 0),
       port(
         "workers",
         "Workers",
+        "inout",
         0,
         8,
         "Idle workers; the place fused here sets how many.",
       ),
       place("busy", "Busy", 12, 4),
-      port("out", "Out", 24, 0),
+      port("out", "Out", "out", 24, 0),
     ],
     transitions: [
       {
@@ -238,9 +246,9 @@ const splitter: LibraryComponent = {
     types: [],
     differentialEquations: [],
     places: [
-      port("in", "In", 0, 4),
-      port("out_a", "OutA", 16, 0),
-      port("out_b", "OutB", 16, 8),
+      port("in", "In", "in", 0, 4),
+      port("out_a", "OutA", "out", 16, 0),
+      port("out_b", "OutB", "out", 16, 8),
     ],
     transitions: [
       stochastic({
@@ -278,9 +286,9 @@ const merger: LibraryComponent = {
     types: [],
     differentialEquations: [],
     places: [
-      port("in_a", "InA", 0, 0),
-      port("in_b", "InB", 0, 8),
-      port("out", "Out", 16, 4),
+      port("in_a", "InA", "in", 0, 0),
+      port("in_b", "InB", "in", 0, 8),
+      port("out", "Out", "out", 16, 4),
     ],
     transitions: [
       stochastic({
@@ -319,9 +327,9 @@ const assembly: LibraryComponent = {
     types: [],
     differentialEquations: [],
     places: [
-      port("in_a", "InA", 0, 0),
-      port("in_b", "InB", 0, 8),
-      port("out", "Out", 16, 4),
+      port("in_a", "InA", "in", 0, 0),
+      port("in_b", "InB", "in", 0, 8),
+      port("out", "Out", "out", 16, 4),
     ],
     transitions: [
       stochastic({
