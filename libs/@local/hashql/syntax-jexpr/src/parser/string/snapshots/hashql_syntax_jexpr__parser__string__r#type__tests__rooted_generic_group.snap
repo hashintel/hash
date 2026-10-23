@@ -1,0 +1,17 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Grouped rooted type as a generic argument
+expression: "List<(::Foo)>"
+info:
+  kind: Ok
+---
+Type#4294967040@7
+  TypeKind (Path)
+    Path#4294967040@7 (rooted: false)
+      PathSegment#4294967040@6 (name: List)
+        PathSegmentArgument (GenericArgument)
+          GenericArgument#4294967040@5
+            Type#4294967040@4
+              TypeKind (Path)
+                Path#4294967040@4 (rooted: true)
+                  PathSegment#4294967040@3 (name: Foo)
