@@ -686,6 +686,10 @@ const graphOperator: Partial<Record<ConditionOperator, string>> = {
  */
 export const queryDraftToEntityQuery = (draft: QueryDraft): EntityQuery => {
   const clause = (row: ConditionRow): unknown => {
+    // The empty "Where" row has no attribute yet.
+    if (!row.propertyBaseUrl) {
+      return null;
+    }
     const path = { path: ["properties", row.propertyBaseUrl] };
     if (row.operator === "isEmpty" || row.operator === "isNotEmpty") {
       const exists = { exists: path };
@@ -730,7 +734,12 @@ export const queryDraftToFilterCondition = (
 ): FilterCondition | null => {
   const leaf = (row: ConditionRow): FilterLeaf | null => {
     // Relative dates and "is in month" are editor mocks with no engine value.
-    if (!row.operator || row.relative || row.operator === "isIn") {
+    if (
+      !row.propertyBaseUrl ||
+      !row.operator ||
+      row.relative ||
+      row.operator === "isIn"
+    ) {
       return null;
     }
     const property = findPropertyType(row.propertyBaseUrl);

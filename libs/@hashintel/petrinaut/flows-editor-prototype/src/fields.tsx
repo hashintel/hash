@@ -1291,48 +1291,30 @@ export const QueryField = ({
           </span>
         </span>
       ) : null}
-      {/* A condition with no rows yet is one row: the label, then "+ Add filter" in the value column (J4 A2). */}
-      {mode === "condition" &&
-      draft.conditions.length === 0 &&
-      !draft.groups?.length ? (
-        <PropertyRow label={input.label}>
-          <ConditionBuilder
-            step={step}
-            input={input}
-            entry={entry}
-            draft={draft}
-            properties={properties}
-            forGraph={false}
-            update={update}
-            allowVariables={allowVariables}
-            bare
-          />
-        </PropertyRow>
-      ) : (
-        // A wide control: its label above, across both columns.
-        <div
-          className={css({
-            gridColumn: "1 / -1",
-            display: "flex",
-            flexDirection: "column",
-            gap: "2",
-          })}
-        >
-          <span className={keyStyle}>
-            {mode === "query" ? "Query" : input.label}
-          </span>
-          <ConditionBuilder
-            step={step}
-            input={input}
-            entry={entry}
-            draft={draft}
-            properties={properties}
-            forGraph={mode === "query"}
-            update={update}
-            allowVariables={allowVariables}
-          />
-        </div>
-      )}
+      {/* A wide control: its label above, across both columns. */}
+      <div
+        className={css({
+          gridColumn: "1 / -1",
+          display: "flex",
+          flexDirection: "column",
+          gap: "2",
+        })}
+      >
+        <span className={keyStyle}>
+          {mode === "query" ? "Query" : input.label}
+        </span>
+        <ConditionBuilder
+          step={step}
+          input={input}
+          entry={entry}
+          draft={draft}
+          properties={properties}
+          forGraph={mode === "query"}
+          update={update}
+          allowVariables={allowVariables}
+          startWithRow={mode === "condition"}
+        />
+      </div>
     </>
   );
 };

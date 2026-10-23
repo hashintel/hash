@@ -1,6 +1,6 @@
 /**
  * The condition builder of Find entities, If and Filter list, on the DS `Filter` as Figma J3 draws it (section
- * 470:3681, 21 Oct): each condition is one Filter chip (attribute · operator · value), then a ⋮ menu; each row sits under a "Where" / its group's "And" / "Or"; grey groups hold their own rows and "Add filter". Operators follow the
+ * 470:3681, 21 Oct): each condition is one line: a fixed-width joiner column ("Where", then an "and ▾" / "or ▾" menu), the Filter chip (attribute · operator · value) and a ⋮ menu; grey groups hold their own rows, "Add filter" and "Delete group". The builder's footer is "Add filter" and "Clear all filters". Operators follow the
  * attribute's type, and each value's menu ends in "Use a variable" (the same picker as "@").
  *
  * MOCK, editor side only: relative dates ("Today", "3 days ago") and "is in month". The engine's condition values are
@@ -11,7 +11,7 @@
  * - a variable shows as the value's selected item (its step's icon, step name first, middle collapsed);
  * - "@" in a text value opens the variable picker beside the field, which keeps focus (no DS mention input).
  */
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Button,
@@ -335,20 +335,20 @@ const parseRelative = (key: string): RelativeDate | undefined => {
   return relativePresets.find((preset) => preset.value.kind === kind)?.value;
 };
 
-/** A row's join label, then its chip on the next line (J3 · A1: label to chip 4 px). */
+/** One line: the joiner column, then the chip (Figma Q8: 4 px between). */
 const rowStackStyle = css({
   display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
+  alignItems: "center",
   gap: "1",
   alignSelf: "stretch",
   minWidth: "[0]",
 });
 
-/** "Where" / "And" / "Or" above a row: 64 px wide, DS label text. */
-const joinLabelStyle = css({
+/** The joiner column: 64 px on every row, so the chips share one left edge. */
+const joinerColumnStyle = css({
   display: "flex",
   alignItems: "center",
+  flexShrink: 0,
   width: "[64px]",
   textStyle: "sm",
   fontWeight: "medium",
@@ -360,7 +360,7 @@ const rowStyle = css({
   display: "flex",
   alignItems: "stretch",
   gap: "[0]",
-  width: "[100%]",
+  flex: "1",
   minWidth: "[0]",
   "& [data-part=filter-root], & [role=group][data-property]": {
     flexShrink: 1,
@@ -560,7 +560,8 @@ const ConditionRowView = ({
   const subject = properties.find(
     (candidate) => candidate.baseUrl === row.propertyBaseUrl,
   );
-  const title = subject?.title ?? "Value";
+  // A row with no attribute yet (the empty "Where" row) shows the attribute's slot, "Attribute".
+  const title = subject?.title ?? (row.propertyBaseUrl ? "Value" : "Attribute");
   const property = subject?.property ?? findPropertyType(row.propertyBaseUrl);
   const type = valueTypeOf(property);
   const operators = operatorsFor(type, forGraph);
@@ -985,7 +986,7 @@ const ConditionRowView = ({
       ? [
           {
             id: "group",
-            text: "Turn into a group",
+            text: "Convert to advanced filter",
             icon: "layer" as const,
             onClick: onGroup,
           },
@@ -993,7 +994,7 @@ const ConditionRowView = ({
       : []),
     {
       id: "remove",
-      text: "Delete condition",
+      text: "Delete filter",
       icon: "trash" as const,
       onClick: onRemove,
     },
@@ -1168,23 +1169,14 @@ const ConditionRowView = ({
  * The builder
  * ------------------------------------------------------------------------------------------------------------- */
 
-/** The builder: a box 8 px in, rows 8 px apart, then the footer 16 px below (J3 A1). */
+/** The builder (Figma Q8): rows 8 px apart, then the footer 16 px below, flush with the panel text. */
 const builderStyle = css({
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-start",
   gap: "4",
-  padding: "2",
   borderRadius: "lg",
   backgroundColor: "neutral.bgSolid.min",
-});
-
-/** J2's query sits on the panel itself, with no box around it (J2 · B1). */
-const plainBuilderStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  gap: "2",
 });
 
 /** The rows (and the groups among them): 8 px apart. */
@@ -1196,39 +1188,74 @@ const rowsStyle = css({
   alignSelf: "stretch",
 });
 
-/** A group: a grey box inside the builder with its own rows and "Add filter". */
+/** A group (Figma Q8): a grey box beside its joiner, with a caption, its own rows, "Add filter" and "Delete group". */
 const groupStyle = css({
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-start",
-  gap: "1.5",
-  alignSelf: "stretch",
+  gap: "2",
+  flex: "1",
+  minWidth: "[0]",
   padding: "2",
   borderRadius: "lg",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
   backgroundColor: "neutral.bgSolid.surface.active",
 });
 
-/** A row's join label: "Where" first, then the group's "And" / "Or" (a press switches the join, mock). */
-const JoinLabel = ({
+/** The group's caption: "Any of the following are true…". */
+const groupCaptionStyle = css({
+  textStyle: "sm",
+  color: "neutral.fg.subtle",
+});
+
+/** A footer: "Add filter" left, a text button right. */
+const footerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  alignSelf: "stretch",
+});
+
+/**
+ * A row's joiner (Figma Q8): "Where" on the first row, then a small "and ▾" / "or ▾" menu. A group is all-and or
+ * all-or, so a pick switches the joiner of every row in the group.
+ */
+const Joiner = ({
   conjunction,
-  onToggle,
+  onPick,
 }: {
   conjunction?: "and" | "or" | undefined;
-  onToggle?: () => void;
-}) =>
-  onToggle ? (
-    <button
-      type="button"
-      className={joinLabelStyle}
-      aria-label={`Switch to ${conjunction === "or" ? "And" : "Or"}`}
-      title={`Switch to ${conjunction === "or" ? "And" : "Or"}`}
-      onClick={onToggle}
-    >
-      {conjunction === "or" ? "Or" : "And"}
-    </button>
-  ) : (
-    <span className={joinLabelStyle}>Where</span>
-  );
+  onPick?: (conjunction: "and" | "or") => void;
+}) => (
+  <span className={joinerColumnStyle} data-joiner={conjunction ?? "where"}>
+    {onPick ? (
+      <Menu
+        items={(["and", "or"] as const).map((choice) => ({
+          id: choice,
+          text: choice,
+          selected: (conjunction ?? "and") === choice,
+          selectedStyle: "tick" as const,
+          onClick: () => onPick(choice),
+        }))}
+        trigger={
+          <Button
+            size="sm"
+            variant="subtle"
+            iconName="chevronDown"
+            iconPosition="right"
+            aria-label={`Join with ${conjunction ?? "and"}`}
+          >
+            {conjunction ?? "and"}
+          </Button>
+        }
+      />
+    ) : (
+      "Where"
+    )}
+  </span>
+);
 
 /** "Add filter": a DS subtle Button (code Button has no outline variant; Figma draws outline) that opens the attributes as a DS Menu (J3 A1). */
 const AddCondition = ({
@@ -1283,7 +1310,7 @@ export const ConditionBuilder = ({
   forGraph,
   update,
   allowVariables = true,
-  bare = false,
+  startWithRow = false,
 }: {
   step: DraftActionStep;
   input: InputView;
@@ -1294,25 +1321,22 @@ export const ConditionBuilder = ({
   update: (next: QueryDraft) => void;
   /** False for a trigger's condition: nothing runs before it, so there is nothing to refer to. */
   allowVariables?: boolean;
-  /** No box and no indent: the "+ Add filter" button alone, in a property row's value column. */
-  bare?: boolean;
+  /** An empty builder shows one empty "Where" row instead of only "Add filter" (If, Filter list; Figma Q12). */
+  startWithRow?: boolean;
 }) => {
-  const { ui } = useEditor();
-  // J2's query draws no "Where" and adds a "condition"; J3's has "Where" / "And" labels and "Add filter".
-  const plain = ui.plainQuery || bare;
-  const addLabel = plain ? "Add condition" : "Add filter";
   const groups = draft.groups ?? [];
   const allIds = [
     ...draft.conditions,
     ...groups.flatMap((group) => group.conditions),
   ].map((row) => row.id);
   const nextId = Math.max(0, ...allIds, ...groups.map((group) => group.id)) + 1;
-  const newRow = (property: BuilderProperty): ConditionRow => ({
+  const newRow = (property?: BuilderProperty): ConditionRow => ({
     id: nextId,
-    propertyBaseUrl: property.baseUrl,
-    operator:
-      operatorsFor(valueTypeOf(property.property), forGraph).items[0]?.value ??
-      null,
+    propertyBaseUrl: property?.baseUrl ?? "",
+    operator: property
+      ? (operatorsFor(valueTypeOf(property.property), forGraph).items[0]
+          ?.value ?? null)
+      : null,
     value: null,
   });
   const setRows = (conditions: ConditionRow[]) =>
@@ -1324,6 +1348,21 @@ export const ConditionBuilder = ({
         .map((group) => (group.id === id ? { ...group, ...change } : group))
         .filter((group) => group.conditions.length > 0),
     });
+  const setConjunction = (conjunction: "and" | "or") =>
+    update({ ...draft, conjunction });
+
+  // The empty "Where" row is not stored until the user sets something on it.
+  const emptyRow =
+    startWithRow &&
+    draft.conditions.length + groups.length === 0 &&
+    properties.length > 0
+      ? newRow()
+      : null;
+  const topRows = emptyRow ? [emptyRow] : draft.conditions;
+  const allRows = [...topRows, ...groups.flatMap((group) => group.conditions)];
+  // Nothing to clear: no rows, or one row with nothing set.
+  const clearable =
+    allRows.length > 1 || allRows.some((row) => row.propertyBaseUrl);
 
   if (properties.length === 0) {
     return (
@@ -1347,13 +1386,10 @@ export const ConditionBuilder = ({
   }
 
   return (
-    <div
-      className={plain ? plainBuilderStyle : builderStyle}
-      data-condition-builder
-    >
-      {draft.conditions.length + groups.length > 0 ? (
+    <div className={builderStyle} data-condition-builder>
+      {topRows.length + groups.length > 0 ? (
         <div className={rowsStyle}>
-          {draft.conditions.map((row, index) => (
+          {topRows.map((row, index) => (
             <ConditionRowView
               key={row.id}
               step={step}
@@ -1363,29 +1399,20 @@ export const ConditionBuilder = ({
               properties={properties}
               forGraph={forGraph}
               prefix={
-                index === 0 ? (
-                  plain ? null : (
-                    <JoinLabel />
-                  )
-                ) : (
-                  <JoinLabel
-                    conjunction={draft.conjunction}
-                    onToggle={() =>
-                      update({
-                        ...draft,
-                        conjunction: draft.conjunction === "or" ? "and" : "or",
-                      })
-                    }
-                  />
-                )
+                <Joiner
+                  conjunction={index === 0 ? undefined : draft.conjunction}
+                  onPick={index === 0 ? undefined : setConjunction}
+                />
               }
               onChange={(change) =>
                 setRows(
-                  draft.conditions.map((candidate) =>
-                    candidate.id === row.id
-                      ? { ...candidate, ...change }
-                      : candidate,
-                  ),
+                  emptyRow
+                    ? [{ ...row, ...change }]
+                    : draft.conditions.map((candidate) =>
+                        candidate.id === row.id
+                          ? { ...candidate, ...change }
+                          : candidate,
+                      ),
                 )
               }
               onRemove={() =>
@@ -1410,25 +1437,31 @@ export const ConditionBuilder = ({
               }
             />
           ))}
-          {groups.map((group) => (
-            <div key={group.id} className={rowStackStyle}>
-              {draft.conditions.length === 0 && group === groups[0] ? (
-                <JoinLabel />
-              ) : (
-                <JoinLabel
-                  conjunction={draft.conjunction}
-                  onToggle={() =>
-                    update({
-                      ...draft,
-                      conjunction: draft.conjunction === "or" ? "and" : "or",
-                    })
-                  }
+          {groups.map((group, groupIndex) => {
+            const first = topRows.length === 0 && groupIndex === 0;
+            return (
+              <div
+                key={group.id}
+                className={css({
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "1",
+                  alignSelf: "stretch",
+                })}
+              >
+                <Joiner
+                  conjunction={first ? undefined : draft.conjunction}
+                  onPick={first ? undefined : setConjunction}
                 />
-              )}
-              <div className={groupStyle} data-condition-group={group.id}>
-                {group.conditions.map((row, index) => (
-                  <Fragment key={row.id}>
+                <div className={groupStyle} data-condition-group={group.id}>
+                  <span className={groupCaptionStyle}>
+                    {group.conjunction === "or"
+                      ? "Any of the following are true…"
+                      : "All of the following are true…"}
+                  </span>
+                  {group.conditions.map((row, index) => (
                     <ConditionRowView
+                      key={row.id}
                       step={step}
                       input={input}
                       entry={entry}
@@ -1436,19 +1469,17 @@ export const ConditionBuilder = ({
                       properties={properties}
                       forGraph={forGraph}
                       prefix={
-                        index === 0 ? (
-                          <JoinLabel />
-                        ) : (
-                          <JoinLabel
-                            conjunction={group.conjunction}
-                            onToggle={() =>
-                              setGroup(group.id, {
-                                conjunction:
-                                  group.conjunction === "or" ? "and" : "or",
-                              })
-                            }
-                          />
-                        )
+                        <Joiner
+                          conjunction={
+                            index === 0 ? undefined : group.conjunction
+                          }
+                          onPick={
+                            index === 0
+                              ? undefined
+                              : (conjunction) =>
+                                  setGroup(group.id, { conjunction })
+                          }
+                        />
                       }
                       onChange={(change) =>
                         setGroup(group.id, {
@@ -1468,27 +1499,56 @@ export const ConditionBuilder = ({
                         })
                       }
                     />
-                  </Fragment>
-                ))}
-                <AddCondition
-                  label={addLabel}
-                  properties={properties}
-                  onAdd={(property) =>
-                    setGroup(group.id, {
-                      conditions: [...group.conditions, newRow(property)],
-                    })
-                  }
-                />
+                  ))}
+                  <div className={footerStyle}>
+                    <AddCondition
+                      label="Add filter"
+                      properties={properties}
+                      onAdd={(property) =>
+                        setGroup(group.id, {
+                          conditions: [...group.conditions, newRow(property)],
+                        })
+                      }
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        update({
+                          ...draft,
+                          groups: groups.filter(
+                            (candidate) => candidate.id !== group.id,
+                          ),
+                        })
+                      }
+                    >
+                      Delete group
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : null}
-      <AddCondition
-        label={addLabel}
-        properties={properties}
-        onAdd={(property) => setRows([...draft.conditions, newRow(property)])}
-      />
+      <div className={footerStyle}>
+        <AddCondition
+          label="Add filter"
+          properties={properties}
+          onAdd={(property) =>
+            setRows([...(emptyRow ? [] : draft.conditions), newRow(property)])
+          }
+        />
+        {clearable ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => update({ ...draft, conditions: [], groups: [] })}
+          >
+            Clear all filters
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 };
