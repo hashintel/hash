@@ -22,10 +22,10 @@ Performance** switches the whole plugin off, including its command and shortcut.
 
 ## Browser FPS
 
-The number counts browser animation callbacks per second. The chart keeps the
-last 24 samples, with the newest on the right. Each sample covers at least
-250 ms, so the chart usually spans about six seconds. A stall extends the
-sample rather than being smoothed away.
+The compact counter shows browser animation callbacks per second above a small
+square chart. The chart keeps the last 24 samples, with the newest on the right.
+Each sample covers at least 250 ms, so the chart usually spans about six seconds.
+A stall extends the sample rather than being smoothed away.
 
 Each square represents about 10 FPS, up to six squares. The number can exceed
 60 on a faster display. Columns are green from 50 FPS, amber from 30, and red

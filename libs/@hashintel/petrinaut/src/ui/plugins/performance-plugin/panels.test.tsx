@@ -75,8 +75,8 @@ it("draws the demo's 24 by 6 square history, newest on the right", () => {
   expect(fills.filter((fill) => fill.color === "#3fb950")).toHaveLength(6);
   expect(fills.filter((fill) => fill.color === "#e3b341")).toHaveLength(4);
   expect(fills.filter((fill) => fill.color === "#f85149")).toEqual([
-    { color: "#f85149", x: 184, y: 40, width: 6, height: 6 },
-    { color: "#f85149", x: 184, y: 32, width: 6, height: 6 },
+    { color: "#f85149", x: 172.5, y: 37.5, width: 5.5, height: 5.5 },
+    { color: "#f85149", x: 172.5, y: 30, width: 5.5, height: 5.5 },
   ]);
   expect(screen.getByText("20")).toBeTruthy();
 });

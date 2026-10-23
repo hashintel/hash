@@ -51,10 +51,10 @@ const FpsHistory = ({
       return;
     }
     const ratio = window.devicePixelRatio;
-    canvas.width = 190 * ratio;
-    canvas.height = 46 * ratio;
+    canvas.width = 178 * ratio;
+    canvas.height = 43 * ratio;
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    context.clearRect(0, 0, 190, 46);
+    context.clearRect(0, 0, 178, 43);
     for (let column = 0; column < 24; column++) {
       const sample = frames[frames.length - 24 + column];
       const filled =
@@ -64,7 +64,7 @@ const FpsHistory = ({
           sample !== undefined && row < filled
             ? fpsColor(sample.fps)
             : "rgba(255,255,255,0.10)";
-        context.fillRect(column * 8, 46 - (row + 1) * 8 + 2, 6, 6);
+        context.fillRect(column * 7.5, 43 - (row + 1) * 7.5 + 2, 5.5, 5.5);
       }
     }
   }, [frames]);
@@ -73,7 +73,7 @@ const FpsHistory = ({
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className={css({ display: "block", width: "[190px]", height: "[46px]" })}
+      className={css({ display: "block", width: "[178px]", height: "[43px]" })}
     />
   );
 };
@@ -265,8 +265,8 @@ export const PerformanceMonitor = ({
         maxWidth: "[calc(100% - 32px)]",
         maxHeight: "[calc(100% - 80px)]",
         overflowY: "auto",
-        padding: "[12px 15px]",
-        borderRadius: "[18px]",
+        padding: "[10px 12px]",
+        borderRadius: "[16px]",
         background: "[#181a20]",
         color: "[#f6f7f9]",
         colorScheme: "dark",
@@ -278,14 +278,14 @@ export const PerformanceMonitor = ({
             "[width 220ms cubic-bezier(0.2, 0, 0, 1), left 220ms ease, bottom 220ms ease]",
         },
       })}
-      style={{ ...position, width: expanded ? expandedWidth : 222 }}
+      style={{ ...position, width: expanded ? expandedWidth : 204 }}
     >
       <div
         className={css({
           display: "flex",
           alignItems: "center",
           gap: "[6px]",
-          marginBottom: "[8px]",
+          marginBottom: "[6px]",
         })}
       >
         <button
@@ -320,7 +320,7 @@ export const PerformanceMonitor = ({
         >
           <span
             className={css({
-              fontSize: "[22px]",
+              fontSize: "[20px]",
               lineHeight: "[1]",
               fontWeight: "semibold",
               fontVariantNumeric: "tabular-nums",
@@ -371,7 +371,7 @@ export const PerformanceMonitor = ({
             lineHeight: "[1.5]",
             color: "[#aeb7c6]",
           })}
-          style={{ width: expandedWidth - 32 }}
+          style={{ width: expandedWidth - 26 }}
         >
           <PerformanceDetails snapshot={snapshot} animate={animate} />
         </div>
