@@ -79,6 +79,7 @@ import {
 } from "./ai-assistant-panel/tool-summaries";
 import { useLatest } from "./ai-assistant-panel/use-latest";
 import { readUserGuidePage } from "./docs/user-guide";
+import { LocalToolCallAuthorityContext } from "./local-tool-call-authority";
 import { VoiceSessionContext } from "./voice-session/context";
 import { VoiceSessionProvider } from "./voice-session/provider";
 
@@ -2294,7 +2295,15 @@ const ConversationAiAssistantPanel = ({
       .map(({ toolName }) => toolName),
   );
 
-  return (
+  // The same authority `onInteractiveToolSubmit` checks, for widgets that act
+  // on a call before submitting it. Read from effects, never during render.
+  const deliveredHere = (toolCallId: string): boolean =>
+    aiAssistant.followMessages === undefined ||
+    locallyStreamedToolCallsRef.current.get(
+      `${toolHostIdentityRef.current}:${toolCallId}`,
+    ) === submissionGenerationRef.current;
+
+  const contents = (
     <AiAssistantContents
       additionalTab={aiAssistant.additionalTab}
       headerActions={aiAssistant.headerActions}
@@ -2459,6 +2468,11 @@ const ConversationAiAssistantPanel = ({
       resolveToolPresentation={aiAssistant.resolveToolPresentation}
       workingLabel={aiAssistant.workingLabel}
     />
+  );
+  return (
+    <LocalToolCallAuthorityContext value={deliveredHere}>
+      {contents}
+    </LocalToolCallAuthorityContext>
   );
 };
 
