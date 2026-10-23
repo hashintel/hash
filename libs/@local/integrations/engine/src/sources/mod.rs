@@ -8,7 +8,8 @@ mod tests;
 use alloc::collections::BTreeMap;
 use core::num::NonZero;
 use std::{
-    fs, io,
+    fs::{self, File},
+    io,
     path::{Component, Path, PathBuf},
 };
 
@@ -118,7 +119,7 @@ impl CaptureStore {
             let parent = directory.clone();
             directory.push(component.to_string());
             match fs::create_dir(&directory) {
-                Ok(()) => fs::File::open(&parent)
+                Ok(()) => File::open(&parent)
                     .and_then(|parent| parent.sync_all())
                     .change_context(SourceError::Write)?,
                 Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
