@@ -15,6 +15,8 @@ import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { useAuthInfo } from "../../../shared/auth-info-context";
 import { embedChromePlugin } from "./embed-chrome-plugin";
 
+import type { EntityId, UserId } from "@blockprotocol/type-system";
+
 const embedPlugins = [embedChromePlugin];
 
 /** Brunch's Petrinaut agent, reached through hash-api's Brunch route. */
@@ -56,7 +58,7 @@ const useBrunchOwnerKey = (): string | null => {
   const accountId = authenticatedUser?.accountId ?? null;
   const { captureException } = use(ErrorTrackerContext);
   const [identity, setIdentity] = useState<{
-    accountId: string;
+    accountId: UserId;
     ownerKey: string;
   } | null>(null);
 
@@ -112,7 +114,7 @@ export const EmbedPetrinaut = ({
 }: {
   handle: PetrinautDocHandle;
   /** The open net's entity id, or `null` while it is an unsaved draft. */
-  savedEntityId: string | null;
+  savedEntityId: EntityId | null;
   /** The editor's current title, read when Brunch's tools need it. */
   readTitle: () => string;
   readonly: boolean;
