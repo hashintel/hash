@@ -13,7 +13,7 @@ import type {
 } from "../../shared/messages";
 import type { EmbedChrome } from "./embed-chrome-context";
 import type { EntityId } from "@blockprotocol/type-system";
-import type { BrunchOpenDocument } from "@hashintel/brunch-agent/ui";
+import type { useBrunchAssistant } from "@hashintel/brunch-agent/ui";
 import type { ErrorTracker, PetrinautDocHandle } from "@hashintel/petrinaut";
 import type * as PetrinautCore from "@hashintel/petrinaut-core";
 
@@ -22,17 +22,10 @@ import type * as PetrinautCore from "@hashintel/petrinaut-core";
  * compared. Hoisted with the mocks that write to it.
  */
 const observed = vi.hoisted(() => ({
-  petrinautHandles: [] as unknown[],
+  petrinautHandles: [] as PetrinautDocHandle[],
   /** The chrome (Save, version picker) each editor render saw. */
   chromes: [] as unknown[],
-  brunchInputs: [] as {
-    ownerKey: string;
-    chatEndpoint: string;
-    fetch: unknown;
-    selected: boolean;
-    openDocument: unknown;
-    voice: unknown;
-  }[],
+  brunchInputs: [] as Parameters<typeof useBrunchAssistant>[0][],
   /** Failures to report from inside the editor and from Brunch's hook. */
   petrinautFailure: null as null | { error: Error; source: string },
   brunchFailure: null as null | { error: Error; source: string },
@@ -46,7 +39,7 @@ vi.mock("@hashintel/petrinaut", async () => {
   const errorTrackerContext = createContext<ErrorTracker>({
     captureException: () => {},
   });
-  const Petrinaut = ({ handle }: { handle: unknown }) => {
+  const Petrinaut = ({ handle }: { handle: PetrinautDocHandle }) => {
     const { captureException } = use(errorTrackerContext);
     observed.petrinautHandles.push(handle);
     observed.chromes.push(use(EmbedChromeContext));
@@ -78,11 +71,7 @@ vi.mock("@hashintel/brunch-agent/ui", async () => {
     // Mirrors the hook's contract: its runner's `documentHandle` is the
     // open document's editor handle, and its failures go to the tracker the
     // hook reads where it is called.
-    useBrunchAssistant: (
-      input: (typeof observed.brunchInputs)[number] & {
-        plugins: readonly unknown[];
-      },
-    ) => {
+    useBrunchAssistant: (input: Parameters<typeof useBrunchAssistant>[0]) => {
       observed.brunchInputs.push(input);
       const { captureException } = use(ErrorTrackerContext);
       const failure = observed.brunchFailure;
@@ -149,7 +138,10 @@ const sendToEditor = (message: HostToIframeMessage) =>
     );
   });
 
-const identityRequests: { url: string; credentials: string | undefined }[] = [];
+const identityRequests: {
+  url: string;
+  credentials: RequestInit["credentials"];
+}[] = [];
 
 beforeEach(() => {
   observed.petrinautHandles.length = 0;
@@ -181,9 +173,7 @@ afterEach(() => {
 });
 
 const lastBrunchInput = () => observed.brunchInputs.at(-1);
-const lastEditorHandle = () =>
-  (lastBrunchInput()?.openDocument as BrunchOpenDocument | null)?.editor
-    ?.handle;
+const lastEditorHandle = () => lastBrunchInput()?.openDocument?.editor?.handle;
 
 test("Brunch's runner gets the handle the editor shows, and a new one on every load", async () => {
   render(<EmbedContent />);
@@ -198,7 +188,8 @@ test("Brunch's runner gets the handle the editor shows, and a new one on every l
   });
 
   await waitFor(() => expect(lastBrunchInput()?.selected).toBe(true));
-  const firstHandle = observed.petrinautHandles.at(-1) as PetrinautDocHandle;
+  const firstHandle = observed.petrinautHandles.at(-1);
+  expect(firstHandle).toBeDefined();
   expect(lastEditorHandle()).toBe(firstHandle);
   expect(lastBrunchInput()).toMatchObject({
     ownerKey: "hash:alice-account",
@@ -227,9 +218,10 @@ test("Brunch's runner gets the handle the editor shows, and a new one on every l
   await waitFor(() =>
     expect(observed.petrinautHandles.at(-1)).not.toBe(firstHandle),
   );
-  const secondHandle = observed.petrinautHandles.at(-1) as PetrinautDocHandle;
-  expect(secondHandle.doc()).toEqual(firstHandle.doc());
-  expect(secondHandle.id).not.toBe(firstHandle.id);
+  const secondHandle = observed.petrinautHandles.at(-1);
+  expect(secondHandle).toBeDefined();
+  expect(secondHandle?.doc()).toEqual(firstHandle?.doc());
+  expect(secondHandle?.id).not.toBe(firstHandle?.id);
   expect(lastEditorHandle()).toBe(secondHandle);
   // The credentialed fetch keeps its identity, so the conversation's client survives.
   expect(lastBrunchInput()?.fetch).toBe(brunchFetch);

@@ -14,6 +14,7 @@ import { createBrunchFlueAdapter } from "../client/brunch-flue-adapter";
 import {
   brunchLiveToolStream,
   createBrunchFlueClient,
+  type BrunchConnection,
 } from "../client/brunch-flue-client";
 import {
   BrunchPanelConversationTracker,
@@ -101,13 +102,12 @@ const createConversationTrackerFor = (
   _conversationId: string | null,
 ): BrunchPanelConversationTracker => new BrunchPanelConversationTracker();
 
-const useProcessAgentSession = (input: {
-  readonly binding: ProcessAgentBinding | null;
-  readonly brunchSelected: boolean;
-  readonly ownerKey: string;
-  readonly chatEndpoint: string;
-  readonly fetch: typeof globalThis.fetch | undefined;
-}) => {
+const useProcessAgentSession = (
+  input: BrunchConnection & {
+    readonly binding: ProcessAgentBinding | null;
+    readonly brunchSelected: boolean;
+  },
+) => {
   return useMemo(() => {
     const conversationTracker = createConversationTrackerFor(
       input.binding?.conversationId ?? null,
@@ -192,7 +192,8 @@ export interface BrunchAssistant {
 /**
  * Brunch as the editor's assistant: binds the open document to its Flue
  * conversation and assembles the chat, the Ledger tab, Brunch's browser tools
- * and Voice.
+ * and Voice. Pass a stable connection `fetch` (module-level or memoized): a
+ * new identity recreates the conversation's client and tracker.
  */
 export const useBrunchAssistant = ({
   ownerKey,
@@ -204,21 +205,7 @@ export const useBrunchAssistant = ({
   interviewBudget,
   words,
   plugins,
-}: {
-  /**
-   * The host's owner key: with a conversation ID, it names the conversation's
-   * Flue instance and is sent as its ownership header.
-   */
-  readonly ownerKey: string;
-  /** The Brunch chat mount the host resolves; instance paths extend it. */
-  readonly chatEndpoint: string;
-  /**
-   * Carries every request Brunch makes for the host, such as a credentialed
-   * one; the global `fetch` when omitted. Pass a stable function (module-level
-   * or memoized): a new identity recreates the conversation's client and
-   * tracker.
-   */
-  readonly fetch?: typeof globalThis.fetch;
+}: BrunchConnection & {
   /** Brunch is configured and chosen as the assistant. */
   readonly selected: boolean;
   /** The open document, or `null` while none is open. */
