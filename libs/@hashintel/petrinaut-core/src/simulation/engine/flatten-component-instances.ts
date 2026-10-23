@@ -1,4 +1,8 @@
 import { getArcEndpoint } from "../../arc-endpoints";
+import {
+  applyFusions,
+  type FusionGroup,
+} from "../../composition/apply-fusions";
 import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
 
 import type {
@@ -21,6 +25,11 @@ export type FlattenedSimulationDefinition = {
   transitionParameterValues: Map<ID, ParameterValues>;
   placeParameterValues: Map<ID, ParameterValues>;
   arcPlaceNameOverrides: Map<string, string>;
+  /**
+   * The flat place that stands for each flat place a fusion merged away, so
+   * a consumer holding a scoped id can find the place that now carries it.
+   */
+  fusedPlaceAliases: ReadonlyMap<ID, ID>;
 };
 
 export const getArcPlaceNameOverrideKey = ({
@@ -113,6 +122,8 @@ type FlattenContext = {
   transitionParameterValues: Map<ID, ParameterValues>;
   placeParameterValues: Map<ID, ParameterValues>;
   arcPlaceNameOverrides: Map<string, string>;
+  /** Every fusion of every net, as flat place ids, applied once flattening is done. */
+  fusionGroups: FusionGroup[];
 };
 
 const assertUniqueFlatId = ({
@@ -403,6 +414,44 @@ const flattenNet = ({
         : {},
     });
   }
+
+  for (const fusion of net.fusions ?? []) {
+    const label = fusion.name ?? fusion.id;
+    const placeIds = fusion.members.map((member) => {
+      if (member.kind === "place") {
+        const placeId = placeIdMap.get(member.placeId);
+        if (placeId === undefined) {
+          throw new Error(
+            `Fusion \`${label}\` references place ID \`${member.placeId}\` which does not exist in its net.`,
+          );
+        }
+        return placeId;
+      }
+      const instance = (net.componentInstances ?? []).find(
+        ({ id }) => id === member.componentInstanceId,
+      );
+      if (!instance) {
+        throw new Error(
+          `Fusion \`${label}\` references component instance ID \`${member.componentInstanceId}\` which does not exist in its net.`,
+        );
+      }
+      const subnet = ctx.source.subnets?.find(
+        ({ id }) => id === instance.subnetId,
+      );
+      const port = subnet?.places.find(({ id }) => id === member.portPlaceId);
+      if (!port?.isPort) {
+        throw new Error(
+          `Fusion \`${label}\` references port ID \`${member.portPlaceId}\` of instance \`${instance.name}\`, which is not a port of its subnet.`,
+        );
+      }
+      return scopedId([...path, instance.id], member.portPlaceId);
+    });
+    ctx.fusionGroups.push({
+      fusionId: scopedId(path, fusion.id),
+      placeIds,
+      name: fusion.name,
+    });
+  }
 };
 
 export const flattenComponentInstancesForSimulation = ({
@@ -444,6 +493,7 @@ export const flattenComponentInstancesForSimulation = ({
         transitionParameterValues,
         placeParameterValues,
         arcPlaceNameOverrides: new Map(),
+        fusedPlaceAliases: new Map(),
       };
     }
   }
@@ -474,6 +524,7 @@ export const flattenComponentInstancesForSimulation = ({
     transitionParameterValues: new Map(),
     placeParameterValues: new Map(),
     arcPlaceNameOverrides: new Map(),
+    fusionGroups: [],
   };
 
   flattenNet({
@@ -484,13 +535,22 @@ export const flattenComponentInstancesForSimulation = ({
     parameterValues: rootParameterValues,
   });
 
+  const fusedPlaceAliases = applyFusions(target, ctx.fusionGroups);
+  for (const mergedId of fusedPlaceAliases.keys()) {
+    ctx.placeParameterValues.delete(mergedId);
+  }
+
   const rootPlaceIds = new Set(sdcpn.places.map((place) => place.id));
   const flatPlaceIds = new Set(target.places.map((place) => place.id));
   // Keyed by place ids from stored run inputs: no prototype.
   const flatInitialMarking: InitialMarking = createUserKeyedRecord();
   for (const [placeId, value] of Object.entries(initialMarking)) {
-    if (flatPlaceIds.has(placeId) || !rootPlaceIds.has(placeId)) {
-      flatInitialMarking[placeId] = value;
+    const flatPlaceId = fusedPlaceAliases.get(placeId) ?? placeId;
+    if (
+      (flatPlaceIds.has(flatPlaceId) || !rootPlaceIds.has(flatPlaceId)) &&
+      !(flatPlaceId in flatInitialMarking)
+    ) {
+      flatInitialMarking[flatPlaceId] = value;
     }
   }
 
@@ -500,5 +560,6 @@ export const flattenComponentInstancesForSimulation = ({
     transitionParameterValues: ctx.transitionParameterValues,
     placeParameterValues: ctx.placeParameterValues,
     arcPlaceNameOverrides: ctx.arcPlaceNameOverrides,
+    fusedPlaceAliases,
   };
 };

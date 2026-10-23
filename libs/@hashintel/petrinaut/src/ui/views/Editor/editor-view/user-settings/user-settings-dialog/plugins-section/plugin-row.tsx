@@ -207,6 +207,8 @@ const contributionKinds: Record<
   access: { label: "Access", icon: "lockOpen", code: true },
   button: { label: "Button", icon: "cursor" },
   "top-bar-item": { label: "Top bar", icon: "sidebar", code: true },
+  view: { label: "View", icon: "layer" },
+  "component-library": { label: "Components", icon: "cube" },
   "read-only-action": { label: "Read-only notice", icon: "lockClosed" },
   command: { label: "Command", icon: "lightning" },
   setting: { label: "Setting", icon: "sliders" },

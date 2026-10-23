@@ -48,6 +48,7 @@ const net: ActiveNetDefinition = {
   differentialEquations: [],
   parameters: [],
   componentInstances: [],
+  fusions: [],
 };
 
 const TestEditorUpdateContext = createContext<

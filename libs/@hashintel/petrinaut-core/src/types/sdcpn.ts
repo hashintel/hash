@@ -53,6 +53,34 @@ export type ComponentPortArcEndpoint = {
 
 export type ArcEndpoint = PlaceArcEndpoint | ComponentPortArcEndpoint;
 
+/** How a component uses one of its ports; see `Place.portDirection`. */
+export type PortDirection = "in" | "out" | "inout";
+
+/**
+ * One member of a fusion: a place of the net the fusion belongs to, or a port
+ * of one of that net's component instances. The same shape an arc uses to
+ * name the place it touches, so the helpers in `arc-endpoints.ts` apply.
+ */
+export type FusionMember = ArcEndpoint;
+
+/**
+ * A fusion set: its members are one place when the net runs. A token put into
+ * any member is in every member, and a transition anywhere in the composition
+ * that reads or writes one of them reads or writes the fused place.
+ *
+ * At most one member is a place of the net itself, the anchor, which gives
+ * the fused place its name, initial marking and visualizer; the others are
+ * ports of the net's component instances. Members agree on their token type,
+ * capacity and dynamics, which `checkFusions` verifies.
+ */
+export type Fusion = {
+  id: ID;
+  /** Display name. Absent, the anchor's name, else the first member's, stands in. */
+  name?: string;
+  description?: string;
+  members: FusionMember[];
+};
+
 type ArcEndpointReference = {
   /**
    * Legacy shorthand for a normal place endpoint. New code should prefer
@@ -110,6 +138,14 @@ export type Place = {
   capacity?: number | null;
   /** When true, this place is exposed as a component port for subnet instances. */
   isPort?: boolean;
+  /**
+   * The direction a port promises, seen from the component: `in` is only
+   * consumed by the component's transitions, `out` only produced into, and
+   * `inout` both, as a shared resource pool is. Absent, the direction is read
+   * off the subnet's arcs. The checks report a port used against its promise,
+   * and a fusion that leaves a flow without a producer or a consumer.
+   */
+  portDirection?: PortDirection;
   visualizerCode?: string;
   showAsInitialState?: boolean;
   // UI positioning
@@ -362,6 +398,17 @@ export type ComponentInstance = {
   y: number;
 };
 
+/**
+ * Where a subnet came from when a component library provided it: the
+ * library's id, such as a plugin's, and the component's id within it. The
+ * subnet is a copy; the source lets the editor recognise a second use of the
+ * same component and, later, refresh the copy from the library.
+ */
+export type ComponentSource = {
+  library: string;
+  component: string;
+};
+
 export type Subnet = {
   /** Subnet id, a lowercase UUID (see `isPetrinautId`). */
   id: ID;
@@ -369,18 +416,28 @@ export type Subnet = {
   description?: string;
   /** Host-defined data, opaque to Petrinaut. */
   metadata?: Record<string, JsonValue>;
+  /** Set on a subnet copied from a component library. */
+  source?: ComponentSource;
   places: Place[];
   transitions: Transition[];
   types: Color[];
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
   componentInstances?: ComponentInstance[];
+  /** Fusions among this subnet's places and its instances' ports. */
+  fusions?: Fusion[];
 };
 
 export type SDCPN = {
   description?: string;
   /** Host-defined data, opaque to Petrinaut. */
   metadata?: Record<string, JsonValue>;
+  /**
+   * When true, the root net is composed from component instances and fusions
+   * alone: the editor offers no place or transition tools on it, and places
+   * or transitions it still holds are reported.
+   */
+  componentsOnly?: boolean;
   places: Place[];
   transitions: Transition[];
   types: Color[];
@@ -390,6 +447,8 @@ export type SDCPN = {
   metrics?: Metric[];
   subnets?: Subnet[];
   componentInstances?: ComponentInstance[];
+  /** Fusions among the root net's places and its instances' ports. */
+  fusions?: Fusion[];
 };
 
 export type MinimalNetMetadata = {

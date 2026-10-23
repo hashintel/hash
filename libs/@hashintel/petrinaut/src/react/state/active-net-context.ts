@@ -4,6 +4,7 @@ import type {
   Color,
   ComponentInstance,
   DifferentialEquation,
+  Fusion,
   Parameter,
   Place,
   Transition,
@@ -16,6 +17,7 @@ export type ActiveNetDefinition = {
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
   componentInstances: ComponentInstance[];
+  fusions: Fusion[];
 };
 
 export type ActiveNetContextValue = {
@@ -31,6 +33,7 @@ const DEFAULT_ACTIVE_NET: ActiveNetDefinition = {
   differentialEquations: [],
   parameters: [],
   componentInstances: [],
+  fusions: [],
 };
 
 export const ActiveNetContext = createContext<ActiveNetContextValue>({

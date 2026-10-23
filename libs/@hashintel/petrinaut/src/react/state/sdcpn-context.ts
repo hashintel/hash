@@ -28,6 +28,7 @@ export type SDCPNContextValue = SDCPNProviderProps & {
     | "transition"
     | "arc"
     | "componentInstance"
+    | "fusion"
     | "type"
     | "differentialEquation"
     | "parameter"

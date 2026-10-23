@@ -18,6 +18,7 @@ const emptyNet: ActiveNetDefinition = {
   differentialEquations: [],
   parameters: [],
   componentInstances: [],
+  fusions: [],
 };
 
 const place = (

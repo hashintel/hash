@@ -56,7 +56,8 @@ const inputArcId = generateArcId({ inputId: placeKey("p1"), outputId: "t1" });
 const outputArcId = generateArcId({ inputId: "t1", outputId: placeKey("p2") });
 
 const input: CanvasSceneInput = {
-  net: { ...sdcpn, componentInstances: [] },
+  net: { ...sdcpn, componentInstances: [], fusions: [] },
+  activeSubnetId: null,
   sdcpn,
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
   dimensions: compactNodeDimensions,
@@ -64,7 +65,11 @@ const input: CanvasSceneInput = {
   isSelected: () => false,
   hoveredId: null,
   focus: resolveCanvasFocus({
-    adjacency: buildNetAdjacency({ ...sdcpn, componentInstances: [] }),
+    adjacency: buildNetAdjacency({
+      ...sdcpn,
+      componentInstances: [],
+      fusions: [],
+    }),
     hoveredId: null,
     selectedIds: new Set(),
   }),

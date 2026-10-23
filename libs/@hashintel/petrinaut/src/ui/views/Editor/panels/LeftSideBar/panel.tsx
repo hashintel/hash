@@ -113,7 +113,7 @@ export const LeftSideBar: React.FC = () => {
   const isVisible = isOpen || isSearchOpen;
 
   const sidebarSubViews = LEFT_SIDEBAR_SUBVIEWS.filter((subView) =>
-    subView.id === "nets-list"
+    subView.id === "nets-list" || subView.id === "components"
       ? extensions.subnets && enableNetComponents
       : true,
   );

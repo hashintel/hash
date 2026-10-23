@@ -81,6 +81,13 @@ export const petrinautToolEffects = {
   updateComponentInstance: mutation("componentInstance"),
   updateComponentInstancePosition: layout,
   removeComponentInstance: mutation("componentInstance"),
+  addFusion: mutation("fusion"),
+  updateFusion: mutation("fusion"),
+  removeFusion: mutation("fusion"),
+  addFusionMember: mutation("fusion"),
+  removeFusionMember: mutation("fusion"),
+  // Components-only is a property of the root net, not of any element.
+  setComponentsOnly: mutation(),
   deleteItemsByIds: mutation(...selectionItemTypes),
   commitNodePositions: layout,
   setNetTitle: mutation(),

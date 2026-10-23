@@ -12,6 +12,8 @@ export type PluginContributionKind =
   | "access"
   | "button"
   | "top-bar-item"
+  | "view"
+  | "component-library"
   | "read-only-action"
   | "command"
   | "setting"
@@ -57,6 +59,22 @@ export const describePluginContributions = (
     subject: key,
     detail: placeText[spec.place],
   })),
+  ...Object.values(manifest.views ?? {}).map((spec) => ({
+    kind: "view" as const,
+    subject: spec.label,
+    ...(spec.description !== undefined && { detail: spec.description }),
+  })),
+  ...(manifest.componentLibrary === undefined
+    ? []
+    : [
+        {
+          kind: "component-library" as const,
+          subject: manifest.componentLibrary.name,
+          ...(manifest.componentLibrary.description !== undefined && {
+            detail: manifest.componentLibrary.description,
+          }),
+        },
+      ]),
   ...(manifest.readOnlyAction === undefined
     ? []
     : [

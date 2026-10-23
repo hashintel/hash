@@ -207,6 +207,9 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
   },
   definePetrinautAiInteractiveTool: (definition: unknown) => definition,
   definePetrinautPlugin: (manifest: unknown) => () => ({ manifest }),
+  // The plugins the package ships, as the stubs the demo list carries.
+  standardComponentsPlugin: { manifest: { id: "hash.standard-components" } },
+  codeViewPlugin: { manifest: { id: "hash.code-view" } },
   executePetrinautAiMutation: () => ({
     applied: false,
     reason: "Mocked document unchanged.",

@@ -105,6 +105,9 @@ describe("analyzeCompilation", () => {
       }),
     );
     expect(readiness).toStrictEqual({
+      // Component instances are not flattened for the shader yet, so a
+      // composed net stays on the CPU path.
+      assemblyLine: false,
       productionMachines: false,
       deploymentPipelineSDCPN: true,
       probabilisticSatellitesSDCPN: true,
@@ -300,6 +303,10 @@ describe("analyzeCompilation", () => {
       }),
     );
     expect(statuses).toStrictEqual({
+      assemblyLine: {
+        metric__buffer: "not-attempted",
+        metric__finished: "not-attempted",
+      },
       productionMachines: {
         metric__good_products: "cpu-only",
         metric__defective_products: "cpu-only",
