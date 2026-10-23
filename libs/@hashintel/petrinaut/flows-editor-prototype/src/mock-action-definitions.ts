@@ -318,21 +318,24 @@ export const mockActionDefinitions: Record<
       {
         oneOfPayloadKinds: ["EntityId"],
         name: "people",
-        description: "Who is asked.",
+        description:
+          "Who gets the request. It shows up in their HASH actions queue, where they approve or reject it. Pick a person, or press + to use people from an earlier step.",
         required: true,
         array: true,
       },
       {
         oneOfPayloadKinds: ["Text"],
         name: "instructions",
-        description: "What to check.",
+        description:
+          "What you want them to check, sent with the request. For example: Check the purity is above 99%. Type @ to add a value from an earlier step, such as the shipment's name.",
         required: true,
         array: false,
       },
       {
         oneOfPayloadKinds: ["EntityId"],
         name: "entity",
-        description: "The entity to review, if any.",
+        description:
+          "The record they are asked to look at, for example the shipment that failed. Pick one, or press @ to use one from an earlier step.",
         required: false,
         array: false,
       },

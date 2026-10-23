@@ -8,6 +8,7 @@ import {
   SegmentedControl,
   Select,
   TextInput,
+  Tooltip,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
@@ -38,7 +39,7 @@ import {
 } from "./engine";
 import {
   isFreeText,
-  kindHover,
+  inputHover,
   ListField,
   MentionField,
   PatchField,
@@ -72,6 +73,7 @@ import { firstAndMore, TimeField, TypedValue } from "./typed-value";
 import {
   descriptionInputStyle,
   HeaderTitle,
+  keyHoverStyle,
   keyStyle,
   kindLabel,
   mutedTextStyle,
@@ -497,7 +499,12 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
                     gap: "1.5",
                   })}
                 >
-                  <span className={keyStyle}>{label}</span>
+                  <Tooltip
+                    content={`${label} · ${inputHover(input, kinds)}`}
+                    position="top"
+                  >
+                    <span className={cx(keyStyle, keyHoverStyle)}>{label}</span>
+                  </Tooltip>
                   {fieldFor(document, step, input)}
                 </div>
               );
@@ -506,7 +513,7 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
               <PropertyRow
                 key={input.name}
                 label={label}
-                hover={`${kindHover(input, kinds)}${input.rule ? ` � ${input.rule}` : ""}${input.description ? ` � ${input.description}` : ""}`}
+                hover={inputHover(input, kinds)}
                 required={
                   input.required &&
                   !input.hasDefault &&

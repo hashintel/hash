@@ -138,6 +138,12 @@ export const keyStyle = css({
   whiteSpace: "nowrap",
 });
 
+/** A key that has a hover: a dotted underline on pointer-over says there is more to read. */
+export const keyHoverStyle = css({
+  cursor: "help",
+  _hover: { textDecoration: "underline dotted", textUnderlineOffset: "[3px]" },
+});
+
 /** "optional", after the label of a field that may stay empty (Attio: only the exception is marked). */
 export const OptionalMark = () => (
   <span
@@ -180,13 +186,16 @@ export const PropertyRow = ({
 }) => {
   // The label's hover always carries the full label, since a long one truncates.
   const named = typeof label === "string" ? label : undefined;
-  const detail = hover && required ? `${hover} · required` : hover;
+  const detail =
+    hover && required && !hover.endsWith("required") ? `${hover} · required` : hover;
   const tip = named && detail ? `${named} · ${detail}` : (detail ?? named);
+  const tipKey = Boolean(detail);
   const key = (
     <span className={css({ display: "block", minWidth: "[0]" })}>
       <span
         className={cx(
           keyStyle,
+          tipKey && keyHoverStyle,
           wrapLabel && css({ whiteSpace: "normal", overflow: "visible" }),
         )}
       >

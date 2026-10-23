@@ -1530,6 +1530,12 @@ export const kindHover = (input: InputView, kinds: readonly string[]) =>
       : ""
   }${input.required && !input.hasDefault ? " · required" : ""}`;
 
+/** A field's hover: what it is for first, then any rule, then its type. */
+export const inputHover = (input: InputView, kinds: readonly string[]) =>
+  [input.description, input.rule, kindHover(input, kinds)]
+    .filter(Boolean)
+    .join(" · ");
+
 export const isFreeText = (input: InputView) =>
   !input.array &&
   input.kinds?.length === 1 &&
