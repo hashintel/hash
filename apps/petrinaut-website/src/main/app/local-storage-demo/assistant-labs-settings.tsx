@@ -3,8 +3,8 @@ import { useId } from "react";
 import { Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import type { OpenAIVoiceConfig } from "../plugins/brunch/voice/session/voice-interview-control";
 import type { AssistantSelection } from "./assistant-selection";
+import type { OpenAIVoiceConfig } from "@hashintel/brunch-agent/ui";
 
 const sectionStyle = css({
   border: "[1px solid {colors.neutral.s40}]",

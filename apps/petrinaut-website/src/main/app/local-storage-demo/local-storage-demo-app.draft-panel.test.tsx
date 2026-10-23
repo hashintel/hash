@@ -8,16 +8,16 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
-import { createJsonDocHandle, type SDCPN } from "@hashintel/petrinaut-core";
-
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
-} from "../plugins/brunch/conversation/brunch-conversation-id";
+} from "@hashintel/brunch-agent/client";
 import {
   createCanonicalPetrinautHostTools,
   EMPTY_CANONICAL_PETRINAUT_REPLAY,
-} from "../plugins/brunch/tools/brunch-petrinaut-tools";
+} from "@hashintel/brunch-agent/ui";
+import { createJsonDocHandle, type SDCPN } from "@hashintel/petrinaut-core";
+
 import {
   InProcessLspWorker,
   NoopResizeObserver,
@@ -86,13 +86,16 @@ vi.mock("./documents/use-document-controller", () => ({
     return { controller: fixture.controller };
   },
 }));
-vi.mock("../plugins/brunch/conversation/use-process-agent-binding", () => ({
-  useProcessAgentBinding: () => {
-    if (!fixture.baseBinding)
-      throw new Error("Missing test process agent binding");
-    return fixture.baseBinding;
-  },
-}));
+vi.mock(
+  "../../../../../../libs/@hashintel/brunch-agent/src/ui/conversation/use-process-agent-binding",
+  () => ({
+    useProcessAgentBinding: () => {
+      if (!fixture.baseBinding)
+        throw new Error("Missing test process agent binding");
+      return fixture.baseBinding;
+    },
+  }),
+);
 
 beforeAll(preloadMonaco, 30_000);
 afterEach(() => {
