@@ -120,6 +120,18 @@ export {
   standardComponentLibraryId,
 } from "./composition/standard-components";
 
+// --- The Petrinaut DSL ---
+export { printPetrinautDsl } from "./dsl/print";
+export type { DslPrintResult, DslSpan, DslSpanKind } from "./dsl/print";
+export {
+  dslAttributeKeywords,
+  dslCodeKeywords,
+  dslDeclarationKeywords,
+  dslValueTypes,
+} from "./dsl/keywords";
+export { dslName, isDslIdentifier } from "./dsl/identifiers";
+export { toBodyForm } from "./dsl/code-bodies";
+
 // --- Command registry (palette commands) ---
 export {
   combineCommandRegistries,
