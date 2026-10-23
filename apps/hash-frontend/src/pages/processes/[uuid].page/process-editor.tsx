@@ -360,7 +360,6 @@ export const ProcessEditor = ({
                   title,
                   decisionTime: result.decisionTime,
                 },
-                revisions: buildRevisionSummaries(revisions),
               },
             });
           })
