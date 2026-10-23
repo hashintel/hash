@@ -1,0 +1,95 @@
+---
+title: Visualizer runtimes compared
+description: React against Preact, Solid, Svelte, a plain patch applier and a canvas as the runtime behind user-authored visualizers, by authoring form, in-browser compilation, type checking, purity and list performance.
+sidebar_order: 3
+---
+
+Visualizers are written as TSX and rendered by the host's React. This page
+asks whether another library would compile faster, update long token lists
+faster, or be easier to check, and finds the runtime is not where the gains
+are: TSX stays the authoring form, and a worker-side evaluator feeding a
+patch applier removes the per-frame framework work whichever library sits
+underneath. The measurements are the ones in
+[Visualizers off the main thread](doc:visualizers/pipeline), made with
+`spikes/visualizers/` in this package.
+
+## What the runtime has to do
+
+A visualizer runtime turns `tokens` and `parameters` into a picture on every
+frame, for several open pictures at once, with tokens keyed by identity and
+rebuilt as fresh objects each frame by the frame reader. It has to be
+checkable by a TypeScript language service running in a worker, compilable in
+the browser, evaluable off the main thread, and it must leave the author no
+way to keep state or reach the host.
+
+## Candidates
+
+| Runtime                        | Authoring form                                                                                                | Compiler in the browser                                                                                          | Types for the language service                                              | Purity                                                                                           | Runtime, minified                    |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| React 19 (today)               | TSX, a render function                                                                                        | None needed: `ts.transpileModule` emits the JSX calls; React Compiler optional through Babel and a 3.7 MB plugin | `@types/react`, 178 KB, works without `lib.dom`                             | Hooks are reachable and must be linted out                                                       | 190 KB with ReactDOM                 |
+| Preact 11                      | Same TSX, `jsxImportSource: "preact"`                                                                         | None needed                                                                                                      | Shipped with the package, SVG intrinsics included                           | Hooks live in `preact/hooks`, so banning imports bans them                                       | 11 KB                                |
+| Solid 1.9                      | TSX with different semantics: a component runs once, props are getters, lists go through `<Index>` or `<For>` | `babel-preset-solid` through `@babel/standalone`, about 3 MB; the Solid playground compiles this way             | Shipped with the package                                                    | Signals and effects are the programming model; a visualizer would use `<Index>` and nothing else | 11 KB, 6 KB for the store            |
+| Svelte 5                       | `.svelte` single-file components, a template language with a script block                                     | `svelte/compiler`, 874 KB; the Svelte playground compiles this way                                               | None in a worker: `svelte-check` generates TSX through `svelte2tsx` in Node | `$state` and `$effect` must be linted out                                                        | 33 KB                                |
+| Element tree and patch applier | TSX, a render function; `createElement` returns plain records                                                 | None needed                                                                                                      | The React JSX types, or a smaller SVG-only namespace                        | No hooks exist; the lint and the view HIR do the rest                                            | None; the applier is about 100 lines |
+| Canvas, PixiJS 8 or three      | Scene objects, not SVG                                                                                        | None needed                                                                                                      | Shipped with the packages                                                   | Imperative scene graphs; purity comes from generating them from the view HIR                     | Hundreds of KB                       |
+
+## Per-frame cost on token lists
+
+From `spikes/visualizers/bench/`: N tokens as SVG circles, a fresh array of
+fresh objects per frame, every token moved or a tenth of them, script time
+medians over 40 frames on Chromium 153.
+
+| Variant                      | 1k all | 1k 10% | 5k all | 5k 10% | 20k all | 20k 10% |
+| ---------------------------- | -----: | -----: | -----: | -----: | ------: | ------: |
+| Patch applier                |    0.6 |    0.1 |    2.3 |    0.6 |    10.2 |     2.6 |
+| React 19, keyed              |    0.7 |    0.3 |    3.4 |    1.1 |    11.5 |     4.0 |
+| Preact 11, keyed             |    1.0 |    0.4 |    4.2 |    1.5 |    17.9 |     5.6 |
+| Solid `<Index>`              |    0.8 |    0.7 |    7.2 |    4.2 |    46.2 |    24.0 |
+| Solid store with `reconcile` |    1.8 |    1.0 |   14.4 |    4.6 |    80.8 |    20.4 |
+| Svelte 5 keyed `each`        |    1.1 |    1.1 |   13.1 |    9.6 |    92.6 |    69.5 |
+
+Solid and Svelte update in place through signals, and that is what makes them
+fast when an application mutates one value at a time. A frame reader does the
+opposite: every token is a new object, so every per-item signal fires and
+every per-attribute effect runs its comparison. One keyed diff loop over the
+whole list, which is what the applier and React both do, costs less than
+thousands of small reactive updates. Feeding Solid a store and reconciling by
+key, the idiomatic answer for immutable snapshots, is slower again because
+the reconcile is a second diff before the signals fire.
+
+Above 5k elements the frame interval, not the script time, is the limit for
+every row: Chromium paints 20k SVG circles in two vsyncs however they got
+there. Pictures that large need a canvas, where the renderer spike for the
+main canvas holds 60 fps at 10k nodes with instanced meshes.
+
+## Checking and linting per runtime
+
+- **React and Preact** type-check in the JSX service the pipeline page
+  describes, with `jsxImportSource` naming the package. The purity rules are
+  the same for both.
+- **Solid** type-checks in the same service with its own JSX namespace. The
+  lint has to admit `<Index>` and `<For>` as imports and ban `createSignal`,
+  `createEffect`, `createStore` and `onMount`, which leaves a component that
+  reads its props once and maps its tokens: a render function with extra
+  steps.
+- **Svelte** has no in-worker type checking. `svelte2tsx` is plain
+  JavaScript and could run in the worker, but diagnostics then need mapping
+  from the generated TSX back to the `.svelte` source, which is the work the
+  Svelte language tools do and nothing smaller does. Monaco would also need
+  a Svelte grammar.
+- Every runtime has an ESLint plugin; none runs without ESLint in the
+  browser, which the pipeline page rules out. The seven AST rules there are
+  runtime-independent for TSX.
+
+## Verdict
+
+TSX stays. React's JSX types and TypeScript's own transpiler are the cheapest
+checkable toolchain, and once the per-frame loop is a patch applier fed by a
+worker the runtime library does no work per frame at all. Preact is the only
+drop-in that cuts bytes, and that matters only inside the sandboxed-iframe
+fallback, where each box carries its own runtime. Solid's `<Index>` is the
+right primitive for frame data in principle and loses in practice on fresh
+objects, and its compiler costs 3 MB in the browser. Svelte's authoring form
+and tooling do not fit a Monaco editor backed by a TypeScript worker. For
+very large token counts the answer is a canvas backend driven by the view
+HIR, not a different DOM library.
