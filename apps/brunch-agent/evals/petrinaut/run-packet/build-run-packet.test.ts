@@ -1,9 +1,11 @@
 import { expect, test } from "vitest";
 
+import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
+
 import { buildRunPacket, type StreamEvent } from "./build-run-packet.ts";
 import { renderRunPacket } from "./render-run-packet.ts";
 
-import type { SubmissionChronology } from "../../../src/server/observe-turn-chronology.ts";
+import type { LoggedSubmissionChronology } from "./parse-chronology-log.ts";
 
 const t0 = Date.parse("2026-10-15T10:00:00.000Z");
 
@@ -92,13 +94,15 @@ const events: StreamEvent[] = [
   event("submission_settled", 17_800, { outcome: "completed" }),
 ];
 
-const chronology: SubmissionChronology = {
+const chronology: LoggedSubmissionChronology = {
   submissionId: "sub-1",
   outcome: "completed",
   turns: [
     {
       turnId: "turn-1",
       purpose: "agent",
+      // With the run's start, so deltas from either origin coincide.
+      startedAt: new Date(t0 + 100).toISOString(),
       timeToFirstEventMs: 1_000,
       durationMs: 9_000,
       terminal: "turn",
@@ -454,4 +458,163 @@ test("a skill activated again is a reload, marked when a compaction came between
     skillReloadsAfterCompaction: 1,
     compactions: 1,
   });
+});
+
+const chronologyTurn = (
+  turnId: string,
+  startedAt: number | undefined,
+  toolCalls: readonly {
+    toolCallId: string;
+    firstDeltaMs: number;
+    lastDeltaMs: number;
+  }[],
+): LoggedSubmissionChronology["turns"][number] => ({
+  turnId,
+  purpose: "agent",
+  ...(startedAt === undefined
+    ? {}
+    : { startedAt: new Date(t0 + startedAt).toISOString() }),
+  timeToFirstEventMs: null,
+  durationMs: 0,
+  terminal: "turn",
+  isError: false,
+  inputTokens: null,
+  cacheReadTokens: null,
+  outputTokens: null,
+  requestShape: null,
+  responseShape: null,
+  toolCalls: toolCalls.map((call) => ({
+    ...call,
+    toolName: "addPlace",
+    deltaCount: 2,
+    argumentChars: 10,
+    maxGapMs: 0,
+    lastDeltaToTerminalMs: 0,
+  })),
+});
+
+// Each turn starts after its step's request: 500 ms after the run starts,
+// and 500 ms after the first step's tool results are committed.
+const offsetEvents: StreamEvent[] = [
+  event("agent_start_run", 100, {}, "offset"),
+  event("assistant_message_started", 1_000, { turnId: "turn-a" }, "offset"),
+  event("assistant_text_started", 3_000, { blockId: "xa" }, "offset"),
+  event("assistant_text_completed", 3_100, { blockId: "xa" }, "offset"),
+  event(
+    "assistant_tool_call",
+    3_200,
+    { toolCallId: "call-a", name: "addPlace", arguments: {} },
+    "offset",
+  ),
+  event("assistant_message_completed", 3_200, { turnId: "turn-a" }, "offset"),
+  event("tool_results_committed", 3_500, {}, "offset"),
+  event("assistant_message_started", 4_500, { turnId: "turn-b" }, "offset"),
+  event("assistant_text_started", 7_000, { blockId: "xb" }, "offset"),
+  event("assistant_text_completed", 7_100, { blockId: "xb" }, "offset"),
+  event(
+    "assistant_tool_call",
+    7_200,
+    { toolCallId: "call-b", name: "addPlace", arguments: {} },
+    "offset",
+  ),
+  event("assistant_message_completed", 7_200, { turnId: "turn-b" }, "offset"),
+  event("tool_results_committed", 7_300, {}, "offset"),
+  event("submission_settled", 7_400, { outcome: "completed" }, "offset"),
+];
+
+const offsetPacket = (withStartedAt: boolean) =>
+  buildRunPacket({
+    ...input,
+    submissions: [
+      { submissionId: "offset", acceptedAt: t0, settledAt: t0 + 7_400 },
+    ],
+    events: offsetEvents,
+    chronology: new Map([
+      [
+        "offset",
+        {
+          submissionId: "offset",
+          outcome: "completed",
+          turns: [
+            chronologyTurn("turn-a", withStartedAt ? 600 : undefined, [
+              { toolCallId: "call-a", firstDeltaMs: 400, lastDeltaMs: 1_400 },
+            ]),
+            chronologyTurn("turn-b", withStartedAt ? 4_000 : undefined, [
+              { toolCallId: "call-b", firstDeltaMs: 1_000, lastDeltaMs: 2_000 },
+            ]),
+          ],
+        },
+      ],
+    ]),
+  });
+
+test("the first step's tool-argument deltas are measured from the run's start, not the turn's", () => {
+  const [step] = offsetPacket(true).exchanges[0]?.steps ?? [];
+
+  expect(step).toMatchObject({
+    // The turn starts 500 ms after the run; its first delta 400 ms later.
+    beforeOutputMs: 900,
+    argumentStreamingMs: 1_000,
+    toolCalls: [{ firstDeltaMs: 900, lastDeltaMs: 1_900 }],
+  });
+});
+
+test("a later step's tool-argument deltas are measured from the committed tool results, not the turn's start", () => {
+  const step = offsetPacket(true).exchanges[0]?.steps[1];
+
+  expect(step).toMatchObject({
+    // The turn starts 500 ms after the commit; its first delta 1 s later.
+    beforeOutputMs: 1_500,
+    argumentStreamingMs: 1_000,
+    toolCalls: [{ firstDeltaMs: 1_500, lastDeltaMs: 2_500 }],
+  });
+});
+
+test("a chronology logged without turn start times leaves tool deltas unplaced but still measures their streaming", () => {
+  const steps = offsetPacket(false).exchanges[0]?.steps;
+
+  expect(steps).toMatchObject([
+    {
+      // Reply text only: 2.9 s after the run started.
+      beforeOutputMs: 2_900,
+      argumentStreamingMs: 1_000,
+      toolCalls: [{ firstDeltaMs: null, lastDeltaMs: null }],
+    },
+    {
+      beforeOutputMs: 3_500,
+      argumentStreamingMs: 1_000,
+      toolCalls: [{ firstDeltaMs: null, lastDeltaMs: null }],
+    },
+  ]);
+});
+
+test("a user message sent with submission context is excerpted as the user's own text", () => {
+  const packet = buildRunPacket({
+    ...input,
+    submissions: [
+      { submissionId: "context", acceptedAt: t0, settledAt: t0 + 100 },
+    ],
+    events: [
+      event(
+        "user_message",
+        0,
+        {
+          content: [
+            {
+              type: "text",
+              text: petrinautContextualUserMessageBody({
+                userText: "We run  two\nbays.",
+                diagnosticsContext: "",
+                submissionContext: { interviewLength: "short" },
+              }),
+            },
+          ],
+        },
+        "context",
+      ),
+    ],
+    chronology: new Map(),
+  });
+
+  expect(packet.exchanges[0]?.userExcerpt).toBe("We run two bays.");
 });

@@ -1,5 +1,18 @@
 import type { SubmissionChronology } from "../../../src/server/observe-turn-chronology.ts";
 
+type LoggedTurnChronology = Omit<
+  SubmissionChronology["turns"][number],
+  "startedAt"
+> & {
+  /** Absent from logs written before turns carried their start time. */
+  readonly startedAt?: string;
+};
+
+/** A chronology as read back from a server log, which may predate `startedAt`. */
+export type LoggedSubmissionChronology = Omit<SubmissionChronology, "turns"> & {
+  readonly turns: readonly LoggedTurnChronology[];
+};
+
 const chronologyMarker = "[brunch] flue.submission chronology ";
 
 /**
@@ -11,10 +24,10 @@ const chronologyMarker = "[brunch] flue.submission chronology ";
 export const parseChronologyLog = (
   log: string,
 ): {
-  entries: ReadonlyMap<string, SubmissionChronology>;
+  entries: ReadonlyMap<string, LoggedSubmissionChronology>;
   skippedLines: number;
 } => {
-  const entries = new Map<string, SubmissionChronology>();
+  const entries = new Map<string, LoggedSubmissionChronology>();
   let skippedLines = 0;
   for (const line of log.split("\n")) {
     const markerAt = line.indexOf(chronologyMarker);
@@ -34,7 +47,7 @@ export const parseChronologyLog = (
       "turns" in entry &&
       Array.isArray(entry.turns)
     ) {
-      entries.set(entry.submissionId, entry as SubmissionChronology);
+      entries.set(entry.submissionId, entry as LoggedSubmissionChronology);
     } else {
       skippedLines += 1;
     }

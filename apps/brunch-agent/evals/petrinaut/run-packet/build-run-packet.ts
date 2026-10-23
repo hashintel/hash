@@ -1,4 +1,4 @@
-import { brunchTools } from "@hashintel/brunch-agent";
+import { brunchTools, petrinautUserMessageText } from "@hashintel/brunch-agent";
 
 import {
   type ToolCategory,
@@ -6,7 +6,7 @@ import {
   toolCategoryOf,
 } from "./tool-categories.ts";
 
-import type { SubmissionChronology } from "../../../src/server/observe-turn-chronology.ts";
+import type { LoggedSubmissionChronology } from "./parse-chronology-log.ts";
 
 /** One conversation-stream event, with its parsed timestamp. */
 export interface StreamEvent {
@@ -69,7 +69,7 @@ export interface RunPacketInput {
   readonly submissions: readonly RunSubmission[];
   readonly events: readonly StreamEvent[];
   /** Server-log chronology by submission; absent when the run kept no server log. */
-  readonly chronology: ReadonlyMap<string, SubmissionChronology>;
+  readonly chronology: ReadonlyMap<string, LoggedSubmissionChronology>;
   readonly skipped: SkippedRecords;
   readonly finalLedger: FinalLedgerSummary | null;
   readonly finalNet: FinalNetSummary | null;
@@ -89,7 +89,11 @@ export interface PacketToolCall {
   readonly name: string;
   readonly category: ToolCategory;
   readonly argumentChars: number;
-  /** From the server-log chronology: milliseconds from the step's request to the first and last argument delta. */
+  /**
+   * From the server-log chronology: milliseconds from the step's request to
+   * the first and last argument delta. Null without a chronology, or when it
+   * predates turn start times and so cannot place its deltas.
+   */
   readonly firstDeltaMs: number | null;
   readonly lastDeltaMs: number | null;
   readonly executionMs: number | null;
@@ -104,7 +108,11 @@ export interface PacketStep {
    * the next step starts, or else at settlement or the exchange's last event.
    */
   readonly durationMs: number;
-  /** Request sent to the first reply text or tool-argument delta: hidden reasoning, time to first event and any reasoning summary. */
+  /**
+   * Request sent to the first reply text or tool-argument delta: hidden
+   * reasoning, time to first event and any reasoning summary. Tool-argument
+   * deltas count only when the chronology places them (see `firstDeltaMs`).
+   */
   readonly beforeOutputMs: number;
   readonly reasoningSummaryMs: number;
   readonly textMs: number;
@@ -364,9 +372,9 @@ const skillResourcePath = (path: string): string => {
 const userExcerptOf = (payload: Readonly<Record<string, unknown>>): string => {
   const content = payload.content;
   if (!Array.isArray(content)) return "";
-  const text = content
-    .map((part) => stringField(part, "text") ?? "")
-    .join(" ")
+  const text = petrinautUserMessageText(
+    content.map((part) => stringField(part, "text") ?? "").join(" "),
+  )
     .replace(/\s+/gu, " ")
     .trim();
   return text.length > 160 ? `${text.slice(0, 157)}…` : text;
@@ -418,7 +426,7 @@ const buildExchange = (
   submission: RunSubmission,
   previous: RunSubmission | undefined,
   events: readonly StreamEvent[],
-  chronology: SubmissionChronology | undefined,
+  chronology: LoggedSubmissionChronology | undefined,
   netBefore: NetSize | null,
 ): {
   exchange: Omit<PacketExchange, "skillReloads">;
@@ -545,6 +553,15 @@ const buildExchange = (
     const deltas = new Map(
       (turn?.toolCalls ?? []).map((call) => [call.toolCallId, call]),
     );
+    // Chronology offsets count from the turn's start; packet offsets from the step's request.
+    const turnStartOffsetMs =
+      turn?.startedAt === undefined
+        ? null
+        : Date.parse(turn.startedAt) - step.requestStartAt;
+    const streamedCalls = step.toolCalls.flatMap((call) => {
+      const streamed = deltas.get(call.toolCallId);
+      return streamed === undefined ? [] : [streamed];
+    });
     const toolCalls: PacketToolCall[] = step.toolCalls.map((call) => {
       const streamed = deltas.get(call.toolCallId);
       return {
@@ -552,8 +569,14 @@ const buildExchange = (
         name: call.name,
         category: toolCategoryOf(call.name),
         argumentChars: streamed?.argumentChars ?? call.argumentChars,
-        firstDeltaMs: streamed?.firstDeltaMs ?? null,
-        lastDeltaMs: streamed?.lastDeltaMs ?? null,
+        firstDeltaMs:
+          streamed === undefined || turnStartOffsetMs === null
+            ? null
+            : turnStartOffsetMs + streamed.firstDeltaMs,
+        lastDeltaMs:
+          streamed === undefined || turnStartOffsetMs === null
+            ? null
+            : turnStartOffsetMs + streamed.lastDeltaMs,
         executionMs: call.executionMs,
         isError: call.isError,
       };
@@ -567,17 +590,13 @@ const buildExchange = (
         : step.toolCalls.length > 0 && step.toolsCommittedAt === null
           ? ("tools" as const)
           : null;
-    const firstDeltas = toolCalls.flatMap((call) =>
-      call.firstDeltaMs === null ? [] : [call.firstDeltaMs],
-    );
-    const lastDeltas = toolCalls.flatMap((call) =>
-      call.lastDeltaMs === null ? [] : [call.lastDeltaMs],
-    );
     const firstOutputOffsets = [
       ...(step.firstTextAt === null
         ? []
         : [step.firstTextAt - step.requestStartAt]),
-      ...firstDeltas,
+      ...toolCalls.flatMap((call) =>
+        call.firstDeltaMs === null ? [] : [call.firstDeltaMs],
+      ),
     ];
     return {
       turnId: step.turnId,
@@ -588,9 +607,10 @@ const buildExchange = (
       argumentStreamingMs:
         turn === undefined
           ? null
-          : lastDeltas.length === 0
+          : streamedCalls.length === 0
             ? 0
-            : Math.max(...lastDeltas) - Math.min(...firstDeltas),
+            : Math.max(...streamedCalls.map((call) => call.lastDeltaMs)) -
+              Math.min(...streamedCalls.map((call) => call.firstDeltaMs)),
       toolPhaseMs:
         cutOffIn === "message" || step.toolCalls.length === 0
           ? 0
