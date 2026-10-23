@@ -28,7 +28,6 @@ const config: CodegenConfig = {
         importSchemaTypesFrom: "./src/graphql/schema-types.gen.ts",
         // Apollo Client adds `__typename` to every selection set except the
         // root operation type.
-        // TODO: remove both options if Apollo Client stops adding `__typename`.
         nonOptionalTypename: true,
         skipTypeNameForRoot: true,
       },
