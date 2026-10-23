@@ -1,4 +1,4 @@
-//! Tiny CLI that takes a JExpr string via stdin, parses it and prints the AST to stdout.
+//! Tiny CLI that takes a `JExpr` string via stdin, parses it and prints the AST to stdout.
 
 use std::io::{Read as _, Write as _};
 
