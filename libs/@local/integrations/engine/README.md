@@ -16,6 +16,8 @@ Capture files are written beside their destination, synced, and published atomic
 
 PostgreSQL and Redshift sources use DuckDB's official `postgres` extension in a separate database with `CaptureLimits`. The extension must be available locally or downloadable by DuckDB. Connections are read-only and default to full TLS certificate verification. The source model and YAML format are illustrated in the definition crate's `tests/ui/source-connectors.yaml`.
 
+The PostgreSQL capture test runs in the default test suite and requires a running Docker daemon. It starts a temporary PostgreSQL 18 container, creates its own fixture, and removes the container afterward. The first run downloads the PostgreSQL image and DuckDB's official `postgres` extension if they are not cached.
+
 `SecretStore` resolves credentials for the run's web and actor. `GraphVaultSecretStore` requires HTTPS endpoints for Graph and Vault. It queries Graph as that actor, checks the secret entity's identity, type, archive state, and expiry, and reads its value from a Vault KV v2 path under `users/<web>/`. PostgreSQL secrets contain a JSON object with `username` and `password`; REST secrets contain `value` and are used as a bearer token or configured header. Secret bytes use `hash-secret`, and connector errors omit credentials and response bodies.
 
 `Progress` counts an operation's observed work and emits structured tracing events at most every ten seconds as work advances. Call `report` for a final observation, including short operations. Reports carry the operation name, observed count, optional expected total, and elapsed seconds in the tracing span where tracking started. `snapshot` reads the counters for other reporting backends.

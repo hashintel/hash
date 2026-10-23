@@ -36,14 +36,16 @@ tracing        = { workspace = true, features = ["attributes"] }
 url            = { workspace = true }
 
 [dev-dependencies]
-axum              = { workspace = true, features = ["http1", "tokio"] }
-opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
-pretty_assertions = { workspace = true }
-proptest          = { workspace = true, features = ["attr-macro", "std"] }
-rstest            = { workspace = true }
-serde             = { workspace = true, features = ["derive"] }
-tempfile          = { workspace = true }
-tokio             = { workspace = true, features = ["io-util", "macros", "rt", "test-util", "time"] }
+axum                   = { workspace = true, features = ["http1", "tokio"] }
+opentelemetry_sdk      = { workspace = true, features = ["metrics", "testing"] }
+pretty_assertions      = { workspace = true }
+proptest               = { workspace = true, features = ["attr-macro", "std"] }
+rstest                 = { workspace = true }
+serde                  = { workspace = true, features = ["derive"] }
+tempfile               = { workspace = true }
+testcontainers         = { workspace = true }
+testcontainers-modules = { workspace = true, features = ["postgres"] }
+tokio                  = { workspace = true, features = ["io-util", "macros", "rt", "test-util", "time"] }
 
 [lints]
 workspace = true

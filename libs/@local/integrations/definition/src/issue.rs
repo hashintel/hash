@@ -2,7 +2,7 @@ use alloc::{boxed::Box, string::ToString as _, vec::Vec};
 use core::{
     borrow::Borrow,
     fmt::{self, Display, Formatter, Write as _},
-    num::NonZeroU64,
+    num::NonZero,
 };
 
 use type_system::ontology::id::ParseVersionedUrlError;
@@ -118,9 +118,9 @@ impl<T: Display> Display for DisplayList<'_, T> {
 #[display("{line}:{column}")]
 pub struct SourceLocation {
     /// The line, counted from 1.
-    pub line: NonZeroU64,
+    pub line: NonZero<u64>,
     /// The column, counted in characters from 1.
-    pub column: NonZeroU64,
+    pub column: NonZero<u64>,
 }
 
 /// Explains what is wrong at the path of a [`DefinitionIssue`].
