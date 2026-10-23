@@ -7,10 +7,10 @@ requires-python = "<3.15,>=3.14"
 license = "MIT or Apache-2.0"
 dependencies = [
     "fastapi<0.142.0,>=0.141.1",
-    "opentelemetry-exporter-otlp-proto-grpc<2.0.0,>=1.44.0",
-    "opentelemetry-exporter-otlp-proto-http<2.0.0,>=1.44.0",
-    "opentelemetry-instrumentation-fastapi>=0.65b0,<0.66.0",
-    "opentelemetry-sdk<2.0.0,>=1.44.0",
+    "opentelemetry-exporter-otlp-proto-grpc<2.0.0,>=1.45.1",
+    "opentelemetry-exporter-otlp-proto-http<2.0.0,>=1.45.1",
+    "opentelemetry-instrumentation-fastapi<0.67.0,>=0.66b1",
+    "opentelemetry-sdk<2.0.0,>=1.45.1",
     "optuna>=4.9,<5",
     "petrinaut-optimizer-core",
     "petrinaut-python",

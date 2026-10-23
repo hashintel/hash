@@ -16,29 +16,6 @@ members = [
     "petrinaut-optimizer-core",
     "petrinaut-python",
 ]
-constraints = [
-    { name = "datamodel-code-generator", specifier = ">=0.82.0,<0.83.0" },
-    { name = "deptry", specifier = ">=0.25.1,<0.26" },
-    { name = "fastapi", specifier = ">=0.141.1,<0.142.0" },
-    { name = "httpx", specifier = ">=0.28,<0.29.0" },
-    { name = "opentelemetry-exporter-otlp-proto-grpc", specifier = ">=1.44.0,<2.0.0" },
-    { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.44.0,<2.0.0" },
-    { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.65b0,<0.66.0" },
-    { name = "opentelemetry-sdk", specifier = ">=1.44.0,<2.0.0" },
-    { name = "optuna", specifier = ">=4.9,<5" },
-    { name = "pydantic", specifier = ">=2.13.4,<3.0.0" },
-    { name = "pydantic-settings", specifier = ">=2.15.0,<3.0.0" },
-    { name = "pytest", specifier = ">=9.1.1,<10" },
-    { name = "pytest-asyncio", specifier = ">=1.4,<2" },
-    { name = "python-dotenv", specifier = ">=1.0.0,<2.0.0" },
-    { name = "ruff", specifier = ">=0.16.8,<0.17" },
-    { name = "starlette", specifier = ">=1.7.0,<2.0.0" },
-    { name = "sympy", specifier = ">=1.13,<2.0.0" },
-    { name = "tach", specifier = ">=0.35,<0.36" },
-    { name = "ty", specifier = ">=0.0.82,<0.0.83" },
-    { name = "uv-build", specifier = ">=0.12.16,<0.13.0" },
-    { name = "uvicorn", specifier = ">=0.39.0,<0.40.0" },
-]
 
 [[package]]
 name = "alembic"
