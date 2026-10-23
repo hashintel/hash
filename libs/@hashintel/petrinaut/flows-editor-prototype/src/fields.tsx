@@ -58,6 +58,7 @@ import {
   PropertyRow,
   selectTriggerStyle,
   SourceChip,
+  SourceSelectTrigger,
 } from "./ui";
 
 import type { StepInputSource } from "./engine";
@@ -210,7 +211,7 @@ const ownKind = (input: InputView) => {
 
 /** A field that takes one value: its data type's control, or a reference picked from the source menu (the "@"). */
 export const ValueField = ({ step, input, entry }: FieldProps) => {
-  const { setDocument } = useEditor();
+  const { document, setDocument } = useEditor();
   const anchorRef = useRef<HTMLDivElement>(null);
   const { open, setOpen } = useFieldMenu(step.stepId, input.name);
   const source = step.inputs[input.name];
@@ -253,12 +254,12 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
         ref={anchorRef}
         className={css({ display: "flex", flexDirection: "column", gap: "1" })}
       >
-        <TokenChip
-          source={source}
-          stepId={step.stepId}
+        <SourceSelectTrigger
+          hover={tokenPath(document, source, step.stepId).join(" › ")}
           onClick={() => setOpen(true)}
-          onRemove={() => set(null)}
-        />
+        >
+          {collapsePath(tokenPath(document, source, step.stepId))}
+        </SourceSelectTrigger>
         <SourceLine source={source} />
         {menu}
       </div>

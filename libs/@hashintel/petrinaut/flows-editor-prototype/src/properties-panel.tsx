@@ -81,9 +81,9 @@ import {
   panelHeaderStyle,
   PropertyRow,
   Section,
-  selectTriggerStyle,
   ChipRow,
   SourceChip,
+  SourceSelectTrigger,
   type Tone,
   typeLineStyle,
 } from "./ui";
@@ -620,63 +620,27 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
               gap: "1.5",
             })}
           >
-            {step.over && over ? (
-              <SourceChip
-                icon={
-                  (step.over.kind === "step-output"
-                    ? nodeLook(document, step.over.stepId)
-                    : nodeLook(document, START_ID)
-                  ).icon
-                }
-                onClick={() =>
-                  setUi((current) => ({
-                    ...current,
-                    openField: {
-                      stepId: step.stepId,
-                      inputName: "over",
-                      mode: "menu",
-                    },
-                  }))
-                }
-                onRemove={
-                  inScreenState && !showFull
-                    ? undefined
-                    : () =>
-                        setDocument((current) =>
-                          updateStep(current, step.stepId, (candidate) => ({
-                            ...candidate,
-                            over: undefined,
-                          })),
-                        )
-                }
-              >
-                {step.over.kind === "item"
+            <SourceSelectTrigger
+              placeholder={!(step.over && over)}
+              onClick={() =>
+                setUi((current) => ({
+                  ...current,
+                  openField: {
+                    stepId: step.stepId,
+                    inputName: "over",
+                    mode: "menu",
+                  },
+                }))
+              }
+            >
+              {step.over && over
+                ? step.over.kind === "item"
                   ? `${over.owner} › ${over.label}`
                   : step.over.kind === "flow-input"
                     ? over.label
-                    : over.owner}
-              </SourceChip>
-            ) : (
-              <button
-                type="button"
-                className={selectTriggerStyle}
-                style={{ alignSelf: "stretch" }}
-                data-placeholder
-                onClick={() =>
-                  setUi((current) => ({
-                    ...current,
-                    openField: {
-                      stepId: step.stepId,
-                      inputName: "over",
-                      mode: "menu",
-                    },
-                  }))
-                }
-              >
-                <span>Choose a list</span>
-                <Icon name="chevronDown" size="sm" />
-              </button>
-            )}
+                    : over.owner
+                : "Choose a list"}
+            </SourceSelectTrigger>
           </div>
           {open ? (
             <SourceMenu

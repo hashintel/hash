@@ -384,6 +384,35 @@ export const selectTriggerStyle = css({
   _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
 });
 
+/**
+ * A single-value field whose value comes from an earlier step: it stays the Select trigger it is when empty, with the
+ * value's text inside (no chip, no ×). Clicking opens the source menu. Long text is clipped; the hover shows it all.
+ */
+export const SourceSelectTrigger = ({
+  children,
+  hover,
+  placeholder = false,
+  onClick,
+}: {
+  children: string;
+  hover?: string;
+  placeholder?: boolean;
+  onClick: () => void;
+}) => (
+  <Tooltip content={hover ?? children}>
+    <button
+      type="button"
+      className={selectTriggerStyle}
+      style={{ alignSelf: "stretch" }}
+      data-placeholder={placeholder ? "" : undefined}
+      onClick={onClick}
+    >
+      <span>{children}</span>
+      <Icon name="chevronDown" size="sm" />
+    </button>
+  </Tooltip>
+);
+
 /** The panel header block: icon and type on one line, the description 6 px below. */
 export const panelHeaderStyle = css({
   position: "relative",
