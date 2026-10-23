@@ -13,14 +13,12 @@ const EmbedContent = dynamic(
 );
 
 /**
- * Petrinaut embed route. Loaded into a sandboxed null-origin iframe by the
- * host process editor (`/processes/[uuid].page/process-editor.tsx`); the
- * route's stricter CSP allows `'unsafe-eval'` so user-provided code can be
- * compiled, contained safely away from the parent HASH origin's cookies,
- * storage, and APIs.
+ * Petrinaut embed route, with a stricter CSP that allows `'unsafe-eval'`. The
+ * process editor (`/processes/[uuid].page/process-editor.tsx`) no longer
+ * mounts it: it renders {@link EmbedContent} in its own page, and the bridge
+ * in `../shared/` posts to that page's window.
  *
- * The route's URL parameter (`uuid`) is unused — the host drives all net
- * loads via the postMessage bridge defined in `../shared/`.
+ * The route's URL parameter (`uuid`) is unused.
  *
  * @see {@link buildEmbedCspHeader}
  */

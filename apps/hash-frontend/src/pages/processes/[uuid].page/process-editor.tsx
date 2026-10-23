@@ -1,5 +1,6 @@
 import { Box, Skeleton, Stack } from "@mui/material";
 import * as Sentry from "@sentry/nextjs";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -32,17 +33,18 @@ const emptySDCPN: SDCPN = {
 };
 
 /**
- * URL the iframe is mounted at. Stable across the editor's lifetime — the
- * actual net being edited is driven entirely by `init`/`load` messages over
- * the postMessage bridge, so we don't need to remount the iframe (or recreate
- * its workers) just because the user navigated to a different net.
- *
- * `/processes/draft/embed` matches the `[uuid]/embed.page.tsx` route with
- * `uuid` set to the literal string "draft"; the embed page doesn't read the
- * URL parameter so any value would work, but a constant keeps the network
- * tab tidy.
+ * The Petrinaut editor, mounted once for the editor's lifetime: the net being
+ * edited is driven entirely by `init`/`load` bridge messages, so navigating to
+ * a different net doesn't remount it (or recreate its workers). Client-only,
+ * because Petrinaut needs browser APIs (workers, canvas, Monaco) at import.
  */
-const PETRINAUT_EMBED_SRC = "/processes/draft/embed";
+const EmbedContent = dynamic(
+  () =>
+    import("../[uuid]/embed.page/embed-content").then(
+      (mod) => mod.EmbedContent,
+    ),
+  { ssr: false },
+);
 
 /**
  * Authenticated NodeAPI endpoint for detached optimization runs, proxying
@@ -54,7 +56,7 @@ const PETRINAUT_OPTIMIZATION_RUNS_API = `${apiOrigin}/api/petrinaut-optimizer/op
 /**
  * NodeAPI validates the replay cursor against `^\d{1,15}$` (and 400s
  * otherwise), so anything malformed or out of that range falls back to 0
- * (replay everything) rather than letting iframe-supplied data shape the URL.
+ * (replay everything) rather than letting editor-supplied data shape the URL.
  */
 const MAX_OPTIMIZATION_CURSOR = 999_999_999_999_999;
 
@@ -107,7 +109,7 @@ const parseRetryAfterSeconds = (header: string | null): number | undefined => {
 /**
  * Extract NodeAPI's own error message from a failed optimizer response body.
  * NodeAPI error bodies are server-authored (`{"error": ...}`), never user
- * content, so they are safe to forward into the iframe; anything unparseable
+ * content, so they are safe to forward into the editor; anything unparseable
  * falls back to a generic status message.
  */
 const readOptimizationErrorMessage = async (
@@ -131,11 +133,11 @@ const readOptimizationErrorMessage = async (
 };
 
 /**
- * Relay an optimizer NDJSON response into the iframe byte-for-byte over the
- * response-start/chunk/end/error message family, keyed by the iframe's
+ * Relay an optimizer NDJSON response into the editor byte-for-byte over the
+ * response-start/chunk/end/error message family, keyed by the editor's
  * request id.
  *
- * HTTP and protocol classification happen in the iframe bridge; the catch
+ * HTTP and protocol classification happen in the editor's bridge; the catch
  * here only sees transport-level failures of the host's own fetch/read (a
  * reset connection surfaces as a `TypeError`), which it classifies as
  * `network`.
@@ -186,7 +188,7 @@ const relayOptimizationStream = async ({
 
     send({ kind: "optimizationEnd", requestId });
   } catch {
-    // An iframe-initiated abort is expected control flow.
+    // An editor-initiated abort is expected control flow.
     if (!controller.signal.aborted) {
       send({
         kind: "optimizationError",
@@ -249,8 +251,8 @@ const viewMatchesLoaded = (
 
 /**
  * Resolved content for the active view: the SDCPN + title to load into the
- * iframe, the `HostNetMode` describing it, and the `SavedSnapshot` the
- * iframe should compare against for dirty-tracking.
+ * editor, the `HostNetMode` describing it, and the `SavedSnapshot` the
+ * editor should compare against for dirty-tracking.
  */
 type ResolvedView = {
   loadedView: LoadedView;
@@ -266,7 +268,7 @@ const buildRevisionSummaries = (
   revisions.map(({ decisionTime, title }) => ({ decisionTime, title }));
 
 /**
- * Loading-state overlay rendered above the still-warming iframe. Mirrors
+ * Loading-state overlay rendered above the still-loading editor. Mirrors
  * Petrinaut's broad layout (top bar with menu buttons / breadcrumb / title /
  * version-picker / save, plus a left rail and the canvas) so the transition
  * into the real editor doesn't cause a visible reflow.
@@ -318,10 +320,9 @@ const ProcessEditorLoadingSkeleton = () => (
 );
 
 /**
- * Process editor host. Mounts a sandboxed null-origin iframe at
- * {@link PETRINAUT_EMBED_SRC} so user-provided code (visualizers,
- * metrics, scenarios) runs with `'unsafe-eval'` allowed but contained
- * away from the parent HASH origin's cookies, storage, and APIs.
+ * Process editor host. Renders the Petrinaut editor ({@link EmbedContent})
+ * in this page and drives it over the bridge messages in `../shared/`,
+ * posted through this window.
  *
  * The host owns:
  * - URL routing and the discard-changes modal
@@ -329,11 +330,11 @@ const ProcessEditorLoadingSkeleton = () => (
  * - Reads/writes to the graph (persisted net list + create/update mutations,
  *   revision history)
  *
- * The iframe owns:
+ * The editor owns:
  * - The doc handle, title, panels, simulation/Monte-Carlo workers, Monaco
  * - Dirty tracking (live SDCPN/title vs the `savedSnapshot` we last sent)
  *
- * Dirty status flows host -> iframe via `savedSnapshot`, iframe -> host via
+ * Dirty status flows host -> editor via `savedSnapshot`, editor -> host via
  * `dirtyChanged` (cached here for the modal + `beforeunload`).
  */
 export const ProcessEditor = ({
@@ -341,17 +342,15 @@ export const ProcessEditor = ({
 }: {
   /**
    * Resolved URL view. `null` while we're still waiting on `router.isReady`
-   * — in that state the editor still renders its iframe element (so the
-   * iframe bundle starts downloading immediately) but the bridge effects
+   * — in that state the editor still renders (so its bundle starts
+   * downloading immediately) but the bridge effects
    * stay dormant until a non-null view arrives.
    */
   view: ProcessEditorView | null;
 }) => {
   const router = useRouter();
 
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  /** In-flight optimizer streams, keyed by the iframe request id. */
+  /** In-flight optimizer streams, keyed by the editor's request id. */
   const optimizationAbortControllersRef = useRef(
     new Map<string, AbortController>(),
   );
@@ -386,7 +385,7 @@ export const ProcessEditor = ({
   const [selectedNetId, setSelectedNetId] = useState<EntityId | null>(null);
 
   /**
-   * Cached dirty flag mirrored from the iframe's `dirtyChanged` events. The
+   * Cached dirty flag mirrored from the editor's `dirtyChanged` events. The
    * host doesn't compute this — only stores it for the discard modal +
    * `beforeunload` guard.
    */
@@ -394,7 +393,7 @@ export const ProcessEditor = ({
 
   /**
    * Tracks which {@link ProcessEditorView} is currently materialised inside
-   * the iframe. Compared against the incoming `view` prop on every render
+   * the editor. Compared against the incoming `view` prop on every render
    * to decide whether to (re)apply it.
    */
   const [loadedView, setLoadedView] = useState<LoadedView | null>(null);
@@ -432,7 +431,7 @@ export const ProcessEditor = ({
   });
 
   /**
-   * Resolve the incoming `view` prop into the data the iframe needs (SDCPN,
+   * Resolve the incoming `view` prop into the data the editor needs (SDCPN,
    * title, mode, savedSnapshot). Returns `null` while we're still waiting
    * for `persistedNets` to load (saved view) — which the reconciliation
    * effect treats as a "not yet ready" signal.
@@ -478,7 +477,6 @@ export const ProcessEditor = ({
   );
 
   const bridge = useHostBridge({
-    iframeRef,
     handlers: {
       onDirtyChanged: setIsDirty,
       onRequestNavigateBack: () => {
@@ -510,11 +508,10 @@ export const ProcessEditor = ({
       },
       onReportError: ({ source, name, message, stack, mode, tags }) => {
         /**
-         * Reconstruct an Error from the iframe's serialised payload so
+         * Reconstruct an Error from the editor's serialised payload so
          * Sentry's stack-trace processing has something to chew on. The
-         * synthetic Error's stack is replaced with the iframe's own,
-         * which Sentry will resolve against the same source maps as the
-         * embed-page bundle (uploaded as part of the host's release).
+         * synthetic Error's stack is replaced with the editor's own,
+         * which Sentry will resolve against the host release's source maps.
          */
         const reconstructed = Object.assign(new Error(message), {
           name,
@@ -547,7 +544,7 @@ export const ProcessEditor = ({
         /**
          * Create a detached run against the hard-coded NodeAPI runs route. A
          * short-lived POST (the `201` reply carries only the run id, no
-         * stream), so there is no abort tracking — the iframe times the
+         * stream), so there is no abort tracking — the editor times the
          * round-trip out on its side.
          */
         void (async () => {
@@ -572,7 +569,7 @@ export const ProcessEditor = ({
 
           /**
            * NodeAPI echoes its request id, and forwards the optimizer's run id
-           * even when creation fails upstream. Carry both back to the iframe so
+           * even when creation fails upstream. Carry both back to the editor so
            * a failure the user reports can be found in the logs.
            */
           const correlation = {
@@ -645,9 +642,9 @@ export const ProcessEditor = ({
         optimizationAbortControllersRef.current.set(requestId, controller);
 
         /**
-         * The iframe only names a run id and cursor; the URL is built here
-         * against the one hard-coded NodeAPI route, so the sandboxed iframe
-         * can never make the host fetch an arbitrary target.
+         * The editor only names a run id and cursor; the URL is built here
+         * against the one hard-coded NodeAPI route, so a bridge message can
+         * never make the host fetch an arbitrary target.
          */
         void relayOptimizationStream({
           requestId,
@@ -753,7 +750,7 @@ export const ProcessEditor = ({
   );
 
   /**
-   * Bootstrap: on the first render where the iframe is ready, the view has
+   * Bootstrap: on the first render where the editor is ready, the view has
    * resolved from the URL, and we have all the data we need to materialise
    * it, push `init`. Subsequent view changes (including URL navigation)
    * flow through the reconciliation effect below as `load`.
@@ -863,7 +860,7 @@ export const ProcessEditor = ({
 
   /**
    * Whenever the host's revision list refreshes (via Apollo's cache) push
-   * it down to the iframe so the version picker stays current.
+   * it down to the editor so the version picker stays current.
    */
   useEffect(() => {
     if (!bridge.isReady || loadedView === null) {
@@ -876,7 +873,7 @@ export const ProcessEditor = ({
   }, [bridge, loadedView, revisions]);
 
   /**
-   * Mirror updated `userEditable` permission to the iframe (e.g. the
+   * Mirror updated `userEditable` permission to the editor (e.g. the
    * persisted-net record was refreshed and permissions changed).
    */
   useEffect(() => {
@@ -920,7 +917,7 @@ export const ProcessEditor = ({
       adoptResolvedView(resolved);
 
       // Drop the dirty flag eagerly so the modal doesn't immediately retrigger
-      // before the iframe's `dirtyChanged` flushes after the new load.
+      // before the editor's `dirtyChanged` flushes after the new load.
       setIsDirty(false);
 
       bridge.send({
@@ -936,8 +933,8 @@ export const ProcessEditor = ({
   );
 
   /**
-   * Show the skeleton until the iframe has signalled `ready` AND we've
-   * pushed the bootstrap `init` message (i.e. the iframe is rendering
+   * Show the skeleton until the editor has signalled `ready` AND we've
+   * pushed the bootstrap `init` message (i.e. the editor is rendering
    * Petrinaut against the right SDCPN). There's a small visual gap
    * between sending `init` and Petrinaut actually painting its panels;
    * we accept that flash rather than introducing an extra
@@ -973,30 +970,7 @@ export const ProcessEditor = ({
       )}
 
       <Box sx={{ height: "100%", position: "relative" }}>
-        <Box
-          component="iframe"
-          ref={iframeRef}
-          src={PETRINAUT_EMBED_SRC}
-          /**
-           * `allow-scripts` (without `allow-same-origin`) gives the iframe a
-           * unique opaque origin: it can't read HASH cookies / localStorage /
-           * IndexedDB, can't reach HASH's API as the user (CORS + no
-           * cookies), and can't touch the parent DOM. The route's CSP
-           * additionally restricts what the iframe can do with the
-           * `'unsafe-eval'` we grant it (no `connect-src` to anywhere
-           * outside `'self'`, which is itself unreachable cross-origin).
-           */
-          sandbox="allow-scripts"
-          allow="clipboard-read *; clipboard-write *"
-          referrerPolicy="no-referrer"
-          title="Process editor"
-          sx={{
-            width: "100%",
-            height: "100%",
-            border: 0,
-            display: "block",
-          }}
-        />
+        <EmbedContent />
 
         {isLoading && <ProcessEditorLoadingSkeleton />}
       </Box>
