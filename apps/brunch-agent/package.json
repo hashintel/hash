@@ -27,6 +27,7 @@
     "test:docker": "node --experimental-strip-types test/container-smoke.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:manual:browser": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/petrinaut VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/petrinaut-panel.ts",
+    "test:manual:browser:experiment-results": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/petrinaut VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/experiment-results.ts",
     "test:manual:browser:ledger-tab": "VITE_BRUNCH_CHAT_ENDPOINT=/agents/petrinaut VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/ledger-tab.ts",
     "test:manual:browser:persona": "VITE_BRUNCH_CHAT_ENDPOINT=${VITE_BRUNCH_CHAT_ENDPOINT:-/agents/petrinaut} VITE_PETRINAUT_DEFAULT_ASSISTANT=brunch turbo run build --filter '@apps/brunch-agent...' --filter '@apps/petrinaut-website...' --env-mode=loose && node --experimental-strip-types test/browser-witness/persona-turn.ts",
     "test:unit": "vitest run --config vitest.config.ts",
