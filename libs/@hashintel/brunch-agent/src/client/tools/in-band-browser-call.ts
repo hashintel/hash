@@ -56,7 +56,11 @@ export const createInBandBrowserCalls = (input: {
   readonly admit?: InBandBrowserCallAdmission;
   /** Whether a change issued against `expected` may still run on the bound document. */
   readonly acceptsRevision: (expected: string) => boolean;
+  /** Carries the claim, lease, fail and result requests; the global `fetch` when omitted. */
+  readonly fetch?: typeof globalThis.fetch;
 }) => {
+  const request: typeof globalThis.fetch =
+    input.fetch ?? ((url, init) => fetch(url, init));
   const claim = async (call: IssuedCall) => {
     const client = await input.client;
     const url = `${client.url}/${brunchRoutes.browserCalls}/${encodeURIComponent(call.toolCallId)}`;
@@ -71,7 +75,7 @@ export const createInBandBrowserCalls = (input: {
     ]);
     let issued: BrowserCallClaim | undefined;
     while (!claimSignal.aborted) {
-      const response = await fetch(boundClaimUrl, {
+      const response = await request(boundClaimUrl, {
         headers,
         signal: claimSignal,
       });
@@ -112,7 +116,7 @@ export const createInBandBrowserCalls = (input: {
     const claimed = issued;
     const lease = setInterval(() => {
       if (call.signal.aborted) return;
-      void fetch(`${url}/lease`, {
+      void request(`${url}/lease`, {
         method: "POST",
         headers: { ...headers, "content-type": "application/json" },
         body: JSON.stringify({
@@ -150,7 +154,7 @@ export const createInBandBrowserCalls = (input: {
       ) => {
         clearInterval(lease);
         if (call.signal.aborted) return;
-        const response = await fetch(`${url}/fail`, {
+        const response = await request(`${url}/fail`, {
           method: "POST",
           headers: { ...headers, "content-type": "application/json" },
           body: JSON.stringify({
@@ -171,7 +175,7 @@ export const createInBandBrowserCalls = (input: {
         clearInterval(lease);
         if (call.signal.aborted) return;
         const metadata = input.metadataFor(call.toolCallId, output);
-        const response = await fetch(url, {
+        const response = await request(url, {
           method: "POST",
           headers: { ...headers, "content-type": "application/json" },
           body: JSON.stringify({
