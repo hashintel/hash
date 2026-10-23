@@ -1,6 +1,19 @@
 {
   "extends": ["//"],
   "tasks": {
+    "test:integration": {
+      "dependsOn": ["^build"],
+      "passThroughEnv": [
+        "BRUNCH_POSTGRES_HOST",
+        "BRUNCH_POSTGRES_PORT",
+        "BRUNCH_POSTGRES_USER",
+        "BRUNCH_POSTGRES_PASSWORD",
+        "BRUNCH_POSTGRES_DATABASE",
+        "POSTGRES_PORT",
+        "POSTGRES_USER",
+        "POSTGRES_PASSWORD"
+      ]
+    },
     "test:unit": {
       "dependsOn": ["^build"],
       "env": ["TEST_COVERAGE"]

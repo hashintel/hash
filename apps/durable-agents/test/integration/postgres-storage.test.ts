@@ -5,8 +5,8 @@ import { registerStorageConformance } from "@earendil-works/pi-durable/testing";
 import { Pool } from "pg";
 import { afterAll, describe, expect, it } from "vitest";
 
-import { postgresConfigFromEnvironment } from "./postgres-config";
-import { openPostgresStorage } from "./postgres-storage";
+import { postgresConfigFromEnvironment } from "../../src/storage/postgres/postgres-config";
+import { openPostgresStorage } from "../../src/storage/postgres/postgres-storage";
 
 const poolConfig = postgresConfigFromEnvironment();
 const admin = new Pool({ ...poolConfig, max: 1 });
