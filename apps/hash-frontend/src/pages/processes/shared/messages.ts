@@ -48,69 +48,6 @@ export type PetrinautHostCapabilities = z.infer<
 >;
 
 /**
- * Why an editor call ended without a result, in the vocabulary of Brunch's
- * browser-call protocol: it never started (`unstarted`; unknown tool,
- * invalid input, a replaced editor or a refusal), it was refused because the
- * net changed since `expectedRevision` (`stale`), or it threw (`failed`).
- * Probe note: once this branch is rebased onto the Brunch stack, take the
- * dispositions from `client-tools/browser-calls.ts` instead of restating them.
- */
-const editorCallFailureDispositions = ["unstarted", "stale", "failed"] as const;
-
-/**
- * The iframe's answer to one `editorCall`. `metadata.documentRevision` is the
- * net's content revision (layout excluded) before the call, and after it when
- * the call changed the net, as the Petrinaut website records it.
- */
-const editorCallResultSchema = z.discriminatedUnion("ok", [
-  z.strictObject({
-    ok: z.literal(true),
-    output: z.unknown(),
-    metadata: z.strictObject({
-      documentRevision: z.strictObject({
-        before: z.string(),
-        after: z.string().optional(),
-      }),
-    }),
-  }),
-  z.strictObject({
-    ok: z.literal(false),
-    disposition: z.enum(editorCallFailureDispositions),
-    message: z.string(),
-    revision: z.string().nullable(),
-  }),
-]);
-
-export type EditorCallResult = z.infer<typeof editorCallResultSchema>;
-
-/**
- * The iframe-to-host editor messages, validated on arrival: user code running
- * in the frame can post any of them (L10), so the host trusts their shape,
- * never their truth.
- */
-export const editorAttachedMessageSchema = z.strictObject({
-  kind: z.literal("editorAttached"),
-  /** A fresh nonce for every attach, even of the same document. */
-  attachId: z.string(),
-  /** The handle's id: stable identity of the document, not of the editor. */
-  documentId: z.string(),
-  revision: z.string().nullable(),
-});
-
-export const editorCallResultMessageSchema = z.strictObject({
-  kind: z.literal("editorCallResult"),
-  callId: z.string(),
-  attachId: z.string(),
-  result: editorCallResultSchema,
-});
-
-export const documentChangedMessageSchema = z.strictObject({
-  kind: z.literal("documentChanged"),
-  attachId: z.string(),
-  revision: z.string(),
-});
-
-/**
  * Messages sent by the host (process-editor) into the iframe.
  */
 export type HostToIframeMessage =
@@ -258,20 +195,6 @@ export type HostToIframeMessage =
       hashRequestId?: string | null;
       optimizationRunId?: string | null;
       httpStatus?: number;
-    }
-  | {
-      /**
-       * Run one Petrinaut tool against the editor attached as `attachId`.
-       * With `expectedRevision`, the iframe refuses the call as `stale` when
-       * the net's content revision differs. The iframe answers with
-       * `editorCallResult` for the same `callId`.
-       */
-      kind: "editorCall";
-      callId: string;
-      attachId: string;
-      toolName: string;
-      input: unknown;
-      expectedRevision?: string;
     };
 
 /**
@@ -391,10 +314,7 @@ export type IframeToHostMessage =
        */
       kind: "optimizationCancel";
       runId: string;
-    }
-  | z.infer<typeof editorAttachedMessageSchema>
-  | z.infer<typeof editorCallResultMessageSchema>
-  | z.infer<typeof documentChangedMessageSchema>;
+    };
 
 const hostToIframeMessageKinds: ReadonlySet<string> = new Set<
   HostToIframeMessage["kind"]
@@ -410,7 +330,6 @@ const hostToIframeMessageKinds: ReadonlySet<string> = new Set<
   "optimizationChunk",
   "optimizationEnd",
   "optimizationError",
-  "editorCall",
 ]);
 
 export const isHostToIframeMessage = (

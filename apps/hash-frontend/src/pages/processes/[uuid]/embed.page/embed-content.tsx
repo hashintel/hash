@@ -35,15 +35,11 @@ import {
   type SavedSnapshot,
 } from "../../shared/messages";
 import { useIframeBridge } from "../../shared/use-iframe-bridge";
-import {
-  EditorBridgeHandleContext,
-  editorBridgePlugin,
-} from "./editor-bridge-plugin";
 import { type EmbedChrome, EmbedChromeContext } from "./embed-chrome-context";
 import { embedChromePlugin } from "./embed-chrome-plugin";
 import { HASHPetrinautOptimizationProvider } from "./hash-petrinaut-optimization-provider";
 
-const embedPlugins = [embedChromePlugin, editorBridgePlugin];
+const embedPlugins = [embedChromePlugin];
 
 /**
  * Errors Petrinaut catches itself, such as a failing plugin's, never reach the
@@ -346,21 +342,19 @@ export const EmbedContent = () => {
       >
         <EmbedChromeContext value={chrome}>
           <ErrorTrackerContext value={embedErrorTracker}>
-            <EditorBridgeHandleContext value={state.handle}>
-              {/* The title is the breadcrumbs' final crumb, so the editor's
-                  own title field stays hidden. */}
-              <Petrinaut
-                handle={state.handle}
-                createNewNet={noNetSwitchingError}
-                existingNets={[]}
-                hideNetManagementControls="all"
-                loadPetriNet={noNetSwitchingError}
-                plugins={embedPlugins}
-                readonly={state.readonly}
-                setTitle={handleSetTitle}
-                title={state.title}
-              />
-            </EditorBridgeHandleContext>
+            {/* The title is the breadcrumbs' final crumb, so the editor's
+                own title field stays hidden. */}
+            <Petrinaut
+              handle={state.handle}
+              createNewNet={noNetSwitchingError}
+              existingNets={[]}
+              hideNetManagementControls="all"
+              loadPetriNet={noNetSwitchingError}
+              plugins={embedPlugins}
+              readonly={state.readonly}
+              setTitle={handleSetTitle}
+              title={state.title}
+            />
           </ErrorTrackerContext>
         </EmbedChromeContext>
       </HASHPetrinautOptimizationProvider>
