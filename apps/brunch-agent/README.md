@@ -56,6 +56,16 @@ VITE_BRUNCH_CHAT_ENDPOINT=/agents/chat yarn workspace @apps/brunch-agent test:ma
 
 The transport-failure case starts with an unanswered ordinary composer turn. It reproduces the stale-panel failure at the persona helper's entrypoint; it does not claim that a sequence made exclusively of persona turns reaches that starting state.
 
+`test:manual:browser:experiment-results` runs a reviewed experiment through the real editor, sends its results to Brunch, and asks a follow-up in the same conversation. The fixture has seven waiting orders and three completed orders, with no transitions. Scripted mode checks the computed results, their delivery to the model, follow-up context, and that answering neither runs another experiment nor changes the net. It costs no model calls.
+
+```sh
+yarn workspace @apps/brunch-agent test:manual:browser:experiment-results
+# Only with explicit model and spend approval; up to three conversation turns:
+BRUNCH_CHAT_MODEL=openai/gpt-5.5-2026-04-23 BRUNCH_CHAT_THINKING=medium yarn workspace @apps/brunch-agent test:manual:browser:experiment-results --live
+```
+
+Live mode uses the configured model, or Brunch's default, and retains the actual results, replies, history and screenshots in the printed temporary directory. Review the replies against the results: seven waiting, three completed, 30% completed, and no evidence of processing speed from a static snapshot. The live completion marker means evidence was recorded, not that explanation quality passed. Neither mode establishes retrieval of a saved experiment in a different conversation.
+
 ## Local Postgres
 
 Set `BRUNCH_DB_KIND=postgres` explicitly to use the existing Postgres adapter and migrations locally. An unset selector defaults to SQLite outside production; `BRUNCH_DB_KIND=sqlite` also selects that lightweight path. Production always requires Postgres (selector unset or `postgres`), and rejects `sqlite`. Selector values are exact and case-sensitive; blank or unknown values fail.
