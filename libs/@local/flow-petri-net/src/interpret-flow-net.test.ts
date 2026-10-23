@@ -20,7 +20,12 @@ import {
   generateInstanceKey,
   generatePendingPlaceKey,
 } from "./flow-net-keys.js";
-import { startFlowNetRun } from "./interpret-flow-net.js";
+import {
+  flowNetPathKey,
+  formatFlowNetPath,
+  isSameFlowNetPath,
+  startFlowNetRun,
+} from "./interpret-flow-net.js";
 import {
   fileFlowDefinition,
   forEachFlowDefinition,
@@ -31,8 +36,8 @@ import type { FlowNetMetadata } from "./flow-net-metadata.js";
 import type {
   FlowNetAwaiting,
   FlowNetOutcome,
+  FlowNetPath,
   FlowNetPlacedToken,
-  FlowNetPosition,
   FlowNetRun,
 } from "./interpret-flow-net.js";
 import type {
@@ -46,39 +51,27 @@ import type {
   StepDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-const keyOf = (position: FlowNetPosition) =>
-  position.kind === "place"
-    ? position.placeId
-    : `${position.componentInstanceId}/${position.placeId}`;
+const placeAt = (key: string): FlowNetPath => [toPetrinautId(key)];
 
-const placeAt = (key: string): FlowNetPosition => ({
-  kind: "place",
-  placeId: toPetrinautId(key),
-});
-
-const tokensAt = (run: FlowNetRun, position: FlowNetPosition) =>
+const tokensAt = (run: FlowNetRun, path: FlowNetPath) =>
   run
     .marking()
-    .filter((placed) => keyOf(placed.position) === keyOf(position))
+    .filter((placed) => isSameFlowNetPath(placed.path, path))
     .map(({ token }) => token);
 
-const endpointPosition = (endpoint: ArcEndpoint): FlowNetPosition =>
+const endpointPath = (endpoint: ArcEndpoint): FlowNetPath =>
   endpoint.kind === "place"
-    ? { kind: "place", placeId: endpoint.placeId }
-    : {
-        kind: "instancePlace",
-        componentInstanceId: endpoint.componentInstanceId,
-        placeId: endpoint.portPlaceId,
-      };
+    ? [endpoint.placeId]
+    : [endpoint.componentInstanceId, endpoint.portPlaceId];
 
-const flowOutputPosition = (net: SDCPN, outputName: string) => {
+const flowOutputPath = (net: SDCPN, outputName: string) => {
   const endpoint = (net.metadata as FlowNetMetadata).flowOutputs[outputName];
 
   if (!endpoint) {
     throw new Error(`The net has no flow output "${outputName}"`);
   }
 
-  return endpointPosition(endpoint);
+  return endpointPath(endpoint);
 };
 
 /** The action each action step of a definition runs, including steps inside `forEach` steps. */
@@ -175,46 +168,48 @@ const succeedingEverything =
  */
 const expectFiringsFollowArcs = (net: SDCPN, run: FlowNetRun) => {
   for (const firing of run.firings) {
-    const instance = firing.componentInstanceId
-      ? net.componentInstances?.find(
-          ({ id }) => id === firing.componentInstanceId,
-        )
-      : undefined;
+    const { transitionPath } = firing;
+
+    expect(transitionPath.length).toBeLessThanOrEqual(2);
+
+    const transitionId = transitionPath.at(-1);
+    const instance =
+      transitionPath.length === 2
+        ? net.componentInstances?.find(({ id }) => id === transitionPath[0])
+        : undefined;
     const transition = (
       instance
         ? net.subnets?.find(({ id }) => id === instance.subnetId)?.transitions
         : net.transitions
-    )?.find(({ id }) => id === firing.transitionId);
+    )?.find(({ id }) => id === transitionId);
 
     if (!transition) {
-      throw new Error(`Firing of unknown transition ${firing.transitionId}`);
+      throw new Error(
+        `Firing of unknown transition ${formatFlowNetPath(transitionPath)}`,
+      );
     }
 
-    const positionOf = (endpoint: ArcEndpoint) =>
-      keyOf(
+    const pathKeyOf = (endpoint: ArcEndpoint) =>
+      flowNetPathKey(
         instance && endpoint.kind === "place"
-          ? {
-              kind: "instancePlace",
-              componentInstanceId: instance.id,
-              placeId: endpoint.placeId,
-            }
-          : endpointPosition(endpoint),
+          ? [instance.id, endpoint.placeId]
+          : endpointPath(endpoint),
       );
 
     const arcsOfType = (type: "standard" | "read") =>
       transition.inputArcs
         .filter((arc) => arc.type === type)
-        .map((arc) => positionOf(getArcEndpoint(arc)))
+        .map((arc) => pathKeyOf(getArcEndpoint(arc)))
         .sort();
 
     expect(
-      firing.consumed.map(({ position }) => keyOf(position)).sort(),
+      firing.consumed.map(({ path }) => flowNetPathKey(path)).sort(),
     ).toEqual(arcsOfType("standard"));
-    expect(firing.read.map(({ position }) => keyOf(position)).sort()).toEqual(
+    expect(firing.read.map(({ path }) => flowNetPathKey(path)).sort()).toEqual(
       arcsOfType("read"),
     );
-    expect(firing.produced.map(({ position }) => keyOf(position))).toEqual(
-      transition.outputArcs.map((arc) => positionOf(getArcEndpoint(arc))),
+    expect(firing.produced.map(({ path }) => flowNetPathKey(path))).toEqual(
+      transition.outputArcs.map((arc) => pathKeyOf(getArcEndpoint(arc))),
     );
 
     /* A firing only takes tokens of its own item or an enclosing one, except an item's output that it collects. */
@@ -231,11 +226,13 @@ const expectFiringsFollowArcs = (net: SDCPN, run: FlowNetRun) => {
   }
 };
 
-const countByPosition = (placedTokens: readonly FlowNetPlacedToken[]) => {
+const countByPath = (placedTokens: readonly FlowNetPlacedToken[]) => {
   const counts: Record<string, number> = {};
 
-  for (const { position } of placedTokens) {
-    counts[keyOf(position)] = (counts[keyOf(position)] ?? 0) + 1;
+  for (const { path } of placedTokens) {
+    const key = flowNetPathKey(path);
+
+    counts[key] = (counts[key] ?? 0) + 1;
   }
 
   return counts;
@@ -246,13 +243,13 @@ const countByPosition = (placedTokens: readonly FlowNetPlacedToken[]) => {
  * that isn't there, and the result must be the run's marking.
  */
 const expectActualModeReplays = (run: FlowNetRun) => {
-  let marking: ActualModeMarking = countByPosition(run.initialMarking);
+  let marking: ActualModeMarking = countByPath(run.initialMarking);
 
   for (const [index, firing] of run.firings.entries()) {
     marking = applyActualModeTransitionFiring(marking, {
-      transitionId: firing.transitionId,
-      input: countByPosition(firing.consumed),
-      output: countByPosition(firing.produced),
+      transitionId: flowNetPathKey(firing.transitionPath),
+      input: countByPath(firing.consumed),
+      output: countByPath(firing.produced),
       ts: new Date(index).toISOString(),
     });
 
@@ -269,11 +266,95 @@ const expectActualModeReplays = (run: FlowNetRun) => {
     Object.fromEntries(
       Object.entries(marking).filter(([, count]) => count !== 0),
     ),
-  ).toEqual(countByPosition(run.marking()));
+  ).toEqual(countByPath(run.marking()));
 };
 
 const leftoverKinds = (run: FlowNetRun) =>
   new Set(run.marking().map(({ token }) => token.kind));
+
+describe("flow net paths", () => {
+  const placeId = toPetrinautId("p.place");
+  const instanceId = toPetrinautId(generateInstanceKey("a"));
+  const otherInstanceId = toPetrinautId(generateInstanceKey("b"));
+
+  it("keys a root place apart from the place with its id in an instance", () => {
+    expect(flowNetPathKey([placeId])).not.toBe(
+      flowNetPathKey([instanceId, placeId]),
+    );
+    expect(isSameFlowNetPath([placeId], [instanceId, placeId])).toBe(false);
+  });
+
+  it("keys the same place in two instances apart", () => {
+    expect(flowNetPathKey([instanceId, placeId])).not.toBe(
+      flowNetPathKey([otherInstanceId, placeId]),
+    );
+    expect(
+      isSameFlowNetPath([instanceId, placeId], [otherInstanceId, placeId]),
+    ).toBe(false);
+  });
+
+  it("writes a path with dots", () => {
+    expect(formatFlowNetPath([instanceId, placeId])).toBe(
+      `${instanceId}.${placeId}`,
+    );
+  });
+
+  it("keeps apart two steps' tokens in the places their action's subnet shares", async () => {
+    const net = await compileFlowDefinition(
+      defineFlow(
+        {
+          flowDefinitionId: "get-two-files",
+          name: "Get two files",
+          description: "Get two files from one URL",
+          inputs: { url: flowInput("Text") },
+        },
+        ({ inputs, step }) => {
+          const first = step("first", actions.getFileFromUrl, {
+            description: "Retrieve the file from the URL",
+            inputs: { url: inputs.url },
+          });
+          const second = step("second", actions.getFileFromUrl, {
+            description: "Retrieve the file from the URL again",
+            inputs: { url: inputs.url },
+          });
+
+          return {
+            outputs: {
+              first: first.outputs.fileEntity,
+              second: second.outputs.fileEntity,
+            },
+          };
+        },
+      ).flowDefinition,
+    );
+    const run = startFlowNetRun(net, { flowInputNames: ["url"] });
+
+    const attempts = run
+      .marking()
+      .filter(({ token }) => token.kind === "attempt")
+      .map(({ path }) => path);
+
+    expect(attempts).toHaveLength(2);
+
+    const [firstAttempt, secondAttempt] = attempts as [
+      FlowNetPath,
+      FlowNetPath,
+    ];
+
+    expect(firstAttempt.at(-1)).toBe(secondAttempt.at(-1));
+    expect(new Set([firstAttempt[0], secondAttempt[0]])).toEqual(
+      new Set([
+        toPetrinautId(generateInstanceKey("first")),
+        toPetrinautId(generateInstanceKey("second")),
+      ]),
+    );
+    expect(flowNetPathKey(firstAttempt)).not.toBe(
+      flowNetPathKey(secondAttempt),
+    );
+    expect(tokensAt(run, firstAttempt)).toHaveLength(1);
+    expect(tokensAt(run, secondAttempt)).toHaveLength(1);
+  });
+});
 
 describe("startFlowNetRun", () => {
   it("starts a step once its inputs are there, and waits for its action", async () => {
@@ -315,12 +396,12 @@ describe("startFlowNetRun", () => {
     expect(firings.map(({ role }) => role)).toEqual(["succeedAttempt"]);
     expect(run.awaiting()).toEqual([]);
 
-    const fileOutput = flowOutputPosition(net, "file");
+    const fileOutput = flowOutputPath(net, "file");
 
-    expect(fileOutput).toMatchObject({
-      kind: "instancePlace",
-      componentInstanceId: toPetrinautId(generateInstanceKey("get")),
-    });
+    expect(fileOutput).toEqual([
+      toPetrinautId(generateInstanceKey("get")),
+      expect.any(String),
+    ]);
     expect(tokensAt(run, fileOutput)).toEqual([
       {
         kind: "value",
@@ -433,7 +514,7 @@ describe("startFlowNetRun", () => {
       "collectItem",
       "finishCollecting",
     ]);
-    expect(tokensAt(run, flowOutputPosition(net, "files"))).toEqual([
+    expect(tokensAt(run, flowOutputPath(net, "files"))).toEqual([
       {
         kind: "value",
         present: true,
@@ -623,7 +704,7 @@ describe("startFlowNetRun", () => {
         }
 
         for (const { name } of flowDefinition.outputs) {
-          expect(tokensAt(run, flowOutputPosition(net, name))).toContainEqual(
+          expect(tokensAt(run, flowOutputPath(net, name))).toContainEqual(
             expect.objectContaining({ kind: "value", present: true }),
           );
         }
