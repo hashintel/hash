@@ -13,6 +13,7 @@ import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { useSharedSearchNavigation } from "../../../examples/use-shared-search-navigation";
 import { StatusPage } from "../../../shared/status-page";
+import { BrunchAssistantContext } from "../plugins/brunch/editor-api-plugin";
 import {
   brunchPreviewConfig,
   useBrunchAssistant,
@@ -260,41 +261,45 @@ export const LocalStorageDemoApp = ({
     >
       {notice !== null ? <UnsavedChangeNotice message={notice} /> : null}
       <CommandRegistryProvider>
-        <Petrinaut
-          aiAssistant={brunch.assistant ?? undefined}
-          handle={activeHandle.handle}
-          existingNets={existingNets}
-          createNewNet={createNewNet}
-          loadPetriNet={loadPetriNet}
-          navigation={navigation}
-          plugins={plugins}
-          readonly={false}
-          setTitle={setTitle}
-          slots={{
-            settingsLabs: (
-              <AssistantLabsSettings
-                assistantReady={assistantSelectionReady}
-                brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
-                brunchSelected={brunchSelected}
-                interviewBudgetEnabled={interviewBudgetEnabled}
-                interviewBudgetPreferenceReady={interviewBudgetPreferenceReady}
-                openAIVoiceConfig={brunch.openAIVoiceConfig}
-                realtimeEnabled={realtimeEnabled}
-                realtimePreferenceReady={realtimePreferenceReady}
-                selectAssistant={selectAssistant}
-                setInterviewBudgetEnabled={setInterviewBudgetEnabled}
-                setRealtimeEnabled={setRealtimeEnabled}
-                setVoiceEnabled={setVoiceEnabled}
-                voiceEnabled={brunchSelected && voiceEnabled}
-                voicePreferenceReady={voicePreferenceReady}
-                wordsEnabled={wordsEnabled}
-                wordsPreferenceReady={wordsPreferenceReady}
-                setWordsEnabled={setWordsEnabled}
-              />
-            ),
-          }}
-          title={currentDocument.title}
-        />
+        {/* Brunch's plugin renders its chat from this, inside the editor. */}
+        <BrunchAssistantContext value={brunch.assistant}>
+          <Petrinaut
+            handle={activeHandle.handle}
+            existingNets={existingNets}
+            createNewNet={createNewNet}
+            loadPetriNet={loadPetriNet}
+            navigation={navigation}
+            plugins={plugins}
+            readonly={false}
+            setTitle={setTitle}
+            slots={{
+              settingsLabs: (
+                <AssistantLabsSettings
+                  assistantReady={assistantSelectionReady}
+                  brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
+                  brunchSelected={brunchSelected}
+                  interviewBudgetEnabled={interviewBudgetEnabled}
+                  interviewBudgetPreferenceReady={
+                    interviewBudgetPreferenceReady
+                  }
+                  openAIVoiceConfig={brunch.openAIVoiceConfig}
+                  realtimeEnabled={realtimeEnabled}
+                  realtimePreferenceReady={realtimePreferenceReady}
+                  selectAssistant={selectAssistant}
+                  setInterviewBudgetEnabled={setInterviewBudgetEnabled}
+                  setRealtimeEnabled={setRealtimeEnabled}
+                  setVoiceEnabled={setVoiceEnabled}
+                  voiceEnabled={brunchSelected && voiceEnabled}
+                  voicePreferenceReady={voicePreferenceReady}
+                  wordsEnabled={wordsEnabled}
+                  wordsPreferenceReady={wordsPreferenceReady}
+                  setWordsEnabled={setWordsEnabled}
+                />
+              ),
+            }}
+            title={currentDocument.title}
+          />
+        </BrunchAssistantContext>
         <DemoCommands
           brunchSelected={brunchSelected}
           selectAssistant={selectAssistant}

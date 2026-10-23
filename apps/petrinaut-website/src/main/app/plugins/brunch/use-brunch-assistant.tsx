@@ -88,12 +88,10 @@ import { WordsHeaderAction } from "./words/words-configurer";
 
 import type { InterviewBudgetLevel } from "../../../../shared/interview-budget";
 import type { VoiceWord } from "../../../../shared/voice-words";
+import type { PetrinautAiComposerControlContext } from "./chat/ai-assistant-composer-control";
+import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
+import type { PetrinautAiAssistant } from "./chat/petrinaut";
 import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
-import type {
-  PetrinautAiAssistant,
-  PetrinautAiComposerControlContext,
-  PetrinautAiMessage,
-} from "@hashintel/petrinaut/ui";
 import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 export const brunchPreviewConfig = resolveBrunchPreviewConfig(
@@ -178,7 +176,7 @@ export interface BrunchWordsPreferences {
 
 export interface BrunchAssistant {
   /**
-   * Brunch's assistant configuration for `<Petrinaut aiAssistant>`, or `null`
+   * Brunch's assistant configuration for `BrunchAssistantContext`, or `null`
    * while Brunch is not selected or no document is bound.
    */
   readonly assistant: PetrinautAiAssistant | null;
@@ -189,8 +187,8 @@ export interface BrunchAssistant {
   readonly openAIVoiceConfig: OpenAIVoiceConfig | null | undefined;
   /**
    * The host's plugins, with Brunch's added while it is the assistant. Pass
-   * this list to `<Petrinaut plugins>`: Brunch's cards read the editor through
-   * its plugin and, without it, show a notice in place of each card.
+   * this list to `<Petrinaut plugins>`: Brunch's plugin renders its chat, and
+   * its cards read the editor through it.
    */
   readonly plugins: readonly PetrinautPlugin[];
 }
@@ -685,6 +683,8 @@ export const useBrunchAssistant = ({
       // on Petrinaut's registry.
       inBandBrowserTools,
       automaticTools: [...(canonicalHostTools?.tools ?? [])],
+      // The automatic tools run against the handle the editor shows.
+      ...(editor === null ? {} : { documentHandle: editor.handle }),
       interactiveTools: [
         ...(inBandBrowserTools ? mutationApprovalTools : []),
         ...(draftInteractiveTool ? [draftInteractiveTool] : []),
@@ -726,6 +726,7 @@ export const useBrunchAssistant = ({
     conversationTracker,
     currentNetId,
     draftInteractiveTool,
+    editor,
     flueClientPromise,
     flueHistory.messages,
     flueHistory.phase,

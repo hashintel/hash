@@ -24,7 +24,7 @@ import {
   nativeOpenaiProvider,
 } from "@local/pi-faux-providers/native-openai-provider";
 
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiMessage } from "@apps/petrinaut-website/src/main/app/plugins/brunch/chat/ai-assistant-panel";
 
 const originalFetch = globalThis.fetch;
 

@@ -6,6 +6,7 @@ import {
   createPetrinaut,
 } from "@hashintel/petrinaut-core";
 
+import { createTestEditorApi } from "../chat/testing/create-test-editor-api";
 import { resolveDraftAuthorityFromHistory } from "./brunch-draft-experiment-interactive-tool";
 import {
   createCanonicalPetrinautHostTools,
@@ -80,10 +81,8 @@ const history = () => {
     input: {},
     toolCallId: "read-1",
     handle: instance.handle,
-    mutations: instance.mutations,
-    commands: instance.commands,
+    edit: createTestEditorApi(instance).document.edit,
     readDiagnosticsContext: async () => "",
-    viewport: { frameSceneAfterRender: async () => "framed" },
     signal: new AbortController().signal,
   });
   const metadata = host.clientToolResultMetadataFor("read-1", output);

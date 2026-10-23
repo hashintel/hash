@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { canonicalBrunchFlueAdapter } from "../brunch-flue-adapter";
 
 import type { BrunchFlueAdapter } from "../brunch-flue-adapter";
+import type { PetrinautAiMessage } from "../chat/ai-assistant-panel";
 import type {
   AgentConversationObservation,
   AgentConversationObservationPhase,
@@ -11,7 +12,6 @@ import type {
   FlueConversationSettlement,
   FlueConversationState,
 } from "@flue/sdk";
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const noSettlements: readonly FlueConversationSettlement[] = [];
 

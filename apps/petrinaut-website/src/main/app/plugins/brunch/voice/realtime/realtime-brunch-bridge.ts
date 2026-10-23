@@ -8,16 +8,16 @@ import {
 } from "../../../../../../voice-diagnostics";
 import { classifyInterruption } from "../shared/classify-interruption";
 
+import type {
+  PetrinautAiComposerSubmitTextResult,
+  PetrinautAiVoiceModeContext,
+} from "../../chat/ai-assistant-composer-control";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type {
   OpenAIRealtimeSessionEvent,
   OpenAIRealtimeTranscriptKey,
 } from "./openai-realtime-session";
 import type { AgentSendResult, FlueConversationSettlement } from "@flue/sdk";
-import type {
-  PetrinautAiComposerSubmitTextResult,
-  PetrinautAiVoiceModeContext,
-} from "@hashintel/petrinaut/ui";
 import type {
   FlueChatAdmissionFailure,
   FlueChatResponseMessageCompletedEvent,

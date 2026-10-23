@@ -18,7 +18,7 @@ import {
   type InterviewBudgetLevel,
 } from "../../../../../shared/interview-budget";
 
-import type { PetrinautAiComposerControlContext } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiComposerControlContext } from "../chat/ai-assistant-composer-control";
 
 const lastStop = interviewBudgetLevels.length - 1;
 const stopPercent = (index: number) => (index / lastStop) * 100;

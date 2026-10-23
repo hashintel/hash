@@ -12,7 +12,7 @@ import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
 import type {
   PetrinautAiMessage,
   PetrinautAiMessageMetadata,
-} from "@hashintel/petrinaut/ui";
+} from "./chat/ai-assistant-panel";
 import type {
   FlueAiSdkAdapter,
   FlueAiSdkAdapterConfig,

@@ -33,14 +33,14 @@ import {
 import type { InterviewBudgetLevel } from "../../../../../../shared/interview-budget";
 import type { UtteranceJudgmentMode } from "../../../../../../shared/live-utterance-judgment";
 import type { VoiceWord } from "../../../../../../shared/voice-words";
+import type {
+  PetrinautAiInputMode,
+  PetrinautAiVoiceModeContext,
+} from "../../chat/ai-assistant-composer-control";
 import type { VoiceMediationHistory } from "../history/voice-mediation-history";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type { ToolApprovalState } from "../live/live-brunch-bridge";
 import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
-import type {
-  PetrinautAiInputMode,
-  PetrinautAiVoiceModeContext,
-} from "@hashintel/petrinaut/ui";
 
 type ResolveSubmission = (
   messageId: string,
