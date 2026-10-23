@@ -42,7 +42,7 @@ jobs:
           # can differ in what they consider affected.
           set -o pipefail
           PACKAGES=$(
-            .github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy lint:ruff format:ruff lint:types |
+            .github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy lint:ruff format:ruff check:ty lint:tach lint:deptry |
             jq --compact-output '
               .include |= map(select(.name != "hash-python"))
               | .name = [.include[].name]
@@ -123,7 +123,7 @@ jobs:
         uses: $/.github/actions/warm-up-repo
 
       - name: Install Python workspace for Python lint
-        if: matrix['lint:ruff'] != null || matrix['format:ruff'] != null || matrix['lint:types'] != null
+        if: matrix['lint:ruff'] != null || matrix['format:ruff'] != null || matrix['check:ty'] != null || matrix['lint:tach'] != null || matrix['lint:deptry'] != null
         run: uv sync --locked --all-packages
 
       - name: Show disk usage
@@ -160,9 +160,13 @@ jobs:
         if: always() && matrix['format:ruff'] != null
         run: turbo run format:ruff --filter "${{ matrix.name }}" -- --check
 
-      - name: Run basedpyright
-        if: always() && matrix['lint:types'] != null
-        run: turbo run lint:types --filter "${{ matrix.name }}"
+      - name: Run ty
+        if: always() && matrix['check:ty'] != null
+        run: turbo run check:ty --filter "${{ matrix.name }}"
+
+      - name: Run Python dependency and architecture checks
+        if: always() && (matrix['lint:tach'] != null || matrix['lint:deptry'] != null)
+        run: turbo run lint:tach lint:deptry --continue=always --filter "${{ matrix.name }}"
 
       - name: Run rustfmt
         if: always() && steps.lints.outputs.has-rust == 'true'
