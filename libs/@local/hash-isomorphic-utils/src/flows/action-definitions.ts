@@ -1,10 +1,10 @@
 import { checkAggregationInput } from "./aggregation.js";
+import {
+  checkCreateEntityStep,
+  checkUpdateEntityStep,
+} from "./entity-steps.js";
 import { checkConditionInput, filterableKinds } from "./filter-condition.js";
 import { maxEntitiesPerStep } from "./limits.js";
-import {
-  checkPropertiesWithMetadataInput,
-  checkPropertyPatchesInput,
-} from "./property-values.js";
 import { checkSortKeyInput } from "./sort-key.js";
 import { checkTakeCountInput } from "./take-count.js";
 import { allPayloadKinds } from "./types.js";
@@ -1041,7 +1041,7 @@ const aiFlowActionDefinitionsAsConst = {
     actionDefinitionId: "createEntity",
     name: "Create Entity",
     description:
-      "Create an entity of one or more types in the web the flow runs in, with values for some of its properties.",
+      "Create an entity of one or more types in the web the flow runs in, with values for some of its properties. Given the entities at its two ends, it creates a link.",
     kind: "action",
     inputs: [
       {
@@ -1071,6 +1071,22 @@ const aiFlowActionDefinitionsAsConst = {
         },
         array: false,
       },
+      {
+        oneOfPayloadKinds: ["EntityId"],
+        name: "leftEntityId",
+        description:
+          "For a link, the entity it links from. Give it with rightEntityId, and a link entity type.",
+        required: false,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["EntityId"],
+        name: "rightEntityId",
+        description:
+          "For a link, the entity it links to. Give it with leftEntityId, and a link entity type.",
+        required: false,
+        array: false,
+      },
     ],
     outputs: [
       {
@@ -1081,13 +1097,13 @@ const aiFlowActionDefinitionsAsConst = {
         required: true,
       },
     ],
-    check: checkPropertiesWithMetadataInput,
+    check: checkCreateEntityStep,
   },
   updateEntity: {
     actionDefinitionId: "updateEntity",
     name: "Update Entity",
     description:
-      "Set or remove some of the properties of an entity in the web the flow runs in, leaving its other properties as they are.",
+      "Set or remove some of the properties of an entity in the web the flow runs in, leaving its other properties as they are, or change its types.",
     kind: "action",
     inputs: [
       {
@@ -1102,8 +1118,16 @@ const aiFlowActionDefinitionsAsConst = {
         oneOfPayloadKinds: ["PropertyPatch"],
         name: "propertyPatches",
         description:
-          "The changes to make, in order, as the graph takes them. Each changes the whole property at its path, a property type base URL, and no two change the same property: add sets it, replacing any value it has; replace changes one the entity has; remove removes it if the entity has it. Added and replaced values give the ID of their data type.",
-        required: true,
+          "The changes to make, in order, as the graph takes them. Each changes the whole property at its path, a property type base URL, and no two change the same property: add sets it, replacing any value it has; replace changes one the entity has; remove removes it if the entity has it. Added and replaced values give the ID of their data type. Can be left out if entityTypeIds is given.",
+        required: false,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["VersionedUrl"],
+        name: "entityTypeIds",
+        description:
+          "The types the entity should have instead of its current ones. The graph checks its properties, after any patches, against them.",
+        required: false,
         array: true,
       },
     ],
@@ -1116,7 +1140,7 @@ const aiFlowActionDefinitionsAsConst = {
         required: true,
       },
     ],
-    check: checkPropertyPatchesInput,
+    check: checkUpdateEntityStep,
   },
   takeFirst: {
     actionDefinitionId: "takeFirst",
