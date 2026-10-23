@@ -673,10 +673,10 @@ const figmaStates: ScreenState[] = [
     }),
   },
   {
-    id: "j2-d3",
+    id: "j2-d2",
     journey: 2,
     row: "Row D · Inside the box",
-    title: "J2 · D3 · Pick a property of supplier",
+    title: "J2 · D2 · Click URL · pick which field of supplier",
     caption: "The URL menu lists supplier's properties first.",
     create: () => ({
       document: supplierCertificatesExample("fetch-file"),

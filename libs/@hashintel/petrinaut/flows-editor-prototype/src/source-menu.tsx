@@ -291,7 +291,9 @@ const sourceMenuWidthStyle = css({
   minWidth: "[240px]",
   maxWidth: "[380px]",
   // A row with no icon takes no icon slot, so its text lines up with the group title (Figma J3 · C1).
-  "& [role=menuitem] > span[aria-hidden=true]:empty": { display: "none" },
+  // ...unless the group has a ticked row: then every row keeps the tick's column, as the DS Menu draws it.
+  "& [role=group]:not(:has([data-selected])) [role=menuitem] > span[aria-hidden=true]:empty":
+    { display: "none" },
 });
 
 /** The For each list menu is as wide as its select (Figma J2 · C1); the DS positioner's `--reference-width` is the anchor's. */
@@ -302,7 +304,9 @@ const referenceWidthStyle = css({
     maxWidth: "[var(--reference-width)]",
   },
   // A long step name stays on one line and is clipped, as Figma draws it.
-  "& [role=menuitem] > span[aria-hidden=true]:empty": { display: "none" },
+  // ...unless the group has a ticked row: then every row keeps the tick's column, as the DS Menu draws it.
+  "& [role=group]:not(:has([data-selected])) [role=menuitem] > span[aria-hidden=true]:empty":
+    { display: "none" },
   "& [role=menuitem] span": {
     whiteSpace: "nowrap",
     overflow: "hidden",
@@ -496,7 +500,7 @@ export const SourceMenu = ({
         hint: `${option.ownerLabel} › ${option.label} · ${kindLabel(option.shape.payloadKind, option.shape.array)}${option.note ? ` · ${option.note}` : ""}`,
         onPick: () => onPick(option.source),
       }));
-  // Inside a For each: the item's own properties first, under the loop variable's name (Figma J2 · D3).
+  // Inside a For each: the item's own properties first, under the loop variable's name (Figma J2 · D2).
   const found = findStep(document, stepId);
   const loopId = found?.parentId ?? null;
   const itemType = loopId
@@ -533,7 +537,7 @@ export const SourceMenu = ({
   /* One model for both renderings: DS Menu groups and items (icon, description, tick). Headers as the team named
      them (22 Oct): Earlier steps, Flow inputs, Lookup in graph. An empty group says why; Flow inputs then offers
      "Add flow input on Start". */
-  const groupsModel: SourceGroup[] = [
+  const allGroups: SourceGroup[] = [
     ...(propertyItems.length > 0 && loopId
       ? [
           {
@@ -655,6 +659,16 @@ export const SourceMenu = ({
         ]
       : []),
   ];
+  // Inside a For each with item properties to pick, the "No earlier step gives…" rows would only add noise.
+  const groupsModel =
+    propertyItems.length > 0
+      ? allGroups
+          .map((group) => ({
+            ...group,
+            items: group.items.filter((item) => !item.disabled),
+          }))
+          .filter((group) => group.items.length > 0)
+      : allGroups;
 
   if (query === undefined) {
     // The DS Menu: groups, icons, descriptions and ticks as shipped; the search is its pinned header.
