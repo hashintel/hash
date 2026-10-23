@@ -12,13 +12,21 @@ import { afterEach, expect, test, vi } from "vitest";
 import {
   brunchSignals,
   ledgerCommentsMessage,
+  parseLedgerComments,
   type LedgerHistoryMessage,
 } from "@hashintel/brunch-agent";
-import { toPetrinautId } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  createPetrinaut,
+  toPetrinautId,
+} from "@hashintel/petrinaut-core";
 
 import { pendingCommentsFor } from "./brunch-ledger-comments";
+import { BrunchLedgerCommentsBar } from "./brunch-ledger-comments-bar";
 import { foldBrunchLedgerHistory } from "./brunch-ledger-history";
 import { BrunchLedgerPane } from "./brunch-ledger-pane";
+
+import type { PetrinautAiComposerControlContext } from "../chat/ai-assistant-composer-control";
 
 // jsdom does not implement scrolling or layout.
 const scrollIntoView = vi.fn();
@@ -253,7 +261,7 @@ const selectText = (element: Element) => {
 };
 
 test("comments on the records a selection touches, and keeps the comment pending under the first of them", async () => {
-  const comments = pendingCommentsFor({});
+  const comments = pendingCommentsFor({}, "conversation");
   render(<BrunchLedgerPane messages={reflected} comments={comments} />);
   const document = screen.getByTestId("brunch-ledger-document");
   const claim = document.querySelector('[data-ledger-address="c1"]');
@@ -270,23 +278,21 @@ test("comments on the records a selection touches, and keeps the comment pending
 
   const [added] = comments.get().comments;
   expect(added).toMatchObject({
-    id: "n1",
     records: ["c1"],
     text: "Only in winter.",
   });
   expect(added?.quote).toContain("The reservoir holds a day of supply.");
   await waitFor(() =>
-    expect(
-      document.querySelector('[data-pending-comment="n1"]'),
-    ).not.toBeNull(),
+    expect(document.querySelector("[data-pending-comment]")).not.toBeNull(),
   );
   expect(claim.hasAttribute("data-commented")).toBe(true);
 
   fireEvent.click(screen.getByRole("button", { name: "Edit" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Comment" }), {
-    target: { value: "Only in summer." },
+    target: { value: "  Only in summer.  " },
   });
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  expect(screen.queryByRole("textbox", { name: "Comment" })).toBeNull();
   expect(comments.get().comments[0]?.text).toBe("Only in summer.");
 
   fireEvent.click(screen.getByRole("button", { name: "Remove" }));
@@ -295,9 +301,87 @@ test("comments on the records a selection touches, and keeps the comment pending
   );
 });
 
+test("Send uses the current edit without Save, keeps it on failure, and Cancel before Send restores the original", async () => {
+  const net = createPetrinaut({
+    document: createJsonDocHandle({
+      initial: { places: [], transitions: [] },
+    }),
+  }).definition;
+  const comments = pendingCommentsFor(net, "conversation");
+  const added = comments.add({ records: ["c1"], text: "Only in winter." });
+  let failSend = () => {};
+  const submitText = vi.fn<PetrinautAiComposerControlContext["submitText"]>(
+    () =>
+      new Promise((_resolve, reject) => {
+        failSend = () => reject(new Error("offline"));
+      }),
+  );
+  const context: PetrinautAiComposerControlContext = {
+    conversationId: "conversation",
+    messages: [],
+    status: "ready",
+    submitText,
+    stop: async () => {},
+  };
+  const view = (paneKey: string) => (
+    <>
+      <BrunchLedgerPane
+        key={paneKey}
+        messages={reflected}
+        comments={comments}
+      />
+      <BrunchLedgerCommentsBar context={context} net={net} />
+    </>
+  );
+  const { rerender } = render(view("original"));
+
+  fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Comment" }), {
+    target: { value: "An abandoned change." },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.getByText("Only in winter.")).not.toBeNull();
+  expect(comments.get().comments[0]?.text).toBe("Only in winter.");
+
+  fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Comment" }), {
+    target: { value: "Only in summer." },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Send" }));
+  expect(submitText).toHaveBeenCalledOnce();
+  expect(parseLedgerComments(submitText.mock.calls[0]?.[0].text ?? "")).toEqual(
+    [{ ...added, text: "Only in summer." }],
+  );
+  expect(screen.getByRole("textbox", { name: "Comment" })).toHaveProperty(
+    "disabled",
+    true,
+  );
+  expect(screen.getByRole("button", { name: "Cancel" })).toHaveProperty(
+    "disabled",
+    true,
+  );
+  expect(screen.getByRole("button", { name: "Save" })).toHaveProperty(
+    "disabled",
+    true,
+  );
+
+  await act(async () => failSend());
+  expect(screen.getByRole("button", { name: "Retry" })).not.toBeNull();
+  expect(screen.getByRole("textbox", { name: "Comment" })).toHaveProperty(
+    "value",
+    "Only in summer.",
+  );
+  expect(screen.getByRole("textbox", { name: "Comment" })).toHaveProperty(
+    "disabled",
+    false,
+  );
+  rerender(view("remounted"));
+  expect(screen.getByText("Only in summer.")).not.toBeNull();
+});
+
 test("shows a pending comment once, though its record appears under several entities", () => {
-  const comments = pendingCommentsFor({});
-  comments.add({ records: ["c1"], text: "Only in winter." }, []);
+  const comments = pendingCommentsFor({}, "conversation");
+  comments.add({ records: ["c1"], text: "Only in winter." });
   render(
     <BrunchLedgerPane
       messages={[
@@ -341,14 +425,61 @@ test("shows a pending comment once, though its record appears under several enti
   expect(document.querySelectorAll('[data-ledger-address="c1"]')).toHaveLength(
     2,
   );
-  expect(document.querySelectorAll('[data-pending-comment="n1"]')).toHaveLength(
-    1,
-  );
+  expect(document.querySelectorAll("[data-pending-comment]")).toHaveLength(1);
 });
+
+test.each([false, true])(
+  "shows one pending note for a shared ancestor, including a merged history DAG (%s)",
+  (mergeBranches) => {
+    const comments = pendingCommentsFor({}, "conversation");
+    comments.add({ records: ["c1"], text: "Check the original capacity." });
+    const replacement = (text: string, supersedes: string[]) => [
+      "claim/create",
+      {
+        text,
+        entities: ["e1"],
+        origin: "stated",
+        status: "confirmed",
+        supersedes,
+      },
+    ];
+    const messages = [
+      ...reflected,
+      assistant(
+        commit(
+          "branches",
+          {},
+          [
+            replacement("Winter capacity", ["c1"]),
+            replacement("Summer capacity", ["c1"]),
+            ...(mergeBranches
+              ? [replacement("Seasonal capacity", ["$0", "$1"])]
+              : []),
+          ],
+          mergeBranches ? ["c2", "c3", "c4"] : ["c2", "c3"],
+        ),
+      ),
+    ];
+    render(<BrunchLedgerPane messages={messages} comments={comments} />);
+    const document = screen.getByTestId("brunch-ledger-document");
+    expect(document.textContent).toContain(
+      mergeBranches ? "Seasonal capacity" : "Summer capacity",
+    );
+    expect(
+      document.querySelectorAll('[data-ledger-address="c1"]'),
+    ).toHaveLength(2);
+    expect(document.querySelectorAll("[data-pending-comment]")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getAllByRole("textbox", { name: "Comment" })).toHaveLength(1);
+  },
+);
 
 test("offers no comment on a selection outside the records", () => {
   render(
-    <BrunchLedgerPane messages={reflected} comments={pendingCommentsFor({})} />,
+    <BrunchLedgerPane
+      messages={reflected}
+      comments={pendingCommentsFor({}, "conversation")}
+    />,
   );
   const heading = screen
     .getByTestId("brunch-ledger-document")

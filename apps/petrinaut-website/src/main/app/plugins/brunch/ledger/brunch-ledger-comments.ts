@@ -2,73 +2,95 @@ import {
   ledgerCommentsMessage,
   type LedgerComment,
 } from "@hashintel/brunch-agent";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import type { PetrinautAiComposerControlContext } from "../chat/ai-assistant-composer-control";
 
 export type PendingCommentsState = {
-  /** Comments the user has written but not yet sent to Brunch. */
+  /** Comments the user has written but not yet admitted to Brunch. */
   readonly comments: readonly LedgerComment[];
-  readonly sending: "idle" | "pending" | "failed";
+  readonly sending: "idle" | "pending" | "failed" | "uncertain";
 };
-
-const commentNumber = (id: string) => Number(id.slice(1));
 
 const createPendingComments = () => {
   let state: PendingCommentsState = { comments: [], sending: "idle" };
-  // IDs are never reused, even for a comment discarded before it was sent.
-  let highestIssued = 0;
+  // An ambiguous POST is retried with its original delivery key and payload.
+  let attempt: { id: string; comments: readonly LedgerComment[] } | undefined;
   const listeners = new Set<() => void>();
   const publish = (next: PendingCommentsState) => {
     state = next;
     for (const listener of listeners) listener();
   };
+  const locked = () =>
+    state.sending === "pending" || state.sending === "uncertain";
   return {
     subscribe: (listener: () => void): (() => void) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
     get: (): PendingCommentsState => state,
-    /** `sentIds` are the comments the conversation already holds. */
-    add: (
-      comment: Omit<LedgerComment, "id">,
-      sentIds: readonly string[],
-    ): LedgerComment => {
-      highestIssued =
-        Math.max(highestIssued, ...sentIds.map(commentNumber)) + 1;
-      const added = { id: `n${highestIssued}`, ...comment };
+    add: (comment: Omit<LedgerComment, "id">): LedgerComment => {
+      const added = { ...comment, id: `n-${crypto.randomUUID()}` };
       publish({ ...state, comments: [...state.comments, added] });
       return added;
     },
-    edit: (id: string, text: string) =>
+    edit: (id: string, text: string) => {
+      if (locked()) return;
       publish({
         ...state,
         comments: state.comments.map((comment) =>
           comment.id === id ? { ...comment, text } : comment,
         ),
-      }),
-    remove: (id: string) =>
+      });
+    },
+    remove: (id: string) => {
+      if (locked()) return;
       publish({
         ...state,
         comments: state.comments.filter((comment) => comment.id !== id),
-      }),
-    discard: () => publish({ comments: [], sending: "idle" }),
-    /** Sends every pending comment as one turn; comments added meanwhile stay pending. */
+      });
+    },
+    discard: () => {
+      if (locked()) return;
+      attempt = undefined;
+      publish({ comments: [], sending: "idle" });
+    },
+    /** `submitText` must settle on admission, not on the SDK response stream. */
     send: (submitText: PetrinautAiComposerControlContext["submitText"]) => {
-      const sent = state.comments;
-      if (state.sending === "pending" || sent.length === 0) return;
+      if (state.sending === "pending" || state.comments.length === 0) return;
+      if (attempt === undefined) {
+        if (state.comments.some(({ text }) => text.trim() === "")) return;
+        attempt = {
+          id: crypto.randomUUID(),
+          comments: state.comments.map((comment) => ({
+            ...comment,
+            text: comment.text.trim(),
+          })),
+        };
+      }
+      const sent = attempt;
       publish({ ...state, sending: "pending" });
-      const sentIds = new Set(sent.map(({ id }) => id));
+      const sentIds = new Set(sent.comments.map(({ id }) => id));
       void submitText({
+        id: sent.id,
         target: "message",
         preserveDraft: true,
-        text: ledgerCommentsMessage(sent).body,
+        text: ledgerCommentsMessage(sent.comments).body,
       }).then(
-        () =>
+        () => {
+          attempt = undefined;
           publish({
             comments: state.comments.filter(({ id }) => !sentIds.has(id)),
             sending: "idle",
-          }),
-        () => publish({ ...state, sending: "failed" }),
+          });
+        },
+        (error: unknown) => {
+          const uncertain =
+            error instanceof FlueChatAdmissionError &&
+            error.failure.kind !== "rejected";
+          if (!uncertain) attempt = undefined;
+          publish({ ...state, sending: uncertain ? "uncertain" : "failed" });
+        },
       );
     },
   };
@@ -76,15 +98,22 @@ const createPendingComments = () => {
 
 export type PendingComments = ReturnType<typeof createPendingComments>;
 
-// Keyed like the experiment drafts: on the Brunch plugin's
-// `api.document.net`, so the Ledger tab and the composer bar share one store
-// per editor, and it is released with that editor.
-const editors = new WeakMap<object, PendingComments>();
-export const pendingCommentsFor = (definitionStore: object) => {
-  let comments = editors.get(definitionStore);
-  if (!comments) {
+// Both surfaces share a store per editor AND conversation: record addresses
+// have meaning only in that conversation, even when Clear chat keeps the net.
+const editors = new WeakMap<object, Map<string, PendingComments>>();
+export const pendingCommentsFor = (
+  definitionStore: object,
+  conversationId: string,
+) => {
+  let conversations = editors.get(definitionStore);
+  if (conversations === undefined) {
+    conversations = new Map();
+    editors.set(definitionStore, conversations);
+  }
+  let comments = conversations.get(conversationId);
+  if (comments === undefined) {
     comments = createPendingComments();
-    editors.set(definitionStore, comments);
+    conversations.set(conversationId, comments);
   }
   return comments;
 };

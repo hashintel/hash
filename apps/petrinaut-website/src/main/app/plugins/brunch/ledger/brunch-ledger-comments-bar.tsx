@@ -17,7 +17,7 @@ export const BrunchLedgerCommentsBar = ({
   /** The open net, whose editor holds the pending comments. */
   net: BrunchEditorApi["document"]["net"];
 }) => {
-  const store = pendingCommentsFor(net);
+  const store = pendingCommentsFor(net, context.conversationId);
   const { comments, sending } = useSyncExternalStore(
     store.subscribe,
     store.get,
@@ -26,7 +26,9 @@ export const BrunchLedgerCommentsBar = ({
   const busy =
     sending === "pending" ||
     context.status === "submitted" ||
-    context.status === "streaming";
+    context.status === "streaming" ||
+    (sending !== "uncertain" &&
+      comments.some(({ text }) => text.trim() === ""));
   return (
     <div
       role="group"
@@ -44,6 +46,7 @@ export const BrunchLedgerCommentsBar = ({
           ? "1 comment on the Ledger"
           : `${comments.length} comments on the Ledger`}
         {sending === "failed" && " could not be sent"}
+        {sending === "uncertain" && " · Delivery unconfirmed; retry to check"}
       </span>
       <Button
         size="xs"
@@ -51,12 +54,12 @@ export const BrunchLedgerCommentsBar = ({
         disabled={busy}
         onClick={() => store.send(context.submitText)}
       >
-        {sending === "failed" ? "Retry" : "Send"}
+        {sending === "failed" || sending === "uncertain" ? "Retry" : "Send"}
       </Button>
       <Button
         size="xs"
         variant="ghost"
-        disabled={sending === "pending"}
+        disabled={sending === "pending" || sending === "uncertain"}
         onClick={store.discard}
       >
         Discard

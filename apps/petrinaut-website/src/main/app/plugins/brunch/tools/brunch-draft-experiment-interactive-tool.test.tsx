@@ -1,6 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
+import { Chat } from "@ai-sdk/react";
 import {
   act,
   cleanup,
@@ -20,6 +21,10 @@ import {
 } from "@hashintel/petrinaut-core";
 import { prepareExperiment } from "@hashintel/petrinaut/react";
 
+import {
+  BrunchPanelConversationTracker,
+  createBrunchPanelTransport,
+} from "../brunch-panel-transport";
 import {
   BrunchDraftExperimentWidget,
   resetBrunchEditorDrafts,
@@ -53,7 +58,9 @@ vi.hoisted(() => {
 });
 
 import type { PetrinautAiComposerControlContext } from "../chat/ai-assistant-composer-control";
+import type { PetrinautAiMessage } from "../chat/ai-assistant-panel";
 import type { PetrinautAiInteractiveToolWidgetProps } from "../chat/ai-interactive-tool";
+import type { FlueClient } from "@flue/sdk";
 import type {
   DraftPetrinautExperimentInput,
   DraftPetrinautExperimentOutput,
@@ -990,10 +997,40 @@ describe("BrunchDraftExperimentWidget", () => {
     await waitFor(() => expect(submit).toHaveBeenCalledOnce());
     fireEvent.click(screen.getByRole("button", { name: "Run" }));
     await screen.findByText("Finished");
-    const submitText = vi
-      .fn<PetrinautAiComposerControlContext["submitText"]>()
-      .mockRejectedValueOnce(new Error("Connection lost"))
-      .mockResolvedValue({ kind: "message", messageId: "completion" });
+    const send = vi
+      .fn<FlueClient["send"]>()
+      .mockRejectedValueOnce(
+        new TypeError("Connection lost after request write"),
+      )
+      .mockResolvedValue({
+        submissionId: "result-submission",
+        uid: "result-uid",
+        offset: "result-offset",
+        streamUrl: "http://brunch.test/stream",
+      });
+    const wait = vi.fn<FlueClient["wait"]>(async () => {
+      throw new Error("Response failed after admission");
+    });
+    const tracker = new BrunchPanelConversationTracker();
+    const chat = new Chat<PetrinautAiMessage>({
+      transport: createBrunchPanelTransport(
+        Promise.resolve({ send, wait } as unknown as FlueClient),
+        tracker,
+      ),
+    });
+    const rawSubmitText: PetrinautAiComposerControlContext["submitText"] =
+      async ({ id, text }) => {
+        if (id === undefined) throw new Error("Missing delivery identity");
+        await chat.sendMessage({
+          id,
+          role: "user",
+          parts: [{ type: "text", text }],
+        });
+        return { kind: "message", messageId: id };
+      };
+    const submitText = vi.fn<PetrinautAiComposerControlContext["submitText"]>(
+      (input) => tracker.submitTextWithAdmission(rawSubmitText, input),
+    );
     const context = {
       conversationId: "original",
       messages: [
@@ -1059,6 +1096,21 @@ describe("BrunchDraftExperimentWidget", () => {
       screen.getByRole("button", { name: "Retry result summary" }),
     );
     await waitFor(() => expect(submitText).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(editorDraftsFor(net).get().drafts.get("follow-up")?.followUp).toBe(
+        "sent",
+      ),
+    );
+    await waitFor(() =>
+      expect(chat.error?.message).toBe("Response failed after admission"),
+    );
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(send.mock.calls[0]?.[0].idempotencyKey).toBe(
+      send.mock.calls[1]?.[0].idempotencyKey,
+    );
+    expect(send.mock.calls[0]?.[0].message).toEqual(
+      send.mock.calls[1]?.[0].message,
+    );
     followUp.unmount();
     render(
       <BrunchExperimentFollowUp

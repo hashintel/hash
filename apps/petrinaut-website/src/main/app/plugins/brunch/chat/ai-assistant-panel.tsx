@@ -1922,6 +1922,20 @@ const ConversationAiAssistantPanel = ({
       }
 
       const messageId = id ?? generateId();
+      // A host retry reuses its delivery identity so Flue can deduplicate it;
+      // replace the unconfirmed local copy rather than showing it twice.
+      if (
+        id !== undefined &&
+        currentMessages.some(
+          (message) => message.id === id && message.role === "user",
+        )
+      ) {
+        updateMessages((latestMessages) =>
+          latestMessages.filter(
+            (message) => !(message.id === id && message.role === "user"),
+          ),
+        );
+      }
       if (source !== "voice" && !preserveDraft) {
         setInput("");
       }

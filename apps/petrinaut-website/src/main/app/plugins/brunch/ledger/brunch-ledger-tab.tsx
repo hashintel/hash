@@ -12,8 +12,10 @@ import type { LedgerHistoryMessage } from "@hashintel/brunch-agent";
 const LedgerBesideCanvas = ({
   api,
   messages,
+  conversationId,
 }: {
   api: BrunchEditorApi;
+  conversationId: string;
   messages: readonly LedgerHistoryMessage[];
 }) => {
   const { selection } = useStore(api.editor.navigation);
@@ -24,7 +26,7 @@ const LedgerBesideCanvas = ({
       onSelectNetElements={(items) =>
         api.editor.navigate((current) => ({ ...current, selection: items }))
       }
-      comments={pendingCommentsFor(api.document.net)}
+      comments={pendingCommentsFor(api.document.net, conversationId)}
     />
   );
 };
@@ -36,10 +38,19 @@ const LedgerBesideCanvas = ({
  */
 export const BrunchLedgerTab = ({
   messages,
+  conversationId,
 }: {
   messages: readonly LedgerHistoryMessage[];
+  conversationId: string;
 }) => (
   <WithBrunchEditorApi>
-    {(api) => <LedgerBesideCanvas api={api} messages={messages} />}
+    {(api) => (
+      <LedgerBesideCanvas
+        key={conversationId}
+        api={api}
+        messages={messages}
+        conversationId={conversationId}
+      />
+    )}
   </WithBrunchEditorApi>
 );
