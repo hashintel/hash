@@ -835,4 +835,117 @@ describe("buildFlowRunEvents", () => {
       researchRunCompleted("65.0"),
     ]);
   });
+
+  describe("with attempt signals", () => {
+    /* What a run's events say about each attempt, which attempt signals add to. */
+    const attemptEventsOf = (fixtureName: string) =>
+      buildFlowRunEvents(loadFixture(fixtureName).history).flatMap(
+        (event): Record<string, unknown>[] => {
+          switch (event.kind) {
+            case "attemptStarted":
+              return [
+                {
+                  kind: event.kind,
+                  attempt: event.attempt,
+                  ...(event.hiddenAttempts
+                    ? { hiddenAttempts: event.hiddenAttempts }
+                    : {}),
+                },
+              ];
+            case "attemptFailed":
+              return [
+                {
+                  kind: event.kind,
+                  attempt: event.attempt,
+                  error: event.error,
+                  retrying: event.retrying,
+                },
+              ];
+            case "attemptSucceeded":
+            case "stepGaveUp":
+              return [{ kind: event.kind, attempt: event.attempt }];
+            default:
+              return [];
+          }
+        },
+      );
+
+    it("reports each attempt of a retried step, with its error", () => {
+      expect(
+        attemptEventsOf("retried-then-succeeds-with-attempt-signals"),
+      ).toStrictEqual([
+        { kind: "attemptStarted", attempt: 1 },
+        {
+          kind: "attemptFailed",
+          attempt: 1,
+          error: { message: "Flaky failure on attempt 1" },
+          retrying: true,
+        },
+        { kind: "attemptStarted", attempt: 2 },
+        {
+          kind: "attemptFailed",
+          attempt: 2,
+          error: { message: "Flaky failure on attempt 2" },
+          retrying: true,
+        },
+        { kind: "attemptStarted", attempt: 3 },
+        { kind: "attemptSucceeded", attempt: 3 },
+      ]);
+    });
+
+    it("reports the last attempt's failure once, from the history, as Temporal doesn't retry it", () => {
+      expect(attemptEventsOf("gives-up-with-attempt-signals")).toStrictEqual([
+        { kind: "attemptStarted", attempt: 1 },
+        {
+          kind: "attemptFailed",
+          attempt: 1,
+          error: { message: "Failure on attempt 1" },
+          retrying: true,
+        },
+        { kind: "attemptStarted", attempt: 2 },
+        {
+          kind: "attemptFailed",
+          attempt: 2,
+          error: { message: "Failure on attempt 2" },
+          retrying: true,
+        },
+        { kind: "attemptStarted", attempt: 3 },
+        {
+          kind: "attemptFailed",
+          attempt: 3,
+          error: { message: "Failure on attempt 3" },
+          retrying: false,
+        },
+        { kind: "stepGaveUp", attempt: 3 },
+      ]);
+    });
+
+    it("reports an attempt that ended without throwing as failed when the next one starts", () => {
+      expect(
+        attemptEventsOf("attempt-timed-out-with-attempt-signals"),
+      ).toStrictEqual([
+        { kind: "attemptStarted", attempt: 1 },
+        {
+          kind: "attemptFailed",
+          attempt: 1,
+          error: { message: "Unknown error" },
+          retrying: true,
+        },
+        { kind: "attemptStarted", attempt: 2 },
+        { kind: "attemptSucceeded", attempt: 2 },
+      ]);
+    });
+
+    it("builds a running run's events as the start of the same run's finished events", () => {
+      const running = buildFlowRunEvents(
+        loadFixture("in-progress-with-attempt-signals").history,
+      );
+      const finished = buildFlowRunEvents(
+        loadFixture("in-progress-with-attempt-signals-finished").history,
+      );
+
+      expect(finished.slice(0, running.length)).toStrictEqual(running);
+      expect(finished.length).toBeGreaterThan(running.length);
+    });
+  });
 });

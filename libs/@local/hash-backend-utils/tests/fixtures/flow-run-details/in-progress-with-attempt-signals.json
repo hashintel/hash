@@ -1,0 +1,68 @@
+{
+  "flowInputs": {
+    "prompt": {
+      "kind": "Text",
+      "value": "Who makes HASH?"
+    }
+  },
+  "dataSources": {
+    "files": {
+      "fileEntityIds": []
+    },
+    "internetAccess": {
+      "enabled": false,
+      "browserPlugin": {
+        "enabled": false,
+        "domains": []
+      }
+    }
+  },
+  "inputRequests": [],
+  "steps": [
+    {
+      "stepId": "research",
+      "stepType": "researchEntitiesAction",
+      "startedAt": "2026-10-23T10:55:22.529Z",
+      "scheduledAt": "2026-10-23T10:55:21.513Z",
+      "closedAt": "",
+      "inputs": [
+        {
+          "inputs": [
+            {
+              "inputName": "prompt",
+              "payload": {
+                "kind": "Text",
+                "value": "Who makes HASH?"
+              }
+            }
+          ]
+        }
+      ],
+      "logs": [
+        {
+          "type": "ActivityFailed",
+          "stepId": "research",
+          "recordedAt": "2026-10-23T10:55:22.529Z",
+          "retrying": true,
+          "message": "Flaky failure on attempt 1"
+        },
+        {
+          "type": "CreatedPlan",
+          "plan": "Search the web",
+          "stepId": "research",
+          "recordedAt": "2026-10-23T10:55:22.530Z",
+          "workerType": "Coordinator",
+          "workerInstanceId": "coordinator",
+          "parentInstanceId": null,
+          "toolCallId": null
+        }
+      ],
+      "status": "STARTED",
+      "attempt": 2,
+      "lastFailure": {
+        "message": "Flaky failure on attempt 1"
+      }
+    }
+  ],
+  "startedAt": "2026-10-23T10:55:21.431Z"
+}

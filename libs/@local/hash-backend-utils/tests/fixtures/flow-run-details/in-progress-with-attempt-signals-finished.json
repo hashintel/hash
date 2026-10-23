@@ -1,0 +1,102 @@
+{
+  "flowInputs": {
+    "prompt": {
+      "kind": "Text",
+      "value": "Who makes HASH?"
+    }
+  },
+  "dataSources": {
+    "files": {
+      "fileEntityIds": []
+    },
+    "internetAccess": {
+      "enabled": false,
+      "browserPlugin": {
+        "enabled": false,
+        "domains": []
+      }
+    }
+  },
+  "outputs": [
+    {
+      "code": "OK",
+      "contents": [
+        {
+          "outputs": [
+            {
+              "outputName": "proposedEntities",
+              "payload": {
+                "kind": "ProposedEntity",
+                "value": []
+              }
+            }
+          ],
+          "stepErrors": []
+        }
+      ]
+    }
+  ],
+  "inputRequests": [],
+  "steps": [
+    {
+      "stepId": "research",
+      "stepType": "researchEntitiesAction",
+      "startedAt": "2026-10-23T10:55:22.529Z",
+      "scheduledAt": "2026-10-23T10:55:21.513Z",
+      "closedAt": "2026-10-23T10:55:23.761Z",
+      "inputs": [
+        {
+          "inputs": [
+            {
+              "inputName": "prompt",
+              "payload": {
+                "kind": "Text",
+                "value": "Who makes HASH?"
+              }
+            }
+          ]
+        }
+      ],
+      "logs": [
+        {
+          "type": "CreatedPlan",
+          "plan": "Search the web",
+          "stepId": "research",
+          "recordedAt": "2026-10-23T10:55:22.530Z",
+          "workerType": "Coordinator",
+          "workerInstanceId": "coordinator",
+          "parentInstanceId": null,
+          "toolCallId": null
+        }
+      ],
+      "status": "COMPLETED",
+      "attempt": 2,
+      "outputs": [
+        {
+          "code": "OK",
+          "contents": [
+            {
+              "outputs": [
+                {
+                  "outputName": "proposedEntities",
+                  "payload": {
+                    "kind": "ProposedEntity",
+                    "value": []
+                  }
+                },
+                {
+                  "outputName": "highlightedEntities",
+                  "payload": {
+                    "kind": "EntityId",
+                    "value": []
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "startedAt": "2026-10-23T10:55:21.431Z"
+}

@@ -1,0 +1,91 @@
+{
+  "flowInputs": {
+    "prompt": {
+      "kind": "Text",
+      "value": "Who makes HASH?"
+    }
+  },
+  "dataSources": {
+    "files": {
+      "fileEntityIds": []
+    },
+    "internetAccess": {
+      "enabled": false,
+      "browserPlugin": {
+        "enabled": false,
+        "domains": []
+      }
+    }
+  },
+  "outputs": [
+    {
+      "code": "OK",
+      "contents": [
+        {
+          "outputs": [
+            {
+              "outputName": "proposedEntities",
+              "payload": {
+                "kind": "ProposedEntity",
+                "value": []
+              }
+            }
+          ],
+          "stepErrors": []
+        }
+      ]
+    }
+  ],
+  "inputRequests": [],
+  "steps": [
+    {
+      "stepId": "research",
+      "stepType": "researchEntitiesAction",
+      "startedAt": "2026-10-23T10:53:07.064Z",
+      "scheduledAt": "2026-10-23T10:52:56.054Z",
+      "closedAt": "2026-10-23T10:53:07.067Z",
+      "inputs": [
+        {
+          "inputs": [
+            {
+              "inputName": "prompt",
+              "payload": {
+                "kind": "Text",
+                "value": "Who makes HASH?"
+              }
+            }
+          ]
+        }
+      ],
+      "logs": [],
+      "status": "COMPLETED",
+      "attempt": 2,
+      "outputs": [
+        {
+          "code": "OK",
+          "contents": [
+            {
+              "outputs": [
+                {
+                  "outputName": "proposedEntities",
+                  "payload": {
+                    "kind": "ProposedEntity",
+                    "value": []
+                  }
+                },
+                {
+                  "outputName": "highlightedEntities",
+                  "payload": {
+                    "kind": "EntityId",
+                    "value": []
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "startedAt": "2026-10-23T10:52:56.011Z"
+}

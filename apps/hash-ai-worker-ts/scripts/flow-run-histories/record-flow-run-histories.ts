@@ -20,6 +20,7 @@ import { Client, Connection } from "@temporalio/client";
 import proto from "@temporalio/proto";
 import { NativeConnection, Worker } from "@temporalio/worker";
 
+import { signalStepAttempts } from "@local/hash-backend-utils/flows/signal-step-attempts";
 import { temporalNamespace } from "@local/hash-backend-utils/temporal";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -155,6 +156,13 @@ const main = async () => {
       const action = currentCase?.actions[activityName];
       if (!action) {
         throw new Error(`The case doesn't stub ${activityName}`);
+      }
+      if (currentCase?.attemptSignals) {
+        return signalStepAttempts({
+          action: async (
+            ...actionArgs: Parameters<RecordingCase["actions"][string]>
+          ) => action(...actionArgs),
+        }).action(...args);
       }
       return action(...args);
     };

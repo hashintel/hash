@@ -53,6 +53,8 @@ export type RecordingCase = {
   }) => Promise<void>;
   /** The fixture to write the closed run's history to, if not the case's name. */
   closedFixtureName?: string;
+  /** Whether the actions signal their attempts (`signalStepAttempts`), as the workers' actions do. */
+  attemptSignals?: true;
 };
 
 export const answeringUserId = "00000000-0000-4000-8000-0000000000a1" as UserId;
@@ -364,6 +366,49 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
       },
     }),
 
+    "retried-then-succeeds-with-attempt-signals": () => ({
+      flow: takeFirstFlow,
+      flowInputs: numbers,
+      attemptSignals: true,
+      actions: {
+        takeFirstAction: (params) => {
+          const { attempt } = getActivityRun();
+          if (attempt < 3) {
+            throw errorWithoutStack(`Flaky failure on attempt ${attempt}`);
+          }
+          return takeFirst(params);
+        },
+      },
+    }),
+
+    "gives-up-with-attempt-signals": () => ({
+      flow: takeFirstFlow,
+      flowInputs: numbers,
+      attemptSignals: true,
+      actions: {
+        takeFirstAction: () => {
+          throw errorWithoutStack(
+            `Failure on attempt ${getActivityRun().attempt}`,
+          );
+        },
+      },
+    }),
+
+    "attempt-timed-out-with-attempt-signals": () => ({
+      flow: researchFlow,
+      flowInputs: prompt,
+      attemptSignals: true,
+      actions: {
+        researchEntitiesAction: async () => {
+          if (getActivityRun().attempt === 1) {
+            /* Stops heartbeating, so the attempt times out without throwing. */
+            await sleep(15_000);
+          }
+          return researched;
+        },
+      },
+    }),
+
     "error-status": () => ({
       flow: takeFirstFlow,
       flowInputs: numbers,
@@ -511,6 +556,36 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
           finish.resolve();
         },
         closedFixtureName: "in-progress-finished",
+      };
+    },
+
+    "in-progress-with-attempt-signals": (client) => {
+      const finish = Promise.withResolvers<void>();
+
+      return {
+        flow: researchFlow,
+        flowInputs: prompt,
+        attemptSignals: true,
+        actions: {
+          researchEntitiesAction: async () => {
+            const { activityId, attempt } = getActivityRun();
+            if (attempt === 1) {
+              throw errorWithoutStack("Flaky failure on attempt 1");
+            }
+            await sendLogs(client, [
+              planLog(activityId, "CreatedPlan", "Search the web"),
+            ]);
+            await waitInActivity(finish.promise);
+            return researched;
+          },
+        },
+        steer: async ({ handle, record }) => {
+          /* Sent by the second attempt, after it has signalled its start. */
+          await waitForSignalInHistory(handle, "logProgress");
+          await record("in-progress-with-attempt-signals");
+          finish.resolve();
+        },
+        closedFixtureName: "in-progress-with-attempt-signals-finished",
       };
     },
 
