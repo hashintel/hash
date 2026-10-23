@@ -10,9 +10,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   type CatalogEntry,
   catalog,
-  categories,
   isOffered,
-  popularFirstSteps,
 } from "./catalog";
 import {
   START_ID,
@@ -20,132 +18,37 @@ import {
   type EditorDocument,
   findStep,
   flattenSteps,
-  stepTitle,
 } from "./document";
 import { showDebug, useEditor } from "./editor-context";
-import { canConnect, type ConnectionSource, type PayloadKind } from "./engine";
 import { OpenMenu } from "./open-menu";
-import { getItemShape, getSourceShape, triggerFlowInputs } from "./shapes";
 import { SearchHeader } from "./source-menu";
 import { OriginMark } from "./ui";
 
-/** The values a new step could take, given where it goes: the earlier step's outputs, the flow inputs, the item. */
-const availableShapes = (
-  document: EditorDocument,
-  after: { stepId: string; port: string } | undefined,
-  parentId: string | null | undefined,
-): ConnectionSource[] => {
-  if (parentId && !after) {
-    const shape = getItemShape(document, parentId);
-    return shape ? [shape] : [];
-  }
-  if (!after) {
-    return [];
-  }
-  if (after.stepId === START_ID) {
-    return triggerFlowInputs(document).map(({ input }) => ({
-      payloadKind: input.payloadKind,
-      array: input.array,
-      required: input.required,
-    }));
-  }
-  const step = findStep(document, after.stepId)?.step;
-  if (!step) {
-    return [];
-  }
-  if (step.kind === "for-each") {
-    return step.collect
-      ? [
-          getSourceShape(
-            document,
-            {
-              kind: "step-output",
-              stepId: step.stepId,
-              outputName: step.collect.as,
-            },
-            after.stepId,
-          ),
-        ].filter((shape): shape is ConnectionSource => !!shape)
-      : [];
-  }
-  const outputs =
-    catalog.find((entry) => entry.id === step.actionDefinitionId)?.outputs ??
-    [];
-  // A branch port passes on only the output it stands for.
-  const relevant =
-    after.port === "next"
-      ? outputs
-      : outputs.filter((output) => output.name === after.port);
-  return relevant
-    .map((output) =>
-      getSourceShape(
-        document,
-        { kind: "step-output", stepId: step.stepId, outputName: output.name },
-        step.stepId,
-      ),
-    )
-    .filter((shape): shape is ConnectionSource => !!shape);
-};
-
-const fits = (entry: CatalogEntry, shapes: ConnectionSource[]) =>
-  shapes.some(
-    (shape) =>
-      (entry.id === "forEach" && shape.array) ||
-      entry.inputs.some((input) => {
-        if (!input.kinds) {
-          return false;
-        }
-        const target = {
-          oneOfPayloadKinds: input.kinds as PayloadKind[],
-          array: input.array,
-          required: input.required,
-        };
-        return (
-          canConnect({ source: shape, target, skipWhenMissing: true }).ok ||
-          (!shape.array &&
-            canConnect({
-              source: shape,
-              target,
-              wrap: true,
-              skipWhenMissing: true,
-            }).ok)
-        );
-      }),
-  );
-
-/**
- * "Recommended" (Dei, 20 Oct): popular first steps on an empty flow; otherwise the steps that can take what the
- * step before gives, as the engine's `canConnect` decides. The real rule belongs in a PRD.
- */
-const recommendedFor = (
-  document: EditorDocument,
-  after: { stepId: string; port: string } | undefined,
-  parentId: string | null | undefined,
-): CatalogEntry[] => {
-  const shapes = availableShapes(document, after, parentId);
-  if (shapes.length === 0) {
-    return popularFirstSteps.flatMap((id) =>
-      catalog.filter((entry) => entry.id === id),
-    );
-  }
-  // Manual journeys only for now (ledger, 21 Oct): AI steps are not offered anywhere.
-  const fitting = catalog.filter(
-    (entry) => isOffered(entry) && fits(entry, shapes),
-  );
-  // A list feeds a single-value input only through For each, so offer it first.
-  fitting.sort(
-    (a, b) => Number(b.id === "forEach") - Number(a.id === "forEach"),
-  );
-  return fitting.slice(0, 4);
-};
-
-/** Each group's row in Browse all: its icon, as the Scratch E1 list draws them. */
-const groupIcons: Record<string, IconName> = {
-  Entities: "cube",
-  Logic: "diagramSubtask",
-  "Files and web": "fileLines",
-  Messages: "at",
-};
+/** The Figma menu's Browse all groups (535:7480), with each one's icon and the catalog groups it holds. */
+const browseGroups: Array<{
+  name: string;
+  icon: IconName;
+  from: (entry: CatalogEntry) => boolean;
+}> = [
+  { name: "People", icon: "user", from: (entry) => entry.id === "requestReview" },
+  { name: "Messages", icon: "at", from: (entry) => entry.id === "sendEmail" },
+  {
+    name: "Documents",
+    icon: "download",
+    from: (entry) => entry.category === "Files and web",
+  },
+  {
+    name: "Entities",
+    icon: "cube",
+    from: (entry) => entry.category === "Entities",
+  },
+  {
+    name: "Flow control",
+    icon: "rotate",
+    from: (entry) => entry.category === "Logic",
+  },
+  { name: "AI", icon: "sparkles", from: () => false },
+];
 
 /** Where a step comes from, when it is not on main: the mock or open-PR mark as the item's suffix. */
 const originSuffix = (entry: CatalogEntry) =>
@@ -158,8 +61,12 @@ const originSuffix = (entry: CatalogEntry) =>
     <OriginMark label="mock" hover={entry.origin.why} />
   ) : undefined;
 
-/** The Scratch L2 picker's width, on the DS Menu. */
-const pickerWidthStyle = css({ width: "[330px]" });
+/** The Figma picker's width, on the DS Menu. */
+const pickerWidthStyle = css({
+  width: "[240px]",
+  // A group's chevron sits at the right edge, as in Figma.
+  "& [role=menuitem] > svg:last-child": { marginLeft: "auto" },
+});
 
 /**
  * An anchor found when the menu reads it, after mount: a picker opened with the screen has no port in the DOM yet.
@@ -268,35 +175,6 @@ export const AddNodePicker = ({
       entry.category.toLowerCase().includes(query),
   );
 
-  // "Fits after <step>" when the picker knows where the step goes; on an empty flow, the usual first steps.
-  const afterId =
-    picker.after?.stepId ??
-    (picker.anchor === "toolbar" ? (ui.selectedId ?? undefined) : undefined);
-  const afterName =
-    afterId === START_ID
-      ? "Start"
-      : afterId
-        ? (() => {
-            const found = findStep(document, afterId)?.step;
-            return found ? stepTitle(found) : undefined;
-          })()
-        : undefined;
-  const suggested = recommendedFor(
-    document,
-    picker.after ??
-      (afterId && findStep(document, afterId)?.step.kind !== "for-each"
-        ? { stepId: afterId, port: "next" }
-        : afterId === START_ID
-          ? { stepId: START_ID, port: "next" }
-          : undefined),
-    picker.parentId,
-  ).filter((entry) => available.includes(entry));
-  const suggestedLabel = afterName
-    ? `Fits after ${afterName}`
-    : picker.parentId
-      ? "Fits inside this group"
-      : "Start with";
-
   /* DS Menu items: a step, and a Browse all group that opens its steps as a DS submenu. */
   const entryItem = (
     entry: CatalogEntry,
@@ -309,23 +187,25 @@ export const AddNodePicker = ({
     suffix: originSuffix(entry) ?? side,
     onClick: () => pick(entry),
   });
-  const browseAll: MenuItem[] = [
-    ...categories.flatMap((category) => {
-      const inCategory = available.filter(
-        (entry) => entry.category === category,
-      );
-      return inCategory.length === 0
-        ? []
-        : [
-            {
-              id: `group:${category}`,
-              text: category,
-              icon: groupIcons[category] ?? ("cube" as const),
-              subItems: inCategory.map((entry) => entryItem(entry, "browse")),
-            },
-          ];
-    }),
-  ];
+  const browseAll: MenuItem[] = browseGroups.map((group) => {
+    const inGroup = available.filter(group.from);
+    return {
+      id: `group:${group.name}`,
+      text: group.name,
+      icon: group.icon,
+      subItems:
+        inGroup.length > 0
+          ? inGroup.map((entry) => entryItem(entry, "browse"))
+          : [
+              {
+                id: `group:${group.name}:none`,
+                text: "No steps yet",
+                disabled: true,
+                onClick: () => undefined,
+              },
+            ],
+    };
+  });
   const items: Array<ItemOrGroup<MenuItem>> = query
     ? [
         {
@@ -349,15 +229,6 @@ export const AddNodePicker = ({
         },
       ]
     : [
-        ...(suggested.length > 0
-          ? [
-              {
-                id: "suggested",
-                label: suggestedLabel,
-                items: suggested.map((entry) => entryItem(entry, "suggested")),
-              },
-            ]
-          : []),
         ...(recent.length > 0
           ? [
               {
@@ -374,14 +245,14 @@ export const AddNodePicker = ({
     <OpenMenu
       anchor={anchor}
       label="Add node"
-      position={picker.anchor === "toolbar" ? "top" : "right-start"}
+      position={picker.anchor === "toolbar" ? "top" : "bottom-start"}
       className={pickerWidthStyle}
       onClose={close}
       header={
         <SearchHeader
           value={search}
           onChange={setSearch}
-          placeholder="Search steps"
+          placeholder="Search"
           focusOnOpen
         />
       }
