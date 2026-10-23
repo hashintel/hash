@@ -631,13 +631,16 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
                     },
                   }))
                 }
-                onRemove={() =>
-                  setDocument((current) =>
-                    updateStep(current, step.stepId, (candidate) => ({
-                      ...candidate,
-                      over: undefined,
-                    })),
-                  )
+                onRemove={
+                  inScreenState && !showFull
+                    ? undefined
+                    : () =>
+                        setDocument((current) =>
+                          updateStep(current, step.stepId, (candidate) => ({
+                            ...candidate,
+                            over: undefined,
+                          })),
+                        )
                 }
               >
                 {step.over.kind === "item"
@@ -1230,7 +1233,7 @@ const EntitySettings = ({ trigger }: { trigger: TriggerNode }) => {
           }
         />
       </PropertyRow>
-      {trigger.kind !== "entityCreated" ? (
+      {trigger.kind !== "entityCreated" && !(inScreenState && !showFull) ? (
         <PropertyRow
           label="Properties to watch"
           wrapLabel

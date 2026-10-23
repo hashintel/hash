@@ -593,8 +593,8 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              width: "[24px]",
-              height: "[24px]",
+              width: "[32px]",
+              height: "[32px]",
               borderRadius: "full",
               borderWidth: "thin",
               borderStyle: "solid",
@@ -612,7 +612,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
               }));
             }}
           >
-            <Icon name="plus" size="xs" />
+            <Icon name="plus" size="sm" />
           </button>
         </div>
       ) : null}

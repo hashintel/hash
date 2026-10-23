@@ -1036,15 +1036,17 @@ const EntityTypeField = ({
         </span>
         <Icon name="chevronDown" size="sm" />
       </button>
-      <div
-        className={css({
-          display: "flex",
-          justifyContent: "flex-end",
-          marginTop: "1.5",
-        })}
-      >
-        <UseVariable onClick={() => setOpen(true)} />
-      </div>
+      {ui.plainQuery ? null : (
+        <div
+          className={css({
+            display: "flex",
+            justifyContent: "flex-end",
+            marginTop: "1.5",
+          })}
+        >
+          <UseVariable onClick={() => setOpen(true)} />
+        </div>
+      )}
       {open ? (
         <SourceMenu
           anchor={anchorRef}

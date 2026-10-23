@@ -693,7 +693,7 @@ const figmaStates: ScreenState[] = [
  */
 export const screenStates: ScreenState[] = figmaStates.map((state) => {
   const hideInputsHeader = state.journey === 3;
-  const plainQuery = state.journey === 2;
+  const plainQuery = state.journey <= 2;
   return hideInputsHeader || plainQuery
     ? {
         ...state,
