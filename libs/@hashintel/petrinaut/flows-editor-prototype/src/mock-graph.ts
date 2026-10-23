@@ -207,6 +207,7 @@ export const mockEntities: MockEntity[] = [
 export const mockPeopleEmails: { label: string; email: string }[] = [
   { label: "Maya Patel", email: "maya@example.com" },
   { label: "Tom Okafor", email: "tom@example.com" },
+  { label: "Purity team", email: "purity-team@example.com" },
 ];
 
 /** Addresses the workspace can send from (field kinds v2: Sender is a select of connected senders, not typed). */

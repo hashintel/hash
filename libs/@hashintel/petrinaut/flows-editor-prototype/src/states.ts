@@ -234,6 +234,14 @@ const failedBatchesAlert = (): EditorDocument => {
       description:
         step.stepId === found.stepId ? "Failed batches" : "Alert to the team",
     })),
+    lists: {
+      [fieldKey(email.stepId, "to")]: [
+        {
+          kind: "constant",
+          payload: { kind: "Text", value: "purity-team@example.com" },
+        },
+      ],
+    },
     templates: {
       [fieldKey(email.stepId, "subject")]: [
         { kind: "text", text: "Failed batches this month: " },
@@ -242,7 +250,8 @@ const failedBatchesAlert = (): EditorDocument => {
           source: {
             kind: "step-output",
             stepId: found.stepId,
-            outputName: "entities",
+            // Mock data: Figma's chip reads "Failed batches › Count"; the engine's Find entities has no count output.
+            outputName: "count",
           },
         },
       ],

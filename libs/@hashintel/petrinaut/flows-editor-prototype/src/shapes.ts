@@ -2,7 +2,12 @@
  * Bridges the editor's document to the engine: turns it into a real `FlowDefinition`, and asks the engine which
  * values fit which inputs (`canConnect`, `createStepShapeResolver`) and what's wrong (`validateFlowDefinition`).
  */
-import { type CatalogEntry, getCatalogEntry, type InputView } from "./catalog";
+import {
+  type CatalogEntry,
+  getCatalogEntry,
+  humanize,
+  type InputView,
+} from "./catalog";
 import {
   START_ID,
   type DraftStep,
@@ -487,7 +492,7 @@ export const describeSource = (
           : undefined;
       return {
         owner: step ? stepLabel(step) : source.stepId,
-        label: output?.label ?? source.outputName,
+        label: output?.label ?? humanize(source.outputName),
       };
     }
     case "constant":

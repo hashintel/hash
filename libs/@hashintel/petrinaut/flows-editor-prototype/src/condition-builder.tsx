@@ -26,7 +26,12 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 import { HashIcon } from "@hashintel/ds-icons";
 
-import { type CatalogEntry, getCatalogEntry, type InputView } from "./catalog";
+import {
+  type CatalogEntry,
+  getCatalogEntry,
+  humanize,
+  type InputView,
+} from "./catalog";
 import {
   DatePopover,
   formatDate,
@@ -259,7 +264,7 @@ export const tokenPath = (
     );
     return step.kind === "action" && outputs[0]?.name === source.outputName
       ? [stepLabel(step)]
-      : [stepLabel(step), output?.label ?? source.outputName];
+      : [stepLabel(step), output?.label ?? humanize(source.outputName)];
   }
   if (source.kind === "item") {
     const parentId = stepId ? findStep(document, stepId)?.parentId : undefined;

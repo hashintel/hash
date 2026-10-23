@@ -678,8 +678,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
               input={anyListInput}
               entry={forEachEntry}
               listsOnly
-              position="bottom-end"
-              alignToPanel
+              position="bottom-start"
               onClose={() =>
                 setUi((current) => ({ ...current, openField: null }))
               }

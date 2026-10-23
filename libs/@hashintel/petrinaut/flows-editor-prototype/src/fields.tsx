@@ -32,7 +32,7 @@ import {
   type TemplatePart,
   VALUE_SUBJECT,
 } from "./document";
-import { useEditor } from "./editor-context";
+import { inScreenState, showFull, useEditor } from "./editor-context";
 import {
   findEntityType,
   findPropertyType,
@@ -83,7 +83,9 @@ const sourceChipLabel = (
       step?.kind === "action"
         ? (getCatalogEntry(step.actionDefinitionId)?.outputs ?? [])
         : [];
-    return outputs.length > 1 ? `${owner} › ${label}` : owner;
+    // An output the step does not list (the mock "Count") is named after its step, as the token's hover path does.
+    const listed = outputs.some((output) => output.name === source.outputName);
+    return outputs.length > 1 || !listed ? `${owner} › ${label}` : owner;
   }
   return label;
 };
@@ -688,6 +690,13 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
   const variables = items.filter((item) => item.kind !== "constant");
   const mixed =
     items.length > 1 && items.some((item) => item.kind !== "constant");
+  // Figma J3 D1: To is a select of people with "Use a variable" under it; the address list is `?full`.
+  const recipientSelect =
+    mode === "email" &&
+    inScreenState &&
+    !showFull &&
+    variables.length === 0 &&
+    constants.length <= 1;
 
   const chip = (item: StepInputSource) => {
     const index = items.indexOf(item);
@@ -807,7 +816,41 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
           {addButton}
         </div>
       ) : null}
-      {mode === "entity" ? (
+      {recipientSelect ? (
+        <div ref={anchorRef}>
+          <Select
+            size="sm"
+            aria-label={input.label}
+            items={mockPeopleEmails.map((person) => ({
+              value: person.email,
+              text: person.label,
+            }))}
+            value={constants[0] ? String(constants[0].payload.value) : null}
+            placeholder="Choose a person"
+            onChange={(value) =>
+              setItems(
+                value
+                  ? [
+                      {
+                        kind: "constant",
+                        payload: { kind: "Text", value },
+                      },
+                    ]
+                  : [],
+              )
+            }
+          />
+          <div
+            className={css({
+              display: "flex",
+              justifyContent: "flex-end",
+              marginTop: "1.5",
+            })}
+          >
+            <UseVariable onClick={() => setOpen(true)} />
+          </div>
+        </div>
+      ) : mode === "entity" ? (
         variables.length > 0 ? (
           <div
             className={css({

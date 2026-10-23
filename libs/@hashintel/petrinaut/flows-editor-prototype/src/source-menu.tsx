@@ -288,6 +288,24 @@ const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<MenuItem>> =>
 const sourceMenuWidthStyle = css({
   minWidth: "[240px]",
   maxWidth: "[380px]",
+  // A row with no icon takes no icon slot, so its text lines up with the group title (Figma J3 · C1).
+  "& [role=menuitem] > span[aria-hidden=true]:empty": { display: "none" },
+});
+
+/** The For each list menu is as wide as its select (Figma J2 · C1); the DS positioner's `--reference-width` is the anchor's. */
+const referenceWidthStyle = css({
+  "&[class]": {
+    width: "[var(--reference-width)]",
+    minWidth: "[0]",
+    maxWidth: "[var(--reference-width)]",
+  },
+  // A long step name stays on one line and is clipped, as Figma draws it.
+  "& [role=menuitem] > span[aria-hidden=true]:empty": { display: "none" },
+  "& [role=menuitem] span": {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
 });
 
 /** A DS Menu's search: the DS TextInput at sm with a search icon, pinned above the items. */
@@ -609,7 +627,7 @@ export const SourceMenu = ({
         alignToPanel={alignToPanel}
         onClose={onClose}
         label={`Choose ${input.label}`}
-        className={sourceMenuWidthStyle}
+        className={listsOnly ? referenceWidthStyle : sourceMenuWidthStyle}
         header={
           hideSearch || !longList ? undefined : (
             <SearchHeader value={search} onChange={setSearch} />
