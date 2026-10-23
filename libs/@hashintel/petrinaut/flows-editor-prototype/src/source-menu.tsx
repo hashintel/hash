@@ -23,6 +23,9 @@ import {
   type EditorDocument,
   entityTypeOf,
   findStep,
+  itemName,
+  itemPropertyOf,
+  itemPropertySource,
   setInputSource,
 } from "./document";
 import { useEditor } from "./editor-context";
@@ -189,8 +192,7 @@ export const addLookupStep = (
     (parentId
       ? ((
           findStep(document, parentId)?.step as
-            | { steps?: { stepId: string }[] }
-            | undefined
+            { steps?: { stepId: string }[] } | undefined
         )?.steps ?? [])
       : document.steps
     ).map((step) => step.stepId),
@@ -446,11 +448,11 @@ export const SourceMenu = ({
   )
     .filter((option) => !listsOnly || option.group === "Earlier steps")
     .filter(
-    (option) =>
-      !text ||
-      option.label.toLowerCase().includes(text) ||
-      option.ownerLabel.toLowerCase().includes(text),
-  );
+      (option) =>
+        !text ||
+        option.label.toLowerCase().includes(text) ||
+        option.ownerLabel.toLowerCase().includes(text),
+    );
   const typed = typedChoices.filter(
     (choice) => !text || choice.label.toLowerCase().includes(text),
   );
@@ -494,17 +496,53 @@ export const SourceMenu = ({
         hint: `${option.ownerLabel} › ${option.label} · ${kindLabel(option.shape.payloadKind, option.shape.array)}${option.note ? ` · ${option.note}` : ""}`,
         onPick: () => onPick(option.source),
       }));
+  // Inside a For each: the item's own properties first, under the loop variable's name (Figma J2 · D3).
+  const found = findStep(document, stepId);
+  const loopId = found?.parentId ?? null;
+  const itemType = loopId
+    ? findEntityType(entityTypeOf(document, { kind: "item" }, stepId))
+    : undefined;
+  const current =
+    found?.step.kind === "action" ? found.step.inputs[input.name] : undefined;
+  const currentProperty = current ? itemPropertyOf(current) : undefined;
+  const propertyItems =
+    listsOnly || !loopId || !itemType || input.array
+      ? []
+      : itemType.properties
+          .filter((property) => kinds.includes(property.payloadKind))
+          .filter(
+            (property) => !text || property.title.toLowerCase().includes(text),
+          )
+          .map((property) => ({
+            id: `item-property:${property.baseUrl}`,
+            text: property.title,
+            hint: `${itemName(document, loopId)} › ${property.title} · ${kindLabel(property.payloadKind, false)}`,
+            selected: currentProperty?.baseUrl === property.baseUrl,
+            onPick: () => onPick(itemPropertySource(property.baseUrl)),
+          }));
   const searching = text !== "";
   const earlier = optionItems("Earlier steps");
   const thisItem = optionItems("This item");
   const flowInputs = optionItems("Flow inputs");
   const nothingFits =
-    options.length === 0 && typed.length === 0 && !lookupAllowed;
+    options.length === 0 &&
+    typed.length === 0 &&
+    propertyItems.length === 0 &&
+    !lookupAllowed;
 
   /* One model for both renderings: DS Menu groups and items (icon, description, tick). Headers as the team named
      them (22 Oct): Earlier steps, Flow inputs, Lookup in graph. An empty group says why; Flow inputs then offers
      "Add flow input on Start". */
   const groupsModel: SourceGroup[] = [
+    ...(propertyItems.length > 0 && loopId
+      ? [
+          {
+            id: "item-properties",
+            label: itemName(document, loopId),
+            items: propertyItems,
+          },
+        ]
+      : []),
     ...(typed.length > 0
       ? [
           {

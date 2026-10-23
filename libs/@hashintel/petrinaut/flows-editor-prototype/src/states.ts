@@ -673,6 +673,21 @@ const figmaStates: ScreenState[] = [
     }),
   },
   {
+    id: "j2-d3",
+    journey: 2,
+    row: "Row D · Inside the box",
+    title: "J2 · D3 · Pick a property of supplier",
+    caption: "The URL menu lists supplier's properties first.",
+    create: () => ({
+      document: supplierCertificatesExample("fetch-file"),
+      ui: {
+        ...initialUi,
+        selectedId: CERTIFICATES,
+        openField: { stepId: CERTIFICATES, inputName: "url", mode: "menu" },
+      },
+    }),
+  },
+  {
     id: "for-each",
     journey: 2,
     row: "For each and running",
