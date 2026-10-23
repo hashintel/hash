@@ -15,6 +15,8 @@ import type {
   EntityUuid,
   PropertyObject,
   PropertyObjectMetadata,
+  PropertyObjectWithMetadata,
+  PropertyPatchOperation,
   ProvidedEntityEditionProvenance,
   Url,
   VersionedUrl,
@@ -133,6 +135,10 @@ export type PayloadKindValues = {
   GoogleSheet: GoogleSheet;
   Number: number;
   PersistedEntityMetadata: PersistedEntityMetadata;
+  /** An entity's properties with their metadata, as the graph takes them to create an entity */
+  PropertyObjectWithMetadata: PropertyObjectWithMetadata;
+  /** A change to one of an entity's properties, as the graph takes it to update an entity */
+  PropertyPatch: PropertyPatchOperation;
   ProposedEntity: ProposedEntity;
   ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
   SortKey: SortKey;
@@ -186,6 +192,8 @@ export const payloadKindTraits = {
   GoogleSheet: { primitive: null, fields: true },
   Number: { primitive: "number" },
   PersistedEntityMetadata: { primitive: null, fields: true },
+  PropertyObjectWithMetadata: { primitive: null },
+  PropertyPatch: { primitive: null },
   ProposedEntity: { primitive: null, fields: true, entity: true },
   ProposedEntityWithResolvedLinks: {
     primitive: null,
