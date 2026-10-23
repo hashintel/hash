@@ -56,6 +56,7 @@ export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
         differentialEquations: subnet.differentialEquations,
         parameters: subnet.parameters,
         componentInstances: subnet.componentInstances ?? [],
+        fusions: subnet.fusions ?? [],
       }
     : {
         places: petriNetDefinition.places,
@@ -64,6 +65,7 @@ export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
         differentialEquations: petriNetDefinition.differentialEquations,
         parameters: petriNetDefinition.parameters,
         componentInstances: petriNetDefinition.componentInstances ?? [],
+        fusions: petriNetDefinition.fusions ?? [],
       };
 
   return (

@@ -40,8 +40,11 @@ export function useKeyboardShortcuts(
     setSearchOpen,
     searchInputRef,
   } = use(EditorContext);
-  const { activeNet } = use(ActiveNetContext);
-  const { petriNetId } = use(SDCPNContext);
+  const { activeNet, activeSubnetId } = use(ActiveNetContext);
+  const { petriNetId, petriNetDefinition } = use(SDCPNContext);
+  // The place and transition tools are withheld on a components-only root net.
+  const primitivesAllowed =
+    activeSubnetId !== null || petriNetDefinition.componentsOnly !== true;
   const { deleteItemsByIds } = usePetrinautMutations();
   const { applyClipboardPaste } = usePetrinautCommands();
   const isReadonly = useIsReadOnly();
@@ -203,7 +206,7 @@ export function useKeyboardShortcuts(
         if (isReadonly) {
           event.preventDefault();
           notifyReadOnly();
-        } else if (mode === "edit") {
+        } else if (mode === "edit" && primitivesAllowed) {
           event.preventDefault();
           onEditionModeChange("add-place");
         }
@@ -212,7 +215,7 @@ export function useKeyboardShortcuts(
         if (isReadonly) {
           event.preventDefault();
           notifyReadOnly();
-        } else if (mode === "edit") {
+        } else if (mode === "edit" && primitivesAllowed) {
           event.preventDefault();
           onEditionModeChange("add-transition");
         }

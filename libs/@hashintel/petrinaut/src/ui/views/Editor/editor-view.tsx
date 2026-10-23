@@ -14,6 +14,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
+  assemblyLine,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
@@ -473,6 +474,14 @@ const EditorViewContent = ({
                 text: "Vaccination Campaign",
                 onClick: () => {
                   createNewNet(vaccinationCampaign);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-assembly-line",
+                text: "Assembly Line",
+                onClick: () => {
+                  createNewNet(assemblyLine);
                   clearSelection();
                 },
               },

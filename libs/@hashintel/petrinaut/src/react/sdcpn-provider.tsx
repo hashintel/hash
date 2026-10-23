@@ -92,6 +92,15 @@ export const SDCPNProvider: React.FC<{ children: ReactNode }> = ({
         return "componentInstance";
       }
 
+      if (
+        isSelectionTypeAvailableForExtensions("fusion", instance.extensions) &&
+        allNets.some((net) =>
+          (net.fusions ?? []).some((fusion) => fusion.id === id),
+        )
+      ) {
+        return "fusion";
+      }
+
       return null;
     },
   };

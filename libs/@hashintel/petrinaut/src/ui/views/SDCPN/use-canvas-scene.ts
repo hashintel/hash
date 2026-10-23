@@ -21,7 +21,7 @@ import { usePointerAtRest } from "./hooks/util/use-pointer-at-rest";
 export const useCanvasScene = (
   canvasRef: React.RefObject<HTMLElement | null>,
 ): CanvasScene => {
-  const { activeNet } = use(ActiveNetContext);
+  const { activeNet, activeSubnetId } = use(ActiveNetContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const {
     draggingStateByNodeId,
@@ -61,6 +61,7 @@ export const useCanvasScene = (
 
   return buildCanvasScene({
     net: activeNet,
+    activeSubnetId,
     sdcpn: petriNetDefinition,
     extensions,
     dimensions: compactNodes ? compactNodeDimensions : classicNodeDimensions,

@@ -40,10 +40,12 @@ import { Arc } from "./react-flow-canvas/arc";
 import { ClassicPlaceNode } from "./react-flow-canvas/classic-place-node";
 import { ClassicTransitionNode } from "./react-flow-canvas/classic-transition-node";
 import { ComponentInstanceNode } from "./react-flow-canvas/component-instance-node";
+import { FusionEdge } from "./react-flow-canvas/fusion-edge";
 import { MiniMap } from "./react-flow-canvas/mini-map";
 import { OutlineConnectionLine } from "./react-flow-canvas/outline-connection-line";
 import { PlaceNode } from "./react-flow-canvas/place-node";
 import { toCanvasConnection } from "./react-flow-canvas/port-handles";
+import { fusionIdOfEdge } from "./react-flow-canvas/react-flow-types";
 import {
   isMac,
   selectionKeyCode,
@@ -73,6 +75,7 @@ const CLASSIC_NODE_TYPES = {
 
 const REACTFLOW_EDGE_TYPES = {
   default: Arc,
+  fusion: FusionEdge,
 };
 
 const MIN_ZOOM_DEBOUNCE_MS = 100;
@@ -274,7 +277,14 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
             enableAutomaticArcConnections ? isValidOutlineConnection : undefined
           }
           onConnect={interactions.readonly ? undefined : connect}
-          onEdgeClick={(_event, edge) => interactions.selectArc(edge.id)}
+          onEdgeClick={(_event, edge) => {
+            const fusionId = fusionIdOfEdge(edge);
+            if (fusionId === null) {
+              interactions.selectArc(edge.id);
+            } else {
+              interactions.selectFusion(fusionId);
+            }
+          }}
           // Node click selection is handled by ReactFlow's internal
           // handleNodeClick, which fires select changes through
           // onNodesChange; an onNodeClick handler would conflict with it.
@@ -291,7 +301,14 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
               kind: node.type as CanvasNodeKind,
             })
           }
-          onEdgeMouseEnter={(_event, edge) => interactions.hoverArc(edge.id)}
+          onEdgeMouseEnter={(_event, edge) => {
+            const fusionId = fusionIdOfEdge(edge);
+            if (fusionId === null) {
+              interactions.hoverArc(edge.id);
+            } else {
+              interactions.hoverFusion(fusionId);
+            }
+          }}
           onEdgeMouseLeave={interactions.clearHover}
           onSelectionStart={interactions.beginSelectionGesture}
           onSelectionEnd={interactions.endSelectionGesture}
