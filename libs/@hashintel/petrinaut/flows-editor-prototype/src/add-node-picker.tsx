@@ -7,11 +7,7 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import {
-  type CatalogEntry,
-  catalog,
-  isOffered,
-} from "./catalog";
+import { type CatalogEntry, catalog, isOffered } from "./catalog";
 import {
   START_ID,
   addStep,
@@ -30,7 +26,11 @@ const browseGroups: Array<{
   icon: IconName;
   from: (entry: CatalogEntry) => boolean;
 }> = [
-  { name: "People", icon: "user", from: (entry) => entry.id === "requestReview" },
+  {
+    name: "People",
+    icon: "user",
+    from: (entry) => entry.id === "requestReview",
+  },
   { name: "Messages", icon: "at", from: (entry) => entry.id === "sendEmail" },
   {
     name: "Documents",
@@ -71,6 +71,14 @@ const pickerWidthStyle = css({
 /**
  * An anchor found when the menu reads it, after mount: a picker opened with the screen has no port in the DOM yet.
  */
+const anchorAtPoint = (point: { x: number; y: number }) =>
+  ({
+    current: {
+      getBoundingClientRect: () => new DOMRect(point.x, point.y, 1, 1),
+      closest: () => null,
+    },
+  }) as unknown as React.RefObject<Element | null>;
+
 const anchorBySelector = (selector: string) =>
   Object.defineProperty({}, "current", {
     get: () => globalThis.document.querySelector<HTMLElement>(selector),
@@ -91,11 +99,13 @@ export const AddNodePicker = ({
   const anchor =
     picker.anchor === "toolbar"
       ? toolbarAnchor
-      : anchorBySelector(
-          picker.anchor === "port" && picker.after
-            ? `[data-port-add="${picker.after.stepId}:${picker.after.port}"]`
-            : `[data-group-add="${picker.parentId ?? ""}"]`,
-        );
+      : picker.anchor === "drop" && picker.drop
+        ? anchorAtPoint(picker.drop.client)
+        : anchorBySelector(
+            picker.anchor === "port" && picker.after
+              ? `[data-port-add="${picker.after.stepId}:${picker.after.port}"]`
+              : `[data-group-add="${picker.parentId ?? ""}"]`,
+          );
 
   const close = () => {
     setSearch("");
@@ -141,9 +151,15 @@ export const AddNodePicker = ({
       position:
         parentId && !after
           ? { x: 32 + insideCount * 300, y: 72 }
-          : after
-            ? undefined
-            : { x: rightmost + 320, y: document.positions[START_ID]?.y ?? 220 },
+          : picker.drop &&
+              !findStep(document, picker.after?.stepId ?? "")?.parentId
+            ? picker.drop.flow
+            : after
+              ? undefined
+              : {
+                  x: rightmost + 320,
+                  y: document.positions[START_ID]?.y ?? 220,
+                },
     });
     setDocument(() => next);
     setUi((current) => ({

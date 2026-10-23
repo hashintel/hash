@@ -127,6 +127,10 @@ const cardStyle = cva({
     borderRadius: "lg",
     transition: "[border-color 0.15s ease, box-shadow 0.3s ease]",
     "&:hover [data-port-add]": { opacity: "[1]" },
+    // A reference to this step is hovered in the panel: the soft ring a new step glows with, and the +, as on hover.
+    "&[data-source-hover]": {
+      boxShadow: "[0 0 0 3px var(--colors-blue-bd-subtle)]",
+    },
     // A step just added for the user (Look up in the graph) glows for a moment.
     "&[data-flash]": {
       borderColor: "blue.bd.strong",
@@ -217,7 +221,7 @@ const handleStyle = css({
 
 const portAddStyle = css({
   position: "absolute",
-  right: "[-34px]",
+  right: "[-32px]",
   width: "[22px]",
   height: "[22px]",
   borderRadius: "full",
@@ -234,6 +238,16 @@ const portAddStyle = css({
   transition: "[opacity 0.15s ease]",
   transform: "[translateY(-50%)]",
   zIndex: "[2]",
+  // An invisible bridge back to the port, so the + stays while the pointer crosses the gap.
+  "&::before": {
+    content: '""',
+    position: "absolute",
+    top: "[0]",
+    bottom: "[0]",
+    // From just past the 7 px port, so the port itself still takes a drag.
+    left: "[-6px]",
+    width: "[6px]",
+  },
   _hover: { borderColor: "blue.bd.strong", color: "blue.fg.muted" },
   _focusVisible: {
     opacity: "[1]",
@@ -391,6 +405,7 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
     <div
       className={cardStyle({ selected })}
       data-flash={ui.flashId === id || undefined}
+      data-source-hover={ui.hoverSourceId === id || undefined}
     >
       <Handle
         id="in"
@@ -480,6 +495,9 @@ const triggerStyle = css({
   position: "relative",
   "&:hover [data-port-add]": { opacity: "[1]" },
   "&[data-selected] [data-port-add]": { opacity: "[1]" },
+  "&[data-source-hover]": {
+    boxShadow: "[0 0 0 3px var(--colors-blue-bd-subtle)]",
+  },
   "&[data-selected]": {
     borderColor: "blue.bd.strong",
     boxShadow: "[inset 0 0 0 0.5px var(--colors-blue-bd-strong)]",
@@ -488,9 +506,13 @@ const triggerStyle = css({
 
 /** Start: always on the canvas, holds the flow's inputs and lists what starts the flow; steps follow it. */
 const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
-  const { document } = useEditor();
+  const { document, ui } = useEditor();
   return (
-    <div className={triggerStyle} data-selected={selected || undefined}>
+    <div
+      className={triggerStyle}
+      data-selected={selected || undefined}
+      data-source-hover={ui.hoverSourceId === START_ID || undefined}
+    >
       <Tooltip content="Start · holds the flow's inputs" position="top">
         <div className={cardHeadStyle}>
           <CardTile icon="play" tone="neutral" />
@@ -519,6 +541,10 @@ const groupStyle = cva({
     borderRadius: "xl",
     backgroundColor: "[rgba(250, 250, 250, 0.7)]",
     position: "relative",
+    "&:hover [data-port-add]": { opacity: "[1]" },
+    "&[data-source-hover]": {
+      boxShadow: "[0 0 0 3px var(--colors-blue-bd-subtle)]",
+    },
   },
   variants: {
     selected: {
@@ -532,14 +558,17 @@ const groupStyle = cva({
 
 /** D17 D: a box names the group; the steps that run per item sit inside it (ledger, 20 Oct). */
 const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
-  const { document, setUi } = useEditor();
+  const { document, ui, setUi } = useEditor();
   const step = flatFind(document, id);
   if (!step || step.kind !== "for-each") {
     return null;
   }
   const over = step.over ? describeSource(document, step.over, id) : null;
   return (
-    <div className={groupStyle({ selected })}>
+    <div
+      className={groupStyle({ selected })}
+      data-source-hover={ui.hoverSourceId === id || undefined}
+    >
       <Handle
         id="in"
         type="target"
@@ -684,6 +713,8 @@ export const FlowCanvas = ({
   >({});
 
   const flow = useReactFlow<StepNode>();
+  // The mouse-up that ends a wire on empty canvas is also a click on the pane; it must not close the menu it opens.
+  const droppedAt = useRef(0);
   // On first load, wait for the initial fit to finish before panning to the selection.
   const loaded = useRef(false);
 
@@ -806,6 +837,41 @@ export const FlowCanvas = ({
     }));
   };
 
+  /** A wire released on empty canvas opens the add-step menu there; the new step is wired from the port it came from. */
+  const onConnectEnd = (
+    event: MouseEvent | TouchEvent,
+    state: {
+      isValid: boolean | null;
+      fromNode: { id: string } | null;
+      fromHandle: { id?: string | null } | null;
+    },
+  ) => {
+    if (state.isValid || !state.fromNode || !state.fromHandle) {
+      return;
+    }
+    const point =
+      "changedTouches" in event
+        ? {
+            x: event.changedTouches[0]!.clientX,
+            y: event.changedTouches[0]!.clientY,
+          }
+        : { x: event.clientX, y: event.clientY };
+    droppedAt.current = Date.now();
+    const flowPoint = flow.screenToFlowPosition(point);
+    const stepId = state.fromNode.id;
+    setUi((current) => ({
+      ...current,
+      picker: {
+        after: { stepId, port: state.fromHandle?.id ?? "next" },
+        anchor: "drop",
+        drop: {
+          client: point,
+          flow: { x: flowPoint.x, y: flowPoint.y - STEP_HEIGHT / 2 },
+        },
+      },
+    }));
+  };
+
   return (
     <ReactFlow
       className={canvasStyle}
@@ -815,6 +881,7 @@ export const FlowCanvas = ({
       onNodesChange={onNodesChange}
       onNodeDragStop={onNodeDragStop}
       onConnect={onConnect}
+      onConnectEnd={onConnectEnd}
       onNodeClick={(_, node) =>
         setUi((current) => ({
           ...current,
@@ -823,14 +890,17 @@ export const FlowCanvas = ({
           openField: null,
         }))
       }
-      onPaneClick={() =>
+      onPaneClick={() => {
+        if (Date.now() - droppedAt.current < 400) {
+          return;
+        }
         setUi((current) => ({
           ...current,
           selectedId: null,
           picker: null,
           openField: null,
-        }))
-      }
+        }));
+      }}
       onNodesDelete={(deleted) =>
         setDocument((current) =>
           deleted.reduce((next, node) => removeStep(next, node.id), current),

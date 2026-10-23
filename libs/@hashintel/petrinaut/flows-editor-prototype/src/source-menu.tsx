@@ -38,20 +38,22 @@ import { kindLabel } from "./ui";
 import type { StepInputSource } from "./engine";
 import type { PrdSource } from "./mock-prd-ports";
 
-/** A DS Menu item as ↳ Current draws it: 32 px tall, 6 px in, 8 px corners, a bare 14 px icon, 14 px medium label. */
+/**
+ * Hand-built row for the "@" popover only, with the values the DS Menu item renders at its default size (measured):
+ * 8 px in, 3 px above and below, 6 px corners, 6 px gap, 14 px label at 450 weight, `neutral.a35` highlight.
+ */
 export const menuRowStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "2",
+  gap: "1.5",
   width: "[100%]",
-  minHeight: "[32px]",
-  paddingX: "1.5",
-  paddingY: "[1px]",
-  borderRadius: "lg",
+  paddingX: "2",
+  paddingY: "[3px]",
+  borderRadius: "md",
   textAlign: "left",
   cursor: "pointer",
   textStyle: "sm",
-  fontWeight: "medium",
+  fontWeight: "[450]",
   color: "neutral.fg.heading",
   whiteSpace: "nowrap",
   "& > svg": {
@@ -61,14 +63,9 @@ export const menuRowStyle = css({
     color: "neutral.fg.muted",
   },
   "& > svg:last-child:not(:first-child)": { width: "[16px]", height: "[16px]" },
-  _hover: { backgroundColor: "neutral.bg.surface.active" },
-  _focusVisible: {
-    backgroundColor: "neutral.bg.surface.active",
-    outline: "none",
-  },
-  "&[data-active], &[data-selected]": {
-    backgroundColor: "neutral.bg.surface.active",
-  },
+  _hover: { backgroundColor: "neutral.a35" },
+  _focusVisible: { backgroundColor: "neutral.a35", outline: "none" },
+  "&[data-active], &[data-selected]": { backgroundColor: "neutral.a35" },
 });
 
 /** A group of rows, 4 px in, with a hairline between groups. */
@@ -83,15 +80,15 @@ export const menuGroupStyle = css({
   },
 });
 
-/** The DS group title: 28 px, 12 px medium caps, muted. */
+/** The DS group title: 12 px medium caps, 8 px in, muted. */
 export const menuGroupLabelStyle = css({
   display: "flex",
   alignItems: "center",
   height: "[28px]",
-  paddingX: "1.5",
+  paddingX: "2",
   textStyle: "xs",
   fontWeight: "medium",
-  letterSpacing: "[0.48px]",
+  letterSpacing: "[0.12px]",
   textTransform: "uppercase",
   color: "neutral.fg.subtle",
 });
@@ -100,18 +97,18 @@ export const menuGroupLabelStyle = css({
 const menuEmptyRowStyle = css({
   display: "flex",
   alignItems: "center",
-  minHeight: "[32px]",
-  paddingX: "1.5",
-  borderRadius: "lg",
-  backgroundColor: "neutral.bg.surface.active",
+  paddingX: "2",
+  paddingY: "[3px]",
+  borderRadius: "md",
+  backgroundColor: "neutral.a35",
   textStyle: "sm",
-  fontWeight: "medium",
+  fontWeight: "[450]",
   color: "neutral.fg.heading",
   opacity: "[0.5]",
   whiteSpace: "nowrap",
 });
 
-/** The DS Menu surface: white, a subtle hairline, 10 px corners and the DS lg shadow. */
+/** The DS Menu surface: white, the DS subtle hairline, `lg` corners (8 px) and the DS lg shadow. */
 export const menuPanelStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -122,10 +119,9 @@ export const menuPanelStyle = css({
   backgroundColor: "neutral.bgSolid.min",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "neutral.bd.subtle.hover",
-  borderRadius: "[10px]",
-  boxShadow:
-    "[0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)]",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "lg",
+  boxShadow: "lg",
   overflow: "hidden",
 });
 

@@ -62,7 +62,7 @@ const headerStyle = css({
 
 /**
  * Figma DS `Tabs` variant=underlined, size=md as shipped (DS file 18895:12227; code has no Tabs): one hairline under
- * the tab set only, 20 px between tabs, 32 px items 3 px in, the selected one with a 2 px underline. No full-width
+ * the tab set only, 20 px between tabs, 32 px items 3 px in, the selected one with a 2 px indicator exactly under its label. No full-width
  * header border (21 Oct).
  */
 const tabListStyle = css({
@@ -75,6 +75,7 @@ const tabListStyle = css({
 });
 
 const tabStyle = css({
+  position: "relative",
   display: "flex",
   alignItems: "center",
   height: "[32px]",
@@ -84,17 +85,20 @@ const tabStyle = css({
   fontWeight: "medium",
   // `_TabItemUnderlined` variant=simple (ds-map): an unselected tab is subtle, as ↳ Current draws it.
   color: "neutral.fg.subtle",
-  borderBottomWidth: "[2px]",
-  borderBottomStyle: "solid",
-  borderBottomColor: "[transparent]",
-  marginBottom: "[-1px]",
   cursor: "pointer",
   whiteSpace: "nowrap",
   _hover: { color: "neutral.fg.heading" },
   _focusVisible: { outline: "[2px solid var(--colors-blue-bd-strong)]" },
-  "&[aria-selected=true]": {
-    color: "neutral.fg.heading",
-    borderBottomColor: "neutral.bd.strong",
+  "&[aria-selected=true]": { color: "neutral.fg.heading" },
+  // The indicator is exactly as wide as the label, and sits on the one baseline rule.
+  "&[aria-selected=true]::after": {
+    content: '""',
+    position: "absolute",
+    left: "[3px]",
+    right: "[3px]",
+    bottom: "[-1px]",
+    height: "[2px]",
+    backgroundColor: "neutral.fg.heading",
   },
 });
 

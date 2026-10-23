@@ -32,7 +32,12 @@ import {
   type TemplatePart,
   VALUE_SUBJECT,
 } from "./document";
-import { inScreenState, showFull, useEditor } from "./editor-context";
+import {
+  inScreenState,
+  showFull,
+  useEditor,
+  useSourceHover,
+} from "./editor-context";
 import {
   findEntityType,
   findPropertyType,
@@ -119,6 +124,24 @@ const ownerLook = (document: EditorDocument, source: StepInputSource) => {
  * A variable token: the DS `Chip` as Figma's `Chips` draws it (grey, round, md, `_showLeftIcon` with the source
  * step's icon). The text is step name first, a long path's middle collapsed to "…"; the hover shows the whole path.
  */
+/** Hovering a reference highlights the card it comes from on the canvas. */
+const SourceHover = ({
+  source,
+  stepId,
+  children,
+}: {
+  source: StepInputSource;
+  stepId: string;
+  children: React.ReactNode;
+}) => (
+  <span
+    className={css({ display: "inline-flex", minWidth: "[0]" })}
+    {...useSourceHover(source, stepId)}
+  >
+    {children}
+  </span>
+);
+
 const TokenChip = ({
   source,
   stepId,
@@ -134,24 +157,26 @@ const TokenChip = ({
   const parts = tokenPath(document, source, stepId);
   return (
     <Tooltip content={parts.join(" › ")}>
-      <Chip
-        size="md"
-        shape="round"
-        color="grey"
-        prefix={{
-          iconName: ownerLook(document, source)?.icon ?? "rotate",
-          variant: "naked",
-        }}
-        onClick={onClick}
-        // J2's Figma frame draws the item chip with no ×.
-        removeable={
-          ui.plainQuery && source.kind === "item"
-            ? false
-            : { onRemove, "aria-label": "Clear" }
-        }
-      >
-        {collapsePath(parts)}
-      </Chip>
+      <SourceHover source={source} stepId={stepId}>
+        <Chip
+          size="md"
+          shape="round"
+          color="grey"
+          prefix={{
+            iconName: ownerLook(document, source)?.icon ?? "rotate",
+            variant: "naked",
+          }}
+          onClick={onClick}
+          // J2's Figma frame draws the item chip with no ×.
+          removeable={
+            ui.plainQuery && source.kind === "item"
+              ? false
+              : { onRemove, "aria-label": "Clear" }
+          }
+        >
+          {collapsePath(parts)}
+        </Chip>
+      </SourceHover>
     </Tooltip>
   );
 };
@@ -255,6 +280,8 @@ export const ValueField = ({ step, input, entry }: FieldProps) => {
         className={css({ display: "flex", flexDirection: "column", gap: "1" })}
       >
         <SourceSelectTrigger
+          source={source}
+          stepId={step.stepId}
           hover={tokenPath(document, source, step.stepId).join(" › ")}
           onClick={() => setOpen(true)}
         >
@@ -584,12 +611,16 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
 
 type ListMode = "email" | "entity" | "file" | "reference";
 
-const listModeOf = (input: InputView): ListMode => {
+/**
+ * Files only for an input whose kind is a file (`format: "file"`, Send email's Attachments). An engine input that merely
+ * accepts every payload kind, such as Aggregate's Items, lists files among its kinds but is not a file input.
+ */
+export const listModeOf = (input: InputView): ListMode => {
   const kinds = input.kinds ?? [];
   if (input.format === "email") {
     return "email";
   }
-  if (input.format === "file" || kinds.includes("PersistedEntityMetadata")) {
+  if (input.format === "file") {
     return "file";
   }
   if (kinds.length === 1 && kinds[0] === "EntityId") {
@@ -635,6 +666,55 @@ const moreStyle = css({
 
 /** A file picked from the computer: MOCK, nothing uploads; the chip keeps its name. */
 const uploadedPrefix = "upload:";
+
+/**
+ * A list of any kind from an earlier step (Aggregate's Items, Filter list's Items): one source, picked from a select
+ * trigger like For each's List. The menu offers the lists from earlier steps; no files, no typing.
+ */
+export const ListSourceField = ({ step, input, entry }: FieldProps) => {
+  const { document, setDocument } = useEditor();
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const { open, setOpen } = useFieldMenu(step.stepId, input.name);
+  const source =
+    step.inputs[input.name] ??
+    document.lists[fieldKey(step.stepId, input.name)]?.[0];
+  return (
+    <div ref={anchorRef}>
+      <SourceSelectTrigger
+        source={source}
+        stepId={step.stepId}
+        placeholder={!source}
+        hover={
+          source
+            ? tokenPath(document, source, step.stepId).join(" › ")
+            : undefined
+        }
+        onClick={() => setOpen(true)}
+      >
+        {source
+          ? collapsePath(tokenPath(document, source, step.stepId))
+          : "Choose a list"}
+      </SourceSelectTrigger>
+      {open ? (
+        <SourceMenu
+          anchor={anchorRef}
+          stepId={step.stepId}
+          input={input}
+          entry={entry}
+          listsOnly
+          position="bottom-start"
+          onClose={() => setOpen(false)}
+          onPick={(picked) => {
+            setDocument((current) =>
+              setInputSource(current, step.stepId, input.name, picked),
+            );
+            setOpen(false);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+};
 
 export const ListField = ({ step, input, entry }: FieldProps) => {
   const { document, setDocument } = useEditor();
@@ -728,8 +808,16 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
       <Tooltip key={JSON.stringify(item)} content="Not an email address">
         {content}
       </Tooltip>
-    ) : (
+    ) : item.kind === "constant" ? (
       content
+    ) : (
+      <SourceHover
+        key={JSON.stringify(item)}
+        source={item}
+        stepId={step.stepId}
+      >
+        {content}
+      </SourceHover>
     );
   };
 

@@ -31,7 +31,12 @@ import {
   updateTrigger,
   usersOf,
 } from "./document";
-import { inScreenState, showDebug, showFull, useEditor } from "./editor-context";
+import {
+  inScreenState,
+  showDebug,
+  showFull,
+  useEditor,
+} from "./editor-context";
 import {
   allPayloadKinds,
   type PayloadKind,
@@ -41,6 +46,8 @@ import {
   isFreeText,
   inputHover,
   ListField,
+  ListSourceField,
+  listModeOf,
   MentionField,
   PatchField,
   PropertyField,
@@ -411,7 +418,11 @@ const fieldFor = (
     return <PatchField {...props} />;
   }
   if (input.array) {
-    return <ListField {...props} />;
+    return listModeOf(input) === "reference" ? (
+      <ListSourceField {...props} />
+    ) : (
+      <ListField {...props} />
+    );
   }
   if (isFreeText(input)) {
     return <MentionField {...props} />;
@@ -461,9 +472,7 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
       />
       {visibleInputs.length > 0 ? (
         <Section
-          title={
-            ui.hideInputsHeader && !showFull ? undefined : "Inputs"
-          }
+          title={ui.hideInputsHeader && !showFull ? undefined : "Inputs"}
         >
           {visibleInputs.map((input) => {
             const kinds = acceptedKinds(document, step.stepId, input, entry);
@@ -621,6 +630,8 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
             })}
           >
             <SourceSelectTrigger
+              source={step.over}
+              stepId={step.stepId}
               placeholder={!(step.over && over)}
               onClick={() =>
                 setUi((current) => ({

@@ -1,13 +1,16 @@
 import { createContext, use } from "react";
 
-import type { EditorDocument } from "./document";
+import { type EditorDocument, findStep, START_ID } from "./document";
+import type { StepInputSource } from "./engine";
 import type { validateDocument } from "./shapes";
 
 /** Where the Add node picker inserts, and what it is anchored to. */
 export type PickerTarget = {
   after?: { stepId: string; port: string };
   parentId?: string | null;
-  anchor: "toolbar" | "port" | "group";
+  anchor: "toolbar" | "port" | "group" | "drop";
+  /** For "drop": where a wire was released on empty canvas, in window pixels (the menu) and flow units (the new step). */
+  drop?: { client: { x: number; y: number }; flow: { x: number; y: number } };
 };
 
 /** A field whose menu is open: the source menu, or the "@" search of a free-text field. */
@@ -39,6 +42,8 @@ export type EditorUi = {
   zoomBase?: number;
   /** A screen state's + handles show on hover only; the Figma frame draws the + beside the selected step in J2 A and B2 alone. */
   quietPortAdd?: boolean;
+  /** The step card a hovered reference comes from: the canvas highlights it while the pointer is on the reference. */
+  hoverSourceId?: string | null;
 };
 
 export const initialUi: EditorUi = {
@@ -74,3 +79,33 @@ export const showDebug = query.has("debug");
 export const showFull = query.has("full");
 /** A `?state=` screen shows only what its Figma frame shows; with none, the editor is in normal use. */
 export const inScreenState = query.has("state");
+
+/** The card a reference reads from: its step, Start for a flow input, the For each box for an item. */
+const sourceCardId = (
+  document: EditorDocument,
+  source: StepInputSource,
+  stepId: string,
+) =>
+  source.kind === "step-output"
+    ? source.stepId
+    : source.kind === "flow-input"
+      ? START_ID
+      : source.kind === "item"
+        ? (findStep(document, stepId)?.parentId ?? null)
+        : null;
+
+/** Pointer props for a reference (token, chip, trigger): hovering it highlights the card it comes from. */
+export const useSourceHover = (
+  source: StepInputSource | null | undefined,
+  stepId: string,
+) => {
+  const { document, setUi } = useEditor();
+  const id = source ? sourceCardId(document, source, stepId) : null;
+  if (!source) {
+    return { onPointerEnter: undefined, onPointerLeave: undefined };
+  }
+  return {
+    onPointerEnter: () => setUi((ui) => ({ ...ui, hoverSourceId: id })),
+    onPointerLeave: () => setUi((ui) => ({ ...ui, hoverSourceId: null })),
+  };
+};

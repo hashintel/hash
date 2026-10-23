@@ -56,7 +56,7 @@ import {
   stepLabel,
   VALUE_SUBJECT,
 } from "./document";
-import { useEditor } from "./editor-context";
+import { useEditor, useSourceHover } from "./editor-context";
 import {
   findPropertyType,
   type MockPropertyType,
@@ -75,8 +75,7 @@ type ValueType = "date" | "number" | "options" | "entity" | "boolean" | "text";
 
 export const valueTypeOf = (
   property:
-    | Pick<MockPropertyType, "payloadKind" | "options" | "linksTo">
-    | undefined,
+    Pick<MockPropertyType, "payloadKind" | "options" | "linksTo"> | undefined,
 ): ValueType =>
   property?.linksTo
     ? "entity"
@@ -621,6 +620,7 @@ const ConditionRowView = ({
     row.valueSource.outputName === "entities" &&
     type !== "entity" &&
     !listOperator;
+  const sourceHover = useSourceHover(row.valueSource, step.stepId);
   const tokenParts = row.valueSource
     ? [
         ...tokenPath(document, row.valueSource, step.stepId),
@@ -652,6 +652,8 @@ const ConditionRowView = ({
             <span
               className={tokenValueStyle}
               aria-label={`Change the source of ${title}`}
+              onPointerEnter={sourceHover.onPointerEnter}
+              onPointerLeave={sourceHover.onPointerLeave}
             >
               <Icon name={tokenIcon(document, row.valueSource!)} size="xs" />
               <TokenLabel parts={tokenParts} />

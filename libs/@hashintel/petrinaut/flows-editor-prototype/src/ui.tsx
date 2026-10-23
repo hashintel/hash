@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Chip, Icon, type IconName, Tooltip } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
+import type { StepInputSource } from "./engine";
+import { useSourceHover } from "./editor-context";
 import type { EditorPayloadKind } from "./mock-action-definitions";
 
 const tile = cva({
@@ -187,7 +189,9 @@ export const PropertyRow = ({
   // The label's hover always carries the full label, since a long one truncates.
   const named = typeof label === "string" ? label : undefined;
   const detail =
-    hover && required && !hover.endsWith("required") ? `${hover} · required` : hover;
+    hover && required && !hover.endsWith("required")
+      ? `${hover} · required`
+      : hover;
   const tip = named && detail ? `${named} · ${detail}` : (detail ?? named);
   const tipKey = Boolean(detail);
   const key = (
@@ -393,25 +397,34 @@ export const SourceSelectTrigger = ({
   hover,
   placeholder = false,
   onClick,
+  source,
+  stepId,
 }: {
   children: string;
   hover?: string;
   placeholder?: boolean;
   onClick: () => void;
-}) => (
-  <Tooltip content={hover ?? children}>
-    <button
-      type="button"
-      className={selectTriggerStyle}
-      style={{ alignSelf: "stretch" }}
-      data-placeholder={placeholder ? "" : undefined}
-      onClick={onClick}
-    >
-      <span>{children}</span>
-      <Icon name="chevronDown" size="sm" />
-    </button>
-  </Tooltip>
-);
+  /** The reference shown: hovering the trigger highlights the card it comes from on the canvas. */
+  source?: StepInputSource | null;
+  stepId?: string;
+}) => {
+  const hoverProps = useSourceHover(source, stepId ?? "");
+  return (
+    <Tooltip content={hover ?? children}>
+      <button
+        type="button"
+        className={selectTriggerStyle}
+        style={{ alignSelf: "stretch" }}
+        data-placeholder={placeholder ? "" : undefined}
+        onClick={onClick}
+        {...hoverProps}
+      >
+        <span>{children}</span>
+        <Icon name="chevronDown" size="sm" />
+      </button>
+    </Tooltip>
+  );
+};
 
 /** The panel header block: icon and type on one line, the description 6 px below. */
 export const panelHeaderStyle = css({
