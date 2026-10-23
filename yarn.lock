@@ -446,10 +446,12 @@ __metadata:
     "@local/tsconfig": "workspace:*"
     "@tsconfig/bases": "catalog:"
     "@types/node": "catalog:"
+    "@types/pg": "npm:8.23.1"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     "@valibot/to-json-schema": "npm:1.7.1"
     oxlint: "npm:1.86.0"
     oxlint-tsgolint: "npm:7.0.2003"
+    pg: "npm:8.23.0"
     valibot: "npm:1.4.2"
     vitest: "catalog:"
   languageName: unknown
