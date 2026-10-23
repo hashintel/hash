@@ -157,6 +157,7 @@ export const ledgerAppendRefusalCodes = [
   "unknown-address",
   "concurrent-commit",
   "claim-without-entity",
+  "ambiguous-comment",
 ] as const;
 
 export const ledgerAppendOutputSchema = v.variant("status", [
@@ -624,6 +625,21 @@ export const prepareAppend = (call: {
       message: unshownClaim,
       revision,
     };
+  // Refuse ambiguous references in new proposals without invalidating commits
+  // already recorded by an older browser that issued colliding numeric IDs.
+  const commentCounts = new Map<string, number>();
+  for (const { id } of state.comments)
+    commentCounts.set(id, (commentCounts.get(id) ?? 0) + 1);
+  for (const [, entry] of call.entries)
+    for (const id of entry.resolves ?? [])
+      if ((commentCounts.get(id) ?? 0) > 1)
+        return {
+          status: "refused",
+          applied: false,
+          code: "ambiguous-comment",
+          message: `Comment ${id} identifies more than one correction and cannot be resolved unambiguously. Ask the USER to resend those corrections as new comments.`,
+          revision,
+        };
   const derived = deriveBatch(state, call.entries, own.turn, reserved);
   if ("refusal" in derived)
     return {

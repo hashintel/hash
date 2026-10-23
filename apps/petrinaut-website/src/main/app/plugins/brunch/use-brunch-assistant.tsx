@@ -606,6 +606,7 @@ export const useBrunchAssistant = ({
             activityIdentities,
             content: (
               <BrunchLedgerTab
+                conversationId={constructionBrowser.binding.conversationId}
                 messages={flueHistory.snapshot?.messages ?? []}
               />
             ),
@@ -632,42 +633,52 @@ export const useBrunchAssistant = ({
       },
       resolveToolPresentation: resolveBrunchToolPresentation,
       workingLabel: "Working…",
-      renderComposerControl: (context: PetrinautAiComposerControlContext) => (
-        <>
-          <WithBrunchEditorApi>
-            {(api) => (
-              <>
-                <BrunchLedgerCommentsBar
-                  context={context}
-                  net={api.document.net}
-                />
-                <BrunchExperimentFollowUp
-                  context={context}
-                  net={api.document.net}
-                />
-              </>
-            )}
-          </WithBrunchEditorApi>
-          {interviewBudgetEnabled && (
-            <InterviewBudgetControl
-              level={interviewBudgetLevel}
-              onChange={(level) => {
-                if (level === interviewBudgetLevel) return;
-                const change = createInterviewBudgetLevelChange(
-                  context.conversationId,
-                  context.messages,
-                  { from: interviewBudgetLevel, to: level },
-                );
-                if (change)
-                  setInterviewBudgetLevelChanges((changes) =>
-                    recordInterviewBudgetLevelChange(changes, change),
+      renderComposerControl: (context: PetrinautAiComposerControlContext) => {
+        const admittedContext: PetrinautAiComposerControlContext = {
+          ...context,
+          submitText: (input) =>
+            conversationTracker.submitTextWithAdmission(
+              context.submitText,
+              input,
+            ),
+        };
+        return (
+          <>
+            <WithBrunchEditorApi>
+              {(api) => (
+                <>
+                  <BrunchLedgerCommentsBar
+                    context={admittedContext}
+                    net={api.document.net}
+                  />
+                  <BrunchExperimentFollowUp
+                    context={admittedContext}
+                    net={api.document.net}
+                  />
+                </>
+              )}
+            </WithBrunchEditorApi>
+            {interviewBudgetEnabled && (
+              <InterviewBudgetControl
+                level={interviewBudgetLevel}
+                onChange={(level) => {
+                  if (level === interviewBudgetLevel) return;
+                  const change = createInterviewBudgetLevelChange(
+                    context.conversationId,
+                    context.messages,
+                    { from: interviewBudgetLevel, to: level },
                   );
-                setInterviewBudgetLevel(level);
-              }}
-            />
-          )}
-        </>
-      ),
+                  if (change)
+                    setInterviewBudgetLevelChanges((changes) =>
+                      recordInterviewBudgetLevelChange(changes, change),
+                    );
+                  setInterviewBudgetLevel(level);
+                }}
+              />
+            )}
+          </>
+        );
+      },
       renderComposerStatus: (context: PetrinautAiComposerControlContext) =>
         interviewBudgetEnabled ? (
           <InterviewBudgetPill

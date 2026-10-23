@@ -14,6 +14,7 @@ import {
   createJsonDocHandle,
   createPetrinaut,
 } from "@hashintel/petrinaut-core";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import { pendingCommentsFor } from "./brunch-ledger-comments";
 import { BrunchLedgerCommentsBar } from "./brunch-ledger-comments-bar";
@@ -25,16 +26,29 @@ afterEach(cleanup);
 const onCrew = { records: ["e1"], text: "There are two crews." };
 const admitted = { kind: "message", messageId: "comments" } as const;
 
-test("numbers comments after those already sent, and never reuses a number", () => {
-  const comments = pendingCommentsFor({});
-  expect(comments.add(onCrew, ["n1", "n4"]).id).toBe("n5");
-  comments.discard();
-  expect(comments.add(onCrew, ["n1", "n4"]).id).toBe("n6");
+test("independent editors issue distinct comment identities without consulting shared history", () => {
+  const first = pendingCommentsFor({}, "conversation");
+  const second = pendingCommentsFor({}, "conversation");
+  const firstId = first.add(onCrew).id;
+  const secondId = second.add(onCrew).id;
+  expect(firstId).not.toBe(secondId);
+  first.discard();
+  expect(first.add(onCrew).id).not.toBe(firstId);
+});
+
+test("pending comments belong to a conversation, not just its editor", () => {
+  const net = {};
+  const previous = pendingCommentsFor(net, "before-clear");
+  previous.add(onCrew);
+  const current = pendingCommentsFor(net, "after-clear");
+  expect(current.get().comments).toEqual([]);
+  expect(pendingCommentsFor(net, "before-clear")).toBe(previous);
+  expect(previous.get().comments).toHaveLength(1);
 });
 
 test("sends every pending comment as one turn, keeping comments added meanwhile", async () => {
-  const comments = pendingCommentsFor({});
-  comments.add(onCrew, []);
+  const comments = pendingCommentsFor({}, "conversation");
+  const first = comments.add(onCrew);
   let settle = () => {};
   const submitText = vi.fn<PetrinautAiComposerControlContext["submitText"]>(
     () =>
@@ -44,69 +58,136 @@ test("sends every pending comment as one turn, keeping comments added meanwhile"
   );
   comments.send(submitText);
   comments.send(submitText);
-  comments.add({ records: ["c1"], text: "Only in winter." }, []);
+  const later = comments.add({ records: ["c1"], text: "Only in winter." });
 
   expect(submitText).toHaveBeenCalledOnce();
   const request = submitText.mock.calls[0]?.[0];
-  expect(request?.target).toBe("message");
-  expect(request?.preserveDraft).toBe(true);
-  expect(parseLedgerComments(request?.text ?? "")).toEqual([
-    { id: "n1", ...onCrew },
-  ]);
+  expect(request).toMatchObject({ target: "message", preserveDraft: true });
+  expect(parseLedgerComments(request?.text ?? "")).toEqual([first]);
   expect(comments.get().sending).toBe("pending");
 
   settle();
   await vi.waitFor(() => expect(comments.get().sending).toBe("idle"));
-  expect(comments.get().comments.map(({ id }) => id)).toEqual(["n2"]);
+  expect(comments.get().comments).toEqual([later]);
 });
 
-test("keeps comments that could not be sent", async () => {
-  const comments = pendingCommentsFor({});
-  comments.add(onCrew, []);
-  comments.send(() => Promise.reject(new Error("offline")));
+test("keeps a rejected batch editable and sends its current text on retry", async () => {
+  const comments = pendingCommentsFor({}, "conversation");
+  const comment = comments.add(onCrew);
+  comments.send(() =>
+    Promise.reject(
+      new FlueChatAdmissionError({ kind: "rejected", status: 403 }),
+    ),
+  );
   await vi.waitFor(() => expect(comments.get().sending).toBe("failed"));
   expect(comments.get().comments).toHaveLength(1);
+  comments.edit(comment.id, "  There are three crews.  ");
+  const submitText = vi
+    .fn<PetrinautAiComposerControlContext["submitText"]>()
+    .mockResolvedValue(admitted);
+  comments.send(submitText);
+  expect(
+    parseLedgerComments(submitText.mock.calls[0]?.[0].text ?? "")?.[0]?.text,
+  ).toBe("There are three crews.");
+  await vi.waitFor(() => expect(comments.get().comments).toEqual([]));
 });
 
-test("the composer bar sends or discards the pending comments, and is absent without any", async () => {
-  const net = createPetrinaut({
-    document: createJsonDocHandle({
-      initial: { places: [], transitions: [] },
-    }),
-  }).definition;
-  const submitText = vi.fn<PetrinautAiComposerControlContext["submitText"]>(
-    () => Promise.resolve(admitted),
+test("retries an uncertain admission with the same immutable batch and delivery identity", async () => {
+  const comments = pendingCommentsFor({}, "conversation");
+  const first = comments.add(onCrew);
+  const submitText = vi
+    .fn<PetrinautAiComposerControlContext["submitText"]>()
+    .mockRejectedValueOnce(new FlueChatAdmissionError({ kind: "ambiguous" }))
+    .mockResolvedValueOnce(admitted);
+  comments.send(submitText);
+  await vi.waitFor(() => expect(comments.get().sending).toBe("uncertain"));
+  const later = comments.add({ records: ["c1"], text: "Another correction." });
+  comments.send(submitText);
+  expect(submitText.mock.calls[0]?.[0].id).toEqual(expect.any(String));
+  expect(submitText.mock.calls[1]?.[0]).toEqual(submitText.mock.calls[0]?.[0]);
+  expect(parseLedgerComments(submitText.mock.calls[1]?.[0].text ?? "")).toEqual(
+    [first],
   );
+  await vi.waitFor(() => expect(comments.get().comments).toEqual([later]));
+});
+
+test("the composer follows the new conversation after Clear chat without sending old references", async () => {
+  const net = createPetrinaut({
+    document: createJsonDocHandle({ initial: { places: [], transitions: [] } }),
+  }).definition;
+  const submitText = vi
+    .fn<PetrinautAiComposerControlContext["submitText"]>()
+    .mockResolvedValue(admitted);
   const context: PetrinautAiComposerControlContext = {
-    conversationId: "conversation",
+    conversationId: "before-clear",
     messages: [],
     status: "ready",
     submitText,
     stop: async () => {},
   };
-  const { container } = render(
+  const { rerender } = render(
     <BrunchLedgerCommentsBar context={context} net={net} />,
   );
-  expect(container.textContent).toBe("");
-
-  const comments = pendingCommentsFor(net);
+  const oldComments = pendingCommentsFor(net, "before-clear");
   act(() => {
-    comments.add(onCrew, []);
-    comments.add({ records: ["c1"], text: "Only in winter." }, []);
+    oldComments.add(onCrew);
   });
   expect(
     screen.getByRole("group", { name: "Ledger comments" }).textContent,
-  ).toContain("2 comments on the Ledger");
+  ).toContain("1 comment on the Ledger");
 
+  rerender(
+    <BrunchLedgerCommentsBar
+      context={{ ...context, conversationId: "after-clear" }}
+      net={net}
+    />,
+  );
+  expect(screen.queryByRole("group", { name: "Ledger comments" })).toBeNull();
+  expect(submitText).not.toHaveBeenCalled();
+  const newComments = pendingCommentsFor(net, "after-clear");
+  let added: ReturnType<typeof newComments.add> | undefined;
+  act(() => {
+    added = newComments.add({
+      records: ["c1"],
+      text: "A correction in the new conversation.",
+    });
+  });
   fireEvent.click(screen.getByRole("button", { name: "Send" }));
-  expect(submitText).toHaveBeenCalledOnce();
+  expect(parseLedgerComments(submitText.mock.calls[0]?.[0].text ?? "")).toEqual(
+    [added],
+  );
   await waitFor(() =>
     expect(screen.queryByRole("group", { name: "Ledger comments" })).toBeNull(),
   );
+  expect(oldComments.get().comments).toHaveLength(1);
 
   act(() => {
-    comments.add({ records: ["c2"], text: "Ask the planner." }, []);
+    newComments.add(onCrew);
   });
   fireEvent.click(screen.getByRole("button", { name: "Discard" }));
-  expect(comments.get().comments).toEqual([]);
+  expect(newComments.get().comments).toEqual([]);
+});
+
+test("Send is unavailable for an empty in-progress comment edit", () => {
+  const net = createPetrinaut({
+    document: createJsonDocHandle({ initial: { places: [], transitions: [] } }),
+  }).definition;
+  const context: PetrinautAiComposerControlContext = {
+    conversationId: "conversation",
+    messages: [],
+    status: "ready",
+    submitText: vi.fn(),
+    stop: async () => {},
+  };
+  const store = pendingCommentsFor(net, context.conversationId);
+  const comment = store.add(onCrew);
+  render(<BrunchLedgerCommentsBar context={context} net={net} />);
+  act(() => {
+    store.edit(comment.id, "   ");
+  });
+  expect(
+    screen.getByRole("button", { name: "Send" }).hasAttribute("disabled"),
+  ).toBe(true);
+  store.send(context.submitText);
+  expect(context.submitText).not.toHaveBeenCalled();
 });

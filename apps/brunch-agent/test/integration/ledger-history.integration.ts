@@ -141,6 +141,7 @@ const inflated = (message: AssistantMessage): AssistantMessage => ({
 });
 
 const observed: Record<string, unknown> = {};
+const commentId = `n-${crypto.randomUUID()}`;
 const claim = (
   text: string,
   {
@@ -292,7 +293,7 @@ try {
               kind: "resource",
               origin: "stated",
               status: "confirmed",
-              resolves: ["n1"],
+              resolves: [commentId],
             },
           ],
         ],
@@ -307,7 +308,7 @@ try {
     await client.send({
       message: ledgerCommentsMessage([
         {
-          id: "n1",
+          id: commentId,
           records: ["e1"],
           quote: "Night crew",
           text: "There are two night crews, not one.",
@@ -424,7 +425,7 @@ assert(
   `No comment stays open once resolved: ${JSON.stringify(observed.commit4)}`,
 );
 assert.partialDeepStrictEqual(observed.comments, [
-  { id: "n1", records: ["e1"], resolvedBy: "e1" },
+  { id: commentId, records: ["e1"], resolvedBy: "e1" },
 ]);
 const turn2Requests = observed.turn2Requests as string[];
 assert.deepEqual(
