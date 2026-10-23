@@ -17,7 +17,7 @@ together.
 | `description`    | Shown when the plugin's row opens.                                                                                                             |                                     |                  |
 | `author`         | Shown beside the name, as in "by HASH".                                                                                                        |                                     |                  |
 | `required`       | `true`: the user cannot switch the plugin off, and its row in User settings → Plugins has no switch. A hook that throws still marks it failed. |                                     |                  |
-| `access`         | A level per family; see [`access`](#access).                                                                                                   | `document`, `experiments`, `editor` |                  |
+| `access`         | A level per family; see [`access`](#access).                                                                                                   | `document`, `experiments`, `editor`, `performance` |                  |
 | `settings`       | A spec per key; see [Settings](#settings).                                                                                                     | `settings`                          |                  |
 | `commands`       | Per key: `{ label, category?, keywords?, shortcut? }`; see [Commands](#commands). Keys contain no dot.                                         |                                     | `commands`       |
 | `buttons`        | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                               |                                     | `buttons`        |
@@ -268,6 +268,8 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
   `PluginExperimentsReader`, `PluginExperiments`, `PluginEditorReader`,
   `PluginEditor`, `PluginErrors`, `PluginNotifications`, `EditResult`,
   `EditRefusal`, `ReadOnlyReason`.
+- Performance: `PluginPerformance`, `PluginPerformanceSnapshot`,
+  `PluginPerformanceEntry`, `PluginFrameSample`.
 - Editor state: `PetrinautNavigationState`, `PetrinautNavigationUpdate`,
   `SelectionItem`, `PetrinautRevealTarget`, `DiagnosticsSnapshot`,
   `AddNotificationInput`, `ReadableStore`.
