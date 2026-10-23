@@ -449,73 +449,93 @@ const screensStyle = css({
   color: "neutral.fg.heading",
 });
 
-/** One screen: a live, scaled copy of the editor in that state, with its name linking to it. */
+/** One screen: a static image of the editor in that state, with its name linking to the live screen. */
 const ScreenFrame = ({
   state,
   base,
 }: {
   state: (typeof screenStates)[number];
   base: string;
-}) => (
-  <figure className={css({ margin: "[0]" })}>
-    <div
-      className={css({
-        position: "relative",
-        width: "[100%]",
-        aspectRatio: "[1440 / 900]",
-        overflow: "hidden",
-        borderRadius: "lg",
-        borderWidth: "thin",
-        borderStyle: "solid",
-        borderColor: "neutral.bd.subtle",
-        backgroundColor: "neutral.bgSolid.min",
-      })}
-    >
-      <iframe
-        title={state.title}
-        src={`${base}?state=${state.id}`}
-        loading="lazy"
+}) => {
+  const [missing, setMissing] = useState(false);
+  return (
+    <figure className={css({ margin: "[0]" })}>
+      <div
         className={css({
-          position: "absolute",
-          top: "[0]",
-          left: "[0]",
-          width: "[1440px]",
-          height: "[900px]",
-          border: "[0]",
-          transformOrigin: "[0 0]",
-          // A static preview: the title link opens the live screen.
-          pointerEvents: "none",
-        })}
-        style={{ transform: "scale(var(--frame-scale, 0.45))" }}
-      />
-    </div>
-    <figcaption
-      className={css({
-        display: "flex",
-        alignItems: "baseline",
-        gap: "2",
-        marginTop: "2",
-      })}
-    >
-      <a
-        href={`${base}?state=${state.id}`}
-        className={css({
-          textStyle: "sm",
-          fontWeight: "semibold",
-          color: "blue.fg.muted",
+          position: "relative",
+          width: "[100%]",
+          aspectRatio: "[1440 / 900]",
+          overflow: "hidden",
+          borderRadius: "lg",
+          borderWidth: "thin",
+          borderStyle: "solid",
+          borderColor: "neutral.bd.subtle",
+          backgroundColor: "neutral.bgSolid.min",
         })}
       >
-        {state.title}
-      </a>
-      <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
-        {state.caption}
-      </span>
-    </figcaption>
-  </figure>
-);
+        {missing ? (
+          <div
+            className={css({
+              position: "absolute",
+              inset: "[0]",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textStyle: "sm",
+              color: "neutral.fg.muted",
+              backgroundColor: "neutral.bgSolid.surface.hover",
+            })}
+          >
+            {state.title}
+          </div>
+        ) : (
+          <img
+            // A static capture (capture:flows-editor-prototype-screens): the site's frame-ancestors policy blocks iframes.
+            src={`${import.meta.env.BASE_URL}screens/${state.id}.webp`}
+            alt={state.title}
+            width={1440}
+            height={900}
+            loading="lazy"
+            onError={() => setMissing(true)}
+            className={css({
+              position: "absolute",
+              top: "[0]",
+              left: "[0]",
+              width: "[100%]",
+              height: "[100%]",
+              objectFit: "cover",
+            })}
+          />
+        )}
+      </div>
+      <figcaption
+        className={css({
+          display: "flex",
+          alignItems: "baseline",
+          gap: "2",
+          marginTop: "2",
+        })}
+      >
+        <a
+          href={`${base}?state=${state.id}`}
+          className={css({
+            textStyle: "sm",
+            fontWeight: "semibold",
+            color: "blue.fg.muted",
+          })}
+        >
+          {state.title}
+        </a>
+        <span className={css({ textStyle: "sm", color: "neutral.fg.muted" })}>
+          {state.caption}
+        </span>
+      </figcaption>
+    </figure>
+  );
+};
 
 /**
- * Every screen side by side, in labelled rows of two, each a live copy of the editor in its starting state.
+ * Every screen side by side, in labelled rows of two, each a captured image of the editor in its starting state.
  */
 export const Screens = () => {
   // Grouped by Figma journey, in ↳ Current's order; within a journey, the states' own rows.

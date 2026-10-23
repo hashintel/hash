@@ -37,7 +37,7 @@ export default defineConfig((env) => {
     ...base,
     plugins,
     root: fromHere("."),
-    publicDir: false,
+    publicDir: fromHere("./public"),
     resolve: {
       alias: [
         {
