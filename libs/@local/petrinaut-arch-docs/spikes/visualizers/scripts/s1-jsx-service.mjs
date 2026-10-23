@@ -69,8 +69,8 @@ const PREFIX = `import { Visualization } from "./visualizer-defs";\n`;
 const sample = exampleVisualizers().find((v) =>
   v.name.startsWith("satellites-launcher"),
 );
-const USER_FILE = "/places/p1/visualizer.tsx";
-files.set(USER_FILE, PREFIX + sample.code);
+const VISUALIZER_FILE = "/places/p1/visualizer.tsx";
+files.set(VISUALIZER_FILE, PREFIX + sample.code);
 
 const versions = new Map();
 const options = {
@@ -111,8 +111,8 @@ console.log(
 const diag = (label) => {
   const t = performance.now();
   const ds = [
-    ...service.getSyntacticDiagnostics(USER_FILE),
-    ...service.getSemanticDiagnostics(USER_FILE),
+    ...service.getSyntacticDiagnostics(VISUALIZER_FILE),
+    ...service.getSemanticDiagnostics(VISUALIZER_FILE),
   ];
   console.log(
     `${label.padEnd(44)} ${ms(t).padStart(10)}  ${ds.length} diagnostics`,
@@ -128,16 +128,16 @@ for (const d of first)
       ": " +
       ts.flattenDiagnosticMessageText(d.messageText, " ").slice(0, 160),
   );
-versions.set(USER_FILE, 1);
-files.set(USER_FILE, files.get(USER_FILE) + "\n// edit");
+versions.set(VISUALIZER_FILE, 1);
+files.set(VISUALIZER_FILE, files.get(VISUALIZER_FILE) + "\n// edit");
 diag("warm diagnostics after an edit");
-versions.set(USER_FILE, 2);
-files.set(USER_FILE, files.get(USER_FILE) + "\n// edit 2");
+versions.set(VISUALIZER_FILE, 2);
+files.set(VISUALIZER_FILE, files.get(VISUALIZER_FILE) + "\n// edit 2");
 diag("warm diagnostics after another edit");
 const t1 = performance.now();
 const completions = service.getCompletionsAtPosition(
-  USER_FILE,
-  files.get(USER_FILE).indexOf("viewBox") + 2,
+  VISUALIZER_FILE,
+  files.get(VISUALIZER_FILE).indexOf("viewBox") + 2,
   {},
 );
 console.log(
@@ -161,12 +161,12 @@ export default Visualization(({ tokens, parameters }) => {
     </svg>
   );
 });`;
-files.set(USER_FILE, bad);
-versions.set(USER_FILE, 3);
+files.set(VISUALIZER_FILE, bad);
+versions.set(VISUALIZER_FILE, 3);
 const ds = diag("diagnostics for a file with 5 mistakes");
 for (const d of ds) {
   const { line } = ts.getLineAndCharacterOfPosition(
-    service.getProgram().getSourceFile(USER_FILE),
+    service.getProgram().getSourceFile(VISUALIZER_FILE),
     d.start,
   );
   console.log(
