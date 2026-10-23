@@ -76,8 +76,8 @@ vi.mock("../plugins/brunch/brunch-preview-config", () => ({
     isBrunchConfigured: true,
   }),
 }));
-vi.mock("../plugins/brunch/conversation/brunch-principal", () => ({
-  getOrCreateBrunchPrincipal: () => "test-principal",
+vi.mock("../plugins/brunch/conversation/brunch-owner-key", () => ({
+  getOrCreateBrunchOwnerKey: () => "test-owner",
 }));
 vi.mock("./documents/use-document-controller", () => ({
   useDocumentController: () => {
