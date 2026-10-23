@@ -5,8 +5,10 @@ import {
   runAdmissionControls,
   type AdmissionControlsResult,
 } from "@apps/brunch-agent/testing/admission-controls";
-import { selectCanonicalSpeech } from "@apps/petrinaut-website/src/main/app/plugins/brunch/voice/live/canonical-speech";
-import { RealtimeBrunchBridge } from "@apps/petrinaut-website/src/main/app/plugins/brunch/voice/realtime/realtime-brunch-bridge";
+import {
+  selectCanonicalSpeech,
+  RealtimeBrunchBridge,
+} from "@hashintel/brunch-agent/client";
 
 let result: AdmissionControlsResult;
 beforeAll(async () => {

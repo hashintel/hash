@@ -21,6 +21,18 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { brunchTools } from "@hashintel/brunch-agent";
 import {
+  BrunchPanelConversationTracker,
+  brunchEvaluationConversationIdFrom,
+  ordinaryConstructionConversationIdFrom,
+  canonicalPetrinautClientToolNames,
+  brunchPetrinautClientToolNames,
+  OpenAIRealtimeSession,
+} from "@hashintel/brunch-agent/client";
+import {
+  BrunchAssistantContext,
+  InterviewBudgetControl,
+} from "@hashintel/brunch-agent/ui";
+import {
   createExperimentToolName,
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
@@ -29,18 +41,6 @@ import {
   useCommandRegistry,
 } from "@hashintel/petrinaut/react";
 
-import { BrunchPanelConversationTracker } from "../plugins/brunch/brunch-panel-transport";
-import {
-  brunchEvaluationConversationIdFrom,
-  ordinaryConstructionConversationIdFrom,
-} from "../plugins/brunch/conversation/brunch-conversation-id";
-import { BrunchAssistantContext } from "../plugins/brunch/editor-api-plugin";
-import { InterviewBudgetControl } from "../plugins/brunch/interview-budget/interview-budget-control";
-import {
-  canonicalPetrinautClientToolNames,
-  brunchPetrinautClientToolNames,
-} from "../plugins/brunch/tools/brunch-client-tools";
-import { OpenAIRealtimeSession } from "../plugins/brunch/voice/realtime/openai-realtime-session";
 import { demoPlugins } from "../plugins/demo-plugins";
 import { petrinautAiPlugin } from "../plugins/petrinaut-ai/plugin";
 import {
@@ -53,9 +53,11 @@ import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import { latestOrNewNetInStorage } from "./use-local-storage-sdcpns";
 import { voicePreferenceStorageKey } from "./voice-preference";
 
-import type { PetrinautAiMessage } from "../plugins/brunch/chat/ai-assistant-panel";
-import type { PetrinautAiAssistant } from "../plugins/brunch/chat/petrinaut";
 import type { AgentConversationObservationSnapshot } from "@flue/sdk";
+import type {
+  PetrinautAiMessage,
+  PetrinautAiAssistant,
+} from "@hashintel/brunch-agent/ui";
 import type {
   CommandRegistryView,
   MinimalNetMetadata,
@@ -112,11 +114,11 @@ vi.mock("../plugins/brunch/brunch-preview-config", () => ({
 }));
 
 vi.mock(
-  "../plugins/brunch/tools/brunch-mutation-approval",
+  "../../../../../../libs/@hashintel/brunch-agent/src/ui/tools/brunch-mutation-approval",
   async (importOriginal) => {
     const actual =
       await importOriginal<
-        typeof import("../plugins/brunch/tools/brunch-mutation-approval")
+        typeof import("../../../../../../libs/@hashintel/brunch-agent/src/ui/tools/brunch-mutation-approval")
       >();
     return {
       ...actual,
@@ -151,40 +153,46 @@ const editorProps = vi.hoisted(() => ({
 vi.mock("../plugins/brunch/conversation/brunch-owner-key", () => ({
   getOrCreateBrunchOwnerKey: () => "test-owner",
 }));
-vi.mock("../plugins/brunch/brunch-flue-adapter", async (importOriginal) => {
-  const actual =
-    await importOriginal<
-      typeof import("../plugins/brunch/brunch-flue-adapter")
-    >();
-  return {
-    ...actual,
-    createBrunchFlueAdapter: (
-      ...args: Parameters<typeof actual.createBrunchFlueAdapter>
-    ) => {
-      brunchFlueAdapterTools.current = args[0];
-      return actual.createBrunchFlueAdapter(...args);
-    },
-  };
-});
-vi.mock("../plugins/brunch/brunch-panel-transport", async (importOriginal) => {
-  const actual =
-    await importOriginal<
-      typeof import("../plugins/brunch/brunch-panel-transport")
-    >();
-  return {
-    ...actual,
-    createBrunchPanelTransport: (
-      client: Parameters<typeof actual.createBrunchPanelTransport>[0],
-      tracker: Parameters<typeof actual.createBrunchPanelTransport>[1],
-      options?: Parameters<typeof actual.createBrunchPanelTransport>[2],
-    ) => {
-      brunchPanelTransportOptions.current = options;
-      brunchPanelTransportTracker.current = tracker;
-      brunchPanelTransportSessions.current.push({ client, tracker });
-      return actual.createBrunchPanelTransport(client, tracker, options);
-    },
-  };
-});
+vi.mock(
+  "../../../../../../libs/@hashintel/brunch-agent/src/client/brunch-flue-adapter",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("../../../../../../libs/@hashintel/brunch-agent/src/client/brunch-flue-adapter")
+      >();
+    return {
+      ...actual,
+      createBrunchFlueAdapter: (
+        ...args: Parameters<typeof actual.createBrunchFlueAdapter>
+      ) => {
+        brunchFlueAdapterTools.current = args[0];
+        return actual.createBrunchFlueAdapter(...args);
+      },
+    };
+  },
+);
+vi.mock(
+  "../../../../../../libs/@hashintel/brunch-agent/src/client/brunch-panel-transport",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("../../../../../../libs/@hashintel/brunch-agent/src/client/brunch-panel-transport")
+      >();
+    return {
+      ...actual,
+      createBrunchPanelTransport: (
+        client: Parameters<typeof actual.createBrunchPanelTransport>[0],
+        tracker: Parameters<typeof actual.createBrunchPanelTransport>[1],
+        options?: Parameters<typeof actual.createBrunchPanelTransport>[2],
+      ) => {
+        brunchPanelTransportOptions.current = options;
+        brunchPanelTransportTracker.current = tracker;
+        brunchPanelTransportSessions.current.push({ client, tracker });
+        return actual.createBrunchPanelTransport(client, tracker, options);
+      },
+    };
+  },
+);
 
 vi.mock("../plugins/petrinaut-ai/plugin", () => ({
   petrinautAiPlugin: {
