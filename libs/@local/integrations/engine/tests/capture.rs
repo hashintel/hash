@@ -36,6 +36,8 @@ fn entries(directory: &Path) -> usize {
 
 #[tokio::test]
 async fn capture_parameters_and_batches() {
+    const ROW_COUNT: usize = 150_000;
+
     let directory = TempDir::new().expect("should create a directory");
     let workspace = Workspace::open(
         directory.path().join("workspace.duckdb"),
@@ -44,7 +46,7 @@ async fn capture_parameters_and_batches() {
                 "COUNT"
                     .parse::<VariableName>()
                     .expect("should parse the name"),
-                "150000".into(),
+                ROW_COUNT.to_string().into(),
             )]))
             .expect("should build variables"),
             ..WorkspaceConfig::default()
@@ -55,9 +57,15 @@ async fn capture_parameters_and_batches() {
     let target = directory.path().join("source.parquet");
     let capture = workspace
         .capture(
-            "SELECT i, CASE WHEN i % 2 = 0 THEN 'even' END AS label, [i, i + 1] AS pair FROM \
-             range($COUNT::BIGINT) AS source(i) ORDER BY i"
-                .into(),
+            "
+                SELECT
+                    i,
+                    CASE WHEN i % 2 = 0 THEN 'even' END AS label,
+                    [i, i + 1] AS pair
+                FROM range($COUNT::BIGINT) AS source(i)
+                ORDER BY i
+                "
+            .into(),
             target.clone(),
         )
         .await
@@ -65,7 +73,10 @@ async fn capture_parameters_and_batches() {
     workspace.close().await.expect("the workspace should close");
 
     assert_eq!(capture.path(), target);
-    assert_eq!(capture.rows(), 150_000);
+    assert_eq!(
+        capture.rows(),
+        u64::try_from(ROW_COUNT).expect("the row count should fit in u64")
+    );
     assert_eq!(
         capture.bytes(),
         fs::metadata(&target).expect("should stat capture").len()
@@ -109,8 +120,8 @@ async fn capture_parameters_and_batches() {
         rows += batch.num_rows();
         nulls += batch.column(1).null_count();
     }
-    assert_eq!(rows, 150_000);
-    assert_eq!(nulls, 75_000);
+    assert_eq!(rows, ROW_COUNT);
+    assert_eq!(nulls, ROW_COUNT.div_euclid(2));
 }
 
 #[tokio::test]
@@ -119,7 +130,14 @@ async fn capture_empty_schema() {
     let workspace = open(&directory).await;
     let target = directory.path().join("empty.parquet");
     let capture = workspace
-        .capture("SELECT 1::INTEGER AS id WHERE false".into(), target.clone())
+        .capture(
+            "
+                SELECT 1::INTEGER AS id
+                WHERE false
+                "
+            .into(),
+            target.clone(),
+        )
         .await
         .expect("the empty capture should be published");
     assert_eq!(capture.rows(), 0);
@@ -162,9 +180,15 @@ async fn capture_failed_query_cleanup() {
     let output = TempDir::new().expect("should create an output directory");
     let error = workspace
         .capture(
-            "SELECT CAST(CASE WHEN i = 999999 THEN 'bad' ELSE '1' END AS INTEGER) AS id FROM \
-             range(1000000) AS source(i)"
-                .into(),
+            "
+                SELECT
+                    CAST(
+                        CASE WHEN i = 999999 THEN 'bad' ELSE '1' END
+                        AS INTEGER
+                    ) AS id
+                FROM range(1000000) AS source(i)
+                "
+            .into(),
             output.path().join("failed.parquet"),
         )
         .await
@@ -184,7 +208,11 @@ async fn capture_restricted_sql() {
     let target = directory.path().join("source.parquet");
     let error = workspace
         .capture(
-            "SELECT * FROM read_csv('/etc/passwd')".into(),
+            "
+                SELECT *
+                FROM read_csv('/etc/passwd')
+                "
+            .into(),
             target.clone(),
         )
         .await
@@ -231,7 +259,11 @@ async fn capture_cancelled_cleanup() {
         tokio::time::timeout(
             Duration::from_millis(20),
             workspace.capture(
-                "SELECT i FROM range(1000000000000) AS source(i)".into(),
+                "
+                    SELECT i
+                    FROM range(1000000000000) AS source(i)
+                    "
+                .into(),
                 output.path().join("cancelled.parquet"),
             )
         )
@@ -298,9 +330,15 @@ async fn load_capture_types_and_empty_schema() {
     let workspace = open(&directory).await;
     let capture = workspace
         .capture(
-            "SELECT i, [i, i + 1] AS pair, struct_pack(label := 'a', value := i) AS nested, \
-             12.30::DECIMAL(12,2) AS amount FROM range(5000) AS items(i)"
-                .into(),
+            "
+                SELECT
+                    i,
+                    [i, i + 1] AS pair,
+                    struct_pack(label := 'a', value := i) AS nested,
+                    12.30::DECIMAL(12, 2) AS amount
+                FROM range(5000) AS items(i)
+                "
+            .into(),
             directory.path().join("types.parquet"),
         )
         .await
@@ -311,8 +349,15 @@ async fn load_capture_types_and_empty_schema() {
         .expect("should restore typed rows");
     let rows = workspace
         .query(
-            "SELECT count(*), min(amount)::VARCHAR, max(pair[2]), min(nested.label) FROM loaded"
-                .into(),
+            "
+                SELECT
+                    count(*),
+                    min(amount)::VARCHAR,
+                    max(pair[2]),
+                    min(nested.label)
+                FROM loaded
+                "
+            .into(),
         )
         .await
         .expect("should query restored nested types");
@@ -331,7 +376,13 @@ async fn load_capture_types_and_empty_schema() {
     );
     let empty = workspace
         .capture(
-            "SELECT 1::INTEGER AS id, ''::VARCHAR AS label WHERE false".into(),
+            "
+                SELECT
+                    1::INTEGER AS id,
+                    ''::VARCHAR AS label
+                WHERE false
+                "
+            .into(),
             directory.path().join("empty-load.parquet"),
         )
         .await
@@ -341,7 +392,13 @@ async fn load_capture_types_and_empty_schema() {
         .await
         .expect("should restore the empty schema");
     let rows = workspace
-        .query("SELECT id, label FROM empty_loaded".into())
+        .query(
+            "
+                SELECT id, label
+                FROM empty_loaded
+                "
+            .into(),
+        )
         .await
         .expect("should preserve empty columns");
     assert_eq!(rows.iter().len(), 0, "should preserve an empty result");
@@ -371,7 +428,13 @@ async fn load_invalid_capture_preserves_table() {
         "should report a read failure"
     );
     let rows = workspace
-        .query("SELECT id FROM existing".into())
+        .query(
+            "
+                SELECT id
+                FROM existing
+                "
+            .into(),
+        )
         .await
         .expect("should preserve the original table");
     assert_eq!(
@@ -380,7 +443,13 @@ async fn load_invalid_capture_preserves_table() {
         "should retain the original rows after a failed import"
     );
     let error = workspace
-        .query("SELECT * FROM _capture_schema()".into())
+        .query(
+            "
+                SELECT *
+                FROM _capture_schema()
+                "
+            .into(),
+        )
         .await
         .expect_err("should keep internal schema access out of user SQL");
     assert!(
