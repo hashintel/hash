@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, test } from "vitest";
 
-import type * as Type from "./index.js";
+import type * as Type from "./Type.js";
 
 type User = Type.Struct<{
   readonly id: Type.Opaque<"UserId", Type.PrimitiveInteger>;
