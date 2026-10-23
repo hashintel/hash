@@ -76,6 +76,7 @@ import {
 } from "./tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "./tools/brunch-tool-presentation";
 import { useImmutableReplayBaseline } from "./use-brunch-assistant/use-immutable-replay-baseline";
+import { useStopTurnOnLeave } from "./use-brunch-assistant/use-stop-turn-on-leave";
 import { getBrunchVoiceMode } from "./voice/brunch-voice-mode";
 import { useVoiceMediationHistory } from "./voice/history/use-voice-mediation-history";
 import {
@@ -405,6 +406,16 @@ export const useBrunchAssistant = ({
     conversationId ?? "",
     flueAdapter,
   );
+  useStopTurnOnLeave({
+    editorHandle: editor?.handle ?? null,
+    binding: processAgentBinding,
+    session: {
+      client: flueClientPromise,
+      tracker: conversationTracker,
+      snapshot: flueHistory.snapshot,
+    },
+    onError: (error) => reportBrunchFailure("stop-on-leave", error),
+  });
   const interviewRepliesAsked = countInterviewReplies(
     flueHistory.snapshot ?? { messages: [] },
   );
