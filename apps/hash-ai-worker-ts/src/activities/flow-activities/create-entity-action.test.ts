@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import { StatusCode } from "@local/status";
 
 import { createEntityAction } from "./create-entity-action.js";
@@ -42,6 +43,10 @@ vi.mock("@local/hash-graph-sdk/entity", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   HashEntity: { create },
   queryEntities: vi.fn(),
+}));
+vi.mock("@local/hash-graph-sdk/entity-type", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  hasPermissionForEntityTypes: vi.fn(),
 }));
 
 const personType =
@@ -103,6 +108,11 @@ describe("createEntityAction", () => {
         entities: [],
         cursor: null,
       } as unknown as QueryEntitiesResponse);
+    vi.mocked(hasPermissionForEntityTypes)
+      .mockReset()
+      .mockImplementation((_graphApi, _authentication, { entityTypeIds }) =>
+        Promise.resolve(entityTypeIds),
+      );
   });
 
   it("creates an entity of the type with the properties as given, in the flow's web, and outputs its ID", async () => {
@@ -229,6 +239,26 @@ describe("createEntityAction", () => {
       expect(create).not.toHaveBeenCalled();
     },
   );
+
+  it("fails for a type the user running the flow can't instantiate, e.g. an actor type, without creating anything", async () => {
+    vi.mocked(hasPermissionForEntityTypes).mockResolvedValueOnce([personType]);
+
+    expect(
+      await run({ entityTypeIds: [personType, employeeType], properties: ada }),
+    ).toEqual({
+      code: StatusCode.PermissionDenied,
+      message: `The user running the flow can't create entities of type ${employeeType}.`,
+      contents: [],
+    });
+
+    expect(hasPermissionForEntityTypes).toHaveBeenCalledWith(
+      {},
+      { actorId: "user" },
+      { entityTypeIds: [personType, employeeType], action: "instantiate" },
+    );
+    expect(queryEntities).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
 
   it("fails if the graph doesn't save the entity, e.g. because its properties don't fit the type", async () => {
     create.mockRejectedValueOnce(new Error("Entity validation failed"));

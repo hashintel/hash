@@ -3,6 +3,7 @@ import {
   validateVersionedUrl,
 } from "@blockprotocol/type-system";
 import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
+import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { validatePropertiesWithMetadata } from "@local/hash-isomorphic-utils/flows/property-values";
 import { generateUuidFromName } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -60,6 +61,29 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
 
   const { flowEntityId, runId, stepId, userAuthentication, webId } =
     await getFlowContext();
+
+  /*
+   * The web's machine saves the entity, and may instantiate types the user can't, so the user's own permission to
+   * instantiate each type, and the types it inherits from, is checked here.
+   */
+  const instantiableEntityTypeIds = new Set(
+    await hasPermissionForEntityTypes(graphApiClient, userAuthentication, {
+      entityTypeIds,
+      action: "instantiate",
+    }),
+  );
+
+  const forbiddenEntityTypeIds = entityTypeIds.filter(
+    (entityTypeId) => !instantiableEntityTypeIds.has(entityTypeId),
+  );
+
+  if (forbiddenEntityTypeIds.length > 0) {
+    return {
+      code: StatusCode.PermissionDenied,
+      message: `The user running the flow can't create entities of type ${forbiddenEntityTypeIds.join(", ")}.`,
+      contents: [],
+    };
+  }
 
   const savingActorId = await getSavingActorId({
     actorId: userAuthentication.actorId,
