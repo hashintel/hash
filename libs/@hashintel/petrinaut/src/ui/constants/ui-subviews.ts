@@ -11,6 +11,7 @@ import { diagnosticsSubView } from "../views/Editor/panels/BottomPanel/subviews/
 import { simulationSettingsSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-settings";
 import { actualTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/actual";
 import { simulationTimelineSubView } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/main";
+import { componentsSubView } from "../views/Editor/panels/LeftSideBar/subviews/components-panel";
 import { entitiesTreeSubView } from "../views/Editor/panels/LeftSideBar/subviews/entities-tree";
 import { netsListSubView } from "../views/Editor/panels/LeftSideBar/subviews/nets-list";
 
@@ -19,6 +20,7 @@ import type { SubView } from "../components/sub-view/types";
 export const LEFT_SIDEBAR_SUBVIEWS = [
   entitiesTreeSubView,
   netsListSubView,
+  componentsSubView,
 ] as const satisfies SubView[];
 
 // Base subviews always visible in the bottom panel

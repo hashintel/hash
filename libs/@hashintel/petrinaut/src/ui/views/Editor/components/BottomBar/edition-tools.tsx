@@ -76,9 +76,12 @@ export const EditionTools: React.FC<{
   const isReadOnly = useIsReadOnly();
   const { activeSubnetId } = use(ActiveNetContext);
   const isRootNet = activeSubnetId === null;
-  const { extensions } = use(SDCPNContext);
+  const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { enableNetComponents, enableExperimentalIconPack } =
     use(UserSettingsContext);
+  // A components-only root net is drawn from instances and fusions alone.
+  const primitivesAllowed =
+    !isRootNet || petriNetDefinition.componentsOnly !== true;
 
   if (isReadOnly) {
     return null;
@@ -87,58 +90,64 @@ export const EditionTools: React.FC<{
   return (
     <>
       <ToolbarDivider />
-      <ToolbarButton
-        tooltip="Add Place"
-        shortcut="n"
-        onClick={() => onEditionModeChange("add-place")}
-        isSelected={editionMode === "add-place"}
-        ariaLabel="Add place mode"
-        draggable
-        onDragStart={(event) => {
-          // eslint-disable-next-line no-param-reassign
-          event.dataTransfer.effectAllowed = "move";
-          writeDraggedNodeKind(event.dataTransfer, "place");
-        }}
-      >
-        {enableExperimentalIconPack ? (
-          <AddPlaceIcon
-            selected={editionMode === "add-place"}
-            variant={editionMode === "add-place" ? "filled" : "outline"}
-            effect={editionMode === "add-place" ? "bounce" : undefined}
-            trigger={editionMode}
-            transition="spring"
-            duration={420}
-          />
-        ) : (
-          <Icon name="circlePlus" />
-        )}
-      </ToolbarButton>
-      <ToolbarButton
-        tooltip="Add Transition"
-        shortcut="t"
-        onClick={() => onEditionModeChange("add-transition")}
-        isSelected={editionMode === "add-transition"}
-        ariaLabel="Add transition mode"
-        draggable
-        onDragStart={(event) => {
-          // eslint-disable-next-line no-param-reassign
-          event.dataTransfer.effectAllowed = "move";
-          writeDraggedNodeKind(event.dataTransfer, "transition");
-        }}
-      >
-        {enableExperimentalIconPack ? (
-          <AddTransitionIcon
-            selected={editionMode === "add-transition"}
-            variant={editionMode === "add-transition" ? "filled" : "outline"}
-            effect={editionMode === "add-transition" ? "bounce" : undefined}
-            trigger={editionMode}
-            transition="spring"
-            duration={420}
-          />
-        ) : (
-          <Icon name="squarePlus" />
-        )}
-      </ToolbarButton>
+      {primitivesAllowed && (
+        <>
+          <ToolbarButton
+            tooltip="Add Place"
+            shortcut="n"
+            onClick={() => onEditionModeChange("add-place")}
+            isSelected={editionMode === "add-place"}
+            ariaLabel="Add place mode"
+            draggable
+            onDragStart={(event) => {
+              // eslint-disable-next-line no-param-reassign
+              event.dataTransfer.effectAllowed = "move";
+              writeDraggedNodeKind(event.dataTransfer, "place");
+            }}
+          >
+            {enableExperimentalIconPack ? (
+              <AddPlaceIcon
+                selected={editionMode === "add-place"}
+                variant={editionMode === "add-place" ? "filled" : "outline"}
+                effect={editionMode === "add-place" ? "bounce" : undefined}
+                trigger={editionMode}
+                transition="spring"
+                duration={420}
+              />
+            ) : (
+              <Icon name="circlePlus" />
+            )}
+          </ToolbarButton>
+          <ToolbarButton
+            tooltip="Add Transition"
+            shortcut="t"
+            onClick={() => onEditionModeChange("add-transition")}
+            isSelected={editionMode === "add-transition"}
+            ariaLabel="Add transition mode"
+            draggable
+            onDragStart={(event) => {
+              // eslint-disable-next-line no-param-reassign
+              event.dataTransfer.effectAllowed = "move";
+              writeDraggedNodeKind(event.dataTransfer, "transition");
+            }}
+          >
+            {enableExperimentalIconPack ? (
+              <AddTransitionIcon
+                selected={editionMode === "add-transition"}
+                variant={
+                  editionMode === "add-transition" ? "filled" : "outline"
+                }
+                effect={editionMode === "add-transition" ? "bounce" : undefined}
+                trigger={editionMode}
+                transition="spring"
+                duration={420}
+              />
+            ) : (
+              <Icon name="squarePlus" />
+            )}
+          </ToolbarButton>
+        </>
+      )}
       {isRootNet && extensions.subnets && enableNetComponents && (
         <ComponentDropdown editionMode={editionMode} />
       )}

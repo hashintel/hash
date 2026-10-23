@@ -1395,7 +1395,24 @@ export function createPetrinautActions(
         const net = resolveTargetNet(sdcpn, parsed.targetSubnetId);
         for (const fusion of net.fusions ?? []) {
           if (fusion.id === parsed.fusionId) {
-            Object.assign(fusion, parsed.update);
+            const { name, description, ...rest } = parsed.update;
+            Object.assign(fusion, rest);
+            // An absent name or description is the field's unset state, so
+            // clearing one deletes it rather than storing `undefined`.
+            if ("name" in parsed.update) {
+              if (name === undefined) {
+                delete fusion.name;
+              } else {
+                fusion.name = name;
+              }
+            }
+            if ("description" in parsed.update) {
+              if (description === undefined) {
+                delete fusion.description;
+              } else {
+                fusion.description = description;
+              }
+            }
             fusionSchema.parse(fusion);
             break;
           }
