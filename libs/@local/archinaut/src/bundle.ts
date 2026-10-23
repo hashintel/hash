@@ -27,6 +27,7 @@ import {
   resolveLocalDiagrams,
 } from "./bundle/page-links";
 import { buildPages, layerSlug, type GeneratedPage } from "./bundle/pages";
+import { buildSearchIndex, type SearchIndex } from "./bundle/search";
 import { readShippedComponents } from "./bundle/shipped-components";
 import { error, type Diagnostic } from "./shared/diagnostics";
 
@@ -51,6 +52,7 @@ export interface Bundle {
   /** Diagram name → D2 source, generated and authored alike. */
   diagramSources: Map<string, string>;
   singleFile: string;
+  search: SearchIndex;
   diagnostics: Diagnostic[];
 }
 
@@ -259,6 +261,10 @@ export const emitBundle = async (options: {
     components: [...authoredResult.components, ...shippedComponents],
     diagramSources,
     singleFile: buildSingleFileArchitecture(model),
+    search: buildSearchIndex([
+      ...generated.map((page) => ({ ...page, kind: "generated" as const })),
+      ...authored.map((page) => ({ ...page, kind: "authored" as const })),
+    ]),
     diagnostics,
   };
 };
@@ -272,6 +278,7 @@ export const bundleFiles = (
   files.set("architecture.json", `${JSON.stringify(model, null, 2)}\n`);
   files.set("manifest.json", `${JSON.stringify(bundle.manifest, null, 2)}\n`);
   files.set("architecture.md", bundle.singleFile);
+  files.set("search.json", `${JSON.stringify(bundle.search)}\n`);
   for (const page of [...bundle.generated, ...bundle.authored]) {
     files.set(page.path, page.contents);
   }

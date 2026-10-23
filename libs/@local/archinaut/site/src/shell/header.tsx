@@ -1,16 +1,16 @@
 /**
  * The fixed header: the sidebar toggle, the site title, the diff badges on
- * a diff build, the sidebar resize handle, the search field and the theme
- * select. The fade bands under the header and over the sidebar live here
+ * a diff build, the sidebar resize handle, search and the theme select. The fade bands under the header and over the sidebar live here
  * too, since they are positioned against the viewport, not laid out.
  */
 
 import { Link } from "@tanstack/react-router";
-import { useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 import logoUrl from "../content/logo.png";
 import siteJson from "../content/site.json";
-import { LaptopIcon, MagnifierIcon } from "./icons";
+import { Search } from "../search";
+import { LaptopIcon } from "./icons";
 import { readTheme, setTheme, subscribeTheme, type Theme } from "./theme";
 
 import type { DiffCompareContext } from "../diff-context";
@@ -75,34 +75,6 @@ const DiffBadges = () =>
     </span>
   );
 
-/** The search field, which says so when asked, until search is wired up. */
-const SearchButton = () => {
-  const [noticed, setNoticed] = useState(false);
-  return (
-    <div className="pnd-search">
-      <button
-        type="button"
-        data-open-modal=""
-        aria-label="Search"
-        aria-describedby={noticed ? "pnd-search-notice" : undefined}
-        onClick={() => setNoticed(true)}
-        onFocus={() => setNoticed(true)}
-        onBlur={() => setNoticed(false)}
-      >
-        <MagnifierIcon size="1.25em" />
-        <span className="sl-hidden md:sl-block" aria-hidden="true">
-          Search
-        </span>
-      </button>
-      {noticed ? (
-        <div id="pnd-search-notice" className="pnd-search-notice" role="status">
-          Search is not available yet.
-        </div>
-      ) : null}
-    </div>
-  );
-};
-
 const ThemeSelect = () => {
   const theme = useSyncExternalStore(subscribeTheme, readTheme, () => "auto");
   return (
@@ -166,7 +138,7 @@ export const Header = () => (
         </div>
       </div>
       <div className="sl-flex print:hidden">
-        <SearchButton />
+        <Search />
       </div>
       <div className="sl-hidden md:sl-flex right-group print:hidden">
         <ThemeSelect />
