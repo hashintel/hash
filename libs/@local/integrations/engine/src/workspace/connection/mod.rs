@@ -1,3 +1,6 @@
+mod pipeline;
+mod staging;
+
 use alloc::sync::Arc;
 use core::{error::Error, panic::AssertUnwindSafe};
 use std::{
@@ -438,6 +441,21 @@ impl Connection {
     pub(super) fn run(self, commands: &mut mpsc::Receiver<(RequestId, Command)>) {
         while let Some((id, command)) = commands.blocking_recv() {
             match command {
+                Command::Stage { request, reply } => {
+                    self.answer(id, reply, "stage_table", |connection| {
+                        connection.stage_table(&request)
+                    });
+                }
+                Command::Pipeline { request, reply } => {
+                    self.answer(id, reply, "prepare_pipeline", |connection| {
+                        connection.prepare_pipeline(&request)
+                    });
+                }
+                Command::Link { request, reply } => {
+                    self.answer(id, reply, "prepare_link_pipeline", |connection| {
+                        connection.prepare_link_pipeline(&request)
+                    });
+                }
                 Command::Query { sql, reply } => {
                     self.answer(id, reply, "query", |connection| connection.query(&sql));
                 }

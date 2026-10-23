@@ -7,12 +7,14 @@ mod reply;
 mod rows;
 mod select;
 
-use alloc::sync::Arc;
+use alloc::{collections::BTreeMap, sync::Arc};
 use core::{error::Error, num::NonZeroUsize};
 use std::{path::PathBuf, thread};
 
 use error_stack::{Report, ResultExt as _};
-use hash_integrations_definition::Variables;
+use hash_integrations_definition::{
+    CheckpointName, EntityPipeline, LinkPipeline, PrimaryKey, Variables,
+};
 use tokio::sync::mpsc;
 
 pub use self::{
@@ -23,7 +25,8 @@ pub use self::{
     rows::Rows,
 };
 use crate::{
-    ByteSize,
+    ByteSize, PreparationError, PreparedLink, PreparedPipeline, TableAssertions,
+    pipeline::{LinkRequest, PipelineRequest, StagingRequest},
     workspace::{
         connection::Connection,
         interrupt::{Interrupt, Pending, RequestId},
@@ -73,6 +76,18 @@ impl Default for WorkspaceConfig {
 
 /// A request to the workspace thread, with the channel for its reply.
 enum Command {
+    Link {
+        request: Box<LinkRequest>,
+        reply: Reply<PreparedLink, PreparationError>,
+    },
+    Stage {
+        request: Box<StagingRequest>,
+        reply: Reply<u64, PreparationError>,
+    },
+    Pipeline {
+        request: Box<PipelineRequest>,
+        reply: Reply<PreparedPipeline, PreparationError>,
+    },
     Query {
         sql: Box<str>,
         reply: Reply<Rows, StatementError>,
@@ -178,6 +193,83 @@ impl Workspace {
             .reply()
             .await
             .change_context(stopped)?
+    }
+
+    /// Materializes `sql` with staging metadata and checks its primary-key columns and assertions.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PreparationError`] if the query, schema, assertions, or workspace limits fail.
+    pub async fn stage_table(
+        &self,
+        table: Box<str>,
+        sql: Box<str>,
+        primary_key: PrimaryKey,
+        assertions: TableAssertions,
+    ) -> Result<u64, Report<PreparationError>> {
+        self.request(
+            |reply| Command::Stage {
+                request: Box::new(StagingRequest {
+                    table,
+                    sql,
+                    primary_key,
+                    assertions,
+                }),
+                reply,
+            },
+            PreparationError::Stopped,
+        )
+        .await
+    }
+
+    /// Executes a pipeline against a staged `input` and the tables of its input `checkpoints`.
+    ///
+    /// Sink tables are prepared for delivery, and branches leave the main pipeline's table intact.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PreparationError`] if an input is missing, a step fails, or metadata is lost.
+    pub async fn prepare_pipeline(
+        &self,
+        pipeline: EntityPipeline,
+        input: Box<str>,
+        checkpoints: BTreeMap<CheckpointName, Box<str>>,
+    ) -> Result<PreparedPipeline, Report<PreparationError>> {
+        self.request(
+            |reply| Command::Pipeline {
+                request: Box::new(PipelineRequest {
+                    pipeline,
+                    input,
+                    checkpoints,
+                }),
+                reply,
+            },
+            PreparationError::Stopped,
+        )
+        .await
+    }
+
+    /// Combines checkpoint inputs and executes a link pipeline's SQL steps.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PreparationError`] if a checkpoint, endpoint column, or SQL step is invalid.
+    pub async fn prepare_link_pipeline(
+        &self,
+        pipeline: LinkPipeline,
+        checkpoints: BTreeMap<CheckpointName, Box<str>>,
+    ) -> Result<PreparedLink, Report<PreparationError>> {
+        self.request(
+            |reply| Command::Link {
+                request: Box::new(LinkRequest {
+                    pipeline,
+                    checkpoints,
+                }),
+                reply,
+            },
+            PreparationError::Stopped,
+        )
+        .await
     }
 
     /// Runs the query `sql` and returns all of its rows.
