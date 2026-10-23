@@ -80,27 +80,17 @@ const toStepErrors = (
 
 type RunFinishedEvent = Extract<FlowRunEvent, { kind: "runFinished" }>;
 
-const runFinishedStatusByEndingKind = {
-  completed: FlowRunStatus.Completed,
-  failed: FlowRunStatus.Failed,
-  cancelled: FlowRunStatus.Cancelled,
-  terminated: FlowRunStatus.Terminated,
-  timedOut: FlowRunStatus.TimedOut,
-} as const satisfies Record<FlowRunEnding["kind"], RunFinishedEvent["status"]>;
-
 /** The event for how a run ended, without its place in the run's history. */
 export const getRunFinishedEvent = (
   ending: FlowRunEnding,
 ): Omit<RunFinishedEvent, "position" | "occurredAt"> => {
-  const status = runFinishedStatusByEndingKind[ending.kind];
-
   switch (ending.kind) {
     case "completed": {
       const { outputs, stepErrors } = ending.result.contents[0] ?? {};
 
       return {
         kind: "runFinished",
-        status,
+        status: FlowRunStatus.Completed,
         ...(outputs ? { flowOutputs: outputs } : {}),
         ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
       };
@@ -108,7 +98,7 @@ export const getRunFinishedEvent = (
     case "failed":
       return {
         kind: "runFinished",
-        status,
+        status: FlowRunStatus.Failed,
         failure: { message: ending.failureMessage },
         ...(ending.stepErrors
           ? { stepErrors: toStepErrors(ending.stepErrors) }
@@ -117,12 +107,13 @@ export const getRunFinishedEvent = (
     case "terminated":
       return {
         kind: "runFinished",
-        status,
+        status: FlowRunStatus.Terminated,
         ...(ending.reason ? { failure: { message: ending.reason } } : {}),
       };
     case "cancelled":
+      return { kind: "runFinished", status: FlowRunStatus.Cancelled };
     case "timedOut":
-      return { kind: "runFinished", status };
+      return { kind: "runFinished", status: FlowRunStatus.TimedOut };
   }
 };
 

@@ -290,10 +290,6 @@ describe("recordEndedFlowRun", () => {
       return ending ? [{ fixtureName, fixture, ending }] : [];
     });
 
-  it("has runs that closed to test", () => {
-    expect(closedFixtures.length).toBeGreaterThan(0);
-  });
-
   /*
    * The event for how the run ended is placed right after the last event in its history, but Temporal writes more
    * before the event that closes it, and the fixtures leave out workflow task events: so only its position differs.

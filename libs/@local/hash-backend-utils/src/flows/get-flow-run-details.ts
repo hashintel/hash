@@ -9,18 +9,11 @@ import {
 import { StatusCode } from "@local/status";
 
 import { resolvePayloadValue } from "./payload-storage.js";
-import {
-  getFlowRunRecord,
-  getFlowRunRecordFromHistory,
-  readStoredFlowRunRecord,
-} from "./run-record.js";
+import { getFlowRunRecord, readStoredFlowRunRecord } from "./run-record.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
 import type { ResolvePayloadContext } from "./payload-storage.js";
-import type {
-  FlowRunHistoryRecord,
-  FlowRunRecordsByWorkflowId,
-} from "./run-record.js";
+import type { FlowRunRecordsByWorkflowId } from "./run-record.js";
 import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
 import type {
   FlowRunEvent,
@@ -463,21 +456,6 @@ export const getFlowRunDetailedFieldsFromRecord = async (
     startedAt: header.firstRunStartedAt ?? header.startedAt,
   };
 };
-
-/**
- * A run's detailed fields, from its description and history. Stored payloads in outputs are resolved through
- * `resolvePayloadContext`.
- */
-export const getFlowRunDetailedFieldsFromHistory = (
-  historyRecord: FlowRunHistoryRecord,
-  resolvePayloadContext: ResolvePayloadContext,
-): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> =>
-  getFlowRunDetailedFieldsFromRecord(
-    getFlowRunRecordFromHistory(historyRecord, {
-      workflowId: resolvePayloadContext.workflowId,
-    }),
-    resolvePayloadContext,
-  );
 
 type FlowRunLinkedFields = {
   /** The flow definition the run `Uses`, from its link */

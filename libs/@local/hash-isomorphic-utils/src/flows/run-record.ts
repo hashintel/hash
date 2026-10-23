@@ -25,9 +25,7 @@ export type FlowRunRecordHeader = {
   flowInputs: FlowInputValues;
   /** The data sources the run's AI steps can use, for an AI flow run. */
   dataSources?: FlowDataSources;
-  /** What the run's workflow returned, if it completed. */
   outputs?: RunFlowWorkflowResponse[];
-  /** Why the run failed, if it did. */
   failureMessage?: string;
 };
 
