@@ -51,6 +51,8 @@ export interface BundleManifest {
   generator: string;
   /** Relative path to the machine-readable model. */
   model: string;
+  /** Relative path to the search index: the pages cut into sections. */
+  search: string;
   pages: ManifestPage[];
   diff?: ManifestDiff;
 }
@@ -90,6 +92,7 @@ export const buildManifest = (options: {
     modelVersion: ARCHITECTURE_MODEL_VERSION,
     generator: options.generator,
     model: "architecture.json",
+    search: "search.json",
     pages,
     ...(options.diff === undefined ? {} : { diff: options.diff }),
   };

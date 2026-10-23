@@ -120,14 +120,15 @@ the native compiler cannot build a program for.
 
 Written to `outputDirectory`, framework-neutral, and consumed by the site:
 
-| File                     | What it is                                                              |
-| ------------------------ | ----------------------------------------------------------------------- |
-| `architecture.json`      | The model, version 3: packages, layers, edges, rules                    |
-| `architecture.md`        | The whole architecture as one file, the cheapest read for an agent      |
-| `manifest.json`          | The page tree, and on a diff build each page's status                   |
-| `pages/**.mdx`           | Generated layer pages, plus the authored pages merged in                |
-| `components/*.tsx`       | The React cards generated pages import, and authored diagram components |
-| `diagrams/**.d2`, `.svg` | Diagram sources, and their renderings when `d2` is installed            |
+| File                     | What it is                                                                    |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `architecture.json`      | The model, version 3: packages, layers, edges, rules                          |
+| `search.json`            | Every page cut into sections, each reduced to plain text, for a host's search |
+| `architecture.md`        | The whole architecture as one file, the cheapest read for an agent            |
+| `manifest.json`          | The page tree, and on a diff build each page's status                         |
+| `pages/**.mdx`           | Generated layer pages, plus the authored pages merged in                      |
+| `components/*.tsx`       | The React cards generated pages import, and authored diagram components       |
+| `diagrams/**.d2`, `.svg` | Diagram sources, and their renderings when `d2` is installed                  |
 
 Only files whose content changed are written, so a watcher downstream sees one
 event per real change. Every diagram is checked against the rendering cache
@@ -161,8 +162,17 @@ together with the instance's title, logo and favicon.
 `build` bundles the client and a server entry, then renders every page in the
 manifest through the server entry into `dist/<slug>.html`, with the client's
 own script tags kept, so a page is complete on arrival and the browser
-hydrates it and navigates in place from there. Search is a field that says it
-is not available yet.
+hydrates it and navigates in place from there.
+
+Search reads the bundle's `search.json`, every page cut into its sections,
+and ranks the sections in the browser with MiniSearch: title, heading and
+description outweigh body text, words match by prefix, and a near miss
+still counts. A result is a section, so it lands on the heading that
+matched, and results group under their page with the page's kind beside
+it. The index and the engine load on the first search, so a page costs
+nothing until one is made; the field opens with `/` or `⌘K`, and the same
+search works under the dev server, since the index comes from the bundle
+and not from built HTML.
 
 `dev` serves first and builds second: when a bundle from an earlier run is on
 disk, the server starts on it at once and the first build replaces what
