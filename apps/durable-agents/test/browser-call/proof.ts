@@ -139,6 +139,7 @@ const issue = async (file: string) => {
     requests: state.callCount,
     records: Object.values(calls ?? {}),
     tasks: await tasks(harness),
+    wake: harness.wake(),
     view: await panelView(harness, root, context),
   });
   // Hold the storage open, mid-call, until the driver kills this process.
@@ -308,6 +309,7 @@ const drive = async () => {
     const issued = first.reports.issued!;
     show("Server 1, call issued and unclaimed: records", issued.records);
     show("Server 1: live tasks", issued.tasks);
+    show("Server 1: harness.wake() while the call waits", issued.wake);
     show(
       "Proof 3, panel view in server 1 (call pending, unclaimed)",
       issued.view,
