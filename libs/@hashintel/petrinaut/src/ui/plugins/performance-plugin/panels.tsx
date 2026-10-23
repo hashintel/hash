@@ -3,9 +3,9 @@
  * @role Default performance panels consuming the read-only Plugin API
  */
 import { useLayoutEffect, useRef } from "react";
-import { RiCloseLine } from "react-icons/ri";
 
 import { css } from "@hashintel/ds-helpers/css";
+import { CloseIcon } from "@hashintel/ds-icons";
 
 import {
   useStore,
@@ -129,7 +129,7 @@ const FpsPanel = ({
           onClick={onClose}
           className={closeStyle}
         >
-          <RiCloseLine />
+          <CloseIcon />
         </button>
       </div>
       <FpsHistory frames={snapshot.frames} />
@@ -204,7 +204,7 @@ const InformationPanel = ({
           onClick={onClose}
           className={closeStyle}
         >
-          <RiCloseLine />
+          <CloseIcon />
         </button>
       </div>
       <div

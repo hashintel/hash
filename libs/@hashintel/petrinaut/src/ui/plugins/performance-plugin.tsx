@@ -1,4 +1,4 @@
-import { RiSpeedUpLine } from "react-icons/ri";
+import { ChartLineIcon } from "@hashintel/ds-icons";
 
 import { definePetrinautPlugin, type PluginHook } from "../plugin";
 import { PerformancePanels } from "./performance-plugin/panels";
@@ -63,7 +63,7 @@ const usePerformancePlugin: PluginHook<typeof PerformancePlugin> = (api) => {
     },
     buttons: {
       toggleInformation: {
-        icon: <RiSpeedUpLine />,
+        icon: <ChartLineIcon />,
         command: "toggleInformation",
       },
     },
