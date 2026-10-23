@@ -17,7 +17,10 @@ use hash_integrations_engine::{
 };
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 use pretty_assertions::assert_eq;
+use proptest::{property_test, test_runner::Config as ProptestConfig};
+use rstest::rstest;
 use tempfile::TempDir;
+use tokio::runtime::Builder;
 
 async fn open(directory: &TempDir) -> Workspace {
     Workspace::open(
@@ -34,20 +37,54 @@ fn entries(directory: &Path) -> usize {
         .count()
 }
 
-#[tokio::test]
-async fn capture_parameters_and_batches() {
-    const ROW_COUNT: usize = 150_000;
+#[property_test(config = ProptestConfig::with_cases(32))]
+fn capture_rows_and_batches(
+    #[strategy = 0_u32..200_000] row_count: u32,
+    #[strategy = -100_i64..100] start: i64,
+    #[strategy = 1_usize..8192] batch_size: usize,
+) {
+    let runtime = Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("the test runtime should build");
+    runtime.block_on(check_capture_rows(row_count, start, batch_size));
+}
 
+#[rstest]
+#[case::empty(0, 3)]
+#[case::single_row(1, 3)]
+#[case::single_row_batches(2, 1)]
+#[case::below_reader_batch(1023, 31)]
+#[case::exact_reader_batch(1024, 1024)]
+#[case::above_reader_batch(1025, 1023)]
+#[case::below_row_group(64 * 1024 - 1, 4093)]
+#[case::exact_row_group(64 * 1024, 1001)]
+#[case::above_row_group(64 * 1024 + 1, 8191)]
+#[case::multiple_row_groups(128 * 1024 + 1, 5000)]
+#[tokio::test]
+async fn capture_batch_boundaries(#[case] row_count: u32, #[case] batch_size: usize) {
+    check_capture_rows(row_count, -3, batch_size).await;
+}
+
+async fn check_capture_rows(row_count: u32, start: i64, batch_size: usize) {
     let directory = TempDir::new().expect("should create a directory");
     let workspace = Workspace::open(
         directory.path().join("workspace.duckdb"),
         WorkspaceConfig {
-            variables: Variables::try_from(BTreeMap::from([(
-                "COUNT"
-                    .parse::<VariableName>()
-                    .expect("should parse the name"),
-                ROW_COUNT.to_string().into(),
-            )]))
+            variables: Variables::try_from(BTreeMap::from([
+                (
+                    "COUNT"
+                        .parse::<VariableName>()
+                        .expect("should parse the row count variable"),
+                    row_count.to_string().into(),
+                ),
+                (
+                    "START"
+                        .parse::<VariableName>()
+                        .expect("should parse the starting ID variable"),
+                    start.to_string().into(),
+                ),
+            ]))
             .expect("should build variables"),
             ..WorkspaceConfig::default()
         },
@@ -62,7 +99,7 @@ async fn capture_parameters_and_batches() {
                     i,
                     CASE WHEN i % 2 = 0 THEN 'even' END AS label,
                     [i, i + 1] AS pair
-                FROM range($COUNT::BIGINT) AS source(i)
+                FROM range($START::BIGINT, $START::BIGINT + $COUNT::BIGINT) AS source(i)
                 ORDER BY i
                 "
             .into(),
@@ -72,25 +109,40 @@ async fn capture_parameters_and_batches() {
         .expect("the capture should be published");
     workspace.close().await.expect("the workspace should close");
 
-    assert_eq!(capture.path(), target);
+    assert_eq!(
+        capture.path(),
+        target,
+        "the capture should use the target path"
+    );
+    check_capture_file(&capture, row_count, start, batch_size);
+}
+
+fn check_capture_file(capture: &SourceCapture, row_count: u32, start: i64, batch_size: usize) {
+    let target = capture.path();
     assert_eq!(
         capture.rows(),
-        u64::try_from(ROW_COUNT).expect("the row count should fit in u64")
+        u64::from(row_count),
+        "the capture should contain the requested number of rows"
     );
     assert_eq!(
         capture.bytes(),
-        fs::metadata(&target).expect("should stat capture").len()
+        fs::metadata(target).expect("should stat capture").len(),
+        "the capture should report its published file size"
     );
-    let recovered = SourceCapture::open(target.clone()).expect("the capture should reopen");
-    assert_eq!(recovered.rows(), capture.rows());
-    let builder = ParquetRecordBatchReaderBuilder::try_new(
+    let recovered = SourceCapture::open(target.to_owned()).expect("the capture should reopen");
+    assert_eq!(
+        recovered.rows(),
+        u64::from(row_count),
+        "the row count should survive reopening"
+    );
+    let reader = ParquetRecordBatchReaderBuilder::try_new(
         File::open(target).expect("the capture should open"),
     )
-    .expect("the footer should be valid");
-    assert_eq!(builder.metadata().num_row_groups(), 3);
-    let reader = builder.build().expect("the reader should build");
-    let mut rows = 0;
-    let mut nulls = 0;
+    .expect("the footer should be valid")
+    .with_batch_size(batch_size)
+    .build()
+    .expect("the reader should build");
+    let mut rows = 0_u32;
     for batch in reader {
         let batch = batch.expect("the batch should decode");
         let ids = batch
@@ -98,30 +150,43 @@ async fn capture_parameters_and_batches() {
             .as_any()
             .downcast_ref::<Int64Array>()
             .expect("captured IDs should retain their integer type");
-        let expected = i64::try_from(rows).expect("the row offset should fit in an integer");
-        assert_eq!(ids.value(0), expected);
         let labels = batch
             .column(1)
             .as_any()
             .downcast_ref::<StringArray>()
             .expect("captured labels should retain their string type");
-        assert_eq!(labels.value(0), "even");
         let pairs = batch
             .column(2)
             .as_any()
             .downcast_ref::<ListArray>()
             .expect("captured pairs should retain their list type");
-        let first_pair = pairs.value(0);
-        let values = first_pair
-            .as_any()
-            .downcast_ref::<Int64Array>()
-            .expect("captured list values should retain their integer type");
-        assert_eq!(values.values().as_ref(), [expected, expected + 1]);
-        rows += batch.num_rows();
-        nulls += batch.column(1).null_count();
+        for ((id, label), pair) in ids.iter().zip(labels.iter()).zip(pairs.iter()) {
+            let expected = start + i64::from(rows);
+            assert_eq!(
+                id,
+                Some(expected),
+                "IDs should retain their order and value"
+            );
+            assert_eq!(
+                label,
+                (expected.rem_euclid(2) == 0).then_some("even"),
+                "each label should match the parity of ID {expected}"
+            );
+            let pair = pair.expect("each captured pair should be non-null");
+            let values = pair
+                .as_any()
+                .downcast_ref::<Int64Array>()
+                .expect("captured list values should retain their integer type");
+            assert_eq!(values.null_count(), 0, "pair elements should be non-null");
+            assert_eq!(
+                values.values().as_ref(),
+                [expected, expected + 1],
+                "each pair should retain its values for ID {expected}"
+            );
+            rows += 1;
+        }
     }
-    assert_eq!(rows, ROW_COUNT);
-    assert_eq!(nulls, ROW_COUNT.div_euclid(2));
+    assert_eq!(rows, row_count, "every captured row should be verified");
 }
 
 #[tokio::test]
