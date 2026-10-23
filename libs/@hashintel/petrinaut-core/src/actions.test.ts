@@ -1230,3 +1230,191 @@ describe("Petrinaut core actions", () => {
     ).toThrow("Arc references place ID `queu` which does not exist");
   });
 });
+
+describe("Petrinaut core fusion actions", () => {
+  const portPlace = (id: string, name: string) => ({
+    id,
+    name,
+    colorId: null,
+    dynamicsEnabled: false,
+    differentialEquationId: null,
+    isPort: true,
+    x: 0,
+    y: 0,
+  });
+
+  const composed = (): SDCPN => ({
+    ...emptySDCPN,
+    places: [
+      {
+        id: "buffer",
+        name: "Buffer",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 0,
+        y: 0,
+      },
+    ],
+    subnets: [
+      {
+        id: "machine",
+        name: "Machine",
+        places: [portPlace("in", "In"), portPlace("out", "Out")],
+        transitions: [],
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+      },
+    ],
+    componentInstances: [
+      {
+        id: "m1",
+        name: "M1",
+        subnetId: "machine",
+        parameterValues: {},
+        x: 0,
+        y: 0,
+      },
+      {
+        id: "m2",
+        name: "M2",
+        subnetId: "machine",
+        parameterValues: {},
+        x: 0,
+        y: 0,
+      },
+    ],
+  });
+
+  const port = (instanceId: string, portPlaceId: string) => ({
+    kind: "componentPort" as const,
+    componentInstanceId: idOf(instanceId),
+    portPlaceId: idOf(portPlaceId),
+  });
+
+  test("adds a fusion and merges fusions that share a member", () => {
+    const instance = createInstance(composed());
+
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "in")],
+    });
+    instance.mutations.addFusion({
+      id: "f2",
+      members: [port("m1", "in"), port("m2", "in")],
+    });
+
+    expect(instance.definition.get().fusions).toEqual([
+      {
+        id: idOf("f2"),
+        members: [
+          port("m1", "in"),
+          port("m2", "in"),
+          { kind: "place", placeId: idOf("buffer") },
+        ],
+      },
+    ]);
+  });
+
+  test("adds and removes members, dropping a fusion left with one", () => {
+    const instance = createInstance(composed());
+
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [port("m1", "out"), port("m2", "in")],
+    });
+    instance.mutations.addFusionMember({
+      fusionId: "f1",
+      member: { kind: "place", placeId: "buffer" },
+    });
+    expect(instance.definition.get().fusions?.[0]?.members).toHaveLength(3);
+
+    instance.mutations.removeFusionMember({
+      fusionId: "f1",
+      member: port("m2", "in"),
+    });
+    instance.mutations.removeFusionMember({
+      fusionId: "f1",
+      member: { kind: "place", placeId: "buffer" },
+    });
+    expect(instance.definition.get().fusions).toBeUndefined();
+  });
+
+  test("rejects a member that is not a port and a second anchor", () => {
+    const instance = createInstance(composed());
+
+    expect(() =>
+      instance.mutations.addFusion({
+        id: "f1",
+        members: [{ kind: "place", placeId: "buffer" }, port("m1", "missing")],
+      }),
+    ).toThrow(/does not exist/);
+    expect(() =>
+      instance.mutations.addFusion({
+        id: "f1",
+        members: [
+          { kind: "place", placeId: "buffer" },
+          { kind: "place", placeId: "buffer" },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  test("removing a place, an instance or a port takes it out of its fusions", () => {
+    const instance = createInstance(composed());
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [
+        { kind: "place", placeId: "buffer" },
+        port("m1", "in"),
+        port("m2", "in"),
+      ],
+    });
+
+    instance.mutations.removePlace({ placeId: "buffer" });
+    expect(instance.definition.get().fusions?.[0]?.members).toEqual([
+      port("m1", "in"),
+      port("m2", "in"),
+    ]);
+
+    instance.mutations.updatePlace({
+      placeId: "in",
+      targetSubnetId: "machine",
+      update: { isPort: false },
+    });
+    expect(instance.definition.get().fusions).toBeUndefined();
+  });
+
+  test("deleting items by id removes fusions and their dangling members", () => {
+    const instance = createInstance(composed());
+    instance.mutations.addFusion({
+      id: "f1",
+      members: [{ kind: "place", placeId: "buffer" }, port("m1", "in")],
+    });
+    instance.mutations.addFusion({
+      id: "f2",
+      members: [port("m1", "out"), port("m2", "in")],
+    });
+
+    instance.mutations.deleteItemsByIds({
+      items: [
+        { type: "fusion", id: "f1" },
+        { type: "componentInstance", id: "m2" },
+      ],
+    });
+
+    expect(instance.definition.get().fusions).toBeUndefined();
+    expect(instance.definition.get().componentInstances).toHaveLength(1);
+  });
+
+  test("switches the root net to components-only and back", () => {
+    const instance = createInstance(composed());
+
+    instance.mutations.setComponentsOnly({ componentsOnly: true });
+    expect(instance.definition.get().componentsOnly).toBe(true);
+
+    instance.mutations.setComponentsOnly({ componentsOnly: false });
+    expect(instance.definition.get().componentsOnly).toBeUndefined();
+  });
+});

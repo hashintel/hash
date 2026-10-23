@@ -120,6 +120,14 @@ export function usePetrinautMutations(): PetrinautMutations {
       "updateComponentInstancePosition",
     ),
     removeComponentInstance: withReadonlyGuard("removeComponentInstance"),
+    addFusion: withReadonlyGuard("addFusion"),
+    updateFusion: withReadonlyGuard("updateFusion"),
+    removeFusion: withReadonlyGuard("removeFusion"),
+    addFusionMember: withReadonlyGuard("addFusionMember"),
+    removeFusionMember: withReadonlyGuard("removeFusionMember"),
+    setComponentsOnly: withReadonlyGuard("setComponentsOnly", {
+      targetActiveSubnet: false,
+    }),
     deleteItemsByIds: withReadonlyGuard("deleteItemsByIds"),
     commitNodePositions: withReadonlyGuard("commitNodePositions"),
   };

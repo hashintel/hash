@@ -72,6 +72,54 @@ export type {
   TransitionLogicAvailability,
 } from "./extensions";
 
+// --- Composition: place fusion and component libraries ---
+export {
+  describeFusionMember,
+  findFusionWithMember,
+  fusionAnchor,
+  fusionDisplayName,
+  fusionMemberKey,
+  fusionMembersEqual,
+  fusionNodeIds,
+  resolveFusionMember,
+} from "./composition/fusions";
+export type { FusionNet, ResolvedFusionMember } from "./composition/fusions";
+export {
+  checkComposition,
+  checkFusion,
+  checkFusions,
+  checkPorts,
+  colorsStructurallyEqual,
+} from "./composition/check-fusions";
+export type {
+  CompositionProblem,
+  FusionProblem,
+  FusionProblemCode,
+  PortProblem,
+  ProblemSeverity,
+} from "./composition/check-fusions";
+export {
+  describePortDirection,
+  effectivePortDirection,
+  inferPortDirection,
+  portUsage,
+  portUsageMatchesDirection,
+} from "./composition/ports";
+export type { PortUsage } from "./composition/ports";
+export {
+  instantiateLibraryComponent,
+  libraryComponentSubnetId,
+} from "./composition/component-library";
+export type {
+  ComponentLibrary,
+  ComponentTemplate,
+  LibraryComponent,
+} from "./composition/component-library";
+export {
+  standardComponentLibrary,
+  standardComponentLibraryId,
+} from "./composition/standard-components";
+
 // --- Command registry (palette commands) ---
 export {
   combineCommandRegistries,
