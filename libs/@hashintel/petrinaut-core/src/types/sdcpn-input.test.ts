@@ -257,3 +257,34 @@ describe("normalizeSDCPN", () => {
     expect(isSDCPNEqual(normalizeSDCPN(complete), complete)).toBe(true);
   });
 });
+
+describe("normalizeSDCPN composition fields", () => {
+  it("keeps fusions, the components-only flag and port directions", () => {
+    const result = normalizeSDCPN({
+      componentsOnly: true,
+      places: [
+        {
+          id: "p",
+          name: "P",
+          x: 0,
+          y: 0,
+          isPort: true,
+          portDirection: "in",
+        },
+      ],
+      transitions: [],
+      subnets: [],
+      componentInstances: [],
+      fusions: [{ id: "f", members: [{ kind: "place", placeId: "p" }] }],
+    });
+
+    expect(result.componentsOnly).toBe(true);
+    expect(result.places[0]?.portDirection).toBe("in");
+    expect(result.fusions).toEqual([
+      {
+        id: toPetrinautId("f"),
+        members: [{ kind: "place", placeId: toPetrinautId("p") }],
+      },
+    ]);
+  });
+});
