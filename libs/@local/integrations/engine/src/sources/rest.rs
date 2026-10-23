@@ -15,7 +15,7 @@ use hash_integrations_definition::{Pagination, PrimaryKey, RestAuth, RestSource}
 use hash_secret::Secret;
 use parquet::{arrow::ArrowWriter, basic::Compression, file::properties::WriterProperties};
 use reqwest::{
-    Url,
+    Client, Url,
     header::{AUTHORIZATION, HeaderMap, HeaderName, HeaderValue},
 };
 use serde::Deserialize;
@@ -74,7 +74,7 @@ async fn capture_with_client(
     key: &PrimaryKey,
     secret: Option<&Secret<[u8]>>,
     target: PathBuf,
-    client: &reqwest::Client,
+    client: &Client,
 ) -> Result<SourceCapture, Report<SourceError>> {
     let origin =
         Url::parse(&endpoint.url).map_err(|_error| Report::new(SourceError::Configuration))?;
@@ -309,11 +309,16 @@ impl Spool {
 #[cfg(test)]
 mod tests {
     use alloc::collections::BTreeMap;
+    use std::fs;
 
-    use axum::{Json, Router, extract::Query, routing::get};
+    use axum::{Json, Router, extract::Query, http::HeaderMap, routing::get};
+    use duckdb::types::Value;
     use hash_integrations_definition::{PrimaryKey, RestSource};
-    use serde_json::json;
+    use hash_secret::Secret;
+    use rstest::rstest;
+    use serde_json::{Value as JsonValue, json};
     use tempfile::TempDir;
+    use uuid::Uuid;
 
     use super::capture_with_client;
     use crate::{
@@ -329,20 +334,78 @@ mod tests {
             .expect("should build a key")
     }
 
+    async fn page(
+        Query(query): Query<BTreeMap<String, String>>,
+        headers: HeaderMap,
+    ) -> Json<JsonValue> {
+        assert_eq!(
+            headers
+                .get("authorization")
+                .and_then(|value| value.to_str().ok()),
+            Some("Bearer sentinel"),
+            "should authenticate every page"
+        );
+        assert_eq!(
+            query.get("tenant").map(String::as_str),
+            Some("fixed"),
+            "should preserve configured parameters on every page"
+        );
+        if query.contains_key("offset") {
+            assert_eq!(
+                query.get("limit").map(String::as_str),
+                Some("1"),
+                "offset pagination should send the configured page size"
+            );
+        }
+        match (
+            query.get("page").map(String::as_str),
+            query.get("offset").map(String::as_str),
+        ) {
+            (None, None | Some("0")) => Json(json!({
+                "results": [{"id": 1, "nested": {"a": 2}}],
+                "next": "?page=2",
+            })),
+            (Some("2"), None) | (None, Some("1")) => Json(json!({
+                "results": [{"id": 2, "later": true, "nested": null}],
+            })),
+            (None, Some("2")) => Json(json!({"results": []})),
+            _ => panic!("unexpected pagination parameters: {query:?}"),
+        }
+    }
+
+    #[rstest]
+    #[case::next_link(json!({"type": "next-link", "field": "next"}))]
+    #[case::offset(json!({"type": "offset"}))]
     #[tokio::test]
-    async fn pagination_late_columns_and_nulls() {
-        let router = Router::new().route("/items", get(|Query(query): Query<BTreeMap<String, String>>, headers: axum::http::HeaderMap| async move {
-            assert_eq!(headers.get("authorization").and_then(|value| value.to_str().ok()), Some("Bearer sentinel"), "should authenticate every page");
-            assert_eq!(query.get("tenant").map(String::as_str), Some("fixed"), "should preserve configured parameters on every page");
-            match query.get("page").map(String::as_str) {
-                None => Json(json!({"results": [{"id": 1, "nested": {"a": 2}}], "next": "?page=2"})),
-                _ => Json(json!({"results": [{"id": 2, "later": true, "nested": null}]})),
-            }
-        }));
+    async fn pagination_late_columns_and_nulls(#[case] pagination: JsonValue) {
+        let expected = [
+            vec![
+                Value::Text("1".to_owned()),
+                Value::Null,
+                Value::Text("{\"a\":2}".to_owned()),
+            ],
+            vec![
+                Value::Text("2".to_owned()),
+                Value::Text("true".to_owned()),
+                Value::Null,
+            ],
+        ];
+        let router = Router::new().route("/items", get(page));
         let server = server(router).await;
         let (client, url) = public_client(&server);
-        let endpoint: RestSource = serde_json::from_value(json!({"url": format!("{url}/items"), "resultsField": "results", "params": {"tenant": "fixed"}, "pagination": {"type": "next-link", "field": "next"}, "auth": {"type": "bearer", "secretEntityUuid": uuid::Uuid::new_v4()}})).expect("should describe the endpoint");
-        let secret = hash_secret::Secret::from_vec(br#"{"value":"sentinel"}"#.to_vec());
+        let endpoint: RestSource = serde_json::from_value(json!({
+            "url": format!("{url}/items"),
+            "resultsField": "results",
+            "params": {"tenant": "fixed"},
+            "pagination": pagination,
+            "pageSize": 1,
+            "auth": {"type": "bearer", "secretEntityUuid": Uuid::new_v4()},
+        }))
+        .expect("should describe the endpoint");
+        let secret = Secret::from_vec(
+            serde_json::to_vec(&json!({"value": "sentinel"}))
+                .expect("should serialize the authentication token"),
+        );
         let directory = TempDir::new().expect("should create output storage");
         let capture = capture_with_client(
             &endpoint,
@@ -353,7 +416,11 @@ mod tests {
         )
         .await
         .expect("should capture all pages");
-        assert_eq!(capture.rows(), 2, "should count both pages");
+        assert_eq!(
+            capture.rows(),
+            u64::try_from(expected.len()).expect("the fixture row count should fit in u64"),
+            "should capture every fixture row"
+        );
         let workspace = Workspace::open(
             directory.path().join("run.duckdb"),
             WorkspaceConfig::default(),
@@ -365,33 +432,20 @@ mod tests {
             .await
             .expect("should load the capture");
         let rows = workspace
-            .query("SELECT id, later, nested FROM raw ORDER BY id".into())
+            .query(
+                "
+                    SELECT id, later, nested
+                    FROM raw
+                    ORDER BY id
+                    "
+                .into(),
+            )
             .await
             .expect("should read captured cells");
-        let mut rows = rows.iter();
         assert_eq!(
-            rows.next(),
-            Some(
-                [
-                    duckdb::types::Value::Text("1".to_owned()),
-                    duckdb::types::Value::Null,
-                    duckdb::types::Value::Text("{\"a\":2}".to_owned())
-                ]
-                .as_slice()
-            ),
-            "should retain early rows and null-fill later columns"
-        );
-        assert_eq!(
-            rows.next(),
-            Some(
-                [
-                    duckdb::types::Value::Text("2".to_owned()),
-                    duckdb::types::Value::Text("true".to_owned()),
-                    duckdb::types::Value::Null
-                ]
-                .as_slice()
-            ),
-            "should retain later columns and nulls"
+            rows.iter().collect::<Vec<_>>(),
+            expected.iter().map(Vec::as_slice).collect::<Vec<_>>(),
+            "all captured rows should retain nested values, later columns, and nulls"
         );
         workspace.close().await.expect("should close the workspace");
     }
@@ -406,7 +460,12 @@ mod tests {
         ))
         .await;
         let (client, url) = public_client(&server);
-        let endpoint = serde_json::from_value(json!({"url": url, "resultsField": "results", "pagination": {"type": "next-link", "field": "next"}})).expect("should describe the endpoint");
+        let endpoint = serde_json::from_value(json!({
+            "url": url,
+            "resultsField": "results",
+            "pagination": {"type": "next-link", "field": "next"},
+        }))
+        .expect("should describe the endpoint");
         let directory = TempDir::new().expect("should create output storage");
         let target = directory.path().join("rows.parquet");
         let error = capture_with_client(&endpoint, &key(), None, target.clone(), &client)
@@ -418,7 +477,7 @@ mod tests {
         );
         assert!(!target.exists(), "should publish only a complete capture");
         assert_eq!(
-            std::fs::read_dir(directory.path())
+            fs::read_dir(directory.path())
                 .expect("should read output storage")
                 .count(),
             0,
@@ -453,7 +512,13 @@ mod tests {
             .await
             .expect("should load the empty schema");
         let rows = workspace
-            .query("SELECT id FROM empty".into())
+            .query(
+                "
+                    SELECT id
+                    FROM empty
+                    "
+                .into(),
+            )
             .await
             .expect("should preserve the key column");
         assert_eq!(rows.iter().len(), 0, "should retain an empty source");
@@ -469,6 +534,7 @@ mod schema_tests {
     use tempfile::TempDir;
 
     use super::Spool;
+    use crate::SourceError;
 
     #[test]
     fn rows_preserve_missing_key_columns() {
@@ -486,7 +552,7 @@ mod schema_tests {
             "should reject a case-insensitive column collision before DuckDB can rename it",
         );
         assert!(
-            matches!(error.current_context(), crate::SourceError::Response),
+            matches!(error.current_context(), SourceError::Response),
             "should identify an invalid response schema"
         );
     }
