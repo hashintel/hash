@@ -1,0 +1,9 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "test:unit": {
+      "dependsOn": ["^build"],
+      "env": ["TEST_COVERAGE"]
+    }
+  }
+}
