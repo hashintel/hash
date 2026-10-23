@@ -99,13 +99,13 @@ const expectOneCommitTurn = (recorded: readonly EntryRecord[]) => {
     Array.isArray(resultContent) && resultContent[0]?.type === "text"
       ? resultContent[0].text
       : undefined;
-  // Brunch's receipt for a first commit: queue-aligned IDs, no USER message before it in this history.
+  // Brunch's receipt for a first commit: queue-aligned IDs, following the one USER message.
   expect(JSON.parse(resultText ?? "null")).toEqual({
     status: "recorded",
     commitId: "call-1",
     revision: 1,
     ids: ["e1", "c1"],
-    exchanges: 0,
+    exchanges: 1,
     openQuestions: 0,
   });
   expect(reply?.model?.[0]).toMatchObject({
