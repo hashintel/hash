@@ -56,6 +56,13 @@ export type CommandHelperFunctions = {
    * when applicable (e.g. the AI dispatcher prompts via an interactive chat
    * widget when `askUserFirst: true`).
    */
+  /**
+   * Replace the whole definition in one change, validated as a file is, with
+   * ids canonicalised. The Code view writes a merged net this way; the ids
+   * the merge kept are what make it an edit of the same net.
+   */
+  replaceDefinition: (input: { definition: SDCPN }) => void;
+
   applyAutoLayout: (input?: {
     targetSubnetId?: string | null;
   }) => Promise<ApplyAutoLayoutResult>;
@@ -138,6 +145,22 @@ const validateNewlyPastedItems = (
   }
 };
 
+/** Makes `target` hold `definition`'s fields and no other, in place. */
+const replaceDefinitionFields = (target: SDCPN, definition: SDCPN): void => {
+  const draft = target as Record<string, unknown>;
+  const next = definition as Record<string, unknown>;
+  for (const key of Object.keys(draft)) {
+    if (next[key] === undefined) {
+      delete draft[key];
+    }
+  }
+  for (const [key, value] of Object.entries(next)) {
+    if (value !== undefined) {
+      draft[key] = value;
+    }
+  }
+};
+
 export function createPetrinautCommands(
   mutate: (fn: (sdcpn: SDCPN) => void) => void,
   read: () => SDCPN,
@@ -158,6 +181,15 @@ export function createPetrinautCommands(
         validateNewlyPastedItems(targetNet, newItemIds);
       });
       return { newItemIds };
+    },
+
+    replaceDefinition(input) {
+      const { definition } =
+        commandActionInputSchemas.replaceDefinition.parse(input);
+      mutate((sdcpn) => {
+        replaceDefinitionFields(sdcpn, definition);
+        stripDisabledExtensionData(sdcpn, extensions);
+      });
     },
 
     async applyAutoLayout(input) {

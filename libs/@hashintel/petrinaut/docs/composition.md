@@ -49,7 +49,9 @@ Switch **Components only** on in the Components panel to build the root net from
 
 ## Code view
 
-With the **Code view** plugin, **Code** appears beside **Canvas** and **Definitions**. It shows the net as text in the Petrinaut DSL, with its components inline and every piece of code as the function body you wrote, re-printed on every change. The view is read-only for now; select an item on the canvas or in the sidebar to jump to its lines, and use **Copy** to take the text elsewhere.
+With the **Code view** plugin, **Code** appears beside **Canvas** and **Definitions**. It shows the net as text in the Petrinaut DSL, with its components inline and every piece of code as the function body you wrote, re-printed on every change. Select an item on the canvas or in the sidebar to jump to its lines, and use **Copy** to take the text elsewhere.
+
+The text is editable. As you type, lines that do not parse and names that do not resolve are underlined, with the reason on hover. **Apply**, or ⌘S / Ctrl+S in the editor, writes the text back to the net: places, transitions, components, instances, fusions, metrics and scenarios are matched to the net by name, so what you keep keeps its position and identity, what you add appears in a row under the existing nodes, and what you delete from the text is removed from the net. Renaming one item of a kind keeps its position too. **Discard** drops your edits and shows the net's text again. If the net changes on the canvas while you edit, the toolbar says so, and applying then replaces that change. A new title on the `net` line renames the net.
 
 ## Example
 
