@@ -6,31 +6,48 @@ import libEs2015Symbol from "@typescript/typescript6/lib/lib.es2015.symbol.d.ts?
 
 import { detectUserCodeForm } from "../../hir";
 
-/** Bundled TypeScript lib files (with absolute paths) */
-const BUNDLED_LIBS: Record<string, string> = {
+/**
+ * Bundled TypeScript lib files (with absolute paths), shared by every
+ * language service: the ES2015 standard library and nothing of the DOM.
+ */
+export const TYPESCRIPT_LIBS: Readonly<Record<string, string>> = {
   "/lib.es5.d.ts": libEs5,
   "/lib.es2015.core.d.ts": libEs2015Core,
   "/lib.es2015.symbol.d.ts": libEs2015Symbol,
   "/lib.es2015.iterable.d.ts": libEs2015Iterable,
 };
 
-/** TypeScript compiler options for SDCPN code checking */
-const COMPILER_OPTIONS: ts.CompilerOptions = {
-  target: ts.ScriptTarget.ES2015,
-  module: ts.ModuleKind.ESNext,
-  moduleResolution: ts.ModuleResolutionKind.NodeNext,
-  strict: true,
-  lib: [
-    "lib.es5.d.ts",
-    "lib.es2015.core.d.ts",
-    "lib.es2015.symbol.d.ts",
-    "lib.es2015.iterable.d.ts",
-  ],
-  // Use root as base URL for absolute imports
-  baseUrl: "/",
-  // Disable automatic type resolution to avoid Node.js-specific APIs in browser
-  typeRoots: [],
-  types: [],
+/** The `lib` compiler option naming every file of {@link TYPESCRIPT_LIBS}. */
+export const TYPESCRIPT_LIB_NAMES: readonly string[] = Object.keys(
+  TYPESCRIPT_LIBS,
+).map((path) => path.slice(1));
+
+/**
+ * What a language service checks against: its compiler options and the
+ * read-only files served beside the virtual files, keyed by absolute path.
+ * Those are TypeScript's lib files and, for the visualizer service, the
+ * virtual package holding React's types.
+ */
+export type LanguageServiceHostConfig = {
+  compilerOptions: ts.CompilerOptions;
+  bundledFiles: Readonly<Record<string, string>>;
+};
+
+/** The SDCPN language service: plain TypeScript, no JSX, no DOM. */
+export const SDCPN_LANGUAGE_SERVICE_HOST: LanguageServiceHostConfig = {
+  compilerOptions: {
+    target: ts.ScriptTarget.ES2015,
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.NodeNext,
+    strict: true,
+    lib: [...TYPESCRIPT_LIB_NAMES],
+    // Use root as base URL for absolute imports
+    baseUrl: "/",
+    // Disable automatic type resolution to avoid Node.js-specific APIs in browser
+    typeRoots: [],
+    types: [],
+  },
+  bundledFiles: TYPESCRIPT_LIBS,
 };
 
 /** Injected text around the user content of a virtual file. */
@@ -110,7 +127,9 @@ export type LanguageServiceHostController = {
  */
 export function createLanguageServiceHost(
   files: Map<string, VirtualFile>,
+  config: LanguageServiceHostConfig,
 ): LanguageServiceHostController {
+  const { compilerOptions, bundledFiles } = config;
   const versions = new Map<string, number>();
 
   const getFileContent = (fileName: string): string | undefined => {
@@ -118,14 +137,14 @@ export function createLanguageServiceHost(
     if (entry) {
       return (entry.prefix ?? "") + entry.content + (entry.suffix ?? "");
     }
-    // Check bundled lib files (try both absolute path and just filename)
-    if (BUNDLED_LIBS[fileName]) {
-      return BUNDLED_LIBS[fileName];
+    // Check bundled files (try both absolute path and just filename)
+    if (bundledFiles[fileName]) {
+      return bundledFiles[fileName];
     }
     // Fallback: extract lib filename and try with absolute path
     const libName = fileName.split("/").pop();
     if (libName) {
-      return BUNDLED_LIBS[`/${libName}`];
+      return bundledFiles[`/${libName}`];
     }
     return undefined;
   };
@@ -159,7 +178,7 @@ export function createLanguageServiceHost(
 
   const host: ts.LanguageServiceHost = {
     getScriptFileNames: () => [...files.keys()],
-    getCompilationSettings: () => COMPILER_OPTIONS,
+    getCompilationSettings: () => compilerOptions,
     getScriptVersion: (fileName) => String(versions.get(fileName) ?? 0),
     getCurrentDirectory: () => "/",
     getDefaultLibFileName: () => "/lib.es2015.core.d.ts",
