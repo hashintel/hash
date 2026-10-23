@@ -32,6 +32,10 @@ const urls: [string, string][] = [
     "The flows list: one example flow per design journey, plus the Supplier review",
   ],
   ["?screens", "Every designed screen side by side, grouped by journey"],
+  [
+    "?state=j3-a1&full",
+    "Add &full to a screen to show the panel rows its Figma frame leaves out",
+  ],
   ["?guide", "This guide"],
   ["?results", "The logged task sessions (this browser only)"],
 ];
