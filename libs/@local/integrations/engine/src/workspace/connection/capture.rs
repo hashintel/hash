@@ -1,22 +1,36 @@
-use std::path::Path;
+use alloc::sync::Arc;
+use core::error::Error;
+use std::{fs::File, path::Path, sync::Mutex};
 
 use arrow_array::{
     Array as _, RecordBatch, StructArray,
-    ffi::{FFI_ArrowArray, FFI_ArrowSchema, from_ffi},
+    ffi::{self as arrow_ffi, FFI_ArrowArray, FFI_ArrowSchema, from_ffi},
 };
 use duckdb::{
-    arrow::{array::Array as _, ffi::to_ffi, record_batch::RecordBatch as DuckDbRecordBatch},
+    arrow::{
+        array::{self as duckdb_array, Array as _},
+        datatypes::SchemaRef,
+        ffi::{self as duckdb_ffi, to_ffi},
+        record_batch::RecordBatch as DuckDbRecordBatch,
+    },
+    core::DataChunkHandle,
     params_from_iter,
+    vtab::{BindInfo, InitInfo, TableFunctionInfo, VTab, to_duckdb_logical_type_for_field},
 };
 use error_stack::{Report, ResultExt as _};
-use parquet::{arrow::ArrowWriter, basic::Compression, file::properties::WriterProperties};
+use parquet::{
+    arrow::{
+        ArrowWriter,
+        arrow_reader::{ParquetRecordBatchReader, ParquetRecordBatchReaderBuilder},
+    },
+    basic::Compression,
+    file::properties::WriterProperties,
+};
 
 use super::Connection;
-use crate::{CaptureError, SourceCapture, StatementError};
+use crate::{CaptureError, SourceCapture, StatementError, sql::Identifier};
 
-fn parquet_batch(
-    batch: &duckdb::arrow::array::StructArray,
-) -> Result<RecordBatch, Report<CaptureError>> {
+fn parquet_batch(batch: &duckdb_array::StructArray) -> Result<RecordBatch, Report<CaptureError>> {
     let (mut array, mut schema) = to_ffi(&batch.to_data()).change_context(CaptureError::Write)?;
     #[expect(
         unsafe_code,
@@ -72,7 +86,7 @@ impl Connection {
             .set_compression(Compression::SNAPPY)
             .set_max_row_group_row_count(Some(64 * 1024))
             .build();
-        let schema = parquet_batch(&duckdb::arrow::array::StructArray::from(
+        let schema = parquet_batch(&duckdb_array::StructArray::from(
             DuckDbRecordBatch::new_empty(batches.get_schema()),
         ))?
         .schema();
@@ -103,17 +117,15 @@ impl Connection {
 }
 
 #[derive(Clone, Default)]
-pub(super) struct CaptureSchema(
-    alloc::sync::Arc<std::sync::Mutex<Option<duckdb::arrow::datatypes::SchemaRef>>>,
-);
+pub(super) struct CaptureSchema(Arc<Mutex<Option<SchemaRef>>>);
 
 pub(super) struct SchemaTable;
 
-impl duckdb::vtab::VTab for SchemaTable {
+impl VTab for SchemaTable {
     type BindData = ();
     type InitData = ();
 
-    fn bind(bind: &duckdb::vtab::BindInfo) -> Result<(), Box<dyn core::error::Error>> {
+    fn bind(bind: &BindInfo) -> Result<(), Box<dyn Error>> {
         #[expect(
             unsafe_code,
             reason = "reads the typed state owned by DuckDB's table function registration"
@@ -125,25 +137,22 @@ impl duckdb::vtab::VTab for SchemaTable {
             .0
             .lock()
             .map_err(|_error| "capture schema lock is poisoned")?;
-        let schema = alloc::sync::Arc::clone(guard.as_ref().ok_or("no capture is being loaded")?);
+        let schema = Arc::clone(guard.as_ref().ok_or("no capture is being loaded")?);
         drop(guard);
         for field in schema.fields() {
-            bind.add_result_column(
-                field.name(),
-                duckdb::vtab::to_duckdb_logical_type_for_field(field)?,
-            );
+            bind.add_result_column(field.name(), to_duckdb_logical_type_for_field(field)?);
         }
         Ok(())
     }
 
-    fn init(_: &duckdb::vtab::InitInfo) -> Result<(), Box<dyn core::error::Error>> {
+    fn init(_: &InitInfo) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 
     fn func(
-        _: &duckdb::vtab::TableFunctionInfo<Self>,
-        output: &mut duckdb::core::DataChunkHandle,
-    ) -> Result<(), Box<dyn core::error::Error>> {
+        _: &TableFunctionInfo<Self>,
+        output: &mut DataChunkHandle,
+    ) -> Result<(), Box<dyn Error>> {
         output.set_len(0);
         Ok(())
     }
@@ -152,7 +161,7 @@ impl duckdb::vtab::VTab for SchemaTable {
 fn workspace_batch(batch: RecordBatch) -> Result<DuckDbRecordBatch, Report<CaptureError>> {
     let batch = StructArray::from(batch);
     let (mut array, mut schema) =
-        arrow_array::ffi::to_ffi(&batch.to_data()).change_context(CaptureError::Read)?;
+        arrow_ffi::to_ffi(&batch.to_data()).change_context(CaptureError::Read)?;
     #[expect(
         unsafe_code,
         reason = "transfers Arrow batches through the stable C data interface"
@@ -160,14 +169,14 @@ fn workspace_batch(batch: RecordBatch) -> Result<DuckDbRecordBatch, Report<Captu
     // SAFETY: The matched exports implement the stable Arrow C data ABI. `from_raw` transfers
     // ownership and clears each original release callback, leaving one owner for every allocation.
     let data = unsafe {
-        let array = duckdb::arrow::ffi::FFI_ArrowArray::from_raw((&raw mut array).cast());
-        let schema = duckdb::arrow::ffi::FFI_ArrowSchema::from_raw((&raw mut schema).cast());
-        duckdb::arrow::ffi::from_ffi(array, &schema)
+        let array = duckdb_ffi::FFI_ArrowArray::from_raw((&raw mut array).cast());
+        let schema = duckdb_ffi::FFI_ArrowSchema::from_raw((&raw mut schema).cast());
+        duckdb_ffi::from_ffi(array, &schema)
     }
     .change_context(CaptureError::Read)?;
-    Ok(DuckDbRecordBatch::from(
-        &duckdb::arrow::array::StructArray::from(data),
-    ))
+    Ok(DuckDbRecordBatch::from(&duckdb_array::StructArray::from(
+        data,
+    )))
 }
 
 impl Connection {
@@ -176,12 +185,10 @@ impl Connection {
         capture: &SourceCapture,
         table: &str,
     ) -> Result<(), Report<CaptureError>> {
-        let file = std::fs::File::open(capture.path()).change_context(CaptureError::Read)?;
-        let builder = parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder::try_new(file)
-            .change_context(CaptureError::Read)?;
-        let empty = workspace_batch(RecordBatch::new_empty(alloc::sync::Arc::clone(
-            builder.schema(),
-        )))?;
+        let file = File::open(capture.path()).change_context(CaptureError::Read)?;
+        let builder =
+            ParquetRecordBatchReaderBuilder::try_new(file).change_context(CaptureError::Read)?;
+        let empty = workspace_batch(RecordBatch::new_empty(Arc::clone(builder.schema())))?;
         let batches = builder.build().change_context(CaptureError::Read)?;
         *self
             .capture_schema
@@ -200,7 +207,7 @@ impl Connection {
     fn load_batches(
         &self,
         table: &str,
-        batches: parquet::arrow::arrow_reader::ParquetRecordBatchReader,
+        batches: ParquetRecordBatchReader,
     ) -> Result<(), Report<CaptureError>> {
         let transaction = self
             .duckdb
@@ -209,7 +216,7 @@ impl Connection {
         transaction
             .execute_batch(&format!(
                 "CREATE OR REPLACE TABLE {} AS SELECT * FROM _capture_schema()",
-                crate::sql::Identifier::new(table)
+                Identifier::new(table)
             ))
             .change_context(CaptureError::Query)?;
         {

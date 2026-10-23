@@ -16,6 +16,7 @@ use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::Variables;
 use tokio::sync::mpsc;
 
+use self::capture::{CaptureSchema, SchemaTable};
 use crate::{
     ByteSize, WorkspaceConfig,
     sql::Identifier,
@@ -47,7 +48,7 @@ pub(super) struct Connection {
     disk_limit: Option<ByteSize>,
     variables: Variables,
     metrics: Metrics,
-    capture_schema: capture::CaptureSchema,
+    capture_schema: CaptureSchema,
     /// An exclusive lock on the workspace's lock file, held until the database is closed.
     lock: File,
 }
@@ -191,9 +192,9 @@ impl Connection {
                 path: files.database().to_owned(),
             })?;
 
-        let capture_schema = capture::CaptureSchema::default();
+        let capture_schema = CaptureSchema::default();
         duckdb
-            .register_table_function_with_extra_info::<capture::SchemaTable, _>(
+            .register_table_function_with_extra_info::<SchemaTable, _>(
                 "_capture_schema",
                 &capture_schema,
             )
