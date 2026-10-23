@@ -27,7 +27,7 @@
     "@hashintel/petrinaut-core": "workspace:*",
     "@local/flue-aisdk-transport": "workspace:*",
     "@pandacss/dev": "1.11.1",
-    "@sentry/react": "10.64.0",
+    "@sentry/react": "10.75.2",
     "@tanstack/react-router": "1.170.31",
     "ai": "6.0.286",
     "brotli-wasm": "3.0.1",
