@@ -26,7 +26,7 @@ const coloured = (): SDCPN => ({
   places: [
     {
       id: "p1",
-      name: "Place 1",
+      name: "Place1",
       colorId: "t1",
       dynamicsEnabled: true,
       differentialEquationId: "d1",
@@ -143,7 +143,7 @@ describe.each(["JSON", "Rust"])("%s createJsonDocHandle", (backend) => {
     handle.change((draft) => {
       draft.places.push({
         id: "p1",
-        name: "Place 1",
+        name: "Place1",
         colorId: null,
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -227,7 +227,7 @@ describe.each(["JSON", "Rust"])("%s createJsonDocHandle", (backend) => {
       });
       draft.places.push({
         id: "p1",
-        name: "Place 1",
+        name: "Place1",
         colorId: "t1",
         dynamicsEnabled: true,
         differentialEquationId: null,

@@ -385,7 +385,7 @@ describe.each(["TypeScript", "Rust"])("core actions (%s)", (backend) => {
       componentInstances: [
         {
           id: "instance-1",
-          name: "Reusable instance",
+          name: "ReusableInstance",
           subnetId: "subnet-1",
           parameterValues: {},
           x: 100,
@@ -527,7 +527,7 @@ describe.each(["TypeScript", "Rust"])("core actions (%s)", (backend) => {
       componentInstances: [
         {
           id: "instance-1",
-          name: "Reusable instance",
+          name: "ReusableInstance",
           subnetId: "subnet-1",
           parameterValues: {},
           x: 100,

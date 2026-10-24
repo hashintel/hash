@@ -3,7 +3,15 @@ use serde_json::{Value, json};
 use crate::{Command, CommitNodePositions, Extensions, PetrinautInstance};
 
 fn document() -> Value {
-    json!({"places": [{"id":"p", "x":0, "y":0}], "transitions": [], "types": [], "parameters": [], "differentialEquations": []})
+    normalize(
+        json!({"places": [place("p")], "transitions": [], "types": [], "parameters": [], "differentialEquations": []}),
+    )
+}
+
+fn normalize(value: Value) -> Value {
+    crate::model::Sdcpn::from_input(value)
+        .expect("fixture should be a valid document")
+        .to_json()
 }
 
 fn instance(limit: usize) -> PetrinautInstance {
@@ -16,14 +24,15 @@ fn history_round_trip_nested_values() {
     let mut instance = instance(50);
     let initial = document();
     let mut next = initial.clone();
-    next["places"] =
-        json!([{"id":"other", "values":[null, true, "\u{1f4ab}", {"field":"value"}]}, {"id":"p2"}]);
-    next["scenarios"] = json!([{ "nested": {"0": [1, 2, 3]} }]);
+    next["metadata"] =
+        json!({"values":[null, true, "\u{1f4ab}", {"field":"value"}], "nested":{"0":[1,2,3]}});
+    next["places"] = json!([place("other"), place("p2")]);
+    next = normalize(next);
     instance
         .replace_document(next.clone(), "edit".to_owned())
         .expect("should commit");
     instance.go_to_index(0).expect("should undo");
-    assert_eq!(instance.document(), &initial);
+    assert_eq!(instance.document(), &normalize(initial));
     instance.go_to_index(1).expect("should redo");
     assert_eq!(instance.document(), &next);
 }
@@ -42,7 +51,7 @@ fn history_truncates_redo_and_retains_baseline() {
     instance
         .go_to_index(0)
         .expect("should undo retained changes");
-    assert_eq!(instance.document()["places"][0]["x"], 1);
+    assert_eq!(instance.document()["places"][0]["x"], 1.0);
     instance
         .replace_document(document(), "branch".to_owned())
         .expect("should commit");
@@ -68,20 +77,22 @@ fn commit_invalid_document_is_atomic() {
 #[test]
 fn positions_target_subnet_and_undo() {
     let mut initial = document();
-    initial["subnets"] = json!([{ "id":"subnet", "places":[{"id":"p", "x":0, "y":0}] }]);
-    let mut instance = PetrinautInstance::new(initial.clone(), 50, "initial".to_owned(), false)
-        .expect("should create instance");
+    initial["subnets"] =
+        json!([{ "id":"subnet", "name":"Reusable", "places":[place("p")], "transitions":[] }]);
+    let mut instance =
+        PetrinautInstance::new(normalize(initial.clone()), 50, "initial".to_owned(), false)
+            .expect("should create instance");
     let input: CommitNodePositions = serde_json::from_value(json!({ "targetSubnetId":"subnet", "commits":[{"id":"p", "itemType":"place", "position":{"x":42, "y":-7}}] })).expect("should parse command");
     instance
         .commit_node_positions(&input, "move".to_owned())
         .expect("should move");
-    assert_eq!(instance.document()["places"][0]["x"], 0);
+    assert_eq!(instance.document()["places"][0]["x"], 0.0);
     assert_eq!(
         instance.document()["subnets"][0]["places"][0]["x"].as_f64(),
         Some(42.0)
     );
     instance.go_to_index(0).expect("should undo move");
-    assert_eq!(instance.document(), &initial);
+    assert_eq!(instance.document(), &normalize(initial.clone()));
 }
 
 #[test]
@@ -137,8 +148,9 @@ fn readonly_and_history_disabled() {
 fn commit_preserves_large_native_integers() {
     let mut initial = document();
     initial["metadata"] = json!({"sequence": (1_u64 << 53)});
-    let mut instance = PetrinautInstance::new(initial.clone(), 50, "initial".to_owned(), false)
-        .expect("should create instance");
+    let mut instance =
+        PetrinautInstance::new(normalize(initial.clone()), 50, "initial".to_owned(), false)
+            .expect("should create instance");
     let mut next = initial.clone();
     next["metadata"]["sequence"] = json!(((1_u64 << 53) + 1));
     assert!(
@@ -149,14 +161,14 @@ fn commit_preserves_large_native_integers() {
     );
     assert_eq!(instance.document(), &next);
     instance.go_to_index(0).expect("should undo");
-    assert_eq!(instance.document(), &initial);
+    assert_eq!(instance.document(), &normalize(initial.clone()));
 }
 
 #[test]
 fn extension_policy_applies_to_initial_state_and_all_commits() {
     let mut initial = document();
-    initial["places"][0] = json!({"id":"p", "x":0, "y":0, "colorId":"color", "dynamicsEnabled":true, "differentialEquationId":"equation", "visualizerCode":"code"});
-    initial["scenarios"] = json!([{"parameterOverrides":{"rate":"1"}, "initialState":{"type":"per_place", "content":{"p":[[1],[2]]}}}]);
+    initial["places"][0] = json!({"id":"p", "name":"Queue", "x":0, "y":0, "colorId":"color", "dynamicsEnabled":true, "differentialEquationId":"equation", "visualizerCode":"code"});
+    initial["scenarios"] = json!([{"id":"scenario", "name":"Scenario", "scenarioParameters":[], "parameterOverrides":{"rate":"1"}, "initialState":{"type":"per_place", "content":{"p":[[1],[2]]}}}]);
     let policy = Extensions {
         colors: false,
         parameters: false,
@@ -178,7 +190,8 @@ fn extension_policy_applies_to_initial_state_and_all_commits() {
             .is_none()
     );
     assert_eq!(
-        instance.document()["scenarios"][0]["initialState"]["content"]["p"],
+        instance.document()["scenarios"][0]["initialState"]["content"]
+            [crate::model::canonical_id("p")],
         "2"
     );
     assert_eq!(
@@ -246,7 +259,10 @@ fn place_dynamics_failure_preserves_redo() {
         instance
             .execute(&invalid, "bad".to_owned())
             .expect_err("should validate equation"),
-        "Place `Queue` references differential equation ID `missing` which does not exist."
+        format!(
+            "Place `Queue` references differential equation ID `{}` which does not exist.",
+            crate::model::canonical_id("missing")
+        )
     );
     assert_eq!(
         instance.document(),
@@ -271,17 +287,21 @@ fn place_removal_cascades_subnet_ports_atomically() {
     port["isPort"] = json!(true);
     let mut subnet = document();
     subnet["id"] = json!("subnet");
+    subnet["name"] = json!("Reusable");
     subnet["places"] = json!([port]);
-    subnet["transitions"] = json!([{"id":"inside","inputArcs":[],"outputArcs":[{"placeId":"port","weight":1}],"lambdaType":"predicate","lambdaCode":"","transitionKernelCode":""}]);
+    subnet["transitions"] = json!([{"id":"inside","name":"Move", "x":0,"y":0,"inputArcs":[],"outputArcs":[{"placeId":"port","weight":1}],"lambdaType":"predicate","lambdaCode":"","transitionKernelCode":""}]);
     let mut other = document();
     other["id"] = json!("other");
-    other["componentInstances"] = json!([{"id":"i","subnetId":"subnet"}]);
+    other["name"] = json!("Other");
+    other["componentInstances"] =
+        json!([{"id":"i","name":"Instance","subnetId":"subnet","parameterValues":{},"x":0,"y":0}]);
     other["transitions"] = json!([transition]);
     initial["componentInstances"] = other["componentInstances"].clone();
     initial["transitions"] = other["transitions"].clone();
     initial["subnets"] = json!([subnet, other]);
-    let mut instance = PetrinautInstance::new(initial.clone(), 50, "initial".to_owned(), false)
-        .expect("should create instance");
+    let mut instance =
+        PetrinautInstance::new(normalize(initial.clone()), 50, "initial".to_owned(), false)
+            .expect("should create instance");
     let remove = command(
         json!({"type":"removePlace", "input":{"placeId":"port","targetSubnetId":"subnet"}}),
     );
@@ -313,7 +333,7 @@ fn place_removal_cascades_subnet_ports_atomically() {
         .expect("should undo all cascading edits");
     assert_eq!(
         instance.document(),
-        &initial,
+        &normalize(initial.clone()),
         "should restore the complete net"
     );
 }
@@ -373,9 +393,11 @@ fn transition_edits_target_subnet_and_undo() {
     let mut initial = graph();
     let mut subnet = graph();
     subnet["id"] = json!("subnet");
+    subnet["name"] = json!("Reusable");
     initial["subnets"] = json!([subnet]);
-    let mut instance = PetrinautInstance::new(initial.clone(), 50, "initial".to_owned(), false)
-        .expect("should create instance");
+    let mut instance =
+        PetrinautInstance::new(normalize(initial.clone()), 50, "initial".to_owned(), false)
+            .expect("should create instance");
     let mut added = transition();
     added["id"] = json!("added");
     added["name"] = json!("  Display name  ");
@@ -413,7 +435,7 @@ fn transition_edits_target_subnet_and_undo() {
         .expect("should undo creation and edits");
     assert_eq!(
         instance.document(),
-        &initial,
+        &normalize(initial.clone()),
         "should restore the initial document"
     );
 }
@@ -421,8 +443,9 @@ fn transition_edits_target_subnet_and_undo() {
 #[test]
 fn arc_edits_preserve_identity_and_history() {
     let initial = graph();
-    let mut instance = PetrinautInstance::new(initial.clone(), 50, "initial".to_owned(), false)
-        .expect("should create instance");
+    let mut instance =
+        PetrinautInstance::new(normalize(initial.clone()), 50, "initial".to_owned(), false)
+            .expect("should create instance");
     let target = json!({"transitionId":"t","arcDirection":"input","endpoint":{"kind":"place","placeId":"p"}});
     let add = command(json!({"type":"addArc","input":{"target":target,"weight":1,"type":"read"}}));
     instance
@@ -450,7 +473,7 @@ fn arc_edits_preserve_identity_and_history() {
     instance.execute(&command(json!({"type":"updateArcPlace","input":{"target":target,"newEndpoint":{"kind":"place","placeId":"q"}}})), "endpoint".to_owned()).expect("should replace endpoint");
     assert_eq!(
         instance.document()["transitions"][0]["inputArcs"],
-        json!([{"placeId":"q","weight":2.5,"type":"inhibitor"}]),
+        json!([{"placeId":crate::model::canonical_id("q"),"weight":2.5,"type":"inhibitor"}]),
         "should preserve arc weight and type while replacing the reference"
     );
     let final_state = instance.document().clone();
@@ -488,17 +511,18 @@ fn arc_edits_preserve_identity_and_history() {
     instance.go_to_index(0).expect("should undo all commands");
     assert_eq!(
         instance.document(),
-        &initial,
+        &normalize(initial.clone()),
         "should restore the complete initial graph"
     );
-    let mut readonly = PetrinautInstance::new(initial.clone(), 50, "initial".to_owned(), true)
-        .expect("should create readonly instance");
+    let mut readonly =
+        PetrinautInstance::new(normalize(initial.clone()), 50, "initial".to_owned(), true)
+            .expect("should create readonly instance");
     readonly
         .execute(&add, "ignored".to_owned())
         .expect("should ignore readonly edits");
     assert_eq!(
         readonly.document(),
-        &initial,
+        &normalize(initial),
         "should preserve readonly state"
     );
     assert_eq!(
@@ -514,11 +538,12 @@ fn arc_reference_failures_are_atomic() {
     let mut subnet = graph();
     subnet["id"] = json!("subnet");
     subnet["name"] = json!("Reusable");
+    subnet["name"] = json!("Reusable");
     initial["subnets"] = json!([subnet]);
-    initial["componentInstances"] =
-        json!([{"id":"instance","name":"Instance","subnetId":"subnet"}]);
-    let mut instance = PetrinautInstance::new(initial.clone(), 50, "initial".to_owned(), false)
-        .expect("should create instance");
+    initial["componentInstances"] = json!([{"id":"instance","name":"Instance","subnetId":"subnet","parameterValues":{},"x":0,"y":0}]);
+    let mut instance =
+        PetrinautInstance::new(normalize(initial.clone()), 50, "initial".to_owned(), false)
+            .expect("should create instance");
     for (endpoint, message) in [
         (
             json!({"kind":"place","placeId":"missing"}),
@@ -547,11 +572,14 @@ fn arc_reference_failures_are_atomic() {
             instance
                 .execute(&add, "bad".to_owned())
                 .expect_err("should validate endpoint references"),
-            message
+            message.replace(
+                "`missing`",
+                &format!("`{}`", crate::model::canonical_id("missing"))
+            )
         );
         assert_eq!(
             instance.document(),
-            &initial,
+            &normalize(initial.clone()),
             "should preserve the document after invalid references"
         );
     }

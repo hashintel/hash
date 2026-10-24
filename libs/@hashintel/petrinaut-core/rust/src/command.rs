@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     AddArc, AddPlace, AddTransition, ArcTarget, CommitNodePositions, RemovePlace, RemoveTransition,
@@ -6,7 +6,7 @@ use crate::{
 };
 
 /// Atomic document edits. Entity IDs use the normalized document's identifiers.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
 #[serde(
     tag = "type",
     content = "input",
@@ -26,4 +26,35 @@ pub enum Command {
     UpdateArcWeight(UpdateArcWeight),
     UpdateArcType(UpdateArcType),
     UpdateArcPlace(UpdateArcPlace),
+}
+
+impl Command {
+    pub(crate) fn normalized(&self) -> Result<Self, String> {
+        let mut value = serde_json::to_value(self).map_err(|error| error.to_string())?;
+        crate::model::validation::normalize_ids(&mut value)?;
+        serde_json::from_value(value).map_err(|error| error.to_string())
+    }
+
+    #[expect(
+        clippy::wildcard_enum_match_arm,
+        reason = "Only arc weights and node coordinates carry native floating point fields"
+    )]
+    pub(crate) fn validate_numbers(&self) -> Result<(), String> {
+        let weight = match self {
+            Self::AddArc(input) => Some(input.weight),
+            Self::UpdateArcWeight(input) => Some(input.weight),
+            _ => None,
+        };
+        if weight.is_some_and(|weight| !weight.is_finite() || weight <= 0.0) {
+            return Err("Arc weight must be a positive finite number".to_owned());
+        }
+        if let Self::CommitNodePositions(input) = self {
+            for commit in &input.commits {
+                if !commit.position.x.is_finite() || !commit.position.y.is_finite() {
+                    return Err("Node positions must be finite numbers".to_owned());
+                }
+            }
+        }
+        Ok(())
+    }
 }

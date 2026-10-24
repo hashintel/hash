@@ -20,6 +20,8 @@ wasm-bindgen = { workspace = true, public = true, features = ["std"] }
 
 # Private third-party dependencies
 serde = { workspace = true, features = ["derive", "alloc"] }
+tsify = { workspace = true, features = ["json"] }
+uuid = { workspace = true, features = ["v5", "std"] }
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false

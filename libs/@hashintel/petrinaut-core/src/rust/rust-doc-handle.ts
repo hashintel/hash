@@ -1,13 +1,9 @@
 import { applyPatches, enablePatches, freeze, produce } from "immer";
 
 import { RustDocument } from "../../rust/pkg/petrinaut_core.js";
-import {
-  resolvePetrinautHandleCapabilities,
-  sanitizeSDCPNForExtensions,
-} from "../extensions";
+import { resolvePetrinautHandleCapabilities } from "../extensions";
 import { generatePetrinautId, toPetrinautId } from "../petrinaut-id";
 import { createReadableStore } from "../store";
-import { normalizeSDCPN } from "../types/sdcpn-input";
 
 import type {
   CreateJsonDocHandleOptions,
@@ -61,12 +57,7 @@ export const createRustDocHandle = (
   }
   const capabilities = resolvePetrinautHandleCapabilities(options.capabilities);
   const document = new RustDocument(
-    json(
-      sanitizeSDCPNForExtensions(
-        normalizeSDCPN(options.initial),
-        capabilities.extensions,
-      ),
-    ),
+    json(options.initial),
     historyLimit,
     new Date().toISOString(),
     capabilities.readonly,

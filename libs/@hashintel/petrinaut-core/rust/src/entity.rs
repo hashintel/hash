@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::{arcs::ArcEndpoint, extensions::items};
@@ -115,8 +115,9 @@ pub(crate) const PLACE_UPDATE_FIELDS: &[(&str, FieldKind)] = &[
 ];
 
 /// A validated place. IDs must already use the document's identifier namespace.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, tsify::Tsify)]
 #[serde(try_from = "Value")]
+#[tsify(type = "PlaceData")]
 pub struct Place(Value);
 
 impl Place {
@@ -186,8 +187,9 @@ fn validate_arc(arc: &Value, input: bool) -> Result<(), String> {
 }
 
 /// A validated transition, including its arc shapes and code fields.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, tsify::Tsify)]
 #[serde(try_from = "Value")]
+#[tsify(type = "TransitionData")]
 pub struct Transition(Value);
 
 impl Transition {

@@ -1,11 +1,14 @@
 //! Document transactions and local history for Petrinaut, usable natively and through WebAssembly.
 
+extern crate alloc;
+
 mod arcs;
 mod command;
 mod document;
 mod entity;
 mod extensions;
 mod kernel;
+pub mod model;
 mod patch;
 mod places;
 #[cfg(test)]
@@ -13,7 +16,9 @@ mod tests;
 mod transitions;
 mod wasm;
 
-use serde::Deserialize;
+use core::cell::OnceCell;
+
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 pub use crate::{
@@ -39,7 +44,8 @@ struct Checkpoint {
 /// A local document instance with native graph edits and bounded history.
 #[derive(Debug)]
 pub struct PetrinautInstance {
-    document: Value,
+    document: model::Sdcpn,
+    snapshot: OnceCell<Value>,
     history: Vec<Checkpoint>,
     cursor: usize,
     history_limit: usize,
@@ -48,7 +54,7 @@ pub struct PetrinautInstance {
     extensions: Extensions,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PositionCommit {
     pub id: String,
@@ -56,7 +62,7 @@ pub struct PositionCommit {
     pub position: Position,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum NodeKind {
     Place,
@@ -64,33 +70,20 @@ pub enum NodeKind {
     ComponentInstance,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Position {
     pub x: f64,
     pub y: f64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CommitNodePositions {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "string | null")]
     pub target_subnet_id: Option<String>,
     pub commits: Vec<PositionCommit>,
-}
-
-fn validate_document(document: &Value) -> Result<(), String> {
-    for field in [
-        "places",
-        "transitions",
-        "types",
-        "parameters",
-        "differentialEquations",
-    ] {
-        if !document.get(field).is_some_and(Value::is_array) {
-            return Err(format!("Document field `{field}` must be an array"));
-        }
-    }
-    Ok(())
 }
 
 impl PetrinautInstance {
@@ -124,10 +117,12 @@ impl PetrinautInstance {
         readonly: bool,
         extensions: Extensions,
     ) -> Result<Self, String> {
-        validate_document(&document)?;
+        document = model::Sdcpn::from_input(document)?.to_json();
         extensions.sanitize_document(&mut document);
+        let document = model::Sdcpn::from_input(document)?;
         Ok(Self {
             document,
+            snapshot: OnceCell::new(),
             history: Vec::new(),
             cursor: 0,
             history_limit,
@@ -138,7 +133,12 @@ impl PetrinautInstance {
     }
 
     #[must_use]
-    pub const fn document(&self) -> &Value {
+    pub fn document(&self) -> &Value {
+        self.snapshot.get_or_init(|| self.document.to_json())
+    }
+
+    #[must_use]
+    pub const fn model(&self) -> &model::Sdcpn {
         &self.document
     }
 
@@ -166,14 +166,15 @@ impl PetrinautInstance {
         if self.readonly {
             return Ok(Vec::new());
         }
-        validate_document(&next)?;
+        next = model::Sdcpn::from_normalized(next)?.to_json();
         self.extensions.sanitize_document(&mut next);
-        let forward = patch::diff(&self.document, &next);
+        let model = model::Sdcpn::from_normalized(next.clone())?;
+        let forward = patch::diff(self.document(), &next);
         if forward.is_empty() {
             return Ok(forward);
         }
         if self.history_limit > 0 {
-            let inverse = patch::diff(&next, &self.document);
+            let inverse = patch::diff(&next, self.document());
             self.history.truncate(self.cursor);
             self.history.push(Checkpoint {
                 forward: forward.clone(),
@@ -186,7 +187,8 @@ impl PetrinautInstance {
             }
             self.cursor = self.history.len();
         }
-        self.document = next;
+        self.document = model;
+        self.snapshot = OnceCell::from(next);
         Ok(forward)
     }
 
@@ -198,10 +200,13 @@ impl PetrinautInstance {
         if self.readonly {
             return Ok(Vec::new());
         }
+        command.validate_numbers()?;
+        let command = command.normalized()?;
+        let command = &command;
         if let Command::CommitNodePositions(input) = command {
             return self.commit_node_positions(input, timestamp);
         }
-        let mut next = self.document.clone();
+        let mut next = self.document().clone();
         match command {
             Command::AddPlace(input) => input.apply(&mut next, self.extensions)?,
             Command::UpdatePlace(input) => input.apply(&mut next, self.extensions)?,
@@ -252,7 +257,12 @@ impl PetrinautInstance {
         if self.readonly {
             return Ok(Vec::new());
         }
-        let mut next = self.document.clone();
+        let mut input = input.clone();
+        input.target_subnet_id = input.target_subnet_id.map(|id| model::canonical_id(&id));
+        for commit in &mut input.commits {
+            commit.id = model::canonical_id(&commit.id);
+        }
+        let mut next = self.document().clone();
         let target = if let Some(id) = &input.target_subnet_id {
             next.get_mut("subnets")
                 .and_then(Value::as_array_mut)
@@ -291,7 +301,7 @@ impl PetrinautInstance {
         if self.readonly || index > self.history.len() || index == self.cursor {
             return Ok(Vec::new());
         }
-        let mut next = self.document.clone();
+        let mut next = self.document().clone();
         if index < self.cursor {
             for checkpoint in self.history.iter().take(self.cursor).skip(index).rev() {
                 patch::apply(&mut next, &checkpoint.inverse)?;
@@ -301,8 +311,9 @@ impl PetrinautInstance {
                 patch::apply(&mut next, &checkpoint.forward)?;
             }
         }
-        let patches = patch::diff(&self.document, &next);
-        self.document = next;
+        let patches = patch::diff(self.document(), &next);
+        self.document = model::Sdcpn::from_normalized(next.clone())?;
+        self.snapshot = OnceCell::from(next);
         self.cursor = index;
         Ok(patches)
     }

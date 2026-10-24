@@ -8,7 +8,7 @@ use crate::{
     kernel::sanitize_transition,
 };
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, tsify::Tsify)]
 #[serde(
     tag = "kind",
     rename_all = "camelCase",
@@ -128,7 +128,7 @@ impl ArcEndpoint {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, Serialize, tsify::Tsify)]
 #[serde(rename_all = "camelCase")]
 pub enum ArcDirection {
     Input,
@@ -144,7 +144,7 @@ impl ArcDirection {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, tsify::Tsify)]
 #[serde(rename_all = "camelCase")]
 pub enum InputArcType {
     #[default]
@@ -163,32 +163,35 @@ impl InputArcType {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArcTarget {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "string | null")]
     pub target_subnet_id: Option<String>,
     pub transition_id: String,
     pub arc_direction: ArcDirection,
     pub endpoint: ArcEndpoint,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AddArc {
     pub target: ArcTarget,
     pub weight: f64,
     #[serde(rename = "type")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub arc_type: Option<InputArcType>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateArcWeight {
     pub target: ArcTarget,
     pub weight: f64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateArcType {
     pub target: ArcTarget,
@@ -196,7 +199,7 @@ pub struct UpdateArcType {
     pub arc_type: InputArcType,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateArcPlace {
     pub target: ArcTarget,

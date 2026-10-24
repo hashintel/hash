@@ -16,8 +16,10 @@ The command entry point accepts a tagged Rust `Command` and commits it atomicall
 Extension policy is fixed at construction and enforced in Rust for initial state,
 native commands and compatibility drafts. This includes disabled colour/dynamics
 fields, parameter overrides, scenario token counts, component-port arcs and
-transition code availability. TypeScript still normalizes document input and
-validates public mutation schemas.
+transition code availability. Rust now owns typed document entities, authoring defaults, identifier normalization
+and full entity-shape validation. Public mutation schemas remain available in
+TypeScript for callers and AI tools. Rust generates the command and document
+TypeScript declarations through `tsify`.
 
 Place creation, updates and removal now execute native commands. Rust validates
 place fields and differential-equation references, removes connected arcs and
@@ -41,7 +43,7 @@ and all composite commands still use the TypeScript compatibility path.
 
 | Responsibility                                       | This draft                                                                                              | Remaining migration                                                                                       |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Document ownership, atomic commits, patch generation | Rust `PetrinautInstance`, compiled natively or to Wasm                                                  | Replace generic JSON with typed SDCPN entities.                                                           |
+| Document ownership, atomic commits, patch generation | Rust `PetrinautInstance`, compiled natively or to Wasm                                                  | Benchmark typed transactions and the JSON snapshot cache.                                                 |
 | Undo, redo, history limits, branch truncation        | Rust stores forward and inverse patches. TypeScript publishes observable history values.                | Measure retained memory on large documents.                                                               |
 | Single and batched node positions                    | Rust commands, with TypeScript input validation                                                         | Generate command declarations from Rust.                                                                  |
 | Place creation, updates and deletion                 | Rust validates place fields, checks dynamics references and cascades arc deletion.                      | Generate shared entity schemas and migrate the remaining entity families.                                 |
@@ -54,8 +56,11 @@ and all composite commands still use the TypeScript compatibility path.
 
 This is a working document-engine migration draft. It is not a complete port of
 `@hashintel/petrinaut-core`: 26 mutation methods and most of the SDCPN schema still live
-in TypeScript. Native Rust callers can create an instance, commit normalized JSON,
-move nodes, edit places, transitions and arcs, and navigate history. They must supply validated SDCPN documents.
+in TypeScript. Native Rust callers can create an instance from authoring JSON, read its typed
+`Sdcpn` model, commit validated document replacements, move nodes, edit places,
+transitions and arcs, and navigate history. Initialization normalizes identifiers
+and supplies plain-net defaults. Compatibility drafts preserve their identifiers
+and optional fields while validating entity shapes.
 
 ## TypeScript and editor usage
 
@@ -125,13 +130,18 @@ JavaScript class and TypeScript declarations. A handwritten adapter translates
 that class to `PetrinautDocHandle`, readable stores, and the existing mutation API.
 The native crate has no browser dependency in its document algorithms.
 
-The initial transport is JSON. Rust uses `serde_json::Value`, preserving optional
-and extension fields. Native place, transition and arc commands validate their own entity fields; the
-rest of the SDCPN schema is still supplied by TypeScript. Generated
-binding declarations describe the string transport; they do not yet enforce a
-shared TypeScript/Rust domain schema. A later typed model can use the repository's
-existing `tsify` dependency, or generated schemas, with compatibility tests against
-the current Zod defaults and input types.
+The transport is JSON, and the persisted document format stays unchanged. Rust
+owns typed SDCPN entities, including scenario and ad-hoc authoring state. A JSON
+snapshot is cached for patching and compatibility callbacks. Entity and command
+declarations are generated from Rust through `tsify`; compile-time tests check
+that the document types are assignable to the existing TypeScript API.
+
+Rust normalizes legacy identifiers using the same fixed UUIDv5 namespace, fills
+plain-net defaults, and validates entity shapes and values. Initial documents
+with invalid entity names, parameter values or unknown entity fields are rejected.
+Cross-entity references may remain unresolved while authoring; migrated commands
+validate the references they change. JSON file-format version migrations remain
+in the host import layer.
 
 The [wasm-bindgen deployment guide](https://wasm-bindgen.github.io/wasm-bindgen/reference/deployment.html)
 describes the `web` output and explicit startup. Its
@@ -171,8 +181,9 @@ Native Rust consumers use the same crate without crossing the JavaScript boundar
   commit because the Immer patch adapter rejects these paths.
 - Rust validates required top-level arrays and migrated commands, including
   place dynamics and arc endpoint references. Rust also enforces extension policies on every commit.
-  Document normalization, ID normalization and legacy migration remain in TypeScript.
-  Whole-document imports and compatibility drafts are not fully domain-validated. The low-level Rust class is not an untrusted-input validator.
+  Document defaults, ID normalization and entity validation run in Rust. File-format
+  migrations remain in the host import layer. Entity validation does not require
+  every reference to resolve while a document is being authored.
 - Commands run synchronously on the main thread. Large commits can block editing.
   Moving the instance into a worker would require an asynchronous command protocol
   and a strategy for optimistic UI updates.
@@ -221,8 +232,8 @@ movement, and numeric no-ops.
 
 1. Benchmark startup, drag commits, bulk edits, undo and retained memory using small,
    medium and large existing nets. Compare the TypeScript and Wasm paths.
-2. Define typed Rust SDCPN entities and command inputs. Generate their TypeScript
-   bindings and verify defaults, IDs, nullability, numeric limits and schema versions.
+2. Extend generated command bindings as entity families move to Rust; verify defaults,
+   IDs, nullability, numeric limits and schema versions against the TypeScript API.
 3. Port mutation families incrementally. Run the existing action tests against both
    implementations, including failures and cascading changes, before removing each
    TypeScript rule.

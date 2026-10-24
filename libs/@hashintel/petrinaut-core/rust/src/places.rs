@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::{
@@ -9,26 +9,33 @@ use crate::{
     kernel::sanitize_all_transitions,
 };
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AddPlace {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "string | null")]
     pub target_subnet_id: Option<String>,
     pub place: Place,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdatePlace {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "string | null")]
     pub target_subnet_id: Option<String>,
     pub place_id: String,
+    #[tsify(type = "Record<string, JsonValue>")]
     pub update: Map<String, Value>,
     #[serde(default)]
     pub unset: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RemovePlace {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "string | null")]
     pub target_subnet_id: Option<String>,
     pub place_id: String,
 }
