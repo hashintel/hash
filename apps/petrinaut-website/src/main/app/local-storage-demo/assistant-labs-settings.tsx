@@ -4,7 +4,6 @@ import { Toggle } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import type { OpenAIVoiceConfig } from "../plugins/brunch/voice/session/voice-interview-control";
-import type { AssistantSelection } from "./assistant-selection";
 
 const sectionStyle = css({
   border: "[1px solid {colors.neutral.s40}]",
@@ -91,16 +90,17 @@ const AssistantSetting = ({
   );
 };
 
+/**
+ * Brunch's experiments. They apply while the editor shows Brunch's assistant,
+ * which the user chooses in General.
+ */
 export const AssistantLabsSettings = ({
-  assistantReady,
-  brunchConfigured,
-  brunchSelected,
+  brunchActive,
   interviewBudgetEnabled,
   interviewBudgetPreferenceReady,
   openAIVoiceConfig,
   realtimeEnabled,
   realtimePreferenceReady,
-  selectAssistant,
   setInterviewBudgetEnabled,
   setRealtimeEnabled,
   setVoiceEnabled,
@@ -110,15 +110,13 @@ export const AssistantLabsSettings = ({
   wordsPreferenceReady,
   setWordsEnabled,
 }: {
-  readonly assistantReady: boolean;
-  readonly brunchConfigured: boolean;
-  readonly brunchSelected: boolean;
+  /** The editor shows Brunch's assistant. */
+  readonly brunchActive: boolean;
   readonly interviewBudgetEnabled: boolean;
   readonly interviewBudgetPreferenceReady: boolean;
   readonly openAIVoiceConfig: OpenAIVoiceConfig | null | undefined;
   readonly realtimeEnabled: boolean;
   readonly realtimePreferenceReady: boolean;
-  readonly selectAssistant: (selection: AssistantSelection) => void;
   readonly setInterviewBudgetEnabled: (enabled: boolean) => void;
   readonly setRealtimeEnabled: (enabled: boolean) => void;
   readonly setVoiceEnabled: (enabled: boolean) => void;
@@ -128,15 +126,10 @@ export const AssistantLabsSettings = ({
   readonly wordsPreferenceReady: boolean;
   readonly setWordsEnabled: (enabled: boolean) => void;
 }) => {
-  const brunchDescription = !assistantReady
-    ? "Loading your assistant preference…"
-    : !brunchConfigured
-      ? "Brunch isn’t set up on this site."
-      : "Use Brunch instead of the default assistant.";
   const voiceDescription = !voicePreferenceReady
     ? "Loading your Voice preference…"
-    : !brunchSelected
-      ? "Select Brunch to enable Voice."
+    : !brunchActive
+      ? "Choose Brunch in General › AI assistant to enable Voice."
       : openAIVoiceConfig === undefined
         ? "Checking whether Voice is available…"
         : openAIVoiceConfig === null
@@ -144,16 +137,9 @@ export const AssistantLabsSettings = ({
           : "Talk to Brunch by voice.";
 
   return (
-    <section className={sectionStyle} aria-label="AI assistant">
-      <h3 className={sectionTitleStyle}>AI assistant</h3>
-      <AssistantSetting
-        description={brunchDescription}
-        disabled={!assistantReady || !brunchConfigured}
-        label="Use Brunch"
-        onChange={(enabled) => selectAssistant(enabled ? "brunch" : "stock")}
-        value={brunchSelected}
-      />
-      {brunchSelected && (
+    <section className={sectionStyle} aria-label="Brunch">
+      <h3 className={sectionTitleStyle}>Brunch</h3>
+      {brunchActive && (
         <AssistantSetting
           description="Choose how many questions Brunch asks before wrapping up."
           disabled={!interviewBudgetPreferenceReady}
@@ -167,14 +153,14 @@ export const AssistantLabsSettings = ({
         disabled={
           !voicePreferenceReady ||
           openAIVoiceConfig === undefined ||
-          !brunchSelected ||
+          !brunchActive ||
           openAIVoiceConfig === null
         }
         label="Enable Voice"
         onChange={setVoiceEnabled}
         value={voiceEnabled}
       />
-      {brunchSelected && voicePreferenceReady && voiceEnabled && (
+      {brunchActive && voicePreferenceReady && voiceEnabled && (
         <AssistantSetting
           description="Use the alternative voice engine if Voice isn’t working well."
           disabled={!realtimePreferenceReady || !openAIVoiceConfig}
@@ -183,7 +169,7 @@ export const AssistantLabsSettings = ({
           value={realtimeEnabled}
         />
       )}
-      {brunchSelected && voicePreferenceReady && voiceEnabled && (
+      {brunchActive && voicePreferenceReady && voiceEnabled && (
         <AssistantSetting
           description="Help recognize and pronounce names and terms."
           disabled={!wordsPreferenceReady}
