@@ -9,7 +9,6 @@ import { generatePetrinautId, toPetrinautId } from "../petrinaut-id";
 import { createReadableStore } from "../store";
 import { normalizeSDCPN } from "../types/sdcpn-input";
 
-import type { MutationActionInput } from "../action-schemas";
 import type {
   CreateJsonDocHandleOptions,
   DocChangeEvent,
@@ -20,6 +19,7 @@ import type {
   PetrinautPatch,
 } from "../handle";
 import type { SDCPN } from "../types/sdcpn";
+import type { RustCommand } from "./commands";
 
 enablePatches();
 
@@ -42,22 +42,6 @@ const json = (value: unknown): string =>
     }
     return item;
   });
-
-type NativeMutation = "commitNodePositions" | "updatePlace" | "removePlace";
-type RustCommand =
-  | {
-      [Name in NativeMutation]: {
-        type: Name;
-        input: MutationActionInput<Name>;
-      };
-    }[NativeMutation]
-  | {
-      type: "addPlace";
-      input: {
-        targetSubnetId?: string | null;
-        place: Omit<MutationActionInput<"addPlace">, "targetSubnetId">;
-      };
-    };
 
 export const createRustDocHandle = (
   options: CreateJsonDocHandleOptions,

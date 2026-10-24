@@ -1,5 +1,6 @@
 //! Document transactions and local history for Petrinaut, usable natively and through WebAssembly.
 
+mod arcs;
 mod command;
 mod document;
 mod entity;
@@ -9,17 +10,23 @@ mod patch;
 mod places;
 #[cfg(test)]
 mod tests;
+mod transitions;
 mod wasm;
 
 use serde::Deserialize;
 use serde_json::Value;
 
 pub use crate::{
+    arcs::{
+        AddArc, ArcDirection, ArcEndpoint, ArcTarget, InputArcType, UpdateArcPlace, UpdateArcType,
+        UpdateArcWeight,
+    },
     command::Command,
-    entity::Place,
+    entity::{Place, Transition},
     extensions::Extensions,
     patch::Patch,
     places::{AddPlace, RemovePlace, UpdatePlace},
+    transitions::{AddTransition, RemoveTransition, UpdateTransition},
 };
 
 #[derive(Debug)]
@@ -29,7 +36,7 @@ struct Checkpoint {
     timestamp: String,
 }
 
-/// A local document instance. The TypeScript adapter validates SDCPN domain schemas.
+/// A local document instance with native graph edits and bounded history.
 #[derive(Debug)]
 pub struct PetrinautInstance {
     document: Value,
@@ -199,6 +206,35 @@ impl PetrinautInstance {
             Command::AddPlace(input) => input.apply(&mut next, self.extensions)?,
             Command::UpdatePlace(input) => input.apply(&mut next, self.extensions)?,
             Command::RemovePlace(input) => input.apply(&mut next, self.extensions)?,
+            Command::AddTransition(input) => input.apply(&mut next, self.extensions)?,
+            Command::UpdateTransition(input) => input.apply(&mut next, self.extensions)?,
+            Command::RemoveTransition(input) => input.apply(&mut next)?,
+            Command::AddArc(input) => input.target.apply(
+                &mut next,
+                self.extensions,
+                &arcs::ArcEdit::Add {
+                    weight: input.weight,
+                    arc_type: input.arc_type,
+                },
+            )?,
+            Command::RemoveArc(input) => {
+                input.apply(&mut next, self.extensions, &arcs::ArcEdit::Remove)?;
+            }
+            Command::UpdateArcWeight(input) => input.target.apply(
+                &mut next,
+                self.extensions,
+                &arcs::ArcEdit::Weight(input.weight),
+            )?,
+            Command::UpdateArcType(input) => input.target.apply(
+                &mut next,
+                self.extensions,
+                &arcs::ArcEdit::Type(input.arc_type),
+            )?,
+            Command::UpdateArcPlace(input) => input.target.apply(
+                &mut next,
+                self.extensions,
+                &arcs::ArcEdit::Endpoint(&input.new_endpoint),
+            )?,
             Command::CommitNodePositions(_) => unreachable!("positions are handled before cloning"),
         }
         self.replace_document(next, timestamp)

@@ -4,7 +4,7 @@ use serde_json::{Map, Value};
 use crate::{
     Extensions, Place,
     document::{items_mut, net_mut, text},
-    entity::{PLACE_UPDATE_FIELDS, validate_update},
+    entity::{PLACE_UPDATE_FIELDS, apply_update, validate_update},
     extensions::items,
     kernel::sanitize_all_transitions,
 };
@@ -22,6 +22,8 @@ pub struct UpdatePlace {
     pub target_subnet_id: Option<String>,
     pub place_id: String,
     pub update: Map<String, Value>,
+    #[serde(default)]
+    pub unset: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -90,10 +92,7 @@ impl UpdatePlace {
             .get(index)
             .ok_or("Place index is invalid")?
             .clone();
-        place
-            .as_object_mut()
-            .ok_or("Place must be an object")?
-            .extend(self.update.clone());
+        apply_update(&mut place, &self.update, &self.unset, PLACE_UPDATE_FIELDS)?;
         extensions.sanitize_place(&mut place);
         let place = Place::try_from(place)?.into_value();
         validate_dynamics(&place, net)?;

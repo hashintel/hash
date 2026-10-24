@@ -356,3 +356,208 @@ fn place_validation_and_missing_targets_are_atomic() {
         "should retain only the valid transaction"
     );
 }
+
+fn transition() -> Value {
+    json!({"id":"t", "name":"Move", "inputArcs":[], "outputArcs":[], "lambdaType":"predicate", "lambdaCode":"return true;", "transitionKernelCode":"", "x":0, "y":0})
+}
+
+fn graph() -> Value {
+    let mut initial = document();
+    initial["places"] = json!([place("p"), place("q")]);
+    initial["transitions"] = json!([transition()]);
+    initial
+}
+
+#[test]
+fn transition_edits_target_subnet_and_undo() {
+    let mut initial = graph();
+    let mut subnet = graph();
+    subnet["id"] = json!("subnet");
+    initial["subnets"] = json!([subnet]);
+    let mut instance = PetrinautInstance::new(initial.clone(), 50, "initial".to_owned(), false)
+        .expect("should create instance");
+    let mut added = transition();
+    added["id"] = json!("added");
+    added["name"] = json!("  Display name  ");
+    instance.execute(&command(json!({"type":"addTransition","input":{"targetSubnetId":"subnet","transition":added}})), "add".to_owned()).expect("should add transition to subnet");
+    assert_eq!(
+        instance.document()["transitions"]
+            .as_array()
+            .expect("should contain transitions")
+            .len(),
+        1,
+        "should leave root transitions unchanged"
+    );
+    assert_eq!(
+        instance.document()["subnets"][0]["transitions"][1]["name"],
+        "Display name",
+        "should normalize display names"
+    );
+    instance.execute(&command(json!({"type":"updateTransition","input":{"targetSubnetId":"subnet","transitionId":"added","update":{"name":"Updated name","metadata":{"nested":[1,true,null]}}}})), "update".to_owned()).expect("should update transition fields");
+    let updated = instance.document().clone();
+    instance.execute(&command(json!({"type":"updateTransition","input":{"targetSubnetId":"subnet","transitionId":"added","update":{"inputArcs":[]}}})), "bad".to_owned()).expect_err("should keep arcs behind their dedicated commands");
+    assert_eq!(
+        instance.document(),
+        &updated,
+        "should preserve the document on failure"
+    );
+    instance.execute(&command(json!({"type":"removeTransition","input":{"targetSubnetId":"subnet","transitionId":"added"}})), "remove".to_owned()).expect("should remove transition");
+    instance.go_to_index(2).expect("should undo removal");
+    assert_eq!(
+        instance.document(),
+        &updated,
+        "should restore all transition fields"
+    );
+    instance
+        .go_to_index(0)
+        .expect("should undo creation and edits");
+    assert_eq!(
+        instance.document(),
+        &initial,
+        "should restore the initial document"
+    );
+}
+
+#[test]
+fn arc_edits_preserve_identity_and_history() {
+    let initial = graph();
+    let mut instance = PetrinautInstance::new(initial.clone(), 50, "initial".to_owned(), false)
+        .expect("should create instance");
+    let target = json!({"transitionId":"t","arcDirection":"input","endpoint":{"kind":"place","placeId":"p"}});
+    let add = command(json!({"type":"addArc","input":{"target":target,"weight":1,"type":"read"}}));
+    instance
+        .execute(&add, "add".to_owned())
+        .expect("should add arc");
+    assert!(
+        instance
+            .execute(&add, "duplicate".to_owned())
+            .expect("should ignore duplicate endpoint")
+            .is_empty(),
+        "should not record duplicate arcs"
+    );
+    instance
+        .execute(
+            &command(json!({"type":"updateArcWeight","input":{"target":target,"weight":2.5}})),
+            "weight".to_owned(),
+        )
+        .expect("should preserve fractional weights");
+    instance
+        .execute(
+            &command(json!({"type":"updateArcType","input":{"target":target,"type":"inhibitor"}})),
+            "type".to_owned(),
+        )
+        .expect("should update input arc type");
+    instance.execute(&command(json!({"type":"updateArcPlace","input":{"target":target,"newEndpoint":{"kind":"place","placeId":"q"}}})), "endpoint".to_owned()).expect("should replace endpoint");
+    assert_eq!(
+        instance.document()["transitions"][0]["inputArcs"],
+        json!([{"placeId":"q","weight":2.5,"type":"inhibitor"}]),
+        "should preserve arc weight and type while replacing the reference"
+    );
+    let final_state = instance.document().clone();
+    instance.go_to_index(1).expect("should undo arc edits");
+    let mut invalid =
+        command(json!({"type":"updateArcWeight","input":{"target":target,"weight":1}}));
+    if let Command::UpdateArcWeight(input) = &mut invalid {
+        input.weight = f64::NAN;
+    }
+    assert_eq!(
+        instance
+            .execute(&invalid, "bad".to_owned())
+            .expect_err("should validate native numeric values"),
+        "Arc weight must be a positive finite number"
+    );
+    instance
+        .go_to_index(4)
+        .expect("should preserve redo after invalid weight");
+    assert_eq!(
+        instance.document(),
+        &final_state,
+        "should restore the last valid arc"
+    );
+    let remove = command(
+        json!({"type":"removeArc","input":{"transitionId":"t","arcDirection":"input","endpoint":{"kind":"place","placeId":"q"}}}),
+    );
+    instance
+        .execute(&remove, "remove".to_owned())
+        .expect("should remove the replaced endpoint");
+    assert_eq!(
+        instance.document()["transitions"][0]["inputArcs"],
+        json!([]),
+        "should remove the arc"
+    );
+    instance.go_to_index(0).expect("should undo all commands");
+    assert_eq!(
+        instance.document(),
+        &initial,
+        "should restore the complete initial graph"
+    );
+    let mut readonly = PetrinautInstance::new(initial.clone(), 50, "initial".to_owned(), true)
+        .expect("should create readonly instance");
+    readonly
+        .execute(&add, "ignored".to_owned())
+        .expect("should ignore readonly edits");
+    assert_eq!(
+        readonly.document(),
+        &initial,
+        "should preserve readonly state"
+    );
+    assert_eq!(
+        readonly.current_index(),
+        0,
+        "should not record readonly edits"
+    );
+}
+
+#[test]
+fn arc_reference_failures_are_atomic() {
+    let mut initial = graph();
+    let mut subnet = graph();
+    subnet["id"] = json!("subnet");
+    subnet["name"] = json!("Reusable");
+    initial["subnets"] = json!([subnet]);
+    initial["componentInstances"] =
+        json!([{"id":"instance","name":"Instance","subnetId":"subnet"}]);
+    let mut instance = PetrinautInstance::new(initial.clone(), 50, "initial".to_owned(), false)
+        .expect("should create instance");
+    for (endpoint, message) in [
+        (
+            json!({"kind":"place","placeId":"missing"}),
+            "Arc references place ID `missing` which does not exist in the target net.",
+        ),
+        (
+            json!({"kind":"componentPort","componentInstanceId":"missing","portPlaceId":"p"}),
+            "Arc references component instance ID `missing` which does not exist in the target \
+             net.",
+        ),
+        (
+            json!({"kind":"componentPort","componentInstanceId":"instance","portPlaceId":"missing"}),
+            "Arc references subnet port place ID `missing` which does not exist in subnet \
+             `Reusable`.",
+        ),
+        (
+            json!({"kind":"componentPort","componentInstanceId":"instance","portPlaceId":"p"}),
+            "Arc references subnet place `Queue`, but only places marked `isPort` can be used as \
+             component ports.",
+        ),
+    ] {
+        let add = command(
+            json!({"type":"addArc","input":{"target":{"transitionId":"t","arcDirection":"output","endpoint":endpoint},"weight":1}}),
+        );
+        assert_eq!(
+            instance
+                .execute(&add, "bad".to_owned())
+                .expect_err("should validate endpoint references"),
+            message
+        );
+        assert_eq!(
+            instance.document(),
+            &initial,
+            "should preserve the document after invalid references"
+        );
+    }
+    assert_eq!(
+        instance.current_index(),
+        0,
+        "should not record failed arc edits"
+    );
+}

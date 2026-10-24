@@ -5,6 +5,7 @@ import { probabilisticSatellitesSDCPN } from "../examples/satellites-launcher";
 import { PETRINAUT_EXTENSION_NAMES } from "../extensions";
 import { createJsonDocHandle } from "../handle";
 import { createPetrinaut, type Petrinaut } from "../instance";
+import { isSDCPNEqual } from "../lib/deep-equal";
 import { createRustPetrinaut, initializePetrinautRust } from "./index";
 import { createRustDocHandle } from "./rust-doc-handle";
 
@@ -54,7 +55,7 @@ test.each(Array.from({ length: 32 }, (_, mask) => mask))(
 );
 
 test.each(Array.from({ length: 32 }, (_, mask) => mask))(
-  "matches native place edits and transition templates under policy %i",
+  "matches native entity edits and transition templates under policy %i",
   async (mask) => {
     const options = {
       initial: {
@@ -122,6 +123,94 @@ test.each(Array.from({ length: 32 }, (_, mask) => mask))(
             x: 12,
             y: 24,
           }),
+        (instance) =>
+          instance.mutations.addTransition({
+            id: "edited",
+            name: "Edited transition",
+            inputArcs: [],
+            outputArcs: [],
+            lambdaType: "predicate",
+            lambdaCode: "return true;",
+            transitionKernelCode: "",
+            x: 0,
+            y: 0,
+          }),
+        (instance) =>
+          instance.mutations.addArc({
+            transitionId: "edited",
+            arcDirection: "output",
+            placeId: "output",
+            weight: 2,
+          }),
+        (instance) =>
+          instance.mutations.addArc({
+            transitionId: "edited",
+            arcDirection: "output",
+            endpoint: { kind: "place", placeId: "output" },
+            weight: 3,
+          }),
+        (instance) =>
+          instance.mutations.addArc({
+            transitionId: "edited",
+            arcDirection: "input",
+            placeId: "input",
+            weight: 1,
+            type: "read",
+          }),
+        (instance) =>
+          instance.mutations.updateTransition({
+            transitionId: "edited",
+            update: {
+              name: "Updated transition",
+              lambdaCode: "return true;",
+              transitionKernelCode: "return { custom: [] };",
+            },
+          }),
+        (instance) =>
+          instance.mutations.updateArcWeight({
+            transitionId: "edited",
+            arcDirection: "input",
+            placeId: "input",
+            weight: 2.5,
+          }),
+        (instance) =>
+          instance.mutations.updateArcType({
+            transitionId: "edited",
+            placeId: "input",
+            type: "inhibitor",
+          }),
+        (instance) =>
+          instance.mutations.updateArcPlace({
+            transitionId: "edited",
+            arcDirection: "output",
+            oldPlaceId: "output",
+            newPlaceId: "new",
+          }),
+        (instance) =>
+          instance.mutations.updateTransition({
+            transitionId: "edited",
+            update: { transitionKernelCode: "" },
+          }),
+        (instance) =>
+          instance.mutations.updateArcType({
+            transitionId: "edited",
+            placeId: "input",
+            type: "read",
+          }),
+        (instance) =>
+          instance.mutations.removeArc({
+            transitionId: "edited",
+            arcDirection: "input",
+            endpoint: { kind: "place", placeId: "input" },
+          }),
+        (instance) =>
+          instance.mutations.removeArc({
+            transitionId: "edited",
+            arcDirection: "output",
+            placeId: "new",
+          }),
+        (instance) =>
+          instance.mutations.removeTransition({ transitionId: "edited" }),
         (instance) => instance.mutations.removePlace({ placeId: "output" }),
       ];
       for (const step of steps) {
@@ -129,14 +218,27 @@ test.each(Array.from({ length: 32 }, (_, mask) => mask))(
         step(reference);
         expect(rust.handle.doc()).toEqual(reference.handle.doc());
       }
-      for (const instance of [rust, reference]) {
-        instance.handle.history?.undo();
-      }
-      expect(rust.handle.doc()).toEqual(reference.handle.doc());
-      for (const instance of [rust, reference]) {
-        instance.handle.history?.redo();
-      }
-      expect(rust.handle.doc()).toEqual(reference.handle.doc());
+      const historyStates = (
+        instance: Petrinaut,
+        direction: "undo" | "redo",
+      ): SDCPN[] => {
+        const states = [instance.handle.doc()!];
+        while (instance.handle.history?.[direction]()) {
+          const next = instance.handle.doc()!;
+          // TypeScript can record equal arc arrays when subnets are disabled; Rust omits these no-ops.
+          if (!isSDCPNEqual(states.at(-1)!, next)) {
+            states.push(next);
+          }
+        }
+        return states;
+      };
+      const index = rust.handle.history?.currentIndex.get();
+      const undo = historyStates(rust, "undo");
+      expect(undo).toHaveLength(index! + 1);
+      expect(undo).toEqual(historyStates(reference, "undo"));
+      expect(historyStates(rust, "redo")).toEqual(
+        historyStates(reference, "redo"),
+      );
       expect(draft).not.toHaveBeenCalled();
     } finally {
       rust.dispose();

@@ -1,5 +1,7 @@
 use serde_json::Value;
 
+use crate::extensions::items;
+
 pub(crate) fn net_mut<'a>(
     document: &'a mut Value,
     subnet_id: Option<&str>,
@@ -27,4 +29,13 @@ pub(crate) fn items_mut<'a>(
 
 pub(crate) fn text<'a>(value: &'a Value, field: &str) -> &'a str {
     value.get(field).and_then(Value::as_str).unwrap_or("null")
+}
+
+pub(crate) fn net<'a>(document: &'a Value, subnet_id: Option<&str>) -> Result<&'a Value, String> {
+    subnet_id.map_or(Ok(document), |id| {
+        items(document, "subnets")
+            .iter()
+            .find(|subnet| subnet["id"] == id)
+            .ok_or_else(|| format!("Subnet ID `{id}` does not exist."))
+    })
 }

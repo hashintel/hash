@@ -5,7 +5,7 @@ attachTo: core.rust
 ---
 
 `createRustPetrinaut` gives the editor a local instance whose document, patches,
-undo/redo history, extension policies, node positions and place editing run in Rust. It returns the
+undo/redo history, extension policies, node positions, place editing, transition editing and arc editing run in Rust. It returns the
 existing `Petrinaut` TypeScript interface. The published entry is
 `@hashintel/petrinaut-core/rust`; loading the regular core entry keeps the
 TypeScript implementation.
@@ -26,24 +26,36 @@ kernel templates also run in Rust when a place edit enables a typed output.
 These operations pass only command inputs across the Wasm boundary and share the
 same atomic history path as position edits.
 
+Transition creation, updates and removal, plus arc creation, removal, weight,
+type and endpoint edits now execute native commands too. Rust checks endpoint
+references, including component-port membership, prevents duplicate arcs and
+preserves existing transition code when it remains applicable. Optional fields
+explicitly set to `undefined` in TypeScript are sent as field removals.
+
+The opt-in instance now routes 15 of the 41 public mutation methods to Rust,
+including the four position methods from the initial draft. This is a count of
+API methods, not a percentage of the full core codebase. The other 26 mutations
+and all composite commands still use the TypeScript compatibility path.
+
 ## What runs where
 
-| Responsibility                                       | This draft                                                                               | Remaining migration                                                                                            |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Document ownership, atomic commits, patch generation | Rust `PetrinautInstance`, compiled natively or to Wasm                                   | Replace generic JSON with typed SDCPN entities.                                                                |
-| Undo, redo, history limits, branch truncation        | Rust stores forward and inverse patches. TypeScript publishes observable history values. | Measure retained memory on large documents.                                                                    |
-| Single and batched node positions                    | Rust commands, with TypeScript input validation                                          | Generate command declarations from Rust.                                                                       |
-| Place creation, updates and deletion                 | Rust validates place fields, checks dynamics references and cascades arc deletion.       | Generate shared entity schemas and migrate the remaining entity families.                                      |
-| Other mutations                                      | Existing TypeScript schemas and domain rules produce a draft. Rust commits it.           | Port each rule, including cascading deletes, subnet ports, scenario row migration, and extension sanitization. |
-| Clipboard and auto-layout commands                   | TypeScript; each result commits as one Rust transaction                                  | Keep host-side clipboard access and ELK integration in TypeScript.                                             |
-| React stores, notifications and lifecycle            | TypeScript adapter                                                                       | Keep these adapters in TypeScript.                                                                             |
-| Simulation, HIR compiler, LSP, optimization, WebGPU  | Existing TypeScript implementations                                                      | Evaluate separately after document semantics match.                                                            |
-| Collaborative or remote handles                      | Existing host handles                                                                    | Define the synchronization protocol and authoritative owner before adopting Rust in these hosts.               |
+| Responsibility                                       | This draft                                                                                              | Remaining migration                                                                                       |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Document ownership, atomic commits, patch generation | Rust `PetrinautInstance`, compiled natively or to Wasm                                                  | Replace generic JSON with typed SDCPN entities.                                                           |
+| Undo, redo, history limits, branch truncation        | Rust stores forward and inverse patches. TypeScript publishes observable history values.                | Measure retained memory on large documents.                                                               |
+| Single and batched node positions                    | Rust commands, with TypeScript input validation                                                         | Generate command declarations from Rust.                                                                  |
+| Place creation, updates and deletion                 | Rust validates place fields, checks dynamics references and cascades arc deletion.                      | Generate shared entity schemas and migrate the remaining entity families.                                 |
+| Transition and arc editing                           | Rust validates transition fields and arc endpoints, updates references and refreshes code availability. | Share schemas with TypeScript and add broader generated parity cases.                                     |
+| Other mutations                                      | Existing TypeScript schemas and domain rules produce a draft. Rust commits it.                          | Port each rule, including type-element and scenario row migration, subnet and component-instance editing. |
+| Clipboard and auto-layout commands                   | TypeScript; each result commits as one Rust transaction                                                 | Keep host-side clipboard access and ELK integration in TypeScript.                                        |
+| React stores, notifications and lifecycle            | TypeScript adapter                                                                                      | Keep these adapters in TypeScript.                                                                        |
+| Simulation, HIR compiler, LSP, optimization, WebGPU  | Existing TypeScript implementations                                                                     | Evaluate separately after document semantics match.                                                       |
+| Collaborative or remote handles                      | Existing host handles                                                                                   | Define the synchronization protocol and authoritative owner before adopting Rust in these hosts.          |
 
 This is a working document-engine migration draft. It is not a complete port of
-`@hashintel/petrinaut-core`: most mutation rules and the SDCPN schema still live
+`@hashintel/petrinaut-core`: 26 mutation methods and most of the SDCPN schema still live
 in TypeScript. Native Rust callers can create an instance, commit normalized JSON,
-move nodes, edit places and navigate history. They must supply validated SDCPN documents.
+move nodes, edit places, transitions and arcs, and navigate history. They must supply validated SDCPN documents.
 
 ## TypeScript and editor usage
 
@@ -93,7 +105,7 @@ that class to `PetrinautDocHandle`, readable stores, and the existing mutation A
 The native crate has no browser dependency in its document algorithms.
 
 The initial transport is JSON. Rust uses `serde_json::Value`, preserving optional
-and extension fields. Native place commands validate their own entity fields; the
+and extension fields. Native place, transition and arc commands validate their own entity fields; the
 rest of the SDCPN schema is still supplied by TypeScript. Generated
 binding declarations describe the string transport; they do not yet enforce a
 shared TypeScript/Rust domain schema. A later typed model can use the repository's
@@ -119,23 +131,27 @@ Native Rust consumers use the same crate without crossing the JavaScript boundar
   definition-store sanitizer still copies entities after a change; it can be optimized
   separately.
 - Most mutations still create an Immer draft, serialize the whole result, parse it
-  in Rust, and diff it. Native position and place commands pass only their inputs, but Rust
+  in Rust, and diff it. Native commands pass only their inputs, but Rust
   currently clones and compares the document. This draft makes no speedup claim.
 - The current document exists in both Wasm memory and the JavaScript heap. History
   stores patches rather than full snapshots, but large replacements can still
   retain substantial data. The default limit is 50 transactions; zero disables history.
 - Patch paths and operations match the existing public format. Patch ordering and
   granularity can differ from Immer. Consumers must interpret patches by their
-  documented operations, rather than depending on an exact sequence.
+  documented operations, rather than depending on an exact sequence. Rust omits
+  transactions whose final document is unchanged. The TypeScript handle can record
+  redundant array replacements during extension sanitization, so history indices
+  need not correspond between backends even when their document states match.
 - Values must fit JSON. Non-finite numbers, bigint, functions, and symbols are
   rejected. Optional object properties set to `undefined` are omitted; JSON arrays
   turn missing or undefined entries into null. Negative zero becomes zero. Documents
   must use plain JSON objects, and JavaScript numbers retain their existing precision.
   Property names `__proto__`, `constructor`, and `prototype` are rejected before a
   commit because the Immer patch adapter rejects these paths.
-- Rust validates required top-level arrays, positions and place commands, including
-  dynamics references. Rust also enforces extension policies on every commit.
-  Full document validation, ID normalization and legacy migration remain in TypeScript. The low-level Rust class is not an untrusted-input validator.
+- Rust validates required top-level arrays and migrated commands, including
+  place dynamics and arc endpoint references. Rust also enforces extension policies on every commit.
+  Document normalization, ID normalization and legacy migration remain in TypeScript.
+  Whole-document imports and compatibility drafts are not fully domain-validated. The low-level Rust class is not an untrusted-input validator.
 - Commands run synchronously on the main thread. Large commits can block editing.
   Moving the instance into a worker would require an asynchronous command protocol
   and a strategy for optimistic UI updates.
@@ -171,6 +187,10 @@ as a data URL. Extracting a separate,
 cacheable asset is a release-packaging follow-up. npm consumers do not need a Rust compiler.
 
 The document contract and action suites run against both the TypeScript and real Wasm implementations.
+A 32-policy extension matrix compares every migrated entity operation and all
+undo/redo states. It also checks that native operations never call the TypeScript
+draft callback. Native tests cover rejected dynamics and endpoint references,
+subnet port deletion, duplicate arcs, fractional weights and failed edits after undo.
 Additional tests cover native node movement, identity preservation, rejected drafts,
 read-only access, disposal, and React updates through the document provider. The
 native tests exercise history truncation, nested data, invalid commits, subnet

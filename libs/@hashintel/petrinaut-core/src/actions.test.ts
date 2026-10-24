@@ -8,6 +8,7 @@ import { initializePetrinautRust } from "./rust/index";
 import { createRustInstance } from "./rust/instance";
 
 import type { Petrinaut } from "./instance";
+import type { CreateRustPetrinautOptions } from "./rust/index";
 import type { SDCPN } from "./types/sdcpn";
 
 const idOf = toPetrinautId;
@@ -43,15 +44,21 @@ beforeAll(async () => {
 
 describe.each(["TypeScript", "Rust"])("core actions (%s)", (backend) => {
   const instances: Petrinaut[] = [];
-  const createInstance = (initial: SDCPN = emptySDCPN): Petrinaut => {
-    const options = { initial: cloneSDCPN(initial) };
+  const createWithOptions = (
+    options: CreateRustPetrinautOptions,
+  ): Petrinaut => {
     const instance =
       backend === "Rust"
         ? createRustInstance(options)
-        : createPetrinaut({ document: createJsonDocHandle(options) });
+        : createPetrinaut({
+            document: createJsonDocHandle(options),
+            readonly: options.readonly,
+          });
     instances.push(instance);
     return instance;
   };
+  const createInstance = (initial: SDCPN = emptySDCPN): Petrinaut =>
+    createWithOptions({ initial: cloneSDCPN(initial) });
   afterEach(() => {
     for (const instance of instances.splice(0)) {
       instance.dispose();
@@ -723,8 +730,8 @@ describe.each(["TypeScript", "Rust"])("core actions (%s)", (backend) => {
   });
 
   test("does not mutate readonly instances", () => {
-    const instance = createPetrinaut({
-      document: createJsonDocHandle({ initial: cloneSDCPN(emptySDCPN) }),
+    const instance = createWithOptions({
+      initial: cloneSDCPN(emptySDCPN),
       readonly: true,
     });
 
@@ -742,18 +749,16 @@ describe.each(["TypeScript", "Rust"])("core actions (%s)", (backend) => {
   });
 
   test("honors disabled extension capabilities", () => {
-    const instance = createPetrinaut({
-      document: createJsonDocHandle({
-        initial: cloneSDCPN(emptySDCPN),
-        capabilities: {
-          disabledExtensions: [
-            "colors",
-            "stochasticity",
-            "dynamics",
-            "parameters",
-          ],
-        },
-      }),
+    const instance = createWithOptions({
+      initial: cloneSDCPN(emptySDCPN),
+      capabilities: {
+        disabledExtensions: [
+          "colors",
+          "stochasticity",
+          "dynamics",
+          "parameters",
+        ],
+      },
     });
 
     instance.mutations.addType({
@@ -816,37 +821,33 @@ describe.each(["TypeScript", "Rust"])("core actions (%s)", (backend) => {
   });
 
   test("keeps predicate lambda code when stochasticity is disabled but coloured inputs exist", () => {
-    const instance = createPetrinaut({
-      document: createJsonDocHandle({
-        initial: cloneSDCPN({
-          ...emptySDCPN,
-          types: [
-            {
-              id: "type-1",
-              name: "Particle",
-              iconSlug: "circle",
-              displayColor: "#34a0fa",
-              elements: [
-                { elementId: "element-1", name: "Mass", type: "real" },
-              ],
-            },
-          ],
-          places: [
-            {
-              id: "place-1",
-              name: "Input",
-              colorId: "type-1",
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-          ],
-        }),
-        capabilities: {
-          disabledExtensions: ["stochasticity"],
-        },
+    const instance = createWithOptions({
+      initial: cloneSDCPN({
+        ...emptySDCPN,
+        types: [
+          {
+            id: "type-1",
+            name: "Particle",
+            iconSlug: "circle",
+            displayColor: "#34a0fa",
+            elements: [{ elementId: "element-1", name: "Mass", type: "real" }],
+          },
+        ],
+        places: [
+          {
+            id: "place-1",
+            name: "Input",
+            colorId: "type-1",
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
       }),
+      capabilities: {
+        disabledExtensions: ["stochasticity"],
+      },
     });
 
     instance.mutations.addTransition({
@@ -868,26 +869,24 @@ describe.each(["TypeScript", "Rust"])("core actions (%s)", (backend) => {
   });
 
   test("clears predicate lambda code when stochasticity is disabled and no coloured standard/read input exists", () => {
-    const instance = createPetrinaut({
-      document: createJsonDocHandle({
-        initial: cloneSDCPN({
-          ...emptySDCPN,
-          places: [
-            {
-              id: "place-1",
-              name: "Input",
-              colorId: null,
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-          ],
-        }),
-        capabilities: {
-          disabledExtensions: ["stochasticity"],
-        },
+    const instance = createWithOptions({
+      initial: cloneSDCPN({
+        ...emptySDCPN,
+        places: [
+          {
+            id: "place-1",
+            name: "Input",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
       }),
+      capabilities: {
+        disabledExtensions: ["stochasticity"],
+      },
     });
 
     instance.mutations.addTransition({

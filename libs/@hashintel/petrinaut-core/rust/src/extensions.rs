@@ -44,11 +44,15 @@ pub(crate) fn resolve_place<'a>(
         if !component_ports {
             return None;
         }
-        let instance = items(net, "componentInstances").iter().find(|instance| {
-            instance["id"] == arc.get("endpoint").unwrap_or(&Value::Null)["componentInstanceId"]
-        })?;
+        let instance = items(net, "componentInstances")
+            .iter()
+            .rev()
+            .find(|instance| {
+                instance["id"] == arc.get("endpoint").unwrap_or(&Value::Null)["componentInstanceId"]
+            })?;
         let subnet = items(document, "subnets")
             .iter()
+            .rev()
             .find(|subnet| subnet["id"] == instance["subnetId"])?;
         items(subnet, "places").iter().find(|place| {
             place["id"] == arc.get("endpoint").unwrap_or(&Value::Null)["portPlaceId"]

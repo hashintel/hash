@@ -206,3 +206,57 @@ test("rejects reserved patch paths before committing Rust state", async () => {
   });
   expect(instance.definition.get().places).toHaveLength(1);
 });
+
+test("clears optional fields through native updates without a compatibility draft", async () => {
+  const instance = await create({
+    initial: {
+      places: [
+        {
+          id: "p",
+          name: "Queue",
+          x: 0,
+          y: 0,
+          description: "Remove",
+          capacity: 3,
+        },
+      ],
+      transitions: [
+        {
+          id: "t",
+          name: "Move",
+          x: 0,
+          y: 0,
+          inputArcs: [],
+          outputArcs: [],
+          description: "Remove",
+        },
+      ],
+    },
+  });
+  const draft = vi.spyOn(instance.handle, "change");
+  instance.mutations.updatePlace({
+    placeId: "p",
+    update: { description: undefined, capacity: undefined },
+  });
+  instance.mutations.updateTransition({
+    transitionId: "t",
+    update: { description: undefined },
+  });
+  expect(instance.handle.doc()?.places[0]).not.toHaveProperty("description");
+  expect(instance.handle.doc()?.places[0]).not.toHaveProperty("capacity");
+  expect(instance.handle.doc()?.transitions[0]).not.toHaveProperty(
+    "description",
+  );
+  const baseline = instance.handle.doc();
+  expect(() =>
+    instance.mutations.updatePlace({
+      placeId: "p",
+      update: { name: undefined },
+    }),
+  ).toThrow();
+  expect(instance.handle.doc()).toBe(baseline);
+  instance.handle.history?.goToIndex(0);
+  expect(instance.handle.doc()?.places[0]?.capacity).toBe(3);
+  expect(instance.handle.doc()?.transitions[0]?.description).toBe("Remove");
+  expect(draft).not.toHaveBeenCalled();
+});

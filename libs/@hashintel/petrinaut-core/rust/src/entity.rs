@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use serde_json::{Map, Value};
 
+use crate::{arcs::ArcEndpoint, extensions::items};
+
 #[derive(Clone, Copy)]
 pub(crate) enum FieldKind {
     Text,
@@ -10,6 +12,10 @@ pub(crate) enum FieldKind {
     Number,
     Capacity,
     Metadata,
+    Array,
+    PositiveNumber,
+    Choice(&'static [&'static str]),
+    Endpoint,
 }
 
 impl FieldKind {
@@ -29,6 +35,13 @@ impl FieldKind {
                     })
             }
             Self::Metadata => value.is_object(),
+            Self::Array => value.is_array(),
+            Self::PositiveNumber => value
+                .as_f64()
+                .is_some_and(|number| number.is_finite() && number > 0.0),
+            Self::Choice(choices) => value.as_str().is_some_and(|text| choices.contains(&text)),
+            Self::Endpoint => serde_json::from_value::<ArcEndpoint>(value.clone())
+                .is_ok_and(|endpoint| endpoint.validate().is_ok()),
         }
     }
 }
@@ -136,4 +149,104 @@ impl TryFrom<Value> for Place {
         trim_name(&mut value, true)?;
         Ok(Self(value))
     }
+}
+
+pub(crate) const TRANSITION_UPDATE_FIELDS: &[(&str, FieldKind)] = &[
+    ("name", FieldKind::Text),
+    ("description", FieldKind::Text),
+    ("metadata", FieldKind::Metadata),
+    (
+        "lambdaType",
+        FieldKind::Choice(&["predicate", "stochastic"]),
+    ),
+    ("lambdaCode", FieldKind::Text),
+    ("transitionKernelCode", FieldKind::Text),
+];
+
+fn validate_arc(arc: &Value, input: bool) -> Result<(), String> {
+    let mut required = vec![("weight", FieldKind::PositiveNumber)];
+    if input {
+        required.push((
+            "type",
+            FieldKind::Choice(&["standard", "inhibitor", "read"]),
+        ));
+    }
+    validate_fields(
+        arc,
+        &required,
+        &[
+            ("placeId", FieldKind::Id),
+            ("endpoint", FieldKind::Endpoint),
+        ],
+    )?;
+    if arc.get("placeId").is_some() == arc.get("endpoint").is_some() {
+        return Err("Arc must specify exactly one of `placeId` and `endpoint`".to_owned());
+    }
+    Ok(())
+}
+
+/// A validated transition, including its arc shapes and code fields.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(try_from = "Value")]
+pub struct Transition(Value);
+
+impl Transition {
+    pub(crate) const fn as_value(&self) -> &Value {
+        &self.0
+    }
+
+    pub(crate) fn into_value(self) -> Value {
+        self.0
+    }
+}
+
+impl TryFrom<Value> for Transition {
+    type Error = String;
+
+    fn try_from(mut value: Value) -> Result<Self, Self::Error> {
+        validate_fields(
+            &value,
+            &[
+                ("id", FieldKind::Id),
+                ("name", FieldKind::Text),
+                ("inputArcs", FieldKind::Array),
+                ("outputArcs", FieldKind::Array),
+                (
+                    "lambdaType",
+                    FieldKind::Choice(&["predicate", "stochastic"]),
+                ),
+                ("lambdaCode", FieldKind::Text),
+                ("transitionKernelCode", FieldKind::Text),
+                ("x", FieldKind::Number),
+                ("y", FieldKind::Number),
+            ],
+            TRANSITION_UPDATE_FIELDS,
+        )?;
+        trim_name(&mut value, false)?;
+        for arc in items(&value, "inputArcs") {
+            validate_arc(arc, true)?;
+        }
+        for arc in items(&value, "outputArcs") {
+            validate_arc(arc, false)?;
+        }
+        Ok(Self(value))
+    }
+}
+
+pub(crate) fn apply_update(
+    value: &mut Value,
+    update: &Map<String, Value>,
+    unset: &[String],
+    allowed: &[(&str, FieldKind)],
+) -> Result<(), String> {
+    validate_update(update, allowed)?;
+    let fields = value.as_object_mut().ok_or("Entity must be an object")?;
+    fields.extend(update.clone());
+    for key in unset {
+        if !allowed.iter().any(|(name, _)| *name == key) {
+            return Err(format!("Unknown entity update field `{key}`"));
+        }
+        fields.remove(key);
+    }
+    Ok(())
 }
