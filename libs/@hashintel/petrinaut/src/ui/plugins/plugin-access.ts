@@ -26,6 +26,7 @@ import type {
   PetrinautNavigationUpdate,
 } from "../../react/navigation";
 import type { AddNotificationInput } from "../../react/notifications/context";
+import type { PluginPerformance } from "./plugin-performance";
 import type {
   ApplyAutoLayoutResult,
   DiagnosticsSnapshot,
@@ -173,6 +174,7 @@ export interface PluginEditorState {
 
 /** What the families are built from: the core instance and the editor's stores. */
 interface PluginEditorPorts {
+  readonly performance: PluginPerformance;
   readonly instance: Petrinaut;
   readonly latest: ReadableStore<PluginEditorState>;
   readonly title: ReadableStore<string>;
@@ -343,6 +345,7 @@ export const createAccessFamilies = (ports: PluginEditorPorts) => {
   const editor = readEditor(ports);
 
   return {
+    performance: { read: ports.performance },
     document: { read: document, write: writeDocument(ports, document) },
     experiments: {
       read: experiments,
@@ -361,7 +364,9 @@ type PluginFamily = keyof AccessFamilies;
 type AccessLevel = "read" | "write";
 
 /** What a manifest's `access` declares: a level per family. */
-export type PluginAccess = { readonly [F in PluginFamily]?: AccessLevel };
+export type PluginAccess = {
+  readonly [F in PluginFamily]?: keyof AccessFamilies[F];
+};
 
 /**
  * An `api` holding the families `A` declares, at their levels. Type a
@@ -372,11 +377,14 @@ export type AccessApi<A extends PluginAccess = Record<never, never>> =
   PluginBaseApi & {
     readonly [
       F in keyof A & PluginFamily as A[F] extends AccessLevel ? F : never
-    ]: AccessFamilies[F][A[F] & AccessLevel];
+    ]: AccessFamilies[F][A[F] & keyof AccessFamilies[F]];
   };
 
 /** The members `access` grants, picked from the document's families. */
 export const accessApi = (families: AccessFamilies, access: PluginAccess) => ({
+  ...(access.performance === "read" && {
+    performance: families.performance.read,
+  }),
   ...(access.document && { document: families.document[access.document] }),
   ...(access.experiments && {
     experiments: families.experiments[access.experiments],

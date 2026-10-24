@@ -1,6 +1,7 @@
 import { Component, type ContextType, type ReactNode, Suspense } from "react";
 
 import { ErrorTrackerContext } from "../../react/error-tracker-context";
+import { PluginProfile } from "./plugin-profile";
 
 import type { PluginButtonPlace } from "./define-petrinaut-plugin";
 
@@ -52,7 +53,9 @@ export class PluginBoundary extends Component<Props, { failed: boolean }> {
 
   render(): ReactNode {
     return this.state.failed ? null : (
-      <Suspense fallback={null}>{this.props.children}</Suspense>
+      <PluginProfile pluginId={this.props.pluginId}>
+        <Suspense fallback={null}>{this.props.children}</Suspense>
+      </PluginProfile>
     );
   }
 }
