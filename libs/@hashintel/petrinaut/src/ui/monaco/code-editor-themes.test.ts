@@ -44,6 +44,12 @@ describe("codeEditorThemes", () => {
     }
   });
 
+  it("keeps Kay Day's editor surface white, like Petrinaut's light chrome", () => {
+    const kayDay = codeEditorThemes.find((theme) => theme.id === "kay-day");
+    expect(kayDay?.colors["editor.background"]).toBe("#ffffff");
+    expect(kayDay?.colors["editorGutter.background"]).toBe("#ffffff");
+  });
+
   it("keeps a saved theme that still exists and falls back otherwise", () => {
     for (const theme of codeEditorThemes) {
       expect(resolveCodeEditorThemeId(theme.id)).toBe(theme.id);
