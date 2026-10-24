@@ -11,7 +11,22 @@ import type { Info } from "@temporalio/activity";
 import type { Client as TemporalClient } from "@temporalio/client";
 import type { SignalDefinition } from "@temporalio/workflow";
 
-let temporalClient: TemporalClient | undefined;
+let temporalClientConnection: Promise<TemporalClient> | undefined;
+
+/**
+ * The worker's Temporal client. Attempts that start together share one connection, and a failed connection is tried
+ * again by the next signal.
+ */
+const getTemporalClient = () => {
+  temporalClientConnection ??= createTemporalClient().catch(
+    (error: unknown) => {
+      temporalClientConnection = undefined;
+      throw error;
+    },
+  );
+
+  return temporalClientConnection;
+};
 
 /** Signals the activity's run's workflow, logging rather than failing the action if it can't. */
 const signalRun = async <Payload>(
@@ -26,7 +41,7 @@ const signalRun = async <Payload>(
   }
 
   try {
-    temporalClient ??= await createTemporalClient();
+    const temporalClient = await getTemporalClient();
 
     await temporalClient.workflow
       .getHandle(workflowExecution.workflowId, workflowExecution.runId)
