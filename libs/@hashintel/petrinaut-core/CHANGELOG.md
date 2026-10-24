@@ -1,5 +1,11 @@
 # @hashintel/petrinaut-core
 
+## 0.0.6
+
+### Patch Changes
+
+- Upgrade the language server to TypeScript 6. ([@indietyp](https://github.com/indietyp), [#9933](https://github.com/hashintel/hash/pull/9933))
+
 ## 0.0.5
 
 ### Patch Changes
