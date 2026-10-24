@@ -42,8 +42,10 @@ const signalRun = async <Payload>(
  * Whether Temporal retries an attempt that threw `error`, from the activity's retry policy: unless the error is
  * non-retryable, or its type is one the policy lists, while the policy allows another attempt (0 is unlimited).
  */
-const isRetried = (info: Info, error: unknown) => {
-  const { attempt, retryPolicy } = info;
+export const isRetried = (
+  { attempt, retryPolicy }: Pick<Info, "attempt" | "retryPolicy">,
+  error: unknown,
+) => {
   const errorType =
     error instanceof ApplicationFailure
       ? error.type
