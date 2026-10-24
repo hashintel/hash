@@ -139,3 +139,29 @@ test("undoes in Simulate mode, where scenario and metric edits can be undone", (
   expect(actions.undo).toHaveBeenCalledOnce();
   expect(actions.notify).not.toHaveBeenCalled();
 });
+
+test.each(["metaKey", "ctrlKey"])(
+  "leaves modified Find shortcuts available to plugins (%s)",
+  (modifier) => {
+    render(<Shortcuts />);
+    for (const extra of [{ shiftKey: true }, { altKey: true }]) {
+      const event = new KeyboardEvent("keydown", {
+        key: "f",
+        [modifier]: true,
+        ...extra,
+        bubbles: true,
+        cancelable: true,
+      });
+      fireEvent(document.body, event);
+      expect(event.defaultPrevented).toBe(false);
+    }
+    const find = new KeyboardEvent("keydown", {
+      key: "f",
+      [modifier]: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    fireEvent(document.body, find);
+    expect(find.defaultPrevented).toBe(true);
+  },
+);
