@@ -140,6 +140,8 @@ const OwnedUserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, enableNetComponents: value })),
     setShowCompilationOutput: (value: boolean) =>
       setState((prev) => ({ ...prev, showCompilationOutput: value })),
+    setCodeEditorTheme: (value: string) =>
+      setState((prev) => ({ ...prev, codeEditorTheme: value })),
     setPluginEnabled: (pluginId: string, enabled: boolean) =>
       setState((prev) => ({
         ...prev,

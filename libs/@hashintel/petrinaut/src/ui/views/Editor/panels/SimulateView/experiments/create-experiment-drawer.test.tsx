@@ -302,6 +302,7 @@ const TestProviders = ({
     setPartialSelection: () => {},
     setEnableNetComponents: () => {},
     setShowCompilationOutput: () => {},
+    setCodeEditorTheme: () => {},
     setCanvasViewport: () => {},
     setPluginEnabled: () => {},
     updateSubViewSection: () => {},
