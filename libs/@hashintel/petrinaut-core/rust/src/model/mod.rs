@@ -94,10 +94,12 @@ pub struct PlaceData {
     )]
     pub description: Option<String>,
 
+    #[serde(deserialize_with = "Option::deserialize")]
     pub color_id: Option<String>,
 
     pub dynamics_enabled: bool,
 
+    #[serde(deserialize_with = "Option::deserialize")]
     pub differential_equation_id: Option<String>,
 
     #[serde(
@@ -276,6 +278,7 @@ pub struct EquationData {
     )]
     pub description: Option<String>,
 
+    #[serde(deserialize_with = "Option::deserialize")]
     pub color_id: Option<String>,
 
     pub code: String,
@@ -406,6 +409,7 @@ pub struct OptimizeSettings {
 pub struct AdHocValueData {
     pub expression: String,
 
+    #[serde(deserialize_with = "Option::deserialize")]
     pub optimize: Option<OptimizeSettings>,
 
     #[serde(
@@ -421,6 +425,7 @@ pub struct AdHocValueData {
 pub struct AdHocVariableData {
     pub expression: String,
 
+    #[serde(deserialize_with = "Option::deserialize")]
     pub optimize: Option<OptimizeSettings>,
 
     #[serde(
@@ -448,6 +453,7 @@ pub struct AdHocVariableData {
 pub struct AdHocParameterData {
     pub expression: String,
 
+    #[serde(deserialize_with = "Option::deserialize")]
     pub optimize: Option<OptimizeSettings>,
 
     #[serde(

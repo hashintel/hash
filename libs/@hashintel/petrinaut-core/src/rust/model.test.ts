@@ -117,3 +117,39 @@ test.each([
     }
   },
 );
+
+test("native updates distinguish an explicit null from removing a required nullable field", () => {
+  const native = createNative({
+    places: [],
+    transitions: [],
+    differentialEquations: [
+      { id: "equation", name: "Dynamics", colorId: null, code: "" },
+    ],
+  });
+  try {
+    const before = native.snapshot();
+    expect(() =>
+      native.execute(
+        JSON.stringify({
+          type: "updateDifferentialEquation",
+          input: { target: { id: "equation" }, update: {}, unset: ["colorId"] },
+        }),
+        "invalid",
+      ),
+    ).toThrow(/colorId/);
+    expect(native.snapshot()).toBe(before);
+    expect(
+      JSON.parse(
+        native.execute(
+          JSON.stringify({
+            type: "updateDifferentialEquation",
+            input: { target: { id: "equation" }, update: { colorId: null } },
+          }),
+          "null",
+        ),
+      ),
+    ).toEqual([]);
+  } finally {
+    native.free();
+  }
+});

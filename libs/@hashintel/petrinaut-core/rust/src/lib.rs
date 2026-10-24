@@ -13,6 +13,7 @@ mod kernel;
 pub mod model;
 mod patch;
 mod places;
+mod positions;
 mod selection;
 mod subnets;
 #[cfg(test)]
@@ -48,6 +49,7 @@ struct Checkpoint {
     forward: Vec<Patch>,
     inverse: Vec<Patch>,
     timestamp: String,
+    positions: Option<Vec<positions::Change>>,
 }
 
 /// A local document instance with native graph edits and bounded history.
@@ -71,7 +73,9 @@ pub struct PositionCommit {
     pub position: Position,
 }
 
-#[derive(Debug, Deserialize, Serialize, tsify::Tsify, Clone)]
+#[derive(
+    Debug, Deserialize, Serialize, tsify::Tsify, Clone, Copy, PartialEq, Eq, PartialOrd, Ord,
+)]
 #[serde(rename_all = "camelCase")]
 pub enum NodeKind {
     Place,
@@ -182,20 +186,12 @@ impl PetrinautInstance {
         if forward.is_empty() {
             return Ok(forward);
         }
-        if self.history_limit > 0 {
-            let inverse = patch::diff(&next, self.document());
-            self.history.truncate(self.cursor);
-            self.history.push(Checkpoint {
-                forward: forward.clone(),
-                inverse,
-                timestamp,
-            });
-            if self.history.len() > self.history_limit {
-                let dropped = self.history.remove(0);
-                self.baseline_timestamp = dropped.timestamp;
-            }
-            self.cursor = self.history.len();
-        }
+        let inverse = if self.history_limit > 0 {
+            patch::diff(&next, self.document())
+        } else {
+            Vec::new()
+        };
+        self.record(forward.clone(), inverse, None, timestamp);
         self.document = model;
         self.snapshot = OnceCell::from(next);
         Ok(forward)
@@ -214,11 +210,11 @@ impl PetrinautInstance {
             return Ok(Vec::new());
         }
         command.validate_numbers()?;
-        let command = command.normalized()?;
-        let command = &command;
         if let Command::CommitNodePositions(input) = command {
             return self.commit_node_positions(input, timestamp);
         }
+        let command = command.normalized()?;
+        let command = &command;
         let mut next = self.document().clone();
         match command {
             Command::AddSubnet(input) => {
@@ -338,40 +334,48 @@ impl PetrinautInstance {
         if self.readonly {
             return Ok(Vec::new());
         }
-        let mut input = input.clone();
-        input.target_subnet_id = input.target_subnet_id.map(|id| model::canonical_id(&id));
-        for commit in &mut input.commits {
-            commit.id = model::canonical_id(&commit.id);
+        let changes = positions::prepare(&self.document, input)?;
+        let forward = positions::patches(&changes, true);
+        if forward.is_empty() {
+            return Ok(forward);
         }
-        let mut next = self.document().clone();
-        let target = if let Some(id) = &input.target_subnet_id {
-            next.get_mut("subnets")
-                .and_then(Value::as_array_mut)
-                .and_then(|subnets| subnets.iter_mut().find(|subnet| subnet["id"] == *id))
-                .ok_or_else(|| format!("Subnet ID `{id}` does not exist"))?
-        } else {
-            &mut next
-        };
-        for commit in &input.commits {
-            if !commit.position.x.is_finite() || !commit.position.y.is_finite() {
-                return Err("Node positions must be finite numbers".to_owned());
-            }
-            let collection = match commit.item_type {
-                NodeKind::Place => "places",
-                NodeKind::Transition => "transitions",
-                NodeKind::ComponentInstance => "componentInstances",
-            };
-            if let Some(node) = target
-                .get_mut(collection)
-                .and_then(Value::as_array_mut)
-                .and_then(|nodes| nodes.iter_mut().find(|node| node["id"] == commit.id))
-            {
-                let object = node.as_object_mut().ok_or("Node must be an object")?;
-                object.insert("x".to_owned(), Value::from(commit.position.x));
-                object.insert("y".to_owned(), Value::from(commit.position.y));
-            }
+        let inverse = positions::patches(&changes, false);
+        self.apply_positions(&changes, &forward);
+        self.record(forward.clone(), inverse, Some(changes), timestamp);
+        Ok(forward)
+    }
+
+    fn apply_positions(&mut self, changes: &[positions::Change], patches: &[Patch]) {
+        positions::apply(&mut self.document, changes);
+        if let Some(snapshot) = self.snapshot.get_mut()
+            && patch::apply(snapshot, patches).is_err()
+        {
+            self.snapshot.take();
         }
-        self.replace_document(next, timestamp)
+    }
+
+    fn record(
+        &mut self,
+        forward: Vec<Patch>,
+        inverse: Vec<Patch>,
+        positions: Option<Vec<positions::Change>>,
+        timestamp: String,
+    ) {
+        if self.history_limit == 0 {
+            return;
+        }
+        self.history.truncate(self.cursor);
+        self.history.push(Checkpoint {
+            forward,
+            inverse,
+            timestamp,
+            positions,
+        });
+        if self.history.len() > self.history_limit {
+            let dropped = self.history.remove(0);
+            self.baseline_timestamp = dropped.timestamp;
+        }
+        self.cursor = self.history.len();
     }
 
     /// Pastes a selected subgraph with fresh identifiers in one transaction.
@@ -401,6 +405,32 @@ impl PetrinautInstance {
     pub fn go_to_index(&mut self, index: usize) -> Result<Vec<Patch>, String> {
         if self.readonly || index > self.history.len() || index == self.cursor {
             return Ok(Vec::new());
+        }
+        let from = index.min(self.cursor);
+        let to = index.max(self.cursor);
+        let checkpoints = self.history.iter().take(to).skip(from);
+        if checkpoints
+            .clone()
+            .all(|checkpoint| checkpoint.positions.is_some())
+        {
+            let forward = index > self.cursor;
+            let checkpoints: Vec<_> = checkpoints
+                .filter_map(|checkpoint| {
+                    checkpoint
+                        .positions
+                        .as_deref()
+                        .map(|changes| (changes, forward))
+                })
+                .collect();
+            let changes = if forward {
+                positions::combine(&self.document, checkpoints.into_iter())?
+            } else {
+                positions::combine(&self.document, checkpoints.into_iter().rev())?
+            };
+            let patches = positions::patches(&changes, true);
+            self.apply_positions(&changes, &patches);
+            self.cursor = index;
+            return Ok(patches);
         }
         let mut next = self.document().clone();
         if index < self.cursor {

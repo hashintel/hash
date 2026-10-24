@@ -103,8 +103,7 @@ export const createRustDocHandle = (
     canUndo.set(history.currentIndex > 0);
     canRedo.set(history.currentIndex < history.entries.length - 1);
   };
-  const publish = (serializedPatches: string) => {
-    const patches = JSON.parse(serializedPatches) as PetrinautPatch[];
+  const publish = (patches: PetrinautPatch[]) => {
     if (patches.length > 0) {
       current = applyPatches(current, patches);
     }
@@ -127,7 +126,7 @@ export const createRustDocHandle = (
     ) {
       return false;
     }
-    publish(document.goToIndex(index));
+    publish(JSON.parse(document.goToIndex(index)) as PetrinautPatch[]);
     return true;
   };
   refreshHistory();
@@ -178,14 +177,18 @@ export const createRustDocHandle = (
       } finally {
         changing = false;
       }
-      publish(patches);
+      publish(JSON.parse(patches) as PetrinautPatch[]);
     },
     execute(command) {
       assertReady();
       if (capabilities.readonly) {
         return;
       }
-      publish(document.execute(json(command), new Date().toISOString()));
+      publish(
+        JSON.parse(
+          document.execute(json(command), new Date().toISOString()),
+        ) as PetrinautPatch[],
+      );
     },
     paste(input) {
       assertReady();
@@ -195,7 +198,7 @@ export const createRustDocHandle = (
       const result = JSON.parse(
         document.paste(json(input), new Date().toISOString()),
       ) as { patches: PetrinautPatch[]; newItemIds: SelectedItem[] };
-      publish(JSON.stringify(result.patches));
+      publish(result.patches);
       return { newItemIds: result.newItemIds };
     },
     subscribe(listener) {

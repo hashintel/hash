@@ -5,7 +5,7 @@ attachTo: core.rust
 ---
 
 `createRustPetrinaut` gives the editor a local instance whose document, patches,
-undo/redo history, extension policies, node positions, place editing, transition editing and arc editing run in Rust. It returns the
+undo/redo history, extension policies and all public document mutations run in Rust. It returns the
 existing `Petrinaut` TypeScript interface. The published entry is
 `@hashintel/petrinaut-core/rust`; loading the regular core entry keeps the
 TypeScript implementation.
@@ -53,18 +53,16 @@ calculation stay in TypeScript; applying either result is one native transaction
 
 ## What runs where
 
-| Responsibility                                       | This draft                                                                                              | Remaining migration                                                                              |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Document ownership, atomic commits, patch generation | Rust `PetrinautInstance`, compiled natively or to Wasm                                                  | Benchmark typed transactions and the JSON snapshot cache.                                        |
-| Undo, redo, history limits, branch truncation        | Rust stores forward and inverse patches. TypeScript publishes observable history values.                | Measure retained memory on large documents.                                                      |
-| Single and batched node positions                    | Rust commands, with TypeScript input validation                                                         | Generate command declarations from Rust.                                                         |
-| Place creation, updates and deletion                 | Rust validates place fields, checks dynamics references and cascades arc deletion.                      | Generate shared entity schemas and migrate the remaining entity families.                        |
-| Transition and arc editing                           | Rust validates transition fields and arc endpoints, updates references and refreshes code availability. | Share schemas with TypeScript and add broader generated parity cases.                            |
-| Definition editing                                   | Rust commands for types/elements, equations, parameters, scenarios and metrics                          | Subnet/component edits and bulk deletion also run in Rust.                                       |
-| Clipboard and auto-layout commands                   | Rust paste and batched position commits; host-side ELK calculation                                      | Keep host-side clipboard access and ELK integration in TypeScript.                               |
-| React stores, notifications and lifecycle            | TypeScript adapter                                                                                      | Keep these adapters in TypeScript.                                                               |
-| Simulation, HIR compiler, LSP, optimization, WebGPU  | Existing TypeScript implementations                                                                     | Evaluate separately after document semantics match.                                              |
-| Collaborative or remote handles                      | Existing host handles                                                                                   | Define the synchronization protocol and authoritative owner before adopting Rust in these hosts. |
+| Responsibility                             | Implementation                                                       | Remaining work                                            |
+| ------------------------------------------ | -------------------------------------------------------------------- | --------------------------------------------------------- |
+| Document model and bindings                | Typed Rust `Sdcpn`, Serde validation, generated `tsify` declarations | Broader schema compatibility and fuzz testing             |
+| All 41 mutation methods                    | Native Rust commands                                                 | Incremental transactions for structural edits             |
+| Node positions and position-only undo/redo | Typed in-place updates and direct patches                            | Browser profiling on larger nets                          |
+| Other history and compatibility drafts     | Rust patches with full-document transactions                         | Reduce copying and retained allocation                    |
+| Paste and layout application               | Rust paste; native position command for ELK results                  | Host clipboard access and ELK remain TypeScript           |
+| React stores and lifecycle                 | TypeScript adapter                                                   | Retain the existing editor API                            |
+| Simulation, HIR, LSP, optimization, WebGPU | Existing TypeScript implementations                                  | Separate runtime migration                                |
+| Persistence and collaboration              | Host document repository and existing handles                        | Native Automerge integration and synchronization protocol |
 
 This is a working document-engine migration draft. It is not a complete port of
 `@hashintel/petrinaut-core`: simulation and browser services still live
@@ -175,7 +173,8 @@ Native Rust consumers use the same crate without crossing the JavaScript boundar
   separately.
 - Public mutations and composite commands pass their inputs to Rust. The compatibility
   `handle.change` callback still uses an Immer draft and serializes its result. Rust
-  currently clones and compares documents internally. This draft makes no speedup claim.
+  uses direct typed updates for positions and position-only history; other edits
+  still clone, validate and compare the complete document.
 - The current document exists in both Wasm memory and the JavaScript heap. History
   stores patches rather than full snapshots, but large replacements can still
   retain substantial data. The default limit is 50 transactions; zero disables history.
@@ -210,6 +209,46 @@ Native Rust consumers use the same crate without crossing the JavaScript boundar
   define another supported runtime. Deterministic random streams, floating-point
   behavior, worker protocols and WebGPU parity need separate tests.
 
+## Incremental transactions and measurements
+
+Position commands validate the complete batch before writing, collapse repeated
+moves of the same node, and emit patches only for final coordinate changes. Rust
+updates its typed model and any cached JSON snapshot directly. Position-only
+history jumps use the same path; mixed structural history retains the general
+transaction path. Tests cover unchanged batches, rejected edits, history truncation
+and typed allocation preservation.
+
+The benchmark uses 1, 10 and 100 copies of the satellite example, with remapped
+identifiers: 5, 50 and 500 nodes, and about 18 KB, 182 KB and 1.8 MB of JSON. It
+measures the built package API, including the TypeScript adapter, under Node
+22.23.4 on macOS ARM64. Movement and undo/redo use 30 samples; batches and deletion
+use 10. These are local measurements, not browser frame-rate guarantees.
+
+| Nodes | Move before (ms) | Move after (ms) | TypeScript move (ms) | Rust undo after (ms) |
+| ----- | ---------------: | --------------: | -------------------: | -------------------: |
+| 5     |            0.474 |           0.060 |                0.116 |                0.146 |
+| 50    |            3.065 |           0.052 |                0.758 |                0.046 |
+| 500   |           45.613 |           0.107 |               24.652 |                0.102 |
+
+The baseline is commit `bef5ae205a`, before incremental positions. The checked-in
+`rust/benchmark-results.json` records the runs and memory observations. At 500 nodes,
+structural deletion still takes about 86 ms in Rust versus 48 ms in TypeScript;
+this path remains a priority. Wasm initialization took about 37 ms and the binary
+is about 1.8 MB before compression. Full-document startup remains more expensive
+than the TypeScript engine.
+
+Heap deltas and process RSS are diagnostic readings, not precise ownership counts.
+They include allocator and JIT noise and do not isolate live Rust allocations.
+The document still exists on both sides of the boundary, so this draft does not
+claim a memory reduction. Browser heap and Wasm allocation profiling remain open.
+
+After building core, reproduce the measurements from the repository root:
+
+```sh
+mise x -- node --expose-gc libs/@hashintel/petrinaut-core/scripts/benchmark-rust.mjs --engine=rust
+mise x -- node --expose-gc libs/@hashintel/petrinaut-core/scripts/benchmark-rust.mjs --engine=typescript
+```
+
 ## Build and verification
 
 From the repository root, using the pinned mise tools and rustup toolchain:
@@ -242,16 +281,13 @@ movement, and numeric no-ops.
 
 ## Next implementation steps
 
-1. Benchmark startup, drag commits, bulk edits, undo and retained memory using small,
-   medium and large existing nets. Compare the TypeScript and Wasm paths.
-2. Extend generated command bindings as entity families move to Rust; verify defaults,
-   IDs, nullability, numeric limits and schema versions against the TypeScript API.
-3. Port mutation families incrementally. Run the existing action tests against both
-   implementations, including failures and cascading changes, before removing each
-   TypeScript rule.
-4. Replace full-document commits with commands returning patches. Keep a compatibility
-   path for host `handle.change` callbacks until consumers migrate.
-5. Design persistence and collaboration adapters, including remote changes, local undo
-   and lifecycle ownership. Test published artifacts in browser, Node and SSR hosts.
-6. Design simulation as a separate Rust API over an immutable model, with explicit
+1. Extend incremental transactions to structural edits, guided by bulk-deletion and
+   paste profiles. Keep rejected changes atomic and preserve redo after failures.
+2. Expand schema and command parity with generated inputs and fuzzing, including
+   native callers that do not pass through TypeScript validation.
+3. Measure cold startup and browser memory; separate the Wasm asset for caching and
+   test the published package in browser, Node and SSR hosts.
+4. Define persistence and collaboration ownership, remote-change application and
+   local undo before adopting native Automerge.
+5. Design simulation as a separate Rust API over an immutable model, with explicit
    decisions for user code, randomness, floating point and worker ownership.

@@ -1,5 +1,6 @@
 ---
 "@hashintel/petrinaut-core": patch
+"@hashintel/petrinaut": patch
 ---
 
-Add an optional Rust-backed document instance with local history and node-position operations.
+Add an experimental Rust document engine with typed bindings, document editing, paste and local history. Allow the editor to consume a host-owned instance.

@@ -699,3 +699,95 @@ fn paste_remaps_entities_and_rejects_reused_ids_atomically() {
         .expect("redo should remain available");
     assert_eq!(instance.document(), &after);
 }
+
+#[test]
+fn incremental_positions_preserve_allocations_and_coalesce_history_jumps() {
+    let mut instance = instance(50);
+    let original = instance.document().clone();
+    let places = instance.model().places.as_ptr();
+    let move_to = |x| {
+        command(
+            json!({"type":"commitNodePositions","input":{"commits":[{"id":"p","itemType":"place","position":{"x":x,"y":0}}]}}),
+        )
+    };
+    for x in [1, 2, 0] {
+        instance
+            .execute(&move_to(x), "move".to_owned())
+            .expect("move should succeed");
+    }
+    assert_eq!(instance.model().places.as_ptr(), places);
+    assert_eq!(instance.document(), &original);
+    assert!(
+        instance
+            .go_to_index(0)
+            .expect("jump should succeed")
+            .is_empty()
+    );
+    assert_eq!(instance.current_index(), 0);
+    assert_eq!(instance.model().places.as_ptr(), places);
+    instance.go_to_index(2).expect("redo should succeed");
+    assert_eq!(instance.document()["places"][0]["x"], 2.0);
+    assert_eq!(instance.model().places.as_ptr(), places);
+    let cancel = command(
+        json!({"type":"commitNodePositions","input":{"commits":[{"id":"p","itemType":"place","position":{"x":9,"y":0}},{"id":"p","itemType":"place","position":{"x":2,"y":0}}]}}),
+    );
+    assert!(
+        instance
+            .execute(&cancel, "cancelled".to_owned())
+            .expect("batch should succeed")
+            .is_empty()
+    );
+    assert_eq!(instance.timestamps().len(), 4);
+    let invalid = crate::CommitNodePositions {
+        target_subnet_id: None,
+        commits: vec![
+            crate::PositionCommit {
+                id: "p".to_owned(),
+                item_type: crate::NodeKind::Place,
+                position: crate::Position { x: 100.0, y: 0.0 },
+            },
+            crate::PositionCommit {
+                id: "missing".to_owned(),
+                item_type: crate::NodeKind::Place,
+                position: crate::Position {
+                    x: f64::NAN,
+                    y: 0.0,
+                },
+            },
+        ],
+    };
+    instance
+        .commit_node_positions(&invalid, "invalid".to_owned())
+        .expect_err("all positions should validate before any write");
+    assert_eq!(instance.document()["places"][0]["x"], 2.0);
+    instance
+        .go_to_index(3)
+        .expect("failed edit should retain redo");
+    assert_eq!(instance.document(), &original);
+}
+
+#[test]
+fn position_history_remains_valid_across_structural_changes_and_truncation() {
+    let mut instance = instance(3);
+    let add = command(json!({"type":"addPlace","input":{"place":place("other")}}));
+    instance
+        .execute(&add, "add".to_owned())
+        .expect("place should be added");
+    let initial = instance.document().clone();
+    for (id, x) in [("p", 1), ("other", 2)] {
+        instance.execute(&command(json!({"type":"commitNodePositions","input":{"commits":[{"id":id,"itemType":"place","position":{"x":x,"y":0}}]}})), "move".to_owned()).expect("move should succeed");
+    }
+    instance
+        .execute(
+            &command(json!({"type":"removePlace","input":{"placeId":"p"}})),
+            "remove".to_owned(),
+        )
+        .expect("removal should succeed");
+    let final_state = instance.document().clone();
+    instance
+        .go_to_index(0)
+        .expect("mixed history should undo after baseline truncation");
+    assert_eq!(instance.document(), &initial);
+    instance.go_to_index(3).expect("mixed history should redo");
+    assert_eq!(instance.document(), &final_state);
+}

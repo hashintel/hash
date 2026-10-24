@@ -3,7 +3,7 @@ use serde_json::Value;
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(untagged)]
-enum Segment {
+pub(crate) enum Segment {
     Key(String),
     Index(usize),
 }
@@ -23,6 +23,16 @@ enum Operation {
     Add,
     Remove,
     Replace,
+}
+
+impl Patch {
+    pub(crate) fn replace(path: Vec<Segment>, number: f64) -> Self {
+        Self {
+            op: Operation::Replace,
+            path,
+            value: Some(Value::from(number)),
+        }
+    }
 }
 
 pub(crate) fn diff(previous: &Value, next: &Value) -> Vec<Patch> {
