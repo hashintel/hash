@@ -3,11 +3,10 @@
  * @role Rust document transactions and history exposed through the existing TypeScript instance API
  */
 import init from "../../rust/pkg/petrinaut_core.js";
-import { mutationActionInputSchemas } from "../action-schemas";
-import { createPetrinaut, type Petrinaut } from "../instance";
-import { createRustDocHandle } from "./rust-doc-handle";
+import { createRustInstance } from "./instance";
 
 import type { CreateJsonDocHandleOptions } from "../handle";
+import type { Petrinaut } from "../instance";
 
 export type CreateRustPetrinautOptions = CreateJsonDocHandleOptions & {
   readonly?: boolean;
@@ -43,55 +42,5 @@ export const createRustPetrinaut = async (
   options: CreateRustPetrinautOptions,
 ): Promise<Petrinaut> => {
   await initializePetrinautRust(options.wasm);
-  const handle = createRustDocHandle({
-    ...options,
-    capabilities: {
-      ...options.capabilities,
-      readonly: options.readonly || options.capabilities?.readonly,
-    },
-  });
-  const instance = createPetrinaut({ document: handle });
-  return {
-    ...instance,
-    mutations: {
-      ...instance.mutations,
-      commitNodePositions(input) {
-        handle.commitNodePositions(
-          mutationActionInputSchemas.commitNodePositions.parse(input),
-        );
-      },
-      updatePlacePosition(input) {
-        const { placeId, position, targetSubnetId } =
-          mutationActionInputSchemas.updatePlacePosition.parse(input);
-        handle.commitNodePositions({
-          targetSubnetId,
-          commits: [{ id: placeId, itemType: "place", position }],
-        });
-      },
-      updateTransitionPosition(input) {
-        const { transitionId, position, targetSubnetId } =
-          mutationActionInputSchemas.updateTransitionPosition.parse(input);
-        handle.commitNodePositions({
-          targetSubnetId,
-          commits: [{ id: transitionId, itemType: "transition", position }],
-        });
-      },
-      updateComponentInstancePosition(input) {
-        const { instanceId, position, targetSubnetId } =
-          mutationActionInputSchemas.updateComponentInstancePosition.parse(
-            input,
-          );
-        handle.commitNodePositions({
-          targetSubnetId,
-          commits: [
-            { id: instanceId, itemType: "componentInstance", position },
-          ],
-        });
-      },
-    },
-    dispose() {
-      instance.dispose();
-      handle.dispose();
-    },
-  };
+  return createRustInstance(options);
 };

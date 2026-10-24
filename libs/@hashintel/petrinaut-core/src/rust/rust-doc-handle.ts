@@ -43,10 +43,26 @@ const json = (value: unknown): string =>
     return item;
   });
 
+type NativeMutation = "commitNodePositions" | "updatePlace" | "removePlace";
+type RustCommand =
+  | {
+      [Name in NativeMutation]: {
+        type: Name;
+        input: MutationActionInput<Name>;
+      };
+    }[NativeMutation]
+  | {
+      type: "addPlace";
+      input: {
+        targetSubnetId?: string | null;
+        place: Omit<MutationActionInput<"addPlace">, "targetSubnetId">;
+      };
+    };
+
 export const createRustDocHandle = (
   options: CreateJsonDocHandleOptions,
 ): PetrinautDocHandle & {
-  commitNodePositions(input: MutationActionInput<"commitNodePositions">): void;
+  execute(command: RustCommand): void;
   dispose(): void;
 } => {
   const historyLimit = options.historyLimit ?? 50;
@@ -184,17 +200,12 @@ export const createRustDocHandle = (
       }
       publish(patches);
     },
-    commitNodePositions(input) {
+    execute(command) {
       assertReady();
       if (capabilities.readonly) {
         return;
       }
-      publish(
-        document.execute(
-          json({ type: "commitNodePositions", input }),
-          new Date().toISOString(),
-        ),
-      );
+      publish(document.execute(json(command), new Date().toISOString()));
     },
     subscribe(listener) {
       if (disposed) {

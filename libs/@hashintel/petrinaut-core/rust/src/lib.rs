@@ -1,8 +1,12 @@
 //! Document transactions and local history for Petrinaut, usable natively and through WebAssembly.
 
 mod command;
+mod document;
+mod entity;
 mod extensions;
+mod kernel;
 mod patch;
+mod places;
 #[cfg(test)]
 mod tests;
 mod wasm;
@@ -10,7 +14,13 @@ mod wasm;
 use serde::Deserialize;
 use serde_json::Value;
 
-pub use crate::{command::Command, extensions::Extensions, patch::Patch};
+pub use crate::{
+    command::Command,
+    entity::Place,
+    extensions::Extensions,
+    patch::Patch,
+    places::{AddPlace, RemovePlace, UpdatePlace},
+};
 
 #[derive(Debug)]
 struct Checkpoint {
@@ -178,9 +188,20 @@ impl PetrinautInstance {
     /// # Errors
     /// Returns an error when the command cannot be applied to this document.
     pub fn execute(&mut self, command: &Command, timestamp: String) -> Result<Vec<Patch>, String> {
-        match command {
-            Command::CommitNodePositions(input) => self.commit_node_positions(input, timestamp),
+        if self.readonly {
+            return Ok(Vec::new());
         }
+        if let Command::CommitNodePositions(input) = command {
+            return self.commit_node_positions(input, timestamp);
+        }
+        let mut next = self.document.clone();
+        match command {
+            Command::AddPlace(input) => input.apply(&mut next, self.extensions)?,
+            Command::UpdatePlace(input) => input.apply(&mut next, self.extensions)?,
+            Command::RemovePlace(input) => input.apply(&mut next, self.extensions)?,
+            Command::CommitNodePositions(_) => unreachable!("positions are handled before cloning"),
+        }
+        self.replace_document(next, timestamp)
     }
 
     /// Moves nodes in one transaction, including nodes within a subnet.

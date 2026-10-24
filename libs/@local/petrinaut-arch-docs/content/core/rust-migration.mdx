@@ -5,7 +5,7 @@ attachTo: core.rust
 ---
 
 `createRustPetrinaut` gives the editor a local instance whose document, patches,
-undo/redo history, and node-position operations run in Rust. It returns the
+undo/redo history, extension policies, node positions and place editing run in Rust. It returns the
 existing `Petrinaut` TypeScript interface. The published entry is
 `@hashintel/petrinaut-core/rust`; loading the regular core entry keeps the
 TypeScript implementation.
@@ -19,6 +19,13 @@ fields, parameter overrides, scenario token counts, component-port arcs and
 transition code availability. TypeScript still normalizes document input and
 validates public mutation schemas.
 
+Place creation, updates and removal now execute native commands. Rust validates
+place fields and differential-equation references, removes connected arcs and
+cross-subnet port references, and refreshes transition code availability. Default
+kernel templates also run in Rust when a place edit enables a typed output.
+These operations pass only command inputs across the Wasm boundary and share the
+same atomic history path as position edits.
+
 ## What runs where
 
 | Responsibility                                       | This draft                                                                               | Remaining migration                                                                                            |
@@ -26,6 +33,7 @@ validates public mutation schemas.
 | Document ownership, atomic commits, patch generation | Rust `PetrinautInstance`, compiled natively or to Wasm                                   | Replace generic JSON with typed SDCPN entities.                                                                |
 | Undo, redo, history limits, branch truncation        | Rust stores forward and inverse patches. TypeScript publishes observable history values. | Measure retained memory on large documents.                                                                    |
 | Single and batched node positions                    | Rust commands, with TypeScript input validation                                          | Generate command declarations from Rust.                                                                       |
+| Place creation, updates and deletion                 | Rust validates place fields, checks dynamics references and cascades arc deletion.       | Generate shared entity schemas and migrate the remaining entity families.                                      |
 | Other mutations                                      | Existing TypeScript schemas and domain rules produce a draft. Rust commits it.           | Port each rule, including cascading deletes, subnet ports, scenario row migration, and extension sanitization. |
 | Clipboard and auto-layout commands                   | TypeScript; each result commits as one Rust transaction                                  | Keep host-side clipboard access and ELK integration in TypeScript.                                             |
 | React stores, notifications and lifecycle            | TypeScript adapter                                                                       | Keep these adapters in TypeScript.                                                                             |
@@ -35,7 +43,7 @@ validates public mutation schemas.
 This is a working document-engine migration draft. It is not a complete port of
 `@hashintel/petrinaut-core`: most mutation rules and the SDCPN schema still live
 in TypeScript. Native Rust callers can create an instance, commit normalized JSON,
-move nodes and navigate history. They must supply validated SDCPN documents.
+move nodes, edit places and navigate history. They must supply validated SDCPN documents.
 
 ## TypeScript and editor usage
 
@@ -85,7 +93,8 @@ that class to `PetrinautDocHandle`, readable stores, and the existing mutation A
 The native crate has no browser dependency in its document algorithms.
 
 The initial transport is JSON. Rust uses `serde_json::Value`, preserving optional
-and extension fields without maintaining a second, partial SDCPN schema. Generated
+and extension fields. Native place commands validate their own entity fields; the
+rest of the SDCPN schema is still supplied by TypeScript. Generated
 binding declarations describe the string transport; they do not yet enforce a
 shared TypeScript/Rust domain schema. A later typed model can use the repository's
 existing `tsify` dependency, or generated schemas, with compatibility tests against
@@ -110,7 +119,7 @@ Native Rust consumers use the same crate without crossing the JavaScript boundar
   definition-store sanitizer still copies entities after a change; it can be optimized
   separately.
 - Most mutations still create an Immer draft, serialize the whole result, parse it
-  in Rust, and diff it. Native position commands pass only their inputs, but Rust
+  in Rust, and diff it. Native position and place commands pass only their inputs, but Rust
   currently clones and compares the document. This draft makes no speedup claim.
 - The current document exists in both Wasm memory and the JavaScript heap. History
   stores patches rather than full snapshots, but large replacements can still
@@ -124,9 +133,9 @@ Native Rust consumers use the same crate without crossing the JavaScript boundar
   must use plain JSON objects, and JavaScript numbers retain their existing precision.
   Property names `__proto__`, `constructor`, and `prototype` are rejected before a
   commit because the Immer patch adapter rejects these paths.
-- Rust validates the required top-level arrays and position commands. Full domain
-  validation, ID normalization, legacy migration, and disabled-extension sanitization
-  remain in TypeScript. The low-level Rust class is not an untrusted-input validator.
+- Rust validates required top-level arrays, positions and place commands, including
+  dynamics references. Rust also enforces extension policies on every commit.
+  Full document validation, ID normalization and legacy migration remain in TypeScript. The low-level Rust class is not an untrusted-input validator.
 - Commands run synchronously on the main thread. Large commits can block editing.
   Moving the instance into a worker would require an asynchronous command protocol
   and a strategy for optimistic UI updates.
@@ -158,10 +167,10 @@ The TypeScript tasks depend on `petrinaut-core#build:wasm`. The crate builds thr
 `wasm-pack` and the repository's `wasm32-unknown-unknown` target. Generated bindings
 and Wasm live under `rust/pkg` and are ignored by Git. The library build includes
 them in the opt-in Rust entry. The current Vite library build embeds the Wasm bytes
-as a data URL: the raw Wasm is about 208 KiB before compression. Extracting a separate,
+as a data URL. Extracting a separate,
 cacheable asset is a release-packaging follow-up. npm consumers do not need a Rust compiler.
 
-The document contract suite runs against both the JSON and real Wasm handles.
+The document contract and action suites run against both the TypeScript and real Wasm implementations.
 Additional tests cover native node movement, identity preservation, rejected drafts,
 read-only access, disposal, and React updates through the document provider. The
 native tests exercise history truncation, nested data, invalid commits, subnet

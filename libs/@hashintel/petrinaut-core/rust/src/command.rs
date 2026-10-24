@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::CommitNodePositions;
+use crate::{AddPlace, CommitNodePositions, RemovePlace, UpdatePlace};
 
 /// Atomic document edits. Entity IDs use the normalized document's identifiers.
 #[derive(Debug, Deserialize)]
@@ -12,4 +12,7 @@ use crate::CommitNodePositions;
 )]
 pub enum Command {
     CommitNodePositions(CommitNodePositions),
+    AddPlace(AddPlace),
+    UpdatePlace(UpdatePlace),
+    RemovePlace(RemovePlace),
 }

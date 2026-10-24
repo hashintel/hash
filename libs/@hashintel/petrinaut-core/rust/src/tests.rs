@@ -214,3 +214,145 @@ fn command_dispatch_records_one_transaction_and_preserves_redo_after_failure() {
     instance.go_to_index(1).expect("should retain redo");
     assert_eq!(instance.document()["places"][0]["x"], 8.0);
 }
+
+fn place(id: &str) -> Value {
+    json!({"id":id, "name":"Queue", "colorId":null, "dynamicsEnabled":false, "differentialEquationId":null, "x":0, "y":0})
+}
+
+fn command(value: Value) -> Command {
+    serde_json::from_value(value).expect("should parse command")
+}
+
+#[test]
+fn place_dynamics_failure_preserves_redo() {
+    let mut instance = instance(50);
+    let add = command(json!({"type":"addPlace", "input":{"place":place("new")}}));
+    instance
+        .execute(&add, "add".to_owned())
+        .expect("should add place");
+    let update = command(
+        json!({"type":"updatePlace", "input":{"placeId":"new", "update":{"description":"changed"}}}),
+    );
+    instance
+        .execute(&update, "update".to_owned())
+        .expect("should update place");
+    let changed = instance.document().clone();
+    instance.go_to_index(1).expect("should undo update");
+    let baseline = instance.document().clone();
+    let invalid = command(
+        json!({"type":"updatePlace", "input":{"placeId":"new", "update":{"dynamicsEnabled":true,"differentialEquationId":"missing"}}}),
+    );
+    assert_eq!(
+        instance
+            .execute(&invalid, "bad".to_owned())
+            .expect_err("should validate equation"),
+        "Place `Queue` references differential equation ID `missing` which does not exist."
+    );
+    assert_eq!(
+        instance.document(),
+        &baseline,
+        "should preserve the document on validation failure"
+    );
+    instance
+        .go_to_index(2)
+        .expect("should retain redo after failure");
+    assert_eq!(
+        instance.document(),
+        &changed,
+        "should restore the valid update"
+    );
+}
+
+#[test]
+fn place_removal_cascades_subnet_ports_atomically() {
+    let transition = json!({"id":"t", "name":"Move", "inputArcs":[{"endpoint":{"kind":"componentPort","componentInstanceId":"i","portPlaceId":"port"},"weight":1,"type":"read"}], "outputArcs":[], "lambdaType":"predicate", "lambdaCode":"return true", "transitionKernelCode":"", "x":0,"y":0});
+    let mut initial = document();
+    let mut port = place("port");
+    port["isPort"] = json!(true);
+    let mut subnet = document();
+    subnet["id"] = json!("subnet");
+    subnet["places"] = json!([port]);
+    subnet["transitions"] = json!([{"id":"inside","inputArcs":[],"outputArcs":[{"placeId":"port","weight":1}],"lambdaType":"predicate","lambdaCode":"","transitionKernelCode":""}]);
+    let mut other = document();
+    other["id"] = json!("other");
+    other["componentInstances"] = json!([{"id":"i","subnetId":"subnet"}]);
+    other["transitions"] = json!([transition]);
+    initial["componentInstances"] = other["componentInstances"].clone();
+    initial["transitions"] = other["transitions"].clone();
+    initial["subnets"] = json!([subnet, other]);
+    let mut instance = PetrinautInstance::new(initial.clone(), 50, "initial".to_owned(), false)
+        .expect("should create instance");
+    let remove = command(
+        json!({"type":"removePlace", "input":{"placeId":"port","targetSubnetId":"subnet"}}),
+    );
+    instance
+        .execute(&remove, "remove".to_owned())
+        .expect("should remove port");
+    assert_eq!(
+        instance.document()["transitions"][0]["inputArcs"],
+        json!([]),
+        "should remove root port references"
+    );
+    assert_eq!(
+        instance.document()["subnets"][1]["transitions"][0]["inputArcs"],
+        json!([]),
+        "should remove references in other subnets"
+    );
+    assert_eq!(
+        instance.document()["subnets"][0]["transitions"][0]["outputArcs"],
+        json!([]),
+        "should remove local place references"
+    );
+    assert_eq!(
+        instance.current_index(),
+        1,
+        "should record one atomic deletion"
+    );
+    instance
+        .go_to_index(0)
+        .expect("should undo all cascading edits");
+    assert_eq!(
+        instance.document(),
+        &initial,
+        "should restore the complete net"
+    );
+}
+
+#[test]
+fn place_validation_and_missing_targets_are_atomic() {
+    let mut instance = instance(50);
+    instance
+        .execute(
+            &command(json!({"type":"addPlace", "input":{"place":place("valid")}})),
+            "add".to_owned(),
+        )
+        .expect("should add place");
+    let baseline = instance.document().clone();
+    for update in [
+        json!({"x": 10}),
+        json!({"name":"lowercase"}),
+        json!({"capacity":-1}),
+        json!({"capacity":0.5}),
+        json!({"isPort":null}),
+    ] {
+        instance
+            .execute(
+                &command(
+                    json!({"type":"updatePlace", "input":{"placeId":"valid","update":update}}),
+                ),
+                "bad".to_owned(),
+            )
+            .expect_err("should validate native place updates");
+        assert_eq!(
+            instance.document(),
+            &baseline,
+            "should preserve state after invalid updates"
+        );
+    }
+    instance.execute(&command(json!({"type":"removePlace", "input":{"placeId":"valid","targetSubnetId":"missing"}})), "bad".to_owned()).expect_err("should reject a missing subnet");
+    assert_eq!(
+        instance.current_index(),
+        1,
+        "should retain only the valid transaction"
+    );
+}

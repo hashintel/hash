@@ -1,9 +1,13 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeAll, describe, expect, test } from "vitest";
 
+import { readRustWasm } from "../scripts/read-rust-wasm.mjs";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
+import { initializePetrinautRust } from "./rust/index";
+import { createRustInstance } from "./rust/instance";
 
+import type { Petrinaut } from "./instance";
 import type { SDCPN } from "./types/sdcpn";
 
 const idOf = toPetrinautId;
@@ -26,11 +30,6 @@ const cloneSDCPN = (sdcpn: SDCPN): SDCPN =>
     }
   ).structuredClone(sdcpn);
 
-const createInstance = (initial: SDCPN = emptySDCPN) =>
-  createPetrinaut({
-    document: createJsonDocHandle({ initial: cloneSDCPN(initial) }),
-  });
-
 const callActionWithUnknownInput = <Input>(
   action: (input: Input) => void,
   input: unknown,
@@ -38,7 +37,26 @@ const callActionWithUnknownInput = <Input>(
   action(input as Input);
 };
 
-describe("Petrinaut core actions", () => {
+beforeAll(async () => {
+  await initializePetrinautRust(await readRustWasm());
+});
+
+describe.each(["TypeScript", "Rust"])("core actions (%s)", (backend) => {
+  const instances: Petrinaut[] = [];
+  const createInstance = (initial: SDCPN = emptySDCPN): Petrinaut => {
+    const options = { initial: cloneSDCPN(initial) };
+    const instance =
+      backend === "Rust"
+        ? createRustInstance(options)
+        : createPetrinaut({ document: createJsonDocHandle(options) });
+    instances.push(instance);
+    return instance;
+  };
+  afterEach(() => {
+    for (const instance of instances.splice(0)) {
+      instance.dispose();
+    }
+  });
   test("adds and updates places", () => {
     const instance = createInstance();
 
