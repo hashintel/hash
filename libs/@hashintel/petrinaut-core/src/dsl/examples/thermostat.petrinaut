@@ -1,0 +1,69 @@
+/// A room warmed by a heater under a thermostat: a typed token with a
+/// continuous attribute, dynamics that change it between firings, and
+/// predicate transitions whose guards read it. Read and inhibitor arcs gate
+/// the heater on power and on a fault.
+net "Thermostat"
+
+/// The room's state, one token.
+type Room { temperature: real }
+
+param low "Switch on below": real = 19
+param high "Switch off above": real = 21
+param outside "Outside temperature": real = 8
+/// Fraction of the gap to the outside lost per time unit.
+param loss: real = 0.05
+/// Degrees per time unit the heater adds.
+param power: real = 0.8
+
+/// The room cools towards the outside temperature.
+dynamics "Cooling" (Room) {
+  return tokens.map((room) => ({
+    temperature: -parameters.loss * (room.temperature - parameters.outside),
+  }));
+}
+/// The heater adds heat on top of the loss.
+dynamics "Heating" (Room) {
+  return tokens.map((room) => ({
+    temperature: parameters.power - parameters.loss * (room.temperature - parameters.outside),
+  }));
+}
+
+place Idle: Room dynamics "Cooling" start
+place Heating: Room dynamics "Heating"
+/// A token here means the mains are on.
+place Power start
+/// A token here keeps the heater off.
+place Fault
+
+/// Switch on when cold, only with power and no fault. A read arc checks a
+/// token without taking it; an inhibitor arc requires the place to be empty.
+transition SwitchOn {
+  Idle, read Power, inhibit Fault -> Heating
+  guard { return input.Idle[0].temperature < parameters.low; }
+  kernel { return { Heating: [input.Idle[0]] }; }
+}
+
+transition SwitchOff {
+  Heating -> Idle
+  guard { return input.Heating[0].temperature > parameters.high; }
+  kernel { return { Idle: [input.Heating[0]] }; }
+}
+
+metric "Temperature" {
+  const idle = state.places.Idle.tokens;
+  const heating = state.places.Heating.tokens;
+  return idle.length > 0
+    ? idle[0].temperature
+    : heating.length > 0
+      ? heating[0].temperature
+      : 0;
+}
+metric "Heater on" { return state.places.Heating.count; }
+
+/// A cold room with the power on. Rows of token data set a typed place.
+scenario "Cold start" {
+  marking {
+    Idle: [[14]]
+    Power: 1
+  }
+}

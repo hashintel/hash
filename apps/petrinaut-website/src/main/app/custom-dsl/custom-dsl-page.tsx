@@ -9,8 +9,10 @@ import { useEffect, useRef, useState } from "react";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   createJsonDocHandle,
+  dslExamples,
   replaceDefinition,
   type DslDiagnostic,
+  type DslExample,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import { DslEditor, MonacoProvider, Petrinaut } from "@hashintel/petrinaut/ui";
@@ -71,6 +73,53 @@ const headerStatusStyle = css({
 
 const headerWarningStyle = css({
   color: "[#b45309]",
+});
+
+const examplePickerStyle = css({
+  flexShrink: "0",
+  maxWidth: "[11rem]",
+  paddingX: "2",
+  paddingY: "1",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.s40",
+  borderRadius: "md",
+  backgroundColor: "neutral.s00",
+  color: "neutral.s100",
+  fontSize: "sm",
+});
+
+const noticeStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "3",
+  flexShrink: "0",
+  paddingX: "4",
+  paddingY: "2",
+  borderBottomWidth: "[1px]",
+  borderBottomStyle: "solid",
+  borderBottomColor: "neutral.s30",
+  backgroundColor: "neutral.s10",
+  fontSize: "sm",
+  color: "neutral.s100",
+});
+
+const noticeTextStyle = css({
+  flex: "[1]",
+  minWidth: "0",
+});
+
+const noticeButtonStyle = css({
+  paddingX: "3",
+  paddingY: "1",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.s40",
+  borderRadius: "md",
+  backgroundColor: "neutral.s00",
+  color: "neutral.s100",
+  fontSize: "sm",
+  cursor: "pointer",
 });
 
 const headerLinkStyle = css({
@@ -185,6 +234,26 @@ export const CustomDslPage = () => {
     setSaveState(saveDslFile(next) ? "saved" : "refused");
   };
 
+  // Loading an example replaces the one file this page keeps, so a text
+  // that is not the example already waits for a word.
+  const [pendingExample, setPendingExample] = useState<DslExample | null>(null);
+  const applyExample = (example: DslExample) => {
+    setPendingExample(null);
+    setText(example.text);
+    save(example.text);
+  };
+  const loadExample = (id: string) => {
+    const example = dslExamples.find((candidate) => candidate.id === id);
+    if (example === undefined || example.text === text) {
+      return;
+    }
+    if (text.trim() === "") {
+      applyExample(example);
+    } else {
+      setPendingExample(example);
+    }
+  };
+
   return (
     <div className={cx(pageStyle, "petrinaut-root")}>
       <section aria-label="DSL file" className={filePaneStyle}>
@@ -202,10 +271,55 @@ export const CustomDslPage = () => {
           >
             {statusText(derived, saveState)}
           </span>
+          <select
+            aria-label="Load example"
+            className={examplePickerStyle}
+            onChange={(event) => loadExample(event.target.value)}
+            value=""
+          >
+            <option disabled value="">
+              Load example…
+            </option>
+            {dslExamples.map((example) => (
+              <option
+                key={example.id}
+                title={example.description}
+                value={example.id}
+              >
+                {example.title}
+              </option>
+            ))}
+          </select>
           <Link className={headerLinkStyle} to="/">
             Back to Petrinaut
           </Link>
         </header>
+        {pendingExample !== null ? (
+          <div
+            className={noticeStyle}
+            role="alertdialog"
+            aria-label="Replace the text"
+          >
+            <span className={noticeTextStyle}>
+              Replace the text with the "{pendingExample.title}" example? The
+              file in this browser is overwritten.
+            </span>
+            <button
+              className={noticeButtonStyle}
+              onClick={() => setPendingExample(null)}
+              type="button"
+            >
+              Keep mine
+            </button>
+            <button
+              className={noticeButtonStyle}
+              onClick={() => applyExample(pendingExample)}
+              type="button"
+            >
+              Replace
+            </button>
+          </div>
+        ) : null}
         <MonacoProvider>
           <DslEditor
             value={text}
