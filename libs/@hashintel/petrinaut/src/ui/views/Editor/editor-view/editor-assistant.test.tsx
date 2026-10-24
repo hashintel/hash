@@ -1,8 +1,19 @@
 /** @vitest-environment jsdom */
-import { cleanup, fireEvent, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { type ReactNode, use } from "react";
-import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  vi,
+} from "vitest";
 
+import { createCommandRegistry } from "@hashintel/petrinaut-core";
+
+import { CommandRegistryProvider } from "../../../../react/commands/command-registry";
 import { ErrorTrackerContext } from "../../../../react/error-tracker-context";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { definePetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
@@ -11,7 +22,11 @@ import {
   useAssistantPanel,
 } from "../../../plugins/plugin-assistant";
 import { renderPlugins } from "../../../plugins/plugins-test-harness";
-import { EditorAssistantPanel, useEditorAssistant } from "./editor-assistant";
+import {
+  AssistantCommands,
+  EditorAssistantPanel,
+  useEditorAssistant,
+} from "./editor-assistant";
 
 beforeAll(() => {
   vi.stubGlobal(
@@ -24,6 +39,7 @@ beforeAll(() => {
   );
 });
 
+beforeEach(() => localStorage.clear());
 afterEach(cleanup);
 
 const PluginChat = () => {
@@ -71,6 +87,7 @@ const Editor = () => {
 
   return (
     <>
+      <AssistantCommands />
       <button type="button" onClick={() => setAiAssistantOpen(true)}>
         Show AI assistant
       </button>
@@ -143,5 +160,51 @@ describe("EditorAssistantPanel", () => {
       source: "plugin",
       tags: { pluginId: "test.broken", place: "assistant" },
     });
+  });
+});
+
+describe("choosing the assistant", () => {
+  const renderWithCommands = (settings: object) => {
+    localStorage.setItem("petrinaut:user-settings", JSON.stringify(settings));
+    const registry = createCommandRegistry();
+    renderPlugins([chatPlugin, composerPlugin], <Editor />, {
+      Around: ({ children }) => (
+        <CommandRegistryProvider registry={registry}>
+          {children}
+        </CommandRegistryProvider>
+      ),
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" }));
+
+    return registry;
+  };
+
+  test("shows the chosen assistant and switches to another from the palette", () => {
+    const registry = renderWithCommands({ assistantPluginId: "test.composer" });
+    expect(screen.getByRole("textbox", { name: "Message" })).not.toBeNull();
+    expect(registry.list().map(({ label }) => label)).toEqual([
+      "Use Chat as the AI assistant",
+    ]);
+
+    act(() => registry.list()[0]?.run());
+
+    expect(screen.getByText("Plugin chat open")).not.toBeNull();
+    expect(registry.list().map(({ label }) => label)).toEqual([
+      "Use Composer as the AI assistant",
+    ]);
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
+    ).toMatchObject({ assistantPluginId: "test.chat" });
+  });
+
+  test("shows the first running assistant while the chosen one is switched off", () => {
+    const registry = renderWithCommands({
+      assistantPluginId: "test.composer",
+      disabledPluginIds: ["test.composer"],
+    });
+
+    expect(screen.getByText("Plugin chat open")).not.toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Message" })).toBeNull();
+    expect(registry.list()).toEqual([]);
   });
 });
