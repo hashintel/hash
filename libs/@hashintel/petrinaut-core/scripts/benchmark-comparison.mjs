@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
+import { appendFile, readFile, rm, writeFile } from "node:fs/promises";
 import { cpus, platform, release, totalmem } from "node:os";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -9,7 +9,7 @@ import { parseArgs } from "node:util";
 /** @typedef {Awaited<ReturnType<typeof import("./benchmark-rust.mjs").runBenchmark>>} BenchmarkRun */
 const { values } = parseArgs({
   options: {
-    nodes: { type: "string", default: "50,500,5000" },
+    nodes: { type: "string", default: "50,500,1000" },
     repeats: { type: "string", default: "3" },
     output: { type: "string" },
   },
@@ -62,6 +62,15 @@ const summarize = (trials) => {
   };
 };
 const startedAt = new Date().toISOString();
+const partialOutput = values.output
+  ? `${values.output}.partial.jsonl`
+  : undefined;
+if (partialOutput) {
+  await writeFile(
+    partialOutput,
+    `${JSON.stringify({ startedAt, revision, dirty, node: process.version, sizes, repeats })}\n`,
+  );
+}
 /** @type {BenchmarkRun[]} */
 const runs = [];
 for (const mode of ["timing", "memory"]) {
@@ -89,7 +98,11 @@ for (const mode of ["timing", "memory"]) {
             stdio: ["ignore", "pipe", "inherit"],
           },
         );
-        runs.push(/** @type {BenchmarkRun} */ (JSON.parse(output)));
+        const run = /** @type {BenchmarkRun} */ (JSON.parse(output));
+        runs.push(run);
+        if (partialOutput) {
+          await appendFile(partialOutput, `${JSON.stringify(run)}\n`);
+        }
       }
     }
   }
@@ -200,6 +213,9 @@ const result = {
 const json = `${JSON.stringify(result, null, 2)}\n`;
 if (values.output) {
   await writeFile(values.output, json);
+  if (partialOutput) {
+    await rm(partialOutput);
+  }
   process.stderr.write(`Wrote ${values.output}\n`);
 } else {
   process.stdout.write(json);
