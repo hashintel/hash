@@ -1,10 +1,10 @@
 import { fileURLToPath } from "node:url";
 
-import { defineConfig, type Plugin } from "vite";
-import svgr from "vite-plugin-svgr";
 import vinext from "vinext";
+import { defineConfig, type Plugin as VitePlugin } from "vite";
+import svgr from "vite-plugin-svgr";
 
-const hashWorkspaceAliases = (): Plugin => ({
+const hashWorkspaceAliases = (): VitePlugin<unknown> => ({
   name: "hash-workspace-aliases",
   enforce: "post",
   config: () => ({
@@ -34,6 +34,10 @@ const hashWorkspaceAliases = (): Plugin => ({
 });
 
 export default defineConfig({
+  server: {
+    port: Number(process.env.PORT ?? 3000),
+    strictPort: true,
+  },
   define: {
     __SENTRY_DEBUG__: false,
   },
