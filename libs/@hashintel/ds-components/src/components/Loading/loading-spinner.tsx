@@ -95,3 +95,5 @@ export const LoadingSpinner = ({
     </svg>
   );
 };
+
+LoadingSpinner.displayName = "LoadingSpinner";

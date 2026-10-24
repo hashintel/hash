@@ -158,3 +158,5 @@ export const TextArea = ({
     </div>
   );
 };
+
+TextArea.displayName = "TextArea";

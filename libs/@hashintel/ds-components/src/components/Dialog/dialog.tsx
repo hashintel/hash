@@ -142,6 +142,9 @@ const DialogRoot = ({
   );
 };
 
+// Stable name for the docs Stage code serializer under minification
+DialogRoot.displayName = "Dialog";
+
 export const Dialog = Object.assign(DialogRoot, {
   Header: OverlayHeader,
   Body: OverlayBody,

@@ -29,3 +29,5 @@ export const CharacterCount = ({
     </div>
   );
 };
+
+CharacterCount.displayName = "CharacterCount";

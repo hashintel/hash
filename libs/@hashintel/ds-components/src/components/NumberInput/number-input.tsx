@@ -161,3 +161,6 @@ export const NumberInput = ({
     />
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+NumberInput.displayName = "NumberInput";

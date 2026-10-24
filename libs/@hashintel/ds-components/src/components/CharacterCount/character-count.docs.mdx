@@ -1,0 +1,199 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { CharacterCount } from "./character-count";
+
+<Meta title="Docs/CharacterCount" />
+
+export const meta = {
+  title: "CharacterCount",
+  description: "Shows how much of a field's character limit the user has used.",
+  alternativeNames: ["CharacterCounter", "CharacterLimit"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/CharacterCount/character-count.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-charactercount--default",
+  },
+  related: ["TextArea", "TextInput", "Form"],
+};
+
+# CharacterCount
+
+Shows how much of a field's character limit the user has used.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <CharacterCount charactersUsed={45} maxLength={250} takesHeight />
+  <CharacterCount charactersUsed={112} maxLength={100} takesHeight />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { CharacterCount } from "@hashintel/ds-components";
+
+export const DescriptionCounter = () => (
+  <CharacterCount charactersUsed={45} maxLength={250} takesHeight />
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use a counter when a field has a real character limit — a schema or API constraint — that users plausibly reach, such as an entity type description capped at 250 characters.",
+    <>
+      Prefer TextArea's <code>characterLimit</code> prop, which renders and
+      positions the counter for you; reach for CharacterCount directly when
+      building a custom field.
+    </>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't add a counter to fields with generous limits users rarely reach — it adds noise; validate on submit with Form's error messages instead.",
+    "Don't rely on the counter to enforce the limit — it only displays numbers; block submission with form validation.",
+    "Don't use a counter to manage a limit users keep hitting — raise the limit.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+Pass the current count and the limit; the counter renders them as a ratio. It
+never reads or changes the input itself.
+
+<Stage>
+  <CharacterCount charactersUsed={45} maxLength={250} takesHeight />
+</Stage>
+
+### Over limit
+
+The counter stays neutral up to and including the limit, and turns red only
+once `charactersUsed` exceeds `maxLength`. Typing past the limit stays allowed
+— pair the highlight with validation on submit.
+
+<Stage>
+  <CharacterCount charactersUsed={45} maxLength={100} takesHeight />
+  <CharacterCount charactersUsed={100} maxLength={100} takesHeight />
+  <CharacterCount charactersUsed={112} maxLength={100} takesHeight />
+</Stage>
+
+### Reserved height
+
+By default the counter occupies zero vertical height, so an input can hang it
+below its border without shifting the surrounding layout — TextArea positions
+it this way. Set `takesHeight` whenever the counter sits in normal document
+flow.
+
+<Stage>
+  <CharacterCount charactersUsed={180} maxLength={200} takesHeight />
+</Stage>
+
+### With TextArea
+
+Set `characterLimit` on TextArea to render the counter wired to the value's
+length. The limit is soft — TextArea doesn't set the native `maxLength`
+attribute, so users can finish their thought and then trim. Add
+`includeCharCountHeight` to reserve the counter's line below the field.
+
+```tsx
+import { useState } from "react";
+
+import { TextArea } from "@hashintel/ds-components";
+
+export const EntityTypeDescriptionField = () => {
+  const [description, setDescription] = useState("");
+
+  return (
+    <TextArea
+      placeholder="Describe what this entity type represents"
+      value={description}
+      onChange={setDescription}
+      characterLimit={250}
+      includeCharCountHeight
+    />
+  );
+};
+```
+
+### With TextInput
+
+TextInput has no built-in counter — render CharacterCount after the input and
+count the value yourself. Avoid pairing it with TextInput's `maxLength` prop:
+hard truncation silently discards what the user typed.
+
+```tsx
+import { useState } from "react";
+
+import { CharacterCount, TextInput } from "@hashintel/ds-components";
+
+export const PropertyNameField = () => {
+  const [name, setName] = useState("");
+
+  return (
+    <div>
+      <TextInput placeholder="Property name" value={name} onChange={setName} />
+      <CharacterCount charactersUsed={name.length} maxLength={50} takesHeight />
+    </div>
+  );
+};
+```
+
+## Behavior
+
+- Digits render tabular (fixed-width) and the text never wraps, so the
+  counter's width stays stable as the count changes.
+- The counter is purely presentational: it never truncates, blocks typing, or
+  validates — enforcement belongs to the form.
+- It displays whatever numbers you pass. TextArea counts `value.length` (UTF-16
+  code units), so emoji and some scripts count as more than one character —
+  measure the backend limit the same way.
+
+## Accessibility
+
+### What CharacterCount provides
+
+- A polite live region announces the count once it exceeds the limit; under
+  the limit announcements are off, so screen readers aren't narrating every
+  keystroke.
+- The ratio itself ("112/100") communicates the overflow, so the red
+  highlight reinforces the state rather than solely carrying it.
+
+### What you must do
+
+- Render the counter immediately after the field it describes, so it reads in
+  context — TextArea's `characterLimit` integration does this for you.
+- Pair the counter with a validation error on submit that says how to fix the
+  overflow — the counter shows the numbers but not what to do about them.
+
+## API reference
+
+<PropsTable
+  of={CharacterCount}
+  defaults={{
+    takesHeight: "false",
+  }}
+/>

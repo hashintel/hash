@@ -163,3 +163,6 @@ export const Avatar = ({
     </div>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+Avatar.displayName = "Avatar";

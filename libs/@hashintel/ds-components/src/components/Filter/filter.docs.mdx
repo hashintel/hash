@@ -1,0 +1,698 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Filter } from "./filter";
+import { FilterGroup } from "./filter-group";
+
+<Meta title="Docs/Filter" />
+
+export const meta = {
+  title: "Filter",
+  description:
+    "Let users narrow a collection by composing property, operator and value conditions.",
+  alternativeNames: ["FilterChip", "FilterPill", "FilterBar"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Filter/filter.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-filter--default",
+  },
+  referenceLinks: {
+    ark: "https://ark-ui.com/docs/components/select",
+  },
+  related: ["SortMenu", "Select", "Chip", "Menu"],
+};
+
+export const noop = () => {};
+
+export const nameOperators = [
+  { key: "contains", label: "contains", input: { type: "string" } },
+  { key: "equals", label: "is exactly", input: { type: "string" } },
+  { key: "empty", label: "is empty", input: null },
+];
+
+export const entityTypeItems = [
+  { value: "person", text: "Person" },
+  { value: "company", text: "Company" },
+  { value: "document", text: "Document" },
+  { value: "event", text: "Event" },
+];
+
+export const entityTypeOperators = [
+  { key: "is", label: "is", input: { type: "select", items: entityTypeItems } },
+  {
+    key: "isAnyOf",
+    label: "is any of",
+    input: {
+      type: "select",
+      multiple: true,
+      searchable: true,
+      items: entityTypeItems,
+      placeholder: "Types…",
+    },
+  },
+];
+
+export const propertyCountOperators = [
+  { key: "atLeast", label: "is at least", input: { type: "int", min: 0 } },
+  {
+    key: "between",
+    label: "is between",
+    input: [{ type: "int", min: 0 }, "and", { type: "int", min: 0 }],
+  },
+];
+
+export const archivedOperators = [
+  { key: "true", label: "is true", input: null },
+  { key: "false", label: "is false", input: null },
+];
+
+export const createdByOperators = [
+  {
+    key: "is",
+    label: "is",
+    input: {
+      type: "select",
+      searchable: true,
+      placeholder: "Anyone",
+      items: () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve([
+              { value: "alex", text: "Alex" },
+              { value: "jamie", text: "Jamie" },
+              { value: "priya", text: "Priya" },
+            ]);
+          }, 1200);
+        }),
+    },
+  },
+];
+
+export const scoreOperators = [
+  { key: "above", label: "is above", input: { type: "float", min: 0 } },
+];
+
+export const propertyMenuItems = [
+  {
+    id: "name",
+    text: "Name",
+    selected: true,
+    selectedStyle: "tick",
+    onClick: noop,
+  },
+  {
+    id: "description",
+    text: "Description",
+    selectedStyle: "tick",
+    onClick: noop,
+  },
+  { id: "createdBy", text: "Created by", selectedStyle: "tick", onClick: noop },
+];
+
+# Filter
+
+Let users narrow a collection by composing property, operator and value conditions.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Filter
+    property="name"
+    propertyLabel="Name"
+    operators={nameOperators}
+    value={{ key: "contains", value: "Ada Lovelace" }}
+    onChange={noop}
+    removeable={{ onRemove: noop }}
+  />
+  <Filter
+    property="entityType"
+    propertyLabel="Entity type"
+    operators={entityTypeOperators}
+    value={{ key: "isAnyOf", value: ["person", "company"] }}
+    onChange={noop}
+    removeable={{ onRemove: noop }}
+  />
+  <Filter
+    property="propertyCount"
+    propertyLabel="Properties"
+    operators={propertyCountOperators}
+    value={{ key: "between", value: [2, 10] }}
+    onChange={noop}
+    removeable={{ onRemove: noop }}
+  />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Filter } from "@hashintel/ds-components";
+
+export const NameFilter = () => (
+  <Filter<{ contains: string }>
+    property="name"
+    propertyLabel="Name"
+    operators={[
+      { key: "contains", label: "contains", input: { type: "string" } },
+    ]}
+    onChange={(key, value) => {
+      // apply the committed condition to your query
+    }}
+  />
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Filter to let users narrow a table, list or graph of entities by conditions they compose themselves.",
+    "Use FilterGroup whenever chips appear together or alongside add/clear controls — it handles layout, fresh-chip focus and abandoned-draft cleanup.",
+    <>
+      Use <code>type: "select"</code> inputs for values from a known set
+      (status, entity type, teammate); reserve text and number inputs for
+      free-form values.
+    </>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use a filter chip for a single always-on choice — use Select, or SegmentedControl for 2–4 visible options.",
+    "Don't use chips for free-text search across the whole collection — pair the filter bar with a search TextInput instead.",
+    "Don't use Filter to display read-only tokens or counts — use Chip.",
+  ]}
+/>
+
+## Anatomy
+
+A `Filter` renders as one chip of segments — property label, operator
+dropdown, the operator's value input(s), and an optional remove button —
+while `FilterGroup` lays chips out with its pinned action buttons:
+
+```tsx
+<FilterGroup>
+  <Filter /> {/* [ property | operator ▾ | value input(s) | ✕ ] */}
+  <FilterGroup.AddFilter />
+  <FilterGroup.ClearFilters />
+</FilterGroup>
+```
+
+## Examples
+
+### Basic
+
+Pick an operator, fill its input, and press Enter (or leave the chip) to commit — `onChange` receives the operator key and value, or `(key, null)` when the inputs are cleared. Group operators with `{ id, label, items }` entries when the menu grows long.
+
+<Stage>
+  <Filter
+    property="name"
+    propertyLabel="Name"
+    operators={nameOperators}
+    onChange={noop}
+  />
+  <Filter
+    property="name"
+    propertyLabel="Name"
+    operators={nameOperators}
+    value={{ key: "contains", value: "Ada Lovelace" }}
+    onChange={noop}
+  />
+</Stage>
+
+### Input types
+
+An operator's `input` declares what its value type needs: `string` renders a text input, `number`/`int`/`float` a number input, and `null` none — selecting such an operator commits immediately. Number inputs take `min`, `max` and `step` (`int` enforces whole numbers); text inputs take `min`/`max` lengths and a `pattern`.
+
+<Stage>
+  <Filter
+    property="name"
+    propertyLabel="Name"
+    operators={nameOperators}
+    value={{ key: "contains", value: "annual report" }}
+    onChange={noop}
+  />
+  <Filter
+    property="propertyCount"
+    propertyLabel="Properties"
+    operators={propertyCountOperators}
+    value={{ key: "atLeast", value: 5 }}
+    onChange={noop}
+  />
+  <Filter
+    property="archived"
+    propertyLabel="Archived"
+    operators={archivedOperators}
+    value={{ key: "true", value: null }}
+    onChange={noop}
+  />
+</Stage>
+
+### Select values
+
+Use `type: "select"` when values come from a known set — single by default, `multiple: true` for value arrays. `searchable` adds a search bar to the dropdown, and `overflow: "summary"` keeps a long selection to a count instead of a comma list.
+
+<Stage>
+  <Filter
+    property="entityType"
+    propertyLabel="Entity type"
+    operators={entityTypeOperators}
+    value={{ key: "is", value: "person" }}
+    onChange={noop}
+  />
+  <Filter
+    property="entityType"
+    propertyLabel="Entity type"
+    operators={entityTypeOperators}
+    value={{ key: "isAnyOf", value: ["person", "company"] }}
+    onChange={noop}
+  />
+</Stage>
+
+### Multiple inputs
+
+A tuple value maps to a tuple of inputs, optionally separated by static text or an icon (`"and"`, `{ iconName: "arrowRight" }`). Enter commits from any input once every input is filled; a partially filled draft never fires.
+
+<Stage>
+  <Filter
+    property="propertyCount"
+    propertyLabel="Properties"
+    operators={propertyCountOperators}
+    value={{ key: "between", value: [2, 10] }}
+    onChange={noop}
+  />
+</Stage>
+
+### Async options
+
+A select's `items` can be an async loader: it runs once when the operator's input mounts, the select shows its loading state meanwhile, and a failed load surfaces the select's `emptyState`. A committed value stays visible while options load.
+
+<Stage>
+  <Filter
+    property="createdBy"
+    propertyLabel="Created by"
+    operators={createdByOperators}
+    value={{ key: "is", value: "alex" }}
+    onChange={noop}
+  />
+</Stage>
+
+```tsx
+import { Filter, type FilterOperator } from "@hashintel/ds-components";
+
+type CreatorFilters = { is: string };
+
+const creatorOperators: FilterOperator<CreatorFilters>[] = [
+  {
+    key: "is",
+    label: "is",
+    input: {
+      type: "select",
+      searchable: true,
+      placeholder: "Anyone",
+      items: async () =>
+        (await fetchTeammates()).map((teammate) => ({
+          value: teammate.id,
+          text: teammate.name,
+        })),
+    },
+  },
+];
+```
+
+### Validation errors
+
+Validate on commit and pass messages via `errors`: the chip turns red and shows them in a tooltip on hover and focus. Errors are a rendered state, not a gate — the chip still commits, so keep the messages actionable.
+
+<Stage>
+  <Filter
+    property="score"
+    propertyLabel="Score"
+    operators={scoreOperators}
+    value={{ key: "above", value: 420 }}
+    errors={["Score must be 100 or less"]}
+    onChange={noop}
+  />
+</Stage>
+
+### Disabled
+
+`disabled` freezes the property, operator and inputs but deliberately keeps the remove button active, so an obsolete filter can still be taken away.
+
+<Stage>
+  <Filter
+    property="entityType"
+    propertyLabel="Entity type"
+    operators={entityTypeOperators}
+    value={{ key: "is", value: "company" }}
+    onChange={noop}
+    disabled
+    removeable={{ onRemove: noop }}
+  />
+</Stage>
+
+### Controlled
+
+Pass `value` and store commits from `onChange`; the chip adopts external `value` changes without clobbering an in-progress draft. Add `onInput` to track every edit — it reports the draft's value while complete and `null` otherwise.
+
+```tsx
+import { useState } from "react";
+
+import {
+  Filter,
+  type FilterOperator,
+  type FilterValue,
+} from "@hashintel/ds-components";
+
+type NameFilters = { contains: string; empty: null };
+
+const nameOperators: FilterOperator<NameFilters>[] = [
+  { key: "contains", label: "contains", input: { type: "string" } },
+  { key: "empty", label: "is empty", input: null },
+];
+
+export const NameFilter = () => {
+  const [value, setValue] = useState<FilterValue<NameFilters> | null>(null);
+
+  return (
+    <Filter<NameFilters>
+      property="name"
+      propertyLabel="Name"
+      operators={nameOperators}
+      value={value}
+      onChange={(key, committed) =>
+        setValue({ key, value: committed } as FilterValue<NameFilters>)
+      }
+      onInput={(key, draft) => {
+        // every edit: `draft` is the full value while complete, else null
+      }}
+    />
+  );
+};
+```
+
+### Sizes
+
+`sm` is the default, sized for filter bars above tables. Use `md`/`lg` in page-level toolbars, and reserve `xxs`/`xs` for dense chrome.
+
+<Stage>
+  <Filter
+    property="entityType"
+    propertyLabel="xxs"
+    operators={entityTypeOperators}
+    value={{ key: "is", value: "person" }}
+    onChange={noop}
+    size="xxs"
+  />
+  <Filter
+    property="entityType"
+    propertyLabel="xs"
+    operators={entityTypeOperators}
+    value={{ key: "is", value: "person" }}
+    onChange={noop}
+    size="xs"
+  />
+  <Filter
+    property="entityType"
+    propertyLabel="sm"
+    operators={entityTypeOperators}
+    value={{ key: "is", value: "person" }}
+    onChange={noop}
+    size="sm"
+  />
+  <Filter
+    property="entityType"
+    propertyLabel="md"
+    operators={entityTypeOperators}
+    value={{ key: "is", value: "person" }}
+    onChange={noop}
+    size="md"
+  />
+  <Filter
+    property="entityType"
+    propertyLabel="lg"
+    operators={entityTypeOperators}
+    value={{ key: "is", value: "person" }}
+    onChange={noop}
+    size="lg"
+  />
+</Stage>
+
+### Switching the property
+
+`propertyMenu` turns the property segment into a menu trigger — typically to switch the chip to another property — while `propertyOnClick` makes it a plain button. They are mutually exclusive; without either, the segment is static text.
+
+<Stage>
+  <Filter
+    property="name"
+    propertyLabel="Name"
+    operators={nameOperators}
+    value={{ key: "contains", value: "Ada" }}
+    onChange={noop}
+    propertyMenu={propertyMenuItems}
+    removeable={{ onRemove: noop }}
+  />
+</Stage>
+
+```tsx
+import { useState } from "react";
+
+import { Filter, type FilterOperator } from "@hashintel/ds-components";
+
+type TextFilters = { contains: string };
+
+const properties = [
+  { id: "name", label: "Name" },
+  { id: "description", label: "Description" },
+];
+
+const textOperators: FilterOperator<TextFilters>[] = [
+  { key: "contains", label: "contains", input: { type: "string" } },
+];
+
+export const SwitchablePropertyFilter = () => {
+  const [active, setActive] = useState({ id: "name", label: "Name" });
+
+  return (
+    <Filter<TextFilters>
+      property={active.id}
+      propertyLabel={active.label}
+      operators={textOperators}
+      onChange={(key, value) => {
+        // apply to the query for the active property
+      }}
+      propertyMenu={properties.map((property) => ({
+        id: property.id,
+        text: property.label,
+        selected: property.id === active.id,
+        selectedStyle: "tick",
+        onClick: () => setActive(property),
+      }))}
+    />
+  );
+};
+```
+
+### Removing filters
+
+`removeable` adds a ✕ segment whose `onRemove` fires when clicked — after a 200&nbsp;ms width collapse inside a `FilterGroup` (skipped under reduced motion), immediately elsewhere. Leave it unset for fixed filters the user can't take away.
+
+<Stage>
+  <Filter
+    property="entityType"
+    propertyLabel="Entity type"
+    operators={entityTypeOperators}
+    value={{ key: "is", value: "person" }}
+    onChange={noop}
+    removeable={{ onRemove: noop }}
+  />
+  <Filter
+    property="archived"
+    propertyLabel="Archived"
+    operators={archivedOperators}
+    value={{ key: "false", value: null }}
+    onChange={noop}
+  />
+</Stage>
+
+### Grouping filters
+
+`FilterGroup` lays chips out in a wrapping row with its pinned-style action buttons: `AddFilter` (a plus glyph, a labelled plus, or a filter icon via `renderAs`) and `ClearFilters`. The group also moves focus into a chip the user just added, keyed off each chip's `property`.
+
+<Stage>
+  <FilterGroup>
+    <Filter
+      property="name"
+      propertyLabel="Name"
+      operators={nameOperators}
+      value={{ key: "contains", value: "Ada" }}
+      onChange={noop}
+      removeable={{ onRemove: noop }}
+    />
+    <Filter
+      property="entityType"
+      propertyLabel="Entity type"
+      operators={entityTypeOperators}
+      value={{ key: "isAnyOf", value: ["person"] }}
+      onChange={noop}
+      removeable={{ onRemove: noop }}
+    />
+    <FilterGroup.AddFilter onClick={noop} />
+    <FilterGroup.ClearFilters onClick={noop} />
+  </FilterGroup>
+</Stage>
+
+```tsx
+import { useState } from "react";
+
+import {
+  Filter,
+  FilterGroup,
+  type FilterOperator,
+  type FilterValue,
+} from "@hashintel/ds-components";
+
+type NameFilters = { contains: string };
+
+const nameOperators: FilterOperator<NameFilters>[] = [
+  { key: "contains", label: "contains", input: { type: "string" } },
+];
+
+export const EntityFilterBar = () => {
+  const [nameFilter, setNameFilter] = useState<FilterValue<NameFilters> | null>(
+    null,
+  );
+  const [showNameChip, setShowNameChip] = useState(false);
+
+  const clear = () => {
+    setShowNameChip(false);
+    setNameFilter(null);
+  };
+
+  return (
+    <FilterGroup>
+      {showNameChip && (
+        <Filter<NameFilters>
+          property="name"
+          propertyLabel="Name"
+          operators={nameOperators}
+          value={nameFilter}
+          onChange={(key, value) => setNameFilter({ key, value })}
+          removeable={{ onRemove: clear }}
+        />
+      )}
+      <FilterGroup.AddFilter
+        renderAs="plusLabel"
+        onClick={() => setShowNameChip(true)}
+      />
+      <FilterGroup.ClearFilters disabled={!showNameChip} onClick={clear} />
+    </FilterGroup>
+  );
+};
+```
+
+### Dismissing abandoned filters
+
+With `dismissAbandoned`, a removeable chip left incomplete — no operator, or any input empty — when the user clicks or focuses outside the group waits 1&nbsp;s, fades out over 2&nbsp;s, then removes itself via `onRemove`. Any interaction with the group rescues it; complete chips and input-less operators ("is empty") are never dismissed.
+
+```tsx
+<FilterGroup dismissAbandoned>{/* chips and action buttons */}</FilterGroup>
+```
+
+## Behavior
+
+- Committing: Enter in any input, moving focus out of the chip, or a select input's dropdown closing commits a complete draft. Escape cancels instead — it restores a text input's focus-time value, or closes a dropdown without committing.
+- Fixed height: every segment shares one per-size height — a `sm` chip is exactly 28px tall. Consuming filter bars rely on this to level neighbouring controls against the chip row.
+- Width: the chip fits its content up to 100% of its container; each value input grows with its text and caps at 32ch, then ellipsizes. Truncated segments reveal their full text as a native tooltip on hover.
+- A complete chip softens its internal dividers at rest so it reads as one token; the dividers return on hover and focus.
+- Number inputs flash on rejected keys, and a quick run of rejections pops a hint naming what the input accepts. The scroll wheel never steps a focused number input. On commit, drafts are tidied ("5." becomes 5) and unparseable remnants count as empty.
+- A chip with exactly one operator shows it as static text — it is always selected; with `operators={[]}` the chip is just its property label.
+- `FilterGroup` focuses a freshly added chip's first empty segment (opening a select's dropdown). Set `autoFocus` only when the chip mounts together with its container, where the group would read it as restored state.
+
+## Content
+
+- Write `propertyLabel` as a 1–3 word noun phrase in sentence case: "Name", "Entity type", "Created by".
+- Write operator labels in lowercase, phrased to read as a sentence after the property: "contains", "is any of", "is at least".
+- Keep `label` plain text even when `renderItem` adds rich content — the dropdown's typeahead and the inputs' accessible names read it.
+- Placeholders show an example or unit, never an instruction: "Lat", "days" — not "Enter a value".
+- Error messages follow "[Property] must be [constraint]": "Score must be 100 or less".
+
+## Accessibility
+
+The operator dropdown wraps [Ark UI Select](https://ark-ui.com/docs/components/select), which carries the standard select interaction model.
+
+### What Filter provides
+
+- The chip is a `role="group"` named `"{propertyLabel} filter"`; each value input is labelled `"{propertyLabel} {operator} value"` (numbered when there are several) and the remove button `"Remove {propertyLabel} filter"`.
+- The operator dropdown's typeahead matches operator `label`s, so keyboard users can jump to one by typing.
+- `errors` set `aria-invalid` on the inputs and surface on focus as well as hover.
+
+### Keyboard
+
+| Key    | Action                                                                                                             |
+| ------ | ------------------------------------------------------------------------------------------------------------------ |
+| Enter  | Commit a complete (or fully cleared) draft from any input; advance to the next input while the draft is incomplete |
+| Escape | Restore the focused input's value from when it received focus; close an open dropdown without committing           |
+| ← / →  | Move between the chip's segments; from a text input only once the caret sits at the matching edge                  |
+
+### What you must do
+
+- Give every chip in a view a distinct `propertyLabel` — all of its accessible names derive from it.
+- Validate committed values and pass `errors` — beyond input constraints, the chip has no built-in validation.
+- Keep operator labels textual (see Content) so typeahead and input names stay meaningful.
+
+## API reference
+
+### Filter
+
+<PropsTable
+  of={Filter}
+  defaults={{
+    value: "null",
+    size: '"sm"',
+    autoFocus: "false",
+  }}
+/>
+
+### FilterGroup
+
+<PropsTable of={FilterGroup} defaults={{ dismissAbandoned: "false" }} />
+
+### FilterGroup.AddFilter
+
+<PropsTable
+  of={FilterGroup.AddFilter}
+  defaults={{
+    renderAs: '"plus"',
+    size: '"sm"',
+    variant: '"ghost"',
+  }}
+/>
+
+### FilterGroup.ClearFilters
+
+<PropsTable
+  of={FilterGroup.ClearFilters}
+  defaults={{
+    size: '"sm"',
+    variant: '"ghost"',
+  }}
+/>

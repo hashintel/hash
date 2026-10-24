@@ -1,0 +1,800 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Drawer } from "./drawer";
+
+<Meta title="Docs/Drawer" />
+
+export const meta = {
+  title: "Drawer",
+  description:
+    "Present a secondary task in a panel that slides in from the screen edge.",
+  alternativeNames: ["Sheet", "SidePanel", "SideSheet"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Drawer/drawer.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-drawer--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/",
+    ark: "https://ark-ui.com/docs/components/drawer",
+  },
+  related: ["Dialog", "Popover"],
+};
+
+# Drawer
+
+Present a secondary task in a panel that slides in from the screen edge.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+A drawer renders in a portal over the whole viewport, so these examples are
+code-only — open any [story](https://tokens.hash.design/?path=/story/components-drawer--default)
+to interact with one.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const EditEntityTypeButton = () => {
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
+  return (
+    <>
+      <Button iconName="pencil" onClick={() => setOpen(true)}>
+        Edit entity type
+      </Button>
+      {open ? (
+        <Drawer onClose={close}>
+          <Drawer.Header
+            title="Edit entity type"
+            iconName="pencil"
+            description="Update the properties and links of Person."
+          />
+          <Drawer.Body>
+            <p>Schema editing form.</p>
+          </Drawer.Body>
+          <Drawer.Footer
+            actions={
+              <>
+                <Button variant="subtle" onClick={close}>
+                  Cancel
+                </Button>
+                <Button tone="brand" onClick={close}>
+                  Save changes
+                </Button>
+              </>
+            }
+          />
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const EntityHistoryButton = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button iconName="clockRotateLeft" onClick={() => setOpen(true)}>
+        View history
+      </Button>
+      {open ? (
+        <Drawer onClose={() => setOpen(false)}>
+          <Drawer.Header title="Entity history" />
+          <Drawer.Body>
+            <p>Every change to this entity, newest first.</p>
+          </Drawer.Body>
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Drawer for a secondary task carried out alongside the page: inspecting an entity, editing a property set, reviewing a flow run.",
+    "Use it when content is too long or structured for a Dialog — multi-section forms, history lists, previews.",
+    <>
+      Use <code>{"showBackdrop={false}"}</code> when the user needs to keep
+      reading or editing the page while the panel is open.
+    </>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use a drawer for a short, blocking decision such as a delete confirmation — use Dialog.",
+    "Don't use one for a handful of actions anchored to a control — use Popover or Menu.",
+    "Don't use a drawer as a navigation destination or for a workflow with many stages — navigate to a page instead.",
+  ]}
+/>
+
+## Anatomy
+
+```tsx
+<Drawer onClose={close}>
+  <Drawer.Header title="Title" description="Supporting text" />
+  <Drawer.Body>Content</Drawer.Body>
+  <Drawer.Footer actions={<Button>Confirm</Button>} />
+</Drawer>
+```
+
+`Drawer.Body` is required; `Drawer.Header` and `Drawer.Footer` are optional,
+and the types enforce this order. A drawer without a header still renders the
+close button in an empty header row.
+
+## Examples
+
+### Opening and closing
+
+There is no `open` prop — render the drawer to open it, and remove it from the
+tree in `onClose`. Dismissals the drawer handles itself (close button, Escape,
+backdrop click, swipe) play the exit animation first and call `onClose` when it
+finishes.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const InspectEntityButton = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Inspect entity</Button>
+      {open ? (
+        <Drawer onClose={() => setOpen(false)}>
+          <Drawer.Header
+            title="Alice Chen"
+            description="Person · updated 2 hours ago"
+          />
+          <Drawer.Body>
+            <p>Properties, links, and history for this entity.</p>
+          </Drawer.Body>
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+### Loading
+
+Set `loading` while the drawer's data is fetched: a spinner overlays the body,
+the panel announces busy to assistive technology, and body scroll locks until
+it resolves.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const FlowRunDetails = ({ loading }: { loading: boolean }) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Inspect run</Button>
+      {open ? (
+        <Drawer loading={loading} onClose={() => setOpen(false)}>
+          <Drawer.Header
+            title="Flow run"
+            description="Research companies · started 3 minutes ago"
+          />
+          <Drawer.Body>
+            <p>Step outputs appear here once the run data loads.</p>
+          </Drawer.Body>
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+### Positions
+
+`position` anchors the panel to a viewport edge: `right` (the default) suits
+inspectors and editors, `bottom` suits console-style output. Left and right
+drawers run the full viewport height; top and bottom drawers span its full
+width.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const QueryConsoleButton = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button iconName="terminal" onClick={() => setOpen(true)}>
+        Open console
+      </Button>
+      {open ? (
+        <Drawer position="bottom" onClose={() => setOpen(false)}>
+          <Drawer.Header title="Query console" />
+          <Drawer.Body>
+            <p>Run queries against this workspace.</p>
+          </Drawer.Body>
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+### Sizes
+
+`size` sets the panel's extent along its anchored edge: the width for `left`
+and `right` drawers (520, 640, 860, 1060px), the height for `top` and `bottom`
+drawers (280, 400, 560, 720px). These are maxima — the panel shrinks on small
+viewports.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const CompareEntitiesButton = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Compare versions</Button>
+      {open ? (
+        <Drawer size="lg" onClose={() => setOpen(false)}>
+          <Drawer.Header
+            title="Compare versions"
+            description="Changes between v3 and v4 of Person."
+          />
+          <Drawer.Body>
+            <p>A side-by-side diff needs the extra width of a large drawer.</p>
+          </Drawer.Body>
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+### Variants
+
+`variant` controls how the footer attaches to the panel. `partitionedFooter`
+(the default) sets the footer apart from the body on the panel frame — right
+for a distinct action bar. `plain` joins header, body, and footer into one
+continuous surface.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const SyncStatusButton = () => {
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Sync status</Button>
+      {open ? (
+        <Drawer variant="plain" onClose={close}>
+          <Drawer.Header title="Sync status" />
+          <Drawer.Body>
+            <p>Linear and GitHub synced 5 minutes ago.</p>
+          </Drawer.Body>
+          <Drawer.Footer actions={<Button onClick={close}>Done</Button>} />
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+### Header
+
+`Drawer.Header` lays out a `title`, an optional `iconName` and `description`,
+and `actions` rendered beside the close button. Give header action buttons
+`autoFocus="never"` so they don't take the drawer's initial focus.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const WorkspaceSettingsButton = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button iconName="gear" onClick={() => setOpen(true)}>
+        Workspace settings
+      </Button>
+      {open ? (
+        <Drawer onClose={() => setOpen(false)}>
+          <Drawer.Header
+            title="Workspace settings"
+            iconName="gear"
+            description="Update the details for your workspace."
+            actions={
+              <Button
+                variant="ghost"
+                size="sm"
+                iconName="externalLink"
+                tooltip="Open docs"
+                autoFocus="never"
+              />
+            }
+          />
+          <Drawer.Body>
+            <p>Name, members, and integrations.</p>
+          </Drawer.Body>
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+### Footer actions
+
+`Drawer.Footer` right-aligns `actions` and left-aligns `secondaryActions`. Put
+the confirming action in `actions` and destructive or escape actions in
+`secondaryActions`.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const EditPropertyButton = () => {
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Edit property</Button>
+      {open ? (
+        <Drawer onClose={close}>
+          <Drawer.Header title="Edit property" />
+          <Drawer.Body>
+            <p>Change the expected values of this property type.</p>
+          </Drawer.Body>
+          <Drawer.Footer
+            actions={
+              <>
+                <Button variant="subtle" onClick={close}>
+                  Cancel
+                </Button>
+                <Button tone="brand" onClick={close}>
+                  Save changes
+                </Button>
+              </>
+            }
+            secondaryActions={
+              <Button variant="subtle" tone="error" onClick={close}>
+                Delete property
+              </Button>
+            }
+          />
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+### Custom header and footer
+
+Pass children instead of the structured props to lay out header or footer
+content yourself. A custom header isn't announced as the drawer's name, so add
+an `aria-label` to the drawer.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const AutosaveNotesButton = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Open notes</Button>
+      {open ? (
+        <Drawer aria-label="Research notes" onClose={() => setOpen(false)}>
+          <Drawer.Header>
+            <strong>Research notes</strong>
+          </Drawer.Header>
+          <Drawer.Body>
+            <p>Notes attached to this flow run.</p>
+          </Drawer.Body>
+          <Drawer.Footer>
+            <span>All changes save automatically.</span>
+          </Drawer.Footer>
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+### Edge-to-edge body
+
+Set `withPadding={false}` on `Drawer.Body` when the content manages its own
+layout, such as a full-bleed table or list.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const QueryResultsButton = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>View results</Button>
+      {open ? (
+        <Drawer size="lg" onClose={() => setOpen(false)}>
+          <Drawer.Header
+            title="Query results"
+            description="128 entities match this query."
+          />
+          <Drawer.Body withPadding={false}>
+            <table>
+              <tbody>
+                <tr>
+                  <td>Alice Chen</td>
+                  <td>Person</td>
+                </tr>
+                <tr>
+                  <td>Acme Corp</td>
+                  <td>Organization</td>
+                </tr>
+              </tbody>
+            </table>
+          </Drawer.Body>
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+### Dismissal
+
+`shouldCloseOn` picks which built-in dismissals apply. The default
+`"closeButtonAndOverlay"` closes on the close button, Escape, a backdrop
+click, and an edge swipe; `"closeButton"` drops the backdrop click, protecting
+unsaved input from stray clicks; `"none"` removes them all — your own UI must
+close the drawer.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const CreateEntityTypeButton = () => {
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
+  return (
+    <>
+      <Button tone="brand" iconName="plus" onClick={() => setOpen(true)}>
+        Create entity type
+      </Button>
+      {open ? (
+        <Drawer shouldCloseOn="closeButton" onClose={close}>
+          <Drawer.Header
+            title="Create entity type"
+            description="Clicking outside won't discard this form."
+          />
+          <Drawer.Body>
+            <p>Name, description, and properties for the new type.</p>
+          </Drawer.Body>
+          <Drawer.Footer
+            actions={
+              <Button tone="brand" onClick={close}>
+                Create
+              </Button>
+            }
+          />
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+### Without a backdrop
+
+Set `showBackdrop={false}` for a non-modal panel: no dimmed overlay, the page
+behind stays interactive, and focus is not trapped. Backdrop-click dismissal is
+off since there is no backdrop to click.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const PropertyReferenceButton = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button iconName="info" onClick={() => setOpen(true)}>
+        Property reference
+      </Button>
+      {open ? (
+        <Drawer showBackdrop={false} onClose={() => setOpen(false)}>
+          <Drawer.Header
+            title="Property reference"
+            description="Keep this open while you edit the schema."
+          />
+          <Drawer.Body>
+            <p>Definitions for every property on this entity type.</p>
+          </Drawer.Body>
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+### Stacked drawers
+
+Drawers stack: opening a second drawer while one is open shifts the one beneath
+aside so a 20px edge stays visible, like a stack of papers. Dialogs can
+interleave with drawers in the same stack.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+export const FlowRunInspector = () => {
+  const [runOpen, setRunOpen] = useState(false);
+  const [stepOpen, setStepOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setRunOpen(true)}>Inspect flow run</Button>
+      {runOpen ? (
+        <Drawer size="lg" onClose={() => setRunOpen(false)}>
+          <Drawer.Header
+            title="Flow run"
+            description="Research websites · 32 entities created"
+          />
+          <Drawer.Body>
+            <Button onClick={() => setStepOpen(true)}>
+              Inspect first step
+            </Button>
+          </Drawer.Body>
+        </Drawer>
+      ) : null}
+      {stepOpen ? (
+        <Drawer size="md" onClose={() => setStepOpen(false)}>
+          <Drawer.Header title="Step: Infer entities" />
+          <Drawer.Body>
+            <p>Inputs, outputs, and logs for this step.</p>
+          </Drawer.Body>
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+### Swapping drawers in place
+
+Give drawers that occupy the same slot a shared `swapKey`: switching between
+them replaces the panel content in place instead of sliding out and back in.
+The first drawer in a slot still animates in.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Drawer } from "@hashintel/ds-components";
+
+const entities = ["Alice Chen", "Acme Corp", "Bay Area Lab"];
+
+export const EntityInspector = () => {
+  const [selected, setSelected] = useState<string | null>(null);
+
+  return (
+    <>
+      {entities.map((entity) => (
+        <Button key={entity} onClick={() => setSelected(entity)}>
+          {entity}
+        </Button>
+      ))}
+      {entities.map((entity) =>
+        selected === entity ? (
+          <Drawer
+            key={entity}
+            swapKey="entity-inspector"
+            showBackdrop={false}
+            onClose={() => setSelected(null)}
+          >
+            <Drawer.Header title={entity} description="Entity properties" />
+            <Drawer.Body>
+              <p>Properties and links for {entity}.</p>
+            </Drawer.Body>
+          </Drawer>
+        ) : null,
+      )}
+    </>
+  );
+};
+```
+
+### Initial and return focus
+
+By default the drawer focuses its first tabbable element on open and returns
+focus to the previously focused element on close. Pass `initialFocusRef` to
+focus a specific control instead, and `returnFocusRef` when the original
+element will be gone by the time the drawer closes.
+
+```tsx
+import { useRef, useState } from "react";
+
+import { Button, Drawer, TextInput } from "@hashintel/ds-components";
+
+export const RenameWorkspaceButton = () => {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("Acme research");
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Rename workspace</Button>
+      {open ? (
+        <Drawer initialFocusRef={nameInputRef} onClose={() => setOpen(false)}>
+          <Drawer.Header title="Rename workspace" />
+          <Drawer.Body>
+            <TextInput
+              inputRef={nameInputRef}
+              value={name}
+              onChange={setName}
+            />
+          </Drawer.Body>
+        </Drawer>
+      ) : null}
+    </>
+  );
+};
+```
+
+## Behavior
+
+- Mounting plays the slide-in animation. The drawer's own dismissals slide out
+  first and call `onClose` after the exit finishes; buttons you render close it
+  by updating your state, which unmounts it immediately.
+- The panel never covers the whole viewport — a slice of the opposite edge
+  (10–20% of the viewport) stays clear so the page behind remains visible, and
+  the `size` extents are maxima that shrink on small screens.
+- The body scrolls on its own between the fixed header and footer, and holds
+  its content width steady as its scrollbar appears and disappears.
+- Swipe-to-close starts only from a thin strip along the panel's inner edge,
+  so content inside the panel stays selectable and draggable.
+- Same-edge stacked drawers each keep a 20px edge visible; the offset is
+  measured from the DOM, so custom-sized drawers stack correctly, and a closing
+  drawer releases the ones beneath it as it slides out.
+
+## Content
+
+- Title the drawer with the object or task it shows, 1–4 words, sentence case:
+  "Entity history", "Edit entity type". No terminal punctuation.
+- Use `description` for one line of context ("Person · updated 2 hours ago"),
+  not instructions — those belong in the body.
+- Footer labels follow Button content rules: verb-first, 1–3 words, with the
+  confirming action in `actions` and destructive or escape actions in
+  `secondaryActions`.
+
+## Accessibility
+
+Drawer wraps [Ark UI's Drawer](https://ark-ui.com/docs/components/drawer),
+which implements the
+[WAI-ARIA dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/).
+
+### What Drawer provides
+
+- Dialog semantics, with the `Drawer.Header` `title` and `description` wired
+  up as the accessible name and description.
+- With the backdrop (the default) the drawer is modal: focus is trapped inside
+  and Escape closes it. The built-in close button is labelled "Close drawer".
+- On close, focus returns to the element focused before it opened — or to
+  `returnFocusRef` when set.
+- `loading` sets `aria-busy` on the panel and renders the spinner overlay in a
+  polite live region.
+
+### What you must do
+
+- Name the drawer when the header is custom or absent — pass `aria-label`,
+  since there is no title to announce.
+- Always render your own close action when `shouldCloseOn="none"` — it removes
+  the close button, Escape, and swipe, so without one the user is stranded.
+- Reserve `showBackdrop={false}` for ancillary panels — focus is not trapped,
+  so the surrounding page's tab order must still make sense.
+
+## API reference
+
+### Drawer
+
+<PropsTable
+  of={Drawer}
+  defaults={{
+    size: '"md"',
+    variant: '"partitionedFooter"',
+    position: '"right"',
+    showBackdrop: "true",
+    shouldCloseOn: '"closeButtonAndOverlay"',
+  }}
+/>
+
+### Drawer.Header
+
+<PropsTable of={Drawer.Header} />
+
+### Drawer.Body
+
+<PropsTable of={Drawer.Body} defaults={{ withPadding: "true" }} />
+
+### Drawer.Footer
+
+<PropsTable of={Drawer.Footer} />
+
+## Styling
+
+The preset sizes apply as `maxWidth` (left/right) or `maxHeight` (top/bottom)
+on the panel, so a one-off size is a `className` override. Stacking offsets
+measure the rendered panel, so custom-sized drawers still stack correctly.
+
+```tsx
+import { css } from "@hashintel/ds-helpers/css";
+
+const narrowPanel = css({ maxWidth: "[480px]" });
+
+// …
+<Drawer className={narrowPanel} onClose={close}>
+  <Drawer.Header title="Quick filters" />
+  <Drawer.Body>
+    <p>A narrower panel for a short form.</p>
+  </Drawer.Body>
+</Drawer>;
+```

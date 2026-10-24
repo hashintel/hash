@@ -3355,3 +3355,5 @@ export const NetworkGraph = ({
     </div>
   );
 };
+
+NetworkGraph.displayName = "NetworkGraph";

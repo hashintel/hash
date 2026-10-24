@@ -105,3 +105,6 @@ export const Checkbox = ({
     </BaseCheckbox.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+Checkbox.displayName = "Checkbox";

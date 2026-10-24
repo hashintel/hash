@@ -41,7 +41,7 @@ An exported `meta` block containing exactly these fields:
 
 ### 1. Title + one-line description
 
-The H1 is the component name; the one-liner sits directly under it (and duplicated in `meta.description`).
+The H1 is the component name; the one-liner sits directly under it (and duplicated in `meta.description`). Directly below, a `ReferenceLinks` block (`docs/blocks/reference-links`) links `meta.links.source` and `meta.links.stories`.
 
 Formula: **essence + primary purpose, ≤ 15 words, no feature list, no specs, do not repeat the component name.** It should complete "Use this to…" in the reader's head.
 
@@ -140,13 +140,15 @@ Add a **Keyboard** subsection (a Key | Action table) only when the component add
 
 ### 10. API reference
 
-Generated, per exported part. Hand-written prose about a prop is not allowed, instead the JSDoc descriptions should be updated
+Generated, per exported part, with the `PropsTable` block (`docs/blocks/props-table`), which renders the react-docgen prop info attached to the component. Hand-written prose about a prop is not allowed — update the component's JSDoc descriptions instead.
 
 ```mdx
-<ArgTypes of={ComponentStories} />
+<PropsTable of={Component} defaults={{ variant: '"solid"', size: '"md"' }} />
 ```
 
-Compound components get one table per part under `###` headings matching the anatomy. .
+Docgen cannot see defaults applied via body destructuring or recipe `defaultVariants`, so supply those per prop in `defaults`, as code strings.
+
+Compound components get one table per part under `###` headings matching the anatomy.
 
 ### 11. Styling
 
@@ -173,16 +175,18 @@ Use side-by-side rendered pairs (not screenshots — they stay true to the code)
 
 - File: `src/components/<Name>/<name>.docs.mdx`
 - MDX is not type-checked: prop values the compiler would catch in TSX (e.g. an invalid `iconName`) crash at render time instead, so test every doc change.
+- MDX wraps multiline JSX text children in a `<p>`. Inside a part that itself renders a `<p>` (e.g. `Banner.Description`), write the text as an expression — `{"Sync failed — recent edits aren't saved."}` — to avoid invalid `<p><p>` nesting.
 
 ## Page skeleton
 
 ```mdx
-import { ArgTypes, Meta } from "@storybook/addon-docs/blocks";
+import { Meta } from "@storybook/addon-docs/blocks";
 
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
 import { Stage } from "../../../docs/blocks/stage";
 import { Component } from "./component";
-import * as ComponentStories from "./component.stories";
 
 <Meta title="Docs/Component" />
 
@@ -208,6 +212,13 @@ export const meta = {
 
 One-liner, identical to `meta.description`.
 
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
 <Stage>{/* representative range */}</Stage>
 
 ## Installation {/* two numbered steps: npm install + import-with-usage, see §3 */}
@@ -230,7 +241,7 @@ One-liner, identical to `meta.description`.
 
 ## API reference
 
-<ArgTypes of={ComponentStories} />
+<PropsTable of={Component} defaults={{ size: '"md"' }} />
 ```
 
 ## References

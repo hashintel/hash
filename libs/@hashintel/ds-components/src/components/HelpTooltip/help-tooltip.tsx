@@ -27,3 +27,6 @@ export const HelpTooltip = ({
     </Tooltip>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+HelpTooltip.displayName = "HelpTooltip";

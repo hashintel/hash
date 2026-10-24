@@ -52,3 +52,5 @@ export const Errors = ({
     </ul>
   );
 };
+
+Errors.displayName = "Form.Field.Errors";

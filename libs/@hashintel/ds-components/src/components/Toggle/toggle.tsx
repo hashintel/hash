@@ -76,3 +76,5 @@ export const Toggle = ({
     </Switch.Root>
   );
 };
+
+Toggle.displayName = "Toggle";

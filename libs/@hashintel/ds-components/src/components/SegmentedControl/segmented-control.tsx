@@ -164,3 +164,6 @@ export const SegmentedControl = <const ValueType extends string>({
     </SegmentGroup.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+SegmentedControl.displayName = "SegmentedControl";

@@ -1110,3 +1110,6 @@ export const Select = <TValue extends string>({
     </ArkSelect.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+Select.displayName = "Select";

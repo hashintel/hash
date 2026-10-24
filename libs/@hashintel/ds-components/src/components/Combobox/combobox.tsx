@@ -1457,3 +1457,5 @@ export const Combobox = <TValue extends string>({
     </>
   );
 };
+
+Combobox.displayName = "Combobox";

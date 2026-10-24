@@ -1105,3 +1105,5 @@ export const Filter = <
     </BaseTooltip>
   );
 };
+
+Filter.displayName = "Filter";

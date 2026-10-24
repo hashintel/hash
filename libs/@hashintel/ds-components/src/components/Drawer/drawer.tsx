@@ -427,6 +427,9 @@ const DrawerRoot = ({
   );
 };
 
+// Stable name for the docs Stage code serializer under minification
+DrawerRoot.displayName = "Drawer";
+
 export const Drawer = Object.assign(DrawerRoot, {
   Header: OverlayHeader,
   Body: OverlayBody,
