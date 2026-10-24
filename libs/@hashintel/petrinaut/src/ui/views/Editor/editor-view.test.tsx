@@ -8,16 +8,16 @@ import {
   type EditorGlobalMode,
   type EditViewMode,
 } from "../../../react/state/editor-context";
-import { definePetrinautPlugin } from "../../plugins/define-petrinaut-plugin";
-import { renderPlugins } from "../../plugins/plugins-test-harness";
 import { EditorView } from "./editor-view";
-
-import type { PetrinautAiAssistant } from "../../petrinaut";
-import type { UIMessageChunk } from "ai";
 
 const lifecycle = vi.hoisted(() => ({
   mount: vi.fn(),
   cancelPendingRequest: vi.fn(),
+}));
+const assistantMock = vi.hoisted(() => ({
+  takesPrompt: true,
+  onPrompt: vi.fn(),
+  runStartAction: vi.fn(),
 }));
 
 vi.mock("../../../react", () => ({
@@ -32,8 +32,19 @@ vi.mock("../../../react/state/use-selection-cleanup", () => ({
 vi.mock("../../../react/state/use-is-read-only", () => ({
   useIsReadOnly: () => false,
 }));
-vi.mock("./panels/ai-assistant-panel", () => ({
-  AiAssistantPanel: () => {
+vi.mock("./editor-view/editor-assistant", () => ({
+  AssistantCommands: () => null,
+  useEditorAssistant: () => ({
+    hasAssistant: true,
+    plugin: {},
+    onPrompt: assistantMock.takesPrompt ? assistantMock.onPrompt : undefined,
+    startAction: {
+      label: "Listen",
+      icon: null,
+      run: assistantMock.runStartAction,
+    },
+  }),
+  EditorAssistantPanel: () => {
     useEffect(() => {
       lifecycle.mount();
       return lifecycle.cancelPendingRequest;
@@ -109,45 +120,6 @@ vi.mock("./use-editor-commands", async (importOriginal) => ({
   EditorCommands: () => null,
 }));
 
-const aiAssistant: PetrinautAiAssistant = {
-  transport: {
-    reconnectToStream: () => Promise.resolve(null),
-    sendMessages: () =>
-      Promise.resolve(
-        new ReadableStream<UIMessageChunk>({
-          start(controller) {
-            controller.close();
-          },
-        }),
-      ),
-  },
-};
-
-const onPrompt = vi.fn();
-
-const promptPlugin = definePetrinautPlugin(
-  { id: "test.prompt", name: "Prompt", assistant: true },
-  { assistant: { content: <p>Plugin chat</p>, onPrompt } },
-);
-
-const startVoice = vi.fn();
-
-const startPlugin = definePetrinautPlugin(
-  { id: "test.start", name: "Start", assistant: true },
-  {
-    assistant: {
-      content: <p>Plugin chat</p>,
-      onPrompt,
-      startAction: { label: "Start Voice", icon: null, run: startVoice },
-    },
-  },
-);
-
-const silentPlugin = definePetrinautPlugin(
-  { id: "test.silent", name: "Silent", assistant: true },
-  { assistant: { content: <p>Plugin chat</p> } },
-);
-
 const EditorAtMode = ({
   mode,
   view = "canvas",
@@ -165,7 +137,21 @@ const EditorAtMode = ({
         isAiAssistantOpen: true,
       }}
     >
-      <EditorView aiAssistant={aiAssistant} titleEditable />
+      <EditorView titleEditable />
+    </EditorContext.Provider>
+  );
+};
+
+/** The editor on a closed assistant panel, showing whether it opened. */
+const PromptWorkspace = () => {
+  const editor = use(EditorContext);
+  const [isAiAssistantOpen, setAiAssistantOpen] = useState(false);
+  return (
+    <EditorContext.Provider
+      value={{ ...editor, isAiAssistantOpen, setAiAssistantOpen }}
+    >
+      <EditorView titleEditable />
+      <output aria-label="Assistant open">{String(isAiAssistantOpen)}</output>
     </EditorContext.Provider>
   );
 };
@@ -197,6 +183,7 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   vi.unstubAllGlobals();
+  assistantMock.takesPrompt = true;
 });
 
 describe("EditorView assistant lifecycle", () => {
@@ -231,32 +218,33 @@ describe("EditorView assistant lifecycle", () => {
 
 describe("EditorView empty-net prompt", () => {
   test("opens the panel and hands the message to the plugin assistant's onPrompt", () => {
-    renderPlugins([promptPlugin], <EditorView titleEditable />);
+    render(<PromptWorkspace />);
 
     fireEvent.click(
       screen.getByRole("button", { name: "Send empty-net prompt" }),
     );
 
-    expect(onPrompt).toHaveBeenCalledWith("Build an SIR model");
+    expect(assistantMock.onPrompt).toHaveBeenCalledWith("Build an SIR model");
     expect(
-      screen.getByRole("complementary", { name: "AI assistant" }).textContent,
-    ).toContain("Plugin chat");
+      screen.getByRole("status", { name: "Assistant open" }).textContent,
+    ).toBe("true");
   });
 
-  test("opens the panel and runs the plugin assistant's start action once", () => {
-    renderPlugins([startPlugin], <EditorView titleEditable />);
+  test("opens the panel and runs the plugin assistant's start action", () => {
+    render(<PromptWorkspace />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Start Voice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Listen" }));
 
-    expect(startVoice).toHaveBeenCalledOnce();
-    expect(onPrompt).not.toHaveBeenCalled();
+    expect(assistantMock.runStartAction).toHaveBeenCalledOnce();
+    expect(assistantMock.onPrompt).not.toHaveBeenCalled();
     expect(
-      screen.getByRole("complementary", { name: "AI assistant" }).textContent,
-    ).toContain("Plugin chat");
+      screen.getByRole("status", { name: "Assistant open" }).textContent,
+    ).toBe("true");
   });
 
   test("hides the prompt while the plugin assistant has no onPrompt", () => {
-    renderPlugins([silentPlugin], <EditorView titleEditable />);
+    assistantMock.takesPrompt = false;
+    render(<PromptWorkspace />);
 
     expect(
       screen.queryByRole("button", { name: "Send empty-net prompt" }),

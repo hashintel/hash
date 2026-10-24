@@ -9,20 +9,13 @@ import {
 } from "../../../plugins/plugin-assistant";
 import { PluginAssistantPanel } from "../panels/assistant-panel-shell";
 
-import type { PetrinautAiAssistant } from "../../../petrinaut";
-
-/**
- * The editor's AI assistant: a running plugin's, chosen as `pickAssistant`
- * does, or else the deprecated `aiAssistant` prop's built-in chat.
- */
-export const useEditorAssistant = (aiAssistant?: PetrinautAiAssistant) => {
+/** The editor's AI assistant: a running plugin's, chosen as `pickAssistant` does. */
+export const useEditorAssistant = () => {
   const plugin = usePluginAssistant();
 
   return {
     plugin,
-    /** The built-in chat, while no plugin provides the assistant. */
-    builtInChat: plugin === undefined ? aiAssistant : undefined,
-    hasAssistant: plugin !== undefined || aiAssistant !== undefined,
+    hasAssistant: plugin !== undefined,
     /** Takes the empty-net prompt's message for the plugin's assistant. */
     onPrompt: plugin?.contributions.assistant?.onPrompt,
     /** The plugin's other way to start from the empty-net prompt. */
@@ -30,13 +23,16 @@ export const useEditorAssistant = (aiAssistant?: PetrinautAiAssistant) => {
   };
 };
 
-/** The assistant panel beside the editor, around the plugin's content. */
+/**
+ * The assistant panel beside the editor. The plugin's content renders in the
+ * panel's shell and reads it with `useAssistantPanel`.
+ */
 export const EditorAssistantPanel = ({
   plugin,
   petriNetId,
   focusRequest,
 }: {
-  plugin: NonNullable<ReturnType<typeof usePluginAssistant>>;
+  plugin: ReturnType<typeof usePluginAssistant>;
   petriNetId: string | null;
   focusRequest: number;
 }) => {
@@ -46,6 +42,10 @@ export const EditorAssistantPanel = ({
     setAiAssistantCollapsed,
     setAiAssistantOpen,
   } = use(EditorContext);
+
+  if (plugin === undefined) {
+    return null;
+  }
 
   return (
     <PluginAssistantPanel

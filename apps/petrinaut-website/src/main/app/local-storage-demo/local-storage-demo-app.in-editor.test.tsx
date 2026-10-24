@@ -348,7 +348,6 @@ test("a saved Brunch choice makes Brunch's plugin the editor's assistant, with P
   expect(pluginIds()).toEqual(
     expect.arrayContaining(["website.brunch", "website.petrinaut-ai"]),
   );
-  expect(editorProps.current?.aiAssistant).toBeUndefined();
   expect(
     editorProps.current?.plugins?.find(
       ({ manifest }) => manifest.id === "website.brunch",
