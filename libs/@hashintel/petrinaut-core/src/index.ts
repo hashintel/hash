@@ -509,6 +509,7 @@ export {
 } from "./parameter-values";
 export { SDCPNItemError } from "./errors";
 export { isSDCPNEqual } from "./lib/deep-equal";
+export { replaceDefinition } from "./lib/replace-definition";
 export {
   hashPetrinautDocument,
   petrinautNonSemanticParts,
