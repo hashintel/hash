@@ -57,10 +57,12 @@ export {
 export { emitUserFunctionJs } from "./hir/emit-js";
 export {
   formatHirType,
+  HIR_FRAGMENT_TAG,
   hirChildren,
   walkHir,
   type HirDiagnostic,
   type HirDiagnosticSeverity,
+  type HirElement,
   type HirExpr,
   type HirFunction,
   type HirNodeId,
@@ -75,6 +77,7 @@ export {
 } from "./hir/lint";
 export {
   interpretHir,
+  HirElementValue,
   HirInterpretError,
   type HirInterpretBindings,
   type HirValue,
@@ -110,6 +113,7 @@ export {
   type ScenarioHirItem,
   type ScenarioLoweringInput,
 } from "./hir/scenario";
+export { lowerVisualizerToHir, type VisualizerHir } from "./hir/visualizer";
 export {
   formatTypeScriptExpression,
   hirExpressionToTypeScript,
@@ -121,6 +125,7 @@ export {
   buildMetricContext,
   buildScenarioCodeContext,
   buildScenarioExpressionContext,
+  buildVisualizerContext,
   type HirDynamicsContext,
   type HirKernelContext,
   type HirLambdaContext,
@@ -134,5 +139,12 @@ export {
   type HirScenarioPlaceInfo,
   type HirSurfaceContext,
   type HirTokenElementInfo,
+  type HirVisualizerContext,
 } from "./hir/surface-context";
+export {
+  isSafeViewValue,
+  VIEW_ELEMENT_ATTRIBUTES,
+  VIEW_ELEMENT_TAGS,
+  VIEW_STYLE_PROPERTIES,
+} from "./hir/view-elements";
 export { typecheckHir, type HirTypecheckResult } from "./hir/typecheck";

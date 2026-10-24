@@ -12,17 +12,27 @@
  */
 import {
   formatHirType,
+  HIR_FRAGMENT_TAG,
   HIR_TYPE_BOOL,
   HIR_TYPE_DISTRIBUTION,
+  HIR_TYPE_ELEMENT,
   HIR_TYPE_INT,
+  HIR_TYPE_NULL,
   HIR_TYPE_REAL,
   HIR_TYPE_STRING,
   HIR_TYPE_UNKNOWN,
   HIR_TYPE_UUID,
 } from "./hir";
+import {
+  isSafeViewValue,
+  VIEW_ELEMENT_ATTRIBUTES,
+  VIEW_ELEMENT_TAGS,
+  VIEW_STYLE_PROPERTIES,
+} from "./view-elements";
 
 import type {
   HirDiagnostic,
+  HirElement,
   HirExpr,
   HirFunction,
   HirMathFn,
@@ -111,10 +121,45 @@ function isBoolish(type: HirType): boolean {
   return type.kind === "bool" || type.kind === "unknown";
 }
 
+/** Scalar kinds JavaScript writes as text: template interpolations and
+ * string concatenation accept these. */
+function isTextual(type: HirType): boolean {
+  switch (type.kind) {
+    case "real":
+    case "int":
+    case "bool":
+    case "string":
+    case "uuid":
+    case "unknown":
+      return true;
+    default:
+      return false;
+  }
+}
+
+/**
+ * What an element may contain: text-like scalars, elements, nothing, and
+ * arrays of those (`tokens.map(...)` children). Records and distributions
+ * are not drawable.
+ */
+function isRenderable(type: HirType): boolean {
+  if (type.kind === "array") {
+    return isRenderable(type.element);
+  }
+  return type.kind === "element" || type.kind === "null" || isTextual(type);
+}
+
 /** Least upper bound, collapsing to `unknown` on structural mismatch. */
 function joinTypes(left: HirType, right: HirType): HirType {
   if (left.kind === "unknown" || right.kind === "unknown") {
     return HIR_TYPE_UNKNOWN;
+  }
+  // `cond ? <g/> : null` draws an element or nothing: an element.
+  if (left.kind === "null") {
+    return right;
+  }
+  if (right.kind === "null") {
+    return left;
   }
   if (left.kind === right.kind) {
     if (left.kind === "array" && right.kind === "array") {
@@ -174,6 +219,15 @@ class Typechecker {
     );
   }
 
+  /**
+   * Whether conditions take any value, as JavaScript does: a visualizer is
+   * JavaScript, and `tokens[0] ? … : …` or `!token` over a record is how
+   * it draws an empty place. The compiled surfaces keep booleans only.
+   */
+  private usesTruthiness(): boolean {
+    return this.context.surface === "visualizer";
+  }
+
   report(
     span: Span,
     code: string,
@@ -217,6 +271,34 @@ class Typechecker {
         // Scenario functions have no declared parameters — `parameters` and
         // `scenario` are ambient.
         return HIR_TYPE_UNKNOWN;
+      case "visualizer":
+        // The component's props: `{ tokens, parameters }`. An uncoloured
+        // place carries black tokens with no attributes; its visualizer is
+        // never drawn, so its tokens stay unknown.
+        return {
+          kind: "record",
+          fields: [
+            {
+              name: "tokens",
+              type: {
+                kind: "array",
+                element: context.elements
+                  ? tokenRecordType(context.elements)
+                  : HIR_TYPE_UNKNOWN,
+              },
+            },
+            {
+              name: "parameters",
+              type: {
+                kind: "record",
+                fields: context.parameters.map((parameter) => ({
+                  name: parameter.name,
+                  type: elementType(parameter),
+                })),
+              },
+            },
+          ],
+        };
       case "metric":
         return {
           kind: "record",
@@ -449,7 +531,7 @@ class Typechecker {
       case "unary": {
         const operandType = this.infer(expr.operand, env);
         if (expr.op === "!") {
-          if (!isBoolish(operandType)) {
+          if (!isBoolish(operandType) && !this.usesTruthiness()) {
             this.report(
               expr.span,
               "hir:type-mismatch",
@@ -474,6 +556,17 @@ class Typechecker {
         switch (expr.op) {
           case "&&":
           case "||":
+            // A visualizer keeps JavaScript's value semantics: `flag && <g/>`
+            // draws the element or nothing, `tokens[0] || fallback` picks a
+            // record. The interpreter returns an operand either way.
+            if (
+              this.context.surface === "visualizer" &&
+              (leftType.kind !== "bool" || rightType.kind !== "bool")
+            ) {
+              return expr.op === "&&" && isBoolish(leftType)
+                ? rightType
+                : joinTypes(leftType, rightType);
+            }
             if (!isBoolish(leftType) || !isBoolish(rightType)) {
               this.report(
                 expr.span,
@@ -519,6 +612,29 @@ class Typechecker {
           case "**":
             this.expectNumeric(expr, leftType, rightType);
             return HIR_TYPE_REAL;
+          case "+":
+            // String concatenation, as JavaScript's `+` does. Visualizers
+            // build labels this way; the buffer programs of the other
+            // surfaces have no strings to concatenate.
+            if (
+              this.context.surface === "visualizer" &&
+              (leftType.kind === "string" || rightType.kind === "string")
+            ) {
+              if (!isTextual(leftType) || !isTextual(rightType)) {
+                this.report(
+                  expr.span,
+                  "hir:type-mismatch",
+                  "Only numbers, strings and booleans can be joined into text with `+`.",
+                );
+              }
+              return HIR_TYPE_STRING;
+            }
+            this.expectNumeric(expr, leftType, rightType);
+            return leftType.kind === "int" && rightType.kind === "int"
+              ? HIR_TYPE_INT
+              : leftType.kind === "unknown" || rightType.kind === "unknown"
+                ? HIR_TYPE_UNKNOWN
+                : HIR_TYPE_REAL;
           default:
             this.expectNumeric(expr, leftType, rightType);
             return leftType.kind === "int" && rightType.kind === "int"
@@ -530,7 +646,7 @@ class Typechecker {
       }
       case "cond": {
         const conditionType = this.infer(expr.condition, env);
-        if (!isBoolish(conditionType)) {
+        if (!isBoolish(conditionType) && !this.usesTruthiness()) {
           this.report(
             expr.condition.span,
             "hir:type-mismatch",
@@ -726,6 +842,199 @@ class Typechecker {
         }
         return HIR_TYPE_DISTRIBUTION;
       }
+      case "nullLit":
+        return HIR_TYPE_NULL;
+      case "templateLit": {
+        for (const expression of expr.expressions) {
+          const expressionType = this.infer(expression, env);
+          if (!isTextual(expressionType)) {
+            this.report(
+              expression.span,
+              "hir:type-mismatch",
+              `Only numbers, strings and booleans can be written into text, got ${formatHirType(expressionType)}.`,
+            );
+          }
+        }
+        return HIR_TYPE_STRING;
+      }
+      case "arraySlice": {
+        const targetType = this.infer(expr.target, env);
+        for (const bound of [expr.start, expr.end]) {
+          if (bound && !isNumeric(this.infer(bound, env))) {
+            this.report(
+              bound.span,
+              "hir:type-mismatch",
+              "`.slice(...)` bounds must be numbers.",
+            );
+          }
+        }
+        if (targetType.kind === "array") {
+          return { kind: "array", element: targetType.element };
+        }
+        if (targetType.kind !== "unknown") {
+          this.report(
+            expr.target.span,
+            "hir:invalid-map",
+            `\`.slice(...)\` is only available on arrays, not ${formatHirType(targetType)}.`,
+          );
+        }
+        return HIR_TYPE_UNKNOWN;
+      }
+      case "arrayFilter": {
+        const targetType = this.infer(expr.target, env);
+        let elementType_: HirType = HIR_TYPE_UNKNOWN;
+        if (targetType.kind === "array") {
+          elementType_ = targetType.element;
+        } else if (targetType.kind !== "unknown") {
+          this.report(
+            expr.target.span,
+            "hir:invalid-map",
+            `\`.filter(...)\` is only available on arrays, not ${formatHirType(targetType)}.`,
+          );
+        }
+        const scoped = new Map(env);
+        scoped.set(expr.param.name, elementType_);
+        if (expr.indexParam) {
+          scoped.set(expr.indexParam.name, HIR_TYPE_INT);
+        }
+        const bodyType = this.infer(expr.body, scoped);
+        if (!isBoolish(bodyType)) {
+          this.report(
+            expr.body.span,
+            "hir:type-mismatch",
+            `\`.filter(...)\` callbacks must return a boolean, got ${formatHirType(bodyType)}.`,
+          );
+        }
+        return { kind: "array", element: elementType_ };
+      }
+      case "numberFormat": {
+        const targetType = this.infer(expr.target, env);
+        if (!isNumeric(targetType)) {
+          this.report(
+            expr.target.span,
+            "hir:type-mismatch",
+            `\`.toFixed(...)\` is only available on numbers, not ${formatHirType(targetType)}.`,
+          );
+        }
+        if (expr.digits && !isNumeric(this.infer(expr.digits, env))) {
+          this.report(
+            expr.digits.span,
+            "hir:type-mismatch",
+            "`.toFixed(...)` takes a number of digits.",
+          );
+        }
+        return HIR_TYPE_STRING;
+      }
+      case "element":
+        return this.checkElement(expr, env);
+    }
+  }
+
+  /**
+   * An element may only use the allowlisted tags, attributes and style
+   * properties, and a literal value may not reference a remote URL. Dynamic
+   * values are checked again by the renderer.
+   */
+  private checkElement(expr: HirElement, env: Map<string, HirType>): HirType {
+    if (expr.tag !== HIR_FRAGMENT_TAG && !VIEW_ELEMENT_TAGS.has(expr.tag)) {
+      this.report(
+        expr.tagSpan,
+        "hir:unknown-element",
+        `\`<${expr.tag}>\` cannot be drawn by a visualizer. Images, links, scripts and embedded content are not available.`,
+      );
+    }
+    for (const attribute of expr.attributes) {
+      if (!VIEW_ELEMENT_ATTRIBUTES.has(attribute.name)) {
+        this.report(
+          attribute.nameSpan,
+          "hir:unknown-element-attribute",
+          /^on[A-Z]/u.test(attribute.name)
+            ? `\`${attribute.name}\` is an event handler; a visualizer cannot react to events.`
+            : `\`${attribute.name}\` is not an attribute a visualizer can set.`,
+        );
+      }
+      const valueType = this.infer(attribute.value, env);
+      if (attribute.name === "style") {
+        this.checkStyle(attribute.value, valueType);
+      } else if (!isTextual(valueType)) {
+        this.report(
+          attribute.value.span,
+          "hir:element-attribute-value",
+          `\`${attribute.name}\` takes a number, string or boolean, got ${formatHirType(valueType)}.`,
+        );
+      } else {
+        this.checkLiteralValue(attribute.value);
+      }
+    }
+    if (expr.key) {
+      const keyType = this.infer(expr.key, env);
+      if (!isTextual(keyType)) {
+        this.report(
+          expr.key.span,
+          "hir:element-attribute-value",
+          `\`key\` takes a number or string, got ${formatHirType(keyType)}.`,
+        );
+      }
+    }
+    for (const child of expr.children) {
+      const childType = this.infer(child, env);
+      if (!isRenderable(childType)) {
+        this.report(
+          child.span,
+          "hir:element-child",
+          `An element can contain text, numbers and elements, not ${formatHirType(childType)}.`,
+        );
+      }
+      this.checkLiteralValue(child);
+    }
+    return HIR_TYPE_ELEMENT;
+  }
+
+  /** `style={{ ... }}`: a record of allowlisted properties with text values. */
+  private checkStyle(value: HirExpr, valueType: HirType): void {
+    if (valueType.kind === "unknown") {
+      return;
+    }
+    if (valueType.kind !== "record") {
+      this.report(
+        value.span,
+        "hir:element-attribute-value",
+        `\`style\` takes an object like \`{{ width: "100%" }}\`, got ${formatHirType(valueType)}.`,
+      );
+      return;
+    }
+    const entries = value.kind === "recordLit" ? value.entries : [];
+    for (const field of valueType.fields) {
+      const entry = entries.find((candidate) => candidate.key === field.name);
+      if (!VIEW_STYLE_PROPERTIES.has(field.name)) {
+        this.report(
+          entry?.keySpan ?? value.span,
+          "hir:unknown-style-property",
+          `\`${field.name}\` is not a style property a visualizer can set.`,
+        );
+      }
+      if (!isTextual(field.type)) {
+        this.report(
+          entry?.value.span ?? value.span,
+          "hir:element-attribute-value",
+          `Style values are numbers or strings, got ${formatHirType(field.type)}.`,
+        );
+      }
+      if (entry) {
+        this.checkLiteralValue(entry.value);
+      }
+    }
+  }
+
+  /** A literal string with a remote `url(...)` is reported where it is
+   * written; computed strings are checked when rendered. */
+  private checkLiteralValue(value: HirExpr): void {
+    if (value.kind === "stringLit" && !isSafeViewValue(value.value)) {
+      this.report(
+        value.span,
+        "hir:unsafe-value",
+        "`url(...)` may only reference an element of this picture, like `url(#marker)`.",
+      );
     }
   }
 
@@ -910,6 +1219,20 @@ class Typechecker {
           return;
         }
         this.checkScenarioInitialState(fn, returnType, context);
+        return;
+      }
+      case "visualizer": {
+        if (
+          returnType.kind !== "element" &&
+          returnType.kind !== "null" &&
+          returnType.kind !== "unknown"
+        ) {
+          this.report(
+            bodySpan,
+            "hir:visualizer-return",
+            `A visualizer must return an element such as \`<svg>…</svg>\`, got ${formatHirType(returnType)}.`,
+          );
+        }
         return;
       }
     }

@@ -1,3 +1,4 @@
+import { HirElementValue } from "../../../../hir/interpret";
 import { createUserKeyedRecord } from "../../../../validation/record-keys";
 import { coerceTokenRecord } from "../../../engine/token-values";
 import { TYPE_POLICIES } from "../../../engine/type-policies";
@@ -93,7 +94,12 @@ export const compileCodeModeInitialState = (args: {
     });
     return { marking, errors };
   }
-  if (typeof evaluated.value !== "object" || Array.isArray(evaluated.value)) {
+  if (
+    typeof evaluated.value !== "object" ||
+    evaluated.value === null ||
+    Array.isArray(evaluated.value) ||
+    evaluated.value instanceof HirElementValue
+  ) {
     errors.push({
       itemId: "__code__",
       message: `Initial state code must return an object, got ${typeof evaluated.value}.`,

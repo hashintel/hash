@@ -210,6 +210,14 @@ function precedenceOf(expr: HirExpr): number {
     case "cond":
     case "let":
       return PRECEDENCE_COND;
+    case "nullLit":
+    case "templateLit":
+    case "element":
+      return PRECEDENCE_PRIMARY;
+    case "arraySlice":
+    case "arrayFilter":
+    case "numberFormat":
+      return PRECEDENCE_POSTFIX;
   }
 }
 
@@ -391,6 +399,17 @@ class Printer {
           expr.body,
           env,
         )})`;
+      case "nullLit":
+        return "null";
+      case "templateLit":
+      case "arraySlice":
+      case "arrayFilter":
+      case "numberFormat":
+      case "element":
+        return unprintable(
+          expr,
+          "visualizer syntax has no scenario-expression form.",
+        );
     }
   }
 
