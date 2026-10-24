@@ -10,6 +10,10 @@
       "types": "./src/compile-flow-definition.ts",
       "default": "./dist/compile-flow-definition.js"
     },
+    "./flatten-flow-net": {
+      "types": "./src/flatten-flow-net.ts",
+      "default": "./dist/flatten-flow-net.js"
+    },
     "./flow-net-keys": {
       "types": "./src/flow-net-keys.ts",
       "default": "./dist/flow-net-keys.js"

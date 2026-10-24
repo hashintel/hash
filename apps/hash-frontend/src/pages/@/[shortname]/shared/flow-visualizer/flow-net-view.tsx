@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 
 import { compileFlowDefinition } from "@local/flow-petri-net/compile-flow-definition";
 import {
+  flattenFlowNet,
+  toFlatNetActualModeExecution,
+} from "@local/flow-petri-net/flatten-flow-net";
+import {
   replayFlowRunEvents,
   toRootNetActualModeExecution,
 } from "@local/flow-petri-net/replay-flow-run-events";
@@ -19,6 +23,12 @@ import type {
   FlowDefinition,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { ReactNode } from "react";
+
+/**
+ * Shows a run on its net flattened, so the tokens inside each step's instance of its action's subnet show too. The
+ * run is still replayed on the net with subnets. Remove with `flatten-flow-net` once Petrinaut composes nets.
+ */
+const showRunOnFlatNet = true as boolean;
 
 const Message = ({ children }: { children: ReactNode }) => (
   <Box
@@ -125,8 +135,9 @@ export type FlowNetViewRun = {
 };
 
 /**
- * A run's tokens on its flow's net, replayed from the run's events in Petrinaut's Actual mode. Only the root net's
- * tokens are shown: Actual mode can't yet tell apart the places inside each step's instance of its action's subnet.
+ * A run's tokens on its flow's net, replayed from the run's events in Petrinaut's Actual mode. Actual mode can't yet
+ * tell apart the places inside each step's instance of its action's subnet, so only the root net's tokens are shown,
+ * unless the net is shown flattened (`showRunOnFlatNet`).
  */
 const FlowRunNetPreview = ({
   net,
@@ -150,6 +161,12 @@ const FlowRunNetPreview = ({
     [events, net],
   );
 
+  const flatNet = useMemo(
+    () => (showRunOnFlatNet ? flattenFlowNet(net) : null),
+    [net],
+  );
+  const definition = flatNet?.net ?? net;
+
   const actualMode = useMemo((): NonNullable<
     PetrinautPreviewProps["actualMode"]
   > => {
@@ -161,7 +178,7 @@ const FlowRunNetPreview = ({
         source,
         status: flowRunEvents.status === "failed" ? "error" : "loading",
         title: name,
-        definition: net,
+        definition,
         initialState: null,
         transitionFirings: [],
         timelineStartedAtMs: null,
@@ -170,8 +187,9 @@ const FlowRunNetPreview = ({
       };
     }
 
-    const { initialState, transitionFirings } =
-      toRootNetActualModeExecution(replay);
+    const { initialState, transitionFirings } = flatNet
+      ? toFlatNetActualModeExecution(replay, flatNet)
+      : toRootNetActualModeExecution(replay);
     const runStarted = flowRunEvents.events.find(
       ({ kind }) => kind === "runStarted",
     );
@@ -182,7 +200,7 @@ const FlowRunNetPreview = ({
       source: { ...source, id: `${source.id}/${flowRunEvents.runId}` },
       status: live ? "streaming" : "complete",
       title: name,
-      definition: net,
+      definition,
       initialState,
       transitionFirings,
       timelineStartedAtMs: runStarted
@@ -191,7 +209,7 @@ const FlowRunNetPreview = ({
       timelineNowMs: null,
       error: null,
     };
-  }, [flowRunEntityId, flowRunEvents, live, name, net, replay]);
+  }, [definition, flatNet, flowRunEntityId, flowRunEvents, live, name, replay]);
 
   return (
     <Stack sx={{ height: "100%" }}>
@@ -224,7 +242,7 @@ const FlowRunNetPreview = ({
           <Box sx={{ flex: 1, minHeight: 0 }}>
             <PetrinautPreview
               actualMode={actualMode}
-              definition={net}
+              definition={definition}
               documentId={documentId}
               title={title}
             />
