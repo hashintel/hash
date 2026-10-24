@@ -12,7 +12,6 @@ const externalDependencies = [
   /^react(\/.*)?$/,
   /^react-dom(\/.*)?$/,
   "@xyflow/react",
-  "@babel/standalone",
   // Pure-CJS dep pulled in transitively by @tanstack/react-form →
   // @tanstack/react-store. Rolldown can't safely transform its
   // `require("react")` when react is external, so it falls back to a
