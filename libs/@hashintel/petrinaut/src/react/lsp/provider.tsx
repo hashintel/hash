@@ -114,6 +114,7 @@ export const LanguageClientProvider: React.FC<{
     requestScenarioHir: client.requestScenarioHir,
     requestFormatExpression: client.requestFormatExpression,
     requestConstraint: client.requestConstraint,
+    requestVisualizerHir: client.requestVisualizerHir,
     initializeMetricSession: client.initializeMetricSession,
     initializeAdHocSession: client.initializeAdHocSession,
     updateAdHocSession: client.updateAdHocSession,

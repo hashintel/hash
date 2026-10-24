@@ -203,6 +203,9 @@ function makeLanguageClient(): LanguageClientContextValue {
     updateMetricSession: vi.fn(),
     killMetricSession: vi.fn(),
     requestFormatExpression: vi.fn(() => Promise.resolve(null)),
+    requestVisualizerHir: vi.fn(() =>
+      Promise.resolve({ ok: false as const, diagnostics: [] }),
+    ),
     initializeAdHocSession: vi.fn(),
     updateAdHocSession: vi.fn(),
     killAdHocSession: vi.fn(),
