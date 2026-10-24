@@ -299,6 +299,70 @@
           }
         }
       },
+      "NotImplemented": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "detail": "Querying entities is not implemented yet.",
+              "status": 501,
+              "title": "Not Implemented",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 501
+                    },
+                    "title": {
+                      "const": "Not Implemented"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Not Implemented"
+            }
+          }
+        },
+        "description": "The server does not answer the query yet.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
+      },
       "PayloadTooLarge": {
         "content": {
           "application/problem+json": {
@@ -928,6 +992,11 @@
         ],
         "type": "object"
       },
+      "Cursor": {
+        "description": "An opaque position in a query's result.",
+        "minLength": 1,
+        "type": "string"
+      },
       "Entity": {
         "description": "An entity the caller may view.",
         "properties": {
@@ -1174,6 +1243,27 @@
         ],
         "type": "object"
       },
+      "QueryEntitiesRequest": {
+        "additionalProperties": false,
+        "description": "The query.",
+        "type": "object"
+      },
+      "QueryEntitiesResponse": {
+        "description": "A page of the entities the query matches.",
+        "properties": {
+          "entities": {
+            "description": "The entities on this page.",
+            "items": {
+              "$ref": "#/components/schemas/Entity"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "entities"
+        ],
+        "type": "object"
+      },
       "VersionedUrl": {
         "description": "The versioned URL of a SemType ontology type (the $id of the schema). It must be of the form `${baseUrl}v/${version}`, where `version` is a major version number.",
         "examples": [
@@ -1286,6 +1376,375 @@
           }
         ],
         "summary": "Create entities",
+        "tags": [
+          "Entity"
+        ]
+      }
+    },
+    "/entities/v1/query": {
+      "post": {
+        "description": "Returns the entities the query matches, a page at a time. The server chooses the size of a page, and the `Link` header names the next one. Not implemented yet: answers 501.",
+        "operationId": "queryEntities",
+        "parameters": [
+          {
+            "description": "The page to return, as the previous page's `Link` header names it. Defaults to the first.",
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "$ref": "#/components/schemas/Cursor",
+              "description": "The page to return, as the previous page's `Link` header names it. Defaults to the first."
+            },
+            "style": "form"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryEntitiesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryEntitiesResponse"
+                }
+              }
+            },
+            "description": "A page of the entities the query matches.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "Link": {
+                "description": "Names the next page as `<URI>; rel=\"next\"` (RFC 8288). A relative URI resolves against the URL of this request. Send the same body to it. The last page has no `Link` header.",
+                "example": "</entities/v1/query?cursor=AbCd1234>; rel=\"next\"",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit": {
+                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "example": "\"actor\";r=499",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit-Policy": {
+                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "example": "\"actor\";q=500;w=50",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "examples": {
+                  "about:blank": {
+                    "summary": "Bad Request: A required query parameter is missing, or one does not match its documented schema.",
+                    "value": {
+                      "detail": "Failed to deserialize query string: limit: invalid digit found in string",
+                      "status": 400,
+                      "title": "Bad Request",
+                      "type": "about:blank"
+                    }
+                  },
+                  "about:blank (2)": {
+                    "summary": "Bad Request: The request body is not valid JSON.",
+                    "value": {
+                      "detail": "Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1",
+                      "status": 400,
+                      "title": "Bad Request",
+                      "type": "about:blank"
+                    }
+                  },
+                  "about:blank (3)": {
+                    "summary": "Bad Request: The request body could not be read to its end.",
+                    "value": {
+                      "detail": "Failed to buffer the request body: error reading a body from connection",
+                      "status": 400,
+                      "title": "Bad Request",
+                      "type": "about:blank"
+                    }
+                  }
+                },
+                "schema": {
+                  "anyOf": [
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 400
+                            },
+                            "title": {
+                              "const": "Bad Request"
+                            },
+                            "type": {
+                              "const": "about:blank"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ],
+                      "title": "Bad Request: A required query parameter is missing, or one does not match its documented schema."
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 400
+                            },
+                            "title": {
+                              "const": "Bad Request"
+                            },
+                            "type": {
+                              "const": "about:blank"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ],
+                      "title": "Bad Request: The request body is not valid JSON."
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 400
+                            },
+                            "title": {
+                              "const": "Bad Request"
+                            },
+                            "type": {
+                              "const": "about:blank"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ],
+                      "title": "Bad Request: The request body could not be read to its end."
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "- Bad Request: A required query parameter is missing, or one does not match its documented schema.\n- Bad Request: The request body is not valid JSON.\n- Bad Request: The request body could not be read to its end.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit": {
+                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "example": "\"actor\";r=499",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit-Policy": {
+                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "example": "\"actor\";q=500;w=50",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Failed to deserialize the JSON body into the target type: invalid type: string \"many\", expected u8 at line 1 column 6",
+                  "status": 422,
+                  "title": "Unprocessable Content",
+                  "type": "about:blank"
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 422
+                        },
+                        "title": {
+                          "const": "Unprocessable Content"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Unprocessable Content"
+                }
+              }
+            },
+            "description": "The request body does not match the schema of the operation.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit": {
+                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "example": "\"actor\";r=499",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit-Policy": {
+                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "example": "\"actor\";q=500;w=50",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "authentication is temporarily unavailable",
+                  "status": 503,
+                  "title": "Service Unavailable",
+                  "type": "about:blank"
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 503
+                        },
+                        "title": {
+                          "const": "Service Unavailable"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Service Unavailable"
+                }
+              }
+            },
+            "description": "Authentication is temporarily unavailable.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit": {
+                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "example": "\"actor\";r=499",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit-Policy": {
+                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "example": "\"actor\";q=500;w=50",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ],
+        "summary": "Query entities",
         "tags": [
           "Entity"
         ]

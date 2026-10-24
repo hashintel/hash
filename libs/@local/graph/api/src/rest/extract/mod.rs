@@ -18,12 +18,7 @@ mod tests;
 use aide::openapi::Operation;
 use serde_json::Value;
 
-#[cfg_attr(
-    not(test),
-    expect(unused_imports, reason = "only the tests read query parameters")
-)]
-pub(in crate::rest) use self::query::Query;
-pub(in crate::rest) use self::{json::Json, path::Path};
+pub(in crate::rest) use self::{json::Json, path::Path, query::Query};
 
 /// The part of a request that [`Json`], [`Path`] or [`Query`] reads.
 ///
