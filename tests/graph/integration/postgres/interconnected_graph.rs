@@ -6,7 +6,7 @@ use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::{
     knowledge::{
         entity::{
-            LinkData,
+            Link, LinkEndpoint,
             id::{EntityId, EntityUuid},
             provenance::ProvidedEntityEditionProvenance,
         },
@@ -114,21 +114,25 @@ async fn insert() {
         properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
             .expect("could not create property with metadata object"),
         confidence: None,
-        link_data: Some(LinkData {
-            left_entity_id: EntityId {
-                web_id,
-                entity_uuid: alice_id,
-                draft_id: None,
+        link_data: Some(Link::Directed {
+            source: LinkEndpoint {
+                entity_id: EntityId {
+                    web_id,
+                    entity_uuid: alice_id,
+                    draft_id: None,
+                },
+                confidence: None,
+                provenance: PropertyProvenance::default(),
             },
-            right_entity_id: EntityId {
-                web_id,
-                entity_uuid: bob_id,
-                draft_id: None,
+            target: LinkEndpoint {
+                entity_id: EntityId {
+                    web_id,
+                    entity_uuid: bob_id,
+                    draft_id: None,
+                },
+                confidence: None,
+                provenance: PropertyProvenance::default(),
             },
-            left_entity_confidence: None,
-            left_entity_provenance: PropertyProvenance::default(),
-            right_entity_confidence: None,
-            right_entity_provenance: PropertyProvenance::default(),
         }),
         draft: false,
         policies: Vec::new(),

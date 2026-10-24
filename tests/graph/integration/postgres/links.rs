@@ -16,7 +16,7 @@ use hash_graph_store::{
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::{
     knowledge::{
-        entity::{LinkData, provenance::ProvidedEntityEditionProvenance},
+        entity::{Link, LinkEndpoint, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion, VersionedUrl},
@@ -140,13 +140,17 @@ async fn insert() {
             entity_type_ids: HashSet::from([friend_of_type_id.clone()]),
             properties: PropertyObjectWithMetadata::from_parts(friend_of, None)
                 .expect("could not create property with metadata object"),
-            link_data: Some(LinkData {
-                left_entity_id: alice_entity.metadata.record_id.entity_id,
-                right_entity_id: bob_entity.metadata.record_id.entity_id,
-                left_entity_confidence: None,
-                left_entity_provenance: PropertyProvenance::default(),
-                right_entity_confidence: None,
-                right_entity_provenance: PropertyProvenance::default(),
+            link_data: Some(Link::Directed {
+                source: LinkEndpoint {
+                    entity_id: alice_entity.metadata.record_id.entity_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
+                target: LinkEndpoint {
+                    entity_id: bob_entity.metadata.record_id.entity_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
             }),
             draft: false,
             policies: Vec::new(),
@@ -248,16 +252,10 @@ async fn insert() {
         len => panic!("unexpected number of entities found, expected 1 but received {len}"),
     };
 
-    let link_data = link_entity.link_data.expect("entity is not a link");
+    let Link::Directed { source, target } = link_entity.link_data.expect("entity is not a link");
 
-    assert_eq!(
-        link_data.left_entity_id,
-        alice_entity.metadata.record_id.entity_id
-    );
-    assert_eq!(
-        link_data.right_entity_id,
-        bob_entity.metadata.record_id.entity_id
-    );
+    assert_eq!(source.entity_id, alice_entity.metadata.record_id.entity_id);
+    assert_eq!(target.entity_id, bob_entity.metadata.record_id.entity_id);
 }
 
 #[tokio::test]
@@ -410,13 +408,17 @@ async fn get_entity_links() {
             entity_type_ids: HashSet::from([friend_link_type_id.clone()]),
             properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
                 .expect("could not create property with metadata object"),
-            link_data: Some(LinkData {
-                left_entity_id: alice_entity.metadata.record_id.entity_id,
-                right_entity_id: bob_entity.metadata.record_id.entity_id,
-                left_entity_confidence: None,
-                left_entity_provenance: PropertyProvenance::default(),
-                right_entity_confidence: None,
-                right_entity_provenance: PropertyProvenance::default(),
+            link_data: Some(Link::Directed {
+                source: LinkEndpoint {
+                    entity_id: alice_entity.metadata.record_id.entity_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
+                target: LinkEndpoint {
+                    entity_id: bob_entity.metadata.record_id.entity_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
             }),
             draft: false,
             policies: Vec::new(),
@@ -441,13 +443,17 @@ async fn get_entity_links() {
             entity_type_ids: HashSet::from([acquaintance_entity_link_type_id.clone()]),
             properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
                 .expect("could not create property with metadata object"),
-            link_data: Some(LinkData {
-                left_entity_id: alice_entity.metadata.record_id.entity_id,
-                right_entity_id: charles_metadata.metadata.record_id.entity_id,
-                left_entity_confidence: None,
-                left_entity_provenance: PropertyProvenance::default(),
-                right_entity_confidence: None,
-                right_entity_provenance: PropertyProvenance::default(),
+            link_data: Some(Link::Directed {
+                source: LinkEndpoint {
+                    entity_id: alice_entity.metadata.record_id.entity_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
+                target: LinkEndpoint {
+                    entity_id: charles_metadata.metadata.record_id.entity_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
             }),
             draft: false,
             policies: Vec::new(),
@@ -510,23 +516,29 @@ async fn get_entity_links() {
             .contains(&acquaintance_entity_link_type_id)
     }));
 
-    let link_datas = links_from_source
+    let endpoints = links_from_source
         .iter()
-        .map(|entity| entity.link_data.as_ref().expect("entity is not a link"))
+        .map(|entity| {
+            let Link::Directed { source, target } =
+                entity.link_data.as_ref().expect("entity is not a link");
+            (source, target)
+        })
         .collect::<Vec<_>>();
     assert!(
-        link_datas
+        endpoints
             .iter()
-            .any(|link_data| link_data.left_entity_id == alice_entity.metadata.record_id.entity_id)
+            .any(|(source, _)| source.entity_id == alice_entity.metadata.record_id.entity_id)
     );
     assert!(
-        link_datas
+        endpoints
             .iter()
-            .any(|link_data| link_data.right_entity_id == bob_entity.metadata.record_id.entity_id)
+            .any(|(_, target)| target.entity_id == bob_entity.metadata.record_id.entity_id)
     );
-    assert!(link_datas.iter().any(
-        |link_data| link_data.right_entity_id == charles_metadata.metadata.record_id.entity_id
-    ));
+    assert!(
+        endpoints
+            .iter()
+            .any(|(_, target)| target.entity_id == charles_metadata.metadata.record_id.entity_id)
+    );
 }
 
 #[tokio::test]
@@ -643,13 +655,17 @@ async fn remove_link() {
                 entity_type_ids: HashSet::from([friend_link_type_id.clone()]),
                 properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
                     .expect("could not create property with metadata object"),
-                link_data: Some(LinkData {
-                    left_entity_id: alice_entity.metadata.record_id.entity_id,
-                    right_entity_id: bob_entity.metadata.record_id.entity_id,
-                    left_entity_confidence: None,
-                    left_entity_provenance: PropertyProvenance::default(),
-                    right_entity_confidence: None,
-                    right_entity_provenance: PropertyProvenance::default(),
+                link_data: Some(Link::Directed {
+                    source: LinkEndpoint {
+                        entity_id: alice_entity.metadata.record_id.entity_id,
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                    },
+                    target: LinkEndpoint {
+                        entity_id: bob_entity.metadata.record_id.entity_id,
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                    },
                 }),
                 draft: false,
                 policies: Vec::new(),

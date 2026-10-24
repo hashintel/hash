@@ -73,7 +73,7 @@ use type_system::{
     knowledge::{
         Confidence, Entity, PropertyValue,
         entity::{
-            EntityMetadata, EntityProvenance,
+            EntityMetadata, EntityProvenance, Link,
             id::{DraftId, EntityEditionId, EntityId, EntityRecordId, EntityUuid},
             metadata::EntityTemporalMetadata,
             provenance::EntityEditionProvenance,
@@ -1534,21 +1534,22 @@ where
                 });
             }
 
-            let link_data = params.link_data.inspect(|link_data| {
+            let link_data = params.link_data.inspect(|link| {
+                let Link::Directed { source, target } = link;
                 entity_edge_rows.extend([
                     EntityEdgeRow {
                         source_web_id: entity_id.web_id,
                         source_entity_uuid: entity_id.entity_uuid,
-                        target_web_id: link_data.left_entity_id.web_id,
-                        target_entity_uuid: link_data.left_entity_id.entity_uuid,
-                        confidence: link_data.left_entity_confidence,
-                        provenance: link_data.left_entity_provenance.clone(),
+                        target_web_id: source.entity_id.web_id,
+                        target_entity_uuid: source.entity_id.entity_uuid,
+                        confidence: source.confidence,
+                        provenance: source.provenance.clone(),
                         kind: EntityTraversalEdgeKind::HasLeftEntity,
                         direction: EdgeDirection::Outgoing,
                     },
                     EntityEdgeRow {
-                        source_web_id: link_data.left_entity_id.web_id,
-                        source_entity_uuid: link_data.left_entity_id.entity_uuid,
+                        source_web_id: source.entity_id.web_id,
+                        source_entity_uuid: source.entity_id.entity_uuid,
                         target_web_id: entity_id.web_id,
                         target_entity_uuid: entity_id.entity_uuid,
                         confidence: None,
@@ -1559,16 +1560,16 @@ where
                     EntityEdgeRow {
                         source_web_id: entity_id.web_id,
                         source_entity_uuid: entity_id.entity_uuid,
-                        target_web_id: link_data.right_entity_id.web_id,
-                        target_entity_uuid: link_data.right_entity_id.entity_uuid,
-                        confidence: link_data.right_entity_confidence,
-                        provenance: link_data.right_entity_provenance.clone(),
+                        target_web_id: target.entity_id.web_id,
+                        target_entity_uuid: target.entity_id.entity_uuid,
+                        confidence: target.confidence,
+                        provenance: target.provenance.clone(),
                         kind: EntityTraversalEdgeKind::HasRightEntity,
                         direction: EdgeDirection::Outgoing,
                     },
                     EntityEdgeRow {
-                        source_web_id: link_data.right_entity_id.web_id,
-                        source_entity_uuid: link_data.right_entity_id.entity_uuid,
+                        source_web_id: target.entity_id.web_id,
+                        source_entity_uuid: target.entity_id.entity_uuid,
                         target_web_id: entity_id.web_id,
                         target_entity_uuid: entity_id.entity_uuid,
                         confidence: None,
