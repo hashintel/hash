@@ -559,6 +559,30 @@ export type ActionStepCheck = (params: {
   report: (inputName: string, message: string) => void;
 }) => void;
 
+/**
+ * How an action's activity is run: the task queue of the worker that runs it, and Temporal's settings for each attempt.
+ */
+export type ActionActivitySettings = {
+  taskQueue: "ai" | "integration";
+  /** How long one attempt may take. */
+  startToCloseTimeoutSeconds: number;
+  /**
+   * For an action that heartbeats, how long an attempt may go without one before it's treated as failed. The action
+   * heartbeats more often than this, and can then run for longer (`startToCloseTimeoutSeconds`), since a stalled
+   * attempt is caught sooner.
+   */
+  heartbeatTimeoutSeconds?: number;
+  /**
+   * Whether the action handles cancellation, so that a run that's cancelled waits for it to finish rather than
+   * abandoning it. An action that does:
+   * - heartbeats often, so it's known to be running;
+   * - catches the cancellation (`Context.current().cancelled`) and rethrows it after cleaning up;
+   * - ideally, checks for cancellation at points in its work where it can stop;
+   * - ideally, records its progress in its heartbeats, and resumes from `lastHeartbeatDetails`.
+   */
+  handlesCancellation: boolean;
+};
+
 export type ActionDefinition<
   ActionDefinitionId extends FlowActionDefinitionId,
 > = {
@@ -566,6 +590,7 @@ export type ActionDefinition<
   actionDefinitionId: ActionDefinitionId;
   name: string;
   description: string;
+  activitySettings: ActionActivitySettings;
   inputs: InputDefinition[];
   outputs: OutputDefinition[];
   /** Run when a flow is validated, for each step of the action. */

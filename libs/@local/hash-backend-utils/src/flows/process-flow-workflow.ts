@@ -471,6 +471,7 @@ const processFlow = async <
         `${currentStep.actionDefinitionId}Action` satisfies ActionName<string>;
 
       const actionActivity = proxyFlowActivity({
+        actionDefinitionId: currentStep.actionDefinitionId,
         // @ts-expect-error - not sure what's going on with inference of valid names here
         actionName,
         maximumAttempts: actionStepDefinition.retryCount ?? 3,
