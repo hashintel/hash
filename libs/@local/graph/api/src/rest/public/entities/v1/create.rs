@@ -12,25 +12,24 @@ use hash_graph_store::{
     pool::StorePool,
 };
 use hash_middleware::problem::{InternalServerError, ServiceUnavailable};
-use http::StatusCode;
+use http::{HeaderMap, StatusCode};
 use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejection, Variant};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::{
         self,
-        entity::provenance::ProvidedEntityEditionProvenance,
         property::{PropertyObject, PropertyObjectWithMetadata},
     },
     ontology::VersionedUrl,
     principal::{actor::ActorId, actor_group::WebId},
-    provenance::{OriginProvenance, OriginType},
 };
 
 use super::{
     entity::{Entity, LiveEntityId},
     link::Link,
     property_metadata::{PropertyMetadataMismatch, PropertyObjectMetadata},
+    provenance::{self, NewProvenance},
 };
 use crate::rest::{
     ApiState,
@@ -73,6 +72,7 @@ impl TryFrom<Vec<NewEntity>> for NewEntities {
 /// An entity to create.
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[schemars(example = new_entity_example())]
 struct NewEntityFields {
     /// The web to create the entity in.
     web_id: WebId,
@@ -80,7 +80,7 @@ struct NewEntityFields {
     entity_type_ids: EntityTypeIds,
     /// The entity's properties, keyed by the base URL of their property type.
     properties: PropertyObject,
-    /// The data types of the values in `properties`, one for every value.
+    /// The data type of every value in `properties`, and where the value comes from.
     property_metadata: PropertyObjectMetadata,
     /// The entities it connects, for an entity of a link type.
     #[serde(
@@ -90,6 +90,34 @@ struct NewEntityFields {
     )]
     #[schemars(with = "Link")]
     link: Option<Link>,
+    /// Where the entity's data comes from, and which application sends it.
+    #[serde(
+        default,
+        deserialize_with = "present",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[schemars(with = "NewProvenance")]
+    provenance: Option<NewProvenance>,
+}
+
+/// An example of an entity to create, with the fields every entity needs and nothing else.
+fn new_entity_example() -> serde_json::Value {
+    serde_json::json!({
+        "webId": "8d86c8c3-d66d-43d1-859b-676c3bcaeadc",
+        "entityTypeIds": ["https://hash.ai/@h/types/entity-type/user/v/1"],
+        "properties": {
+            "https://hash.ai/@h/types/property-type/preferred-name/": "Alice",
+            "https://hash.ai/@h/types/property-type/shortname/": "alice",
+        },
+        "propertyMetadata": {
+            "https://hash.ai/@h/types/property-type/preferred-name/": {
+                "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+            "https://hash.ai/@h/types/property-type/shortname/": {
+                "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+        },
+    })
 }
 
 /// An entity to create.
@@ -103,6 +131,7 @@ struct NewEntity {
     entity_type_ids: EntityTypeIds,
     properties_with_metadata: PropertyObjectWithMetadata,
     link: Option<Link>,
+    provenance: NewProvenance,
 }
 
 impl TryFrom<NewEntityFields> for NewEntity {
@@ -114,6 +143,7 @@ impl TryFrom<NewEntityFields> for NewEntity {
             entity_type_ids: fields.entity_type_ids,
             properties_with_metadata: fields.property_metadata.join(fields.properties)?,
             link: fields.link,
+            provenance: fields.provenance.unwrap_or_default(),
         })
     }
 }
@@ -288,6 +318,7 @@ impl Expose<CreateEntitiesProblem> for Report<CreateEntitiesError> {
 async fn create_entities<S>(
     State(state): State<ApiState<S>>,
     actor: Actor<Credentials>,
+    headers: HeaderMap,
     Json(CreateEntitiesRequest {
         entities: NewEntities(entities),
     }): Json<CreateEntitiesRequest>,
@@ -296,6 +327,7 @@ where
     S: StorePool + Send + Sync + 'static,
 {
     let actor_id = ActorId::from(actor);
+    let user_agent = provenance::user_agent(&headers);
     let params = entities
         .into_iter()
         .map(|entity| CreateEntityParams {
@@ -308,11 +340,9 @@ where
             link_data: entity.link.map(knowledge::entity::Link::from),
             draft: false,
             policies: Vec::new(),
-            provenance: ProvidedEntityEditionProvenance {
-                sources: Vec::new(),
-                actor_type: actor_id.actor_type(),
-                origin: OriginProvenance::from_empty_type(OriginType::Api),
-            },
+            provenance: entity
+                .provenance
+                .into_stored(actor_id.actor_type(), user_agent.clone()),
             read_only: false,
         })
         .collect::<Vec<_>>();
@@ -358,7 +388,7 @@ mod tests {
 
     use serde_json::json;
 
-    use super::{CreateEntitiesRequest, NewEntities};
+    use super::{CreateEntitiesRequest, NewEntities, NewEntity, new_entity_example};
 
     const WEB: &str = "8d86c8c3-d66d-43d1-859b-676c3bcaeadc";
     const PERSON: &str = "https://example.com/@alice/types/entity-type/person/v/1";
@@ -427,6 +457,26 @@ mod tests {
             entities.as_slice(),
             [entity] if entity.link.is_some(),
             "the entity should keep its link"
+        );
+    }
+
+    #[test]
+    fn new_entity_example_valid() {
+        serde_json::from_value::<NewEntity>(new_entity_example())
+            .expect("the documented example should be a valid entity to create");
+    }
+
+    #[test]
+    fn request_provenance_null() {
+        assert_matches!(
+            parse(json!({ "entities": [{
+                "webId": WEB,
+                "entityTypeIds": [PERSON],
+                "properties": {},
+                "propertyMetadata": {},
+                "provenance": null,
+            }] })),
+            Err(error) if error.to_string().contains("invalid type: null")
         );
     }
 
