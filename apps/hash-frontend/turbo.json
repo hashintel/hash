@@ -51,6 +51,28 @@
         "!NEXT_PUBLIC_VERCEL_URL"
       ]
     },
+    "build:vinext": {
+      "dependsOn": ["^build", "codegen"],
+      "cache": false,
+      "env": [
+        "API_ORIGIN",
+        "ENVIRONMENT",
+        "GOOGLE_OAUTH_CLIENT_ID",
+        "NODE_ENV",
+        "NOTIFICATION_POLL_INTERVAL",
+        "SELF_HOSTED_HASH",
+        "SENTRY_DSN",
+        "SENTRY_ENVIRONMENT",
+        "SENTRY_REPLAYS_SESSION_SAMPLE_RATE",
+        "SHOW_WORKER_COST"
+      ]
+    },
+    "dev:vinext": {
+      "dependsOn": ["codegen", "^build"],
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["PORT"]
+    },
     "dev": {
       "dependsOn": ["codegen", "^build"],
       "passThroughEnv": ["PORT"]

@@ -95,6 +95,7 @@ export default [
         "**/src/pages/**/*.page.ts",
         "**/src/pages/**/*.page.tsx",
         "**/__mocks__/**",
+        "vite.config.ts",
       ],
       rules: {
         "import/no-default-export": "off",

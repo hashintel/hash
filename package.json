@@ -115,8 +115,8 @@
     "prosemirror-transform": "1.12.2",
     "prosemirror-view": "1.42.6",
     "qs": "6.16.0",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "tsup/esbuild": "^0.28.1",
     "underscore": "1.13.8"
   },
