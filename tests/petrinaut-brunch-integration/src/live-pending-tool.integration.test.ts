@@ -72,7 +72,7 @@ test("bounds a native OpenAI tool row without replaying completed tool work", as
   const application = await loadBuiltBrunchApplication();
   const identity = {
     conversationId: `live-pending-${crypto.randomUUID()}`,
-    principalKey: "live-pending-principal",
+    ownerKey: "live-pending-owner",
   };
   const headers = agentOwnershipHeaders(identity);
   const instanceId = await flueConversationIdWeb(identity);

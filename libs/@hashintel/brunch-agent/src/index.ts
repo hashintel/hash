@@ -11,7 +11,7 @@ export {
   brunchRoutes,
   brunchSignals,
   brunchTools,
-  localUiPrincipal,
+  localUiOwnerKey,
   previewConversationIdPrefix,
 } from "./constants";
 export * from "./conversation-identity";

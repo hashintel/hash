@@ -121,9 +121,9 @@ vi.mock(
   }),
 );
 vi.mock(
-  "@apps/petrinaut-website/src/main/app/plugins/brunch/conversation/brunch-principal",
+  "@apps/petrinaut-website/src/main/app/plugins/brunch/conversation/brunch-owner-key",
   () => ({
-    getOrCreateBrunchPrincipal: () => "test-principal",
+    getOrCreateBrunchOwnerKey: () => "test-owner",
   }),
 );
 

@@ -7,7 +7,7 @@ import type { Page } from "@playwright/test";
 
 const session: PersonaBrowserSession = {
   url: "https://panel.test/agents/petrinaut/conversation",
-  principalKey: "TEST-principal",
+  ownerKey: "TEST-owner",
   conversationId: "TEST-conversation",
   uid: "TEST-uid",
   initialData: {
@@ -40,7 +40,7 @@ const retainedPage = (documents: Record<string, unknown>) => {
       visited.push(url);
       return null;
     },
-    evaluate: async () => ({ principal: session.principalKey, documents }),
+    evaluate: async () => ({ ownerKey: session.ownerKey, documents }),
   };
   return { page: page as unknown as Page, visited };
 };

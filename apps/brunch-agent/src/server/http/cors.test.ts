@@ -97,7 +97,7 @@ const allowedOrigin = "https://app.example.com";
 const rejectedOrigin = "https://attacker.example";
 const mount = `${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
 const identity = {
-  principalKey: "principal-cors",
+  ownerKey: "owner-cors",
   conversationId: "conversation-cors",
 };
 const instanceId = flueConversationId(identity);
@@ -127,7 +127,7 @@ test("answers an allowed preflight before ownership", async () => {
         "Access-Control-Request-Method": "POST",
         "Access-Control-Request-Headers": [
           "content-type",
-          brunchHeaders.principal,
+          brunchHeaders.ownerKey,
           brunchHeaders.conversation,
         ].join(","),
       },
@@ -142,7 +142,7 @@ test("answers an allowed preflight before ownership", async () => {
     "GET,POST,OPTIONS",
   );
   expect(response.headers.get("access-control-allow-headers")).toBe(
-    `Content-Type,${brunchHeaders.principal},${brunchHeaders.conversation}`,
+    `Content-Type,${brunchHeaders.ownerKey},${brunchHeaders.conversation}`,
   );
   expect(response.headers.get("access-control-max-age")).toBe("600");
   expect(response.headers.get("access-control-allow-credentials")).toBeNull();
