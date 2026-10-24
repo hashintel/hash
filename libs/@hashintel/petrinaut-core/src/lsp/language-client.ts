@@ -1,5 +1,6 @@
 import { DiagnosticSeverity } from "vscode-languageserver-types";
 
+import { parseDocumentUri } from "./lib/document-uris";
 import {
   createWorkerLspTransport,
   type LspTransport,
@@ -39,9 +40,11 @@ export type DiagnosticsSnapshot = {
   byUri: Map<DocumentUri, Diagnostic[]>;
   total: number;
   /**
-   * Error-severity diagnostics only. Use this (not `total`) to decide whether
-   * the net is simulatable — warnings/hints (e.g. HIR semantic lints) don't
-   * block running.
+   * Error-severity diagnostics in the documents that gate a run. Use this
+   * (not `total`) to decide whether the net is simulatable — warnings/hints
+   * (e.g. HIR semantic lints) don't block running, and neither does a place
+   * visualizer's error: a broken picture draws nothing, it never stops a
+   * simulation. `total` and `byUri` carry the visualizer's diagnostics.
    */
   errorCount: number;
 };
@@ -232,6 +235,9 @@ function buildSnapshot(
         : param.diagnostics,
     );
     total += param.diagnostics.length;
+    if (parseDocumentUri(param.uri)?.itemType === "place-visualizer") {
+      continue;
+    }
     for (const diagnostic of param.diagnostics) {
       if (diagnostic.severity === DiagnosticSeverity.Error) {
         errorCount += 1;

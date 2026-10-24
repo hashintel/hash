@@ -7698,6 +7698,7 @@ __metadata:
     "@tsconfig/bases": "catalog:"
     "@types/js-yaml": "npm:^4"
     "@types/node": "catalog:"
+    "@types/react": "npm:19.2.14"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     "@typescript/typescript6": "catalog:"
     "@webgpu/types": "npm:0.1.71"
