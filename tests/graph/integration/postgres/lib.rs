@@ -63,7 +63,10 @@ use hash_graph_store::{
         SearchEntityTypesParams, SearchEntityTypesResponse, UnarchiveEntityTypeParams,
         UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
-    error::{CheckPermissionError, DeletionError, InsertionError, QueryError, UpdateError},
+    error::{
+        CheckPermissionError, DeletionError, EntityCreationError, InsertionError, QueryError,
+        UpdateError,
+    },
     pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
@@ -809,7 +812,7 @@ impl EntityStore for DatabaseApi<'_> {
         &mut self,
         actor_id: ActorId,
         params: Vec<CreateEntityParams>,
-    ) -> Result<Vec<Entity>, Report<InsertionError>> {
+    ) -> Result<Vec<Entity>, Report<EntityCreationError>> {
         self.store.create_entities(actor_id, params).await
     }
 

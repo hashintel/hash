@@ -291,7 +291,7 @@ roaring                            = { version = "0.11.2", default-features = fa
 rpds                               = { version = "1.1.2", default-features = false }
 rstest                             = { version = "0.26.1", default-features = false }
 rustc_version                      = { version = "0.4.1", default-features = false }
-scalar_api_reference               = { version = "0.2.2", default-features = false }
+scalar_api_reference               = { version = "0.2.12", default-features = false }
 scc                                = { version = "3.8.4", default-features = false }
 schemars                           = { version = "1.2.2" }
 semver                             = { version = "1.0.27", default-features = false }

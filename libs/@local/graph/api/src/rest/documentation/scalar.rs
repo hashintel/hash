@@ -38,34 +38,9 @@ fn render(configuration: &str, sources: Value, bundle: &str) -> Result<Bytes, se
     Ok(Bytes::from(render_scalar(&configuration, Some(bundle))))
 }
 
-/// The Scalar bundle with the optional-authentication correction applied.
-static JAVASCRIPT: LazyLock<Bytes> = LazyLock::new(|| {
-    let mut javascript =
-        String::from_utf8(get_asset("scalar.js").expect("the Scalar bundle should exist"))
-            .expect("the Scalar bundle should be UTF-8");
-
-    // @scalar/api-reference 1.49.2 incorrectly makes an empty security alternative mandatory when
-    // another alternative combines schemes.
-    for (original, corrected) in [
-        (
-            "!t.some((e=>Object.keys(e).length>1))&&e.length<t.length",
-            "e.length<t.length",
-        ),
-        (
-            "return e.some((e=>0===Object.keys(e).length))&&!t",
-            "return e.some((e=>0===Object.keys(e).length))",
-        ),
-    ] {
-        assert_eq!(
-            javascript.matches(original).count(),
-            1,
-            "the Scalar optional-auth correction should match exactly once"
-        );
-        javascript = javascript.replacen(original, corrected, 1);
-    }
-
-    Bytes::from(javascript)
-});
+/// The Scalar bundle.
+static JAVASCRIPT: LazyLock<Bytes> =
+    LazyLock::new(|| Bytes::from(get_asset("scalar.js").expect("the Scalar bundle should exist")));
 
 /// Serves a reference over `sources` at `path`, with the bundle it loads underneath.
 pub(super) fn routes(path: &str, sources: &[Source]) -> Router {
