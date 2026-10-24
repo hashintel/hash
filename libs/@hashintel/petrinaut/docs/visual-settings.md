@@ -14,7 +14,7 @@ Changes apply immediately and are saved as your preferences across nets. On host
 
 | Section      | Settings                                                             |
 | ------------ | -------------------------------------------------------------------- |
-| **General**  | Animations and panel loading.                                        |
+| **General**  | Animations, panel loading, and the AI assistant.                     |
 | **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection. |
 | **Plugins**  | The host's plugins: switch each on or off and see what it adds.      |
 | **Labs**     | Experimental modeling views, code layouts, and developer tools.      |
@@ -35,6 +35,10 @@ Canvas hover rings and the fading of nodes, arcs, and minimap shapes also follow
 ### Keep panels mounted
 
 When enabled, hidden panels remain loaded in the background. Switching between panels is faster, but uses more memory. When disabled, panels are unmounted when hidden and re-created when opened.
+
+### AI assistant
+
+Shown when several of the host's plugins provide an AI assistant. **Assistant** chooses which one answers in the assistant panel. Each assistant keeps its own conversation. The choice is saved, and **Use … as the AI assistant** in the Command Palette changes it too. While the chosen assistant's plugin is switched off or stopped, the panel shows the first running assistant in the **Plugins** list.
 
 ## Viewport
 
@@ -186,7 +190,8 @@ and how many of them run.
   something inside the editor.
 - **Assistant** marks a plugin that provides the AI assistant. The assistant
   panel shows that plugin's content, such as its chat. When several plugins
-  carry the tag, the first running one in this list fills the panel.
+  carry the tag, **General › AI assistant** chooses one, and the first running
+  one in this list fills the panel until you do.
 
 Without plugins the section says so.
 
