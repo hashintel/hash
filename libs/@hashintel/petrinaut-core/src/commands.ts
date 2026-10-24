@@ -15,6 +15,7 @@ import {
 } from "./extensions";
 import { calculateGraphLayout } from "./layout/calculate-graph-layout";
 import { layoutNodeDimensions } from "./layout/dimensions";
+import { replaceDefinition } from "./lib/replace-definition";
 import { toPetrinautId } from "./petrinaut-id";
 
 import type { ClipboardPayload } from "./clipboard/types";
@@ -145,22 +146,6 @@ const validateNewlyPastedItems = (
   }
 };
 
-/** Makes `target` hold `definition`'s fields and no other, in place. */
-const replaceDefinitionFields = (target: SDCPN, definition: SDCPN): void => {
-  const draft = target as Record<string, unknown>;
-  const next = definition as Record<string, unknown>;
-  for (const key of Object.keys(draft)) {
-    if (next[key] === undefined) {
-      delete draft[key];
-    }
-  }
-  for (const [key, value] of Object.entries(next)) {
-    if (value !== undefined) {
-      draft[key] = value;
-    }
-  }
-};
-
 export function createPetrinautCommands(
   mutate: (fn: (sdcpn: SDCPN) => void) => void,
   read: () => SDCPN,
@@ -187,7 +172,7 @@ export function createPetrinautCommands(
       const { definition } =
         commandActionInputSchemas.replaceDefinition.parse(input);
       mutate((sdcpn) => {
-        replaceDefinitionFields(sdcpn, definition);
+        replaceDefinition(sdcpn, definition);
         stripDisabledExtensionData(sdcpn, extensions);
       });
     },

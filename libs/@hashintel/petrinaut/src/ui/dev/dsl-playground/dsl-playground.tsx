@@ -17,11 +17,8 @@ import {
   sirModel,
 } from "@hashintel/petrinaut-core/examples";
 
-import {
-  dslLanguageId,
-  registerDslLanguage,
-} from "../../builtin-plugins/code-view/dsl-language";
 import { CodeEditor } from "../../monaco/code-editor";
+import { DslEditor } from "../../monaco/dsl-editor";
 
 const examples = [
   assemblyLine,
@@ -68,6 +65,11 @@ const roundTripStyle = css({
   fontSize: "xs",
   color: "neutral.s85",
   whiteSpace: "pre-wrap",
+});
+
+const projectionStyle = css({
+  display: "flex",
+  flexDirection: "column",
 });
 
 const errorStyle = css({
@@ -167,19 +169,8 @@ export const DslPlayground = () => {
         {projection === null ? (
           <div className={errorStyle}>{parsed.ok ? "" : parsed.error}</div>
         ) : (
-          <div>
-            <CodeEditor
-              language={dslLanguageId}
-              value={projection.text}
-              height="100%"
-              beforeMount={registerDslLanguage}
-              options={{
-                readOnly: true,
-                domReadOnly: true,
-                lineNumbers: "on",
-                wordWrap: "on",
-              }}
-            />
+          <div className={projectionStyle}>
+            <DslEditor value={projection.text} readOnly />
           </div>
         )}
       </div>

@@ -129,6 +129,17 @@ back in one undo entry. **Discard** drops the draft. A draft outlives
 changes made on the canvas meanwhile; the toolbar says so, since applying
 replaces them. A new title on the `net` line goes to `setTitle`.
 
+## Outside the editor
+
+The website's `/custom-dsl` page turns the relation around: the text is the
+document, one file kept in local storage, and a read-only editor beside it
+follows the text. `DslEditor` and `MonacoProvider` are exported from
+`@hashintel/petrinaut/ui` for a host like it. Each change is parsed and
+merged onto the net the editor last showed, so names keep their nodes, and a
+scope with a node the text did not have before is laid out, since the text
+carries no positions. The Code view plugin stays the way to edit the text
+inside the editor.
+
 ## Editing: parse and merge
 
 `parsePetrinautDsl` is a hand-written recursive descent over the grammar

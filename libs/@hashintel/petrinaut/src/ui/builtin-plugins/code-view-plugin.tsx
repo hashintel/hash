@@ -13,12 +13,9 @@ import {
 } from "../plugins/define-petrinaut-plugin";
 import { describeRefusal, type AccessApi } from "../plugins/plugin-access";
 import { analyzeDslDraft, countErrors } from "./code-view/dsl-draft";
-import {
-  DslView,
-  type DslViewStatus,
-  type RevealedLines,
-} from "./code-view/dsl-view";
+import { DslView, type DslViewStatus } from "./code-view/dsl-view";
 
+import type { DslRevealedLines } from "../monaco/dsl-editor";
 import type { DslSpan, SelectionItem } from "@hashintel/petrinaut-core";
 
 const CodeViewPlugin = definePetrinautPlugin({
@@ -41,7 +38,7 @@ const revealedLines = (
   spans: readonly DslSpan[],
   selection: readonly SelectionItem[],
   subnetId: string | null,
-): RevealedLines => {
+): DslRevealedLines => {
   const [item] = selection;
   if (item === undefined || item.type === "arc") {
     return null;
