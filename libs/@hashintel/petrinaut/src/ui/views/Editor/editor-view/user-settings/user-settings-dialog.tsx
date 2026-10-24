@@ -13,6 +13,10 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import {
+  codeEditorThemes,
+  resolveCodeEditorThemeId,
+} from "../../../../monaco/code-editor-themes";
 import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";
 import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
@@ -184,6 +188,7 @@ const labelStyle = css({
   marginBottom: "0.5",
   lineHeight: "[1.4]",
 });
+const settingSelectStyle = css({ width: "[156px]", maxWidth: "[100%]" });
 
 const SettingsGroup = ({
   title,
@@ -484,6 +489,30 @@ export const UserSettingsDialog = ({
                           onChange={settings.setKeepPanelsMounted}
                         />
                       </SettingsGroup>
+                      <SettingsGroup title="Code editor">
+                        <SettingRow
+                          label="Theme"
+                          description="Choose the theme of the code editors."
+                          wideControl
+                        >
+                          {(aria) => (
+                            <Select
+                              {...aria}
+                              size="sm"
+                              className={settingSelectStyle}
+                              required
+                              value={resolveCodeEditorThemeId(
+                                settings.codeEditorTheme,
+                              )}
+                              onChange={settings.setCodeEditorTheme}
+                              items={codeEditorThemes.map((theme) => ({
+                                value: theme.id,
+                                text: theme.label,
+                              }))}
+                            />
+                          )}
+                        </SettingRow>
+                      </SettingsGroup>
                       <PluginSettingsRows
                         section="general"
                         components={pluginRowComponents}
@@ -527,10 +556,7 @@ export const UserSettingsDialog = ({
                               <Select
                                 {...aria}
                                 size="sm"
-                                className={css({
-                                  width: "[156px]",
-                                  maxWidth: "[100%]",
-                                })}
+                                className={settingSelectStyle}
                                 required
                                 value={settings.arcRendering}
                                 onChange={settings.setArcRendering}

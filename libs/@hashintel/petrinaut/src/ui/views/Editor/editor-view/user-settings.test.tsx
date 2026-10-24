@@ -353,6 +353,30 @@ describe("user settings", () => {
     }
   });
 
+  it("offers every code editor theme under General and saves the choice", async () => {
+    renderSettings({ overlay: { type: "user-settings", section: "general" } });
+    const theme = await screen.findByRole("combobox", { name: "Theme" });
+    expect(theme.textContent).toContain("Petrinaut Light");
+
+    act(() => theme.focus());
+    fireEvent.keyDown(theme, { key: "Enter" });
+    await waitFor(() =>
+      expect(theme.getAttribute("aria-expanded")).toBe("true"),
+    );
+    const listbox = screen.getByRole("listbox");
+    expect(
+      within(listbox)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Petrinaut Light", "Kay Day", "Kay Night"]);
+
+    fireEvent.click(within(listbox).getByRole("option", { name: "Kay Night" }));
+    await waitFor(() => expect(theme.textContent).toContain("Kay Night"));
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
+    ).toMatchObject({ codeEditorTheme: "kay-night" });
+  });
+
   it("walks settings with worksheet arrows and restores focus across columns", async () => {
     renderSettings({ overlay: { type: "user-settings" } });
     const general = await screen.findByRole("tab", { name: "General" });
