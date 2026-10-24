@@ -1,6 +1,6 @@
 # Custom words
 
-On the Petrinaut website, open **User settings → Labs**, select **Use Brunch**, turn on **Enable Voice**, and enable **Custom words**. Custom words is off by default and does not start Voice or the microphone. Turning off Voice in Labs also stops words from being used.
+On the Petrinaut website, choose **Brunch** in **User settings → General → AI assistant**, open **Labs**, turn on **Enable Voice**, and enable **Custom words**. Custom words is off by default and does not start Voice or the microphone. Turning off Voice in Labs also stops words from being used.
 
 ## Add a name or term
 
@@ -18,7 +18,7 @@ Hearing and speaking keep the list a Voice session started with, including acros
 
 ## Storage and privacy
 
-The editable list belongs to this Brunch conversation in this browser. Reloading restores it when browser storage is available. Other conversations and browsers have separate lists. Words are not included in net exports, imports, or duplicates. **Clear conversation** removes its local list and starts a new, empty one. Disabling Words or switching to the stock assistant hides the controls without deleting saved words.
+The editable list belongs to this Brunch conversation in this browser. Reloading restores it when browser storage is available. Other conversations and browsers have separate lists. Words are not included in net exports, imports, or duplicates. **Clear conversation** removes its local list and starts a new, empty one. Disabling Words or switching to Petrinaut AI hides the controls without deleting saved words.
 
 If another tab removes the word you are editing, saving keeps your draft open and explains that the word was removed. Copy any text you want to keep, then choose **Cancel** and **Add word** to add it again.
 

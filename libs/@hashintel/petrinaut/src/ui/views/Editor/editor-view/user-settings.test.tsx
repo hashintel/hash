@@ -29,6 +29,7 @@ import type {
   PetrinautSettingsSection,
 } from "../../../../react/navigation";
 import type { PetrinautOptimizationSource } from "../../../../react/optimization-context";
+import type { PetrinautPlugin } from "../../../plugins/define-petrinaut-plugin";
 import type { ReactNode } from "react";
 
 beforeEach(() => {
@@ -91,7 +92,7 @@ const voicePlugin = definePetrinautPlugin({
 
 const renderPluginSettings = (
   section: PetrinautSettingsSection,
-  plugins = [voicePlugin],
+  plugins: readonly PetrinautPlugin[] = [voicePlugin],
 ) =>
   renderPlugins(
     plugins,
@@ -565,6 +566,35 @@ describe("Labs settings", () => {
     expect(document.activeElement).toBe(labs);
     fireEvent.keyDown(labs, { key: "ArrowRight" });
     expect(document.activeElement).toBe(last);
+  });
+});
+
+describe("AI assistant settings", () => {
+  const assistantPlugin = (id: string, name: string) =>
+    definePetrinautPlugin({ id, name, assistant: true })({
+      assistant: { content: null },
+    });
+  const chat = assistantPlugin("test.chat", "Chat");
+  const composer = assistantPlugin("test.composer", "Composer");
+
+  it("offers no choice while one plugin provides an assistant", async () => {
+    renderPluginSettings("general", [chat]);
+    await screen.findByRole("heading", { name: "General" });
+    expect(screen.queryByRole("combobox", { name: "Assistant" })).toBeNull();
+  });
+
+  it("lists the assistants in General and keeps the one chosen", async () => {
+    renderPluginSettings("general", [chat, composer]);
+    const picker = await screen.findByRole("combobox", { name: "Assistant" });
+    expect(picker.textContent).toContain("Chat");
+
+    fireEvent.click(picker);
+    fireEvent.click(await screen.findByRole("option", { name: "Composer" }));
+
+    await waitFor(() => expect(picker.textContent).toContain("Composer"));
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
+    ).toMatchObject({ assistantPluginId: "test.composer" });
   });
 });
 
