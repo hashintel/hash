@@ -1,6 +1,7 @@
 mod create;
 mod entity;
 mod get;
+mod link;
 mod property_metadata;
 mod query;
 
