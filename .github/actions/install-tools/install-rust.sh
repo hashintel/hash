@@ -41,7 +41,7 @@ install_toolchain() {
   echo -e "${BLUE}🔧 Trying toolchain installation with: ${mirror}${NC}"
   export RUSTUP_DIST_SERVER="$mirror"
   rustup toolchain install "$TOOLCHAIN_CHANNEL" || return $?
-  rustup target add --toolchain "$TOOLCHAIN_CHANNEL" aarch64-apple-darwin
+  rustup target add --toolchain "$TOOLCHAIN_CHANNEL" aarch64-apple-darwin wasm32-unknown-unknown
 }
 
 # Function to try component installation with different mirrors

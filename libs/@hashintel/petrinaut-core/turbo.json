@@ -13,10 +13,10 @@
       ]
     },
     "lint:tsc": {
-      "dependsOn": ["petrinaut-core#build:wasm"]
+      "dependsOn": ["$TURBO_EXTENDS$", "petrinaut-core#build:wasm"]
     },
     "lint:eslint": {
-      "dependsOn": ["petrinaut-core#build:wasm"]
+      "dependsOn": ["$TURBO_EXTENDS$", "petrinaut-core#build:wasm"]
     }
   }
 }
