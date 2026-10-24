@@ -1614,6 +1614,12 @@ mobile-starlight-toc summary {
   }
 }
 
+:root[data-map-resizing] {
+  transition: none;
+  cursor: row-resize;
+  user-select: none;
+}
+
 html {
   scroll-padding-top: calc(
     1.5rem + var(--sl-nav-height) + var(--sl-mobile-toc-height) +

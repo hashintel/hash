@@ -23,6 +23,10 @@ export interface EdgeGeometry {
   d: string;
   /** Where a label sits: the curve's midpoint. */
   mid: Point;
+  /** Where the curve ends, on the target's border. */
+  end: Point;
+  /** The unit direction the curve arrives in, for an arrow head. */
+  direction: Point;
 }
 
 export const edgeGeometry = (
@@ -46,8 +50,15 @@ export const edgeGeometry = (
     x: 0.25 * clippedStart.x + 0.5 * control.x + 0.25 * clippedEnd.x,
     y: 0.25 * clippedStart.y + 0.5 * control.y + 0.25 * clippedEnd.y,
   };
+  const arrival =
+    Math.hypot(clippedEnd.x - control.x, clippedEnd.y - control.y) || 1;
   return {
     d: `M ${clippedStart.x.toFixed(1)} ${clippedStart.y.toFixed(1)} Q ${control.x.toFixed(1)} ${control.y.toFixed(1)} ${clippedEnd.x.toFixed(1)} ${clippedEnd.y.toFixed(1)}`,
     mid,
+    end: clippedEnd,
+    direction: {
+      x: (clippedEnd.x - control.x) / arrival,
+      y: (clippedEnd.y - control.y) / arrival,
+    },
   };
 };

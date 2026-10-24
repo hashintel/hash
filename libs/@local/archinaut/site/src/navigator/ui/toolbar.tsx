@@ -1,7 +1,7 @@
 /**
- * The strip above the drawing: where the selection sits in the taxonomy,
- * search, the map/focus and projection switches, and the way back to the
- * docs.
+ * The strip above the drawing: where the selection sits, search, the
+ * domain tags, the focus switch and the way back to the docs. One row,
+ * nothing the drawing does not need.
  */
 
 import { useState } from "react";
@@ -14,14 +14,14 @@ import {
   isLayer,
   regionOf,
 } from "../model/graph";
-import { searchMatches, type Projection } from "../model/projections";
+import { searchMatches } from "../model/projections";
 import {
+  clearFilters,
   exitFocus,
   focusOn,
   reveal,
-  select,
-  setProjection,
   setQuery,
+  toggleTag,
 } from "../view-state";
 import { useNavigator } from "./navigator-context";
 
@@ -30,7 +30,7 @@ const Breadcrumb = () => {
   const id = state.selected ?? state.focus;
   const node = id === null ? undefined : index.nodes.get(id);
   if (node === undefined) {
-    return <div className="nav-breadcrumb nav-muted">Nothing selected</div>;
+    return <div className="nav-breadcrumb nav-muted">Architecture</div>;
   }
   const trail = isLayer(node)
     ? [...ancestorIds(node.id).reverse(), node.id]
@@ -45,7 +45,9 @@ const Breadcrumb = () => {
           <button
             type="button"
             className={`nav-crumb${step === id ? " current" : ""}`}
-            onClick={() => update((current) => select(current, step))}
+            onClick={() =>
+              update((current) => reveal(current, step, regionOf(index, step)))
+            }
           >
             {step === node.id
               ? displayName(node)
@@ -76,12 +78,14 @@ const Search = () => {
           })
           .sort((left, right) => left.length - right.length)
           .slice(0, 8);
+  const pick = (id: string): void =>
+    update((current) => setQuery(reveal(current, id, regionOf(index, id)), ""));
   return (
     <div className="nav-search">
       <input
         id="nav-search"
         type="search"
-        placeholder="Search layers, interfaces, tags…  /"
+        placeholder="Find a layer…  /"
         value={state.query}
         onChange={(event) =>
           update((current) => setQuery(current, event.target.value))
@@ -91,16 +95,7 @@ const Search = () => {
         onKeyDown={(event) => {
           const first = results[0];
           if (event.key === "Enter" && first !== undefined) {
-            // The query has done its job once a result is picked; leaving it
-            // would keep dimming everything else.
-            update((current) =>
-              setQuery(
-                event.shiftKey
-                  ? focusOn(current, first)
-                  : reveal(current, first, regionOf(index, first)),
-                "",
-              ),
-            );
+            pick(first);
             event.currentTarget.blur();
           }
           if (event.key === "Escape") {
@@ -119,22 +114,15 @@ const Search = () => {
                 <button
                   type="button"
                   onMouseDown={(event) => event.preventDefault()}
-                  onClick={() =>
-                    update((current) =>
-                      setQuery(reveal(current, id, regionOf(index, id)), ""),
-                    )
-                  }
+                  onClick={() => pick(id)}
                 >
-                  <span
-                    className={`nav-dot ${isInterface(node) ? "interface" : isLayer(node) ? "layer" : "external"}`}
-                  />
                   {displayName(node)}
                   <span className="nav-muted">
                     {" "}
                     {isInterface(node)
                       ? "interface"
                       : isLayer(node)
-                        ? "layer"
+                        ? ""
                         : "external"}
                   </span>
                 </button>
@@ -147,81 +135,79 @@ const Search = () => {
   );
 };
 
-const projections: { id: Projection; label: string; title: string }[] = [
-  {
-    id: "hypergraph",
-    label: "Hypergraph",
-    title: "An interface is a node with a spoke to each participant",
-  },
-  {
-    id: "pairwise",
-    label: "Pairwise",
-    title: "An interface expands into consumer → provider edges",
-  },
-];
+/** The domain tags, behind one button that says how many are on. */
+const Domains = () => {
+  const { index, state, update } = useNavigator();
+  const counts = new Map<string, number>();
+  for (const node of index.nodes.values()) {
+    for (const tag of node.tags) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+  return (
+    <details className="nav-domains">
+      <summary
+        className={`nav-button${state.tags.length > 0 ? " active" : ""}`}
+        title="Dim everything outside a domain"
+      >
+        Domains{state.tags.length > 0 ? ` · ${state.tags.length}` : ""}
+      </summary>
+      <div className="nav-domains-menu">
+        {index.model.tags.map((tag) => (
+          <button
+            key={tag.id}
+            type="button"
+            title={tag.description}
+            className={`nav-chip${state.tags.includes(tag.id) ? " active" : ""}`}
+            onClick={() => update((current) => toggleTag(current, tag.id))}
+          >
+            #{tag.id}{" "}
+            <span className="nav-count">{counts.get(tag.id) ?? 0}</span>
+          </button>
+        ))}
+        {state.tags.length > 0 ? (
+          <button
+            type="button"
+            className="nav-link"
+            onClick={() => update(clearFilters)}
+          >
+            clear
+          </button>
+        ) : null}
+      </div>
+    </details>
+  );
+};
 
-export const Toolbar = ({
-  showFilters,
-  onToggleFilters,
-}: {
-  showFilters: boolean;
-  onToggleFilters: () => void;
-}) => {
+export const Toolbar = () => {
   const { state, update, close } = useNavigator();
+  const focusable = state.selected ?? state.focus;
   return (
     <div className="nav-toolbar">
-      <button
-        type="button"
-        className="nav-button"
-        aria-pressed={showFilters}
-        onClick={onToggleFilters}
-        title="Domains, audience, edge kinds and the legend"
-      >
-        Filters
-      </button>
       <Breadcrumb />
       <Search />
-      <div className="nav-segments">
-        <div className="nav-segment-group" role="group" aria-label="View">
-          <button
-            type="button"
-            className={state.mode === "map" ? "active" : ""}
-            onClick={() => update(exitFocus)}
-          >
-            Overview
-          </button>
-          <button
-            type="button"
-            className={state.mode === "focus" ? "active" : ""}
-            disabled={state.selected === null && state.focus === null}
-            title="Centre the selected node and its neighbourhood (F)"
-            onClick={() =>
-              update((current) =>
-                current.selected === null
-                  ? current
-                  : focusOn(current, current.selected),
-              )
-            }
-          >
-            Focus
-          </button>
-        </div>
-        <div className="nav-segment-group" role="group" aria-label="Projection">
-          {projections.map((projection) => (
-            <button
-              key={projection.id}
-              type="button"
-              title={projection.title}
-              className={state.projection === projection.id ? "active" : ""}
-              onClick={() =>
-                update((current) => setProjection(current, projection.id))
-              }
-            >
-              {projection.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <Domains />
+      <button
+        type="button"
+        className={`nav-button${state.mode === "focus" ? " active" : ""}`}
+        disabled={focusable === null}
+        title={
+          state.mode === "focus"
+            ? "Back to the whole map (Esc)"
+            : "Centre the selection and its neighbourhood (F)"
+        }
+        onClick={() =>
+          update((current) =>
+            current.mode === "focus"
+              ? exitFocus(current)
+              : focusable === null
+                ? current
+                : focusOn(current, focusable),
+          )
+        }
+      >
+        Focus
+      </button>
       <button
         type="button"
         className="nav-close"
