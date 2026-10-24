@@ -40,7 +40,7 @@ pub struct RemovePlace {
     pub place_id: String,
 }
 
-fn validate_dynamics(place: &Value, net: &Value) -> Result<(), String> {
+pub(crate) fn validate_dynamics(place: &Value, net: &Value) -> Result<(), String> {
     if place["differentialEquationId"].is_null() {
         return Ok(());
     }

@@ -38,6 +38,199 @@ export const createRustInstance = (
     ...instance,
     mutations: withWrittenIdsInErrors({
       ...instance.mutations,
+      addType(input) {
+        const { targetSubnetId, ...entity } =
+          mutationActionInputSchemas.addType.parse(input);
+        handle.execute({ type: "addType", input: { targetSubnetId, entity } });
+      },
+      updateType(input) {
+        const parsed = mutationActionInputSchemas.updateType.parse(input);
+        handle.execute({
+          type: "updateType",
+          input: {
+            target: {
+              targetSubnetId: parsed.targetSubnetId,
+              id: parsed.typeId,
+            },
+            ...nativeUpdate({ update: parsed.update }),
+          },
+        });
+      },
+      removeType(input) {
+        const parsed = mutationActionInputSchemas.removeType.parse(input);
+        handle.execute({
+          type: "removeType",
+          input: { targetSubnetId: parsed.targetSubnetId, id: parsed.typeId },
+        });
+      },
+      addDifferentialEquation(input) {
+        const { targetSubnetId, ...entity } =
+          mutationActionInputSchemas.addDifferentialEquation.parse(input);
+        handle.execute({
+          type: "addDifferentialEquation",
+          input: { targetSubnetId, entity },
+        });
+      },
+      updateDifferentialEquation(input) {
+        const parsed =
+          mutationActionInputSchemas.updateDifferentialEquation.parse(input);
+        handle.execute({
+          type: "updateDifferentialEquation",
+          input: {
+            target: {
+              targetSubnetId: parsed.targetSubnetId,
+              id: parsed.equationId,
+            },
+            ...nativeUpdate({ update: parsed.update }),
+          },
+        });
+      },
+      removeDifferentialEquation(input) {
+        const parsed =
+          mutationActionInputSchemas.removeDifferentialEquation.parse(input);
+        handle.execute({
+          type: "removeDifferentialEquation",
+          input: {
+            targetSubnetId: parsed.targetSubnetId,
+            id: parsed.equationId,
+          },
+        });
+      },
+      addParameter(input) {
+        const { targetSubnetId, ...entity } =
+          mutationActionInputSchemas.addParameter.parse(input);
+        handle.execute({
+          type: "addParameter",
+          input: { targetSubnetId, entity },
+        });
+      },
+      updateParameter(input) {
+        const parsed = mutationActionInputSchemas.updateParameter.parse(input);
+        handle.execute({
+          type: "updateParameter",
+          input: {
+            target: {
+              targetSubnetId: parsed.targetSubnetId,
+              id: parsed.parameterId,
+            },
+            ...nativeUpdate({ update: parsed.update }),
+          },
+        });
+      },
+      removeParameter(input) {
+        const parsed = mutationActionInputSchemas.removeParameter.parse(input);
+        handle.execute({
+          type: "removeParameter",
+          input: {
+            targetSubnetId: parsed.targetSubnetId,
+            id: parsed.parameterId,
+          },
+        });
+      },
+      addScenario(input) {
+        const entity = mutationActionInputSchemas.addScenario.parse(input);
+        handle.execute({ type: "addScenario", input: { entity } });
+      },
+      updateScenario(input) {
+        const parsed = mutationActionInputSchemas.updateScenario.parse(input);
+        handle.execute({
+          type: "updateScenario",
+          input: {
+            target: { id: parsed.scenarioId },
+            ...nativeUpdate({ update: parsed.update }),
+          },
+        });
+      },
+      removeScenario(input) {
+        const parsed = mutationActionInputSchemas.removeScenario.parse(input);
+        handle.execute({
+          type: "removeScenario",
+          input: { id: parsed.scenarioId },
+        });
+      },
+      addMetric(input) {
+        const entity = mutationActionInputSchemas.addMetric.parse(input);
+        handle.execute({ type: "addMetric", input: { entity } });
+      },
+      updateMetric(input) {
+        const parsed = mutationActionInputSchemas.updateMetric.parse(input);
+        handle.execute({
+          type: "updateMetric",
+          input: {
+            target: { id: parsed.metricId },
+            ...nativeUpdate({ update: parsed.update }),
+          },
+        });
+      },
+      removeMetric(input) {
+        const parsed = mutationActionInputSchemas.removeMetric.parse(input);
+        handle.execute({
+          type: "removeMetric",
+          input: { id: parsed.metricId },
+        });
+      },
+      addTypeElement(input) {
+        const parsed = mutationActionInputSchemas.addTypeElement.parse(input);
+        handle.execute({
+          type: "editTypeElements",
+          input: {
+            target: {
+              targetSubnetId: parsed.targetSubnetId,
+              id: parsed.typeId,
+            },
+            edit: { kind: "add", element: parsed.element },
+          },
+        });
+      },
+      updateTypeElement(input) {
+        const parsed =
+          mutationActionInputSchemas.updateTypeElement.parse(input);
+        handle.execute({
+          type: "editTypeElements",
+          input: {
+            target: {
+              targetSubnetId: parsed.targetSubnetId,
+              id: parsed.typeId,
+            },
+            edit: {
+              kind: "update",
+              elementId: parsed.elementId,
+              ...nativeUpdate({ update: parsed.update }),
+            },
+          },
+        });
+      },
+      removeTypeElement(input) {
+        const parsed =
+          mutationActionInputSchemas.removeTypeElement.parse(input);
+        handle.execute({
+          type: "editTypeElements",
+          input: {
+            target: {
+              targetSubnetId: parsed.targetSubnetId,
+              id: parsed.typeId,
+            },
+            edit: { kind: "remove", elementId: parsed.elementId },
+          },
+        });
+      },
+      moveTypeElement(input) {
+        const parsed = mutationActionInputSchemas.moveTypeElement.parse(input);
+        handle.execute({
+          type: "editTypeElements",
+          input: {
+            target: {
+              targetSubnetId: parsed.targetSubnetId,
+              id: parsed.typeId,
+            },
+            edit: {
+              kind: "move",
+              elementId: parsed.elementId,
+              toIndex: parsed.toIndex,
+            },
+          },
+        });
+      },
       addPlace(input) {
         const { targetSubnetId, ...place } =
           mutationActionInputSchemas.addPlace.parse(input);

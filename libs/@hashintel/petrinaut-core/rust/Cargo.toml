@@ -19,6 +19,7 @@ wasm-bindgen = { workspace = true, public = true, features = ["std"] }
 # Private workspace dependencies
 
 # Private third-party dependencies
+ryu-js = { workspace = true }
 serde = { workspace = true, features = ["derive", "alloc"] }
 tsify = { workspace = true, features = ["json"] }
 uuid = { workspace = true, features = ["v5", "std"] }

@@ -246,3 +246,201 @@ test.each(Array.from({ length: 32 }, (_, mask) => mask))(
     }
   },
 );
+
+test.each(Array.from({ length: 32 }, (_, mask) => mask))(
+  "matches native definition edits and history under policy %i",
+  async (mask) => {
+    const options = {
+      initial: {
+        places: [
+          { id: "input", name: "Input", x: 0, y: 0 },
+          { id: "output", name: "Output", x: 0, y: 0 },
+        ],
+        transitions: [
+          {
+            id: "move",
+            name: "Move",
+            x: 0,
+            y: 0,
+            lambdaCode: "return true;",
+            inputArcs: [{ placeId: "input", type: "read" as const, weight: 1 }],
+            outputArcs: [{ placeId: "output", weight: 2 }],
+          },
+        ],
+        types: [
+          {
+            id: "color",
+            name: "Token",
+            iconSlug: "circle",
+            displayColor: "#000000",
+            elements: [
+              { elementId: "real", name: "value", type: "real" as const },
+              { elementId: "bool", name: "enabled", type: "boolean" as const },
+              { elementId: "uuid", name: "key", type: "uuid" as const },
+              { elementId: "str", name: "label", type: "string" as const },
+            ],
+          },
+        ],
+      },
+      capabilities: {
+        disabledExtensions: PETRINAUT_EXTENSION_NAMES.filter(
+          (_, index) => Math.floor(mask / 2 ** index) % 2 !== 0,
+        ),
+      },
+    };
+    const rust = await createRustPetrinaut(options);
+    const reference = createPetrinaut({
+      document: createJsonDocHandle(options),
+    });
+    const draft = vi.spyOn(rust.handle, "change");
+    try {
+      const steps: ((instance: Petrinaut) => void)[] = [
+        (instance) =>
+          instance.mutations.addType({
+            id: "new-type",
+            name: "New type",
+            iconSlug: "circle",
+            displayColor: "#445566",
+            elements: [],
+          }),
+        (instance) =>
+          instance.mutations.updateType({
+            typeId: "new-type",
+            update: { description: "Description", name: "Renamed" },
+          }),
+        (instance) =>
+          instance.mutations.updateType({
+            typeId: "new-type",
+            update: { description: undefined },
+          }),
+        (instance) =>
+          instance.mutations.addTypeElement({
+            typeId: "new-type",
+            element: { elementId: "first", name: "amount", type: "real" },
+          }),
+        (instance) =>
+          instance.mutations.addTypeElement({
+            typeId: "new-type",
+            element: { elementId: "second", name: "label", type: "string" },
+          }),
+        (instance) =>
+          instance.mutations.updateTypeElement({
+            typeId: "new-type",
+            elementId: "first",
+            update: { name: "count", type: "integer" },
+          }),
+        (instance) =>
+          instance.mutations.moveTypeElement({
+            typeId: "new-type",
+            elementId: "first",
+            toIndex: 10,
+          }),
+        (instance) =>
+          instance.mutations.removeTypeElement({
+            typeId: "new-type",
+            elementId: "second",
+          }),
+        (instance) =>
+          instance.mutations.addDifferentialEquation({
+            id: "equation",
+            name: "Dynamics",
+            colorId: "new-type",
+            code: "return {};",
+          }),
+        (instance) =>
+          instance.mutations.updateDifferentialEquation({
+            equationId: "equation",
+            update: { name: "Changed dynamics", code: "return { count: 0 };" },
+          }),
+        (instance) =>
+          instance.mutations.addParameter({
+            id: "parameter",
+            name: "Rate",
+            variableName: "rate",
+            type: "real",
+            defaultValue: "2",
+          }),
+        (instance) =>
+          instance.mutations.updateParameter({
+            parameterId: "parameter",
+            update: {
+              type: "integer",
+              defaultValue: "3",
+              variableName: "new_rate",
+            },
+          }),
+        (instance) =>
+          instance.mutations.addScenario({
+            id: "scenario",
+            name: "Baseline",
+            scenarioParameters: [],
+            parameterOverrides: {},
+            initialState: { type: "per_place", content: {} },
+          }),
+        (instance) =>
+          instance.mutations.updateScenario({
+            scenarioId: "scenario",
+            update: {
+              description: "Description",
+              initialState: { type: "code", content: "return {};" },
+            },
+          }),
+        (instance) =>
+          instance.mutations.addMetric({
+            id: "metric",
+            name: "Count",
+            code: "return 0;",
+          }),
+        (instance) =>
+          instance.mutations.updateMetric({
+            metricId: "metric",
+            update: {
+              name: "Changed metric",
+              code: "return 1;",
+              description: "Description",
+            },
+          }),
+        (instance) => instance.mutations.removeMetric({ metricId: "metric" }),
+        (instance) =>
+          instance.mutations.removeScenario({ scenarioId: "scenario" }),
+        (instance) =>
+          instance.mutations.removeParameter({ parameterId: "parameter" }),
+        (instance) =>
+          instance.mutations.removeDifferentialEquation({
+            equationId: "equation",
+          }),
+        (instance) => instance.mutations.removeType({ typeId: "new-type" }),
+      ];
+      for (const step of steps) {
+        step(rust);
+        step(reference);
+        expect(rust.handle.doc()).toEqual(reference.handle.doc());
+      }
+      const historyStates = (
+        instance: Petrinaut,
+        direction: "undo" | "redo",
+      ): SDCPN[] => {
+        const states = [instance.handle.doc()!];
+        while (instance.handle.history?.[direction]()) {
+          const next = instance.handle.doc()!;
+          // TypeScript can record equal arc arrays when subnets are disabled; Rust omits these no-ops.
+          if (!isSDCPNEqual(states.at(-1)!, next)) {
+            states.push(next);
+          }
+        }
+        return states;
+      };
+      const index = rust.handle.history?.currentIndex.get();
+      const undo = historyStates(rust, "undo");
+      expect(undo).toHaveLength(index! + 1);
+      expect(undo).toEqual(historyStates(reference, "undo"));
+      expect(historyStates(rust, "redo")).toEqual(
+        historyStates(reference, "redo"),
+      );
+      expect(draft).not.toHaveBeenCalled();
+    } finally {
+      rust.dispose();
+      reference.dispose();
+    }
+  },
+);

@@ -589,3 +589,39 @@ fn arc_reference_failures_are_atomic() {
         "should not record failed arc edits"
     );
 }
+
+#[test]
+fn definition_edits_reject_invalid_values_without_losing_redo() {
+    let mut instance = instance(50);
+    let add: Command = serde_json::from_value(json!({"type":"addParameter","input":{"entity":{"id":"parameter","name":"Rate","variableName":"rate","type":"real","defaultValue":"1"}}})).expect("command should deserialize");
+    instance
+        .execute(&add, "add".to_owned())
+        .expect("parameter should be valid");
+    instance.go_to_index(0).expect("undo should succeed");
+    let before = instance.document().clone();
+    for update in [
+        json!({"type":"bogus"}),
+        json!({"variableName":"constructor"}),
+        json!({"defaultValue":"NaN"}),
+        json!({"metadata":{}}),
+    ] {
+        instance
+            .go_to_index(1)
+            .expect("redo should remain available");
+        let command: Command = serde_json::from_value(
+            json!({"type":"updateParameter","input":{"target":{"id":"parameter"},"update":update}}),
+        )
+        .expect("command should deserialize");
+        let current = instance.document().clone();
+        instance
+            .execute(&command, "invalid".to_owned())
+            .expect_err("invalid parameter should fail");
+        assert_eq!(instance.document(), &current);
+        assert_eq!(instance.current_index(), 1);
+        instance
+            .go_to_index(0)
+            .expect("undo should remain available");
+        assert_eq!(instance.document(), &before);
+    }
+    assert_eq!(instance.timestamps(), vec!["initial", "add"]);
+}

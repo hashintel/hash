@@ -4,6 +4,7 @@ extern crate alloc;
 
 mod arcs;
 mod command;
+mod definitions;
 mod document;
 mod entity;
 mod extensions;
@@ -14,6 +15,7 @@ mod places;
 #[cfg(test)]
 mod tests;
 mod transitions;
+mod type_elements;
 mod wasm;
 
 use core::cell::OnceCell;
@@ -27,11 +29,13 @@ pub use crate::{
         UpdateArcWeight,
     },
     command::Command,
+    definitions::{CreateEntity, EntityTarget, UpdateEntity},
     entity::{Place, Transition},
     extensions::Extensions,
     patch::Patch,
     places::{AddPlace, RemovePlace, UpdatePlace},
     transitions::{AddTransition, RemoveTransition, UpdateTransition},
+    type_elements::{EditTypeElements, TypeElementEdit},
 };
 
 #[derive(Debug)]
@@ -208,6 +212,52 @@ impl PetrinautInstance {
         }
         let mut next = self.document().clone();
         match command {
+            Command::AddType(input) => {
+                definitions::create(&mut next, "types", input, self.extensions)?;
+            }
+            Command::UpdateType(input) => {
+                definitions::update(&mut next, "types", input, self.extensions)?;
+            }
+            Command::RemoveType(input) => {
+                definitions::remove(&mut next, "types", input, self.extensions)?;
+            }
+            Command::AddDifferentialEquation(input) => {
+                definitions::create(&mut next, "differentialEquations", input, self.extensions)?;
+            }
+            Command::UpdateDifferentialEquation(input) => {
+                definitions::update(&mut next, "differentialEquations", input, self.extensions)?;
+            }
+            Command::RemoveDifferentialEquation(input) => {
+                definitions::remove(&mut next, "differentialEquations", input, self.extensions)?;
+            }
+            Command::AddParameter(input) => {
+                definitions::create(&mut next, "parameters", input, self.extensions)?;
+            }
+            Command::UpdateParameter(input) => {
+                definitions::update(&mut next, "parameters", input, self.extensions)?;
+            }
+            Command::RemoveParameter(input) => {
+                definitions::remove(&mut next, "parameters", input, self.extensions)?;
+            }
+            Command::AddScenario(input) => {
+                definitions::create(&mut next, "scenarios", input, self.extensions)?;
+            }
+            Command::UpdateScenario(input) => {
+                definitions::update(&mut next, "scenarios", input, self.extensions)?;
+            }
+            Command::RemoveScenario(input) => {
+                definitions::remove(&mut next, "scenarios", input, self.extensions)?;
+            }
+            Command::AddMetric(input) => {
+                definitions::create(&mut next, "metrics", input, self.extensions)?;
+            }
+            Command::UpdateMetric(input) => {
+                definitions::update(&mut next, "metrics", input, self.extensions)?;
+            }
+            Command::RemoveMetric(input) => {
+                definitions::remove(&mut next, "metrics", input, self.extensions)?;
+            }
+            Command::EditTypeElements(input) => input.apply(&mut next, self.extensions)?,
             Command::AddPlace(input) => input.apply(&mut next, self.extensions)?,
             Command::UpdatePlace(input) => input.apply(&mut next, self.extensions)?,
             Command::RemovePlace(input) => input.apply(&mut next, self.extensions)?,

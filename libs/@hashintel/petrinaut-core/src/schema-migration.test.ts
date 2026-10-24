@@ -1,12 +1,16 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeAll, describe, expect, test } from "vitest";
 
+import { readRustWasm } from "../scripts/read-rust-wasm.mjs";
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
+import { initializePetrinautRust } from "./rust/index";
+import { createRustInstance } from "./rust/instance";
 import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
 import { scenarioSchema } from "./schemas/scenario-schema";
 import { formatUuid, toUuid } from "./simulation/engine/uuid";
 
+import type { Petrinaut } from "./instance";
 import type { Place, SDCPN } from "./types/sdcpn";
 
 const idOf = toPetrinautId;
@@ -90,11 +94,6 @@ const cloneSDCPN = (sdcpn: SDCPN): SDCPN =>
     }
   ).structuredClone(sdcpn);
 
-const createInstance = (initial: SDCPN = makeBaseSDCPN()) =>
-  createPetrinaut({
-    document: createJsonDocHandle({ initial: cloneSDCPN(initial) }),
-  });
-
 const getScenarioRows = (
   sdcpn: SDCPN,
   placeId: string,
@@ -165,192 +164,212 @@ describe("migrateScenarioRowsForTypeEdit", () => {
   });
 });
 
-describe("scenario row migration through actions", () => {
-  test("addTypeElement appends default cells to root and subnet place rows", () => {
-    const instance = createInstance();
+beforeAll(async () => {
+  await initializePetrinautRust(await readRustWasm());
+});
 
-    instance.mutations.addTypeElement({
-      typeId: "type-1",
-      element: { elementId: "element-4", name: "id", type: "uuid" },
+describe.each(["TypeScript", "Rust"])(
+  "scenario row migration through actions (%s)",
+  (backend) => {
+    const instances: Petrinaut[] = [];
+    afterEach(() => {
+      instances.splice(0).forEach((instance) => instance.dispose());
+    });
+    const createInstance = (initial: SDCPN = makeBaseSDCPN()) => {
+      const options = { initial: cloneSDCPN(initial) };
+      const instance =
+        backend === "Rust"
+          ? createRustInstance(options)
+          : createPetrinaut({ document: createJsonDocHandle(options) });
+      instances.push(instance);
+      return instance;
+    };
+    test("addTypeElement appends default cells to root and subnet place rows", () => {
+      const instance = createInstance();
+
+      instance.mutations.addTypeElement({
+        typeId: "type-1",
+        element: { elementId: "element-4", name: "id", type: "uuid" },
+      });
+
+      const definition = instance.definition.get();
+      expect(getScenarioRows(definition, idOf("place-1"))).toEqual([
+        [1.5, 2, "alpha", NIL_UUID_STRING],
+        [2.5, 3, "beta", NIL_UUID_STRING],
+      ]);
+      expect(getScenarioRows(definition, idOf("place-sub"))).toEqual([
+        [9.5, 7, "gamma", NIL_UUID_STRING],
+      ]);
     });
 
-    const definition = instance.definition.get();
-    expect(getScenarioRows(definition, idOf("place-1"))).toEqual([
-      [1.5, 2, "alpha", NIL_UUID_STRING],
-      [2.5, 3, "beta", NIL_UUID_STRING],
-    ]);
-    expect(getScenarioRows(definition, idOf("place-sub"))).toEqual([
-      [9.5, 7, "gamma", NIL_UUID_STRING],
-    ]);
-  });
+    test("removeTypeElement splices the matching column out of each row", () => {
+      const instance = createInstance();
 
-  test("removeTypeElement splices the matching column out of each row", () => {
-    const instance = createInstance();
+      instance.mutations.removeTypeElement({
+        typeId: "type-1",
+        elementId: "element-2",
+      });
 
-    instance.mutations.removeTypeElement({
-      typeId: "type-1",
-      elementId: "element-2",
-    });
-
-    const definition = instance.definition.get();
-    expect(getScenarioRows(definition, idOf("place-1"))).toEqual([
-      [1.5, "alpha"],
-      [2.5, "beta"],
-    ]);
-    expect(getScenarioRows(definition, idOf("place-sub"))).toEqual([
-      [9.5, "gamma"],
-    ]);
-  });
-
-  test("moveTypeElement permutes row columns, clamping out-of-range targets", () => {
-    const instance = createInstance();
-
-    instance.mutations.moveTypeElement({
-      typeId: "type-1",
-      elementId: "element-1",
-      toIndex: 99,
-    });
-
-    const definition = instance.definition.get();
-    expect(definition.types[0]!.elements.map((el) => el.elementId)).toEqual([
-      idOf("element-2"),
-      idOf("element-3"),
-      idOf("element-1"),
-    ]);
-    expect(getScenarioRows(definition, idOf("place-1"))).toEqual([
-      [2, "alpha", 1.5],
-      [3, "beta", 2.5],
-    ]);
-  });
-
-  test("changing an element type coerces cells, with default fallback", () => {
-    const instance = createInstance();
-
-    // real → integer: 1.5 rounds to 2 (and 2.5 to 3, banker-free Math.round).
-    instance.mutations.updateTypeElement({
-      typeId: "type-1",
-      elementId: "element-1",
-      update: { type: "integer" },
-    });
-    expect(getScenarioRows(instance.definition.get(), idOf("place-1"))).toEqual(
-      [
-        [2, 2, "alpha"],
-        [3, 3, "beta"],
-      ],
-    );
-
-    // string "alpha" → integer: not numeric, falls back to the default 0.
-    instance.mutations.updateTypeElement({
-      typeId: "type-1",
-      elementId: "element-3",
-      update: { type: "integer" },
-    });
-    expect(getScenarioRows(instance.definition.get(), idOf("place-1"))).toEqual(
-      [
-        [2, 2, 0],
-        [3, 3, 0],
-      ],
-    );
-
-    // integer → boolean: nonzero numbers become true.
-    instance.mutations.updateTypeElement({
-      typeId: "type-1",
-      elementId: "element-3",
-      update: { type: "boolean" },
-    });
-    expect(getScenarioRows(instance.definition.get(), idOf("place-1"))).toEqual(
-      [
-        [2, 2, false],
-        [3, 3, false],
-      ],
-    );
-
-    // integer → uuid: numbers convert deterministically to canonical
-    // lowercase UUIDv5 strings.
-    instance.mutations.updateTypeElement({
-      typeId: "type-1",
-      elementId: "element-2",
-      update: { type: "uuid" },
-    });
-    expect(getScenarioRows(instance.definition.get(), idOf("place-1"))).toEqual(
-      [
-        [2, formatUuid(toUuid(2)), false],
-        [3, formatUuid(toUuid(3)), false],
-      ],
-    );
-    expect(
-      getScenarioRows(instance.definition.get(), idOf("place-sub")),
-    ).toEqual([[10, formatUuid(toUuid(7)), false]]);
-  });
-
-  test("rename-only element updates leave rows untouched", () => {
-    const instance = createInstance();
-
-    instance.mutations.updateTypeElement({
-      typeId: "type-1",
-      elementId: "element-1",
-      update: { name: "mass_kg" },
-    });
-
-    expect(getScenarioRows(instance.definition.get(), idOf("place-1"))).toEqual(
-      [
-        [1.5, 2, "alpha"],
-        [2.5, 3, "beta"],
-      ],
-    );
-  });
-
-  test("leaves uncolored expressions and code scenarios untouched, and keeps scenarios valid", () => {
-    const instance = createInstance();
-
-    instance.mutations.addTypeElement({
-      typeId: "type-1",
-      element: { elementId: "element-4", name: "active", type: "boolean" },
-    });
-    instance.mutations.removeTypeElement({
-      typeId: "type-1",
-      elementId: "element-1",
-    });
-
-    const definition = instance.definition.get();
-    const perPlaceScenario = definition.scenarios![0]!;
-    if (perPlaceScenario.initialState.type !== "per_place") {
-      throw new Error("expected per_place scenario");
-    }
-    expect(perPlaceScenario.initialState.content[idOf("place-plain")]).toBe(
-      "5",
-    );
-    expect(definition.scenarios![1]!.initialState).toEqual({
-      type: "code",
-      content: "return {};",
-    });
-
-    for (const scenario of definition.scenarios!) {
-      expect(() => scenarioSchema.parse(scenario)).not.toThrow();
-    }
-  });
-
-  test("undoing a type-element edit restores the migrated rows atomically", () => {
-    const instance = createInstance();
-
-    instance.mutations.removeTypeElement({
-      typeId: "type-1",
-      elementId: "element-2",
-    });
-    expect(getScenarioRows(instance.definition.get(), idOf("place-1"))).toEqual(
-      [
+      const definition = instance.definition.get();
+      expect(getScenarioRows(definition, idOf("place-1"))).toEqual([
         [1.5, "alpha"],
         [2.5, "beta"],
-      ],
-    );
+      ]);
+      expect(getScenarioRows(definition, idOf("place-sub"))).toEqual([
+        [9.5, "gamma"],
+      ]);
+    });
 
-    instance.handle.history!.undo();
+    test("moveTypeElement permutes row columns, clamping out-of-range targets", () => {
+      const instance = createInstance();
 
-    const definition = instance.definition.get();
-    expect(definition.types[0]!.elements).toHaveLength(3);
-    expect(getScenarioRows(definition, idOf("place-1"))).toEqual([
-      [1.5, 2, "alpha"],
-      [2.5, 3, "beta"],
-    ]);
-  });
-});
+      instance.mutations.moveTypeElement({
+        typeId: "type-1",
+        elementId: "element-1",
+        toIndex: 99,
+      });
+
+      const definition = instance.definition.get();
+      expect(definition.types[0]!.elements.map((el) => el.elementId)).toEqual([
+        idOf("element-2"),
+        idOf("element-3"),
+        idOf("element-1"),
+      ]);
+      expect(getScenarioRows(definition, idOf("place-1"))).toEqual([
+        [2, "alpha", 1.5],
+        [3, "beta", 2.5],
+      ]);
+    });
+
+    test("changing an element type coerces cells, with default fallback", () => {
+      const instance = createInstance();
+
+      // real → integer: 1.5 rounds to 2 (and 2.5 to 3, banker-free Math.round).
+      instance.mutations.updateTypeElement({
+        typeId: "type-1",
+        elementId: "element-1",
+        update: { type: "integer" },
+      });
+      expect(
+        getScenarioRows(instance.definition.get(), idOf("place-1")),
+      ).toEqual([
+        [2, 2, "alpha"],
+        [3, 3, "beta"],
+      ]);
+
+      // string "alpha" → integer: not numeric, falls back to the default 0.
+      instance.mutations.updateTypeElement({
+        typeId: "type-1",
+        elementId: "element-3",
+        update: { type: "integer" },
+      });
+      expect(
+        getScenarioRows(instance.definition.get(), idOf("place-1")),
+      ).toEqual([
+        [2, 2, 0],
+        [3, 3, 0],
+      ]);
+
+      // integer → boolean: nonzero numbers become true.
+      instance.mutations.updateTypeElement({
+        typeId: "type-1",
+        elementId: "element-3",
+        update: { type: "boolean" },
+      });
+      expect(
+        getScenarioRows(instance.definition.get(), idOf("place-1")),
+      ).toEqual([
+        [2, 2, false],
+        [3, 3, false],
+      ]);
+
+      // integer → uuid: numbers convert deterministically to canonical
+      // lowercase UUIDv5 strings.
+      instance.mutations.updateTypeElement({
+        typeId: "type-1",
+        elementId: "element-2",
+        update: { type: "uuid" },
+      });
+      expect(
+        getScenarioRows(instance.definition.get(), idOf("place-1")),
+      ).toEqual([
+        [2, formatUuid(toUuid(2)), false],
+        [3, formatUuid(toUuid(3)), false],
+      ]);
+      expect(
+        getScenarioRows(instance.definition.get(), idOf("place-sub")),
+      ).toEqual([[10, formatUuid(toUuid(7)), false]]);
+    });
+
+    test("rename-only element updates leave rows untouched", () => {
+      const instance = createInstance();
+
+      instance.mutations.updateTypeElement({
+        typeId: "type-1",
+        elementId: "element-1",
+        update: { name: "mass_kg" },
+      });
+
+      expect(
+        getScenarioRows(instance.definition.get(), idOf("place-1")),
+      ).toEqual([
+        [1.5, 2, "alpha"],
+        [2.5, 3, "beta"],
+      ]);
+    });
+
+    test("leaves uncolored expressions and code scenarios untouched, and keeps scenarios valid", () => {
+      const instance = createInstance();
+
+      instance.mutations.addTypeElement({
+        typeId: "type-1",
+        element: { elementId: "element-4", name: "active", type: "boolean" },
+      });
+      instance.mutations.removeTypeElement({
+        typeId: "type-1",
+        elementId: "element-1",
+      });
+
+      const definition = instance.definition.get();
+      const perPlaceScenario = definition.scenarios![0]!;
+      if (perPlaceScenario.initialState.type !== "per_place") {
+        throw new Error("expected per_place scenario");
+      }
+      expect(perPlaceScenario.initialState.content[idOf("place-plain")]).toBe(
+        "5",
+      );
+      expect(definition.scenarios![1]!.initialState).toEqual({
+        type: "code",
+        content: "return {};",
+      });
+
+      for (const scenario of definition.scenarios!) {
+        expect(() => scenarioSchema.parse(scenario)).not.toThrow();
+      }
+    });
+
+    test("undoing a type-element edit restores the migrated rows atomically", () => {
+      const instance = createInstance();
+
+      instance.mutations.removeTypeElement({
+        typeId: "type-1",
+        elementId: "element-2",
+      });
+      expect(
+        getScenarioRows(instance.definition.get(), idOf("place-1")),
+      ).toEqual([
+        [1.5, "alpha"],
+        [2.5, "beta"],
+      ]);
+
+      instance.handle.history!.undo();
+
+      const definition = instance.definition.get();
+      expect(definition.types[0]!.elements).toHaveLength(3);
+      expect(getScenarioRows(definition, idOf("place-1"))).toEqual([
+        [1.5, 2, "alpha"],
+        [2.5, 3, "beta"],
+      ]);
+    });
+  },
+);

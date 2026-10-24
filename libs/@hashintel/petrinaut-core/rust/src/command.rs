@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     AddArc, AddPlace, AddTransition, ArcTarget, CommitNodePositions, RemovePlace, RemoveTransition,
     UpdateArcPlace, UpdateArcType, UpdateArcWeight, UpdatePlace, UpdateTransition,
+    definitions::{CreateEntity, EntityTarget, UpdateEntity},
+    model::{ColorData, EquationData, MetricData, ParameterData, ScenarioData},
+    type_elements::EditTypeElements,
 };
 
 /// Atomic document edits. Entity IDs use the normalized document's identifiers.
@@ -14,6 +17,22 @@ use crate::{
     deny_unknown_fields
 )]
 pub enum Command {
+    AddType(CreateEntity<ColorData>),
+    UpdateType(UpdateEntity),
+    RemoveType(EntityTarget),
+    AddDifferentialEquation(CreateEntity<EquationData>),
+    UpdateDifferentialEquation(UpdateEntity),
+    RemoveDifferentialEquation(EntityTarget),
+    AddParameter(CreateEntity<ParameterData>),
+    UpdateParameter(UpdateEntity),
+    RemoveParameter(EntityTarget),
+    AddScenario(CreateEntity<ScenarioData>),
+    UpdateScenario(UpdateEntity),
+    RemoveScenario(EntityTarget),
+    AddMetric(CreateEntity<MetricData>),
+    UpdateMetric(UpdateEntity),
+    RemoveMetric(EntityTarget),
+    EditTypeElements(EditTypeElements),
     CommitNodePositions(CommitNodePositions),
     AddPlace(AddPlace),
     UpdatePlace(UpdatePlace),
