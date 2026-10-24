@@ -31,7 +31,7 @@ export function getDocumentUri(itemType: ItemType, itemId: string): string {
     case "differential-equation":
       return `inmemory://sdcpn/differential-equations/${itemId}.ts`;
     case "place-visualizer":
-      return `inmemory://sdcpn/places/${itemId}/visualizer.tsx`;
+      return `inmemory://sdcpn/places/${itemId}/visualizer.jsx`;
   }
 }
 
@@ -82,7 +82,7 @@ const TRANSITION_KERNEL_URI_RE =
   /^inmemory:\/\/sdcpn\/transitions\/([^/]+)\/kernel\.ts$/;
 const DE_URI_RE = /^inmemory:\/\/sdcpn\/differential-equations\/([^/]+)\.ts$/;
 const PLACE_VISUALIZER_URI_RE =
-  /^inmemory:\/\/sdcpn\/places\/([^/]+)\/visualizer\.tsx$/;
+  /^inmemory:\/\/sdcpn\/places\/([^/]+)\/visualizer\.jsx$/;
 
 const SCENARIO_PARAM_OVERRIDE_URI_RE =
   /^inmemory:\/\/sdcpn\/_temp\/scenarios\/([^/]+)\/param-overrides\/([^/]+)\.ts$/;
@@ -106,7 +106,7 @@ const ADHOC_VALUE_URI_RE =
 const TRANSITION_LAMBDA_PATH_RE = /^\/transitions\/([^/]+)\/lambda\/code\.ts$/;
 const TRANSITION_KERNEL_PATH_RE = /^\/transitions\/([^/]+)\/kernel\/code\.ts$/;
 const DE_PATH_RE = /^\/differential_equations\/([^/]+)\/code\.ts$/;
-const PLACE_VISUALIZER_PATH_RE = /^\/places\/([^/]+)\/visualizer\/code\.tsx$/;
+const PLACE_VISUALIZER_PATH_RE = /^\/places\/([^/]+)\/visualizer\/code\.jsx$/;
 
 const SCENARIO_PARAM_OVERRIDE_PATH_RE =
   /^\/_temp\/scenarios\/([^/]+)\/param_overrides\/([^/]+)\/code\.ts$/;

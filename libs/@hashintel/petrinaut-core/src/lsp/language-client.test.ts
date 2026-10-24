@@ -198,7 +198,7 @@ describe("createLanguageClient run gate", () => {
 
     publish([
       {
-        uri: "inmemory://sdcpn/places/p1/visualizer.tsx",
+        uri: "inmemory://sdcpn/places/p1/visualizer.jsx",
         diagnostics: [diagnostic("misspelt attribute")],
       },
       {
@@ -212,7 +212,7 @@ describe("createLanguageClient run gate", () => {
     expect(
       client.diagnostics
         .get()
-        .byUri.get("inmemory://sdcpn/places/p1/visualizer.tsx"),
+        .byUri.get("inmemory://sdcpn/places/p1/visualizer.jsx"),
     ).toHaveLength(1);
   });
 });

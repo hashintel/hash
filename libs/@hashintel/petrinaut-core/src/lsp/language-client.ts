@@ -16,6 +16,8 @@ import type { PetrinautExtensionSettings } from "../extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
 import type { HirCompileResult, ScenarioHir } from "../hir";
 import type { CompileHirArtifactsOptions } from "../hir/compile";
+import type { HirVisualizerContext } from "../hir/surface-context";
+import type { VisualizerHir } from "../hir/visualizer";
 import type { AdHocSynthesisContext } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import type { ReadableStore } from "../store";
 import type { Scenario, SDCPN } from "../types/sdcpn";
@@ -161,6 +163,18 @@ export interface LanguageClient {
     source: ConstraintSource,
     context: LowerConstraintContext,
   ): Promise<LowerConstraintResult>;
+
+  /**
+   * Lowers one place visualizer's module to HIR (in the worker) and checks
+   * it against the place's colour and the net's parameters. The result is
+   * interpreted and rendered in the editor; nothing from the module runs as
+   * JavaScript.
+   */
+  requestVisualizerHir(
+    this: void,
+    code: string,
+    context: HirVisualizerContext,
+  ): Promise<VisualizerHir>;
 
   /**
    * Tear down the transport. Pending requests reject with "Worker terminated".
@@ -505,6 +519,12 @@ export function createLanguageClient(
     requestConstraint(source, context) {
       return sendRequest<LowerConstraintResult>("sdcpn/lowerConstraint", {
         source,
+        context,
+      });
+    },
+    requestVisualizerHir(code, context) {
+      return sendRequest<VisualizerHir>("sdcpn/lowerVisualizer", {
+        code,
         context,
       });
     },

@@ -1716,7 +1716,7 @@ return true;`;
       expect(result.itemDiagnostics[0]).toMatchObject({
         itemId: "place1",
         itemType: "place-visualizer",
-        filePath: "/places/place1/visualizer/code.tsx",
+        filePath: "/places/place1/visualizer/code.jsx",
       });
       expect(
         result.itemDiagnostics[0]?.diagnostics.map(

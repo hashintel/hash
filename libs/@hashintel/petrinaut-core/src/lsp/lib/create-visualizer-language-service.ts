@@ -49,11 +49,11 @@ const packageJson = (name: string): string =>
   JSON.stringify({ name, version: "0.0.0", types: "index.d.ts" });
 
 /**
- * The visualizer language service: JSX compiled against React's element and
- * attribute types, served under a package that is not `react`, with no DOM
- * lib. React's `global.d.ts` declares the element interfaces the attribute
- * types reference as empty interfaces, so `window`, `document`, `fetch` and
- * `setTimeout` stay unknown names.
+ * The visualizer language service: JavaScript with JSX, checked against
+ * React's element and attribute types, served under a package that is not
+ * `react`, with no DOM lib. React's `global.d.ts` declares the element
+ * interfaces the attribute types reference as empty interfaces, so `window`,
+ * `document`, `fetch` and `setTimeout` stay unknown names.
  */
 export const VISUALIZER_LANGUAGE_SERVICE_HOST: LanguageServiceHostConfig = {
   compilerOptions: {
@@ -63,6 +63,10 @@ export const VISUALIZER_LANGUAGE_SERVICE_HOST: LanguageServiceHostConfig = {
     strict: true,
     jsx: ts.JsxEmit.ReactJSX,
     jsxImportSource: VISUALIZER_JSX_PACKAGE,
+    // Visualizer code is JavaScript with JSX: types are inferred, and a
+    // type annotation is reported where it is written (TS8010 and kin).
+    allowJs: true,
+    checkJs: true,
     lib: [...TYPESCRIPT_LIB_NAMES],
     typeRoots: [],
     types: [],
