@@ -93,11 +93,11 @@ export type PetrinautAiAssistant = {
    * their bound document before/after `execute()` or refuse without executing.
    * The panel still owns output insertion, continuation, and cancellation.
    * Not called for read-only refusals, schema failures, title changes or
-   * commands. The read-only check runs first, through Brunch's temporary
-   * editor adapter (FE-2048). `execute()` runs the plugin's edit, which checks
-   * again: an edit refused after that check, such as when the editor turned
-   * read-only meanwhile, returns `applied: false` with the refusal and leaves
-   * the document unchanged.
+   * commands. The refusal check runs first, from `api.document.refusals`.
+   * `execute()` runs the plugin's edit, which checks again: an edit refused
+   * after that check, such as when the editor turned read-only meanwhile,
+   * returns `applied: false` with the refusal and leaves the document
+   * unchanged.
    */
   executeMutation?: PetrinautAiMutationExecutor;
   /**

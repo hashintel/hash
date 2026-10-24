@@ -43,7 +43,6 @@ import {
   setNetTitleToolName,
   type ApplyAutoLayoutResult,
 } from "@hashintel/petrinaut-core";
-import { formatReadOnlyReason } from "@hashintel/petrinaut/react";
 import {
   describeRefusal,
   type EditResult,
@@ -51,7 +50,6 @@ import {
   useStoreSelector,
 } from "@hashintel/petrinaut/ui/plugin";
 
-import { useTemporaryEditRefusal } from "../temporary-editor-compat";
 import {
   AiAssistantContents,
   getTranscriptLabel,
@@ -544,10 +542,6 @@ const ConversationAiAssistantPanel = ({
   const { isOpen: isAiAssistantOpen } = useAssistantPanel();
   const revealInEditor = (target: Parameters<typeof api.editor.reveal>[0]) =>
     api.editor.reveal(target);
-  // TEMPORARY (FE-2048): the built-in panel's early read-only guard, read
-  // through Brunch's compat adapter until the plugin API answers it. Calls
-  // read the editor's latest state; the plugin's edits still check again.
-  const editRefusal = useTemporaryEditRefusal();
 
   const isNetEmpty = useStoreSelector(
     document.net,
@@ -1097,18 +1091,14 @@ const ConversationAiAssistantPanel = ({
       throw new Error(`Unknown AI tool: ${String(toolName as string)}`);
     }
 
-    // Refuse before consent, the host's mutation boundary or the edit, as the
-    // built-in guard did; the plugin's edits below still refuse on their own.
-    const blockedBy = editRefusal(toolName);
+    // Refuse before consent, the host's mutation boundary or the edit; the
+    // plugin's edits below read the same refusals when they run.
+    const blockedBy = document.refusals.get()[toolName];
     if (blockedBy !== null) {
       await addAutomaticToolOutput({
         tool: toolName,
         toolCallId: toolCall.toolCallId,
-        output: {
-          applied: false,
-          blocked: blockedBy.kind,
-          reason: formatReadOnlyReason(blockedBy),
-        } satisfies AiToolOutput,
+        output: toBlockedOutput(blockedBy),
       });
       return;
     }
@@ -2388,17 +2378,13 @@ const ConversationAiAssistantPanel = ({
         }
 
         // Refuse at submit when the editor turned read-only after consent
-        // showed, as the built-in guard did; the edit refuses on its own too.
-        const readOnlyAtSubmit = editRefusal(toolName);
-        if (readOnlyAtSubmit !== null) {
+        // showed.
+        const refusedAtSubmit = document.refusals.get()[toolName];
+        if (refusedAtSubmit !== null) {
           safelyAddToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
-            output: {
-              applied: false,
-              blocked: readOnlyAtSubmit.kind,
-              reason: formatReadOnlyReason(readOnlyAtSubmit),
-            } satisfies AiToolOutput,
+            output: toBlockedOutput(refusedAtSubmit),
           });
           return;
         }
