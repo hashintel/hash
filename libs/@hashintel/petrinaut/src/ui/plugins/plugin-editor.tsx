@@ -18,6 +18,7 @@ import {
   createReadableStore,
   type DiagnosticsSnapshot,
   type Petrinaut,
+  type PetrinautMutations,
 } from "@hashintel/petrinaut-core";
 
 import { ErrorTrackerContext } from "../../react/error-tracker-context";
@@ -35,7 +36,11 @@ import { NotificationsContext } from "../../react/notifications/context";
 import { OptimizationsContext } from "../../react/optimizations/context";
 import { ActiveNetContext } from "../../react/state/active-net-context";
 import { useReadOnlyReason } from "../../react/state/use-read-only-reason";
-import { createAccessFamilies } from "./plugin-access";
+import {
+  createAccessFamilies,
+  editPolicyKey,
+  editRefusals,
+} from "./plugin-access";
 import { useCanvasControllerRegistration } from "./plugin-editor/use-canvas-controller-registration";
 
 import type { ExperimentRecord } from "../../react/experiments/context";
@@ -79,6 +84,12 @@ const createPluginEditor = (
   snapshot: PluginEditorSnapshot,
 ): PluginEditorRuntime => {
   const latest = createReadableStore(snapshot.state);
+  const mutationNames = Object.keys(
+    instance.mutations,
+  ) as (keyof PetrinautMutations)[];
+  const refusals = createReadableStore(
+    editRefusals(mutationNames, snapshot.state),
+  );
   const title = createReadableStore(snapshot.title);
   const diagnostics = createReadableStore(snapshot.diagnostics);
   const records = createReadableStore(snapshot.records);
@@ -94,6 +105,7 @@ const createPluginEditor = (
     families: createAccessFamilies({
       instance,
       latest,
+      refusals,
       title,
       diagnostics,
       records,
@@ -110,7 +122,12 @@ const createPluginEditor = (
         }),
     }),
     sync: (next) => {
+      const previousPolicy = editPolicyKey(latest.get());
       latest.set(next.state);
+      // Subscribers wake only when an edit's refusal changes.
+      if (editPolicyKey(next.state) !== previousPolicy) {
+        refusals.set(editRefusals(mutationNames, next.state));
+      }
       title.set(next.title);
       diagnostics.set(next.diagnostics);
       records.set(next.records);

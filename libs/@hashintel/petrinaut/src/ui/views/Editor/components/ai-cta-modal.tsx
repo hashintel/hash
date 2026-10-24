@@ -4,7 +4,8 @@ import { Button, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
-import { AiVoiceModeButton } from "./ai-voice-mode-button";
+
+import type { PluginAssistantStartAction } from "../../../plugins/define-petrinaut-plugin";
 
 const aiCtaModalLayerStyle = css({
   position: "absolute",
@@ -84,18 +85,19 @@ const aiCtaModalInputStyle = css({
   },
 });
 
+const trailingActionStyle = css({ margin: "2" });
+
 export const AiCtaModal = ({
   bottomClearance,
   onDismiss,
-  onStartVoiceMode,
   onSubmit,
-  voiceModeAvailable,
+  startAction,
 }: {
   bottomClearance: number;
   onDismiss: () => void;
-  onStartVoiceMode: () => void;
   onSubmit: (message: string) => void;
-  voiceModeAvailable: boolean;
+  /** Offered in place of Send while the input is empty. */
+  startAction?: PluginAssistantStartAction;
 }) => {
   const [promptInput, setPromptInput] = useState("");
 
@@ -175,36 +177,32 @@ export const AiCtaModal = ({
           size="lg"
           suffix={{
             variant: "subtle",
-            content: canSubmit ? (
-              <Button
-                aria-label="Send first AI assistant message"
-                className={css({ margin: "2" })}
-                iconName="arrowUp"
-                size="lg"
-                tone="brand"
-                tooltip="Send first AI assistant message"
-                type="submit"
-                variant="solid"
-              />
-            ) : voiceModeAvailable ? (
-              <AiVoiceModeButton
-                className={css({ margin: "2" })}
-                onClick={onStartVoiceMode}
-                size="lg"
-              />
-            ) : (
-              <Button
-                aria-label="Send first AI assistant message"
-                className={css({ margin: "2" })}
-                disabled
-                iconName="arrowUp"
-                size="lg"
-                tone="brand"
-                tooltip="Send first AI assistant message"
-                type="submit"
-                variant="solid"
-              />
-            ),
+            content:
+              !canSubmit && startAction ? (
+                <Button
+                  aria-label={startAction.label}
+                  className={trailingActionStyle}
+                  onClick={startAction.run}
+                  prefix={startAction.icon}
+                  size="lg"
+                  tone="brand"
+                  tooltip={startAction.label}
+                  type="button"
+                  variant="solid"
+                />
+              ) : (
+                <Button
+                  aria-label="Send first AI assistant message"
+                  className={trailingActionStyle}
+                  disabled={!canSubmit}
+                  iconName="arrowUp"
+                  size="lg"
+                  tone="brand"
+                  tooltip="Send first AI assistant message"
+                  type="submit"
+                  variant="solid"
+                />
+              ),
           }}
           value={promptInput}
         />

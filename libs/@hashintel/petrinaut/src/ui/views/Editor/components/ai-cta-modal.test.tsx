@@ -8,17 +8,23 @@ import { AiCtaModal } from "./ai-cta-modal";
 
 afterEach(cleanup);
 
+/** A start action like a Voice start, with its own icon. */
+const startActionWith = (run: () => void) => ({
+  label: "Start voice mode",
+  icon: <svg aria-hidden="true" data-testid="start-icon" />,
+  run,
+});
+
 describe("AiCtaModal", () => {
-  test("offers one waveform action without mode tabs and requests Voice mode once", () => {
-    const onStartVoiceMode = vi.fn();
+  test("offers the start action without mode tabs and runs it once", () => {
+    const run = vi.fn();
     const onSubmit = vi.fn();
     render(
       <AiCtaModal
         bottomClearance={0}
-        voiceModeAvailable={true}
         onDismiss={vi.fn()}
-        onStartVoiceMode={onStartVoiceMode}
         onSubmit={onSubmit}
+        startAction={startActionWith(run)}
       />,
     );
 
@@ -45,27 +51,28 @@ describe("AiCtaModal", () => {
     const voiceButton = screen.getByRole("button", {
       name: "Start voice mode",
     });
-    expect(voiceButton.querySelector("svg")).not.toBeNull();
+    expect(
+      voiceButton.querySelector('[data-testid="start-icon"]'),
+    ).not.toBeNull();
     expect(voiceButton.parentElement?.getAttribute("data-scope")).toBe(
       "tooltip",
     );
 
     fireEvent.click(voiceButton);
 
-    expect(onStartVoiceMode).toHaveBeenCalledOnce();
+    expect(run).toHaveBeenCalledOnce();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  test("switches the trailing action from Voice mode to trimmed text submission", () => {
-    const onStartVoiceMode = vi.fn();
+  test("switches the trailing action from the start action to trimmed text submission", () => {
+    const run = vi.fn();
     const onSubmit = vi.fn();
     render(
       <AiCtaModal
         bottomClearance={0}
-        voiceModeAvailable={true}
         onDismiss={vi.fn()}
-        onStartVoiceMode={onStartVoiceMode}
         onSubmit={onSubmit}
+        startAction={startActionWith(run)}
       />,
     );
 
@@ -90,18 +97,12 @@ describe("AiCtaModal", () => {
 
     expect(onSubmit).toHaveBeenCalledOnce();
     expect(onSubmit).toHaveBeenCalledWith("Model an SIR outbreak");
-    expect(onStartVoiceMode).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
   });
 
-  test("retains a disabled Send action when Voice mode is unavailable", () => {
+  test("retains a disabled Send action without a start action", () => {
     render(
-      <AiCtaModal
-        bottomClearance={0}
-        voiceModeAvailable={false}
-        onDismiss={vi.fn()}
-        onStartVoiceMode={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
+      <AiCtaModal bottomClearance={0} onDismiss={vi.fn()} onSubmit={vi.fn()} />,
     );
 
     expect(
@@ -119,9 +120,7 @@ describe("AiCtaModal", () => {
     render(
       <AiCtaModal
         bottomClearance={0}
-        voiceModeAvailable={true}
         onDismiss={onDismiss}
-        onStartVoiceMode={vi.fn()}
         onSubmit={vi.fn()}
       />,
     );

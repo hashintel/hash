@@ -4,6 +4,7 @@ import {
   createReadableStore,
   type LanguageClient,
   type Petrinaut,
+  type ReadableStore,
 } from "@hashintel/petrinaut-core";
 
 import type { PetrinautNavigationState } from "@hashintel/petrinaut/ui";
@@ -12,6 +13,7 @@ import type {
   AddNotificationInput,
   DiagnosticsSnapshot,
   EditRefusal,
+  EditRefusals,
   EditResult,
   PetrinautRevealTarget,
   PluginEdits,
@@ -98,6 +100,20 @@ export const createTestPluginApi = (
 
     return { applied: true, value: undefined };
   };
+  // Read at each call, like `refused`, so a changed `refusal` shows at once.
+  const refusals: ReadableStore<EditRefusals> = {
+    get: () =>
+      Object.fromEntries([
+        ...[...Object.keys(instance.mutations), "applyAutoLayout"].map(
+          (name) => [name, refusal()],
+        ),
+        [
+          "setTitle",
+          setTitle === undefined ? { kind: "no-title-setter" } : refusal(),
+        ],
+      ]) as EditRefusals,
+    subscribe: () => () => {},
+  };
   const mutations = Object.fromEntries(
     Object.entries(instance.mutations).map(
       ([name, mutate]: [string, (input: never) => void]) => [
@@ -145,6 +161,7 @@ export const createTestPluginApi = (
               setTitle(nextTitle);
               titleStore.set(nextTitle);
             }),
+      refusals,
     },
     editor: {
       navigation: createReadableStore(restingNavigation),

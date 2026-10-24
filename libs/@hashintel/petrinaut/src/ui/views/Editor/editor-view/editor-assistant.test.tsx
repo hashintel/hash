@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
-import { type ReactNode, use } from "react";
+import { type ReactNode, use, useEffect } from "react";
 import {
   afterEach,
   beforeAll,
@@ -53,6 +53,9 @@ const PluginChat = () => {
         Test assistant
       </AssistantPanelTitle>
       <p>{panel.isOpen ? "Plugin chat open" : "Plugin chat closed"}</p>
+      <button type="button" onClick={() => panel.setCompact(!panel.compact)}>
+        {panel.compact ? "Expand" : "Use the dock"}
+      </button>
     </>
   );
 };
@@ -60,6 +63,29 @@ const PluginChat = () => {
 const chatPlugin = definePetrinautPlugin(
   { id: "test.chat", name: "Chat", assistant: true },
   { assistant: { content: <PluginChat /> } },
+);
+
+/** What the closing chat saw, in order. */
+const closing: string[] = [];
+
+const ClosingChat = () => {
+  const { isOpen } = useAssistantPanel();
+  useEffect(() => {
+    if (!isOpen) {
+      closing.push("closed");
+    }
+  }, [isOpen]);
+
+  return (
+    <AssistantPanelTitle onClose={() => closing.push("onClose")}>
+      Closing assistant
+    </AssistantPanelTitle>
+  );
+};
+
+const closingPlugin = definePetrinautPlugin(
+  { id: "test.closing", name: "Closing", assistant: true },
+  { assistant: { content: <ClosingChat /> } },
 );
 
 const composerPlugin = definePetrinautPlugin(
@@ -83,7 +109,7 @@ const brokenPlugin = definePetrinautPlugin(
 /** The panel as the editor mounts it, with a button standing in for the toggle. */
 const Editor = () => {
   const { plugin } = useEditorAssistant();
-  const { setAiAssistantOpen } = use(EditorContext);
+  const { setAiAssistantOpen, aiAssistantDockHeight } = use(EditorContext);
 
   return (
     <>
@@ -91,6 +117,9 @@ const Editor = () => {
       <button type="button" onClick={() => setAiAssistantOpen(true)}>
         Show AI assistant
       </button>
+      <output aria-label="Dock height">
+        {aiAssistantDockHeight ?? "none"}
+      </output>
       {plugin && (
         <EditorAssistantPanel
           plugin={plugin}
@@ -119,6 +148,7 @@ describe("EditorAssistantPanel", () => {
       "Float AI assistant",
       "Clear test chat",
       "Close AI assistant",
+      "Use the dock",
     ]);
     expect(document.activeElement).toBe(panel);
   });
@@ -132,6 +162,22 @@ describe("EditorAssistantPanel", () => {
     );
   });
 
+  test("shrinks to a dock the canvas clears, and restores the panel", () => {
+    renderPlugins([chatPlugin], <Editor />);
+    fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" }));
+    const panel = screen.getByRole("complementary", { name: "AI assistant" });
+    const dockHeight = screen.getByRole("status", { name: "Dock height" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Use the dock" }));
+    expect(panel.dataset.compact).toBe("true");
+    expect(dockHeight.textContent).toBe("0");
+    expect(document.activeElement).toBe(panel);
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand" }));
+    expect(panel.dataset.compact).toBe("false");
+    expect(dockHeight.textContent).toBe("none");
+  });
+
   test("closes the panel from its title bar", () => {
     renderPlugins([chatPlugin], <Editor />);
     fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" }));
@@ -139,6 +185,16 @@ describe("EditorAssistantPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
 
     expect(screen.getByText("Plugin chat closed")).not.toBeNull();
+  });
+
+  test("runs the title's onClose before the panel closes", () => {
+    renderPlugins([closingPlugin], <Editor />);
+    fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" }));
+    closing.length = 0;
+
+    fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
+
+    expect(closing).toEqual(["onClose", "closed"]);
   });
 
   test("keeps the panel's frame when the plugin's content throws, and reports it", () => {

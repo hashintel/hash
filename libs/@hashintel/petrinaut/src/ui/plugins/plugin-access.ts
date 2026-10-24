@@ -113,11 +113,23 @@ export type PluginEdits = {
   readonly applyAutoLayout: () => Promise<EditResult<ApplyAutoLayoutResult>>;
 };
 
+/** Why each edit would be refused now, or `null` where it would apply. */
+export type EditRefusals = {
+  readonly [Name in keyof PluginEdits | "setTitle"]: EditRefusal | null;
+};
+
 /** The document, read and changed: `access: { document: "write" }`. */
 export interface PluginDocument extends PluginDocumentReader {
   readonly edit: PluginEdits;
   /** Calls the host's `setTitle`; refused when the host passed none, or while the editor is read-only. */
   setTitle(title: string): EditResult;
+  /**
+   * Why each of `edit`'s methods and `setTitle` would be refused now, or
+   * `null` where it would apply: the check they run when called. It changes
+   * with the editor's mode and simulation, e.g. to offer an action only while
+   * it can apply.
+   */
+  readonly refusals: ReadableStore<EditRefusals>;
 }
 
 /** The document's experiments, read: `access: { experiments: "read" }`. */
@@ -171,10 +183,43 @@ export interface PluginEditorState {
   readonly captureException: ErrorTracker["captureException"];
 }
 
+/** The editor state that decides which edits are refused. */
+type EditPolicyState = Pick<PluginEditorState, "readOnlyReason" | "setTitle">;
+
+/**
+ * Why each edit is refused in `state`: scenario and metric edits only by a
+ * read-only host, every other edit by any read-only reason, and `setTitle`
+ * also while the host passes no setter.
+ */
+export const editRefusals = (
+  mutationNames: readonly (keyof PetrinautMutations)[],
+  { readOnlyReason, setTitle }: EditPolicyState,
+): EditRefusals =>
+  ({
+    ...Object.fromEntries(
+      mutationNames.map((name) => [
+        name,
+        mutationBlockedBy(name, readOnlyReason),
+      ]),
+    ),
+    applyAutoLayout: readOnlyReason,
+    setTitle:
+      setTitle === undefined ? { kind: "no-title-setter" } : readOnlyReason,
+  }) as EditRefusals;
+
+/** Equal for two states that refuse the same edits. */
+export const editPolicyKey = ({ readOnlyReason, setTitle }: EditPolicyState) =>
+  [
+    readOnlyReason?.kind,
+    readOnlyReason?.kind === "simulation-active" && readOnlyReason.state,
+    setTitle !== undefined,
+  ].join(":");
+
 /** What the families are built from: the core instance and the editor's stores. */
 interface PluginEditorPorts {
   readonly instance: Petrinaut;
   readonly latest: ReadableStore<PluginEditorState>;
+  readonly refusals: ReadableStore<EditRefusals>;
   readonly title: ReadableStore<string>;
   readonly diagnostics: ReadableStore<DiagnosticsSnapshot>;
   readonly records: ReadableStore<readonly ExperimentRecord[]>;
@@ -206,16 +251,13 @@ const readDocument = ({
 
 type MutationEdits = Omit<PluginEdits, "applyAutoLayout">;
 
-const guardMutations = ({ instance, latest }: PluginEditorPorts) =>
+const guardMutations = ({ instance, refusals }: PluginEditorPorts) =>
   Object.fromEntries(
     Object.entries(instance.mutations).map(
       ([name, mutate]: [string, (input: never) => void]) => [
         name,
         (input: never): EditResult => {
-          const reason = mutationBlockedBy(
-            name as keyof PetrinautMutations,
-            latest.get().readOnlyReason,
-          );
+          const reason = refusals.get()[name as keyof PetrinautMutations];
           if (reason !== null) {
             return { applied: false, reason };
           }
@@ -231,19 +273,19 @@ const writeDocument = (
   ports: PluginEditorPorts,
   reader: PluginDocumentReader,
 ): PluginDocument => {
-  const { instance, latest, frameSceneAfterRender } = ports;
+  const { instance, latest, refusals, frameSceneAfterRender } = ports;
 
   return {
     ...reader,
     edit: {
       ...guardMutations(ports),
       applyAutoLayout: async () => {
-        const { readOnlyReason, activeSubnetId } = latest.get();
-        if (readOnlyReason !== null) {
-          return { applied: false, reason: readOnlyReason };
+        const reason = refusals.get().applyAutoLayout;
+        if (reason !== null) {
+          return { applied: false, reason };
         }
         const value = await instance.commands.applyAutoLayout({
-          targetSubnetId: activeSubnetId,
+          targetSubnetId: latest.get().activeSubnetId,
         });
         await frameSceneAfterRender();
 
@@ -251,17 +293,15 @@ const writeDocument = (
       },
     },
     setTitle: (title) => {
-      const { setTitle, readOnlyReason } = latest.get();
-      if (setTitle === undefined) {
-        return { applied: false, reason: { kind: "no-title-setter" } };
+      const reason = refusals.get().setTitle;
+      if (reason !== null) {
+        return { applied: false, reason };
       }
-      if (readOnlyReason !== null) {
-        return { applied: false, reason: readOnlyReason };
-      }
-      setTitle(title);
+      latest.get().setTitle?.(title);
 
       return { applied: true, value: undefined };
     },
+    refusals,
   };
 };
 

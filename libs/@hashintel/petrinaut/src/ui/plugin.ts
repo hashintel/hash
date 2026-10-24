@@ -14,6 +14,7 @@ export type {
   PetrinautPluginManifest,
   PluginApi,
   PluginAssistant,
+  PluginAssistantStartAction,
   PluginButton,
   PluginButtonPlace,
   PluginButtonSpec,
@@ -35,6 +36,7 @@ export { describeRefusal } from "./plugins/plugin-access";
 export type {
   AccessApi,
   EditRefusal,
+  EditRefusals,
   EditResult,
   PluginAccess,
   PluginDiagnostics,

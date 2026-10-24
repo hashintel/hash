@@ -125,6 +125,7 @@ described in [AI-created experiments](doc:experiments/ai-created-experiments).
 | `edit.<mutation>(input)` | write | One method per core mutation. Edits the root net unless `input.targetSubnetId` is set. Returns an `EditResult`.                                     |
 | `edit.applyAutoLayout()` | write | Lays out the viewed subnet in one undo entry, then frames it once drawn. Resolves to `EditResult<ApplyAutoLayoutResult>`.                           |
 | `setTitle(title)`        | write | Calls the host's `setTitle`. Refused with `no-title-setter` when the host passed none, and with the read-only reason while the editor is read-only. |
+| `refusals`               | write | `ReadableStore<EditRefusals>`: why each `edit` method and `setTitle` would be refused now, or `null`. The edits run the same check.                 |
 
 `diagnostics` holds `{ byUri, total, errorCount }`; `byUri` is a `Map` from
 document URI to LSP `Diagnostic[]`. `parseDocumentUri(uri)` returns `{ itemType, itemId }`, where
@@ -171,6 +172,17 @@ type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
 | `simulation-active` | A simulation is currently `<state>`. Ask the user to reset the simulation before mutating. |
 | `no-title-setter`   | The host application does not provide title editing.                                       |
 
+`api.document.refusals` holds why each edit would be refused now, keyed like
+`edit` plus `setTitle`, so a plugin can offer an action only while it can apply.
+Scenario and metric edits stay allowed in Simulate mode.
+
+```tsx
+const layoutRefusal = useStoreSelector(
+  api.document.refusals,
+  (refusals) => refusals.applyAutoLayout,
+);
+```
+
 ## Contributions
 
 | Key              | Allowed when | Type                                                                                                                                                                                       |
@@ -181,7 +193,7 @@ type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
 | `buttons`        | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, one of the plugin's command keys. A button has at least one of `onClick`, `command` and `ref`. |
 | `topBarItems`    | Declared     | Per key: a `ReactNode`.                                                                                                                                                                    |
 | `readOnlyAction` | Declared     | `{ run }`: what the read-only notice's button does. The notice shows the action of the first running plugin that declares one, and closes when the button is clicked.                      |
-| `assistant`      | Declared     | `{ content, onPrompt? }`: `content` fills the panel behind the plugin's error boundary, and `onPrompt(text)` takes the empty-net prompt's message. The user's choice shows, or the first.  |
+| `assistant`      | Declared     | `{ content, onPrompt?, startAction? }`: `content` fills the panel behind the plugin's error boundary; the others serve the empty-net prompt. The user's choice shows, or the first.        |
 | `provides`       | Declared     | The service type `T` of `pluginService<T>()`.                                                                                                                                              |
 
 Every declared key is required and every undeclared one is a type error.
@@ -215,13 +227,13 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
   `PluginCommandSpec`, `PluginButtonSpec`, `PluginButtonPlace`,
   `PluginTopBarItemSpec`, `PluginTopBarPlace`.
 - Contributions: `PluginButton`, `PluginCommand`, `PluginReadOnlyAction`,
-  `PluginAssistant`.
+  `PluginAssistant`, `PluginAssistantStartAction`.
 - Assistant panel: `AssistantPanel`.
 - Access: `PluginAccess`, `AccessApi`, `PluginDocumentReader`,
   `PluginDocument`, `PluginDiagnostics`, `PluginEdits`,
   `PluginExperimentsReader`, `PluginExperiments`, `PluginEditorReader`,
   `PluginEditor`, `PluginErrors`, `PluginNotifications`, `EditResult`,
-  `EditRefusal`, `ReadOnlyReason`.
+  `EditRefusal`, `EditRefusals`, `ReadOnlyReason`.
 - Editor state: `PetrinautNavigationState`, `PetrinautNavigationUpdate`,
   `SelectionItem`, `PetrinautRevealTarget`, `DiagnosticsSnapshot`,
   `AddNotificationInput`, `ReadableStore`.
@@ -236,13 +248,14 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
 - `useCommand(command, options?)`: a command the manifest cannot declare, such
   as one per record. Declared commands need no hook.
 - `useAssistantPanel()`: the assistant panel's state, from inside
-  `assistant.content`: `isOpen` and `close`.
+  `assistant.content`: `isOpen`, `close`, `compact` and `setCompact`.
 
 ### Components
 
 - `AssistantPanelTitle`: fills the assistant panel's title bar from inside
   `assistant.content`. `children` render after the assistant icon, such as a
   title or tabs, and `actions` between the dock toggle and the Close button.
+  `onClose` runs when the user presses Close, before the panel closes.
 
 ### Attributes
 
