@@ -7,7 +7,7 @@ import {
 } from "./interview-budget-level-changes";
 
 import type { InterviewBudgetLevel } from "../../../../../shared/interview-budget";
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiMessage } from "../chat/ai-assistant-panel";
 
 const message = (
   id: string,

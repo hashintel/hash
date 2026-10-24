@@ -6,12 +6,12 @@ import { join, resolve } from "node:path";
 import { createFlueClient } from "@flue/sdk";
 import * as v from "valibot";
 
-import { sdcpnInitialDataSchema } from "@hashintel/brunch-agent";
-
 import {
   agentOwnershipHeaders,
-  flueConversationIdFrom,
-} from "../../../../src/shared/conversation/identity.ts";
+  sdcpnInitialDataSchema,
+} from "@hashintel/brunch-agent";
+
+import { flueConversationId } from "../../../../src/shared/conversation/identity.ts";
 import { lastAdmittedUtterance } from "./bridge-log.ts";
 import { roleSettingsFromRun } from "./role-settings.ts";
 
@@ -73,7 +73,7 @@ export const readPersonaResume = async (directory: string) => {
   assert.equal(resolve(config.databasePath), join(run, "conversation.db"));
   assert.equal(
     session.url,
-    `${config.panelOrigin}/agents/petrinaut/${flueConversationIdFrom(session)}`,
+    `${config.panelOrigin}/agents/petrinaut/${flueConversationId(session)}`,
   );
   const binding = session.initialData.binding;
   assert.equal(binding.conversationId, session.conversationId);

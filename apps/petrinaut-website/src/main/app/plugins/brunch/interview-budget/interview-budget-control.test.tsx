@@ -17,7 +17,7 @@ import {
   InterviewBudgetPill,
 } from "./interview-budget-control";
 
-import type { PetrinautAiComposerControlContext } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiComposerControlContext } from "../chat/ai-assistant-composer-control";
 
 beforeEach(() => vi.stubGlobal("ResizeObserver", NoopResizeObserver));
 afterEach(() => {

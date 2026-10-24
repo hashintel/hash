@@ -1,6 +1,7 @@
 import { aggregateAction } from "./flow-activities/aggregate-action.js";
 import { analyzeEntityDataAction } from "./flow-activities/analyze-entity-data-action.js";
 import { answerQuestionAction } from "./flow-activities/answer-question-action.js";
+import { createEntityAction } from "./flow-activities/create-entity-action.js";
 import { filterListAction } from "./flow-activities/filter-list-action.js";
 import { findAction } from "./flow-activities/find-action.js";
 import { generateChartConfigAction } from "./flow-activities/generate-chart-config-action.js";
@@ -21,6 +22,7 @@ import { processAutomaticBrowsingSettingsAction } from "./flow-activities/proces
 import { queryEntitiesAction } from "./flow-activities/query-entities-action.js";
 import { researchEntitiesAction } from "./flow-activities/research-entities-action.js";
 import { takeFirstAction } from "./flow-activities/take-first-action.js";
+import { updateEntityAction } from "./flow-activities/update-entity-action.js";
 import { webSearchAction } from "./flow-activities/web-search-action.js";
 import { writeGoogleSheetAction } from "./flow-activities/write-google-sheet-action.js";
 
@@ -35,6 +37,7 @@ export const createFlowActionActivities: CreateFlowActivities<
   analyzeEntityDataAction,
   generateStructuralQueryAction,
   answerQuestionAction,
+  createEntityAction,
   filterListAction,
   findAction,
   generateChartConfigAction,
@@ -53,6 +56,7 @@ export const createFlowActionActivities: CreateFlowActivities<
   queryEntitiesAction,
   researchEntitiesAction,
   takeFirstAction,
+  updateEntityAction,
   webSearchAction,
   writeGoogleSheetAction(
     params: Omit<Parameters<typeof writeGoogleSheetAction>[0], "vaultClient">,

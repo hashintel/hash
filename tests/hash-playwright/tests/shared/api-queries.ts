@@ -30,6 +30,13 @@ import type {
 import type { APIRequestContext } from "@playwright/test";
 import type { GraphQLError } from "graphql/error";
 
+/**
+ * Playwright's request client never times out idle keep-alive sockets, so it
+ * can reuse one just as the API closes it, and the request fails with
+ * `ECONNRESET`. Closing each connection after its response avoids reuse.
+ */
+const closeConnectionHeaders = { connection: "close" };
+
 const callGraphQlApi = async <Response, Variables>(
   requestContext: APIRequestContext,
   {
@@ -42,6 +49,7 @@ const callGraphQlApi = async <Response, Variables>(
 ): Promise<{ data?: Response; errors?: GraphQLError[] }> => {
   const resp = await requestContext.post(`${apiOrigin}/graphql`, {
     data: { query, variables },
+    headers: closeConnectionHeaders,
   });
   if (!resp.ok()) {
     throw new Error(
@@ -137,7 +145,7 @@ export const uploadFile = async (
 
   const resp = await requestContext.put(presignedPut.url, {
     data: params.contents,
-    headers: { "content-type": params.mimeType },
+    headers: { ...closeConnectionHeaders, "content-type": params.mimeType },
   });
   if (!resp.ok()) {
     throw new Error(

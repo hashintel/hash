@@ -5,12 +5,12 @@ import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
 
 import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 
+import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
 import type {
   AgentSendResult,
   FlueClient,
   FlueConversationSettlement,
 } from "@flue/sdk";
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const agentMetadata = { stopped: true, source: "voice", unrendered: 1 };
 

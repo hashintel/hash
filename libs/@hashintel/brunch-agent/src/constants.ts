@@ -22,7 +22,8 @@ export const brunchProductName = "brunch";
 
 /**
  * Model-facing tool names. `activateSkill` and `readSkillResource` are Flue's
- * built-in skill tools; Flue exports no constants for their names.
+ * built-in skill tools and `task` its built-in task tool; Flue exports no
+ * constants for their names.
  */
 export const brunchTools = {
   activateSkill: "activate_skill",
@@ -32,6 +33,7 @@ export const brunchTools = {
   ping: "ping",
   queryBasis: "query_basis",
   readSkillResource: "read_skill_resource",
+  task: "task",
 } as const;
 
 /** Request headers that carry conversation identity. */
@@ -46,6 +48,8 @@ export const brunchRoutes = {
   agents: "/agents",
   /** The Petrinaut agent's route; conversation identity remains its pinned `agentName`. */
   petrinautAgent: "petrinaut",
+  /** Under an agent instance: where the bound browser claims and settles the calls issued to it. */
+  browserCalls: "browser-calls",
   /** Cheap process-liveness probe; dependency readiness is established before listen. */
   health: "/health",
 } as const;

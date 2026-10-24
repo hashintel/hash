@@ -18,7 +18,6 @@ import { LiveConversationControl } from "../live/live-conversation-control";
 import { OpenAIRealtimeSession } from "../realtime/openai-realtime-session";
 import {
   RealtimeBrunchBridge,
-  type RealtimeBrunchAdmissionTarget,
   type VoiceSubmissionSettlement,
 } from "../realtime/realtime-brunch-bridge";
 import { VoiceAudioSettings } from "./voice-audio-settings";
@@ -31,16 +30,20 @@ import {
 } from "./voice-turn-controller";
 
 import type { InterviewBudgetLevel } from "../../../../../../shared/interview-budget";
-import type { UtteranceJudgmentMode } from "../../../../../../shared/live-utterance-judgment";
+import type {
+  VoiceConfigResponse,
+  VoiceProvider,
+} from "../../../../../../shared/voice-settings";
 import type { VoiceWord } from "../../../../../../shared/voice-words";
-import type { VoiceMediationHistory } from "../history/voice-mediation-history";
-import type { CanonicalSpeechSegment } from "../live/canonical-speech";
-import type { ToolApprovalState } from "../live/live-brunch-bridge";
-import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
+import type { BrunchPanelAdmissionTarget } from "../../brunch-panel-transport";
 import type {
   PetrinautAiInputMode,
   PetrinautAiVoiceModeContext,
-} from "@hashintel/petrinaut/ui";
+} from "../../chat/ai-assistant-composer-control";
+import type { ToolApprovalState } from "../../tools/brunch-mutation-approval";
+import type { VoiceMediationHistory } from "../history/voice-mediation-history";
+import type { CanonicalSpeechSegment } from "../live/canonical-speech";
+import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
 
 type ResolveSubmission = (
   messageId: string,
@@ -49,11 +52,11 @@ type ResolveSubmissions = (
   messageId: string,
 ) => readonly AgentSendResult["submissionId"][] | undefined;
 type SubscribeToAdmission = (
-  target: RealtimeBrunchAdmissionTarget,
+  target: BrunchPanelAdmissionTarget,
   listener: (submissionId: AgentSendResult["submissionId"]) => void,
 ) => () => void;
 type SubscribeToAdmissionFailure = (
-  target: RealtimeBrunchAdmissionTarget,
+  target: BrunchPanelAdmissionTarget,
   listener: (error: FlueChatAdmissionError) => void,
 ) => () => void;
 type SubscribeToResponseMessageCompleted = (
@@ -138,11 +141,17 @@ export const submitVoiceInputWithAdmission = async ({
   }
 };
 
-export interface OpenAIVoiceConfig {
+/** The `/api/voice/config` response once checked: available, with only the fields that apply. */
+export interface OpenAIVoiceConfig extends Pick<
+  VoiceConfigResponse,
+  "connectionTimeoutMs"
+> {
   readonly available: true;
-  readonly connectionTimeoutMs: number;
-  readonly provider?: "realtime" | "live";
-  readonly utteranceJudgment?: Exclude<UtteranceJudgmentMode, "off">;
+  readonly provider?: VoiceProvider;
+  readonly utteranceJudgment?: Exclude<
+    VoiceConfigResponse["utteranceJudgment"],
+    "off"
+  >;
 }
 
 export const VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
@@ -279,7 +288,7 @@ export const loadOpenAIVoiceConfig = async (
       connectionTimeoutMs: body.connectionTimeoutMs as number,
       ...(body.provider === undefined
         ? {}
-        : { provider: body.provider as "realtime" | "live" }),
+        : { provider: body.provider as VoiceProvider }),
       ...(body.provider === "live" && body.utteranceJudgment === "log"
         ? { utteranceJudgment: body.utteranceJudgment }
         : {}),

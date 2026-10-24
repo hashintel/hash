@@ -247,6 +247,7 @@ export const createApolloServer = async ({
         requestId: res.get("x-hash-request-id") ?? "",
       }),
       temporal: temporalClient,
+      flowRunHistories: new Map(),
       vault: vaultClient,
     }),
   });

@@ -2,27 +2,35 @@ import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
 import {
+  arcDirections,
   brunchTools,
   foldCommits,
+  generatedArcId,
+  namesId,
   netElementKinds,
+  traceLedger,
 } from "@hashintel/brunch-agent";
 
 import {
   callsForElement,
   isAppliedChange,
   latestNetDefinition,
-  namesId,
   netCalls,
-  type ArcElement,
   type NetCall,
+  type NetElement,
 } from "../../../shared/conversation/net-changes.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
-import type { BrowserContext, LedgerState } from "@hashintel/brunch-agent";
-import type { SDCPN } from "@hashintel/petrinaut-core";
+import type {
+  ArcElement,
+  BrowserContext,
+  LedgerTrace,
+  NetElementAddress,
+  NetStructure,
+} from "@hashintel/brunch-agent";
 
 export const queryBasisToolDescription =
-  "Use when the USER asks why a visible net element exists, instead of answering from memory. Finds the element in the latest net read, or in the net read back after a later change, and lists the canonical calls that changed it, each with its settled document revision, the Ledger revision current at the call, and the Ledger records committed in the same turn, before or after the call, each with its ID, record type and content, including the net element addresses a reflection concerns. These are chronological associations, not semantic justification: say so, and say plainly when no call is associated. A stale-read disposition means the net changed after the latest net view, a read or a change's read-back, without a later read-back: read it again, then query.";
+  "Use when the USER asks why a visible net element exists or is modelled as it is, instead of answering from memory. Finds the element in the latest net read, or in the net read back after a later change, and returns its recorded basis: the reflections that name the element and, behind them, the claims, entities and discharged obligations they rest on, each with its ID, and the conversation turns those records came from, each with its ID and the opening of the USER's words. Answer from that basis and cite its record IDs. Cite every returned turn too, by quoting the opening of the USER's words, never by its ID, so the USER can see what they said that the answer rests on. A claim under `superseded` was later replaced: say so, and give its replacement. It also lists the canonical calls that changed the element, with their document and Ledger revisions. A basis-absent disposition means no reflection names the element: say plainly that its basis was not recorded rather than reconstructing one. You may point to related records, but do not offer a rationale of your own for it. A stale-read disposition means the net changed after the latest net view, a read or a change's read-back, without a later read-back: read it again, then query.";
 
 const elementSchema = v.object({
   selector: v.pipe(
@@ -40,7 +48,7 @@ const elementSchema = v.object({
       ),
       arcDirection: v.optional(
         v.pipe(
-          v.picklist(["input", "output"]),
+          v.picklist(arcDirections),
           v.description(
             "For an arc: its direction relative to the transition.",
           ),
@@ -57,16 +65,19 @@ const elementSchema = v.object({
 });
 type Selector = v.InferOutput<typeof elementSchema>["selector"];
 
+/** A net element the selector can match: by ID, by name, or by its arc's endpoints. */
+type ElementCandidate = Omit<NetElement, "kind"> & { readonly name: string };
+
 /** The root net and each subnet: places, transitions and their other items can sit in either. */
-const netsOf = (definition: SDCPN) => [
+const netsOf = (definition: NetStructure) => [
   definition,
   ...(definition.subnets ?? []),
 ];
 
 const elements = (
-  definition: SDCPN,
+  definition: NetStructure,
   kind: Selector["kind"],
-): { id: string; name: string; arc?: ArcElement }[] => {
+): ElementCandidate[] => {
   if (kind === "scenario") return definition.scenarios ?? [];
   if (kind === "metric") return definition.metrics ?? [];
   if (kind === "subnet") return definition.subnets ?? [];
@@ -76,7 +87,7 @@ const elements = (
 const netElements = (
   net: ReturnType<typeof netsOf>[number],
   kind: Exclude<Selector["kind"], "scenario" | "metric" | "subnet">,
-): { id: string; name: string; arc?: ArcElement }[] => {
+): ElementCandidate[] => {
   if (kind === "place") return net.places;
   if (kind === "transition") return net.transitions;
   if (kind === "type") return net.types;
@@ -90,10 +101,10 @@ const netElements = (
         name: element.name,
       })),
     );
-  // An arc is identified by its transition and endpoint, not a standalone ID.
+  // An arc is selected by its transition and endpoint, and identified by the ID Petrinaut generates from them.
   return net.transitions.flatMap((transition) => {
     const arcElements = (
-      arcDirection: "input" | "output",
+      arcDirection: ArcElement["arcDirection"],
       arcs: readonly Pick<
         (typeof transition.inputArcs)[number],
         "endpoint" | "placeId"
@@ -104,9 +115,10 @@ const netElements = (
           arc.endpoint?.kind === "place"
             ? arc.endpoint.placeId
             : (arc.placeId ?? "");
+        const element = { transitionId: transition.id, arcDirection, placeId };
         return {
-          arc: { transitionId: transition.id, arcDirection, placeId },
-          id: `${transition.id}:${arcDirection}:${placeId}`,
+          arc: element,
+          id: generatedArcId(element),
           name: `${transition.name} ${arcDirection}`,
         };
       });
@@ -117,67 +129,41 @@ const netElements = (
   });
 };
 
-/** A record as the model reads it: its ID and type with its fields, without the turn anchor. */
-const recordContent = <
-  Type extends string,
-  Fields extends { address: string; turn: string },
->(
-  type: Type,
-  { address, turn: _turn, ...fields }: Fields,
-) => ({ id: address, type, ...fields });
+/** A record as the model reads it: its ID and fields, with the turn it was recorded in. */
+const recordContent = <Fields extends { address: string }>({
+  address,
+  ...fields
+}: Fields) => ({ id: address, ...fields });
 
-const findRecord = (state: LedgerState, id: string) => {
-  const entity = state.entities.find(({ address }) => address === id);
-  if (entity) return recordContent("entity", entity);
-  const claim = state.claims.find(({ address }) => address === id);
-  if (claim) return recordContent("claim", claim);
-  const reflection = state.reflections.find(({ address }) => address === id);
-  if (reflection) return recordContent("reflection", reflection);
-  const obligation = state.obligations.find(({ address }) => address === id);
-  if (obligation) return recordContent("obligation", obligation);
-  return undefined;
-};
+/** The trace as the model reads it: record IDs in place of addresses. */
+const basisContent = (trace: LedgerTrace) => ({
+  reflections: trace.reflections.map(recordContent),
+  obligations: trace.obligations.map(recordContent),
+  claims: trace.claims.map(recordContent),
+  entities: trace.entities.map(recordContent),
+  superseded: trace.superseded,
+  turns: trace.turns,
+});
 
-const isUserMessage = (message: FlueConversationSnapshot["messages"][number]) =>
-  message.role === "user" && message.purpose === "user";
+/** Whether a reflection's net element address names the target, as the document or the model wrote it. */
+const namesTarget =
+  (kind: Selector["kind"], target: Omit<NetElement, "kind">) =>
+  (address: NetElementAddress) =>
+    address.kind === kind && namesId(address.id, target.id);
 
-/**
- * The Ledger revision current when a call was made, and every record its turn
- * committed, before or after the call: the guidance commits a change's
- * reflections after the change, in the same turn.
- */
-const ledgerAtCall = (snapshot: FlueConversationSnapshot, call: NetCall) => {
+/** The Ledger revision current when a call was made. */
+const ledgerRevisionAt = (
+  snapshot: FlueConversationSnapshot,
+  call: NetCall,
+) => {
   const message = snapshot.messages[call.messageIndex];
   if (!message) return undefined;
-  const { revision } = foldCommits({
+  return foldCommits({
     messages: [
       ...snapshot.messages.slice(0, call.messageIndex),
       { ...message, parts: message.parts.slice(0, call.partIndex) },
     ],
-  });
-  const turnId = snapshot.messages
-    .slice(0, call.messageIndex)
-    .findLast(isUserMessage)?.id;
-  const nextTurn = snapshot.messages.findIndex(
-    (entry, index) => index > call.messageIndex && isUserMessage(entry),
-  );
-  const { state, commits } = foldCommits({
-    messages: snapshot.messages.slice(
-      0,
-      nextTurn === -1 ? undefined : nextTurn,
-    ),
-  });
-  const idsThisTurn = new Set(
-    commits
-      .filter(({ afterMessageId }) => afterMessageId === turnId)
-      .flatMap(({ ids }) => ids),
-  );
-  return {
-    revision,
-    recordsThisTurn: [...idsThisTurn].flatMap(
-      (id) => findRecord(state, id) ?? [],
-    ),
-  };
+  }).revision;
 };
 
 export const queryBasis = (input: {
@@ -206,6 +192,7 @@ export const queryBasis = (input: {
         "The net changed after the latest net view without a subsequent read-back; read it again, then query.",
       target: undefined,
       readToolCallId: view.toolCallId,
+      basis: undefined,
       changes: [],
     };
   const candidates = latest
@@ -222,30 +209,42 @@ export const queryBasis = (input: {
       )
     : [];
   const target = candidates.length === 1 ? candidates.at(0) : undefined;
-  const changes = target
-    ? callsForElement(input.snapshot, {
-        kind: input.query.kind,
-        id: target.id,
-        ...(target.arc === undefined ? {} : { arc: target.arc }),
-      }).map((call) => {
-        const ledger = ledgerAtCall(input.snapshot, call);
-        return {
-          toolCallId: call.toolCallId,
-          operation: call.toolName,
-          petrinautRevisionId: call.revisionAfter,
-          ledgerRevision: ledger?.revision,
-          recordsCommittedThisTurn: ledger?.recordsThisTurn ?? [],
-        };
-      })
-    : [];
+  if (!target)
+    return {
+      binding: input.browser.binding,
+      disposition: "not-found" as const,
+      reason:
+        "The named element is absent or ambiguous in the latest net view.",
+      target,
+      readToolCallId: latest?.call.toolCallId,
+      basis: undefined,
+      changes: [],
+    };
+  const changes = callsForElement(input.snapshot, {
+    kind: input.query.kind,
+    id: target.id,
+    ...(target.arc === undefined ? {} : { arc: target.arc }),
+  }).map((call) => ({
+    toolCallId: call.toolCallId,
+    operation: call.toolName,
+    petrinautRevisionId: call.revisionAfter,
+    ledgerRevision: ledgerRevisionAt(input.snapshot, call),
+  }));
+  const trace = traceLedger(foldCommits(input.snapshot).state, {
+    netElement: namesTarget(input.query.kind, target),
+  });
+  const declared = trace.reflections.length > 0;
   return {
     binding: input.browser.binding,
-    disposition: target ? ("basis-absent" as const) : ("not-found" as const),
-    reason: target
-      ? "No declared basis exists; these are chronological call associations, not semantic justification."
-      : "The named element is absent or ambiguous in the latest net view.",
+    disposition: declared
+      ? ("basis-declared" as const)
+      : ("basis-absent" as const),
+    reason: declared
+      ? "Reflections name this element; the basis is what they rest on."
+      : "No reflection names this element, so its basis was not recorded.",
     target,
     readToolCallId: latest?.call.toolCallId,
+    basis: declared ? basisContent(trace) : undefined,
     changes,
   };
 };

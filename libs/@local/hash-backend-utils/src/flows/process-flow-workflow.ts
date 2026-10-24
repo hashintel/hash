@@ -57,6 +57,7 @@ import type {
   Payload,
   StepInputSource,
   SkippedStep,
+  StartedForEachStep,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
@@ -440,6 +441,7 @@ const processFlow = async <
   /** Steps skipped because a value they need is missing (see `getStepReadiness`); also in `processedStepIds`. */
   const skippedStepIds: string[] = [];
   const skippedSteps: SkippedStep[] = [];
+  const startedForEachSteps: StartedForEachStep[] = [];
   const processStepErrors: Record<string, Omit<Status<never>, "contents">> = {};
 
   // Function to process a single step
@@ -641,6 +643,13 @@ const processFlow = async <
        * Add the new steps to the child steps of the for-each step.
        */
       currentStep.steps = [...(currentStep.steps ?? []), ...newSteps];
+
+      startedForEachSteps.push({
+        stepId: currentStep.stepId,
+        itemCount: items.length,
+        startedAt: new Date().toISOString(),
+      });
+      upsertMemo({ startedForEachSteps });
 
       /**
        * We consider the for-each step "processed", even though its child steps may not have finished executing,

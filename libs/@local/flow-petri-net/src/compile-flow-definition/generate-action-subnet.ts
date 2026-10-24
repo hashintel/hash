@@ -89,6 +89,7 @@ const portColor = (
 export const generateActionSubnet = async (
   actionDefinition: ActionDefinition<FlowActionDefinitionId>,
   resolvedKinds: ResolvedKinds = {},
+  { layout = true }: { layout?: boolean } = {},
 ): Promise<Subnet> => {
   const { actionDefinitionId, name, description, inputs, outputs } =
     actionDefinition;
@@ -236,12 +237,13 @@ export const generateActionSubnet = async (
     return { name: place.name, color };
   };
 
-  const laidOut = await layOut({
+  const nodes = {
     places,
     transitions: transitions.map((transition) =>
       withKernel(transition, resolvePlace),
     ),
-  });
+  };
+  const laidOut = layout ? await layOut(nodes) : nodes;
 
   return {
     id: generateSubnetKey(subnetName),

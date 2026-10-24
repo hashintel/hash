@@ -4,6 +4,7 @@
     "@hashintel/brunch-agent",
     "@hashintel/ds-components",
     "@hashintel/ds-helpers",
+    "@hashintel/ds-icons",
     "@hashintel/petrinaut",
     "@hashintel/petrinaut-core",
     "@local/flue-aisdk-transport",
@@ -15,6 +16,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build",
@@ -26,6 +28,12 @@
         "VITE_BRUNCH_CHAT_ENDPOINT",
         "VITE_PETRINAUT_DEFAULT_ASSISTANT",
         "VITE_VERCEL_ENV"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "codegen": {
@@ -36,6 +44,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build",
@@ -43,16 +52,29 @@
         "examples:generate"
       ],
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
+      ]
     },
     "examples:generate": {
       "dependsOn": [
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "fix:eslint": {
@@ -60,11 +82,18 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
         "@local/flue-aisdk-transport#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "lint:eslint": {
@@ -72,6 +101,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build",
@@ -80,6 +110,12 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "lint:tsc": {
@@ -87,11 +123,18 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build",
         "codegen",
         "examples:generate"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "test:unit": {
@@ -99,6 +142,7 @@
         "@hashintel/brunch-agent#build",
         "@hashintel/ds-components#build",
         "@hashintel/ds-components#codegen",
+        "@hashintel/ds-icons#build",
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-core#build",
         "@local/flue-aisdk-transport#build",
@@ -107,6 +151,12 @@
       ],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     }
   }

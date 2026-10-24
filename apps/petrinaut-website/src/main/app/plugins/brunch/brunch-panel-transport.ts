@@ -10,16 +10,14 @@ import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 import { brunchSubmittedUserMessage } from "./brunch-panel-transport/submitted-user-message";
 
 import type { BrunchFlueAdapter } from "./brunch-flue-adapter";
+import type { PetrinautAiInputMode } from "./chat/ai-assistant-composer-control";
+import type { PetrinautAiChatTransport } from "./chat/petrinaut";
 import type {
   AgentSendResult,
   FlueClient,
   FlueConversationState,
 } from "@flue/sdk";
 import type { BrowserContext } from "@hashintel/brunch-agent";
-import type {
-  PetrinautAiChatTransport,
-  PetrinautAiInputMode,
-} from "@hashintel/petrinaut/ui";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,

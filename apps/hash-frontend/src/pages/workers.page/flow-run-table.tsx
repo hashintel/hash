@@ -45,7 +45,6 @@ import type {
 import type { VirtualizedTableSort } from "../shared/virtualized-table/header/sort";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 type FieldId =
   | "web"
@@ -360,7 +359,7 @@ export const FlowRunTable = ({
         const cost = usageByFlowRun[flowRunEntityId]?.total ?? null;
 
         // Extract flowScheduleId if present (for scheduled runs)
-        const flowScheduleId = (flowRun as FlowRun).flowScheduleId ?? null;
+        const flowScheduleId = flowRun.flowScheduleId ?? null;
 
         return {
           id: flowRunEntityId,
