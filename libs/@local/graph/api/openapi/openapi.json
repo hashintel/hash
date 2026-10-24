@@ -7082,6 +7082,24 @@
                 ]
               }
             }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "error"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "link"
+                ]
+              }
+            }
           }
         ],
         "discriminator": {

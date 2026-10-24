@@ -14,7 +14,7 @@ use hash_graph_postgres_store::store::postgres::query::{
 use tokio_postgres::{Row, types::ToSql};
 
 use super::{
-    LINK_ROOT_BASE_URL, corpus,
+    LINK_ENTITY_TYPE_BASE_URL, corpus,
     sql::{AttachmentVocabulary, Axes, MAPPING, Mapping, first_label, type_mapping},
     vocabulary::{CorpusTable, Links, Scope},
 };
@@ -116,7 +116,7 @@ pub(crate) fn node_legend_statement<'params>(
 
     let mut binder = Binder::default();
     let axes_points = Axes::bind(&mut binder, axes);
-    let link_root = binder.bind(&LINK_ROOT_BASE_URL);
+    let link_root = binder.bind(&LINK_ENTITY_TYPE_BASE_URL);
     let types_placeholder = binder.bind(types);
 
     // SELECT (cache.labels)[1], mapping.ordinality - 1
@@ -193,7 +193,7 @@ pub(crate) fn edge_legend_statement<'params>(
 
     let mut binder = Binder::default();
     let axes_points = Axes::bind(&mut binder, axes);
-    let link_root = binder.bind(&LINK_ROOT_BASE_URL);
+    let link_root = binder.bind(&LINK_ENTITY_TYPE_BASE_URL);
     let attachments = AttachmentVocabulary::bind(&mut binder);
     let types_placeholder = binder.bind(types);
 
