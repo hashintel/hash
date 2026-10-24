@@ -5,6 +5,10 @@
     "@local/tsconfig"
   ],
   "tasks": {
+    "bench:unit": {
+      "dependsOn": [],
+      "cache": false
+    },
     "build": {
       "dependsOn": [
         "@local/oxlint#build"
@@ -18,6 +22,33 @@
     "lint:tsc": {
       "dependsOn": [
         "@local/oxlint#build"
+      ]
+    },
+    "test:integration": {
+      "dependsOn": [
+        "@local/oxlint#build",
+        "hashql-syntax-jexpr#build:parse:debug"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "darwin-kperf",
+        "darwin-kperf-codegen",
+        "darwin-kperf-criterion",
+        "darwin-kperf-events",
+        "darwin-kperf-sys",
+        "error-stack",
+        "error-stack-macros",
+        "harpc-types",
+        "harpc-wire-protocol",
+        "hash-codec",
+        "hash-codegen",
+        "hashql-ast",
+        "hashql-core",
+        "hashql-diagnostics",
+        "hashql-macros",
+        "hashql-syntax-jexpr"
       ]
     },
     "test:unit": {
