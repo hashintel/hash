@@ -66,16 +66,6 @@ vi.mock("@hashintel/petrinaut/ui/plugin", async (importOriginal) => ({
   ...(await import("./testing/test-assistant-panel")).assistantPanelMocks,
 }));
 
-// The early edit check reads the editor's read-only state through a hook that
-// needs the editor's providers; this suite has none, so it sets the answer.
-// `ai-assistant-panel.in-editor.test.tsx` reads the real editor.
-const temporaryEditRefusal = vi.hoisted(() => ({
-  reason: null as { readonly kind: "host-readonly" } | null,
-}));
-vi.mock("../temporary-editor-compat", () => ({
-  useTemporaryEditRefusal: () => () => temporaryEditRefusal.reason,
-}));
-
 /** What the built-in panel's tests read from the editor's error tracker. */
 type ErrorTracker = {
   captureException: (
@@ -259,7 +249,6 @@ const renderTestPanel = ({
    */
   readOnlyAfterPreflight?: boolean;
 }) => {
-  temporaryEditRefusal.reason = readOnly ? { kind: "host-readonly" } : null;
   const handle = createJsonDocHandle({
     id: "ai-assistant-panel-test",
     initial: petriNetDefinition,
@@ -276,6 +265,7 @@ const renderTestPanel = ({
     notify: (input) => toaster.add(input),
     refusal: () =>
       readOnly || readOnlyAfterPreflight ? { kind: "host-readonly" } : null,
+    checkedRefusal: () => (readOnly ? { kind: "host-readonly" } : null),
     title: "AI assistant panel test",
     ...(titleEditable === true ? { setTitle: () => {} } : {}),
     requestDiagnostics,
@@ -336,7 +326,6 @@ const renderTestPanel = ({
 
 afterEach(() => {
   cleanup();
-  temporaryEditRefusal.reason = null;
   for (const instance of testInstances.splice(0)) {
     instance.dispose();
   }
