@@ -1,14 +1,19 @@
 import { performance } from "node:perf_hooks";
 
-import { probabilisticSatellitesSDCPN } from "../dist/examples/index.js";
-import {
-  createJsonDocHandle,
-  createPetrinaut,
-  normalizeSDCPN,
-  toPetrinautId,
-} from "../dist/index.js";
-import { createRustPetrinaut, initializePetrinautRust } from "../dist/rust.js";
 import { readRustWasm } from "./read-rust-wasm.mjs";
+
+const { probabilisticSatellitesSDCPN } =
+  /** @type {typeof import("../src/examples/index.ts")} */ (
+    await import("../dist/examples/index.js")
+  );
+const { createJsonDocHandle, createPetrinaut, normalizeSDCPN, toPetrinautId } =
+  /** @type {typeof import("../src/index.ts")} */ (
+    await import("../dist/index.js")
+  );
+const { createRustPetrinaut, initializePetrinautRust } =
+  /** @type {typeof import("../src/rust/index.ts")} */ (
+    await import("../dist/rust.js")
+  );
 
 const engine =
   process.argv.find((argument) => argument.startsWith("--engine="))?.slice(9) ??
@@ -36,12 +41,12 @@ const cloneCopy = (value, copy) => {
   }
   return value;
 };
-/** @param {number} copies @returns {import("../dist/index.js").SDCPN} */
+/** @param {number} copies @returns {import("../src/index.ts").SDCPN} */
 const scaled = (copies) => {
   const documents = Array.from({ length: copies }, (_, index) =>
     cloneCopy(initial, index),
   );
-  return /** @type {import("../dist/index.js").SDCPN} */ (
+  return /** @type {import("../src/index.ts").SDCPN} */ (
     Object.fromEntries(
       Object.entries(initial).map(([key, value]) => [
         key,
