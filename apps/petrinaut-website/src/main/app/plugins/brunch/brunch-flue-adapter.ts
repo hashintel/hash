@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import {
   browserToolOutput,
+  brunchSignals,
   petrinautUserMessageText,
   projectBrunchMessageMetadata,
 } from "@hashintel/brunch-agent";
@@ -66,6 +67,7 @@ export const createBrunchFlueAdapter = (
     mapToolOutput: browserToolOutput,
     metadataSchema: petrinautMessageMetadataSchema,
     projectMetadata: projectBrunchMessageMetadata,
+    userSignalTags: new Set([brunchSignals.ledgerComments]),
   });
   return {
     ...adapter,

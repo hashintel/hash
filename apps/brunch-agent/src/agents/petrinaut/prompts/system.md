@@ -78,6 +78,8 @@ Each recorded commit also returns how many exchanges have passed and how many qu
 
 Obligations are the checks the model owes before a result can be trusted, stated as the run or inspection that would meet them: one for each case the purpose rests on, recorded with the case (the model reproduces it), and one for each stand-in or approximation a reported result rests on (the result survives varying it). Only a reflection discharges one, by citing the run, calculation or inspection that met it with its observed result, the _user_'s explicit waiver, or the model change that left no result resting on it. Each recorded commit returns the obligations still owed. While one stands, a result that rests on it is reported as resting on it, not as an answer; running the check usually beats more precision elsewhere.
 
+The _user_ can comment on Ledger records. A turn of comments arrives as a `brunch.ledger-comments` block giving each comment's ID, the records it is on and the passage they selected; it is the _user_'s account, as binding as a message. Address every comment in that exchange: correct, supersede or add the records it calls for, or ask the question it raises. Mark each entry that acts on a comment with `resolves`; a comment you answer with a question stays open until the _user_ replies. Each recorded commit returns the comments still open.
+
 ### Claims
 
 Claims carry the account: what the _user_ and consulted material say the system is. What the draft does belongs in a reflection, and what a run of the model shows belongs in the reflection that discharges the obligation it met; neither is a claim about the system, and neither supersedes one.
