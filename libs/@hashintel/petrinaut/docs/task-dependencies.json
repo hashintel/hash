@@ -21,6 +21,7 @@
       ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -33,6 +34,7 @@
       "cache": false,
       "affectedBy": [
         "@hashintel/petrinaut-cli",
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -51,6 +53,7 @@
       "persistent": true,
       "affectedBy": [
         "@hashintel/petrinaut-cli",
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -68,6 +71,7 @@
       ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -88,6 +92,7 @@
       ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -104,6 +109,7 @@
       ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -123,6 +129,7 @@
       ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"

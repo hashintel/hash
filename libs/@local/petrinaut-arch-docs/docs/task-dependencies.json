@@ -24,6 +24,7 @@
         "VERCEL_GIT_REPO_SLUG"
       ],
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -38,6 +39,7 @@
         "@local/eslint#build"
       ],
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -47,6 +49,7 @@
       "dependsOn": [],
       "cache": false,
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -64,6 +67,7 @@
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -77,6 +81,7 @@
         "@hashintel/petrinaut-core#build"
       ],
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -88,6 +93,7 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"

@@ -10,6 +10,7 @@
         "@hashintel/petrinaut-core#build"
       ],
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimizer-core"
       ]
     },
@@ -20,6 +21,7 @@
       ],
       "affectedBy": [
         "@local/eslint",
+        "petrinaut-core",
         "petrinaut-optimizer-core"
       ]
     },
@@ -33,6 +35,7 @@
       ],
       "affectedBy": [
         "@local/eslint",
+        "petrinaut-core",
         "petrinaut-optimizer-core"
       ]
     },
@@ -41,6 +44,7 @@
         "@hashintel/petrinaut-core#build"
       ],
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimizer-core"
       ]
     },
@@ -52,6 +56,7 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimizer-core"
       ]
     }

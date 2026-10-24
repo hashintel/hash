@@ -11,6 +11,7 @@
       ],
       "cache": false,
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -26,6 +27,7 @@
         "PORT"
       ],
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -37,6 +39,7 @@
       ],
       "cache": false,
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -48,6 +51,7 @@
       ],
       "cache": false,
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"

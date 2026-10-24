@@ -164,6 +164,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python",

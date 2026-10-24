@@ -26,6 +26,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "type-system"
       ]
@@ -49,6 +50,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "type-system"
       ]
@@ -75,6 +77,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "type-system"
       ]
@@ -98,6 +101,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "type-system"
       ]
@@ -124,6 +128,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "type-system"
       ]

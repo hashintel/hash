@@ -12,6 +12,7 @@
       ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -21,6 +22,7 @@
       "dependsOn": [],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -33,6 +35,7 @@
       ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"
@@ -48,6 +51,7 @@
       ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python"

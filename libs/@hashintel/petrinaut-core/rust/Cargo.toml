@@ -1,9 +1,9 @@
 [package]
-name = "petrinaut-core"
+name              = "petrinaut-core"
 version.workspace = true
 edition.workspace = true
-license = "MIT OR Apache-2.0"
-publish = false
+license           = "MIT OR Apache-2.0"
+publish           = false
 authors.workspace = true
 
 [lib]
@@ -13,16 +13,16 @@ crate-type = ["cdylib", "rlib"]
 # Public workspace dependencies
 
 # Public third-party dependencies
-serde_json = { workspace = true, public = true }
+serde_json   = { workspace = true, public = true }
 wasm-bindgen = { workspace = true, public = true, features = ["std"] }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
 ryu-js = { workspace = true }
-serde = { workspace = true, features = ["derive", "alloc"] }
-tsify = { workspace = true, features = ["json"] }
-uuid = { workspace = true, features = ["v5", "std"] }
+serde  = { workspace = true, features = ["derive", "alloc"] }
+tsify  = { workspace = true, features = ["json"] }
+uuid   = { workspace = true, features = ["v5", "std"] }
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
