@@ -4,6 +4,7 @@ import { Context } from "@temporalio/activity";
 import proto from "@temporalio/proto";
 import Long from "long";
 
+import { findCheckpointResetPoint } from "@local/hash-backend-utils/flows/run-events";
 import { temporalNamespace } from "@local/hash-backend-utils/temporal";
 import { typedActionDefinitions as actions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
@@ -572,11 +573,9 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
             checkpointId = generateUuid();
 
             /*
-             * As a real action checkpoints after some work: a checkpoint signalled while the workflow handles this
-             * attempt's start signal isn't followed by a workflow task's start two events later, which is where the
-             * run's events put its reset point.
+             * Signalled as soon as the attempt starts, which can be while the workflow handles the attempt's start
+             * signal: the reset point is found from the history either way (`findCheckpointResetPoint`).
              */
-            await sleep(1_000);
             await client.workflow
               .getHandle(workflowId, runId)
               .signal(researchActionCheckpointSignal, {
@@ -611,8 +610,12 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
             )
             ?.eventId?.toNumber();
 
-          if (!checkpointEventId || !checkpointId) {
-            throw new Error("No checkpoint in the run's history");
+          const resetPoint = checkpointEventId
+            ? findCheckpointResetPoint(events ?? [], checkpointEventId)
+            : null;
+
+          if (!resetPoint || !checkpointId) {
+            throw new Error("No checkpoint in the run's history to reset to");
           }
 
           /* As the `resetFlow` mutation resets a run to a checkpoint. */
@@ -627,7 +630,7 @@ export const recordingCases: Record<string, (client: Client) => RecordingCase> =
                 .RESET_REAPPLY_TYPE_NONE,
             reason: checkpointId,
             requestId: generateUuid(),
-            workflowTaskFinishEventId: Long.fromInt(checkpointEventId + 2),
+            workflowTaskFinishEventId: Long.fromInt(resetPoint),
           });
 
           await record("reset-base-run", baseRunId);

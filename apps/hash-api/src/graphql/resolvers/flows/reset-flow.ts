@@ -2,6 +2,7 @@ import proto from "@temporalio/proto";
 import Long from "long";
 
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
+import { findCheckpointResetPoint } from "@local/hash-backend-utils/flows/run-events";
 import { temporalNamespace } from "@local/hash-backend-utils/temporal";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
@@ -47,10 +48,24 @@ export const resetFlow: ResolverFn<
     throw Error.forbidden("You do not have permission to modify this flow.");
   }
 
+  /* The current run, read and reset by its id, so a reset in between can't move the checkpoint to another run. */
+  const { runId } = await temporal.workflow.getHandle(workflowId).describe();
+  const { events } = await temporal.workflow
+    .getHandle(workflowId, runId)
+    .fetchHistory();
+  const resetPoint = findCheckpointResetPoint(events ?? [], eventId);
+
+  if (resetPoint === null) {
+    throw Error.badRequest(
+      `The run hasn't started a workflow task since checkpoint ${checkpointId}`,
+    );
+  }
+
   await temporal.workflowService.resetWorkflowExecution({
     namespace: temporalNamespace,
     workflowExecution: {
       workflowId,
+      runId,
     },
     /**
      * If we don't set this, Temporal will replay signals sent after the cancellation point to the new workflow execution.
@@ -60,7 +75,7 @@ export const resetFlow: ResolverFn<
       proto.temporal.api.enums.v1.ResetReapplyType.RESET_REAPPLY_TYPE_NONE,
     reason: checkpointId,
     requestId: generateUuid(),
-    workflowTaskFinishEventId: Long.fromInt(eventId),
+    workflowTaskFinishEventId: Long.fromInt(resetPoint),
   });
 
   return true;
