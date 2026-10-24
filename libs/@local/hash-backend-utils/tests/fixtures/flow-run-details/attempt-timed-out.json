@@ -41,9 +41,9 @@
     {
       "stepId": "research",
       "stepType": "researchEntitiesAction",
-      "startedAt": "2026-10-24T10:33:19.099Z",
-      "scheduledAt": "2026-10-24T10:33:17.868Z",
-      "closedAt": "2026-10-24T10:33:20.687Z",
+      "startedAt": "2026-10-24T11:09:10.149Z",
+      "scheduledAt": "2026-10-24T11:08:59.143Z",
+      "closedAt": "2026-10-24T11:09:10.150Z",
       "inputs": [
         {
           "inputs": [
@@ -57,18 +57,7 @@
           ]
         }
       ],
-      "logs": [
-        {
-          "type": "CreatedPlan",
-          "plan": "Search the web",
-          "stepId": "research",
-          "recordedAt": "2026-10-24T10:33:19.106Z",
-          "workerType": "Coordinator",
-          "workerInstanceId": "coordinator",
-          "parentInstanceId": null,
-          "toolCallId": null
-        }
-      ],
+      "logs": [],
       "status": "COMPLETED",
       "attempt": 2,
       "outputs": [
@@ -98,5 +87,5 @@
       ]
     }
   ],
-  "startedAt": "2026-10-24T10:33:17.779Z"
+  "startedAt": "2026-10-24T11:08:59.109Z"
 }

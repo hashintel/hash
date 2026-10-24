@@ -1,23 +1,22 @@
 {
-  "dataSources": {
-    "files": {
-      "fileEntityIds": []
-    },
-    "internetAccess": {
-      "browserPlugin": {
-        "domains": [],
-        "enabled": false
-      },
-      "enabled": false
-    }
-  },
   "flowInputs": {
     "prompt": {
       "kind": "Text",
       "value": "Who makes HASH?"
     }
   },
-  "inputRequests": [],
+  "dataSources": {
+    "files": {
+      "fileEntityIds": []
+    },
+    "internetAccess": {
+      "enabled": false,
+      "browserPlugin": {
+        "enabled": false,
+        "domains": []
+      }
+    }
+  },
   "outputs": [
     {
       "code": "OK",
@@ -37,11 +36,14 @@
       ]
     }
   ],
-  "startedAt": "2026-10-21T13:36:21.238Z",
+  "inputRequests": [],
   "steps": [
     {
-      "attempt": 1,
-      "closedAt": "2026-10-21T13:36:22.510Z",
+      "stepId": "research",
+      "stepType": "researchEntitiesAction",
+      "startedAt": "2026-10-24T11:09:33.125Z",
+      "scheduledAt": "2026-10-24T11:09:32.109Z",
+      "closedAt": "2026-10-24T11:09:34.367Z",
       "inputs": [
         {
           "inputs": [
@@ -57,16 +59,18 @@
       ],
       "logs": [
         {
-          "parentInstanceId": null,
-          "plan": "Search the web",
-          "recordedAt": "2026-10-21T13:36:21.332Z",
-          "stepId": "research",
-          "toolCallId": null,
           "type": "CreatedPlan",
+          "plan": "Search the web",
+          "stepId": "research",
+          "recordedAt": "2026-10-24T11:09:33.128Z",
+          "workerType": "Coordinator",
           "workerInstanceId": "coordinator",
-          "workerType": "Coordinator"
+          "parentInstanceId": null,
+          "toolCallId": null
         }
       ],
+      "status": "COMPLETED",
+      "attempt": 2,
       "outputs": [
         {
           "code": "OK",
@@ -91,12 +95,8 @@
             }
           ]
         }
-      ],
-      "scheduledAt": "2026-10-21T13:36:21.327Z",
-      "startedAt": "2026-10-21T13:36:21.330Z",
-      "status": "COMPLETED",
-      "stepId": "research",
-      "stepType": "researchEntitiesAction"
+      ]
     }
-  ]
+  ],
+  "startedAt": "2026-10-24T11:09:32.072Z"
 }

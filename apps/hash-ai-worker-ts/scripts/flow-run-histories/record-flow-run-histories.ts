@@ -157,14 +157,14 @@ const main = async () => {
       if (!action) {
         throw new Error(`The case doesn't stub ${activityName}`);
       }
-      if (currentCase?.attemptSignals) {
-        return signalStepAttempts({
-          action: async (
-            ...actionArgs: Parameters<RecordingCase["actions"][string]>
-          ) => action(...actionArgs),
-        }).action(...args);
+      if (currentCase?.withoutAttemptSignals) {
+        return action(...args);
       }
-      return action(...args);
+      return signalStepAttempts({
+        action: async (
+          ...actionArgs: Parameters<RecordingCase["actions"][string]>
+        ) => action(...actionArgs),
+      }).action(...args);
     };
 
   const taskQueue = `flow-run-histories-${generateUuid()}`;

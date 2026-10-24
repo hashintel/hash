@@ -1,23 +1,22 @@
 {
-  "dataSources": {
-    "files": {
-      "fileEntityIds": []
-    },
-    "internetAccess": {
-      "browserPlugin": {
-        "domains": [],
-        "enabled": false
-      },
-      "enabled": false
-    }
-  },
   "flowInputs": {
     "numbers": {
       "kind": "Number",
       "value": [3, 1, 4]
     }
   },
-  "inputRequests": [],
+  "dataSources": {
+    "files": {
+      "fileEntityIds": []
+    },
+    "internetAccess": {
+      "enabled": false,
+      "browserPlugin": {
+        "enabled": false,
+        "domains": []
+      }
+    }
+  },
   "outputs": [
     {
       "code": "OK",
@@ -44,11 +43,14 @@
       ]
     }
   ],
-  "startedAt": "2026-10-21T13:35:47.821Z",
+  "inputRequests": [],
   "steps": [
     {
-      "attempt": 1,
-      "closedAt": "2026-10-21T13:35:48.182Z",
+      "stepId": "count",
+      "stepType": "aggregateAction",
+      "startedAt": "2026-10-24T11:08:40.044Z",
+      "scheduledAt": "2026-10-24T11:08:40.043Z",
+      "closedAt": "2026-10-24T11:08:40.045Z",
       "inputs": [
         {
           "inputs": [
@@ -72,6 +74,8 @@
         }
       ],
       "logs": [],
+      "status": "COMPLETED",
+      "attempt": 1,
       "outputs": [
         {
           "code": "OK",
@@ -89,16 +93,14 @@
             }
           ]
         }
-      ],
-      "scheduledAt": "2026-10-21T13:35:48.169Z",
-      "startedAt": "2026-10-21T13:35:48.175Z",
-      "status": "COMPLETED",
-      "stepId": "count",
-      "stepType": "aggregateAction"
+      ]
     },
     {
-      "attempt": 1,
-      "closedAt": "2026-10-21T13:35:48.127Z",
+      "stepId": "firstTwo",
+      "stepType": "takeFirstAction",
+      "startedAt": "2026-10-24T11:08:40.032Z",
+      "scheduledAt": "2026-10-24T11:08:40.028Z",
+      "closedAt": "2026-10-24T11:08:40.034Z",
       "inputs": [
         {
           "inputs": [
@@ -120,6 +122,8 @@
         }
       ],
       "logs": [],
+      "status": "COMPLETED",
+      "attempt": 1,
       "outputs": [
         {
           "code": "OK",
@@ -137,12 +141,8 @@
             }
           ]
         }
-      ],
-      "scheduledAt": "2026-10-21T13:35:48.117Z",
-      "startedAt": "2026-10-21T13:35:48.121Z",
-      "status": "COMPLETED",
-      "stepId": "firstTwo",
-      "stepType": "takeFirstAction"
+      ]
     }
-  ]
+  ],
+  "startedAt": "2026-10-24T11:08:39.932Z"
 }

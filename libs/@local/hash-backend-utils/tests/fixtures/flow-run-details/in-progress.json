@@ -1,27 +1,29 @@
 {
-  "dataSources": {
-    "files": {
-      "fileEntityIds": []
-    },
-    "internetAccess": {
-      "browserPlugin": {
-        "domains": [],
-        "enabled": false
-      },
-      "enabled": false
-    }
-  },
   "flowInputs": {
     "prompt": {
       "kind": "Text",
       "value": "Who makes HASH?"
     }
   },
+  "dataSources": {
+    "files": {
+      "fileEntityIds": []
+    },
+    "internetAccess": {
+      "enabled": false,
+      "browserPlugin": {
+        "enabled": false,
+        "domains": []
+      }
+    }
+  },
   "inputRequests": [],
-  "startedAt": "2026-10-21T13:36:21.238Z",
   "steps": [
     {
-      "attempt": 1,
+      "stepId": "research",
+      "stepType": "researchEntitiesAction",
+      "startedAt": "2026-10-24T11:09:33.125Z",
+      "scheduledAt": "2026-10-24T11:09:32.109Z",
       "closedAt": "",
       "inputs": [
         {
@@ -38,20 +40,29 @@
       ],
       "logs": [
         {
-          "parentInstanceId": null,
-          "plan": "Search the web",
-          "recordedAt": "2026-10-21T13:36:21.332Z",
+          "type": "ActivityFailed",
           "stepId": "research",
-          "toolCallId": null,
+          "recordedAt": "2026-10-24T11:09:33.125Z",
+          "retrying": true,
+          "message": "Flaky failure on attempt 1"
+        },
+        {
           "type": "CreatedPlan",
+          "plan": "Search the web",
+          "stepId": "research",
+          "recordedAt": "2026-10-24T11:09:33.128Z",
+          "workerType": "Coordinator",
           "workerInstanceId": "coordinator",
-          "workerType": "Coordinator"
+          "parentInstanceId": null,
+          "toolCallId": null
         }
       ],
-      "scheduledAt": "2026-10-21T13:36:21.327Z",
-      "status": "SCHEDULED",
-      "stepId": "research",
-      "stepType": "researchEntitiesAction"
+      "status": "STARTED",
+      "attempt": 2,
+      "lastFailure": {
+        "message": "Flaky failure on attempt 1"
+      }
     }
-  ]
+  ],
+  "startedAt": "2026-10-24T11:09:32.072Z"
 }
