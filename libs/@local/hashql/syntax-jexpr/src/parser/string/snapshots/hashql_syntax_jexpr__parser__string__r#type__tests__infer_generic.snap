@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Inference as a generic type argument
+expression: List<_>
+info:
+  kind: Ok
+---
+Type#4294967040@5
+  TypeKind (Path)
+    Path#4294967040@5 (rooted: false)
+      PathSegment#4294967040@4 (name: List)
+        PathSegmentArgument (GenericArgument)
+          GenericArgument#4294967040@3
+            Type#4294967040@2
+              TypeKind (Infer)

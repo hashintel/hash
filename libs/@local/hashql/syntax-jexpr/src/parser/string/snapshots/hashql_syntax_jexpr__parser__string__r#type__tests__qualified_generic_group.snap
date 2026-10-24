@@ -1,0 +1,19 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+assertion_line: 438
+description: Grouped qualified type as a generic argument
+expression: "List<(Foo::Bar)>"
+info:
+  kind: Ok
+---
+Type#4294967040@10
+  TypeKind (Path)
+    Path#4294967040@10 (rooted: false)
+      PathSegment#4294967040@9 (name: List)
+        PathSegmentArgument (GenericArgument)
+          GenericArgument#4294967040@8
+            Type#4294967040@7
+              TypeKind (Path)
+                Path#4294967040@7 (rooted: false)
+                  PathSegment#4294967040@4 (name: Foo)
+                  PathSegment#4294967040@6 (name: Bar)

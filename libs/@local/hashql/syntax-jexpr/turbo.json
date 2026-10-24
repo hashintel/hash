@@ -30,6 +30,18 @@
     },
     "test:unit": {
       "command": ["mise", "run", "test:unit", "hashql-syntax-jexpr"]
+    },
+    "build:parse:debug": {
+      "command": [
+        "cargo",
+        "build",
+        "--bin",
+        "parse",
+        "--features=hashql-diagnostics/render"
+      ],
+      "dependsOn": ["^manifest"],
+      "inputs": ["src/**", "Cargo.toml"],
+      "outputs": ["$TURBO_ROOT$/target/debug/parse"]
     }
   }
 }

@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+assertion_line: 438
+description: Quoted qualified path in a nested intersection
+expression: "`!` & (`!`::`!` & _)"
+info:
+  kind: Ok
+---
+Type#4294967040@12
+  TypeKind (Intersection)
+    IntersectionType#4294967040@12
+      Type#4294967040@3
+        TypeKind (Path)
+          Path#4294967040@3 (rooted: false)
+            PathSegment#4294967040@2 (name: !)
+      Type#4294967040@11
+        TypeKind (Intersection)
+          IntersectionType#4294967040@11
+            Type#4294967040@9
+              TypeKind (Path)
+                Path#4294967040@9 (rooted: false)
+                  PathSegment#4294967040@6 (name: !)
+                  PathSegment#4294967040@8 (name: !)
+            Type#4294967040@10
+              TypeKind (Infer)

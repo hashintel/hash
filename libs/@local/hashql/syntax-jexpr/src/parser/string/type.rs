@@ -11,7 +11,7 @@ use winnow::{
     ModalParser, ModalResult, Parser as _,
     ascii::multispace0,
     combinator::{
-        alt, cut_err, dispatch, fail, opt, peek, preceded, repeat, separated, separated_pair,
+        alt, cut_err, dispatch, fail, not, opt, peek, preceded, repeat, separated, separated_pair,
         terminated,
     },
     error::{AddContext, ParserError, StrContext, StrContextValue},
@@ -264,18 +264,21 @@ where
 
     // take a look at the next token, to determine if what we're parsing an empty variant, in that
     // case we can return it
-    match peek(any).parse_next(input)? {
+    match peek((any, opt(any))).parse_next(input)? {
         // empty struct
-        ':' => return parse_type_paren_empty_struct(start_span).parse_next(input),
+        (':', Some(')')) => return parse_type_paren_empty_struct(start_span).parse_next(input),
         // empty tuple
-        ')' => return parse_type_paren_empty_tuple(start_span).parse_next(input),
+        (')', _) => return parse_type_paren_empty_tuple(start_span).parse_next(input),
         _ => {}
     }
 
     // Now that the empty variants are out of the way, we need to determine, are we in a struct,
     // tuple or paren?
+    // After a name, `:::` is `:` followed by a rooted type. Exactly two colons instead continue a
+    // path.
+    let field_separator = preceded(not(("::", not(":"))), ":");
     let decision = alt((
-        terminated(parse_ident, ws(":"))
+        terminated(parse_ident, ws(field_separator))
             .with_span()
             .map(|(ident, span)| ParseDecision::Struct(ident, span)),
         parse_type.map(ParseDecision::TupleOrParen),
@@ -335,7 +338,7 @@ where
     });
 
     dispatch! {peek(any);
-        '_' => parse_type_infer,
+        '_' => alt((path.by_ref(), parse_type_infer)),
         '(' => parse_type_paren,
         _ => path
     }
@@ -428,10 +431,32 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::parse_type;
     use crate::parser::string::test::{bind_parser, test_cases};
 
     bind_parser!(SyntaxDump; fn parse_type_test(parse_type));
+
+    test_cases!(parse_type_test;
+        underscore_digit("_0") => "Underscore-prefixed type name",
+        underscore_word("_internal") => "Underscore-prefixed word as a type name",
+        underscore_unicode("_\u{03bb}") => "Underscore-prefixed Unicode type name",
+        underscore_qualified("_0::Item") => "Qualified path beginning with an underscore-prefixed name",
+        underscore_generic("List<_0>") => "Underscore-prefixed generic type argument",
+        underscore_constraint("List<T: _internal>") => "Underscore-prefixed type in a generic constraint",
+        underscore_union("_0 | _") => "Underscore-prefixed type name beside inference",
+        underscore_incomplete("_0<T") => "Incomplete generic path after an underscore-prefixed name",
+        infer_generic("List<_>") => "Inference as a generic type argument",
+        rooted_group("(::Foo)") => "Grouped rooted type path",
+        rooted_tuple("(::Foo, Bar)") => "Rooted type path as the first tuple field",
+        rooted_generic_group("List<(::Foo)>") => "Grouped rooted type as a generic argument",
+        qualified_group("(Foo::Bar)") => "Grouped qualified type path",
+        qualified_tuple("(Foo::Bar,)") => "Qualified type path as the first tuple field",
+        qualified_intersection("(Foo::Bar & _)") => "Qualified type path in a grouped intersection",
+        qualified_nested_intersection("`!` & (`!`::`!` & _)") => "Quoted qualified path in a nested intersection",
+        qualified_generic_group("List<(Foo::Bar)>") => "Grouped qualified type as a generic argument",
+        qualified_incomplete("(Foo::)") => "Incomplete qualified path in a group",
+        rooted_struct_compact("(field:::Root)") => "Rooted field type without separator whitespace",
+    );
 
     // Tests for individual parser components
     test_cases!(parse_type_test;
