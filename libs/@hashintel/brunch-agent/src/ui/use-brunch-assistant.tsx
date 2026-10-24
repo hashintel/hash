@@ -1,4 +1,3 @@
-import { createFlueClient } from "@flue/sdk";
 import {
   use,
   useCallback,
@@ -9,13 +8,14 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import {
-  agentOwnershipHeaders,
-  flueConversationIdWeb,
-} from "@hashintel/brunch-agent";
 import { ErrorTrackerContext } from "@hashintel/petrinaut/react";
 
 import { createBrunchFlueAdapter } from "../client/brunch-flue-adapter";
+import {
+  brunchLiveToolStream,
+  createBrunchFlueClient,
+  type BrunchConnection,
+} from "../client/brunch-flue-client";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
@@ -77,6 +77,7 @@ import {
 } from "./tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "./tools/brunch-tool-presentation";
 import { useImmutableReplayBaseline } from "./use-brunch-assistant/use-immutable-replay-baseline";
+import { useStopTurnOnLeave } from "./use-brunch-assistant/use-stop-turn-on-leave";
 import { getBrunchVoiceMode } from "./voice/brunch-voice-mode";
 import { useVoiceMediationHistory } from "./voice/history/use-voice-mediation-history";
 import {
@@ -97,31 +98,16 @@ import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 const subscribeToNothing = () => () => {};
 const readNothing = () => undefined;
 
-const createBrunchFlueClient = async (
-  conversationId: string,
-  ownerKey: string,
-  chatEndpoint: string,
-) => {
-  const identity = { conversationId, ownerKey };
-  const instanceId = await flueConversationIdWeb(identity);
-  const mountUrl = new URL(chatEndpoint, window.location.origin);
-  mountUrl.pathname = `${mountUrl.pathname.replace(/\/+$/u, "")}/${instanceId}`;
-  return createFlueClient({
-    url: mountUrl.href,
-    headers: () => agentOwnershipHeaders(identity),
-  });
-};
-
 const createConversationTrackerFor = (
   _conversationId: string | null,
 ): BrunchPanelConversationTracker => new BrunchPanelConversationTracker();
 
-const useProcessAgentSession = (input: {
-  readonly binding: ProcessAgentBinding | null;
-  readonly brunchSelected: boolean;
-  readonly ownerKey: string;
-  readonly chatEndpoint: string;
-}) => {
+const useProcessAgentSession = (
+  input: BrunchConnection & {
+    readonly binding: ProcessAgentBinding | null;
+    readonly brunchSelected: boolean;
+  },
+) => {
   return useMemo(() => {
     const conversationTracker = createConversationTrackerFor(
       input.binding?.conversationId ?? null,
@@ -129,13 +115,22 @@ const useProcessAgentSession = (input: {
     const flueClientPromise =
       input.brunchSelected && input.binding !== null
         ? createBrunchFlueClient(
+            {
+              ownerKey: input.ownerKey,
+              chatEndpoint: input.chatEndpoint,
+              fetch: input.fetch,
+            },
             input.binding.conversationId,
-            input.ownerKey,
-            input.chatEndpoint,
           )
         : null;
     return { conversationTracker, flueClientPromise };
-  }, [input.binding, input.brunchSelected, input.ownerKey, input.chatEndpoint]);
+  }, [
+    input.binding,
+    input.brunchSelected,
+    input.ownerKey,
+    input.chatEndpoint,
+    input.fetch,
+  ]);
 };
 
 /** The open document as Brunch's browser tools reach it. */
@@ -197,25 +192,20 @@ export interface BrunchAssistant {
 /**
  * Brunch as the editor's assistant: binds the open document to its Flue
  * conversation and assembles the chat, the Ledger tab, Brunch's browser tools
- * and Voice.
+ * and Voice. Pass a stable connection `fetch` (module-level or memoized): a
+ * new identity recreates the conversation's client and tracker.
  */
 export const useBrunchAssistant = ({
   ownerKey,
   chatEndpoint,
+  fetch: hostFetch,
   selected,
   openDocument,
   voice,
   interviewBudget,
   words,
   plugins,
-}: {
-  /**
-   * The host's owner key: with a conversation ID, it names the conversation's
-   * Flue instance and is sent as its ownership header.
-   */
-  readonly ownerKey: string;
-  /** The Brunch chat mount the host resolves; instance paths extend it. */
-  readonly chatEndpoint: string;
+}: BrunchConnection & {
   /** Brunch is configured and chosen as the assistant. */
   readonly selected: boolean;
   /** The open document, or `null` while none is open. */
@@ -349,6 +339,7 @@ export const useBrunchAssistant = ({
     brunchSelected: selected,
     ownerKey,
     chatEndpoint,
+    fetch: hostFetch,
   });
   const { conversationTracker, flueClientPromise } = processAgentSession;
   // Failures the host contains — a stopped batch operation, an unrecordable
@@ -402,6 +393,16 @@ export const useBrunchAssistant = ({
     conversationId ?? "",
     flueAdapter,
   );
+  useStopTurnOnLeave({
+    editorHandle: editor?.handle ?? null,
+    binding: processAgentBinding,
+    session: {
+      client: flueClientPromise,
+      tracker: conversationTracker,
+      snapshot: flueHistory.snapshot,
+    },
+    onError: (error) => reportBrunchFailure("stop-on-leave", error),
+  });
   const interviewRepliesAsked = countInterviewReplies(
     flueHistory.snapshot ?? { messages: [] },
   );
@@ -501,12 +502,10 @@ export const useBrunchAssistant = ({
             ...(conversationId === null
               ? {}
               : {
-                  liveToolStream: {
-                    headers: agentOwnershipHeaders({
-                      conversationId,
-                      ownerKey,
-                    }),
-                  },
+                  liveToolStream: brunchLiveToolStream(
+                    { ownerKey, chatEndpoint, fetch: hostFetch },
+                    conversationId,
+                  ),
                 }),
             adapter: flueAdapter,
             onAdmission: flueHistory.refresh,
@@ -533,6 +532,8 @@ export const useBrunchAssistant = ({
       interviewBudgetLevel,
       interviewRepliesAsked,
       ownerKey,
+      chatEndpoint,
+      hostFetch,
       readWords,
       reportBrunchFailure,
     ],
@@ -544,6 +545,7 @@ export const useBrunchAssistant = ({
         ? createInBandBrowserCalls({
             client: flueClientPromise,
             ownerKey,
+            fetch: hostFetch,
             binding: constructionBrowser.binding,
             metadataFor: (toolCallId, output) =>
               canonicalHostTools?.clientToolResultMetadataFor(
@@ -564,6 +566,7 @@ export const useBrunchAssistant = ({
       canonicalHostTools,
       mutationApproval,
       ownerKey,
+      hostFetch,
     ],
   );
 

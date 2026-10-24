@@ -5,6 +5,7 @@
  */
 
 export * from "./client/brunch-flue-adapter";
+export * from "./client/brunch-flue-client";
 export * from "./client/brunch-panel-transport";
 export * from "./client/conversation/brunch-conversation-id";
 export * from "./client/tools/brunch-client-tools";
