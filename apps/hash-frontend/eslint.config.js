@@ -95,6 +95,7 @@ export default [
         "**/src/pages/**/*.page.ts",
         "**/src/pages/**/*.page.tsx",
         "**/__mocks__/**",
+        "vite.config.ts",
       ],
       rules: {
         "import/no-default-export": "off",
@@ -130,7 +131,6 @@ export default [
         // Outside the tsconfig project: imports `@hashintel/ds-components/preset`,
         // an `exports` subpath the legacy `moduleResolution: "node"` cannot resolve
         "panda.config.ts",
-        "vite.config.ts",
       ],
     },
   ]),
