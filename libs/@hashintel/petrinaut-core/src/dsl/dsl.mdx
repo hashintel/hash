@@ -129,6 +129,15 @@ back in one undo entry. **Discard** drops the draft. A draft outlives
 changes made on the canvas meanwhile; the toolbar says so, since applying
 replaces them. A new title on the `net` line goes to `setTitle`.
 
+## Examples written in the DSL
+
+`dsl/examples/` holds nets written in the DSL by hand, exported as
+`dslExamples` with a title and a sentence each: a queue, an epidemic over
+typed tokens, a workshop composed by fusion, a thermostat with dynamics and
+guards. Their suite parses and merges each one, compiles every item through
+the HIR, runs the LSP check, and prints it back to a text that reads as the
+same net, so the examples stay the reference for what the language accepts.
+
 ## Outside the editor
 
 The website's `/custom-dsl` page turns the relation around: the text is the

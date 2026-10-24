@@ -1,5 +1,4 @@
-import { printPetrinautDsl } from "@hashintel/petrinaut-core";
-import { assemblyLine } from "@hashintel/petrinaut-core/examples";
+import { dslExamples } from "@hashintel/petrinaut-core";
 
 /** The one DSL file the page keeps in this browser. */
 export const dslFileStorageKey = "petrinaut:custom-dsl";
@@ -23,9 +22,5 @@ export const saveDslFile = (text: string): boolean => {
   }
 };
 
-/** What a first visit opens on: the Assembly Line, as the DSL prints it. */
-export const defaultDslText = (): string =>
-  printPetrinautDsl({
-    sdcpn: assemblyLine.petriNetDefinition,
-    title: assemblyLine.title,
-  }).text;
+/** What a first visit opens on: the first of the DSL's own examples. */
+export const defaultDslText = (): string => dslExamples[0]?.text ?? "";

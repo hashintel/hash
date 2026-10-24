@@ -1,0 +1,48 @@
+/// A workshop built from components: a supplier and three cells, joined by
+/// place fusion. A component declares ports, each instance binds parameters,
+/// and a fusion names the ports that are one place when the net runs.
+net "Workshop"
+
+/// Emits one part into Out at `rate` per time unit.
+component Supplier {
+  param rate: real = 1
+  port out Out
+  transition Emit {
+    -> Out
+    rate { return parameters.rate; }
+  }
+}
+
+/// One machine with a small input buffer: parts enter at In, wait, get
+/// worked on, and leave at Out. A cell blocks when its buffer is full.
+component Cell {
+  param rate: real = 1
+  port in In capacity 3
+  place Busy
+  port out Out
+  transition Load {
+    In -> Busy
+    rate { return 10; }
+  }
+  transition Work {
+    Busy -> Out
+    rate { return parameters.rate; }
+  }
+}
+
+/// Finished parts, fused with the last cell's output.
+place Finished
+
+instance Parts = Supplier(rate = 1.5)
+instance Cutter = Cell(rate = 2)
+instance Driller = Cell(rate = 1.2)
+instance Polisher = Cell(rate = 1.8)
+
+/// Each fusion joins an output port to the next input port. A named fusion
+/// shows its name on the canvas.
+fuse RawParts = Parts.Out, Cutter.In
+fuse Cutter.Out, Driller.In
+fuse Driller.Out, Polisher.In
+fuse Finished, Polisher.Out
+
+metric "Finished parts" { return state.places.Finished.count; }

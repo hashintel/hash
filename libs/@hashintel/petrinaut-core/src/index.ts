@@ -134,6 +134,8 @@ export { toBodyForm } from "./dsl/code-bodies";
 export { parsePetrinautDsl, skipCodeBlock } from "./dsl/parse";
 export type { DslParseResult } from "./dsl/parse";
 export { mergeDslDocument } from "./dsl/merge";
+export { dslExamples } from "./dsl/examples/dsl-examples";
+export type { DslExample } from "./dsl/examples/dsl-examples";
 export type { DslMergeOptions, DslMergeResult } from "./dsl/merge";
 export type {
   DslArc,
