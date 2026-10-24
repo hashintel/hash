@@ -26,7 +26,7 @@ export type BrunchEditorApi = AccessApi<typeof brunchAccess>;
 /**
  * Brunch's assistant, from the host that assembles it outside the editor to
  * the plugin that renders it inside. The host provides it above `<Petrinaut>`
- * and adds `brunchPlugin` to the editor's plugins only while it is set.
+ * while the editor shows Brunch's assistant, and `null` otherwise.
  */
 export const BrunchAssistantContext =
   createContext<PetrinautAiAssistant | null>(null);
@@ -37,8 +37,6 @@ const BrunchPlugin = definePetrinautPlugin({
   description:
     "Brunch's assistant: its chat, Ledger and Voice, with the open net, its experiments and the editor's navigation.",
   author: "HASH",
-  // Brunch's chat and cards can't work without it, so the user cannot switch it off.
-  required: true,
   access: brunchAccess,
   assistant: true,
   provides: pluginService<BrunchEditorApi>(),
@@ -52,16 +50,12 @@ const useBrunchPlugin: PluginHook<typeof BrunchPlugin> = (api) => {
   const assistant = use(BrunchAssistantContext);
   // The empty-net prompt's text, which the chat consumes once.
   const [promptText, setPromptText] = useState<string | null>(null);
-  if (assistant === null) {
-    throw new Error(
-      "The Brunch plugin runs only while its host provides BrunchAssistantContext.",
-    );
-  }
 
   return {
     provides: api,
     assistant: {
-      content: (
+      // Empty while the host binds Brunch's conversation to the open net.
+      content: assistant && (
         <AiAssistantPanel
           aiAssistant={assistant}
           api={api}
@@ -79,7 +73,7 @@ const useBrunchPlugin: PluginHook<typeof BrunchPlugin> = (api) => {
   };
 };
 
-/** Runs while Brunch is the assistant: its chat fills the assistant panel. */
+/** Brunch's assistant: its chat fills the assistant panel while the editor shows it. */
 export const brunchPlugin = BrunchPlugin(useBrunchPlugin);
 
 const missingPluginStyle = css({
