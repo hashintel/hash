@@ -48,7 +48,8 @@ relies on, is in the architecture docs:
 ## Rust document engine (draft)
 
 The optional `@hashintel/petrinaut-core/rust` entry creates a compatible instance
-with Rust-owned document state, patch generation, history, and node movement:
+with a typed Rust document model, all 41 mutation methods, clipboard paste,
+layout application and local history:
 
 ```ts
 import { createRustPetrinaut } from "@hashintel/petrinaut-core/rust";
@@ -61,5 +62,7 @@ const instance = await createRustPetrinaut({
 instance.dispose();
 ```
 
-Other mutation rules and simulation remain in TypeScript. The architecture guide
+TypeScript retains the editor adapters, browser clipboard access, ELK calculation
+and simulation. Node movement and position-only undo/redo use incremental Rust
+transactions; structural edits still process the complete document. The architecture guide
 [documents the migration and its limits](../../@local/petrinaut-arch-docs/content/core/rust-migration.mdx).
