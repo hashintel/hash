@@ -1766,16 +1766,16 @@ describe("AiAssistantContents", () => {
       expect(
         within(dock)
           .getAllByRole("button")
-          .slice(0, 2)
+          .slice(0, 3)
           .map((button) => button.getAttribute("aria-label")),
-      ).toEqual(["Show 1 Voice issue", "Audio options"]);
+      ).toEqual(["Hide conversation", "Show 1 Voice issue", "Audio options"]);
       act(() => store.setActions({ end, pause: noop }));
       expect(
         within(dock)
           .getAllByRole("button")
-          .slice(0, 1)
+          .slice(0, 2)
           .map((button) => button.getAttribute("aria-label")),
-      ).toEqual(["Show 1 Voice issue"]);
+      ).toEqual(["Hide conversation", "Show 1 Voice issue"]);
       expect(within(dock).getByText("Connected")).toBeTruthy();
       expect(screen.queryByText(warningMessage)).toBeNull();
       expect(within(dock).getByRole("status").textContent).toBe(
@@ -1809,6 +1809,99 @@ describe("AiAssistantContents", () => {
       expect(end).toHaveBeenCalledOnce();
     },
   );
+
+  test("collapses a live session to its dock, and ending it there closes the panel", () => {
+    const store = createVoiceSessionStore();
+    const end = vi.fn();
+    store.setActions({
+      end,
+      pause: vi.fn(),
+      reconnect: vi.fn(),
+      resume: vi.fn(),
+      setMicrophoneMuted: vi.fn(),
+    });
+    store.setState({
+      errorMessage: null,
+      microphoneLevel: 0,
+      microphoneMuted: false,
+      phase: "listening",
+    });
+    const onVoiceDockCollapsedChange = vi.fn();
+    const onCollapsedVoiceEnd = vi.fn();
+    render(
+      <VoiceSessionContext.Provider value={store}>
+        <AiAssistantContents
+          input=""
+          inputMode="voice"
+          messages={[]}
+          onCollapsedVoiceEnd={onCollapsedVoiceEnd}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          onVoiceDockCollapsedChange={onVoiceDockCollapsedChange}
+          presentation="brunch"
+          status="ready"
+          voiceDockCollapsed
+          voiceMode={<div>Host Voice controls</div>}
+        />
+      </VoiceSessionContext.Provider>,
+    );
+
+    const dock = screen.getByRole("region", { name: "Voice session" });
+    expect(screen.getByTestId("ai-transcript").className).toContain("d_none");
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "Show conversation" }),
+    );
+    expect(onVoiceDockCollapsedChange).toHaveBeenCalledWith(false);
+
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "End voice mode" }),
+    );
+    expect(end).toHaveBeenCalledOnce();
+    expect(onCollapsedVoiceEnd).toHaveBeenCalledOnce();
+  });
+
+  test("stacks Voice setup above its collapsed dock, keeping the chat mounted", () => {
+    const onVoiceDockCollapsedChange = vi.fn();
+    render(
+      <AiAssistantContents
+        input=""
+        inputMode="voice"
+        messages={[]}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        onVoiceDockCollapsedChange={onVoiceDockCollapsedChange}
+        presentation="brunch"
+        status="ready"
+        voiceDockCollapsed
+        voiceMode={
+          <section aria-label="Voice mode consent">Permission</section>
+        }
+      />,
+    );
+
+    const permission = screen.getByRole("region", {
+      name: "Voice mode consent",
+    });
+    const setupDock = screen.getByRole("region", { name: "Voice setup" });
+    expect(within(setupDock).queryByText(/connecting/i)).toBeNull();
+    expect(permission.parentElement?.nextElementSibling).toBe(
+      setupDock.parentElement,
+    );
+    expect(screen.getByTestId("ai-transcript").className).toContain("d_none");
+    expect(
+      screen.getByRole("textbox", {
+        hidden: true,
+        name: "Message AI assistant",
+      }),
+    ).not.toBeNull();
+
+    fireEvent.click(
+      within(setupDock).getByRole("button", { name: "Expand voice setup" }),
+    );
+    expect(onVoiceDockCollapsedChange).toHaveBeenCalledWith(false);
+  });
 
   test("contains voice failures in the dock without a toast", async () => {
     const store = createVoiceSessionStore();

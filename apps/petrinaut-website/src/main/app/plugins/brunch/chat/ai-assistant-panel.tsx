@@ -43,7 +43,6 @@ import {
   setNetTitleToolName,
   type ApplyAutoLayoutResult,
 } from "@hashintel/petrinaut-core";
-import { formatReadOnlyReason } from "@hashintel/petrinaut/react";
 import {
   describeRefusal,
   type EditResult,
@@ -51,7 +50,6 @@ import {
   useStoreSelector,
 } from "@hashintel/petrinaut/ui/plugin";
 
-import { useTemporaryEditRefusal } from "../temporary-editor-compat";
 import {
   AiAssistantContents,
   getTranscriptLabel,
@@ -539,15 +537,15 @@ const ConversationAiAssistantPanel = ({
     };
   }, []);
 
-  // The panel owns open state. Voice runs inside the open panel; the plugin
-  // panel has no compact dock (FE-2046).
-  const { isOpen: isAiAssistantOpen } = useAssistantPanel();
+  // The panel owns open state, and the compact dock Voice can shrink it to.
+  const {
+    isOpen: isAiAssistantOpen,
+    close: closePanel,
+    compact: voiceDockCollapsed,
+    setCompact: setVoiceDockCollapsed,
+  } = useAssistantPanel();
   const revealInEditor = (target: Parameters<typeof api.editor.reveal>[0]) =>
     api.editor.reveal(target);
-  // TEMPORARY (FE-2048): the built-in panel's early read-only guard, read
-  // through Brunch's compat adapter until the plugin API answers it. Calls
-  // read the editor's latest state; the plugin's edits still check again.
-  const editRefusal = useTemporaryEditRefusal();
 
   const isNetEmpty = useStoreSelector(
     document.net,
@@ -580,17 +578,34 @@ const ConversationAiAssistantPanel = ({
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
   const [interactionMode, setInteractionMode] =
     useState<PetrinautAiInputMode>("text");
+  const initializedLayoutRef = useRef(false);
+  useLayoutEffect(() => {
+    // A new conversation starts expanded. Effect replay preserves its voice setup.
+    if (initializedLayoutRef.current) {
+      return;
+    }
+    initializedLayoutRef.current = true;
+    if (voiceDockCollapsed) {
+      setVoiceDockCollapsed(false);
+    }
+  }, [setVoiceDockCollapsed, voiceDockCollapsed]);
   const interactionModeRef = useRef<PetrinautAiInputMode>("text");
   const selectInteractionMode = useCallback(
-    (nextMode: PetrinautAiInputMode) => {
+    (
+      nextMode: PetrinautAiInputMode,
+      options: { collapseVoiceDock?: boolean } = {},
+    ) => {
       const previousMode = interactionModeRef.current;
       interactionModeRef.current = nextMode;
       setInteractionMode(nextMode);
+      setVoiceDockCollapsed(
+        nextMode === "voice" && options.collapseVoiceDock === true,
+      );
       if (previousMode === "voice" && nextMode === "text") {
         setComposerFocusRequest((request) => request + 1);
       }
     },
-    [],
+    [setVoiceDockCollapsed],
   );
   const setVoiceActive = useCallback((active: boolean) => {
     voiceActiveRef.current = active;
@@ -1097,18 +1112,14 @@ const ConversationAiAssistantPanel = ({
       throw new Error(`Unknown AI tool: ${String(toolName as string)}`);
     }
 
-    // Refuse before consent, the host's mutation boundary or the edit, as the
-    // built-in guard did; the plugin's edits below still refuse on their own.
-    const blockedBy = editRefusal(toolName);
+    // Refuse before consent, the host's mutation boundary or the edit; the
+    // plugin's edits below read the same refusals when they run.
+    const blockedBy = document.refusals.get()[toolName];
     if (blockedBy !== null) {
       await addAutomaticToolOutput({
         tool: toolName,
         toolCallId: toolCall.toolCallId,
-        output: {
-          applied: false,
-          blocked: blockedBy.kind,
-          reason: formatReadOnlyReason(blockedBy),
-        } satisfies AiToolOutput,
+        output: toBlockedOutput(blockedBy),
       });
       return;
     }
@@ -2185,7 +2196,10 @@ const ConversationAiAssistantPanel = ({
       aiAssistant.renderVoiceMode === undefined
         ? "text"
         : initialInteractionMode;
-    selectInteractionMode(nextMode);
+    // Voice from the empty-net prompt starts as the collapsed dock.
+    selectInteractionMode(nextMode, {
+      collapseVoiceDock: nextMode === "voice",
+    });
     consumedInitialInteractionModeRef.current = initialInteractionMode;
     onInitialInteractionModeConsumed?.();
   }, [
@@ -2388,17 +2402,13 @@ const ConversationAiAssistantPanel = ({
         }
 
         // Refuse at submit when the editor turned read-only after consent
-        // showed, as the built-in guard did; the edit refuses on its own too.
-        const readOnlyAtSubmit = editRefusal(toolName);
-        if (readOnlyAtSubmit !== null) {
+        // showed.
+        const refusedAtSubmit = document.refusals.get()[toolName];
+        if (refusedAtSubmit !== null) {
           safelyAddToolOutput(addToolOutput, {
             tool: toolName,
             toolCallId,
-            output: {
-              applied: false,
-              blocked: readOnlyAtSubmit.kind,
-              reason: formatReadOnlyReason(readOnlyAtSubmit),
-            } satisfies AiToolOutput,
+            output: toBlockedOutput(refusedAtSubmit),
           });
           return;
         }
@@ -2433,6 +2443,8 @@ const ConversationAiAssistantPanel = ({
         void stopComposer();
       }}
       onSubmit={submitComposerInput}
+      onCollapsedVoiceEnd={closePanel}
+      onVoiceDockCollapsedChange={setVoiceDockCollapsed}
       promptChips={promptChips}
       primaryAttention={primaryAttention}
       primaryLabel={aiAssistant.primaryLabel}
@@ -2441,6 +2453,7 @@ const ConversationAiAssistantPanel = ({
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}
       voiceMode={voiceMode}
+      voiceDockCollapsed={voiceDockCollapsed}
       voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
       resolveToolPresentation={aiAssistant.resolveToolPresentation}
       workingLabel={aiAssistant.workingLabel}

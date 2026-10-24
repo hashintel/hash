@@ -31,6 +31,11 @@ interface TestEditorApiOptions {
   readonly setTitle?: (title: string) => void;
   /** Read when an edit is called: a refusal refuses every edit. */
   readonly refusal?: () => EditRefusal | null;
+  /**
+   * Read by `document.refusals`; defaults to `refusal`. A different answer
+   * stands for an editor that changed between the check and the edit.
+   */
+  readonly checkedRefusal?: () => EditRefusal | null;
   readonly requestDiagnostics?: LanguageClient["requestDiagnostics"];
   readonly reveal?: (target: PetrinautRevealTarget) => void;
   readonly runExperiment?: PluginExperiments["run"];
@@ -83,6 +88,7 @@ export const createTestEditorApi = (
     title = "Untitled",
     setTitle,
     refusal = () => null,
+    checkedRefusal = refusal,
     requestDiagnostics = noDiagnostics,
     reveal = () => {},
     runExperiment = () => Promise.reject(new Error("Experiments unavailable")),
@@ -101,16 +107,18 @@ export const createTestEditorApi = (
 
     return { applied: true, value: undefined };
   };
-  // Read at each call, like the edits, so a changed `refusal` shows at once.
+  // Read at each call, like the edits, so a changed refusal shows at once.
   const refusals: ReadableStore<EditRefusals> = {
     get: () =>
       Object.fromEntries([
         ...[...Object.keys(instance.mutations), "applyAutoLayout"].map(
-          (name) => [name, refusal()],
+          (name) => [name, checkedRefusal()],
         ),
         [
           "setTitle",
-          setTitle === undefined ? { kind: "no-title-setter" } : refusal(),
+          setTitle === undefined
+            ? { kind: "no-title-setter" }
+            : checkedRefusal(),
         ],
       ]) as EditRefusals,
     subscribe: () => () => {},
