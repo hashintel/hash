@@ -136,14 +136,40 @@ describe("the custom DSL page", () => {
     expect(screen.getByText("Saved in this browser.")).toBeTruthy();
   });
 
-  it("opens a first visit on the Assembly Line", async () => {
+  it("opens a first visit on the first DSL example", async () => {
     localStorage.removeItem(dslFileStorageKey);
 
     await renderPage();
 
-    expect(editor().value).toContain('net "Assembly Line"\n');
+    expect(editor().value).toContain('net "Coffee counter"\n');
     await waitFor(() =>
-      expect(petrinaut().textContent).toBe("Buffer,Finished"),
+      expect(petrinaut().textContent).toBe("Waiting,Baristas,Serving,Served"),
     );
+  });
+
+  it("loads an example into the file once the reader agrees, and leaves it when they decline", async () => {
+    await renderPage();
+    const picker = screen.getByLabelText<HTMLSelectElement>("Load example");
+
+    fireEvent.change(picker, { target: { value: "thermostat" } });
+    fireEvent.click(screen.getByRole("button", { name: "Keep mine" }));
+
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(editor().value).toBe('net "Mine"\nplace A\nplace B\n');
+
+    fireEvent.change(picker, { target: { value: "thermostat" } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Replace" }));
+    });
+
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(editor().value).toContain('net "Thermostat"\n');
+    expect(localStorage.getItem(dslFileStorageKey)).toContain(
+      'net "Thermostat"\n',
+    );
+    await waitFor(() =>
+      expect(petrinaut().textContent).toBe("Idle,Heating,Power,Fault"),
+    );
+    expect(picker.value).toBe("");
   });
 });

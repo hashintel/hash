@@ -33,8 +33,7 @@ describe("the DSL file", () => {
     expect(saveDslFile("place A\n")).toBe(false);
   });
 
-  it("opens a first visit on the Assembly Line", () => {
-    expect(defaultDslText()).toContain('net "Assembly Line"\n');
-    expect(defaultDslText()).toContain("instance Cutter = Stage(rate = 2)\n");
+  it("opens a first visit on the first DSL example", () => {
+    expect(defaultDslText()).toContain('net "Coffee counter"\n');
   });
 });
