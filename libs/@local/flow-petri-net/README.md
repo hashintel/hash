@@ -1,6 +1,6 @@
 # @local/flow-petri-net
 
-Compiles a `FlowDefinition` into the Petri net (SDCPN) that Petrinaut renders and, eventually, a net executor runs.
+Compiles a `FlowDefinition` into the Petri net (SDCPN) that Petrinaut renders, and interprets a compiled net to work out a run's tokens: from a run's recorded events now, and for a net executor eventually.
 
 ## Where this fits
 
@@ -17,6 +17,8 @@ flowchart LR
   net["SDCPN flow net"]
   engine["Temporal flow engine,<br/>startFlow API"]
   petrinaut["Petrinaut view<br/>on the flow page"]
+  interpreter["startFlowNetRun<br/>(interpreter)"]
+  events["A run's FlowRunEvents"]
   executor["Petri net executor<br/>(TODO FE-1904)"]
 
   actions --> builder
@@ -28,7 +30,10 @@ flowchart LR
   definition --> engine
   definition -->|compileFlowDefinition| net
   net --> petrinaut
-  net --> executor
+  net --> interpreter
+  events -->|replayFlowRunEvents| interpreter
+  interpreter -->|a run's marking| petrinaut
+  executor -->|action outcomes| interpreter
 ```
 
 - **`FlowDefinition`** (`@local/hash-isomorphic-utils/flows/types`) is the source of truth for what a flow does: its inputs, steps, connections and outputs. It's plain JSON, validated by `validateFlowDefinition`. Every connection is checked by `canConnect`, the one compatibility rule, which the builder's types mirror at compile time. Definitions say nothing about how a flow is started: triggers are separate.
@@ -40,6 +45,8 @@ flowchart LR
 - `@local/flow-petri-net/compile-flow-definition` exports `compileFlowDefinition(flowDefinition, { layout }): Promise<SDCPN>`. It's async because it lays the net out with Petrinaut's ELK layout. With `layout: false` it leaves every node at the origin, for a net that runs rather than one that's shown, such as in a Temporal workflow, where ELK can't run.
 - `@local/flow-petri-net/flow-net-keys` exports the functions every key in a compiled net is made with (see **Ids** below), so that anything reading a net, such as an executor or a run's view, can work out an element's id.
 - `@local/flow-petri-net/flow-net-metadata` exports the types of what a compiled net records in its metadata (see **Metadata** below): `TransitionRole`, each role's `TransitionMetadata`, `InputSource`, and the root's, instances' and subnets' metadata.
+- `@local/flow-petri-net/interpret-flow-net` exports `startFlowNetRun(net, { flowInputNames, waitForStepStarts }): FlowNetRun`. It runs a compiled net by its transitions' roles, working out the tokens itself, and fires every transition that fires on its own. A run then waits for what only the outside knows: an action attempt's outcome, and how many items a `forEach` step's array has. With `waitForStepStarts`, an action step that has its inputs also waits to be told it started, rather than starting at once. `awaiting()` lists those, and `apply(outcome)` applies one and returns the firings it causes. `isAwaitingStart(stepRun)` and `awaitedAttempt(stepRun)` answer for one step run without listing every other one, so a replay of a large `forEach` doesn't redo the whole list on each event. A place inside a step's instance is identified with the instance, since every instance of a subnet shares its places' ids. Read arcs from one place can read the same token, as when two inputs of a step read the same value.
+- `@local/flow-petri-net/replay-flow-run-events` exports `replayFlowRunEvents(net, events)`, which applies a run's `FlowRunEvent`s to the interpreter. It returns the run's initial marking, each firing with the event that caused it, the marking and what the net waits for after the last event, and the events the net couldn't follow. It waits for each action step's `stepStarted` event to start it: the executor only starts the steps that are ready once every step of the batch before has finished, so a step can have its inputs well before it starts.
 
 Its implementation is in `src/compile-flow-definition/`:
 
@@ -142,5 +149,6 @@ flowchart LR
 
 ## Limitations
 
-- **No guards.** Kernels only carry `run_id` and `item_path` forward and give every other attribute a default (`compile-flow-definition/shared/kernels.ts`). There are no guards yet: no correlation across inputs, and no iterator or accumulator conditions. So a compiled net builds in Petrinaut but doesn't simulate meaningfully. The executor is meant to interpret roles instead (TODO FE-1904).
-- **A `for-each` step's shared item tokens stay after their item finishes.** The steps inside the `for-each` that read the item read it from one place, and nothing consumes it there. Consuming it needs a transition that knows every step of that item has finished, which needs the item correlation that FE-1914 adds. A step that consumes the item takes its own copy.- **Skip-if-missing** (`whenMissing: "skip"`), and the absent-token semantics behind it, are left to the executor.
+- **No guards.** Kernels only carry `run_id` and `item_path` forward and give every other attribute a default (`compile-flow-definition/shared/kernels.ts`). There are no guards yet: no correlation across inputs, and no iterator or accumulator conditions. So a compiled net builds in Petrinaut but doesn't simulate meaningfully. `interpret-flow-net` interprets roles instead.
+- **A `for-each` step's shared item tokens stay after their item finishes.** The steps inside the `for-each` that read the item read it from one place, and nothing consumes it there. Consuming it needs a transition that knows every step of that item has finished, which needs the item correlation that FE-1914 adds. A step that consumes the item takes its own copy.
+- **Skip-if-missing** (`whenMissing: "skip"`) has no transition yet. The interpreter holds a step while a value it skips on is missing; skipping it is left to the executor (TODO FE-1904).
