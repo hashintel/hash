@@ -10,6 +10,15 @@ existing `Petrinaut` TypeScript interface. The published entry is
 `@hashintel/petrinaut-core/rust`; loading the regular core entry keeps the
 TypeScript implementation.
 
+## Migration increments
+
+The command entry point accepts a tagged Rust `Command` and commits it atomically.
+Extension policy is fixed at construction and enforced in Rust for initial state,
+native commands and compatibility drafts. This includes disabled colour/dynamics
+fields, parameter overrides, scenario token counts, component-port arcs and
+transition code availability. TypeScript still normalizes document input and
+validates public mutation schemas.
+
 ## What runs where
 
 | Responsibility                                       | This draft                                                                               | Remaining migration                                                                                            |

@@ -1,7 +1,7 @@
 use serde_json::json;
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
-use crate::{CommitNodePositions, PetrinautInstance};
+use crate::{Command, CommitNodePositions, Extensions, PetrinautInstance};
 
 #[wasm_bindgen]
 pub struct RustDocument {
@@ -20,11 +20,19 @@ impl RustDocument {
         history_limit: u32,
         timestamp: String,
         readonly: bool,
+        extensions: &str,
     ) -> Result<Self, JsError> {
         let document = serde_json::from_str(document).map_err(js_error)?;
+        let extensions: Extensions = serde_json::from_str(extensions).map_err(js_error)?;
         Ok(Self {
-            instance: PetrinautInstance::new(document, history_limit as usize, timestamp, readonly)
-                .map_err(js_error)?,
+            instance: PetrinautInstance::new_with_extensions(
+                document,
+                history_limit as usize,
+                timestamp,
+                readonly,
+                extensions,
+            )
+            .map_err(js_error)?,
         })
     }
 
@@ -42,6 +50,17 @@ impl RustDocument {
             &self
                 .instance
                 .replace_document(document, timestamp)
+                .map_err(js_error)?,
+        )
+        .map_err(js_error)
+    }
+
+    pub fn execute(&mut self, command: &str, timestamp: String) -> Result<String, JsError> {
+        let command: Command = serde_json::from_str(command).map_err(js_error)?;
+        serde_json::to_string(
+            &self
+                .instance
+                .execute(&command, timestamp)
                 .map_err(js_error)?,
         )
         .map_err(js_error)

@@ -4,7 +4,6 @@ import { RustDocument } from "../../rust/pkg/petrinaut_core.js";
 import {
   resolvePetrinautHandleCapabilities,
   sanitizeSDCPNForExtensions,
-  stripDisabledExtensionData,
 } from "../extensions";
 import { generatePetrinautId, toPetrinautId } from "../petrinaut-id";
 import { createReadableStore } from "../store";
@@ -71,6 +70,7 @@ export const createRustDocHandle = (
     historyLimit,
     new Date().toISOString(),
     capabilities.readonly,
+    json(capabilities.extensions),
   );
   let current = freeze(JSON.parse(document.snapshot()) as SDCPN, true);
   let disposed = false;
@@ -174,7 +174,6 @@ export const createRustDocHandle = (
       try {
         const next = produce(current, (draft) => {
           fn(draft as SDCPN);
-          stripDisabledExtensionData(draft as SDCPN, capabilities.extensions);
         });
         if (next === current) {
           return;
@@ -191,7 +190,10 @@ export const createRustDocHandle = (
         return;
       }
       publish(
-        document.commitNodePositions(json(input), new Date().toISOString()),
+        document.execute(
+          json({ type: "commitNodePositions", input }),
+          new Date().toISOString(),
+        ),
       );
     },
     subscribe(listener) {

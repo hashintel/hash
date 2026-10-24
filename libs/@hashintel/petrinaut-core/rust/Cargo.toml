@@ -19,7 +19,7 @@ wasm-bindgen = { workspace = true, public = true, features = ["std"] }
 # Private workspace dependencies
 
 # Private third-party dependencies
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true, features = ["derive", "alloc"] }
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false

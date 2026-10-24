@@ -1,5 +1,7 @@
 //! Document transactions and local history for Petrinaut, usable natively and through WebAssembly.
 
+mod command;
+mod extensions;
 mod patch;
 #[cfg(test)]
 mod tests;
@@ -8,7 +10,7 @@ mod wasm;
 use serde::Deserialize;
 use serde_json::Value;
 
-pub use crate::patch::Patch;
+pub use crate::{command::Command, extensions::Extensions, patch::Patch};
 
 #[derive(Debug)]
 struct Checkpoint {
@@ -26,6 +28,7 @@ pub struct PetrinautInstance {
     history_limit: usize,
     baseline_timestamp: String,
     readonly: bool,
+    extensions: Extensions,
 }
 
 #[derive(Debug, Deserialize)]
@@ -84,7 +87,28 @@ impl PetrinautInstance {
         timestamp: String,
         readonly: bool,
     ) -> Result<Self, String> {
+        Self::new_with_extensions(
+            document,
+            history_limit,
+            timestamp,
+            readonly,
+            Extensions::default(),
+        )
+    }
+
+    /// Creates an instance with a fixed extension policy for all transactions.
+    ///
+    /// # Errors
+    /// Returns an error when a required document array is absent.
+    pub fn new_with_extensions(
+        mut document: Value,
+        history_limit: usize,
+        timestamp: String,
+        readonly: bool,
+        extensions: Extensions,
+    ) -> Result<Self, String> {
         validate_document(&document)?;
+        extensions.sanitize_document(&mut document);
         Ok(Self {
             document,
             history: Vec::new(),
@@ -92,6 +116,7 @@ impl PetrinautInstance {
             history_limit,
             baseline_timestamp: timestamp,
             readonly,
+            extensions,
         })
     }
 
@@ -118,13 +143,14 @@ impl PetrinautInstance {
     /// Returns an error when a required document array is absent.
     pub fn replace_document(
         &mut self,
-        next: Value,
+        mut next: Value,
         timestamp: String,
     ) -> Result<Vec<Patch>, String> {
         if self.readonly {
             return Ok(Vec::new());
         }
         validate_document(&next)?;
+        self.extensions.sanitize_document(&mut next);
         let forward = patch::diff(&self.document, &next);
         if forward.is_empty() {
             return Ok(forward);
@@ -145,6 +171,16 @@ impl PetrinautInstance {
         }
         self.document = next;
         Ok(forward)
+    }
+
+    /// Executes a typed edit and records one atomic history entry.
+    ///
+    /// # Errors
+    /// Returns an error when the command cannot be applied to this document.
+    pub fn execute(&mut self, command: &Command, timestamp: String) -> Result<Vec<Patch>, String> {
+        match command {
+            Command::CommitNodePositions(input) => self.commit_node_positions(input, timestamp),
+        }
     }
 
     /// Moves nodes in one transaction, including nodes within a subnet.

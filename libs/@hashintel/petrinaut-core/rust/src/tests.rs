@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 
-use crate::{CommitNodePositions, PetrinautInstance};
+use crate::{Command, CommitNodePositions, Extensions, PetrinautInstance};
 
 fn document() -> Value {
     json!({"places": [{"id":"p", "x":0, "y":0}], "transitions": [], "types": [], "parameters": [], "differentialEquations": []})
@@ -150,4 +150,67 @@ fn commit_preserves_large_native_integers() {
     assert_eq!(instance.document(), &next);
     instance.go_to_index(0).expect("should undo");
     assert_eq!(instance.document(), &initial);
+}
+
+#[test]
+fn extension_policy_applies_to_initial_state_and_all_commits() {
+    let mut initial = document();
+    initial["places"][0] = json!({"id":"p", "x":0, "y":0, "colorId":"color", "dynamicsEnabled":true, "differentialEquationId":"equation", "visualizerCode":"code"});
+    initial["scenarios"] = json!([{"parameterOverrides":{"rate":"1"}, "initialState":{"type":"per_place", "content":{"p":[[1],[2]]}}}]);
+    let policy = Extensions {
+        colors: false,
+        parameters: false,
+        ..Extensions::default()
+    };
+    let mut instance = PetrinautInstance::new_with_extensions(
+        initial.clone(),
+        50,
+        "initial".to_owned(),
+        false,
+        policy,
+    )
+    .expect("should create instance");
+    assert_eq!(instance.document()["places"][0]["colorId"], Value::Null);
+    assert_eq!(instance.document()["places"][0]["dynamicsEnabled"], false);
+    assert!(
+        instance.document()["places"][0]
+            .get("visualizerCode")
+            .is_none()
+    );
+    assert_eq!(
+        instance.document()["scenarios"][0]["initialState"]["content"]["p"],
+        "2"
+    );
+    assert_eq!(
+        instance.document()["scenarios"][0]["parameterOverrides"],
+        json!({})
+    );
+    let baseline = instance.document().clone();
+    initial["places"][0]["x"] = json!(7);
+    instance
+        .replace_document(initial, "edit".to_owned())
+        .expect("should commit sanitized draft");
+    assert_eq!(instance.document()["places"][0]["colorId"], Value::Null);
+    instance.go_to_index(0).expect("should undo");
+    assert_eq!(instance.document(), &baseline);
+}
+
+#[test]
+fn command_dispatch_records_one_transaction_and_preserves_redo_after_failure() {
+    let mut instance = instance(50);
+    let command: Command = serde_json::from_value(json!({"type":"commitNodePositions", "input":{"commits":[{"id":"p", "itemType":"place", "position":{"x":8,"y":9}}]}})).expect("should parse edit");
+    instance
+        .execute(&command, "move".to_owned())
+        .expect("should execute edit");
+    instance.go_to_index(0).expect("should undo");
+    let bad: Command = serde_json::from_value(
+        json!({"type":"commitNodePositions", "input":{"targetSubnetId":"missing", "commits":[]}}),
+    )
+    .expect("should parse edit");
+    instance
+        .execute(&bad, "bad".to_owned())
+        .expect_err("should reject missing subnet");
+    assert_eq!(instance.timestamps(), vec!["initial", "move"]);
+    instance.go_to_index(1).expect("should retain redo");
+    assert_eq!(instance.document()["places"][0]["x"], 8.0);
 }
