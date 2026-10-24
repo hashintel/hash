@@ -537,9 +537,13 @@ const ConversationAiAssistantPanel = ({
     };
   }, []);
 
-  // The panel owns open state. Voice runs inside the open panel; the plugin
-  // panel has no compact dock (FE-2046).
-  const { isOpen: isAiAssistantOpen } = useAssistantPanel();
+  // The panel owns open state, and the compact dock Voice can shrink it to.
+  const {
+    isOpen: isAiAssistantOpen,
+    close: closePanel,
+    compact: voiceDockCollapsed,
+    setCompact: setVoiceDockCollapsed,
+  } = useAssistantPanel();
   const revealInEditor = (target: Parameters<typeof api.editor.reveal>[0]) =>
     api.editor.reveal(target);
 
@@ -574,17 +578,34 @@ const ConversationAiAssistantPanel = ({
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
   const [interactionMode, setInteractionMode] =
     useState<PetrinautAiInputMode>("text");
+  const initializedLayoutRef = useRef(false);
+  useLayoutEffect(() => {
+    // A new conversation starts expanded. Effect replay preserves its voice setup.
+    if (initializedLayoutRef.current) {
+      return;
+    }
+    initializedLayoutRef.current = true;
+    if (voiceDockCollapsed) {
+      setVoiceDockCollapsed(false);
+    }
+  }, [setVoiceDockCollapsed, voiceDockCollapsed]);
   const interactionModeRef = useRef<PetrinautAiInputMode>("text");
   const selectInteractionMode = useCallback(
-    (nextMode: PetrinautAiInputMode) => {
+    (
+      nextMode: PetrinautAiInputMode,
+      options: { collapseVoiceDock?: boolean } = {},
+    ) => {
       const previousMode = interactionModeRef.current;
       interactionModeRef.current = nextMode;
       setInteractionMode(nextMode);
+      setVoiceDockCollapsed(
+        nextMode === "voice" && options.collapseVoiceDock === true,
+      );
       if (previousMode === "voice" && nextMode === "text") {
         setComposerFocusRequest((request) => request + 1);
       }
     },
-    [],
+    [setVoiceDockCollapsed],
   );
   const setVoiceActive = useCallback((active: boolean) => {
     voiceActiveRef.current = active;
@@ -2175,7 +2196,10 @@ const ConversationAiAssistantPanel = ({
       aiAssistant.renderVoiceMode === undefined
         ? "text"
         : initialInteractionMode;
-    selectInteractionMode(nextMode);
+    // Voice from the empty-net prompt starts as the collapsed dock.
+    selectInteractionMode(nextMode, {
+      collapseVoiceDock: nextMode === "voice",
+    });
     consumedInitialInteractionModeRef.current = initialInteractionMode;
     onInitialInteractionModeConsumed?.();
   }, [
@@ -2419,6 +2443,8 @@ const ConversationAiAssistantPanel = ({
         void stopComposer();
       }}
       onSubmit={submitComposerInput}
+      onCollapsedVoiceEnd={closePanel}
+      onVoiceDockCollapsedChange={setVoiceDockCollapsed}
       promptChips={promptChips}
       primaryAttention={primaryAttention}
       primaryLabel={aiAssistant.primaryLabel}
@@ -2427,6 +2453,7 @@ const ConversationAiAssistantPanel = ({
       stopped={stopped}
       voiceHandoffPending={voiceHandoffPending}
       voiceMode={voiceMode}
+      voiceDockCollapsed={voiceDockCollapsed}
       voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
       resolveToolPresentation={aiAssistant.resolveToolPresentation}
       workingLabel={aiAssistant.workingLabel}

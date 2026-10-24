@@ -439,11 +439,15 @@ test("Brunch's Voice starts from the empty-net prompt, in the panel it opens", a
   await act(async () => fireEvent.click(startVoice));
 
   expect(await screen.findByLabelText("Voice mode consent")).toBeTruthy();
-  expect(
-    document
-      .querySelector('aside[aria-label="AI assistant"]')
-      ?.hasAttribute("inert"),
-  ).toBe(false);
+  const panel = () =>
+    document.querySelector<HTMLElement>('aside[aria-label="AI assistant"]');
+  expect(panel()?.hasAttribute("inert")).toBe(false);
+  // Voice from the prompt starts as the compact dock, which expands on request.
+  expect(panel()?.dataset.compact).toBe("true");
+  await act(async () =>
+    fireEvent.click(screen.getByRole("button", { name: "Expand voice setup" })),
+  );
+  expect(panel()?.dataset.compact).not.toBe("true");
   expect(send).not.toHaveBeenCalled();
 });
 
