@@ -36,7 +36,7 @@ explicitly set to `undefined` in TypeScript are sent as field removals.
 
 The Rust instance now routes all 41 public mutation methods to Rust,
 including the four position methods from the initial draft. This is a count of
-API methods, not a percentage of the full core codebase. Composite commands still use the TypeScript compatibility path.
+API methods, not a percentage of the full core codebase. Paste and layout application also run in Rust; ELK calculation stays in TypeScript.
 
 Token-type element edits migrate stored scenario rows in Rust, including column
 reordering, default cells and JavaScript-compatible numeric, string and UUID conversions.
@@ -45,6 +45,11 @@ Definition-edit parity tests exercise all 32 extension policies and undo/redo.
 Subnet removal deletes referencing component instances and their arcs across
 all nets. Bulk deletion resolves synthetic arc IDs and cascades removed subnet
 ports in one transaction. Native component edits validate subnet and parameter references.
+
+Paste assigns host-generated fresh IDs, remaps references, deduplicates entity
+names and parameter variable names, offsets positions and drops uncopied arc
+endpoints. Rust rejects reused fresh IDs. Browser clipboard access and ELK
+calculation stay in TypeScript; applying either result is one native transaction.
 
 ## What runs where
 
@@ -56,13 +61,13 @@ ports in one transaction. Native component edits validate subnet and parameter r
 | Place creation, updates and deletion                 | Rust validates place fields, checks dynamics references and cascades arc deletion.                      | Generate shared entity schemas and migrate the remaining entity families.                        |
 | Transition and arc editing                           | Rust validates transition fields and arc endpoints, updates references and refreshes code availability. | Share schemas with TypeScript and add broader generated parity cases.                            |
 | Definition editing                                   | Rust commands for types/elements, equations, parameters, scenarios and metrics                          | Subnet/component edits and bulk deletion also run in Rust.                                       |
-| Clipboard and auto-layout commands                   | TypeScript; each result commits as one Rust transaction                                                 | Keep host-side clipboard access and ELK integration in TypeScript.                               |
+| Clipboard and auto-layout commands                   | Rust paste and batched position commits; host-side ELK calculation                                      | Keep host-side clipboard access and ELK integration in TypeScript.                               |
 | React stores, notifications and lifecycle            | TypeScript adapter                                                                                      | Keep these adapters in TypeScript.                                                               |
 | Simulation, HIR compiler, LSP, optimization, WebGPU  | Existing TypeScript implementations                                                                     | Evaluate separately after document semantics match.                                              |
 | Collaborative or remote handles                      | Existing host handles                                                                                   | Define the synchronization protocol and authoritative owner before adopting Rust in these hosts. |
 
 This is a working document-engine migration draft. It is not a complete port of
-`@hashintel/petrinaut-core`: composite commands and simulation still live
+`@hashintel/petrinaut-core`: simulation and browser services still live
 in TypeScript. Native Rust callers can create an instance from authoring JSON, read its typed
 `Sdcpn` model, commit validated document replacements, move nodes, edit places,
 transitions, arcs, token types, equations, parameters, scenarios and metrics, and navigate history. Initialization normalizes identifiers
@@ -168,9 +173,9 @@ Native Rust consumers use the same crate without crossing the JavaScript boundar
   definition reads return the same object until the document changes. The existing
   definition-store sanitizer still copies entities after a change; it can be optimized
   separately.
-- Most mutations still create an Immer draft, serialize the whole result, parse it
-  in Rust, and diff it. Native commands pass only their inputs, but Rust
-  currently clones and compares the document. This draft makes no speedup claim.
+- Public mutations and composite commands pass their inputs to Rust. The compatibility
+  `handle.change` callback still uses an Immer draft and serializes its result. Rust
+  currently clones and compares documents internally. This draft makes no speedup claim.
 - The current document exists in both Wasm memory and the JavaScript heap. History
   stores patches rather than full snapshots, but large replacements can still
   retain substantial data. The default limit is 50 transactions; zero disables history.

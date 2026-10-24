@@ -6,6 +6,10 @@ import { generatePetrinautId, toPetrinautId } from "../petrinaut-id";
 import { createReadableStore } from "../store";
 
 import type {
+  PasteInput,
+  SelectedItem,
+} from "../../rust/pkg/petrinaut_core.js";
+import type {
   CreateJsonDocHandleOptions,
   DocChangeEvent,
   DocHandleState,
@@ -43,6 +47,7 @@ export const createRustDocHandle = (
   options: CreateJsonDocHandleOptions,
 ): PetrinautDocHandle & {
   execute(command: RustCommand): void;
+  paste(input: PasteInput): { newItemIds: SelectedItem[] };
   dispose(): void;
 } => {
   const historyLimit = options.historyLimit ?? 50;
@@ -181,6 +186,17 @@ export const createRustDocHandle = (
         return;
       }
       publish(document.execute(json(command), new Date().toISOString()));
+    },
+    paste(input) {
+      assertReady();
+      if (capabilities.readonly) {
+        return { newItemIds: [] };
+      }
+      const result = JSON.parse(
+        document.paste(json(input), new Date().toISOString()),
+      ) as { patches: PetrinautPatch[]; newItemIds: SelectedItem[] };
+      publish(JSON.stringify(result.patches));
+      return { newItemIds: result.newItemIds };
     },
     subscribe(listener) {
       if (disposed) {

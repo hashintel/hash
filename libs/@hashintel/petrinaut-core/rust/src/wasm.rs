@@ -1,7 +1,7 @@
 use serde_json::json;
 use wasm_bindgen::prelude::{JsError, wasm_bindgen};
 
-use crate::{Command, CommitNodePositions, Extensions, PetrinautInstance};
+use crate::{Command, CommitNodePositions, Extensions, PasteInput, PetrinautInstance};
 
 #[wasm_bindgen]
 pub struct RustDocument {
@@ -64,6 +64,12 @@ impl RustDocument {
                 .map_err(js_error)?,
         )
         .map_err(js_error)
+    }
+
+    pub fn paste(&mut self, input: &str, timestamp: String) -> Result<String, JsError> {
+        let input: PasteInput = serde_json::from_str(input).map_err(js_error)?;
+        serde_json::to_string(&self.instance.paste(&input, timestamp).map_err(js_error)?)
+            .map_err(js_error)
     }
 
     #[wasm_bindgen(js_name = commitNodePositions)]

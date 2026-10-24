@@ -1,5 +1,6 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
+import { readRustWasm } from "../scripts/read-rust-wasm.mjs";
 import {
   CLIPBOARD_FORMAT_VERSION,
   type ClipboardPayload,
@@ -7,7 +8,11 @@ import {
 import { createJsonDocHandle } from "./handle";
 import { createPetrinaut } from "./instance";
 import { toPetrinautId } from "./petrinaut-id";
+import { initializePetrinautRust } from "./rust/index";
+import { createRustInstance } from "./rust/instance";
 
+import type { Petrinaut } from "./instance";
+import type { CreateRustPetrinautOptions } from "./rust/index";
 import type { SDCPN } from "./types/sdcpn";
 
 const emptySDCPN: SDCPN = {
@@ -17,13 +22,6 @@ const emptySDCPN: SDCPN = {
   differentialEquations: [],
   parameters: [],
 };
-
-const createInstance = (initial: SDCPN = emptySDCPN) =>
-  createPetrinaut({
-    document: createJsonDocHandle({
-      initial: JSON.parse(JSON.stringify(initial)) as SDCPN,
-    }),
-  });
 
 const buildClipboardPayload = (
   data: Partial<ClipboardPayload["data"]> = {},
@@ -41,319 +39,354 @@ const buildClipboardPayload = (
   },
 });
 
-describe("applyClipboardPaste", () => {
-  test("returns new IDs for pasted places", () => {
-    const instance = createInstance();
+beforeAll(async () => {
+  await initializePetrinautRust(await readRustWasm());
+});
+describe.each(["TypeScript", "Rust"])("composite commands (%s)", (backend) => {
+  const instances: Petrinaut[] = [];
+  const drafts: ReturnType<typeof vi.spyOn>[] = [];
+  afterEach(() => {
+    for (const spy of drafts.splice(0)) {
+      expect(spy).not.toHaveBeenCalled();
+    }
+    for (const instance of instances.splice(0)) {
+      instance.dispose();
+    }
+  });
+  const createWithOptions = (options: CreateRustPetrinautOptions) => {
+    const instance =
+      backend === "Rust"
+        ? createRustInstance(options)
+        : createPetrinaut({
+            document: createJsonDocHandle(options),
+            readonly: options.readonly,
+          });
+    if (backend === "Rust") {
+      drafts.push(vi.spyOn(instance.handle, "change"));
+    }
+    instances.push(instance);
+    return instance;
+  };
+  const createInstance = (initial: SDCPN = emptySDCPN) =>
+    createWithOptions({
+      initial: JSON.parse(JSON.stringify(initial)) as SDCPN,
+    });
+  describe("applyClipboardPaste", () => {
+    test("returns new IDs for pasted places", () => {
+      const instance = createInstance();
 
-    const payload = buildClipboardPayload({
-      places: [
-        {
-          id: "place-1",
-          name: "Queue",
-          colorId: null,
-          dynamicsEnabled: false,
-          differentialEquationId: null,
-          x: 0,
-          y: 0,
-        },
-      ],
+      const payload = buildClipboardPayload({
+        places: [
+          {
+            id: "place-1",
+            name: "Queue",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+      });
+
+      const { newItemIds } = instance.commands.applyClipboardPaste({ payload });
+      const pastedPlace = newItemIds.find((item) => item.type === "place");
+
+      expect(pastedPlace).toBeDefined();
+      expect(instance.definition.get().places).toHaveLength(1);
+      expect(instance.definition.get().places[0]!.id).toBe(pastedPlace!.id);
     });
 
-    const { newItemIds } = instance.commands.applyClipboardPaste({ payload });
-    const pastedPlace = newItemIds.find((item) => item.type === "place");
+    test("pastes a payload written with legacy ids with its arcs intact", () => {
+      const instance = createInstance();
 
-    expect(pastedPlace).toBeDefined();
-    expect(instance.definition.get().places).toHaveLength(1);
-    expect(instance.definition.get().places[0]!.id).toBe(pastedPlace!.id);
-  });
+      const payload = buildClipboardPayload({
+        places: [
+          {
+            id: "place__queue",
+            name: "Queue",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        transitions: [
+          {
+            id: "transition__serve",
+            name: "Serve",
+            inputArcs: [
+              { placeId: "place__queue", weight: 2, type: "standard" },
+            ],
+            outputArcs: [],
+            lambdaType: "predicate",
+            lambdaCode: "",
+            transitionKernelCode: "",
+            x: 0,
+            y: 0,
+          },
+        ],
+      });
 
-  test("pastes a payload written with legacy ids with its arcs intact", () => {
-    const instance = createInstance();
+      instance.commands.applyClipboardPaste({ payload });
 
-    const payload = buildClipboardPayload({
-      places: [
-        {
-          id: "place__queue",
-          name: "Queue",
-          colorId: null,
-          dynamicsEnabled: false,
-          differentialEquationId: null,
-          x: 0,
-          y: 0,
-        },
-      ],
-      transitions: [
-        {
-          id: "transition__serve",
-          name: "Serve",
-          inputArcs: [{ placeId: "place__queue", weight: 2, type: "standard" }],
-          outputArcs: [],
-          lambdaType: "predicate",
-          lambdaCode: "",
-          transitionKernelCode: "",
-          x: 0,
-          y: 0,
-        },
-      ],
+      const [place] = instance.definition.get().places;
+      const [transition] = instance.definition.get().transitions;
+      expect(transition?.inputArcs).toEqual([
+        { placeId: place?.id, weight: 2, type: "standard" },
+      ]);
     });
 
-    instance.commands.applyClipboardPaste({ payload });
-
-    const [place] = instance.definition.get().places;
-    const [transition] = instance.definition.get().transitions;
-    expect(transition?.inputArcs).toEqual([
-      { placeId: place?.id, weight: 2, type: "standard" },
-    ]);
-  });
-
-  test("strips pasted items for disabled extensions", () => {
-    const instance = createPetrinaut({
-      document: createJsonDocHandle({
-        initial: JSON.parse(JSON.stringify(emptySDCPN)) as SDCPN,
+    test("strips pasted items for disabled extensions", () => {
+      const instance = createWithOptions({
+        initial: emptySDCPN,
         capabilities: {
           disabledExtensions: ["colors", "dynamics", "parameters"],
         },
-      }),
+      });
+
+      const payload = buildClipboardPayload({
+        places: [
+          {
+            id: "place-1",
+            name: "Dynamic",
+            colorId: "type-1",
+            dynamicsEnabled: true,
+            differentialEquationId: "equation-1",
+            x: 0,
+            y: 0,
+          },
+        ],
+        types: [
+          {
+            id: "type-1",
+            name: "Particle",
+            iconSlug: "circle",
+            displayColor: "#34a0fa",
+            elements: [],
+          },
+        ],
+        differentialEquations: [
+          {
+            id: "equation-1",
+            name: "Motion",
+            colorId: "type-1",
+            code: "export default Dynamics(() => []);",
+          },
+        ],
+        parameters: [
+          {
+            id: "parameter-1",
+            name: "Rate",
+            variableName: "rate",
+            type: "real",
+            defaultValue: "1",
+          },
+        ],
+      });
+
+      const { newItemIds } = instance.commands.applyClipboardPaste({ payload });
+      const definition = instance.definition.get();
+
+      expect(newItemIds.map((item) => item.type)).toEqual(["place"]);
+      expect(definition.types).toEqual([]);
+      expect(definition.differentialEquations).toEqual([]);
+      expect(definition.parameters).toEqual([]);
+      expect(definition.places[0]).toMatchObject({
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+      });
     });
 
-    const payload = buildClipboardPayload({
-      places: [
-        {
-          id: "place-1",
-          name: "Dynamic",
-          colorId: "type-1",
-          dynamicsEnabled: true,
-          differentialEquationId: "equation-1",
-          x: 0,
-          y: 0,
-        },
-      ],
-      types: [
-        {
-          id: "type-1",
-          name: "Particle",
-          iconSlug: "circle",
-          displayColor: "#34a0fa",
-          elements: [],
-        },
-      ],
-      differentialEquations: [
-        {
-          id: "equation-1",
-          name: "Motion",
-          colorId: "type-1",
-          code: "export default Dynamics(() => []);",
-        },
-      ],
-      parameters: [
-        {
-          id: "parameter-1",
-          name: "Rate",
-          variableName: "rate",
-          type: "real",
-          defaultValue: "1",
-        },
-      ],
+    test("throws when the payload fails schema validation", () => {
+      const instance = createInstance();
+
+      expect(() =>
+        instance.commands.applyClipboardPaste({
+          payload: {
+            format: "not-petrinaut",
+            version: CLIPBOARD_FORMAT_VERSION,
+            documentId: null,
+            data: {
+              places: [],
+              transitions: [],
+              types: [],
+              differentialEquations: [],
+              parameters: [],
+            },
+          } as unknown as ClipboardPayload,
+        }),
+      ).toThrow();
+
+      expect(instance.definition.get().places).toEqual([]);
     });
 
-    const { newItemIds } = instance.commands.applyClipboardPaste({ payload });
-    const definition = instance.definition.get();
-
-    expect(newItemIds.map((item) => item.type)).toEqual(["place"]);
-    expect(definition.types).toEqual([]);
-    expect(definition.differentialEquations).toEqual([]);
-    expect(definition.parameters).toEqual([]);
-    expect(definition.places[0]).toMatchObject({
-      colorId: null,
-      dynamicsEnabled: false,
-      differentialEquationId: null,
-    });
-  });
-
-  test("throws when the payload fails schema validation", () => {
-    const instance = createInstance();
-
-    expect(() =>
-      instance.commands.applyClipboardPaste({
-        payload: {
-          format: "not-petrinaut",
-          version: CLIPBOARD_FORMAT_VERSION,
-          documentId: null,
-          data: {
+    test("can paste into a subnet target", () => {
+      const instance = createInstance({
+        ...emptySDCPN,
+        subnets: [
+          {
+            id: "subnet-1",
+            name: "Reusable subnet",
             places: [],
             transitions: [],
             types: [],
             differentialEquations: [],
             parameters: [],
+            componentInstances: [],
           },
-        } as unknown as ClipboardPayload,
-      }),
-    ).toThrow();
+        ],
+      });
 
-    expect(instance.definition.get().places).toEqual([]);
+      const payload = buildClipboardPayload({
+        places: [
+          {
+            id: "place-1",
+            name: "Queue",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+      });
+
+      const { newItemIds } = instance.commands.applyClipboardPaste({
+        payload,
+        targetSubnetId: "subnet-1",
+      });
+      const pastedPlace = newItemIds.find((item) => item.type === "place");
+
+      expect(pastedPlace).toBeDefined();
+      expect(instance.definition.get().places).toHaveLength(0);
+      expect(instance.definition.get().subnets?.[0]?.places).toHaveLength(1);
+      expect(instance.definition.get().subnets?.[0]?.places[0]?.id).toBe(
+        pastedPlace!.id,
+      );
+    });
   });
 
-  test("can paste into a subnet target", () => {
-    const instance = createInstance({
-      ...emptySDCPN,
-      subnets: [
-        {
-          id: "subnet-1",
-          name: "Reusable subnet",
-          places: [],
-          transitions: [],
-          types: [],
-          differentialEquations: [],
-          parameters: [],
-          componentInstances: [],
-        },
-      ],
+  describe("applyAutoLayout", () => {
+    test("no-ops for an empty net", async () => {
+      const instance = createInstance();
+
+      const { commitCount } = await instance.commands.applyAutoLayout();
+
+      expect(commitCount).toBe(0);
     });
 
-    const payload = buildClipboardPayload({
-      places: [
-        {
-          id: "place-1",
-          name: "Queue",
-          colorId: null,
-          dynamicsEnabled: false,
-          differentialEquationId: null,
-          x: 0,
-          y: 0,
-        },
-      ],
+    test("repositions places when they have non-zero deltas", async () => {
+      const instance = createInstance({
+        ...emptySDCPN,
+        places: [
+          {
+            id: "place-1",
+            name: "Input",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+          {
+            id: "place-2",
+            name: "Output",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        transitions: [
+          {
+            id: "transition-1",
+            name: "Move",
+            inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place-2", weight: 1 }],
+            lambdaType: "predicate",
+            lambdaCode: "export default Lambda(() => true);",
+            transitionKernelCode: "",
+            x: 0,
+            y: 0,
+          },
+        ],
+      });
+
+      const { commitCount } = await instance.commands.applyAutoLayout();
+
+      expect(commitCount).toBeGreaterThan(0);
+      const places = instance.definition.get().places;
+      expect(places.map((place) => place.id).sort()).toEqual(
+        [toPetrinautId("place-1"), toPetrinautId("place-2")].sort(),
+      );
+      expect(places.some((place) => place.x !== 0 || place.y !== 0)).toBe(true);
     });
 
-    const { newItemIds } = instance.commands.applyClipboardPaste({
-      payload,
-      targetSubnetId: "subnet-1",
+    test("repositions subnet nodes when targetSubnetId is provided", async () => {
+      const instance = createInstance({
+        ...emptySDCPN,
+        subnets: [
+          {
+            id: "subnet-1",
+            name: "Reusable subnet",
+            places: [
+              {
+                id: "place-1",
+                name: "Input",
+                colorId: null,
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                x: 0,
+                y: 0,
+              },
+              {
+                id: "place-2",
+                name: "Output",
+                colorId: null,
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                x: 0,
+                y: 0,
+              },
+            ],
+            transitions: [
+              {
+                id: "transition-1",
+                name: "Move",
+                inputArcs: [
+                  { placeId: "place-1", weight: 1, type: "standard" },
+                ],
+                outputArcs: [{ placeId: "place-2", weight: 1 }],
+                lambdaType: "predicate",
+                lambdaCode: "export default Lambda(() => true);",
+                transitionKernelCode: "",
+                x: 0,
+                y: 0,
+              },
+            ],
+            types: [],
+            differentialEquations: [],
+            parameters: [],
+            componentInstances: [],
+          },
+        ],
+      });
+
+      const { commitCount } = await instance.commands.applyAutoLayout({
+        targetSubnetId: "subnet-1",
+      });
+
+      expect(commitCount).toBeGreaterThan(0);
+      expect(instance.definition.get().places).toEqual([]);
+      expect(
+        instance.definition
+          .get()
+          .subnets?.[0]?.places.some((place) => place.x !== 0 || place.y !== 0),
+      ).toBe(true);
     });
-    const pastedPlace = newItemIds.find((item) => item.type === "place");
-
-    expect(pastedPlace).toBeDefined();
-    expect(instance.definition.get().places).toHaveLength(0);
-    expect(instance.definition.get().subnets?.[0]?.places).toHaveLength(1);
-    expect(instance.definition.get().subnets?.[0]?.places[0]?.id).toBe(
-      pastedPlace!.id,
-    );
-  });
-});
-
-describe("applyAutoLayout", () => {
-  test("no-ops for an empty net", async () => {
-    const instance = createInstance();
-
-    const { commitCount } = await instance.commands.applyAutoLayout();
-
-    expect(commitCount).toBe(0);
-  });
-
-  test("repositions places when they have non-zero deltas", async () => {
-    const instance = createInstance({
-      ...emptySDCPN,
-      places: [
-        {
-          id: "place-1",
-          name: "Input",
-          colorId: null,
-          dynamicsEnabled: false,
-          differentialEquationId: null,
-          x: 0,
-          y: 0,
-        },
-        {
-          id: "place-2",
-          name: "Output",
-          colorId: null,
-          dynamicsEnabled: false,
-          differentialEquationId: null,
-          x: 0,
-          y: 0,
-        },
-      ],
-      transitions: [
-        {
-          id: "transition-1",
-          name: "Move",
-          inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
-          outputArcs: [{ placeId: "place-2", weight: 1 }],
-          lambdaType: "predicate",
-          lambdaCode: "export default Lambda(() => true);",
-          transitionKernelCode: "",
-          x: 0,
-          y: 0,
-        },
-      ],
-    });
-
-    const { commitCount } = await instance.commands.applyAutoLayout();
-
-    expect(commitCount).toBeGreaterThan(0);
-    const places = instance.definition.get().places;
-    expect(places.map((place) => place.id).sort()).toEqual(
-      [toPetrinautId("place-1"), toPetrinautId("place-2")].sort(),
-    );
-    expect(places.some((place) => place.x !== 0 || place.y !== 0)).toBe(true);
-  });
-
-  test("repositions subnet nodes when targetSubnetId is provided", async () => {
-    const instance = createInstance({
-      ...emptySDCPN,
-      subnets: [
-        {
-          id: "subnet-1",
-          name: "Reusable subnet",
-          places: [
-            {
-              id: "place-1",
-              name: "Input",
-              colorId: null,
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-            {
-              id: "place-2",
-              name: "Output",
-              colorId: null,
-              dynamicsEnabled: false,
-              differentialEquationId: null,
-              x: 0,
-              y: 0,
-            },
-          ],
-          transitions: [
-            {
-              id: "transition-1",
-              name: "Move",
-              inputArcs: [{ placeId: "place-1", weight: 1, type: "standard" }],
-              outputArcs: [{ placeId: "place-2", weight: 1 }],
-              lambdaType: "predicate",
-              lambdaCode: "export default Lambda(() => true);",
-              transitionKernelCode: "",
-              x: 0,
-              y: 0,
-            },
-          ],
-          types: [],
-          differentialEquations: [],
-          parameters: [],
-          componentInstances: [],
-        },
-      ],
-    });
-
-    const { commitCount } = await instance.commands.applyAutoLayout({
-      targetSubnetId: "subnet-1",
-    });
-
-    expect(commitCount).toBeGreaterThan(0);
-    expect(instance.definition.get().places).toEqual([]);
-    expect(
-      instance.definition
-        .get()
-        .subnets?.[0]?.places.some((place) => place.x !== 0 || place.y !== 0),
-    ).toBe(true);
   });
 });

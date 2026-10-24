@@ -650,3 +650,52 @@ fn native_bulk_delete_normalizes_arc_ids_and_records_one_edit() {
     instance.go_to_index(0).expect("undo should succeed");
     assert_eq!(instance.document(), &before);
 }
+
+#[test]
+fn paste_remaps_entities_and_rejects_reused_ids_atomically() {
+    let mut instance = instance(50);
+    let input: crate::PasteInput = serde_json::from_value(json!({"data":{"places":[place("p")],"transitions":[],"types":[],"differentialEquations":[],"parameters":[]},"freshIds":["pasted"]})).expect("paste input should deserialize");
+    let before = instance.document().clone();
+    let result = instance
+        .paste(&input, "paste".to_owned())
+        .expect("paste should succeed");
+    assert_eq!(result.new_item_ids.len(), 1);
+    assert_eq!(
+        instance.document()["places"][1]["id"],
+        result
+            .new_item_ids
+            .first()
+            .expect("paste should return an id")
+            .id
+    );
+    assert_eq!(
+        instance.document()["places"][1]["x"],
+        before["places"][0]["x"]
+            .as_f64()
+            .expect("coordinate should be numeric")
+            + 50.0
+    );
+    let after = instance.document().clone();
+    instance
+        .paste(&input, "collision".to_owned())
+        .expect_err("reused fresh id should fail");
+    assert_eq!(instance.document(), &after);
+    assert_eq!(instance.current_index(), 1);
+    instance.go_to_index(0).expect("undo should succeed");
+    assert_eq!(instance.document(), &before);
+    let mut invalid = input;
+    invalid
+        .data
+        .places
+        .first_mut()
+        .expect("fixture should contain a place")
+        .name = "invalid name".to_owned();
+    instance
+        .paste(&invalid, "invalid".to_owned())
+        .expect_err("invalid name should fail");
+    assert_eq!(instance.document(), &before);
+    instance
+        .go_to_index(1)
+        .expect("redo should remain available");
+    assert_eq!(instance.document(), &after);
+}

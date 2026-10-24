@@ -2,6 +2,7 @@ import { mutationActionInputSchemas } from "../action-schemas";
 import { withWrittenIdsInErrors } from "../actions";
 import { getArcEndpoint } from "../arc-endpoints";
 import { createPetrinaut, type Petrinaut } from "../instance";
+import { createRustCommands } from "./composites";
 import { createRustDocHandle } from "./rust-doc-handle";
 
 import type { MutationActionInput } from "../action-schemas";
@@ -36,6 +37,7 @@ export const createRustInstance = (
   const instance = createPetrinaut({ document: handle });
   return {
     ...instance,
+    commands: createRustCommands(handle),
     mutations: withWrittenIdsInErrors({
       addSubnet(input) {
         handle.execute({

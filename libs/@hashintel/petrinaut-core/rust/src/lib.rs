@@ -3,6 +3,7 @@
 extern crate alloc;
 
 mod arcs;
+mod clipboard;
 mod command;
 mod definitions;
 mod document;
@@ -30,6 +31,7 @@ pub use crate::{
         AddArc, ArcDirection, ArcEndpoint, ArcTarget, InputArcType, UpdateArcPlace, UpdateArcType,
         UpdateArcWeight,
     },
+    clipboard::{ClipboardData, PasteInput, PasteResult},
     command::Command,
     definitions::{CreateEntity, EntityTarget, UpdateEntity},
     entity::{Place, Transition},
@@ -370,6 +372,26 @@ impl PetrinautInstance {
             }
         }
         self.replace_document(next, timestamp)
+    }
+
+    /// Pastes a selected subgraph with fresh identifiers in one transaction.
+    ///
+    /// # Errors
+    /// Returns an error for invalid entities, reused identifiers or a missing target subnet.
+    pub fn paste(&mut self, input: &PasteInput, timestamp: String) -> Result<PasteResult, String> {
+        if self.readonly {
+            return Ok(PasteResult {
+                patches: Vec::new(),
+                new_item_ids: Vec::new(),
+            });
+        }
+        let mut next = self.document().clone();
+        let new_item_ids = clipboard::apply(&mut next, input, self.extensions)?;
+        let patches = self.replace_document(next, timestamp)?;
+        Ok(PasteResult {
+            patches,
+            new_item_ids,
+        })
     }
 
     /// Moves to a retained history index, returning one combined change event.
