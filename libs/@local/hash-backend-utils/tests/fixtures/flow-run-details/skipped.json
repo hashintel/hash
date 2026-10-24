@@ -1,23 +1,22 @@
 {
-  "dataSources": {
-    "files": {
-      "fileEntityIds": []
-    },
-    "internetAccess": {
-      "browserPlugin": {
-        "domains": [],
-        "enabled": false
-      },
-      "enabled": false
-    }
-  },
   "flowInputs": {
     "number": {
       "kind": "Number",
       "value": 8
     }
   },
-  "inputRequests": [],
+  "dataSources": {
+    "files": {
+      "fileEntityIds": []
+    },
+    "internetAccess": {
+      "enabled": false,
+      "browserPlugin": {
+        "enabled": false,
+        "domains": []
+      }
+    }
+  },
   "outputs": [
     {
       "code": "OK",
@@ -29,11 +28,14 @@
       ]
     }
   ],
-  "startedAt": "2026-10-21T13:36:04.184Z",
+  "inputRequests": [],
   "steps": [
     {
-      "attempt": 1,
-      "closedAt": "2026-10-21T13:36:04.292Z",
+      "stepId": "check",
+      "stepType": "ifAction",
+      "startedAt": "2026-10-24T11:09:15.289Z",
+      "scheduledAt": "2026-10-24T11:09:15.288Z",
+      "closedAt": "2026-10-24T11:09:15.290Z",
       "inputs": [
         {
           "inputs": [
@@ -49,21 +51,21 @@
               "payload": {
                 "kind": "FilterCondition",
                 "value": {
+                  "kind": "all",
                   "conditions": [
                     {
                       "kind": "condition",
-                      "operator": "greaterThanOrEqual",
                       "subject": {
                         "kind": "input",
                         "payloadKind": "Number"
                       },
+                      "operator": "greaterThanOrEqual",
                       "value": {
                         "kind": "Number",
                         "value": 50
                       }
                     }
-                  ],
-                  "kind": "all"
+                  ]
                 }
               }
             }
@@ -71,6 +73,8 @@
         }
       ],
       "logs": [],
+      "status": "COMPLETED",
+      "attempt": 1,
       "outputs": [
         {
           "code": "OK",
@@ -88,32 +92,28 @@
             }
           ]
         }
-      ],
-      "scheduledAt": "2026-10-21T13:36:04.285Z",
-      "startedAt": "2026-10-21T13:36:04.289Z",
-      "status": "COMPLETED",
-      "stepId": "check",
-      "stepType": "ifAction"
+      ]
     },
     {
-      "attempt": 0,
-      "closedAt": "2026-10-21T13:36:04.312Z",
-      "inputs": [],
-      "logs": [],
-      "scheduledAt": "2026-10-21T13:36:04.312Z",
-      "status": "SKIPPED",
       "stepId": "keep",
-      "stepType": "takeFirst"
-    },
-    {
+      "stepType": "takeFirst",
+      "scheduledAt": "2026-10-24T11:09:15.295Z",
+      "closedAt": "2026-10-24T11:09:15.295Z",
       "attempt": 0,
-      "closedAt": "2026-10-21T13:36:04.312Z",
       "inputs": [],
       "logs": [],
-      "scheduledAt": "2026-10-21T13:36:04.312Z",
-      "status": "SKIPPED",
+      "status": "SKIPPED"
+    },
+    {
       "stepId": "countKept",
-      "stepType": "aggregate"
+      "stepType": "aggregate",
+      "scheduledAt": "2026-10-24T11:09:15.295Z",
+      "closedAt": "2026-10-24T11:09:15.295Z",
+      "attempt": 0,
+      "inputs": [],
+      "logs": [],
+      "status": "SKIPPED"
     }
-  ]
+  ],
+  "startedAt": "2026-10-24T11:09:15.247Z"
 }

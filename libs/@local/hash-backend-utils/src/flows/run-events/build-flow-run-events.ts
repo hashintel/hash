@@ -23,6 +23,8 @@ import type {
   FlowSignalType,
   ProgressLogSignal,
   SkippedStep,
+  StepAttemptFailedSignal,
+  StepAttemptStartedSignal,
   StartedForEachStep,
   StepInput,
   StepOutput,
@@ -88,8 +90,21 @@ export const buildFlowRunEvents = (
   /** The step each activity is a run of, if it is one, and its attempt, once it has started. */
   const activitiesByScheduledEventId = new Map<
     string,
-    { stepRun?: FlowRunEventStepRun; attempt: number }
+    {
+      stepRun?: FlowRunEventStepRun;
+      attempt: number;
+      /** Attempts whose start a `stepAttemptStarted` signal recorded, before the activity's last attempt is. */
+      signalledStarts: Set<number>;
+      /** Attempts that are known to have failed, from a `stepAttemptFailed` signal or a later attempt's start. */
+      failedAttempts: Set<number>;
+      /** Whether the history has recorded the activity's last attempt (`ACTIVITY_TASK_STARTED`). */
+      lastAttemptRecorded: boolean;
+      /** The latest attempt an event has reported, as started or as hidden. */
+      reportedUpTo: number;
+    }
   >();
+  /** The activity most recently scheduled with each activity id: a step run's id, for a step's activity. */
+  const scheduledEventIdsByActivityId = new Map<string, string>();
   const reportedForEachStepIds = new Set<string>();
   const skippedStepIds = new Set<string>();
   const inputRequestStepRunsById = new Map<string, FlowRunEventStepRun>();
@@ -131,6 +146,60 @@ export const buildFlowRunEvents = (
       return value as T;
     };
 
+    /**
+     * Records the most recent attempt whose start a signal recorded as failed, when a later attempt starts and nothing
+     * said it failed: it ended without throwing, e.g. by timing out.
+     */
+    const failUnfailedAttempt = (
+      activity: ReturnType<typeof getActivity>,
+      stepRun: FlowRunEventStepRun,
+      laterAttempt: number,
+      error: { message: string },
+    ) => {
+      const attempt = Math.max(
+        0,
+        ...[...activity.signalledStarts].filter(
+          (signalled) => signalled < laterAttempt,
+        ),
+      );
+
+      if (attempt === 0 || activity.failedAttempts.has(attempt)) {
+        return;
+      }
+
+      activity.failedAttempts.add(attempt);
+      addEvent({
+        kind: "attemptFailed",
+        stepRun,
+        attempt,
+        error,
+        retrying: true,
+      });
+    };
+
+    /**
+     * How many attempts before `attempt` no event has reported, which its start reports as hidden: their signals
+     * didn't arrive. Each start records itself in `reportedUpTo`, so each attempt is counted once, whether its start is
+     * signalled or Temporal records it.
+     */
+    const countHiddenAttempts = (
+      { reportedUpTo }: ReturnType<typeof getActivity>,
+      attempt: number,
+    ) => Math.max(0, attempt - 1 - reportedUpTo);
+
+    /** The step activity a signal about an attempt is about, if the history has scheduled it. */
+    const getSignalledStepActivity = (stepRunId: string) => {
+      const scheduledEventId = scheduledEventIdsByActivityId.get(stepRunId);
+      const activity =
+        scheduledEventId === undefined
+          ? undefined
+          : activitiesByScheduledEventId.get(scheduledEventId);
+
+      return activity?.stepRun
+        ? { activity, stepRun: activity.stepRun }
+        : undefined;
+    };
+
     const getActivity = (scheduledEventId: unknown) => {
       const activity = activitiesByScheduledEventId.get(
         String(scheduledEventId),
@@ -170,7 +239,12 @@ export const buildFlowRunEvents = (
         activitiesByScheduledEventId.set(eventId, {
           ...(isStep ? { stepRun: toStepRun(activityId) } : {}),
           attempt: 1,
+          signalledStarts: new Set(),
+          failedAttempts: new Set(),
+          lastAttemptRecorded: false,
+          reportedUpTo: 0,
         });
+        scheduledEventIdsByActivityId.set(activityId, eventId);
 
         if (isStep) {
           if (!activityType.endsWith(actionActivitySuffix)) {
@@ -200,25 +274,41 @@ export const buildFlowRunEvents = (
         const attempt = attributes?.attempt ?? 1;
 
         activity.attempt = attempt;
+        activity.lastAttemptRecorded = true;
 
         if (activity.stepRun) {
           const lastErrorMessage = attributes?.lastFailure?.message;
+          const previousAttemptSignalled = activity.signalledStarts.has(
+            attempt - 1,
+          );
 
-          addEvent({
-            kind: "attemptStarted",
-            stepRun: activity.stepRun,
-            attempt,
-            ...(attempt > 1
-              ? {
-                  hiddenAttempts: {
-                    count: attempt - 1,
-                    ...(lastErrorMessage
-                      ? { lastError: { message: lastErrorMessage } }
-                      : {}),
-                  },
-                }
-              : {}),
+          failUnfailedAttempt(activity, activity.stepRun, attempt, {
+            message:
+              (previousAttemptSignalled ? lastErrorMessage : undefined) ??
+              unknownErrorMessage,
           });
+
+          if (!activity.signalledStarts.has(attempt)) {
+            const hiddenCount = countHiddenAttempts(activity, attempt);
+
+            activity.reportedUpTo = Math.max(activity.reportedUpTo, attempt);
+
+            addEvent({
+              kind: "attemptStarted",
+              stepRun: activity.stepRun,
+              attempt,
+              ...(hiddenCount > 0
+                ? {
+                    hiddenAttempts: {
+                      count: hiddenCount,
+                      ...(lastErrorMessage && !previousAttemptSignalled
+                        ? { lastError: { message: lastErrorMessage } }
+                        : {}),
+                    },
+                  }
+                : {}),
+            });
+          }
         }
         break;
       }
@@ -372,6 +462,69 @@ export const buildFlowRunEvents = (
           historyEvent.workflowExecutionSignaledEventAttributes;
 
         switch (attributes?.signalName as FlowSignalType | undefined) {
+          case "stepAttemptStarted": {
+            const { stepRunId, attempt } =
+              parseFirstPayload<StepAttemptStartedSignal>(
+                attributes?.input,
+                "step attempt",
+              );
+            const signalled = getSignalledStepActivity(stepRunId);
+
+            if (!signalled || signalled.activity.lastAttemptRecorded) {
+              break;
+            }
+
+            const { activity, stepRun } = signalled;
+
+            failUnfailedAttempt(activity, stepRun, attempt, {
+              message: unknownErrorMessage,
+            });
+            const hiddenCount = countHiddenAttempts(activity, attempt);
+
+            activity.reportedUpTo = Math.max(activity.reportedUpTo, attempt);
+
+            activity.signalledStarts.add(attempt);
+            activity.attempt = attempt;
+            /* The attempts before it whose signals didn't arrive. Their last error is only in the last attempt's start. */
+            addEvent({
+              kind: "attemptStarted",
+              stepRun,
+              attempt,
+              ...(hiddenCount > 0
+                ? { hiddenAttempts: { count: hiddenCount } }
+                : {}),
+            });
+            break;
+          }
+
+          case "stepAttemptFailed": {
+            const { stepRunId, attempt, error } =
+              parseFirstPayload<StepAttemptFailedSignal>(
+                attributes?.input,
+                "step attempt failure",
+              );
+            const signalled = getSignalledStepActivity(stepRunId);
+
+            if (
+              !signalled ||
+              signalled.activity.lastAttemptRecorded ||
+              signalled.activity.failedAttempts.has(attempt)
+            ) {
+              break;
+            }
+
+            /* Only a failure Temporal retries is signalled: the last attempt's is in the history. */
+            signalled.activity.failedAttempts.add(attempt);
+            addEvent({
+              kind: "attemptFailed",
+              stepRun: signalled.stepRun,
+              attempt,
+              error: { message: error.message },
+              retrying: true,
+            });
+            break;
+          }
+
           case "logProgress": {
             const { attempt, logs } = parseFirstPayload<ProgressLogSignal>(
               attributes?.input,

@@ -1,16 +1,4 @@
 {
-  "dataSources": {
-    "files": {
-      "fileEntityIds": []
-    },
-    "internetAccess": {
-      "browserPlugin": {
-        "domains": [],
-        "enabled": false
-      },
-      "enabled": false
-    }
-  },
   "failureMessage": "Error processing output definition 'firstTwo': step 'firstTwo' did not produce its required output 'items'",
   "flowInputs": {
     "numbers": {
@@ -18,12 +6,26 @@
       "value": [3, 1, 4]
     }
   },
+  "dataSources": {
+    "files": {
+      "fileEntityIds": []
+    },
+    "internetAccess": {
+      "enabled": false,
+      "browserPlugin": {
+        "enabled": false,
+        "domains": []
+      }
+    }
+  },
   "inputRequests": [],
-  "startedAt": "2026-10-21T13:35:55.998Z",
   "steps": [
     {
-      "attempt": 3,
-      "closedAt": "2026-10-21T13:35:59.210Z",
+      "stepId": "firstTwo",
+      "stepType": "takeFirstAction",
+      "startedAt": "2026-10-24T11:08:56.642Z",
+      "scheduledAt": "2026-10-24T11:08:53.602Z",
+      "closedAt": "2026-10-24T11:08:56.643Z",
       "inputs": [
         {
           "inputs": [
@@ -44,29 +46,22 @@
           ]
         }
       ],
-      "lastFailure": {
-        "applicationFailureInfo": {
-          "type": "Error"
-        },
-        "message": "Failure on attempt 3",
-        "source": "TypeScriptSDK",
-        "stackTrace": "Error: Failure on attempt 3"
-      },
       "logs": [
         {
-          "message": "Failure on attempt 3",
-          "recordedAt": "2026-10-21T13:35:59.210Z",
-          "retrying": false,
+          "type": "ActivityFailed",
           "stepId": "firstTwo",
-          "type": "ActivityFailed"
+          "recordedAt": "2026-10-24T11:08:56.643Z",
+          "retrying": false,
+          "message": "Failure on attempt 3"
         }
       ],
-      "retryState": "4",
-      "scheduledAt": "2026-10-21T13:35:56.096Z",
-      "startedAt": "2026-10-21T13:35:59.205Z",
       "status": "FAILED",
-      "stepId": "firstTwo",
-      "stepType": "takeFirstAction"
+      "attempt": 3,
+      "lastFailure": {
+        "message": "Failure on attempt 3"
+      },
+      "retryState": "4"
     }
-  ]
+  ],
+  "startedAt": "2026-10-24T11:08:53.575Z"
 }

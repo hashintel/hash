@@ -1026,11 +1026,33 @@ export type FlowSignalType =
   | "externalInputResponse"
   | "logProgress"
   | "researchActionCheckpoint"
+  | "stepAttemptFailed"
+  | "stepAttemptStarted"
   | "stopWorker";
 
 export type ProgressLogSignal = {
   attempt: number;
   logs: StepProgressLog[];
+};
+
+/**
+ * Sent by a step's activity when one of its attempts starts. Temporal records only an activity's last attempt in its
+ * run's history, so these record when the others started.
+ */
+export type StepAttemptStartedSignal = {
+  /** The activity's id: the step's id, or for a step inside a `forEach`, its step run id. */
+  stepRunId: string;
+  attempt: number;
+};
+
+/**
+ * Sent by a step's activity when one of its attempts throws and Temporal retries it. The last attempt's failure is in
+ * the run's history, so it isn't sent.
+ */
+export type StepAttemptFailedSignal = {
+  stepRunId: string;
+  attempt: number;
+  error: { message: string };
 };
 
 type ExternalInputRequestType = "human-input" | "get-urls-html-content";
