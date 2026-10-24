@@ -27,6 +27,7 @@ import {
 import {
   defaultPetrinautNavigationHistoryPolicy,
   useCommandRegistry,
+  UserSettingsContext,
 } from "@hashintel/petrinaut/react";
 
 import { BrunchPanelConversationTracker } from "../plugins/brunch/brunch-panel-transport";
@@ -34,7 +35,10 @@ import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
 } from "../plugins/brunch/conversation/brunch-conversation-id";
-import { BrunchAssistantContext } from "../plugins/brunch/editor-api-plugin";
+import {
+  BrunchAssistantContext,
+  brunchPlugin,
+} from "../plugins/brunch/editor-api-plugin";
 import { InterviewBudgetControl } from "../plugins/brunch/interview-budget/interview-budget-control";
 import {
   canonicalPetrinautClientToolNames,
@@ -61,7 +65,10 @@ import type {
   MinimalNetMetadata,
   PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
-import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
+import type {
+  PetrinautNavigationController,
+  UserSettingsContextValue,
+} from "@hashintel/petrinaut/react";
 import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 const netOneId = toPetrinautId("net-1");
@@ -89,6 +96,7 @@ const flueClientOptions = vi.hoisted(() => ({ current: null as unknown }));
 const renderedPetrinaut = vi.hoisted(() => ({
   aiAssistant: null as unknown,
   commandRegistry: null as CommandRegistryView | null,
+  settings: null as UserSettingsContextValue | null,
 }));
 const renderedAssistants = vi.hoisted(
   () => [] as (PetrinautAiAssistant | undefined)[],
@@ -188,7 +196,11 @@ vi.mock("../plugins/brunch/brunch-panel-transport", async (importOriginal) => {
 
 vi.mock("../plugins/petrinaut-ai/plugin", () => ({
   petrinautAiPlugin: {
-    manifest: { id: "website.petrinaut-ai", name: "Petrinaut AI" },
+    manifest: {
+      id: "website.petrinaut-ai",
+      name: "Petrinaut AI",
+      assistant: true,
+    },
   },
 }));
 
@@ -199,8 +211,9 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => ({
     // Brunch's plugin reads its assistant from the shell's bridge, never a prop.
     const bridgedAssistant = use(BrunchAssistantContext) ?? undefined;
     editorProps.current = { ...props, bridgedAssistant };
-    // The real editor reuses the registry the host provides.
+    // The real editor reuses the registry and the settings the host provides.
     renderedPetrinaut.commandRegistry = useCommandRegistry();
+    renderedPetrinaut.settings = use(UserSettingsContext);
     renderedPetrinaut.aiAssistant = bridgedAssistant;
     renderedAssistants.push(bridgedAssistant);
     return (
@@ -1421,15 +1434,9 @@ describe("assistant selection", () => {
       subscribe: () => () => undefined,
     }),
   });
-  const switchAssistant = (label: RegExp) => {
-    const command = renderedPetrinaut.commandRegistry
-      ?.list()
-      .find((entry) => label.test(entry.label));
-    if (command === undefined) throw new Error(`No command matches ${label}`);
-    act(() => {
-      renderedPetrinaut.commandRegistry?.execute(command.id);
-    });
-  };
+  /** Chooses an assistant as Petrinaut's settings and palette do. */
+  const chooseAssistant = (pluginId: string) =>
+    act(() => renderedPetrinaut.settings?.setAssistantPluginId(pluginId));
   const currentAssistant = () => editorProps.current?.bridgedAssistant;
   const currentVoiceCapability = () => {
     const settingsLabs = editorProps.current?.slots?.settingsLabs;
@@ -1539,18 +1546,14 @@ describe("assistant selection", () => {
     expect(history).not.toHaveBeenCalled();
     expect(observe).not.toHaveBeenCalled();
     expect(editorProps.current?.slots?.settingsLabs).toBeDefined();
-    expect(screen.getByRole("checkbox", { name: "Use Brunch" })).toHaveProperty(
-      "checked",
-      false,
-    );
     expect(
       screen.getByRole("checkbox", { name: "Enable Voice" }),
     ).toHaveProperty("checked", false);
     expect(screen.queryByText(/evaluation mode/iu)).toBeNull();
-    expect(screen.getAllByRole("checkbox")).toHaveLength(2);
+    expect(screen.getAllByRole("checkbox")).toHaveLength(1);
   });
 
-  test("selecting Brunch enables Voice and persists the opt-in Realtime choice", async () => {
+  test("choosing Brunch keeps the Voice choice and persists the opt-in Realtime choice", async () => {
     seedStoredNet();
     localStorage.setItem(voicePreferenceStorageKey, "false");
     flueClientMock.current = flueHistoryClient();
@@ -1567,24 +1570,22 @@ describe("assistant selection", () => {
     );
 
     const firstView = render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    const firstBrunchToggle = await screen.findByRole("checkbox", {
-      name: "Use Brunch",
-    });
-    const firstVoiceToggle = screen.getByRole("checkbox", {
+    const firstVoiceToggle = await screen.findByRole("checkbox", {
       name: "Enable Voice",
     });
-    await waitFor(() =>
-      expect(firstBrunchToggle).toHaveProperty("disabled", false),
-    );
+    expect(firstVoiceToggle).toHaveProperty("disabled", true);
     expect(firstVoiceToggle).toHaveProperty("checked", false);
     expect(
       screen.queryByRole("checkbox", { name: "Realtime mode" }),
     ).toBeNull();
 
-    fireEvent.click(firstBrunchToggle);
+    chooseAssistant("website.brunch");
+    await waitFor(() =>
+      expect(firstVoiceToggle).toHaveProperty("disabled", false),
+    );
+    expect(firstVoiceToggle).toHaveProperty("checked", false);
+    fireEvent.click(firstVoiceToggle);
     await waitFor(() => {
-      expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
-      expect(firstVoiceToggle).toHaveProperty("disabled", false);
       expect(firstVoiceToggle).toHaveProperty("checked", true);
       expect(localStorage.getItem(voicePreferenceStorageKey)).toBe("true");
     });
@@ -1599,14 +1600,10 @@ describe("assistant selection", () => {
 
     firstView.unmount();
     render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    const restoredBrunchToggle = await screen.findByRole("checkbox", {
-      name: "Use Brunch",
-    });
-    const restoredVoiceToggle = screen.getByRole("checkbox", {
+    const restoredVoiceToggle = await screen.findByRole("checkbox", {
       name: "Enable Voice",
     });
     await waitFor(() => {
-      expect(restoredBrunchToggle).toHaveProperty("checked", true);
       expect(restoredVoiceToggle).toHaveProperty("checked", true);
       expect(restoredVoiceToggle).toHaveProperty("disabled", false);
       expect(
@@ -1745,7 +1742,7 @@ describe("assistant selection", () => {
     },
   );
 
-  test("a stored Brunch choice remains selectable and switching to Stock mounts nothing of Brunch", async () => {
+  test("a saved Brunch choice shows Brunch first, and choosing Stock mounts nothing of Brunch", async () => {
     seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = flueHistoryClient();
@@ -1754,14 +1751,14 @@ describe("assistant selection", () => {
     expect(currentAssistant()?.executeMutation).toBeUndefined();
     expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
 
-    switchAssistant(/Use the stock Petrinaut assistant/);
+    chooseAssistant("website.petrinaut-ai");
 
     await waitFor(() => expect(currentAssistant()).toBeUndefined());
     expect(editorProps.current?.plugins).toContain(petrinautAiPlugin);
+    expect(editorProps.current?.plugins).toContain(brunchPlugin);
     expect(
-      editorProps.current?.plugins?.map(({ manifest }) => manifest.id),
-    ).not.toContain("website.brunch");
-    expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("stock");
+      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
+    ).toMatchObject({ assistantPluginId: "website.petrinaut-ai" });
   });
 
   test("defaults Voice on for saved Brunch, preserves an explicit opt-out, and removes it for Stock", async () => {
@@ -1799,7 +1796,7 @@ describe("assistant selection", () => {
     );
     renderedAssistants.length = 0;
 
-    switchAssistant(/Use the stock Petrinaut assistant/);
+    chooseAssistant("website.petrinaut-ai");
 
     expect(renderedAssistants.length).toBeGreaterThan(0);
     expect(
@@ -1847,7 +1844,7 @@ describe("assistant selection", () => {
 
     expect(currentAssistant()?.renderVoiceMode).toBeUndefined();
     renderedAssistants.length = 0;
-    switchAssistant(/Use Brunch/);
+    chooseAssistant("website.brunch");
     await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
     expect(currentVoiceCapability()).toBeUndefined();
     expect(currentAssistant()?.renderVoiceMode).toBeUndefined();
@@ -1865,12 +1862,12 @@ describe("assistant selection", () => {
       expect(currentAssistant()?.renderVoiceMode).toBeDefined(),
     );
 
-    switchAssistant(/Use the stock Petrinaut assistant/);
+    chooseAssistant("website.petrinaut-ai");
     await waitFor(() =>
       expect(currentAssistant()?.renderVoiceMode).toBeUndefined(),
     );
     renderedAssistants.length = 0;
-    switchAssistant(/Use Brunch/);
+    chooseAssistant("website.brunch");
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
     expect(currentVoiceCapability()).toBeUndefined();
     expect(currentAssistant()?.renderVoiceMode).toBeUndefined();
@@ -1906,7 +1903,7 @@ describe("assistant selection", () => {
     render(<DemoApp onSearchChange={() => {}} search={{}} />);
     expect(currentAssistant()).toBeUndefined();
 
-    switchAssistant(/Use Brunch/);
+    chooseAssistant("website.brunch");
     await waitFor(() => expect(currentAssistant()?.requestStop).toBeDefined());
     const brunch = currentAssistant();
     expect(brunch?.executeMutation).toBeUndefined();
@@ -1922,7 +1919,7 @@ describe("assistant selection", () => {
       [netOneId]: [stockMessage],
     });
 
-    switchAssistant(/Use the stock Petrinaut assistant/);
+    chooseAssistant("website.petrinaut-ai");
     await waitFor(() => expect(currentAssistant()).toBeUndefined());
     expect(editorProps.current?.plugins).toContain(petrinautAiPlugin);
   });
@@ -2216,47 +2213,53 @@ describe("assistant selection", () => {
     expect(handle.doc()?.places).toEqual([]);
   });
 
-  test("gives the editor the demo's plugins and the registry holding the switch command", () => {
+  test("gives the editor the demo's plugins and both assistants, Stock first by default", () => {
     seedStoredNet();
     render(<DemoApp onSearchChange={() => {}} search={{}} />);
     expect(editorProps.current?.plugins).toEqual([
       ...demoPlugins,
       petrinautAiPlugin,
+      brunchPlugin,
     ]);
-    expect(
-      renderedPetrinaut.commandRegistry?.list().map(({ id }) => id),
-    ).toEqual(["demo.assistant.switch"]);
+    expect(renderedPetrinaut.commandRegistry?.list()).toEqual([]);
   });
 
-  test("adds the Brunch plugin only while Brunch is the assistant", async () => {
+  test("lists a saved Brunch first, and connects it only while the editor shows it", async () => {
     seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = flueHistoryClient();
     render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() =>
-      expect(
-        editorProps.current?.plugins?.map(({ manifest }) => manifest.id),
-      ).toEqual([
-        ...demoPlugins.map(({ manifest }) => manifest.id),
-        "website.brunch",
-      ]),
-    );
+    expect(editorProps.current?.plugins).toEqual([
+      ...demoPlugins,
+      brunchPlugin,
+      petrinautAiPlugin,
+    ]);
+    await waitFor(() => expect(currentAssistant()).toBeDefined());
 
-    switchAssistant(/Use the stock Petrinaut assistant/);
-    await waitFor(() =>
-      expect(editorProps.current?.plugins).toEqual([
-        ...demoPlugins,
-        petrinautAiPlugin,
-      ]),
+    // Switched off, Brunch is not shown even while chosen.
+    chooseAssistant("website.brunch");
+    act(() =>
+      renderedPetrinaut.settings?.setPluginEnabled("website.brunch", false),
     );
+    await waitFor(() => expect(currentAssistant()).toBeUndefined());
+
+    act(() =>
+      renderedPetrinaut.settings?.setPluginEnabled("website.brunch", true),
+    );
+    await waitFor(() => expect(currentAssistant()).toBeDefined());
   });
 
   test("without a configured Brunch endpoint there is no choice to make", () => {
     brunchPreviewConfig.isBrunchConfigured = false;
     seedStoredNet();
+    localStorage.setItem(assistantSelectionStorageKey, "brunch");
     render(<DemoApp onSearchChange={() => {}} search={{}} />);
     expect(currentAssistant()).toBeUndefined();
-    expect(editorProps.current?.plugins).toContain(petrinautAiPlugin);
+    expect(editorProps.current?.plugins).toEqual([
+      ...demoPlugins,
+      petrinautAiPlugin,
+    ]);
+    expect(editorProps.current?.slots?.settingsLabs).toBeUndefined();
     expect(
       renderedPetrinaut.commandRegistry?.list().map(({ id }) => id),
     ).toEqual([]);

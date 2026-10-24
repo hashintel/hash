@@ -20,15 +20,12 @@ const voiceConfig = {
 } as const;
 
 const defaultProps = {
-  assistantReady: true,
-  brunchConfigured: true,
-  brunchSelected: false,
+  brunchActive: false,
   interviewBudgetEnabled: false,
   interviewBudgetPreferenceReady: true,
   openAIVoiceConfig: voiceConfig,
   realtimeEnabled: false,
   realtimePreferenceReady: true,
-  selectAssistant: vi.fn(),
   setInterviewBudgetEnabled: vi.fn(),
   setRealtimeEnabled: vi.fn(),
   setVoiceEnabled: vi.fn(),
@@ -49,26 +46,27 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test("selects Brunch, enables Voice, and explains when Voice is unavailable", async () => {
-  const selectAssistant = vi.fn();
+test("enables Voice only for the shown Brunch, and explains when Voice is unavailable", async () => {
   const setVoiceEnabled = vi.fn();
-  const props = { ...defaultProps, selectAssistant, setVoiceEnabled };
+  const props = { ...defaultProps, setVoiceEnabled };
   const view = render(<AssistantLabsSettings {...props} />);
 
-  const brunchToggle = screen.getByRole("checkbox", { name: "Use Brunch" });
-  const voiceToggle = screen.getByRole("checkbox", { name: "Enable Voice" });
-  expect(brunchToggle).toBeDefined();
-  expect(voiceToggle).toBeDefined();
+  expect(screen.queryByRole("checkbox", { name: "Use Brunch" })).toBeNull();
+  expect(screen.getByRole("checkbox", { name: "Enable Voice" })).toHaveProperty(
+    "disabled",
+    true,
+  );
+  expect(
+    screen.getByText(
+      "Choose Brunch in General › AI assistant to enable Voice.",
+    ),
+  ).toBeDefined();
 
-  fireEvent.click(brunchToggle);
-  expect((brunchToggle as HTMLInputElement).checked).toBe(true);
-  await waitFor(() => expect(selectAssistant).toHaveBeenCalledWith("brunch"));
-
-  view.rerender(<AssistantLabsSettings {...props} brunchSelected />);
+  view.rerender(<AssistantLabsSettings {...props} brunchActive />);
   fireEvent.click(screen.getByRole("checkbox", { name: "Enable Voice" }));
   await waitFor(() => expect(setVoiceEnabled).toHaveBeenCalledWith(true));
 
-  view.rerender(<AssistantLabsSettings {...props} brunchSelected={false} />);
+  view.rerender(<AssistantLabsSettings {...props} brunchActive={false} />);
   expect(
     (
       screen.getByRole("checkbox", {
@@ -78,11 +76,7 @@ test("selects Brunch, enables Voice, and explains when Voice is unavailable", as
   ).toBe(true);
 
   view.rerender(
-    <AssistantLabsSettings
-      {...props}
-      brunchSelected
-      openAIVoiceConfig={null}
-    />,
+    <AssistantLabsSettings {...props} brunchActive openAIVoiceConfig={null} />,
   );
   expect(
     screen.getByText("Voice is unavailable in this deployment."),
@@ -97,14 +91,14 @@ test("shows Interview length only within Brunch and waits for its preference", a
   view.rerender(
     <AssistantLabsSettings
       {...defaultProps}
-      brunchSelected
+      brunchActive
       interviewBudgetPreferenceReady={false}
     />,
   );
   expect(
     screen.getByRole("checkbox", { name: "Interview length" }),
   ).toHaveProperty("disabled", true);
-  view.rerender(<AssistantLabsSettings {...defaultProps} brunchSelected />);
+  view.rerender(<AssistantLabsSettings {...defaultProps} brunchActive />);
   const toggle = screen.getByRole("checkbox", { name: "Interview length" });
   expect(toggle).toHaveProperty("checked", false);
   expect(toggle).toHaveProperty("disabled", false);
@@ -117,14 +111,14 @@ test("shows Interview length only within Brunch and waits for its preference", a
 test("shows Realtime only for enabled Brunch Voice and waits for capability", async () => {
   const view = render(<AssistantLabsSettings {...defaultProps} voiceEnabled />);
   expect(screen.queryByRole("checkbox", { name: "Realtime mode" })).toBeNull();
-  view.rerender(<AssistantLabsSettings {...defaultProps} brunchSelected />);
+  view.rerender(<AssistantLabsSettings {...defaultProps} brunchActive />);
   expect(screen.queryByRole("checkbox", { name: "Realtime mode" })).toBeNull();
 
   for (const capability of [undefined, null]) {
     view.rerender(
       <AssistantLabsSettings
         {...defaultProps}
-        brunchSelected
+        brunchActive
         voiceEnabled
         openAIVoiceConfig={capability}
       />,
@@ -134,7 +128,7 @@ test("shows Realtime only for enabled Brunch Voice and waits for capability", as
     ).toHaveProperty("disabled", true);
   }
   view.rerender(
-    <AssistantLabsSettings {...defaultProps} brunchSelected voiceEnabled />,
+    <AssistantLabsSettings {...defaultProps} brunchActive voiceEnabled />,
   );
   const toggle = screen.getByRole("checkbox", { name: "Realtime mode" });
   expect(toggle).toHaveProperty("checked", false);
@@ -147,29 +141,15 @@ test("shows Realtime only for enabled Brunch Voice and waits for capability", as
 
 test.each([
   {
-    name: "assistant preference loading",
-    props: { assistantReady: false },
-    control: "Use Brunch",
-    checked: false,
-    description: "Loading your assistant preference…",
-  },
-  {
-    name: "missing Brunch configuration",
-    props: { brunchConfigured: false },
-    control: "Use Brunch",
-    checked: false,
-    description: "Brunch isn’t set up on this site.",
-  },
-  {
     name: "Voice preference loading",
-    props: { brunchSelected: true, voicePreferenceReady: false },
+    props: { brunchActive: true, voicePreferenceReady: false },
     control: "Enable Voice",
     checked: false,
     description: "Loading your Voice preference…",
   },
   {
     name: "Voice capability loading",
-    props: { brunchSelected: true, openAIVoiceConfig: undefined },
+    props: { brunchActive: true, openAIVoiceConfig: undefined },
     control: "Enable Voice",
     checked: false,
     description: "Checking whether Voice is available…",

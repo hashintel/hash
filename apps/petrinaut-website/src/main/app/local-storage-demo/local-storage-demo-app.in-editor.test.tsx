@@ -335,7 +335,7 @@ const bindingOf = (send: ReturnType<typeof refusingFlueClient>, call: number) =>
   (send.mock.calls[call]?.[0].initialData as { binding?: unknown } | undefined)
     ?.binding;
 
-test("Brunch's own plugin is the editor's assistant, with no built-in chat and no Petrinaut AI", async () => {
+test("a saved Brunch choice makes Brunch's plugin the editor's assistant, with Petrinaut AI beside it", async () => {
   stubBrowser();
   const { id: netId } = startEmptyNetInStorage(localStorage);
   localStorage.setItem(assistantSelectionStorageKey, "brunch");
@@ -345,8 +345,9 @@ test("Brunch's own plugin is the editor's assistant, with no built-in chat and n
   await screen.findByRole("textbox", {
     name: "Describe the process you want to create",
   });
-  await vi.waitFor(() => expect(pluginIds()).toContain("website.brunch"));
-  expect(pluginIds()).not.toContain("website.petrinaut-ai");
+  expect(pluginIds()).toEqual(
+    expect.arrayContaining(["website.brunch", "website.petrinaut-ai"]),
+  );
   expect(
     editorProps.current?.plugins?.find(
       ({ manifest }) => manifest.id === "website.brunch",
@@ -364,7 +365,7 @@ test("Brunch's own plugin is the editor's assistant, with no built-in chat and n
   ).toBeTruthy();
 });
 
-test("with Stock selected, Petrinaut AI is the assistant and offers no Voice", async () => {
+test("with Stock saved, Petrinaut AI is the assistant, and Brunch is listed without connecting or offering Voice", async () => {
   stubBrowser({ voice: true });
   const { id: netId } = startEmptyNetInStorage(localStorage);
   localStorage.setItem(assistantSelectionStorageKey, "stock");
@@ -374,8 +375,9 @@ test("with Stock selected, Petrinaut AI is the assistant and offers no Voice", a
   await screen.findByRole("textbox", {
     name: "Describe the process you want to create",
   });
-  await vi.waitFor(() => expect(pluginIds()).toContain("website.petrinaut-ai"));
-  expect(pluginIds()).not.toContain("website.brunch");
+  expect(pluginIds()).toEqual(
+    expect.arrayContaining(["website.brunch", "website.petrinaut-ai"]),
+  );
   expect(screen.queryByRole("button", { name: "Start voice mode" })).toBeNull();
   expect(client.create).not.toHaveBeenCalled();
 });
@@ -544,7 +546,7 @@ test("opening another net gives it its own Brunch conversation, without resendin
   expect(clientUrls[1]).not.toBe(clientUrls[0]);
 });
 
-test("switching to Stock and back through the palette hands the panel over without resending Brunch's first prompt", async () => {
+test("switching to Petrinaut AI and back through the palette hands the panel over without resending Brunch's first prompt", async () => {
   stubBrowser();
   const { id: netId } = startEmptyNetInStorage(localStorage);
   localStorage.setItem(assistantSelectionStorageKey, "brunch");
@@ -569,17 +571,17 @@ test("switching to Stock and back through the palette hands the panel over witho
     await act(async () => fireEvent.click(within(palette).getByText(label)));
   };
 
-  await runPaletteCommand("Use the stock Petrinaut assistant");
-  await vi.waitFor(() => expect(pluginIds()).toContain("website.petrinaut-ai"));
-  expect(pluginIds()).not.toContain("website.brunch");
+  await runPaletteCommand("Use Petrinaut AI as the AI assistant");
   await vi.waitFor(() =>
     expect(
       within(panel()).queryByText("Model a queue", { selector: "div" }),
     ).toBeNull(),
   );
+  expect(within(panel()).queryByRole("tab", { name: /Ledger/u })).toBeNull();
 
-  await runPaletteCommand("Use Brunch");
-  await vi.waitFor(() => expect(pluginIds()).toContain("website.brunch"));
-  expect(pluginIds()).not.toContain("website.petrinaut-ai");
+  await runPaletteCommand("Use Brunch as the AI assistant");
+  await vi.waitFor(() =>
+    expect(within(panel()).getByRole("tab", { name: /Ledger/u })).toBeTruthy(),
+  );
   expect(send).toHaveBeenCalledOnce();
 });

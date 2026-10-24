@@ -34,7 +34,7 @@ import {
   type FixtureProcessAgentConfiguration,
   type ProcessAgentBinding,
 } from "./conversation/use-process-agent-binding";
-import { brunchPlugin, WithBrunchEditorApi } from "./editor-api-plugin";
+import { WithBrunchEditorApi } from "./editor-api-plugin";
 import {
   countInterviewReplies,
   isInterviewClosing,
@@ -92,7 +92,6 @@ import type { PetrinautAiComposerControlContext } from "./chat/ai-assistant-comp
 import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
 import type { SdcpnInitialData } from "@hashintel/brunch-agent";
-import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 export const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
@@ -185,12 +184,6 @@ export interface BrunchAssistant {
    * does not or Brunch is not selected.
    */
   readonly openAIVoiceConfig: OpenAIVoiceConfig | null | undefined;
-  /**
-   * The host's plugins, with Brunch's added while it is the assistant. Pass
-   * this list to `<Petrinaut plugins>`: Brunch's plugin renders its chat, and
-   * its cards read the editor through it.
-   */
-  readonly plugins: readonly PetrinautPlugin[];
 }
 
 /**
@@ -204,17 +197,17 @@ export const useBrunchAssistant = ({
   voice,
   interviewBudget,
   words,
-  plugins,
 }: {
-  /** Brunch is configured and chosen as the assistant. */
+  /**
+   * The editor shows Brunch's assistant. Brunch reads no history, checks no
+   * Voice and opens no connection otherwise.
+   */
   readonly selected: boolean;
   /** The open document, or `null` while none is open. */
   readonly openDocument: BrunchOpenDocument | null;
   readonly voice: BrunchVoicePreferences;
   readonly interviewBudget: BrunchInterviewBudgetPreferences;
   readonly words: BrunchWordsPreferences;
-  /** The plugins the host gives the editor. */
-  readonly plugins: readonly PetrinautPlugin[];
 }): BrunchAssistant => {
   const currentNetId = openDocument?.documentId ?? null;
   const editor = openDocument?.editor ?? null;
@@ -736,15 +729,8 @@ export const useBrunchAssistant = ({
     wordsActive,
   ]);
 
-  const brunchActive = assistant !== null;
-  const editorPlugins = useMemo(
-    () => (brunchActive ? [...plugins, brunchPlugin] : plugins),
-    [brunchActive, plugins],
-  );
-
   return {
     assistant,
     openAIVoiceConfig: selected ? openAIVoiceConfig : null,
-    plugins: editorPlugins,
   };
 };
