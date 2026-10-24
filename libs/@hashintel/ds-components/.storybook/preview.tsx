@@ -2,6 +2,9 @@ import "@fontsource-variable/geist-mono";
 import "@fontsource-variable/inter";
 import "@fontsource-variable/inter-tight";
 import "./preview.css";
+import "./docs.css";
+import { DocsContainer } from "@storybook/addon-docs/blocks";
+
 import type { Decorator, Preview } from "@storybook/react-vite";
 
 /**
@@ -41,6 +44,20 @@ const preview: Preview = {
   },
   parameters: {
     layout: "fullscreen",
+    docs: {
+      // One sb-unstyled wrapper opts the whole docs page out of addon-docs'
+      // typography; docs.css styles the markdown back in via the hash-md
+      // class the MDX build stamps on markdown-derived elements, so doc
+      // blocks and example JSX need no per-block escape.
+      container: ({
+        children,
+        ...containerProps
+      }: React.ComponentProps<typeof DocsContainer>) => (
+        <DocsContainer {...containerProps}>
+          <div className="hash-docs-root sb-unstyled">{children}</div>
+        </DocsContainer>
+      ),
+    },
     controls: {
       // Hide plumbing props and event handlers from the controls panel;
       // the real API controls are inferred from the component types.

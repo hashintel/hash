@@ -1,0 +1,121 @@
+/* Markdown typography for MDX docs pages (*.docs.mdx).
+   Scoping model: the MDX build (rehype-markdown-class.ts, wired in main.ts)
+   stamps `hash-md` on every element derived from markdown — literal JSX and
+   markdown MDX generates inside JSX children never get it — and the docs
+   container in preview.tsx wraps each page in `.hash-docs-root.sb-unstyled`,
+   opting the whole page out of addon-docs' built-in typography at once.
+   These rules then style the markdown back in */
+
+.hash-docs-root {
+  font-family: var(--global-font-body, var(--font-fallback));
+}
+
+.hash-md:is(h1, h2, h3, h4, h5, h6) {
+  margin: 24px 0 16px;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--colors-fg-heading, #202020);
+}
+
+/* addon-docs floats a hover-revealed link icon into each heading's left
+   gutter; center it on the first text line and undo its baseline nudge */
+.hash-md:is(h1, h2, h3, h4, h5, h6) > a[aria-hidden="true"] {
+  display: flex;
+  align-items: center;
+  height: 1lh;
+}
+
+.hash-md:is(h1, h2, h3, h4, h5, h6) > a[aria-hidden="true"] svg {
+  position: static;
+}
+
+h1.hash-md {
+  margin-top: 0;
+  font-size: 32px;
+  letter-spacing: -0.015em;
+}
+
+h2.hash-md {
+  margin-top: 40px;
+  padding-bottom: 6px;
+  font-size: 24px;
+  border-bottom: 1px solid var(--colors-bd-subtle, rgba(0, 0, 0, 0.13));
+}
+
+h3.hash-md {
+  margin-top: 32px;
+  font-size: 20px;
+}
+
+h4.hash-md {
+  font-size: 16px;
+}
+
+p.hash-md {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.hash-md:is(ul, ol) {
+  margin: 0 0 16px;
+  padding-left: 2em;
+  font-size: 14px;
+}
+
+ul.hash-md {
+  list-style: disc;
+}
+
+ol.hash-md {
+  list-style: decimal;
+}
+
+li.hash-md {
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+li.hash-md > :is(ul, ol) {
+  margin-bottom: 0;
+}
+
+blockquote.hash-md {
+  margin: 0 0 16px;
+  padding: 0 1em;
+  color: var(--colors-fg-muted, #6e6e6e);
+  border-left: 3px solid var(--colors-bd-subtle, rgba(0, 0, 0, 0.13));
+}
+
+hr.hash-md {
+  height: 1px;
+  margin: 24px 0;
+  border: 0;
+  background: var(--colors-bd-subtle, rgba(0, 0, 0, 0.13));
+}
+
+table.hash-md {
+  margin: 0 0 16px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.hash-md:is(th, td) {
+  padding: 6px 13px;
+  border: 1px solid var(--colors-bd-subtle, rgba(0, 0, 0, 0.13));
+}
+
+th.hash-md {
+  font-weight: 600;
+}
+
+img.hash-md {
+  max-width: 100%;
+}
+
+a.hash-md {
+  color: var(--colors-fg-link, #0b68cb);
+  text-decoration: underline;
+}

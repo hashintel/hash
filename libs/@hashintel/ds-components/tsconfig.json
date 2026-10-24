@@ -15,6 +15,7 @@
   "extends": ["@tsconfig/bases/strictest", "@local/tsconfig/policy.json"],
   "include": [
     "src/**/*",
+    "docs/**/*",
     ".storybook/**/*",
     "tests/**/*",
     "scripts/**/*",

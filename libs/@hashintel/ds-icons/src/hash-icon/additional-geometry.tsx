@@ -242,6 +242,12 @@ export const additionalGeometry = {
       <path d="m7 12 3 3 7-7" />
     </>
   ),
+  circleClose: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.5 8.5 7 7m0-7-7 7" />
+    </>
+  ),
   terminal: (
     <>
       <rect x="3" y="4" width="18" height="16" rx="2" />
