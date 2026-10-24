@@ -41,6 +41,5 @@ tracing            = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "fmt", "json"] }
 walkdir            = { workspace = true }
 
-
 [lints]
 workspace = true

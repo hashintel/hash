@@ -1,10 +1,10 @@
 [project]
-name = "petrinaut-python"
-version = "0.1.0"
-description = "Python bindings for the Petrinaut CLI: run simulations and optimization studies from Python"
-readme = "README.md"
+name            = "petrinaut-python"
+version         = "0.1.0"
+description     = "Python bindings for the Petrinaut CLI: run simulations and optimization studies from Python"
+readme          = "README.md"
 requires-python = ">=3.10"
-dependencies = [
+dependencies    = [
     "pydantic>=2.13.4",
 ]
 
