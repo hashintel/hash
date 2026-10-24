@@ -2,8 +2,9 @@
  * The architecture map: the whole model drawn once, navigated by selecting,
  * focusing and opening pages. The view state lives here and outlives the
  * panel closing, so the map comes back as it was left; the node of the page
- * beside the map is selected whenever that page changes. Keys act while
- * focus is inside the map, which a click anywhere in it gives.
+ * beside the map is selected whenever that page changes from outside the
+ * map. Keys act while focus is inside the map, which a click anywhere in
+ * it gives.
  */
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
@@ -12,7 +13,6 @@ import mapModel from "virtual:archinaut-map";
 import { indexGraph, regionOf } from "./navigator/model/graph";
 import { nodeOfSlug, pageSlugOf } from "./navigator/model/pages";
 import { Details } from "./navigator/ui/details";
-import { Filters } from "./navigator/ui/filters";
 import {
   NavigatorContext,
   type Transition,
@@ -57,14 +57,16 @@ export const Navigator = ({
       ? initialViewState
       : reveal(initialViewState, current, regionOf(index, current)),
   );
-  const [showFilters, setShowFilters] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  /** The slug the map itself just opened, which needs no revealing. */
+  const [opened, setOpened] = useState<string | null>(null);
 
-  // A new page beside the map means a new place to show on it.
+  // A new page beside the map means a new place to show on it, unless the
+  // map opened that page: then the reader is already looking at it.
   const [previousCurrent, setPreviousCurrent] = useState(current);
   if (current !== previousCurrent) {
     setPreviousCurrent(current);
-    if (current !== null) {
+    if (current !== null && pageSlugOf(current) !== opened) {
       setState(reveal(state, current, regionOf(index, current)));
     }
   }
@@ -77,6 +79,11 @@ export const Navigator = ({
 
   const update = (transition: Transition): void =>
     setState((value) => transition(value));
+
+  const openPage = (slug: string): void => {
+    setOpened(slug);
+    onOpen(slug);
+  };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     if (isTyping(event.target)) {
@@ -101,14 +108,11 @@ export const Navigator = ({
       } else {
         onClose();
       }
-    } else if (event.key === "Backspace") {
-      handled();
-      setState(exitFocus(state));
     } else if (event.key === "Enter" && state.selected !== null) {
       const slug = pageSlugOf(state.selected);
       if (slug !== null && pagesBySlug.has(slug)) {
         handled();
-        onOpen(slug);
+        openPage(slug);
       }
     } else if (
       (event.key === "f" || event.key === "F") &&
@@ -127,7 +131,7 @@ export const Navigator = ({
         current,
         state,
         update,
-        open: onOpen,
+        open: openPage,
         close: onClose,
       }}
     >
@@ -137,15 +141,10 @@ export const Navigator = ({
         tabIndex={-1}
         onKeyDown={onKeyDown}
       >
-        <Toolbar
-          showFilters={showFilters}
-          onToggleFilters={() => setShowFilters(!showFilters)}
-        />
-        <div className="nav-panes">
-          {showFilters ? <Filters /> : null}
-          <Scene />
-          {state.selected === null ? null : <Details />}
-        </div>
+        <Toolbar />
+        <Scene>
+          <Details />
+        </Scene>
       </div>
     </NavigatorContext>
   );

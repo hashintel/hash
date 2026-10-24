@@ -1,10 +1,7 @@
 /**
  * What the map shows, as plain data with pure transitions. The state
- * outlives the overlay being closed, so the map comes back as it was left.
+ * outlives the panel being closed, so the map comes back as it was left.
  */
-
-import type { Audience } from "../../../src/model";
-import type { EdgeKinds, Projection } from "./model/projections";
 
 export type Mode = "map" | "focus";
 
@@ -15,10 +12,8 @@ export interface ViewState {
   selected: string | null;
   /** The node the map view fits to, or null for the whole map. */
   region: string | null;
-  projection: Projection;
+  /** Domain tags; a node outside them dims. */
   tags: string[];
-  audience: Audience | null;
-  edgeKinds: EdgeKinds;
   query: string;
 }
 
@@ -27,15 +22,9 @@ export const initialViewState: ViewState = {
   focus: null,
   selected: null,
   region: null,
-  projection: "hypergraph",
   tags: [],
-  audience: null,
-  edgeKinds: { imports: true, declared: true, interfaces: true },
   query: "",
 };
-
-const isInterface = (id: string | null): boolean =>
-  id?.startsWith("iface:") ?? false;
 
 export const select = (state: ViewState, id: string | null): ViewState => ({
   ...state,
@@ -47,8 +36,6 @@ export const focusOn = (state: ViewState, id: string): ViewState => ({
   mode: "focus",
   focus: id,
   selected: id,
-  // Interfaces are only nodes in the hypergraph projection.
-  projection: isInterface(id) ? "hypergraph" : state.projection,
 });
 
 export const exitFocus = (state: ViewState): ViewState => ({
@@ -73,35 +60,11 @@ export const fitAll = (state: ViewState): ViewState => ({
   region: null,
 });
 
-export const setProjection = (
-  state: ViewState,
-  projection: Projection,
-): ViewState =>
-  projection === "pairwise" && isInterface(state.focus)
-    ? { ...exitFocus(state), projection }
-    : { ...state, projection };
-
 export const toggleTag = (state: ViewState, tag: string): ViewState => ({
   ...state,
   tags: state.tags.includes(tag)
     ? state.tags.filter((candidate) => candidate !== tag)
     : [...state.tags, tag],
-});
-
-export const setAudience = (
-  state: ViewState,
-  audience: Audience,
-): ViewState => ({
-  ...state,
-  audience: state.audience === audience ? null : audience,
-});
-
-export const toggleEdgeKind = (
-  state: ViewState,
-  kind: keyof EdgeKinds,
-): ViewState => ({
-  ...state,
-  edgeKinds: { ...state.edgeKinds, [kind]: !state.edgeKinds[kind] },
 });
 
 export const setQuery = (state: ViewState, query: string): ViewState => ({
@@ -112,6 +75,5 @@ export const setQuery = (state: ViewState, query: string): ViewState => ({
 export const clearFilters = (state: ViewState): ViewState => ({
   ...state,
   tags: [],
-  audience: null,
   query: "",
 });

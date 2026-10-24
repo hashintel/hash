@@ -111,8 +111,9 @@ export const Shell = () => {
     return () => document.body.removeAttribute("data-map-open");
   }, [mapOpen]);
   const closeMap = (): void => setMapOpen(false);
+  // The map stays open: the page changes below it, and the map is how
+  // the reader moves to the next one.
   const openPage = (slug: string): void => {
-    setMapOpen(false);
     void router.navigate({ href: hrefOf(slug) });
   };
 
