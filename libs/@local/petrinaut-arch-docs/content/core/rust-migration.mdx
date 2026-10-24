@@ -218,35 +218,111 @@ history jumps use the same path; mixed structural history retains the general
 transaction path. Tests cover unchanged batches, rejected edits, history truncation
 and typed allocation preservation.
 
-The benchmark uses 1, 10 and 100 copies of the satellite example, with remapped
-identifiers: 5, 50 and 500 nodes, and about 18 KB, 182 KB and 1.8 MB of JSON. It
-measures the built package API, including the TypeScript adapter, under Node
-22.23.4 on macOS ARM64. Movement and undo/redo use 30 samples; batches and deletion
-use 10. These are local measurements, not browser frame-rate guarantees.
+At **1,000 nodes** (3.6 MB of JSON): **7.8× faster node moves**, **1.4× faster deletion**, and **15% more peak process memory** for Rust/Wasm.
 
-| Nodes | Move before (ms) | Move after (ms) | TypeScript move (ms) | Rust undo after (ms) |
-| ----- | ---------------: | --------------: | -------------------: | -------------------: |
-| 5     |            0.474 |           0.060 |                0.116 |                0.146 |
-| 50    |            3.065 |           0.052 |                0.758 |                0.046 |
-| 500   |           45.613 |           0.107 |               24.652 |                0.102 |
+Measured at `d09eae9f10` with release Wasm, Node v22.23.4, Apple M1 Max and 64 GiB RAM on macOS ARM64. The Wasm binary is 1.69 MiB before compression. `rust/benchmark-comparison.json` contains all samples, memory readings and build metadata.
 
-The baseline is commit `bef5ae205a`, before incremental positions. The checked-in
-`rust/benchmark-results.json` records the runs and memory observations. At 500 nodes,
-structural deletion still takes about 86 ms in Rust versus 48 ms in TypeScript;
-this path remains a priority. Wasm initialization took about 37 ms and the binary
-is about 1.8 MB before compression. Full-document startup remains more expensive
-than the TypeScript engine.
+| Nodes |    JSON |  TS move | Rust move | Rust comparison | TS peak process | Rust peak process |
+| ----: | ------: | -------: | --------: | --------------: | --------------: | ----------------: |
+|    50 | 0.18 MB |  0.83 ms |   0.20 ms |     4.1× faster |       129.5 MiB |         150.7 MiB |
+|   500 | 1.81 MB | 27.00 ms |   3.52 ms |     7.7× faster |       201.2 MiB |         210.3 MiB |
+| 1,000 | 3.63 MB | 96.01 ms |  12.26 ms |     7.8× faster |       248.0 MiB |         284.0 MiB |
 
-Heap deltas and process RSS are diagnostic readings, not precise ownership counts.
-They include allocator and JIT noise and do not isolate live Rust allocations.
-The document still exists on both sides of the boundary, so this draft does not
-claim a memory reduction. Browser heap and Wasm allocation profiling remain open.
+At 1,000 nodes, operation times are:
 
-After building core, reproduce the measurements from the repository root:
+| Operation         | TypeScript | Rust/Wasm | Rust comparison |
+| ----------------- | ---------: | --------: | --------------: |
+| Load instance     |   22.56 ms | 150.53 ms | **6.7× slower** |
+| Move one node     |   96.01 ms |  12.26 ms | **7.8× faster** |
+| Undo move         |   68.11 ms |  12.12 ms | **5.6× faster** |
+| Redo move         |   68.07 ms |  12.23 ms | **5.6× faster** |
+| Move 100 nodes    |   98.17 ms |  13.61 ms | **7.2× faster** |
+| Delete 100 places |  172.27 ms | 125.49 ms | **1.4× faster** |
+
+Deletion also depends on fixture size. Deleting 30 places at 50 nodes takes 1.25 ms in TypeScript and 4.05 ms in Rust (3.2× slower). At 500 nodes, deleting 100 places takes 41.80 ms and 49.86 ms (1.2× slower).
+
+Loading starts after engine initialization. Rust entry loading, file reading and Wasm initialization add a median 39.60 ms. Network startup is outside this measurement.
+
+For node movement, p95 is 99.49 ms in TypeScript and 14.02 ms in Rust. The three per-process medians range from 95.63–96.41 ms and 11.84–12.43 ms, respectively.
+
+For deletion, p95 is 177.86 ms in TypeScript and 141.68 ms in Rust. The three per-process medians range from 171.79–172.62 ms and 122.08–126.22 ms, respectively.
+
+Memory at 1,000 nodes uses medians of three independent processes. Lifecycle rows describe the first cycle; peak process memory covers all three cycles.
+
+| Stage                | TS JS heap | Rust JS heap | TS process | Rust process |
+| -------------------- | ---------: | -----------: | ---------: | -----------: |
+| Before instance      |   27.6 MiB |     33.9 MiB |  133.6 MiB |    152.0 MiB |
+| Loaded instance      |   29.6 MiB |     38.6 MiB |  136.1 MiB |    198.4 MiB |
+| 50 moves in history  |   32.0 MiB |     40.5 MiB |  244.2 MiB |    259.0 MiB |
+| Delete + undo        |   34.0 MiB |     40.9 MiB |  244.4 MiB |    272.4 MiB |
+| History cleared      |   33.8 MiB |     40.9 MiB |  244.4 MiB |    272.4 MiB |
+| Instance disposed    |   28.3 MiB |     34.4 MiB |  244.4 MiB |    272.4 MiB |
+| Peak across 3 cycles |            |              |  248.0 MiB |    284.0 MiB |
+
+After disposal in cycles 1, 2 and 3, TypeScript uses 28.3, 28.3, 26.6 MiB of JavaScript heap and 244.4, 246.4, 247.7 MiB of process memory.
+
+After disposal in cycles 1, 2 and 3, Rust uses 34.4, 32.9, 32.4 MiB of JavaScript heap and 272.4, 277.0, 277.8 MiB of process memory.
+
+The fixture repeats the satellite example with remapped identifiers: 50, 500 and
+1,000 total nodes (places and transitions). It includes the example's definitions, scenarios
+and source code. Batch moves and deletion affect up to 100 places (30 in the
+50-node fixture). Repeated example data is synthetic; real nets can have different
+code, topology and string sharing.
+
+The comparison runs three fresh processes per engine, size and measurement mode,
+with alternating engine order: 36 processes in total. Timing uses the built public
+API, including validation, the Wasm adapter, one definition subscriber and one
+patch subscriber. Each process warms up 10 move/undo pairs, one batch/undo pair and
+one delete/undo pair, then clears history. Moves, undo and redo have 30 samples per
+process; batches and deletion have 10. Medians and p95 use the pooled samples.
+Raw results also record the range of per-process medians. The definition subscriber
+includes the shared TypeScript document-copying cost in both engines.
+
+Document hashes must match between engines after loading, movement, undo, redo,
+batching and deletion restoration. Assertions check deletion counts, subscriber
+updates and the history limit. Instance loading is measured after engine setup;
+common module loading, fixture generation and correctness checks are outside the
+operation timers. Deletion timing excludes the undo used to restore the fixture.
+
+Memory uses separate processes. Each runs three create/edit/clear/dispose cycles
+with a 50-entry history limit. A cycle moves one node 50 times, deletes up to 100
+places, undoes the deletion, clears history and disposes the instance. Two forced
+JavaScript garbage collections precede each reading. Disposal readings occur on
+the next event-loop turn, after the instance and its snapshot references have
+left scope.
+
+Heap means V8 heap used. Process memory means RSS, including the fixture, runtime,
+JavaScript heap and Wasm. Peak RSS covers the entire process lifetime, including
+fixture construction. These values do not isolate live Rust allocations. Wasm,
+V8 and the native allocator can retain memory for reuse after disposal. Three
+cycles can reveal growth, but cannot establish the absence of a leak. The raw
+`external` count includes `arrayBuffers`; adding them would double-count memory.
+
+This benchmark covers Node APIs. Browser rendering, storage, network startup,
+simulation and native Rust executables need separate measurements. The older
+`rust/benchmark-results.json` retains the mutation-only comparison before and after
+incremental positions; its timings exclude the subscribers used here.
+
+After building core, reproduce the comparison from the repository root:
 
 ```sh
-mise x -- node --expose-gc libs/@hashintel/petrinaut-core/scripts/benchmark-rust.mjs --engine=rust
-mise x -- node --expose-gc libs/@hashintel/petrinaut-core/scripts/benchmark-rust.mjs --engine=typescript
+mise x -- node libs/@hashintel/petrinaut-core/scripts/benchmark-comparison.mjs \
+  --output=/tmp/petrinaut-benchmark.json
+```
+
+For a quick correctness check, add `--nodes=50 --repeats=1`. The runner starts child
+processes with `--expose-gc`; runtime source code needs no profiling API.
+
+An earlier 5,000-node TypeScript memory worker exceeded the five-minute process
+timeout while running the three 50-edit lifecycles. That interrupted stress case
+provides no completed memory result. The routine comparison uses 1,000 nodes as
+its largest fixture. Completed workers are saved beside `--output` in a
+`.partial.jsonl` file until the whole comparison succeeds. To inspect the stress
+case without the comparison timeout, run its worker directly:
+
+```sh
+mise x -- node --expose-gc libs/@hashintel/petrinaut-core/scripts/benchmark-rust.mjs \
+  --engine=typescript --nodes=5000 --mode=memory
 ```
 
 ## Build and verification
