@@ -2,13 +2,14 @@
  * @vitest-environment jsdom
  */
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
 } from "@testing-library/react";
-import { useEffect, useState } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("./views/Editor/editor-view", async () => {
@@ -23,6 +24,7 @@ vi.mock("./views/Editor/editor-view", async () => {
   return {
     EditorView: ({ titleEditable }: { titleEditable: boolean }) => {
       const {
+        petriNetDefinition,
         setTitle,
         title,
         titleEditable: contextTitleEditable,
@@ -34,6 +36,9 @@ vi.mock("./views/Editor/editor-view", async () => {
           data-testid="title-capability"
           data-available={contextTitleEditable}
         >
+          <div data-testid="place-names">
+            {petriNetDefinition.places.map(({ name }) => name).join(",")}
+          </div>
           <TopBar
             actualModeAvailable={false}
             menuItems={[]}
@@ -136,6 +141,36 @@ const createHandle = () =>
 afterEach(cleanup);
 
 describe("Petrinaut title editing", () => {
+  test("follows a handle the host writes after mount, under StrictMode too", async () => {
+    const handle = createHandle();
+    render(
+      <StrictMode>
+        <Petrinaut handle={handle} readonly />
+      </StrictMode>,
+    );
+    const before = screen.getByTestId("place-names").textContent;
+
+    act(() => {
+      handle.change((draft) => {
+        draft.places.push({
+          id: "late",
+          name: "Late",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        });
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("place-names").textContent).toBe(
+        before === "" ? "Late" : `${before},Late`,
+      ),
+    );
+  });
+
   test("renders the title read-only when setTitle is omitted", () => {
     render(<Petrinaut handle={createHandle()} title="Remote model" />);
 
