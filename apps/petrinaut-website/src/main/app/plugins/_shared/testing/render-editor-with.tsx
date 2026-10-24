@@ -13,7 +13,7 @@ import {
 /** Renders the real editor on an empty net with `plugins` installed, and returns its handle too. */
 export const renderEditorWith = (
   plugins: readonly PetrinautPlugin[],
-  props?: Omit<PetrinautProps, "handle" | "plugins">,
+  props?: Omit<PetrinautProps, "handle" | "instance" | "plugins">,
 ) => {
   // Kept until the environment is disposed: the language server starts lazily.
   vi.stubGlobal("ResizeObserver", NoopResizeObserver);

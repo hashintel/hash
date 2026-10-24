@@ -1,5 +1,9 @@
 /** @vitest-environment jsdom */
 
+import { readFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { FlueApiError, type FlueClient } from "@flue/sdk";
 import {
   act,
@@ -8,11 +12,13 @@ import {
   render,
   screen,
   within,
+  waitFor,
 } from "@testing-library/react";
 import { type ComponentProps, useEffect, useState } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent";
+import { initializePetrinautRust } from "@hashintel/petrinaut-core/rust";
 
 import {
   brunchEvaluationConversationIdFrom,
@@ -84,7 +90,9 @@ beforeAll(preloadMonaco, 30_000);
 afterEach(cleanup);
 
 test("empty-canvas and composer text share one Brunch conversation and its budget and words", async () => {
-  const entries = new Map<string, string>();
+  const entries = new Map<string, string>([
+    ["petrinaut-website:instance-engine", "typescript"],
+  ]);
   vi.stubGlobal("localStorage", {
     get length() {
       return entries.size;
@@ -222,7 +230,9 @@ test("empty-canvas and composer text share one Brunch conversation and its budge
  * other request fails, so nothing reaches a model or an audio service.
  */
 const stubBrowser = ({ voice = false }: { voice?: boolean } = {}) => {
-  const entries = new Map<string, string>();
+  const entries = new Map<string, string>([
+    ["petrinaut-website:instance-engine", "typescript"],
+  ]);
   vi.stubGlobal("localStorage", {
     get length() {
       return entries.size;
@@ -316,11 +326,10 @@ const sendFirstPrompt = async (text: string) => {
  * composer's control, where Brunch offers it.
  */
 const startVoiceInPanel = async () => {
-  await act(async () =>
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Show AI assistant" }),
-    ),
-  );
+  const showAssistant = await screen.findByRole("button", {
+    name: "Show AI assistant",
+  });
+  await act(async () => fireEvent.click(showAssistant));
   const panel = await screen.findByRole("complementary", {
     name: "AI assistant",
   });
@@ -583,4 +592,80 @@ test("switching to Stock and back through the palette hands the panel over witho
   await vi.waitFor(() => expect(pluginIds()).toContain("website.brunch"));
   expect(pluginIds()).not.toContain("website.petrinaut-ai");
   expect(send).toHaveBeenCalledOnce();
+});
+
+test("the demo defaults to real Rust and its plugin switches engines on the same stored net", async () => {
+  await initializePetrinautRust(
+    await readFile(
+      resolve(
+        dirname(fileURLToPath(import.meta.url)),
+        "../../../../../../libs/@hashintel/petrinaut-core/rust/pkg/petrinaut_core_bg.wasm",
+      ),
+    ),
+  );
+  stubBrowser();
+  localStorage.removeItem("petrinaut-website:instance-engine");
+  const { id: netId } = startEmptyNetInStorage(localStorage);
+  const view = render(
+    <LocalStorageDemoApp
+      netId={netId}
+      onOpenNet={() => {}}
+      onSearchChange={() => {}}
+      search={{}}
+    />,
+  );
+  await waitFor(() =>
+    expect(editorProps.current?.instance?.handle.id).toBe(netId),
+  );
+  const rust = editorProps.current?.instance;
+  expect(rust).toBeDefined();
+  const change = vi.spyOn(rust!.handle, "change");
+  const dispose = vi.spyOn(rust!, "dispose");
+  expect(
+    screen.getByRole("combobox", { name: "Document engine" }),
+  ).toHaveProperty("value", "rust");
+  await act(async () =>
+    rust!.mutations.addPlace({
+      id: "engine-place",
+      name: "FromRust",
+      x: 0,
+      y: 0,
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+    }),
+  );
+  expect(change).not.toHaveBeenCalled();
+  const snapshot = rust!.handle.doc();
+  fireEvent.change(screen.getByRole("combobox", { name: "Document engine" }), {
+    target: { value: "typescript" },
+  });
+  await waitFor(() => expect(editorProps.current?.instance).not.toBe(rust));
+  expect(dispose).toHaveBeenCalledOnce();
+  expect(editorProps.current?.instance?.handle.doc()).toEqual(snapshot);
+  expect(editorProps.current?.instance?.handle.history?.canUndo.get()).toBe(
+    false,
+  );
+  expect(localStorage.getItem("petrinaut-website:instance-engine")).toBe(
+    "typescript",
+  );
+  const typescript = editorProps.current?.instance;
+  view.unmount();
+  render(
+    <LocalStorageDemoApp
+      netId={netId}
+      onOpenNet={() => {}}
+      onSearchChange={() => {}}
+      search={{}}
+    />,
+  );
+  await waitFor(() =>
+    expect(editorProps.current?.instance).not.toBe(typescript),
+  );
+  expect(
+    screen.getByRole("combobox", { name: "Document engine" }),
+  ).toHaveProperty("value", "typescript");
+  expect(editorProps.current?.instance?.handle.doc()?.places[0]?.name).toBe(
+    "FromRust",
+  );
 });

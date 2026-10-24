@@ -23,13 +23,14 @@ COPY .config/mise /etc/mise
 COPY rust-toolchain.toml /tmp/rust-toolchain.toml
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates && \
+    apt-get install -y --no-install-recommends curl ca-certificates build-essential && \
     dpkg --compare-versions "$(dpkg-query -W -f='${Version}' ca-certificates)" ge 20250419~deb12u2 && \
     /etc/mise/install.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install --locked node npm:turbo yq && \
+    mise install --locked node npm:turbo yq github:wasm-bindgen/wasm-pack github:WebAssembly/binaryen && \
     mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' /tmp/rust-toolchain.toml) && \
+    rustup target add --toolchain "$(yq '.toolchain.channel' /tmp/rust-toolchain.toml)" wasm32-unknown-unknown && \
     rm /tmp/rust-toolchain.toml
 
 

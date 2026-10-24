@@ -1,6 +1,6 @@
 /**
  * @layerRoot website.local-storage-demo
- * @role Editable demo shell: nets in local storage, one live document handle
+ * @role Editable demo shell: nets in local storage, a selectable Rust or TypeScript instance
  */
 
 import { useMemo, useState } from "react";
@@ -28,6 +28,12 @@ import {
 } from "./assistant-selection";
 import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
+import {
+  InstanceEngineContext,
+  InstanceEngineSelector,
+  instanceEnginePlugin,
+  useInstanceEngine,
+} from "./instance-engine";
 import { useInterviewBudgetPreference } from "./interview-budget-preference";
 import { UnsavedChangeNotice } from "./unsaved-change-notice";
 import { useRealtimePreference, useVoicePreference } from "./voice-preference";
@@ -144,7 +150,9 @@ export const LocalStorageDemoApp = ({
   const currentDocument = repository.current;
   const currentNetId = currentDocument?.documentId ?? null;
 
-  const { activeHandle, unsavedChangeMessage } = useActiveHandle(repository);
+  const { engine, setEngine, ready: engineReady } = useInstanceEngine();
+  const { activeHandle, unsavedChangeMessage, loadError, retry } =
+    useActiveHandle(repository, engineReady ? engine : null);
 
   const existingNets: MinimalNetMetadata[] = repository.records
     .map((document) => ({
@@ -225,7 +233,7 @@ export const LocalStorageDemoApp = ({
       setLevel: setInterviewBudgetLevel,
     },
     words: { enabled: wordsPreferenceReady && wordsEnabled },
-    plugins: demoPlugins,
+    plugins: [...demoPlugins, instanceEnginePlugin],
   });
   // Petrinaut AI is the assistant until Brunch's is ready.
   const plugins =
@@ -248,7 +256,32 @@ export const LocalStorageDemoApp = ({
     !activeHandle ||
     activeHandle.document.documentId !== currentDocument.documentId
   ) {
-    return <p>Loading document…</p>;
+    return (
+      <InstanceEngineContext value={{ engine, select: setEngine }}>
+        <div className="instance-engine-status" style={{ padding: 24 }}>
+          <InstanceEngineSelector />
+          {loadError === null ? (
+            <p role="status">
+              Loading {engine === "rust" ? "Rust" : "TypeScript"} document
+              engine…
+            </p>
+          ) : (
+            <>
+              <p role="alert">
+                Could not load the {engine === "rust" ? "Rust" : "TypeScript"}{" "}
+                document engine: {loadError}
+              </p>
+              <button type="button" onClick={retry}>
+                Retry
+              </button>
+              <p>
+                Your saved nets are kept. You can choose another engine above.
+              </p>
+            </>
+          )}
+        </div>
+      </InstanceEngineContext>
+    );
   }
 
   return (
@@ -260,51 +293,55 @@ export const LocalStorageDemoApp = ({
       }}
     >
       {notice !== null ? <UnsavedChangeNotice message={notice} /> : null}
-      <CommandRegistryProvider>
-        {/* Brunch's plugin renders its chat from this, inside the editor. */}
-        <BrunchAssistantContext value={brunch.assistant}>
-          <Petrinaut
-            handle={activeHandle.handle}
-            existingNets={existingNets}
-            createNewNet={createNewNet}
-            loadPetriNet={loadPetriNet}
-            navigation={navigation}
-            plugins={plugins}
-            readonly={false}
-            setTitle={setTitle}
-            slots={{
-              settingsLabs: (
-                <AssistantLabsSettings
-                  assistantReady={assistantSelectionReady}
-                  brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
-                  brunchSelected={brunchSelected}
-                  interviewBudgetEnabled={interviewBudgetEnabled}
-                  interviewBudgetPreferenceReady={
-                    interviewBudgetPreferenceReady
-                  }
-                  openAIVoiceConfig={brunch.openAIVoiceConfig}
-                  realtimeEnabled={realtimeEnabled}
-                  realtimePreferenceReady={realtimePreferenceReady}
-                  selectAssistant={selectAssistant}
-                  setInterviewBudgetEnabled={setInterviewBudgetEnabled}
-                  setRealtimeEnabled={setRealtimeEnabled}
-                  setVoiceEnabled={setVoiceEnabled}
-                  voiceEnabled={brunchSelected && voiceEnabled}
-                  voicePreferenceReady={voicePreferenceReady}
-                  wordsEnabled={wordsEnabled}
-                  wordsPreferenceReady={wordsPreferenceReady}
-                  setWordsEnabled={setWordsEnabled}
-                />
-              ),
-            }}
-            title={currentDocument.title}
+      <InstanceEngineContext
+        value={{ engine: activeHandle.engine, select: setEngine }}
+      >
+        <CommandRegistryProvider>
+          {/* Brunch's plugin renders its chat from this, inside the editor. */}
+          <BrunchAssistantContext value={brunch.assistant}>
+            <Petrinaut
+              key={`${activeHandle.engine}:${activeHandle.document.documentId}:${activeHandle.document.revisionId}`}
+              instance={activeHandle.instance}
+              existingNets={existingNets}
+              createNewNet={createNewNet}
+              loadPetriNet={loadPetriNet}
+              navigation={navigation}
+              plugins={plugins}
+              setTitle={setTitle}
+              slots={{
+                settingsLabs: (
+                  <AssistantLabsSettings
+                    assistantReady={assistantSelectionReady}
+                    brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
+                    brunchSelected={brunchSelected}
+                    interviewBudgetEnabled={interviewBudgetEnabled}
+                    interviewBudgetPreferenceReady={
+                      interviewBudgetPreferenceReady
+                    }
+                    openAIVoiceConfig={brunch.openAIVoiceConfig}
+                    realtimeEnabled={realtimeEnabled}
+                    realtimePreferenceReady={realtimePreferenceReady}
+                    selectAssistant={selectAssistant}
+                    setInterviewBudgetEnabled={setInterviewBudgetEnabled}
+                    setRealtimeEnabled={setRealtimeEnabled}
+                    setVoiceEnabled={setVoiceEnabled}
+                    voiceEnabled={brunchSelected && voiceEnabled}
+                    voicePreferenceReady={voicePreferenceReady}
+                    wordsEnabled={wordsEnabled}
+                    wordsPreferenceReady={wordsPreferenceReady}
+                    setWordsEnabled={setWordsEnabled}
+                  />
+                ),
+              }}
+              title={currentDocument.title}
+            />
+          </BrunchAssistantContext>
+          <DemoCommands
+            brunchSelected={brunchSelected}
+            selectAssistant={selectAssistant}
           />
-        </BrunchAssistantContext>
-        <DemoCommands
-          brunchSelected={brunchSelected}
-          selectAssistant={selectAssistant}
-        />
-      </CommandRegistryProvider>
+        </CommandRegistryProvider>
+      </InstanceEngineContext>
     </div>
   );
 };

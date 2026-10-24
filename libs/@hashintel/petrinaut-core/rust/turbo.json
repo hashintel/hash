@@ -1,0 +1,34 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build:wasm": {
+      "command": [
+        "wasm-pack",
+        "build",
+        "--target",
+        "web",
+        "--out-name",
+        "petrinaut_core",
+        "--release",
+        ".",
+        "--no-pack"
+      ],
+      "dependsOn": ["^manifest"],
+      "outputs": ["pkg/**"]
+    },
+    "test:unit": {
+      "command": ["cargo", "test", "--all-features"],
+      "dependsOn": ["^manifest"]
+    },
+    "lint:clippy": {
+      "command": [
+        "cargo",
+        "clippy",
+        "--all-features",
+        "--all-targets",
+        "--no-deps"
+      ],
+      "dependsOn": ["^manifest"]
+    }
+  }
+}

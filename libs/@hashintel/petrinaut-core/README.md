@@ -44,3 +44,22 @@ directly so editor edits can emit `source: "local"` and host/store updates can
 emit `source: "remote"`. The full guide, including the invariants the editor
 relies on, is in the architecture docs:
 [Embedding in a host application](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/handle/host-integration.mdx).
+
+## Rust document engine (draft)
+
+The optional `@hashintel/petrinaut-core/rust` entry creates a compatible instance
+with Rust-owned document state, patch generation, history, and node movement:
+
+```ts
+import { createRustPetrinaut } from "@hashintel/petrinaut-core/rust";
+
+const instance = await createRustPetrinaut({
+  initial: { places: [], transitions: [] },
+});
+// Pass instance to PetrinautProvider or <Petrinaut instance={instance} />.
+// Dispose it when the host closes the document, after unmounting the editor.
+instance.dispose();
+```
+
+Other mutation rules and simulation remain in TypeScript. The architecture guide
+[documents the migration and its limits](../../@local/petrinaut-arch-docs/content/core/rust-migration.mdx).

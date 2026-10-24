@@ -2,11 +2,21 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "petrinaut-core#build:wasm"],
       "outputs": ["dist/**"]
     },
     "test:unit": {
-      "dependsOn": ["^manifest", "@local/petrinaut-optimizer-core#build"]
+      "dependsOn": [
+        "^manifest",
+        "@local/petrinaut-optimizer-core#build",
+        "petrinaut-core#build:wasm"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": ["$TURBO_EXTENDS$", "petrinaut-core#build:wasm"]
+    },
+    "lint:eslint": {
+      "dependsOn": ["$TURBO_EXTENDS$", "petrinaut-core#build:wasm"]
     }
   }
 }

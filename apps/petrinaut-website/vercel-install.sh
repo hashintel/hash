@@ -16,6 +16,7 @@ echo "Installing Rust toolchain: $(yq '.toolchain.channel' rust-toolchain.toml)"
 mise install --locked yq
 export RUSTUP_AUTO_INSTALL=0
 mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
+rustup target add --toolchain "$(yq '.toolchain.channel' rust-toolchain.toml)" wasm32-unknown-unknown
 
 echo "Installing prerequisites"
 mise install --locked node npm:turbo java npm:@redocly/cli cargo-binstall github:wasm-bindgen/wasm-pack github:WebAssembly/binaryen protoc

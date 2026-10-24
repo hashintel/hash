@@ -49,6 +49,10 @@ import {
   parseAssistantSelection,
   resolveDefaultAssistantSelection,
 } from "./assistant-selection";
+import {
+  instanceEnginePlugin,
+  instanceEngineStorageKey,
+} from "./instance-engine";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import { latestOrNewNetInStorage } from "./use-local-storage-sdcpns";
 import { voicePreferenceStorageKey } from "./voice-preference";
@@ -59,10 +63,17 @@ import type { AgentConversationObservationSnapshot } from "@flue/sdk";
 import type {
   CommandRegistryView,
   MinimalNetMetadata,
+  Petrinaut,
   PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
+
+const renderLoaded = async (...args: Parameters<typeof render>) => {
+  const view = render(...args);
+  await act(async () => {});
+  return view;
+};
 
 const netOneId = toPetrinautId("net-1");
 const netTwoId = toPetrinautId("net-2");
@@ -139,7 +150,7 @@ const editorProps = vi.hoisted(() => ({
       title: string;
     }) => void;
     existingNets?: unknown;
-    handle?: unknown;
+    instance?: Petrinaut;
     loadPetriNet?: unknown;
     navigation?: unknown;
     plugins?: readonly PetrinautPlugin[];
@@ -216,7 +227,9 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => ({
  * it. An in-memory store gives them one.
  */
 const stubStorage = () => {
-  const entries = new Map<string, string>();
+  const entries = new Map<string, string>([
+    [instanceEngineStorageKey, "typescript"],
+  ]);
   vi.stubGlobal("localStorage", {
     get length() {
       return entries.size;
@@ -309,7 +322,9 @@ describe("local storage demo Brunch voice integration", () => {
       ),
     );
 
-    const rendered = render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    const rendered = await renderLoaded(
+      <DemoApp onSearchChange={() => {}} search={{}} />,
+    );
     await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
     const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
 
@@ -386,7 +401,9 @@ describe("local storage demo Brunch voice integration", () => {
       ),
     );
 
-    const rendered = render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    const rendered = await renderLoaded(
+      <DemoApp onSearchChange={() => {}} search={{}} />,
+    );
     await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
 
     expect(
@@ -452,7 +469,9 @@ describe("local storage demo Brunch voice integration", () => {
       ),
     );
 
-    const rendered = render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    const rendered = await renderLoaded(
+      <DemoApp onSearchChange={() => {}} search={{}} />,
+    );
     await waitFor(() =>
       expect(
         (renderedPetrinaut.aiAssistant as PetrinautAiAssistant).requestStop,
@@ -494,10 +513,10 @@ describe("local storage demo URL navigation", () => {
     return navigation as PetrinautNavigationController;
   };
 
-  test("resolves a URL-borne location into the controller it hands the editor", () => {
+  test("resolves a URL-borne location into the controller it hands the editor", async () => {
     seedStoredNet();
 
-    render(
+    await renderLoaded(
       <DemoApp
         onSearchChange={() => {}}
         search={{ subnet: "subnet-1", itemType: "place", itemId: "place-1" }}
@@ -511,11 +530,11 @@ describe("local storage demo URL navigation", () => {
     ]);
   });
 
-  test("writes an editor navigation back to the URL", () => {
+  test("writes an editor navigation back to the URL", async () => {
     seedStoredNet();
     const onSearchChange = vi.fn();
 
-    render(<DemoApp onSearchChange={onSearchChange} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={onSearchChange} search={{}} />);
 
     mountedNavigation().onNavigate(
       (current) => ({ ...current, subnetId: "subnet-2" }),
@@ -528,10 +547,10 @@ describe("local storage demo URL navigation", () => {
     expect(onSearchChange).toHaveBeenCalledWith({ subnet: "subnet-2" }, "push");
   });
 
-  test("leaves history to the library default, so a discrete click pushes", () => {
+  test("leaves history to the library default, so a discrete click pushes", async () => {
     seedStoredNet();
 
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
 
     // Constraining this page's policy once made selections replace, which left
     // the page with no history entries at all and sent the first Back press
@@ -554,12 +573,12 @@ describe("local storage demo URL navigation", () => {
     ).toBe("replace");
   });
 
-  test("opens a new net at its own URL", () => {
+  test("opens a new net at its own URL", async () => {
     seedStoredNet();
     const onOpenNet = vi.fn();
     const onSearchChange = vi.fn();
 
-    render(
+    await renderLoaded(
       <LocalStorageDemoApp
         netId={netOneId}
         onOpenNet={onOpenNet}
@@ -589,10 +608,10 @@ describe("local storage demo URL navigation", () => {
     expect(onSearchChange).not.toHaveBeenCalled();
   });
 
-  test("stays on the open net and says why when the browser refuses a new one", () => {
+  test("stays on the open net and says why when the browser refuses a new one", async () => {
     seedStoredNet();
     const onOpenNet = vi.fn();
-    render(
+    await renderLoaded(
       <LocalStorageDemoApp
         netId={netOneId}
         onOpenNet={onOpenNet}
@@ -626,7 +645,7 @@ describe("local storage demo URL navigation", () => {
     );
   });
 
-  test("clears a refused new net's notice when another net opens", () => {
+  test("clears a refused new net's notice when another net opens", async () => {
     stubStorage();
     localStorage.setItem(
       "petrinaut-sdcpn",
@@ -648,7 +667,7 @@ describe("local storage demo URL navigation", () => {
       onSearchChange: () => {},
       search: {},
     };
-    const { rerender } = render(
+    const { rerender } = await renderLoaded(
       <LocalStorageDemoApp netId={netOneId} {...props} />,
     );
     localStorage.setItem = () => {
@@ -679,10 +698,10 @@ describe("local storage demo URL navigation", () => {
     expect(screen.queryByText(/Couldn't save the new net/)).toBeNull();
   });
 
-  test("explains a net the browser does not hold", () => {
+  test("explains a net the browser does not hold", async () => {
     seedStoredNet();
 
-    render(
+    await renderLoaded(
       <LocalStorageDemoApp
         netId={netTwoId}
         onOpenNet={() => {}}
@@ -694,11 +713,11 @@ describe("local storage demo URL navigation", () => {
     expect(screen.getByText("Local document not found")).toBeTruthy();
   });
 
-  test("clears a multi-item selection the URL never carried", () => {
+  test("clears a multi-item selection the URL never carried", async () => {
     seedStoredNet();
     const onSearchChange = vi.fn();
 
-    render(<DemoApp onSearchChange={onSearchChange} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={onSearchChange} search={{}} />);
 
     // A selection of more than one item projects to an empty search, so the
     // URL is already empty and writing `{}` to it changes no prop. Clearing
@@ -731,7 +750,9 @@ describe("local storage demo URL navigation", () => {
       });
     });
 
-    expect(mountedNavigation().state.selection).toEqual([]);
+    await waitFor(() =>
+      expect(mountedNavigation().state.selection).toEqual([]),
+    );
   });
 });
 
@@ -745,8 +766,11 @@ describe("local document revision persistence", () => {
     flueClientOptions.current = null;
     seedStoredNet("local-revision-1");
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
-    const firstView = render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    const firstHandle = editorProps.current?.handle as PetrinautDocHandle;
+    const firstView = await renderLoaded(
+      <DemoApp onSearchChange={() => {}} search={{}} />,
+    );
+    const firstHandle = editorProps.current?.instance
+      ?.handle as PetrinautDocHandle;
 
     act(() => {
       firstHandle.change((draft) => {
@@ -776,8 +800,9 @@ describe("local document revision persistence", () => {
     });
 
     firstView.unmount();
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
+    const reopenedHandle = editorProps.current?.instance
+      ?.handle as PetrinautDocHandle;
     expect(reopenedHandle).not.toBe(firstHandle);
     expect(reopenedHandle.doc()?.places.map((place) => place.id)).toEqual([
       toPetrinautId("direct-place"),
@@ -811,7 +836,7 @@ describe("local document revision persistence", () => {
 
   test("lists each stored net with the time it was last written", async () => {
     seedStoredNet("local-revision-1");
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
 
     expect(editorProps.current?.existingNets).toEqual([
       {
@@ -821,7 +846,7 @@ describe("local document revision persistence", () => {
       },
     ]);
 
-    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    const handle = editorProps.current?.instance?.handle as PetrinautDocHandle;
     act(() => {
       handle.change((draft) => {
         draft.places.push({
@@ -844,7 +869,7 @@ describe("local document revision persistence", () => {
     });
   });
 
-  test("lists stored nets with the most recently updated first", () => {
+  test("lists stored nets with the most recently updated first", async () => {
     stubStorage();
     localStorage.setItem(
       "petrinaut-sdcpn",
@@ -863,7 +888,7 @@ describe("local document revision persistence", () => {
         }),
       }),
     );
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
 
     const nets = editorProps.current?.existingNets as MinimalNetMetadata[];
     expect(nets.map(({ netId }) => netId)).toEqual([freshNetId, staleNetId]);
@@ -871,8 +896,9 @@ describe("local document revision persistence", () => {
 
   test("adopts another tab's revision of the open document and chains later changes from it", async () => {
     seedStoredNet("local-revision-1");
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    const firstHandle = editorProps.current?.handle as PetrinautDocHandle;
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
+    const firstHandle = editorProps.current?.instance
+      ?.handle as PetrinautDocHandle;
 
     const otherTabPlace = {
       id: toPetrinautId("other-tab-place"),
@@ -903,9 +929,10 @@ describe("local document revision persistence", () => {
     });
 
     await waitFor(() =>
-      expect(editorProps.current?.handle).not.toBe(firstHandle),
+      expect(editorProps.current?.instance?.handle).not.toBe(firstHandle),
     );
-    const adoptedHandle = editorProps.current?.handle as PetrinautDocHandle;
+    const adoptedHandle = editorProps.current?.instance
+      ?.handle as PetrinautDocHandle;
     expect(adoptedHandle.doc()?.places.map((place) => place.id)).toEqual([
       toPetrinautId("other-tab-place"),
     ]);
@@ -934,14 +961,15 @@ describe("local document revision persistence", () => {
         toPetrinautId("this-tab-place"),
       ]);
     });
-    expect(editorProps.current?.handle).toBe(adoptedHandle);
+    expect(editorProps.current?.instance?.handle).toBe(adoptedHandle);
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
   test("reports a refused change and reopens the editor from the repository's record so the next change is accepted", async () => {
     seedStoredNet("local-revision-1");
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    const refusedHandle = editorProps.current?.handle as PetrinautDocHandle;
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
+    const refusedHandle = editorProps.current?.instance
+      ?.handle as PetrinautDocHandle;
     const addPlace = (handle: PetrinautDocHandle, id: string) =>
       act(() => {
         handle.change((draft) => {
@@ -980,9 +1008,10 @@ describe("local document revision persistence", () => {
     );
     // The refused change is dropped: the editor reopens from the record.
     await waitFor(() =>
-      expect(editorProps.current?.handle).not.toBe(refusedHandle),
+      expect(editorProps.current?.instance?.handle).not.toBe(refusedHandle),
     );
-    const reopenedHandle = editorProps.current?.handle as PetrinautDocHandle;
+    const reopenedHandle = editorProps.current?.instance
+      ?.handle as PetrinautDocHandle;
     expect(reopenedHandle.doc()?.places).toEqual([]);
     // The notice outlives the handle it was raised for.
     expect(screen.getByRole("alert").textContent).toContain(
@@ -991,7 +1020,7 @@ describe("local document revision persistence", () => {
 
     addPlace(reopenedHandle, "accepted-place");
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-    expect(editorProps.current?.handle).toBe(reopenedHandle);
+    expect(editorProps.current?.instance?.handle).toBe(reopenedHandle);
     const persisted = JSON.parse(
       localStorage.getItem("petrinaut-sdcpn") ?? "{}",
     ) as Record<
@@ -1023,8 +1052,8 @@ describe("local document revision persistence", () => {
         },
       }),
     );
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
+    const handle = editorProps.current?.instance?.handle as PetrinautDocHandle;
 
     // Another tab moves net-1 on; its storage event has not reached this tab.
     const otherTabPlace = {
@@ -1102,7 +1131,7 @@ describe("local document revision persistence", () => {
         subscribe: () => () => undefined,
       }),
     };
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>
       expect(brunchPanelTransportSessions.current.length).toBeGreaterThan(0),
     );
@@ -1117,7 +1146,7 @@ describe("local document revision persistence", () => {
     const [firstSession] = uniqueSessions();
     expect(firstSession).toBeDefined();
 
-    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    const handle = editorProps.current?.instance?.handle as PetrinautDocHandle;
     act(() => {
       handle.change((draft) => {
         draft.places.push({
@@ -1181,13 +1210,15 @@ describe("local storage demo Brunch controls", () => {
         subscribe: () => () => {},
       }),
     };
-    const view = render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    const view = await renderLoaded(
+      <DemoApp onSearchChange={() => {}} search={{}} />,
+    );
     await waitFor(() =>
       expect(editorProps.current?.bridgedAssistant).toBeDefined(),
     );
     const first = editorProps.current?.bridgedAssistant as PetrinautAiAssistant;
     const originalId = first.conversationId;
-    const handle = editorProps.current?.handle;
+    const handle = editorProps.current?.instance?.handle;
     expect(first.canClearMessages).toBe(true);
     act(() => first.onClearMessages?.());
     const next = editorProps.current?.bridgedAssistant as PetrinautAiAssistant;
@@ -1196,10 +1227,10 @@ describe("local storage demo Brunch controls", () => {
       `${ordinaryConstructionConversationIdFrom(netOneId)}:`,
     );
     expect(next.automaticTools).not.toBe(first.automaticTools);
-    expect(editorProps.current?.handle).toBe(handle);
+    expect(editorProps.current?.instance?.handle).toBe(handle);
     const nextId = next.conversationId;
     view.unmount();
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>
       expect(editorProps.current?.bridgedAssistant?.conversationId).toBe(
         nextId,
@@ -1247,7 +1278,7 @@ describe("local storage demo Brunch controls", () => {
       }),
     );
     try {
-      render(<DemoApp onSearchChange={() => {}} search={{}} />);
+      await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
       await waitFor(() =>
         expect(
           editorProps.current?.bridgedAssistant?.inBandBrowserTools,
@@ -1309,7 +1340,7 @@ describe("local storage demo Brunch controls", () => {
       }),
     };
 
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>
       expect(editorProps.current?.bridgedAssistant).toBeDefined(),
     );
@@ -1330,7 +1361,9 @@ describe("local storage demo Brunch controls", () => {
     expect(aiAssistant.executeMutation).toBeUndefined();
     // The editor gets no built-in chat; its tools run on the editor's handle.
     expect(editorProps.current).not.toHaveProperty("aiAssistant");
-    expect(aiAssistant.documentHandle).toBe(editorProps.current?.handle);
+    expect(aiAssistant.documentHandle).toBe(
+      editorProps.current?.instance?.handle,
+    );
     expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
       [
         "getLatestNetDefinition",
@@ -1459,7 +1492,7 @@ describe("assistant selection", () => {
   /** The bridged assistant's bound handle, which must be the editor's own. */
   const currentDocumentHandle = () => {
     const handle = currentAssistant()?.documentHandle;
-    expect(handle).toBe(editorProps.current?.handle);
+    expect(handle).toBe(editorProps.current?.instance?.handle);
     return handle;
   };
   const executeCurrentCanonicalMutation = (
@@ -1524,14 +1557,14 @@ describe("assistant selection", () => {
     vi.unstubAllGlobals();
   });
 
-  test("ordinary Stock is the default and never mounts Flue history", () => {
+  test("ordinary Stock is the default and never mounts Flue history", async () => {
     seedStoredNet("stock-revision");
     const observe = vi.fn();
     const history = vi.fn();
     flueClientMock.current = { history, observe };
     flueClientOptions.current = null;
 
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
 
     expect(currentAssistant()).toBeUndefined();
     expect(editorProps.current?.plugins).toContain(petrinautAiPlugin);
@@ -1566,7 +1599,9 @@ describe("assistant selection", () => {
       ),
     );
 
-    const firstView = render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    const firstView = await renderLoaded(
+      <DemoApp onSearchChange={() => {}} search={{}} />,
+    );
     const firstBrunchToggle = await screen.findByRole("checkbox", {
       name: "Use Brunch",
     });
@@ -1598,7 +1633,7 @@ describe("assistant selection", () => {
     await waitFor(() => expect(currentVoiceProvider()).toBe("realtime"));
 
     firstView.unmount();
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     const restoredBrunchToggle = await screen.findByRole("checkbox", {
       name: "Use Brunch",
     });
@@ -1706,7 +1741,7 @@ describe("assistant selection", () => {
         voice.props.onInputModeChange?.("text");
         expect(brunchPanelTransportTracker.current?.inputMode).toBe("text");
       };
-      const firstView = render(
+      const firstView = await renderLoaded(
         <DemoApp onSearchChange={() => {}} search={{}} />,
       );
       const toggle = await screen.findByRole("checkbox", {
@@ -1723,7 +1758,7 @@ describe("assistant selection", () => {
         localStorage.getItem("petrinaut-website:interview-budget-enabled"),
       ).toBe("true");
       firstView.unmount();
-      const restoredView = render(
+      const restoredView = await renderLoaded(
         <DemoApp onSearchChange={() => {}} search={{}} />,
       );
       await waitFor(() => expectBudget(true));
@@ -1740,7 +1775,7 @@ describe("assistant selection", () => {
         savedLevel ?? null,
       );
       restoredView.unmount();
-      render(<DemoApp onSearchChange={() => {}} search={{}} />);
+      await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
       await waitFor(() => expectBudget(false));
     },
   );
@@ -1749,7 +1784,7 @@ describe("assistant selection", () => {
     seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = flueHistoryClient();
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentAssistant()?.requestStop).toBeDefined());
     expect(currentAssistant()?.executeMutation).toBeUndefined();
     expect(localStorage.getItem(assistantSelectionStorageKey)).toBe("brunch");
@@ -1772,7 +1807,7 @@ describe("assistant selection", () => {
       Response.json({ available: true, connectionTimeoutMs: 10_000 }),
     );
     vi.stubGlobal("fetch", fetch);
-    const defaultView = render(
+    const defaultView = await renderLoaded(
       <DemoApp onSearchChange={() => {}} search={{}} />,
     );
     await waitFor(() => {
@@ -1786,14 +1821,14 @@ describe("assistant selection", () => {
 
     defaultView.unmount();
     localStorage.setItem(voicePreferenceStorageKey, "false");
-    const disabledView = render(
+    const disabledView = await renderLoaded(
       <DemoApp onSearchChange={() => {}} search={{}} />,
     );
     await waitFor(() => expect(currentVoiceCapability()).toBeDefined());
     expect(currentAssistant()?.renderVoiceMode).toBeUndefined();
     disabledView.unmount();
     localStorage.setItem(voicePreferenceStorageKey, "true");
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>
       expect(currentAssistant()?.renderVoiceMode).toBeDefined(),
     );
@@ -1822,7 +1857,7 @@ describe("assistant selection", () => {
       ),
     );
 
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentVoiceCapability()).toBeNull());
     expect(currentAssistant()?.renderVoiceMode).toBeUndefined();
     expect(
@@ -1843,7 +1878,7 @@ describe("assistant selection", () => {
       .mockReturnValueOnce(firstCapability.promise)
       .mockReturnValueOnce(secondCapability.promise);
     vi.stubGlobal("fetch", fetch);
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
 
     expect(currentAssistant()?.renderVoiceMode).toBeUndefined();
     renderedAssistants.length = 0;
@@ -1903,7 +1938,7 @@ describe("assistant selection", () => {
       JSON.stringify({ [netOneId]: [stockMessage] }),
     );
     flueClientMock.current = flueHistoryClient();
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     expect(currentAssistant()).toBeUndefined();
 
     switchAssistant(/Use Brunch/);
@@ -1952,7 +1987,7 @@ describe("assistant selection", () => {
       }),
     };
 
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentAssistant()?.requestStop).toBeDefined());
     // The baseline is the history the editor first shows: wait until it is the
     // absent one, before the admission publishes live calls.
@@ -2045,7 +2080,7 @@ describe("assistant selection", () => {
       canonicalInput,
     )) as { applied?: boolean; reason?: string } | undefined;
     expect(canonicalOutput?.applied).toBe(false);
-    const handle = editorProps.current?.handle as
+    const handle = editorProps.current?.instance?.handle as
       | PetrinautDocHandle
       | undefined;
     expect(handle?.doc()?.places).toHaveLength(0);
@@ -2084,7 +2119,7 @@ describe("assistant selection", () => {
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = flueHistoryClient();
 
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentAssistant()?.requestStop).toBeDefined());
     const firstMutation = currentAssistant()?.automaticTools?.find(
       ({ toolName }) => toolName === "addPlace",
@@ -2136,7 +2171,7 @@ describe("assistant selection", () => {
         subscribe: () => () => undefined,
       }),
     };
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentAssistant()?.requestStop).toBeDefined());
     expect(() => executeCurrentReadCall("loading-read")).toThrow(
       "Conversation history is not ready",
@@ -2153,7 +2188,7 @@ describe("assistant selection", () => {
         targetSubnetId: null,
       }),
     ).toThrow("Conversation history is not ready");
-    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    const handle = editorProps.current?.instance?.handle as PetrinautDocHandle;
     expect(handle.doc()?.places).toEqual([]);
   });
 
@@ -2201,7 +2236,7 @@ describe("assistant selection", () => {
         subscribe: () => () => undefined,
       }),
     };
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() => expect(currentAssistant()?.requestStop).toBeDefined());
     await waitFor(() =>
       expect(() =>
@@ -2212,15 +2247,16 @@ describe("assistant selection", () => {
         ),
       ).toThrow(/already attempted/u),
     );
-    const handle = editorProps.current?.handle as PetrinautDocHandle;
+    const handle = editorProps.current?.instance?.handle as PetrinautDocHandle;
     expect(handle.doc()?.places).toEqual([]);
   });
 
-  test("gives the editor the demo's plugins and the registry holding the switch command", () => {
+  test("gives the editor the demo's plugins and the registry holding the switch command", async () => {
     seedStoredNet();
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     expect(editorProps.current?.plugins).toEqual([
       ...demoPlugins,
+      instanceEnginePlugin,
       petrinautAiPlugin,
     ]);
     expect(
@@ -2232,12 +2268,13 @@ describe("assistant selection", () => {
     seedStoredNet();
     localStorage.setItem(assistantSelectionStorageKey, "brunch");
     flueClientMock.current = flueHistoryClient();
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>
       expect(
         editorProps.current?.plugins?.map(({ manifest }) => manifest.id),
       ).toEqual([
         ...demoPlugins.map(({ manifest }) => manifest.id),
+        instanceEnginePlugin.manifest.id,
         "website.brunch",
       ]),
     );
@@ -2246,15 +2283,16 @@ describe("assistant selection", () => {
     await waitFor(() =>
       expect(editorProps.current?.plugins).toEqual([
         ...demoPlugins,
+        instanceEnginePlugin,
         petrinautAiPlugin,
       ]),
     );
   });
 
-  test("without a configured Brunch endpoint there is no choice to make", () => {
+  test("without a configured Brunch endpoint there is no choice to make", async () => {
     brunchPreviewConfig.isBrunchConfigured = false;
     seedStoredNet();
-    render(<DemoApp onSearchChange={() => {}} search={{}} />);
+    await renderLoaded(<DemoApp onSearchChange={() => {}} search={{}} />);
     expect(currentAssistant()).toBeUndefined();
     expect(editorProps.current?.plugins).toContain(petrinautAiPlugin);
     expect(

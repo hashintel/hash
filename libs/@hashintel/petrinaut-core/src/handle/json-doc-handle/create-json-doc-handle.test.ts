@@ -1,9 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
+import { readRustWasm } from "../../../scripts/read-rust-wasm.mjs";
 import { createPetrinaut } from "../../instance";
 import { isPetrinautId, toPetrinautId } from "../../petrinaut-id";
+import { initializePetrinautRust } from "../../rust";
+import { createRustDocHandle } from "../../rust/rust-doc-handle";
 import { createReadableStore } from "../../store";
-import { createJsonDocHandle } from "./create-json-doc-handle";
+import {
+  createJsonDocHandle as createDefaultHandle,
+  type CreateJsonDocHandleOptions,
+} from "./create-json-doc-handle";
 
 import type { SDCPN } from "../../types/sdcpn";
 import type { DocChangeEvent, PetrinautDocHandle } from "../types";
@@ -62,7 +68,28 @@ const coloured = (): SDCPN => ({
   ],
 });
 
-describe("createJsonDocHandle", () => {
+beforeAll(async () => {
+  await initializePetrinautRust(await readRustWasm());
+});
+const disposers: Array<() => void> = [];
+afterEach(() => {
+  for (const dispose of disposers.splice(0)) {
+    dispose();
+  }
+});
+const handleFactory =
+  (backend: string) =>
+  (options: CreateJsonDocHandleOptions): PetrinautDocHandle => {
+    if (backend === "JSON") {
+      return createDefaultHandle(options);
+    }
+    const handle = createRustDocHandle(options);
+    disposers.push(() => handle.dispose());
+    return handle;
+  };
+
+describe.each(["JSON", "Rust"])("%s createJsonDocHandle", (backend) => {
+  const createJsonDocHandle = handleFactory(backend);
   it("starts with the initial doc and reports state ready", () => {
     const handle = createJsonDocHandle({ initial: empty() });
     expect(handle.state.get()).toBe("ready");
@@ -228,7 +255,8 @@ describe("createJsonDocHandle", () => {
   });
 });
 
-describe("createPetrinaut", () => {
+describe.each(["JSON", "Rust"])("%s createPetrinaut", (backend) => {
+  const createJsonDocHandle = handleFactory(backend);
   it("observes its handle only while a resource has subscribers", () => {
     const sourceHandle = createJsonDocHandle({ initial: empty() });
     const unsubscribe = vi.fn();
@@ -414,7 +442,8 @@ describe("createPetrinaut", () => {
   });
 });
 
-describe("PetrinautDocHandle history", () => {
+describe.each(["JSON", "Rust"])("%s PetrinautDocHandle history", (backend) => {
+  const createJsonDocHandle = handleFactory(backend);
   const addType = (name: string) => (draft: SDCPN) => {
     draft.types.push({
       id: name,

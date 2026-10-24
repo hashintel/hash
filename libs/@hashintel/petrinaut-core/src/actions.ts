@@ -430,7 +430,7 @@ const collectWrittenIds = (
 };
 
 /** Errors name an input id as the caller wrote it, not the UUID it became. */
-const withWrittenIdsInErrors = (
+export const withWrittenIdsInErrors = (
   actions: MutationHelperFunctions,
 ): MutationHelperFunctions =>
   Object.fromEntries(
