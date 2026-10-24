@@ -213,14 +213,21 @@ describe("the visualizer surface", () => {
     });
 
     it("rejects elements and attributes outside the allowlist", () => {
+      const image = `export default Visualization(() => <svg><image href="https://x.test/a.png" /></svg>);`;
+      expect(lowerErr(image)[0]).toMatchObject({
+        code: "hir:unknown-element",
+        span: { start: image.indexOf("image"), length: "image".length },
+      });
       expect(
-        lowerErr(
-          `export default Visualization(() => <svg><image href="https://x.test/a.png" /></svg>);`,
-        ).map((diagnostic) => diagnostic.code),
-      ).toEqual(["hir:unknown-element", "hir:unknown-element-attribute"]);
-      expect(
-        lowerErr(`export default Visualization(() => <svg onClick={1} />);`)[0],
+        lowerErr(`export default Visualization(() => <rect href="#a" />);`)[0],
       ).toMatchObject({ code: "hir:unknown-element-attribute" });
+      // The name is judged before the value, so a handler is named as such
+      // rather than failing on its arrow function.
+      const [handler] = lowerErr(
+        `export default Visualization(() => <svg onClick={() => 1} />);`,
+      );
+      expect(handler).toMatchObject({ code: "hir:unknown-element-attribute" });
+      expect(handler?.message).toContain("event handler");
       expect(
         lowerErr(`export default Visualization(() => <Foo />);`)[0],
       ).toMatchObject({ code: "hir:unknown-element" });

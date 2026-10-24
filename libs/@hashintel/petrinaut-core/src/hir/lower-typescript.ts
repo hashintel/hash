@@ -29,6 +29,7 @@ import {
   getStateConstraintExpression,
   type DualFormSurfaceKind,
 } from "./user-code-form";
+import { VIEW_ELEMENT_ATTRIBUTES, VIEW_ELEMENT_TAGS } from "./view-elements";
 
 import type {
   HirBinaryOp,
@@ -1534,6 +1535,16 @@ class Lowering {
         `\`<${tag}>\` is a component; a visualizer draws elements such as \`<svg>\`, \`<g>\` and \`<circle>\` only.`,
       );
     }
+    // Judged before the attributes and children, so the message names the
+    // element rather than whatever inside it fails to lower first. The type
+    // checker applies the same set to trees built elsewhere.
+    if (!VIEW_ELEMENT_TAGS.has(tag)) {
+      this.fail(
+        tagName,
+        "hir:unknown-element",
+        `\`<${tag}>\` cannot be drawn by a visualizer. Images, links, scripts and embedded content are not available.`,
+      );
+    }
 
     const attributes: HirElementAttribute[] = [];
     let key: HirExpr | undefined;
@@ -1554,6 +1565,15 @@ class Lowering {
       }
       const name = property.name.text;
       const nameSpan = this.spanOf(property.name);
+      if (name !== "key" && !VIEW_ELEMENT_ATTRIBUTES.has(name)) {
+        this.fail(
+          property.name,
+          "hir:unknown-element-attribute",
+          /^on[A-Z]/u.test(name)
+            ? `\`${name}\` is an event handler; a visualizer cannot react to events.`
+            : `\`${name}\` is not an attribute a visualizer can set.`,
+        );
+      }
       let value: HirExpr;
       const { initializer } = property;
       if (initializer === undefined) {
