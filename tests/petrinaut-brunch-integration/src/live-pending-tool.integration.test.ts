@@ -8,23 +8,23 @@ import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
 import { afterAll, beforeAll, expect, test } from "vitest";
 
 import { loadBuiltBrunchApplication } from "@apps/brunch-agent/testing/load-built-application";
-import { createBrunchFlueAdapter } from "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-flue-adapter";
-import {
-  BrunchPanelConversationTracker,
-  createBrunchPanelTransport,
-} from "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-panel-transport";
 import {
   agentOwnershipHeaders,
   brunchEnv,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent";
+import {
+  createBrunchFlueAdapter,
+  BrunchPanelConversationTracker,
+  createBrunchPanelTransport,
+} from "@hashintel/brunch-agent/client";
 import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 import {
   createNativeOpenaiToolStall,
   nativeOpenaiProvider,
 } from "@local/pi-faux-providers/native-openai-provider";
 
-import type { PetrinautAiMessage } from "@apps/petrinaut-website/src/main/app/plugins/brunch/chat/ai-assistant-panel";
+import type { PetrinautAiMessage } from "@hashintel/brunch-agent/ui";
 
 const originalFetch = globalThis.fetch;
 

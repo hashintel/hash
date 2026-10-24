@@ -18,13 +18,13 @@ import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 import { loadBuiltBrunchApplication } from "@apps/brunch-agent/testing/load-built-application";
 import { assistantSelectionStorageKey } from "@apps/petrinaut-website/src/main/app/local-storage-demo/assistant-selection";
 import { LocalStorageDemoApp } from "@apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app";
-import { documentRevisionOf } from "@apps/petrinaut-website/src/main/app/plugins/brunch/tools/shared/document-revision";
 import {
   InProcessLspWorker,
   NoopResizeObserver,
   preloadMonaco,
 } from "@apps/petrinaut-website/src/main/app/shared/petrinaut-jsdom";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent";
+import { documentRevisionOf } from "@hashintel/brunch-agent/ui";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
 import type { FlueClient } from "@flue/sdk";

@@ -1,7 +1,7 @@
 import {
   createUtteranceJudgmentHandler,
   reportUtteranceJudgmentDiagnostic,
-} from "../../src/server/voice/typesafe-utterance-judgment.js";
+} from "@hashintel/brunch-agent/server";
 
 declare const process: { env: Record<string, string | undefined> };
 

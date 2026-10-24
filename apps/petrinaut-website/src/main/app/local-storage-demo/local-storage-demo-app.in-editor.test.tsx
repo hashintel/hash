@@ -13,12 +13,12 @@ import { type ComponentProps, useEffect, useState } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { parsePetrinautUserMessageBody } from "@hashintel/brunch-agent";
-
 import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
-} from "../plugins/brunch/conversation/brunch-conversation-id";
-import { conversationWordsKey } from "../plugins/brunch/words/conversation-words";
+} from "@hashintel/brunch-agent/client";
+import { conversationWordsKey } from "@hashintel/brunch-agent/ui";
+
 import {
   InProcessLspWorker,
   NoopResizeObserver,
