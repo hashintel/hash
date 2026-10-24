@@ -99,6 +99,8 @@ export const buildFlowRunEvents = (
       failedAttempts: Set<number>;
       /** Whether the history has recorded the activity's last attempt (`ACTIVITY_TASK_STARTED`). */
       lastAttemptRecorded: boolean;
+      /** The latest attempt an event has reported, as started or as hidden. */
+      reportedUpTo: number;
     }
   >();
   /** The activity most recently scheduled with each activity id: a step run's id, for a step's activity. */
@@ -175,6 +177,21 @@ export const buildFlowRunEvents = (
       });
     };
 
+    /**
+     * How many attempts before `attempt` no event has reported, which its start reports as hidden: their signals
+     * didn't arrive. Counts each attempt once, whether its start is signalled or Temporal records it.
+     */
+    const takeHiddenAttemptCount = (
+      activity: ReturnType<typeof getActivity>,
+      attempt: number,
+    ) => {
+      const hiddenCount = Math.max(0, attempt - 1 - activity.reportedUpTo);
+
+      activity.reportedUpTo = Math.max(activity.reportedUpTo, attempt);
+
+      return hiddenCount;
+    };
+
     /** The step activity a signal about an attempt is about, if the history has scheduled it. */
     const getSignalledStepActivity = (stepRunId: string) => {
       const scheduledEventId = scheduledEventIdsByActivityId.get(stepRunId);
@@ -230,6 +247,7 @@ export const buildFlowRunEvents = (
           signalledStarts: new Set(),
           failedAttempts: new Set(),
           lastAttemptRecorded: false,
+          reportedUpTo: 0,
         });
         scheduledEventIdsByActivityId.set(activityId, eventId);
 
@@ -276,13 +294,7 @@ export const buildFlowRunEvents = (
           });
 
           if (!activity.signalledStarts.has(attempt)) {
-            /* Earlier attempts no signal recorded, which Temporal only counts. */
-            const hiddenCount =
-              attempt -
-              1 -
-              [...activity.signalledStarts].filter(
-                (signalled) => signalled < attempt,
-              ).length;
+            const hiddenCount = takeHiddenAttemptCount(activity, attempt);
 
             addEvent({
               kind: "attemptStarted",
@@ -470,9 +482,19 @@ export const buildFlowRunEvents = (
             failUnfailedAttempt(activity, stepRun, attempt, {
               message: unknownErrorMessage,
             });
+            const hiddenCount = takeHiddenAttemptCount(activity, attempt);
+
             activity.signalledStarts.add(attempt);
             activity.attempt = attempt;
-            addEvent({ kind: "attemptStarted", stepRun, attempt });
+            /* The attempts before it whose signals didn't arrive. Their last error is only in the last attempt's start. */
+            addEvent({
+              kind: "attemptStarted",
+              stepRun,
+              attempt,
+              ...(hiddenCount > 0
+                ? { hiddenAttempts: { count: hiddenCount } }
+                : {}),
+            });
             break;
           }
 

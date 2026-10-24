@@ -417,6 +417,107 @@ describe("buildFlowRunEvents", () => {
     ]);
   });
 
+  describe("when some attempt signals didn't arrive", () => {
+    /** The history of `retried-then-succeeds` without these attempt signals. */
+    const withoutSignals = (
+      lost: [
+        signalName: "stepAttemptStarted" | "stepAttemptFailed",
+        attempt: number,
+      ][],
+    ) =>
+      loadFixture("retried-then-succeeds").history.filter((event) => {
+        const signal = event.workflowExecutionSignaledEventAttributes;
+        const data = signal?.input?.payloads?.[0]?.data;
+
+        if (!signal?.signalName || !data) {
+          return true;
+        }
+
+        const { attempt } = JSON.parse(Buffer.from(data).toString()) as {
+          attempt?: number;
+        };
+
+        return !lost.some(
+          ([signalName, lostAttempt]) =>
+            signalName === signal.signalName && lostAttempt === attempt,
+        );
+      });
+
+    /** What the events say about each attempt. */
+    const attemptEventsOf = (history: IHistoryEvent[]) =>
+      buildFlowRunEvents(history).flatMap(
+        (event): Record<string, unknown>[] => {
+          switch (event.kind) {
+            case "attemptStarted":
+              return [
+                {
+                  kind: event.kind,
+                  attempt: event.attempt,
+                  ...(event.hiddenAttempts
+                    ? { hiddenAttempts: event.hiddenAttempts }
+                    : {}),
+                },
+              ];
+            case "attemptFailed":
+              return [{ kind: event.kind, attempt: event.attempt }];
+            case "attemptSucceeded":
+              return [{ kind: event.kind, attempt: event.attempt }];
+            default:
+              return [];
+          }
+        },
+      );
+
+    it("reports the attempts before a signalled start as hidden", () => {
+      expect(
+        attemptEventsOf(
+          withoutSignals([
+            ["stepAttemptStarted", 1],
+            ["stepAttemptFailed", 1],
+            ["stepAttemptStarted", 2],
+            ["stepAttemptFailed", 2],
+          ]),
+        ),
+      ).toStrictEqual([
+        { kind: "attemptStarted", attempt: 3, hiddenAttempts: { count: 2 } },
+        { kind: "attemptSucceeded", attempt: 3 },
+      ]);
+    });
+
+    it("reports an attempt between signalled ones as hidden", () => {
+      expect(
+        attemptEventsOf(
+          withoutSignals([
+            ["stepAttemptStarted", 2],
+            ["stepAttemptFailed", 2],
+          ]),
+        ),
+      ).toStrictEqual([
+        { kind: "attemptStarted", attempt: 1 },
+        { kind: "attemptFailed", attempt: 1 },
+        { kind: "attemptStarted", attempt: 3, hiddenAttempts: { count: 1 } },
+        { kind: "attemptSucceeded", attempt: 3 },
+      ]);
+    });
+
+    it("reports each hidden attempt once, when Temporal records the start of a later attempt", () => {
+      expect(
+        attemptEventsOf(
+          withoutSignals([
+            ["stepAttemptStarted", 1],
+            ["stepAttemptFailed", 1],
+            ["stepAttemptStarted", 3],
+          ]),
+        ),
+      ).toStrictEqual([
+        { kind: "attemptStarted", attempt: 2, hiddenAttempts: { count: 1 } },
+        { kind: "attemptFailed", attempt: 2 },
+        { kind: "attemptStarted", attempt: 3 },
+        { kind: "attemptSucceeded", attempt: 3 },
+      ]);
+    });
+  });
+
   it("gives a step up when every attempt fails, with the last attempt's failure once, from the history", () => {
     expectEvents("gives-up", [
       runStartedWithNumbers,
