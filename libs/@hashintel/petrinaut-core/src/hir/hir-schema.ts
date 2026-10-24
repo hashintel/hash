@@ -16,15 +16,18 @@ import { HIR_MATH_FNS, HIR_STRING_FNS } from "./hir";
 
 import type {
   HirArrayConcat,
+  HirArrayFilter,
   HirArrayLit,
   HirArrayMap,
   HirArrayReduce,
+  HirArraySlice,
   HirBinary,
   HirBoolLit,
   HirCond,
   HirConstant,
   HirDistribution,
   HirDistributionMap,
+  HirElement,
   HirExpr,
   HirFieldAccess,
   HirFunction,
@@ -33,6 +36,8 @@ import type {
   HirLet,
   HirLocalRef,
   HirMathCall,
+  HirNullLit,
+  HirNumberFormat,
   HirNumberLit,
   HirParamRef,
   HirRangeCall,
@@ -40,6 +45,7 @@ import type {
   HirScenarioRef,
   HirStringCall,
   HirStringLit,
+  HirTemplateLit,
   HirUnary,
   HirUuidFrom,
   HirUuidGenerate,
@@ -353,6 +359,69 @@ const distributionMapSchema = z
   .meta({ id: "HirDistributionMap" });
 
 /** One schema per `HirExpr` member; the union above is built from this. */
+const nullLitSchema = z
+  .strictObject({ ...nodeBase, kind: z.literal("nullLit") })
+  .meta({ id: "HirNullLit" });
+
+const templateLitSchema = z
+  .strictObject({
+    ...nodeBase,
+    kind: z.literal("templateLit"),
+    quasis: z.array(z.string()),
+    expressions: z.array(hirExprSchema),
+  })
+  .meta({ id: "HirTemplateLit" });
+
+const arraySliceSchema = z
+  .strictObject({
+    ...nodeBase,
+    kind: z.literal("arraySlice"),
+    target: hirExprSchema,
+    start: hirExprSchema.optional(),
+    end: hirExprSchema.optional(),
+  })
+  .meta({ id: "HirArraySlice" });
+
+const arrayFilterSchema = z
+  .strictObject({
+    ...nodeBase,
+    kind: z.literal("arrayFilter"),
+    target: hirExprSchema,
+    param: namedSpanSchema,
+    indexParam: namedSpanSchema.optional(),
+    body: hirExprSchema,
+  })
+  .meta({ id: "HirArrayFilter" });
+
+const numberFormatSchema = z
+  .strictObject({
+    ...nodeBase,
+    kind: z.literal("numberFormat"),
+    target: hirExprSchema,
+    digits: hirExprSchema.optional(),
+  })
+  .meta({ id: "HirNumberFormat" });
+
+const elementAttributeSchema = z
+  .strictObject({
+    name: z.string(),
+    nameSpan: spanSchema,
+    value: hirExprSchema,
+  })
+  .meta({ id: "HirElementAttribute" });
+
+const elementSchema = z
+  .strictObject({
+    ...nodeBase,
+    kind: z.literal("element"),
+    tag: z.string(),
+    tagSpan: spanSchema,
+    attributes: z.array(elementAttributeSchema),
+    key: hirExprSchema.optional(),
+    children: z.array(hirExprSchema),
+  })
+  .meta({ id: "HirElement" });
+
 const hirExprOptions = [
   numberLitSchema,
   boolLitSchema,
@@ -380,6 +449,12 @@ const hirExprOptions = [
   arrayConcatSchema,
   distributionSchema,
   distributionMapSchema,
+  nullLitSchema,
+  templateLitSchema,
+  arraySliceSchema,
+  arrayFilterSchema,
+  numberFormatSchema,
+  elementSchema,
 ] as const;
 
 export const hirSurfaceKindSchema = z
@@ -390,6 +465,7 @@ export const hirSurfaceKindSchema = z
     "metric",
     "scenario-expression",
     "scenario-code",
+    "visualizer",
   ])
   .meta({ id: "HirSurfaceKind" });
 
@@ -459,6 +535,12 @@ type _Lockstep = [
   Equals<z.output<typeof arrayConcatSchema>, HirArrayConcat>,
   Equals<z.output<typeof distributionSchema>, HirDistribution>,
   Equals<z.output<typeof distributionMapSchema>, HirDistributionMap>,
+  Equals<z.output<typeof nullLitSchema>, HirNullLit>,
+  Equals<z.output<typeof templateLitSchema>, HirTemplateLit>,
+  Equals<z.output<typeof arraySliceSchema>, HirArraySlice>,
+  Equals<z.output<typeof arrayFilterSchema>, HirArrayFilter>,
+  Equals<z.output<typeof numberFormatSchema>, HirNumberFormat>,
+  Equals<z.output<typeof elementSchema>, HirElement>,
   Equals<z.output<typeof hirFunctionSchema>, HirFunction>,
   // Every declared kind has a schema in the union above, and nothing more.
   Equals<SchemaKind, HirExpr["kind"]>,

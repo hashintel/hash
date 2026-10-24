@@ -22,7 +22,7 @@
  */
 import ts from "@typescript/typescript6";
 
-import { HIR_MATH_FNS, HIR_STRING_FNS, walkHir } from "./hir";
+import { HIR_FRAGMENT_TAG, HIR_MATH_FNS, HIR_STRING_FNS, walkHir } from "./hir";
 import {
   AMBIENT_INPUT_NAMES,
   detectUserCodeForm,
@@ -34,6 +34,7 @@ import type {
   HirBinaryOp,
   HirDiagnostic,
   HirDistributionKind,
+  HirElementAttribute,
   HirExpr,
   HirFunction,
   HirLetBinding,
@@ -51,6 +52,23 @@ const CONSTRUCTOR_NAMES: Record<DualFormSurfaceKind, string> = {
   lambda: "Lambda",
   kernel: "TransitionKernel",
 };
+
+/** The visualizer module's constructor: `export default Visualization(...)`. */
+const VISUALIZER_CONSTRUCTOR_NAME = "Visualization";
+
+/** Modifiers only TypeScript has; a visualizer is JavaScript. */
+const TYPESCRIPT_MODIFIERS = new Set<ts.SyntaxKind>([
+  ts.SyntaxKind.DeclareKeyword,
+  ts.SyntaxKind.AbstractKeyword,
+  ts.SyntaxKind.ReadonlyKeyword,
+  ts.SyntaxKind.PublicKeyword,
+  ts.SyntaxKind.PrivateKeyword,
+  ts.SyntaxKind.ProtectedKeyword,
+  ts.SyntaxKind.OverrideKeyword,
+]);
+
+const TYPESCRIPT_ONLY_NOTE =
+  " Visualizers are JavaScript with JSX; the editor infers the types.";
 
 /** User-facing surface names for bare-body diagnostics. */
 const SURFACE_LABELS: Record<DualFormSurfaceKind, string> = {
@@ -196,6 +214,42 @@ function childScope(scope: LowerScope): LowerScope {
     scenarioAliases: new Map(scope.scenarioAliases),
     scenarioName: scope.scenarioName,
   };
+}
+
+/**
+ * JSX text as React receives it: lines of only whitespace are dropped,
+ * indentation and trailing whitespace of inner lines are trimmed, and the
+ * remaining lines are joined with single spaces. Returns null when nothing
+ * is left. The algorithm is the one every JSX compiler implements.
+ */
+function cleanJsxText(text: string): string | null {
+  const lines = text.split(/\r\n|\n|\r/u);
+  let lastNonEmptyLine = 0;
+  for (const [index, line] of lines.entries()) {
+    if (/[^ \t]/u.test(line)) {
+      lastNonEmptyLine = index;
+    }
+  }
+  let result = "";
+  for (const [index, rawLine] of lines.entries()) {
+    const isFirst = index === 0;
+    const isLast = index === lines.length - 1;
+    const isLastNonEmpty = index === lastNonEmptyLine;
+    let line = rawLine.replace(/\t/gu, " ");
+    if (!isFirst) {
+      line = line.replace(/^ +/u, "");
+    }
+    if (!isLast) {
+      line = line.replace(/ +$/u, "");
+    }
+    if (line) {
+      if (!isLastNonEmpty) {
+        line += " ";
+      }
+      result += line;
+    }
+  }
+  return result === "" ? null : result;
 }
 
 class Lowering {
@@ -403,9 +457,12 @@ class Lowering {
     // Wrapped bare-body code (metric and scenario surfaces, and the bare-body
     // form of dynamics/lambda/kernel) dispatches in `lowerTypeScriptToHir`
     // and never reaches this method.
-    const constructorName = CONSTRUCTOR_NAMES[
-      this.surface as DualFormSurfaceKind
-    ] as string | undefined;
+    const constructorName =
+      this.surface === "visualizer"
+        ? VISUALIZER_CONSTRUCTOR_NAME
+        : (CONSTRUCTOR_NAMES[this.surface as DualFormSurfaceKind] as
+            | string
+            | undefined);
     if (!constructorName) {
       throw new Error(
         `Surface "${this.surface}" is lowered via its wrapped-body entry point.`,
@@ -423,6 +480,15 @@ class Lowering {
           );
         }
         exportAssignment = statement;
+      } else if (
+        ts.isImportDeclaration(statement) &&
+        this.surface === "visualizer"
+      ) {
+        this.fail(
+          statement,
+          "hir:unsupported-statement",
+          "Imports are not available: a visualizer is a pure function of its tokens and parameters, drawn with JSX elements.",
+        );
       } else if (
         ts.isImportDeclaration(statement) &&
         statement.importClause?.isTypeOnly
@@ -475,6 +541,13 @@ class Lowering {
       );
     }
 
+    if (this.surface === "visualizer" && fnArg.parameters.length > 1) {
+      this.fail(
+        fnArg.parameters[1]!,
+        "hir:too-many-parameters",
+        "A visualizer takes one props argument: `({ tokens, parameters }) => ...`.",
+      );
+    }
     if (fnArg.parameters.length > 2) {
       this.fail(
         fnArg.parameters[2]!,
@@ -913,6 +986,31 @@ class Lowering {
       return this.lowerExpr(node.expression, scope);
     }
 
+    if (this.surface === "visualizer") {
+      if (node.kind === ts.SyntaxKind.NullKeyword) {
+        return this.make(node, { kind: "nullLit" });
+      }
+      if (ts.isTemplateExpression(node)) {
+        return this.make(node, {
+          kind: "templateLit",
+          quasis: [
+            node.head.text,
+            ...node.templateSpans.map((span) => span.literal.text),
+          ],
+          expressions: node.templateSpans.map((span) =>
+            this.lowerExpr(span.expression, scope),
+          ),
+        });
+      }
+      if (
+        ts.isJsxElement(node) ||
+        ts.isJsxSelfClosingElement(node) ||
+        ts.isJsxFragment(node)
+      ) {
+        return this.lowerJsx(node, scope);
+      }
+    }
+
     if (ts.isNumericLiteral(node)) {
       return this.make(node, {
         kind: "numberLit",
@@ -1013,6 +1111,13 @@ class Lowering {
     }
     if (name === "NaN") {
       return this.make(node, { kind: "constant", name: "NaN" });
+    }
+    if (
+      name === "undefined" &&
+      this.surface === "visualizer" &&
+      !scope.locals.has(name)
+    ) {
+      return this.make(node, { kind: "nullLit" });
     }
     const destructuredBase = scope.destructuredFields.get(name);
     if (destructuredBase !== undefined) {
@@ -1276,6 +1381,70 @@ class Lowering {
         });
       }
 
+      if (this.surface === "visualizer") {
+        // <expr>.slice(start?, end?)
+        if (method === "slice") {
+          if (node.arguments.length > 2) {
+            this.fail(
+              node,
+              "hir:slice-arity",
+              "`.slice(...)` takes at most a start and an end.",
+            );
+          }
+          const [start, end] = node.arguments;
+          return this.make(node, {
+            kind: "arraySlice",
+            target: this.lowerExpr(callee.expression, scope),
+            start: start ? this.lowerExpr(start, scope) : undefined,
+            end: end ? this.lowerExpr(end, scope) : undefined,
+          });
+        }
+        // <expr>.filter((element, index?) => boolean)
+        if (method === "filter") {
+          if (node.arguments.length !== 1) {
+            this.fail(
+              node,
+              "hir:filter-callback",
+              "`.filter(...)` expects exactly one callback argument.",
+            );
+          }
+          const callback = node.arguments[0]!;
+          if (
+            !ts.isArrowFunction(callback) &&
+            !ts.isFunctionExpression(callback)
+          ) {
+            this.fail(
+              callback,
+              "hir:filter-callback",
+              "`.filter(...)` expects an inline function, e.g. `.filter((token) => token.x > 0)`.",
+            );
+          }
+          return this.lowerInlineCallbackMap(
+            node,
+            this.lowerExpr(callee.expression, scope),
+            callback,
+            scope,
+            "arrayFilter",
+          );
+        }
+        // <number>.toFixed(digits?)
+        if (method === "toFixed") {
+          if (node.arguments.length > 1) {
+            this.fail(
+              node,
+              "hir:to-fixed-arity",
+              "`.toFixed(...)` takes at most the number of digits.",
+            );
+          }
+          const [digits] = node.arguments;
+          return this.make(node, {
+            kind: "numberFormat",
+            target: this.lowerExpr(callee.expression, scope),
+            digits: digits ? this.lowerExpr(digits, scope) : undefined,
+          });
+        }
+      }
+
       // <expr>.map(...)
       if (method === "map") {
         return this.lowerMapCall(node, callee, scope);
@@ -1323,8 +1492,140 @@ class Lowering {
     this.fail(
       node,
       "hir:unsupported-call",
-      "Only `Math.*`, `Distribution.*`, `.map(...)`, `.reduce(...)` and `.concat(...)` calls are supported.",
+      this.surface === "visualizer"
+        ? "Only `Math.*`, `.map(...)`, `.filter(...)`, `.slice(...)`, `.reduce(...)` and `.toFixed(...)` calls are available in a visualizer; hooks and other functions cannot run here."
+        : "Only `Math.*`, `Distribution.*`, `.map(...)`, `.reduce(...)` and `.concat(...)` calls are supported.",
     );
+  }
+
+  /**
+   * Lowers a JSX element, self-closing element or fragment to an `element`
+   * node. Attribute values follow JSX: a bare attribute is `true`, a string
+   * is a literal, `{...}` is an expression. `key` becomes the element's key.
+   */
+  private lowerJsx(
+    node: ts.JsxElement | ts.JsxSelfClosingElement | ts.JsxFragment,
+    scope: LowerScope,
+  ): HirExpr {
+    if (ts.isJsxFragment(node)) {
+      return this.make(node, {
+        kind: "element",
+        tag: HIR_FRAGMENT_TAG,
+        tagSpan: this.spanOf(node.openingFragment),
+        attributes: [],
+        key: undefined,
+        children: this.lowerJsxChildren(node.children, scope),
+      });
+    }
+    const opening = ts.isJsxElement(node) ? node.openingElement : node;
+    const { tagName } = opening;
+    if (!ts.isIdentifier(tagName)) {
+      this.fail(
+        tagName,
+        "hir:unknown-element",
+        "Only plain element names like `svg` or `circle` can be drawn.",
+      );
+    }
+    const tag = tagName.text;
+    if (/^[A-Z]/u.test(tag)) {
+      this.fail(
+        tagName,
+        "hir:unknown-element",
+        `\`<${tag}>\` is a component; a visualizer draws elements such as \`<svg>\`, \`<g>\` and \`<circle>\` only.`,
+      );
+    }
+
+    const attributes: HirElementAttribute[] = [];
+    let key: HirExpr | undefined;
+    for (const property of opening.attributes.properties) {
+      if (ts.isJsxSpreadAttribute(property)) {
+        this.fail(
+          property,
+          "hir:spread",
+          "Spread attributes are not supported — list attributes explicitly.",
+        );
+      }
+      if (!ts.isIdentifier(property.name)) {
+        this.fail(
+          property.name,
+          "hir:unknown-element-attribute",
+          "Namespaced attributes such as `xlink:href` are not available.",
+        );
+      }
+      const name = property.name.text;
+      const nameSpan = this.spanOf(property.name);
+      let value: HirExpr;
+      const { initializer } = property;
+      if (initializer === undefined) {
+        value = this.make(property, { kind: "boolLit", value: true });
+      } else if (ts.isStringLiteralLike(initializer)) {
+        value = this.make(initializer, {
+          kind: "stringLit",
+          value: initializer.text,
+        });
+      } else if (ts.isJsxExpression(initializer)) {
+        if (initializer.dotDotDotToken || !initializer.expression) {
+          this.fail(
+            initializer,
+            "hir:element-attribute-value",
+            `\`${name}\` needs a value, e.g. \`${name}={value}\`.`,
+          );
+        }
+        value = this.lowerExpr(initializer.expression, scope);
+      } else {
+        value = this.lowerJsx(initializer, scope);
+      }
+      if (name === "key") {
+        if (key) {
+          this.fail(property, "hir:duplicate-key", "Duplicate `key`.");
+        }
+        key = value;
+      } else {
+        attributes.push({ name, nameSpan, value });
+      }
+    }
+
+    return this.make(node, {
+      kind: "element",
+      tag,
+      tagSpan: this.spanOf(tagName),
+      attributes,
+      key,
+      children: ts.isJsxElement(node)
+        ? this.lowerJsxChildren(node.children, scope)
+        : [],
+    });
+  }
+
+  /** Lowers JSX children: text (whitespace-cleaned as JSX does), `{...}`
+   * expressions and nested elements. `{/* comment *\/}` yields nothing. */
+  private lowerJsxChildren(
+    children: ts.NodeArray<ts.JsxChild>,
+    scope: LowerScope,
+  ): HirExpr[] {
+    const lowered: HirExpr[] = [];
+    for (const child of children) {
+      if (ts.isJsxText(child)) {
+        const text = cleanJsxText(child.text);
+        if (text !== null) {
+          lowered.push(this.make(child, { kind: "stringLit", value: text }));
+        }
+      } else if (ts.isJsxExpression(child)) {
+        if (child.dotDotDotToken) {
+          this.fail(
+            child,
+            "hir:spread",
+            "Spread children are not supported — list children explicitly.",
+          );
+        }
+        if (child.expression) {
+          lowered.push(this.lowerExpr(child.expression, scope));
+        }
+      } else {
+        lowered.push(this.lowerJsx(child, scope));
+      }
+    }
+    return lowered;
   }
 
   /**
@@ -1496,12 +1797,14 @@ class Lowering {
   }
 
   /** Lowers an inline `(element, index?) => body` callback into an
-   * `arrayMap` over `target` (shared by `.map(...)` and `Array.from`). */
+   * `arrayMap` (or, for `.filter(...)`, an `arrayFilter`) over `target`,
+   * shared by `.map(...)`, `.filter(...)` and `Array.from`. */
   private lowerInlineCallbackMap(
     node: ts.CallExpression,
     target: HirExpr,
     callback: ts.ArrowFunction | ts.FunctionExpression,
     scope: LowerScope,
+    kind: "arrayMap" | "arrayFilter" = "arrayMap",
   ): HirExpr {
     if (callback.parameters.length > 2) {
       this.fail(
@@ -1572,7 +1875,7 @@ class Lowering {
       : this.lowerExpr(callback.body, bodyScope);
 
     return this.make(node, {
-      kind: "arrayMap",
+      kind,
       target,
       param,
       indexParam,
@@ -1822,6 +2125,119 @@ function parseErrorDiagnostics(
 }
 
 /**
+ * Fails on the first TypeScript-only construct in a visualizer: type
+ * annotations and assertions, declarations, type arguments and modifiers.
+ * The lowering has no node for any of them, so this is a friendlier message
+ * ahead of "unsupported syntax", and it also catches the annotations the
+ * lowering would otherwise look through.
+ */
+function rejectTypeScriptSyntax(
+  sourceFile: ts.SourceFile,
+  lowering: Lowering,
+): void {
+  const visit = (node: ts.Node): void => {
+    if (
+      node.kind >= ts.SyntaxKind.FirstTypeNode &&
+      node.kind <= ts.SyntaxKind.LastTypeNode
+    ) {
+      lowering.fail(
+        node,
+        "hir:typescript-syntax",
+        `Type annotations are not allowed.${TYPESCRIPT_ONLY_NOTE}`,
+      );
+    }
+    if (
+      ts.isAsExpression(node) ||
+      ts.isSatisfiesExpression(node) ||
+      ts.isNonNullExpression(node) ||
+      ts.isTypeAssertionExpression(node)
+    ) {
+      lowering.fail(
+        node,
+        "hir:typescript-syntax",
+        `Type assertions are not allowed.${TYPESCRIPT_ONLY_NOTE}`,
+      );
+    }
+    if (
+      ts.isTypeAliasDeclaration(node) ||
+      ts.isInterfaceDeclaration(node) ||
+      ts.isEnumDeclaration(node) ||
+      ts.isModuleDeclaration(node)
+    ) {
+      lowering.fail(
+        node,
+        "hir:typescript-syntax",
+        `TypeScript declarations are not allowed.${TYPESCRIPT_ONLY_NOTE}`,
+      );
+    }
+    if (
+      (ts.isFunctionLike(node) && node.typeParameters !== undefined) ||
+      ((ts.isCallExpression(node) || ts.isNewExpression(node)) &&
+        node.typeArguments !== undefined)
+    ) {
+      lowering.fail(
+        node,
+        "hir:typescript-syntax",
+        `Type parameters are not allowed.${TYPESCRIPT_ONLY_NOTE}`,
+      );
+    }
+    if (
+      (ts.isParameter(node) && node.questionToken !== undefined) ||
+      (ts.isVariableDeclaration(node) && node.exclamationToken !== undefined)
+    ) {
+      lowering.fail(
+        node,
+        "hir:typescript-syntax",
+        `This marker is TypeScript syntax.${TYPESCRIPT_ONLY_NOTE}`,
+      );
+    }
+    if (ts.canHaveModifiers(node)) {
+      const modifier = (ts.getModifiers(node) ?? []).find((candidate) =>
+        TYPESCRIPT_MODIFIERS.has(candidate.kind),
+      );
+      if (modifier) {
+        lowering.fail(
+          modifier,
+          "hir:typescript-syntax",
+          `\`${modifier.getText(sourceFile)}\` is TypeScript syntax.${TYPESCRIPT_ONLY_NOTE}`,
+        );
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+}
+
+/**
+ * Lowers a visualizer module: JavaScript with JSX, so the source is parsed
+ * as TSX (for the JSX grammar) and every TypeScript-only construct is
+ * rejected before lowering.
+ */
+function lowerVisualizerToHir(code: string): LowerTypeScriptResult {
+  const sourceFile = ts.createSourceFile(
+    "visualizer.jsx",
+    code,
+    ts.ScriptTarget.ES2020,
+    /* setParentNodes */ true,
+    ts.ScriptKind.TSX,
+  );
+  const parseErrors = parseErrorDiagnostics(sourceFile);
+  if (parseErrors) {
+    return { ok: false, diagnostics: parseErrors };
+  }
+  try {
+    const lowering = new Lowering(sourceFile, "visualizer");
+    rejectTypeScriptSyntax(sourceFile, lowering);
+    return { ok: true, fn: lowering.lowerModule(), diagnostics: [] };
+  } catch (error) {
+    if (error instanceof LowerError) {
+      return { ok: false, diagnostics: [error.diagnostic] };
+    }
+    throw error;
+  }
+}
+
+/**
  * Lowers a wrapped bare-body surface (metric or scenario). The body is
  * wrapped in `prefix`/`suffix` for parsing; all spans in the result
  * (including diagnostics) are shifted back so they are relative to the raw
@@ -1911,6 +2327,9 @@ export function lowerTypeScriptToHir(
       wrapped.suffix,
       wrapped.lower,
     );
+  }
+  if (surface === "visualizer") {
+    return lowerVisualizerToHir(code);
   }
 
   const dualFormSurface = surface as DualFormSurfaceKind;
