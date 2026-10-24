@@ -394,11 +394,9 @@ test("Brunch's Voice starts from its composer in the open panel, and closes and 
     expect(fetch).toHaveBeenCalledWith("/api/voice/config", expect.anything()),
   );
 
-  // The empty-net prompt offers text only; Voice starts inside the panel.
   await screen.findByRole("textbox", {
     name: "Describe the process you want to create",
   });
-  expect(screen.queryByRole("button", { name: "Start voice mode" })).toBeNull();
   await startVoiceInPanel();
   expect(await screen.findByLabelText("Voice mode consent")).toBeTruthy();
 
@@ -415,6 +413,32 @@ test("Brunch's Voice starts from its composer in the open panel, and closes and 
   await act(async () =>
     fireEvent.click(screen.getByRole("button", { name: "Show AI assistant" })),
   );
+  expect(
+    document
+      .querySelector('aside[aria-label="AI assistant"]')
+      ?.hasAttribute("inert"),
+  ).toBe(false);
+  expect(send).not.toHaveBeenCalled();
+});
+
+test("Brunch's Voice starts from the empty-net prompt, in the panel it opens", async () => {
+  stubBrowser({ voice: true });
+  const { id: netId } = startEmptyNetInStorage(localStorage);
+  localStorage.setItem(assistantSelectionStorageKey, "brunch");
+  // Realtime asks for consent before it starts a session: no audio, no network.
+  localStorage.setItem("petrinaut-website:realtime-enabled", "true");
+  const send = refusingFlueClient();
+  render(<Shell initialNetId={netId} />);
+
+  // The prompt offers Voice once the server's Voice check answers.
+  const startVoice = await screen.findByRole(
+    "button",
+    { name: "Start voice mode" },
+    { timeout: 5_000 },
+  );
+  await act(async () => fireEvent.click(startVoice));
+
+  expect(await screen.findByLabelText("Voice mode consent")).toBeTruthy();
   expect(
     document
       .querySelector('aside[aria-label="AI assistant"]')
