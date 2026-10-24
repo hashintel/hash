@@ -33,6 +33,7 @@ import {
   formatTypeScriptExpression,
   lowerConstraint,
   lowerScenarioToHir,
+  lowerVisualizerToHir,
 } from "../../hir";
 import { getHirDiagnosticsForItem } from "../lib/check-hir";
 import { checkSDCPN } from "../lib/checker";
@@ -775,6 +776,15 @@ workerRuntime.onMessage((data) => {
       case "sdcpn/lowerConstraint": {
         const { id } = data;
         respond(id, lowerConstraint(data.params.source, data.params.context));
+        break;
+      }
+
+      case "sdcpn/lowerVisualizer": {
+        const { id } = data;
+        respond(
+          id,
+          lowerVisualizerToHir(data.params.code, data.params.context),
+        );
         break;
       }
 

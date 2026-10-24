@@ -114,7 +114,7 @@ describe("formatDiagnosticsForAi", () => {
         ],
       ],
       [
-        "inmemory://sdcpn/places/place__ward/visualizer.tsx",
+        "inmemory://sdcpn/places/place__ward/visualizer.jsx",
         [
           diagnostic("Property 'strokeWidht' does not exist.", {
             code: 2322,

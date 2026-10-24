@@ -7,6 +7,7 @@ import {
   buildDynamicsContext,
   buildKernelContext,
   buildLambdaContext,
+  buildVisualizerContext,
 } from "../../hir";
 import { getHirDiagnosticsForItem } from "./check-hir";
 import { getItemFilePath } from "./file-paths";
@@ -163,8 +164,8 @@ export function checkSDCPN(
     }
   }
 
-  // Visualizers are checked in their own JSX program. No HIR lint: a
-  // visualizer is a module returning JSX, not a function body the HIR lowers.
+  // Visualizers are checked in their own JSX program, then lowered to the
+  // view HIR, which rejects what the renderer cannot draw.
   for (const place of extensions.colors ? sdcpn.places : []) {
     if (place.visualizerCode === undefined) {
       continue;
@@ -175,7 +176,7 @@ export function checkSDCPN(
     const visualizerDiagnostics = collectItemDiagnostics(
       servers.visualizer,
       filePath,
-      null,
+      buildVisualizerContext(sdcpn, place, extensions),
     );
 
     if (visualizerDiagnostics.length > 0) {

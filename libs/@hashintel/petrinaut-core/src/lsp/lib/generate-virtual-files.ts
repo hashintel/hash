@@ -532,7 +532,11 @@ export function generateVirtualFiles(
  * Generates the virtual files of the visualizer language service: the
  * parameters and colour types the SDCPN service also has, and for every
  * root-net place with a visualizer a `defs.d.ts` declaring `Visualization`
- * over the place's token type and a `code.tsx` holding the user's module.
+ * over the place's token type and a `code.jsx` holding the user's module.
+ *
+ * The user file is JavaScript: TypeScript checks it with `checkJs`, so the
+ * types are inferred and any annotation is an error, and the injected
+ * prefix types `Visualization` through JSDoc for the same reason.
  *
  * Visualizers belong to the colours extension; with it off there is nothing
  * to check. An uncoloured place carries black tokens, so its `tokens` are
@@ -582,10 +586,17 @@ export function generateVisualizerVirtualFiles(
       ].join("\n"),
     });
 
+    // The defs module is imported without its extension: a JSDoc import
+    // type resolves it like a module specifier. `export {}` keeps an empty
+    // or export-less file a module, so its `Visualization` binding never
+    // collides with another place's in the script scope.
+    const defsModule = defsPath.replace(/\.d\.ts$/u, "");
     files.set(getItemFilePath("place-visualizer-code", { placeId: place.id }), {
       prefix: [
-        `import type { Visualization } from "${defsPath}";`,
-        `declare const Visualization: Visualization;`,
+        `export {};`,
+        `const Visualization = /** @type {import("${defsModule}").Visualization} */ (`,
+        `  /** @type {unknown} */ (undefined)`,
+        `);`,
         ``,
       ].join("\n"),
       content: place.visualizerCode,

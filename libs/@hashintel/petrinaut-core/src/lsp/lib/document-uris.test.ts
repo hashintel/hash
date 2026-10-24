@@ -30,7 +30,7 @@ describe("getDocumentUri", () => {
 
   it("builds a place-visualizer URI", () => {
     expect(getDocumentUri("place-visualizer", "p1")).toBe(
-      "inmemory://sdcpn/places/p1/visualizer.tsx",
+      "inmemory://sdcpn/places/p1/visualizer.jsx",
     );
   });
 });
@@ -56,7 +56,7 @@ describe("parseDocumentUri", () => {
 
   it("parses a place-visualizer URI", () => {
     expect(
-      parseDocumentUri("inmemory://sdcpn/places/p1/visualizer.tsx"),
+      parseDocumentUri("inmemory://sdcpn/places/p1/visualizer.jsx"),
     ).toEqual({ itemType: "place-visualizer", itemId: "p1" });
   });
 
@@ -89,8 +89,8 @@ describe("uriToFilePath", () => {
   });
 
   it("converts a place-visualizer URI to a file path", () => {
-    expect(uriToFilePath("inmemory://sdcpn/places/p1/visualizer.tsx")).toBe(
-      "/places/p1/visualizer/code.tsx",
+    expect(uriToFilePath("inmemory://sdcpn/places/p1/visualizer.jsx")).toBe(
+      "/places/p1/visualizer/code.jsx",
     );
   });
 
@@ -119,8 +119,8 @@ describe("filePathToUri", () => {
   });
 
   it("converts a place-visualizer file path to a URI", () => {
-    expect(filePathToUri("/places/p1/visualizer/code.tsx")).toBe(
-      "inmemory://sdcpn/places/p1/visualizer.tsx",
+    expect(filePathToUri("/places/p1/visualizer/code.jsx")).toBe(
+      "inmemory://sdcpn/places/p1/visualizer.jsx",
     );
   });
 

@@ -84,7 +84,7 @@ export const getItemFilePath = <T extends SDCPNFileType>(
 
     case "place-visualizer-code": {
       const { placeId } = params as FilePathParams["place-visualizer-code"];
-      return `/places/${placeId}/visualizer/code.tsx`;
+      return `/places/${placeId}/visualizer/code.jsx`;
     }
 
     case "differential-equation-defs": {
@@ -189,7 +189,7 @@ export const getItemFilePath = <T extends SDCPNFileType>(
 export const VISUALIZER_JSX_PACKAGE = "petrinaut-jsx";
 
 const PLACE_VISUALIZER_CODE_PATH_RE =
-  /^\/places\/([^/]+)\/visualizer\/code\.tsx$/;
+  /^\/places\/([^/]+)\/visualizer\/code\.jsx$/;
 
 /**
  * Inverse of `getItemFilePath("place-visualizer-code", ...)`: the place a
