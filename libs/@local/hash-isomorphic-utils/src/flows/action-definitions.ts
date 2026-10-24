@@ -1101,6 +1101,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   createEntity: {
     actionDefinitionId: "createEntity",
+    activitySettings: aiActivitySettings,
     name: "Create Entity",
     description:
       "Create an entity of one or more types in the web the flow runs in, with values for some of its properties.",
@@ -1147,6 +1148,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   updateEntity: {
     actionDefinitionId: "updateEntity",
+    activitySettings: aiActivitySettings,
     name: "Update Entity",
     description:
       "Set or remove some of the properties of an entity in the web the flow runs in, leaving its other properties as they are.",
