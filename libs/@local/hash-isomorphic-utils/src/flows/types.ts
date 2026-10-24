@@ -1038,20 +1038,13 @@ export type StepAttemptStartedSignal = {
 };
 
 /**
- * Sent by a step's activity when one of its attempts throws. Whether Temporal retries it follows from the activity's
- * retry policy, which the run's history records when the activity is scheduled, and from whether the error is
- * retryable.
+ * Sent by a step's activity when one of its attempts throws and Temporal retries it. The last attempt's failure is in
+ * the run's history, so it isn't sent.
  */
 export type StepAttemptFailedSignal = {
   stepRunId: string;
   attempt: number;
-  error: {
-    message: string;
-    /** The failure's type, which a retry policy can list as non-retryable: an `ApplicationFailure`'s, or the error's name. */
-    type?: string;
-  };
-  /** Whether the error itself says not to retry (a non-retryable `ApplicationFailure`). */
-  nonRetryable: boolean;
+  error: { message: string };
 };
 
 type ExternalInputRequestType = "human-input" | "get-urls-html-content";

@@ -39,9 +39,30 @@ const signalRun = async <Payload>(
 };
 
 /**
+ * Whether Temporal retries an attempt that threw `error`, from the activity's retry policy: unless the error is
+ * non-retryable, or its type is one the policy lists, while the policy allows another attempt (0 is unlimited).
+ */
+const isRetried = (info: Info, error: unknown) => {
+  const { attempt, retryPolicy } = info;
+  const errorType =
+    error instanceof ApplicationFailure
+      ? error.type
+      : error instanceof Error
+        ? error.name
+        : undefined;
+
+  return (
+    !(error instanceof ApplicationFailure && error.nonRetryable) &&
+    !(errorType && retryPolicy?.nonRetryableErrorTypes?.includes(errorType)) &&
+    (!retryPolicy?.maximumAttempts || attempt < retryPolicy.maximumAttempts)
+  );
+};
+
+/**
  * Wraps each of a worker's flow action activities so that it signals its run's workflow when an attempt starts, and
- * when an attempt throws. Temporal records only an activity's last attempt in its run's history, so the signals
- * record the others, for the run's events. An attempt's error is rethrown, so retries are unchanged.
+ * when an attempt throws and Temporal retries it. Temporal records only an activity's last attempt in its run's
+ * history, so the signals record the others, for the run's events. The last attempt's failure is in the history, so
+ * it isn't signalled. An attempt's error is rethrown, so retries are unchanged.
  */
 export const signalStepAttempts = <
   Activities extends Record<string, (...args: never[]) => Promise<unknown>>,
@@ -64,20 +85,11 @@ export const signalStepAttempts = <
           return await activity(...args);
         } catch (error) {
           /* A cancelled attempt is in the history as a cancellation. */
-          if (!(error instanceof CancelledFailure)) {
+          if (!(error instanceof CancelledFailure) && isRetried(info, error)) {
             await signalRun(info, stepAttemptFailedSignal, {
               stepRunId,
               attempt: info.attempt,
-              error: {
-                message: (error as Error).message,
-                ...(error instanceof ApplicationFailure && error.type
-                  ? { type: error.type }
-                  : error instanceof Error
-                    ? { type: error.name }
-                    : {}),
-              },
-              nonRetryable:
-                error instanceof ApplicationFailure && error.nonRetryable,
+              error: { message: (error as Error).message },
             });
           }
 

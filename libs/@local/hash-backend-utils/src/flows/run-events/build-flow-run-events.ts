@@ -99,9 +99,6 @@ export const buildFlowRunEvents = (
       failedAttempts: Set<number>;
       /** Whether the history has recorded the activity's last attempt (`ACTIVITY_TASK_STARTED`). */
       lastAttemptRecorded: boolean;
-      /** The activity's retry policy, as scheduled: 0 attempts is unlimited. */
-      maximumAttempts: number;
-      nonRetryableErrorTypes: string[];
     }
   >();
   /** The activity most recently scheduled with each activity id: a step run's id, for a step's activity. */
@@ -233,9 +230,6 @@ export const buildFlowRunEvents = (
           signalledStarts: new Set(),
           failedAttempts: new Set(),
           lastAttemptRecorded: false,
-          maximumAttempts: attributes.retryPolicy?.maximumAttempts ?? 0,
-          nonRetryableErrorTypes:
-            attributes.retryPolicy?.nonRetryableErrorTypes ?? [],
         });
         scheduledEventIdsByActivityId.set(activityId, eventId);
 
@@ -483,7 +477,7 @@ export const buildFlowRunEvents = (
           }
 
           case "stepAttemptFailed": {
-            const { stepRunId, attempt, error, nonRetryable } =
+            const { stepRunId, attempt, error } =
               parseFirstPayload<StepAttemptFailedSignal>(
                 attributes?.input,
                 "step attempt failure",
@@ -498,18 +492,7 @@ export const buildFlowRunEvents = (
               break;
             }
 
-            const { maximumAttempts, nonRetryableErrorTypes } =
-              signalled.activity;
-            const retrying =
-              !nonRetryable &&
-              !(error.type && nonRetryableErrorTypes.includes(error.type)) &&
-              (maximumAttempts === 0 || attempt < maximumAttempts);
-
-            /* An attempt Temporal doesn't retry is the last, whose failure the history records. */
-            if (!retrying) {
-              break;
-            }
-
+            /* Only a failure Temporal retries is signalled: the last attempt's is in the history. */
             signalled.activity.failedAttempts.add(attempt);
             addEvent({
               kind: "attemptFailed",

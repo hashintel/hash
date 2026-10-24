@@ -41,9 +41,9 @@
     {
       "stepId": "research",
       "stepType": "researchEntitiesAction",
-      "startedAt": "2026-10-23T11:15:49.650Z",
-      "scheduledAt": "2026-10-23T11:15:38.638Z",
-      "closedAt": "2026-10-23T11:15:49.653Z",
+      "startedAt": "2026-10-24T10:33:15.097Z",
+      "scheduledAt": "2026-10-24T10:33:04.073Z",
+      "closedAt": "2026-10-24T10:33:15.213Z",
       "inputs": [
         {
           "inputs": [
@@ -87,5 +87,5 @@
       ]
     }
   ],
-  "startedAt": "2026-10-23T11:15:38.592Z"
+  "startedAt": "2026-10-24T10:33:03.983Z"
 }
