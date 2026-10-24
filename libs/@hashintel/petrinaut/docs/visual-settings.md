@@ -190,6 +190,19 @@ and how many of them run.
 
 Without plugins the section says so.
 
+### Document engine in the demo website
+
+The editable demo has an **Engine** selector at the right of the top bar. It
+starts with **Rust (experimental)**. Choose **TypeScript** to compare the two
+versions on the same saved net. The website remembers your choice in this
+browser.
+
+Switching keeps your net and its title, but resets undo history and any running
+simulation. Simulation itself still uses TypeScript with either choice. Read-only
+examples keep their existing engine; open an editable copy to use the selector.
+
+If Rust fails to load, use **Retry** or choose **TypeScript** on the loading page.
+
 ## Labs
 
 Hosts can place application-specific controls after Petrinaut's built-in Labs

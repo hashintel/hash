@@ -32,7 +32,7 @@ references, including component-port membership, prevents duplicate arcs and
 preserves existing transition code when it remains applicable. Optional fields
 explicitly set to `undefined` in TypeScript are sent as field removals.
 
-The opt-in instance now routes 15 of the 41 public mutation methods to Rust,
+The Rust instance now routes 15 of the 41 public mutation methods to Rust,
 including the four position methods from the initial draft. This is a count of
 API methods, not a percentage of the full core codebase. The other 26 mutations
 and all composite commands still use the TypeScript compatibility path.
@@ -96,6 +96,27 @@ Node callers using generated bindings directly supply bytes through the `wasm`
 option, because Node's fetch does not load a local file URL. Hosts can also pass a
 URL string when serving their own asset. Initialization is shared within one module instance;
 the first successful initialization chooses the module for later instances.
+
+## Demo website
+
+The editable `/local/$netId` demo defaults to Rust. The required **Document
+engine** website plugin adds an **Engine** selector to the top bar. It requests
+an engine change through a host context; `LocalStorageDemoApp` owns instance
+creation, loading errors and disposal. Plugins mount after the instance exists,
+so the factory remains outside the plugin runtime.
+
+Both engines use the same `DocumentRepository` and `petrinaut-sdcpn` local-storage
+records. The engine preference is stored separately. Switching waits for pending
+writes, loads the latest document into a new instance and remounts the editor.
+Undo history and simulation state reset; the net, title and stored revisions stay
+in the repository. External revisions supersede pending loads, and cancelled
+loads dispose their instances when they complete. A failed Rust load exposes a
+retry and the TypeScript choice instead of silently falling back.
+
+The read-only example pages and AI evaluation demo retain their existing handles.
+Open an editable copy of an example to compare document engines. Simulation and
+user-authored code still run through the TypeScript implementation with either
+engine selected.
 
 ## Binding choice
 
