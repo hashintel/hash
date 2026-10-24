@@ -111,7 +111,7 @@ impl UpdatePlace {
     }
 }
 
-fn retain_arcs(net: &mut Value, keep: impl Fn(&Value) -> bool) {
+pub(crate) fn retain_arcs(net: &mut Value, keep: impl Fn(&Value) -> bool) {
     if let Some(transitions) = net.get_mut("transitions").and_then(Value::as_array_mut) {
         for transition in transitions {
             for direction in ["inputArcs", "outputArcs"] {
@@ -123,7 +123,7 @@ fn retain_arcs(net: &mut Value, keep: impl Fn(&Value) -> bool) {
     }
 }
 
-fn remove_port_arcs(net: &mut Value, subnet_id: &str, place_id: &str) {
+pub(crate) fn remove_port_arcs(net: &mut Value, subnet_id: &str, place_id: &str) {
     let instances: Vec<Value> = items(net, "componentInstances")
         .iter()
         .filter(|instance| instance["subnetId"] == subnet_id)

@@ -41,7 +41,7 @@ impl ArcEndpoint {
         }
     }
 
-    fn from_arc(arc: &Value) -> Option<Self> {
+    pub(crate) fn from_arc(arc: &Value) -> Option<Self> {
         arc.get("endpoint").map_or_else(
             || {
                 arc["placeId"].as_str().map(|id| Self::Place {

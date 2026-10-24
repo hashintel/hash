@@ -37,7 +37,68 @@ export const createRustInstance = (
   return {
     ...instance,
     mutations: withWrittenIdsInErrors({
-      ...instance.mutations,
+      addSubnet(input) {
+        handle.execute({
+          type: "addSubnet",
+          input: { entity: mutationActionInputSchemas.addSubnet.parse(input) },
+        });
+      },
+      updateSubnet(input) {
+        const parsed = mutationActionInputSchemas.updateSubnet.parse(input);
+        handle.execute({
+          type: "updateSubnet",
+          input: {
+            target: { id: parsed.subnetId },
+            ...nativeUpdate({ update: parsed.update }),
+          },
+        });
+      },
+      removeSubnet(input) {
+        const parsed = mutationActionInputSchemas.removeSubnet.parse(input);
+        handle.execute({
+          type: "removeSubnet",
+          input: { id: parsed.subnetId },
+        });
+      },
+      addComponentInstance(input) {
+        const { targetSubnetId, ...entity } =
+          mutationActionInputSchemas.addComponentInstance.parse(input);
+        handle.execute({
+          type: "addComponentInstance",
+          input: { targetSubnetId, entity },
+        });
+      },
+      updateComponentInstance(input) {
+        const parsed =
+          mutationActionInputSchemas.updateComponentInstance.parse(input);
+        handle.execute({
+          type: "updateComponentInstance",
+          input: {
+            target: {
+              targetSubnetId: parsed.targetSubnetId,
+              id: parsed.instanceId,
+            },
+            ...nativeUpdate({ update: parsed.update }),
+          },
+        });
+      },
+      removeComponentInstance(input) {
+        const parsed =
+          mutationActionInputSchemas.removeComponentInstance.parse(input);
+        handle.execute({
+          type: "removeComponentInstance",
+          input: {
+            targetSubnetId: parsed.targetSubnetId,
+            id: parsed.instanceId,
+          },
+        });
+      },
+      deleteItemsByIds(input) {
+        handle.execute({
+          type: "deleteItemsByIds",
+          input: mutationActionInputSchemas.deleteItemsByIds.parse(input),
+        });
+      },
       addType(input) {
         const { targetSubnetId, ...entity } =
           mutationActionInputSchemas.addType.parse(input);

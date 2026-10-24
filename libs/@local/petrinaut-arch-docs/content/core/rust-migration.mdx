@@ -34,14 +34,17 @@ references, including component-port membership, prevents duplicate arcs and
 preserves existing transition code when it remains applicable. Optional fields
 explicitly set to `undefined` in TypeScript are sent as field removals.
 
-The Rust instance now routes 34 of the 41 public mutation methods to Rust,
+The Rust instance now routes all 41 public mutation methods to Rust,
 including the four position methods from the initial draft. This is a count of
-API methods, not a percentage of the full core codebase. The other 7 mutations
-and all composite commands still use the TypeScript compatibility path.
+API methods, not a percentage of the full core codebase. Composite commands still use the TypeScript compatibility path.
 
 Token-type element edits migrate stored scenario rows in Rust, including column
 reordering, default cells and JavaScript-compatible numeric, string and UUID conversions.
 Definition-edit parity tests exercise all 32 extension policies and undo/redo.
+
+Subnet removal deletes referencing component instances and their arcs across
+all nets. Bulk deletion resolves synthetic arc IDs and cascades removed subnet
+ports in one transaction. Native component edits validate subnet and parameter references.
 
 ## What runs where
 
@@ -52,14 +55,14 @@ Definition-edit parity tests exercise all 32 extension policies and undo/redo.
 | Single and batched node positions                    | Rust commands, with TypeScript input validation                                                         | Generate command declarations from Rust.                                                         |
 | Place creation, updates and deletion                 | Rust validates place fields, checks dynamics references and cascades arc deletion.                      | Generate shared entity schemas and migrate the remaining entity families.                        |
 | Transition and arc editing                           | Rust validates transition fields and arc endpoints, updates references and refreshes code availability. | Share schemas with TypeScript and add broader generated parity cases.                            |
-| Definition editing                                   | Rust commands for types/elements, equations, parameters, scenarios and metrics                          | Port subnet/component editing and bulk deletion.                                                 |
+| Definition editing                                   | Rust commands for types/elements, equations, parameters, scenarios and metrics                          | Subnet/component edits and bulk deletion also run in Rust.                                       |
 | Clipboard and auto-layout commands                   | TypeScript; each result commits as one Rust transaction                                                 | Keep host-side clipboard access and ELK integration in TypeScript.                               |
 | React stores, notifications and lifecycle            | TypeScript adapter                                                                                      | Keep these adapters in TypeScript.                                                               |
 | Simulation, HIR compiler, LSP, optimization, WebGPU  | Existing TypeScript implementations                                                                     | Evaluate separately after document semantics match.                                              |
 | Collaborative or remote handles                      | Existing host handles                                                                                   | Define the synchronization protocol and authoritative owner before adopting Rust in these hosts. |
 
 This is a working document-engine migration draft. It is not a complete port of
-`@hashintel/petrinaut-core`: subnet/component editing, bulk deletion and composite commands still live
+`@hashintel/petrinaut-core`: composite commands and simulation still live
 in TypeScript. Native Rust callers can create an instance from authoring JSON, read its typed
 `Sdcpn` model, commit validated document replacements, move nodes, edit places,
 transitions, arcs, token types, equations, parameters, scenarios and metrics, and navigate history. Initialization normalizes identifiers

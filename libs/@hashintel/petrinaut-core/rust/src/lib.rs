@@ -12,6 +12,8 @@ mod kernel;
 pub mod model;
 mod patch;
 mod places;
+mod selection;
+mod subnets;
 #[cfg(test)]
 mod tests;
 mod transitions;
@@ -34,6 +36,7 @@ pub use crate::{
     extensions::Extensions,
     patch::Patch,
     places::{AddPlace, RemovePlace, UpdatePlace},
+    selection::{DeleteItems, ItemKind, SelectedItem},
     transitions::{AddTransition, RemoveTransition, UpdateTransition},
     type_elements::{EditTypeElements, TypeElementEdit},
 };
@@ -200,6 +203,10 @@ impl PetrinautInstance {
     ///
     /// # Errors
     /// Returns an error when the command cannot be applied to this document.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "The exhaustive dispatcher keeps each public command mapped to its implementation"
+    )]
     pub fn execute(&mut self, command: &Command, timestamp: String) -> Result<Vec<Patch>, String> {
         if self.readonly {
             return Ok(Vec::new());
@@ -212,6 +219,28 @@ impl PetrinautInstance {
         }
         let mut next = self.document().clone();
         match command {
+            Command::AddSubnet(input) => {
+                definitions::create(&mut next, "subnets", input, self.extensions)?;
+            }
+            Command::UpdateSubnet(input) => {
+                definitions::update(&mut next, "subnets", input, self.extensions)?;
+            }
+            Command::RemoveSubnet(input) => {
+                subnets::remove_subnet(&mut next, input);
+            }
+            Command::AddComponentInstance(input) => {
+                subnets::create_component(&mut next, input, self.extensions)?;
+            }
+            Command::UpdateComponentInstance(input) => {
+                subnets::update_component(&mut next, input, self.extensions)?;
+            }
+            Command::RemoveComponentInstance(input) => {
+                subnets::remove_component(&mut next, input)?;
+            }
+            Command::DeleteItemsByIds(input) => {
+                input.apply(&mut next, self.extensions)?;
+            }
+
             Command::AddType(input) => {
                 definitions::create(&mut next, "types", input, self.extensions)?;
             }

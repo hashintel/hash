@@ -625,3 +625,28 @@ fn definition_edits_reject_invalid_values_without_losing_redo() {
     }
     assert_eq!(instance.timestamps(), vec!["initial", "add"]);
 }
+
+#[test]
+fn native_bulk_delete_normalizes_arc_ids_and_records_one_edit() {
+    let mut initial = graph();
+    initial["transitions"][0]["inputArcs"] = json!([{"placeId":"p","weight":1,"type":"standard"}]);
+    let mut instance = PetrinautInstance::new(initial, 50, "initial".to_owned(), false)
+        .expect("graph should be valid");
+    let before = instance.document().clone();
+    let transition_id = instance.document()["transitions"][0]["id"]
+        .as_str()
+        .expect("transition should have an id");
+    let edit = command(
+        json!({"type":"deleteItemsByIds","input":{"items":[{"type":"arc","id":format!("$A_place:p___{transition_id}")},{"type":"place","id":"missing"}]}}),
+    );
+    instance
+        .execute(&edit, "delete".to_owned())
+        .expect("bulk deletion should succeed");
+    assert_eq!(
+        instance.document()["transitions"][0]["inputArcs"],
+        json!([])
+    );
+    assert_eq!(instance.current_index(), 1);
+    instance.go_to_index(0).expect("undo should succeed");
+    assert_eq!(instance.document(), &before);
+}

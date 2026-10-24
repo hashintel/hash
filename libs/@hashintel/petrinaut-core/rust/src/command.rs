@@ -4,7 +4,10 @@ use crate::{
     AddArc, AddPlace, AddTransition, ArcTarget, CommitNodePositions, RemovePlace, RemoveTransition,
     UpdateArcPlace, UpdateArcType, UpdateArcWeight, UpdatePlace, UpdateTransition,
     definitions::{CreateEntity, EntityTarget, UpdateEntity},
-    model::{ColorData, EquationData, MetricData, ParameterData, ScenarioData},
+    model::{
+        ColorData, ComponentData, EquationData, MetricData, ParameterData, ScenarioData, SubnetData,
+    },
+    selection::DeleteItems,
     type_elements::EditTypeElements,
 };
 
@@ -17,6 +20,13 @@ use crate::{
     deny_unknown_fields
 )]
 pub enum Command {
+    AddSubnet(CreateEntity<SubnetData>),
+    UpdateSubnet(UpdateEntity),
+    RemoveSubnet(EntityTarget),
+    AddComponentInstance(CreateEntity<ComponentData>),
+    UpdateComponentInstance(UpdateEntity),
+    RemoveComponentInstance(EntityTarget),
+    DeleteItemsByIds(DeleteItems),
     AddType(CreateEntity<ColorData>),
     UpdateType(UpdateEntity),
     RemoveType(EntityTarget),
@@ -49,6 +59,9 @@ pub enum Command {
 
 impl Command {
     pub(crate) fn normalized(&self) -> Result<Self, String> {
+        if let Self::DeleteItemsByIds(input) = self {
+            return Ok(Self::DeleteItemsByIds(input.normalized()?));
+        }
         let mut value = serde_json::to_value(self).map_err(|error| error.to_string())?;
         crate::model::validation::normalize_ids(&mut value)?;
         serde_json::from_value(value).map_err(|error| error.to_string())
