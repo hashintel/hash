@@ -1849,7 +1849,7 @@ export const NetworkGraph = ({
       const target =
         next < current && rect && previous.target
           ? clampPanTarget(
-              previous.target as number[],
+              previous.target,
               2 ** next,
               rect.width,
               rect.height,
@@ -3320,7 +3320,7 @@ export const NetworkGraph = ({
                 rect && zoom !== undefined && raw.target && !zoomingIn
                   ? zoomingOut
                     ? clampPanTarget(
-                        raw.target as number[],
+                        raw.target,
                         2 ** zoom,
                         rect.width,
                         rect.height,
@@ -3328,9 +3328,9 @@ export const NetworkGraph = ({
                         PAN_NODE_MARGIN_PX,
                       )
                     : clampPanTargetBlocking(
-                        raw.target as number[],
+                        raw.target,
                         (previous?.target as number[] | undefined) ??
-                          (raw.target as number[]),
+                          raw.target,
                         2 ** zoom,
                         rect.width,
                         rect.height,

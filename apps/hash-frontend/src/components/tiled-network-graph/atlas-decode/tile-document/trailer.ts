@@ -13,7 +13,7 @@ export interface TileDocumentTrailer {
   readonly icons: readonly (string | null)[];
 }
 
-const readTrailer = Result.fn(function* readTrailer(
+const readTrailer = Result.fn(function* readTrailerFields(
   access: CborDecoder.CborMapAccess,
   delivered: Num.u64,
 ): Result.gen.Return<TileDocumentTrailer, TileError.DecodeError> {

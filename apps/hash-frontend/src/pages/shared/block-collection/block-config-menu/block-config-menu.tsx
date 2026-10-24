@@ -194,6 +194,7 @@ export const BlockConfigMenu: FunctionComponent<BlockConfigMenuProps> = ({
 
   const configProperties = extractConfigPropertySchemas(blockSchema ?? {});
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive: schema keys are plain strings.
   const entityData = blockEntity?.blockChildEntity.properties as
     | JsonObject
     | undefined;

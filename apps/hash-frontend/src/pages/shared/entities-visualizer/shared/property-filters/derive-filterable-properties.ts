@@ -130,7 +130,7 @@ const resolveStringEnumOptions = ({
     ) {
       return null;
     }
-    const candidates = (constraints as { enum: unknown }).enum;
+    const candidates = constraints.enum;
     return Array.isArray(candidates) &&
       candidates.length > 0 &&
       candidates.every(

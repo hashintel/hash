@@ -290,7 +290,7 @@ const maskComboboxRoleFromTagsMachine = (
     currentTarget: maskedInput,
     preventDefault: () => event.preventDefault(),
     stopPropagation: () => event.stopPropagation(),
-  } as React.KeyboardEvent<HTMLInputElement>;
+  };
 };
 
 const flattenListItems = (items: Array<ItemOrGroup<Item>>): Item[] => {
@@ -426,9 +426,7 @@ export const Combobox = <TValue extends string>({
     [items, orphanItems],
   );
 
-  const committedValue = multiple
-    ? ""
-    : ((value as string | null | undefined) ?? "");
+  const committedValue = multiple ? "" : (value ?? "");
   const committedItem = useMemo(
     () => findComboboxItemByValue(effectiveItems, committedValue),
     [effectiveItems, committedValue],
@@ -978,7 +976,7 @@ export const Combobox = <TValue extends string>({
     if (multiple) {
       return (
         <span
-          ref={mergedWrapperRef as React.Ref<HTMLSpanElement>}
+          ref={mergedWrapperRef}
           className={cx(multiClasses.readonly, className)}
           data-testid={testId}
         >

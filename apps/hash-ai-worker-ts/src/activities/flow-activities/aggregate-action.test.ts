@@ -172,7 +172,7 @@ describe("aggregateAction", () => {
       "00000000-0000-4000-8000-000000000001~00000000-0000-4000-8000-000000000011" as EntityId;
     vi.mocked(queryEntities).mockResolvedValueOnce({
       entities: [],
-    } as unknown as QueryEntitiesResponse);
+    });
 
     expect(
       await run({ kind: "EntityId", value: [entityId] }, scoreSum),

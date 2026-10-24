@@ -12,7 +12,6 @@ import { createEntity } from "../../graph/knowledge/primitive/entity";
 import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
 import { enabledIntegrations } from "../enabled-integrations";
 
-import type { WebId } from "@blockprotocol/type-system";
 import type {
   GoogleOAuth2CallbackRequest,
   GoogleOAuth2CallbackResponse,
@@ -125,7 +124,7 @@ export const googleOAuthCallback: RequestHandler<
 
     newGoogleAccountEntity = await createEntity(req.context, authentication, {
       entityTypeIds: [googleEntityTypes.account.entityTypeId],
-      webId: req.user.accountId as WebId,
+      webId: req.user.accountId,
       properties: googleAccountProperties,
     });
   }
