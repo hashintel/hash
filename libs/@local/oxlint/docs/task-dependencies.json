@@ -1,0 +1,43 @@
+{
+  "package": "@local/oxlint",
+  "dependencies": [
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "prepare:oxlint"
+      ]
+    },
+    "lint:oxlint": {
+      "dependsOn": [
+        "build"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "build"
+      ]
+    },
+    "prepare:oxlint": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "test:integration": {
+      "dependsOn": [
+        "build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [
+        "build"
+      ],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
+  }
+}
