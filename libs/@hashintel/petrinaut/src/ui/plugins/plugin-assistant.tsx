@@ -1,13 +1,19 @@
 /**
- * The AI assistant a plugin provides: which running plugin provides it, the
- * panel state its content reads, and the title bar its content fills.
+ * The AI assistant a plugin provides: which running plugin's assistant the
+ * editor shows, the panel state its content reads, and the title bar its
+ * content fills.
  */
 
 import { createContext, type ReactNode, use } from "react";
 import { createPortal } from "react-dom";
 
+import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { PluginBoundary } from "./plugin-boundary";
-import { useRunningPluginsSelector } from "./plugins-provider";
+import {
+  type RunningPlugin,
+  useRunningPlugins,
+  useRunningPluginsSelector,
+} from "./plugins-provider";
 
 /** The assistant panel's state, as its content reads it. */
 export interface AssistantPanel {
@@ -62,14 +68,45 @@ export const AssistantPanelTitle = ({
   );
 };
 
-/** The first running plugin that provides the assistant, or `undefined`. */
-export const usePluginAssistant = () =>
-  useRunningPluginsSelector((running) =>
-    running.find(
-      ({ manifest, contributions }) =>
-        manifest.assistant === true && contributions.assistant !== undefined,
-    ),
+/**
+ * The assistant the editor shows among `assistants`: the one the user chose
+ * while it is there, else the first. A host applies the same rule to the
+ * assistant plugins it passes, less those the user switched off.
+ */
+export const pickAssistant = <
+  Assistant extends { readonly manifest: { readonly id: string } },
+>(
+  assistants: readonly Assistant[],
+  chosenId: string | null,
+): Assistant | undefined =>
+  assistants.find(({ manifest }) => manifest.id === chosenId) ?? assistants[0];
+
+const providesAssistant = ({ manifest, contributions }: RunningPlugin) =>
+  manifest.assistant === true && contributions.assistant !== undefined;
+
+/** The running plugin whose assistant the editor shows, or `undefined`. */
+export const usePluginAssistant = () => {
+  const { assistantPluginId } = use(UserSettingsContext);
+
+  return useRunningPluginsSelector((running) =>
+    pickAssistant(running.filter(providesAssistant), assistantPluginId),
   );
+};
+
+/**
+ * The running plugins that provide an assistant, the one the editor shows,
+ * and the user's choice between them.
+ */
+export const useAssistantChoice = () => {
+  const { assistantPluginId, setAssistantPluginId } = use(UserSettingsContext);
+  const assistants = useRunningPlugins().filter(providesAssistant);
+
+  return {
+    assistants: assistants.map(({ manifest }) => manifest),
+    shownId: pickAssistant(assistants, assistantPluginId)?.manifest.id,
+    choose: setAssistantPluginId,
+  };
+};
 
 /** A plugin's assistant content behind that plugin's error boundary. */
 export const PluginAssistantContent = ({

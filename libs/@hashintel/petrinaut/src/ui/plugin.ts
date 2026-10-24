@@ -51,6 +51,7 @@ export type {
 export { usePluginService } from "./plugins/plugins-provider";
 export {
   AssistantPanelTitle,
+  pickAssistant,
   useAssistantPanel,
 } from "./plugins/plugin-assistant";
 export type { AssistantPanel } from "./plugins/plugin-assistant";
