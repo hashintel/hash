@@ -80,6 +80,11 @@ HirExpr: TypeAlias = (
     | m.HirArrayConcat
     | m.HirDistribution
     | m.HirDistributionMap
+    | m.HirNullLit
+    | m.HirTemplateLit
+    | m.HirArraySlice
+    | m.HirArrayFilter
+    | m.HirNumberFormat
 )
 
 #: A lowered function: the generic shape, or one of the two surface-pinned
@@ -487,7 +492,14 @@ class _Evaluator:
                 | m.HirDistributionMap()
                 | m.HirUuidGenerate()
                 | m.HirUuidFrom()
+                | m.HirNullLit()
+                | m.HirTemplateLit()
+                | m.HirArraySlice()
+                | m.HirArrayFilter()
+                | m.HirNumberFormat()
             ):
+                # Seeded, stateful or visualizer-only kinds: a constraint's
+                # metric surface never lowers to them.
                 raise HirEvaluationError(
                     f'HIR node kind "{node.kind}" is not evaluable in a constraint'
                 )
