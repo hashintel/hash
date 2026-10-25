@@ -1,0 +1,150 @@
+---
+title: Wasm simulation benchmark
+description: CPU and Rust/Wasm experiment timing, memory and correctness measurements.
+attachTo: core.wasm
+---
+
+For **10,000 SIR runs**, the Rust/Wasm prototype takes **1.01 seconds versus
+3.81 seconds on CPU**, including experiment creation: **3.8× faster**.
+Peak process memory falls from **269 MiB to 114 MiB: 58% less**.
+Stepping alone is **2.6× faster**.
+
+These are single-thread Node measurements of supported uncoloured nets. They
+compare the current implementations, including their different data structures
+and compilation strategies. Browser, WebGPU and native Rust performance remain
+outside this comparison.
+
+## Timing
+
+Warm timings include creating an experiment and advancing it to completion,
+with one authored scalar metric sampled on every frame. The diagnostic row
+disables that metric. Each experiment runs up to 100 steps at `dt = 0.1`.
+
+| Model                        |   Runs |      CPU | Rust/Wasm |    Faster |
+| ---------------------------- | -----: | -------: | --------: | --------: |
+| SIR                          |  1,000 |  0.303 s |   0.099 s |  **3.1×** |
+| SIR                          | 10,000 |  3.811 s |   1.014 s |  **3.8×** |
+| 64-place, 64-transition ring |  1,000 | 14.591 s |   0.466 s | **31.3×** |
+| SIR, no metrics              | 10,000 |  2.667 s |   0.410 s |  **6.5×** |
+
+The ring is synthetic. Its result demonstrates how much the gain can depend on
+model structure; it should not be used as an expected speedup for arbitrary nets.
+The median uses nine warm samples per engine and case, across three fresh
+processes. Sample ranges were:
+
+| Model                        |       CPU range | Rust/Wasm range |
+| ---------------------------- | --------------: | --------------: |
+| SIR, 1,000 runs              |   0.291–0.321 s |   0.095–0.104 s |
+| SIR, 10,000 runs             |   3.709–3.898 s |   0.979–1.049 s |
+| Ring, 1,000 runs             | 14.363–14.747 s |   0.460–0.469 s |
+| SIR, 10,000 runs, no metrics |   2.585–2.795 s |   0.398–0.418 s |
+
+For SIR at 10,000 runs, separating setup from stepping gives:
+
+| Phase                                                                |     CPU | Rust/Wasm |
+| -------------------------------------------------------------------- | ------: | --------: |
+| Warm experiment creation                                             | 1.303 s |   0.055 s |
+| Warm stepping and metrics                                            | 2.494 s |   0.958 s |
+| First experiment, including local runtime loading and initialization | 3.979 s |   1.064 s |
+
+Phase medians need not sum to the median total. The first experiment includes
+runtime module loading, Wasm file loading, initialization and model compilation
+to Wasm. It excludes Node process startup and the shared TypeScript/HIR frontend.
+It does not measure network loading or an empty operating-system file cache.
+Warm experiments reuse loaded code and cached Wasm modules, but create fresh runs.
+
+Removing the SIR metric reduces Wasm stepping from **0.958 s to 0.363 s**,
+about **62%**. Metric sampling and aggregation are useful targets for the next
+profile; the difference includes the whole metric path, not just authored code.
+
+## Memory
+
+Memory uses separate fresh processes, with one experiment in each. The table
+shows the median process high-water mark through startup and execution, before
+result hashing and post-execution diagnostics. MiB means 1,048,576 bytes.
+
+| Model                        | CPU peak RSS | Rust/Wasm peak RSS | Reduction |
+| ---------------------------- | -----------: | -----------------: | --------: |
+| SIR, 1,000 runs              |    100.8 MiB |           76.9 MiB |   **24%** |
+| SIR, 10,000 runs             |    269.2 MiB |          114.1 MiB |   **58%** |
+| Ring, 1,000 runs             |    797.4 MiB |           86.9 MiB |   **89%** |
+| SIR, 10,000 runs, no metrics |    197.9 MiB |           93.6 MiB |   **53%** |
+
+Across three memory processes, SIR at 10,000 runs ranged from 267.2–269.3 MiB
+on CPU and 113.3–114.2 MiB on Wasm. The ring ranged from 766.8–799.2 MiB on
+CPU and 86.6–87.0 MiB on Wasm. The raw results retain every checkpoint and range.
+
+For SIR at 10,000 runs, checkpoints after forced garbage collection show:
+
+| Measurement                                |       CPU | Rust/Wasm |
+| ------------------------------------------ | --------: | --------: |
+| JS heap with completed experiment retained | 100.3 MiB |  10.8 MiB |
+| JS heap after disposal                     |   6.4 MiB |   7.4 MiB |
+| Wasm linear-memory capacity at completion  |     0 MiB |   8.4 MiB |
+| Wasm linear-memory capacity after disposal |     0 MiB |   8.4 MiB |
+| Process RSS after disposal                 | 269.0 MiB | 113.9 MiB |
+
+Disposal releases run state, but Wasm linear memory, V8 and native allocators can
+retain capacity for reuse. These measurements do not establish the absence of
+leaks. Terminating a worker releases its Wasm instance. The raw results include
+baseline, loaded, initialized, completed and disposed readings.
+
+RSS includes Node, code, the input model, JavaScript and Wasm. JS heap is only
+V8-managed heap. Wasm buffer size is capacity, not live Rust allocation size or
+an additional physical-memory total. Node's `external` includes `arrayBuffers`,
+so adding them would double-count memory. The harness converts `maxRSS` from
+KiB to bytes, as specified by the
+[Node 22 process API](https://nodejs.org/docs/latest-v22.x/api/process.html#processresourceusage).
+Heap, external memory and RSS follow
+[`process.memoryUsage()`](https://nodejs.org/docs/latest-v22.x/api/process.html#processmemoryusage).
+
+## Fixtures and method
+
+Measured on **25 October 2026**, at revision `1b3057047a528ec3fd29046cac3420788c855988`,
+using release Wasm, Node **v22.23.4** / V8 **12.4.254.21-node.57**, an
+**Apple M1 Max with 64 GiB RAM**, macOS ARM64, Darwin 27.0.0. The shared document
+and simulation Wasm binary is **1.74 MiB** before compression; its SHA-256 and
+fixture hashes are recorded with the results.
+
+- SIR uses the existing model, 990 susceptible tokens, 10 infected tokens,
+  infection rate 1.5 and recovery rate 0.8. Its authored Infected Fraction metric
+  reads place counts. The 10,000-run experiment advances 999,942 run-steps;
+  early termination accounts for the difference from one million.
+- The synthetic ring has 64 uncoloured places and 64 transitions, 20 tokens per
+  place, capacity 100 and rate 3. Its authored rate uses a local binding,
+  a conditional and `Math.max`; its metric subtracts two place counts.
+- Both engines use seed 42 and identical compiled inputs. Every process compares
+  hashes of every final run snapshot and every metric frame. Counts, RNG state,
+  termination and metrics match across engines and repeats. Token conservation
+  and zero errors are also asserted. All **48 processes** passed.
+- Timing runs one cold experiment, one additional warmup and three measured
+  experiments per process. There are three fresh processes per engine and case;
+  memory uses three more. Case and engine order reverse on alternate repeats.
+  Garbage collection runs before experiments, outside the timers. No builds or
+  test suites ran alongside the recorded comparison.
+- Minified Rolldown bundles use the same CPU and Wasm simulator sources as the
+  experiment workers. The CPU factory mirrors the default worker's setup.
+  The harness calls the simulators directly on one thread. Worker startup,
+  messaging, sharding, browser rendering, frontend compilation and backend
+  fallback assessment are excluded. This is not an end-to-end website benchmark.
+- Frontend compilation happens once per fixture before child processes start.
+  Its recorded timings are context only, not a repeated frontend benchmark.
+  Correctness hashing and disposal are outside the reported timing totals.
+
+## Reproduce
+
+From the repository root, build core with the pinned tools, then run the harness:
+
+```sh
+mise x -- turbo run build --filter @hashintel/petrinaut-core
+mise x -- node libs/@hashintel/petrinaut-core/scripts/benchmark-simulation.mjs \
+  --output=/tmp/petrinaut-simulation-benchmark.json
+```
+
+The default comparison took about seven minutes on this machine. For a quick
+correctness check, add `--repeats=1 --samples=1 --frames=20 --scale=0.01`.
+Use `--cases=sir-10000` to select one case. Each child has a five-minute timeout;
+completed children remain in a `.partial.jsonl` file if a later child fails.
+
+Source: `libs/@hashintel/petrinaut-core/scripts/benchmark-simulation.mjs`.
+Full results: `libs/@hashintel/petrinaut-core/rust/simulation-benchmark.json`.

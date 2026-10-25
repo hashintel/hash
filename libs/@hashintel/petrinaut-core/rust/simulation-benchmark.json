@@ -1,0 +1,4565 @@
+{
+  "startedAt": "2026-10-25T14:01:51.276Z",
+  "revision": "1b3057047a528ec3fd29046cac3420788c855988",
+  "dirty": false,
+  "node": "v22.23.4",
+  "v8": "12.4.254.21-node.57",
+  "platform": "darwin",
+  "release": "27.0.0",
+  "arch": "arm64",
+  "cpu": "Apple M1 Max",
+  "logicalCpus": 10,
+  "systemMemoryBytes": 68719476736,
+  "wasmBytes": 1829221,
+  "wasmSha256": "6ec91acacc68b960c1d58982f8fd5dee1030d6c02b72e1bd96b6d49900adfb9d",
+  "repeats": 3,
+  "samples": 3,
+  "frames": 100,
+  "scale": 1,
+  "cases": [
+    {
+      "id": "sir-1000",
+      "runs": 1000,
+      "places": 3,
+      "transitions": 2,
+      "metrics": 1,
+      "frontendMs": 9.575916000000007,
+      "fixtureSha256": "c9b9eaae762a77c81dcdd74fa47b2bb03efabd0cff2f94dd3c902823011efe74"
+    },
+    {
+      "id": "sir-10000",
+      "runs": 10000,
+      "places": 3,
+      "transitions": 2,
+      "metrics": 1,
+      "frontendMs": 2.3300409999999943,
+      "fixtureSha256": "349530dca51e2ea345fa39191741373e9a638ec3975aa499ec20142621dd2f8b"
+    },
+    {
+      "id": "ring64-1000",
+      "runs": 1000,
+      "places": 64,
+      "transitions": 64,
+      "metrics": 1,
+      "frontendMs": 16.657249999999976,
+      "fixtureSha256": "2556d74e9e06a53e409e1cfdad6d2fddfad255374412a1bd80e70145a6424769"
+    },
+    {
+      "id": "sir-10000-no-metrics",
+      "runs": 10000,
+      "places": 3,
+      "transitions": 2,
+      "metrics": 0,
+      "frontendMs": 0.739832999999976,
+      "fixtureSha256": "a7f9e2ee813fc09a70ca46b721d0a2c9c1790967bd0378f78aa28a67a69f88c9"
+    }
+  ],
+  "completedAt": "2026-10-25T14:09:03.721Z",
+  "method": {
+    "runtime": "Minified Rolldown bundles of the same CPU and Wasm simulator sources used by experiment workers; release Rust Wasm.",
+    "scope": "One Node process and one simulation thread per trial. Includes scalar metric collection. Excludes frontend compilation, worker messaging, UI rendering and multi-worker scaling.",
+    "timing": "First experiment is cold. A second experiment warms the runtime; following samples include create + execution. Forced GC is outside timed sections. Engines and case order alternate across fresh-process repeats.",
+    "memory": "Separate fresh processes, one experiment each. Checkpoints follow forced GC. Peak RSS is the process high-water mark through execution, before result hashing. RSS includes Node, code, model and Wasm. external includes arrayBuffers; Wasm linear-memory size is capacity, not an additional RSS total.",
+    "correctness": "All trials compare SHA-256 of every final run snapshot and every metric frame, and assert token conservation and zero errors."
+  },
+  "summaries": [
+    {
+      "case": "sir-1000",
+      "engine": "cpu",
+      "coldStartupMs": {
+        "median": 183.510666,
+        "min": 180.02179200000003,
+        "max": 187.19799899999998,
+        "samples": 3
+      },
+      "coldTotalMs": {
+        "median": 369.753624,
+        "min": 359.163459,
+        "max": 375.08483199999995,
+        "samples": 3
+      },
+      "warmCreateMs": {
+        "median": 139.42979100000002,
+        "min": 133.87470900000017,
+        "max": 145.24308299999996,
+        "samples": 9
+      },
+      "warmExecuteMs": {
+        "median": 161.208709,
+        "min": 157.55562499999996,
+        "max": 176.55291699999998,
+        "samples": 9
+      },
+      "warmTotalMs": {
+        "median": 302.916333,
+        "min": 291.43033400000013,
+        "max": 320.7981669999999,
+        "samples": 9
+      },
+      "runFramesPerSecond": {
+        "median": 620313.8814293215,
+        "min": 566402.4231330033,
+        "max": 634696.4762445011,
+        "samples": 9
+      },
+      "peakRssBytes": {
+        "median": 105644032,
+        "min": 104890368,
+        "max": 106414080,
+        "samples": 3
+      },
+      "memory": {
+        "baseline": {
+          "rss": {
+            "median": 46727168,
+            "min": 46579712,
+            "max": 46972928,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 4295440,
+            "min": 4295440,
+            "max": 4295512,
+            "samples": 3
+          },
+          "external": {
+            "median": 1998745,
+            "min": 1998745,
+            "max": 1998745,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "loaded": {
+          "rss": {
+            "median": 51970048,
+            "min": 51806208,
+            "max": 52101120,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 5547248,
+            "min": 5547248,
+            "max": 5547320,
+            "samples": 3
+          },
+          "external": {
+            "median": 2060937,
+            "min": 2060937,
+            "max": 2060937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "initialized": {
+          "rss": {
+            "median": 105054208,
+            "min": 104153088,
+            "max": 105955328,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 15943704,
+            "min": 15943704,
+            "max": 15944880,
+            "samples": 3
+          },
+          "external": {
+            "median": 2204937,
+            "min": 2204937,
+            "max": 2204937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 160623,
+            "min": 160623,
+            "max": 160623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "complete": {
+          "rss": {
+            "median": 105758720,
+            "min": 105054208,
+            "max": 106479616,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 16265720,
+            "min": 16241008,
+            "max": 16266136,
+            "samples": 3
+          },
+          "external": {
+            "median": 2204937,
+            "min": 2204937,
+            "max": 2204937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 160623,
+            "min": 160623,
+            "max": 160623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "disposed": {
+          "rss": {
+            "median": 105955328,
+            "min": 105267200,
+            "max": 106676224,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 6384832,
+            "min": 6384184,
+            "max": 6385248,
+            "samples": 3
+          },
+          "external": {
+            "median": 2060937,
+            "min": 2060937,
+            "max": 2060937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        }
+      }
+    },
+    {
+      "case": "sir-1000",
+      "engine": "wasm",
+      "coldStartupMs": {
+        "median": 48.935125,
+        "min": 48.708042000000006,
+        "max": 66.579374,
+        "samples": 3
+      },
+      "coldTotalMs": {
+        "median": 145.71245799999997,
+        "min": 143.351625,
+        "max": 169.49895800000002,
+        "samples": 3
+      },
+      "warmCreateMs": {
+        "median": 7.271499999999946,
+        "min": 6.939209000000005,
+        "max": 7.963416999999993,
+        "samples": 9
+      },
+      "warmExecuteMs": {
+        "median": 91.95691700000003,
+        "min": 87.29600000000005,
+        "max": 97.08629199999996,
+        "samples": 9
+      },
+      "warmTotalMs": {
+        "median": 99.25825000000003,
+        "min": 94.78216600000002,
+        "max": 104.20841699999994,
+        "samples": 9
+      },
+      "runFramesPerSecond": {
+        "median": 1087465.7748693333,
+        "min": 1030011.5283010297,
+        "max": 1145527.8592375359,
+        "samples": 9
+      },
+      "peakRssBytes": {
+        "median": 80658432,
+        "min": 80560128,
+        "max": 80822272,
+        "samples": 3
+      },
+      "memory": {
+        "baseline": {
+          "rss": {
+            "median": 46694400,
+            "min": 46465024,
+            "max": 46792704,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 4295440,
+            "min": 4295440,
+            "max": 4295440,
+            "samples": 3
+          },
+          "external": {
+            "median": 1998745,
+            "min": 1998745,
+            "max": 1998745,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "loaded": {
+          "rss": {
+            "median": 66600960,
+            "min": 66306048,
+            "max": 66650112,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 7388312,
+            "min": 7388168,
+            "max": 7388336,
+            "samples": 3
+          },
+          "external": {
+            "median": 4783084,
+            "min": 4783084,
+            "max": 4783084,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 1179648,
+            "min": 1179648,
+            "max": 1179648,
+            "samples": 3
+          }
+        },
+        "initialized": {
+          "rss": {
+            "median": 78659584,
+            "min": 78315520,
+            "max": 78839808,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 7975440,
+            "min": 7975296,
+            "max": 7975464,
+            "samples": 3
+          },
+          "external": {
+            "median": 5569516,
+            "min": 5569516,
+            "max": 5569516,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 1966080,
+            "min": 1966080,
+            "max": 1966080,
+            "samples": 3
+          }
+        },
+        "complete": {
+          "rss": {
+            "median": 80887808,
+            "min": 80691200,
+            "max": 80953344,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 8090784,
+            "min": 8090640,
+            "max": 8090808,
+            "samples": 3
+          },
+          "external": {
+            "median": 5569516,
+            "min": 5569516,
+            "max": 5569516,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 1966080,
+            "min": 1966080,
+            "max": 1966080,
+            "samples": 3
+          }
+        },
+        "disposed": {
+          "rss": {
+            "median": 81035264,
+            "min": 80855040,
+            "max": 81084416,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 7705720,
+            "min": 7705576,
+            "max": 7705744,
+            "samples": 3
+          },
+          "external": {
+            "median": 5569516,
+            "min": 5569516,
+            "max": 5569516,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 1966080,
+            "min": 1966080,
+            "max": 1966080,
+            "samples": 3
+          }
+        }
+      }
+    },
+    {
+      "case": "sir-10000",
+      "engine": "cpu",
+      "coldStartupMs": {
+        "median": 1416.339583,
+        "min": 1404.339584,
+        "max": 1468.239541,
+        "samples": 3
+      },
+      "coldTotalMs": {
+        "median": 3979.011167,
+        "min": 3882.6410829999995,
+        "max": 3987.698166,
+        "samples": 3
+      },
+      "warmCreateMs": {
+        "median": 1303.3675000000003,
+        "min": 1254.4735830000009,
+        "max": 1404.4381669999993,
+        "samples": 9
+      },
+      "warmExecuteMs": {
+        "median": 2493.7631250000013,
+        "min": 2410.4207499999993,
+        "max": 2570.1854590000003,
+        "samples": 9
+      },
+      "warmTotalMs": {
+        "median": 3811.2806250000012,
+        "min": 3709.056833999999,
+        "max": 3898.2012920000006,
+        "samples": 9
+      },
+      "runFramesPerSecond": {
+        "median": 400977.1377143125,
+        "min": 389054.4149250048,
+        "max": 414841.26785748935,
+        "samples": 9
+      },
+      "peakRssBytes": {
+        "median": 282329088,
+        "min": 280150016,
+        "max": 282394624,
+        "samples": 3
+      },
+      "memory": {
+        "baseline": {
+          "rss": {
+            "median": 46628864,
+            "min": 46465024,
+            "max": 46907392,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 4295448,
+            "min": 4295448,
+            "max": 4295448,
+            "samples": 3
+          },
+          "external": {
+            "median": 1998745,
+            "min": 1998745,
+            "max": 1998745,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "loaded": {
+          "rss": {
+            "median": 51888128,
+            "min": 51625984,
+            "max": 51970048,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 5547256,
+            "min": 5547256,
+            "max": 5547592,
+            "samples": 3
+          },
+          "external": {
+            "median": 2060937,
+            "min": 2060937,
+            "max": 2060937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "initialized": {
+          "rss": {
+            "median": 209321984,
+            "min": 207077376,
+            "max": 209485824,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 104897448,
+            "min": 104892832,
+            "max": 104941576,
+            "samples": 3
+          },
+          "external": {
+            "median": 3500937,
+            "min": 3500937,
+            "max": 3500937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 1456623,
+            "min": 1456623,
+            "max": 1456623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "complete": {
+          "rss": {
+            "median": 282361856,
+            "min": 280264704,
+            "max": 282476544,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 105217256,
+            "min": 105211560,
+            "max": 105259528,
+            "samples": 3
+          },
+          "external": {
+            "median": 3500937,
+            "min": 3500937,
+            "max": 3500937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 1456623,
+            "min": 1456623,
+            "max": 1456623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "disposed": {
+          "rss": {
+            "median": 282083328,
+            "min": 280002560,
+            "max": 282181632,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 6724808,
+            "min": 6719440,
+            "max": 6766984,
+            "samples": 3
+          },
+          "external": {
+            "median": 2060937,
+            "min": 2060937,
+            "max": 2060937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        }
+      }
+    },
+    {
+      "case": "sir-10000",
+      "engine": "wasm",
+      "coldStartupMs": {
+        "median": 105.87329199999999,
+        "min": 105.125584,
+        "max": 105.989375,
+        "samples": 3
+      },
+      "coldTotalMs": {
+        "median": 1063.5362499999999,
+        "min": 1055.8264589999999,
+        "max": 1084.1418339999998,
+        "samples": 3
+      },
+      "warmCreateMs": {
+        "median": 55.23541699999987,
+        "min": 54.11866599999985,
+        "max": 61.11987500000032,
+        "samples": 9
+      },
+      "warmExecuteMs": {
+        "median": 958.4100409999996,
+        "min": 924.0702500000002,
+        "max": 993.9135409999999,
+        "samples": 9
+      },
+      "warmTotalMs": {
+        "median": 1014.3457920000001,
+        "min": 979.3056670000001,
+        "max": 1048.5358319999996,
+        "samples": 9
+      },
+      "runFramesPerSecond": {
+        "median": 1043334.2277556547,
+        "min": 1006065.375660276,
+        "max": 1082106.0411803105,
+        "samples": 9
+      },
+      "peakRssBytes": {
+        "median": 119652352,
+        "min": 118849536,
+        "max": 119734272,
+        "samples": 3
+      },
+      "memory": {
+        "baseline": {
+          "rss": {
+            "median": 46530560,
+            "min": 46497792,
+            "max": 46940160,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 4295448,
+            "min": 4295448,
+            "max": 4295520,
+            "samples": 3
+          },
+          "external": {
+            "median": 1998745,
+            "min": 1998745,
+            "max": 1998745,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "loaded": {
+          "rss": {
+            "median": 66617344,
+            "min": 66355200,
+            "max": 66797568,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 7388272,
+            "min": 7388248,
+            "max": 7388560,
+            "samples": 3
+          },
+          "external": {
+            "median": 4783084,
+            "min": 4783084,
+            "max": 4783084,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 1179648,
+            "min": 1179648,
+            "max": 1179648,
+            "samples": 3
+          }
+        },
+        "initialized": {
+          "rss": {
+            "median": 98992128,
+            "min": 98418688,
+            "max": 99303424,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 11269632,
+            "min": 11269536,
+            "max": 11269848,
+            "samples": 3
+          },
+          "external": {
+            "median": 12385260,
+            "min": 12385260,
+            "max": 12385260,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 8781824,
+            "min": 8781824,
+            "max": 8781824,
+            "samples": 3
+          }
+        },
+        "complete": {
+          "rss": {
+            "median": 119668736,
+            "min": 118865920,
+            "max": 119767040,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 11376312,
+            "min": 11376216,
+            "max": 11376528,
+            "samples": 3
+          },
+          "external": {
+            "median": 12385260,
+            "min": 12385260,
+            "max": 12385260,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 8781824,
+            "min": 8781824,
+            "max": 8781824,
+            "samples": 3
+          }
+        },
+        "disposed": {
+          "rss": {
+            "median": 119390208,
+            "min": 118620160,
+            "max": 119488512,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 7751088,
+            "min": 7751064,
+            "max": 7751376,
+            "samples": 3
+          },
+          "external": {
+            "median": 12385260,
+            "min": 12385260,
+            "max": 12385260,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 8781824,
+            "min": 8781824,
+            "max": 8781824,
+            "samples": 3
+          }
+        }
+      }
+    },
+    {
+      "case": "ring64-1000",
+      "engine": "cpu",
+      "coldStartupMs": {
+        "median": 1039.610334,
+        "min": 1028.784501,
+        "max": 1044.234583,
+        "samples": 3
+      },
+      "coldTotalMs": {
+        "median": 14778.334042,
+        "min": 14651.995458,
+        "max": 14943.491251000001,
+        "samples": 3
+      },
+      "warmCreateMs": {
+        "median": 916.5005830000009,
+        "min": 897.2885830000014,
+        "max": 965.0970420000012,
+        "samples": 9
+      },
+      "warmExecuteMs": {
+        "median": 13626.179292,
+        "min": 13430.026000000002,
+        "max": 13826.707333999999,
+        "samples": 9
+      },
+      "warmTotalMs": {
+        "median": 14591.276334000002,
+        "min": 14362.658334,
+        "max": 14746.509459,
+        "samples": 9
+      },
+      "runFramesPerSecond": {
+        "median": 7338.814340914368,
+        "min": 7232.379885129925,
+        "max": 7446.001966042359,
+        "samples": 9
+      },
+      "peakRssBytes": {
+        "median": 836108288,
+        "min": 804093952,
+        "max": 837976064,
+        "samples": 3
+      },
+      "memory": {
+        "baseline": {
+          "rss": {
+            "median": 47251456,
+            "min": 47054848,
+            "max": 47480832,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 4440008,
+            "min": 4440008,
+            "max": 4440008,
+            "samples": 3
+          },
+          "external": {
+            "median": 1998745,
+            "min": 1998745,
+            "max": 1998745,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "loaded": {
+          "rss": {
+            "median": 52183040,
+            "min": 52068352,
+            "max": 52199424,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 5692048,
+            "min": 5692048,
+            "max": 5692048,
+            "samples": 3
+          },
+          "external": {
+            "median": 2060937,
+            "min": 2060937,
+            "max": 2060937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "initialized": {
+          "rss": {
+            "median": 275513344,
+            "min": 274857984,
+            "max": 275660800,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 164750016,
+            "min": 164749808,
+            "max": 164751352,
+            "samples": 3
+          },
+          "external": {
+            "median": 6540937,
+            "min": 6540937,
+            "max": 6540937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 4496623,
+            "min": 4496623,
+            "max": 4496623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "complete": {
+          "rss": {
+            "median": 836108288,
+            "min": 804110336,
+            "max": 837992448,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 165096320,
+            "min": 165092672,
+            "max": 165099480,
+            "samples": 3
+          },
+          "external": {
+            "median": 6540937,
+            "min": 6540937,
+            "max": 6540937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 4496623,
+            "min": 4496623,
+            "max": 4496623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "disposed": {
+          "rss": {
+            "median": 836304896,
+            "min": 804372480,
+            "max": 838205440,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 6710008,
+            "min": 6706368,
+            "max": 6713144,
+            "samples": 3
+          },
+          "external": {
+            "median": 2060937,
+            "min": 2060937,
+            "max": 2060937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        }
+      }
+    },
+    {
+      "case": "ring64-1000",
+      "engine": "wasm",
+      "coldStartupMs": {
+        "median": 106.47591700000001,
+        "min": 103.482166,
+        "max": 107.58545799999999,
+        "samples": 3
+      },
+      "coldTotalMs": {
+        "median": 527.263167,
+        "min": 511.98274900000007,
+        "max": 545.2349159999999,
+        "samples": 3
+      },
+      "warmCreateMs": {
+        "median": 59.13366599999995,
+        "min": 58.27879200000007,
+        "max": 61.63279199999988,
+        "samples": 9
+      },
+      "warmExecuteMs": {
+        "median": 405.599917,
+        "min": 400.3444589999999,
+        "max": 409.77120799999966,
+        "samples": 9
+      },
+      "warmTotalMs": {
+        "median": 465.6107079999997,
+        "min": 459.7060419999998,
+        "max": 469.45512400000007,
+        "samples": 9
+      },
+      "runFramesPerSecond": {
+        "median": 246548.37392385362,
+        "min": 244038.61971678617,
+        "max": 249784.89835924024,
+        "samples": 9
+      },
+      "peakRssBytes": {
+        "median": 91095040,
+        "min": 90783744,
+        "max": 91193344,
+        "samples": 3
+      },
+      "memory": {
+        "baseline": {
+          "rss": {
+            "median": 47005696,
+            "min": 46972928,
+            "max": 47104000,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 4440008,
+            "min": 4440008,
+            "max": 4440080,
+            "samples": 3
+          },
+          "external": {
+            "median": 1998745,
+            "min": 1998745,
+            "max": 1998745,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "loaded": {
+          "rss": {
+            "median": 66666496,
+            "min": 66617344,
+            "max": 66699264,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 7533088,
+            "min": 7532944,
+            "max": 7533112,
+            "samples": 3
+          },
+          "external": {
+            "median": 4783084,
+            "min": 4783084,
+            "max": 4783084,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 1179648,
+            "min": 1179648,
+            "max": 1179648,
+            "samples": 3
+          }
+        },
+        "initialized": {
+          "rss": {
+            "median": 90374144,
+            "min": 90161152,
+            "max": 90456064,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 8175848,
+            "min": 8175704,
+            "max": 8175872,
+            "samples": 3
+          },
+          "external": {
+            "median": 16186348,
+            "min": 16186348,
+            "max": 16186348,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 12582912,
+            "min": 12582912,
+            "max": 12582912,
+            "samples": 3
+          }
+        },
+        "complete": {
+          "rss": {
+            "median": 91127808,
+            "min": 90832896,
+            "max": 91209728,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 8307344,
+            "min": 8306968,
+            "max": 8307656,
+            "samples": 3
+          },
+          "external": {
+            "median": 16186348,
+            "min": 16186348,
+            "max": 16186348,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 12582912,
+            "min": 12582912,
+            "max": 12582912,
+            "samples": 3
+          }
+        },
+        "disposed": {
+          "rss": {
+            "median": 91308032,
+            "min": 91029504,
+            "max": 91357184,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 7929544,
+            "min": 7929040,
+            "max": 7929856,
+            "samples": 3
+          },
+          "external": {
+            "median": 16186348,
+            "min": 16186348,
+            "max": 16186348,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 12582912,
+            "min": 12582912,
+            "max": 12582912,
+            "samples": 3
+          }
+        }
+      }
+    },
+    {
+      "case": "sir-10000-no-metrics",
+      "engine": "cpu",
+      "coldStartupMs": {
+        "median": 1438.7852090000001,
+        "min": 1407.138668,
+        "max": 1507.490291,
+        "samples": 3
+      },
+      "coldTotalMs": {
+        "median": 2871.5987929999997,
+        "min": 2790.248334,
+        "max": 2943.8175819999997,
+        "samples": 3
+      },
+      "warmCreateMs": {
+        "median": 1327.0747499999998,
+        "min": 1272.851666999999,
+        "max": 1377.7245000000003,
+        "samples": 9
+      },
+      "warmExecuteMs": {
+        "median": 1363.469083,
+        "min": 1312.1432919999988,
+        "max": 1417.585709,
+        "samples": 9
+      },
+      "warmTotalMs": {
+        "median": 2667.179957999999,
+        "min": 2584.994958999998,
+        "max": 2795.310209,
+        "samples": 9
+      },
+      "runFramesPerSecond": {
+        "median": 733380.7656275254,
+        "min": 705383.8040631659,
+        "max": 762067.6842967855,
+        "samples": 9
+      },
+      "peakRssBytes": {
+        "median": 207470592,
+        "min": 206356480,
+        "max": 207585280,
+        "samples": 3
+      },
+      "memory": {
+        "baseline": {
+          "rss": {
+            "median": 46628864,
+            "min": 46596096,
+            "max": 46825472,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 4288688,
+            "min": 4288688,
+            "max": 4288688,
+            "samples": 3
+          },
+          "external": {
+            "median": 1998745,
+            "min": 1998745,
+            "max": 1998745,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "loaded": {
+          "rss": {
+            "median": 51822592,
+            "min": 51642368,
+            "max": 51920896,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 5540496,
+            "min": 5540496,
+            "max": 5540496,
+            "samples": 3
+          },
+          "external": {
+            "median": 2060937,
+            "min": 2060937,
+            "max": 2060937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "initialized": {
+          "rss": {
+            "median": 207011840,
+            "min": 205832192,
+            "max": 207339520,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 104187200,
+            "min": 104181960,
+            "max": 104219792,
+            "samples": 3
+          },
+          "external": {
+            "median": 3500937,
+            "min": 3500937,
+            "max": 3500937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 1456623,
+            "min": 1456623,
+            "max": 1456623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "complete": {
+          "rss": {
+            "median": 207536128,
+            "min": 206471168,
+            "max": 207618048,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 104432688,
+            "min": 104428712,
+            "max": 104463216,
+            "samples": 3
+          },
+          "external": {
+            "median": 3500937,
+            "min": 3500937,
+            "max": 3500937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 1456623,
+            "min": 1456623,
+            "max": 1456623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "disposed": {
+          "rss": {
+            "median": 207798272,
+            "min": 206831616,
+            "max": 207847424,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 6632936,
+            "min": 6628840,
+            "max": 6664280,
+            "samples": 3
+          },
+          "external": {
+            "median": 2060937,
+            "min": 2060937,
+            "max": 2060937,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        }
+      }
+    },
+    {
+      "case": "sir-10000-no-metrics",
+      "engine": "wasm",
+      "coldStartupMs": {
+        "median": 94.78787600000001,
+        "min": 93.48004199999998,
+        "max": 94.853249,
+        "samples": 3
+      },
+      "coldTotalMs": {
+        "median": 455.640043,
+        "min": 446.68754199999995,
+        "max": 461.919041,
+        "samples": 3
+      },
+      "warmCreateMs": {
+        "median": 46.907249999999976,
+        "min": 46.66295800000012,
+        "max": 51.48345900000004,
+        "samples": 9
+      },
+      "warmExecuteMs": {
+        "median": 363.0993750000001,
+        "min": 350.9784580000003,
+        "max": 370.265584,
+        "samples": 9
+      },
+      "warmTotalMs": {
+        "median": 410.3208749999999,
+        "min": 397.6414160000004,
+        "max": 418.345291,
+        "samples": 9
+      },
+      "runFramesPerSecond": {
+        "median": 2753907.246466617,
+        "min": 2700607.464505802,
+        "max": 2849012.4599043033,
+        "samples": 9
+      },
+      "peakRssBytes": {
+        "median": 98123776,
+        "min": 97501184,
+        "max": 98189312,
+        "samples": 3
+      },
+      "memory": {
+        "baseline": {
+          "rss": {
+            "median": 46743552,
+            "min": 46546944,
+            "max": 46759936,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 4288688,
+            "min": 4288688,
+            "max": 4288688,
+            "samples": 3
+          },
+          "external": {
+            "median": 1998745,
+            "min": 1998745,
+            "max": 1998745,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 16623,
+            "min": 16623,
+            "max": 16623,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 0,
+            "min": 0,
+            "max": 0,
+            "samples": 3
+          }
+        },
+        "loaded": {
+          "rss": {
+            "median": 66453504,
+            "min": 66453504,
+            "max": 66469888,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 7381416,
+            "min": 7381416,
+            "max": 7381560,
+            "samples": 3
+          },
+          "external": {
+            "median": 4783084,
+            "min": 4783084,
+            "max": 4783084,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 1179648,
+            "min": 1179648,
+            "max": 1179648,
+            "samples": 3
+          }
+        },
+        "initialized": {
+          "rss": {
+            "median": 89964544,
+            "min": 89276416,
+            "max": 90013696,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 10547000,
+            "min": 10547000,
+            "max": 10547144,
+            "samples": 3
+          },
+          "external": {
+            "median": 12385260,
+            "min": 12385260,
+            "max": 12385260,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 8781824,
+            "min": 8781824,
+            "max": 8781824,
+            "samples": 3
+          }
+        },
+        "complete": {
+          "rss": {
+            "median": 98140160,
+            "min": 97517568,
+            "max": 98205696,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 10577936,
+            "min": 10577936,
+            "max": 10578080,
+            "samples": 3
+          },
+          "external": {
+            "median": 12385260,
+            "min": 12385260,
+            "max": 12385260,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 8781824,
+            "min": 8781824,
+            "max": 8781824,
+            "samples": 3
+          }
+        },
+        "disposed": {
+          "rss": {
+            "median": 98418688,
+            "min": 97779712,
+            "max": 98484224,
+            "samples": 3
+          },
+          "heapUsed": {
+            "median": 7653528,
+            "min": 7653528,
+            "max": 7653672,
+            "samples": 3
+          },
+          "external": {
+            "median": 12385260,
+            "min": 12385260,
+            "max": 12385260,
+            "samples": 3
+          },
+          "arrayBuffers": {
+            "median": 67962,
+            "min": 67962,
+            "max": 67962,
+            "samples": 3
+          },
+          "wasmBytes": {
+            "median": 8781824,
+            "min": 8781824,
+            "max": 8781824,
+            "samples": 3
+          }
+        }
+      }
+    }
+  ],
+  "results": [
+    {
+      "repeat": 0,
+      "engine": "cpu",
+      "mode": "timing",
+      "case": "sir-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.282000000000004,
+      "runtimeInitMs": 0.01679099999999778,
+      "cold": {
+        "createMs": 175.211875,
+        "executeMs": 191.574166,
+        "disposeMs": 0.0013749999999959073,
+        "totalMs": 366.78604099999995,
+        "runFrames": 100000
+      },
+      "warm": [
+        {
+          "createMs": 145.24308299999996,
+          "executeMs": 169.745,
+          "disposeMs": 0.0005409999998846615,
+          "totalMs": 314.98808299999996,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 135.32008300000007,
+          "executeMs": 161.208709,
+          "disposeMs": 0.0009589999999661813,
+          "totalMs": 296.52879200000007,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 144.24524999999994,
+          "executeMs": 176.55291699999998,
+          "disposeMs": 0.0008340000001680892,
+          "totalMs": 320.7981669999999,
+          "runFrames": 100000
+        }
+      ],
+      "proof": {
+        "hash": "46021e708b428e8ea0585bdbd586f8b146bce4fd9467560016d6ce3c3ff29ece",
+        "runFrames": 100000,
+        "tokenTotal": 1000000
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "wasm",
+      "mode": "timing",
+      "case": "sir-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 22.450958,
+      "runtimeInitMs": 25.122332999999998,
+      "cold": {
+        "createMs": 19.006083000000004,
+        "executeMs": 102.919584,
+        "disposeMs": 0.9392079999999794,
+        "totalMs": 121.925667,
+        "runFrames": 100000
+      },
+      "warm": [
+        {
+          "createMs": 7.301333,
+          "executeMs": 91.95691700000003,
+          "disposeMs": 0.32879199999996445,
+          "totalMs": 99.25825000000003,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 7.561874999999986,
+          "executeMs": 92.30345800000003,
+          "disposeMs": 0.3888329999999769,
+          "totalMs": 99.86533300000002,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 7.122124999999983,
+          "executeMs": 97.08629199999996,
+          "disposeMs": 0.3013750000000073,
+          "totalMs": 104.20841699999994,
+          "runFrames": 100000
+        }
+      ],
+      "proof": {
+        "hash": "46021e708b428e8ea0585bdbd586f8b146bce4fd9467560016d6ce3c3ff29ece",
+        "runFrames": 100000,
+        "tokenTotal": 1000000
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "cpu",
+      "mode": "timing",
+      "case": "sir-10000",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.828457999999998,
+      "runtimeInitMs": 0.011000000000002785,
+      "cold": {
+        "createMs": 1459.400083,
+        "executeMs": 2519.458625,
+        "disposeMs": 0.0020410000001902517,
+        "totalMs": 3978.858708,
+        "runFrames": 999942
+      },
+      "warm": [
+        {
+          "createMs": 1293.1350420000008,
+          "executeMs": 2570.1854590000003,
+          "disposeMs": 0.0009169999993901001,
+          "totalMs": 3863.320501000001,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 1254.4735830000009,
+          "executeMs": 2505.1863329999996,
+          "disposeMs": 0.0010830000010173535,
+          "totalMs": 3759.6599160000005,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 1303.3675000000003,
+          "executeMs": 2440.421000000002,
+          "disposeMs": 0.0011249999988649506,
+          "totalMs": 3743.7885000000024,
+          "runFrames": 999942
+        }
+      ],
+      "proof": {
+        "hash": "afd9845a14cbc2e955d0ff872e281b8510cb68b687f9b7f1555ab50e87dbd119",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "wasm",
+      "mode": "timing",
+      "case": "sir-10000",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.072041999999996,
+      "runtimeInitMs": 22.583791999999995,
+      "cold": {
+        "createMs": 75.21745800000001,
+        "executeMs": 978.2685419999999,
+        "disposeMs": 3.599917000000005,
+        "totalMs": 1053.4859999999999,
+        "runFrames": 999942
+      },
+      "warm": [
+        {
+          "createMs": 55.49404200000026,
+          "executeMs": 956.6617920000003,
+          "disposeMs": 2.7994579999999587,
+          "totalMs": 1012.1558340000006,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 54.45395899999994,
+          "executeMs": 961.439292,
+          "disposeMs": 2.7955830000000788,
+          "totalMs": 1015.893251,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 54.62229099999968,
+          "executeMs": 993.9135409999999,
+          "disposeMs": 2.7987499999999272,
+          "totalMs": 1048.5358319999996,
+          "runFrames": 999942
+        }
+      ],
+      "proof": {
+        "hash": "afd9845a14cbc2e955d0ff872e281b8510cb68b687f9b7f1555ab50e87dbd119",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "cpu",
+      "mode": "timing",
+      "case": "ring64-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.048875000000002,
+      "runtimeInitMs": 0.007625000000004434,
+      "cold": {
+        "createMs": 1031.553834,
+        "executeMs": 13903.880917,
+        "disposeMs": 0.0021670000005542533,
+        "totalMs": 14935.434751,
+        "runFrames": 100000
+      },
+      "warm": [
+        {
+          "createMs": 932.6323339999981,
+          "executeMs": 13430.026000000002,
+          "disposeMs": 0.0007499999992433004,
+          "totalMs": 14362.658334,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 915.8839999999982,
+          "executeMs": 13458.371249999997,
+          "disposeMs": 0.0008749999979045242,
+          "totalMs": 14374.255249999995,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 965.0970420000012,
+          "executeMs": 13626.179292,
+          "disposeMs": 0.0007919999916339293,
+          "totalMs": 14591.276334000002,
+          "runFrames": 100000
+        }
+      ],
+      "proof": {
+        "hash": "b5ce80c3bc1a97a1c87a197a9a806ee0044cd2314c041506f4df65a2b6139af7",
+        "runFrames": 100000,
+        "tokenTotal": 1280000
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "wasm",
+      "mode": "timing",
+      "case": "ring64-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.762542000000003,
+      "runtimeInitMs": 23.944083999999997,
+      "cold": {
+        "createMs": 73.76929100000001,
+        "executeMs": 420.78725,
+        "disposeMs": 2.569499999999948,
+        "totalMs": 494.556541,
+        "runFrames": 100000
+      },
+      "warm": [
+        {
+          "createMs": 60.493416000000025,
+          "executeMs": 408.96170800000004,
+          "disposeMs": 1.7925000000000182,
+          "totalMs": 469.45512400000007,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 58.27879200000007,
+          "executeMs": 404.77129100000025,
+          "disposeMs": 1.9366660000000593,
+          "totalMs": 463.0500830000003,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 58.947000000000116,
+          "executeMs": 402.95875000000024,
+          "disposeMs": 1.7691249999998035,
+          "totalMs": 461.90575000000035,
+          "runFrames": 100000
+        }
+      ],
+      "proof": {
+        "hash": "b5ce80c3bc1a97a1c87a197a9a806ee0044cd2314c041506f4df65a2b6139af7",
+        "runFrames": 100000,
+        "tokenTotal": 1280000
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "cpu",
+      "mode": "timing",
+      "case": "sir-10000-no-metrics",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 0,
+      "importMs": 8.753124999999997,
+      "runtimeInitMs": 0.009624999999999773,
+      "cold": {
+        "createMs": 1498.727541,
+        "executeMs": 1436.327291,
+        "disposeMs": 0.001959000000169908,
+        "totalMs": 2935.054832,
+        "runFrames": 999942
+      },
+      "warm": [
+        {
+          "createMs": 1284.6197080000002,
+          "executeMs": 1335.876083000001,
+          "disposeMs": 0.0007499999992433004,
+          "totalMs": 2620.495791000001,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 1341.5836249999993,
+          "executeMs": 1378.0937089999989,
+          "disposeMs": 0.0012500000011641532,
+          "totalMs": 2719.677333999998,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 1292.908707999999,
+          "executeMs": 1374.2712499999998,
+          "disposeMs": 0.0007920000007288763,
+          "totalMs": 2667.179957999999,
+          "runFrames": 999942
+        }
+      ],
+      "proof": {
+        "hash": "76d3549931214c8aa7b63c52d368fb33893df2d02f6c27bc6102279ab61daf7d",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "wasm",
+      "mode": "timing",
+      "case": "sir-10000-no-metrics",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 0,
+      "importMs": 8.427791000000006,
+      "runtimeInitMs": 23.042958,
+      "cold": {
+        "createMs": 63.38250000000001,
+        "executeMs": 367.065792,
+        "disposeMs": 3.8942919999999503,
+        "totalMs": 430.448292,
+        "runFrames": 999942
+      },
+      "warm": [
+        {
+          "createMs": 48.292749999999955,
+          "executeMs": 370.052541,
+          "disposeMs": 2.8025829999999132,
+          "totalMs": 418.345291,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 47.08604100000002,
+          "executeMs": 370.265584,
+          "disposeMs": 2.833665999999994,
+          "totalMs": 417.351625,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 46.907249999999976,
+          "executeMs": 357.1921249999998,
+          "disposeMs": 2.854291000000103,
+          "totalMs": 404.0993749999998,
+          "runFrames": 999942
+        }
+      ],
+      "proof": {
+        "hash": "76d3549931214c8aa7b63c52d368fb33893df2d02f6c27bc6102279ab61daf7d",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "wasm",
+      "mode": "timing",
+      "case": "sir-10000-no-metrics",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 0,
+      "importMs": 8.382792000000002,
+      "runtimeInitMs": 23.020625000000003,
+      "cold": {
+        "createMs": 63.38445900000001,
+        "executeMs": 360.852167,
+        "disposeMs": 3.9658339999999725,
+        "totalMs": 424.236626,
+        "runFrames": 999942
+      },
+      "warm": [
+        {
+          "createMs": 50.04708300000004,
+          "executeMs": 368.106458,
+          "disposeMs": 2.857250000000022,
+          "totalMs": 418.153541,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 46.80950000000007,
+          "executeMs": 356.96183300000007,
+          "disposeMs": 2.7740830000000187,
+          "totalMs": 403.77133300000014,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 46.855375000000095,
+          "executeMs": 354.61141699999985,
+          "disposeMs": 2.73245900000029,
+          "totalMs": 401.46679199999994,
+          "runFrames": 999942
+        }
+      ],
+      "proof": {
+        "hash": "76d3549931214c8aa7b63c52d368fb33893df2d02f6c27bc6102279ab61daf7d",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "cpu",
+      "mode": "timing",
+      "case": "sir-10000-no-metrics",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 0,
+      "importMs": 8.505041999999996,
+      "runtimeInitMs": 0.013083999999999207,
+      "cold": {
+        "createMs": 1398.6205420000001,
+        "executeMs": 1383.1096659999998,
+        "disposeMs": 0.0016660000001138542,
+        "totalMs": 2781.730208,
+        "runFrames": 999942
+      },
+      "warm": [
+        {
+          "createMs": 1377.7245000000003,
+          "executeMs": 1417.585709,
+          "disposeMs": 0.0008749999997235136,
+          "totalMs": 2795.310209,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 1330.3917920000004,
+          "executeMs": 1363.469083,
+          "disposeMs": 0.0007910000003903406,
+          "totalMs": 2693.8608750000003,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 1374.3892080000005,
+          "executeMs": 1411.409334,
+          "disposeMs": 0.0010839999995368998,
+          "totalMs": 2785.7985420000005,
+          "runFrames": 999942
+        }
+      ],
+      "proof": {
+        "hash": "76d3549931214c8aa7b63c52d368fb33893df2d02f6c27bc6102279ab61daf7d",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "wasm",
+      "mode": "timing",
+      "case": "ring64-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.721583000000003,
+      "runtimeInitMs": 23.541541000000002,
+      "cold": {
+        "createMs": 75.32233399999998,
+        "executeMs": 437.649458,
+        "disposeMs": 2.828624999999988,
+        "totalMs": 512.9717919999999,
+        "runFrames": 100000
+      },
+      "warm": [
+        {
+          "createMs": 61.63279199999988,
+          "executeMs": 405.599917,
+          "disposeMs": 1.8058750000000146,
+          "totalMs": 467.2327089999999,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 58.49287499999991,
+          "executeMs": 407.1178329999998,
+          "disposeMs": 1.9256249999998545,
+          "totalMs": 465.6107079999997,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 58.865749999999935,
+          "executeMs": 409.77120799999966,
+          "disposeMs": 1.7937919999999394,
+          "totalMs": 468.6369579999996,
+          "runFrames": 100000
+        }
+      ],
+      "proof": {
+        "hash": "b5ce80c3bc1a97a1c87a197a9a806ee0044cd2314c041506f4df65a2b6139af7",
+        "runFrames": 100000,
+        "tokenTotal": 1280000
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "cpu",
+      "mode": "timing",
+      "case": "ring64-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.278917,
+      "runtimeInitMs": 0.010334000000000287,
+      "cold": {
+        "createMs": 1020.49525,
+        "executeMs": 13749.549541,
+        "disposeMs": 0.001833000000260654,
+        "totalMs": 14770.044791,
+        "runFrames": 100000
+      },
+      "warm": [
+        {
+          "createMs": 919.802125000002,
+          "executeMs": 13826.707333999999,
+          "disposeMs": 0.0010420000035082921,
+          "totalMs": 14746.509459,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 909.8287920000002,
+          "executeMs": 13681.545125000004,
+          "disposeMs": 0.0005830000009154901,
+          "totalMs": 14591.373917000004,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 912.2608749999999,
+          "executeMs": 13488.149540999999,
+          "disposeMs": 0.0007080000068526715,
+          "totalMs": 14400.410415999999,
+          "runFrames": 100000
+        }
+      ],
+      "proof": {
+        "hash": "b5ce80c3bc1a97a1c87a197a9a806ee0044cd2314c041506f4df65a2b6139af7",
+        "runFrames": 100000,
+        "tokenTotal": 1280000
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "wasm",
+      "mode": "timing",
+      "case": "sir-10000",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 7.964750000000002,
+      "runtimeInitMs": 23.062666999999998,
+      "cold": {
+        "createMs": 74.098167,
+        "executeMs": 950.7008749999999,
+        "disposeMs": 3.754457999999886,
+        "totalMs": 1024.7990419999999,
+        "runFrames": 999942
+      },
+      "warm": [
+        {
+          "createMs": 61.11987500000032,
+          "executeMs": 958.0771250000003,
+          "disposeMs": 2.871708000000126,
+          "totalMs": 1019.1970000000006,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 55.23541699999987,
+          "executeMs": 924.0702500000002,
+          "disposeMs": 2.701708999999937,
+          "totalMs": 979.3056670000001,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 60.15637499999957,
+          "executeMs": 945.972291,
+          "disposeMs": 2.881000000000313,
+          "totalMs": 1006.1286659999996,
+          "runFrames": 999942
+        }
+      ],
+      "proof": {
+        "hash": "afd9845a14cbc2e955d0ff872e281b8510cb68b687f9b7f1555ab50e87dbd119",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "cpu",
+      "mode": "timing",
+      "case": "sir-10000",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.013082999999995,
+      "runtimeInitMs": 0.012084000000001538,
+      "cold": {
+        "createMs": 1396.314417,
+        "executeMs": 2574.6715830000003,
+        "disposeMs": 0.001959000000169908,
+        "totalMs": 3970.9860000000003,
+        "runFrames": 999942
+      },
+      "warm": [
+        {
+          "createMs": 1404.4381669999993,
+          "executeMs": 2493.7631250000013,
+          "disposeMs": 0.0006249999987630872,
+          "totalMs": 3898.2012920000006,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 1298.6360839999998,
+          "executeMs": 2410.4207499999993,
+          "disposeMs": 0.0007920000007288763,
+          "totalMs": 3709.056833999999,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 1341.084166999999,
+          "executeMs": 2471.5185410000013,
+          "disposeMs": 0.000875000001542503,
+          "totalMs": 3812.6027080000003,
+          "runFrames": 999942
+        }
+      ],
+      "proof": {
+        "hash": "afd9845a14cbc2e955d0ff872e281b8510cb68b687f9b7f1555ab50e87dbd119",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "wasm",
+      "mode": "timing",
+      "case": "sir-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.891083000000002,
+      "runtimeInitMs": 22.610291999999994,
+      "cold": {
+        "createMs": 17.20666700000001,
+        "executeMs": 94.64358299999999,
+        "disposeMs": 0.7932500000000005,
+        "totalMs": 111.85025,
+        "runFrames": 100000
+      },
+      "warm": [
+        {
+          "createMs": 7.243333000000007,
+          "executeMs": 88.51120800000001,
+          "disposeMs": 0.3337089999999989,
+          "totalMs": 95.75454100000002,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 7.086000000000013,
+          "executeMs": 88.75383400000004,
+          "disposeMs": 0.378167000000019,
+          "totalMs": 95.83983400000005,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 6.939209000000005,
+          "executeMs": 93.006125,
+          "disposeMs": 0.30033400000002075,
+          "totalMs": 99.945334,
+          "runFrames": 100000
+        }
+      ],
+      "proof": {
+        "hash": "46021e708b428e8ea0585bdbd586f8b146bce4fd9467560016d6ce3c3ff29ece",
+        "runFrames": 100000,
+        "tokenTotal": 1000000
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "cpu",
+      "mode": "timing",
+      "case": "sir-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.243167,
+      "runtimeInitMs": 0.015125000000004718,
+      "cold": {
+        "createMs": 171.76350000000002,
+        "executeMs": 179.141667,
+        "disposeMs": 0.001458000000013726,
+        "totalMs": 350.905167,
+        "runFrames": 100000
+      },
+      "warm": [
+        {
+          "createMs": 139.70016599999997,
+          "executeMs": 163.75950000000012,
+          "disposeMs": 0.0007090000001426233,
+          "totalMs": 303.4596660000001,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 139.42979100000002,
+          "executeMs": 164.60637500000007,
+          "disposeMs": 0.0005419999999958236,
+          "totalMs": 304.0361660000001,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 139.1702089999999,
+          "executeMs": 159.27187500000014,
+          "disposeMs": 0.0006249999998999556,
+          "totalMs": 298.442084,
+          "runFrames": 100000
+        }
+      ],
+      "proof": {
+        "hash": "46021e708b428e8ea0585bdbd586f8b146bce4fd9467560016d6ce3c3ff29ece",
+        "runFrames": 100000,
+        "tokenTotal": 1000000
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "cpu",
+      "mode": "timing",
+      "case": "sir-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.827916000000002,
+      "runtimeInitMs": 0.012582999999999345,
+      "cold": {
+        "createMs": 178.3575,
+        "executeMs": 182.555625,
+        "disposeMs": 0.001334000000042579,
+        "totalMs": 360.913125,
+        "runFrames": 100000
+      },
+      "warm": [
+        {
+          "createMs": 141.82166700000005,
+          "executeMs": 161.09466599999996,
+          "disposeMs": 0.0005419999999958236,
+          "totalMs": 302.916333,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 134.36537499999986,
+          "executeMs": 158.7442920000001,
+          "disposeMs": 0.0006670000000212895,
+          "totalMs": 293.10966699999994,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 133.87470900000017,
+          "executeMs": 157.55562499999996,
+          "disposeMs": 0.0007090000001426233,
+          "totalMs": 291.43033400000013,
+          "runFrames": 100000
+        }
+      ],
+      "proof": {
+        "hash": "46021e708b428e8ea0585bdbd586f8b146bce4fd9467560016d6ce3c3ff29ece",
+        "runFrames": 100000,
+        "tokenTotal": 1000000
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "wasm",
+      "mode": "timing",
+      "case": "sir-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.127125,
+      "runtimeInitMs": 22.704749999999997,
+      "cold": {
+        "createMs": 18.103250000000003,
+        "executeMs": 96.77733299999998,
+        "disposeMs": 0.819625000000002,
+        "totalMs": 114.88058299999999,
+        "runFrames": 100000
+      },
+      "warm": [
+        {
+          "createMs": 7.486165999999969,
+          "executeMs": 87.29600000000005,
+          "disposeMs": 0.32345900000001393,
+          "totalMs": 94.78216600000002,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 7.963416999999993,
+          "executeMs": 89.96283399999999,
+          "disposeMs": 0.3687919999999849,
+          "totalMs": 97.92625099999998,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 7.271499999999946,
+          "executeMs": 93.43666699999994,
+          "disposeMs": 0.30291700000009314,
+          "totalMs": 100.70816699999989,
+          "runFrames": 100000
+        }
+      ],
+      "proof": {
+        "hash": "46021e708b428e8ea0585bdbd586f8b146bce4fd9467560016d6ce3c3ff29ece",
+        "runFrames": 100000,
+        "tokenTotal": 1000000
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "cpu",
+      "mode": "timing",
+      "case": "sir-10000",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.245832999999998,
+      "runtimeInitMs": 0.00912500000000449,
+      "cold": {
+        "createMs": 1408.084625,
+        "executeMs": 2466.3014999999996,
+        "disposeMs": 0.0021659999997609702,
+        "totalMs": 3874.3861249999995,
+        "runFrames": 999942
+      },
+      "warm": [
+        {
+          "createMs": 1357.3671249999998,
+          "executeMs": 2510.624582999999,
+          "disposeMs": 0.0007500000010622898,
+          "totalMs": 3867.9917079999987,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 1315.55825,
+          "executeMs": 2495.722375000001,
+          "disposeMs": 0.001374999999825377,
+          "totalMs": 3811.2806250000012,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 1286.7836669999997,
+          "executeMs": 2431.306875000002,
+          "disposeMs": 0.0007909999985713512,
+          "totalMs": 3718.0905420000017,
+          "runFrames": 999942
+        }
+      ],
+      "proof": {
+        "hash": "afd9845a14cbc2e955d0ff872e281b8510cb68b687f9b7f1555ab50e87dbd119",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "wasm",
+      "mode": "timing",
+      "case": "sir-10000",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.515249999999995,
+      "runtimeInitMs": 22.382875,
+      "cold": {
+        "createMs": 75.09125,
+        "executeMs": 957.546875,
+        "disposeMs": 4.507166999999981,
+        "totalMs": 1032.638125,
+        "runFrames": 999942
+      },
+      "warm": [
+        {
+          "createMs": 54.41875000000027,
+          "executeMs": 978.681583,
+          "disposeMs": 2.7497089999997115,
+          "totalMs": 1033.1003330000003,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 54.11866599999985,
+          "executeMs": 958.4100409999996,
+          "disposeMs": 2.8563750000002983,
+          "totalMs": 1012.5287069999995,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 55.24541700000009,
+          "executeMs": 959.100375,
+          "disposeMs": 2.740708000000268,
+          "totalMs": 1014.3457920000001,
+          "runFrames": 999942
+        }
+      ],
+      "proof": {
+        "hash": "afd9845a14cbc2e955d0ff872e281b8510cb68b687f9b7f1555ab50e87dbd119",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "cpu",
+      "mode": "timing",
+      "case": "ring64-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.48375,
+      "runtimeInitMs": 0.008125000000006821,
+      "cold": {
+        "createMs": 1035.742708,
+        "executeMs": 13607.760875,
+        "disposeMs": 0.001958000000740867,
+        "totalMs": 14643.503583,
+        "runFrames": 100000
+      },
+      "warm": [
+        {
+          "createMs": 923.2744999999995,
+          "executeMs": 13685.114999999998,
+          "disposeMs": 0.0007089999999152496,
+          "totalMs": 14608.389499999997,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 897.2885830000014,
+          "executeMs": 13772.283374999999,
+          "disposeMs": 0.0007499999992433004,
+          "totalMs": 14669.571958,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 916.5005830000009,
+          "executeMs": 13453.102749999998,
+          "disposeMs": 0.0005830000009154901,
+          "totalMs": 14369.603333,
+          "runFrames": 100000
+        }
+      ],
+      "proof": {
+        "hash": "b5ce80c3bc1a97a1c87a197a9a806ee0044cd2314c041506f4df65a2b6139af7",
+        "runFrames": 100000,
+        "tokenTotal": 1280000
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "wasm",
+      "mode": "timing",
+      "case": "ring64-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.278333000000003,
+      "runtimeInitMs": 22.636708000000006,
+      "cold": {
+        "createMs": 72.56712499999999,
+        "executeMs": 408.50058300000006,
+        "disposeMs": 2.545332999999914,
+        "totalMs": 481.06770800000004,
+        "runFrames": 100000
+      },
+      "warm": [
+        {
+          "createMs": 60.167000000000144,
+          "executeMs": 405.8927920000001,
+          "disposeMs": 1.8217919999999594,
+          "totalMs": 466.05979200000024,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 59.13366599999995,
+          "executeMs": 405.3342500000001,
+          "disposeMs": 1.9190410000001066,
+          "totalMs": 464.46791600000006,
+          "runFrames": 100000
+        },
+        {
+          "createMs": 59.36158299999988,
+          "executeMs": 400.3444589999999,
+          "disposeMs": 1.7917919999999867,
+          "totalMs": 459.7060419999998,
+          "runFrames": 100000
+        }
+      ],
+      "proof": {
+        "hash": "b5ce80c3bc1a97a1c87a197a9a806ee0044cd2314c041506f4df65a2b6139af7",
+        "runFrames": 100000,
+        "tokenTotal": 1280000
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "cpu",
+      "mode": "timing",
+      "case": "sir-10000-no-metrics",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 0,
+      "importMs": 7.908082999999998,
+      "runtimeInitMs": 0.007291999999999632,
+      "cold": {
+        "createMs": 1430.869834,
+        "executeMs": 1432.8135839999998,
+        "disposeMs": 0.002041999999619293,
+        "totalMs": 2863.6834179999996,
+        "runFrames": 999942
+      },
+      "warm": [
+        {
+          "createMs": 1321.8821659999994,
+          "executeMs": 1339.1386250000005,
+          "disposeMs": 0.0007920000007288763,
+          "totalMs": 2661.020791,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 1272.851666999999,
+          "executeMs": 1312.1432919999988,
+          "disposeMs": 0.00112500000068394,
+          "totalMs": 2584.994958999998,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 1327.0747499999998,
+          "executeMs": 1330.0700420000012,
+          "disposeMs": 0.0007089999999152496,
+          "totalMs": 2657.144792000001,
+          "runFrames": 999942
+        }
+      ],
+      "proof": {
+        "hash": "76d3549931214c8aa7b63c52d368fb33893df2d02f6c27bc6102279ab61daf7d",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "wasm",
+      "mode": "timing",
+      "case": "sir-10000-no-metrics",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 0,
+      "importMs": 8.055374999999998,
+      "runtimeInitMs": 22.312084,
+      "cold": {
+        "createMs": 63.11258299999999,
+        "executeMs": 353.2075,
+        "disposeMs": 3.7614999999999554,
+        "totalMs": 416.32008299999995,
+        "runFrames": 999942
+      },
+      "warm": [
+        {
+          "createMs": 51.48345900000004,
+          "executeMs": 363.0993750000001,
+          "disposeMs": 2.869083000000046,
+          "totalMs": 414.58283400000016,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 46.74974999999995,
+          "executeMs": 363.57112499999994,
+          "disposeMs": 2.7802080000001297,
+          "totalMs": 410.3208749999999,
+          "runFrames": 999942
+        },
+        {
+          "createMs": 46.66295800000012,
+          "executeMs": 350.9784580000003,
+          "disposeMs": 2.6886249999997744,
+          "totalMs": 397.6414160000004,
+          "runFrames": 999942
+        }
+      ],
+      "proof": {
+        "hash": "76d3549931214c8aa7b63c52d368fb33893df2d02f6c27bc6102279ab61daf7d",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "cpu",
+      "mode": "memory",
+      "case": "sir-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.167665999999997,
+      "runtimeInitMs": 0.008041000000005738,
+      "cold": {
+        "createMs": 175.687667,
+        "executeMs": 178.21258300000002,
+        "disposeMs": 0.0013329999999882602,
+        "totalMs": 353.90025,
+        "runFrames": 100000
+      },
+      "warm": [],
+      "proof": {
+        "hash": "46021e708b428e8ea0585bdbd586f8b146bce4fd9467560016d6ce3c3ff29ece",
+        "runFrames": 100000,
+        "tokenTotal": 1000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46579712,
+          "heapTotal": 7225344,
+          "heapUsed": 4295440,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46579712,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 51806208,
+          "heapTotal": 11141120,
+          "heapUsed": 5547248,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 51806208,
+          "wasmBytes": 0
+        },
+        "initialized": {
+          "rss": 105054208,
+          "heapTotal": 51249152,
+          "heapUsed": 15943704,
+          "external": 2204937,
+          "arrayBuffers": 160623,
+          "peakRss": 105054208,
+          "wasmBytes": 0
+        },
+        "complete": {
+          "rss": 105758720,
+          "heapTotal": 51249152,
+          "heapUsed": 16241008,
+          "external": 2204937,
+          "arrayBuffers": 160623,
+          "peakRss": 105758720,
+          "wasmBytes": 0
+        },
+        "disposed": {
+          "rss": 105955328,
+          "heapTotal": 41025536,
+          "heapUsed": 6384184,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 105955328,
+          "wasmBytes": 0
+        },
+        "peakRss": 105644032
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "wasm",
+      "mode": "memory",
+      "case": "sir-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.394374999999997,
+      "runtimeInitMs": 22.320750000000004,
+      "cold": {
+        "createMs": 16.76479099999999,
+        "executeMs": 93.71424999999999,
+        "disposeMs": 0.8202910000000259,
+        "totalMs": 110.47904099999998,
+        "runFrames": 100000
+      },
+      "warm": [],
+      "proof": {
+        "hash": "46021e708b428e8ea0585bdbd586f8b146bce4fd9467560016d6ce3c3ff29ece",
+        "runFrames": 100000,
+        "tokenTotal": 1000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46465024,
+          "heapTotal": 7225344,
+          "heapUsed": 4295440,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46465024,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 66306048,
+          "heapTotal": 17432576,
+          "heapUsed": 7388312,
+          "external": 4783084,
+          "arrayBuffers": 67962,
+          "peakRss": 66306048,
+          "wasmBytes": 1179648
+        },
+        "initialized": {
+          "rss": 78315520,
+          "heapTotal": 18219008,
+          "heapUsed": 7975440,
+          "external": 5569516,
+          "arrayBuffers": 67962,
+          "peakRss": 78315520,
+          "wasmBytes": 1966080
+        },
+        "complete": {
+          "rss": 80691200,
+          "heapTotal": 18219008,
+          "heapUsed": 8090784,
+          "external": 5569516,
+          "arrayBuffers": 67962,
+          "peakRss": 80691200,
+          "wasmBytes": 1966080
+        },
+        "disposed": {
+          "rss": 80855040,
+          "heapTotal": 17694720,
+          "heapUsed": 7705720,
+          "external": 5569516,
+          "arrayBuffers": 67962,
+          "peakRss": 80855040,
+          "wasmBytes": 1966080
+        },
+        "peakRss": 80560128
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "cpu",
+      "mode": "memory",
+      "case": "sir-10000",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 7.8232089999999985,
+      "runtimeInitMs": 0.007042000000005544,
+      "cold": {
+        "createMs": 1366.259209,
+        "executeMs": 2400.653292,
+        "disposeMs": 0.002415999999811902,
+        "totalMs": 3766.912501,
+        "runFrames": 999942
+      },
+      "warm": [],
+      "proof": {
+        "hash": "afd9845a14cbc2e955d0ff872e281b8510cb68b687f9b7f1555ab50e87dbd119",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46465024,
+          "heapTotal": 7225344,
+          "heapUsed": 4295448,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46465024,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 51625984,
+          "heapTotal": 10616832,
+          "heapUsed": 5547256,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 51625984,
+          "wasmBytes": 0
+        },
+        "initialized": {
+          "rss": 207077376,
+          "heapTotal": 141901824,
+          "heapUsed": 104941576,
+          "external": 3500937,
+          "arrayBuffers": 1456623,
+          "peakRss": 207093760,
+          "wasmBytes": 0
+        },
+        "complete": {
+          "rss": 280264704,
+          "heapTotal": 142163968,
+          "heapUsed": 105259528,
+          "external": 3500937,
+          "arrayBuffers": 1456623,
+          "peakRss": 280264704,
+          "wasmBytes": 0
+        },
+        "disposed": {
+          "rss": 280002560,
+          "heapTotal": 42598400,
+          "heapUsed": 6766984,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 280461312,
+          "wasmBytes": 0
+        },
+        "peakRss": 280150016
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "wasm",
+      "mode": "memory",
+      "case": "sir-10000",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.198,
+      "runtimeInitMs": 23.549583000000005,
+      "cold": {
+        "createMs": 75.719333,
+        "executeMs": 974.5143330000001,
+        "disposeMs": 3.7663340000001426,
+        "totalMs": 1050.233666,
+        "runFrames": 999942
+      },
+      "warm": [],
+      "proof": {
+        "hash": "afd9845a14cbc2e955d0ff872e281b8510cb68b687f9b7f1555ab50e87dbd119",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46530560,
+          "heapTotal": 7225344,
+          "heapUsed": 4295448,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46530560,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 66355200,
+          "heapTotal": 17432576,
+          "heapUsed": 7388248,
+          "external": 4783084,
+          "arrayBuffers": 67962,
+          "peakRss": 66355200,
+          "wasmBytes": 1179648
+        },
+        "initialized": {
+          "rss": 99303424,
+          "heapTotal": 29704192,
+          "heapUsed": 11269536,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 99401728,
+          "wasmBytes": 8781824
+        },
+        "complete": {
+          "rss": 119767040,
+          "heapTotal": 45957120,
+          "heapUsed": 11376216,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 119767040,
+          "wasmBytes": 8781824
+        },
+        "disposed": {
+          "rss": 119488512,
+          "heapTotal": 43122688,
+          "heapUsed": 7751064,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 119963648,
+          "wasmBytes": 8781824
+        },
+        "peakRss": 119734272
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "cpu",
+      "mode": "memory",
+      "case": "ring64-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.172125000000001,
+      "runtimeInitMs": 0.012582999999999345,
+      "cold": {
+        "createMs": 1043.9455830000002,
+        "executeMs": 13699.06025,
+        "disposeMs": 0.0021670000005542533,
+        "totalMs": 14743.005833000001,
+        "runFrames": 100000
+      },
+      "warm": [],
+      "proof": {
+        "hash": "b5ce80c3bc1a97a1c87a197a9a806ee0044cd2314c041506f4df65a2b6139af7",
+        "runFrames": 100000,
+        "tokenTotal": 1280000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 47251456,
+          "heapTotal": 7487488,
+          "heapUsed": 4440008,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 47251456,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 52183040,
+          "heapTotal": 10878976,
+          "heapUsed": 5692048,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 52183040,
+          "wasmBytes": 0
+        },
+        "initialized": {
+          "rss": 274857984,
+          "heapTotal": 202768384,
+          "heapUsed": 164749808,
+          "external": 6540937,
+          "arrayBuffers": 4496623,
+          "peakRss": 274857984,
+          "wasmBytes": 0
+        },
+        "complete": {
+          "rss": 804110336,
+          "heapTotal": 203030528,
+          "heapUsed": 165092672,
+          "external": 6540937,
+          "arrayBuffers": 4496623,
+          "peakRss": 804110336,
+          "wasmBytes": 0
+        },
+        "disposed": {
+          "rss": 804372480,
+          "heapTotal": 41811968,
+          "heapUsed": 6706368,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 804372480,
+          "wasmBytes": 0
+        },
+        "peakRss": 804093952
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "wasm",
+      "mode": "memory",
+      "case": "ring64-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.394624999999998,
+      "runtimeInitMs": 24.126167000000002,
+      "cold": {
+        "createMs": 75.34883299999998,
+        "executeMs": 428.828625,
+        "disposeMs": 2.4842909999999847,
+        "totalMs": 504.177458,
+        "runFrames": 100000
+      },
+      "warm": [],
+      "proof": {
+        "hash": "b5ce80c3bc1a97a1c87a197a9a806ee0044cd2314c041506f4df65a2b6139af7",
+        "runFrames": 100000,
+        "tokenTotal": 1280000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 47005696,
+          "heapTotal": 7487488,
+          "heapUsed": 4440080,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 47005696,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 66617344,
+          "heapTotal": 16908288,
+          "heapUsed": 7533088,
+          "external": 4783084,
+          "arrayBuffers": 67962,
+          "peakRss": 66617344,
+          "wasmBytes": 1179648
+        },
+        "initialized": {
+          "rss": 90161152,
+          "heapTotal": 17956864,
+          "heapUsed": 8175848,
+          "external": 16186348,
+          "arrayBuffers": 67962,
+          "peakRss": 90161152,
+          "wasmBytes": 12582912
+        },
+        "complete": {
+          "rss": 90832896,
+          "heapTotal": 18481152,
+          "heapUsed": 8307656,
+          "external": 16186348,
+          "arrayBuffers": 67962,
+          "peakRss": 90832896,
+          "wasmBytes": 12582912
+        },
+        "disposed": {
+          "rss": 91029504,
+          "heapTotal": 17694720,
+          "heapUsed": 7929856,
+          "external": 16186348,
+          "arrayBuffers": 67962,
+          "peakRss": 91029504,
+          "wasmBytes": 12582912
+        },
+        "peakRss": 90783744
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "cpu",
+      "mode": "memory",
+      "case": "sir-10000-no-metrics",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 0,
+      "importMs": 8.172334,
+      "runtimeInitMs": 0.011458000000004631,
+      "cold": {
+        "createMs": 1381.9877920000001,
+        "executeMs": 1379.9613749999999,
+        "disposeMs": 0.0020829999998568383,
+        "totalMs": 2761.9491669999998,
+        "runFrames": 999942
+      },
+      "warm": [],
+      "proof": {
+        "hash": "76d3549931214c8aa7b63c52d368fb33893df2d02f6c27bc6102279ab61daf7d",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46596096,
+          "heapTotal": 7487488,
+          "heapUsed": 4288688,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46596096,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 51920896,
+          "heapTotal": 10878976,
+          "heapUsed": 5540496,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 51920896,
+          "wasmBytes": 0
+        },
+        "initialized": {
+          "rss": 205832192,
+          "heapTotal": 141688832,
+          "heapUsed": 104219792,
+          "external": 3500937,
+          "arrayBuffers": 1456623,
+          "peakRss": 205832192,
+          "wasmBytes": 0
+        },
+        "complete": {
+          "rss": 206471168,
+          "heapTotal": 141950976,
+          "heapUsed": 104463216,
+          "external": 3500937,
+          "arrayBuffers": 1456623,
+          "peakRss": 206471168,
+          "wasmBytes": 0
+        },
+        "disposed": {
+          "rss": 206831616,
+          "heapTotal": 42336256,
+          "heapUsed": 6664280,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 206831616,
+          "wasmBytes": 0
+        },
+        "peakRss": 206356480
+      }
+    },
+    {
+      "repeat": 0,
+      "engine": "wasm",
+      "mode": "memory",
+      "case": "sir-10000-no-metrics",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 0,
+      "importMs": 8.643791,
+      "runtimeInitMs": 22.440458000000007,
+      "cold": {
+        "createMs": 66.208208,
+        "executeMs": 358.794208,
+        "disposeMs": 3.7711249999999836,
+        "totalMs": 425.00241600000004,
+        "runFrames": 999942
+      },
+      "warm": [],
+      "proof": {
+        "hash": "76d3549931214c8aa7b63c52d368fb33893df2d02f6c27bc6102279ab61daf7d",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46743552,
+          "heapTotal": 7225344,
+          "heapUsed": 4288688,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46743552,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 66469888,
+          "heapTotal": 17432576,
+          "heapUsed": 7381560,
+          "external": 4783084,
+          "arrayBuffers": 67962,
+          "peakRss": 66469888,
+          "wasmBytes": 1179648
+        },
+        "initialized": {
+          "rss": 89276416,
+          "heapTotal": 28704768,
+          "heapUsed": 10547144,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 89276416,
+          "wasmBytes": 8781824
+        },
+        "complete": {
+          "rss": 97517568,
+          "heapTotal": 28704768,
+          "heapUsed": 10578080,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 97517568,
+          "wasmBytes": 8781824
+        },
+        "disposed": {
+          "rss": 97779712,
+          "heapTotal": 26083328,
+          "heapUsed": 7653672,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 97779712,
+          "wasmBytes": 8781824
+        },
+        "peakRss": 97501184
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "wasm",
+      "mode": "memory",
+      "case": "sir-10000-no-metrics",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 0,
+      "importMs": 8.330041999999999,
+      "runtimeInitMs": 22.546917,
+      "cold": {
+        "createMs": 61.889917,
+        "executeMs": 359.11299999999994,
+        "disposeMs": 3.565083999999956,
+        "totalMs": 421.0029169999999,
+        "runFrames": 999942
+      },
+      "warm": [],
+      "proof": {
+        "hash": "76d3549931214c8aa7b63c52d368fb33893df2d02f6c27bc6102279ab61daf7d",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46759936,
+          "heapTotal": 7487488,
+          "heapUsed": 4288688,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46759936,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 66453504,
+          "heapTotal": 16908288,
+          "heapUsed": 7381416,
+          "external": 4783084,
+          "arrayBuffers": 67962,
+          "peakRss": 66453504,
+          "wasmBytes": 1179648
+        },
+        "initialized": {
+          "rss": 89964544,
+          "heapTotal": 28442624,
+          "heapUsed": 10547000,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 89964544,
+          "wasmBytes": 8781824
+        },
+        "complete": {
+          "rss": 98140160,
+          "heapTotal": 28442624,
+          "heapUsed": 10577936,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 98140160,
+          "wasmBytes": 8781824
+        },
+        "disposed": {
+          "rss": 98418688,
+          "heapTotal": 25821184,
+          "heapUsed": 7653528,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 98418688,
+          "wasmBytes": 8781824
+        },
+        "peakRss": 98123776
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "cpu",
+      "mode": "memory",
+      "case": "sir-10000-no-metrics",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 0,
+      "importMs": 8.044082999999997,
+      "runtimeInitMs": 0.016667000000005316,
+      "cold": {
+        "createMs": 1378.96275,
+        "executeMs": 1357.3931670000002,
+        "disposeMs": 0.005541999999877589,
+        "totalMs": 2736.355917,
+        "runFrames": 999942
+      },
+      "warm": [],
+      "proof": {
+        "hash": "76d3549931214c8aa7b63c52d368fb33893df2d02f6c27bc6102279ab61daf7d",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46825472,
+          "heapTotal": 7487488,
+          "heapUsed": 4288688,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46825472,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 51822592,
+          "heapTotal": 11141120,
+          "heapUsed": 5540496,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 51822592,
+          "wasmBytes": 0
+        },
+        "initialized": {
+          "rss": 207011840,
+          "heapTotal": 140902400,
+          "heapUsed": 104187200,
+          "external": 3500937,
+          "arrayBuffers": 1456623,
+          "peakRss": 207011840,
+          "wasmBytes": 0
+        },
+        "complete": {
+          "rss": 207536128,
+          "heapTotal": 141164544,
+          "heapUsed": 104432688,
+          "external": 3500937,
+          "arrayBuffers": 1456623,
+          "peakRss": 207536128,
+          "wasmBytes": 0
+        },
+        "disposed": {
+          "rss": 207798272,
+          "heapTotal": 42074112,
+          "heapUsed": 6632936,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 207798272,
+          "wasmBytes": 0
+        },
+        "peakRss": 207470592
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "wasm",
+      "mode": "memory",
+      "case": "ring64-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 9.236083,
+      "runtimeInitMs": 22.991249999999994,
+      "cold": {
+        "createMs": 73.42787500000001,
+        "executeMs": 423.46274999999997,
+        "disposeMs": 2.6055000000000064,
+        "totalMs": 496.890625,
+        "runFrames": 100000
+      },
+      "warm": [],
+      "proof": {
+        "hash": "b5ce80c3bc1a97a1c87a197a9a806ee0044cd2314c041506f4df65a2b6139af7",
+        "runFrames": 100000,
+        "tokenTotal": 1280000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 47104000,
+          "heapTotal": 7487488,
+          "heapUsed": 4440008,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 47104000,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 66699264,
+          "heapTotal": 17170432,
+          "heapUsed": 7533112,
+          "external": 4783084,
+          "arrayBuffers": 67962,
+          "peakRss": 66699264,
+          "wasmBytes": 1179648
+        },
+        "initialized": {
+          "rss": 90456064,
+          "heapTotal": 17694720,
+          "heapUsed": 8175872,
+          "external": 16186348,
+          "arrayBuffers": 67962,
+          "peakRss": 90456064,
+          "wasmBytes": 12582912
+        },
+        "complete": {
+          "rss": 91209728,
+          "heapTotal": 18219008,
+          "heapUsed": 8306968,
+          "external": 16186348,
+          "arrayBuffers": 67962,
+          "peakRss": 91209728,
+          "wasmBytes": 12582912
+        },
+        "disposed": {
+          "rss": 91308032,
+          "heapTotal": 17694720,
+          "heapUsed": 7929040,
+          "external": 16186348,
+          "arrayBuffers": 67962,
+          "peakRss": 91308032,
+          "wasmBytes": 12582912
+        },
+        "peakRss": 91193344
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "cpu",
+      "mode": "memory",
+      "case": "ring64-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 7.9925,
+      "runtimeInitMs": 0.008709000000003186,
+      "cold": {
+        "createMs": 1023.893334,
+        "executeMs": 13720.878291,
+        "disposeMs": 0.0017919999991136137,
+        "totalMs": 14744.771625000001,
+        "runFrames": 100000
+      },
+      "warm": [],
+      "proof": {
+        "hash": "b5ce80c3bc1a97a1c87a197a9a806ee0044cd2314c041506f4df65a2b6139af7",
+        "runFrames": 100000,
+        "tokenTotal": 1280000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 47054848,
+          "heapTotal": 7487488,
+          "heapUsed": 4440008,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 47054848,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 52068352,
+          "heapTotal": 10878976,
+          "heapUsed": 5692048,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 52068352,
+          "wasmBytes": 0
+        },
+        "initialized": {
+          "rss": 275660800,
+          "heapTotal": 202244096,
+          "heapUsed": 164751352,
+          "external": 6540937,
+          "arrayBuffers": 4496623,
+          "peakRss": 275660800,
+          "wasmBytes": 0
+        },
+        "complete": {
+          "rss": 837992448,
+          "heapTotal": 202768384,
+          "heapUsed": 165096320,
+          "external": 6540937,
+          "arrayBuffers": 4496623,
+          "peakRss": 837992448,
+          "wasmBytes": 0
+        },
+        "disposed": {
+          "rss": 838205440,
+          "heapTotal": 42336256,
+          "heapUsed": 6710008,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 838205440,
+          "wasmBytes": 0
+        },
+        "peakRss": 837976064
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "wasm",
+      "mode": "memory",
+      "case": "sir-10000",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.247875,
+      "runtimeInitMs": 23.447709000000003,
+      "cold": {
+        "createMs": 74.900083,
+        "executeMs": 952.814625,
+        "disposeMs": 3.790083000000095,
+        "totalMs": 1027.714708,
+        "runFrames": 999942
+      },
+      "warm": [],
+      "proof": {
+        "hash": "afd9845a14cbc2e955d0ff872e281b8510cb68b687f9b7f1555ab50e87dbd119",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46940160,
+          "heapTotal": 7487488,
+          "heapUsed": 4295448,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46940160,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 66797568,
+          "heapTotal": 16908288,
+          "heapUsed": 7388272,
+          "external": 4783084,
+          "arrayBuffers": 67962,
+          "peakRss": 66797568,
+          "wasmBytes": 1179648
+        },
+        "initialized": {
+          "rss": 98418688,
+          "heapTotal": 29442048,
+          "heapUsed": 11269632,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 98500608,
+          "wasmBytes": 8781824
+        },
+        "complete": {
+          "rss": 118865920,
+          "heapTotal": 46219264,
+          "heapUsed": 11376312,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 118865920,
+          "wasmBytes": 8781824
+        },
+        "disposed": {
+          "rss": 118620160,
+          "heapTotal": 42860544,
+          "heapUsed": 7751088,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 119062528,
+          "wasmBytes": 8781824
+        },
+        "peakRss": 118849536
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "cpu",
+      "mode": "memory",
+      "case": "sir-10000",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 7.800792000000001,
+      "runtimeInitMs": 0.006749999999996703,
+      "cold": {
+        "createMs": 1419.5986249999999,
+        "executeMs": 2630.3695,
+        "disposeMs": 0.001833000000260654,
+        "totalMs": 4049.9681249999994,
+        "runFrames": 999942
+      },
+      "warm": [],
+      "proof": {
+        "hash": "afd9845a14cbc2e955d0ff872e281b8510cb68b687f9b7f1555ab50e87dbd119",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46907392,
+          "heapTotal": 7487488,
+          "heapUsed": 4295448,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46907392,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 51970048,
+          "heapTotal": 10878976,
+          "heapUsed": 5547256,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 51970048,
+          "wasmBytes": 0
+        },
+        "initialized": {
+          "rss": 209485824,
+          "heapTotal": 142163968,
+          "heapUsed": 104897448,
+          "external": 3500937,
+          "arrayBuffers": 1456623,
+          "peakRss": 209485824,
+          "wasmBytes": 0
+        },
+        "complete": {
+          "rss": 282361856,
+          "heapTotal": 142688256,
+          "heapUsed": 105217256,
+          "external": 3500937,
+          "arrayBuffers": 1456623,
+          "peakRss": 282361856,
+          "wasmBytes": 0
+        },
+        "disposed": {
+          "rss": 282083328,
+          "heapTotal": 41811968,
+          "heapUsed": 6724808,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 282525696,
+          "wasmBytes": 0
+        },
+        "peakRss": 282329088
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "wasm",
+      "mode": "memory",
+      "case": "sir-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.327375000000004,
+      "runtimeInitMs": 24.142540999999994,
+      "cold": {
+        "createMs": 17.36862500000001,
+        "executeMs": 95.499083,
+        "disposeMs": 0.8034159999999986,
+        "totalMs": 112.86770800000001,
+        "runFrames": 100000
+      },
+      "warm": [],
+      "proof": {
+        "hash": "46021e708b428e8ea0585bdbd586f8b146bce4fd9467560016d6ce3c3ff29ece",
+        "runFrames": 100000,
+        "tokenTotal": 1000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46694400,
+          "heapTotal": 7487488,
+          "heapUsed": 4295440,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46694400,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 66650112,
+          "heapTotal": 16908288,
+          "heapUsed": 7388168,
+          "external": 4783084,
+          "arrayBuffers": 67962,
+          "peakRss": 66650112,
+          "wasmBytes": 1179648
+        },
+        "initialized": {
+          "rss": 78659584,
+          "heapTotal": 18219008,
+          "heapUsed": 7975296,
+          "external": 5569516,
+          "arrayBuffers": 67962,
+          "peakRss": 78659584,
+          "wasmBytes": 1966080
+        },
+        "complete": {
+          "rss": 80887808,
+          "heapTotal": 17956864,
+          "heapUsed": 8090640,
+          "external": 5569516,
+          "arrayBuffers": 67962,
+          "peakRss": 80887808,
+          "wasmBytes": 1966080
+        },
+        "disposed": {
+          "rss": 81035264,
+          "heapTotal": 17694720,
+          "heapUsed": 7705576,
+          "external": 5569516,
+          "arrayBuffers": 67962,
+          "peakRss": 81035264,
+          "wasmBytes": 1966080
+        },
+        "peakRss": 80658432
+      }
+    },
+    {
+      "repeat": 1,
+      "engine": "cpu",
+      "mode": "memory",
+      "case": "sir-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.620125000000002,
+      "runtimeInitMs": 0.014291999999997529,
+      "cold": {
+        "createMs": 181.253042,
+        "executeMs": 188.7665,
+        "disposeMs": 0.0012500000000272848,
+        "totalMs": 370.019542,
+        "runFrames": 100000
+      },
+      "warm": [],
+      "proof": {
+        "hash": "46021e708b428e8ea0585bdbd586f8b146bce4fd9467560016d6ce3c3ff29ece",
+        "runFrames": 100000,
+        "tokenTotal": 1000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46972928,
+          "heapTotal": 7225344,
+          "heapUsed": 4295512,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46972928,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 52101120,
+          "heapTotal": 11141120,
+          "heapUsed": 5547320,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 52101120,
+          "wasmBytes": 0
+        },
+        "initialized": {
+          "rss": 105955328,
+          "heapTotal": 50987008,
+          "heapUsed": 15944880,
+          "external": 2204937,
+          "arrayBuffers": 160623,
+          "peakRss": 105955328,
+          "wasmBytes": 0
+        },
+        "complete": {
+          "rss": 106479616,
+          "heapTotal": 51249152,
+          "heapUsed": 16266136,
+          "external": 2204937,
+          "arrayBuffers": 160623,
+          "peakRss": 106479616,
+          "wasmBytes": 0
+        },
+        "disposed": {
+          "rss": 106676224,
+          "heapTotal": 41025536,
+          "heapUsed": 6385248,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 106676224,
+          "wasmBytes": 0
+        },
+        "peakRss": 106414080
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "cpu",
+      "mode": "memory",
+      "case": "sir-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.499208000000003,
+      "runtimeInitMs": 0.010750000000001592,
+      "cold": {
+        "createMs": 186.4845,
+        "executeMs": 206.506125,
+        "disposeMs": 0.0015000000000213731,
+        "totalMs": 392.990625,
+        "runFrames": 100000
+      },
+      "warm": [],
+      "proof": {
+        "hash": "46021e708b428e8ea0585bdbd586f8b146bce4fd9467560016d6ce3c3ff29ece",
+        "runFrames": 100000,
+        "tokenTotal": 1000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46727168,
+          "heapTotal": 7225344,
+          "heapUsed": 4295440,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46727168,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 51970048,
+          "heapTotal": 11141120,
+          "heapUsed": 5547248,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 51970048,
+          "wasmBytes": 0
+        },
+        "initialized": {
+          "rss": 104153088,
+          "heapTotal": 51249152,
+          "heapUsed": 15943704,
+          "external": 2204937,
+          "arrayBuffers": 160623,
+          "peakRss": 104153088,
+          "wasmBytes": 0
+        },
+        "complete": {
+          "rss": 105054208,
+          "heapTotal": 51249152,
+          "heapUsed": 16265720,
+          "external": 2204937,
+          "arrayBuffers": 160623,
+          "peakRss": 105054208,
+          "wasmBytes": 0
+        },
+        "disposed": {
+          "rss": 105267200,
+          "heapTotal": 41287680,
+          "heapUsed": 6384832,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 105267200,
+          "wasmBytes": 0
+        },
+        "peakRss": 104890368
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "wasm",
+      "mode": "memory",
+      "case": "sir-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.584833000000003,
+      "runtimeInitMs": 24.286041999999995,
+      "cold": {
+        "createMs": 17.840041999999997,
+        "executeMs": 97.40483400000001,
+        "disposeMs": 0.7735000000000127,
+        "totalMs": 115.244876,
+        "runFrames": 100000
+      },
+      "warm": [],
+      "proof": {
+        "hash": "46021e708b428e8ea0585bdbd586f8b146bce4fd9467560016d6ce3c3ff29ece",
+        "runFrames": 100000,
+        "tokenTotal": 1000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46792704,
+          "heapTotal": 7487488,
+          "heapUsed": 4295440,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46792704,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 66600960,
+          "heapTotal": 17432576,
+          "heapUsed": 7388336,
+          "external": 4783084,
+          "arrayBuffers": 67962,
+          "peakRss": 66600960,
+          "wasmBytes": 1179648
+        },
+        "initialized": {
+          "rss": 78839808,
+          "heapTotal": 18219008,
+          "heapUsed": 7975464,
+          "external": 5569516,
+          "arrayBuffers": 67962,
+          "peakRss": 78839808,
+          "wasmBytes": 1966080
+        },
+        "complete": {
+          "rss": 80953344,
+          "heapTotal": 18219008,
+          "heapUsed": 8090808,
+          "external": 5569516,
+          "arrayBuffers": 67962,
+          "peakRss": 80953344,
+          "wasmBytes": 1966080
+        },
+        "disposed": {
+          "rss": 81084416,
+          "heapTotal": 17956864,
+          "heapUsed": 7705744,
+          "external": 5569516,
+          "arrayBuffers": 67962,
+          "peakRss": 81084416,
+          "wasmBytes": 1966080
+        },
+        "peakRss": 80822272
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "cpu",
+      "mode": "memory",
+      "case": "sir-10000",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.180709,
+      "runtimeInitMs": 0.011459000000002106,
+      "cold": {
+        "createMs": 1453.19225,
+        "executeMs": 2492.444792,
+        "disposeMs": 0.0014999999993960955,
+        "totalMs": 3945.637042,
+        "runFrames": 999942
+      },
+      "warm": [],
+      "proof": {
+        "hash": "afd9845a14cbc2e955d0ff872e281b8510cb68b687f9b7f1555ab50e87dbd119",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46628864,
+          "heapTotal": 7225344,
+          "heapUsed": 4295448,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46628864,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 51888128,
+          "heapTotal": 11141120,
+          "heapUsed": 5547592,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 51888128,
+          "wasmBytes": 0
+        },
+        "initialized": {
+          "rss": 209321984,
+          "heapTotal": 141639680,
+          "heapUsed": 104892832,
+          "external": 3500937,
+          "arrayBuffers": 1456623,
+          "peakRss": 209321984,
+          "wasmBytes": 0
+        },
+        "complete": {
+          "rss": 282476544,
+          "heapTotal": 142163968,
+          "heapUsed": 105211560,
+          "external": 3500937,
+          "arrayBuffers": 1456623,
+          "peakRss": 282476544,
+          "wasmBytes": 0
+        },
+        "disposed": {
+          "rss": 282181632,
+          "heapTotal": 42336256,
+          "heapUsed": 6719440,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 282624000,
+          "wasmBytes": 0
+        },
+        "peakRss": 282394624
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "wasm",
+      "mode": "memory",
+      "case": "sir-10000",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.005417000000001,
+      "runtimeInitMs": 23.290999999999997,
+      "cold": {
+        "createMs": 74.26166699999999,
+        "executeMs": 1031.272084,
+        "disposeMs": 3.7639999999998963,
+        "totalMs": 1105.533751,
+        "runFrames": 999942
+      },
+      "warm": [],
+      "proof": {
+        "hash": "afd9845a14cbc2e955d0ff872e281b8510cb68b687f9b7f1555ab50e87dbd119",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46497792,
+          "heapTotal": 7487488,
+          "heapUsed": 4295520,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46497792,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 66617344,
+          "heapTotal": 16908288,
+          "heapUsed": 7388560,
+          "external": 4783084,
+          "arrayBuffers": 67962,
+          "peakRss": 66617344,
+          "wasmBytes": 1179648
+        },
+        "initialized": {
+          "rss": 98992128,
+          "heapTotal": 29442048,
+          "heapUsed": 11269848,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 99041280,
+          "wasmBytes": 8781824
+        },
+        "complete": {
+          "rss": 119668736,
+          "heapTotal": 46219264,
+          "heapUsed": 11376528,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 119668736,
+          "wasmBytes": 8781824
+        },
+        "disposed": {
+          "rss": 119390208,
+          "heapTotal": 42860544,
+          "heapUsed": 7751376,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 119865344,
+          "wasmBytes": 8781824
+        },
+        "peakRss": 119652352
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "cpu",
+      "mode": "memory",
+      "case": "ring64-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.290374999999997,
+      "runtimeInitMs": 0.01070800000000105,
+      "cold": {
+        "createMs": 1053.0705,
+        "executeMs": 13478.410082999999,
+        "disposeMs": 0.001833000000260654,
+        "totalMs": 14531.480582999999,
+        "runFrames": 100000
+      },
+      "warm": [],
+      "proof": {
+        "hash": "b5ce80c3bc1a97a1c87a197a9a806ee0044cd2314c041506f4df65a2b6139af7",
+        "runFrames": 100000,
+        "tokenTotal": 1280000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 47480832,
+          "heapTotal": 7487488,
+          "heapUsed": 4440008,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 47480832,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 52199424,
+          "heapTotal": 11403264,
+          "heapUsed": 5692048,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 52199424,
+          "wasmBytes": 0
+        },
+        "initialized": {
+          "rss": 275513344,
+          "heapTotal": 202768384,
+          "heapUsed": 164750016,
+          "external": 6540937,
+          "arrayBuffers": 4496623,
+          "peakRss": 275513344,
+          "wasmBytes": 0
+        },
+        "complete": {
+          "rss": 836108288,
+          "heapTotal": 203030528,
+          "heapUsed": 165099480,
+          "external": 6540937,
+          "arrayBuffers": 4496623,
+          "peakRss": 836108288,
+          "wasmBytes": 0
+        },
+        "disposed": {
+          "rss": 836304896,
+          "heapTotal": 42074112,
+          "heapUsed": 6713144,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 836304896,
+          "wasmBytes": 0
+        },
+        "peakRss": 836108288
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "wasm",
+      "mode": "memory",
+      "case": "ring64-1000",
+      "runCount": 1000,
+      "frames": 100,
+      "metrics": 1,
+      "importMs": 8.109708000000005,
+      "runtimeInitMs": 22.680041000000003,
+      "cold": {
+        "createMs": 73.367959,
+        "executeMs": 408.719209,
+        "disposeMs": 2.534167000000025,
+        "totalMs": 482.08716799999996,
+        "runFrames": 100000
+      },
+      "warm": [],
+      "proof": {
+        "hash": "b5ce80c3bc1a97a1c87a197a9a806ee0044cd2314c041506f4df65a2b6139af7",
+        "runFrames": 100000,
+        "tokenTotal": 1280000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46972928,
+          "heapTotal": 7487488,
+          "heapUsed": 4440008,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46972928,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 66666496,
+          "heapTotal": 16908288,
+          "heapUsed": 7532944,
+          "external": 4783084,
+          "arrayBuffers": 67962,
+          "peakRss": 66666496,
+          "wasmBytes": 1179648
+        },
+        "initialized": {
+          "rss": 90374144,
+          "heapTotal": 17956864,
+          "heapUsed": 8175704,
+          "external": 16186348,
+          "arrayBuffers": 67962,
+          "peakRss": 90374144,
+          "wasmBytes": 12582912
+        },
+        "complete": {
+          "rss": 91127808,
+          "heapTotal": 18481152,
+          "heapUsed": 8307344,
+          "external": 16186348,
+          "arrayBuffers": 67962,
+          "peakRss": 91127808,
+          "wasmBytes": 12582912
+        },
+        "disposed": {
+          "rss": 91357184,
+          "heapTotal": 17694720,
+          "heapUsed": 7929544,
+          "external": 16186348,
+          "arrayBuffers": 67962,
+          "peakRss": 91357184,
+          "wasmBytes": 12582912
+        },
+        "peakRss": 91095040
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "cpu",
+      "mode": "memory",
+      "case": "sir-10000-no-metrics",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 0,
+      "importMs": 8.061333999999995,
+      "runtimeInitMs": 0.008707999999998606,
+      "cold": {
+        "createMs": 1379.440042,
+        "executeMs": 1361.5189169999999,
+        "disposeMs": 0.0014590000000680448,
+        "totalMs": 2740.9589589999996,
+        "runFrames": 999942
+      },
+      "warm": [],
+      "proof": {
+        "hash": "76d3549931214c8aa7b63c52d368fb33893df2d02f6c27bc6102279ab61daf7d",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46628864,
+          "heapTotal": 7487488,
+          "heapUsed": 4288688,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46628864,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 51642368,
+          "heapTotal": 10878976,
+          "heapUsed": 5540496,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 51642368,
+          "wasmBytes": 0
+        },
+        "initialized": {
+          "rss": 207339520,
+          "heapTotal": 140902400,
+          "heapUsed": 104181960,
+          "external": 3500937,
+          "arrayBuffers": 1456623,
+          "peakRss": 207339520,
+          "wasmBytes": 0
+        },
+        "complete": {
+          "rss": 207618048,
+          "heapTotal": 141164544,
+          "heapUsed": 104428712,
+          "external": 3500937,
+          "arrayBuffers": 1456623,
+          "peakRss": 207618048,
+          "wasmBytes": 0
+        },
+        "disposed": {
+          "rss": 207847424,
+          "heapTotal": 41549824,
+          "heapUsed": 6628840,
+          "external": 2060937,
+          "arrayBuffers": 16623,
+          "peakRss": 207847424,
+          "wasmBytes": 0
+        },
+        "peakRss": 207585280
+      }
+    },
+    {
+      "repeat": 2,
+      "engine": "wasm",
+      "mode": "memory",
+      "case": "sir-10000-no-metrics",
+      "runCount": 10000,
+      "frames": 100,
+      "metrics": 0,
+      "importMs": 7.780041000000004,
+      "runtimeInitMs": 22.40925,
+      "cold": {
+        "createMs": 62.484207999999995,
+        "executeMs": 359.672791,
+        "disposeMs": 3.932292000000075,
+        "totalMs": 422.15699900000004,
+        "runFrames": 999942
+      },
+      "warm": [],
+      "proof": {
+        "hash": "76d3549931214c8aa7b63c52d368fb33893df2d02f6c27bc6102279ab61daf7d",
+        "runFrames": 999942,
+        "tokenTotal": 10000000
+      },
+      "memory": {
+        "baseline": {
+          "rss": 46546944,
+          "heapTotal": 7487488,
+          "heapUsed": 4288688,
+          "external": 1998745,
+          "arrayBuffers": 16623,
+          "peakRss": 46546944,
+          "wasmBytes": 0
+        },
+        "loaded": {
+          "rss": 66453504,
+          "heapTotal": 16908288,
+          "heapUsed": 7381416,
+          "external": 4783084,
+          "arrayBuffers": 67962,
+          "peakRss": 66453504,
+          "wasmBytes": 1179648
+        },
+        "initialized": {
+          "rss": 90013696,
+          "heapTotal": 28442624,
+          "heapUsed": 10547000,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 90013696,
+          "wasmBytes": 8781824
+        },
+        "complete": {
+          "rss": 98205696,
+          "heapTotal": 28442624,
+          "heapUsed": 10577936,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 98205696,
+          "wasmBytes": 8781824
+        },
+        "disposed": {
+          "rss": 98484224,
+          "heapTotal": 25821184,
+          "heapUsed": 7653528,
+          "external": 12385260,
+          "arrayBuffers": 67962,
+          "peakRss": 98484224,
+          "wasmBytes": 8781824
+        },
+        "peakRss": 98189312
+      }
+    }
+  ]
+}

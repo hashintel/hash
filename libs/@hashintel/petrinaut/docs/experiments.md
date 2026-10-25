@@ -151,7 +151,7 @@ The Wasm prototype supports uncoloured places, standard/read/inhibitor arcs, cap
 
 Coloured tokens, continuous dynamics, subnet instances, arrays, strings, UUIDs, distributions, and other expressions fall back to CPU with a reason. The **Compute** badge in **Details** shows which backend ran. To test Wasm, load the **SIR Model**, select **Wasm (Rust, experimental)**, add **Infected Fraction**, and click **Run**.
 
-The Wasm backend uses the CPU backend's seed derivation and random generator. Its arithmetic uses 64-bit floating point. Rust's exponential function can differ slightly from JavaScript's, so exact trajectories are not guaranteed at probability boundaries. This prototype has no simulation speed or memory advantage established by benchmarks yet. The **Engine** selector at the top of the demo controls document editing separately from this experiment choice.
+The Wasm backend uses the CPU backend's seed derivation and random generator. Its arithmetic uses 64-bit floating point. Rust's exponential function can differ slightly from JavaScript's, so exact trajectories are not guaranteed at probability boundaries. The **Engine** selector at the top of the demo controls document editing separately from this experiment choice.
 
 The choice is per experiment, so CPU, Wasm and GPU experiments can run side by side on the same model. Each GPU experiment gets its own device; CPU and Wasm experiments use worker pools.
 
