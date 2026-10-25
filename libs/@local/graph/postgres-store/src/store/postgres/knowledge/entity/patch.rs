@@ -4,8 +4,8 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, ResultExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_authorization::policies::{
-    Authorized, MergePolicies, PolicyComponents, PolicySet, Request, RequestContext, ResourceId,
-    action::ActionName,
+    Authorized, Context, MergePolicies, PolicyComponents, PolicySet, Request, RequestContext,
+    ResourceId, action::ActionName,
 };
 use hash_graph_store::{
     entity::{
@@ -25,17 +25,10 @@ use hash_graph_types::{
 };
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use hash_status::StatusCode;
-use tokio_postgres::GenericClient as _;
-use tracing::Instrument as _;
 use type_system::{
     knowledge::{
         Entity, Property,
-        entity::{
-            EntityProvenance,
-            id::{DraftId, EntityEditionId, EntityId, EntityRecordId},
-            metadata::EntityTemporalMetadata,
-            provenance::EntityEditionProvenance,
-        },
+        entity::{id::EntityId, provenance::EntityEditionProvenance},
         property::{
             PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
             metadata::{PropertyMetadata, PropertyObjectMetadata},
@@ -47,14 +40,15 @@ use type_system::{
     },
     principal::actor::{ActorEntityUuid, ActorId},
 };
-use uuid::Uuid;
 
-use super::{LockedEntityEdition, provenance::SqlEntityEditionProvenance};
+use super::{LockedEntityEdition, batch::EntityPatchSet};
 use crate::store::{
-    AsClient, InTransaction, PostgresStore, error::EntityDoesNotExist, validation::StoreProvider,
+    AsClient, InTransaction, PostgresStore, error::EntityDoesNotExist,
+    postgres::query::rows::EntityTemporalMetadataRow, validation::StoreProvider,
 };
 
-enum DraftTransition {
+#[derive(Clone, Copy)]
+pub(super) enum DraftTransition {
     Update,
     Create,
     Publish,
@@ -102,29 +96,24 @@ impl EntityPatchValidation {
     }
 }
 
-/// Checks update and archival permissions before applying property or type changes.
-fn authorize_entity_patch(
+/// Checks permissions against the edition being replaced. An explicit archived flag requires
+/// [`ActionName::ArchiveEntity`] permission even when it matches the existing value.
+pub(super) fn authorize_entity_patch(
+    actor_id: ActorId,
     params: &PatchEntityParams,
     previous_entity: &Entity,
-    policy_components: &PolicyComponents,
-) -> Result<PolicySet, Report<UpdateError>> {
-    let policy_set = policy_components
-        .build_policy_set([
-            ActionName::Instantiate,
-            ActionName::UpdateEntity,
-            ActionName::ArchiveEntity,
-        ])
-        .change_context(UpdateError)?;
-
+    policy_set: &PolicySet,
+    context: &Context,
+) -> Result<(), Report<UpdateError>> {
     if params.is_update() {
         let request = Request {
-            actor: policy_components.actor_id(),
+            actor: Some(actor_id),
             action: ActionName::UpdateEntity,
             resource: &ResourceId::Entity(params.entity_id.entity_uuid),
             context: RequestContext::default(),
         };
         let authorized = policy_set
-            .evaluate(&request, policy_components.context())
+            .evaluate(&request, context)
             .change_context(UpdateError)?;
         ensure!(
             matches!(authorized, Authorized::Always),
@@ -145,13 +134,13 @@ fn authorize_entity_patch(
 
     if let Some(archive) = params.archived {
         let request = Request {
-            actor: policy_components.actor_id(),
+            actor: Some(actor_id),
             action: ActionName::ArchiveEntity,
             resource: &ResourceId::Entity(params.entity_id.entity_uuid),
             context: RequestContext::default(),
         };
         let authorized = policy_set
-            .evaluate(&request, policy_components.context())
+            .evaluate(&request, context)
             .change_context(UpdateError)?;
         ensure!(
             matches!(authorized, Authorized::Always),
@@ -164,7 +153,7 @@ fn authorize_entity_patch(
         );
     }
 
-    Ok(policy_set)
+    Ok(())
 }
 
 /// Checks permissions for changed types and their ancestors, returning whether the types change.
@@ -314,9 +303,9 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         params: PatchEntityParams,
         previous_entity: Entity,
         policy_components: &PolicyComponents,
+        policy_set: &PolicySet,
         validator_provider: &StoreProvider<'_, Self>,
     ) -> Result<EntityPatchPreparation, Report<UpdateError>> {
-        let policy_set = authorize_entity_patch(&params, &previous_entity, policy_components)?;
         let PatchEntityParams {
             entity_id,
             decision_time: _,
@@ -330,7 +319,7 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         let types_changed = authorize_entity_type_changes(
             &previous_entity.metadata.entity_type_ids,
             &entity_type_ids,
-            &policy_set,
+            policy_set,
             policy_components,
             validator_provider,
         )
@@ -459,7 +448,7 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         })
     }
 
-    /// Writes a prepared edition and applies its draft or live history transition.
+    /// Calculates the edition, draft, and temporal rows before writing the prepared patch.
     #[tracing::instrument(level = "info", skip_all)]
     pub(super) async fn persist_entity_patch(
         &self,
@@ -473,178 +462,28 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
             mut entity,
             draft_transition,
         } = changes;
-        let entity_id = entity.metadata.record_id.entity_id;
-        let stored_provenance =
-            SqlEntityEditionProvenance::from(entity.metadata.provenance.edition);
-        let edition_id = self
-            .insert_entity_edition(
-                entity.metadata.archived,
-                &entity.metadata.entity_type_ids,
-                &entity.properties,
-                entity.metadata.confidence,
-                &stored_provenance,
-                &entity.metadata.properties,
-            )
-            .await
-            .change_context(UpdateError)?;
-        entity.metadata.provenance.edition = EntityEditionProvenance::from(stored_provenance);
-        let (entity_id, temporal_versioning) = match draft_transition {
-            DraftTransition::Update => (
-                entity_id,
-                self.update_temporal_metadata(
-                    locked_row,
-                    transaction_time,
-                    decision_time,
-                    edition_id,
-                    false,
-                )
-                .await?,
-            ),
-            DraftTransition::Create => {
-                self.create_entity_patch_draft(
-                    entity_id,
-                    edition_id,
-                    transaction_time,
-                    decision_time,
-                )
+        let mut rows = vec![EntityTemporalMetadataRow::from(locked_row)];
+        if matches!(draft_transition, DraftTransition::Publish) {
+            let entity_id = EntityId {
+                draft_id: None,
+                ..entity.metadata.record_id.entity_id
+            };
+            if let Some(live) = self
+                .lock_entity_edition(entity_id, transaction_time, decision_time)
                 .await?
+            {
+                rows.push(EntityTemporalMetadataRow::from(live));
             }
-            DraftTransition::Publish => {
-                self.publish_entity_patch(
-                    actor_id,
-                    locked_row,
-                    edition_id,
-                    transaction_time,
-                    decision_time,
-                    &mut entity.metadata.provenance,
-                )
-                .await?
-            }
-        };
-        entity.metadata.record_id = EntityRecordId {
-            entity_id,
-            edition_id,
-        };
-        entity.metadata.temporal_versioning = temporal_versioning;
+        }
+        let mut patches = EntityPatchSet::new(rows);
+        patches.apply(
+            actor_id,
+            &mut entity,
+            draft_transition,
+            transaction_time,
+            decision_time,
+        );
+        self.write_entity_patch_set(actor_id, &patches).await?;
         Ok(entity)
-    }
-
-    /// Starts a new draft history for an existing live entity.
-    async fn create_entity_patch_draft(
-        &self,
-        mut entity_id: EntityId,
-        edition_id: EntityEditionId,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-    ) -> Result<(EntityId, EntityTemporalMetadata), Report<UpdateError>> {
-        let draft_id = DraftId::new(Uuid::new_v4());
-        self.as_client()
-            .query(
-                "INSERT INTO entity_drafts (web_id, entity_uuid, draft_id) VALUES ($1, $2, $3);",
-                &[&entity_id.web_id, &entity_id.entity_uuid, &draft_id],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres"
-            ))
-            .await
-            .change_context(UpdateError)?;
-        entity_id.draft_id = Some(draft_id);
-        let temporal_versioning = self
-            .insert_temporal_metadata(entity_id, edition_id, transaction_time, decision_time)
-            .await
-            .change_context(UpdateError)?;
-        Ok((entity_id, temporal_versioning))
-    }
-
-    /// Publishes the patched draft and archives any live edition it replaces.
-    async fn publish_entity_patch(
-        &self,
-        actor_id: ActorId,
-        locked_row: LockedEntityEdition,
-        edition_id: EntityEditionId,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-        provenance: &mut EntityProvenance,
-    ) -> Result<(EntityId, EntityTemporalMetadata), Report<UpdateError>> {
-        let entity_id = EntityId {
-            draft_id: None,
-            ..locked_row.entity_id
-        };
-        if provenance
-            .first_non_draft_created_at_decision_time
-            .is_none()
-        {
-            self.record_entity_first_publication(
-                entity_id,
-                transaction_time,
-                decision_time,
-                provenance,
-            )
-            .await?;
-        }
-        if let Some(previous_live_entity) = self
-            .lock_entity_edition(entity_id, transaction_time, decision_time)
-            .await?
-        {
-            self.archive_entity(
-                actor_id,
-                previous_live_entity,
-                transaction_time,
-                decision_time,
-            )
-            .await?;
-        }
-        let temporal_versioning = self
-            .update_temporal_metadata(
-                locked_row,
-                transaction_time,
-                decision_time,
-                edition_id,
-                true,
-            )
-            .await?;
-        Ok((entity_id, temporal_versioning))
-    }
-
-    /// Records when the entity first becomes live on both temporal axes.
-    async fn record_entity_first_publication(
-        &self,
-        entity_id: EntityId,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-        provenance: &mut EntityProvenance,
-    ) -> Result<(), Report<UpdateError>> {
-        self.as_client()
-            .query(
-                "
-                UPDATE entity_ids
-                SET
-                    provenance = provenance || jsonb_build_object(
-                        'firstNonDraftCreatedAtTransactionTime', $1::TIMESTAMPTZ,
-                        'firstNonDraftCreatedAtDecisionTime', $2::TIMESTAMPTZ
-                    )
-                WHERE web_id = $3 AND entity_uuid = $4;
-                ",
-                &[
-                    &transaction_time,
-                    &decision_time,
-                    &entity_id.web_id,
-                    &entity_id.entity_uuid,
-                ],
-            )
-            .instrument(tracing::info_span!(
-                "UPDATE",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres"
-            ))
-            .await
-            .change_context(UpdateError)?;
-        provenance.first_non_draft_created_at_transaction_time = Some(transaction_time);
-        provenance.first_non_draft_created_at_decision_time = Some(decision_time);
-        Ok(())
     }
 }

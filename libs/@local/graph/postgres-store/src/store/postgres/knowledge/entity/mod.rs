@@ -72,7 +72,7 @@ use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
     knowledge::{
-        Confidence, Entity, PropertyValue,
+        Entity, PropertyValue,
         entity::{
             EntityMetadata, EntityProvenance,
             id::{DraftId, EntityEditionId, EntityId, EntityRecordId, EntityUuid},
@@ -89,7 +89,7 @@ use type_system::{
         InheritanceDepth,
         data_type::schema::DataTypeReference,
         entity_type::{ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid},
-        id::{OntologyTypeUuid, VersionedUrl},
+        id::VersionedUrl,
     },
     principal::{
         actor::{ActorEntityUuid, ActorId},
@@ -105,9 +105,8 @@ use crate::store::{
         BeginReadOnlyTransaction, InTransaction, TransactionState, TraversalContext,
         crud::{QueryIndices, TypedRow},
         knowledge::entity::{
-            history::EntityHistory,
-            patch::{EntityPatchPreparation, PreparedEntityPatch},
-            provenance::{SqlEntityEditionProvenance, SqlEntityProvenance},
+            patch::{EntityPatchPreparation, PreparedEntityPatch, authorize_entity_patch},
+            provenance::SqlEntityProvenance,
             read::EntityEdgeTraversalData,
             summary::{Deduplication, EntitySummaryQuery, EntitySummaryRequest},
         },
@@ -2035,6 +2034,20 @@ where
             let policy_components = transaction
                 .build_entity_patch_policy_components(actor_id, &params, &previous_entity)
                 .await?;
+            let policy_set = policy_components
+                .build_policy_set([
+                    ActionName::Instantiate,
+                    ActionName::UpdateEntity,
+                    ActionName::ArchiveEntity,
+                ])
+                .change_context(UpdateError)?;
+            authorize_entity_patch(
+                actor_id,
+                &params,
+                &previous_entity,
+                &policy_set,
+                policy_components.context(),
+            )?;
             let validator_provider = StoreProvider::new(&transaction, &policy_components);
             match transaction
                 .prepare_entity_patch(
@@ -2042,6 +2055,7 @@ where
                     params,
                     previous_entity,
                     &policy_components,
+                    &policy_set,
                     &validator_provider,
                 )
                 .await?
@@ -2614,120 +2628,6 @@ impl<C> PostgresStore<C, InTransaction>
 where
     C: AsClient,
 {
-    #[tracing::instrument(level = "info", skip_all)]
-    async fn insert_entity_edition(
-        &self,
-        archived: bool,
-        entity_type_ids: impl IntoIterator<Item = &VersionedUrl> + Send,
-        properties: &PropertyObject,
-        confidence: Option<Confidence>,
-        provenance: &SqlEntityEditionProvenance,
-        metadata: &PropertyObjectMetadata,
-    ) -> Result<EntityEditionId, Report<InsertionError>> {
-        let edition_id: EntityEditionId = self
-            .as_client()
-            .query_one(
-                "
-                    INSERT INTO entity_editions (
-                        entity_edition_id,
-                        archived,
-                        properties,
-                        confidence,
-                        provenance,
-                        property_metadata,
-                        created_by_id
-                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
-                    RETURNING entity_edition_id;
-                ",
-                &[
-                    &archived,
-                    &properties,
-                    &confidence,
-                    &provenance.json,
-                    metadata,
-                    &provenance.created_by_id,
-                ],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(InsertionError)?
-            .get(0);
-
-        let entity_type_ontology_ids = entity_type_ids
-            .into_iter()
-            .map(|entity_type_id| OntologyTypeUuid::from(EntityTypeUuid::from_url(entity_type_id)))
-            .collect::<Vec<_>>();
-
-        self.as_client()
-            .query(
-                "
-                    INSERT INTO entity_is_of_type (
-                        entity_edition_id,
-                        entity_type_ontology_id,
-                        inheritance_depth
-                    ) SELECT $1, UNNEST($2::UUID[]), 0;
-                ",
-                &[&edition_id, &entity_type_ontology_ids],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(InsertionError)?;
-        self.as_client()
-            .query(
-                "
-                    INSERT INTO entity_is_of_type (
-                        entity_edition_id,
-                        entity_type_ontology_id,
-                        inheritance_depth
-                    )
-                    SELECT entity_edition_id,
-                           target_entity_type_ontology_id AS entity_type_ontology_id,
-                           MIN(entity_type_inherits_from.depth + 1) AS inheritance_depth
-                      FROM entity_is_of_type
-                      JOIN entity_type_inherits_from
-                        ON entity_type_ontology_id = source_entity_type_ontology_id
-                     WHERE entity_edition_id = $1
-                     GROUP BY entity_edition_id, target_entity_type_ontology_id;
-                ",
-                &[&edition_id],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(InsertionError)?;
-
-        let edition_ids = [edition_id];
-        self.as_client()
-            .query(
-                &insert_entity_edition_cache_statement(true),
-                &[&edition_ids.as_slice()],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(InsertionError)?;
-
-        Ok(edition_id)
-    }
-
     #[tracing::instrument(level = "info", skip(self))]
     async fn lock_entity_edition(
         &self,
@@ -2811,121 +2711,6 @@ where
                     .change_context(UpdateError),
                 _ => Report::new(error).change_context(UpdateError),
             })
-    }
-
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn insert_temporal_metadata(
-        &self,
-        entity_id: EntityId,
-        edition_id: EntityEditionId,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-    ) -> Result<EntityTemporalMetadata, Report<InsertionError>> {
-        let row = self
-            .as_client()
-            .query_one(
-                "
-                INSERT INTO entity_temporal_metadata (
-                    web_id,
-                    entity_uuid,
-                    draft_id,
-                    entity_edition_id,
-                    transaction_time,
-                    decision_time
-                ) VALUES (
-                    $1,
-                    $2,
-                    $3,
-                    $4,
-                    tstzrange($5, NULL, '[)'),
-                    tstzrange($6, NULL, '[)')
-                ) RETURNING decision_time, transaction_time;",
-                &[
-                    &entity_id.web_id,
-                    &entity_id.entity_uuid,
-                    &entity_id.draft_id,
-                    &edition_id,
-                    &transaction_time,
-                    &decision_time,
-                ],
-            )
-            .instrument(tracing::info_span!(
-                "INSERT",
-                otel.kind = "client",
-                db.system = "postgresql",
-                peer.service = "Postgres",
-            ))
-            .await
-            .change_context(InsertionError)?;
-
-        Ok(EntityTemporalMetadata {
-            decision_time: row.get(0),
-            transaction_time: row.get(1),
-        })
-    }
-
-    /// Preserves the earlier intervals before replacing the state at the patch timestamps.
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn update_temporal_metadata(
-        &self,
-        locked_row: LockedEntityEdition,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-        entity_edition_id: EntityEditionId,
-        undraft: bool,
-    ) -> Result<EntityTemporalMetadata, Report<UpdateError>> {
-        let previous = EntityTemporalMetadataRow::from(locked_row);
-        let row = EntityTemporalMetadataRow {
-            draft_id: if undraft { None } else { previous.draft_id },
-            entity_edition_id,
-            transaction_time: LeftClosedTemporalInterval::new(
-                ClosedTemporalBound::Inclusive(transaction_time),
-                OpenTemporalBound::Unbounded,
-            ),
-            decision_time: LeftClosedTemporalInterval::new(
-                ClosedTemporalBound::Inclusive(decision_time),
-                *previous.decision_time.end(),
-            ),
-            ..previous.clone()
-        };
-        let temporal_versioning = EntityTemporalMetadata {
-            decision_time: row.decision_time,
-            transaction_time: row.transaction_time,
-        };
-        let mut history = EntityHistory::new([previous.clone()]);
-        history.replace(&previous, row, transaction_time, decision_time);
-        self.update_entity_history(&history).await?;
-        Ok(temporal_versioning)
-    }
-
-    /// Closes the superseded live interval and records the actor responsible for publication.
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn archive_entity(
-        &self,
-        actor_id: ActorId,
-        locked_row: LockedEntityEdition,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-    ) -> Result<(), Report<UpdateError>> {
-        let previous = EntityTemporalMetadataRow::from(locked_row);
-        let mut history = EntityHistory::new([previous.clone()]);
-        history.close(&previous, transaction_time, decision_time);
-        self.update_entity_history(&history).await?;
-        self.as_client()
-            .execute(
-                "
-                UPDATE entity_editions
-                SET provenance = provenance || jsonb_build_object('archivedById', $2::UUID)
-                WHERE entity_edition_id = $1
-                ",
-                &[
-                    &previous.entity_edition_id,
-                    &ActorEntityUuid::from(actor_id),
-                ],
-            )
-            .await
-            .change_context(UpdateError)?;
-        Ok(())
     }
 }
 
