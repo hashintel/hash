@@ -794,7 +794,6 @@ export function describeMathFnSupport(): {
 /** HIR types this backend can represent. */
 export function isWgslRepresentableType(type: HirType): boolean {
   switch (type.kind) {
-    case "element":
     case "null":
       return false;
     case "real":

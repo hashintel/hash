@@ -9,6 +9,7 @@
 import ts from "@typescript/typescript6";
 
 import { lintHirUserCode } from "../../hir";
+import { lowerVisualizerToHir } from "../../view-hir";
 
 import type { HirDiagnostic, HirSurfaceContext } from "../../hir";
 
@@ -153,6 +154,12 @@ export function getHirDiagnosticsForItem(
     (context.surface === "lambda" || context.surface === "visualizer")
   ) {
     return [];
+  }
+  // A visualizer lowers to the view HIR, whose lowering and checks refuse
+  // what the renderer cannot draw.
+  if (context.surface === "visualizer") {
+    const result = lowerVisualizerToHir(code, context);
+    return result.ok ? [] : result.diagnostics.map(toTsDiagnostic);
   }
   // Out-of-subset code is an error: the HIR pipeline is the only compiler,
   // so such code cannot simulate.

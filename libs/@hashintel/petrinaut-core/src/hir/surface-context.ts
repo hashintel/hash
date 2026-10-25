@@ -199,6 +199,13 @@ export type HirSurfaceContext =
   | HirScenarioCodeContext
   | HirVisualizerContext;
 
+/** The contexts of code that lowers to an `HirFunction`. A visualizer's
+ * context types only the expressions inside its view HIR. */
+export type HirFunctionContext = Exclude<
+  HirSurfaceContext,
+  HirVisualizerContext
+>;
+
 const SCOPE_SEPARATOR = "::";
 
 function toParameterInfos(parameters: Parameter[]): HirParameterInfo[] {

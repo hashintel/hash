@@ -103,7 +103,7 @@ const VisualizerPicture: React.FC<{
     );
   }
   return renderVisualizerHir(
-    hir.fn,
+    hir.view,
     tokens,
     mergeParameterValues(parameterValues, defaultParameterValues),
   );

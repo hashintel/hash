@@ -12,28 +12,14 @@
  * `MAX_RANGE_LENGTH` ceiling. Records are built without a prototype because
  * their keys are user-authored (see `validation/record-keys.ts`).
  *
- * Visualizer functions are interpreted too: their `element` nodes evaluate
- * to `HirElementValue` trees the UI renders, so no JavaScript from the net
- * ever runs.
+ * The view HIR evaluates a visualizer's expressions through
+ * `interpretHirExpr` with the visualizer's rules, so no JavaScript from the
+ * net ever runs there either.
  */
 import { range } from "../simulation/authoring/scenario/helpers";
 import { createUserKeyedRecord, getOwn } from "../validation/record-keys";
 
-import type { HirExpr, HirFunction, HirSurfaceKind, Span } from "./hir";
-
-/**
- * A rendered element: the tag, its attributes, its React key and its
- * children, as plain data. A class rather than a record so it cannot be
- * confused with a user-keyed record (`instanceof` tells them apart).
- */
-export class HirElementValue {
-  constructor(
-    readonly tag: string,
-    readonly attributes: ReadonlyMap<string, HirValue>,
-    readonly key: HirValue | undefined,
-    readonly children: readonly HirValue[],
-  ) {}
-}
+import type { HirExpr, HirFunction, Span } from "./hir";
 
 export type HirValue =
   | number
@@ -42,8 +28,7 @@ export type HirValue =
   | bigint
   | null
   | HirValue[]
-  | { [key: string]: HirValue }
-  | HirElementValue;
+  | { [key: string]: HirValue };
 
 /** Ambient values for `parameters.<name>` and `scenario.<name>` reads. */
 export type HirInterpretBindings = {
@@ -69,6 +54,10 @@ type Env = ReadonlyMap<string, HirValue>;
  * is; a visualizer keeps JavaScript's `undefined`, surfaced as `null`, so
  * `tokens[0] || fallback` draws an empty place.
  */
+export type HirInterpretOptions = {
+  outOfRangeIndex?: "error" | "null";
+};
+
 type Evaluation = {
   bindings: HirInterpretBindings;
   outOfRangeIndex: "error" | "null";
@@ -116,12 +105,7 @@ function asText(value: HirValue, span: Span): string {
 }
 
 function isRecord(value: HirValue): value is { [key: string]: HirValue } {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    !Array.isArray(value) &&
-    !(value instanceof HirElementValue)
-  );
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function evalExpr(expr: HirExpr, env: Env, evaluation: Evaluation): HirValue {
@@ -478,65 +462,37 @@ function evalExpr(expr: HirExpr, env: Env, evaluation: Evaluation): HirValue {
       }
       return target.toFixed(digits);
     }
-    case "element": {
-      const attributes = new Map<string, HirValue>();
-      for (const attribute of expr.attributes) {
-        attributes.set(
-          attribute.name,
-          evalExpr(attribute.value, env, evaluation),
-        );
-      }
-      return new HirElementValue(
-        expr.tag,
-        attributes,
-        expr.key === undefined
-          ? undefined
-          : evalExpr(expr.key, env, evaluation),
-        expr.children.map((child) => evalExpr(child, env, evaluation)),
-      );
-    }
   }
 }
 
 /**
  * Evaluates one expression under `locals` (the enclosing `let` and callback
  * bindings) and the ambient bindings. Analyses that walk the tree themselves,
- * such as a constraint's margin, evaluate their operands through this.
+ * such as a constraint's margin or the view HIR's interpreter, evaluate
+ * their operands through this.
  */
 export function interpretHirExpr(
   expr: HirExpr,
   locals: ReadonlyMap<string, HirValue>,
   bindings: HirInterpretBindings,
+  options: HirInterpretOptions = {},
 ): HirValue {
-  return evalExpr(expr, locals, { bindings, outOfRangeIndex: "error" });
+  return evalExpr(expr, locals, {
+    bindings,
+    outOfRangeIndex: options.outOfRangeIndex ?? "error",
+  });
 }
-
-const outOfRangeIndexFor = (surface: HirSurfaceKind): "error" | "null" =>
-  surface === "visualizer" ? "null" : "error";
 
 /**
  * Evaluates a lowered (and, at the caller's responsibility, type-checked)
  * HIR function with the given ambient bindings. Scenario functions declare
  * no parameters — `parameters` and `scenario` reads resolve through
- * `bindings`. A visualizer declares its props parameter, bound from
- * `args[0]` as a `{ tokens, parameters }` record.
- * Throws `HirInterpretError` (positioned in the user source) on evaluation
- * failure.
+ * `bindings`. Throws `HirInterpretError` (positioned in the user source) on
+ * evaluation failure.
  */
 export function interpretHir(
   fn: HirFunction,
   bindings: HirInterpretBindings,
-  args: readonly HirValue[] = [],
 ): HirValue {
-  const env = new Map<string, HirValue>();
-  for (const [index, argument] of args.entries()) {
-    const param = fn.params[index];
-    if (param) {
-      env.set(param.name, argument);
-    }
-  }
-  return evalExpr(fn.body, env, {
-    bindings,
-    outOfRangeIndex: outOfRangeIndexFor(fn.surface),
-  });
+  return evalExpr(fn.body, new Map(), { bindings, outOfRangeIndex: "error" });
 }

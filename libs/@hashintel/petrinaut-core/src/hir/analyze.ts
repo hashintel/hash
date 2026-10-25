@@ -404,16 +404,6 @@ export function foldHir(expr: HirExpr): HirExpr {
         target: foldHir(expr.target),
         ...(expr.digits ? { digits: foldHir(expr.digits) } : {}),
       };
-    case "element":
-      return {
-        ...expr,
-        attributes: expr.attributes.map((attribute) => ({
-          ...attribute,
-          value: foldHir(attribute.value),
-        })),
-        ...(expr.key ? { key: foldHir(expr.key) } : {}),
-        children: expr.children.map(foldHir),
-      };
   }
 }
 
@@ -682,17 +672,6 @@ class Analyzer {
         this.evalExpr(expr.target, env);
         if (expr.digits) {
           this.evalExpr(expr.digits, env);
-        }
-        return SCALAR;
-      case "element":
-        for (const attribute of expr.attributes) {
-          this.evalExpr(attribute.value, env);
-        }
-        if (expr.key) {
-          this.evalExpr(expr.key, env);
-        }
-        for (const child of expr.children) {
-          this.evalExpr(child, env);
         }
         return SCALAR;
       case "distribution": {

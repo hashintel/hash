@@ -38,6 +38,8 @@ export default defineConfig(({ command }) => ({
         diagnostics: resolve(packageRoot, "src/diagnostics.ts"),
         // HIR compiler. Tooling loads TS6 as a dependency; the LSP worker bundles it.
         hir: resolve(packageRoot, "src/hir.ts"),
+        // The view HIR visualizers lower to; builds on ./hir, same TS6 dependency.
+        "view-hir": resolve(packageRoot, "src/view-hir.ts"),
         // Dependency-free instantiation of compiled HIR artifacts.
         "hir-runtime": resolve(packageRoot, "src/hir-runtime.ts"),
         optimization: resolve(packageRoot, "src/optimization/index.ts"),

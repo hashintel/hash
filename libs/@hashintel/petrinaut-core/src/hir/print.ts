@@ -212,7 +212,6 @@ function precedenceOf(expr: HirExpr): number {
       return PRECEDENCE_COND;
     case "nullLit":
     case "templateLit":
-    case "element":
       return PRECEDENCE_PRIMARY;
     case "arraySlice":
     case "arrayFilter":
@@ -405,7 +404,6 @@ class Printer {
       case "arraySlice":
       case "arrayFilter":
       case "numberFormat":
-      case "element":
         return unprintable(
           expr,
           "visualizer syntax has no scenario-expression form.",

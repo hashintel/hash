@@ -1,4 +1,3 @@
-import { HirElementValue } from "../../../../hir/interpret";
 import { createUserKeyedRecord } from "../../../../validation/record-keys";
 import { coerceTokenRecord } from "../../../engine/token-values";
 import { TYPE_POLICIES } from "../../../engine/type-policies";
@@ -97,8 +96,7 @@ export const compileCodeModeInitialState = (args: {
   if (
     typeof evaluated.value !== "object" ||
     evaluated.value === null ||
-    Array.isArray(evaluated.value) ||
-    evaluated.value instanceof HirElementValue
+    Array.isArray(evaluated.value)
   ) {
     errors.push({
       itemId: "__code__",

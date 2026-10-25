@@ -1,15 +1,16 @@
 import { createElement, Fragment, type ReactNode } from "react";
 
 import {
-  HIR_FRAGMENT_TAG,
-  HirElementValue,
-  interpretHir,
+  interpretViewHir,
   isSafeViewValue,
   VIEW_ELEMENT_ATTRIBUTES,
   VIEW_ELEMENT_TAGS,
+  VIEW_FRAGMENT_TAG,
   VIEW_STYLE_PROPERTIES,
-  type HirFunction,
+  ViewElementValue,
   type HirValue,
+  type ViewHir,
+  type ViewValue,
 } from "@hashintel/petrinaut-core";
 
 export type VisualizerTokens = readonly Readonly<
@@ -21,10 +22,7 @@ export type VisualizerParameters = Readonly<Record<string, number | boolean>>;
 const isRecord = (
   value: HirValue,
 ): value is { readonly [key: string]: HirValue } =>
-  typeof value === "object" &&
-  value !== null &&
-  !Array.isArray(value) &&
-  !(value instanceof HirElementValue);
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
 const unsafeValue = (name: string): Error =>
   new Error(
@@ -82,9 +80,9 @@ const toAttributeValue = (
   }
 };
 
-const elementToReactNode = (element: HirElementValue): ReactNode => {
+const elementToReactNode = (element: ViewElementValue): ReactNode => {
   const { tag } = element;
-  if (tag !== HIR_FRAGMENT_TAG && !VIEW_ELEMENT_TAGS.has(tag)) {
+  if (tag !== VIEW_FRAGMENT_TAG && !VIEW_ELEMENT_TAGS.has(tag)) {
     throw new Error(`\`<${tag}>\` cannot be drawn by a visualizer.`);
   }
   const props: Record<string, unknown> = {};
@@ -104,14 +102,14 @@ const elementToReactNode = (element: HirElementValue): ReactNode => {
     props.key = String(key);
   }
   return createElement(
-    tag === HIR_FRAGMENT_TAG ? Fragment : tag,
+    tag === VIEW_FRAGMENT_TAG ? Fragment : tag,
     props,
     // eslint-disable-next-line no-use-before-define -- mutual recursion
     ...element.children.map(toReactNode),
   );
 };
 
-const toReactNode = (value: HirValue): ReactNode => {
+const toReactNode = (value: ViewValue): ReactNode => {
   if (value === null || typeof value === "boolean") {
     return null;
   }
@@ -122,33 +120,27 @@ const toReactNode = (value: HirValue): ReactNode => {
     return String(value);
   }
   if (Array.isArray(value)) {
-    return value.map(toReactNode);
+    return (value as readonly ViewValue[]).map(toReactNode);
   }
-  if (value instanceof HirElementValue) {
+  if (value instanceof ViewElementValue) {
     return elementToReactNode(value);
   }
   return null;
 };
 
 /**
- * Draws one frame of a lowered visualizer: interprets the function over the
+ * Draws one frame of a lowered visualizer: interprets the view over the
  * place's tokens and the net's parameters, then turns the element values
  * into React elements.
  *
  * The lowering already restricted the picture to the allowlisted elements,
- * attributes and style properties, and the type checker refused literal
- * remote URLs; values computed at run time are checked here again, so
- * nothing outside those sets reaches the DOM. A violation throws, which the
+ * attributes and style properties, and the checker refused literal remote
+ * URLs; values computed at run time are checked here again, so nothing
+ * outside those sets reaches the DOM. A violation throws, which the
  * surrounding error boundary shows as a runtime error.
  */
 export const renderVisualizerHir = (
-  fn: HirFunction,
+  view: ViewHir,
   tokens: VisualizerTokens,
   parameters: VisualizerParameters,
-): ReactNode => {
-  const props: HirValue = {
-    tokens: tokens as unknown as HirValue,
-    parameters: parameters as HirValue,
-  };
-  return toReactNode(interpretHir(fn, { parameters, scenario: {} }, [props]));
-};
+): ReactNode => toReactNode(interpretViewHir(view, { tokens, parameters }));

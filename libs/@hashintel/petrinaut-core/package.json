@@ -58,6 +58,10 @@
       "types": "./dist/hir-runtime.d.ts",
       "import": "./dist/hir-runtime.js"
     },
+    "./view-hir": {
+      "types": "./dist/view-hir.d.ts",
+      "import": "./dist/view-hir.js"
+    },
     "./optimization": {
       "types": "./dist/optimization.d.ts",
       "import": "./dist/optimization.js"

@@ -33,8 +33,8 @@ import {
   formatTypeScriptExpression,
   lowerConstraint,
   lowerScenarioToHir,
-  lowerVisualizerToHir,
 } from "../../hir";
+import { lowerVisualizerToHir } from "../../view-hir";
 import { getHirDiagnosticsForItem } from "../lib/check-hir";
 import { checkSDCPN } from "../lib/checker";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";

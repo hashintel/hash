@@ -8,7 +8,7 @@ import {
   supplyChainProfit,
   supplyChainWithDisruption,
 } from "@hashintel/petrinaut-core/examples";
-import { lowerVisualizerToHir } from "@hashintel/petrinaut-core/hir";
+import { lowerVisualizerToHir } from "@hashintel/petrinaut-core/view-hir";
 
 import { renderVisualizerHir } from "./render-visualizer-hir";
 import { sampleParameters, sampleTokens } from "./visualizer-parity-fixture";
@@ -33,7 +33,7 @@ const render = (
     throw new Error(lowered.diagnostics.map((item) => item.message).join("; "));
   }
   return renderToStaticMarkup(
-    renderVisualizerHir(lowered.fn, tokens, parameters),
+    renderVisualizerHir(lowered.view, tokens, parameters),
   );
 };
 

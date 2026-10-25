@@ -50,7 +50,8 @@ export type HirNodeId = number;
  *
  * `visualizer` — a place visualizer: the module
  *   `export default Visualization(({ tokens, parameters }) => <jsx/>)`,
- *   JavaScript with JSX, lowered to `element` nodes over the place's tokens.
+ *   JavaScript with JSX, lowered to the view HIR over the place's tokens;
+ *   only its expressions are HIR.
  *
  * The scenario and visualizer surfaces are evaluated by the HIR interpreter
  * (`interpret.ts`), not emitted as JavaScript.
@@ -63,6 +64,10 @@ export type HirSurfaceKind =
   | "scenario-expression"
   | "scenario-code"
   | "visualizer";
+
+/** The surfaces whose code lowers to an `HirFunction`. A visualizer lowers
+ * to the view HIR instead, and only its expressions come through here. */
+export type HirFunctionSurfaceKind = Exclude<HirSurfaceKind, "visualizer">;
 
 /** Scalar and structural types inferred over HIR nodes. */
 export type HirType =
@@ -85,9 +90,8 @@ export type HirType =
   | { kind: "string" }
   /** A probability distribution over reals. */
   | { kind: "distribution" }
-  /** A rendered element (visualizer surface). */
-  | { kind: "element" }
-  /** `null` / `undefined`: a child that renders nothing (visualizer surface). */
+  /** `null` / `undefined` (visualizer surface): an index past the end, or a
+   * value that draws nothing. */
   | { kind: "null" }
   | { kind: "unknown" };
 
@@ -97,7 +101,6 @@ export const HIR_TYPE_BOOL: HirType = { kind: "bool" };
 export const HIR_TYPE_UUID: HirType = { kind: "uuid" };
 export const HIR_TYPE_STRING: HirType = { kind: "string" };
 export const HIR_TYPE_DISTRIBUTION: HirType = { kind: "distribution" };
-export const HIR_TYPE_ELEMENT: HirType = { kind: "element" };
 export const HIR_TYPE_NULL: HirType = { kind: "null" };
 export const HIR_TYPE_UNKNOWN: HirType = { kind: "unknown" };
 
@@ -409,30 +412,6 @@ export type HirNumberFormat = HirNodeBase & {
   digits?: HirExpr;
 };
 
-export type HirElementAttribute = {
-  name: string;
-  nameSpan: Span;
-  value: HirExpr;
-};
-
-/** The `tag` of an `element` lowered from a fragment, `<>…</>`. */
-export const HIR_FRAGMENT_TAG = "#fragment";
-
-/**
- * A JSX element (visualizer surface). `tag` is the element name, `svg`,
- * `circle`, …, or `HIR_FRAGMENT_TAG`; `key` is the reconciliation key and
- * never an attribute; children render in order, and `null`, booleans and
- * nested arrays follow React's rules for them.
- */
-export type HirElement = HirNodeBase & {
-  kind: "element";
-  tag: string;
-  tagSpan: Span;
-  attributes: HirElementAttribute[];
-  key?: HirExpr;
-  children: HirExpr[];
-};
-
 export type HirExpr =
   | HirNumberLit
   | HirBoolLit
@@ -464,8 +443,7 @@ export type HirExpr =
   | HirTemplateLit
   | HirArraySlice
   | HirArrayFilter
-  | HirNumberFormat
-  | HirElement;
+  | HirNumberFormat;
 
 /**
  * A lowered user function. `params[0]` is the tokens/input parameter,
@@ -560,12 +538,6 @@ export function hirChildren(expr: HirExpr): HirExpr[] {
       return [expr.target, expr.body];
     case "numberFormat":
       return [expr.target, ...(expr.digits ? [expr.digits] : [])];
-    case "element":
-      return [
-        ...expr.attributes.map((attribute) => attribute.value),
-        ...(expr.key ? [expr.key] : []),
-        ...expr.children,
-      ];
   }
 }
 
@@ -592,8 +564,6 @@ export function formatHirType(type: HirType): string {
       return "string";
     case "distribution":
       return "Distribution";
-    case "element":
-      return "element";
     case "null":
       return "null";
     case "record":

@@ -2,4 +2,4 @@
 "@hashintel/petrinaut": patch
 ---
 
-The Visualizer editor reports type errors, with completion and hover, and lists them in the Diagnostics tab under the place without blocking a run.
+The Visualizer editor checks JavaScript with JSX as you type, lists errors in the Diagnostics tab without blocking a run, and draws the picture without Babel or `new Function`.

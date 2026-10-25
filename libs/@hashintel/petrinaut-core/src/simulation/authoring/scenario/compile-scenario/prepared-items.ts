@@ -3,7 +3,7 @@ import { typecheckHir } from "../../../../hir/typecheck";
 
 import type { HirInterpretBindings, HirValue } from "../../../../hir/interpret";
 import type { ScenarioHirItem } from "../../../../hir/scenario";
-import type { HirSurfaceContext } from "../../../../hir/surface-context";
+import type { HirFunctionContext } from "../../../../hir/surface-context";
 
 /**
  * One lowered scenario item after the value-independent half of its
@@ -28,7 +28,7 @@ export const staleScenarioItem: PreparedScenarioItem = {
  */
 export const prepareScenarioItem = (
   item: ScenarioHirItem | undefined,
-  context: HirSurfaceContext,
+  context: HirFunctionContext,
 ): PreparedScenarioItem => {
   if (item === undefined) {
     return staleScenarioItem;

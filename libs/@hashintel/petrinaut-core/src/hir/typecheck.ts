@@ -12,10 +12,8 @@
  */
 import {
   formatHirType,
-  HIR_FRAGMENT_TAG,
   HIR_TYPE_BOOL,
   HIR_TYPE_DISTRIBUTION,
-  HIR_TYPE_ELEMENT,
   HIR_TYPE_INT,
   HIR_TYPE_NULL,
   HIR_TYPE_REAL,
@@ -23,16 +21,9 @@ import {
   HIR_TYPE_UNKNOWN,
   HIR_TYPE_UUID,
 } from "./hir";
-import {
-  isSafeViewValue,
-  VIEW_ELEMENT_ATTRIBUTES,
-  VIEW_ELEMENT_TAGS,
-  VIEW_STYLE_PROPERTIES,
-} from "./view-elements";
 
 import type {
   HirDiagnostic,
-  HirElement,
   HirExpr,
   HirFunction,
   HirMathFn,
@@ -40,7 +31,11 @@ import type {
   HirType,
   Span,
 } from "./hir";
-import type { HirSurfaceContext, HirTokenElementInfo } from "./surface-context";
+import type {
+  HirFunctionContext,
+  HirSurfaceContext,
+  HirTokenElementInfo,
+} from "./surface-context";
 
 export type HirTypecheckResult = {
   /** Inferred type per HIR node id. */
@@ -88,8 +83,11 @@ const INT_MATH_FNS = new Set<HirMathFn>([
   "trunc",
 ]);
 
-function elementType(element: HirTokenElementInfo): HirType {
-  switch (element.type) {
+/** The HIR type of a token attribute or parameter of the given colour type. */
+export function hirTypeOfAttribute(
+  attribute: Pick<HirTokenElementInfo, "type">,
+): HirType {
+  switch (attribute.type) {
     case "real":
       return HIR_TYPE_REAL;
     case "integer":
@@ -103,12 +101,13 @@ function elementType(element: HirTokenElementInfo): HirType {
   }
 }
 
-function tokenRecordType(elements: HirTokenElementInfo[]): HirType {
+/** The record type of one token of a colour. */
+export function hirTokenRecordType(elements: HirTokenElementInfo[]): HirType {
   return {
     kind: "record",
     fields: elements.map((element) => ({
       name: element.name,
-      type: elementType(element),
+      type: hirTypeOfAttribute(element),
     })),
   };
 }
@@ -121,9 +120,9 @@ function isBoolish(type: HirType): boolean {
   return type.kind === "bool" || type.kind === "unknown";
 }
 
-/** Scalar kinds JavaScript writes as text: template interpolations and
- * string concatenation accept these. */
-function isTextual(type: HirType): boolean {
+/** Scalar kinds JavaScript writes as text: template interpolations, string
+ * concatenation and a picture's attributes and labels accept these. */
+export function isTextualHirType(type: HirType): boolean {
   switch (type.kind) {
     case "real":
     case "int":
@@ -137,24 +136,13 @@ function isTextual(type: HirType): boolean {
   }
 }
 
-/**
- * What an element may contain: text-like scalars, elements, nothing, and
- * arrays of those (`tokens.map(...)` children). Records and distributions
- * are not drawable.
- */
-function isRenderable(type: HirType): boolean {
-  if (type.kind === "array") {
-    return isRenderable(type.element);
-  }
-  return type.kind === "element" || type.kind === "null" || isTextual(type);
-}
-
 /** Least upper bound, collapsing to `unknown` on structural mismatch. */
 function joinTypes(left: HirType, right: HirType): HirType {
   if (left.kind === "unknown" || right.kind === "unknown") {
     return HIR_TYPE_UNKNOWN;
   }
-  // `cond ? <g/> : null` draws an element or nothing: an element.
+  // `tokens[0] || fallback` on the visualizer surface: `null` joins with
+  // anything as that type.
   if (left.kind === "null") {
     return right;
   }
@@ -237,22 +225,21 @@ class Typechecker {
     this.diagnostics.push({ code, message, severity, span });
   }
 
-  check(fn: HirFunction): HirType {
+  check(fn: HirFunction, context: HirFunctionContext): HirType {
     const env = new Map<string, HirType>();
     const tokensParam = fn.params[0];
     if (tokensParam) {
-      env.set(tokensParam.name, this.tokensParamType());
+      env.set(tokensParam.name, this.tokensParamType(context));
     }
     const returnType = this.infer(fn.body, env);
-    this.checkReturnType(fn, returnType);
+    this.checkReturnType(fn, returnType, context);
     return returnType;
   }
 
-  private tokensParamType(): HirType {
-    const context = this.context;
+  private tokensParamType(context: HirFunctionContext): HirType {
     switch (context.surface) {
       case "dynamics":
-        return { kind: "array", element: tokenRecordType(context.elements) };
+        return { kind: "array", element: hirTokenRecordType(context.elements) };
       case "lambda":
       case "kernel":
         return {
@@ -261,7 +248,7 @@ class Typechecker {
             name: place.name,
             type: {
               kind: "array",
-              element: tokenRecordType(place.elements),
+              element: hirTokenRecordType(place.elements),
               length: place.tokenCount,
             } satisfies HirType,
           })),
@@ -271,34 +258,6 @@ class Typechecker {
         // Scenario functions have no declared parameters — `parameters` and
         // `scenario` are ambient.
         return HIR_TYPE_UNKNOWN;
-      case "visualizer":
-        // The component's props: `{ tokens, parameters }`. An uncoloured
-        // place carries black tokens with no attributes; its visualizer is
-        // never drawn, so its tokens stay unknown.
-        return {
-          kind: "record",
-          fields: [
-            {
-              name: "tokens",
-              type: {
-                kind: "array",
-                element: context.elements
-                  ? tokenRecordType(context.elements)
-                  : HIR_TYPE_UNKNOWN,
-              },
-            },
-            {
-              name: "parameters",
-              type: {
-                kind: "record",
-                fields: context.parameters.map((parameter) => ({
-                  name: parameter.name,
-                  type: elementType(parameter),
-                })),
-              },
-            },
-          ],
-        };
       case "metric":
         return {
           kind: "record",
@@ -317,7 +276,7 @@ class Typechecker {
                         name: "tokens",
                         type: {
                           kind: "array",
-                          element: tokenRecordType(place.elements),
+                          element: hirTokenRecordType(place.elements),
                         } satisfies HirType,
                       },
                     ],
@@ -330,13 +289,16 @@ class Typechecker {
     }
   }
 
-  private infer(expr: HirExpr, env: Map<string, HirType>): HirType {
+  infer(expr: HirExpr, env: ReadonlyMap<string, HirType>): HirType {
     const type = this.inferUncached(expr, env);
     this.types.set(expr.id, type);
     return type;
   }
 
-  private inferUncached(expr: HirExpr, env: Map<string, HirType>): HirType {
+  private inferUncached(
+    expr: HirExpr,
+    env: ReadonlyMap<string, HirType>,
+  ): HirType {
     switch (expr.kind) {
       case "numberLit":
         return Number.isInteger(expr.value) ? HIR_TYPE_INT : HIR_TYPE_REAL;
@@ -387,7 +349,7 @@ class Typechecker {
           );
           return HIR_TYPE_UNKNOWN;
         }
-        return elementType({ name: parameter.name, type: parameter.type });
+        return hirTypeOfAttribute(parameter);
       }
       case "scenarioRef": {
         const context = this.context;
@@ -620,7 +582,7 @@ class Typechecker {
               this.context.surface === "visualizer" &&
               (leftType.kind === "string" || rightType.kind === "string")
             ) {
-              if (!isTextual(leftType) || !isTextual(rightType)) {
+              if (!isTextualHirType(leftType) || !isTextualHirType(rightType)) {
                 this.report(
                   expr.span,
                   "hir:type-mismatch",
@@ -847,7 +809,7 @@ class Typechecker {
       case "templateLit": {
         for (const expression of expr.expressions) {
           const expressionType = this.infer(expression, env);
-          if (!isTextual(expressionType)) {
+          if (!isTextualHirType(expressionType)) {
             this.report(
               expression.span,
               "hir:type-mismatch",
@@ -925,116 +887,6 @@ class Typechecker {
         }
         return HIR_TYPE_STRING;
       }
-      case "element":
-        return this.checkElement(expr, env);
-    }
-  }
-
-  /**
-   * An element may only use the allowlisted tags, attributes and style
-   * properties, and a literal value may not reference a remote URL. Dynamic
-   * values are checked again by the renderer.
-   */
-  private checkElement(expr: HirElement, env: Map<string, HirType>): HirType {
-    if (expr.tag !== HIR_FRAGMENT_TAG && !VIEW_ELEMENT_TAGS.has(expr.tag)) {
-      this.report(
-        expr.tagSpan,
-        "hir:unknown-element",
-        `\`<${expr.tag}>\` cannot be drawn by a visualizer. Images, links, scripts and embedded content are not available.`,
-      );
-    }
-    for (const attribute of expr.attributes) {
-      if (!VIEW_ELEMENT_ATTRIBUTES.has(attribute.name)) {
-        this.report(
-          attribute.nameSpan,
-          "hir:unknown-element-attribute",
-          /^on[A-Z]/u.test(attribute.name)
-            ? `\`${attribute.name}\` is an event handler; a visualizer cannot react to events.`
-            : `\`${attribute.name}\` is not an attribute a visualizer can set.`,
-        );
-      }
-      const valueType = this.infer(attribute.value, env);
-      if (attribute.name === "style") {
-        this.checkStyle(attribute.value, valueType);
-      } else if (!isTextual(valueType)) {
-        this.report(
-          attribute.value.span,
-          "hir:element-attribute-value",
-          `\`${attribute.name}\` takes a number, string or boolean, got ${formatHirType(valueType)}.`,
-        );
-      } else {
-        this.checkLiteralValue(attribute.value);
-      }
-    }
-    if (expr.key) {
-      const keyType = this.infer(expr.key, env);
-      if (!isTextual(keyType)) {
-        this.report(
-          expr.key.span,
-          "hir:element-attribute-value",
-          `\`key\` takes a number or string, got ${formatHirType(keyType)}.`,
-        );
-      }
-    }
-    for (const child of expr.children) {
-      const childType = this.infer(child, env);
-      if (!isRenderable(childType)) {
-        this.report(
-          child.span,
-          "hir:element-child",
-          `An element can contain text, numbers and elements, not ${formatHirType(childType)}.`,
-        );
-      }
-      this.checkLiteralValue(child);
-    }
-    return HIR_TYPE_ELEMENT;
-  }
-
-  /** `style={{ ... }}`: a record of allowlisted properties with text values. */
-  private checkStyle(value: HirExpr, valueType: HirType): void {
-    if (valueType.kind === "unknown") {
-      return;
-    }
-    if (valueType.kind !== "record") {
-      this.report(
-        value.span,
-        "hir:element-attribute-value",
-        `\`style\` takes an object like \`{{ width: "100%" }}\`, got ${formatHirType(valueType)}.`,
-      );
-      return;
-    }
-    const entries = value.kind === "recordLit" ? value.entries : [];
-    for (const field of valueType.fields) {
-      const entry = entries.find((candidate) => candidate.key === field.name);
-      if (!VIEW_STYLE_PROPERTIES.has(field.name)) {
-        this.report(
-          entry?.keySpan ?? value.span,
-          "hir:unknown-style-property",
-          `\`${field.name}\` is not a style property a visualizer can set.`,
-        );
-      }
-      if (!isTextual(field.type)) {
-        this.report(
-          entry?.value.span ?? value.span,
-          "hir:element-attribute-value",
-          `Style values are numbers or strings, got ${formatHirType(field.type)}.`,
-        );
-      }
-      if (entry) {
-        this.checkLiteralValue(entry.value);
-      }
-    }
-  }
-
-  /** A literal string with a remote `url(...)` is reported where it is
-   * written; computed strings are checked when rendered. */
-  private checkLiteralValue(value: HirExpr): void {
-    if (value.kind === "stringLit" && !isSafeViewValue(value.value)) {
-      this.report(
-        value.span,
-        "hir:unsafe-value",
-        "`url(...)` may only reference an element of this picture, like `url(#marker)`.",
-      );
     }
   }
 
@@ -1093,8 +945,11 @@ class Typechecker {
   }
 
   /** Surface-specific checks on the function's result type. */
-  private checkReturnType(fn: HirFunction, returnType: HirType): void {
-    const context = this.context;
+  private checkReturnType(
+    fn: HirFunction,
+    returnType: HirType,
+    context: HirFunctionContext,
+  ): void {
     const bodySpan = fn.body.kind === "let" ? fn.body.body.span : fn.body.span;
 
     switch (context.surface) {
@@ -1219,20 +1074,6 @@ class Typechecker {
           return;
         }
         this.checkScenarioInitialState(fn, returnType, context);
-        return;
-      }
-      case "visualizer": {
-        if (
-          returnType.kind !== "element" &&
-          returnType.kind !== "null" &&
-          returnType.kind !== "unknown"
-        ) {
-          this.report(
-            bodySpan,
-            "hir:visualizer-return",
-            `A visualizer must return an element such as \`<svg>…</svg>\`, got ${formatHirType(returnType)}.`,
-          );
-        }
         return;
       }
     }
@@ -1520,13 +1361,37 @@ class Typechecker {
 /** Runs type inference and surface checks over a lowered function. */
 export function typecheckHir(
   fn: HirFunction,
-  context: HirSurfaceContext,
+  context: HirFunctionContext,
 ): HirTypecheckResult {
   const checker = new Typechecker(context);
-  const returnType = checker.check(fn);
+  const returnType = checker.check(fn, context);
   return {
     types: checker.types,
     returnType,
     diagnostics: checker.diagnostics,
   };
+}
+
+/**
+ * Expression inference as a surface with a tree of its own uses it: the
+ * view HIR binds the props and callback parameters its nodes introduce and
+ * infers each expression under them, so the typing rules have one owner.
+ */
+export type HirExpressionChecker = {
+  infer(expr: HirExpr, env: ReadonlyMap<string, HirType>): HirType;
+  report(
+    span: Span,
+    code: string,
+    message: string,
+    severity?: HirDiagnostic["severity"],
+  ): void;
+  /** Inferred type per expression id, filled as `infer` runs. */
+  readonly types: ReadonlyMap<HirNodeId, HirType>;
+  readonly diagnostics: readonly HirDiagnostic[];
+};
+
+export function createHirExpressionChecker(
+  context: HirSurfaceContext,
+): HirExpressionChecker {
+  return new Typechecker(context);
 }

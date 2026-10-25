@@ -6,13 +6,14 @@ import {
   supplyChainProfit,
   supplyChainWithDisruption,
 } from "../examples";
-import { HIR_FRAGMENT_TAG } from "./hir";
-import { HirElementValue, interpretHir } from "./interpret";
-import { lowerTypeScriptToHir } from "./lower-typescript";
-import { buildVisualizerContext } from "./surface-context";
+import { buildVisualizerContext } from "../hir/surface-context";
+import { interpretViewHir, ViewElementValue } from "./interpret-view";
+import { VIEW_FRAGMENT_TAG } from "./view-hir";
+import { viewHirSchema } from "./view-hir-schema";
 import { lowerVisualizerToHir } from "./visualizer";
 
-import type { HirVisualizerContext } from "./surface-context";
+import type { HirVisualizerContext } from "../hir/surface-context";
+import type { ViewValue } from "./interpret-view";
 
 const context: HirVisualizerContext = {
   surface: "visualizer",
@@ -34,7 +35,7 @@ const lowerOk = (code: string) => {
       result.diagnostics.map((diagnostic) => diagnostic.message).join("; "),
     );
   }
-  return result.fn;
+  return result.view;
 };
 
 const lowerErr = (code: string) => {
@@ -49,12 +50,18 @@ const draw = (
   code: string,
   tokens: Record<string, number | bigint>[],
   parameters: Record<string, number | string> = { radius: 4, label: "L" },
-) =>
-  interpretHir(lowerOk(code), { parameters: {}, scenario: {} }, [
-    { tokens, parameters },
-  ]);
+): ViewValue =>
+  interpretViewHir(lowerOk(code), {
+    tokens,
+    parameters: parameters as Record<string, number | boolean>,
+  });
 
-describe("the visualizer surface", () => {
+const asElement = (value: ViewValue): ViewElementValue => {
+  expect(value).toBeInstanceOf(ViewElementValue);
+  return value as ViewElementValue;
+};
+
+describe("the view HIR", () => {
   describe.each(
     [
       probabilisticSatellitesSDCPN,
@@ -67,7 +74,7 @@ describe("the visualizer surface", () => {
   )("$title", (example) => {
     const sdcpn = example.petriNetDefinition;
     it.for(sdcpn.places.filter((place) => place.visualizerCode))(
-      "lowers and checks the visualizer of $name",
+      "lowers, checks and serializes the visualizer of $name",
       (place) => {
         const result = lowerVisualizerToHir(
           place.visualizerCode!,
@@ -76,12 +83,17 @@ describe("the visualizer surface", () => {
         expect(
           result.ok ? [] : result.diagnostics.map((item) => item.message),
         ).toEqual([]);
+        if (result.ok) {
+          expect(
+            viewHirSchema.parse(JSON.parse(JSON.stringify(result.view))),
+          ).toEqual(result.view);
+        }
       },
     );
   });
 
   it("lowers elements, attributes, keys, text and children", () => {
-    const fn = lowerOk(
+    const view = lowerOk(
       `export default Visualization(({ tokens, parameters }) => (
   <svg viewBox="0 0 10 10" style={{ width: "100%" }}>
     {/* planet */}
@@ -97,31 +109,55 @@ describe("the visualizer surface", () => {
   </svg>
 ));`,
     );
-    expect(fn.surface).toBe("visualizer");
-    expect(fn.body.kind).toBe("element");
-    if (fn.body.kind !== "element") {
+    expect(view.props?.name).toBe("__props");
+    expect(view.body.kind).toBe("element");
+    if (view.body.kind !== "element") {
       return;
     }
-    expect(fn.body.tag).toBe("svg");
-    expect(fn.body.attributes.map((attribute) => attribute.name)).toEqual([
+    expect(view.body.tag).toBe("svg");
+    expect(view.body.attributes.map((attribute) => attribute.name)).toEqual([
       "viewBox",
       "style",
     ]);
     // The comment child lowers to nothing; whitespace-only text is dropped.
-    expect(fn.body.children.map((child) => child.kind)).toEqual([
+    expect(view.body.children.map((child) => child.kind)).toEqual([
       "element",
-      "arrayMap",
+      "map",
       "element",
     ]);
-    const text = fn.body.children[2]!;
-    expect(text.kind === "element" && text.children.map((c) => c.kind)).toEqual(
-      ["length", "stringLit"],
+    const text = view.body.children[2]!;
+    expect(
+      text.kind === "element" && text.children.map((child) => child.kind),
+    ).toEqual(["expr", "text"]);
+    const map = view.body.children[1]!;
+    expect(map.kind === "map" && map.body.kind).toBe("element");
+  });
+
+  it("lowers block bodies to bindings and guards to conditionals", () => {
+    const view = lowerOk(
+      `export default Visualization(({ tokens }) => {
+  const first = tokens[0];
+  if (!first) {
+    return <svg />;
+  }
+  const { x } = first;
+  return <svg><circle cx={x} /></svg>;
+});`,
     );
+    expect(view.body.kind).toBe("let");
+    if (view.body.kind !== "let") {
+      return;
+    }
+    expect(view.body.bindings.map((binding) => binding.name)).toEqual([
+      "first",
+    ]);
+    expect(view.body.body.kind).toBe("cond");
   });
 
   it("interprets a picture into element values", () => {
-    const picture = draw(
-      `export default Visualization(({ tokens, parameters }) => (
+    const svg = asElement(
+      draw(
+        `export default Visualization(({ tokens, parameters }) => (
   <svg>
     {tokens.map((token, index) => (
       <circle key={index} cx={token.x.toFixed(1)} r={parameters.radius} />
@@ -131,53 +167,59 @@ describe("the visualizer surface", () => {
     {tokens.filter((token) => token.x > 1).length === 0 ? <g /> : null}
   </svg>
 ));`,
-      [
-        { x: 1.25, y: 2, id: 1n },
-        { x: 3.5, y: 4, id: 2n },
-      ],
+        [
+          { x: 1.25, y: 2, id: 1n },
+          { x: 3.5, y: 4, id: 2n },
+        ],
+      ),
     );
-    expect(picture).toBeInstanceOf(HirElementValue);
-    const svg = picture as HirElementValue;
     expect(svg.tag).toBe("svg");
     const [circles, text, rect, nothing] = svg.children;
     expect(Array.isArray(circles) && circles.length).toBe(2);
-    const first = (circles as HirElementValue[])[0]!;
+    const first = asElement((circles as ViewValue[])[0]!);
     expect(first.key).toBe(0);
     expect(first.attributes.get("cx")).toBe("1.3");
     expect(first.attributes.get("r")).toBe(4);
-    expect((text as HirElementValue).children).toEqual(["2 satellites"]);
-    expect((rect as HirElementValue).attributes.get("width")).toBe(1);
+    expect(asElement(text!).children).toEqual(["2 satellites"]);
+    expect(asElement(rect!).attributes.get("width")).toBe(1);
     expect(nothing).toBeNull();
   });
 
-  it("keeps JavaScript's value semantics for `||` and an empty place", () => {
-    const picture = draw(
-      `export default Visualization(({ tokens }) => {
+  it("keeps JavaScript's value semantics for `||`, `&&` and an empty place", () => {
+    const svg = asElement(
+      draw(
+        `export default Visualization(({ tokens }) => {
   const first = tokens[0] || { x: 0, y: 0 };
-  return <svg>{first ? <circle cx={first.x} /> : null}</svg>;
+  return <svg>{first ? <circle cx={first.x} /> : null}{tokens.length && <g />}</svg>;
 });`,
-      [],
-    ) as HirElementValue;
-    expect((picture.children[0] as HirElementValue).attributes.get("cx")).toBe(
-      0,
+        [],
+      ),
     );
+    expect(asElement(svg.children[0]!).attributes.get("cx")).toBe(0);
+    // `0 && <g/>` is `0`, which React writes as text.
+    expect(svg.children[1]).toBe(0);
   });
 
   it("lowers fragments", () => {
-    const fn = lowerOk(
+    const view = lowerOk(
       `export default Visualization(() => <><circle /><rect /></>);`,
     );
-    expect(fn.body.kind === "element" && fn.body.tag).toBe(HIR_FRAGMENT_TAG);
+    expect(view.props).toBeNull();
+    expect(view.body.kind === "element" && view.body.tag).toBe(
+      VIEW_FRAGMENT_TAG,
+    );
   });
 
   it("joins text and numbers with `+`", () => {
-    const picture = draw(
-      `export default Visualization(({ tokens, parameters }) => (
+    const text = asElement(
+      draw(
+        `export default Visualization(({ tokens, parameters }) => (
   <text>{parameters.label + ": " + tokens.length}</text>
 ));`,
-      [{ x: 1, y: 1, id: 1n }],
-    ) as HirElementValue;
-    expect(picture.children).toEqual(["L: 1"]);
+        [{ x: 1, y: 1, id: 1n }],
+      ),
+    );
+    expect(text.children).toEqual(["L: 1"]);
   });
 
   describe("what a visualizer cannot do", () => {
@@ -233,6 +275,19 @@ describe("the visualizer surface", () => {
       ).toMatchObject({ code: "hir:unknown-element" });
     });
 
+    it("rejects elements used as values", () => {
+      expect(
+        lowerErr(
+          `export default Visualization(() => {\n  const dot = <circle />;\n  return <svg>{dot}</svg>;\n});`,
+        )[0],
+      ).toMatchObject({ code: "hir:unsupported-syntax" });
+      expect(
+        lowerErr(
+          `export default Visualization(() => <svg fill={<g />} />);`,
+        )[0],
+      ).toMatchObject({ code: "hir:element-attribute-value" });
+    });
+
     it("rejects remote urls in literal values and unknown style properties", () => {
       expect(
         lowerErr(
@@ -262,14 +317,38 @@ describe("the visualizer surface", () => {
       ).toMatchObject({ code: "hir:visualizer-return" });
       expect(
         lowerErr(
+          `export default Visualization(({ tokens }) => tokens.map((token) => <circle cx={token.x} />));`,
+        )[0],
+      ).toMatchObject({ code: "hir:visualizer-return" });
+      expect(
+        lowerErr(
           `export default Visualization((tokens, parameters) => <svg />);`,
         )[0],
       ).toMatchObject({ code: "hir:too-many-parameters" });
     });
+
+    it("types attributes, children and the props", () => {
+      expect(
+        lowerErr(
+          `export default Visualization(({ tokens }) => <svg><rect width={tokens} /></svg>);`,
+        )[0],
+      ).toMatchObject({ code: "hir:element-attribute-value" });
+      expect(
+        lowerErr(
+          `export default Visualization(({ tokens }) => <svg>{tokens[0]}</svg>);`,
+        )[0],
+      ).toMatchObject({ code: "hir:element-child" });
+      expect(
+        lowerErr(
+          `export default Visualization(({ tokens }) => <svg>{tokens.map((token) => token.z)}</svg>);`,
+        )[0],
+      ).toMatchObject({ code: "hir:unknown-field" });
+    });
   });
 
-  it("is not a bare-body surface", () => {
-    const result = lowerTypeScriptToHir(`return <svg />;`, "visualizer");
-    expect(result.ok).toBe(false);
+  it("is a module, not a bare body", () => {
+    expect(lowerErr(`return <svg />;`)[0]).toMatchObject({
+      code: "hir:unsupported-statement",
+    });
   });
 });
