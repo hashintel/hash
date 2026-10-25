@@ -2,6 +2,12 @@ use core::{iter::once, str::FromStr as _};
 use std::collections::{HashMap, HashSet};
 
 use hash_codec::numeric::Real;
+use hash_graph_authorization::policies::{
+    Effect,
+    action::ActionName,
+    resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
+    store::PolicyCreationParams,
+};
 use hash_graph_postgres_store::store::AsClient as _;
 use hash_graph_store::{
     entity::{
@@ -12,21 +18,31 @@ use hash_graph_store::{
     query::Read,
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
-use hash_graph_temporal_versioning::{ClosedTemporalBound, OpenTemporalBound};
+use hash_graph_temporal_versioning::{
+    ClosedTemporalBound, DecisionTime, OpenTemporalBound, Timestamp,
+};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
+use hash_status::StatusCode;
 use pretty_assertions::assert_eq;
+use time::Duration;
 use type_system::{
     knowledge::{
         PropertyValue,
-        entity::{Entity, EntityId, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        entity::{
+            Entity, EntityId, LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance,
+        },
         property::{
             Property, PropertyObject, PropertyObjectWithMetadata, PropertyPatchOperation,
             PropertyPathElement, PropertyValueWithMetadata, PropertyWithMetadata,
+            metadata::PropertyProvenance,
         },
         value::{ValueMetadata, metadata::ValueProvenance},
     },
     ontology::{BaseUrl, VersionedUrl},
-    principal::{actor::ActorType, actor_group::WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorId, ActorType},
+        actor_group::WebId,
+    },
     provenance::{OriginProvenance, OriginType},
 };
 use uuid::Uuid;
@@ -552,12 +568,19 @@ async fn type_ids() {
 }
 
 async fn create_person(api: &mut DatabaseApi<'_>) -> Entity {
+    create_person_at(api, None).await
+}
+
+async fn create_person_at(
+    api: &mut DatabaseApi<'_>,
+    decision_time: Option<Timestamp<DecisionTime>>,
+) -> Entity {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
             web_id: WebId::new(api.account_id),
             entity_uuid: None,
-            decision_time: None,
+            decision_time,
             entity_type_ids: HashSet::from([person_entity_type_id()]),
             properties: PropertyObjectWithMetadata::from_parts(alice(), None)
                 .expect("should construct person properties"),
@@ -758,6 +781,27 @@ async fn patch_entities_duplicate_ids() {
     assert_ne!(
         first.metadata.record_id.edition_id, second.metadata.record_id.edition_id,
         "should create an edition for each patch"
+    );
+    let cached_editions: i64 = api
+        .store
+        .as_client()
+        .query_one(
+            "SELECT count(*) FROM entity_edition_cache
+             WHERE entity_edition_id = ANY($1) AND versioned_urls = ARRAY[$2::TEXT]",
+            &[
+                &vec![
+                    first.metadata.record_id.edition_id,
+                    second.metadata.record_id.edition_id,
+                ],
+                &person_entity_type_id().to_string(),
+            ],
+        )
+        .await
+        .expect("should read cache entries for both new editions")
+        .get(0);
+    assert_eq!(
+        cached_editions, 2,
+        "should cache intermediate and final editions with their new types"
     );
     let invalid_intervals: i64 = api
         .store
@@ -1050,5 +1094,340 @@ async fn patch_entities_unchanged_then_changed() {
     assert_eq!(
         stored, patched_changed,
         "should persist the patch after the unchanged entity"
+    );
+}
+
+async fn assert_current_entity(api: &mut DatabaseApi<'_>, entity_id: EntityId, expected: &Entity) {
+    let actual = api
+        .get_entity_by_id(Some(api.account_id), entity_id, None, None)
+        .await
+        .expect("should read the current entity")
+        .expect("the current entity should exist");
+    assert_eq!(
+        &actual, expected,
+        "should persist the expected current entity"
+    );
+}
+
+async fn create_friend_link(api: &mut DatabaseApi<'_>, left: EntityId, right: EntityId) -> Entity {
+    api.create_entity(
+        api.account_id,
+        CreateEntityParams {
+            web_id: WebId::new(api.account_id),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([
+                "https://blockprotocol.org/@alice/types/entity-type/friend-of/v/1"
+                    .parse()
+                    .expect("friend link type URL should be valid"),
+            ]),
+            properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
+                .expect("link properties should be valid"),
+            confidence: None,
+            link_data: Some(LinkData {
+                left_entity_id: left,
+                right_entity_id: right,
+                left_entity_confidence: None,
+                right_entity_confidence: None,
+                left_entity_provenance: PropertyProvenance::default(),
+                right_entity_provenance: PropertyProvenance::default(),
+            }),
+            draft: false,
+            policies: Vec::new(),
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::User,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
+            read_only: false,
+        },
+    )
+    .await
+    .expect("should create the friend link")
+}
+
+#[tokio::test]
+async fn patch_entities_link_validation_order() {
+    for link_first in [true, false] {
+        let mut database = DatabaseTestWrapper::new().await;
+        let mut api = seed(&mut database).await;
+        let left = create_person(&mut api).await;
+        let right = create_person(&mut api).await;
+        let left_id = left.metadata.record_id.entity_id;
+        let link = create_friend_link(&mut api, left_id, right.metadata.record_id.entity_id).await;
+        let mut link_patch = patch_params(link.metadata.record_id.entity_id, Vec::new());
+        link_patch.archived = Some(true);
+        let mut left_patch = patch_params(left_id, Vec::new());
+        left_patch.entity_type_ids = HashSet::from([org_entity_type_id()]);
+        let params = if link_first {
+            vec![link_patch, left_patch]
+        } else {
+            vec![left_patch, link_patch]
+        };
+        let result = api.patch_entities(api.account_id, params).await;
+        if link_first {
+            result.expect("should validate the link before changing its source type");
+        } else {
+            let error = result
+                .expect_err("should validate the link against the earlier source type change");
+            let reports = error
+                .downcast_ref::<HashMap<usize, EntityValidationReport>>()
+                .expect("should attach validation reports");
+            assert!(
+                reports.contains_key(&1),
+                "should retain the link patch's input index"
+            );
+            assert_current_entity(&mut api, left_id, &left).await;
+        }
+    }
+}
+
+#[tokio::test]
+async fn patch_entities_reverse_decision_times() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let now = Timestamp::now().remove_nanosecond();
+    let original = create_person_at(&mut api, Some(now - Duration::days(3))).await;
+    let entity_id = original.metadata.record_id.entity_id;
+    let mut later = patch_params(
+        entity_id,
+        vec![add_property(
+            age_property_type_id(),
+            PropertyValue::Number(Real::from(30)),
+        )],
+    );
+    later.decision_time = Some(now - Duration::days(1));
+    let mut earlier = patch_params(
+        entity_id,
+        vec![add_property(
+            name_property_type_id(),
+            PropertyValue::String("Bob".to_owned()),
+        )],
+    );
+    earlier.decision_time = Some(now - Duration::days(2));
+    let mut latest = patch_params(
+        entity_id,
+        vec![add_property(
+            age_property_type_id(),
+            PropertyValue::Number(Real::from(40)),
+        )],
+    );
+    latest.decision_time = later.decision_time;
+    let [later, earlier, latest]: [Entity; 3] = api
+        .patch_entities(api.account_id, vec![later, earlier, latest])
+        .await
+        .expect("should apply patches to their decision intervals in input order")
+        .try_into()
+        .expect("should return three editions");
+    assert_eq!(
+        earlier.properties.properties().get(&age_property_type_id()),
+        None,
+        "should select the retained earlier interval before the age update"
+    );
+    assert_eq!(
+        latest.properties.properties().get(&name_property_type_id()),
+        original
+            .properties
+            .properties()
+            .get(&name_property_type_id()),
+        "should retain the later interval's name after a backdated update"
+    );
+    assert_eq!(
+        earlier.metadata.temporal_versioning.decision_time.end(),
+        &OpenTemporalBound::Exclusive(now - Duration::days(1)),
+        "should bound the backdated update by the later interval"
+    );
+    for entity in [earlier, latest] {
+        let ClosedTemporalBound::Inclusive(decision_time) =
+            *entity.metadata.temporal_versioning.decision_time.start();
+        let stored = api
+            .get_entity_by_id(Some(api.account_id), entity_id, None, Some(decision_time))
+            .await
+            .expect("should read each surviving interval")
+            .expect("the entity should exist in each surviving interval");
+        assert_eq!(
+            stored, entity,
+            "should persist the resulting interval and edition"
+        );
+    }
+    let history = Read::<Entity>::read_vec(&api.store, &[], None, true)
+        .await
+        .expect("should decode every history interval");
+    assert!(
+        !history
+            .iter()
+            .any(|entity| entity.metadata.record_id.edition_id
+                == later.metadata.record_id.edition_id),
+        "should omit the intermediate edition replaced at the same decision time"
+    );
+    let ClosedTemporalBound::Inclusive(transaction_time) = *original
+        .metadata
+        .temporal_versioning
+        .transaction_time
+        .start();
+    let stored = api
+        .get_entity_by_id(
+            Some(api.account_id),
+            entity_id,
+            Some(transaction_time),
+            Some(now),
+        )
+        .await
+        .expect("should read the snapshot preceding the batch")
+        .expect("the entity should exist in the snapshot preceding the batch");
+    assert_eq!(
+        stored.properties, original.properties,
+        "should retain the original transaction snapshot"
+    );
+}
+
+#[tokio::test]
+async fn patch_entities_updated_type_permissions() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let original = create_person(&mut api).await;
+    let entity_id = original.metadata.record_id.entity_id;
+    api.store
+        .insert_policies_into_database([&PolicyCreationParams {
+            name: None,
+            effect: Effect::Forbid,
+            principal: None,
+            actions: vec![ActionName::UpdateEntity],
+            resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+                filter: EntityResourceFilter::IsOfType {
+                    entity_type: org_entity_type_id(),
+                },
+            })),
+        }])
+        .await
+        .expect("should forbid updating organizations");
+    let mut change_type = patch_params(entity_id, Vec::new());
+    change_type.entity_type_ids = HashSet::from([org_entity_type_id()]);
+    let update = patch_params(
+        entity_id,
+        vec![add_property(
+            name_property_type_id(),
+            PropertyValue::String("Bob".to_owned()),
+        )],
+    );
+    let error = api
+        .patch_entities(api.account_id, vec![change_type, update])
+        .await
+        .expect_err("should evaluate the second patch against the updated organization type");
+    assert_eq!(
+        error.downcast_ref::<StatusCode>(),
+        Some(&StatusCode::PermissionDenied),
+        "should deny the second patch's update permission"
+    );
+    assert_current_entity(&mut api, entity_id, &original).await;
+}
+
+#[tokio::test]
+async fn patch_entities_updated_endpoint_permissions() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let left = create_person(&mut api).await;
+    let right = create_person(&mut api).await;
+    let left_id = left.metadata.record_id.entity_id;
+    let link = create_friend_link(&mut api, left_id, right.metadata.record_id.entity_id).await;
+    api.store
+        .insert_policies_into_database([&PolicyCreationParams {
+            name: None,
+            effect: Effect::Forbid,
+            principal: None,
+            actions: vec![ActionName::ViewEntity],
+            resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+                filter: EntityResourceFilter::IsOfType {
+                    entity_type: org_entity_type_id(),
+                },
+            })),
+        }])
+        .await
+        .expect("should forbid viewing organizations");
+    let mut change_type = patch_params(left_id, Vec::new());
+    change_type.entity_type_ids = HashSet::from([person_entity_type_id(), org_entity_type_id()]);
+    let mut update_link = patch_params(link.metadata.record_id.entity_id, Vec::new());
+    update_link.archived = Some(true);
+    let error = api
+        .patch_entities(api.account_id, vec![change_type, update_link])
+        .await
+        .expect_err("should deny access to an endpoint hidden by its updated type");
+    let reports = error
+        .downcast_ref::<HashMap<usize, EntityValidationReport>>()
+        .expect("should attach link validation reports");
+    assert!(
+        reports.contains_key(&1),
+        "should report the link patch's original input index"
+    );
+    assert_current_entity(&mut api, left_id, &left).await;
+}
+
+#[tokio::test]
+async fn patch_entities_endpoint_creator_permissions() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed(&mut database).await;
+    let left = create_person(&mut api).await;
+    let right = create_person(&mut api).await;
+    let left_id = left.metadata.record_id.entity_id;
+    let right_id = right.metadata.record_id.entity_id;
+    let link = create_friend_link(&mut api, left_id, right_id).await;
+    let updater = ActorId::from(api.create_machine("endpoint-updater").await);
+    api.assign_web_administrator(ActorEntityUuid::from(updater), WebId::new(api.account_id))
+        .await;
+    api.store
+        .insert_policies_into_database([&PolicyCreationParams {
+            name: None,
+            effect: Effect::Forbid,
+            principal: None,
+            actions: vec![ActionName::ViewEntity],
+            resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+                filter: EntityResourceFilter::Not {
+                    filter: Box::new(EntityResourceFilter::CreatedByPrincipal),
+                },
+            })),
+        }])
+        .await
+        .expect("should forbid viewing entities created by another actor");
+
+    let mut link_only = patch_params(link.metadata.record_id.entity_id, Vec::new());
+    link_only.archived = Some(true);
+    let error = api
+        .patch_entities(updater, vec![link_only])
+        .await
+        .expect_err("should deny link validation against endpoints created by another actor");
+    assert!(
+        error
+            .downcast_ref::<HashMap<usize, EntityValidationReport>>()
+            .is_some(),
+        "should fail endpoint validation rather than mutation authorization: {error:?}"
+    );
+
+    let left_patch = patch_params(
+        left_id,
+        vec![add_property(
+            age_property_type_id(),
+            PropertyValue::Number(Real::from(30)),
+        )],
+    );
+    let right_patch = patch_params(
+        right_id,
+        vec![add_property(
+            age_property_type_id(),
+            PropertyValue::Number(Real::from(40)),
+        )],
+    );
+    let mut link_patch = patch_params(link.metadata.record_id.entity_id, Vec::new());
+    link_patch.archived = Some(true);
+    let result = api
+        .patch_entities(updater, vec![left_patch, right_patch, link_patch])
+        .await;
+    let error = result
+        .expect_err("should preserve original creator permissions after staging endpoint edits");
+    let reports = error
+        .downcast_ref::<HashMap<usize, EntityValidationReport>>()
+        .expect("should report endpoint validation errors");
+    assert!(
+        reports.contains_key(&2),
+        "should reject the link patch at its input index"
     );
 }

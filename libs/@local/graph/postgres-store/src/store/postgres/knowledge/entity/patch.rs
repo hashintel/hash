@@ -4,21 +4,12 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, ResultExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_authorization::policies::{
-    Authorized, Context, MergePolicies, PolicyComponents, PolicySet, Request, RequestContext,
-    ResourceId, action::ActionName,
+    Authorized, Context, PolicyComponents, PolicySet, Request, RequestContext, ResourceId,
+    action::ActionName,
 };
 use hash_graph_store::{
-    entity::{
-        EntityQueryPath, EntityValidationReport, PatchEntityParams, ValidateEntityComponents,
-    },
+    entity::{EntityValidationReport, PatchEntityParams, ValidateEntityComponents},
     error::UpdateError,
-    filter::{Filter, FilterExpression, Parameter},
-    query::Read,
-    subgraph::temporal_axes::{PinnedTemporalAxis, QueryTemporalAxes, VariableTemporalAxis},
-};
-use hash_graph_temporal_versioning::{
-    ClosedTemporalBound, DecisionTime, LimitedTemporalBound, TemporalBound, Timestamp,
-    TransactionTime,
 };
 use hash_graph_types::{
     knowledge::property::visitor::EntityVisitor as _, ontology::OntologyTypeProvider,
@@ -28,7 +19,7 @@ use hash_status::StatusCode;
 use type_system::{
     knowledge::{
         Entity, Property,
-        entity::{id::EntityId, provenance::EntityEditionProvenance},
+        entity::provenance::EntityEditionProvenance,
         property::{
             PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
             metadata::{PropertyMetadata, PropertyObjectMetadata},
@@ -41,11 +32,7 @@ use type_system::{
     principal::actor::{ActorEntityUuid, ActorId},
 };
 
-use super::{LockedEntityEdition, batch::EntityPatchSet};
-use crate::store::{
-    AsClient, InTransaction, PostgresStore, error::EntityDoesNotExist,
-    postgres::query::rows::EntityTemporalMetadataRow, validation::StoreProvider,
-};
+use crate::store::{AsClient, InTransaction, PostgresStore, validation::StoreProvider};
 
 #[derive(Clone, Copy)]
 pub(super) enum DraftTransition {
@@ -60,23 +47,20 @@ pub(super) enum EntityPatchPreparation {
 }
 
 pub(super) struct PreparedEntityPatch {
-    pub changes: EntityPatchChanges,
+    pub entity: Entity,
+    pub draft_transition: DraftTransition,
     pub validation: EntityPatchValidation,
 }
 
-pub(super) struct EntityPatchChanges {
-    entity: Entity,
-    draft_transition: DraftTransition,
-}
-
 pub(super) struct EntityPatchValidation {
-    entity_type: ClosedMultiEntityType,
+    pub entity_type: ClosedMultiEntityType,
     components: ValidateEntityComponents,
     report: EntityValidationReport,
 }
 
 impl EntityPatchValidation {
-    /// Checks the persisted entity and combines validation results under its original input index.
+    /// Combines preprocessing, link, and property-metadata failures into one report keyed by the
+    /// patch's original input index, so batch errors identify the caller's request.
     pub(super) async fn validate<C: AsClient>(
         mut self,
         provider: &StoreProvider<'_, PostgresStore<C, InTransaction>>,
@@ -156,7 +140,8 @@ pub(super) fn authorize_entity_patch(
     Ok(())
 }
 
-/// Checks permissions for changed types and their ancestors, returning whether the types change.
+/// Requires instantiation permission for both added and removed types, including their ancestors.
+/// An empty requested set keeps the existing types.
 async fn authorize_entity_type_changes<C: AsClient>(
     previous: &HashSet<VersionedUrl>,
     requested: &HashSet<VersionedUrl>,
@@ -215,87 +200,8 @@ struct PreparedPatchProperties {
 }
 
 impl<C: AsClient> PostgresStore<C, InTransaction> {
-    /// Locks the temporal row to patch and loads the edition it references.
-    #[tracing::instrument(level = "info", skip_all)]
-    pub(super) async fn load_entity_for_patch(
-        &self,
-        entity_id: EntityId,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-    ) -> Result<(LockedEntityEdition, Entity), Report<UpdateError>> {
-        let locked_row = self
-            .lock_entity_edition(entity_id, transaction_time, decision_time)
-            .await?
-            .ok_or_else(|| {
-                Report::new(EntityDoesNotExist)
-                    .attach_opaque(StatusCode::NotFound)
-                    .attach(entity_id)
-                    .change_context(UpdateError)
-            })?;
-        let ClosedTemporalBound::Inclusive(locked_transaction_time) =
-            *locked_row.transaction_time.start();
-        let ClosedTemporalBound::Inclusive(locked_decision_time) =
-            *locked_row.decision_time.start();
-        let previous_entity = Read::<Entity>::read_one(
-            self,
-            &[Filter::Equal(
-                FilterExpression::Path {
-                    path: EntityQueryPath::EditionId,
-                },
-                FilterExpression::Parameter {
-                    parameter: Parameter::Uuid(locked_row.entity_edition_id.into_uuid()),
-                    convert: None,
-                },
-            )],
-            Some(&QueryTemporalAxes::DecisionTime {
-                pinned: PinnedTemporalAxis::new(locked_transaction_time),
-                variable: VariableTemporalAxis::new(
-                    TemporalBound::Inclusive(locked_decision_time),
-                    LimitedTemporalBound::Inclusive(locked_decision_time),
-                ),
-            }),
-            true,
-        )
-        .await
-        .change_context(EntityDoesNotExist)
-        .attach_opaque(entity_id)
-        .change_context(UpdateError)?;
-
-        Ok((locked_row, previous_entity))
-    }
-
-    /// Resolves write and validation policies for the previous edition and requested types.
-    pub(super) async fn build_entity_patch_policy_components(
-        &self,
-        actor_id: ActorId,
-        params: &PatchEntityParams,
-        previous_entity: &Entity,
-    ) -> Result<PolicyComponents, Report<UpdateError>> {
-        PolicyComponents::builder(self, Some(actor_id))
-            .with_entity_edition_id(previous_entity.metadata.record_id.edition_id)
-            .with_entity_type_ids(&params.entity_type_ids)
-            .with_actions(
-                [
-                    ActionName::Instantiate,
-                    ActionName::UpdateEntity,
-                    ActionName::ArchiveEntity,
-                ],
-                MergePolicies::No,
-            )
-            .with_actions(
-                [
-                    ActionName::ViewEntity,
-                    ActionName::ViewEntityType,
-                    ActionName::ViewPropertyType,
-                    ActionName::ViewDataType,
-                ],
-                MergePolicies::Yes,
-            )
-            .await
-            .change_context(UpdateError)
-    }
-
-    /// Applies and preprocesses a patch, distinguishing unchanged entities from changes to persist.
+    /// Identifies effective changes after normalization, before a new edition is created.
+    /// Requires entity permissions to have been checked against the previous edition.
     #[tracing::instrument(level = "info", skip_all)]
     pub(super) async fn prepare_entity_patch(
         &self,
@@ -375,20 +281,19 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         };
         Ok(EntityPatchPreparation::Changed(Box::new(
             PreparedEntityPatch {
-                changes: EntityPatchChanges {
-                    entity,
-                    draft_transition: match (was_draft, draft) {
-                        (true, true) | (false, false) => DraftTransition::Update,
-                        (false, true) => DraftTransition::Create,
-                        (true, false) => DraftTransition::Publish,
-                    },
+                entity,
+                draft_transition: match (was_draft, draft) {
+                    (true, true) | (false, false) => DraftTransition::Update,
+                    (false, true) => DraftTransition::Create,
+                    (true, false) => DraftTransition::Publish,
                 },
                 validation: properties.validation,
             },
         )))
     }
 
-    /// Applies property operations and preprocesses values against the resulting entity types.
+    /// Applies property edits against the requested types so values and metadata are normalized
+    /// together. Preprocessing failures are retained for final entity validation.
     async fn prepare_entity_patch_properties(
         &self,
         properties: PropertyObject,
@@ -446,44 +351,5 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
                 report,
             },
         })
-    }
-
-    /// Calculates the edition, draft, and temporal rows before writing the prepared patch.
-    #[tracing::instrument(level = "info", skip_all)]
-    pub(super) async fn persist_entity_patch(
-        &self,
-        actor_id: ActorId,
-        changes: EntityPatchChanges,
-        locked_row: LockedEntityEdition,
-        transaction_time: Timestamp<TransactionTime>,
-        decision_time: Timestamp<DecisionTime>,
-    ) -> Result<Entity, Report<UpdateError>> {
-        let EntityPatchChanges {
-            mut entity,
-            draft_transition,
-        } = changes;
-        let mut rows = vec![EntityTemporalMetadataRow::from(locked_row)];
-        if matches!(draft_transition, DraftTransition::Publish) {
-            let entity_id = EntityId {
-                draft_id: None,
-                ..entity.metadata.record_id.entity_id
-            };
-            if let Some(live) = self
-                .lock_entity_edition(entity_id, transaction_time, decision_time)
-                .await?
-            {
-                rows.push(EntityTemporalMetadataRow::from(live));
-            }
-        }
-        let mut patches = EntityPatchSet::new(rows);
-        patches.apply(
-            actor_id,
-            &mut entity,
-            draft_transition,
-            transaction_time,
-            decision_time,
-        );
-        self.write_entity_patch_set(actor_id, &patches).await?;
-        Ok(entity)
     }
 }

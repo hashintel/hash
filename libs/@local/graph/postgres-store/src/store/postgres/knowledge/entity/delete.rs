@@ -255,8 +255,8 @@ where
 
     /// Collects edition IDs and acquires `FOR UPDATE` locks on `entity_temporal_metadata` rows.
     ///
-    /// The `FOR UPDATE` lock serializes with concurrent [`patch_entity`] calls, which acquire
-    /// `FOR NO KEY UPDATE NOWAIT` via [`lock_entity_edition`]. This means:
+    /// The `FOR UPDATE` lock serializes with concurrent [`patch_entities`] calls, which acquire
+    /// `FOR NO KEY UPDATE NOWAIT`. This means:
     ///
     /// - If we lock first, the concurrent patch immediately fails with `RaceConditionOnUpdate`.
     /// - If the patch locks first, we block until it commits. Since this is a separate statement
@@ -267,8 +267,7 @@ where
     /// `FOR UPDATE`). Downstream `DELETE ... WHERE entity_edition_id = ANY(...)` handles
     /// duplicates correctly.
     ///
-    /// [`patch_entity`]: hash_graph_store::entity::EntityStore::patch_entity
-    /// [`lock_entity_edition`]: PostgresStore::lock_entity_edition
+    /// [`patch_entities`]: hash_graph_store::entity::EntityStore::patch_entities
     /// [`select_entities_for_deletion`]: Self::select_entities_for_deletion
     async fn collect_entity_edition_ids(
         &mut self,
