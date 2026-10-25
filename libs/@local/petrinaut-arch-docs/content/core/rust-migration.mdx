@@ -53,20 +53,20 @@ calculation stay in TypeScript; applying either result is one native transaction
 
 ## What runs where
 
-| Responsibility                             | Implementation                                                       | Remaining work                                            |
-| ------------------------------------------ | -------------------------------------------------------------------- | --------------------------------------------------------- |
-| Document model and bindings                | Typed Rust `Sdcpn`, Serde validation, generated `tsify` declarations | Broader schema compatibility and fuzz testing             |
-| All 41 mutation methods                    | Native Rust commands                                                 | Incremental transactions for structural edits             |
-| Node positions and position-only undo/redo | Typed in-place updates and direct patches                            | Browser profiling on larger nets                          |
-| Other history and compatibility drafts     | Rust patches with full-document transactions                         | Reduce copying and retained allocation                    |
-| Paste and layout application               | Rust paste; native position command for ELK results                  | Host clipboard access and ELK remain TypeScript           |
-| React stores and lifecycle                 | TypeScript adapter                                                   | Retain the existing editor API                            |
-| Simulation, HIR, LSP, optimization, WebGPU | Existing TypeScript implementations                                  | Separate runtime migration                                |
-| Persistence and collaboration              | Host document repository and existing handles                        | Native Automerge integration and synchronization protocol |
+| Responsibility                             | Implementation                                                       | Remaining work                                              |
+| ------------------------------------------ | -------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Document model and bindings                | Typed Rust `Sdcpn`, Serde validation, generated `tsify` declarations | Broader schema compatibility and fuzz testing               |
+| All 41 mutation methods                    | Native Rust commands                                                 | Incremental transactions for structural edits               |
+| Node positions and position-only undo/redo | Typed in-place updates and direct patches                            | Browser profiling on larger nets                            |
+| Other history and compatibility drafts     | Rust patches with full-document transactions                         | Reduce copying and retained allocation                      |
+| Paste and layout application               | Rust paste; native position command for ELK results                  | Host clipboard access and ELK remain TypeScript             |
+| React stores and lifecycle                 | TypeScript adapter                                                   | Retain the existing editor API                              |
+| Experiment simulation                      | Opt-in Rust/Wasm count-based runtime and HIR-to-Wasm emitter         | Coloured tokens, dynamics, and subnets remain on CPU/WebGPU |
+| HIR frontend, LSP, optimization, WebGPU    | Existing TypeScript implementations                                  | Reuse the frontend and experiment protocol                  |
+| Persistence and collaboration              | Host document repository and existing handles                        | Native Automerge integration and synchronization protocol   |
 
 This is a working document-engine migration draft. It is not a complete port of
-`@hashintel/petrinaut-core`: simulation and browser services still live
-in TypeScript. Native Rust callers can create an instance from authoring JSON, read its typed
+`@hashintel/petrinaut-core`. Interactive simulation and browser services remain in TypeScript; experiments have an opt-in Rust/Wasm backend for uncoloured nets. Native Rust callers can create an instance from authoring JSON, read its typed
 `Sdcpn` model, commit validated document replacements, move nodes, edit places,
 transitions, arcs, token types, equations, parameters, scenarios and metrics, and navigate history. Initialization normalizes identifiers
 and supplies plain-net defaults. Compatibility drafts preserve their identifiers
@@ -129,9 +129,26 @@ loads dispose their instances when they complete. A failed Rust load exposes a
 retry and the TypeScript choice instead of silently falling back.
 
 The read-only example pages and AI evaluation demo retain their existing handles.
-Open an editable copy of an example to compare document engines. Simulation and
-user-authored code still run through the TypeScript implementation with either
-engine selected.
+Open an editable copy of an example to compare document engines. The experiment form selects its compute backend independently; the interactive simulator remains TypeScript.
+
+## Experimental Wasm experiment backend
+
+Select **Wasm (Rust, experimental)** in the experiment form. The existing provider requests HIR trees, assesses support, and starts the Rust worker pool through `createWasmExperimentBackend()` from `@hashintel/petrinaut-core/wasm`. Unsupported requests use CPU with a recorded reason. Results label the backend that ran. The SIR example and its Infected Fraction metric exercise both compiled rates and compiled metric code.
+
+The numeric ABI is version 1. Each Rust run owns a fixed f64 buffer containing parameters, counts, firing flags, cumulative firing counts, elapsed frames, and frame/status/RNG metadata. Generated code imports that memory and the Rust `simulation_begin`, `simulation_fire`, and `simulation_finish` exports. These are direct Wasm-to-Wasm calls. JavaScript calls one generated step per run per frame and handles worker scheduling and metric aggregation. JSON is used to create a run, outside stepping. Views are reconstructed after allocations because Wasm memory growth can replace its backing buffer.
+
+The emitter supports scalar constants, parameter reads, metric place counts, local bindings, arithmetic (`+`, `-`, `*`, `/`), comparisons, logical operators, conditionals, and `abs`, `ceil`, `floor`, `trunc`, `sqrt`, `min`, and `max`. Unsupported expressions cause assessment to decline the backend. User code passes through the existing TypeScript type checker and HIR lowering; neither a TypeScript compiler nor arbitrary source evaluation is added to the simulation worker. Compiled modules are cached by their complete bytes, with at most eight entries per worker.
+
+The Rust runtime implements standard, read, and inhibitor arcs, pending outputs, capacity checks, deterministic LCG draws, transition counters, and deadlock/max-time termination. It builds natively too. The browser binding registers integer run handles without unsafe pointer dereferences. Disposal releases the associated Rust allocations; cancellation during compilation discards and frees a late result. Memory allocated to a Wasm instance remains at its high-water mark until its worker terminates.
+
+Scope and tradeoffs:
+
+- Places must be uncoloured and have no dynamics. Subnet instances, token kernels, arrays, strings, UUIDs, distributions, and unsupported math functions decline to CPU. Uncoloured output counts come from arc weights, matching the CPU engine.
+- Scenario preparation, LSP, optimization, result aggregation, and charts remain TypeScript. Parameter sweeps and state constraints use the common worker protocol. Per-run parameter values are read by the generated Wasm code.
+- Rust and CPU use the same transition order, seed derivation, and RNG. Parity tests compare every frame and result. Their `exp` implementations may differ in the last bits; a random draw at a probability boundary may therefore produce a different trajectory.
+- Counts and frame limits are bounded to u32. Counts exceeding 4,294,967,295 fail the run. Each run has its own Rust state; this is a correctness prototype, with no simulation performance claim.
+- Runtime code generation requires the host's WebAssembly compilation policy to allow it. Loading or compilation failures become backend declines during startup. The runtime shares the document crate's embedded Wasm asset, so cold start and worker memory include that crate. A separate simulation artifact and batched stepping are candidates for measurement.
+- Native callers can use `simulation::Simulation`; runtime-generated model modules would need a native Wasm engine to run outside the browser. This prototype does not bundle one.
 
 ## Binding choice
 
@@ -203,11 +220,10 @@ Native Rust consumers use the same crate without crossing the JavaScript boundar
 - Browser deployments must permit WebAssembly compilation in their content security
   policy. Startup requires Wasm-capable runtimes. Packaging, cold-start time and
   browser memory limits need release testing before making this the default.
-- Model code remains TypeScript, including user-authored transition kernels,
-  dynamics, metrics and visualizers. A simulation port must choose how those
-  programs execute: port the existing HIR interpreter, retain JS callbacks, or
-  define another supported runtime. Deterministic random streams, floating-point
-  behavior, worker protocols and WebGPU parity need separate tests.
+- Model code is authored in TypeScript. The experimental Wasm experiment backend
+  compiles supported scalar rates and metrics through HIR; transition kernels,
+  dynamics and visualizers still require the TypeScript runtime. Deterministic
+  random streams and floating-point parity need tests as support expands.
 
 ## Incremental transactions and measurements
 
@@ -365,5 +381,6 @@ movement, and numeric no-ops.
    test the published package in browser, Node and SSR hosts.
 4. Define persistence and collaboration ownership, remote-change application and
    local undo before adopting native Automerge.
-5. Design simulation as a separate Rust API over an immutable model, with explicit
-   decisions for user code, randomness, floating point and worker ownership.
+5. Extend the Wasm experiment prototype to coloured tokens and dynamics, guided by
+   parity tests. Measure compilation, stepping and aggregation separately before
+   changing the default backend or adding a native Wasm host.

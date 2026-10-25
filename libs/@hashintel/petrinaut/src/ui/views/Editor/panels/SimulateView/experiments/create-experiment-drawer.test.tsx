@@ -135,8 +135,10 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
     "aria-label"?: string;
     disabled?: boolean;
     items: readonly (
-      | { value: string; text: string }
-      | { items: readonly { value: string; text: string }[] }
+      | { value: string; text: string; disabled?: boolean }
+      | {
+          items: readonly { value: string; text: string; disabled?: boolean }[];
+        }
     )[];
     onChange: (value: string) => void;
     placeholder?: string;
@@ -152,7 +154,7 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
       {items
         .flatMap((item) => ("items" in item ? item.items : [item]))
         .map((item) => (
-          <option key={item.value} value={item.value}>
+          <option key={item.value} value={item.value} disabled={item.disabled}>
             {item.text}
           </option>
         ))}
@@ -445,7 +447,6 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-/** The Backend field: the CPU/GPU labels with the toggle between them. */
 const findGpuRow = (): HTMLElement | null =>
   document.querySelector<HTMLElement>("[data-backend-state]");
 
@@ -458,94 +459,60 @@ const findGpuRow = (): HTMLElement | null =>
 const backendState = (): string | null =>
   findGpuRow()?.getAttribute("data-backend-state") ?? null;
 
-/** The toggle between the two labels, so its state can be asserted. */
-const findGpuControl = (): HTMLInputElement =>
-  findGpuRow()!.querySelector<HTMLInputElement>("input[type='checkbox']")!;
+const backendControl = (): HTMLSelectElement =>
+  screen.getByLabelText("Experiment backend");
+const gpuOption = (): HTMLOptionElement =>
+  screen.getByRole("option", { name: "GPU (WebGPU)" });
 
-/** Whichever side label is currently marked as selected. */
-const selectedSideLabel = (): string | null =>
-  findGpuRow()!.querySelector("[data-selected='true']")?.textContent ?? null;
-
-describe("CreateExperimentDrawer GPU switch", () => {
-  it("is absent when the browser has no WebGPU support", () => {
+describe("CreateExperimentDrawer backend selector", () => {
+  it("submits the selected Wasm backend with the experiment", async () => {
+    const createExperiment = vi.fn((_input: CreateExperimentInput) =>
+      createdExperiment("wasm-test"),
+    );
+    render(<TestProviders createExperiment={createExperiment} />);
+    fireEvent.change(backendControl(), { target: { value: "wasm" } });
+    fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^\u200B?\s*Run$/u }));
+    await waitFor(() => expect(createExperiment).toHaveBeenCalledOnce());
+    expect(createExperiment.mock.calls[0]![0].computeBackend).toBe("wasm");
+  });
+  it("offers Wasm when the browser has no WebGPU support", () => {
     vi.stubGlobal("navigator", {});
     render(<TestProviders />);
-
-    expect(document.querySelector("[data-backend-state]")).toBeNull();
-    expect(screen.queryByText("GPU")).toBeNull();
+    expect(screen.queryByRole("option", { name: "GPU (WebGPU)" })).toBeNull();
+    expect(
+      screen.getByRole("option", { name: "Wasm (Rust, experimental)" }),
+    ).toBeDefined();
+    fireEvent.change(backendControl(), { target: { value: "wasm" } });
+    expect(backendControl().value).toBe("wasm");
+    expect(screen.getByText(/Other models fall back to CPU/)).toBeDefined();
   });
 
-  it("offers the switch for a net the GPU can run", async () => {
+  it("enables GPU after assessment and defaults to CPU", async () => {
     render(<TestProviders />);
-
-    // The analysis is asynchronous, and the toggle is disabled until it lands —
-    // the same state as unavailable, which is why the row publishes which it is.
     expect(backendState()).toBe("pending");
-    expect(findGpuControl().disabled).toBe(true);
-
-    await waitFor(() => {
-      expect(backendState()).toBe("available");
-    });
-
-    expect(findGpuControl().disabled).toBe(false);
-    // Defaults to the CPU side, and the labels say which side that is.
-    expect(selectedSideLabel()).toBe("CPU");
+    expect(gpuOption().disabled).toBe(true);
+    await waitFor(() => expect(backendState()).toBe("available"));
+    expect(gpuOption().disabled).toBe(false);
+    expect(backendControl().value).toBe("cpu");
   });
 
-  it("greys the switch out and explains why when the net cannot run", async () => {
+  it("disables unsupported GPU models while keeping Wasm selectable", async () => {
     render(<TestProviders sdcpnContextValue={colouredContextValue} />);
-
-    await waitFor(() => {
-      expect(backendState()).toBe("unavailable");
-    });
-
-    expect(findGpuControl().disabled).toBe(true);
-    // Disabled means it cannot leave the CPU side.
-    expect(selectedSideLabel()).toBe("CPU");
-
-    // The reason itself rides on a tooltip, which Ark mounts lazily on hover
-    // through a pointer state machine jsdom cannot drive faithfully — asserting
-    // on it here would test Ark, flakily. What the reason *says* is covered by
-    // `summarizeGpuUnavailability` in petrinaut-core, and the same
-    // `Tooltip content={...}` pattern carries the backend badge's explanation in
-    // the experiment drawer. Untested here: that this particular instance is
-    // wired to that particular string.
+    await waitFor(() => expect(backendState()).toBe("unavailable"));
+    expect(gpuOption().disabled).toBe(true);
+    fireEvent.change(backendControl(), { target: { value: "wasm" } });
+    expect(backendControl().value).toBe("wasm");
   });
 
-  it("turns the switch back off if the net stops being eligible", async () => {
-    // The submitted backend and the switch's own state read the same derived
-    // value, so a net edited into ineligibility after the switch was flipped
-    // cannot leave a GPU experiment queued behind a switch that looks off.
+  it("returns GPU selection to CPU when the model becomes ineligible", async () => {
     const { rerender } = render(<TestProviders />);
-
-    await waitFor(() => {
-      expect(backendState()).toBe("available");
-    });
-
-    fireEvent.click(findGpuControl());
-    await waitFor(() => {
-      expect(findGpuControl().checked).toBe(true);
-    });
-    expect(selectedSideLabel()).toBe("GPU");
-
+    await waitFor(() => expect(backendState()).toBe("available"));
+    fireEvent.change(backendControl(), { target: { value: "webgpu" } });
+    expect(backendControl().value).toBe("webgpu");
     rerender(<TestProviders sdcpnContextValue={colouredContextValue} />);
-
-    await waitFor(() => {
-      expect(backendState()).toBe("unavailable");
-    });
-    expect(findGpuControl().disabled).toBe(true);
-  });
-
-  it("keeps the switch off by default even for an eligible net", async () => {
-    render(<TestProviders />);
-
-    await waitFor(() => {
-      expect(backendState()).toBe("available");
-    });
-
-    expect(findGpuControl().disabled).toBe(false);
-    expect(findGpuControl().checked).toBe(false);
-    expect(selectedSideLabel()).toBe("CPU");
+    await waitFor(() => expect(backendState()).toBe("unavailable"));
+    expect(backendControl().value).toBe("cpu");
   });
 });
 
@@ -1244,7 +1211,7 @@ describe("CreateExperimentDrawer constraints", () => {
       screen.getByRole("group", { name: "Parameter constraint 1" }),
     ).toBeTruthy();
 
-    fireEvent.change(screen.getAllByRole("combobox")[0]!, {
+    fireEvent.change(screen.getByLabelText("Scenario"), {
       target: { value: "scenario-other" },
     });
     // The other scenario's sweep has to be turned on again, as its inputs reset.
@@ -1282,7 +1249,7 @@ describe("CreateExperimentDrawer constraints", () => {
     await waitFor(() => {
       expect(backendState()).toBe("unavailable");
     });
-    expect(findGpuControl().disabled).toBe(true);
+    expect(gpuOption().disabled).toBe(true);
 
     fireEvent.click(
       screen.getByRole("button", { name: "Remove state constraint 1" }),

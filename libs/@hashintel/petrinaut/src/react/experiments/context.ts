@@ -58,7 +58,7 @@ export type ExperimentMetricSpecInput =
  * `ExperimentsProvider` (see `petrinaut-provider.tsx`) and so is not visible
  * there. The create-experiment surface reads the setting and passes it here.
  */
-export type ExperimentComputeBackend = "cpu" | "webgpu";
+export type ExperimentComputeBackend = "cpu" | "webgpu" | "wasm";
 
 export type CreateExperimentInput = {
   name: string;

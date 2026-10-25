@@ -33,13 +33,16 @@ const badgeStyle = css({
 });
 
 const describeComputeBackend = (backend: ComputeBackendSummary): string => {
+  if (backend.computeBackend === "wasm") {
+    return "Experimental Rust simulator compiled to Wasm, with model expressions compiled to Wasm when the experiment starts.";
+  }
   if (backend.computeBackend === "webgpu") {
     return "Stepped on the GPU through WebGPU. Distributions match the CPU backend statistically — real-valued metrics are binned to a calibrated window; individual trajectories differ (different random generators).";
   }
   if (backend.computeBackendFallbackReason !== null) {
     // The notification that carried this is gone by the time anyone wonders
     // why the results are not GPU-backed.
-    return `The GPU backend was requested but could not run this net: ${backend.computeBackendFallbackReason}`;
+    return `The requested backend could not run this net: ${backend.computeBackendFallbackReason}`;
   }
   return "Stepped on the CPU, across worker threads.";
 };
@@ -55,7 +58,7 @@ export const ComputeBackendBadge = ({
     <Tooltip content={describeComputeBackend(backend)} position="bottom-end">
       <span className={badgeStyle} data-tone={isGpu ? "active" : "neutral"}>
         {isGpu ? <Icon name="lightning" size="xs" /> : null}
-        {isGpu ? "GPU" : "CPU"}
+        {isGpu ? "GPU" : backend.computeBackend === "wasm" ? "Wasm" : "CPU"}
       </span>
     </Tooltip>
   );

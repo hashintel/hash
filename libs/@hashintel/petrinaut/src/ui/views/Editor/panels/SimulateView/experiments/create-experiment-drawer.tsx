@@ -57,7 +57,7 @@ import {
   MODEL_METRIC_VALUE_PREFIX,
   type MetricKindGroup,
 } from "../metrics/metric-picker-options";
-import { ComputeBackendToggle } from "../shared/compute-backend-toggle";
+import { ComputeBackendSelect } from "../shared/compute-backend-select";
 import { SimulationPanel } from "../shared/simulation-panel";
 import { useGpuAvailability } from "../shared/use-gpu-availability";
 import { hasAdHocIntervalToggle } from "./create-experiment-drawer/ad-hoc-interval-toggles";
@@ -97,7 +97,10 @@ import {
 } from "./shared/sweep-objective";
 import { SWEEP_OPTIMIZATION_RUNS_PER_STEP } from "./sweep-optimizer";
 
-import type { ExperimentMetricSpecInput } from "../../../../../../react/experiments/context";
+import type {
+  ExperimentComputeBackend,
+  ExperimentMetricSpecInput,
+} from "../../../../../../react/experiments/context";
 import type {
   AdHocScenarioState,
   MonteCarloMetricSpec,
@@ -893,7 +896,8 @@ export const CreateExperimentDrawer = ({
   );
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [gpuRequested, setGpuRequested] = useState(false);
+  const [requestedBackend, setRequestedBackend] =
+    useState<ExperimentComputeBackend>("cpu");
   const nameInputRef = useRef<HTMLInputElement>(null);
   const addMetricButtonRef = useRef<HTMLButtonElement>(null);
   const metricTriggerRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -1059,12 +1063,8 @@ export const CreateExperimentDrawer = ({
     extensions,
     metricSpecs: draftMetricSpecs,
   });
-  // Derived rather than stored, so a net edited into ineligibility after the
-  // switch was flipped neither shows as on nor submits a GPU experiment. The
-  // switch's own state and the submitted backend read the same value, so they
-  // cannot disagree.
-  const gpuSelected = gpuRequested && gpu.available;
-  const computeBackend = gpuSelected ? "webgpu" : "cpu";
+  const computeBackend =
+    requestedBackend === "webgpu" && !gpu.available ? "cpu" : requestedBackend;
 
   const resetForm = () => {
     setName(DEFAULT_EXPERIMENT_NAME);
@@ -1082,7 +1082,7 @@ export const CreateExperimentDrawer = ({
     setMetricLabelFocusId(null);
     setError(null);
     setIsSubmitting(false);
-    setGpuRequested(false);
+    setRequestedBackend("cpu");
   };
 
   const handleClose = () => {
@@ -1352,20 +1352,26 @@ export const CreateExperimentDrawer = ({
                       {/* A labelled cell in the same grid as Runs / Time step / Max time:
                   the backend is a property of the experiment like the rest, and a
                   bare control below the grid read as an orphan. */}
-                      {webGpuAvailable && (
-                        <div className={fieldStyle}>
-                          <span className={labelStyle}>Backend</span>
-                          <ComputeBackendToggle
-                            gpu={gpu}
-                            selected={gpuSelected}
-                            onSelectedChange={setGpuRequested}
-                          />
-                        </div>
-                      )}
+                      <div className={fieldStyle}>
+                        <span className={labelStyle}>Backend</span>
+                        <ComputeBackendSelect
+                          value={computeBackend}
+                          onChange={setRequestedBackend}
+                          gpu={gpu}
+                          webGpuAvailable={webGpuAvailable}
+                        />
+                      </div>
                     </div>
                   </FocusControls>
-                  {/* Only shown once WebGPU is switched on in settings — otherwise the
-                choice does not exist and the row would be noise. */}
+                  {computeBackend === "wasm" && (
+                    <p
+                      className={css({ fontSize: "xs", color: "neutral.s100" })}
+                    >
+                      Experimental: uncoloured nets and scalar expressions.
+                      Other models fall back to CPU; results show which backend
+                      ran.
+                    </p>
+                  )}
                 </Section>
 
                 <Section title="Scenario" collapsible defaultOpen>
