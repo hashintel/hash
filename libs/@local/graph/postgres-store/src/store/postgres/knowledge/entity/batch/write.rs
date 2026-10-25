@@ -35,6 +35,40 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         &self,
         history: &EntityHistory,
     ) -> Result<(), Report<UpdateError>> {
+        let removed: Vec<_> = history.removed().cloned().collect();
+        if !removed.is_empty() {
+            let parameters = EntityTemporalMetadataRow::columnar_parameters(&removed);
+            self.as_client()
+                .execute_raw(
+                    "
+                    DELETE FROM entity_temporal_metadata AS temporal
+                    USING
+                        unnest(
+                            $1::UUID [],
+                            $2::UUID [],
+                            $3::UUID [],
+                            $4::UUID [],
+                            $5::TSTZRANGE [],
+                            $6::TSTZRANGE []
+                        )
+                            AS previous (
+                                web_id, entity_uuid, draft_id, edition_id,
+                                decision_time, transaction_time
+                            )
+                    WHERE temporal.web_id = previous.web_id
+                        AND temporal.entity_uuid = previous.entity_uuid
+                        AND temporal.draft_id IS NOT DISTINCT FROM previous.draft_id
+                        AND temporal.entity_edition_id = previous.edition_id
+                        AND temporal.decision_time = previous.decision_time
+                        AND temporal.transaction_time = previous.transaction_time
+                    ",
+                    parameters
+                        .into_iter()
+                        .map(|(_, column)| column.into_values()),
+                )
+                .await
+                .change_context(UpdateError)?;
+        }
         self.update_entity_temporal_rows(
             history
                 .updated()
