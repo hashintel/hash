@@ -50,7 +50,7 @@ class ViewInterpreter {
     });
   }
 
-  render(node: ViewNode, locals: Locals): ViewValue {
+  draw(node: ViewNode, locals: Locals): ViewValue {
     switch (node.kind) {
       case "element": {
         const attributes = new Map<string, HirValue>();
@@ -64,7 +64,7 @@ class ViewInterpreter {
           node.tag,
           attributes,
           node.key === undefined ? undefined : this.evaluate(node.key, locals),
-          node.children.map((child) => this.render(child, locals)),
+          node.children.map((child) => this.draw(child, locals)),
         );
       }
       case "text":
@@ -75,13 +75,13 @@ class ViewInterpreter {
         return null;
       case "cond":
         return this.evaluate(node.condition, locals)
-          ? this.render(node.thenBranch, locals)
-          : this.render(node.elseBranch, locals);
+          ? this.draw(node.thenBranch, locals)
+          : this.draw(node.elseBranch, locals);
       case "and": {
         // JavaScript's `&&` yields its left operand when that is falsy, and
         // React writes a `0` from it; `null`, `false` and `""` draw nothing.
         const condition = this.evaluate(node.condition, locals);
-        return condition ? this.render(node.body, locals) : condition;
+        return condition ? this.draw(node.body, locals) : condition;
       }
       case "map": {
         const target = this.evaluate(node.target, locals);
@@ -97,7 +97,7 @@ class ViewInterpreter {
           if (node.indexParam) {
             scoped.set(node.indexParam.name, index);
           }
-          return this.render(node.body, scoped);
+          return this.draw(node.body, scoped);
         });
       }
       case "let": {
@@ -105,7 +105,7 @@ class ViewInterpreter {
         for (const binding of node.bindings) {
           scoped.set(binding.name, this.evaluate(binding.value, scoped));
         }
-        return this.render(node.body, scoped);
+        return this.draw(node.body, scoped);
       }
     }
   }
@@ -125,5 +125,5 @@ export function interpretViewHir(view: ViewHir, props: ViewProps): ViewValue {
       parameters: props.parameters as HirValue,
     });
   }
-  return new ViewInterpreter(props.parameters).render(view.body, locals);
+  return new ViewInterpreter(props.parameters).draw(view.body, locals);
 }
