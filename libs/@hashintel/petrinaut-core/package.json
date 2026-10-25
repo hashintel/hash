@@ -86,6 +86,10 @@
     "./rust": {
       "types": "./dist/rust.d.ts",
       "import": "./dist/rust.js"
+    },
+    "./wasm": {
+      "types": "./dist/wasm.d.ts",
+      "import": "./dist/wasm.js"
     }
   },
   "publishConfig": {

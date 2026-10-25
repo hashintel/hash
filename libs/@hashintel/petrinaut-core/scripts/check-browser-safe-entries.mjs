@@ -19,6 +19,7 @@ const packageRoot = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const BROWSER_SAFE_ENTRIES = [
   "index.js",
   "webgpu.js",
+  "wasm.js",
   "hir-runtime.js",
   "rust.js",
 ];

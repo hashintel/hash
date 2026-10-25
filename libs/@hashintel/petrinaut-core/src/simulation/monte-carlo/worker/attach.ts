@@ -32,6 +32,47 @@ import type {
 
 const DEFAULT_BATCH_SIZE = 4;
 
+export type MonteCarloWorkerSimulation = {
+  simulator: MonteCarloSimulator;
+  userMetrics: MonteCarloUserDefinedMetric[];
+};
+
+export type MonteCarloWorkerSimulationFactory = (
+  message: MonteCarloInitMessage,
+) => MonteCarloWorkerSimulation | Promise<MonteCarloWorkerSimulation>;
+
+const createDefaultSimulation = (
+  message: MonteCarloInitMessage,
+): MonteCarloWorkerSimulation => {
+  const metricSpecs = message.metricSpecs;
+  const userMetrics = metricSpecs
+    ? createMonteCarloUserDefinedMetricConfigsFromSpecs(
+        metricSpecs,
+        message.sdcpn,
+        resolveNetParameterValues(
+          message.sdcpn.parameters,
+          message.parameterValues,
+          (message.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS).parameters,
+        ),
+      ).map((metricConfig) => createMonteCarloUserDefinedMetric(metricConfig))
+    : [];
+  const simulator = createMonteCarloSimulator({
+    sdcpn: message.sdcpn,
+    extensions: message.extensions,
+    initialMarking: message.initialMarking,
+    parameterValues: message.parameterValues,
+    seed: message.seed,
+    dt: message.dt,
+    maxTime: message.maxTime,
+    hirArtifacts: message.hirArtifacts,
+    runCount: message.runCount,
+    runIndexOffset: message.runIndexOffset,
+    runs: message.runs,
+    metrics: userMetrics,
+  });
+  return { simulator, userMetrics };
+};
+
 /**
  * Runs the Monte Carlo worker protocol against `runtime`.
  *
@@ -43,7 +84,9 @@ export function attachMonteCarloWorker(
     MonteCarloToWorkerMessage,
     MonteCarloToMainMessage
   >,
+  createSimulation: MonteCarloWorkerSimulationFactory = createDefaultSimulation,
 ): void {
+  let initializationGeneration = 0;
   let simulator: MonteCarloSimulator | null = null;
   let userMetrics: MonteCarloUserDefinedMetric[] = [];
   let isRunning = false;
@@ -182,33 +225,12 @@ export function attachMonteCarloWorker(
       .map(([runIndex, values]) => ({ runIndex, values }));
   }
 
-  function initialize(message: MonteCarloInitMessage): void {
-    const metricSpecs = message.metricSpecs;
-    userMetrics = metricSpecs
-      ? createMonteCarloUserDefinedMetricConfigsFromSpecs(
-          metricSpecs,
-          message.sdcpn,
-          resolveNetParameterValues(
-            message.sdcpn.parameters,
-            message.parameterValues,
-            (message.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS).parameters,
-          ),
-        ).map((metricConfig) => createMonteCarloUserDefinedMetric(metricConfig))
-      : [];
-    simulator = createMonteCarloSimulator({
-      sdcpn: message.sdcpn,
-      extensions: message.extensions,
-      initialMarking: message.initialMarking,
-      parameterValues: message.parameterValues,
-      seed: message.seed,
-      dt: message.dt,
-      maxTime: message.maxTime,
-      hirArtifacts: message.hirArtifacts,
-      runCount: message.runCount,
-      runIndexOffset: message.runIndexOffset,
-      runs: message.runs,
-      metrics: userMetrics,
-    });
+  function initialize(
+    message: MonteCarloInitMessage,
+    initialized: MonteCarloWorkerSimulation,
+  ): void {
+    simulator = initialized.simulator;
+    userMetrics = initialized.userMetrics;
     batchSize = message.batchSize ?? DEFAULT_BATCH_SIZE;
     runIndexOffset = message.runIndexOffset ?? 0;
     isInitialized = true;
@@ -221,8 +243,8 @@ export function attachMonteCarloWorker(
     postTypedMessage({ type: "progress", progress: latestProgress });
   }
 
-  async function computeLoop(): Promise<void> {
-    while (isRunning) {
+  async function computeLoop(generation: number): Promise<void> {
+    while (isRunning && generation === initializationGeneration) {
       const currentSimulator = simulator;
       if (!currentSimulator) {
         return;
@@ -260,11 +282,19 @@ export function attachMonteCarloWorker(
   runtime.onMessage((message) => {
     switch (message.type) {
       case "init": {
-        try {
-          initialize(message);
-        } catch (error) {
+        const generation = ++initializationGeneration;
+        isInitialized = false;
+        isRunning = false;
+        simulator?.dispose?.();
+        simulator = null;
+        userMetrics = [];
+        const failed = (error: unknown) => {
+          if (generation !== initializationGeneration) {
+            return;
+          }
           isInitialized = false;
           isRunning = false;
+          simulator?.dispose?.();
           simulator = null;
           userMetrics = [];
           postTypedMessage({
@@ -275,6 +305,23 @@ export function attachMonteCarloWorker(
                 : "Failed to initialize Monte Carlo experiment",
             itemId: error instanceof SDCPNItemError ? error.itemId : null,
           });
+        };
+        const initialized = (result: MonteCarloWorkerSimulation) => {
+          if (generation !== initializationGeneration) {
+            result.simulator.dispose?.();
+            return;
+          }
+          initialize(message, result);
+        };
+        try {
+          const result = createSimulation(message);
+          if (result instanceof Promise) {
+            void result.then(initialized).catch(failed);
+          } else {
+            initialized(result);
+          }
+        } catch (error) {
+          failed(error);
         }
         break;
       }
@@ -294,7 +341,11 @@ export function attachMonteCarloWorker(
         }
 
         isRunning = true;
-        void computeLoop().catch((error: unknown) => {
+        const generation = initializationGeneration;
+        void computeLoop(generation).catch((error: unknown) => {
+          if (generation !== initializationGeneration) {
+            return;
+          }
           isRunning = false;
           postTypedMessage({
             type: "error",
@@ -309,6 +360,8 @@ export function attachMonteCarloWorker(
       }
 
       case "cancel": {
+        initializationGeneration++;
+        simulator?.dispose?.();
         isRunning = false;
         simulator = null;
         isInitialized = false;

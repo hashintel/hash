@@ -15,6 +15,7 @@ mod patch;
 mod places;
 mod positions;
 mod selection;
+pub mod simulation;
 mod subnets;
 #[cfg(test)]
 mod tests;

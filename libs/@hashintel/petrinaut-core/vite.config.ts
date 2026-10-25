@@ -49,6 +49,7 @@ export default defineConfig(({ command }) => ({
         // and carries the whole shader generator, so it must stay out of the
         // main bundle and load only when a GPU experiment is requested.
         webgpu: resolve(packageRoot, "src/webgpu.ts"),
+        wasm: resolve(packageRoot, "src/wasm.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),
         "workers/monte-carlo": resolve(
