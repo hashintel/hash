@@ -10,6 +10,15 @@ const config: OxlintConfig = defineConfig({
   },
   overrides: [
     {
+      files: [
+        "src/Program/Expression*.ts",
+        "tests/package.integration.test.ts",
+      ],
+      rules: {
+        "unicorn/no-thenable": "allow", // HashQL branch records and user fields use then as data, not a Promise continuation.
+      },
+    },
+    {
       files: ["src/**/*.ts"],
       rules: {
         "unicorn/filename-case": [
