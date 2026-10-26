@@ -7,7 +7,6 @@ import {
   Icon,
   Menu,
   Select,
-  TextInput,
   Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -34,8 +33,6 @@ import {
   VALUE_SUBJECT,
 } from "./document";
 import {
-  inScreenState,
-  showFull,
   useEditor,
   useSourceHover,
 } from "./editor-context";
@@ -846,6 +843,20 @@ const listFieldStyle = css({
   _hover: { borderColor: "neutral.bd.strong" },
 });
 
+/** The typing slot inside the address field: no frame of its own, it takes the rest of the line. */
+const typeInlineStyle = css({
+  flex: "1",
+  minWidth: "[120px]",
+  height: "[24px]",
+  paddingX: "1.5",
+  border: "none",
+  outline: "none",
+  background: "[transparent]",
+  textStyle: "sm",
+  color: "neutral.fg.heading",
+  "&::placeholder": { color: "neutral.fg.subtle" },
+});
+
 /** "+N" after the first chip: hover lists the rest, click shows them all. */
 const moreStyle = css({
   flexShrink: 0,
@@ -916,8 +927,10 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const { open, setOpen } = useFieldMenu(step.stepId, input.name);
   const [typing, setTyping] = useState("");
-  const [showTyping, setShowTyping] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  /** Email only: the field is open for typing, every address shows and wraps (Dora, 26 Oct). */
+  const [editing, setEditing] = useState(false);
+  const typeRef = useRef<HTMLInputElement>(null);
   const key = fieldKey(step.stepId, input.name);
   const existing = step.inputs[input.name];
   const items = document.lists[key] ?? (existing ? [existing] : []);
@@ -949,29 +962,41 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
     item.kind === "constant" &&
     !isEmail(String(item.payload.value));
 
-  const addTyped = () => {
-    const address = typing.trim();
-    if (!address) {
-      return;
+  /** Adds every address in the text: typed one by one, or pasted as a list ("a@x.com, b@y.com"). */
+  const addTyped = (text = typing) => {
+    const known = new Set(
+      items.flatMap((item) =>
+        item.kind === "constant" ? [String(item.payload.value)] : [],
+      ),
+    );
+    const added = text
+      .split(/[\s,;]+/)
+      .map((address) => address.trim())
+      .filter((address) => address !== "" && !known.has(address));
+    if (added.length > 0) {
+      setItems([
+        ...items,
+        ...[...new Set(added)].map(
+          (address): StepInputSource => ({
+            kind: "constant",
+            payload: { kind: "Text", value: address },
+          }),
+        ),
+      ]);
     }
-    setItems([
-      ...items,
-      { kind: "constant", payload: { kind: "Text", value: address } },
-    ]);
     setTyping("");
+  };
+
+  const startTyping = () => {
+    setEditing(true);
+    setShowAll(true);
+    requestAnimationFrame(() => typeRef.current?.focus());
   };
 
   const constants = items.filter((item) => item.kind === "constant");
   const variables = items.filter((item) => item.kind !== "constant");
   const mixed =
     items.length > 1 && items.some((item) => item.kind !== "constant");
-  // Figma J3 D1: To is a select of people with "Use a variable" under it; the address list is `?full`.
-  const recipientSelect =
-    mode === "email" &&
-    inScreenState &&
-    !showFull &&
-    variables.length === 0 &&
-    constants.length <= 1;
 
   const chip = (item: StepInputSource) => {
     const index = items.indexOf(item);
@@ -1099,41 +1124,7 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
           {addButton}
         </div>
       ) : null}
-      {recipientSelect ? (
-        <div ref={anchorRef}>
-          <Select
-            size="sm"
-            aria-label={input.label}
-            items={mockPeopleEmails.map((person) => ({
-              value: person.email,
-              text: person.label,
-            }))}
-            value={constants[0] ? String(constants[0].payload.value) : null}
-            placeholder="Choose a person"
-            onChange={(value) =>
-              setItems(
-                value
-                  ? [
-                      {
-                        kind: "constant",
-                        payload: { kind: "Text", value },
-                      },
-                    ]
-                  : [],
-              )
-            }
-          />
-          <div
-            className={css({
-              display: "flex",
-              justifyContent: "flex-end",
-              marginTop: "1.5",
-            })}
-          >
-            <UseVariable onClick={() => setOpen(true)} />
-          </div>
-        </div>
-      ) : mode === "entity" ? (
+      {mode === "entity" ? (
         variables.length > 0 ? (
           <div
             className={css({
@@ -1152,7 +1143,13 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
           ref={anchorRef}
           className={listFieldStyle}
           data-invalid={items.some(badEmail) || undefined}
-          data-all={showAll || undefined}
+          data-all={showAll || editing || undefined}
+          onClick={(event) => {
+            // A click on the field itself (not a chip or "+") opens it for typing.
+            if (mode === "email" && event.target === event.currentTarget) {
+              startTyping();
+            }
+          }}
         >
           {/* One line: the first chip (an invalid one first), then "+N" (spec F7). */}
           {(showAll
@@ -1178,7 +1175,42 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
               </button>
             </Tooltip>
           ) : null}
-          {items.length === 0 ? (
+          {mode === "email" && (editing || items.length === 0) ? (
+            // An email client's To: type, or paste a list; Enter, comma or Tab makes a chip; Backspace takes the last.
+            <input
+              ref={typeRef}
+              className={typeInlineStyle}
+              value={typing}
+              aria-label={`Type an address for ${input.label}`}
+              placeholder={items.length === 0 ? "Type or paste addresses" : ""}
+              onFocus={() => setEditing(true)}
+              onChange={(event) => setTyping(event.target.value)}
+              onPaste={(event) => {
+                event.preventDefault();
+                addTyped(`${typing} ${event.clipboardData.getData("text")}`);
+              }}
+              onBlur={() => {
+                addTyped();
+                setEditing(false);
+                setShowAll(false);
+              }}
+              onKeyDown={(event) => {
+                if (
+                  event.key === "Enter" ||
+                  event.key === "," ||
+                  (event.key === "Tab" && typing.trim() !== "")
+                ) {
+                  event.preventDefault();
+                  addTyped();
+                } else if (event.key === "Backspace" && typing === "") {
+                  setItems(items.slice(0, -1));
+                } else if (event.key === "Escape") {
+                  setTyping("");
+                  typeRef.current?.blur();
+                }
+              }}
+            />
+          ) : items.length === 0 ? (
             <span
               className={css({
                 paddingX: "2",
@@ -1198,31 +1230,6 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
       )}
       {items.length === 1 && items[0]!.kind !== "constant" ? (
         <SourceLine source={items[0]!} />
-      ) : null}
-      {mode === "email" && showTyping ? (
-        <TextInput
-          size="sm"
-          // eslint-disable-next-line jsx-a11y/no-autofocus -- it opens from the user's own "Type an address" pick
-          autoFocus
-          value={typing}
-          aria-label={`Type an address for ${input.label}`}
-          placeholder="name@example.com, then Enter"
-          prefix={{ iconName: "at", variant: "subtle" }}
-          onChange={(value) => setTyping(value)}
-          onBlur={() => {
-            addTyped();
-            setShowTyping(false);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              addTyped();
-            } else if (event.key === "Escape") {
-              setTyping("");
-              setShowTyping(false);
-            }
-          }}
-        />
       ) : null}
       {items.some(badEmail) ? (
         <span className={errorTextStyle}>Not an email address</span>
@@ -1273,8 +1280,8 @@ export const ListField = ({ step, input, entry }: FieldProps) => {
           onTypeValue={
             mode === "email"
               ? () => {
-                  setShowTyping(true);
                   setOpen(false);
+                  startTyping();
                 }
               : mode === "file"
                 ? () => {
