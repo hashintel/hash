@@ -248,7 +248,7 @@ test("Brunch's runner gets the handle the editor shows, a new one on every load,
   expect(lastEditorHandle()).toBe(firstHandle);
   expect(lastBrunchInput()).toMatchObject({
     ownerKey: "hash:alice-account",
-    chatEndpoint: "http://localhost:5001/api/brunch/agents/petrinaut",
+    chatEndpoint: "http://localhost:5001/api/brunch/agents/hash",
     openDocument: { documentId: savedEntityId },
     voice: { enabled: false },
   });

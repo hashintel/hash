@@ -31,8 +31,8 @@ import type { EntityId, UserId } from "@blockprotocol/type-system";
 const editorPlugins = [topBarPlugin];
 const editorPluginsWithBrunch = [topBarPlugin, brunchPlugin];
 
-/** Brunch's Petrinaut agent, reached through hash-api's Brunch route. */
-const brunchChatEndpoint = `${apiOrigin}/api/brunch${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
+/** Brunch's HASH agent, reached through hash-api's Brunch route. */
+const brunchChatEndpoint = `${apiOrigin}/api/brunch${brunchRoutes.agents}/hash`;
 
 /** Returns `{ ownerKey }` for the signed-in account. */
 const brunchIdentityEndpoint = `${apiOrigin}/api/brunch/identity`;
