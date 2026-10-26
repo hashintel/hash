@@ -64,8 +64,8 @@ export const replayFlowRunEvents = (
   const skippedStepRuns: FlowNetStepRun[] = [];
 
   for (const event of events) {
-    const record = (applied: readonly FlowNetFiring[]) => {
-      for (const firing of applied) {
+    const record = (fired: readonly FlowNetFiring[]) => {
+      for (const firing of fired) {
         firings.push({
           ...firing,
           eventPosition: event.position,
