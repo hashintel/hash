@@ -29,10 +29,42 @@ import type {
 
 /*
  * Runs a compiled flow net by its transitions' roles (see `TransitionRole`), working out the tokens itself: the
- * net's kernels are placeholders and it has no guards. Every transition fires as soon as it's enabled, except held
- * ones (`FlowNetHeldRole`), which what happens outside the net decides: how an action's attempt ends, how many
- * items a `forEach` step's array has, and, when the run waits for steps to start, an action step starting. The
- * driver fires those. The executor fires them as actions end; a run's view fires the ones its events record.
+ * net's kernels are placeholders and it has no guards.
+ *
+ * Each transition is either internal or held:
+ *
+ * - An internal transition fires as soon as it's enabled. Nothing outside the net has a say in it: `startAttempt`,
+ *   `copyOutput`, `startItem`, `startCollecting`, `collectItem`, `finishCollecting` and `recordStepFailure`.
+ * - A held transition can be enabled and still not fire, because what happens outside the net decides whether it
+ *   does (see `heldRoles`). The driver fires it: the replay of a run's events now, and the executor eventually.
+ *   - `startForEach` needs to know how many items its array has, unless the array is a constant, when it's internal.
+ *   - `startStep` is held only in a run that waits for steps to start (see `waitForStepStarts`).
+ *   - `succeedAttempt` and `failAttempt` end an attempt in progress, as its action decides, and `succeedAttempt`
+ *     needs to know which outputs the action produced.
+ *   - `retryAttempt` and `giveUp` follow a failed attempt, as Temporal's retry policy decides. So a failure the
+ *     policy retries is two firings: `failAttempt`, then `retryAttempt`.
+ *
+ * A role can therefore be held in one run and internal in another, but within a run it's the same for every step run.
+ *
+ * Driving a run is a loop: `held()` lists the held transitions that are enabled, each for one step run, and
+ * `fire()` fires one of them, with what the net can't work out itself (`FlowNetHeldFiring`), and then every
+ * internal transition that enables, until none is enabled. `startFlowNetRun` does the same with the run's starting
+ * tokens. So between calls the net only ever waits on held transitions: a run whose `held()` is empty has ended,
+ * or is stuck, such as on a step whose value to skip on is missing.
+ *
+ * An action step's attempts go round its instance of its action's subnet:
+ *
+ *   startStep ─▶ input ports ─▶ startAttempt ─▶ InProgress ─┬─▶ succeedAttempt ─▶ output ports
+ *                                                  ▲        └─▶ failAttempt ─▶ Failed ─┬─▶ giveUp ─▶ GaveUp port
+ *                                                  └──────────── retryAttempt ◀────────┘
+ *
+ * The attempt token counts the attempts: `startAttempt` makes the first, and each `retryAttempt` adds one. A step
+ * that gives up puts its token in its instance's `GaveUp` port, which the internal `recordStepFailure` moves into
+ * `FailedStepRuns`.
+ *
+ * A held transition fires for one step run, which says which tokens it takes: the `Pending` token of the step
+ * run's item for a start, and the step run's attempt token for an attempt's end. Firing one that isn't enabled for
+ * it throws a `FlowNetInterpreterError`, as does a net that isn't a compiled flow net.
  */
 
 /** A run of a step: its id in the definition and, inside `forEach` steps, its item's index in each, outermost first. */
@@ -99,9 +131,9 @@ export type FlowNetFiring = {
 };
 
 /**
- * The roles of the transitions that what happens outside the net decides, which the driver fires: a `forEach`
- * step's start, as it needs its array's length; an action step's start, in a run that waits for steps to start
- * (see `waitForStepStarts`); and the end of an action's attempt, as its action and Temporal's retry policy decide.
+ * The roles a held transition can have: one the driver fires, as what happens outside the net decides whether it
+ * does. `succeedAttempt`, `failAttempt`, `retryAttempt` and `giveUp` are always held. `startForEach` is held unless
+ * its array is a constant, and `startStep` only in a run that waits for steps to start (see `waitForStepStarts`).
  */
 export const heldRoles = [
   "startForEach",
@@ -120,15 +152,18 @@ type AttemptEndRole = Extract<
 >;
 
 /**
- * A held transition that's enabled, for one step run. An attempt in progress enables `succeedAttempt` and
- * `failAttempt`, and a failed one `retryAttempt` and `giveUp`. A `forEach` step whose array is a constant, and an
- * action step in a run that doesn't wait for steps to start, start on their own.
+ * A held transition that's enabled, for one step run. A step run's `Pending` token enables its start once the step
+ * has its inputs (a `forEach` step its array), its attempt in progress enables `succeedAttempt` and `failAttempt`,
+ * and its failed attempt `retryAttempt` and `giveUp`. `attempt` is the number of the attempt that ends.
  */
 export type FlowNetHeldTransition =
   | { role: "startForEach" | "startStep"; stepRun: FlowNetStepRun }
   | { role: AttemptEndRole; stepRun: FlowNetStepRun; attempt: number };
 
-/** Fires a held transition for a step run, with what the net can't work out itself. */
+/**
+ * What the driver fires a held transition for a step run with: what the net can't work out itself, which is how many
+ * items a `forEach` step's array has, and which outputs a succeeding attempt produced.
+ */
 export type FlowNetHeldFiring =
   | { role: "startForEach"; stepRun: FlowNetStepRun; itemCount: number }
   | { role: "startStep"; stepRun: FlowNetStepRun }
@@ -160,24 +195,30 @@ export type FlowNetRun = {
   readonly firings: readonly FlowNetFiring[];
   /** The tokens in the net now. */
   marking: () => FlowNetPlacedToken[];
-  /** The held transitions that are enabled now. */
+  /** The held transitions that are enabled now: what the run waits on from outside. Attempts' ends come first. */
   held: () => FlowNetHeldTransition[];
-  /** Whether a held transition is enabled for a step run, without listing every other one. */
+  /**
+   * Whether a held transition is enabled for a step run, without listing every other one, so that a replay of a
+   * large `forEach` doesn't bind every item's `Pending` token on each event. False for a role that isn't held in this
+   * run, such as `startStep` in a run that doesn't wait for steps to start.
+   */
   isHeld: (role: FlowNetHeldRole, stepRun: FlowNetStepRun) => boolean;
-  /** The number of a step run's attempt in progress, if it has one. */
+  /** The number of a step run's attempt in progress, if it has one: not while it's failed and not yet retried. */
   attemptInProgress: (stepRun: FlowNetStepRun) => number | null;
   /** Whether a step run is still waiting for its inputs: its `Pending` token is still there. */
   isPending: (stepRun: FlowNetStepRun) => boolean;
   /**
-   * The inputs a `startAttempt` firing started its action with: the tokens it took, one from each input port.
+   * The inputs a `startAttempt` firing started its action with: the tokens it took, one from each input port. An
+   * executor finds the `startAttempt` firings among those `fire()` returns, and calls their actions with these.
    *
    * @throws {FlowNetInterpreterError} if the firing isn't of a `startAttempt`.
    */
   attemptInputs: (firing: FlowNetFiring) => FlowNetAttemptInputs;
   /**
-   * Fires a held transition, then every transition that fires on its own that it enables, and returns those firings.
+   * Fires a held transition for its step run, then every internal transition that enables, until none is, and
+   * returns those firings, the held one first.
    *
-   * @throws {FlowNetInterpreterError} if it isn't enabled.
+   * @throws {FlowNetInterpreterError} if it isn't enabled for the step run.
    */
   fire: (firing: FlowNetHeldFiring) => FlowNetFiring[];
 };
@@ -312,8 +353,8 @@ export const startFlowNetRun = (
     flowInputNames: Iterable<string>;
     /**
      * Whether an action step's `startStep` is held until the driver fires it, rather than firing once the step has
-     * its inputs. A replay holds it, as the original engine only starts the steps that are ready once every step it
-     * started with the last batch has finished.
+     * its inputs. A replay holds it, as the Temporal engine only starts the steps that are ready once every step it
+     * started with the last batch has finished, so a step can have its inputs well before it starts.
      */
     waitForStepStarts?: boolean;
   },
@@ -743,7 +784,7 @@ export const startFlowNetRun = (
 
   /**
    * Fires a transition of the root net if it's enabled, returning the firing. A held `startForEach` or `startStep`
-   * only fires when the driver fires it (`fired`), for its step run.
+   * only fires as `fired`, the driver's firing of it, and only for `fired`'s step run.
    */
   const fireRootTransition = (
     { transition, metadata }: RootTransition,
@@ -1037,7 +1078,7 @@ export const startFlowNetRun = (
     });
   };
 
-  /** Fires every transition that's enabled and fires on its own, until none is. */
+  /** Fires every internal transition that's enabled, until none is. */
   const fireEnabled = (): FlowNetFiring[] => {
     const fired: FlowNetFiring[] = [];
     let firedAny = true;
@@ -1071,7 +1112,10 @@ export const startFlowNetRun = (
     return fired;
   };
 
-  /** A step run's token in a place of its instance: `InProgress` for an attempt in progress, `Failed` for a failed one. */
+  /**
+   * A step run's attempt token in a place of its step's instance: `InProgress` while an attempt is in progress, and
+   * `Failed` once it failed, until it's retried or given up on.
+   */
   const attemptTokenAt = (
     stepRun: FlowNetStepRun,
     placeOf: (subnet: IndexedSubnet) => string,
@@ -1143,7 +1187,7 @@ export const startFlowNetRun = (
     return attempt;
   };
 
-  /** Fires a held transition the driver fires, alone. */
+  /** Fires a held transition for its step run, without the internal transitions it enables. */
   const fireHeld = (held: FlowNetHeldFiring): FlowNetFiring => {
     const { stepRun } = held;
 
