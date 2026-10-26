@@ -29,8 +29,8 @@ import {
 
 import type { FlowNetMetadata } from "./flow-net-metadata.js";
 import type {
-  FlowNetAwaiting,
-  FlowNetOutcome,
+  FlowNetHeldFiring,
+  FlowNetHeldTransition,
   FlowNetPlacedToken,
   FlowNetPosition,
   FlowNetRun,
@@ -107,67 +107,83 @@ const allStepIds = (steps: StepDefinition[]): string[] =>
   ]);
 
 /**
- * Applies the outcome `decide` gives for whatever the run waits on first (or last), until it waits on nothing.
- * Taking the last runs later items first.
+ * Fires what `decide` gives for the first (or last) held transition, until none is held. Taking the last runs later
+ * items first.
  */
 const runToEnd = (
   run: FlowNetRun,
-  decide: (awaiting: FlowNetAwaiting) => FlowNetOutcome,
+  decide: (held: FlowNetHeldTransition) => FlowNetHeldFiring,
   { take = "first" }: { take?: "first" | "last" } = {},
 ) => {
-  for (let applied = 0; ; applied++) {
-    const waitingOn = run.awaiting();
+  for (let fired = 0; ; fired++) {
+    const held = run.held();
 
-    for (const awaiting of waitingOn) {
-      expect(run.isAwaitingStart(awaiting.stepRun)).toBe(
-        awaiting.kind === "stepStart",
-      );
-      expect(run.awaitedAttempt(awaiting.stepRun)).toBe(
-        awaiting.kind === "actionOutcome" ? awaiting.attempt : null,
+    for (const transition of held) {
+      expect(run.isHeld(transition.role, transition.stepRun)).toBe(true);
+      expect(run.attemptInProgress(transition.stepRun)).toBe(
+        transition.role === "succeedAttempt" ||
+          transition.role === "failAttempt"
+          ? transition.attempt
+          : null,
       );
     }
 
-    const next = take === "first" ? waitingOn[0] : waitingOn.at(-1);
+    const next = take === "first" ? held[0] : held.at(-1);
 
     if (!next) {
       return;
     }
 
-    if (applied > 100_000) {
+    if (fired > 100_000) {
       throw new Error("The run never ends");
     }
 
-    run.apply(decide(next));
+    run.fire(decide(next));
   }
 };
 
 /**
- * Starts every step waiting to start, succeeds every attempt with all of its action's outputs, and gives every
- * `forEach` step `itemCount` items.
+ * Starts every step held from starting, ends every attempt in success with all of its action's outputs, retries a
+ * failed one, and gives every `forEach` step `itemCount` items.
  */
 const succeedingEverything =
   (flowDefinition: FlowDefinition, { itemCount = 3 } = {}) =>
-  (awaiting: FlowNetAwaiting): FlowNetOutcome => {
-    if (awaiting.kind === "itemCount") {
-      return { kind: "itemCount", stepRun: awaiting.stepRun, itemCount };
+  (held: FlowNetHeldTransition): FlowNetHeldFiring => {
+    const { stepRun } = held;
+
+    switch (held.role) {
+      case "startForEach":
+        return { role: "startForEach", stepRun, itemCount };
+      case "startStep":
+        return { role: "startStep", stepRun };
+      case "retryAttempt":
+      case "giveUp":
+        return { role: "retryAttempt", stepRun };
+      case "succeedAttempt":
+      case "failAttempt": {
+        const actionDefinitionId = actionsByStepId(flowDefinition).get(
+          stepRun.stepId,
+        )!;
+
+        return {
+          role: "succeedAttempt",
+          stepRun,
+          outputNames: actionDefinitions[actionDefinitionId].outputs.map(
+            ({ name }) => name,
+          ),
+        };
+      }
     }
-
-    if (awaiting.kind === "stepStart") {
-      return { kind: "stepStarted", stepRun: awaiting.stepRun };
-    }
-
-    const actionDefinitionId = actionsByStepId(flowDefinition).get(
-      awaiting.stepRun.stepId,
-    )!;
-
-    return {
-      kind: "attemptSucceeded",
-      stepRun: awaiting.stepRun,
-      outputNames: actionDefinitions[actionDefinitionId].outputs.map(
-        ({ name }) => name,
-      ),
-    };
   };
+
+/** The held transitions an attempt in progress enables. */
+const attemptEnds = (
+  stepRun: { stepId: string; itemPath: number[] },
+  attempt: number,
+) => [
+  { role: "succeedAttempt", stepRun, attempt },
+  { role: "failAttempt", stepRun, attempt },
+];
 
 /**
  * Checks each firing takes from the places its transition's standard arcs point at, reads from those its read arcs
@@ -276,44 +292,43 @@ const leftoverKinds = (run: FlowNetRun) =>
   new Set(run.marking().map(({ token }) => token.kind));
 
 describe("startFlowNetRun", () => {
-  it("starts a step once its inputs are there, and waits for its action", async () => {
+  it("starts a step once its inputs are there, and holds its attempt's end", async () => {
     const net = await compileFlowDefinition(fileFlowDefinition);
     const run = startFlowNetRun(net, { flowInputNames: ["url"] });
+    const stepRun = { stepId: "get", itemPath: [] };
 
     expect(run.firings.map(({ role }) => role)).toEqual([
       "startStep",
       "startAttempt",
     ]);
-    expect(run.awaiting()).toEqual([
-      {
-        kind: "actionOutcome",
-        stepRun: { stepId: "get", itemPath: [] },
-        attempt: 1,
-      },
-    ]);
+    expect(run.held()).toEqual(attemptEnds(stepRun, 1));
 
-    /* Optional inputs nothing is connected to get a token marked absent. */
-    const [startStep] = run.firings;
+    /* Optional inputs nothing is connected to get a token marked absent, which start the action as `null`. */
+    const [, startAttempt] = run.firings;
 
-    expect(
-      startStep?.produced.map(({ token }) =>
-        token.kind === "value" ? token.present : token.kind,
+    expect(run.attemptInputs(startAttempt!)).toEqual({
+      stepRun,
+      inputs: Object.fromEntries(
+        actions.getFileFromUrl.inputs.map(({ name }) => [
+          name,
+          name === "url" ? { kind: "flowInput", inputName: "url" } : null,
+        ]),
       ),
-    ).toEqual(actions.getFileFromUrl.inputs.map(({ name }) => name === "url"));
+    });
   });
 
   it("puts an action's outputs in its instance's output ports", async () => {
     const net = await compileFlowDefinition(fileFlowDefinition);
     const run = startFlowNetRun(net, { flowInputNames: ["url"] });
 
-    const firings = run.apply({
-      kind: "attemptSucceeded",
+    const firings = run.fire({
+      role: "succeedAttempt",
       stepRun: { stepId: "get", itemPath: [] },
       outputNames: ["fileEntity"],
     });
 
     expect(firings.map(({ role }) => role)).toEqual(["succeedAttempt"]);
-    expect(run.awaiting()).toEqual([]);
+    expect(run.held()).toEqual([]);
 
     const fileOutput = flowOutputPosition(net, "file");
 
@@ -343,21 +358,23 @@ describe("startFlowNetRun", () => {
     const run = startFlowNetRun(net, { flowInputNames: ["url"] });
     const stepRun = { stepId: "get", itemPath: [] };
 
-    expect(
-      run
-        .apply({ kind: "attemptFailed", stepRun, retrying: true })
-        .map(({ role }) => role),
-    ).toEqual(["failAttempt", "retryAttempt"]);
-    expect(run.awaiting()).toEqual([
-      { kind: "actionOutcome", stepRun, attempt: 2 },
+    run.fire({ role: "failAttempt", stepRun });
+
+    expect(run.held()).toEqual([
+      { role: "retryAttempt", stepRun, attempt: 1 },
+      { role: "giveUp", stepRun, attempt: 1 },
     ]);
 
+    run.fire({ role: "retryAttempt", stepRun });
+
+    expect(run.held()).toEqual(attemptEnds(stepRun, 2));
+
+    run.fire({ role: "failAttempt", stepRun });
+
     expect(
-      run
-        .apply({ kind: "attemptFailed", stepRun, retrying: false })
-        .map(({ role }) => role),
-    ).toEqual(["failAttempt", "giveUp", "recordStepFailure"]);
-    expect(run.awaiting()).toEqual([]);
+      run.fire({ role: "giveUp", stepRun }).map(({ role }) => role),
+    ).toEqual(["giveUp", "recordStepFailure"]);
+    expect(run.held()).toEqual([]);
     expect(tokensAt(run, placeAt(failedStepRunsPlaceKey))).toEqual([
       { kind: "stepFailure", stepId: "get", itemPath: [] },
     ]);
@@ -365,56 +382,54 @@ describe("startFlowNetRun", () => {
     expectActualModeReplays(run);
   });
 
-  it("refuses an outcome the net isn't waiting for", async () => {
+  it("refuses to fire a held transition that isn't enabled", async () => {
     const net = await compileFlowDefinition(fileFlowDefinition);
     const run = startFlowNetRun(net, { flowInputNames: ["url"] });
 
     expect(() =>
-      run.apply({
-        kind: "attemptSucceeded",
+      run.fire({
+        role: "succeedAttempt",
         stepRun: { stepId: "get", itemPath: [0] },
         outputNames: [],
       }),
     ).toThrow("has no attempt in progress");
     expect(() =>
-      run.apply({
-        kind: "itemCount",
+      run.fire({
+        role: "retryAttempt",
+        stepRun: { stepId: "get", itemPath: [] },
+      }),
+    ).toThrow("has no failed attempt");
+    expect(() =>
+      run.fire({
+        role: "startForEach",
         stepRun: { stepId: "get", itemPath: [] },
         itemCount: 1,
       }),
-    ).toThrow("isn't waiting to start");
+    ).toThrow("can't startForEach now");
   });
 
   it("runs a forEach step's items and collects their outputs", async () => {
     const net = await compileFlowDefinition(forEachFlowDefinition);
     const run = startFlowNetRun(net, { flowInputNames: ["urls"] });
 
-    expect(run.awaiting()).toEqual([
-      { kind: "itemCount", stepRun: { stepId: "each", itemPath: [] } },
+    expect(run.held()).toEqual([
+      { role: "startForEach", stepRun: { stepId: "each", itemPath: [] } },
     ]);
 
-    run.apply({
-      kind: "itemCount",
+    run.fire({
+      role: "startForEach",
       stepRun: { stepId: "each", itemPath: [] },
       itemCount: 2,
     });
 
-    expect(run.awaiting()).toEqual([
-      {
-        kind: "actionOutcome",
-        stepRun: { stepId: "get", itemPath: [0] },
-        attempt: 1,
-      },
-      {
-        kind: "actionOutcome",
-        stepRun: { stepId: "get", itemPath: [1] },
-        attempt: 1,
-      },
+    expect(run.held()).toEqual([
+      ...attemptEnds({ stepId: "get", itemPath: [0] }, 1),
+      ...attemptEnds({ stepId: "get", itemPath: [1] }, 1),
     ]);
 
     for (const index of [1, 0]) {
-      run.apply({
-        kind: "attemptSucceeded",
+      run.fire({
+        role: "succeedAttempt",
         stepRun: { stepId: "get", itemPath: [index] },
         outputNames: ["fileEntity"],
       });
@@ -451,14 +466,14 @@ describe("startFlowNetRun", () => {
 
     expect(
       run
-        .apply({
-          kind: "itemCount",
+        .fire({
+          role: "startForEach",
           stepRun: { stepId: "each", itemPath: [] },
           itemCount: 0,
         })
         .map(({ role }) => role),
     ).toEqual(["startForEach", "startCollecting", "finishCollecting"]);
-    expect(run.awaiting()).toEqual([]);
+    expect(run.held()).toEqual([]);
   });
 
   it("starts a step whose inputs read the same value", async () => {
@@ -495,28 +510,28 @@ describe("startFlowNetRun", () => {
     expectActualModeReplays(run);
   });
 
-  it("waits for an action step to be told it started, when told to wait", async () => {
+  it("holds an action step's start, when told to wait for steps to start", async () => {
     const net = await compileFlowDefinition(forEachFlowDefinition);
     const run = startFlowNetRun(net, {
       flowInputNames: ["urls"],
       waitForStepStarts: true,
     });
 
-    run.apply({
-      kind: "itemCount",
+    run.fire({
+      role: "startForEach",
       stepRun: { stepId: "each", itemPath: [] },
       itemCount: 2,
     });
 
-    expect(run.awaiting()).toEqual([
-      { kind: "stepStart", stepRun: { stepId: "get", itemPath: [0] } },
-      { kind: "stepStart", stepRun: { stepId: "get", itemPath: [1] } },
+    expect(run.held()).toEqual([
+      { role: "startStep", stepRun: { stepId: "get", itemPath: [0] } },
+      { role: "startStep", stepRun: { stepId: "get", itemPath: [1] } },
     ]);
 
     expect(
       run
-        .apply({
-          kind: "stepStarted",
+        .fire({
+          role: "startStep",
           stepRun: { stepId: "get", itemPath: [1] },
         })
         .map(({ role, stepRun }) => [role, stepRun.itemPath]),
@@ -525,20 +540,16 @@ describe("startFlowNetRun", () => {
       ["startAttempt", [1]],
     ]);
     expect(run.isPending({ stepId: "get", itemPath: [0] })).toBe(true);
-    expect(run.awaiting()).toEqual([
-      {
-        kind: "actionOutcome",
-        stepRun: { stepId: "get", itemPath: [1] },
-        attempt: 1,
-      },
-      { kind: "stepStart", stepRun: { stepId: "get", itemPath: [0] } },
+    expect(run.held()).toEqual([
+      ...attemptEnds({ stepId: "get", itemPath: [1] }, 1),
+      { role: "startStep", stepRun: { stepId: "get", itemPath: [0] } },
     ]);
     expect(() =>
-      run.apply({
-        kind: "stepStarted",
+      run.fire({
+        role: "startStep",
         stepRun: { stepId: "get", itemPath: [1] },
       }),
-    ).toThrow("isn't waiting to start");
+    ).toThrow("can't startStep now");
   });
 
   it("holds a step whose value to skip on is missing", async () => {
@@ -565,7 +576,7 @@ describe("startFlowNetRun", () => {
 
     expect(withoutUrl.firings).toEqual([]);
     expect(withoutUrl.isPending({ stepId: "get", itemPath: [] })).toBe(true);
-    expect(withoutUrl.awaiting()).toEqual([]);
+    expect(withoutUrl.held()).toEqual([]);
 
     const withUrl = startFlowNetRun(net, { flowInputNames: ["url"] });
 
@@ -610,7 +621,7 @@ describe("startFlowNetRun", () => {
 
       /** Checks a run that ran to its end left nothing behind but values, and no failures. */
       const expectCompleted = (net: SDCPN, run: FlowNetRun) => {
-        expect(run.awaiting()).toEqual([]);
+        expect(run.held()).toEqual([]);
 
         for (const kind of leftoverKinds(run)) {
           expect(["value", "signal"]).toContain(kind);
@@ -648,14 +659,11 @@ describe("startFlowNetRun", () => {
 
         runToEnd(
           run,
-          (awaiting) =>
-            awaiting.kind === "actionOutcome" && awaiting.attempt === 1
-              ? {
-                  kind: "attemptFailed",
-                  stepRun: awaiting.stepRun,
-                  retrying: true,
-                }
-              : succeed(awaiting),
+          (held) =>
+            (held.role === "succeedAttempt" || held.role === "failAttempt") &&
+            held.attempt === 1
+              ? { role: "failAttempt", stepRun: held.stepRun }
+              : succeed(held),
           { take: "last" },
         );
 
@@ -694,18 +702,21 @@ describe("startFlowNetRun", () => {
         const succeed = succeedingEverything(flowDefinition);
         let gaveUp: string | undefined;
 
-        runToEnd(run, (awaiting) => {
-          if (awaiting.kind === "actionOutcome" && gaveUp === undefined) {
-            gaveUp = awaiting.stepRun.stepId;
+        runToEnd(run, (held) => {
+          if (
+            (held.role === "succeedAttempt" || held.role === "failAttempt") &&
+            gaveUp === undefined
+          ) {
+            gaveUp = held.stepRun.stepId;
 
-            return {
-              kind: "attemptFailed",
-              stepRun: awaiting.stepRun,
-              retrying: false,
-            };
+            return { role: "failAttempt", stepRun: held.stepRun };
           }
 
-          return succeed(awaiting);
+          if (held.role === "retryAttempt" || held.role === "giveUp") {
+            return { role: "giveUp", stepRun: held.stepRun };
+          }
+
+          return succeed(held);
         });
 
         expect(tokensAt(run, placeAt(failedStepRunsPlaceKey))).toEqual([

@@ -88,6 +88,15 @@ const forEachRunEvents: UnplacedEvent[] = [
   { kind: "runFinished", status: FlowRunStatus.Completed },
 ];
 
+/** The held transitions an attempt in progress enables. */
+const attemptEnds = (
+  stepRun: { stepId: string; itemPath: number[] },
+  attempt: number,
+) => [
+  { role: "succeedAttempt", stepRun, attempt },
+  { role: "failAttempt", stepRun, attempt },
+];
+
 describe("replayFlowRunEvents", () => {
   it("follows a step's attempts to its outputs", async () => {
     const net = await compileFlowDefinition(fileFlowDefinition);
@@ -126,13 +135,14 @@ describe("replayFlowRunEvents", () => {
     expect(replay.firings.at(-1)?.occurredAt).toBe(
       new Date(5000).toISOString(),
     );
-    expect(replay.awaiting).toEqual([]);
+    expect(replay.held).toEqual([]);
 
     const run = startFlowNetRun(net, { flowInputNames: ["url"] });
 
-    run.apply({ kind: "attemptFailed", stepRun: getStepRun, retrying: true });
-    run.apply({
-      kind: "attemptSucceeded",
+    run.fire({ role: "failAttempt", stepRun: getStepRun });
+    run.fire({ role: "retryAttempt", stepRun: getStepRun });
+    run.fire({
+      role: "succeedAttempt",
       stepRun: getStepRun,
       outputNames: ["fileEntity"],
     });
@@ -165,9 +175,7 @@ describe("replayFlowRunEvents", () => {
       ["3.0", "failAttempt"],
       ["3.0", "retryAttempt"],
     ]);
-    expect(replay.awaiting).toEqual([
-      { kind: "actionOutcome", stepRun: getStepRun, attempt: 3 },
-    ]);
+    expect(replay.held).toEqual(attemptEnds(getStepRun, 3));
   });
 
   it.each([
@@ -208,7 +216,7 @@ describe("replayFlowRunEvents", () => {
         .map(({ role }) => role)
         .filter((role) => role === "giveUp" || role === "recordStepFailure"),
     ).toEqual(["giveUp", "recordStepFailure"]);
-    expect(replay.awaiting).toEqual([]);
+    expect(replay.held).toEqual([]);
   });
 
   it("starts a step when its events say it started, not when its inputs arrive", async () => {
@@ -285,8 +293,8 @@ describe("replayFlowRunEvents", () => {
         ({ stepRun }) => stepRun.stepId === "settings",
       ),
     ).toEqual([]);
-    expect(whileFileRuns.awaiting).toContainEqual({
-      kind: "stepStart",
+    expect(whileFileRuns.held).toContainEqual({
+      role: "startStep",
       stepRun: settingsRun,
     });
 
@@ -335,9 +343,7 @@ describe("replayFlowRunEvents", () => {
       ["2.0", "startStep"],
       ["2.0", "startAttempt"],
     ]);
-    expect(replay.awaiting).toEqual([
-      { kind: "actionOutcome", stepRun: getStepRun, attempt: 1 },
-    ]);
+    expect(replay.held).toEqual(attemptEnds(getStepRun, 1));
   });
 
   it("starts a forEach step's items when it learns how many there are", async () => {
@@ -359,7 +365,7 @@ describe("replayFlowRunEvents", () => {
       ["8.0", "collectItem"],
       ["8.0", "finishCollecting"],
     ]);
-    expect(replay.awaiting).toEqual([]);
+    expect(replay.held).toEqual([]);
   });
 
   it("records the events the net can't follow, and goes on", async () => {
@@ -401,12 +407,10 @@ describe("replayFlowRunEvents", () => {
       },
       {
         eventPosition: "4.0",
-        message: "The net isn't waiting on an attempt of get [0]",
+        message: "get [0] has no attempt in progress",
       },
     ]);
-    expect(replay.awaiting).toEqual([
-      { kind: "actionOutcome", stepRun: firstItem, attempt: 2 },
-    ]);
+    expect(replay.held).toEqual(attemptEnds(firstItem, 2));
   });
 
   it("records skipped steps", async () => {
@@ -435,7 +439,7 @@ describe("replayFlowRunEvents", () => {
       initialMarking: [],
       firings: [],
       marking: [],
-      awaiting: [],
+      held: [],
       problems: [],
       skippedStepRuns: [],
     });

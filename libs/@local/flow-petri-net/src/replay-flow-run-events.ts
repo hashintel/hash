@@ -1,8 +1,8 @@
 import {
-  type FlowNetAwaiting,
   type FlowNetFiring,
+  type FlowNetHeldFiring,
+  type FlowNetHeldTransition,
   FlowNetInterpreterError,
-  type FlowNetOutcome,
   type FlowNetPlacedToken,
   type FlowNetRun,
   type FlowNetStepRun,
@@ -21,8 +21,8 @@ import type {
 
 /*
  * Replays a flow run's events (see `FlowRunEvent`) on its compiled flow net, to show where the run's tokens are.
- * The events record what happened outside the net (an action's outcome, a `forEach` step's item count); the
- * interpreter works out the firings they cause.
+ * The events record what happened outside the net (an attempt ending, a `forEach` step's item count): each one
+ * fires the held transitions it decides, and the interpreter fires everything that follows.
  */
 
 export type FlowRunReplayFiring = FlowNetFiring & {
@@ -43,19 +43,12 @@ export type FlowRunReplay = {
   firings: FlowRunReplayFiring[];
   /** The tokens in the net after the last event. */
   marking: FlowNetPlacedToken[];
-  /** What the net is waiting for after the last event. */
-  awaiting: FlowNetAwaiting[];
+  /** The held transitions enabled after the last event: what the net waits on from outside. */
+  held: FlowNetHeldTransition[];
   problems: FlowRunReplayProblem[];
   /** Steps the run skipped. The net has no transition for skipping a step yet, so it doesn't show them skipped. */
   skippedStepRuns: FlowNetStepRun[];
 };
-
-const isSameStepRun = (stepRun: FlowNetStepRun, other: FlowRunEventStepRun) =>
-  stepRun.stepId === other.stepId &&
-  stepRun.itemPath.length === other.itemPath.length &&
-  stepRun.itemPath.every(
-    (index, position) => other.itemPath[position] === index,
-  );
 
 const describeStepRun = ({ stepId, itemPath }: FlowRunEventStepRun) =>
   itemPath.length > 0 ? `${stepId} [${itemPath.join(", ")}]` : stepId;
@@ -85,47 +78,51 @@ export const replayFlowRunEvents = (
       problems.push({ eventPosition: event.position, message });
     };
 
-    const apply = (startedRun: FlowNetRun, outcome: FlowNetOutcome) => {
-      record(startedRun.apply(outcome));
+    const fire = (startedRun: FlowNetRun, ...held: FlowNetHeldFiring[]) => {
+      for (const firing of held) {
+        record(startedRun.fire(firing));
+      }
     };
 
     /**
-     * Starts the step run if the events didn't record it starting, and fails its attempts they didn't record, so
-     * the net waits on `attempt`.
+     * Starts the step run if the events didn't record it starting, and fails and retries its attempts they didn't
+     * record, so `attempt` is in progress.
      *
-     * @returns whether the net now waits on `attempt`.
+     * @returns whether `attempt` is now in progress.
      */
     const catchUpToAttempt = (
       startedRun: FlowNetRun,
       stepRun: FlowRunEventStepRun,
       attempt: number,
     ) => {
-      if (startedRun.isAwaitingStart(stepRun)) {
-        apply(startedRun, { kind: "stepStarted", stepRun });
+      if (startedRun.isHeld("startStep", stepRun)) {
+        fire(startedRun, { role: "startStep", stepRun });
       }
 
       for (;;) {
-        const awaited = startedRun.awaitedAttempt(stepRun);
+        const inProgress = startedRun.attemptInProgress(stepRun);
 
-        if (awaited === null) {
-          problem(
-            `The net isn't waiting on an attempt of ${describeStepRun(stepRun)}`,
-          );
+        if (inProgress === null) {
+          problem(`${describeStepRun(stepRun)} has no attempt in progress`);
           return false;
         }
 
-        if (awaited === attempt) {
+        if (inProgress === attempt) {
           return true;
         }
 
-        if (awaited > attempt) {
+        if (inProgress > attempt) {
           problem(
-            `The net is waiting on attempt ${awaited} of ${describeStepRun(stepRun)}, not attempt ${attempt}`,
+            `Attempt ${inProgress} of ${describeStepRun(stepRun)} is in progress, not attempt ${attempt}`,
           );
           return false;
         }
 
-        apply(startedRun, { kind: "attemptFailed", stepRun, retrying: true });
+        fire(
+          startedRun,
+          { role: "failAttempt", stepRun },
+          { role: "retryAttempt", stepRun },
+        );
       }
     };
 
@@ -153,8 +150,8 @@ export const replayFlowRunEvents = (
         case "stepStarted": {
           const { stepRun } = event;
 
-          if (run.isAwaitingStart(stepRun)) {
-            apply(run, { kind: "stepStarted", stepRun });
+          if (run.isHeld("startStep", stepRun)) {
+            fire(run, { role: "startStep", stepRun });
           } else {
             problem(
               `${describeStepRun(stepRun)} started before the net had its inputs`,
@@ -169,8 +166,8 @@ export const replayFlowRunEvents = (
 
         case "attemptSucceeded":
           if (catchUpToAttempt(run, event.stepRun, event.attempt)) {
-            apply(run, {
-              kind: "attemptSucceeded",
+            fire(run, {
+              role: "succeedAttempt",
               stepRun: event.stepRun,
               outputNames: event.outputs.map(({ outputName }) => outputName),
             });
@@ -179,23 +176,26 @@ export const replayFlowRunEvents = (
 
         case "attemptFailed":
           if (catchUpToAttempt(run, event.stepRun, event.attempt)) {
-            apply(run, {
-              kind: "attemptFailed",
-              stepRun: event.stepRun,
-              retrying: event.retrying,
-            });
+            fire(
+              run,
+              { role: "failAttempt", stepRun: event.stepRun },
+              {
+                role: event.retrying ? "retryAttempt" : "giveUp",
+                stepRun: event.stepRun,
+              },
+            );
           }
           break;
 
         case "stepGaveUp":
           /* An `attemptFailed` that isn't retrying has already given up, so only a step still trying gives up here. */
-          if (run.awaitedAttempt(event.stepRun) !== null) {
+          if (run.attemptInProgress(event.stepRun) !== null) {
             if (catchUpToAttempt(run, event.stepRun, event.attempt)) {
-              apply(run, {
-                kind: "attemptFailed",
-                stepRun: event.stepRun,
-                retrying: false,
-              });
+              fire(
+                run,
+                { role: "failAttempt", stepRun: event.stepRun },
+                { role: "giveUp", stepRun: event.stepRun },
+              );
             }
           }
           break;
@@ -203,17 +203,9 @@ export const replayFlowRunEvents = (
         case "forEachStarted": {
           const { stepRun } = event;
 
-          if (
-            run
-              .awaiting()
-              .some(
-                (awaiting) =>
-                  awaiting.kind === "itemCount" &&
-                  isSameStepRun(awaiting.stepRun, stepRun),
-              )
-          ) {
-            apply(run, {
-              kind: "itemCount",
+          if (run.isHeld("startForEach", stepRun)) {
+            fire(run, {
+              role: "startForEach",
               stepRun,
               itemCount: event.itemCount,
             });
@@ -252,7 +244,7 @@ export const replayFlowRunEvents = (
     initialMarking: run?.initialMarking ?? [],
     firings,
     marking: run?.marking() ?? [],
-    awaiting: run?.awaiting() ?? [],
+    held: run?.held() ?? [],
     problems,
     skippedStepRuns,
   };

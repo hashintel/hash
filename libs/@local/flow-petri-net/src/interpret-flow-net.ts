@@ -29,10 +29,10 @@ import type {
 
 /*
  * Runs a compiled flow net by its transitions' roles (see `TransitionRole`), working out the tokens itself: the
- * net's kernels are placeholders and it has no guards. Every transition fires as soon as it's enabled, except
- * those that need to know something from outside the net: an action attempt's outcome, how many items a
- * `forEach` step's array has, and, when the run is told when steps start, an action step starting. The executor
- * runs a flow by calling actions and applying their outcomes; a run's view replays the outcomes its events record.
+ * net's kernels are placeholders and it has no guards. Every transition fires as soon as it's enabled, except held
+ * ones (`FlowNetHeldRole`), which what happens outside the net decides: how an action's attempt ends, how many
+ * items a `forEach` step's array has, and, when the run waits for steps to start, an action step starting. The
+ * driver fires those. The executor fires them as actions end; a run's view fires the ones its events record.
  */
 
 /** A run of a step: its id in the definition and, inside `forEach` steps, its item's index in each, outermost first. */
@@ -98,28 +98,56 @@ export type FlowNetFiring = {
   produced: FlowNetPlacedToken[];
 };
 
-/** What the net needs to know from outside to go on. */
-export type FlowNetAwaiting =
-  | { kind: "actionOutcome"; stepRun: FlowNetStepRun; attempt: number }
-  | { kind: "itemCount"; stepRun: FlowNetStepRun }
-  /** An action step that has its inputs, in a run that waits for steps to start (see `waitForStepStarts`). */
-  | { kind: "stepStart"; stepRun: FlowNetStepRun };
+/**
+ * The roles of the transitions that what happens outside the net decides, which the driver fires: a `forEach`
+ * step's start, as it needs its array's length; an action step's start, in a run that waits for steps to start
+ * (see `waitForStepStarts`); and the end of an action's attempt, as its action and Temporal's retry policy decide.
+ */
+export const heldRoles = [
+  "startForEach",
+  "startStep",
+  "succeedAttempt",
+  "failAttempt",
+  "retryAttempt",
+  "giveUp",
+] as const satisfies readonly TransitionRole[];
 
-export type FlowNetOutcome =
-  | { kind: "itemCount"; stepRun: FlowNetStepRun; itemCount: number }
-  | { kind: "stepStarted"; stepRun: FlowNetStepRun }
+export type FlowNetHeldRole = (typeof heldRoles)[number];
+
+type AttemptEndRole = Extract<
+  FlowNetHeldRole,
+  "succeedAttempt" | "failAttempt" | "retryAttempt" | "giveUp"
+>;
+
+/**
+ * A held transition that's enabled, for one step run. An attempt in progress enables `succeedAttempt` and
+ * `failAttempt`, and a failed one `retryAttempt` and `giveUp`. A `forEach` step whose array is a constant, and an
+ * action step in a run that doesn't wait for steps to start, start on their own.
+ */
+export type FlowNetHeldTransition =
+  | { role: "startForEach" | "startStep"; stepRun: FlowNetStepRun }
+  | { role: AttemptEndRole; stepRun: FlowNetStepRun; attempt: number };
+
+/** Fires a held transition for a step run, with what the net can't work out itself. */
+export type FlowNetHeldFiring =
+  | { role: "startForEach"; stepRun: FlowNetStepRun; itemCount: number }
+  | { role: "startStep"; stepRun: FlowNetStepRun }
   | {
-      kind: "attemptSucceeded";
+      role: "succeedAttempt";
       stepRun: FlowNetStepRun;
       /** The outputs the action produced. Any other output gets a token marked absent. */
       outputNames: string[];
     }
   | {
-      kind: "attemptFailed";
+      role: Exclude<AttemptEndRole, "succeedAttempt">;
       stepRun: FlowNetStepRun;
-      /** Whether the action is tried again, which Temporal's retry policy decides. */
-      retrying: boolean;
     };
+
+/** The step run an attempt started for, and the value each of its action's inputs took (`null` if absent). */
+export type FlowNetAttemptInputs = {
+  stepRun: FlowNetStepRun;
+  inputs: Record<string, FlowNetValueRef | null>;
+};
 
 export class FlowNetInterpreterError extends Error {
   override name = "FlowNetInterpreterError";
@@ -132,19 +160,26 @@ export type FlowNetRun = {
   readonly firings: readonly FlowNetFiring[];
   /** The tokens in the net now. */
   marking: () => FlowNetPlacedToken[];
-  awaiting: () => FlowNetAwaiting[];
+  /** The held transitions that are enabled now. */
+  held: () => FlowNetHeldTransition[];
+  /** Whether a held transition is enabled for a step run, without listing every other one. */
+  isHeld: (role: FlowNetHeldRole, stepRun: FlowNetStepRun) => boolean;
+  /** The number of a step run's attempt in progress, if it has one. */
+  attemptInProgress: (stepRun: FlowNetStepRun) => number | null;
   /** Whether a step run is still waiting for its inputs: its `Pending` token is still there. */
   isPending: (stepRun: FlowNetStepRun) => boolean;
-  /** Whether `awaiting()` lists a step run as waiting to be told it started, without listing every other one. */
-  isAwaitingStart: (stepRun: FlowNetStepRun) => boolean;
-  /** The attempt `awaiting()` lists a step run as waiting on the outcome of, if any, without listing every other one. */
-  awaitedAttempt: (stepRun: FlowNetStepRun) => number | null;
   /**
-   * Applies an outcome, then fires every transition it enables, and returns those firings.
+   * The inputs a `startAttempt` firing started its action with: the tokens it took, one from each input port.
    *
-   * @throws {FlowNetInterpreterError} if the net isn't waiting for it.
+   * @throws {FlowNetInterpreterError} if the firing isn't of a `startAttempt`.
    */
-  apply: (outcome: FlowNetOutcome) => FlowNetFiring[];
+  attemptInputs: (firing: FlowNetFiring) => FlowNetAttemptInputs;
+  /**
+   * Fires a held transition, then every transition that fires on its own that it enables, and returns those firings.
+   *
+   * @throws {FlowNetInterpreterError} if it isn't enabled.
+   */
+  fire: (firing: FlowNetHeldFiring) => FlowNetFiring[];
 };
 
 const isPrefixOf = (prefix: number[], path: number[]) =>
@@ -191,6 +226,7 @@ type IndexedSubnet = {
   /** The places `startAttempt` takes from: a port per input, or a `Start` port. */
   inputPortIds: string[];
   inProgressPlaceId: string;
+  failedPlaceId: string;
 };
 
 /** A token an input arc of a firing takes or reads. */
@@ -257,6 +293,7 @@ const indexSubnet = (subnet: Subnet): IndexedSubnet => {
       return endpoint.placeId;
     }),
     inProgressPlaceId: singleOutputPlaceId(transitionWithRole("startAttempt")),
+    failedPlaceId: singleOutputPlaceId(transitionWithRole("failAttempt")),
   };
 };
 
@@ -274,8 +311,8 @@ export const startFlowNetRun = (
   }: {
     flowInputNames: Iterable<string>;
     /**
-     * Whether an action step that has its inputs waits for a `stepStarted` outcome before it starts, rather than
-     * starting at once. A replay waits, as the executor only starts the steps that are ready once every step it
+     * Whether an action step's `startStep` is held until the driver fires it, rather than firing once the step has
+     * its inputs. A replay holds it, as the original engine only starts the steps that are ready once every step it
      * started with the last batch has finished.
      */
     waitForStepStarts?: boolean;
@@ -705,17 +742,16 @@ export const startFlowNetRun = (
   };
 
   /**
-   * Fires a transition of the root net if it's enabled and fires on its own, returning the firing. Being `told` an
-   * item count starts a `forEach` step whose array isn't a constant, and being told a step started starts an action
-   * step in a run that waits for steps to start, for the outcome's step run.
+   * Fires a transition of the root net if it's enabled, returning the firing. A held `startForEach` or `startStep`
+   * only fires when the driver fires it (`fired`), for its step run.
    */
   const fireRootTransition = (
     { transition, metadata }: RootTransition,
-    told?: Extract<FlowNetOutcome, { kind: "itemCount" | "stepStarted" }>,
+    fired?: Extract<FlowNetHeldFiring, { role: "startForEach" | "startStep" }>,
   ): FlowNetFiring | null => {
     switch (metadata.role) {
       case "startStep": {
-        if (waitForStepStarts && told?.kind !== "stepStarted") {
+        if (waitForStepStarts && fired?.role !== "startStep") {
           return null;
         }
 
@@ -724,8 +760,8 @@ export const startFlowNetRun = (
           scope: null,
           anchorPosition: pendingPosition(metadata.stepId),
           anchorAccepts: (anchor) =>
-            told?.kind !== "stepStarted" ||
-            isSamePath(anchor.itemPath, told.stepRun.itemPath),
+            fired?.role !== "startStep" ||
+            isSamePath(anchor.itemPath, fired.stepRun.itemPath),
           guard: (candidate) => !hasMissingSkipInput(metadata, candidate),
         });
 
@@ -749,7 +785,7 @@ export const startFlowNetRun = (
       case "startForEach": {
         const itemCount =
           constantItemCount(metadata.constant) ??
-          (told?.kind === "itemCount" ? told.itemCount : null);
+          (fired?.role === "startForEach" ? fired.itemCount : null);
 
         if (itemCount === null) {
           return null;
@@ -760,8 +796,8 @@ export const startFlowNetRun = (
           scope: null,
           anchorPosition: pendingPosition(metadata.stepId),
           anchorAccepts: (anchor) =>
-            told?.kind !== "itemCount" ||
-            isSamePath(anchor.itemPath, told.stepRun.itemPath),
+            fired?.role !== "startForEach" ||
+            isSamePath(anchor.itemPath, fired.stepRun.itemPath),
           guard: (candidate) => !hasMissingArray(candidate),
         });
 
@@ -1035,12 +1071,15 @@ export const startFlowNetRun = (
     return fired;
   };
 
-  /** The token of a step run's attempt in progress. */
-  const attemptInProgress = (stepRun: FlowNetStepRun) => {
+  /** A step run's token in a place of its instance: `InProgress` for an attempt in progress, `Failed` for a failed one. */
+  const attemptTokenAt = (
+    stepRun: FlowNetStepRun,
+    placeOf: (subnet: IndexedSubnet) => string,
+  ) => {
     const scope = scopeOfStep(stepRun.stepId);
     const position = instancePlacePosition(
       scope.instance.id,
-      scope.subnet.inProgressPlaceId,
+      placeOf(scope.subnet),
     );
     const token = tokensAt(position).find(({ itemPath }) =>
       isSamePath(itemPath, stepRun.itemPath),
@@ -1048,6 +1087,12 @@ export const startFlowNetRun = (
 
     return token?.kind === "attempt" ? { scope, position, token } : null;
   };
+
+  const inProgressToken = (stepRun: FlowNetStepRun) =>
+    attemptTokenAt(stepRun, ({ inProgressPlaceId }) => inProgressPlaceId);
+
+  const failedToken = (stepRun: FlowNetStepRun) =>
+    attemptTokenAt(stepRun, ({ failedPlaceId }) => failedPlaceId);
 
   /** Fires a transition of an action's subnet that takes the one token `from`, producing `produce`'s token. */
   const fireAttemptTransition = ({
@@ -1083,121 +1128,162 @@ export const startFlowNetRun = (
     });
   };
 
-  const applyOutcome = (outcome: FlowNetOutcome): FlowNetFiring[] => {
-    const { stepRun } = outcome;
+  const describeStepRun = ({ stepId, itemPath }: FlowNetStepRun) =>
+    `Step "${stepId}" for item [${itemPath.join(", ")}]`;
 
-    switch (outcome.kind) {
-      case "itemCount": {
-        const startForEach = rootTransitionsByStep
+  const attemptToEnd = (stepRun: FlowNetStepRun) => {
+    const attempt = inProgressToken(stepRun);
+
+    if (!attempt) {
+      throw new FlowNetInterpreterError(
+        `${describeStepRun(stepRun)} has no attempt in progress`,
+      );
+    }
+
+    return attempt;
+  };
+
+  /** Fires a held transition the driver fires, alone. */
+  const fireHeld = (held: FlowNetHeldFiring): FlowNetFiring => {
+    const { stepRun } = held;
+
+    switch (held.role) {
+      case "startForEach":
+      case "startStep": {
+        const rootTransition = rootTransitionsByStep
           .get(stepRun.stepId)
-          ?.find(({ metadata }) => metadata.role === "startForEach");
-        const firing = startForEach
-          ? fireRootTransition(startForEach, outcome)
+          ?.find(({ metadata }) => metadata.role === held.role);
+        const firing = rootTransition
+          ? fireRootTransition(rootTransition, held)
           : null;
 
         if (!firing) {
           throw new FlowNetInterpreterError(
-            `forEach step "${stepRun.stepId}" isn't waiting to start for item [${stepRun.itemPath.join(", ")}]`,
+            `${describeStepRun(stepRun)} can't ${held.role} now`,
           );
         }
 
-        return [firing];
+        return firing;
       }
-      case "stepStarted": {
-        const startStep = rootTransitionsByStep
-          .get(stepRun.stepId)
-          ?.find(({ metadata }) => metadata.role === "startStep");
-        const firing = startStep
-          ? fireRootTransition(startStep, outcome)
-          : null;
+      case "failAttempt": {
+        const { scope, position, token } = attemptToEnd(stepRun);
 
-        if (!firing) {
-          throw new FlowNetInterpreterError(
-            `Step "${stepRun.stepId}" isn't waiting to start for item [${stepRun.itemPath.join(", ")}]`,
-          );
-        }
-
-        return [firing];
-      }
-      case "attemptSucceeded":
-      case "attemptFailed": {
-        const attempt = attemptInProgress(stepRun);
-
-        if (!attempt) {
-          throw new FlowNetInterpreterError(
-            `Step "${stepRun.stepId}" has no attempt in progress for item [${stepRun.itemPath.join(", ")}]`,
-          );
-        }
-
-        const { scope, position, token } = attempt;
-        const { itemPath } = token;
-
-        if (outcome.kind === "attemptSucceeded") {
-          const { outputs } = scope.actionDefinition;
-
-          return [
-            fireAttemptTransition({
-              scope,
-              role: "succeedAttempt",
-              from: { position, token },
-              produce: (outputPosition): FlowNetToken => {
-                if (outputs.length === 0) {
-                  return { kind: "signal", itemPath };
-                }
-
-                const outputName =
-                  outputPosition.kind === "instancePlace"
-                    ? scope.subnet.subnet.places.find(
-                        ({ id }) => id === outputPosition.placeId,
-                      )?.name
-                    : undefined;
-
-                if (!outputName) {
-                  throw new FlowNetInterpreterError(
-                    `Step "${scope.stepId}" succeeds into a place that isn't an output`,
-                  );
-                }
-
-                return outcome.outputNames.includes(outputName)
-                  ? {
-                      kind: "value",
-                      present: true,
-                      ref: {
-                        kind: "stepOutput",
-                        stepId: scope.stepId,
-                        outputName,
-                        itemPath,
-                      },
-                      itemPath,
-                    }
-                  : { kind: "value", present: false, itemPath };
-              },
-            }),
-          ];
-        }
-
-        const failure = fireAttemptTransition({
+        return fireAttemptTransition({
           scope,
           role: "failAttempt",
           from: { position, token },
           produce: () => token,
         });
-        const [failed] = failure.produced as [FlowNetPlacedToken];
+      }
+      case "succeedAttempt": {
+        const { scope, position, token } = attemptToEnd(stepRun);
+        const { itemPath } = token;
+        const { outputs } = scope.actionDefinition;
+        const { outputNames } = held;
 
-        return [
-          failure,
-          fireAttemptTransition({
-            scope,
-            role: outcome.retrying ? "retryAttempt" : "giveUp",
-            from: failed,
-            produce: () => ({
-              ...token,
-              attempts: outcome.retrying ? token.attempts + 1 : token.attempts,
-            }),
+        return fireAttemptTransition({
+          scope,
+          role: "succeedAttempt",
+          from: { position, token },
+          produce: (outputPosition): FlowNetToken => {
+            if (outputs.length === 0) {
+              return { kind: "signal", itemPath };
+            }
+
+            const outputName =
+              outputPosition.kind === "instancePlace"
+                ? scope.subnet.subnet.places.find(
+                    ({ id }) => id === outputPosition.placeId,
+                  )?.name
+                : undefined;
+
+            if (!outputName) {
+              throw new FlowNetInterpreterError(
+                `Step "${scope.stepId}" succeeds into a place that isn't an output`,
+              );
+            }
+
+            return outputNames.includes(outputName)
+              ? {
+                  kind: "value",
+                  present: true,
+                  ref: {
+                    kind: "stepOutput",
+                    stepId: scope.stepId,
+                    outputName,
+                    itemPath,
+                  },
+                  itemPath,
+                }
+              : { kind: "value", present: false, itemPath };
+          },
+        });
+      }
+      case "retryAttempt":
+      case "giveUp": {
+        const failed = failedToken(stepRun);
+
+        if (!failed) {
+          throw new FlowNetInterpreterError(
+            `${describeStepRun(stepRun)} has no failed attempt`,
+          );
+        }
+
+        const { scope, position, token } = failed;
+
+        return fireAttemptTransition({
+          scope,
+          role: held.role,
+          from: { position, token },
+          produce: () => ({
+            ...token,
+            attempts:
+              held.role === "retryAttempt"
+                ? token.attempts + 1
+                : token.attempts,
           }),
-        ];
+        });
       }
     }
+  };
+
+  /**
+   * The step runs a root transition is held and enabled for, only `forItemPath`'s if given. Only a `startForEach`
+   * whose array isn't a constant, and a `startStep` in a run that waits for steps to start, are held.
+   */
+  const heldStarts = (
+    { transition, metadata: transitionMetadata }: RootTransition,
+    forItemPath?: number[],
+  ): FlowNetHeldTransition[] => {
+    if (
+      !(
+        (transitionMetadata.role === "startForEach" &&
+          constantItemCount(transitionMetadata.constant) === null) ||
+        (transitionMetadata.role === "startStep" && waitForStepStarts)
+      )
+    ) {
+      return [];
+    }
+
+    const { role, stepId } = transitionMetadata;
+
+    return tokensAt(pendingPosition(stepId))
+      .filter(
+        (pending) =>
+          (forItemPath === undefined ||
+            isSamePath(pending.itemPath, forItemPath)) &&
+          bind({
+            transition,
+            scope: null,
+            anchorPosition: pendingPosition(stepId),
+            anchorAccepts: (anchor) => anchor === pending,
+            guard: (candidate) =>
+              transitionMetadata.role === "startForEach"
+                ? !hasMissingArray(candidate)
+                : !hasMissingSkipInput(transitionMetadata, candidate),
+          }) !== null,
+      )
+      .map(({ itemPath }) => ({ role, stepRun: { stepId, itemPath } }));
   };
 
   /*
@@ -1239,133 +1325,103 @@ export const startFlowNetRun = (
       [...tokensByPosition.values()].flatMap(({ position, tokens }) =>
         tokens.map((token) => ({ position, token })),
       ),
-    awaiting: () => {
-      const awaiting: FlowNetAwaiting[] = [];
+    held: () => {
+      const held: FlowNetHeldTransition[] = [];
 
       for (const scope of scopesByInstanceId.values()) {
-        for (const token of tokensAt(
-          instancePlacePosition(
-            scope.instance.id,
-            scope.subnet.inProgressPlaceId,
-          ),
-        )) {
-          if (token.kind === "attempt") {
-            awaiting.push({
-              kind: "actionOutcome",
-              stepRun: { stepId: scope.stepId, itemPath: token.itemPath },
-              attempt: token.attempts,
-            });
+        for (const [placeId, roles] of [
+          [scope.subnet.inProgressPlaceId, ["succeedAttempt", "failAttempt"]],
+          [scope.subnet.failedPlaceId, ["retryAttempt", "giveUp"]],
+        ] as const) {
+          for (const token of tokensAt(
+            instancePlacePosition(scope.instance.id, placeId),
+          )) {
+            if (token.kind === "attempt") {
+              const stepRun = {
+                stepId: scope.stepId,
+                itemPath: token.itemPath,
+              };
+
+              for (const role of roles) {
+                held.push({ role, stepRun, attempt: token.attempts });
+              }
+            }
           }
         }
       }
 
-      /** The step runs whose `Pending` token `transition` could take, if told to. */
-      const startableStepRuns = (
-        { transition, metadata: transitionMetadata }: RootTransition,
-        guard: (bindings: Binding[]) => boolean,
-      ): FlowNetStepRun[] =>
-        "stepId" in transitionMetadata
-          ? tokensAt(pendingPosition(transitionMetadata.stepId))
-              .filter(
-                (pending) =>
-                  bind({
-                    transition,
-                    scope: null,
-                    anchorPosition: pendingPosition(transitionMetadata.stepId),
-                    anchorAccepts: (anchor) => anchor === pending,
-                    guard,
-                  }) !== null,
-              )
-              .map(({ itemPath }) => ({
-                stepId: transitionMetadata.stepId,
-                itemPath,
-              }))
-          : [];
-
-      for (const rootTransition of rootTransitions) {
-        const { metadata: transitionMetadata } = rootTransition;
-
-        if (
-          transitionMetadata.role === "startForEach" &&
-          constantItemCount(transitionMetadata.constant) === null
-        ) {
-          for (const stepRun of startableStepRuns(
-            rootTransition,
-            (candidate) => !hasMissingArray(candidate),
-          )) {
-            awaiting.push({ kind: "itemCount", stepRun });
-          }
-        } else if (
-          transitionMetadata.role === "startStep" &&
-          waitForStepStarts
-        ) {
-          for (const stepRun of startableStepRuns(
-            rootTransition,
-            (candidate) => !hasMissingSkipInput(transitionMetadata, candidate),
-          )) {
-            awaiting.push({ kind: "stepStart", stepRun });
-          }
-        }
-      }
-
-      return awaiting;
+      return [
+        ...held,
+        ...rootTransitions.flatMap((rootTransition) =>
+          heldStarts(rootTransition),
+        ),
+      ];
     },
+    isHeld: (role, stepRun) => {
+      switch (role) {
+        case "startForEach":
+        case "startStep":
+          return (rootTransitionsByStep.get(stepRun.stepId) ?? []).some(
+            (rootTransition) =>
+              rootTransition.metadata.role === role &&
+              heldStarts(rootTransition, stepRun.itemPath).length > 0,
+          );
+        case "succeedAttempt":
+        case "failAttempt":
+          return (
+            scopesByStepId.has(stepRun.stepId) &&
+            inProgressToken(stepRun) !== null
+          );
+        case "retryAttempt":
+        case "giveUp":
+          return (
+            scopesByStepId.has(stepRun.stepId) && failedToken(stepRun) !== null
+          );
+      }
+    },
+    attemptInProgress: (stepRun) =>
+      scopesByStepId.has(stepRun.stepId)
+        ? (inProgressToken(stepRun)?.token.attempts ?? null)
+        : null,
     isPending: (stepRun) =>
       tokensAt(pendingPosition(stepRun.stepId)).some(({ itemPath }) =>
         isSamePath(itemPath, stepRun.itemPath),
       ),
-    isAwaitingStart: (stepRun) => {
-      if (!waitForStepStarts) {
-        return false;
+    attemptInputs: (firing) => {
+      if (firing.role !== "startAttempt") {
+        throw new FlowNetInterpreterError(
+          `A ${firing.role} firing doesn't start an attempt`,
+        );
       }
 
-      const pending = tokensAt(pendingPosition(stepRun.stepId)).find(
-        ({ itemPath }) => isSamePath(itemPath, stepRun.itemPath),
-      );
+      const scope = scopeOfStep(firing.stepRun.stepId);
 
-      return (
-        pending !== undefined &&
-        (rootTransitionsByStep.get(stepRun.stepId) ?? []).some(
-          ({ transition, metadata: transitionMetadata }) =>
-            transitionMetadata.role === "startStep" &&
-            bind({
-              transition,
-              scope: null,
-              anchorPosition: pendingPosition(stepRun.stepId),
-              anchorAccepts: (anchor) => anchor === pending,
-              guard: (candidate) =>
-                !hasMissingSkipInput(transitionMetadata, candidate),
-            }) !== null,
-        )
-      );
-    },
-    awaitedAttempt: (stepRun) => {
-      for (const scope of scopesByInstanceId.values()) {
-        if (scope.stepId !== stepRun.stepId) {
-          continue;
-        }
-
-        for (const token of tokensAt(
-          instancePlacePosition(
-            scope.instance.id,
-            scope.subnet.inProgressPlaceId,
-          ),
-        )) {
-          if (
-            token.kind === "attempt" &&
-            isSamePath(token.itemPath, stepRun.itemPath)
-          ) {
-            return token.attempts;
-          }
-        }
+      /* An action with no inputs starts from a `Start` port's signal. */
+      if (scope.actionDefinition.inputs.length === 0) {
+        return { stepRun: firing.stepRun, inputs: {} };
       }
 
-      return null;
-    },
-    apply: (outcome) => {
-      const applied = applyOutcome(outcome);
+      const { subnet } = scope.subnet;
 
-      return [...applied, ...fireEnabled()];
+      const inputs: FlowNetAttemptInputs["inputs"] = {};
+
+      for (const { position, token } of firing.consumed) {
+        const inputName =
+          position.kind === "instancePlace"
+            ? subnet.places.find(({ id }) => id === position.placeId)?.name
+            : undefined;
+
+        if (!inputName || token.kind !== "value") {
+          throw new FlowNetInterpreterError(
+            `${describeStepRun(firing.stepRun)} started from a token that isn't an input's value`,
+          );
+        }
+
+        inputs[inputName] = token.present ? token.ref : null;
+      }
+
+      return { stepRun: firing.stepRun, inputs };
     },
+    fire: (held) => [fireHeld(held), ...fireEnabled()],
   };
 };
