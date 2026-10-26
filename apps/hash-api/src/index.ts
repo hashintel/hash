@@ -37,6 +37,7 @@ import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import {
   getHashClientTypeFromRequest,
   hashClientHeaderKey,
@@ -806,7 +807,11 @@ const main = async () => {
     origin: getPetrinautOptimizerOrigin(),
   });
 
-  setupBrunchAgentProxy(app, { logger, origin: getBrunchAgentOrigin() });
+  setupBrunchAgentProxy(app, {
+    logger,
+    origin: getBrunchAgentOrigin(),
+    publicOrigin: apiOrigin,
+  });
 
   setupTelemetryHandler(app);
   shutdown.addCleanup("Rudderstack Telemetry", async () => telemetry.flush());

@@ -68,7 +68,16 @@ const requestBody = (request: Request): string | undefined => {
 
 export const setupBrunchAgentProxy = (
   app: Express,
-  { origin, logger }: { origin: URL | null; logger: Pick<Logger, "warn"> },
+  {
+    origin,
+    publicOrigin,
+    logger,
+  }: {
+    origin: URL | null;
+    /** Where browsers reach this API; the hop's public URLs are built from it. */
+    publicOrigin: string;
+    logger: Pick<Logger, "warn">;
+  },
 ) => {
   app.get(`${BRUNCH_AGENT_PROXY_PATH}/identity`, (request, response) => {
     if (!request.user) {
@@ -89,15 +98,20 @@ export const setupBrunchAgentProxy = (
         response.status(503).json({ error: "Brunch agent is not configured" });
         return;
       }
-      if (!request.path.startsWith("/agents/")) {
-        response.status(404).json({ error: "Not found" });
-        return;
-      }
-
+      // Check the URL that is forwarded, not the request path: URL parsing
+      // resolves `..`, `%2e%2e` and `\`, which would otherwise reach Brunch
+      // routes outside its agents.
       const upstreamUrl = new URL(
         request.originalUrl.slice(BRUNCH_AGENT_PROXY_PATH.length),
         origin,
       );
+      if (
+        upstreamUrl.origin !== origin.origin ||
+        !upstreamUrl.pathname.startsWith("/agents/")
+      ) {
+        response.status(404).json({ error: "Not found" });
+        return;
+      }
       const headers = new Headers();
       for (const [name, value] of Object.entries(request.headers)) {
         if (typeof value === "string" && isForwardedRequestHeader(name)) {
@@ -133,7 +147,7 @@ export const setupBrunchAgentProxy = (
         // at, which names Brunch's internal origin. Point both back through
         // this hop.
         const internalBase = `${origin.origin}/agents/`;
-        const publicBase = `${request.protocol}://${request.get("host")}${BRUNCH_AGENT_PROXY_PATH}/agents/`;
+        const publicBase = `${new URL(publicOrigin).origin}${BRUNCH_AGENT_PROXY_PATH}/agents/`;
         for (const [name, value] of upstream.headers) {
           if (
             !droppedResponseHeaders.has(name) &&
