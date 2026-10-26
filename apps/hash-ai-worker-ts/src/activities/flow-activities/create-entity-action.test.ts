@@ -319,24 +319,30 @@ describe("createEntityAction", () => {
     );
   });
 
-  it("fails for an end of a link that is missing or the user can't read, without creating anything", async () => {
-    mockLinkEnd(entityIdOf(1));
-    mockLinkEnd(null);
+  it.each([
+    { end: "the entity it links from", left: null, right: entityIdOf(2) },
+    { end: "the entity it links to", left: entityIdOf(1), right: null },
+  ])(
+    "fails for a link if $end is missing or the user can't read it, without creating anything",
+    async ({ left, right }) => {
+      mockLinkEnd(left);
+      mockLinkEnd(right);
 
-    expect(
-      await run({
-        entityTypeIds: [worksForType],
-        properties: { value: {} },
-        leftEntityId: entityIdOf(1),
-        rightEntityId: entityIdOf(2),
-      }),
-    ).toEqual({
-      code: StatusCode.NotFound,
-      message: `Entity ${entityIdOf(2)} doesn't exist or can't be read by the user running the flow.`,
-      contents: [],
-    });
-    expect(create).not.toHaveBeenCalled();
-  });
+      expect(
+        await run({
+          entityTypeIds: [worksForType],
+          properties: { value: {} },
+          leftEntityId: entityIdOf(1),
+          rightEntityId: entityIdOf(2),
+        }),
+      ).toEqual({
+        code: StatusCode.NotFound,
+        message: `Entity ${entityIdOf(left ? 2 : 1)} doesn't exist or can't be read by the user running the flow.`,
+        contents: [],
+      });
+      expect(create).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     {
@@ -378,13 +384,22 @@ describe("createEntityAction", () => {
       message: linkEndsMessage,
     },
     {
-      name: "an end of a link that isn't an entity ID",
+      name: "an entity a link links from that isn't an entity ID",
+      params: {
+        properties: ada,
+        leftEntityId: "person" as EntityId,
+        rightEntityId: entityIdOf(2),
+      },
+      message: "person is not a valid EntityId.",
+    },
+    {
+      name: "an entity a link links to that isn't an entity ID",
       params: {
         properties: ada,
         leftEntityId: entityIdOf(1),
-        rightEntityId: "" as EntityId,
+        rightEntityId: "company" as EntityId,
       },
-      message: " is not a valid EntityId.",
+      message: "company is not a valid EntityId.",
     },
   ])(
     "fails for $name, without creating anything",
@@ -416,6 +431,19 @@ describe("createEntityAction", () => {
       { entityTypeIds: [personType, employeeType], action: "instantiate" },
     );
     expect(queryEntities).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("names every type the user running the flow can't instantiate", async () => {
+    vi.mocked(hasPermissionForEntityTypes).mockResolvedValueOnce([]);
+
+    expect(
+      await run({ entityTypeIds: [personType, employeeType], properties: ada }),
+    ).toEqual({
+      code: StatusCode.PermissionDenied,
+      message: `Entity types ${personType}, ${employeeType} don't exist or can't be instantiated by the user running the flow.`,
+      contents: [],
+    });
     expect(create).not.toHaveBeenCalled();
   });
 
