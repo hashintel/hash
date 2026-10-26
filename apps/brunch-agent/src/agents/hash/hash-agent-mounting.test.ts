@@ -18,6 +18,7 @@ import {
   compileToolDescription,
 } from "../petrinaut/tools/ledger.ts";
 import { queryBasisToolDescription } from "../petrinaut/tools/query-basis.ts";
+import { hashEntityReadDescription } from "./tools/hash-entity-read.ts";
 
 const mounted = vi.hoisted(() => ({
   initialData: undefined as unknown,
@@ -108,7 +109,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
-test("a document binding mounts the guidance, the complete canonical catalogue, the Ledger and the draft", async () => {
+test("a document binding mounts the guidance, the complete canonical catalogue, the Ledger, the draft and HASH's entity read", async () => {
   mounted.initialData = bound;
   const { HashAgent: renderAgent } = await import("./agent.ts");
   expect(renderAgent({ id: "bound" })).toBe(await systemPrompt());
@@ -123,8 +124,12 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
       "readNetOutline",
       "readNetStructure",
       brunchTools.draftPetrinautExperiment,
+      brunchTools.queryHashEntities,
       ...Object.keys(petrinautAiTools),
     ]),
+  );
+  expect(mounted.descriptions.get(brunchTools.queryHashEntities)).toBe(
+    hashEntityReadDescription,
   );
   // Petrinaut, runtime, experiment and query_basis guidance live in the
   // skills and tool descriptions, so no instruction is mounted.

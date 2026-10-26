@@ -108,6 +108,8 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
       ...Object.keys(petrinautAiTools),
     ]),
   );
+  // HASH's entity read belongs to the HASH agent alone.
+  expect(mounted.tools).not.toContain(brunchTools.queryHashEntities);
   // Petrinaut, runtime, experiment and query_basis guidance live in the
   // skills and tool descriptions, so no instruction is mounted.
   expect(mounted.instructions).toEqual([]);

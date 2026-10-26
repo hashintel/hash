@@ -91,6 +91,7 @@ import type { InterviewBudgetLevel } from "../shared/interview-budget";
 import type { VoiceWord } from "../shared/voice-words";
 import type { PetrinautAiComposerControlContext } from "./chat/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
+import type { PetrinautAiAutomaticTool } from "./chat/ai-automatic-tool";
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
 import type { SdcpnInitialData } from "@hashintel/brunch-agent";
 import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
@@ -205,6 +206,7 @@ export const useBrunchAssistant = ({
   interviewBudget,
   words,
   plugins,
+  hostTools,
 }: BrunchConnection & {
   /** Brunch is configured and chosen as the assistant. */
   readonly selected: boolean;
@@ -215,6 +217,12 @@ export const useBrunchAssistant = ({
   readonly words: BrunchWordsPreferences;
   /** The plugins the host gives the editor. */
   readonly plugins: readonly PetrinautPlugin[];
+  /**
+   * Tools the host runs itself when its agent calls them, such as HASH's
+   * entity read, offered beside Brunch's own while a document is bound. Each
+   * name must be one the server issues to the browser. Pass a stable list.
+   */
+  readonly hostTools?: readonly PetrinautAiAutomaticTool[];
 }): BrunchAssistant => {
   const currentNetId = openDocument?.documentId ?? null;
   const editor = openDocument?.editor ?? null;
@@ -706,7 +714,10 @@ export const useBrunchAssistant = ({
       // document binding is attached. Every other canonical capability remains
       // on Petrinaut's registry.
       inBandBrowserTools,
-      automaticTools: [...(canonicalHostTools?.tools ?? [])],
+      automaticTools: [
+        ...(canonicalHostTools?.tools ?? []),
+        ...(canonicalHostTools ? (hostTools ?? []) : []),
+      ],
       // The automatic tools run against the handle the editor shows.
       ...(editor === null ? {} : { documentHandle: editor.handle }),
       interactiveTools: [
@@ -756,6 +767,7 @@ export const useBrunchAssistant = ({
     flueHistory.phase,
     flueHistory.ready,
     flueHistory.snapshot,
+    hostTools,
     inBandBrowserTools,
     interviewBudgetEnabled,
     interviewBudgetLevel,

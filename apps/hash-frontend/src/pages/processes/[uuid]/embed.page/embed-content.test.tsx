@@ -29,6 +29,8 @@ const observed = vi.hoisted(() => ({
   /** Failures to report from inside the editor and from Brunch's hook. */
   petrinautFailure: null as null | { error: Error; source: string },
   brunchFailure: null as null | { error: Error; source: string },
+  /** The HASH host tools the page gives Brunch. */
+  hashHostTools: [{ toolName: "query_hash_entities" }],
 }));
 
 vi.mock("@hashintel/petrinaut", async () => {
@@ -87,6 +89,10 @@ vi.mock("@hashintel/brunch-agent/ui", async () => {
     },
   };
 });
+
+vi.mock("./brunch-hash-entity-read", () => ({
+  useBrunchHashHostTools: () => observed.hashHostTools,
+}));
 
 vi.mock("./embed-chrome-plugin", () => ({
   embedChromePlugin: { id: "embed-chrome" },
@@ -197,6 +203,7 @@ test("Brunch's runner gets the handle the editor shows, and a new one on every l
     openDocument: { documentId: savedEntityId },
     voice: { enabled: false },
   });
+  expect(lastBrunchInput()?.hostTools).toBe(observed.hashHostTools);
   expect(identityRequests).toEqual([
     {
       url: "http://localhost:5001/api/brunch/identity",

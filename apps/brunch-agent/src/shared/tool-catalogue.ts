@@ -9,13 +9,24 @@ import {
 
 export type ToolDefinitionOwner = "flue" | "petrinaut-core" | "brunch-app";
 
-export type ToolExecutionOwner = "flue" | "brunch-app" | "petrinaut-website";
+export type ToolExecutionOwner =
+  | "flue"
+  | "brunch-app"
+  | "petrinaut-website"
+  | "hash-frontend";
+
+/** Owners that run a tool in the bound browser, in band. */
+const browserExecutionOwners: ReadonlySet<ToolExecutionOwner> = new Set([
+  "petrinaut-website",
+  "hash-frontend",
+]);
 
 export type ToolCapabilityClass =
   | "substrate"
   | "ledger"
   | PetrinautToolCapability
   | "petrinaut-experiment-draft"
+  | "hash-read"
   | "explanation"
   | "diagnostic";
 
@@ -68,6 +79,14 @@ const draftBrunchTool: BrunchToolCatalogueEntry = {
   capability: "petrinaut-experiment-draft",
 };
 
+/** HASH's process page runs it; only the HASH agent mounts it. */
+const hashEntityReadTool: BrunchToolCatalogueEntry = {
+  name: brunchTools.queryHashEntities,
+  definitionOwner: "brunch-app",
+  executionOwner: "hash-frontend",
+  capability: "hash-read",
+};
+
 /**
  * Expected provider-visible names and ownership for a document-bound Brunch conversation.
  * Schemas stay with Petrinaut; this list deliberately classifies names only.
@@ -118,14 +137,15 @@ export const brunchToolCatalogue: readonly BrunchToolCatalogueEntry[] = [
   ...canonicalPetrinautToolCatalogue,
   ...netReaderTools,
   draftBrunchTool,
+  hashEntityReadTool,
 ];
 
-/** The catalogue's website-executed entries are exactly the tools the library says the browser runs. */
+/** The catalogue's browser-executed entries are exactly the tools the library says the browser runs. */
 export const assertBrowserExecutedToolConformance = (
   catalogue: readonly BrunchToolCatalogueEntry[] = brunchToolCatalogue,
 ): void => {
   const catalogued = catalogue
-    .filter(({ executionOwner }) => executionOwner === "petrinaut-website")
+    .filter(({ executionOwner }) => browserExecutionOwners.has(executionOwner))
     .map(({ name }) => name);
   const missing = [...browserExecutedToolNames].filter(
     (name) => !catalogued.includes(name),

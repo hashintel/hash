@@ -32,6 +32,8 @@ export const brunchTools = {
   ledgerCompile: "ledger_compile",
   ping: "ping",
   queryBasis: "query_basis",
+  /** HASH's process page reads entities from the graph as the signed-in user. */
+  queryHashEntities: "query_hash_entities",
   readSkillResource: "read_skill_resource",
   task: "task",
 } as const;

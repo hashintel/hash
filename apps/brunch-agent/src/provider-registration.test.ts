@@ -164,3 +164,43 @@ test("app registration scopes admission to the Petrinaut agent's execution, isol
   expect(other.status).toBe("fulfilled");
   expect(task.status).toBe("fulfilled");
 });
+
+test("app registration admits HASH's entity read as a browser tool, beside allowlisted server tools only", async () => {
+  const registration = vi
+    .mocked(instrument)
+    .mock.calls.find(
+      ([entry]) => entry.key === Symbol.for("brunch.buffered-tool-admission"),
+    )?.[0];
+  const provider = vi
+    .mocked(setProvider)
+    .mock.calls.map(([entry]) => entry)
+    .find((entry) => entry.id === "anthropic")!;
+  const model = provider.getModels()[0]!;
+  const context = normalizeContext({ messages: [] });
+  const proposal = (...names: string[]) =>
+    fauxAssistantMessage(
+      names.map((name) => fauxToolCall(name, {})),
+      { stopReason: "toolUse" },
+    );
+  faux.setResponses([
+    proposal("query_hash_entities"),
+    proposal("query_hash_entities", "ledger_commit"),
+    proposal("query_hash_entities", "task"),
+  ]);
+  const admit = () =>
+    registration!.interceptor(
+      { type: "agent", operationId: "hash-read", operationKind: "prompt" },
+      { agentName: "brunch-hash-agent" },
+      async () => drain(provider.streamSimple(model, context)),
+    );
+  const alone = await admit();
+  const beside = await admit();
+  await expect(admit()).rejects.toThrow(/Mixed browser\/server proposal/u);
+  expect(alone.content).toEqual([
+    expect.objectContaining({ name: "query_hash_entities" }),
+  ]);
+  expect(beside.content.map((part) => part.type)).toEqual([
+    "toolCall",
+    "toolCall",
+  ]);
+});

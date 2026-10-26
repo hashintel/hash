@@ -3,7 +3,8 @@
  * Brunch for HASH: the Petrinaut agent's guidance (prompt and skills, copied
  * here so they can diverge) and its Ledger and `query_basis` tools (imported
  * from `../petrinaut/tools/`), over the shared Petrinaut browser tools, net
- * freshness and transport. HASH's process page talks to it.
+ * freshness and transport, plus a read of the HASH graph that HASH's process
+ * page executes. HASH's process page talks to it.
  */
 
 import {
@@ -41,6 +42,9 @@ import { ping } from "../../shared/ping.ts";
 import { loadTestCompactionConfig } from "../../shared/test-compaction-config.ts";
 import { useWords } from "../../shared/words.ts";
 import { useGuidance } from "./guidance.ts";
+import { createHashEntityReadTool } from "./tools/hash-entity-read.ts";
+
+import type { BrowserToolExecutor } from "../../shared/petrinaut-tools/petrinaut-construction.ts";
 
 const CHAT_MODEL_SPECIFIER = selectChatModelSpecifier();
 const chatThinkingLevel = selectChatThinking();
@@ -96,6 +100,30 @@ export function HashAgent({ id }: AgentProps) {
     history,
     { interviewBudget: submitted?.interviewBudget, words },
   );
+  const executeBrowserTool: BrowserToolExecutor | undefined = initialData
+    ? async ({ toolName, input, toolCallId, signal }) => {
+        const expected = browserToolMutatesDocument(toolName)
+          ? expectedNetRevision(
+              await history(),
+              toolCallId,
+              netViewTracker.view(id),
+            )
+          : undefined;
+        if (expected && "refusal" in expected)
+          throw new Error(expected.refusal);
+        return issueBrowserCall({
+          instanceId: id,
+          toolCallId,
+          toolName,
+          canonicalInput: input,
+          binding: canonicalContent(initialData.binding),
+          ...(expected === undefined
+            ? {}
+            : { expectedRevision: expected.revision }),
+          signal,
+        });
+      }
+    : undefined;
   usePetrinautTools(
     initialData
       ? {
@@ -105,38 +133,16 @@ export function HashAgent({ id }: AgentProps) {
                 "Experiment draft requires a prior canonical net read.",
               );
           },
-          executeBrowserTool: async ({
-            toolName,
-            input,
-            toolCallId,
-            signal,
-          }) => {
-            const expected = browserToolMutatesDocument(toolName)
-              ? expectedNetRevision(
-                  await history(),
-                  toolCallId,
-                  netViewTracker.view(id),
-                )
-              : undefined;
-            if (expected && "refusal" in expected)
-              throw new Error(expected.refusal);
-            return issueBrowserCall({
-              instanceId: id,
-              toolCallId,
-              toolName,
-              canonicalInput: input,
-              binding: canonicalContent(initialData.binding),
-              ...(expected === undefined
-                ? {}
-                : { expectedRevision: expected.revision }),
-              signal,
-            });
-          },
+          executeBrowserTool,
         }
       : {},
   );
-  if (initialData)
+  if (initialData) {
     useTool(createQueryBasisTool({ browser: initialData, history }));
+    // HASH's page runs it as the signed-in user, like a net read.
+    if (executeBrowserTool)
+      useTool(createHashEntityReadTool(executeBrowserTool));
+  }
   useTool(ping);
 
   return system;

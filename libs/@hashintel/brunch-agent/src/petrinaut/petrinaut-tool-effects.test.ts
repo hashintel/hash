@@ -6,6 +6,7 @@ import { brunchTools } from "../constants";
 import {
   browserToolMutatesDocument,
   petrinautToolEffects,
+  petrinautToolTargets,
 } from "./petrinaut-tool-effects";
 
 test("classifies every canonical Petrinaut tool", () => {
@@ -31,4 +32,9 @@ test("only mutations, commands and unknown tools may change the bound document",
     false,
   );
   expect(browserToolMutatesDocument("unmounted_tool")).toBe(true);
+});
+
+test("HASH's entity read reads the graph and never changes the bound document", () => {
+  expect(browserToolMutatesDocument(brunchTools.queryHashEntities)).toBe(false);
+  expect(petrinautToolTargets(brunchTools.queryHashEntities)).toEqual([]);
 });
