@@ -103,7 +103,7 @@ const mockEntity = (entityId: EntityId | null, { canEdit = true } = {}) =>
 
 const run = (params: {
   entityId: PayloadValue<"EntityId", false>;
-  propertyPatches?: PayloadValue<"PropertyPatch", true>;
+  propertyPatches: PayloadValue<"PropertyPatch", true>;
   entityTypeIds?: string[];
 }) =>
   updateEntityAction({
@@ -112,17 +112,10 @@ const run = (params: {
         inputName: "entityId",
         payload: { kind: "EntityId", value: params.entityId },
       },
-      ...(params.propertyPatches === undefined
-        ? []
-        : [
-            {
-              inputName: "propertyPatches",
-              payload: {
-                kind: "PropertyPatch" as const,
-                value: params.propertyPatches,
-              },
-            },
-          ]),
+      {
+        inputName: "propertyPatches",
+        payload: { kind: "PropertyPatch", value: params.propertyPatches },
+      },
       ...(params.entityTypeIds === undefined
         ? []
         : [
@@ -232,6 +225,7 @@ describe("updateEntityAction", () => {
     expect(
       await run({
         entityId: entityIdOf(1),
+        propertyPatches: [],
         entityTypeIds: [personType, employeeType],
       }),
     ).toEqual(updated(entityIdOf(1)));
@@ -278,7 +272,11 @@ describe("updateEntityAction", () => {
   it("checks the user can instantiate the types it removes, as well as those it adds", async () => {
     mockEntity(entityIdOf(1));
 
-    await run({ entityId: entityIdOf(1), entityTypeIds: [employeeType] });
+    await run({
+      entityId: entityIdOf(1),
+      propertyPatches: [],
+      entityTypeIds: [employeeType],
+    });
 
     expect(hasPermissionForEntityTypes).toHaveBeenCalledWith(
       {},
@@ -294,7 +292,11 @@ describe("updateEntityAction", () => {
     ]);
 
     expect(
-      await run({ entityId: entityIdOf(1), entityTypeIds: [employeeType] }),
+      await run({
+        entityId: entityIdOf(1),
+        propertyPatches: [],
+        entityTypeIds: [employeeType],
+      }),
     ).toEqual({
       code: StatusCode.PermissionDenied,
       message: `Entity type ${personType} doesn't exist or can't be instantiated by the user running the flow.`,
@@ -307,7 +309,11 @@ describe("updateEntityAction", () => {
     mockEntity(entityIdOf(1));
 
     expect(
-      await run({ entityId: entityIdOf(1), entityTypeIds: [personType] }),
+      await run({
+        entityId: entityIdOf(1),
+        propertyPatches: [],
+        entityTypeIds: [personType],
+      }),
     ).toEqual(updated(entityIdOf(1)));
     expect(hasPermissionForEntityTypes).not.toHaveBeenCalled();
   });
@@ -319,6 +325,7 @@ describe("updateEntityAction", () => {
     expect(
       await run({
         entityId: entityIdOf(1),
+        propertyPatches: [],
         entityTypeIds: [personType, employeeType],
       }),
     ).toEqual({
@@ -372,11 +379,6 @@ describe("updateEntityAction", () => {
         "Entity 00000000-0000-4000-8000-0000000000aa~00000000-0000-4000-8000-000000000001 isn't in the web the flow runs in, so it can't be updated.",
     },
     {
-      name: "neither patches nor types",
-      entityId: entityIdOf(1),
-      message: noEntityChangesMessage,
-    },
-    {
       name: "an empty list of patches without types",
       entityId: entityIdOf(1),
       propertyPatches: [],
@@ -385,12 +387,14 @@ describe("updateEntityAction", () => {
     {
       name: "an empty list of types",
       entityId: entityIdOf(1),
+      propertyPatches: [],
       entityTypeIds: [],
       message: "Give at least one entity type ID.",
     },
     {
       name: "a type that isn't a versioned URL",
       entityId: entityIdOf(1),
+      propertyPatches: [],
       entityTypeIds: ["https://example.com/types/entity-type/person/"],
       message:
         '"https://example.com/types/entity-type/person/" is not an entity type ID.',
@@ -425,7 +429,7 @@ describe("updateEntityAction", () => {
   ] satisfies {
     name: string;
     entityId: EntityId;
-    propertyPatches?: PropertyPatchOperation[];
+    propertyPatches: PropertyPatchOperation[];
     entityTypeIds?: string[];
     message: string;
   }[])(

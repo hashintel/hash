@@ -9,7 +9,7 @@ export const linkEndsMessage =
   "Give both leftEntityId and rightEntityId to create a link, or neither.";
 
 export const noEntityChangesMessage =
-  "Give property patches, entity type IDs, or both.";
+  "Give at least one property patch, or entity type IDs.";
 
 /** Checks a Create entity step's inputs when the flow is defined. */
 export const checkCreateEntityStep: ActionStepCheck = (params) => {
@@ -31,14 +31,16 @@ export const checkUpdateEntityStep: ActionStepCheck = (params) => {
 
   const { entityTypeIds, propertyPatches } = params.step.inputs;
 
-  /* A connected list of patches may be empty when the step runs, which the step checks then. */
-  const hasNoPatches =
-    !propertyPatches ||
-    (propertyPatches.kind === "constant" &&
-      Array.isArray(propertyPatches.payload.value) &&
-      propertyPatches.payload.value.length === 0);
-
-  if (!entityTypeIds && hasNoPatches) {
+  /*
+   * Patches are required even with types, so that the step is skipped when the patches it's connected to are missing;
+   * an empty list changes types alone. A connected list may be empty when the step runs, which the step checks then.
+   */
+  if (
+    !entityTypeIds &&
+    propertyPatches?.kind === "constant" &&
+    Array.isArray(propertyPatches.payload.value) &&
+    propertyPatches.payload.value.length === 0
+  ) {
     params.report("propertyPatches", noEntityChangesMessage);
   }
 };

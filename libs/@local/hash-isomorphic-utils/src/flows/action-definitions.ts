@@ -1118,8 +1118,8 @@ const aiFlowActionDefinitionsAsConst = {
         oneOfPayloadKinds: ["PropertyPatch"],
         name: "propertyPatches",
         description:
-          "The changes to make, in order, as the graph takes them. Each changes the whole property at its path, a property type base URL, and no two change the same property: add sets it, replacing any value it has; replace changes one the entity has; remove removes it if the entity has it. Added and replaced values give the ID of their data type. Can be left out if entityTypeIds is given.",
-        required: false,
+          "The changes to make, in order, as the graph takes them. Each changes the whole property at its path, a property type base URL, and no two change the same property: add sets it, replacing any value it has; replace changes one the entity has; remove removes it if the entity has it. Added and replaced values give the ID of their data type. Can be empty if entityTypeIds is given.",
+        required: true,
         array: true,
       },
       {

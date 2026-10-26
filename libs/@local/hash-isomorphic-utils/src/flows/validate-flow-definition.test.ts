@@ -1059,11 +1059,6 @@ describe("validateFlowDefinition", () => {
         propertyPatches: { kind: "flow-input", inputName: "patches" },
       },
       {
-        name: "types without patches",
-        propertyPatches: undefined,
-        otherInputs: { entityTypeIds: types },
-      },
-      {
         name: "types with no patches",
         propertyPatches: constant([]),
         otherInputs: { entityTypeIds: types },
@@ -1072,13 +1067,14 @@ describe("validateFlowDefinition", () => {
       expect(errorsOf(propertyPatches, otherInputs)).toEqual([]);
     });
 
-    it("rejects a step without patches or types", () => {
-      expect(errorsOf(undefined)).toEqual([
+    it("rejects types without patches, so that the step is skipped when connected patches are missing", () => {
+      expect(errorsOf(undefined, { entityTypeIds: types })).toEqual([
         {
           severity: "error",
-          code: "invalidInput",
-          message: noEntityChangesMessage,
-          path: ["steps", 0, "inputs", "propertyPatches"],
+          code: "missingInput",
+          message:
+            'Required input "propertyPatches" of action "updateEntity" is not connected',
+          path: ["steps", 0, "inputs"],
         },
       ]);
     });

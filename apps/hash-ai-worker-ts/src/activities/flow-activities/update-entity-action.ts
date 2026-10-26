@@ -34,14 +34,11 @@ const invalidArgument = (message: string) => ({
 export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
   inputs,
 }) => {
-  const {
-    entityId,
-    propertyPatches = [],
-    entityTypeIds,
-  } = getSimplifiedFlowActionInputs({
-    inputs,
-    actionType: "updateEntity",
-  });
+  const { entityId, propertyPatches, entityTypeIds } =
+    getSimplifiedFlowActionInputs({
+      inputs,
+      actionType: "updateEntity",
+    });
 
   const patchesError = validatePropertyPatches(propertyPatches);
 

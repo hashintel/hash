@@ -92,6 +92,9 @@ const ada = {
 const entityIdOf = (index: number) =>
   `${webId}~00000000-0000-4000-8000-${String(index).padStart(12, "0")}` as EntityId;
 
+const draftOf = (index: number) =>
+  `${entityIdOf(index)}~00000000-0000-4000-8000-000000000099` as EntityId;
+
 const run = (params: {
   entityTypeIds?: string[];
   properties: PropertyObjectWithMetadata;
@@ -133,12 +136,16 @@ const run = (params: {
     ] satisfies StepInput[],
   });
 
-/** Answers the graph query for an end of a link as the user, with the entity if it's given. */
-const mockLinkEnd = (entityId: EntityId | null) =>
+/** Answers a graph query for the editions of an end of a link with those given, the ones the actor can read. */
+const mockEditions = (...entityIds: EntityId[]) =>
   vi.mocked(queryEntities).mockResolvedValueOnce({
-    entities: entityId ? [{ entityId }] : [],
+    entities: entityIds.map((entityId) => ({ entityId })),
     cursor: null,
   } as unknown as QueryEntitiesResponse);
+
+/** Answers the graph query for an end of a link as the user, with the entity if it's given. */
+const mockLinkEnd = (entityId: EntityId | null) =>
+  mockEditions(...(entityId ? [entityId] : []));
 
 /** Answers the graph's creation with an entity with the given ID. */
 const mockCreated = (entityId: EntityId) =>
@@ -317,6 +324,74 @@ describe("createEntityAction", () => {
         },
       }),
     );
+  });
+
+  it("creates a link to a draft the user can read, of an entity with no live edition yet", async () => {
+    mockEditions(draftOf(1));
+    mockEditions(entityIdOf(2));
+    mockEditions(draftOf(1));
+    mockCreated(entityIdOf(3));
+
+    expect(
+      await run({
+        entityTypeIds: [worksForType],
+        properties: { value: {} },
+        leftEntityId: draftOf(1),
+        rightEntityId: entityIdOf(2),
+      }),
+    ).toMatchObject({ code: StatusCode.Ok });
+
+    expect(vi.mocked(queryEntities).mock.calls[2]?.[1]).toEqual({
+      actorId: "bot",
+    });
+    expect(create).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({
+        linkData: { leftEntityId: draftOf(1), rightEntityId: entityIdOf(2) },
+      }),
+    );
+  });
+
+  it("creates a link to a draft the user can read, whose live entity they can read too", async () => {
+    mockEditions(entityIdOf(1), draftOf(1));
+    mockEditions(entityIdOf(2));
+    mockCreated(entityIdOf(3));
+
+    expect(
+      await run({
+        entityTypeIds: [worksForType],
+        properties: { value: {} },
+        leftEntityId: draftOf(1),
+        rightEntityId: entityIdOf(2),
+      }),
+    ).toMatchObject({ code: StatusCode.Ok });
+
+    expect(
+      vi
+        .mocked(queryEntities)
+        .mock.calls.map(([, authentication]) => authentication),
+    ).toEqual([{ actorId: "user" }, { actorId: "user" }, { actorId: "bot" }]);
+  });
+
+  it("fails for a link to a draft the user can read, whose live entity they can't, without creating anything", async () => {
+    mockEditions(draftOf(1));
+    mockEditions(entityIdOf(2));
+    mockEditions(entityIdOf(1), draftOf(1));
+
+    expect(
+      await run({
+        entityTypeIds: [worksForType],
+        properties: { value: {} },
+        leftEntityId: draftOf(1),
+        rightEntityId: entityIdOf(2),
+      }),
+    ).toEqual({
+      code: StatusCode.PermissionDenied,
+      message: `A link to draft ${draftOf(1)} links to its live entity, which the user running the flow can't read.`,
+      contents: [],
+    });
+    expect(create).not.toHaveBeenCalled();
   });
 
   it.each([

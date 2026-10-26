@@ -1,7 +1,10 @@
 import {
+  type EntityId,
+  entityIdFromComponents,
   type EntityUuid,
   isEntityId,
   type LinkData,
+  splitEntityId,
 } from "@blockprotocol/type-system";
 import {
   getStorageProvider,
@@ -22,10 +25,10 @@ import {
   checkUserCanInstantiate,
   validateEntityTypeIds,
 } from "./shared/entity-types.js";
-import { findEntity } from "./shared/find-entity.js";
 import { getSavingActorId, retrySave } from "./shared/save-entity.js";
 
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 
 const createdEntityUuidNamespace = "3c0f8a52-6d1e-4b7a-9f24-81e5c7d2a6b9";
 
@@ -34,6 +37,80 @@ const invalidArgument = (message: string) => ({
   message,
   contents: [],
 });
+
+/** The IDs of the editions of an entity, live and drafts, that aren't archived and the actor can read. */
+const getReadableEditionIds = async (
+  authentication: AuthenticationContext,
+  entityId: EntityId,
+): Promise<EntityId[]> => {
+  const [webId, entityUuid] = splitEntityId(entityId);
+
+  const { entities } = await queryEntities(
+    { graphApi: graphApiClient },
+    authentication,
+    {
+      filter: {
+        all: [
+          { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
+          { equal: [{ path: ["webId"] }, { parameter: webId }] },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
+        ],
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: true,
+      includePermissions: false,
+    },
+  );
+
+  return entities.map((entity) => entity.entityId);
+};
+
+/**
+ * Why the user running the flow can't link to an entity, if they can't. The graph links to the entity, not to a draft
+ * of it, so a link to a draft also links to the live entity once there is one, which the user must be able to read
+ * too if there already is one. The web's machine, which saves the link, may read entities the user can't.
+ */
+const getLinkEndError = async ({
+  userAuthentication,
+  savingAuthentication,
+  entityId,
+}: {
+  userAuthentication: AuthenticationContext;
+  savingAuthentication: AuthenticationContext;
+  entityId: EntityId;
+}) => {
+  const userEditionIds = await getReadableEditionIds(
+    userAuthentication,
+    entityId,
+  );
+
+  if (!userEditionIds.includes(entityId)) {
+    return {
+      code: StatusCode.NotFound,
+      message: `Entity ${entityId} doesn't exist or can't be read by the user running the flow.`,
+      contents: [],
+    };
+  }
+
+  const [webId, entityUuid, draftId] = splitEntityId(entityId);
+  const liveEntityId = entityIdFromComponents(webId, entityUuid);
+
+  if (
+    draftId &&
+    !userEditionIds.includes(liveEntityId) &&
+    (await getReadableEditionIds(savingAuthentication, entityId)).includes(
+      liveEntityId,
+    )
+  ) {
+    return {
+      code: StatusCode.PermissionDenied,
+      message: `A link to draft ${entityId} links to its live entity, which the user running the flow can't read.`,
+      contents: [],
+    };
+  }
+
+  return undefined;
+};
 
 /**
  * Creates an entity of the given types in the flow's web, with the given properties and their metadata, as the web's
@@ -89,6 +166,12 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
     };
   }
 
+  const savingActorId = await getSavingActorId({
+    actorId: userAuthentication.actorId,
+    webId,
+    isAiGenerated: false,
+  });
+
   let linkData: LinkData | undefined;
 
   if (leftEntityId !== undefined && rightEntityId !== undefined) {
@@ -105,31 +188,24 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
       );
     }
 
-    /*
-     * The web's machine saves the link, and may read entities the user can't, so the user's own permission to read
-     * each end is checked here.
-     */
-    const [leftFound, rightFound] = await Promise.all([
-      findEntity(userAuthentication, left),
-      findEntity(userAuthentication, right),
-    ]);
+    const [leftError, rightError] = await Promise.all(
+      [left, right].map((entityId) =>
+        getLinkEndError({
+          userAuthentication,
+          savingAuthentication: { actorId: savingActorId },
+          entityId,
+        }),
+      ),
+    );
 
-    if (!leftFound || !rightFound) {
-      return {
-        code: StatusCode.NotFound,
-        message: `Entity ${leftFound ? right : left} doesn't exist or can't be read by the user running the flow.`,
-        contents: [],
-      };
+    const linkEndError = leftError ?? rightError;
+
+    if (linkEndError) {
+      return linkEndError;
     }
 
     linkData = { leftEntityId: left, rightEntityId: right };
   }
-
-  const savingActorId = await getSavingActorId({
-    actorId: userAuthentication.actorId,
-    webId,
-    isAiGenerated: false,
-  });
 
   /*
    * The same for every attempt of the step in this run, including Temporal's retries, so that an attempt after one
