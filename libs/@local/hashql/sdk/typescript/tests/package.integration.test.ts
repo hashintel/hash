@@ -1,4 +1,4 @@
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { layer } from "@effect/vitest";
 import { Effect, Option, Result, SchemaParser, Stream, pipe } from "effect";
 import { ChildProcess } from "effect/process";
