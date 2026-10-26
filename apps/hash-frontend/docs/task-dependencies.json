@@ -51,17 +51,19 @@
         "!NEXT_PUBLIC_VERCEL_GIT_PREVIOUS_SHA",
         "!NEXT_PUBLIC_VERCEL_GIT_PULL_REQUEST_ID",
         "!NEXT_PUBLIC_VERCEL_URL",
-        "ANALYZE",
         "API_ORIGIN",
         "ENVIRONMENT",
         "GOOGLE_OAUTH_CLIENT_ID",
+        "NEXT_PUBLIC_*",
+        "NITRO_PRESET",
         "NODE_ENV",
         "NOTIFICATION_POLL_INTERVAL",
         "SELF_HOSTED_HASH",
         "SENTRY_DSN",
         "SENTRY_ENVIRONMENT",
         "SENTRY_REPLAYS_SESSION_SAMPLE_RATE",
-        "SHOW_WORKER_COST"
+        "SHOW_WORKER_COST",
+        "VERCEL_ENV"
       ],
       "affectedBy": [
         "@hashintel/petrinaut-cli",
