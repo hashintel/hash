@@ -34,9 +34,24 @@ export const brunchTools = {
   queryBasis: "query_basis",
   /** HASH's process page reads entities from the graph as the signed-in user. */
   queryHashEntities: "query_hash_entities",
+  /** HASH's process page reads the entity types the signed-in user can see. */
+  queryHashEntityTypes: "query_hash_entity_types",
+  /** HASH's process page lists the signed-in user's own and org webs. */
+  queryHashWebs: "query_hash_webs",
   readSkillResource: "read_skill_resource",
   task: "task",
 } as const;
+
+/**
+ * The reads of the HASH graph that HASH's process page runs in band as the
+ * signed-in user. Each is browser-executed, reads the graph rather than the
+ * net, and never changes the bound document.
+ */
+export const hashGraphReadToolNames: ReadonlySet<string> = new Set([
+  brunchTools.queryHashEntities,
+  brunchTools.queryHashEntityTypes,
+  brunchTools.queryHashWebs,
+]);
 
 /**
  * Signal types the browser delivers. Each doubles as the signal's tag name,

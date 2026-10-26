@@ -13,7 +13,7 @@ import {
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { useAuthInfo } from "../../../shared/auth-info-context";
-import { useBrunchHashHostTools } from "./brunch-hash-entity-read";
+import { useBrunchHashHostTools } from "./brunch-hash-graph-reads";
 import { embedChromePlugin } from "./embed-chrome-plugin";
 
 import type { EntityId, UserId } from "@blockprotocol/type-system";

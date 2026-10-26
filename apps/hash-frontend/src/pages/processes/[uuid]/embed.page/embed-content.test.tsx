@@ -90,7 +90,7 @@ vi.mock("@hashintel/brunch-agent/ui", async () => {
   };
 });
 
-vi.mock("./brunch-hash-entity-read", () => ({
+vi.mock("./brunch-hash-graph-reads", () => ({
   useBrunchHashHostTools: () => observed.hashHostTools,
 }));
 

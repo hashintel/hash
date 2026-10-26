@@ -3,8 +3,8 @@ import {
   browserExecutedToolInputSchemas,
   browserNetToolNames,
   brunchRoutes,
-  brunchTools,
   canonicalContent,
+  hashGraphReadToolNames,
 } from "@hashintel/brunch-agent";
 
 import type { FlueClient } from "@flue/sdk";
@@ -197,11 +197,10 @@ export const createInBandBrowserCalls = (input: {
     };
   };
   return {
-    // The draft runs through its own card; HASH's entity read runs here as a
-    // host tool beside the net tools.
+    // The draft runs through its own card; HASH's graph reads run here as
+    // host tools beside the net tools.
     has: (toolName: string) =>
-      browserNetToolNames.has(toolName) ||
-      toolName === brunchTools.queryHashEntities,
+      browserNetToolNames.has(toolName) || hashGraphReadToolNames.has(toolName),
     claim,
     /**
      * Claim at this call's turn, run it under a renewed lease, then settle it.

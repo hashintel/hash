@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
   brunchTools,
+  hashGraphReadToolNames,
   petrinautContextualUserMessageBody,
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
@@ -108,8 +109,9 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
       ...Object.keys(petrinautAiTools),
     ]),
   );
-  // HASH's entity read belongs to the HASH agent alone.
-  expect(mounted.tools).not.toContain(brunchTools.queryHashEntities);
+  // HASH's graph reads belong to the HASH agent alone.
+  for (const name of hashGraphReadToolNames)
+    expect(mounted.tools).not.toContain(name);
   // Petrinaut, runtime, experiment and query_basis guidance live in the
   // skills and tool descriptions, so no instruction is mounted.
   expect(mounted.instructions).toEqual([]);
