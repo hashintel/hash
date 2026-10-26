@@ -263,6 +263,35 @@ test("a type read limited to webs matches a type in any of them", () => {
   });
 });
 
+test("a type read by the entities' type ids matches exactly those versions, not the latest, in any given web", () => {
+  const supplierV1 = "https://hash.ai/@h/types/entity-type/supplier/v/1";
+  const productV3 = "https://hash.ai/@h/types/entity-type/product/v/3";
+  expect(
+    hashEntityTypeReadRequest({
+      entityTypeIds: [supplierV1, productV3],
+      webIds: ["h-web"],
+    }),
+  ).toMatchObject({
+    filter: {
+      all: [
+        {
+          any: [
+            { equal: [{ path: ["versionedUrl"] }, { parameter: supplierV1 }] },
+            { equal: [{ path: ["versionedUrl"] }, { parameter: productV3 }] },
+          ],
+        },
+        { any: [{ equal: [{ path: ["webId"] }, { parameter: "h-web" }] }] },
+      ],
+    },
+    includeEntityTypes: "resolved",
+  });
+  expect(
+    JSON.stringify(
+      hashEntityTypeReadRequest({ entityTypeIds: [supplierV1] }).filter,
+    ),
+  ).not.toContain("latest");
+});
+
 const typeUrl = (name: string) =>
   `https://hash.ai/@alice/types/entity-type/${name}/v/1`;
 const propertyUrl = (name: string) =>
