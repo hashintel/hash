@@ -1,16 +1,15 @@
 import { cx } from "@hashintel/ds-helpers/css";
 
-import { styles } from "./inline-highlight.recipe";
+import {
+  type InlineHighlightColor,
+  type InlineHighlightVariant,
+  styles,
+} from "./inline-highlight.recipe";
 
-export type InlineHighlightColor =
-  | "grey"
-  | "red"
-  | "blue"
-  | "green"
-  | "orange"
-  | "yellow"
-  | "purple"
-  | "pink";
+export type {
+  InlineHighlightColor,
+  InlineHighlightVariant,
+} from "./inline-highlight.recipe";
 
 export type InlineHighlightProps = {
   children: React.ReactNode;
@@ -20,7 +19,7 @@ export type InlineHighlightProps = {
    * `--inline-highlight-padding-block`. */
   className?: string;
   color?: InlineHighlightColor;
-  variant?: "defined" | "soft";
+  variant?: InlineHighlightVariant;
 };
 
 /**

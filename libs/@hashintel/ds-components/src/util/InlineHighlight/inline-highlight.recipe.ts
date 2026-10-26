@@ -1,5 +1,19 @@
 import { cva } from "@hashintel/ds-helpers/css";
 
+import type { SystemStyleObject } from "@hashintel/ds-helpers/types";
+
+export type InlineHighlightColor =
+  | "grey"
+  | "red"
+  | "blue"
+  | "green"
+  | "orange"
+  | "yellow"
+  | "purple"
+  | "pink";
+
+export type InlineHighlightVariant = "defined" | "soft";
+
 /**
  * Background + border for inline text where the border wraps the rendered
  * text shape across line breaks, instead of each line fragment closing off
@@ -47,7 +61,7 @@ export const styles = cva({
       yellow: { colorPalette: "yellow" },
       purple: { colorPalette: "purple" },
       pink: { colorPalette: "pink" },
-    },
+    } satisfies Record<InlineHighlightColor, SystemStyleObject>,
     variant: {
       defined: {
         color: "colorPalette.fg.link",
@@ -63,7 +77,7 @@ export const styles = cva({
         "--inline-highlight-ring-default":
           "var(--colors-color-palette-bg-solid-subtle-hover)",
       },
-    },
+    } satisfies Record<InlineHighlightVariant, SystemStyleObject>,
   },
   defaultVariants: {
     color: "grey",
