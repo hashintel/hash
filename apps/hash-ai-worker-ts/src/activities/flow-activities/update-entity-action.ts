@@ -105,13 +105,17 @@ export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
   }
 
   if (entityTypeIds) {
-    const instantiateError = await checkUserCanInstantiate(
-      userAuthentication,
-      entityTypeIds.filter(
-        (entityTypeId) =>
-          !existingEntity.metadata.entityTypeIds.includes(entityTypeId),
+    const currentEntityTypeIds = existingEntity.metadata.entityTypeIds;
+
+    /* As the graph does for the actor saving, permission is needed for the types the update adds and those it removes. */
+    const instantiateError = await checkUserCanInstantiate(userAuthentication, [
+      ...entityTypeIds.filter(
+        (entityTypeId) => !currentEntityTypeIds.includes(entityTypeId),
       ),
-    );
+      ...currentEntityTypeIds.filter(
+        (entityTypeId) => !entityTypeIds.includes(entityTypeId),
+      ),
+    ]);
 
     if (instantiateError) {
       return {

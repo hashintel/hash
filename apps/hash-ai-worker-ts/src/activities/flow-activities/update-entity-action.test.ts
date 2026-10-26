@@ -275,6 +275,34 @@ describe("updateEntityAction", () => {
     );
   });
 
+  it("checks the user can instantiate the types it removes, as well as those it adds", async () => {
+    mockEntity(entityIdOf(1));
+
+    await run({ entityId: entityIdOf(1), entityTypeIds: [employeeType] });
+
+    expect(hasPermissionForEntityTypes).toHaveBeenCalledWith(
+      {},
+      { actorId: "user" },
+      { entityTypeIds: [employeeType, personType], action: "instantiate" },
+    );
+  });
+
+  it("fails for a type it removes that the user running the flow can't instantiate, without updating the entity", async () => {
+    mockEntity(entityIdOf(1));
+    vi.mocked(hasPermissionForEntityTypes).mockResolvedValueOnce([
+      employeeType,
+    ]);
+
+    expect(
+      await run({ entityId: entityIdOf(1), entityTypeIds: [employeeType] }),
+    ).toEqual({
+      code: StatusCode.PermissionDenied,
+      message: `Entity type ${personType} doesn't exist or can't be instantiated by the user running the flow.`,
+      contents: [],
+    });
+    expect(patch).not.toHaveBeenCalled();
+  });
+
   it("doesn't check the user can instantiate types the entity already has", async () => {
     mockEntity(entityIdOf(1));
 
