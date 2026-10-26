@@ -55,6 +55,7 @@ import {
   ValueField,
 } from "./fields";
 import { isMockPayloadKind } from "./mock-action-definitions";
+import { OutputRows } from "./outputs";
 import { findEntityType, mockEntities, mockEntityTypes } from "./mock-graph";
 import {
   describeCron,
@@ -510,17 +511,6 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
     (input) => !hidden.includes(input.name),
   );
 
-  const outputKind = (outputName: string) => {
-    const shape = getSourceShape(
-      document,
-      { kind: "step-output", stepId: step.stepId, outputName },
-      step.stepId,
-    );
-    return shape
-      ? kindLabel(shape.payloadKind, shape.array)
-      : "Kind not known until its input is set";
-  };
-
   return (
     <>
       <PanelHeader
@@ -598,21 +588,20 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
       ) : null}
       <StepSettings actionDefinitionId={step.actionDefinitionId} />
       <Section title="Outputs">
-        {entry.outputs.map((output) => (
-          <PropertyRow
-            key={output.name}
-            label={output.label}
-            hover={outputKind(output.name)}
-          >
-            <UsedBy
-              match={(source) =>
-                source.kind === "step-output" &&
-                source.stepId === step.stepId &&
-                source.outputName === output.name
-              }
-            />
-          </PropertyRow>
-        ))}
+        {/* Kind badge under each name, users as a short list under it (26 Oct sync; `outputs.tsx`). */}
+        <OutputRows
+          stepId={step.stepId}
+          outputs={entry.outputs}
+          kindOf={(outputName) => {
+            const shape = getSourceShape(
+              document,
+              { kind: "step-output", stepId: step.stepId, outputName },
+              step.stepId,
+            );
+            return shape ? kindLabel(shape.payloadKind, shape.array) : null;
+          }}
+          iconOf={(id) => nodeLook(document, id).icon}
+        />
         {/* Outputs are data (Ciarán, 16 Oct). Only a branching step lists its paths; a straight step's next step is the wire. */}
         {entry.ports ? (
           <PathRows stepId={step.stepId} ports={entry.ports} />

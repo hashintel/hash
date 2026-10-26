@@ -32,6 +32,8 @@ export type EditorUi = {
   recent: string[];
   /** A step just added for the user (Look up in the graph): the canvas pans to it and highlights it briefly. */
   flashId?: string | null;
+  /** Outputs: node icons on the "used by" chips, or plain chips. Both are shown to choose between (26 Oct). */
+  outputIcons?: boolean;
   /** J2's query has no "Where" label and adds a "condition"; J3's has "Where" / "And" and "Add filter". */
   plainQuery?: boolean;
   /** Opens the canvas at this zoom with Start's top-left this far (px) inside the canvas, instead of fitting the flow. */

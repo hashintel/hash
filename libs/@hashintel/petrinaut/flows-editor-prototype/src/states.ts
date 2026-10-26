@@ -322,6 +322,60 @@ const emailBodyExample = (): EditorDocument => {
   };
 };
 
+/**
+ * Outputs review (26 Oct sync): one Find entities read by six later steps, so its Entities output shows three users
+ * and "+3 more". Count is read by none ("Not used yet").
+ */
+const manyUsersExample = (): EditorDocument => {
+  const found = addStep(emptyDocument(), "queryEntities", {
+    after: { stepId: START_ID, port: "next" },
+  });
+  let document = found.document;
+  let previous = found.stepId;
+  const readers = [
+    "Alert to the team",
+    "Monthly report",
+    "Audit log",
+    "Notify suppliers",
+    "Quality summary",
+    "Archive copy",
+  ];
+  const templates: EditorDocument["templates"] = {};
+  for (const name of readers) {
+    const added = addStep(document, "sendEmail", {
+      after: { stepId: previous, port: "next" },
+    });
+    document = {
+      ...added.document,
+      steps: added.document.steps.map((step) =>
+        step.stepId === added.stepId ? { ...step, description: name } : step,
+      ),
+    };
+    templates[fieldKey(added.stepId, "subject")] = [
+      { kind: "text", text: `${name}: ` },
+      {
+        kind: "ref",
+        source: {
+          kind: "step-output",
+          stepId: found.stepId,
+          outputName: "entities",
+        },
+      },
+    ];
+    previous = added.stepId;
+  }
+  return {
+    ...document,
+    startDescription: "Flow inputs",
+    steps: document.steps.map((step) =>
+      step.stepId === found.stepId
+        ? { ...step, description: "Shipments this month" }
+        : step,
+    ),
+    templates,
+  };
+};
+
 const recentSteps = ["queryEntities", "getFileFromUrl"];
 
 const figmaStates: ScreenState[] = [
@@ -603,6 +657,39 @@ const figmaStates: ScreenState[] = [
       return {
         document,
         ui: { ...initialUi, selectedId: document.steps.at(-1)!.stepId },
+      };
+    },
+  },
+  {
+    id: "out-a",
+    journey: 3,
+    row: "Outputs · 26 Oct",
+    title: "Outputs · A · Kind badge, users as a list, with icons",
+    caption:
+      "Each output's kind sits under its name; its users hang under it, three shown, then +N more.",
+    create: () => {
+      const document = manyUsersExample();
+      return {
+        document,
+        ui: { ...initialUi, selectedId: document.steps[0]!.stepId },
+      };
+    },
+  },
+  {
+    id: "out-b",
+    journey: 3,
+    row: "Outputs · 26 Oct",
+    title: "Outputs · B · The same, without icons",
+    caption: "Plain chips: compare with A and pick one.",
+    create: () => {
+      const document = manyUsersExample();
+      return {
+        document,
+        ui: {
+          ...initialUi,
+          selectedId: document.steps[0]!.stepId,
+          outputIcons: false,
+        },
       };
     },
   },
