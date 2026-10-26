@@ -1,7 +1,7 @@
 /**
- * HashQL identifiers, paths and type syntax.
+ * HashQL syntax construction and J-Expr encoding.
  *
- * {@link JExpr} provides syntax models, schemas and source printers. The HashQL compiler owns name resolution and type checking. This package constructs syntax without executing it.
+ * {@link JExpr} builds and checks syntax trees, then encodes them as J-Expr JSON. The HashQL compiler owns name resolution and type checking. This package constructs programs without executing them.
  *
  * @module
  */
