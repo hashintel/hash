@@ -27,6 +27,9 @@ export default defineConfig({
     vinext({ disableAppRouter: true }),
     process.env.NITRO_PRESET
       ? nitro({
+          alias: {
+            "buffer/": fileURLToPath(import.meta.resolve("buffer/index.js")),
+          },
           rolldownConfig: {
             external: [/^react(?:\/|$)/, /^react-dom(?:\/|$)/],
           },
