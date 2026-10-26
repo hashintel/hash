@@ -730,7 +730,6 @@ const figmaZoomBase = ["j2-b1", "j2-b2", "j3-c1b", "j3-d1"];
  * condition" with no "Where".
  */
 export const screenStates: ScreenState[] = figmaStates.map((state) => {
-  const hideInputsHeader = state.journey === 3;
   const plainQuery = state.journey <= 2;
   const viewport = figmaViewports[state.id];
   const quietPortAdd = !plusShownStates.includes(state.id);
@@ -743,7 +742,6 @@ export const screenStates: ScreenState[] = figmaStates.map((state) => {
         ...created,
         ui: {
           ...created.ui,
-          hideInputsHeader,
           plainQuery,
           viewport,
           quietPortAdd,

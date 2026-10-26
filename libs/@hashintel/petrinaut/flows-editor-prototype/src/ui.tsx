@@ -79,9 +79,11 @@ export const kindLabel = (kind: string | undefined, array = false) => {
 };
 
 /** Figma ↳ Current panels: 12 px medium, muted, sentence case. */
+// Section titles read above field labels: dark and semibold, as in V3 P1 (Figma 118:1748; Aakarsh, 26 Oct).
 export const sectionTitleStyle = css({
-  textStyle: "xs",
-  color: "neutral.fg.muted",
+  textStyle: "sm",
+  fontWeight: "semibold",
+  color: "neutral.fg.heading",
 });
 
 const sectionGridStyle = css({

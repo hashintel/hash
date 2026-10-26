@@ -1300,9 +1300,10 @@ export const QueryField = ({
           gap: "2",
         })}
       >
-        <span className={keyStyle}>
-          {mode === "query" ? "Query" : input.label}
-        </span>
+        {/* No header over a filter (Find entities, If): its rows start with Where (T23, 22:35). */}
+        {mode === "query" || mode === "condition" ? null : (
+          <span className={keyStyle}>{input.label}</span>
+        )}
         <ConditionBuilder
           step={step}
           input={input}

@@ -116,7 +116,7 @@ const panelStyle = css({
 const panelBodyStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "5",
+  gap: "7",
   padding: "4",
 });
 
@@ -142,6 +142,12 @@ const nodeLook = (
 
 /** An empty value ("Ends here", "Not used yet"): the value's size, in the subtle colour of an empty state. */
 const emptyValueStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
+const pathValueStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+  minWidth: "0",
+});
 
 /** "Used by" chips: which steps read a value (D26 A, folded into D27 A). */
 const UsedBy = ({
@@ -182,7 +188,8 @@ const UsedBy = ({
   );
 };
 
-const Paths = ({
+/** Where each path of a branching step goes. Rows sit inside the Outputs section, under its data outputs. */
+const PathRows = ({
   stepId,
   ports,
 }: {
@@ -190,11 +197,8 @@ const Paths = ({
   ports: { outputName: string; label: string }[];
 }) => {
   const { document, setUi } = useEditor();
-  if (!showFull) {
-    return null;
-  }
   return (
-    <Section title="Paths">
+    <>
       {ports.map((port) => {
         const targets = document.wires.filter(
           (wire) =>
@@ -202,45 +206,86 @@ const Paths = ({
         );
         return (
           <PropertyRow key={port.outputName} label={port.label}>
-            {targets.length === 0 ? (
-              <span className={emptyValueStyle}>Ends here</span>
-            ) : (
-              <ChipRow
-                names={targets.map((wire) => {
-                  const target = findStep(document, wire.target)?.step;
-                  return target ? stepLabel(target) : wire.target;
-                })}
-              >
-                {targets.map((wire) => (
-                  <SourceChip
-                    key={wire.id}
-                    icon={nodeLook(document, wire.target).icon}
-                    onClick={() =>
-                      setUi((ui) => ({ ...ui, selectedId: wire.target }))
-                    }
-                  >
-                    {(() => {
-                      const target = findStep(document, wire.target)?.step;
-                      return target
-                        ? stepLabel(target)
-                        : wire.target === START_ID
-                          ? "Start"
-                          : wire.target;
-                    })()}
-                  </SourceChip>
-                ))}
-              </ChipRow>
-            )}
+            {/* A step is always a chip; the arrow says "goes to" and only path rows have it (Aakarsh, 26 Oct). */}
+            <span className={pathValueStyle}>
+              <span className={emptyValueStyle}>→</span>
+              {targets.length === 0 ? (
+                <span className={emptyValueStyle}>Ends here</span>
+              ) : (
+                <ChipRow
+                  names={targets.map((wire) => {
+                    const target = findStep(document, wire.target)?.step;
+                    return target ? stepLabel(target) : wire.target;
+                  })}
+                >
+                  {targets.map((wire) => (
+                    <SourceChip
+                      key={wire.id}
+                      icon={nodeLook(document, wire.target).icon}
+                      onClick={() =>
+                        setUi((ui) => ({ ...ui, selectedId: wire.target }))
+                      }
+                    >
+                      {(() => {
+                        const target = findStep(document, wire.target)?.step;
+                        return target
+                          ? stepLabel(target)
+                          : wire.target === START_ID
+                            ? "Start"
+                            : wire.target;
+                      })()}
+                    </SourceChip>
+                  ))}
+                </ChipRow>
+              )}
+            </span>
           </PropertyRow>
         );
       })}
-    </Section>
+    </>
   );
 };
 
+/**
+ * MOCK: every step panel has a Settings section (ledger, 23 Oct: one layout for all actions).
+ * The engine has no on-failure or deadline setting yet; the values are fixed.
+ */
+const StepSettings = ({
+  actionDefinitionId,
+}: {
+  actionDefinitionId: string;
+}) => (
+  <Section title="Settings">
+    {actionDefinitionId === "requestReview" ? (
+      <PropertyRow
+        label="Deadline"
+        hover="With no deadline the request waits until someone answers (ledger, 13 Oct)"
+      >
+        <Select
+          size="sm"
+          items={[{ value: "none", text: "No deadline" }]}
+          value="none"
+          onChange={() => {}}
+        />
+      </PropertyRow>
+    ) : null}
+    <PropertyRow
+      label="On failure"
+      hover="A step that errors stops the run by default (ledger, 13 Oct)"
+    >
+      <Select
+        size="sm"
+        items={[{ value: "stop", text: "Stop the run" }]}
+        value="stop"
+        onChange={() => {}}
+      />
+    </PropertyRow>
+  </Section>
+);
+
 /** Fields and sections the Figma panels leave out; `?full` brings them back. */
 const trimmedInputs: Record<string, string[]> = {
-  sendEmail: ["cc", "body", "senderAddress", "attachments"],
+  sendEmail: ["cc", "senderAddress", "attachments"],
   getFileFromUrl: ["description", "displayName"],
 };
 
@@ -363,18 +408,33 @@ const PanelHeader = ({
           }
         />
       ) : stepId && description !== undefined ? (
-        <DescriptionInput
-          label="Step description"
-          value={description}
-          onChange={(next) =>
-            setDocument((document) =>
-              updateStep(document, stepId, (step) => ({
-                ...step,
-                description: next,
-              })),
-            )
-          }
-        />
+        // "Action · description", as in V3 P1 (Figma 118:1748).
+        <span className={css({ display: "flex", alignItems: "baseline" })}>
+          <span
+            className={css({
+              flexShrink: 0,
+              whiteSpace: "pre",
+              textStyle: "xs",
+              color: "neutral.fg.subtle",
+            })}
+          >
+            {"Action · "}
+          </span>
+          <span className={css({ flex: "1", minWidth: "0", display: "grid" })}>
+            <DescriptionInput
+              label="Step description"
+              value={description}
+              onChange={(next) =>
+                setDocument((document) =>
+                  updateStep(document, stepId, (step) => ({
+                    ...step,
+                    description: next,
+                  })),
+                )
+              }
+            />
+          </span>
+        </span>
       ) : null}
       {onDelete ? (
         <span className={headerActionStyle} data-header-action>
@@ -431,7 +491,7 @@ const fieldFor = (
 };
 
 const ActionPanel = ({ step }: { step: DraftActionStep }) => {
-  const { document, ui, validation } = useEditor();
+  const { document, validation } = useEditor();
   const entry = getCatalogEntry(step.actionDefinitionId);
   if (!entry) {
     return null;
@@ -471,9 +531,7 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
         description={step.description}
       />
       {visibleInputs.length > 0 ? (
-        <Section
-          title={ui.hideInputsHeader && !showFull ? undefined : "Inputs"}
-        >
+        <Section title="Inputs">
           {visibleInputs.map((input) => {
             const kinds = acceptedKinds(document, step.stepId, input, entry);
             // Query builders stack: key above, builder below (Journey 3).
@@ -538,29 +596,28 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
           })}
         </Section>
       ) : null}
-      {showFull && entry.outputs.length > 0 ? (
-        <Section title="Outputs">
-          {entry.outputs.map((output) => (
-            <PropertyRow
-              key={output.name}
-              label={output.label}
-              hover={outputKind(output.name)}
-            >
-              <UsedBy
-                match={(source) =>
-                  source.kind === "step-output" &&
-                  source.stepId === step.stepId &&
-                  source.outputName === output.name
-                }
-              />
-            </PropertyRow>
-          ))}
-        </Section>
-      ) : null}
-      <Paths
-        stepId={step.stepId}
-        ports={entry.ports ?? [{ outputName: "next", label: "Next" }]}
-      />
+      <StepSettings actionDefinitionId={step.actionDefinitionId} />
+      <Section title="Outputs">
+        {entry.outputs.map((output) => (
+          <PropertyRow
+            key={output.name}
+            label={output.label}
+            hover={outputKind(output.name)}
+          >
+            <UsedBy
+              match={(source) =>
+                source.kind === "step-output" &&
+                source.stepId === step.stepId &&
+                source.outputName === output.name
+              }
+            />
+          </PropertyRow>
+        ))}
+        {/* Outputs are data (Ciarán, 16 Oct). Only a branching step lists its paths; a straight step's next step is the wire. */}
+        {entry.ports ? (
+          <PathRows stepId={step.stepId} ports={entry.ports} />
+        ) : null}
+      </Section>
       <Checks stepId={step.stepId} />
     </>
   );
@@ -625,7 +682,7 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
             className={css({
               display: "flex",
               flexDirection: "column",
-              alignItems: "flex-start",
+              alignItems: "stretch",
               gap: "1.5",
             })}
           >
@@ -696,81 +753,78 @@ const ForEachPanel = ({ step }: { step: DraftForEachStep }) => {
           </PropertyRow>
         ) : null}
       </Section>
-      {showFull ? (
-        <Section title="Outputs">
-          <PropertyRow
-            label="Collect"
-            hover="The engine collects one output from every item into a list"
-            required
-          >
-            <Select
-              size="sm"
-              items={collectOptions}
-              value={
-                step.collect
-                  ? `${step.collect.stepId}.${step.collect.outputName}`
-                  : null
-              }
-              placeholder={
-                collectOptions.length === 0
-                  ? "Add a step inside first"
-                  : "Choose an output"
-              }
-              onChange={(value) => {
-                const [childId, outputName] = (value ?? "").split(".");
-                setDocument((current) =>
-                  updateStep(current, step.stepId, (candidate) => ({
-                    ...candidate,
-                    collect:
-                      childId && outputName
-                        ? {
-                            stepId: childId,
-                            outputName,
-                            as: `collected${outputName.charAt(0).toUpperCase()}${outputName.slice(1)}`,
-                          }
-                        : undefined,
-                  })),
-                );
-              }}
-            />
-            {step.collect ? (
-              <div>
-                <SourceChip
-                  icon={nodeLook(document, step.collect.stepId).icon}
-                  onClick={() =>
-                    setUi((current) => ({
-                      ...current,
-                      selectedId: step.collect?.stepId ?? null,
-                    }))
-                  }
-                >
-                  {(() => {
-                    const collected = findStep(
-                      document,
-                      step.collect.stepId,
-                    )?.step;
-                    return collected ? stepLabel(collected) : "";
-                  })()}
-                </SourceChip>
-              </div>
-            ) : null}
-            {step.collect ? (
-              <UsedBy
-                quiet
-                match={(source) =>
-                  source.kind === "step-output" &&
-                  source.stepId === step.stepId &&
-                  source.outputName === step.collect?.as
+      <Section title="Settings">
+        <span className={emptyValueStyle}>None</span>
+      </Section>
+      <Section title="Outputs">
+        <PropertyRow
+          label="Collect"
+          hover="The engine collects one output from every item into a list"
+          required
+        >
+          <Select
+            size="sm"
+            items={collectOptions}
+            value={
+              step.collect
+                ? `${step.collect.stepId}.${step.collect.outputName}`
+                : null
+            }
+            placeholder={
+              collectOptions.length === 0
+                ? "Add a step inside first"
+                : "Choose an output"
+            }
+            onChange={(value) => {
+              const [childId, outputName] = (value ?? "").split(".");
+              setDocument((current) =>
+                updateStep(current, step.stepId, (candidate) => ({
+                  ...candidate,
+                  collect:
+                    childId && outputName
+                      ? {
+                          stepId: childId,
+                          outputName,
+                          as: `collected${outputName.charAt(0).toUpperCase()}${outputName.slice(1)}`,
+                        }
+                      : undefined,
+                })),
+              );
+            }}
+          />
+          {step.collect ? (
+            <div>
+              <SourceChip
+                icon={nodeLook(document, step.collect.stepId).icon}
+                onClick={() =>
+                  setUi((current) => ({
+                    ...current,
+                    selectedId: step.collect?.stepId ?? null,
+                  }))
                 }
-              />
-            ) : null}
-          </PropertyRow>
-        </Section>
-      ) : null}
-      <Paths
-        stepId={step.stepId}
-        ports={[{ outputName: "next", label: "Next" }]}
-      />
+              >
+                {(() => {
+                  const collected = findStep(
+                    document,
+                    step.collect.stepId,
+                  )?.step;
+                  return collected ? stepLabel(collected) : "";
+                })()}
+              </SourceChip>
+            </div>
+          ) : null}
+          {step.collect ? (
+            <UsedBy
+              quiet
+              match={(source) =>
+                source.kind === "step-output" &&
+                source.stepId === step.stepId &&
+                source.outputName === step.collect?.as
+              }
+            />
+          ) : null}
+        </PropertyRow>
+      </Section>
       <Checks stepId={step.stepId} />
     </>
   );
