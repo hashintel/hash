@@ -119,7 +119,7 @@ describe("binding", () => {
   });
 
   test("generic_preservation", () => {
-    expectTypeOf(preserve(left)).toEqualTypeOf<
+    expectTypeOf(left.pipe(preserve)).toEqualTypeOf<
       Expression<Left, Inputs.Empty>
     >();
     expectTypeOf(preserve(left).shared).toEqualTypeOf<
