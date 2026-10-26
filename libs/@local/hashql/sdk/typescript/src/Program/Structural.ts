@@ -380,10 +380,11 @@ export const list = <
   members: V & StructuralSyntax.ExactValues<NoInfer<TypeOf<D>>, V>,
 ): Expression.Expression<Type.List<TypeOf<D>>, Requirements<V>> =>
   pipe(
-    Result.all({
+    {
       type: StructuralSyntax.collectionType("List", [definition]),
       members: StructuralSyntax.membersSyntax(members),
-    }),
+    },
+    Result.all,
     Result.map(({ type, members }) =>
       JExpr.typed(JExpr.list(...members), type),
     ),
@@ -414,10 +415,11 @@ export const dict = <
     StructuralSyntax.ExactEntries<NoInfer<TypeOf<K>>, NoInfer<TypeOf<D>>, E>,
 ): Expression.Expression<Type.Dict<TypeOf<K>, TypeOf<D>>, Requirements<E>> =>
   pipe(
-    Result.all({
+    {
       type: StructuralSyntax.collectionType("Dict", [key, definition]),
       syntax: StructuralSyntax.dictionarySyntax(entries),
-    }),
+    },
+    Result.all,
     Result.map(({ type, syntax }) => JExpr.typed(syntax, type)),
     StructuralSyntax.fromSyntax<
       Type.Dict<TypeOf<K>, TypeOf<D>>,
@@ -470,16 +472,17 @@ export const input = <
   TypeOf<D>,
   InputRequirements<Name, TypeOf<D>, Defaults>
 > =>
-  pipe(
-    Result.gen(function* () {
-      const syntax = yield* StructuralSyntax.typeSyntax(definition);
-      const [defaultValue] = defaults;
-      if (defaultValue === undefined) {
-        return JExpr.input(name, syntax);
-      }
-      const fallback = yield* StructuralSyntax.valueSyntax(defaultValue);
-      return JExpr.input(name, syntax, fallback);
-    }),
+  Result.gen(function* () {
+    const syntax = yield* StructuralSyntax.typeSyntax(definition);
+    const [defaultValue] = defaults;
+
+    if (defaultValue === undefined) {
+      return JExpr.input(name, syntax);
+    }
+
+    const fallback = yield* StructuralSyntax.valueSyntax(defaultValue);
+    return JExpr.input(name, syntax, fallback);
+  }).pipe(
     StructuralSyntax.fromSyntax<
       TypeOf<D>,
       InputRequirements<Name, TypeOf<D>, Defaults>
