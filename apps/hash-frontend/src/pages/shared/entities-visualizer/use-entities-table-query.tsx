@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from "@sentry/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { noisySystemBaseUrls } from "@local/hash-isomorphic-utils/graph-queries";

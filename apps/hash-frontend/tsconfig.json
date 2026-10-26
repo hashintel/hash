@@ -1,9 +1,20 @@
 {
-  "extends": ["@tsconfig/bases/next", "@local/tsconfig/policy.json"],
+  "extends": ["@tsconfig/bases/recommended", "@local/tsconfig/policy.json"],
   "compilerOptions": {
     "checkJs": true,
     "target": "ES2021",
-    "types": ["gapi", "google.accounts", "google.picker"]
+    "types": ["gapi", "google.accounts", "google.picker"],
+    "allowJs": true,
+    "esModuleInterop": true,
+    "incremental": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true
   },
   "include": [
     "next-env.d.ts",

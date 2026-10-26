@@ -12,6 +12,8 @@
       "!**/node_modules",
       "!**/pkg",
       "!**/.venv",
+      "!**/.output",
+      "!**/.vercel",
       "apps/**",
       "libs/**",
       "tests/**"
@@ -107,7 +109,6 @@
     "http-proxy-middleware@npm:^2.0.9": "patch:http-proxy-middleware@npm%3A3.0.7#~/.yarn/patches/http-proxy-middleware-npm-3.0.7-89cd070ac6.patch",
     "jsondiffpatch": "0.7.6",
     "lodash": "4.18.1",
-    "next/postcss": "8.5.26",
     "next/sharp": "0.35.5",
     "postcss@npm:8.5.14": "8.5.26",
     "prosemirror-model": "1.25.12",

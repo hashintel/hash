@@ -9,7 +9,7 @@ import "./ds-components-styles.gen.css";
 import { ApolloProvider } from "@apollo/client/react";
 import { CacheProvider } from "@emotion/react";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
-import { ErrorBoundary, getClient } from "@sentry/nextjs";
+import { ErrorBoundary, getClient } from "@sentry/react";
 import { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
 import { Suspense, useEffect, useState } from "react";

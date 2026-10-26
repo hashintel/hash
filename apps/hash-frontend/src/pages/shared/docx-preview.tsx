@@ -1,5 +1,5 @@
 import { Box, CircularProgress, Stack, Typography } from "@mui/material";
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from "@sentry/react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 

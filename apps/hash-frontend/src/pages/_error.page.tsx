@@ -1,6 +1,4 @@
-// Source: https://github.com/vercel/next.js/tree/0ab6ad52411b521f7d85178941268ea436ed9931/examples/with-sentry
-
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from "@sentry/react";
 import NextErrorComponent from "next/error";
 
 import { getLayoutWithHeader } from "../shared/layout";
@@ -13,7 +11,10 @@ const CustomErrorPage: NextPageWithLayout<ErrorProps> = ({ statusCode }) => {
 };
 
 CustomErrorPage.getInitialProps = async (contextData) => {
-  await Sentry.captureUnderscoreErrorException(contextData);
+  if (contextData.err) {
+    Sentry.captureException(contextData.err);
+    await Sentry.flush(2000);
+  }
   return NextErrorComponent.getInitialProps(contextData);
 };
 

@@ -17,10 +17,14 @@ export default [
   ]),
   ...defineConfig([
     {
+      settings: {
+        "import/core-modules": ["next"],
+      },
       plugins: {
         "react-x": reactX,
       },
       rules: {
+        "import/no-unresolved": ["error", { ignore: ["^next(?:/|$)"] }],
         "jsx-a11y/label-has-associated-control": "off",
         "import/no-default-export": "error",
         "react-x/no-leaked-conditional-rendering": "error",

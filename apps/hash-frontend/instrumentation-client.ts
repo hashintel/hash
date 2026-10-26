@@ -1,7 +1,7 @@
 // This file configures the initialization of Sentry on the browser.
-// https://docs.sentry.io/platforms/javascript/guides/nextjs/
+// https://docs.sentry.io/platforms/javascript/guides/react/
 
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from "@sentry/react";
 
 import { buildStamp } from "./buildstamp";
 import { isProduction } from "./src/lib/config";
@@ -55,5 +55,3 @@ if (isPetrinautEmbedDocument) {
     tracesSampleRate: isProduction ? 1.0 : 0,
   });
 }
-
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

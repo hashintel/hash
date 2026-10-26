@@ -1,9 +1,4 @@
 import { Box, Divider, Grid, Typography } from "@mui/material";
-import {
-  isUiNodeImageAttributes,
-  isUiNodeInputAttributes,
-  isUiNodeTextAttributes,
-} from "@ory/integrations/ui";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -13,6 +8,9 @@ import { Button } from "../../shared/ui";
 import { useAuthInfo } from "../shared/auth-info-context";
 import { formatKratosMessage } from "../shared/format-kratos-message";
 import {
+  isUiNodeImageAttributes,
+  isUiNodeInputAttributes,
+  isUiNodeTextAttributes,
   mustGetCsrfTokenFromFlow,
   oryKratosClient,
 } from "../shared/ory-kratos";

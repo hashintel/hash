@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from "@sentry/react";
 import { useCallback } from "react";
 
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";

@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 
 import type { EntityUuid } from "@blockprotocol/type-system";
-import type { NextParsedUrlQuery } from "next/dist/server/request-meta";
+import type { ParsedUrlQuery } from "node:querystring";
 
 export type RoutePageInfo = {
   routePageEntityUuid: EntityUuid;
@@ -17,7 +17,7 @@ type PageParsedUrlQuery = {
 };
 
 export const isPageParsedUrlQuery = (
-  queryParams: NextParsedUrlQuery,
+  queryParams: ParsedUrlQuery,
 ): queryParams is PageParsedUrlQuery =>
   typeof queryParams.shortname === "string" &&
   typeof queryParams["page-slug"] === "string";
