@@ -14,6 +14,9 @@ vi.mock("./server/telemetry-bootstrap.ts", () => ({}));
 vi.mock("./agents/petrinaut/agent.ts", () => ({
   PetrinautAgent: { agentName: "brunch-chat-agent" },
 }));
+vi.mock("./agents/hash/agent.ts", () => ({
+  HashAgent: { agentName: "brunch-hash-agent" },
+}));
 vi.mock("@flue/runtime/routing", () => ({
   createAgentRouter: () => new Hono(),
 }));
