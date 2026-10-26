@@ -15,7 +15,7 @@ export const vOrigin = v.pipe(
     v.pipe(
       v.literal("evidenced"),
       v.description(
-        "It is in material the USER shared, such as a log or a document. A run, an optimization or anything else a tool produced is not evidence for the account: record what it showed in a reflection.",
+        "It is in material the USER shared, such as a log or a document, or in materials of record to which the USER has provided access. What a tool computed, such as a run or an optimization, is not evidence for the account: record what it showed in a reflection.",
       ),
     ),
     v.pipe(v.literal("stated"), v.description("The USER said it.")),
