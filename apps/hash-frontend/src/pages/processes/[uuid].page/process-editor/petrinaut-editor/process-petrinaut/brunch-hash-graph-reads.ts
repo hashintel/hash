@@ -205,6 +205,7 @@ export const createHashEntityReadTool = (
  * for the entity read.
  */
 const hashEntityTypeReadInputSchema = z.object({
+  entityTypeIds: z.array(z.string()).optional(),
   webIds: z.array(z.string()).optional(),
 });
 
@@ -215,16 +216,24 @@ export type HashEntityTypeReadInput = z.infer<
 export type QueryEntityTypesRequest = QueryEntityTypesQueryVariables["request"];
 
 /**
- * The `queryEntityTypes` request for one read: the latest version of every
- * type in the given webs, closed over what it inherits and resolved, so the
- * response carries the titles of its properties and links.
+ * The `queryEntityTypes` request for one read: every given filter must match.
+ * Given type ids are read at exactly those versions, the ones the entities
+ * carrying them were saved against; otherwise each type's latest version.
+ * Types are closed over what they inherit and resolved, so the response
+ * carries the titles of their properties and links.
  */
 export const hashEntityTypeReadRequest = (
   input: HashEntityTypeReadInput,
 ): QueryEntityTypesRequest => ({
   filter: {
     all: [
-      { equal: [{ path: ["version"] }, { parameter: "latest" }] },
+      ...(input.entityTypeIds === undefined || input.entityTypeIds.length === 0
+        ? [{ equal: [{ path: ["version"] }, { parameter: "latest" }] }]
+        : anyOf(
+            input.entityTypeIds.map((entityTypeId) => ({
+              equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+            })),
+          )),
       ...anyOf(
         (input.webIds ?? []).map((webId) => ({
           equal: [{ path: ["webId"] }, { parameter: webId }],
