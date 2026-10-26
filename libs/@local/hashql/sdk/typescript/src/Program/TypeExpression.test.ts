@@ -5,7 +5,7 @@ import * as JExpr from "../JExpr/index.js";
 import * as ProgramError from "./ProgramError.js";
 import * as TypeExpression from "./TypeExpression.js";
 
-import type * as Type from "../Type/index.js";
+import type * as Type from "../Type.js";
 
 interface Pair extends Type.TypeConstructor {
   readonly arity: 2;

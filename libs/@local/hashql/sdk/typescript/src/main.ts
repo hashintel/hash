@@ -7,4 +7,4 @@
  */
 export * as JExpr from "./JExpr/index.js";
 export * as Program from "./Program/index.js";
-export type * as Type from "./Type/index.js";
+export type * as Type from "./Type.js";
