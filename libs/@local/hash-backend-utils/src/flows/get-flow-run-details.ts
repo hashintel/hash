@@ -1,23 +1,30 @@
+import { WorkflowNotFoundError } from "@temporalio/client";
 import proto from "@temporalio/proto";
 
+import { findRunFinishedEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 import { generateStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
-import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import {
+  FlowRunStatus,
+  FlowStepStatus,
+} from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { StatusCode } from "@local/status";
 
-import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 import { resolvePayloadValue } from "./payload-storage.js";
-import { buildFlowRunEvents, getFlowRunHistory } from "./run-events.js";
+import { getFlowRunRecord, readStoredFlowRunRecord } from "./run-record.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
 import type { ResolvePayloadContext } from "./payload-storage.js";
-import type { FlowRunHistoriesByWorkflowId } from "./run-events.js";
+import type { FlowRunRecordsByWorkflowId } from "./run-record.js";
 import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
 import type {
   FlowRunEvent,
   FlowRunEventStepRun,
   FlowStepGaveUpReason,
 } from "@local/hash-isomorphic-utils/flows/run-events";
-import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
+import type {
+  FlowRunRecord,
+  FlowRunRecordHeader,
+} from "@local/hash-isomorphic-utils/flows/run-record";
 import type {
   DetailedFlowField,
   ExternalInputRequest,
@@ -32,15 +39,10 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import type {
   FlowRun,
-  FlowRunStatus,
   StepRun,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type {
-  Client as TemporalClient,
-  WorkflowExecutionStatusName,
-} from "@temporalio/client";
-
-type IHistoryEvent = proto.temporal.api.history.v1.IHistoryEvent;
+import type { Status } from "@local/status";
+import type { Client as TemporalClient } from "@temporalio/client";
 
 /**
  * Resolve any stored payloads in step outputs, downloading the actual payload data from S3 in place of their
@@ -252,14 +254,6 @@ const getStepRunsFromActivityEvents = (
   return new Map([...stepRunsById].reverse());
 };
 
-const findWorkflowExecutionStartedEventAttributes = (events: IHistoryEvent[]) =>
-  events.find(
-    (event) =>
-      event.eventType ===
-      proto.temporal.api.enums.v1.EventType
-        .EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
-  )?.workflowExecutionStartedEventAttributes;
-
 /**
  * A run's input requests, from its events, latest first. A request takes its data and time from its first signal, and
  * once answered, its answer and time from its first response. An answered request's `stepId` is `"unresolved"`.
@@ -315,74 +309,70 @@ const getInputRequests = (
 };
 
 /**
- * A run's Temporal description and history, with times as ISO strings: the shape of the recorded history fixtures.
+ * A completed run's outputs as GraphQL gives them: as its workflow returned them, with stored payloads resolved. Its
+ * `runFinished` event doesn't keep the status codes the workflow returned, so the run's is OK and its step errors' are
+ * UNKNOWN.
  */
-export type FlowRunHistoryRecord = {
-  describe: {
-    runId: string;
-    status: WorkflowExecutionStatusName;
-    startTime: string;
-    closeTime?: string | null;
-  };
-  history: IHistoryEvent[];
-  /**
-   * When the run's first execution started, if this run was started by resetting or continuing it.
-   */
-  originalRunStartTime?: string;
+const getWorkflowOutputs = async (
+  { flowOutputs, stepErrors }: FlowRunEventOfKind<"runFinished">,
+  resolvePayloadContext: ResolvePayloadContext,
+): Promise<
+  | Status<{
+      outputs: ResolvedStepOutput[];
+      stepErrors?: Status<{ stepId: string }>[];
+    }>[]
+  | undefined
+> => {
+  if (!flowOutputs) {
+    return undefined;
+  }
+
+  return [
+    {
+      code: StatusCode.Ok,
+      contents: [
+        {
+          outputs:
+            (await resolveStoredPayloadsInOutputs(
+              flowOutputs,
+              resolvePayloadContext,
+            )) ?? [],
+          ...(stepErrors
+            ? {
+                stepErrors: stepErrors.map(({ stepRun, error }) => ({
+                  code: StatusCode.Unknown,
+                  message: error.message,
+                  contents: [{ stepId: toStepRunId(stepRun) }],
+                })),
+              }
+            : {}),
+        },
+      ],
+    },
+  ];
 };
 
+const stoppedEarlyStatuses: FlowRunStatus[] = [
+  FlowRunStatus.Terminated,
+  FlowRunStatus.Cancelled,
+  FlowRunStatus.TimedOut,
+  FlowRunStatus.Failed,
+];
+
 /**
- * A run's detailed fields, from its description and history. Stored payloads in outputs are resolved through
- * `resolvePayloadContext`.
+ * A run's detailed fields, from its record. Stored payloads in outputs are resolved through `resolvePayloadContext`.
  */
-export const getFlowRunDetailedFieldsFromHistory = async (
-  {
-    describe: workflow,
-    history: events,
-    originalRunStartTime,
-  }: FlowRunHistoryRecord,
+export const getFlowRunDetailedFieldsFromRecord = async (
+  { header, events: runEvents }: FlowRunRecord,
   resolvePayloadContext: ResolvePayloadContext,
 ): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> => {
-  const workflowExecutionStartedEventAttributes =
-    findWorkflowExecutionStartedEventAttributes(events);
-
-  /* `runFlow` takes one argument: its params. */
-  const [workflowParams] =
-    (parseHistoryItemPayload(workflowExecutionStartedEventAttributes?.input) as
-      | [RunFlowWorkflowParams]
-      | undefined) ?? [];
-
-  const workflowOutputs = parseHistoryItemPayload(
-    events.find(
-      (event) =>
-        event.eventType ===
-        proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED,
-    )?.workflowExecutionCompletedEventAttributes?.result,
-  );
-
-  const workflowFailureMessage = events.find(
-    (event) =>
-      event.eventType ===
-      proto.temporal.api.enums.v1.EventType
-        .EVENT_TYPE_WORKFLOW_EXECUTION_FAILED,
-  )?.workflowExecutionFailedEventAttributes?.failure?.message;
-
-  const runEvents = buildFlowRunEvents(events);
-
   const inputRequests = getInputRequests(runEvents);
 
-  const stoppedEarlyStatuses: WorkflowExecutionStatusName[] = [
-    "TERMINATED",
-    "CANCELLED",
-    "TIMED_OUT",
-    "FAILED",
-  ];
-  const workflowStoppedEarly = stoppedEarlyStatuses.includes(workflow.status);
+  const workflowStoppedEarly = stoppedEarlyStatuses.includes(header.status);
 
   const stepRunsById = getStepRunsFromActivityEvents(runEvents, {
     workflowStoppedEarly,
-    workflowClosedAt: workflow.closeTime ?? undefined,
+    workflowClosedAt: header.closedAt,
   });
 
   for (const event of runEvents) {
@@ -410,10 +400,6 @@ export const getFlowRunDetailedFieldsFromHistory = async (
       }
       step.status = FlowStepStatus.InformationRequired;
     }
-  }
-
-  if (!workflowParams) {
-    throw new Error("No workflow inputs found");
   }
 
   for (const event of runEvents) {
@@ -477,119 +463,34 @@ export const getFlowRunDetailedFieldsFromHistory = async (
     }),
   );
 
-  // Resolve stored payload references in workflow outputs for consistency with step outputs.
-  let resolvedWorkflowOutputs: ResolvedStepRunOutput[] | undefined;
-  if (workflowOutputs && Array.isArray(workflowOutputs)) {
-    resolvedWorkflowOutputs = await Promise.all(
-      (workflowOutputs as StepRunOutput[]).map(async (output) => {
-        const firstContent = output.contents[0];
-        if (!firstContent?.outputs) {
-          return output as ResolvedStepRunOutput;
-        }
+  const runStartedEvent = runEvents.find(
+    (event): event is FlowRunEventOfKind<"runStarted"> =>
+      event.kind === "runStarted",
+  );
 
-        const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(
-          firstContent.outputs,
-          resolvePayloadContext,
-        );
-
-        return {
-          ...output,
-          contents: [
-            {
-              ...firstContent,
-              outputs: resolvedInnerOutputs ?? [],
-            },
-          ],
-        };
-      }),
-    );
+  if (!runStartedEvent) {
+    throw new Error("No workflow inputs found");
   }
 
+  const runFinishedEvent = findRunFinishedEvent(runEvents);
+
   return {
-    failureMessage: workflowFailureMessage,
-    flowInputs: workflowParams.flowInputs,
-    dataSources:
-      "dataSources" in workflowParams ? workflowParams.dataSources : undefined,
-    outputs: resolvedWorkflowOutputs ?? workflowOutputs,
+    failureMessage:
+      runFinishedEvent?.status === FlowRunStatus.Failed
+        ? runFinishedEvent.failure?.message
+        : undefined,
+    flowInputs: runStartedEvent.flowInputs,
+    dataSources: header.dataSources,
+    outputs: runFinishedEvent
+      ? await getWorkflowOutputs(runFinishedEvent, resolvePayloadContext)
+      : undefined,
     inputRequests,
     steps,
-    startedAt: originalRunStartTime ?? workflow.startTime,
+    startedAt: header.firstRunStartedAt ?? header.startedAt,
   };
 };
 
-const getFlowRunDetailedFields = async ({
-  workflowId,
-  temporalClient,
-  storageProvider,
-  historiesByWorkflowId,
-}: {
-  workflowId: string;
-  temporalClient: TemporalClient;
-  /** Storage provider for resolving stored payload references */
-  storageProvider: FileStorageProvider;
-  historiesByWorkflowId?: FlowRunHistoriesByWorkflowId;
-}): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> => {
-  const { workflow, history } = await getFlowRunHistory({
-    temporalClient,
-    workflowId,
-    historiesByWorkflowId,
-  });
-
-  /**
-   * If this workflow run has been started after the original was reset or 'continue-as-new'd,
-   * its start time will be the point at which it was reset/continued.
-   * We can check if it has a different firstExecutionRunId and if so, get the start time of the original run.
-   */
-  let originalRunStartTime: string | undefined;
-  const firstExecutionRunId =
-    findWorkflowExecutionStartedEventAttributes(history)?.firstExecutionRunId;
-
-  if (firstExecutionRunId && firstExecutionRunId !== workflow.runId) {
-    const originalRunHandle = temporalClient.workflow.getHandle(
-      workflowId,
-      firstExecutionRunId,
-    );
-
-    try {
-      const originalRun = await originalRunHandle.describe();
-
-      originalRunStartTime = originalRun.startTime.toISOString();
-    } catch {
-      /**
-       * The original run is not available, likely because it is no longer retained by Temporal.
-       * @todo H-3142: save workflow history in our database so we don't rely on Temporal for old runs
-       */
-      // eslint-disable-next-line no-console
-      console.warn(
-        `Could not find original run with id ${firstExecutionRunId} for workflow ${workflowId}`,
-      );
-    }
-  }
-
-  return getFlowRunDetailedFieldsFromHistory(
-    {
-      describe: {
-        runId: workflow.runId,
-        status: workflow.status.name,
-        startTime: workflow.startTime.toISOString(),
-        closeTime: workflow.closeTime?.toISOString(),
-      },
-      history,
-      originalRunStartTime,
-    },
-    { storageProvider, workflowId },
-  );
-};
-
-export const getSparseFlowRunFromTemporalWorkflowId = async ({
-  flowDefinitionEntityId,
-  flowRunEntityId,
-  flowScheduleId,
-  name,
-  temporalClient,
-  temporalWorkflowId,
-  webId,
-}: {
+type FlowRunLinkedFields = {
   /** The flow definition the run `Uses`, from its link */
   flowDefinitionEntityId: EntityId;
   /** The entity id of the flow run */
@@ -597,56 +498,108 @@ export const getSparseFlowRunFromTemporalWorkflowId = async ({
   /** The schedule the run was `Triggered By`, if any, from its link */
   flowScheduleId?: EntityUuid;
   name: string;
-  temporalClient: TemporalClient;
-  /** the identifier for the Temporal workflow */
-  temporalWorkflowId: string;
   webId: WebId;
-}): Promise<SparseFlowRun> => {
-  const handle = temporalClient.workflow.getHandle(temporalWorkflowId);
+};
 
-  const { startTime, executionTime, closeTime, status } =
-    await handle.describe();
-
-  return {
-    name,
+const toSparseFlowRun = (
+  {
     flowDefinitionEntityId,
     flowRunEntityId,
     flowScheduleId,
-    status: status.name as FlowRunStatus,
-    startedAt: startTime.toISOString(),
-    executedAt: executionTime?.toISOString(),
-    closedAt: closeTime?.toISOString(),
+    name,
     webId,
-  };
-};
+  }: FlowRunLinkedFields,
+  {
+    status,
+    startedAt,
+    executedAt,
+    closedAt,
+  }: Pick<
+    FlowRunRecordHeader,
+    "status" | "startedAt" | "executedAt" | "closedAt"
+  >,
+): SparseFlowRun => ({
+  name,
+  flowDefinitionEntityId,
+  flowRunEntityId,
+  flowScheduleId,
+  status,
+  startedAt,
+  executedAt,
+  closedAt,
+  webId,
+});
 
-export const getFlowRunFromTemporalWorkflowId = async (args: {
-  /** The flow definition the run `Uses`, from its link */
-  flowDefinitionEntityId: EntityId;
-  /** The entity id of the flow run */
-  flowRunEntityId: EntityId;
-  /** The schedule the run was `Triggered By`, if any, from its link */
-  flowScheduleId?: EntityUuid;
-  name: string;
+/**
+ * A run's status and times, from Temporal, or from the record it wrote when it ended if Temporal no longer has it.
+ */
+export const getSparseFlowRunFromTemporalWorkflowId = async ({
+  temporalClient,
+  temporalWorkflowId,
+  storageProvider,
+  ...linkedFields
+}: FlowRunLinkedFields & {
   temporalClient: TemporalClient;
   /** the identifier for the Temporal workflow */
   temporalWorkflowId: string;
-  webId: WebId;
-  /** Storage provider for resolving stored payload references */
+  /** Storage provider for reading the run's record */
   storageProvider: FileStorageProvider;
-  /** Histories already read in this request, to reuse */
-  historiesByWorkflowId?: FlowRunHistoriesByWorkflowId;
+}): Promise<SparseFlowRun> => {
+  try {
+    const { startTime, executionTime, closeTime, status } =
+      await temporalClient.workflow.getHandle(temporalWorkflowId).describe();
+
+    return toSparseFlowRun(linkedFields, {
+      status: status.name as FlowRunStatus,
+      startedAt: startTime.toISOString(),
+      executedAt: executionTime?.toISOString(),
+      closedAt: closeTime?.toISOString(),
+    });
+  } catch (error) {
+    if (!(error instanceof WorkflowNotFoundError)) {
+      throw error;
+    }
+
+    const storedRecord = await readStoredFlowRunRecord({
+      storageProvider,
+      workflowId: temporalWorkflowId,
+    });
+
+    if (!storedRecord) {
+      throw error;
+    }
+
+    return toSparseFlowRun(linkedFields, storedRecord.header);
+  }
+};
+
+export const getFlowRunFromTemporalWorkflowId = async ({
+  temporalClient,
+  temporalWorkflowId,
+  storageProvider,
+  recordsByWorkflowId,
+  ...linkedFields
+}: FlowRunLinkedFields & {
+  temporalClient: TemporalClient;
+  /** the identifier for the Temporal workflow */
+  temporalWorkflowId: string;
+  /** Storage provider for reading the run's record and resolving stored payload references */
+  storageProvider: FileStorageProvider;
+  /** Records already read in this request, to reuse */
+  recordsByWorkflowId?: FlowRunRecordsByWorkflowId;
 }): Promise<FlowRunWithoutEvents> => {
-  const baseFields = await getSparseFlowRunFromTemporalWorkflowId(args);
-  const detailedFields = await getFlowRunDetailedFields({
-    workflowId: args.temporalWorkflowId,
-    temporalClient: args.temporalClient,
-    storageProvider: args.storageProvider,
-    historiesByWorkflowId: args.historiesByWorkflowId,
+  const record = await getFlowRunRecord({
+    temporalClient,
+    storageProvider,
+    workflowId: temporalWorkflowId,
+    recordsByWorkflowId,
   });
 
   return {
-    ...baseFields,
-    ...detailedFields,
+    ...toSparseFlowRun(linkedFields, record.header),
+    ...(await getFlowRunDetailedFieldsFromRecord(record, {
+      storageProvider,
+      workflowId: temporalWorkflowId,
+    })),
   };
 };
