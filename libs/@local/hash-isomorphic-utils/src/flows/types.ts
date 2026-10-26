@@ -560,10 +560,10 @@ export type ActionStepCheck = (params: {
 }) => void;
 
 /**
- * How an action's activity is run: the task queue of the worker that runs it, and Temporal's settings for each attempt.
+ * Temporal's settings for each attempt of an action's activity. The activity runs on the task queue of the worker that
+ * implements the action (see `getActionActivityOptions`).
  */
 export type ActionActivitySettings = {
-  taskQueue: "ai" | "integration";
   /** How long one attempt may take. */
   startToCloseTimeoutSeconds: number;
   /**

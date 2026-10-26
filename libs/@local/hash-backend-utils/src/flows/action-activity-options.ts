@@ -1,12 +1,17 @@
 import { ActivityCancellationType } from "@temporalio/workflow";
 
-import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import {
+  actionDefinitions,
+  aiActionDefinitions,
+} from "@local/hash-isomorphic-utils/flows/action-definitions";
 
 import type { FlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/types";
 import type { ActivityOptions } from "@temporalio/workflow";
 
 /**
- * The Temporal options for running an action's activity, from its definition's `activitySettings`.
+ * The Temporal options for running an action's activity: on the task queue of the worker that implements the action,
+ * which registers the actions of its group (`aiActionDefinitions` or `integrationActionDefinitions`), with its
+ * definition's `activitySettings`.
  *
  * Note that, for an action that heartbeats:
  *  - it learns that its run was cancelled or closed by catching `Context.current().cancelled`;
@@ -21,14 +26,15 @@ export const getActionActivityOptions = (
   "taskQueue" | "startToCloseTimeout" | "heartbeatTimeout" | "cancellationType"
 > => {
   const {
-    taskQueue,
     startToCloseTimeoutSeconds,
     heartbeatTimeoutSeconds,
     handlesCancellation,
   } = actionDefinitions[actionDefinitionId].activitySettings;
 
   return {
-    taskQueue,
+    taskQueue: Object.hasOwn(aiActionDefinitions, actionDefinitionId)
+      ? "ai"
+      : "integration",
     startToCloseTimeout: `${startToCloseTimeoutSeconds} second`,
     heartbeatTimeout:
       heartbeatTimeoutSeconds === undefined
