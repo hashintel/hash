@@ -177,6 +177,54 @@ describe("emitted_structural_operators", () => {
   });
 });
 
+describe("emitted_structural_constructors", () => {
+  test("collections", () => {
+    expect.hasAssertions();
+    const one = 1n;
+    const count = Program.Structural.input("count", BigInt);
+    const numbers = Program.Structural.list(BigInt, [count, one]);
+    const named = Program.Structural.dict(String, BigInt, [["count", count]]);
+    const pair = Program.Structural.tuple(["x", count]);
+    const root = Program.Structural.struct({ numbers, named, pair });
+    const query = Program.program(root);
+    expectTypeOf<Program.Inputs<typeof query>>().toEqualTypeOf<{
+      readonly count: Type.PrimitiveInteger;
+    }>();
+    expectTypeOf<Program.Expression.TypeOf<typeof root>>().toEqualTypeOf<
+      Type.Struct<{
+        readonly numbers: Type.List<Type.PrimitiveInteger>;
+        readonly named: Type.Dict<Type.PrimitiveString, Type.PrimitiveInteger>;
+        readonly pair: Type.Tuple<
+          readonly [Type.PrimitiveString, Type.PrimitiveInteger]
+        >;
+      }>
+    >();
+    expect(Result.getOrThrow(Expression.toJExpr(root))).toMatchObject({
+      "#struct": {
+        numbers: { "#type": "::kernel::type::List<::kernel::type::Integer>" },
+        named: {
+          "#type":
+            "::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>",
+        },
+      },
+    });
+    expect(Program.compile(query)).toSatisfy(Result.isSuccess);
+  });
+
+  test("structural_default", () => {
+    expect.hasAssertions();
+    const count = Program.Structural.input("count", BigInt);
+    const row = Program.Structural.input("row", { count: BigInt }, { count });
+    expectTypeOf<Program.Expression.Inputs<typeof row>>().toEqualTypeOf<{
+      readonly row?: Type.Struct<{ readonly count: Type.PrimitiveInteger }>;
+      readonly count: Type.PrimitiveInteger;
+    }>();
+    expect(Result.getOrThrow(Program.compile(Program.program(row)))).toBe(
+      '["::kernel::special_form::input","row",{"#struct":{"count":"::kernel::type::Integer"}},{"#struct":{"count":["::kernel::special_form::input","count","::kernel::type::Integer"]}}]',
+    );
+  });
+});
+
 describe("emitted_program", () => {
   test("metadata", () => {
     expect.hasAssertions();

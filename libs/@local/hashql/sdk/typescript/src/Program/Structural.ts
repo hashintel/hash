@@ -1,30 +1,24 @@
 /**
  * Structural shorthand for HashQL types and values.
  *
- * {@link type} normalizes host constructors, tuples and records into type syntax. {@link value} accepts a structural value only when its semantic descriptor matches the requested type. Both operations retain nested type information, and value construction combines input requirements from every possible host-side alternative.
+ * {@link type} normalizes host constructors, tuples and records into type syntax. {@link struct} and {@link tuple} infer their fields and positions from values. {@link list} and {@link dict} take explicit type definitions, including for empty collections. {@link input} accepts the same type shorthand.
+ *
+ * {@link value} accepts a structural value only when its semantic descriptor matches the requested type. Value construction combines input requirements from every possible host-side alternative. Nested host arrays denote tuples and records denote structs. Construct a nested list or dictionary explicitly before placing it inside another value.
  *
  * @module
  */
-import {
-  Array,
-  Predicate,
-  Record,
-  Result,
-  Struct,
-  Tuple,
-  flow,
-  pipe,
-} from "effect";
+import { Predicate, Result, Struct, Tuple, flow, pipe } from "effect";
 
+import * as StructuralSyntax from "../internal/structural.js";
 import * as JExpr from "../JExpr/index.js";
-import * as Syntax from "../JExpr/Type/index.js";
 import * as Expression from "./Expression.js";
-import * as ProgramError from "./ProgramError.js";
 import * as TypeExpression from "./TypeExpression.js";
 
 import type * as Relocation from "../internal/relocation.js";
 import type * as Type from "../Type.js";
 import type * as Inputs from "./Inputs.js";
+import type * as ProgramError from "./ProgramError.js";
+import type { Record } from "effect";
 
 interface Fields extends Record.ReadonlyRecord<string, Definition> {}
 
@@ -180,92 +174,6 @@ export const isValue = (value: unknown): value is Value.Any => {
   return Object.values(value).every(isValue);
 };
 
-const primitiveSyntax = (
-  name: "Integer" | "Number" | "String" | "Boolean",
-): Syntax.Type =>
-  Syntax.Reference.make({
-    path: JExpr.Path.decodeResult(`::kernel::type::${name}`).pipe(
-      Result.getOrThrow,
-    ),
-  });
-
-const primitives = {
-  integer: primitiveSyntax("Integer"),
-  number: primitiveSyntax("Number"),
-  string: primitiveSyntax("String"),
-  boolean: primitiveSyntax("Boolean"),
-};
-
-const typeSyntax = (
-  definition: Definition,
-): Result.Result<Syntax.Type, ProgramError.Construction> => {
-  if (TypeExpression.isExport(definition)) {
-    if (Predicate.hasProperty(definition, "syntax")) {
-      return definition.syntax;
-    }
-
-    return Result.fail(
-      ProgramError.Construction.unspecializedTypeConstructor(),
-    );
-  }
-
-  if (Predicate.isFunction(definition)) {
-    switch (definition) {
-      case BigInt: {
-        return Result.succeed(primitives.integer);
-      }
-      case Number: {
-        return Result.succeed(primitives.number);
-      }
-      case String: {
-        return Result.succeed(primitives.string);
-      }
-      case Boolean: {
-        return Result.succeed(primitives.boolean);
-      }
-      default: {
-        return Result.fail(
-          ProgramError.Construction.unsupportedTypeConstructor(definition.name),
-        );
-      }
-    }
-  }
-
-  if (Array.isArray<Definition>(definition)) {
-    return pipe(
-      definition,
-      Array.map(typeSyntax),
-      Result.all,
-      Result.map((members) => ({
-        _tag: "Tuple",
-        members,
-      })),
-    );
-  }
-
-  return pipe(
-    definition,
-    Record.toEntries,
-    Array.map(([name, member]) =>
-      Result.all({
-        name: pipe(
-          JExpr.Ident.decodeResult(name),
-          Result.mapError((cause) =>
-            ProgramError.Construction.invalidBindingName(name, cause),
-          ),
-        ),
-        member: typeSyntax(member),
-      }),
-    ),
-    Result.all,
-    Result.map(Array.map(({ name, member }) => [name, member] as const)),
-    Result.map((members) => ({
-      _tag: "Struct",
-      members,
-    })),
-  );
-};
-
 /**
  * Constructs a type expression from primitive, tuple and record shorthand.
  *
@@ -289,7 +197,11 @@ const typeSyntax = (
 export const type = <const D extends Definition>(
   definition: D,
 ): TypeExpression.TypeExpression<TypeOf<D>> =>
-  pipe(definition, typeSyntax, TypeExpression.fromResult<TypeOf<D>>);
+  pipe(
+    definition,
+    StructuralSyntax.typeSyntax,
+    TypeExpression.fromResult<TypeOf<D>>,
+  );
 
 /** Applies normalization independently at every position instead of collapsing the tuple to an element union. */
 interface Normalize extends Struct.Lambda {
@@ -336,41 +248,6 @@ export const constructor = <F extends Type.TypeConstructor>(
       ): TypeExpression.TypeExpression<Type.Apply<F, ArgumentTypes<A>>> =>
         source<ArgumentTypes<A>>(...normalize<A>(definitions)),
   );
-
-const valueSyntax = (
-  value: Value.Any,
-): Result.Result<JExpr.Expression, ProgramError.Construction> => {
-  if (
-    Expression.isExpression(value) ||
-    value === null ||
-    typeof value !== "object"
-  ) {
-    return Expression.toJExpr(value);
-  }
-
-  if (Array.isArray<Value.Any>(value)) {
-    return pipe(
-      value,
-      Array.map(valueSyntax),
-      Result.all,
-      Result.map((members) => JExpr.tuple(...members)),
-    );
-  }
-
-  return pipe(
-    value,
-    Record.toEntries,
-    Array.map(([name, member]) =>
-      pipe(
-        member,
-        valueSyntax,
-        Result.map((syntax) => [name, syntax] as const),
-      ),
-    ),
-    Result.all,
-    Result.map(flow(Record.fromEntries, JExpr.struct)),
-  );
-};
 
 type ValueTypes<V extends readonly Value.Any[]> = {
   readonly [K in keyof V]: ValueType<V[K]>;
@@ -429,9 +306,8 @@ export const value =
   ): Expression.Expression<T, Requirements<V>> =>
     pipe(
       input,
-      valueSyntax,
-      Result.flatMap(flow(Expression.fromJExpr, Expression.toNode)),
-      Expression.fromResult<T, Requirements<V>>,
+      StructuralSyntax.valueSyntax,
+      StructuralSyntax.fromSyntax<T, Requirements<V>>,
     );
 
 /**
@@ -444,6 +320,168 @@ export const toJExpr = (
 ): Result.Result<JExpr.Expression, ProgramError.Construction> =>
   pipe(
     value,
-    valueSyntax,
+    StructuralSyntax.valueSyntax,
     Result.flatMap(flow(Expression.fromJExpr, Expression.toJExpr)),
+  );
+
+/**
+ * Infers a struct's field descriptors and combines their input requirements.
+ *
+ * Nested records and arrays follow {@link value}. Invalid field names and nested construction failures remain in the returned expression.
+ *
+ * @example
+ * ```ts
+ * import { Program } from "@local/hashql";
+ * const account = Program.Structural.struct({ name: "Ada", active: true });
+ * const active = account.active;
+ * ```
+ */
+export const struct = <const V extends FieldValues>(
+  fields: V,
+): Expression.Expression<ValueType<V>, Requirements<V>> =>
+  pipe(
+    fields,
+    StructuralSyntax.valueSyntax,
+    StructuralSyntax.fromSyntax<ValueType<V>, Requirements<V>>,
+  );
+
+/**
+ * Infers a fixed-length tuple without merging its positional descriptors.
+ *
+ * The argument must have a statically known length and required positions. Use {@link list} for a variable-length array. Nested values and failures follow {@link value}.
+ */
+export const tuple = <const V extends readonly Value.Any[]>(
+  members: V & { readonly length: number extends V["length"] ? never : number },
+): Expression.Expression<ValueType<V>, Requirements<V>> =>
+  pipe(
+    members,
+    StructuralSyntax.valueSyntax,
+    StructuralSyntax.fromSyntax<ValueType<V>, Requirements<V>>,
+  );
+
+/**
+ * Constructs a list with an explicit element descriptor.
+ *
+ * The definition checks every element without widening from the supplied values. The emitted type annotation also types an empty list. Nested host records and arrays follow {@link value}, so a nested list needs its own {@link list} call. Failed definitions and elements remain construction failures.
+ *
+ * @example
+ * ```ts
+ * import { Program } from "@local/hashql";
+ * const counts = Program.Structural.list(BigInt, [1n, 2n]);
+ * const empty = Program.Structural.list(BigInt, []);
+ * ```
+ */
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a collection from its type definition and members
+export const list = <
+  const D extends Definition,
+  const V extends readonly Value.Any[],
+>(
+  definition: D,
+  members: V & StructuralSyntax.ExactValues<NoInfer<TypeOf<D>>, V>,
+): Expression.Expression<Type.List<TypeOf<D>>, Requirements<V>> =>
+  pipe(
+    Result.all({
+      type: StructuralSyntax.collectionType("List", [definition]),
+      members: StructuralSyntax.membersSyntax(members),
+    }),
+    Result.map(({ type, members }) =>
+      JExpr.typed(JExpr.list(...members), type),
+    ),
+    StructuralSyntax.fromSyntax<Type.List<TypeOf<D>>, Requirements<V>>,
+  );
+
+/**
+ * Constructs a dictionary with explicit key and value descriptors.
+ *
+ * Entries may contain expression keys. A String key definition also accepts a record with arbitrary literal string keys. Records contribute enumerable own string keys in JavaScript order. Both forms emit entry pairs, preserving key and value requirements. The annotation types empty dictionaries too. Failed definitions and entries remain construction failures.
+ *
+ * @example
+ * ```ts
+ * import { Program } from "@local/hashql";
+ * const counts = Program.Structural.dict(String, BigInt, { "first item": 1n });
+ * const indexed = Program.Structural.dict(BigInt, String, [[1n, "first"]]);
+ * ```
+ */
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a collection from independent key and value definitions and entries
+export const dict = <
+  const K extends Definition,
+  const D extends Definition,
+  const E extends StructuralSyntax.DictionaryValues,
+>(
+  key: K,
+  definition: D,
+  entries: E &
+    StructuralSyntax.ExactEntries<NoInfer<TypeOf<K>>, NoInfer<TypeOf<D>>, E>,
+): Expression.Expression<Type.Dict<TypeOf<K>, TypeOf<D>>, Requirements<E>> =>
+  pipe(
+    Result.all({
+      type: StructuralSyntax.collectionType("Dict", [key, definition]),
+      syntax: StructuralSyntax.dictionarySyntax(entries),
+    }),
+    Result.map(({ type, syntax }) => JExpr.typed(syntax, type)),
+    StructuralSyntax.fromSyntax<
+      Type.Dict<TypeOf<K>, TypeOf<D>>,
+      Requirements<E>
+    >,
+  );
+
+type InputArguments =
+  | readonly []
+  | readonly [defaultValue: Value.Any | undefined];
+
+/** Checks each defined alternative without rejecting an explicitly absent default. */
+type ExactDefault<T extends Type.Any, V> = V extends undefined
+  ? V
+  : V extends Value.Any
+    ? Exact<T, V>
+    : never;
+
+type ExactDefaults<T extends Type.Any, D extends InputArguments> = {
+  readonly [K in keyof D]: ExactDefault<T, D[K]>;
+};
+
+type InputRequirements<
+  Name extends string,
+  T extends Type.Any,
+  D extends InputArguments,
+> = [D[0]] extends [undefined]
+  ? Readonly<Record<Name, T>>
+  : Inputs.Merge<
+      undefined extends D[0]
+        ? Readonly<Record<Name, T>>
+        : Readonly<Partial<Record<Name, T>>>,
+      Requirements<Exclude<D[0], undefined>>
+    >;
+
+/**
+ * Declares an input using type shorthand and an optional structural default.
+ *
+ * A definitely present default makes this occurrence optional and contributes its own requirements. An omitted or possibly undefined default keeps the input required. Defaults must match the definition exactly, including nested fields and tuple positions. Use constructed expressions for list, dictionary and nominal defaults. Failure handling follows {@link value}.
+ */
+export const input = <
+  const Name extends string,
+  const D extends Definition,
+  const Defaults extends InputArguments,
+>(
+  name: Name,
+  definition: D,
+  ...defaults: Defaults & ExactDefaults<NoInfer<TypeOf<D>>, Defaults>
+): Expression.Expression<
+  TypeOf<D>,
+  InputRequirements<Name, TypeOf<D>, Defaults>
+> =>
+  pipe(
+    Result.gen(function* () {
+      const syntax = yield* StructuralSyntax.typeSyntax(definition);
+      const [defaultValue] = defaults;
+      if (defaultValue === undefined) {
+        return JExpr.input(name, syntax);
+      }
+      const fallback = yield* StructuralSyntax.valueSyntax(defaultValue);
+      return JExpr.input(name, syntax, fallback);
+    }),
+    StructuralSyntax.fromSyntax<
+      TypeOf<D>,
+      InputRequirements<Name, TypeOf<D>, Defaults>
+    >,
   );
