@@ -1,4 +1,5 @@
 import {
+  brunchSignals,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
 } from "@hashintel/brunch-agent";
@@ -17,7 +18,9 @@ const closesInterview = (message: FlueConversationMessage): boolean =>
 /**
  * Count canonical replies, not AI SDK rendering entries (which can merge steps
  * or lose text finality). The submitted allowance identifies wrap-up turns;
- * their summaries do not spend another question. No inference from prose.
+ * their summaries do not spend another question. A turn of Ledger comments
+ * sits outside the interview, so its replies spend none either. No inference
+ * from prose.
  */
 export const countInterviewReplies = ({
   messages,
@@ -33,20 +36,25 @@ export const countInterviewReplies = ({
   );
   // A closing answer that joined a busy response is answered by the host
   // submission's later messages; host replies before it were still questions.
-  const wrapUpSubmissions = new Set<string>();
+  const uncountedSubmissions = new Set<string>();
   let replies = 0;
   for (const message of messages) {
     if (message.purpose === "user" && message.submissionId !== undefined) {
       if (closesInterview(message)) {
-        wrapUpSubmissions.add(message.submissionId);
+        uncountedSubmissions.add(message.submissionId);
         const host = answeredBy.get(message.submissionId);
-        if (host !== undefined) wrapUpSubmissions.add(host);
+        if (host !== undefined) uncountedSubmissions.add(host);
       }
+    } else if (
+      message.signal?.tagName === brunchSignals.ledgerComments &&
+      message.submissionId !== undefined
+    ) {
+      uncountedSubmissions.add(message.submissionId);
     } else if (
       message.role === "assistant" &&
       message.purpose === "assistant" &&
       message.display === "visible" &&
-      !wrapUpSubmissions.has(message.submissionId ?? "") &&
+      !uncountedSubmissions.has(message.submissionId ?? "") &&
       message.parts.some(
         (part) =>
           part.type === "text" && part.state === "done" && part.text.trim(),
