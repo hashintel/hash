@@ -56,6 +56,7 @@ import {
 } from "./fields";
 import { isMockPayloadKind } from "./mock-action-definitions";
 import { OutputRows } from "./outputs";
+import { BranchRows } from "./branches";
 import { findEntityType, mockEntities, mockEntityTypes } from "./mock-graph";
 import {
   describeCron,
@@ -143,12 +144,6 @@ const nodeLook = (
 
 /** An empty value ("Ends here", "Not used yet"): the value's size, in the subtle colour of an empty state. */
 const emptyValueStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
-const pathValueStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1.5",
-  minWidth: "0",
-});
 
 /** "Used by" chips: which steps read a value (D26 A, folded into D27 A). */
 const UsedBy = ({
@@ -186,64 +181,6 @@ const UsedBy = ({
         );
       })}
     </ChipRow>
-  );
-};
-
-/** Where each path of a branching step goes. Rows sit inside the Outputs section, under its data outputs. */
-const PathRows = ({
-  stepId,
-  ports,
-}: {
-  stepId: string;
-  ports: { outputName: string; label: string }[];
-}) => {
-  const { document, setUi } = useEditor();
-  return (
-    <>
-      {ports.map((port) => {
-        const targets = document.wires.filter(
-          (wire) =>
-            wire.source === stepId && wire.sourcePort === port.outputName,
-        );
-        return (
-          <PropertyRow key={port.outputName} label={port.label}>
-            {/* A step is always a chip; the arrow says "goes to" and only path rows have it (Aakarsh, 26 Oct). */}
-            <span className={pathValueStyle}>
-              <span className={emptyValueStyle}>→</span>
-              {targets.length === 0 ? (
-                <span className={emptyValueStyle}>Ends here</span>
-              ) : (
-                <ChipRow
-                  names={targets.map((wire) => {
-                    const target = findStep(document, wire.target)?.step;
-                    return target ? stepLabel(target) : wire.target;
-                  })}
-                >
-                  {targets.map((wire) => (
-                    <SourceChip
-                      key={wire.id}
-                      icon={nodeLook(document, wire.target).icon}
-                      onClick={() =>
-                        setUi((ui) => ({ ...ui, selectedId: wire.target }))
-                      }
-                    >
-                      {(() => {
-                        const target = findStep(document, wire.target)?.step;
-                        return target
-                          ? stepLabel(target)
-                          : wire.target === START_ID
-                            ? "Start"
-                            : wire.target;
-                      })()}
-                    </SourceChip>
-                  ))}
-                </ChipRow>
-              )}
-            </span>
-          </PropertyRow>
-        );
-      })}
-    </>
   );
 };
 
@@ -591,7 +528,11 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
         {/* Kind badge under each name, users as a short list under it (26 Oct sync; `outputs.tsx`). */}
         <OutputRows
           stepId={step.stepId}
-          outputs={entry.outputs}
+          // A branching step's port values are not data: they show as its paths, under the output they come from.
+          outputs={entry.outputs.filter(
+            (output) =>
+              !entry.ports?.some((port) => port.outputName === output.name),
+          )}
           kindOf={(outputName) => {
             const shape = getSourceShape(
               document,
@@ -604,7 +545,12 @@ const ActionPanel = ({ step }: { step: DraftActionStep }) => {
         />
         {/* Outputs are data (Ciarán, 16 Oct). Only a branching step lists its paths; a straight step's next step is the wire. */}
         {entry.ports ? (
-          <PathRows stepId={step.stepId} ports={entry.ports} />
+          <BranchRows
+            stepId={step.stepId}
+            actionDefinitionId={step.actionDefinitionId}
+            ports={entry.ports}
+            iconOf={(id) => nodeLook(document, id).icon}
+          />
         ) : null}
       </Section>
       <Checks stepId={step.stepId} />

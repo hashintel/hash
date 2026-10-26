@@ -376,6 +376,45 @@ const manyUsersExample = (): EditorDocument => {
   };
 };
 
+/** Branching review (26 Oct sync, Figma 637:22029 B): Ask a person's Decision branches to two emails. */
+const reviewBranchExample = (): EditorDocument => {
+  const found = addStep(emptyDocument(), "queryEntities", {
+    after: { stepId: START_ID, port: "next" },
+  });
+  const review = addStep(found.document, "requestReview", {
+    after: { stepId: found.stepId, port: "next" },
+  });
+  const release = addStep(review.document, "sendEmail", {
+    after: { stepId: review.stepId, port: "approved" },
+  });
+  const alert = addStep(release.document, "sendEmail", {
+    after: { stepId: review.stepId, port: "rejected" },
+  });
+  const names: Record<string, string> = {
+    [found.stepId]: "Failed batch",
+    [review.stepId]: "QA lead reviews the failed batch",
+    [release.stepId]: "Release batch",
+    [alert.stepId]: "Alert to the team",
+  };
+  const releaseAt = alert.document.positions[release.stepId];
+  return {
+    ...alert.document,
+    startDescription: "Flow inputs",
+    steps: alert.document.steps.map((step) => ({
+      ...step,
+      description: names[step.stepId] ?? step.description,
+    })),
+    // Each path's step on its own row: Approved above, Rejected below.
+    positions: releaseAt
+      ? {
+          ...alert.document.positions,
+          [release.stepId]: { x: releaseAt.x, y: releaseAt.y - 60 },
+          [alert.stepId]: { x: releaseAt.x, y: releaseAt.y + 60 },
+        }
+      : alert.document.positions,
+  };
+};
+
 const recentSteps = ["queryEntities", "getFileFromUrl"];
 
 const figmaStates: ScreenState[] = [
@@ -689,6 +728,29 @@ const figmaStates: ScreenState[] = [
           ...initialUi,
           selectedId: document.steps[0]!.stepId,
           outputIcons: false,
+        },
+      };
+    },
+  },
+  {
+    id: "branch-b",
+    journey: 3,
+    row: "Branching · 26 Oct",
+    title: "Branching · B · Paths under the output they come from",
+    caption:
+      "Ask a person: Decision is Approved or Rejected; each value leads to its step. Add path tries a two-field path (mock).",
+    create: () => {
+      const document = reviewBranchExample();
+      return {
+        document,
+        ui: {
+          ...initialUi,
+          selectedId:
+            document.steps.find(
+              (step) =>
+                step.kind === "action" &&
+                step.actionDefinitionId === "requestReview",
+            )?.stepId ?? null,
         },
       };
     },
