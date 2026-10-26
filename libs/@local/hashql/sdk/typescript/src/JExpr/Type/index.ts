@@ -1,7 +1,7 @@
 /**
  * Builds HashQL type syntax for J-Expr queries.
  *
- * A {@link Type} describes type syntax. Use {@link reference} for a named type and {@link struct}, {@link tuple}, {@link union} or {@link intersection} to compose types. {@link compile} writes the type's source spelling.
+ * A {@link Type} describes type syntax. Use {@link reference} for a named type and {@link struct}, {@link tuple}, {@link union} or {@link intersection} to compose types. The syntax has two J-Expr spellings. {@link compile} writes annotation text for a `#type` field, and {@link toExpression} writes the constructor syntax that `as`, `input`, `fn`, `type` and `newtype` emit.
  *
  * {@link reference} and {@link struct} return an {@link Option.Option}: an invalid name produces `None`. The other builders accept their members without checks. Name resolution and type checking belong to the HashQL compiler.
  *
@@ -16,6 +16,8 @@ import * as Ident from "../Ident.js";
 import * as Path from "../Path.js";
 import * as Defs from "./schema.js";
 
+import type { Identifier } from "../Identifier.js";
+import type { ExpressionType } from "../schema.js";
 import type { Schema as $Schema, Effect, SchemaIssue } from "effect";
 import type { NonEmptyReadonlyArray } from "effect/Array";
 
@@ -36,7 +38,7 @@ export * as Union from "./Union.js";
 export const Schema: typeof Defs.Type = Defs.Type;
 
 /**
- * Tagged HashQL type syntax.
+ * Tagged HashQL type syntax, as accepted by `JExpr.input`, `JExpr.as`, `JExpr.typed` and the other builders that take a type.
  *
  * The `_tag` discriminant selects the form. `Reference` names a type by path with optional generics. `Struct` lists named members and `Tuple` positional ones. `Union` and `Intersection` combine member types. `Infer` is the `_` placeholder for a type the compiler infers. Paths and member names hold decoded identifier objects. Nothing validates an object written directly until {@link make} checks its names, and the HashQL compiler resolves those names and checks the type.
  */
@@ -45,7 +47,7 @@ export type Type = Defs.Type;
 /**
  * The schema-encoded form of a {@link Type}, which writes each path and member name as source text.
  *
- * A reference's path becomes text such as `"::core::List<Integer>"`, and a struct member name becomes text such as `` "`+`" ``. Path arguments use type syntax, which omits single-member union and intersection wrappers. Other type nodes keep their tagged objects. {@link Schema} encodes and decodes this form. Use {@link compile} for type source text.
+ * A reference's path becomes text such as `"::core::List<Integer>"`, and a struct member name becomes text such as `` "`+`" ``. Path arguments use type syntax, which omits single-member union and intersection wrappers. Other type nodes keep their tagged objects. {@link Schema} encodes and decodes this form, and neither form is J-Expr. Use {@link compile} or {@link toExpression} for J-Expr.
  */
 export type Encoded = Defs.TypeEncoded;
 
@@ -387,4 +389,31 @@ export const and: {
  * JExpr.Type.compile(list); // => "List<Integer | String>"
  * ```
  */
-export const compile: (type: Type) => string = compileType;
+export const compile: (type: Type) => Identifier = compileType;
+
+/**
+ * Encodes a type in an expression position, such as a type definition or closure parameter.
+ *
+ * Compound types use constructors here. Only annotation positions accept their type-syntax strings.
+ */
+export const toExpression: (type: Type) => ExpressionType = Defs.Type.match({
+  Infer: () => "_",
+  Reference: compile,
+  Tuple: ({ members }) => ({ "#tuple": members.map(toExpression) }),
+  Struct: ({ members }) => ({
+    "#struct": Object.fromEntries(
+      members.map(([name, member]) => [
+        Ident.compile(name),
+        toExpression(member),
+      ]),
+    ),
+  }),
+  Union: ({ members }): ExpressionType => [
+    "::kernel::type::Union",
+    ...members.map(toExpression),
+  ],
+  Intersection: ({ members }): ExpressionType => [
+    "::kernel::type::Intersection",
+    ...members.map(toExpression),
+  ],
+});
