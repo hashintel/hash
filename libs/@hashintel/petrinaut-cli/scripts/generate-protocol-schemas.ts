@@ -102,9 +102,14 @@ const evaluateResult = convert(petrinautOptimizationEvaluateResultSchema);
 convert(parameterConstraintSchema);
 convert(stateConstraintSchema);
 convert(constraintSchema);
-// A root conversion inlines the schema instead of naming it, so the generic
-// function shape is registered by hand next to its two pinned variants.
-sharedDefs.HirFunction = convert(hirFunctionSchema);
+// The generic function shape sits next to its two pinned variants. Its `meta.id`
+// makes the conversion a `$ref` into its own `$defs`, which `hoistDefs` registers.
+convert(hirFunctionSchema);
+if (sharedDefs.HirFunction === undefined) {
+  throw new Error(
+    "The converted schemas did not produce a HirFunction definition",
+  );
+}
 
 for (const [name, propertyName] of [
   ["Constraint", "space"],

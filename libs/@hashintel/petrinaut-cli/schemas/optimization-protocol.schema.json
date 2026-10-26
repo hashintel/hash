@@ -1218,17 +1218,6 @@
       "additionalProperties": false,
       "description": "The lowered condition: a `metric` surface function whose first declared parameter is the simulation `state`; `parameters.*` is ambient."
     },
-    "HirSurfaceKind": {
-      "type": "string",
-      "enum": [
-        "dynamics",
-        "lambda",
-        "kernel",
-        "metric",
-        "scenario-expression",
-        "scenario-code"
-      ]
-    },
     "HirFunction": {
       "type": "object",
       "properties": {
@@ -1255,6 +1244,17 @@
       "required": ["hirVersion", "surface", "params", "body", "span"],
       "additionalProperties": false,
       "description": "A lowered user function (see hir/hir.ts for the grammar). `params[0]` is the input parameter when the surface declares one; `parameters.*` and `scenario.*` reads are dedicated node kinds, never locals."
+    },
+    "HirSurfaceKind": {
+      "type": "string",
+      "enum": [
+        "dynamics",
+        "lambda",
+        "kernel",
+        "metric",
+        "scenario-expression",
+        "scenario-code"
+      ]
     }
   }
 }
