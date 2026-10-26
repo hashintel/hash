@@ -1,7 +1,6 @@
 import type { FlowRunStatus } from "../graphql/api-types.gen.js";
 import type { FlowRunEvent } from "./run-events.js";
-import type { RunFlowWorkflowResponse } from "./temporal-types.js";
-import type { FlowDataSources, FlowInputValues } from "./types.js";
+import type { FlowDataSources } from "./types.js";
 
 /**
  * The version of the run record format, on every line of a record. A change that a reader of the current version
@@ -9,11 +8,15 @@ import type { FlowDataSources, FlowInputValues } from "./types.js";
  */
 export const flowRunRecordFormatVersion = 1;
 
-/** What a run's record says about the run as a whole, on its first line. */
+/**
+ * What a run's record says about the run as a whole, on its first line. Its inputs, outputs and failure are on its
+ * `runStarted` and `runFinished` events.
+ */
 export type FlowRunRecordHeader = {
   workflowId: string;
   /** The run of the workflow the record is of. Resetting a run starts a new run, which writes its own record. */
   runId: string;
+  /** The status of its `runFinished` event, once it has one. */
   status: FlowRunStatus;
   /** When this run started. A run started by a reset starts when it was reset. */
   startedAt: string;
@@ -22,11 +25,8 @@ export type FlowRunRecordHeader = {
   /** When the run began executing, which is later than it started if it had a delay before executing. */
   executedAt?: string;
   closedAt?: string;
-  flowInputs: FlowInputValues;
   /** The data sources the run's AI steps can use, for an AI flow run. */
   dataSources?: FlowDataSources;
-  outputs?: RunFlowWorkflowResponse[];
-  failureMessage?: string;
 };
 
 /** A run's header and its events, in the order its history records them. */

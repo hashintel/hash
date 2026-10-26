@@ -1,6 +1,7 @@
 import { WorkflowNotFoundError } from "@temporalio/client";
 import proto from "@temporalio/proto";
 
+import { findRunFinishedEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 import {
   parseFlowRunRecord,
   serializeFlowRunRecord,
@@ -12,16 +13,13 @@ import {
   buildFlowRunEvents,
   getRunFinishedEvent,
 } from "./run-events/build-flow-run-events.js";
-import { getFlowOutputs } from "./run-events/get-flow-outputs.js";
 import { readFlowRunHistoryEvents } from "./run-events/get-flow-run-history.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
 import type { FlowRunRecord } from "@local/hash-isomorphic-utils/flows/run-record";
 import type {
   FlowRunEnding,
-  RecordedFlowRunEnding,
   RunFlowWorkflowParams,
-  RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import type {
@@ -75,33 +73,22 @@ export const getFlowRunRecordFromHistory = (
     throw new Error("No workflow inputs found");
   }
 
-  const outputs = parseHistoryItemPayload(
-    findHistoryEvent(history, EventType.EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED)
-      ?.workflowExecutionCompletedEventAttributes?.result,
-  ) as RunFlowWorkflowResponse[] | undefined;
-
-  const failureMessage = findHistoryEvent(
-    history,
-    EventType.EVENT_TYPE_WORKFLOW_EXECUTION_FAILED,
-  )?.workflowExecutionFailedEventAttributes?.failure?.message;
-
   return {
     header: {
       workflowId,
       runId: describe.runId,
-      status: describe.status as FlowRunStatus,
+      status:
+        findRunFinishedEvent(events)?.status ??
+        (describe.status as FlowRunStatus),
       startedAt: describe.startTime,
       ...(originalRunStartTime
         ? { firstRunStartedAt: originalRunStartTime }
         : {}),
       ...(describe.executionTime ? { executedAt: describe.executionTime } : {}),
       ...(describe.closeTime ? { closedAt: describe.closeTime } : {}),
-      flowInputs: workflowParams.flowInputs,
       ...("dataSources" in workflowParams
         ? { dataSources: workflowParams.dataSources }
         : {}),
-      ...(outputs ? { outputs } : {}),
-      ...(failureMessage ? { failureMessage } : {}),
     },
     events,
   };
@@ -125,15 +112,7 @@ const endFlowRunRecord = ({
   const runFinishedEvent = getRunFinishedEvent(ending);
 
   return {
-    header: {
-      ...header,
-      status: runFinishedEvent.status,
-      closedAt: endedAt,
-      ...(ending.kind === "completed" ? { outputs: [ending.result] } : {}),
-      ...(ending.kind === "failed"
-        ? { failureMessage: ending.failureMessage }
-        : {}),
-    },
+    header: { ...header, status: runFinishedEvent.status, closedAt: endedAt },
     events: [
       ...events,
       {
@@ -249,7 +228,7 @@ export const recordEndedFlowRun = async ({
   storageProvider: FileStorageProvider;
   workflowId: string;
   runId: string;
-  ending: RecordedFlowRunEnding;
+  ending: FlowRunEnding;
 }): Promise<void> => {
   const workflow = await temporalClient.workflow
     .getHandle(workflowId)
@@ -267,32 +246,11 @@ export const recordEndedFlowRun = async ({
     temporalClient,
     workflow,
   });
-  const record = getFlowRunRecordFromHistory(historyRecord, { workflowId });
-
-  const endingWithOutputs: FlowRunEnding =
-    ending.kind === "completed"
-      ? {
-          kind: "completed",
-          result: {
-            code: ending.code,
-            contents: [
-              {
-                outputs: getFlowOutputs({
-                  history: historyRecord.history,
-                  events: record.events,
-                }),
-                ...(ending.stepErrors ? { stepErrors: ending.stepErrors } : {}),
-              },
-            ],
-          },
-        }
-      : ending;
-
   await writeFlowRunRecord({
     storageProvider,
     record: endFlowRunRecord({
-      record,
-      ending: endingWithOutputs,
+      record: getFlowRunRecordFromHistory(historyRecord, { workflowId }),
+      ending,
       endedAt: new Date().toISOString(),
       lastHistoryEventId: Number(historyRecord.history.at(-1)?.eventId ?? 0),
     }),

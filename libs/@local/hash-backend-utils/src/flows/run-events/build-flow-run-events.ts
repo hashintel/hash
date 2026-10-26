@@ -1,6 +1,10 @@
 import proto from "@temporalio/proto";
 
-import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
+import {
+  toStepErrors,
+  toStepRun,
+  unknownErrorMessage,
+} from "@local/hash-isomorphic-utils/flows/run-events";
 import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { StatusCode } from "@local/status";
 
@@ -43,16 +47,8 @@ const nonStepActivityTypes = [
   "userHasPermissionToRunFlowInWebActivity",
 ];
 
-const unknownErrorMessage = "Unknown error";
-
 /** A step's activity type is its action definition id with this suffix, as `processFlowWorkflow` names it. */
 const actionActivitySuffix = "Action";
-
-const toStepRun = (stepRunId: string): FlowRunEventStepRun => {
-  const { stepId, itemIndex } = parseStepRunId(stepRunId);
-
-  return { stepId, itemPath: itemIndex === undefined ? [] : [itemIndex] };
-};
 
 const gaveUpReasonByRetryState: Partial<
   Record<proto.temporal.api.enums.v1.RetryState, FlowStepGaveUpReason>
@@ -62,59 +58,33 @@ const gaveUpReasonByRetryState: Partial<
   [RetryState.RETRY_STATE_TIMEOUT]: "timedOut",
 };
 
-const toStepErrors = (
-  stepErrors: NonNullable<
-    NonNullable<RunFlowWorkflowResponse["contents"][number]>["stepErrors"]
-  >,
-) =>
-  stepErrors.map(({ message, contents: [stepError] }) => {
-    if (!stepError) {
-      throw new Error(`No step id on step error: ${message}`);
-    }
-
-    return {
-      stepRun: toStepRun(stepError.stepId),
-      error: { message: message ?? unknownErrorMessage },
-    };
-  });
-
 type RunFinishedEvent = Extract<FlowRunEvent, { kind: "runFinished" }>;
+
+const runFinishedStatusByEndingKind = {
+  completed: FlowRunStatus.Completed,
+  failed: FlowRunStatus.Failed,
+  cancelled: FlowRunStatus.Cancelled,
+  terminated: FlowRunStatus.Terminated,
+  timedOut: FlowRunStatus.TimedOut,
+} as const satisfies Record<FlowRunEnding["kind"], RunFinishedEvent["status"]>;
 
 /** The event for how a run ended, without its place in the run's history. */
 export const getRunFinishedEvent = (
   ending: FlowRunEnding,
 ): Omit<RunFinishedEvent, "position" | "occurredAt"> => {
-  switch (ending.kind) {
-    case "completed": {
-      const { outputs, stepErrors } = ending.result.contents[0] ?? {};
+  const status = runFinishedStatusByEndingKind[ending.kind];
 
-      return {
-        kind: "runFinished",
-        status: FlowRunStatus.Completed,
-        ...(outputs ? { flowOutputs: outputs } : {}),
-        ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
-      };
-    }
-    case "failed":
-      return {
-        kind: "runFinished",
-        status: FlowRunStatus.Failed,
-        failure: { message: ending.failureMessage },
-        ...(ending.stepErrors
-          ? { stepErrors: toStepErrors(ending.stepErrors) }
-          : {}),
-      };
-    case "terminated":
-      return {
-        kind: "runFinished",
-        status: FlowRunStatus.Terminated,
-        ...(ending.reason ? { failure: { message: ending.reason } } : {}),
-      };
-    case "cancelled":
-      return { kind: "runFinished", status: FlowRunStatus.Cancelled };
-    case "timedOut":
-      return { kind: "runFinished", status: FlowRunStatus.TimedOut };
+  if (ending.kind === "terminated") {
+    return {
+      kind: "runFinished",
+      status,
+      ...(ending.reason ? { failure: { message: ending.reason } } : {}),
+    };
   }
+
+  const { kind: _kind, ...fields } = ending;
+
+  return { kind: "runFinished", status, ...fields };
 };
 
 /**
@@ -509,7 +479,15 @@ export const buildFlowRunEvents = (
           "workflow result",
         );
 
-        addEvent(getRunFinishedEvent({ kind: "completed", result }));
+        const { outputs, stepErrors } = result.contents[0] ?? {};
+
+        addEvent(
+          getRunFinishedEvent({
+            kind: "completed",
+            flowOutputs: outputs ?? [],
+            ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+          }),
+        );
         break;
       }
 
@@ -526,8 +504,8 @@ export const buildFlowRunEvents = (
         addEvent(
           getRunFinishedEvent({
             kind: "failed",
-            failureMessage: failure?.message ?? unknownErrorMessage,
-            ...(stepErrors ? { stepErrors } : {}),
+            failure: { message: failure?.message ?? unknownErrorMessage },
+            ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
           }),
         );
         break;

@@ -5,6 +5,10 @@ import proto from "@temporalio/proto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  toStepErrors,
+  unknownErrorMessage,
+} from "@local/hash-isomorphic-utils/flows/run-events";
+import {
   parseFlowRunRecord,
   serializeFlowRunRecord,
 } from "@local/hash-isomorphic-utils/flows/run-record";
@@ -22,7 +26,7 @@ import type { FileStorageProvider } from "../file-storage.js";
 import type { FlowRunHistoryRecord } from "./run-record.js";
 import type { FlowRunRecord } from "@local/hash-isomorphic-utils/flows/run-record";
 import type {
-  RecordedFlowRunEnding,
+  FlowRunEnding,
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { Client as TemporalClient } from "@temporalio/client";
@@ -264,15 +268,19 @@ const { EventType } = proto.temporal.api.enums.v1;
 /** How a run ended, as its workflow gives it to the record activity, from the event that closed the run. */
 const getRecordedEnding = (
   closeEvent: proto.temporal.api.history.v1.IHistoryEvent,
-): RecordedFlowRunEnding | null => {
+): FlowRunEnding | null => {
   switch (closeEvent.eventType) {
     case EventType.EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED: {
-      const [{ code, contents }] = parseHistoryItemPayload(
+      const [{ contents }] = parseHistoryItemPayload(
         closeEvent.workflowExecutionCompletedEventAttributes?.result,
       ) as [RunFlowWorkflowResponse];
-      const stepErrors = contents[0]?.stepErrors;
+      const { outputs, stepErrors } = contents[0] ?? {};
 
-      return { kind: "completed", code, ...(stepErrors ? { stepErrors } : {}) };
+      return {
+        kind: "completed",
+        flowOutputs: outputs ?? [],
+        ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+      };
     }
     case EventType.EVENT_TYPE_WORKFLOW_EXECUTION_FAILED: {
       const failure =
@@ -285,8 +293,8 @@ const getRecordedEnding = (
 
       return {
         kind: "failed",
-        failureMessage: failure?.message ?? "",
-        ...(stepErrors ? { stepErrors } : {}),
+        failure: { message: failure?.message ?? unknownErrorMessage },
+        ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
       };
     }
     case EventType.EVENT_TYPE_WORKFLOW_EXECUTION_CANCELED:

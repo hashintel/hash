@@ -10,6 +10,7 @@ import {
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
+import { toStepErrors } from "@local/hash-isomorphic-utils/flows/run-events";
 import {
   generateStepRunId,
   parseStepRunId,
@@ -45,7 +46,7 @@ import type { EntityId, Timestamp } from "@blockprotocol/type-system";
 import type { FlowActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   BaseRunFlowWorkflowParams,
-  RecordedFlowRunEnding,
+  FlowRunEnding,
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
@@ -335,7 +336,7 @@ const { recordFlowRunActivity } = proxyActivities<
  * Records how the run ended, as the last thing it does: even when the run is cancelled. A run that couldn't be
  * recorded is recorded the next time it's read.
  */
-const recordFlowRun = async (ending: RecordedFlowRunEnding) => {
+const recordFlowRun = async (ending: FlowRunEnding) => {
   try {
     await CancellationScope.nonCancellable(() =>
       recordFlowRunActivity({ ending }),
@@ -349,9 +350,7 @@ const recordFlowRun = async (ending: RecordedFlowRunEnding) => {
  * How a run ends when it throws `runFailure`, or `null` if it doesn't end: Temporal retries the workflow task instead
  * when it throws anything but a `TemporalFailure`.
  */
-const getFailedRunEnding = (
-  runFailure: unknown,
-): RecordedFlowRunEnding | null => {
+const getFailedRunEnding = (runFailure: unknown): FlowRunEnding | null => {
   if (isCancellation(runFailure)) {
     return { kind: "cancelled" };
   }
@@ -370,8 +369,8 @@ const getFailedRunEnding = (
 
   return {
     kind: "failed",
-    failureMessage: runFailure.message,
-    ...(stepErrors ? { stepErrors } : {}),
+    failure: { message: runFailure.message },
+    ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
   };
 };
 
@@ -981,12 +980,12 @@ export const processFlowWorkflow: typeof processFlow = async (params) => {
     throw runFailure;
   }
 
-  const stepErrors = result.contents[0]?.stepErrors;
+  const { outputs, stepErrors } = result.contents[0] ?? {};
 
   await recordFlowRun({
     kind: "completed",
-    code: result.code,
-    ...(stepErrors ? { stepErrors } : {}),
+    flowOutputs: outputs ?? [],
+    ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
   });
 
   return result;

@@ -1,7 +1,9 @@
+import type { FlowRunEventError, FlowRunStepError } from "./run-events.js";
 import type {
   FlowDataSources,
   LocalFlowRun,
   FlowInputValues,
+  StepOutput,
 } from "./types.js";
 import type {
   EntityId,
@@ -53,27 +55,21 @@ export type RunFlowWorkflowResponse = Status<{
   stepErrors?: Status<{ stepId: string }>[];
 }>;
 
-/** How a run ended, as the event that closes its workflow's history records it. */
+/**
+ * How a run ended: as the event that closes its workflow's history records it, or as the workflow gives it to the
+ * activity that records the run before that event is written.
+ */
 export type FlowRunEnding =
-  | { kind: "completed"; result: RunFlowWorkflowResponse }
+  | {
+      kind: "completed";
+      flowOutputs: StepOutput[];
+      stepErrors?: FlowRunStepError[];
+    }
   | {
       kind: "failed";
-      failureMessage: string;
-      stepErrors?: Status<{ stepId: string }>[];
+      failure: FlowRunEventError;
+      stepErrors?: FlowRunStepError[];
     }
   | { kind: "cancelled" }
   | { kind: "terminated"; reason?: string }
   | { kind: "timedOut" };
-
-/**
- * How a run is ending, as its workflow gives it to the activity that records the run, which runs before the event that
- * closes the run is written. A completed run's outputs are read from its history instead, so the workflow doesn't pass
- * them to the activity as well as returning them.
- */
-export type RecordedFlowRunEnding =
-  | {
-      kind: "completed";
-      code: RunFlowWorkflowResponse["code"];
-      stepErrors?: Status<{ stepId: string }>[];
-    }
-  | Exclude<FlowRunEnding, { kind: "completed" }>;

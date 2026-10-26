@@ -1,6 +1,7 @@
 import { WorkflowNotFoundError } from "@temporalio/client";
 import proto from "@temporalio/proto";
 
+import { findRunFinishedEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 import { generateStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
 import {
   FlowRunStatus,
@@ -40,6 +41,7 @@ import type {
   FlowRun,
   StepRun,
 } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import type { Status } from "@local/status";
 import type { Client as TemporalClient } from "@temporalio/client";
 
 /**
@@ -306,6 +308,50 @@ const getInputRequests = (
   );
 };
 
+/**
+ * A completed run's outputs as GraphQL gives them: as its workflow returned them, with stored payloads resolved. Its
+ * `runFinished` event doesn't keep the status codes the workflow returned, so the run's is OK and its step errors' are
+ * UNKNOWN.
+ */
+const getWorkflowOutputs = async (
+  { flowOutputs, stepErrors }: FlowRunEventOfKind<"runFinished">,
+  resolvePayloadContext: ResolvePayloadContext,
+): Promise<
+  | Status<{
+      outputs: ResolvedStepOutput[];
+      stepErrors?: Status<{ stepId: string }>[];
+    }>[]
+  | undefined
+> => {
+  if (!flowOutputs) {
+    return undefined;
+  }
+
+  return [
+    {
+      code: StatusCode.Ok,
+      contents: [
+        {
+          outputs:
+            (await resolveStoredPayloadsInOutputs(
+              flowOutputs,
+              resolvePayloadContext,
+            )) ?? [],
+          ...(stepErrors
+            ? {
+                stepErrors: stepErrors.map(({ stepRun, error }) => ({
+                  code: StatusCode.Unknown,
+                  message: error.message,
+                  contents: [{ stepId: toStepRunId(stepRun) }],
+                })),
+              }
+            : {}),
+        },
+      ],
+    },
+  ];
+};
+
 const stoppedEarlyStatuses: FlowRunStatus[] = [
   FlowRunStatus.Terminated,
   FlowRunStatus.Cancelled,
@@ -417,40 +463,27 @@ export const getFlowRunDetailedFieldsFromRecord = async (
     }),
   );
 
-  // Resolve stored payload references in workflow outputs for consistency with step outputs.
-  const workflowOutputs = header.outputs as StepRunOutput[] | undefined;
-  let resolvedWorkflowOutputs: ResolvedStepRunOutput[] | undefined;
-  if (workflowOutputs) {
-    resolvedWorkflowOutputs = await Promise.all(
-      workflowOutputs.map(async (output) => {
-        const firstContent = output.contents[0];
-        if (!firstContent?.outputs) {
-          return output as ResolvedStepRunOutput;
-        }
+  const runStartedEvent = runEvents.find(
+    (event): event is FlowRunEventOfKind<"runStarted"> =>
+      event.kind === "runStarted",
+  );
 
-        const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(
-          firstContent.outputs,
-          resolvePayloadContext,
-        );
-
-        return {
-          ...output,
-          contents: [
-            {
-              ...firstContent,
-              outputs: resolvedInnerOutputs ?? [],
-            },
-          ],
-        };
-      }),
-    );
+  if (!runStartedEvent) {
+    throw new Error("No workflow inputs found");
   }
 
+  const runFinishedEvent = findRunFinishedEvent(runEvents);
+
   return {
-    failureMessage: header.failureMessage,
-    flowInputs: header.flowInputs,
+    failureMessage:
+      runFinishedEvent?.status === FlowRunStatus.Failed
+        ? runFinishedEvent.failure?.message
+        : undefined,
+    flowInputs: runStartedEvent.flowInputs,
     dataSources: header.dataSources,
-    outputs: resolvedWorkflowOutputs,
+    outputs: runFinishedEvent
+      ? await getWorkflowOutputs(runFinishedEvent, resolvePayloadContext)
+      : undefined,
     inputRequests,
     steps,
     startedAt: header.firstRunStartedAt ?? header.startedAt,

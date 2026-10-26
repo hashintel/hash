@@ -12,7 +12,6 @@ const record: FlowRunRecord = {
     status: FlowRunStatus.Completed,
     startedAt: "2026-10-23T09:00:00.000Z",
     closedAt: "2026-10-23T09:01:00.000Z",
-    flowInputs: {},
   },
   events: [
     {

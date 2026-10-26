@@ -5,10 +5,10 @@ import { getStorageProvider } from "../../payload-storage.js";
 import { recordEndedFlowRun } from "../../run-record.js";
 
 import type { TemporalClient } from "../../../temporal.js";
-import type { RecordedFlowRunEnding } from "@local/hash-isomorphic-utils/flows/temporal-types";
+import type { FlowRunEnding } from "@local/hash-isomorphic-utils/flows/temporal-types";
 
 export type RecordFlowRunActivityParams = {
-  ending: RecordedFlowRunEnding;
+  ending: FlowRunEnding;
 };
 
 let temporalClient: TemporalClient | undefined;
