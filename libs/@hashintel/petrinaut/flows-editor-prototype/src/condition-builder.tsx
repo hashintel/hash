@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   Button,
+  Chip,
   Filter,
   type FilterOperator,
   Icon,
@@ -1179,12 +1180,12 @@ const builderStyle = css({
   backgroundColor: "neutral.bgSolid.min",
 });
 
-/** The rows (and the groups among them): 8 px apart. */
+/** The rows (and the groups among them): 10 px apart, a little more air than Figma Q8 (Ciarán, 26 Oct). */
 const rowsStyle = css({
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-start",
-  gap: "2",
+  gap: "2.5",
   alignSelf: "stretch",
 });
 
@@ -1219,9 +1220,20 @@ const footerStyle = css({
 });
 
 /**
- * A row's joiner (Figma Q8): "Where" on the first row, then a small "and ▾" / "or ▾" menu. A group is all-and or
- * all-or, so a pick switches the joiner of every row in the group.
+ * A row's joiner. "Where" on the first row stays plain text. Then AND / OR is a small chip with a menu, so it reads as
+ * part of one long filter, not as an input label (26 Oct sync: Ciarán, Dora; uppercase, the team's own logic words).
+ * A group is all-and or all-or, so a pick switches the joiner of every row in the group.
  */
+/** The menu's trigger: a plain span around the DS Chip, which takes no trigger props of its own. */
+const joinerTriggerStyle = css({
+  display: "inline-flex",
+  cursor: "pointer",
+  borderRadius: "md",
+  "&:focus-visible": { outline: "[2px solid var(--colors-blue-bd-subtle)]" },
+});
+
+const whereStyle = css({ color: "neutral.fg.muted" });
+
 const Joiner = ({
   conjunction,
   onPick,
@@ -1234,25 +1246,26 @@ const Joiner = ({
       <Menu
         items={(["and", "or"] as const).map((choice) => ({
           id: choice,
-          text: choice,
+          text: choice.toUpperCase(),
           selected: (conjunction ?? "and") === choice,
           selectedStyle: "tick" as const,
           onClick: () => onPick(choice),
         }))}
         trigger={
-          <Button
-            size="sm"
-            variant="subtle"
-            iconName="chevronDown"
-            iconPosition="right"
+          <span
+            role="button"
+            tabIndex={0}
+            className={joinerTriggerStyle}
             aria-label={`Join with ${conjunction ?? "and"}`}
           >
-            {conjunction ?? "and"}
-          </Button>
+            <Chip size="md" suffix={{ iconName: "chevronDown" }}>
+              {(conjunction ?? "and").toUpperCase()}
+            </Chip>
+          </span>
         }
       />
     ) : (
-      "Where"
+      <span className={whereStyle}>Where</span>
     )}
   </span>
 );
