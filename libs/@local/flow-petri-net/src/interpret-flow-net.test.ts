@@ -21,7 +21,7 @@ import {
   generateInstanceKey,
   generatePendingPlaceKey,
 } from "./flow-net-keys.js";
-import { startFlowNetRun } from "./interpret-flow-net.js";
+import { heldRoles, startFlowNetRun } from "./interpret-flow-net.js";
 import {
   fileFlowDefinition,
   forEachFlowDefinition,
@@ -31,10 +31,12 @@ import {
 import type { FlowNetMetadata } from "./flow-net-metadata.js";
 import type {
   FlowNetHeldFiring,
+  FlowNetHeldRole,
   FlowNetHeldTransition,
   FlowNetPlacedToken,
   FlowNetPosition,
   FlowNetRun,
+  FlowNetStepRun,
 } from "./interpret-flow-net.js";
 import type {
   ActualModeMarking,
@@ -107,6 +109,9 @@ const allStepIds = (steps: StepDefinition[]): string[] =>
     ...(step.kind === "for-each" ? allStepIds(step.steps) : []),
   ]);
 
+const heldKey = (role: FlowNetHeldRole, { stepId, itemPath }: FlowNetStepRun) =>
+  JSON.stringify([role, stepId, itemPath]);
+
 /**
  * Fires what `decide` gives for the first (or last) held transition, until none is held. Taking the last runs later
  * items first.
@@ -118,9 +123,16 @@ const runToEnd = (
 ) => {
   for (let fired = 0; ; fired++) {
     const held = run.held();
+    const heldKeys = new Set(
+      held.map(({ role, stepRun }) => heldKey(role, stepRun)),
+    );
 
     for (const transition of held) {
-      expect(run.isHeld(transition.role, transition.stepRun)).toBe(true);
+      for (const role of heldRoles) {
+        expect(run.isHeld(role, transition.stepRun)).toBe(
+          heldKeys.has(heldKey(role, transition.stepRun)),
+        );
+      }
       expect(run.attemptInProgress(transition.stepRun)).toBe(
         transition.role === "succeedAttempt" ||
           transition.role === "failAttempt"
@@ -305,7 +317,7 @@ describe("startFlowNetRun", () => {
     expect(run.held()).toEqual(attemptEnds(stepRun, 1));
 
     /* Optional inputs nothing is connected to get a token marked absent, which start the action as `null`. */
-    const [, startAttempt] = run.firings;
+    const [startStep, startAttempt] = run.firings;
 
     expect(run.attemptInputs(startAttempt!)).toEqual({
       stepRun,
@@ -316,6 +328,9 @@ describe("startFlowNetRun", () => {
         ]),
       ),
     });
+    expect(() => run.attemptInputs(startStep!)).toThrow(
+      "A startStep firing doesn't start an attempt",
+    );
   });
 
   it("puts an action's outputs in its instance's output ports", async () => {
