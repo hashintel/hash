@@ -21,7 +21,7 @@ import * as ProgramError from "./ProgramError.js";
 import type { Relocatable } from "../internal/relocation.js";
 import type * as JExpr from "../JExpr/index.js";
 import type * as Syntax from "../JExpr/Type/index.js";
-import type * as Type from "../Type/index.js";
+import type * as Type from "../Type.js";
 import type { Types } from "effect";
 
 const TypeId: unique symbol = Symbol("~hashql/TypeExpression");
