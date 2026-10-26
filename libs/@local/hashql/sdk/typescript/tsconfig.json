@@ -12,12 +12,5 @@
     "isolatedDeclarations": false,
     "noEmit": true
   },
-  "include": [
-    "src",
-    "benches",
-    "tests",
-    "oxlint.config.ts",
-    "tsdown.config.ts",
-    "vitest.config.ts"
-  ]
+  "include": ["src", "benches", "tests", "oxlint.config.ts", "vitest.config.ts"]
 }
