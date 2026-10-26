@@ -65,7 +65,7 @@ const isStartOfPreset = (preset: { value: RelativeDate }) =>
   preset.value.kind === "startOfMonth" ||
   preset.value.kind === "startOfLastMonth";
 
-/** "90 days ago", "1 week from now". */
+/** "90 days ago"; an interval says its anchor: "90 days before step run", "1 week after flow start". */
 export const relativeLabel = (relative: RelativeDate) => {
   if (relative.kind === "daysAgo") {
     return `${relative.days} days ago`;
@@ -73,7 +73,8 @@ export const relativeLabel = (relative: RelativeDate) => {
   if (relative.kind === "interval") {
     const unit =
       relative.amount === 1 ? relative.unit.slice(0, -1) : relative.unit;
-    return `${relative.amount} ${unit} ${relative.direction === "ago" ? "ago" : "from now"}`;
+    // 26 Oct (Figma 555:16967): "before" / "after" the anchor, not "ago" / "from now", which read as "from today".
+    return `${relative.amount} ${unit} ${relative.direction === "ago" ? "before" : "after"} ${relative.anchor === "flowStart" ? "flow start" : "step run"}`;
   }
   return (
     relativePresets.find((preset) => preset.value.kind === relative.kind)
@@ -585,13 +586,13 @@ export const DatePickerSurface = ({
                 }
               />
             </div>
-            <span className={customLabelStyle}>Direction</span>
+            <span className={customLabelStyle}>Before or after</span>
             <div>
               <SegmentedControl<Interval["direction"]>
                 size="sm"
                 items={[
-                  { value: "ago", label: "ago" },
-                  { value: "fromNow", label: "from now" },
+                  { value: "ago", label: "before" },
+                  { value: "fromNow", label: "after" },
                 ]}
                 value={interval.direction}
                 onChange={(direction) => changeInterval({ direction })}

@@ -22,6 +22,11 @@ export type MockPropertyType = {
   options?: string[];
   /** A link to entities of this type, rather than a plain value. */
   linksTo?: string;
+  /**
+   * MOCK: the data types the graph gives the property, for the type labels in the property menu (Figma 637:23544).
+   * A property may accept several (Dei, Ciarán, 23 Oct): "Email +1". Defaults to the payload kind's name.
+   */
+  dataTypes?: string[];
 };
 
 export type MockEntityType = {
@@ -97,13 +102,17 @@ export const mockEntityTypes = [
     "Acme Metals · quality@acme.example · Active",
     [
       propertyType("name", "Name", "Text"),
-      propertyType("contact-email", "Contact email", "Text"),
+      { ...propertyType("contact-email", "Contact email", "Text"), dataTypes: ["Email"] },
+      {
+        ...propertyType("contact", "Contact", "Text"),
+        dataTypes: ["Email", "Phone number"],
+      },
       propertyType("status", "Status", "Text", [
         "Active",
         "On hold",
         "Offboarded",
       ]),
-      propertyType("certificate-url", "Certificate link", "Text"),
+      { ...propertyType("certificate-url", "Certificate link", "Text"), dataTypes: ["URL"] },
       propertyType("last-reviewed", "Last reviewed", "Date"),
       link("shipments", "Shipment", "shipment"),
     ],

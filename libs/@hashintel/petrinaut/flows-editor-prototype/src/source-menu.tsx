@@ -7,6 +7,7 @@ import {
   type MenuItem,
   Popover,
   TextInput,
+  Tooltip,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -364,6 +365,29 @@ export const SearchHeader = ({
   );
 };
 
+const typeLabelStyle = css({
+  flexShrink: 0,
+  marginLeft: "auto",
+  paddingLeft: "3",
+  textStyle: "xs",
+  color: "neutral.fg.subtle",
+});
+
+/**
+ * A property's data type on the right of its row (DS menu secondary label). Several types read "Email +1", and the
+ * hover lists them all (Figma 637:23544 A; 23 Oct: a property may take several types).
+ */
+const TypeLabel = ({ types }: { types: string[] }) =>
+  types.length > 1 ? (
+    <Tooltip content={types.join(", ")}>
+      <span className={typeLabelStyle}>
+        {types[0]} +{types.length - 1}
+      </span>
+    </Tooltip>
+  ) : (
+    <span className={typeLabelStyle}>{types[0]}</span>
+  );
+
 export type TypedChoice = {
   label: string;
   source: StepInputSource;
@@ -505,18 +529,24 @@ export const SourceMenu = ({
   const current =
     found?.step.kind === "action" ? found.step.inputs[input.name] : undefined;
   const currentProperty = current ? itemPropertyOf(current) : undefined;
-  const propertyItems =
+  const fittingProperties =
     listsOnly || !loopId || !itemType || input.array
       ? []
       : itemType.properties
           .filter((property) => kinds.includes(property.payloadKind))
           .filter(
             (property) => !text || property.title.toLowerCase().includes(text),
-          )
-          .map((property) => ({
+          );
+  // Types show only when the rows differ: a field that takes one type lists only that type (Figma 637:23544 C).
+  const typesOf = (property: (typeof fittingProperties)[number]) =>
+    property.dataTypes ?? [kindLabel(property.payloadKind, false)];
+  const showTypes =
+    new Set(fittingProperties.map((property) => typesOf(property).join())).size > 1;
+  const propertyItems = fittingProperties.map((property) => ({
             id: `item-property:${property.baseUrl}`,
             text: property.title,
-            hint: `${itemName(document, loopId)} › ${property.title} · ${kindLabel(property.payloadKind, false)}`,
+            hint: `${itemName(document, loopId!)} › ${property.title} · ${typesOf(property).join(", ")}`,
+            suffix: showTypes ? <TypeLabel types={typesOf(property)} /> : undefined,
             selected: currentProperty?.baseUrl === property.baseUrl,
             onPick: () => onPick(itemPropertySource(property.baseUrl)),
           }));
