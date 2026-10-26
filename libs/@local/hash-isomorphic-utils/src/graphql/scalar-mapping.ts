@@ -161,6 +161,7 @@ export const scalars = {
   FlowInputValues: "@local/hash-isomorphic-utils/flows/types#FlowInputValues",
   ResolvedStepRunOutput:
     "@local/hash-isomorphic-utils/flows/types#ResolvedStepRunOutput",
+  ResolvedPayload: "@local/hash-isomorphic-utils/flows/types#ResolvedPayload",
   StepProgressLog: "@local/hash-isomorphic-utils/flows/types#StepProgressLog",
 
   RoleAssignmentStatus: "@local/hash-graph-client#RoleAssignmentStatus",
