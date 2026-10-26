@@ -5195,14 +5195,14 @@ __metadata:
   linkType: hard
 
 "@effect/platform-node-shared@npm:^4.0.3":
-  version: 4.0.5
-  resolution: "@effect/platform-node-shared@npm:4.0.5"
+  version: 4.0.3
+  resolution: "@effect/platform-node-shared@npm:4.0.3"
   dependencies:
     "@types/ws": "npm:^8.18.2"
     ws: "npm:^8.22.0"
   peerDependencies:
-    effect: ^4.0.5
-  checksum: 10c0/70b1fdd7f10427198c39e48371203f85a0f5db0b75375638450c38a8dc605750731d55086031a4dd3caec27ac3a5ba8bf49cb53fd4a2a86ef3229c8264c6bfc2
+    effect: ^4.0.3
+  checksum: 10c0/cc33c8f4d32b333555eabc72c58a3273e571ab7db832be503e88ddc30d1293ec4ca91650aa5039e06ef9840ba403aaf3feea81003d6f870c00c8cc5a620a8078
   languageName: node
   linkType: hard
 
@@ -42629,9 +42629,9 @@ __metadata:
   linkType: hard
 
 "undici@npm:^8.0.0, undici@npm:^8.11.2":
-  version: 8.12.2
-  resolution: "undici@npm:8.12.2"
-  checksum: 10c0/25b0e0a69585b2b2e2678fdcd07942bbe15b14c6686d496712b0ee37ce15753af90ab7335ee42c8e65ec60b72bf3a21adc72bbabf86c1eaca74f27a3779532de
+  version: 8.11.2
+  resolution: "undici@npm:8.11.2"
+  checksum: 10c0/106f6991178fb7562fd90cdec7993c5f807a9428682306091f0c4b27fc474ec291f868e29972c6252988bf061ad193df943b3b99e775be157a28d92bbb95699d
   languageName: node
   linkType: hard
 

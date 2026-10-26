@@ -1,5 +1,6 @@
 import {
   type Cause,
+  Data,
   Deferred,
   type Effect,
   Function,
@@ -17,6 +18,16 @@ const TypeId: unique symbol = Symbol("@local/harpc-client/net/Transaction");
 
 export type TypeId = typeof TypeId;
 
+export class TransactionLaggedError extends Data.TaggedError(
+  "TransactionLaggedError",
+)<{
+  id: RequestId.RequestId;
+}> {
+  get message() {
+    return `Transaction ${this.id.value} fell behind the connection and was dropped before its response was complete`;
+  }
+}
+
 export interface Transaction {
   readonly [TypeId]: TypeId;
 
@@ -24,7 +35,10 @@ export interface Transaction {
 }
 
 interface TransactionImpl extends Transaction {
-  readonly read: Queue.Dequeue<WireResponse.Response, Cause.Done>;
+  readonly read: Queue.Dequeue<
+    WireResponse.Response,
+    TransactionLaggedError | Cause.Done
+  >;
 
   readonly drop: Deferred.Deferred<void>;
 }
@@ -36,7 +50,10 @@ const TransactionProto: Omit<TransactionImpl, "id" | "read" | "drop"> = {
 /** @internal */
 export const makeUnchecked = (
   id: RequestId.RequestId,
-  readQueue: Queue.Dequeue<WireResponse.Response, Cause.Done>,
+  readQueue: Queue.Dequeue<
+    WireResponse.Response,
+    TransactionLaggedError | Cause.Done
+  >,
   drop: Deferred.Deferred<void>,
 ): Transaction => createProto(TransactionProto, { id, read: readQueue, drop });
 
