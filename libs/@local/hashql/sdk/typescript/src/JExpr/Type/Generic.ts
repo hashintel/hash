@@ -1,0 +1,59 @@
+import { Option, Result, SchemaParser } from "effect";
+
+import * as Ident from "../Ident.js";
+import * as Defs from "./schema.js";
+
+import type { Schema as $Schema, Effect, SchemaIssue } from "effect";
+
+export const Schema: typeof Defs.Generic = Defs.Generic;
+
+export type Generic = Defs.GenericType;
+export type Encoded = Defs.GenericEncoded;
+
+type MakeIn = (typeof Schema)["~type.make.in"];
+
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
+export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Generic =
+  SchemaParser.make(Schema);
+
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
+export const makeEffect: (
+  input: MakeIn,
+  options?: $Schema.MakeOptions,
+) => Effect.Effect<Generic, SchemaIssue.Issue> =
+  SchemaParser.makeEffect(Schema);
+
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
+export const makeOption: (
+  input: MakeIn,
+  options?: $Schema.MakeOptions,
+) => Option.Option<Generic> = SchemaParser.makeOption(Schema);
+
+/**
+ * Creates a generic argument: the `Integer` in `List<Integer>`.
+ */
+export const argument = (type: Defs.Type): Defs.GenericArgumentType => ({
+  _tag: "GenericArgument",
+  bound: type,
+});
+
+/**
+ * Creates a named generic constraint: the `T: Integer` in `Foo<T: Integer>`.
+ *
+ * Returns `None` if `name` is not a valid identifier according to `Ident.decodeResult`. Without a bound, it compiles to the bare name, which HashQL parses as a generic argument. A declaration name such as `Pair<T>` reads that bare name as an unbounded parameter.
+ */
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
+export const bound = (
+  name: string,
+  type?: Defs.Type,
+): Option.Option<Defs.GenericBoundType> =>
+  Option.map(
+    Ident.decodeResult(name).pipe(Result.getSuccess),
+    (ident): Defs.GenericBoundType => {
+      if (type === undefined) {
+        return { _tag: "GenericBound", name: ident };
+      }
+
+      return { _tag: "GenericBound", name: ident, bound: type };
+    },
+  );
