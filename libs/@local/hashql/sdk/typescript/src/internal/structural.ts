@@ -5,7 +5,16 @@
  *
  * @module
  */
-import { Array, Option, Predicate, Record, Result, flow, pipe } from "effect";
+import {
+  Array,
+  Predicate,
+  Record,
+  Result,
+  Struct,
+  Tuple,
+  flow,
+  pipe,
+} from "effect";
 
 import * as JExpr from "../JExpr/index.js";
 import * as Syntax from "../JExpr/Type/index.js";
@@ -31,6 +40,11 @@ const primitives = {
   string: primitiveSyntax("String"),
   boolean: primitiveSyntax("Boolean"),
 };
+
+const collectionPaths = Record.map(
+  { List: "::kernel::type::List", Dict: "::kernel::type::Dict" },
+  (path) => pipe(path, JExpr.Path.decodeResult, Result.getOrThrow),
+);
 
 export const typeSyntax = (
   definition: Structural.Definition,
@@ -85,7 +99,8 @@ export const typeSyntax = (
     Array.map(([name, member]) =>
       Result.all({
         name: pipe(
-          JExpr.Ident.decodeResult(name),
+          name,
+          JExpr.Ident.decodeResult,
           Result.mapError((cause) =>
             ProgramError.Construction.invalidBindingName(name, cause),
           ),
@@ -171,12 +186,31 @@ export const collectionType = (
     definitions,
     Array.map(typeSyntax),
     Result.all,
-    Result.map((arguments_) =>
-      pipe(
-        Syntax.reference(`::kernel::type::${name}`, ...arguments_),
-        Option.getOrThrow,
-      ),
-    ),
+    Result.map((arguments_): Syntax.Type => {
+      const path = collectionPaths[name];
+      return {
+        _tag: "Reference",
+        path: {
+          rooted: path.rooted,
+          segments: Array.modifyLastNonEmpty(
+            path.segments,
+            (segment): JExpr.Path.Segment => ({
+              name: segment.name,
+              arguments: [
+                ...segment.arguments,
+                ...Array.map(
+                  arguments_,
+                  (bound): JExpr.Path.SegmentArgument => ({
+                    _tag: "GenericArgument",
+                    bound,
+                  }),
+                ),
+              ],
+            }),
+          ),
+        },
+      };
+    }),
   );
 
 /** String-key records or explicit key/value pairs accepted by a dictionary. */
@@ -209,6 +243,14 @@ export type ExactEntries<
       : { readonly [P in keyof E]: Structural.Exact<V, E[P]> }
     : never;
 
+interface ValueSyntaxMapping extends Struct.Lambda {
+  readonly "~lambda.out": ReturnType<typeof valueSyntax>;
+}
+
+const valueSyntaxLambda = Struct.lambda<
+  typeof valueSyntax & ValueSyntaxMapping
+>(valueSyntax);
+
 /** Normalizes record keys as literals and preserves explicit expression keys. */
 export const dictionarySyntax = (
   entries: DictionaryValues,
@@ -216,11 +258,10 @@ export const dictionarySyntax = (
   if (!Array.isArray<DictionaryValues>(entries)) {
     return dictionarySyntax(Record.toEntries(entries));
   }
+
   return pipe(
     entries,
-    Array.map(([key, member]) =>
-      Result.all([valueSyntax(key), valueSyntax(member)]),
-    ),
+    Array.map(flow(Tuple.map(valueSyntaxLambda), Result.all)),
     Result.all,
     Result.map(JExpr.dict),
   );
