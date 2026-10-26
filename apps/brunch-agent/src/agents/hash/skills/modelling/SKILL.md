@@ -17,6 +17,10 @@ After meaning-bearing input, extend or reshape the net to carry it, or make no m
 
 Every accepted step of net changes gets a reflection in the exchange's commit, made after its net steps, anchored to the net elements the step created or changed and to the claims they carry: why the change was made, what those elements represent, and any stand-in, inference, default, approximation, revision or target loss, with what it affects. The net's names and descriptions already say what changed; do not restate them. An exchange that changes nothing in the net gets no reflection unless leaving it unchanged is itself a modelling decision. Where a result will rest on one of these, the same commit records an obligation naming the run that would test it; a reflection that cites a run's observed result discharges the obligations that run met. Reflections are the Ledger's only link to the net; they are neither operational facts nor a mandatory queue of questions.
 
+## After a version load
+
+The USER may load a different saved version of the net in the editor. Suspect it when a read no longer matches the net you last saw, or a change is refused because the document changed by other means. Before building on earlier work, review your construction reflections and obligations against the net you now read. Keep elicited entities and claims: they describe the operation, not the net. Tell the USER what no longer matches, and confirm with them before redoing construction.
+
 ## Check correspondence
 
 Apply `references/checks.md` to every changed fragment and before delivery. Compare the inspected net with the account: supported meaning is present, stand-ins are visible, contextual quantities remain contextual, consumed/reserved/read distinctions and resource release survive, and changed rules reshaped incompatible structure.

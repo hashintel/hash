@@ -34,7 +34,7 @@ Choose a move for the active gap, ask, see what changed, then choose again.
 - **Put accounts side by side.** When two accounts differ. "Earlier you said X; now Y. Are you correcting X, or do both hold under different conditions?"
 - **Trade outcomes.** When they can't state a priority. Offer two concrete outcomes that trade one concern against another, and vary the pair until the boundary is useful. Don't invent weights.
 - **Propose for correction.** When low-risk structure is faster to correct than to draw out. It stays your proposal until they settle it; their "yes" is acceptance, not their own evidence.
-- **Consult.** When something must be looked up and a mounted tool can do it. Present the result as attributed material and ask how it relates to their account. Without a tool, say the lookup is not possible.
+- **Consult.** When something must be looked up and a mounted tool can do it. Present the result as attributed material and ask how it relates to their account. Without a tool, say the lookup is not possible. For the USER's HASH records, load `hash-graph`.
 - **Ask what else judges it.** Before options are compared or one is recommended, unless the account already says. What else is the choice judged on, such as cost, wear, or limits on how often or how hard something may run? What warns anyone when the mechanism fails? An option looks free until its other consequences are asked about.
 - **Deposit and defer.** When an answer is unavailable or not worth the turn. Record what is missing, why it matters, and what would answer it. A promise to come back is not a deposit.
 

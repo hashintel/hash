@@ -5,6 +5,7 @@ import { createQueryBasisTool } from "../petrinaut/tools/query-basis.ts";
 import { interviewBudgetInstruction } from "./interview-budget-instruction.ts";
 import system from "./prompts/system.md?raw";
 import eliciting from "./skills/eliciting/SKILL.md";
+import hashGraph from "./skills/hash-graph/SKILL.md";
 import modelling from "./skills/modelling/SKILL.md";
 import petrinaut from "./skills/petrinaut/SKILL.md";
 import { wordsInstruction } from "./words-instruction.ts";
@@ -18,8 +19,8 @@ import type {
  * Everything the model reads, and every tool that writes or reads the Ledger.
  * Besides the system prompt it mounts an instruction only for host context, an
  * interview allowance or preferred spellings:
- * Petrinaut, runtime, experiment and `query_basis` guidance live in the skills
- * and tool descriptions instead.
+ * Petrinaut, HASH graph, runtime, experiment and `query_basis` guidance live
+ * in the skills and tool descriptions instead.
  */
 export const useGuidance = (
   model: string,
@@ -39,6 +40,7 @@ export const useGuidance = (
   useSkill(eliciting);
   useSkill(modelling);
   useSkill(petrinaut);
+  useSkill(hashGraph);
   for (const tool of createLedgerTools(readHistory)) useTool(tool);
   return {
     system: system.trim(),
