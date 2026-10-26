@@ -1,6 +1,10 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { brunchTools, canonicalContent } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  canonicalContent,
+  hashGraphReadToolNames,
+} from "@hashintel/brunch-agent";
 
 import { createInBandBrowserCalls } from "./in-band-browser-call";
 
@@ -304,9 +308,10 @@ const stubHashReadFetch = () => {
   return posted;
 };
 
-test("HASH's entity read runs in band beside the net tools, and the draft still runs through its card", () => {
+test("HASH's graph reads run in band beside the net tools, and the draft still runs through its card", () => {
   const calls = createCalls();
-  expect(calls.has(brunchTools.queryHashEntities)).toBe(true);
+  expect(hashGraphReadToolNames.size).toBe(3);
+  for (const name of hashGraphReadToolNames) expect(calls.has(name)).toBe(true);
   expect(calls.has("readNetOutline")).toBe(true);
   expect(calls.has(brunchTools.draftPetrinautExperiment)).toBe(false);
   expect(calls.has("unmounted_tool")).toBe(false);
@@ -338,7 +343,7 @@ test("HASH's entity read is claimed for the input the server issued and settles 
   });
 });
 
-test("a HASH entity read whose query fails is reported failed", async () => {
+test("a HASH entity read whose host tool throws is reported failed", async () => {
   const posted = stubHashReadFetch();
   const failure = new Error("GraphQL error");
 

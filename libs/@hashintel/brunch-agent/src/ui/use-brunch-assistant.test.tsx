@@ -575,6 +575,8 @@ test("mounts document-bound Brunch with canonical overrides and the complete sta
       "readNetStructure",
       brunchTools.draftPetrinautExperiment,
       brunchTools.queryHashEntities,
+      brunchTools.queryHashEntityTypes,
+      brunchTools.queryHashWebs,
     ].toSorted(),
   );
   expect(aiAssistant.inBandBrowserTools?.has("readNetOutline")).toBe(true);
