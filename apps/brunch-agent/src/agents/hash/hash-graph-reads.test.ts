@@ -42,6 +42,13 @@ vi.mock("./skills/modelling/SKILL.md", () => ({
 vi.mock("./skills/petrinaut/SKILL.md", () => ({
   default: { name: "petrinaut", description: "Petrinaut.", instructions: "." },
 }));
+vi.mock("./skills/hash-graph/SKILL.md", () => ({
+  default: {
+    name: "hash-graph",
+    description: "HASH graph.",
+    instructions: ".",
+  },
+}));
 
 type Step = (context: TranscriptContext) => AssistantMessage;
 

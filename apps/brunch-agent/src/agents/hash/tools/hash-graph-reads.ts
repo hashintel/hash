@@ -104,7 +104,7 @@ export type HashEntityReadInput = v.InferOutput<
 >;
 
 export const hashEntityReadDescription =
-  "Read entities from the HASH graph, as the signed-in user: only what they may see is returned, so an entity that is absent may exist but be hidden from them. Filters combine: an entity must match every filter given. Returns { entities }, each with its entityId, editionId (the exact version read), webId, entityTypeIds, properties (keyed by property type URL), draft, whether it matched the filters (matched) or was reached by following links, and, for a link entity, its linkData. A read that failed returns { error }.";
+  "Read entities from the HASH graph, as the signed-in user: only what they may see is returned, so an entity that is absent may exist but be hidden from them. Filters combine: an entity must match every filter given. Returns { entities }, each with its entityId, editionId (the exact version read), webId, entityTypeIds, properties (keyed by property type URL), draft, whether it matched the filters (matched) or was reached by following links, and, for a link entity, its linkData. A read that failed returns { error }. Read webs with query_hash_webs and types with query_hash_entity_types first, for the web ids and type titles to filter by; then follow up on a found entity by its entityId.";
 
 /** One entity as HASH's page returns it: every field comes from the same returned edition. */
 const hashEntitySchema = v.object({
@@ -173,7 +173,7 @@ export type HashEntityTypeReadInput = v.InferOutput<
 >;
 
 export const hashEntityTypeReadDescription =
-  "List the entity types in the HASH graph that the signed-in user can see, at their latest version. Returns { entityTypes }, each with its entityTypeId (a versioned URL), title, description, properties (inherited ones included), each with its baseUrl (the key an entity's properties use) and title, and links, each with its linkEntityTypeId, title and the entity types it may point to (destinationEntityTypeIds, absent when any may). A type's title or entityTypeId can filter an entity read. A read that failed returns { error }.";
+  "List the entity types in the HASH graph that the signed-in user can see, at their latest version. Returns { entityTypes }, each with its entityTypeId (a versioned URL), title, description, properties (inherited ones included), each with its baseUrl (the key an entity's properties use) and title, and links, each with its linkEntityTypeId, title and the entity types it may point to (destinationEntityTypeIds, absent when any may). A type's title or entityTypeId can filter an entity read. A read that failed returns { error }. Read it after query_hash_webs and before query_hash_entities. Pass webIds from query_hash_webs; without them every entity type the user can see is listed, which can be very large.";
 
 const hashEntityTypeSchema = v.object({
   entityTypeId: v.string(),
@@ -237,7 +237,7 @@ export const createHashEntityTypeReadTool = (execute: BrowserToolExecutor) =>
 export const hashWebReadInputSchema = v.strictObject({});
 
 export const hashWebReadDescription =
-  "List the signed-in user's own HASH web and the webs of the organizations they belong to. Returns { webs }, each with its webId, kind (user or organization), and its shortname and name where it has them. A web id can limit an entity or entity type read. A read that failed returns { error }.";
+  "List the signed-in user's own HASH web and the webs of the organizations they belong to. Returns { webs }, each with its webId, kind (user or organization), and its shortname and name where it has them. A web id can limit an entity or entity type read. A read that failed returns { error }. Read it first, before query_hash_entity_types and query_hash_entities.";
 
 const hashWebReadResultSchema = v.object({
   webs: v.array(

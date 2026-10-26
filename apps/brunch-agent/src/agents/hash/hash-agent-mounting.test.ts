@@ -68,6 +68,9 @@ vi.mock("./skills/modelling/SKILL.md", () => ({
 vi.mock("./skills/petrinaut/SKILL.md", () => ({
   default: { name: "petrinaut" },
 }));
+vi.mock("./skills/hash-graph/SKILL.md", () => ({
+  default: { name: "hash-graph" },
+}));
 vi.mock("../petrinaut/skills/eliciting/SKILL.md", () => ({
   default: { name: "eliciting" },
 }));
@@ -97,6 +100,8 @@ const systemPrompt = async () =>
   (
     await readFile(new URL("./prompts/system.md", import.meta.url), "utf8")
   ).trim();
+/** The system prompt's opening of its paragraph on the HASH graph. */
+const hashGraphParagraph = "You work inside HASH. The _user_'s HASH graph";
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
@@ -118,7 +123,12 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
   const { HashAgent: renderAgent } = await import("./agent.ts");
   expect(renderAgent({ id: "bound" })).toBe(await systemPrompt());
   expect(mounted.contextProjections).toBe(1);
-  expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
+  expect(mounted.skills).toEqual([
+    "eliciting",
+    "modelling",
+    "petrinaut",
+    "hash-graph",
+  ]);
   expect(mounted.tools).toEqual(
     expect.arrayContaining([
       brunchTools.ledgerCommit,
@@ -160,7 +170,12 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
 test("a conversation without initial data mounts the guidance and Ledger without browser tools", async () => {
   const { HashAgent: renderAgent } = await import("./agent.ts");
   renderAgent({ id: "unbound" });
-  expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
+  expect(mounted.skills).toEqual([
+    "eliciting",
+    "modelling",
+    "petrinaut",
+    "hash-graph",
+  ]);
   expect(mounted.tools.sort()).toEqual(
     [
       brunchTools.ledgerCommit,
@@ -169,6 +184,38 @@ test("a conversation without initial data mounts the guidance and Ledger without
     ].sort(),
   );
   expect(mounted.instructions).toEqual([]);
+});
+
+test("only the HASH agent is guided to its graph: the skill, the system prompt's paragraph and the order of reads", async () => {
+  mounted.initialData = bound;
+  const [
+    { HashAgent: renderHashAgent },
+    { PetrinautAgent: renderPetrinautAgent },
+  ] = await Promise.all([
+    import("./agent.ts"),
+    import("../petrinaut/agent.ts"),
+  ]);
+  const hashPrompt = renderHashAgent({ id: "hash" });
+  expect(hashPrompt).toContain(hashGraphParagraph);
+  expect(hashPrompt).toContain("Load `hash-graph`");
+  expect(mounted.skills).toContain("hash-graph");
+  expect(mounted.descriptions.get(brunchTools.queryHashWebs)).toContain(
+    "Read it first, before query_hash_entity_types and query_hash_entities.",
+  );
+  expect(mounted.descriptions.get(brunchTools.queryHashEntityTypes)).toContain(
+    "Read it after query_hash_webs and before query_hash_entities. Pass webIds from query_hash_webs; without them every entity type the user can see is listed, which can be very large.",
+  );
+  expect(mounted.descriptions.get(brunchTools.queryHashEntities)).toContain(
+    "Read webs with query_hash_webs and types with query_hash_entity_types first",
+  );
+
+  mounted.skills.length = 0;
+  mounted.descriptions.clear();
+  const petrinautPrompt = renderPetrinautAgent({ id: "petrinaut" });
+  expect(petrinautPrompt).not.toContain(hashGraphParagraph);
+  expect(petrinautPrompt).not.toContain("hash-graph");
+  expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
+  expect(mounted.descriptions.has(brunchTools.queryHashWebs)).toBe(false);
 });
 
 test("the agent admits a document binding or no initial data", () => {
