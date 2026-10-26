@@ -5,6 +5,10 @@
     "@local/tsconfig"
   ],
   "tasks": {
+    "bench:unit": {
+      "dependsOn": [],
+      "cache": false
+    },
     "build": {
       "dependsOn": [
         "@local/oxlint#build"
