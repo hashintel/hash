@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import react from "@vitejs/plugin-react";
-import { defaultClientConditions } from "vite";
+import { defaultClientConditions, defaultServerConditions } from "vite";
 import { defineConfig } from "vitest/config";
 
 /** Resolves Brunch workspace packages, this one included, to their source. */
@@ -76,6 +76,20 @@ export const defineBrunchLibraryConfig = (
     ],
     resolve: {
       conditions: [workspaceSourceCondition, ...defaultClientConditions],
+    },
+    // Node-environment tests resolve through SSR, which has its own
+    // conditions; without the source condition this package's self-imports
+    // would need its `dist`, which a test run does not build. Vitest's own
+    // SSR default leaves out `module`, whose builds Node cannot import.
+    ssr: {
+      resolve: {
+        conditions: [
+          workspaceSourceCondition,
+          ...defaultServerConditions.filter(
+            (condition) => condition !== "module",
+          ),
+        ],
+      },
     },
     root: fileURLToPath(new URL(".", packageUrl)),
     test: {
