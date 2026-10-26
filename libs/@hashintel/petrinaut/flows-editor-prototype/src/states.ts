@@ -756,6 +756,42 @@ const figmaStates: ScreenState[] = [
     },
   },
   {
+    id: "run-a",
+    journey: 3,
+    row: "Run view · 26 Oct",
+    title: "Run · A · A step outside the loop",
+    caption:
+      "The same sections, read-only, with the value each got. A list of entities opens a table.",
+    create: () => ({
+      document: supplierReviewExample(),
+      ui: { ...initialUi, run: true, selectedId: "findSuppliers" },
+    }),
+  },
+  {
+    id: "run-b",
+    journey: 3,
+    row: "Run view · 26 Oct",
+    title: "Run · B · For each: every item, ticked or crossed",
+    caption:
+      "18 of 20 done, 2 failed. Pick an item to see its own steps; the failed step says why.",
+    create: () => ({
+      document: supplierReviewExample(),
+      ui: { ...initialUi, run: true, selectedId: "eachSupplier", runItem: 1 },
+    }),
+  },
+  {
+    id: "run-c",
+    journey: 3,
+    row: "Run view · 26 Oct",
+    title: "Run · C · A failed step inside the loop",
+    caption:
+      "Fetch certificate for Boreal Metals: three tries as log lines. The switcher on top moves between items.",
+    create: () => ({
+      document: supplierReviewExample(),
+      ui: { ...initialUi, run: true, selectedId: "fetchCertificate", runItem: 1 },
+    }),
+  },
+  {
     id: "j4-a1",
     journey: 4,
     row: "Triggers listed on Start",

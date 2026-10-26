@@ -32,6 +32,10 @@ export type EditorUi = {
   recent: string[];
   /** A step just added for the user (Look up in the graph): the canvas pans to it and highlights it briefly. */
   flashId?: string | null;
+  /** MOCK run view (26 Oct): the panel shows one run of the flow, read-only (`run-view.tsx`). */
+  run?: boolean;
+  /** In the run view: which item of the For each the panels show. */
+  runItem?: number;
   /** Outputs: node icons on the "used by" chips, or plain chips. Both are shown to choose between (26 Oct). */
   outputIcons?: boolean;
   /** J2's query has no "Where" label and adds a "condition"; J3's has "Where" / "And" and "Add filter". */

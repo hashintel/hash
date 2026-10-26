@@ -57,6 +57,7 @@ import {
 import { isMockPayloadKind } from "./mock-action-definitions";
 import { OutputRows } from "./outputs";
 import { BranchRows } from "./branches";
+import { RunPanel } from "./run-view";
 import { findEntityType, mockEntities, mockEntityTypes } from "./mock-graph";
 import {
   describeCron,
@@ -1588,7 +1589,9 @@ export const PropertiesPanel = () => {
     <aside className={panelStyle} aria-label="Properties">
       <OverlayScrollArea>
         <div className={panelBodyStyle}>
-          {!ui.selectedId ? (
+          {ui.run ? (
+            <RunPanel />
+          ) : !ui.selectedId ? (
             // J4 B1: with nothing selected, the panel names the flow.
             <div className={panelHeaderStyle}>
               <span className={typeLineStyle}>{document.name}</span>
