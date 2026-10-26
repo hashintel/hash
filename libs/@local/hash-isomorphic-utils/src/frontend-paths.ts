@@ -6,11 +6,11 @@ export const generateEntityPath = (params: {
   entityId: EntityId;
   includeDraftId: boolean;
   shortname: string;
-}) => {
+}): string => {
   const [_webId, entityUuid, draftId] = splitEntityId(params.entityId);
   const baseHref = `/@${params.shortname}/entities/${entityUuid}`;
 
-  if (!draftId || !params.includeDraftId) {
+  if (draftId === undefined || !params.includeDraftId) {
     return baseHref;
   }
 

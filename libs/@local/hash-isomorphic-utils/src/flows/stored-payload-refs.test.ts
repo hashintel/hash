@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { assertNoStoredPayloadRefsInFlowInputs } from "./stored-payload-refs.js";
 
@@ -13,18 +13,24 @@ const storedArray: StoredObjectRef<"PersistedEntityMetadata", true> = {
 };
 
 describe("assertNoStoredPayloadRefsInFlowInputs", () => {
-  it("rejects an input whose value is a stored reference, naming it", () => {
+  test("rejects an input whose value is a stored reference, naming it", () => {
+    expect.hasAssertions();
+
+    // SAFETY: the literal omits input fields irrelevant to this check but has the shape of FlowInputValues.
     const flowInputs = {
       query: { kind: "Text", value: "a" },
       entities: { kind: "PersistedEntityMetadata", value: storedArray },
     } as FlowInputValues;
 
-    expect(() => assertNoStoredPayloadRefsInFlowInputs(flowInputs)).toThrow(
-      /^Flow input "entities" contains a stored payload reference/,
-    );
+    expect(() => {
+      assertNoStoredPayloadRefsInFlowInputs(flowInputs);
+    }).toThrow(/^Flow input "entities" contains a stored payload reference/u);
   });
 
-  it("rejects a stored reference held as an item of an inline array", () => {
+  test("rejects a stored reference held as an item of an inline array", () => {
+    expect.hasAssertions();
+
+    // SAFETY: the literal omits input fields irrelevant to this check but has the shape of FlowInputValues.
     const flowInputs = {
       entity: {
         kind: "PersistedEntityMetadata",
@@ -39,23 +45,30 @@ describe("assertNoStoredPayloadRefsInFlowInputs", () => {
           },
         ],
       },
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- partial literal, only the inputs under test are present
     } as FlowInputValues;
 
-    expect(() => assertNoStoredPayloadRefsInFlowInputs(flowInputs)).toThrow(
-      /^Flow input "entity" contains a stored payload reference/,
-    );
+    expect(() => {
+      assertNoStoredPayloadRefsInFlowInputs(flowInputs);
+    }).toThrow(/^Flow input "entity" contains a stored payload reference/u);
   });
 
-  it("accepts inline values, and leaves malformed payloads to other checks", () => {
-    const flowInputs = {
+  test("accepts inline values, and leaves malformed payloads to other checks", () => {
+    expect.hasAssertions();
+
+    // oxlint-disable-next-line typescript/no-restricted-types -- deliberately malformed payloads that do not satisfy FlowInputValues
+    const malformedInputs: unknown = {
       query: { kind: "Text", value: "a" },
       urls: { kind: "Text", value: ["https://example.com", "b"] },
       every: { kind: "Duration", value: { amount: 1, unit: "days" } },
       malformed: null,
-    } as unknown as FlowInputValues;
+    };
+    // SAFETY: deliberately malformed, since the function must tolerate payloads that are not objects.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the test feeds a malformed payload on purpose
+    const flowInputs = malformedInputs as FlowInputValues;
 
-    expect(() =>
-      assertNoStoredPayloadRefsInFlowInputs(flowInputs),
-    ).not.toThrow();
+    expect(() => {
+      assertNoStoredPayloadRefsInFlowInputs(flowInputs);
+    }).not.toThrow();
   });
 });

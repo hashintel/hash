@@ -25,6 +25,5 @@ export type TextToken =
       linkEntityTypeBaseUrl?: BaseUrl;
     };
 
-export const isNotNullish = <T>(value: T): value is NonNullable<T> => {
-  return value !== null && value !== undefined;
-};
+export const isNotNullish = <T>(value: T): value is NonNullable<T> =>
+  value !== null && value !== undefined;

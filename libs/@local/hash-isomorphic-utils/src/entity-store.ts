@@ -1,5 +1,6 @@
 import { produce } from "immer";
 
+// oxlint-disable-next-line import/no-cycle -- entity-store-plugin also imports the types in this module; generateDraftIdForEntity cannot move without editing that module
 import { generateDraftIdForEntity } from "./entity-store-plugin.js";
 import { blockProtocolPropertyTypes } from "./ontology-type-ids.js";
 
@@ -18,6 +19,7 @@ export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 export const textualContentPropertyTypeBaseUrl =
   blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl;
 
+// oxlint-disable-next-line typescript/consistent-type-definitions -- an interface has no implicit index signature, so it is not assignable to the `Record<string, unknown>` parameters that take draft entities
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   metadata: {
     recordId: {
@@ -53,18 +55,20 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   // updatedAt: string;
 };
 
-export type EntityStore = {
+export interface EntityStore {
   saved: Record<string, EntityStoreType>;
   draft: Record<string, DraftEntity>;
-};
+}
 
 /**
  * @todo should be more robust
  */
+// oxlint-disable-next-line typescript/no-restricted-types -- type guard over arbitrary input
 export const isEntity = (value: unknown): value is EntityStoreType =>
   typeof value === "object" && value !== null && "metadata" in value;
 
 // @todo does this need to be more robust?
+// oxlint-disable-next-line typescript/no-restricted-types -- type guard over arbitrary input
 export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
   isEntity(entity) &&
   "blockChildEntity" in entity &&
@@ -76,6 +80,7 @@ export const isDraftEntity = <T extends EntityStoreType>(
 ): entity is DraftEntity<T> => "draftId" in entity;
 
 export const isDraftBlockEntity = (
+  // oxlint-disable-next-line typescript/no-restricted-types -- type guard over arbitrary input
   entity: unknown,
 ): entity is DraftEntity<BlockEntity> =>
   isBlockEntity(entity) && isDraftEntity(entity);
@@ -100,7 +105,7 @@ const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
     entities.push(entity);
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    if (entity.blockChildEntity) {
+    if (entity.blockChildEntity !== undefined) {
       entities.push(entity.blockChildEntity);
     }
   }
@@ -114,11 +119,103 @@ const restoreDraftId = (
 ): string => {
   const textEntityId = identifiers.entityId;
 
-  if (!textEntityId) {
+  if (textEntityId === null || textEntityId === "") {
     throw new Error("entity id does not exist when expected to");
   }
 
-  return entityToDraft[textEntityId]!;
+  const draftId = entityToDraft[textEntityId];
+
+  if (draftId === undefined) {
+    throw new Error(`no draft id exists for entity id ${textEntityId}`);
+  }
+
+  return draftId;
+};
+
+const getEntityToDraft = (
+  draftData: Record<string, DraftEntity>,
+  presetDraftIds: Record<string, string>,
+): Record<string, string> => {
+  const entityToDraft = Object.fromEntries(
+    Object.entries(presetDraftIds).map(([draftId, entityId]) => [
+      entityId,
+      draftId,
+    ]),
+  );
+
+  for (const row of Object.values(draftData)) {
+    if (row.metadata.recordId.entityId !== null) {
+      entityToDraft[row.metadata.recordId.entityId] = row.draftId;
+    }
+  }
+
+  return entityToDraft;
+};
+
+/**
+ * If we have a local draft of this entity, and it's recorded as being updated more recently than the API-provided one,
+ * we prefer the local entity. We set the decision time manually in the entityStoreReducer when updating properties.
+ * This is not a good long-term solution – we need a collaborative editing server to manage document state. H-1234
+ */
+const preferNewerLocalDraft = (
+  draftEntity: Draft<DraftEntity>,
+  localDraft: DraftEntity | undefined,
+): void => {
+  if (
+    localDraft !== undefined &&
+    new Date(
+      localDraft.metadata.temporalVersioning.decisionTime.start.limit,
+    ).getTime() >
+      new Date(
+        draftEntity.metadata.temporalVersioning.decisionTime.start.limit,
+      ).getTime()
+  ) {
+    Object.assign(draftEntity, localDraft);
+  }
+};
+
+const restoreDraftIds = (
+  draftEntity: Draft<DraftEntity>,
+  entityToDraft: Record<string, string>,
+): void => {
+  if (!isDraftBlockEntity(draftEntity)) {
+    return;
+  }
+
+  const restoredDraftId = restoreDraftId(
+    {
+      // This type is very deep now, so traversal causes TS to complain.
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment -- see above
+      // @ts-expect-error -- see above
+      entityId: draftEntity.metadata.recordId.entityId,
+      draftId: draftEntity.draftId,
+    },
+    entityToDraft,
+  );
+
+  draftEntity.draftId = restoredDraftId;
+
+  // Set the blockChildEntity's draft ID on a block draft.
+  const blockChildEntity = draftEntity.blockChildEntity;
+  const blockChildEntityId = blockChildEntity?.metadata.recordId.entityId;
+
+  if (
+    blockChildEntity !== undefined &&
+    (blockChildEntity.draftId === undefined ||
+      blockChildEntity.draftId === "") &&
+    blockChildEntityId !== undefined &&
+    blockChildEntityId !== ""
+  ) {
+    const restoredBlockDraftId = restoreDraftId(
+      {
+        entityId: blockChildEntityId,
+        draftId: blockChildEntity.draftId,
+      },
+      entityToDraft,
+    );
+
+    blockChildEntity.draftId = restoredBlockDraftId;
+  }
 };
 
 /**
@@ -140,26 +237,15 @@ export const createEntityStore = (
   const saved: EntityStore["saved"] = {};
   const draft: EntityStore["draft"] = {};
 
-  const entityToDraft = Object.fromEntries(
-    Object.entries(presetDraftIds).map(([draftId, entityId]) => [
-      entityId,
-      draftId,
-    ]),
-  );
-
-  for (const row of Object.values(draftData)) {
-    if (row.metadata.recordId.entityId) {
-      entityToDraft[row.metadata.recordId.entityId] = row.draftId;
-    }
-  }
+  const entityToDraft = getEntityToDraft(draftData, presetDraftIds);
 
   const entities = findEntities(contents);
 
   for (const entity of entities) {
     const entityId = entity.metadata.recordId.entityId;
+    const existingDraftId = entityToDraft[entityId];
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
-    if (entity && !entityToDraft[entityId]) {
+    if (existingDraftId === undefined || existingDraftId === "") {
       entityToDraft[entityId] = generateDraftIdForEntity(entityId);
     }
   }
@@ -168,7 +254,12 @@ export const createEntityStore = (
     const entityId = entity.metadata.recordId.entityId;
 
     saved[entityId] = entity;
-    const draftId = entityToDraft[entityId]!;
+    const draftId = entityToDraft[entityId];
+
+    if (draftId === undefined) {
+      throw new Error(`no draft id was generated for entity id ${entityId}`);
+    }
+
     /**
      * We current violate Immer's rules, as properties inside entities can be
      * other entities themselves, and we expect `entity.property.entity` to be
@@ -188,61 +279,14 @@ export const createEntityStore = (
         draftId,
       },
       (draftEntity: Draft<DraftEntity>) => {
-        if (draftData[draftId]) {
-          /**
-           * If we have a local draft of this entity, and it's recorded as being updated more recently than the API-provided one,
-           * we prefer the local entity. We set the decision time manually in the entityStoreReducer when updating properties.
-           * This is not a good long-term solution – we need a collaborative editing server to manage document state. H-1234
-           */
-          if (
-            new Date(
-              draftData[draftId].metadata.temporalVersioning.decisionTime.start
-                .limit,
-            ).getTime() >
-            new Date(
-              draftEntity.metadata.temporalVersioning.decisionTime.start.limit,
-            ).getTime()
-          ) {
-            Object.assign(draftEntity, draftData[draftId]);
-          }
-        }
+        preferNewerLocalDraft(draftEntity, draftData[draftId]);
       },
     );
 
     draft[draftId] = produce<DraftEntity>(
       draft[draftId],
       (draftEntity: Draft<DraftEntity>) => {
-        if (isDraftBlockEntity(draftEntity)) {
-          const restoredDraftId = restoreDraftId(
-            {
-              // This type is very deep now, so traversal causes TS to complain.
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore
-              entityId: draftEntity.metadata.recordId.entityId,
-              draftId: draftEntity.draftId,
-            },
-            entityToDraft,
-          );
-
-          draftEntity.draftId = restoredDraftId;
-
-          // Set the blockChildEntity's draft ID on a block draft.
-          if (
-            !draftEntity.blockChildEntity?.draftId &&
-            draftEntity.blockChildEntity?.metadata.recordId.entityId
-          ) {
-            const restoredBlockDraftId = restoreDraftId(
-              {
-                entityId:
-                  draftEntity.blockChildEntity.metadata.recordId.entityId,
-                draftId: draftEntity.blockChildEntity.draftId,
-              },
-              entityToDraft,
-            );
-
-            draftEntity.blockChildEntity.draftId = restoredBlockDraftId;
-          }
-        }
+        restoreDraftIds(draftEntity, entityToDraft);
       },
     );
   }
@@ -250,14 +294,20 @@ export const createEntityStore = (
   for (const [draftId, draftEntity] of Object.entries(draftData)) {
     // BaseId is readonly, so we have to do this instead of assigning
     // updated.metadata.recordId.baseUrl
+    const presetEntityId =
+      presetDraftIds[draftEntity.draftId] ??
+      draftEntity.metadata.recordId.entityId;
+    // SAFETY: preset draft ids map to entity ids, and the fallback is the draft's own entity id
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the preset value is an entity id by construction, but is typed as a plain string
+    const baseId = presetEntityId as EntityId;
+
     const updated = {
       ...draftEntity,
       metadata: {
         ...draftEntity.metadata,
         editionId: {
           ...draftEntity.metadata.recordId,
-          baseId: (presetDraftIds[draftEntity.draftId] ??
-            draftEntity.metadata.recordId.entityId) as EntityId,
+          baseId,
         },
       },
     };
@@ -267,17 +317,19 @@ export const createEntityStore = (
 
   for (const [draftId, entityId] of Object.entries(presetDraftIds)) {
     const draftEntity = draft[draftId];
-    if (!draftEntity) {
+    if (draftEntity === undefined) {
       throw new Error("Cannot update relevant entity id");
     }
     if (
-      draftEntity.metadata.recordId.entityId &&
+      draftEntity.metadata.recordId.entityId !== null &&
       draftEntity.metadata.recordId.entityId !== entityId
     ) {
       throw new Error("Cannot update entity id of existing draft entity");
     }
 
     draft[draftId] = produce(draftEntity, (draftDraftEntity) => {
+      // SAFETY: preset draft ids map to entity ids
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the preset value is an entity id by construction, but is typed as a plain string
       draftDraftEntity.metadata.recordId.entityId = entityId as EntityId;
     });
   }

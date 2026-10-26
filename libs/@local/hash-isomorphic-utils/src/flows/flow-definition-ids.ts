@@ -5,6 +5,10 @@ import {
 
 import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
 
+// SAFETY: every caller passes one of the fixed uuid literals below, which are the entity uuids of the seeded definitions.
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- a branded `EntityUuid` cannot be built from a string without an assertion
+const toEntityUuid = (uuid: string): EntityUuid => uuid as EntityUuid;
+
 /**
  * The ids of the flows defined in code, which are also the entity uuids of their `Flow Definition` entities in the
  * `h` web.
@@ -14,17 +18,19 @@ import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
  * graph, and the frontend draws it from there.
  */
 export const flowDefinitionIds = {
-  goal: "ea4ac27d-7fe2-5400-ac72-ab4b41de9f67" as EntityUuid,
-  manualBrowserInference: "a7bc5e44-f1ce-5126-b5db-8eb4cf054116" as EntityUuid,
-  automaticBrowserInference:
-    "a4385fa8-a457-584e-b81e-f7e49f3d0b3c" as EntityUuid,
-  inferMetadataFromDocument:
-    "936f6a29-a964-533b-ae1a-03bed7da6471" as EntityUuid,
-  configureDashboardItem: "bf7f36a2-221e-5e7d-9879-289c1f56c148" as EntityUuid,
-  refineDashboardItem: "6216ef71-5b7b-5468-bf12-9a34e30604b5" as EntityUuid,
-  historicalFlights: "113ce2ec-6a12-56b6-b495-072475889b37" as EntityUuid,
-  scheduledFlights: "96a80402-c41b-5978-a018-b30f7e09bfe0" as EntityUuid,
-  ftseInvestors: "25f32cd2-6f6e-5641-92b7-d9a90e517e0f" as EntityUuid,
+  goal: toEntityUuid("ea4ac27d-7fe2-5400-ac72-ab4b41de9f67"),
+  manualBrowserInference: toEntityUuid("a7bc5e44-f1ce-5126-b5db-8eb4cf054116"),
+  automaticBrowserInference: toEntityUuid(
+    "a4385fa8-a457-584e-b81e-f7e49f3d0b3c",
+  ),
+  inferMetadataFromDocument: toEntityUuid(
+    "936f6a29-a964-533b-ae1a-03bed7da6471",
+  ),
+  configureDashboardItem: toEntityUuid("bf7f36a2-221e-5e7d-9879-289c1f56c148"),
+  refineDashboardItem: toEntityUuid("6216ef71-5b7b-5468-bf12-9a34e30604b5"),
+  historicalFlights: toEntityUuid("113ce2ec-6a12-56b6-b495-072475889b37"),
+  scheduledFlights: toEntityUuid("96a80402-c41b-5978-a018-b30f7e09bfe0"),
+  ftseInvestors: toEntityUuid("25f32cd2-6f6e-5641-92b7-d9a90e517e0f"),
 } as const;
 
 /**
@@ -43,12 +49,13 @@ export const generateHashFlowDefinitionEntityId = (
 export const isHashFlowDefinitionEntityId = (
   flowDefinitionEntityId: EntityId,
   flowDefinitionId: EntityUuid,
-) => extractEntityUuidFromEntityId(flowDefinitionEntityId) === flowDefinitionId;
+): boolean =>
+  extractEntityUuidFromEntityId(flowDefinitionEntityId) === flowDefinitionId;
 
 /**
  * Whether a run or definition is of the goal flow.
  */
 export const isGoalFlowDefinitionEntityId = (
   flowDefinitionEntityId: EntityId,
-) =>
+): boolean =>
   isHashFlowDefinitionEntityId(flowDefinitionEntityId, flowDefinitionIds.goal);

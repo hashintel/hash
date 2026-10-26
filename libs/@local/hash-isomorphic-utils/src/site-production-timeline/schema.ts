@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const nonEmptyString = z.string().min(1);
 const nullableNonEmptyString = nonEmptyString.nullable();
-const nonNegativeNumber = z.number().finite().nonnegative();
+const nonNegativeNumber = z.number().nonnegative();
 const isoDate = z.iso.date();
 
 const provenanceSchema = z.strictObject({
@@ -112,7 +112,7 @@ export const siteTimelineBatchSchema = z.strictObject({
   start: isoDate,
   end: isoDate,
   span_days: z.number().int().positive(),
-  quantity: z.number().finite().positive().nullable(),
+  quantity: z.number().positive().nullable(),
   uom: nullableNonEmptyString,
   timing_kind: siteTimelineTimingKindSchema,
   start_source: siteTimelineStartSourceSchema,
@@ -132,7 +132,7 @@ export const siteTimelineBatchSchema = z.strictObject({
   allocated_quantity: nonNegativeNumber,
   unallocated_quantity: nonNegativeNumber.nullable(),
   allocation_overage_quantity: nonNegativeNumber.nullable(),
-  allocation_tolerance: z.number().finite().positive(),
+  allocation_tolerance: z.number().positive(),
   data_quality_flags: z.array(nonEmptyString),
 });
 
@@ -140,7 +140,7 @@ const unresolvedOutputSchema = z.strictObject({
   material: nonEmptyString,
   batch: nullableNonEmptyString,
   output_date: isoDate.nullable(),
-  quantity: z.number().finite().positive().nullable(),
+  quantity: z.number().positive().nullable(),
 });
 
 export const siteTimelineConsumptionEdgeSchema = z.strictObject({
@@ -151,7 +151,7 @@ export const siteTimelineConsumptionEdgeSchema = z.strictObject({
   unresolved_outputs: z.array(unresolvedOutputSchema),
   consuming_order: nullableNonEmptyString,
   consumption_date: isoDate,
-  quantity: z.number().finite().positive(),
+  quantity: z.number().positive(),
   uom: nullableNonEmptyString,
   confidence: siteTimelineEdgeConfidenceSchema,
   reason: nonEmptyString,
@@ -178,6 +178,16 @@ export const siteTimelineDataQualitySchema = z.strictObject({
   unidentifiable_receipt_events: z.number().int().nonnegative(),
 });
 
+const siteTimelineSourceSchema = z.strictObject({
+  production_windows: nonEmptyString,
+  receipt_events: nonEmptyString,
+  consumption_edges: nonEmptyString,
+  metadata: z.record(nonEmptyString, z.string()),
+  unidentifiable_receipt_events: z.number().int().nonnegative(),
+  metadata_warnings: z.array(nonEmptyString).optional(),
+  receipt_warnings: z.array(nonEmptyString).optional(),
+});
+
 export const siteProductionTimelineSchema = z.strictObject({
   schema_version: z.literal("1.3"),
   artifact_type: z.literal("site_production_timeline"),
@@ -197,15 +207,7 @@ export const siteProductionTimelineSchema = z.strictObject({
   batches: z.array(siteTimelineBatchSchema),
   consumption_edges: z.array(siteTimelineConsumptionEdgeSchema),
   data_quality: siteTimelineDataQualitySchema,
-  source: z.strictObject({
-    production_windows: nonEmptyString,
-    receipt_events: nonEmptyString,
-    consumption_edges: nonEmptyString,
-    metadata: z.record(nonEmptyString, z.string()),
-    unidentifiable_receipt_events: z.number().int().nonnegative(),
-    metadata_warnings: z.array(nonEmptyString).optional(),
-    receipt_warnings: z.array(nonEmptyString).optional(),
-  }),
+  source: siteTimelineSourceSchema,
 });
 
 export type SiteProductionTimeline = z.infer<

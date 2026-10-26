@@ -6,12 +6,7 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import {
-  type EntityId,
-  splitEntityId,
-  type VersionedUrl,
-  type WebId,
-} from "@blockprotocol/type-system";
+import { splitEntityId } from "@blockprotocol/type-system";
 import {
   deserializeQueryEntitySubgraphResponse,
   HashEntity,
@@ -55,6 +50,7 @@ import type {
   LinkEntityAndRightEntity,
   Subgraph,
 } from "@blockprotocol/graph";
+import type { EntityId, VersionedUrl, WebId } from "@blockprotocol/type-system";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { Node } from "prosemirror-model";
 
@@ -550,7 +546,7 @@ export const save = async ({
             getBlockCollectionTraversalPath({ blockDataDepth: 1 }),
           ],
           temporalAxes: currentTimeInstantTemporalAxes,
-          includeDrafts: !!draftId,
+          includeDrafts: Boolean(draftId),
           includePermissions: false,
         },
       },

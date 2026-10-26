@@ -1,4 +1,5 @@
-import Big from "big.js";
+/* oxlint-disable max-lines -- data type schema merging and selector tree building live together; splitting them needs new modules and import changes across the monorepo */
+import { Big } from "big.js";
 
 import {
   componentsFromVersionedUrl,
@@ -37,20 +38,26 @@ type MergedStringSchema = {
   enum?: string[];
 } & Omit<StringConstraints, "pattern"> & { pattern?: string[] };
 
-type ObjectSchema = { type: "object" };
+interface ObjectSchema {
+  type: "object";
+}
 
-type NullSchema = { type: "null" };
+interface NullSchema {
+  type: "null";
+}
 
-type BooleanSchema = { type: "boolean" };
+interface BooleanSchema {
+  type: "boolean";
+}
 
-type TupleSchema = {
+interface TupleSchema {
   prefixItems: [MergedDataTypeSingleSchema, ...MergedDataTypeSingleSchema[]];
   items: false;
-};
+}
 
-type ListSchema = {
+interface ListSchema {
   items: MergedDataTypeSingleSchema;
-};
+}
 
 type ArraySchema = { type: "array" } & (TupleSchema | ListSchema);
 
@@ -71,11 +78,14 @@ export type MergedDataTypeSchema =
   | MergedDataTypeSingleSchema
   | { anyOf: MergedDataTypeSingleSchema[] };
 
-export type FormattedValuePart = {
+export interface FormattedValuePart {
   color: string;
   type: "leftLabel" | "rightLabel" | "value";
   text: string;
-};
+}
+
+const hasText = (value: string | undefined): value is string =>
+  value !== undefined && value !== "";
 
 export const createFormattedValueParts = ({
   inner,
@@ -88,7 +98,7 @@ export const createFormattedValueParts = ({
 
   const parts: FormattedValuePart[] = [];
 
-  if (left) {
+  if (left !== "") {
     parts.push({ color: "#91A5BA", type: "leftLabel", text: left });
   }
 
@@ -98,7 +108,7 @@ export const createFormattedValueParts = ({
     parts.push({ color: "#37434F", type: "value", text: inner });
   }
 
-  if (right) {
+  if (right !== "") {
     parts.push({ color: "#91A5BA", type: "rightLabel", text: right });
   }
 
@@ -110,6 +120,9 @@ const arrayItemSeparator: FormattedValuePart = {
   type: "rightLabel",
   text: ", ",
 };
+
+const isTruthyJsonValue = (value: JsonValue): boolean =>
+  value !== false && value !== null && value !== 0 && value !== "";
 
 export const formatDataValue = (
   value: JsonValue,
@@ -123,14 +136,14 @@ export const formatDataValue = (
 
   if (type === "boolean") {
     return createFormattedValueParts({
-      inner: value ? "True" : "False",
+      inner: isTruthyJsonValue(value) ? "True" : "False",
       schema,
     });
   }
 
   if (type === "array") {
     if (!Array.isArray(value)) {
-      throw new Error("Non-array value provided for array data type");
+      throw new TypeError("Non-array value provided for array data type");
     }
 
     const isTuple = "prefixItems" in schema;
@@ -139,7 +152,7 @@ export const formatDataValue = (
       if (isTuple) {
         const itemSchema = schema.prefixItems[index];
 
-        if (!itemSchema) {
+        if (itemSchema === undefined) {
           throw new Error(
             `No schema for tuple item at index ${index} – value has too many items`,
           );
@@ -164,29 +177,29 @@ export const formatDataValue = (
     });
   }
 
-  if (typeof value === "object" && value) {
+  if (typeof value === "object" && value !== null) {
     return createFormattedValueParts({ inner: JSON.stringify(value), schema });
   }
 
   return createFormattedValueParts({ inner: String(value), schema });
 };
 
-type Context = {
+interface Context {
   self: Big;
-};
+}
 
 const evaluateConversionValue = (
   value: ConversionValue,
   context: Context,
 ): Big => {
   if (Array.isArray(value)) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define -- mutually recursive with evaluateExpression
     return evaluateExpression(value, context);
-  } else if (value === "self") {
-    return context.self;
-  } else {
-    return new Big(value.const);
   }
+  if (value === "self") {
+    return context.self;
+  }
+  return new Big(value.const);
 };
 
 const evaluateExpression = (
@@ -197,24 +210,27 @@ const evaluateExpression = (
   const right = evaluateConversionValue(expression[2], context);
 
   switch (expression[0]) {
-    case "+":
+    case "+": {
       return add(left, right);
-    case "-":
+    }
+    case "-": {
       return subtract(left, right);
-    case "*":
+    }
+    case "*": {
       return multiply(left, right);
-    case "/":
+    }
+    case "/": {
       if (right.eq(0)) {
         return new Big(0);
       }
       return divide(left, right);
+    }
   }
 };
 
-export const createConversionFunction = (
-  conversions: ConversionDefinition[],
-): ((value: number) => number) => {
-  return (value: number) => {
+export const createConversionFunction =
+  (conversions: ConversionDefinition[]): ((value: number) => number) =>
+  (value: number) => {
     let evaluatedValue = new Big(value);
 
     for (const conversion of conversions) {
@@ -225,7 +241,9 @@ export const createConversionFunction = (
 
     return evaluatedValue.toNumber();
   };
-};
+
+const hasNonZeroNumber = (value: number | undefined): value is number =>
+  value !== undefined && value !== 0;
 
 const transformConstraint = (
   constraint: SingleValueConstraints & {
@@ -242,7 +260,7 @@ const transformConstraint = (
 
     return {
       ...constraint,
-      pattern: constraint.pattern ? [constraint.pattern] : undefined,
+      pattern: hasText(constraint.pattern) ? [constraint.pattern] : undefined,
     };
   }
   if (type === "number") {
@@ -252,13 +270,15 @@ const transformConstraint = (
 
     return {
       ...constraint,
-      multipleOf: constraint.multipleOf ? [constraint.multipleOf] : undefined,
+      multipleOf: hasNonZeroNumber(constraint.multipleOf)
+        ? [constraint.multipleOf]
+        : undefined,
     };
   }
 
   if (type === "array") {
     if ("prefixItems" in constraint) {
-      if (!constraint.prefixItems) {
+      if (constraint.prefixItems === undefined) {
         throw new Error("Expected prefixItems to be defined");
       }
 
@@ -273,7 +293,7 @@ const transformConstraint = (
       };
     }
 
-    if ("items" in constraint || !constraint.items) {
+    if ("items" in constraint || constraint.items === undefined) {
       throw new Error("Expected items to be defined");
     }
 
@@ -307,7 +327,7 @@ export const getMergedDataTypeSchema = (
       anyOf.push(transformConstraint({ description, label, ...option }));
     }
 
-    if (!anyOf[0]) {
+    if (anyOf[0] === undefined) {
       throw new Error("Expected anyOf to have at least one constraint");
     }
 
@@ -348,7 +368,7 @@ export const getMergedDataTypeSchema = (
         );
       }
       mergedSchema.pattern ??= [];
-      if ("pattern" in option && option.pattern) {
+      if ("pattern" in option && hasText(option.pattern)) {
         mergedSchema.pattern.push(option.pattern);
       }
     } else {
@@ -358,7 +378,7 @@ export const getMergedDataTypeSchema = (
         );
       }
       mergedSchema.multipleOf ??= [];
-      if ("multipleOf" in option && option.multipleOf) {
+      if ("multipleOf" in option && hasNonZeroNumber(option.multipleOf)) {
         mergedSchema.multipleOf.push(option.multipleOf);
       }
     }
@@ -369,8 +389,45 @@ export const getMergedDataTypeSchema = (
 
 const isDataType = (
   dataType: DataType | ClosedDataTypeDefinition,
-): dataType is DataType => {
-  return "$id" in dataType;
+): dataType is DataType => "$id" in dataType;
+
+const getDirectParents = (
+  dataType: DataType | ClosedDataTypeDefinition,
+): VersionedUrl[] => {
+  if (isDataType(dataType)) {
+    return dataType.allOf?.map(({ $ref }) => $ref) ?? [];
+  }
+
+  return dataType.parents;
+};
+
+/**
+ * Data types store references to their parents, not children, so we need to know the children of all data types.
+ * The selectable types are either targets or children of targets.
+ */
+const groupDirectChildren = <T extends ClosedDataTypeDefinition | DataType>(
+  dataTypePoolById: Record<VersionedUrl, T>,
+): Record<VersionedUrl, T[]> => {
+  const directChildrenByDataTypeId: Record<VersionedUrl, T[]> = {};
+
+  for (const dataType of Object.values(dataTypePoolById)) {
+    for (const parent of getDirectParents(dataType)) {
+      directChildrenByDataTypeId[parent] ??= [];
+
+      const parentDataType = dataTypePoolById[parent];
+
+      if (parentDataType !== undefined) {
+        /**
+         * If the parentDataType is not in the pool, it is not a selectable parent.
+         * The caller is responsible for ensuring that the pool contains all selectable data types,
+         * via one of the methods described in the function's JSDoc.
+         */
+        directChildrenByDataTypeId[parent].push(dataType);
+      }
+    }
+  }
+
+  return directChildrenByDataTypeId;
 };
 
 /**
@@ -402,51 +459,28 @@ export const getPermittedDataTypes = <
    */
   dataTypePoolById: Record<VersionedUrl, T>;
 }): T[] => {
-  const directChildrenByDataTypeId: Record<VersionedUrl, T[]> = {};
-
-  /**
-   * First, we need to know the children of all data types. Data types store references to their parents, not children.
-   * The selectable types are either targets or children of targets.
-   */
-  for (const dataType of Object.values(dataTypePoolById)) {
-    const directParents = isDataType(dataType)
-      ? (dataType.allOf?.map(({ $ref }) => $ref) ?? [])
-      : dataType.parents;
-
-    for (const parent of directParents) {
-      directChildrenByDataTypeId[parent] ??= [];
-
-      const parentDataType = dataTypePoolById[parent];
-
-      if (parentDataType) {
-        /**
-         * If the parentDataType is not in the pool, it is not a selectable parent.
-         * The caller is responsible for ensuring that the pool contains all selectable data types,
-         * via one of the methods described in the function's JSDoc.
-         */
-        directChildrenByDataTypeId[parent].push(dataType);
-      }
-    }
-  }
+  const directChildrenByDataTypeId = groupDirectChildren(dataTypePoolById);
 
   const permittedDataTypes: T[] = [];
 
   const stack: T[] = [...targetDataTypes];
-  while (stack.length > 0) {
-    const current = stack.pop()!;
-
+  for (
+    let current = stack.pop();
+    current !== undefined;
+    current = stack.pop()
+  ) {
     const abstract = isDataType(current)
       ? current.abstract
       : current.schema.abstract;
 
-    if (!abstract) {
+    if (abstract !== true) {
       permittedDataTypes.push(current);
     }
 
     const $id = isDataType(current) ? current.$id : current.schema.$id;
 
     const children = directChildrenByDataTypeId[$id];
-    if (children) {
+    if (children !== undefined) {
       stack.push(...children);
     }
   }
@@ -462,7 +496,7 @@ export const getPermittedDataTypes = <
  * @todo create a local 'shared frontend utils' package to avoid the need for duplication, and in that package import this type from @hashintel/design-system.
  *       and move the functions relying on it to that package.
  */
-type DataTypeForSelector = {
+interface DataTypeForSelector {
   $id: VersionedUrl;
   abstract: boolean;
   baseUrl: BaseUrl;
@@ -474,6 +508,41 @@ type DataTypeForSelector = {
   type: string;
   title: string;
   version: OntologyTypeVersion;
+}
+
+interface TypeAndFormat {
+  type: string;
+  format: StringConstraints["format"];
+}
+
+const getTypeAndFormat = (schema: {
+  type: string;
+  format?: StringConstraints["format"];
+}): TypeAndFormat => ({
+  type: schema.type,
+  format: "format" in schema ? schema.format : undefined,
+});
+
+const getFirstSchemaTypeAndFormat = (
+  dataType: DataType | ClosedDataTypeDefinition,
+): TypeAndFormat => {
+  if (isDataType(dataType)) {
+    return getTypeAndFormat("anyOf" in dataType ? dataType.anyOf[0] : dataType);
+  }
+
+  const mergedSchema = getMergedDataTypeSchema(dataType.schema);
+
+  if (!("anyOf" in mergedSchema)) {
+    return getTypeAndFormat(mergedSchema);
+  }
+
+  const [firstOption] = mergedSchema.anyOf;
+
+  if (firstOption === undefined) {
+    throw new Error("Expected anyOf to have at least one constraint");
+  }
+
+  return getTypeAndFormat(firstOption);
 };
 
 /**
@@ -520,36 +589,19 @@ const transformDataTypeForSelector = <
     transformedChildren.push(transformedDataType);
   }
 
-  let format;
-  let type;
-
-  if (isDataType(dataType)) {
-    const firstSchema = "anyOf" in dataType ? dataType.anyOf[0] : dataType;
-    type = firstSchema.type;
-    format = "format" in firstSchema ? firstSchema.format : undefined;
-  } else {
-    const mergedSchema = getMergedDataTypeSchema(dataType.schema);
-
-    const firstSchema =
-      "anyOf" in mergedSchema ? mergedSchema.anyOf[0]! : mergedSchema;
-
-    type = firstSchema.type;
-    format = "format" in firstSchema ? firstSchema.format : undefined;
-  }
+  const { type, format } = getFirstSchemaTypeAndFormat(dataType);
 
   const { baseUrl, version } = componentsFromVersionedUrl($id);
 
   const transformedDataType = {
     $id,
     baseUrl,
-    abstract: !!schema.abstract,
-    children: transformedChildren.sort((a, b) =>
-      a.title.localeCompare(b.title),
+    abstract: Boolean(schema.abstract),
+    children: transformedChildren.toSorted((left, right) =>
+      left.title.localeCompare(right.title),
     ),
     description: schema.description,
-    directParents: isDataType(dataType)
-      ? (dataType.allOf?.map(({ $ref }) => $ref) ?? [])
-      : dataType.parents,
+    directParents: getDirectParents(dataType),
     format,
     label: schema.label,
     title: schema.title,
@@ -597,34 +649,9 @@ export const buildDataTypeTreesForSelector = <
    */
   dataTypePoolById: Record<VersionedUrl, T>;
 }): DataTypeForSelector[] => {
-  const directChildrenByDataTypeId: Record<VersionedUrl, T[]> = {};
+  const directChildrenByDataTypeId = groupDirectChildren(dataTypePoolById);
 
-  /**
-   * First, we need to know the children of all data types. Data types store references to their parents, not children.
-   * The selectable types are either targets or children of targets.
-   */
-  for (const dataType of Object.values(dataTypePoolById)) {
-    const directParents = isDataType(dataType)
-      ? (dataType.allOf?.map(({ $ref }) => $ref) ?? [])
-      : dataType.parents;
-
-    for (const parent of directParents) {
-      directChildrenByDataTypeId[parent] ??= [];
-
-      const parentDataType = dataTypePoolById[parent];
-
-      if (parentDataType) {
-        /**
-         * If the parentDataType is not in the pool, it is not a selectable parent.
-         * The caller is responsible for ensuring that the pool contains all selectable data types,
-         * via one of the methods described in the function's JSDoc.
-         */
-        directChildrenByDataTypeId[parent].push(dataType);
-      }
-    }
-  }
-
-  const rootsById: Record<VersionedUrl, DataTypeForSelector> = {};
+  const rootsById = new Map<VersionedUrl, DataTypeForSelector>();
 
   const dataTypesBelowRoots: VersionedUrl[] = [];
 
@@ -644,7 +671,7 @@ export const buildDataTypeTreesForSelector = <
       !transformedDataType.abstract ||
       transformedDataType.children.length > 0
     ) {
-      rootsById[transformedDataType.$id] = transformedDataType;
+      rootsById.set(transformedDataType.$id, transformedDataType);
       dataTypesBelowRoots.push(...allChildren);
     }
   }
@@ -653,8 +680,8 @@ export const buildDataTypeTreesForSelector = <
    * Finally, remove any trees rooted at a target data type which appears as the child of another target.
    */
   for (const dataTypeId of dataTypesBelowRoots) {
-    delete rootsById[dataTypeId];
+    rootsById.delete(dataTypeId);
   }
 
-  return Object.values(rootsById);
+  return [...rootsById.values()];
 };

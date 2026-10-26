@@ -22,12 +22,10 @@ export const getBlockCollectionTraversalPath = ({
 }: {
   blockDataDepth?: number;
 }): EntityTraversalPath => ({
-  edges: Array(blockDataDepth + 1)
-    .fill([
-      { kind: "has-left-entity", direction: "incoming" },
-      { kind: "has-right-entity", direction: "outgoing" },
-    ])
-    .flat(),
+  edges: Array.from({ length: blockDataDepth + 1 }, () => [
+    { kind: "has-left-entity", direction: "incoming" } as const,
+    { kind: "has-right-entity", direction: "outgoing" } as const,
+  ]).flat(),
 });
 
 const isSpatiallyPositionedProperties = (
@@ -41,29 +39,29 @@ const isSpatiallyPositionedProperties = (
   return testProperty in properties;
 };
 
-export const sortBlockCollectionLinks = <
-  Left extends HashLinkEntity<
-    HasSpatiallyPositionedContent | HasIndexedContent
-  >,
-  Right extends HashLinkEntity<
-    HasSpatiallyPositionedContent | HasIndexedContent
-  >,
->(
-  a: Left,
-  b: Right,
-) => {
+type BlockCollectionLink = HashLinkEntity<
+  HasSpatiallyPositionedContent | HasIndexedContent
+>;
+
+export const sortBlockCollectionLinks = (
+  left: BlockCollectionLink,
+  right: BlockCollectionLink,
+): number => {
   if (
-    isSpatiallyPositionedProperties(a.properties) ||
-    isSpatiallyPositionedProperties(b.properties)
+    isSpatiallyPositionedProperties(left.properties) ||
+    isSpatiallyPositionedProperties(right.properties)
   ) {
     return 0;
   }
-  const { fractionalIndex: aFractionalIndex } = simplifyProperties(
-    a.properties,
+  const { fractionalIndex: leftFractionalIndex } = simplifyProperties(
+    left.properties,
   );
-  const { fractionalIndex: bFractionalIndex } = simplifyProperties(
-    b.properties,
+  const { fractionalIndex: rightFractionalIndex } = simplifyProperties(
+    right.properties,
   );
 
-  return aFractionalIndex < bFractionalIndex ? -1 : 1;
+  if (leftFractionalIndex < rightFractionalIndex) {
+    return -1;
+  }
+  return 1;
 };

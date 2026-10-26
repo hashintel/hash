@@ -13,32 +13,31 @@
  * // do work
  * done()
  */
-export const createPerformanceTimer = () => {
+export interface PerformanceTimer {
+  checkpoint: (label: string) => void;
+  done: () => void;
+}
+
+export const createPerformanceTimer = (): PerformanceTimer => {
   const start = performance.now();
 
-  const checkpoints = [
-    {
-      time: start,
-      label: "Start",
-    },
-  ];
+  let previous = { time: start, label: "Start" };
 
-  const checkpoint = (label: string) => {
+  const checkpoint = (label: string): void => {
     const now = performance.now();
-    const previous = checkpoints.at(-1)!;
 
-    checkpoints.push({ time: now, label });
-
-    // eslint-disable-next-line no-console
+    // eslint-disable-next-line no-console -- debug logging is the purpose of this utility
     console.debug(
       `${previous.label} to ${label} took ${(now - previous.time).toFixed(2)}ms (total ${(now - start).toFixed(2)})`,
     );
+
+    previous = { time: now, label };
   };
 
   return {
     checkpoint,
     done: () => {
-      return checkpoint("End");
+      checkpoint("End");
     },
   };
 };

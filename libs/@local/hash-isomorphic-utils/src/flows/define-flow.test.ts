@@ -1,22 +1,18 @@
-import { describe, expect, expectTypeOf, it } from "vitest";
+// oxlint-disable max-lines -- a test file that pairs a table of connection cases with the flow-building scenarios they exercise
+import { describe, expect, expectTypeOf, test } from "vitest";
 
 import { typedActionDefinitions as actions } from "./action-definitions.js";
-import {
-  type ConnectionProblem,
-  type ConnectionSource,
-  type ConnectionTarget,
-  canConnect,
-} from "./can-connect.js";
-import {
-  type AddStep,
-  constant,
-  defineFlow,
-  flowInput,
-  type InputAccepts,
-  type Ref,
-} from "./define-flow.js";
+import { canConnect } from "./can-connect.js";
+import { constant, defineFlow, flowInput } from "./define-flow.js";
 import { allPayloadKinds } from "./types.js";
 
+import type {
+  ConnectionProblem,
+  ConnectionSource,
+  ConnectionTarget,
+} from "./can-connect.js";
+import type { AddStep, InputAccepts, Ref } from "./define-flow.js";
+import type { FlowDefinitionWithId } from "./types.js";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 
 /**
@@ -182,12 +178,12 @@ type BuilderAccepts<
 type AcceptsRef<
   Source extends ConnectionSource,
   Target extends ConnectionTarget,
-  Array extends boolean,
+  IsArray extends boolean,
   Skip extends boolean,
 > =
   Ref<
     Source["payloadKind"],
-    Array,
+    IsArray,
     Skip extends true ? true : Source["required"]
   > extends InputAccepts<{
     name: "";
@@ -220,6 +216,7 @@ type ExpectedResults<Cases extends readonly ConnectionCase[]> = {
 };
 
 type Equals<A, B> =
+  // oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- the `<T>() => T extends X` form is the standard exact-type-equality check
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
     ? true
     : false;
@@ -230,13 +227,30 @@ const typeLevelResultsMatch: Equals<
   ExpectedResults<ConnectionCases>
 > = true;
 
+const connectionProblem = (
+  check: ReturnType<typeof canConnect>,
+): ConnectionProblem | null => (check.ok ? null : check.problem);
+
+const first = <Item>(items: readonly Item[]): Item => {
+  const [item] = items;
+  if (item === undefined) {
+    throw new Error("Expected a non-empty list");
+  }
+  return item;
+};
+
 describe("the connection rule", () => {
-  it("has type-level results that match the table", () => {
+  test("has type-level results that match the table", () => {
+    expect.hasAssertions();
+
     expect(typeLevelResultsMatch).toBe(true);
   });
 
-  for (const { name, source, target, wrap, skip, problem } of connectionCases) {
-    it(`canConnect: ${name}`, () => {
+  test.each(connectionCases)(
+    "canConnect: $name",
+    ({ source, target, wrap, skip, problem }) => {
+      expect.hasAssertions();
+
       const check = canConnect({
         source,
         target,
@@ -244,49 +258,51 @@ describe("the connection rule", () => {
         skipWhenMissing: skip,
       });
 
-      expect(check.ok ? null : check.problem).toBe(problem);
-    });
-  }
+      expect(connectionProblem(check)).toBe(problem);
+    },
+  );
 });
 
-describe("defineFlow", () => {
-  const defineResearchFlow = () =>
-    defineFlow(
-      {
-        flowDefinitionId: "research",
-        name: "Research",
-        description: "Research and persist entities",
+const defineResearchFlow = (): FlowDefinitionWithId =>
+  defineFlow(
+    {
+      flowDefinitionId: "research",
+      name: "Research",
+      description: "Research and persist entities",
+      inputs: {
+        prompt: flowInput("Text", { label: "Research guidance" }),
+        entityTypeIds: flowInput("VersionedUrl", { array: true }),
+        draft: flowInput("Boolean", { required: false }),
+      },
+    },
+    ({ inputs, step }) => {
+      const research = step("research", actions.researchEntities, {
+        description: "Research entities",
         inputs: {
-          prompt: flowInput("Text", { label: "Research guidance" }),
-          entityTypeIds: flowInput("VersionedUrl", { array: true }),
-          draft: flowInput("Boolean", { required: false }),
+          prompt: inputs.prompt,
+          entityTypeIds: inputs.entityTypeIds,
         },
-      },
-      ({ inputs, step }) => {
-        const research = step("research", actions.researchEntities, {
-          description: "Research entities",
-          inputs: {
-            prompt: inputs.prompt,
-            entityTypeIds: inputs.entityTypeIds,
-          },
-        });
+      });
 
-        const persist = step("persist", actions.persistEntities, {
-          description: "Persist entities",
-          inputs: {
-            proposedEntities: research.outputs.proposedEntities.consume(),
-            draft: inputs.draft.read(),
-          },
-        });
+      const persist = step("persist", actions.persistEntities, {
+        description: "Persist entities",
+        inputs: {
+          proposedEntities: research.outputs.proposedEntities.consume(),
+          draft: inputs.draft.read(),
+        },
+      });
 
-        return { outputs: { persisted: persist.outputs.persistedEntities } };
-      },
-    );
+      return { outputs: { persisted: persist.outputs.persistedEntities } };
+    },
+  );
 
-  it("serializes connections as sources", () => {
+describe("defineFlow", () => {
+  test("serializes connections as sources", () => {
+    expect.hasAssertions();
+
     const { flowDefinition } = defineResearchFlow();
 
-    expect(flowDefinition.steps[1]).toEqual({
+    expect(flowDefinition.steps[1]).toStrictEqual({
       kind: "action",
       stepId: "persist",
       actionDefinitionId: "persistEntities",
@@ -302,7 +318,7 @@ describe("defineFlow", () => {
       },
     });
 
-    expect(flowDefinition.outputs).toEqual([
+    expect(flowDefinition.outputs).toStrictEqual([
       {
         name: "persisted",
         stepId: "persist",
@@ -310,7 +326,7 @@ describe("defineFlow", () => {
       },
     ]);
 
-    expect(flowDefinition.inputs[0]).toEqual({
+    expect(flowDefinition.inputs[0]).toStrictEqual({
       name: "prompt",
       payloadKind: "Text",
       array: false,
@@ -319,7 +335,9 @@ describe("defineFlow", () => {
     });
   });
 
-  it("rejects incompatible connections at compile time", () => {
+  test("rejects incompatible connections at compile time", () => {
+    expect.hasAssertions();
+
     defineFlow(
       {
         flowDefinitionId: "invalid",
@@ -333,7 +351,7 @@ describe("defineFlow", () => {
           inputs: { question: inputs.question },
         });
 
-        const shouldThrow = () => {
+        const shouldThrow = (): void => {
           step("wrongKind", actions.answerQuestion, {
             description: "",
             // @ts-expect-error -- FormattedText into a Text input
@@ -372,7 +390,9 @@ describe("defineFlow", () => {
     );
   });
 
-  it("reports what the types can't check, such as duplicate step ids", () => {
+  test("reports what the types can't check, such as duplicate step ids", () => {
+    expect.hasAssertions();
+
     expect(() =>
       defineFlow(
         {
@@ -394,10 +414,12 @@ describe("defineFlow", () => {
           return { outputs: {} };
         },
       ),
-    ).toThrow(/Step id "answer" is used more than once/);
+    ).toThrow(/Step id "answer" is used more than once/u);
   });
 
-  it("serializes forEach steps, collecting one output per item", () => {
+  test("serializes forEach steps, collecting one output per item", () => {
+    expect.hasAssertions();
+
     const { flowDefinition } = defineFlow(
       {
         flowDefinitionId: "for-each",
@@ -426,7 +448,7 @@ describe("defineFlow", () => {
           inputs: { question: inputs.prompt, context: constant("Text", "") },
         });
 
-        expect(answers.source).toEqual({
+        expect(answers.source).toStrictEqual({
           kind: "step-output",
           stepId: "answerEach",
           outputName: "explanations",
@@ -436,7 +458,7 @@ describe("defineFlow", () => {
       },
     );
 
-    expect(flowDefinition.steps[1]).toEqual({
+    expect(flowDefinition.steps[1]).toStrictEqual({
       kind: "for-each",
       stepId: "answerEach",
       description: "Answer each query",
@@ -462,7 +484,9 @@ describe("defineFlow", () => {
     });
   });
 
-  it("rejects an item used outside its own forEach", () => {
+  test("rejects an item used outside its own forEach", () => {
+    expect.hasAssertions();
+
     expect(() =>
       defineFlow(
         {
@@ -497,13 +521,13 @@ describe("defineFlow", () => {
 
           step("leaked", actions.answerQuestion, {
             description: "",
-            inputs: { question: leakedItems[0]! },
+            inputs: { question: first(leakedItems) },
           });
 
           return { outputs: {} };
         },
       ),
-    ).toThrow(/uses the item of a forEach step it is not directly inside/);
+    ).toThrow(/uses the item of a forEach step it is not directly inside/u);
   });
 });
 
@@ -558,32 +582,36 @@ describe("steps of actions with derived kinds", () => {
     ],
   } as const;
 
-  const typeChecks = (
-    step: AddStep,
-    entities: Ref<"PersistedEntityMetadata", true, true>,
-    maybeEntities: Ref<"PersistedEntityMetadata", true, false>,
-    entity: Ref<"PersistedEntityMetadata", false, true>,
-    text: Ref<"Text", false, true>,
-  ) => {
+  const typeChecks = ({
+    step,
+    entities,
+    maybeEntities,
+    entity,
+    text,
+  }: {
+    step: AddStep;
+    entities: Ref<"PersistedEntityMetadata", true, true>;
+    maybeEntities: Ref<"PersistedEntityMetadata", true, false>;
+    entity: Ref<"PersistedEntityMetadata", false, true>;
+    text: Ref<"Text", false, true>;
+  }): void => {
     const filtered = step("filter", filterAction, {
       description: "",
       inputs: { items: entities },
     });
 
-    const matchesHasItemsKind: Equals<
-      typeof filtered.outputs.matches,
+    expectTypeOf(filtered.outputs.matches).toEqualTypeOf<
       Ref<"PersistedEntityMetadata", true, true>
-    > = true;
+    >();
 
     const found = step("find", findAction, {
       description: "",
       inputs: { items: filtered.outputs.matches, fallback: entity },
     });
 
-    const matchHasItemsKind: Equals<
-      typeof found.outputs.match,
+    expectTypeOf(found.outputs.match).toEqualTypeOf<
       Ref<"PersistedEntityMetadata", false, false>
-    > = true;
+    >();
 
     step("mismatchedFallback", findAction, {
       description: "",
@@ -608,36 +636,60 @@ describe("steps of actions with derived kinds", () => {
       inputs: { items: maybeEntities },
     });
 
-    const firstHasItemsKind: Equals<
-      typeof picked.outputs.first,
+    expectTypeOf(picked.outputs.first).toEqualTypeOf<
       Ref<"PersistedEntityMetadata", false, false>
-    > = true;
+    >();
 
     step("unconnectedKindSource", pickIfGivenAction, {
       description: "",
       // @ts-expect-error -- `items` is optional, but `first` takes its kind from it, so it must be connected
       inputs: {},
     });
-
-    return [
-      matchesHasItemsKind,
-      matchHasItemsKind,
-      firstHasItemsKind,
-      found,
-      picked,
-    ];
   };
 
-  it("type outputs and inputs with derived kinds by the kind connected", () => {
+  test("type outputs and inputs with derived kinds by the kind connected", () => {
+    expect.hasAssertions();
+
     expect(typeChecks).toBeDefined();
   });
 });
 
-describe("Filter List and If steps", () => {
+const ifBranchTypeChecks = (
+  step: AddStep,
+  text: Ref<"Text", false, true>,
+): void => {
+  const isQuestion = step("isQuestion", actions.if, {
+    description: "",
+    inputs: {
+      value: text,
+      condition: constant("FilterCondition", {
+        kind: "all",
+        conditions: [
+          {
+            kind: "condition",
+            subject: { kind: "input", payloadKind: "Text" },
+            operator: "isNotEmpty",
+          },
+        ],
+      }),
+    },
+  });
+
+  step("answer", actions.answerQuestion, {
+    description: "",
+    // @ts-expect-error -- `true` is missing when the value doesn't match
+    inputs: { question: isQuestion.outputs.true },
+  });
+};
+
+describe("the Filter List and If steps", () => {
+  // SAFETY: a fixture URL of the versioned-URL shape
   const companyType =
     "https://example.com/types/entity-type/company/v/1" as VersionedUrl;
 
-  it("filter a list and pass the matching items on", () => {
+  test("filter a list and pass the matching items on", () => {
+    expect.hasAssertions();
+
     const { flowDefinition } = defineFlow(
       {
         flowDefinitionId: "research-companies",
@@ -700,8 +752,12 @@ describe("Filter List and If steps", () => {
     });
   });
 
-  it("keep the top items of a filtered list, by Filter List, Order By and Take First", () => {
+  test("keep the top items of a filtered list, by Filter List, Order By and Take First", () => {
+    expect.hasAssertions();
+
     const marketCapUrl =
+      // SAFETY: a fixture URL of the base-URL shape
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- branded URL types cannot be constructed from a literal without an assertion
       "https://example.com/types/property-type/market-cap/" as BaseUrl;
 
     const { flowDefinition } = defineFlow(
@@ -806,7 +862,9 @@ describe("Filter List and If steps", () => {
     ]);
   });
 
-  it("branch on how many items a list has, by Aggregate and If", () => {
+  test("branch on how many items a list has, by Aggregate and If", () => {
+    expect.hasAssertions();
+
     const { flowDefinition } = defineFlow(
       {
         flowDefinitionId: "many-companies",
@@ -888,7 +946,9 @@ describe("Filter List and If steps", () => {
     ]);
   });
 
-  it("run the steps after an If step only on the branch it takes", () => {
+  test("run the steps after an If step only on the branch it takes", () => {
+    expect.hasAssertions();
+
     const { flowDefinition } = defineFlow(
       {
         flowDefinitionId: "answer-questions",
@@ -940,32 +1000,9 @@ describe("Filter List and If steps", () => {
     });
   });
 
-  it("require a branch of an If step to be skipped when it isn't taken", () => {
-    const typeChecks = (step: AddStep, text: Ref<"Text", false, true>) => {
-      const isQuestion = step("isQuestion", actions.if, {
-        description: "",
-        inputs: {
-          value: text,
-          condition: constant("FilterCondition", {
-            kind: "all",
-            conditions: [
-              {
-                kind: "condition",
-                subject: { kind: "input", payloadKind: "Text" },
-                operator: "isNotEmpty",
-              },
-            ],
-          }),
-        },
-      });
+  test("require a branch of an If step to be skipped when it isn't taken", () => {
+    expect.hasAssertions();
 
-      step("answer", actions.answerQuestion, {
-        description: "",
-        // @ts-expect-error -- `true` is missing when the value doesn't match
-        inputs: { question: isQuestion.outputs.true },
-      });
-    };
-
-    expect(typeChecks).toBeDefined();
+    expect(ifBranchTypeChecks).toBeDefined();
   });
 });

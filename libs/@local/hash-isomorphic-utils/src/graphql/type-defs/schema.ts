@@ -9,6 +9,7 @@ import { blockTypedef } from "./knowledge/block.typedef.js";
 import { commentTypedef } from "./knowledge/comment.typedef.js";
 import { entityTypedef } from "./knowledge/entity.typedef.js";
 import { fileTypedef } from "./knowledge/file.typedef.js";
+// oxlint-disable-next-line import/max-dependencies -- this module composes every GraphQL type definition into the one schema, so it imports each typedef
 import { flowTypedef } from "./knowledge/flow.typedef.js";
 import { hashInstanceTypedef } from "./knowledge/hash-instance.typedef.js";
 import { notificationTypedef } from "./knowledge/notification.typedef.js";

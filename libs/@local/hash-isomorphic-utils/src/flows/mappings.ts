@@ -6,10 +6,16 @@ import type {
   FlowDefinitionPropertiesWithMetadata,
 } from "../system-types/flowdefinition.js";
 import type { FlowRun } from "../system-types/flowrun.js";
+import type {
+  ObjectDataType,
+  ObjectDataTypeWithMetadata,
+} from "../system-types/shared.js";
 import type { FlowDefinition, FlowInputValues, LocalFlowRun } from "./types.js";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
-const toObjectArrayProperty = (values: object[]) => ({
+const toObjectArrayProperty = (
+  values: ObjectDataType[],
+): { value: ObjectDataTypeWithMetadata[] } => ({
   value: values.map((value) => ({
     value,
     metadata: {
@@ -51,13 +57,21 @@ export const mapFlowDefinitionToEntityProperties = (
   },
 });
 
+interface UnvalidatedFlowDefinition {
+  name: string;
+  description: string;
+  inputs: ObjectDataType[];
+  steps: ObjectDataType[];
+  outputs: ObjectDataType[];
+}
+
 /**
  * What a `Flow Definition` entity holds, in the shape of a flow definition, without checking that it is a valid
  * one: e.g. to compare it with a definition, as it was written.
  */
 export const getUnvalidatedFlowDefinitionFromEntity = (
   entity: HashEntity<FlowDefinitionEntity>,
-) => {
+): UnvalidatedFlowDefinition => {
   const {
     name,
     description,
@@ -78,7 +92,7 @@ export const getUnvalidatedFlowDefinitionFromEntity = (
 /**
  * The flow definition a `Flow Definition` entity holds.
  *
- * @throws if the entity's definition is invalid, listing every problem.
+ * @throws {Error} if the entity's definition is invalid, listing every problem.
  */
 export const getFlowDefinitionFromEntity = (
   entity: HashEntity<FlowDefinitionEntity>,
@@ -101,6 +115,33 @@ export const mapFlowInputValuesToInputsProperty = (
   })),
 });
 
+type FlowRunOutputsProperty = Partial<
+  Pick<
+    FlowRun["propertiesWithMetadata"]["value"],
+    "https://hash.ai/@h/types/property-type/outputs/"
+  >
+>;
+
+const getOutputsProperty = (
+  outputs: LocalFlowRun["outputs"],
+): FlowRunOutputsProperty => {
+  if (outputs === undefined) {
+    return {};
+  }
+
+  return {
+    "https://hash.ai/@h/types/property-type/outputs/": {
+      value: outputs.map((output) => ({
+        value: output,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+        },
+      })),
+    },
+  };
+};
+
 export const mapFlowRunToEntityProperties = (
   flowRun: LocalFlowRun,
 ): FlowRun["propertiesWithMetadata"] => ({
@@ -121,19 +162,7 @@ export const mapFlowRunToEntityProperties = (
           "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
       },
     },
-    ...(flowRun.outputs
-      ? {
-          "https://hash.ai/@h/types/property-type/outputs/": {
-            value: flowRun.outputs.map((output) => ({
-              value: output,
-              metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-              },
-            })),
-          },
-        }
-      : {}),
+    ...getOutputsProperty(flowRun.outputs),
     "https://hash.ai/@h/types/property-type/step/": {
       value: flowRun.steps.map((step) => ({
         value: step,

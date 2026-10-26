@@ -24,11 +24,14 @@ const nodes = {
   ...pageEditorNodes,
 };
 
-const createInitialDoc = (schema: Schema = createSchema(cloneDeep(nodes))) =>
+// oxlint-disable-next-line unicorn/prefer-structured-clone -- node specs contain functions (`toDOM`, `parseDOM` callbacks), which `structuredClone` cannot copy
+const clonedNodes = (): typeof nodes => cloneDeep(nodes);
+
+const createInitialDoc = (schema: Schema = createSchema(clonedNodes())): Node =>
   schema.node("doc", {}, [schema.node("loading")]);
 
 // eslint-disable-next-line no-restricted-syntax -- prosemirror issue
-const defaultPlugins: Plugin<unknown>[] = [
+const defaultPlugins: Plugin[] = [
   ...wrapEntitiesPlugin(baseKeymap),
   // This enables an indicator to appear when drag and dropping blocks
   dropCursor(),
@@ -42,9 +45,9 @@ export const createProseMirrorState = ({
   webId: WebId;
   doc?: Node;
   // eslint-disable-next-line no-restricted-syntax -- prosemirror issue
-  plugins?: Plugin<unknown>[];
-}) => {
-  return EditorState.create({
+  plugins?: Plugin[];
+}): EditorState =>
+  EditorState.create({
     doc,
     plugins: [
       ...defaultPlugins,
@@ -53,4 +56,3 @@ export const createProseMirrorState = ({
       ...plugins,
     ],
   });
-};

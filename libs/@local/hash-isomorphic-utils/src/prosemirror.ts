@@ -4,15 +4,24 @@ import { Schema } from "prosemirror-model";
 
 import { paragraphBlockComponentId } from "./blocks-constants.js";
 
-import type { Node, NodeSpec, NodeType } from "prosemirror-model";
-
-type NodeWithAttrs<Attrs extends Record<string, unknown>> = Omit<
+import type {
+  Attrs,
+  DOMOutputSpec,
+  MarkType,
   Node,
-  "attrs"
-> & {
-  attrs: Attrs;
+  NodeSpec,
+  NodeType,
+} from "prosemirror-model";
+import type { Plugin } from "prosemirror-state";
+
+type NodeWithAttrs<
+  // oxlint-disable-next-line typescript/no-restricted-types -- node attributes are arbitrary serialisable values that consumers narrow
+  NodeAttrs extends Record<string, unknown>,
+> = Omit<Node, "attrs"> & {
+  attrs: NodeAttrs;
 };
 
+// oxlint-disable-next-line typescript/no-restricted-types -- component attributes are arbitrary block properties that consumers narrow
 type ComponentNodeAttrs = Record<string, unknown>;
 export type ComponentNode = NodeWithAttrs<ComponentNodeAttrs>;
 
@@ -21,12 +30,10 @@ export type EntityNode = NodeWithAttrs<{
   draftId: string | null;
 }>;
 
-export type NodeSpecs = {
-  [name: string]: NodeSpec;
-};
+export type NodeSpecs = Record<string, NodeSpec>;
 
 export const isEntityNode = (node: Node | null): node is EntityNode =>
-  !!node && node.type === node.type.schema.nodes.entity;
+  node !== null && node.type === node.type.schema.nodes.entity;
 
 export const componentNodeGroupName = "componentNode";
 
@@ -44,6 +51,16 @@ export const hardBreakNode: NodeSpec = {
   },
 };
 
+type MentionAttrs = Partial<
+  Record<
+    | "mentionType"
+    | "entityId"
+    | "propertyTypeBaseUrl"
+    | "linkEntityTypeBaseUrl",
+    string | null
+  >
+>;
+
 export const mentionNode: NodeSpec = {
   inline: true,
   group: "inline",
@@ -60,7 +77,7 @@ export const mentionNode: NodeSpec = {
       entityId,
       propertyTypeBaseUrl,
       linkEntityTypeBaseUrl,
-    } = node.attrs;
+    }: MentionAttrs = node.attrs;
     return [
       "span",
       {
@@ -77,14 +94,10 @@ export const mentionNode: NodeSpec = {
       tag: 'span[data-hash-type="mention"]',
       getAttrs(dom) {
         return {
-          mentionType: (dom as Element).getAttribute("data-mention-type"),
-          entityId: (dom as Element).getAttribute("data-entity-id"),
-          propertyTypeBaseUrl: (dom as Element).getAttribute(
-            "data-property-type-base-url",
-          ),
-          linkEntityTypeBaseUrl: (dom as Element).getAttribute(
-            "data-link-entity-type-base-url",
-          ),
+          mentionType: dom.dataset.mentionType,
+          entityId: dom.dataset.entityId,
+          propertyTypeBaseUrl: dom.dataset.propertyTypeBaseUrl,
+          linkEntityTypeBaseUrl: dom.dataset.linkEntityTypeBaseUrl,
         };
       },
     },
@@ -113,19 +126,17 @@ export const blockNode: NodeSpec = {
    * These properties are necessary for copy and paste (which is
    * necessary for drag and drop)
    *
-   * @note – the actual rendering in the DOM is taken over by the NodeView
+   * Note: the actual rendering in the DOM is taken over by the NodeView
    *         so check `BlockView` and `ComponentView` for how this will
    *         actually appear
    */
-  toDOM: () => {
-    return [
-      "div",
-      {
-        "data-hash-type": "block",
-      },
-      0,
-    ];
-  },
+  toDOM: () => [
+    "div",
+    {
+      "data-hash-type": "block",
+    },
+    0,
+  ],
   parseDOM: [
     {
       tag: 'div[data-hash-type="block"]',
@@ -138,9 +149,7 @@ export const entityNode: NodeSpec = {
   attrs: {
     draftId: { default: null },
   },
-  toDOM: () => {
-    return ["div", { "data-hash-type": "entity" }, 0];
-  },
+  toDOM: () => ["div", { "data-hash-type": "entity" }, 0],
   parseDOM: [
     {
       tag: 'div[data-hash-type="entity"]',
@@ -160,12 +169,16 @@ export const pageEditorNodes = {
   entity: entityNode,
 };
 
-export const createSchema = (nodes: NodeSpecs) =>
+export const createSchema = (nodes: NodeSpecs): Schema =>
   new Schema({
     nodes,
     marks: {
       strong: {
-        toDOM: () => ["strong", { style: "font-weight:bold;" }, 0],
+        toDOM: (): DOMOutputSpec => [
+          "strong",
+          { style: "font-weight:bold;" },
+          0,
+        ],
         parseDOM: [
           { tag: "strong" },
           /**
@@ -176,12 +189,13 @@ export const createSchema = (nodes: NodeSpecs) =>
            */
           {
             tag: "b",
-            getAttrs: (node) => node.style.fontWeight !== "normal" && null,
+            getAttrs: (node): Attrs | false | null =>
+              node.style.fontWeight === "normal" ? false : null,
           },
           {
             style: "font-weight",
-            getAttrs(value) {
-              if (/^(bold(er)?|[5-9]\d{2,})$/.test(value)) {
+            getAttrs(value): Attrs | false | null {
+              if (/^(?:bold(?:er)?|[5-9]\d{2,})$/u.test(value)) {
                 return null;
               }
               return false;
@@ -190,7 +204,7 @@ export const createSchema = (nodes: NodeSpecs) =>
         ],
       },
       em: {
-        toDOM: () => ["em", 0],
+        toDOM: (): DOMOutputSpec => ["em", 0],
         parseDOM: [{ tag: "em" }, { tag: "i" }, { style: "font-style=italic" }],
       },
       /**
@@ -203,7 +217,7 @@ export const createSchema = (nodes: NodeSpecs) =>
        * @todo fix this
        */
       underlined: {
-        toDOM: () => ["u", 0],
+        toDOM: (): DOMOutputSpec => ["u", 0],
         parseDOM: [
           { tag: "u" },
           { style: "text-decoration=underline" },
@@ -211,7 +225,7 @@ export const createSchema = (nodes: NodeSpecs) =>
         ],
       },
       strikethrough: {
-        toDOM: () => ["s", 0],
+        toDOM: (): DOMOutputSpec => ["s", 0],
         parseDOM: [
           { tag: "s" },
           { style: "text-decoration=line-through" },
@@ -219,7 +233,11 @@ export const createSchema = (nodes: NodeSpecs) =>
         ],
       },
       highlighted: {
-        toDOM: () => ["span", { style: "background-color: #ff8" }, 0],
+        toDOM: (): DOMOutputSpec => [
+          "span",
+          { style: "background-color: #ff8" },
+          0,
+        ],
         parseDOM: [{ style: "background-color=rgb(255, 255, 136)" }],
       },
       link: {
@@ -227,8 +245,8 @@ export const createSchema = (nodes: NodeSpecs) =>
           href: { default: "" },
         },
         inclusive: false,
-        toDOM(node) {
-          const { href } = node.attrs;
+        toDOM(node): DOMOutputSpec {
+          const { href }: { href?: string } = node.attrs;
           return [
             "a",
             { href, style: "color: blue; text-decoration: underline" },
@@ -238,9 +256,9 @@ export const createSchema = (nodes: NodeSpecs) =>
         parseDOM: [
           {
             tag: "a[href]",
-            getAttrs(dom) {
+            getAttrs(dom): Attrs | false | null {
               return {
-                href: (dom as Element).getAttribute("href"),
+                href: dom.getAttribute("href"),
               };
             },
           },
@@ -249,7 +267,7 @@ export const createSchema = (nodes: NodeSpecs) =>
     },
   });
 
-export const isComponentNodeType = (nodeType: NodeType) =>
+export const isComponentNodeType = (nodeType: NodeType): boolean =>
   nodeType.isInGroup(componentNodeGroupName);
 
 export const isComponentNode = (node: Node): node is ComponentNode =>
@@ -288,11 +306,22 @@ export const findComponentNode = (
   return result;
 };
 
-export const componentNodeToId = (node: ComponentNode) => node.type.name;
+export const componentNodeToId = (node: ComponentNode): string =>
+  node.type.name;
 
 declare interface OrderedMapPrivateInterface<T> {
   content: (string | T)[];
 }
+
+const isOrderedMapWithContent = (
+  nodeMap: Schema["spec"]["nodes"],
+): nodeMap is Schema["spec"]["nodes"] & OrderedMapPrivateInterface<NodeSpec> =>
+  "content" in nodeMap && Array.isArray(nodeMap.content);
+
+const hasGroups = (
+  nodeType: NodeType,
+): nodeType is NodeType & { groups: string[] } =>
+  "groups" in nodeType && Array.isArray(nodeType.groups);
 
 /**
  * Prosemirror is designed for you to design your document schema ahead of time
@@ -312,13 +341,19 @@ declare interface OrderedMapPrivateInterface<T> {
 export const mutateSchema = (
   schema: Schema,
   mutate: (map: OrderedMapPrivateInterface<NodeSpec>) => void,
-) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mutate(schema.spec.nodes as any);
-  const loadingType = schema.nodes.loading!;
+): void => {
+  const nodeMap = schema.spec.nodes;
+  if (!isOrderedMapWithContent(nodeMap)) {
+    throw new Error("Schema node spec map does not expose its content");
+  }
+  mutate(nodeMap);
+  const loadingType = schema.nodes.loading;
+  if (loadingType === undefined) {
+    throw new Error("Schema has no loading node type");
+  }
 
   if (isComponentNodeType(loadingType)) {
-    if (loadingType.spec.group?.includes(componentNodeGroupName)) {
+    if (loadingType.spec.group?.includes(componentNodeGroupName) === true) {
       if (loadingType.spec.group !== componentNodeGroupName) {
         throw new Error(
           "Loading node type has group expression more complicated than we can handle",
@@ -332,24 +367,27 @@ export const mutateSchema = (
      * `NodeType#groups` exists at runtime but prosemirror-model marks it
      * internal, so its type declarations omit it.
      */
-    const loadingTypeGroups = (loadingType as unknown as { groups: string[] })
-      .groups;
+    if (!hasGroups(loadingType)) {
+      throw new Error("Loading node type does not expose its groups");
+    }
+    const loadingTypeGroups = loadingType.groups;
     loadingTypeGroups.splice(
       loadingTypeGroups.indexOf(componentNodeGroupName),
       1,
     );
   }
 
-  // eslint-disable-next-line no-new
+  // eslint-disable-next-line no-new -- constructing the subclass is what applies the schema mutation hack
   new (class extends Schema {
     // @ts-expect-error: This is one of the hacks in our code to allow defining new node types at run time which isn't officially supported in ProseMirror
-    get nodes() {
+    // oxlint-disable-next-line eslint/class-methods-use-this -- overrides Schema's `nodes` accessor to proxy the outer schema's node types
+    get nodes(): Schema["nodes"] {
       return schema.nodes;
     }
 
     set nodes(newNodes) {
       for (const [key, value] of Object.entries(newNodes)) {
-        if (!this.nodes[key]) {
+        if (this.nodes[key] === undefined) {
           // @ts-expect-error -- NodeType#schema is readonly in prosemirror-model
           value.schema = schema;
           // @ts-expect-error -- NodeType#nodes is readonly in prosemirror-model
@@ -361,13 +399,14 @@ export const mutateSchema = (
     }
 
     // @ts-expect-error: This is one of the hacks in our code to allow defining new node types at run time which isn't officially supported in ProseMirror
-    get marks() {
+    // oxlint-disable-next-line eslint/class-methods-use-this -- overrides Schema's `marks` accessor to proxy the outer schema's mark types
+    get marks(): Schema["marks"] {
       return schema.marks;
     }
 
     set marks(newMarks) {
       for (const [key, value] of Object.entries(newMarks)) {
-        if (!this.marks[key]) {
+        if (this.marks[key] === undefined) {
           // @ts-expect-error -- NodeType#schema is readonly in prosemirror-model
           value.schema = schema;
           // @ts-expect-error -- NodeType#nodes is readonly in prosemirror-model
@@ -378,24 +417,39 @@ export const mutateSchema = (
   })(schema.spec);
 };
 
-export const isParagraphNode = (node: Node) => {
-  return componentNodeToId(node) === paragraphBlockComponentId;
+export const isParagraphNode = (node: Node): boolean =>
+  componentNodeToId(node) === paragraphBlockComponentId;
+
+const getMarkType = (schema: Schema, name: string): MarkType => {
+  const markType = schema.marks[name];
+  if (markType === undefined) {
+    throw new Error(`Schema has no "${name}" mark type`);
+  }
+  return markType;
 };
 
-export const formatKeymap = (schema: Schema) =>
+const getNodeType = (schema: Schema, name: string): NodeType => {
+  const nodeType = schema.nodes[name];
+  if (nodeType === undefined) {
+    throw new Error(`Schema has no "${name}" node type`);
+  }
+  return nodeType;
+};
+
+export const formatKeymap = (schema: Schema): Plugin =>
   keymap({
     // Mod- stands for Cmd- o macOS and Ctrl- elsewhere
-    "Mod-b": toggleMark(schema.marks.strong!),
-    "Mod-i": toggleMark(schema.marks.em!),
-    "Mod-u": toggleMark(schema.marks.underlined!),
+    "Mod-b": toggleMark(getMarkType(schema, "strong")),
+    "Mod-i": toggleMark(getMarkType(schema, "em")),
+    "Mod-u": toggleMark(getMarkType(schema, "underlined")),
     // We add an extra shortcut on macOS to mimic raw Chrome’s contentEditable.
     // ProseMirror normalizes keys, so we don’t get two self-cancelling handlers.
-    "Ctrl-u": toggleMark(schema.marks.underlined!),
+    "Ctrl-u": toggleMark(getMarkType(schema, "underlined")),
 
     "Shift-Enter": (state, dispatch) => {
       dispatch?.(
         state.tr
-          .replaceSelectionWith(schema.nodes.hardBreak!.create())
+          .replaceSelectionWith(getNodeType(schema, "hardBreak").create())
           .scrollIntoView(),
       );
       return true;
@@ -403,7 +457,10 @@ export const formatKeymap = (schema: Schema) =>
     // execCommand is flagged as depecrated but it seems that there isn't a viable alternative
     // to call the undo and redo default browser actions (https://stackoverflow.com/a/70831583)
     // After the collab rework this should be replaced with a proper implementation
+    // oxlint-disable-next-line typescript/no-deprecated -- no viable alternative for the browser's native undo
     "Mod-z": () => document.execCommand("undo"),
+    // oxlint-disable-next-line typescript/no-deprecated -- no viable alternative for the browser's native redo
     "Mod-y": () => document.execCommand("redo"),
+    // oxlint-disable-next-line typescript/no-deprecated -- no viable alternative for the browser's native redo
     "Mod-Shift-z": () => document.execCommand("redo"),
   });

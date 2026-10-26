@@ -15,6 +15,100 @@ export type ActionDefinitions = Record<
   ActionDefinition<FlowActionDefinitionId>
 >;
 
+/** Each step, with the ids of the for-each steps enclosing it, outermost first. */
+type StepsById = Map<string, { step: StepDefinition<string>; scope: string[] }>;
+
+type GetSource = (
+  source: StepInputSource,
+  scope: string[],
+) => ConnectionSource | null;
+
+type GetStepOutput = (
+  stepId: string,
+  outputName: string,
+) => ConnectionSource | null;
+
+const collectSteps = (
+  stepsById: StepsById,
+  steps: StepDefinition<string>[],
+  scope: string[],
+): void => {
+  for (const step of steps) {
+    if (!stepsById.has(step.stepId)) {
+      stepsById.set(step.stepId, { step, scope });
+    }
+
+    if (step.kind === "for-each") {
+      collectSteps(stepsById, step.steps, [...scope, step.stepId]);
+    }
+  }
+};
+
+/** The shape of the current item of the innermost for-each step enclosing a step in `scope`. */
+const resolveItem = (
+  stepsById: StepsById,
+  scope: string[],
+  getSource: GetSource,
+): ConnectionSource | null => {
+  const forEachStepId = scope.at(-1);
+
+  if (forEachStepId === undefined) {
+    return null;
+  }
+
+  const forEach = stepsById.get(forEachStepId);
+
+  if (forEach?.step.kind !== "for-each") {
+    return null;
+  }
+
+  const over = getSource(forEach.step.over, forEach.scope);
+
+  if (over === null) {
+    return null;
+  }
+
+  return { payloadKind: over.payloadKind, array: false, required: true };
+};
+
+/** The shape of an output collected by a for-each step. */
+const resolveCollected = ({
+  stepsById,
+  step,
+  outputName,
+  getStepOutput,
+}: {
+  stepsById: StepsById;
+  step: Extract<StepDefinition<string>, { kind: "for-each" }>;
+  outputName: string;
+  getStepOutput: GetStepOutput;
+}): ConnectionSource | null => {
+  /*
+   * A for-each step can only collect from a step directly inside it. Steps inside steps form a tree, so
+   * following a collect this way always ends.
+   */
+  if (
+    outputName !== step.collect.as ||
+    stepsById.get(step.collect.stepId)?.scope.at(-1) !== step.stepId
+  ) {
+    return null;
+  }
+
+  const collected = getStepOutput(step.collect.stepId, step.collect.outputName);
+
+  if (collected === null) {
+    return null;
+  }
+
+  return { payloadKind: collected.payloadKind, array: true, required: true };
+};
+
+export interface StepShapeResolver {
+  getSourceShape: GetSource;
+  getInputKind: (stepId: string, inputName: string) => PayloadKind | null;
+  getStepOutputShape: GetStepOutput;
+}
+
 /**
  * Works out the shape of any value in a flow definition: its kind, whether it's an array, and whether it's always
  * present.
@@ -29,28 +123,14 @@ export type ActionDefinitions = Record<
 export const createStepShapeResolver = (
   flowDefinition: FlowDefinition<string>,
   actionDefinitions: ActionDefinitions = defaultActionDefinitions,
-) => {
-  /** Each step, with the ids of the for-each steps enclosing it, outermost first. */
-  const stepsById = new Map<
-    string,
-    { step: StepDefinition<string>; scope: string[] }
-  >();
+): StepShapeResolver => {
+  const stepsById: StepsById = new Map();
 
-  const collectSteps = (steps: StepDefinition<string>[], scope: string[]) => {
-    for (const step of steps) {
-      if (!stepsById.has(step.stepId)) {
-        stepsById.set(step.stepId, { step, scope });
-      }
+  collectSteps(stepsById, flowDefinition.steps, []);
 
-      if (step.kind === "for-each") {
-        collectSteps(step.steps, [...scope, step.stepId]);
-      }
-    }
-  };
-
-  collectSteps(flowDefinition.steps, []);
-
-  const getActionDefinition = (actionDefinitionId: string) =>
+  const getActionDefinition = (
+    actionDefinitionId: string,
+  ): ActionDefinition<FlowActionDefinitionId> | undefined =>
     Object.hasOwn(actionDefinitions, actionDefinitionId)
       ? actionDefinitions[actionDefinitionId]
       : undefined;
@@ -58,53 +138,40 @@ export const createStepShapeResolver = (
   /** Outputs being resolved, so that a `kindFrom` that leads back to itself resolves to `null`. */
   const resolving = new Set<string>();
 
-  const getSourceShape = (
-    source: StepInputSource,
-    scope: string[],
-  ): ConnectionSource | null => {
+  const getSource: GetSource = (source, scope) => {
     switch (source.kind) {
       case "flow-input": {
         const flowInput = flowDefinition.inputs.find(
           ({ name }) => name === source.inputName,
         );
 
-        return flowInput
-          ? {
-              payloadKind: flowInput.payloadKind,
-              array: flowInput.array,
-              required: flowInput.required,
-            }
-          : null;
-      }
-
-      case "step-output":
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define -- the two resolve each other
-        return getStepOutputShape(source.stepId, source.outputName);
-
-      case "item": {
-        const forEachStepId = scope.at(-1);
-        const forEach =
-          forEachStepId === undefined
-            ? undefined
-            : stepsById.get(forEachStepId);
-
-        if (forEach?.step.kind !== "for-each") {
+        if (flowInput === undefined) {
           return null;
         }
 
-        const overShape = getSourceShape(forEach.step.over, forEach.scope);
-
-        return overShape
-          ? { payloadKind: overShape.payloadKind, array: false, required: true }
-          : null;
+        return {
+          payloadKind: flowInput.payloadKind,
+          array: flowInput.array,
+          required: flowInput.required,
+        };
       }
 
-      case "constant":
+      case "step-output": {
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define -- the two resolve each other
+        return getStepOutput(source.stepId, source.outputName);
+      }
+
+      case "item": {
+        return resolveItem(stepsById, scope, getSource);
+      }
+
+      case "constant": {
         return {
           payloadKind: source.payload.kind,
           array: Array.isArray(source.payload.value),
           required: true,
         };
+      }
     }
   };
 
@@ -121,54 +188,31 @@ export const createStepShapeResolver = (
 
     const source = entry.step.inputs[inputName];
 
-    return source
-      ? (getSourceShape(source, entry.scope)?.payloadKind ?? null)
-      : null;
+    if (source === undefined) {
+      return null;
+    }
+
+    return getSource(source, entry.scope)?.payloadKind ?? null;
   };
 
-  const getStepOutputShape = (
-    stepId: string,
-    outputName: string,
-  ): ConnectionSource | null => {
+  const getStepOutput: GetStepOutput = (stepId, outputName) => {
     const entry = stepsById.get(stepId);
 
-    if (!entry) {
+    if (entry === undefined) {
       return null;
     }
 
     const { step } = entry;
 
     if (step.kind === "for-each") {
-      /*
-       * A for-each step can only collect from a step directly inside it. Steps inside steps form a tree, so
-       * following a collect this way always ends.
-       */
-      if (
-        outputName !== step.collect.as ||
-        stepsById.get(step.collect.stepId)?.scope.at(-1) !== step.stepId
-      ) {
-        return null;
-      }
-
-      const collectedShape = getStepOutputShape(
-        step.collect.stepId,
-        step.collect.outputName,
-      );
-
-      return collectedShape
-        ? {
-            payloadKind: collectedShape.payloadKind,
-            array: true,
-            required: true,
-          }
-        : null;
+      return resolveCollected({ stepsById, step, outputName, getStepOutput });
     }
 
     const output = getActionDefinition(step.actionDefinitionId)?.outputs.find(
       ({ name }) => name === outputName,
     );
 
-    if (!output) {
+    if (output === undefined) {
       return null;
     }
 
@@ -191,15 +235,19 @@ export const createStepShapeResolver = (
     try {
       const payloadKind = getInputKind(stepId, output.kindFrom);
 
-      return payloadKind
-        ? { payloadKind, array: output.array, required: output.required }
-        : null;
+      if (payloadKind === null) {
+        return null;
+      }
+
+      return { payloadKind, array: output.array, required: output.required };
     } finally {
       resolving.delete(key);
     }
   };
 
-  return { getSourceShape, getInputKind, getStepOutputShape };
+  return {
+    getSourceShape: getSource,
+    getInputKind,
+    getStepOutputShape: getStepOutput,
+  };
 };
-
-export type StepShapeResolver = ReturnType<typeof createStepShapeResolver>;

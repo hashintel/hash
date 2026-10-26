@@ -1,6 +1,6 @@
 import { createBase, disableRules } from "@local/eslint/deprecated";
 
-export default [
+const config = [
   ...createBase(import.meta.dirname),
   ...disableRules([
     /* 2022-11-29:   6 */ "@typescript-eslint/no-unsafe-argument",
@@ -38,3 +38,5 @@ export default [
     },
   },
 ];
+
+export default config;

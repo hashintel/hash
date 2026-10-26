@@ -6,23 +6,23 @@ import type { EntityId, WebId } from "@blockprotocol/type-system";
  * Interval-based schedule specification.
  * Executes at regular intervals (e.g., every 10 minutes).
  */
-export type IntervalScheduleSpec = {
+export interface IntervalScheduleSpec {
   type: "interval";
   /** Interval in milliseconds between executions */
   intervalMs: number;
-};
+}
 
 /**
  * Cron-based schedule specification.
  * Uses cron expression syntax for more complex scheduling patterns.
  */
-export type CronScheduleSpec = {
+export interface CronScheduleSpec {
   type: "cron";
   /** Cron expression (e.g., "0 0/10 * * * *" for every 10 minutes) */
   cronExpression: string;
   /** Optional timezone for the cron schedule (e.g., "America/New_York") */
   timezone?: string;
-};
+}
 
 /**
  * Union type representing different scheduling strategies.
@@ -31,12 +31,17 @@ export type CronScheduleSpec = {
 export type ScheduleSpec = IntervalScheduleSpec | CronScheduleSpec;
 
 /** Default catchup window: 1 hour in milliseconds */
-export const defaultScheduleCatchupWindowMs = 60 * 60 * 1000;
+const minutesPerHour = 60;
+const secondsPerMinute = 60;
+const millisecondsPerSecond = 1000;
+
+export const defaultScheduleCatchupWindowMs =
+  minutesPerHour * secondsPerMinute * millisecondsPerSecond;
 
 /**
  * Input for creating a new flow schedule.
  */
-export type CreateFlowScheduleInput = {
+export interface CreateFlowScheduleInput {
   /** Human-readable name for this schedule */
   name: string;
   /** The `Flow Definition` entity the schedule starts runs of */
@@ -57,12 +62,12 @@ export type CreateFlowScheduleInput = {
   flowInputs: FlowInputValues;
   /** Whether to trigger the first run immediately when the schedule is created */
   triggerImmediately: boolean;
-};
+}
 
 /**
  * Input for updating an existing flow schedule.
  */
-export type UpdateFlowScheduleInput = {
+export interface UpdateFlowScheduleInput {
   /** Updated name */
   name?: string;
   /** Updated scheduling specification */
@@ -75,7 +80,7 @@ export type UpdateFlowScheduleInput = {
   pauseOnFailure?: boolean;
   /** Updated data sources */
   dataSources?: FlowDataSources;
-};
+}
 
 /**
  * The default schedule overlap policy.
@@ -91,7 +96,11 @@ export const defaultSchedulePauseOnFailure = false;
 /**
  * Converts our ScheduleSpec to Temporal's IntervalSpec or ScheduleSpec format.
  */
-export const scheduleSpecToTemporalSpec = (spec: ScheduleSpec) => {
+export const scheduleSpecToTemporalSpec = (
+  spec: ScheduleSpec,
+):
+  | { intervals: { every: number }[] }
+  | { cronExpressions: string[]; timezone?: string } => {
   if (spec.type === "interval") {
     return {
       intervals: [{ every: spec.intervalMs }],
@@ -100,6 +109,8 @@ export const scheduleSpecToTemporalSpec = (spec: ScheduleSpec) => {
 
   return {
     cronExpressions: [spec.cronExpression],
-    ...(spec.timezone ? { timezone: spec.timezone } : {}),
+    ...(spec.timezone !== undefined && spec.timezone !== ""
+      ? { timezone: spec.timezone }
+      : {}),
   };
 };

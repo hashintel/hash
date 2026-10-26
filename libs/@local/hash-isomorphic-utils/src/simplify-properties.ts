@@ -11,8 +11,8 @@ import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 /** @see https://stackoverflow.com/a/65015868/17217717 */
 type CamelCase<S extends string> = S extends
-  | `${infer P1}-${infer P2}${infer P3}`
-  | `${infer P1}_${infer P2}${infer P3}`
+  // oxlint-disable-next-line eslint/no-redeclare -- repeating `infer` names across union members unifies them into one candidate set
+  `${infer P1}-${infer P2}${infer P3}` | `${infer P1}_${infer P2}${infer P3}`
   ? `${Lowercase<P1>}${Uppercase<P2>}${CamelCase<P3>}`
   : Lowercase<S>;
 
@@ -36,23 +36,30 @@ export type SimpleProperties<Properties extends PropertyObject> = {
   ]: Properties[Key];
 };
 
-export type Simplified<T extends HashEntity | BpEntity> = {
+export interface Simplified<T extends HashEntity | BpEntity> {
   metadata: EntityMetadata;
   properties: SimpleProperties<T["properties"]>;
-};
+}
 
 export const simplifyProperties = <T extends PropertyObject>(
   properties: T,
 ): SimpleProperties<T> => {
-  // this function is only called with property objects that follow the HASH URL/bp scheme
-  return typedEntries(properties).reduce((acc, [key, value]) => {
-    // fallback to a non-simplified key if the key is not in the expected format
-    const id = key.split("/").at(-2);
-    const simplified = id ? camelCase(id) : key;
+  // oxlint-disable-next-line typescript/no-restricted-types -- values are passed through untouched; only the keys change
+  const simplifiedProperties: Record<string, unknown> = {};
 
-    return {
-      ...acc,
-      [simplified]: value,
-    };
-  }, {} as SimpleProperties<T>);
+  // this function is only called with property objects that follow the HASH URL/bp scheme
+  for (const [key, value] of typedEntries(properties)) {
+    const id = key.split("/").at(-2);
+
+    // fallback to a non-simplified key if the key is not in the expected format
+    if (id !== undefined && id !== "") {
+      simplifiedProperties[camelCase(id)] = value;
+    } else {
+      simplifiedProperties[key] = value;
+    }
+  }
+
+  // SAFETY: the keys were rewritten according to `SimpleProperties`, whose values are the original property values.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the key rewrite is not expressible to the type checker
+  return simplifiedProperties as SimpleProperties<T>;
 };

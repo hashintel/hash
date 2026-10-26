@@ -33,7 +33,7 @@ export type FlowActionDefinitionId =
 
 export type DeepReadOnly<T> = T extends (...args: never[]) => unknown
   ? T
-  : { readonly [key in keyof T]: DeepReadOnly<T[key]> };
+  : { readonly [Key in keyof T]: DeepReadOnly<T[Key]> };
 
 export type WebPage = {
   url: Url;
@@ -356,16 +356,11 @@ export type StoredPayloadRef<
   : SingularStoredPayloadRef<Kind>;
 
 /** Type guard to check if a value is a stored payload reference */
-export const isStoredPayloadRef = (
-  value: unknown,
-): value is StoredPayloadRef => {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "__stored" in value &&
-    value.__stored === true
-  );
-};
+export const isStoredPayloadRef = (value: unknown): value is StoredPayloadRef =>
+  typeof value === "object" &&
+  value !== null &&
+  "__stored" in value &&
+  value.__stored === true;
 
 /** Type guard to check if a stored payload ref is for an array */
 export const isArrayStoredPayloadRef = <Kind extends StorablePayloadKind>(

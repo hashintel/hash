@@ -1,8 +1,56 @@
-import { describe, expect, it } from "vitest";
+// oxlint-disable max-lines -- the file is one large neutral timeline fixture plus the cases that each perturb it
+import { describe, expect, test } from "vitest";
 
 import { parseSiteProductionTimeline } from "../site-production-timeline.js";
 
-const fixture = (): Record<string, unknown> => ({
+type JsonValue = string | number | boolean | null | JsonValue[] | JsonObject;
+
+interface JsonObject {
+  [key: string]: JsonValue;
+}
+
+const isJsonObject = (value: JsonValue | undefined): value is JsonObject =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const getSection = (value: JsonObject, key: string): JsonObject => {
+  const section = value[key];
+
+  if (!isJsonObject(section)) {
+    throw new TypeError(`Fixture section ${key} is not an object`);
+  }
+
+  return section;
+};
+
+const patchSection = (
+  value: JsonObject,
+  key: string,
+  patch: JsonObject,
+): void => {
+  value[key] = { ...getSection(value, key), ...patch };
+};
+
+const patchBatch = (
+  value: JsonObject,
+  index: number,
+  patch: JsonObject,
+): void => {
+  const { batches } = value;
+
+  if (!Array.isArray(batches)) {
+    throw new TypeError("Fixture batches is not an array");
+  }
+
+  const batch = batches[index];
+
+  if (!isJsonObject(batch)) {
+    throw new TypeError(`Fixture batch ${index} is not an object`);
+  }
+
+  batches[index] = { ...batch, ...patch };
+};
+
+const fixture = (): JsonObject => ({
   schema_version: "1.3",
   artifact_type: "site_production_timeline",
   artifact_version: "1.2",
@@ -140,18 +188,14 @@ const fixture = (): Record<string, unknown> => ({
   },
 });
 
-const fixtureWithAllocation = (
-  allocatedQuantity: number,
-): Record<string, unknown> => {
+const fixtureWithAllocation = (allocatedQuantity: number): JsonObject => {
   const value = fixture();
-  const batches = value.batches as Array<Record<string, unknown>>;
   const expectedOverage = Math.max(0, allocatedQuantity - 100);
-  batches[0] = {
-    ...batches[0],
+  patchBatch(value, 0, {
     allocated_quantity: allocatedQuantity,
     unallocated_quantity: Math.max(0, 100 - allocatedQuantity),
     allocation_overage_quantity: expectedOverage,
-  };
+  });
   value.consumption_edges = [
     {
       id: "edge-1",
@@ -169,194 +213,208 @@ const fixtureWithAllocation = (
       evidence_ids: ["movement-1"],
     },
   ];
-  value.data_quality = {
-    ...(value.data_quality as Record<string, unknown>),
+  patchSection(value, "data_quality", {
     edge_count: 1,
     edge_confidence_counts: { exact: 1 },
     batches_with_allocation_overage: expectedOverage > 0 ? 1 : 0,
-  };
+  });
   return value;
 };
 
-const emptyFixture = (): Record<string, unknown> => {
+const emptyFixture = (): JsonObject => {
   const value = fixture();
+  patchSection(value, "data_quality", {
+    batch_count: 0,
+    timing_kind_counts: {},
+    line_confidence_counts: {},
+    batches_missing_family: 0,
+  });
   return {
     ...value,
     date_bounds: { start: null, end: null },
     batches: [],
-    data_quality: {
-      ...(value.data_quality as Record<string, unknown>),
-      batch_count: 0,
-      timing_kind_counts: {},
-      line_confidence_counts: {},
-      batches_missing_family: 0,
-    },
   };
 };
 
 describe("site production timeline validation", () => {
-  it("parses a small neutral timeline", () => {
+  test("parses a small neutral timeline", () => {
+    expect.hasAssertions();
+
     const parsed = parseSiteProductionTimeline(fixture(), "harbor-roastery");
     expect(parsed.schema_version).toBe("1.3");
     expect(parsed.artifact_version).toBe("1.2");
     expect(parsed.batches).toHaveLength(2);
   });
 
-  it.each([
-    ["shared schema", "schema_version", "2.0", /shared schema version 2\.0/],
-    [
-      "artifact",
-      "artifact_version",
-      "2.0",
-      /site timeline artifact version 2\.0/,
-    ],
+  test.each([
+    {
+      label: "shared schema",
+      key: "schema_version",
+      value: "2.0",
+      error: /shared schema version 2\.0/u,
+    },
+    {
+      label: "artifact",
+      key: "artifact_version",
+      value: "2.0",
+      error: /site timeline artifact version 2\.0/u,
+    },
   ])(
-    "rejects an unsupported %s version actionably",
-    (_label, key, value, error) => {
+    "rejects an unsupported $label version actionably",
+    ({ key, value, error }) => {
+      expect.hasAssertions();
+
       expect(() =>
         parseSiteProductionTimeline({ ...fixture(), [key]: value }),
       ).toThrow(error);
     },
   );
 
-  it("rejects an unsupported producer line source", () => {
+  test("rejects an unsupported producer line source", () => {
+    expect.hasAssertions();
+
     const value = fixture();
-    const batches = value.batches as Array<Record<string, unknown>>;
-    batches[0] = { ...batches[0], line_source: "sap_operation" };
-    expect(() => parseSiteProductionTimeline(value)).toThrow(/line_source/);
+    patchBatch(value, 0, { line_source: "sap_operation" });
+    expect(() => parseSiteProductionTimeline(value)).toThrow(/line_source/u);
   });
 
-  it.each(["sap_order_operation", "sap_recipe_operation"])(
+  test.each(["sap_order_operation", "sap_recipe_operation"])(
     "accepts producer provenance %s",
     (lineSource) => {
+      expect.hasAssertions();
+
       const value = fixture();
-      const batches = value.batches as Array<Record<string, unknown>>;
-      batches[0] = { ...batches[0], line_source: lineSource };
+      patchBatch(value, 0, { line_source: lineSource });
       expect(parseSiteProductionTimeline(value).batches[0]?.line_source).toBe(
         lineSource,
       );
     },
   );
 
-  it("accepts current receipt diagnostics with strict types", () => {
+  test("accepts current receipt diagnostics with strict types", () => {
+    expect.hasAssertions();
+
     const value = fixture();
-    value.data_quality = {
-      ...(value.data_quality as Record<string, unknown>),
-      unidentifiable_receipt_events: 2,
-    };
-    value.source = {
-      ...(value.source as Record<string, unknown>),
+    patchSection(value, "data_quality", { unidentifiable_receipt_events: 2 });
+    patchSection(value, "source", {
       unidentifiable_receipt_events: 2,
       receipt_warnings: ["Skipped receipt without batch or order"],
-    };
+    });
     const parsed = parseSiteProductionTimeline(value);
     expect(parsed.data_quality.unidentifiable_receipt_events).toBe(2);
-    expect(parsed.source.receipt_warnings).toEqual([
+    expect(parsed.source.receipt_warnings).toStrictEqual([
       "Skipped receipt without batch or order",
     ]);
   });
 
-  it.each([
-    ["unidentifiable receipt count", -1],
-    ["receipt warning", [""]],
-  ])("rejects an invalid %s", (field, invalid) => {
+  test.each([
+    {
+      label: "unidentifiable receipt count",
+      key: "unidentifiable_receipt_events",
+      invalid: -1,
+    },
+    { label: "receipt warning", key: "receipt_warnings", invalid: [""] },
+  ])("rejects an invalid $label", ({ key, invalid }) => {
+    expect.hasAssertions();
+
     const value = fixture();
-    if (field === "unidentifiable receipt count") {
-      value.source = {
-        ...(value.source as Record<string, unknown>),
-        unidentifiable_receipt_events: invalid,
-      };
-    } else {
-      value.source = {
-        ...(value.source as Record<string, unknown>),
-        receipt_warnings: invalid,
-      };
-    }
-    expect(() => parseSiteProductionTimeline(value)).toThrow();
+    patchSection(value, "source", { [key]: invalid });
+    expect(() => parseSiteProductionTimeline(value)).toThrow(
+      new RegExp(key, "u"),
+    );
   });
 
-  it("requires matching raw and quality unidentifiable receipt counts", () => {
+  test("requires matching raw and quality unidentifiable receipt counts", () => {
+    expect.hasAssertions();
+
     const missing = fixture();
-    const { unidentifiable_receipt_events: _omitted, ...source } =
-      missing.source as Record<string, unknown>;
+    const { unidentifiable_receipt_events: _omitted, ...source } = getSection(
+      missing,
+      "source",
+    );
     missing.source = source;
     expect(() => parseSiteProductionTimeline(missing)).toThrow(
-      /unidentifiable_receipt_events/,
+      /unidentifiable_receipt_events/u,
     );
 
     const mismatch = fixture();
-    mismatch.source = {
-      ...(mismatch.source as Record<string, unknown>),
-      unidentifiable_receipt_events: 1,
-    };
+    patchSection(mismatch, "source", { unidentifiable_receipt_events: 1 });
     expect(() => parseSiteProductionTimeline(mismatch)).toThrow(
-      /data quality totals/,
+      /data quality totals/u,
     );
   });
 
-  it("accepts an empty artifact with both date bounds null", () => {
+  test("accepts an empty artifact with both date bounds null", () => {
+    expect.hasAssertions();
+
     const parsed = parseSiteProductionTimeline(emptyFixture());
-    expect(parsed.date_bounds).toEqual({ start: null, end: null });
-    expect(parsed.batches).toEqual([]);
+    expect(parsed.date_bounds).toStrictEqual({ start: null, end: null });
+    expect(parsed.batches).toStrictEqual([]);
   });
 
-  it.each([
+  test.each([
     [{ start: null, end: "2026-05-12" }],
     [{ start: "2026-05-01", end: null }],
   ])("rejects partial-null date bounds", (dateBounds) => {
+    expect.hasAssertions();
+
     expect(() =>
       parseSiteProductionTimeline({
         ...emptyFixture(),
         date_bounds: dateBounds,
       }),
-    ).toThrow(/both be null or both be ISO dates/);
+    ).toThrow(/both be null or both be ISO dates/u);
   });
 
-  it("rejects reversed non-null date bounds", () => {
+  test("rejects reversed non-null date bounds", () => {
+    expect.hasAssertions();
+
     expect(() =>
       parseSiteProductionTimeline({
         ...emptyFixture(),
         date_bounds: { start: "2026-05-12", end: "2026-05-01" },
       }),
-    ).toThrow(/start must not be after end/);
+    ).toThrow(/start must not be after end/u);
   });
 
-  it.each([
+  test.each([
     [{ start: "2026-06-30", end: "2026-07-04" }, "earlier start"],
     [{ start: "2026-07-01", end: "2026-07-05" }, "later end"],
   ])("rejects non-exact nonempty bounds with %s", (dateBounds) => {
+    expect.hasAssertions();
+
     expect(() =>
       parseSiteProductionTimeline({
         ...fixture(),
         date_bounds: dateBounds,
       }),
-    ).toThrow(/minimum batch start and maximum batch end/);
+    ).toThrow(/minimum batch start and maximum batch end/u);
   });
 
-  it("rejects receipt events which claim a duration", () => {
+  test("rejects receipt events which claim a duration", () => {
+    expect.hasAssertions();
+
     const value = fixture();
-    const batches = value.batches as Array<Record<string, unknown>>;
-    batches[1] = {
-      ...batches[1],
-      end: "2026-07-05",
-      span_days: 2,
-    };
+    patchBatch(value, 1, { end: "2026-07-05", span_days: 2 });
     value.date_bounds = { start: "2026-07-01", end: "2026-07-05" };
     expect(() => parseSiteProductionTimeline(value)).toThrow(
-      /one-day point event/,
+      /one-day point event/u,
     );
   });
 
-  it("rejects a resolved confidence without a line id", () => {
+  test("rejects a resolved confidence without a line id", () => {
+    expect.hasAssertions();
+
     const value = fixture();
-    const batches = value.batches as Array<Record<string, unknown>>;
-    batches[0] = { ...batches[0], line_id: null };
+    patchBatch(value, 0, { line_id: null });
     expect(() => parseSiteProductionTimeline(value)).toThrow(
-      /requires one line_id/,
+      /requires one line_id/u,
     );
   });
 
-  it("rejects an exact edge without exactly one target", () => {
+  test("rejects an exact edge without exactly one target", () => {
+    expect.hasAssertions();
+
     const value = fixture();
     value.consumption_edges = [
       {
@@ -375,87 +433,87 @@ describe("site production timeline validation", () => {
         evidence_ids: ["movement-1"],
       },
     ];
-    value.data_quality = {
-      ...(value.data_quality as Record<string, unknown>),
+    patchSection(value, "data_quality", {
       edge_count: 1,
       edge_confidence_counts: { exact: 1 },
-    };
+    });
     expect(() => parseSiteProductionTimeline(value)).toThrow(
-      /exact edge requires one target/,
+      /exact edge requires one target/u,
     );
   });
 
-  it("rejects stale quality totals and non-null empty bounds", () => {
+  test("rejects stale quality totals and non-null empty bounds", () => {
+    expect.hasAssertions();
+
     const value = emptyFixture();
     value.date_bounds = { start: "2026-07-01", end: "2026-07-01" };
     expect(() => parseSiteProductionTimeline(value)).toThrow(
-      /empty artifacts must have null date bounds/,
+      /empty artifacts must have null date bounds/u,
     );
 
     const stale = fixture();
-    stale.data_quality = {
-      ...(stale.data_quality as Record<string, unknown>),
-      batch_count: 99,
-    };
+    patchSection(stale, "data_quality", { batch_count: 99 });
     expect(() => parseSiteProductionTimeline(stale)).toThrow(
-      /data quality totals/,
+      /data quality totals/u,
     );
   });
 
-  it("rejects null overage for a known quantity with over-allocation", () => {
+  test("rejects null overage for a known quantity with over-allocation", () => {
+    expect.hasAssertions();
+
     const value = fixtureWithAllocation(125);
-    const batches = value.batches as Array<Record<string, unknown>>;
-    batches[0] = { ...batches[0], allocation_overage_quantity: null };
+    patchBatch(value, 0, { allocation_overage_quantity: null });
     expect(() => parseSiteProductionTimeline(value)).toThrow(
-      /allocation totals must reconcile/,
+      /allocation totals must reconcile/u,
     );
   });
 
-  it("rejects null overage for a known quantity without over-allocation", () => {
+  test("rejects null overage for a known quantity without over-allocation", () => {
+    expect.hasAssertions();
+
     const value = fixture();
-    const batches = value.batches as Array<Record<string, unknown>>;
-    batches[0] = { ...batches[0], allocation_overage_quantity: null };
+    patchBatch(value, 0, { allocation_overage_quantity: null });
     expect(() => parseSiteProductionTimeline(value)).toThrow(
-      /allocation totals must reconcile/,
+      /allocation totals must reconcile/u,
     );
   });
 
-  it("allows null overage when quantity is unknown", () => {
+  test("allows null overage when quantity is unknown", () => {
+    expect.hasAssertions();
+
     const value = fixture();
-    const batches = value.batches as Array<Record<string, unknown>>;
-    batches[0] = {
-      ...batches[0],
+    patchBatch(value, 0, {
       quantity: null,
       unallocated_quantity: null,
       allocation_overage_quantity: null,
-    };
+    });
     expect(
       parseSiteProductionTimeline(value).batches[0]
         ?.allocation_overage_quantity,
     ).toBeNull();
   });
 
-  it("rejects a mismatched positive overage", () => {
+  test("rejects a mismatched positive overage", () => {
+    expect.hasAssertions();
+
     const value = fixtureWithAllocation(125);
-    const batches = value.batches as Array<Record<string, unknown>>;
-    batches[0] = { ...batches[0], allocation_overage_quantity: 24 };
+    patchBatch(value, 0, { allocation_overage_quantity: 24 });
     expect(() => parseSiteProductionTimeline(value)).toThrow(
-      /allocation totals must reconcile/,
+      /allocation totals must reconcile/u,
     );
   });
 
-  it("counts every reportable reconciled overage without value hiding", () => {
+  test("counts every reportable reconciled overage without value hiding", () => {
+    expect.hasAssertions();
+
     const value = fixtureWithAllocation(125);
     expect(
       parseSiteProductionTimeline(value).data_quality
         .batches_with_allocation_overage,
     ).toBe(1);
-    value.data_quality = {
-      ...(value.data_quality as Record<string, unknown>),
-      batches_with_allocation_overage: 0,
-    };
+    patchSection(value, "data_quality", { batches_with_allocation_overage: 0 });
     expect(() => parseSiteProductionTimeline(value)).toThrow(
-      /data quality totals/,
+      /data quality totals/u,
     );
   });
 });

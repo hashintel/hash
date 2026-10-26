@@ -11,6 +11,7 @@ import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
 import type {
   EntityRootType,
   QueryTemporalAxesUnresolved,
+  Subgraph,
   SubgraphRootType,
 } from "@blockprotocol/graph";
 import type { EntityId, Timestamp } from "@blockprotocol/type-system";
@@ -156,7 +157,7 @@ export const generateEntityIdFilter = ({
   includeArchived = false,
 }: {
   entityId: EntityId;
-  includeArchived: boolean;
+  includeArchived?: boolean;
 }): Filter => {
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
@@ -179,7 +180,7 @@ export const generateEntityIdFilter = ({
     },
   ];
 
-  if (draftId) {
+  if (draftId !== undefined) {
     conditions.push({
       equal: [
         { path: ["draftId"] },
@@ -246,7 +247,7 @@ export const mapGqlSubgraphFieldsFragmentToSubgraph = <
     | EntityRootType<HashEntity>,
 >(
   subgraph: Omit<SubgraphFieldsFragment, "__typename">,
-) => deserializeSubgraph<RootType>(subgraph);
+): Subgraph<RootType, HashEntity> => deserializeSubgraph<RootType>(subgraph);
 
 export const notificationTypesToIgnore = [
   systemEntityTypes.notification.entityTypeBaseUrl,

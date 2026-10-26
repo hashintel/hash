@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { parseDateTime } from "./datetime.js";
 
-const anError = { status: "error", message: expect.any(String) };
-
 describe("parseDateTime", () => {
-  it("reads an offset as the UTC instant it names", () => {
+  test("reads an offset as the UTC instant it names", () => {
+    expect.hasAssertions();
+
     expect(parseDateTime("2026-10-16T16:00:00+02:00")).toBe(
       Date.UTC(2026, 9, 16, 14),
     );
@@ -14,14 +14,16 @@ describe("parseDateTime", () => {
     );
   });
 
-  it("reads fractional seconds and values without seconds", () => {
+  test("reads fractional seconds and values without seconds", () => {
+    expect.hasAssertions();
+
     expect(parseDateTime("2026-10-16T14:00:00.25Z")).toBe(
       Date.UTC(2026, 9, 16, 14, 0, 0, 250),
     );
     expect(parseDateTime("2026-10-16T14:00Z")).toBe(Date.UTC(2026, 9, 16, 14));
   });
 
-  it.each([
+  test.each([
     "",
     "next tuesday",
     "2026-10-16",
@@ -34,6 +36,11 @@ describe("parseDateTime", () => {
     "2026-10-16T14:00:00+24:00",
     "Fri, 16 Oct 2026 14:00:00 GMT",
   ])("rejects %j", (value) => {
-    expect(parseDateTime(value)).toEqual(anError);
+    expect.hasAssertions();
+
+    const result = parseDateTime(value);
+
+    expect(result).toMatchObject({ status: "error" });
+    expect(result).toHaveProperty("message");
   });
 });

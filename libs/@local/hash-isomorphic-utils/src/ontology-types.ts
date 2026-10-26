@@ -50,14 +50,17 @@ export const generateTypeBaseUrl = ({
   title: string;
   slugOverride?: string;
   webShortname: string;
-}): BaseUrl =>
-  `${
+}): BaseUrl => {
+  const baseUrl = `${
     domain ??
     // Ternary to be replaced by 'frontendUrl' in H-1172: hosted app only living temporarily at https://app.hash.ai
     (frontendUrl === "https://app.hash.ai" ? "https://hash.ai" : frontendUrl)
-  }/@${webShortname}/types/${kind}/${
-    slugOverride ?? slugifyTypeTitle(title)
-  }/` as const as BaseUrl;
+  }/@${webShortname}/types/${kind}/${slugOverride ?? slugifyTypeTitle(title)}/`;
+
+  // SAFETY: the template always produces `<origin>/@<shortname>/types/<kind>/<slug>/`, the shape of a BaseUrl
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- BaseUrl is a branded string that a template literal cannot express
+  return baseUrl as BaseUrl;
+};
 
 /**
  * Generate the identifier of a type (its versioned URL).
@@ -80,60 +83,93 @@ export const generateTypeId = ({
   title: string;
   slugOverride?: string;
   webShortname: string;
-}): VersionedUrl => {
+}): VersionedUrl =>
   // We purposefully don't use `versionedUrlFromComponents` here as we want to limit the amount of functional code
   // we're calling when this package is imported (this happens every time on import, not as the result of a call).
   // We should be able to trust ourselves to create valid types here "statically", without needing to call the type
   // system to validate them.
-  return `${generateTypeBaseUrl({
+  // SAFETY: a base URL followed by `v/1` is a valid versioned URL (version 1)
+  `${generateTypeBaseUrl({
     domain,
     kind,
     title,
     slugOverride,
     webShortname,
   })}v/1` as VersionedUrl;
+
+type LinkSchema = NonNullable<EntityType["links"]>[VersionedUrl];
+
+const pointSelfReferencesToNextVersion = (
+  linkSchema: LinkSchema,
+  currentEntityTypeId: VersionedUrl,
+): ReturnType<typeof atLeastOne<{ $ref: VersionedUrl }>> => {
+  if (!("oneOf" in linkSchema.items)) {
+    return;
+  }
+
+  return atLeastOne(
+    linkSchema.items.oneOf.map((item) => {
+      const isSelfReference = item.$ref === currentEntityTypeId;
+      if (isSelfReference) {
+        const { baseUrl, version: currentVersion } =
+          componentsFromVersionedUrl(currentEntityTypeId);
+        return {
+          $ref: versionedUrlFromComponents(
+            baseUrl,
+            incrementOntologyTypeVersion(currentVersion),
+          ),
+        };
+      }
+      return item;
+    }),
+  );
 };
 
 export const generateLinkMapWithConsistentSelfReferences = (
   { links }: Pick<EntityType, "links">,
   currentEntityTypeId: VersionedUrl,
-) =>
-  typedEntries(links ?? {}).reduce<NonNullable<EntityType["links"]>>(
-    (accumulator, [linkTypeId, linkSchema]) => {
-      const oneOf =
-        "oneOf" in linkSchema.items
-          ? atLeastOne(
-              linkSchema.items.oneOf.map((item) => {
-                const isSelfReference = item.$ref === currentEntityTypeId;
-                if (isSelfReference) {
-                  const { baseUrl, version: currentVersion } =
-                    componentsFromVersionedUrl(currentEntityTypeId);
-                  return {
-                    $ref: versionedUrlFromComponents(
-                      baseUrl,
-                      incrementOntologyTypeVersion(currentVersion),
-                    ),
-                  };
-                }
-                return item;
-              }),
-            )
-          : undefined;
+): NonNullable<EntityType["links"]> => {
+  const accumulator: NonNullable<EntityType["links"]> = {};
 
-      const schemaWithConsistentSelfReferences = {
-        ...linkSchema,
-        items: oneOf ? { oneOf } : ({} as Record<string, never>),
-      };
+  for (const [linkTypeId, linkSchema] of typedEntries(links ?? {})) {
+    const oneOf = pointSelfReferencesToNextVersion(
+      linkSchema,
+      currentEntityTypeId,
+    );
 
-      accumulator[linkTypeId] = schemaWithConsistentSelfReferences;
-      return accumulator;
-    },
-    {},
-  );
+    const schemaWithConsistentSelfReferences = {
+      ...linkSchema,
+      // SAFETY: an empty object is the schema of an items-less link, which the links type permits
+      items: oneOf === undefined ? ({} as Record<string, never>) : { oneOf },
+    };
+
+    accumulator[linkTypeId] = schemaWithConsistentSelfReferences;
+  }
+
+  return accumulator;
+};
+
+const pointDestinationsToNewVersions = (
+  linkSchema: LinkSchema,
+  baseUrlToNewVersion: Record<BaseUrl, VersionedUrl>,
+): void => {
+  if (!("oneOf" in linkSchema.items)) {
+    return;
+  }
+
+  for (const item of linkSchema.items.oneOf) {
+    const baseUrl = extractBaseUrl(item.$ref);
+
+    const newDestinationVersionedUrl = baseUrlToNewVersion[baseUrl];
+    if (newDestinationVersionedUrl !== undefined) {
+      item.$ref = newDestinationVersionedUrl;
+    }
+  }
+};
 
 export const rewriteSchemasToNextVersion = (
   entityTypesToChange: EntityType[],
-) => {
+): EntityType[] => {
   const baseUrlToNewVersion: Record<BaseUrl, VersionedUrl> = {};
 
   for (const entityType of entityTypesToChange) {
@@ -148,30 +184,19 @@ export const rewriteSchemasToNextVersion = (
   const updatedSchemas: EntityType[] = [];
 
   for (const entityType of entityTypesToChange) {
-    const clonedType = JSON.parse(
-      JSON.stringify(entityType),
-    ) as typeof entityType;
+    const clonedType = structuredClone(entityType);
+    const links = clonedType.links ?? {};
 
-    for (const [linkTypeId, linkSchema] of typedEntries(
-      clonedType.links ?? {},
-    )) {
-      if ("oneOf" in linkSchema.items) {
-        for (const item of linkSchema.items.oneOf) {
-          const baseUrl = extractBaseUrl(item.$ref);
-
-          const newDestinationVersionedUrl = baseUrlToNewVersion[baseUrl];
-          if (newDestinationVersionedUrl) {
-            item.$ref = newDestinationVersionedUrl;
-          }
-        }
-      }
+    for (const [linkTypeId, linkSchema] of typedEntries(links)) {
+      pointDestinationsToNewVersions(linkSchema, baseUrlToNewVersion);
 
       const baseUrl = extractBaseUrl(linkTypeId);
       const newLinkTypeId = baseUrlToNewVersion[baseUrl];
 
-      if (newLinkTypeId) {
-        delete clonedType.links?.[linkTypeId];
-        clonedType.links![newLinkTypeId] = linkSchema;
+      if (newLinkTypeId !== undefined) {
+        // oxlint-disable-next-line typescript/no-dynamic-delete -- the renamed link moves to the end of the key order, as it always has
+        delete links[linkTypeId];
+        links[newLinkTypeId] = linkSchema;
       }
     }
 
@@ -179,7 +204,7 @@ export const rewriteSchemasToNextVersion = (
       const baseUrl = extractBaseUrl(allOf.$ref);
       const newAllOfVersionedUrl = baseUrlToNewVersion[baseUrl];
 
-      if (newAllOfVersionedUrl) {
+      if (newAllOfVersionedUrl !== undefined) {
         allOf.$ref = newAllOfVersionedUrl;
       }
     }
@@ -191,34 +216,38 @@ export const rewriteSchemasToNextVersion = (
 };
 
 const hashFormattedVersionedUrlRegExp =
-  /https?:\/\/.+\/@(.+)\/types\/(entity-type|data-type|property-type)\/.+\/v\/\d+$/;
+  /https?:\/\/.+\/@(?<webShortname>.+)\/types\/(?<kind>entity-type|data-type|property-type)\/.+\/v\/\d+$/u;
 
-export type DeconstructedVersionedUrl = {
+const schemaKinds: readonly string[] = [
+  "data-type",
+  "property-type",
+  "entity-type",
+] satisfies SchemaKind[];
+
+const isSchemaKind = (value: string | undefined): value is SchemaKind =>
+  value !== undefined && schemaKinds.includes(value);
+
+export interface DeconstructedVersionedUrl {
   baseUrl: BaseUrl;
   hostname: string;
   kind?: SchemaKind;
   isHashFormatted: boolean;
   version: OntologyTypeVersion;
   webShortname?: string;
-};
+}
 
 export const deconstructVersionedUrl = (
   url: VersionedUrl,
-): {
-  baseUrl: BaseUrl;
-  hostname: string;
-  kind?: SchemaKind;
-  isHashFormatted: boolean;
-  version: OntologyTypeVersion;
-  webShortname?: string;
-} => {
+): DeconstructedVersionedUrl => {
   const { baseUrl, version } = componentsFromVersionedUrl(url);
 
-  const matchArray = baseUrl.match(hashFormattedVersionedUrlRegExp);
+  const matchArray = hashFormattedVersionedUrlRegExp.exec(baseUrl);
 
-  const isHashFormatted = !!matchArray;
+  const isHashFormatted = matchArray !== null;
 
-  const [_url, webShortname, kind] = matchArray ?? [];
+  const [_url, webShortname, matchedKind] = matchArray ?? [];
+
+  const kind = isSchemaKind(matchedKind) ? matchedKind : undefined;
 
   const urlObject = new URL(baseUrl);
 
@@ -226,7 +255,7 @@ export const deconstructVersionedUrl = (
     baseUrl,
     hostname: urlObject.hostname,
     isHashFormatted,
-    kind: kind as SchemaKind | undefined,
+    kind,
     version,
     webShortname,
   };

@@ -1,4 +1,10 @@
-import type { BlockMetadata, BlockVariant } from "@blockprotocol/core";
+import { isParsedJsonObject } from "./json-utils.js";
+
+import type {
+  BlockMetadata,
+  BlockVariant,
+  JsonValue,
+} from "@blockprotocol/core";
 import type { EntityType } from "@blockprotocol/type-system";
 
 export interface HashBlockMeta extends BlockMetadata {
@@ -6,10 +12,10 @@ export interface HashBlockMeta extends BlockMetadata {
   variants: NonNullable<BlockMetadata["variants"]>;
 }
 
-export type HashBlock = {
+export interface HashBlock {
   meta: HashBlockMeta;
   schema?: EntityType | null;
-};
+}
 
 export type ComponentIdHashBlockMap = Record<string, HashBlock>;
 
@@ -18,20 +24,20 @@ export type ComponentIdHashBlockMap = Record<string, HashBlock>;
  * ensure multiple requests for the same block in rapid succession don't cause
  * multiple web requests
  *
- * @deprecated in favor of react context "blockMeta" (which is not the final
- *   solution either)
+ * The react context "blockMeta" is preferred over this cache (which is not
+ * the final solution either).
  */
 const blockCache = new Map<string, Promise<HashBlock>>();
 
-export const componentIdToUrl = (componentId: string) =>
-  componentId.replace(/\/$/, "");
+export const componentIdToUrl = (componentId: string): string =>
+  componentId.replace(/\/$/u, "");
 
 const devReloadEndpointSet = new Set<string>();
 const configureAppReloadWhenBlockChanges = (
   devReloadEndpoint: string,
   reportProblem: (problem: string) => void,
-) => {
-  if (typeof window === "undefined") {
+): void => {
+  if (!("window" in globalThis)) {
     return;
   }
 
@@ -40,18 +46,24 @@ const configureAppReloadWhenBlockChanges = (
   }
   devReloadEndpointSet.add(devReloadEndpoint);
 
-  if (devReloadEndpoint.match(/^wss?:\/\//)) {
+  if (/^wss?:\/\//u.test(devReloadEndpoint)) {
     try {
       const socket = new WebSocket(devReloadEndpoint);
       socket.addEventListener("message", ({ data }) => {
+        const messageText = String(data);
         try {
-          const messageType = JSON.parse(data).type;
+          // oxlint-disable-next-line typescript/no-unsafe-assignment -- JSON.parse returns any; the value is narrowed immediately below
+          const message: JsonValue = JSON.parse(messageText);
           // Assume webpack dev server socket
-          if (["invalid", "static-changed"].includes(messageType)) {
-            window.location.reload();
+          if (
+            isParsedJsonObject(message) &&
+            typeof message.type === "string" &&
+            ["invalid", "static-changed"].includes(message.type)
+          ) {
+            globalThis.location.reload();
           }
         } catch {
-          reportProblem(`Could not parse socket message: ${data}`);
+          reportProblem(`Could not parse socket message: ${messageText}`);
         }
       });
     } catch {
@@ -80,12 +92,12 @@ function deriveAbsoluteUrl({
   baseUrl: string;
   path?: string | null;
 }): string | null | undefined {
-  const regex = /^(?:[a-z]+:)?\/\//i;
-  if (!path || regex.test(path)) {
+  const regex = /^(?:[a-z]+:)?\/\//iu;
+  if (path === undefined || path === null || path === "" || regex.test(path)) {
     return path;
   }
 
-  return `${baseUrl}/${path.replace(/^\//, "")}`;
+  return `${baseUrl}/${path.replace(/^\//u, "")}`;
 }
 
 /**
@@ -108,14 +120,22 @@ const transformBlockConfig = ({
 
   const baseUrl = componentIdToUrl(componentId);
 
-  const variants = (metadata.variants?.length ? metadata.variants : [{}])
-    .map((variant) => ({ ...defaultVariant, ...variant }))
-    .map((variant) => ({
-      ...variant,
+  const sourceVariants =
+    metadata.variants !== undefined &&
+    metadata.variants !== null &&
+    metadata.variants.length > 0
+      ? metadata.variants
+      : [{}];
+
+  const variants = [];
+  for (const variant of sourceVariants) {
+    const mergedVariant = { ...defaultVariant, ...variant };
+    variants.push({
+      ...mergedVariant,
       // the Block Protocol API is returning absolute URLs for icons, but this might be from elsewhere
-      icon: deriveAbsoluteUrl({ baseUrl, path: variant.icon }),
-      name: variant.name,
-    }));
+      icon: deriveAbsoluteUrl({ baseUrl, path: mergedVariant.icon }),
+    });
+  }
 
   return {
     ...metadata,
@@ -134,14 +154,11 @@ const transformBlockConfig = ({
 export const prepareBlockCache = (
   componentId: string,
   block: HashBlock | Promise<HashBlock>,
-) => {
-  if (typeof window !== "undefined") {
+): void => {
+  if ("window" in globalThis) {
     const key = componentIdToUrl(componentId);
     if (!blockCache.has(key)) {
-      blockCache.set(
-        key,
-        Promise.resolve().then(() => block),
-      );
+      blockCache.set(key, Promise.resolve(block));
     }
   }
 };
@@ -155,35 +172,45 @@ export const fetchBlock = async (
 
   const cachedPromise = blockCache.get(baseUrl);
 
-  if (options.useCachedData && cachedPromise) {
+  if (options.useCachedData && cachedPromise !== undefined) {
     return cachedPromise;
   } else if (blockCache.has(baseUrl)) {
     blockCache.delete(baseUrl);
   }
 
-  const promise = (async () => {
+  const promise = (async (): Promise<HashBlock> => {
     // the spec requires a metadata file called `block-metadata.json`
     const metadataUrl = `${baseUrl}/block-metadata.json`;
-    let metadata: BlockMetadata;
     let responseText = "";
-    try {
-      // @todo needs validation
-      const response = await fetch(metadataUrl);
-      responseText = await response.text();
-      metadata = await JSON.parse(responseText);
-    } catch (err) {
-      blockCache.delete(baseUrl);
-      throw new Error(
-        `Could not fetch and parse block metadata at url ${metadataUrl}: ${
-          (err as Error).message
-        }. Raw response text: ${responseText}`,
-      );
-    }
+    const metadata = await (async (): Promise<BlockMetadata> => {
+      try {
+        // @todo needs validation
+        const response = await fetch(metadataUrl);
+        responseText = await response.text();
+        // oxlint-disable-next-line typescript/no-unsafe-assignment -- block metadata is unvalidated external JSON (see @todo above)
+        const parsedMetadata: BlockMetadata = JSON.parse(responseText);
+        return parsedMetadata;
+      } catch (error) {
+        blockCache.delete(baseUrl);
+        let reason = String(error);
+        if (error instanceof Error) {
+          reason = error.message;
+        }
+        throw new Error(
+          `Could not fetch and parse block metadata at url ${metadataUrl}: ${reason}. Raw response text: ${responseText}`,
+          { cause: error },
+        );
+      }
+    })();
 
     // @todo Move this logic to a place where a block is mounted. This requires
     // block metadata to be available there. Current implementation reloads
     // the EA even if a locally developed block is not mounted (which should be rare).
-    if (metadata.devReloadEndpoint) {
+    if (
+      metadata.devReloadEndpoint !== undefined &&
+      metadata.devReloadEndpoint !== null &&
+      metadata.devReloadEndpoint !== ""
+    ) {
       configureAppReloadWhenBlockChanges(
         metadata.devReloadEndpoint,
         (problem) => {
@@ -207,5 +234,5 @@ export const fetchBlock = async (
 
   prepareBlockCache(baseUrl, promise);
 
-  return await promise;
+  return promise;
 };

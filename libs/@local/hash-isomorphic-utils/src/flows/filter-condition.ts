@@ -112,10 +112,14 @@ export const scalarKinds: readonly PayloadKind[] =
   allPayloadKinds.filter(isScalarKind);
 
 /** Kinds whose fields a condition can read, with a `field` subject. */
-const fieldKinds = allPayloadKinds.filter((kind) => traitsOf(kind).fields);
+const fieldKinds = new Set(
+  allPayloadKinds.filter((kind) => traitsOf(kind).fields),
+);
 
 /** Kinds whose entity's properties and types a condition can read, with an `entityProperty` or `entityType` subject. */
-const entityKinds = allPayloadKinds.filter((kind) => traitsOf(kind).entity);
+const entityKinds = new Set(
+  allPayloadKinds.filter((kind) => traitsOf(kind).entity),
+);
 
 export type FilterableKind =
   | ScalarKind
@@ -125,7 +129,7 @@ export type FilterableKind =
 /** Whether If and Filter list accept a payload kind: whether a condition can read something from it. */
 export const isFilterableKind = (kind: PayloadKind): kind is FilterableKind => {
   const { primitive, fields, entity } = traitsOf(kind);
-  return primitive !== null || !!fields || !!entity;
+  return primitive !== null || Boolean(fields) || Boolean(entity);
 };
 
 export const filterableKinds = allPayloadKinds.filter(isFilterableKind);
@@ -136,13 +140,16 @@ export const filterableKinds = allPayloadKinds.filter(isFilterableKind);
  */
 export const conditionLeaves = (node: ConditionNode): FilterLeaf[] => {
   switch (node.kind) {
-    case "condition":
+    case "condition": {
       return [node];
-    case "not":
+    }
+    case "not": {
       return conditionLeaves(node.condition);
+    }
     case "all":
-    case "any":
+    case "any": {
       return node.conditions.flatMap((child) => conditionLeaves(child));
+    }
   }
 };
 
@@ -160,10 +167,12 @@ const validateStructure = (
     return invalidCondition("A condition must be an object.");
   }
   switch (node.kind) {
-    case "condition":
+    case "condition": {
       return undefined;
-    case "not":
+    }
+    case "not": {
       return validateStructure(node.condition, depth + 1);
+    }
     case "all":
     case "any": {
       // Narrowing `children` with Array.isArray would turn it into `any[]`.
@@ -176,14 +185,15 @@ const validateStructure = (
       }
       for (const child of children) {
         const error = validateStructure(child, depth + 1);
-        if (error) {
+        if (error !== undefined) {
           return error;
         }
       }
       return undefined;
     }
-    default:
+    default: {
       return invalidCondition("Unknown condition kind.");
+    }
   }
 };
 
@@ -200,12 +210,13 @@ export const validateSubject = (
     return "A subject must be an object.";
   }
   switch (subject.kind) {
-    case "input":
+    case "input": {
       if (subject.payloadKind !== inputKind) {
         return "The input subject kind must match the input payload kind.";
       }
       return undefined;
-    case "field":
+    }
+    case "field": {
       if (
         !Array.isArray(subject.path) ||
         subject.path.some((segment) => typeof segment !== "string")
@@ -213,11 +224,11 @@ export const validateSubject = (
         return "A field subject's path must be an array of strings.";
       }
       if (
-        !fieldKinds.includes(inputKind) ||
+        !fieldKinds.has(inputKind) ||
         subject.path.length === 0 ||
         subject.path.some(
-          (segment) =>
-            !segment ||
+          (segment: string) =>
+            segment === "" ||
             ["__proto__", "constructor", "prototype"].includes(segment),
         )
       ) {
@@ -227,9 +238,10 @@ export const validateSubject = (
         return "A field subject requires a known payload kind.";
       }
       return undefined;
+    }
     case "entityProperty":
-    case "entityType":
-      if (!entityKinds.includes(inputKind)) {
+    case "entityType": {
+      if (!entityKinds.has(inputKind)) {
         return "Entity subjects require an EntityId or proposed entity input.";
       }
       if (subject.kind === "entityProperty") {
@@ -244,8 +256,10 @@ export const validateSubject = (
         }
       }
       return undefined;
-    default:
+    }
+    default: {
       return "Unknown subject kind.";
+    }
   }
 };
 
@@ -255,7 +269,7 @@ const validateLeaf = (
 ): ConditionError | undefined => {
   const { subject, operator, value } = leaf;
   const subjectError = validateSubject(subject, inputKind);
-  if (subjectError) {
+  if (subjectError !== undefined) {
     return invalidCondition(subjectError);
   }
   /* Persisted definitions may set the flag on any leaf. */
@@ -298,7 +312,7 @@ const validateLeaf = (
   if (
     operator === "isOfType" ||
     !scalarKinds.includes(subject.payloadKind) ||
-    !value ||
+    value === undefined ||
     value.kind !== subject.payloadKind
   ) {
     return invalidCondition(
@@ -309,9 +323,10 @@ const validateLeaf = (
     value,
     condition: { operator, operand: value.value },
   });
-  return validation.status === "error"
-    ? invalidCondition(validation.message)
-    : undefined;
+  if (validation.status === "error") {
+    return invalidCondition(validation.message);
+  }
+  return undefined;
 };
 
 /** Definition-time checks of the whole tree, also run at the core boundary, including for empty lists. */
@@ -323,7 +338,7 @@ export const validateCondition = (
     return invalidCondition(`${inputKind} payloads cannot be filtered.`);
   }
   const structureError = validateStructure(condition, 1);
-  if (structureError) {
+  if (structureError !== undefined) {
     return structureError;
   }
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Persisted definitions may contain any node at the root.
@@ -338,7 +353,7 @@ export const validateCondition = (
   }
   for (const leaf of leaves) {
     const error = validateLeaf(leaf, inputKind);
-    if (error) {
+    if (error !== undefined) {
       return error;
     }
   }
@@ -356,7 +371,7 @@ export const checkConditionInput =
     const source = step.inputs.condition;
 
     /* A missing condition is reported as a missing input. */
-    if (!source) {
+    if (source === undefined) {
       return;
     }
 
@@ -368,16 +383,16 @@ export const checkConditionInput =
     const kind = getInputKind(kindSourceName);
 
     /* A constant of another kind is reported as an incompatible connection. */
-    if (source.payload.kind !== "FilterCondition" || !kind) {
+    if (source.payload.kind !== "FilterCondition" || kind === null) {
       return;
     }
 
-    const error = validateCondition(
-      source.payload.value as FilterCondition,
-      kind,
-    );
+    // SAFETY: constants are untyped JSON, and validateCondition is the check that tolerates a malformed condition.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the condition is checked structurally by validateCondition itself
+    const condition = source.payload.value as FilterCondition;
+    const error = validateCondition(condition, kind);
 
-    if (error) {
+    if (error !== undefined) {
       report("condition", error.message);
     }
   };

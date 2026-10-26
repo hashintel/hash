@@ -13,7 +13,11 @@ export type FilterValue = {
 }[ScalarKind];
 
 /** A value of a scalar kind that hasn't been checked against the kind yet. */
-export type ScalarValue = { kind: ScalarKind; value: unknown };
+export interface ScalarValue {
+  kind: ScalarKind;
+  // oxlint-disable-next-line typescript/no-restricted-types -- deliberately unchecked: persisted values are validated against the kind by evaluateFilter
+  value: unknown;
+}
 
 const equalityOperators = ["equals", "notEquals"] as const;
 
@@ -48,10 +52,10 @@ export const unaryFilterOperators = ["isEmpty", "isNotEmpty"] as const;
 
 export type UnaryFilterOperator = (typeof unaryFilterOperators)[number];
 
-export type ScalarFilterCondition = {
+export interface ScalarFilterCondition {
   operator: BinaryFilterOperator | UnaryFilterOperator;
   operand?: PayloadKindValues[ScalarKind];
-};
+}
 
 export type FilterResult =
   | { status: "success"; branch: "matched" }
@@ -69,17 +73,21 @@ export type FilterResult =
 /** Whether a value has the JavaScript type of a primitive, whether or not it's a valid value of it. */
 export const hasPrimitiveType = (
   primitive: PayloadPrimitive,
+  // oxlint-disable-next-line typescript/no-restricted-types -- the value is arbitrary input whose type this function checks
   value: unknown,
 ): boolean => {
   switch (primitive) {
-    case "number":
+    case "number": {
       return typeof value === "number";
-    case "boolean":
+    }
+    case "boolean": {
       return typeof value === "boolean";
+    }
     case "text":
     case "date":
-    case "datetime":
+    case "datetime": {
       return typeof value === "string";
+    }
   }
 };
 
@@ -89,23 +97,31 @@ export const hasPrimitiveType = (
  */
 export const readScalar = (
   primitive: PayloadPrimitive,
+  // oxlint-disable-next-line typescript/no-restricted-types -- the value is arbitrary input that is validated here
   value: unknown,
 ): string | number | boolean | undefined => {
   if (!hasPrimitiveType(primitive, value)) {
     return undefined;
   }
   switch (primitive) {
-    case "date":
-      return isIsoDate(value as string) ? (value as string) : undefined;
+    case "date": {
+      return typeof value === "string" && isIsoDate(value) ? value : undefined;
+    }
     case "datetime": {
       const instant = parseDateTime(value);
       return typeof instant === "number" ? instant : undefined;
     }
-    case "number":
-      return Number.isFinite(value) ? (value as number) : undefined;
+    case "number": {
+      return typeof value === "number" && Number.isFinite(value)
+        ? value
+        : undefined;
+    }
     case "text":
-    case "boolean":
-      return value as string | boolean;
+    case "boolean": {
+      return typeof value === "string" || typeof value === "boolean"
+        ? value
+        : undefined;
+    }
   }
 };
 
@@ -118,6 +134,51 @@ const validValueDescriptions = {
     'an ISO 8601 date and time with Z or an offset, e.g. "2026-10-16T14:00:00Z"',
   boolean: "true or false",
 } satisfies Record<PayloadPrimitive, string>;
+
+/** Compares two valid scalars with an operator, or `undefined` if the operator isn't a comparison. */
+const compareScalars = (
+  operator: BinaryFilterOperator,
+  left: string | number | boolean,
+  right: string | number | boolean,
+): boolean | undefined => {
+  switch (operator) {
+    case "equals": {
+      return left === right;
+    }
+    case "notEquals": {
+      return left !== right;
+    }
+    case "contains": {
+      return String(left).includes(String(right));
+    }
+    case "startsWith": {
+      return String(left).startsWith(String(right));
+    }
+    case "endsWith": {
+      return String(left).endsWith(String(right));
+    }
+    case "onSameUtcDate": {
+      return (
+        Math.floor(Number(left) / dayMs) === Math.floor(Number(right) / dayMs)
+      );
+    }
+    case "greaterThan": {
+      return left > right;
+    }
+    case "greaterThanOrEqual": {
+      return left >= right;
+    }
+    case "lessThan": {
+      return left < right;
+    }
+    case "lessThanOrEqual": {
+      return left <= right;
+    }
+    default: {
+      return undefined;
+    }
+  }
+};
 
 /**
  * Low-level scalar comparison. Action wrappers use evaluateCondition/evaluateIf
@@ -194,45 +255,13 @@ export const evaluateFilter = ({
     };
   }
 
-  let matched: boolean;
-  switch (operator) {
-    case "equals":
-      matched = left === right;
-      break;
-    case "notEquals":
-      matched = left !== right;
-      break;
-    case "contains":
-      matched = String(left).includes(String(right));
-      break;
-    case "startsWith":
-      matched = String(left).startsWith(String(right));
-      break;
-    case "endsWith":
-      matched = String(left).endsWith(String(right));
-      break;
-    case "onSameUtcDate":
-      matched =
-        Math.floor(Number(left) / dayMs) === Math.floor(Number(right) / dayMs);
-      break;
-    case "greaterThan":
-      matched = left > right;
-      break;
-    case "greaterThanOrEqual":
-      matched = left >= right;
-      break;
-    case "lessThan":
-      matched = left < right;
-      break;
-    case "lessThanOrEqual":
-      matched = left <= right;
-      break;
-    default:
-      return {
-        status: "error",
-        code: "unsupportedOperator",
-        message: "Unknown scalar filter operator.",
-      };
+  const matched = compareScalars(operator, left, right);
+  if (matched === undefined) {
+    return {
+      status: "error",
+      code: "unsupportedOperator",
+      message: "Unknown scalar filter operator.",
+    };
   }
 
   return { status: "success", branch: matched ? "matched" : "notMatched" };

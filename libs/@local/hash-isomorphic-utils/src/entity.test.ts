@@ -1,9 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { flatMapTree } from "./util.js";
 
 describe("flatMapTree", () => {
-  it("can flatmap simple properties", () => {
+  test("can flatmap simple properties", () => {
+    expect.hasAssertions();
+
     const test1 = [
       {
         rootId: "1",
@@ -21,11 +23,7 @@ describe("flatMapTree", () => {
 
     const result = [];
     for (const block of test1) {
-      result.push(
-        ...flatMapTree(block, (node: unknown) => {
-          return [node];
-        }),
-      );
+      result.push(...flatMapTree(block, (node) => [node]));
     }
 
     expect(result).toMatchInlineSnapshot(`
@@ -63,7 +61,9 @@ describe("flatMapTree", () => {
     `);
   });
 
-  it("can flatmap simple properties", () => {
+  test("can flatmap properties containing arrays and nested relations", () => {
+    expect.hasAssertions();
+
     const test1 = [
       {
         rootId: "1",
@@ -80,64 +80,44 @@ describe("flatMapTree", () => {
 
     const result = [];
     for (const block of test1) {
-      result.push(
-        ...flatMapTree(block, (node: unknown) => {
-          return [node];
-        }),
-      );
+      result.push(...flatMapTree(block, (node) => [node]));
     }
 
-    expect(result).toMatchInlineSnapshot(`
-      [
-        {
-          "children": [
-            "one",
-            "two",
-          ],
-          "rootId": "1",
-        },
-        "1",
-        [
-          "one",
-          "two",
-        ],
-        "one",
-        "two",
-        {
-          "children": {
-            "entityId": "xid1",
-            "relatesTo": {
-              "entityId": "xid2",
-              "relatesTo": {
-                "entityId": "xid3",
-              },
-            },
-          },
-          "rootId": "2",
-        },
-        "2",
-        {
-          "entityId": "xid1",
-          "relatesTo": {
-            "entityId": "xid2",
-            "relatesTo": {
-              "entityId": "xid3",
-            },
+    expect(result).toStrictEqual([
+      {
+        children: ["one", "two"],
+        rootId: "1",
+      },
+      "1",
+      ["one", "two"],
+      "one",
+      "two",
+      {
+        children: {
+          entityId: "xid1",
+          relatesTo: {
+            entityId: "xid2",
+            relatesTo: { entityId: "xid3" },
           },
         },
-        "xid1",
-        {
-          "entityId": "xid2",
-          "relatesTo": {
-            "entityId": "xid3",
-          },
+        rootId: "2",
+      },
+      "2",
+      {
+        entityId: "xid1",
+        relatesTo: {
+          entityId: "xid2",
+          relatesTo: { entityId: "xid3" },
         },
-        "xid2",
-        {
-          "entityId": "xid3",
-        },
-        "xid3",
-      ]
-    `);
+      },
+      "xid1",
+      {
+        entityId: "xid2",
+        relatesTo: { entityId: "xid3" },
+      },
+      "xid2",
+      { entityId: "xid3" },
+      "xid3",
+    ]);
   });
 });

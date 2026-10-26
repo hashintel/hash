@@ -30,16 +30,40 @@ const getLabelPropertyValue = (
     properties: HashEntity["properties"];
   },
   labelProperty: BaseUrl | undefined,
-) => {
-  if (labelProperty) {
-    const label = entity.properties[labelProperty];
-
-    if (label) {
-      return label && typeof label === "object"
-        ? JSON.stringify(label)
-        : label.toString();
-    }
+): string | undefined => {
+  if (labelProperty === undefined) {
+    return undefined;
   }
+
+  const label = entity.properties[labelProperty];
+
+  /** A missing, empty or falsy value is not a label */
+  if (
+    label === undefined ||
+    label === null ||
+    label === false ||
+    label === 0 ||
+    label === ""
+  ) {
+    return undefined;
+  }
+
+  if (typeof label === "object") {
+    return JSON.stringify(label);
+  }
+
+  return label.toString();
+};
+
+const hexCharsStart = -4;
+const hexCharsEnd = -1;
+
+const getHexSuffix = (entityUuid: string): string => {
+  if (entityUuid.toLowerCase() === "draft") {
+    return "-draft";
+  }
+
+  return `-${entityUuid.slice(hexCharsStart, hexCharsEnd)}`;
 };
 
 const getFallbackLabel = ({
@@ -53,7 +77,7 @@ const getFallbackLabel = ({
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   };
   includeHexChars: boolean;
-}) => {
+}): string => {
   // fallback to the entity type and a few characters of the entityUuid
   const entityId = entity.metadata.recordId.entityId;
 
@@ -61,11 +85,162 @@ const getFallbackLabel = ({
 
   const entityUuid = extractEntityUuidFromEntityId(entityId);
 
-  return `${entityTypeName}${
-    includeHexChars
-      ? `-${entityUuid.toLowerCase() === "draft" ? "draft" : entityUuid.slice(-4, -1)}`
-      : ""
-  }`;
+  if (!includeHexChars) {
+    return entityTypeName;
+  }
+
+  return `${entityTypeName}${getHexSuffix(entityUuid)}`;
+};
+
+interface LabelEntity {
+  properties: HashEntity["properties"];
+  metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
+}
+
+interface TypeDataLookup {
+  entityTypeTitle: string | undefined;
+  label: string | undefined;
+}
+
+const getInitialEntityTypeTitle = (
+  typeData: Subgraph | ClosedMultiEntityType | PartialEntityType,
+): string | undefined => {
+  if ("title" in typeData) {
+    return typeData.title;
+  }
+
+  if ("allOf" in typeData) {
+    return typeData.allOf[0].title;
+  }
+
+  return undefined;
+};
+
+/**
+ * This is a subgraph, we need to find the type information in it
+ */
+const lookUpLabelInSubgraph = (
+  subgraph: Subgraph,
+  entity: LabelEntity,
+  initialEntityTypeTitle: string | undefined,
+): TypeDataLookup => {
+  let entityTypesAndAncestors: EntityTypeWithMetadata[] = [];
+  let entityTypeTitle = initialEntityTypeTitle;
+
+  try {
+    entityTypesAndAncestors = getBreadthFirstEntityTypesAndParents(
+      subgraph,
+      entity.metadata.entityTypeIds,
+    );
+
+    entityTypeTitle = entityTypesAndAncestors[0]?.schema.title;
+  } catch (error) {
+    let message = String(error);
+
+    if (error instanceof Error) {
+      message = error.message;
+    }
+
+    // eslint-disable-next-line no-console -- prefer not to crash here but still have some feedback that there's an issue
+    console.error(
+      `Error looking for entity type and ancestors in provided subgraph: ${message}}`,
+    );
+  }
+
+  for (const typeToCheck of entityTypesAndAncestors) {
+    const label = getLabelPropertyValue(
+      entity,
+      typeToCheck.schema.labelProperty,
+    );
+
+    if (label !== undefined) {
+      return { entityTypeTitle, label };
+    }
+  }
+
+  return { entityTypeTitle, label: undefined };
+};
+
+const lookUpLabelInTypeData = (
+  typeData: Subgraph | ClosedMultiEntityType | PartialEntityType | null,
+  entity: LabelEntity,
+): TypeDataLookup => {
+  if (typeData === null) {
+    return { entityTypeTitle: undefined, label: undefined };
+  }
+
+  const entityTypeTitle = getInitialEntityTypeTitle(typeData);
+
+  if ("roots" in typeData) {
+    return lookUpLabelInSubgraph(typeData, entity, entityTypeTitle);
+  }
+
+  if ("title" in typeData) {
+    /**
+     * This is a PartialEntityType, which are provided alongside ClosedEntityType definitions,
+     * and represent the possible link destinations of a closed type.
+     */
+    return {
+      entityTypeTitle,
+      label: getLabelPropertyValue(entity, typeData.labelProperty),
+    };
+  }
+
+  /**
+   * This is a closed multi-entity-type
+   */
+  const { labelProperty } = getDisplayFieldsForClosedEntityType(typeData);
+
+  return {
+    entityTypeTitle,
+    label: getLabelPropertyValue(entity, labelProperty),
+  };
+};
+
+/** The value of a property, if it is a non-empty string */
+const getStringProperty = (
+  properties: Record<string, Property>,
+  key: string,
+): string | undefined => {
+  const value = properties[key];
+
+  return typeof value === "string" && value !== "" ? value : undefined;
+};
+
+// fallback to some likely display name properties
+const displayNameProperties = [
+  "name",
+  "preferredName",
+  "displayName",
+  "title",
+  "organizationName",
+  "shortname",
+  "fileName",
+  "originalFileName",
+];
+
+const getLikelyDisplayName = (
+  properties: Record<string, Property>,
+): string | undefined => {
+  for (const option of displayNameProperties) {
+    const value = getStringProperty(properties, option);
+
+    if (value !== undefined) {
+      return value;
+    }
+  }
+
+  const firstName = getStringProperty(properties, "firstName");
+
+  const lastName =
+    getStringProperty(properties, "lastName") ??
+    getStringProperty(properties, "familyName");
+
+  if (firstName !== undefined && lastName !== undefined) {
+    return `${firstName} ${lastName}`;
+  }
+
+  return firstName ?? lastName;
 };
 
 /**
@@ -78,125 +253,30 @@ const getFallbackLabel = ({
  */
 export const generateEntityLabel = (
   typeData: Subgraph | ClosedMultiEntityType | PartialEntityType | null,
-  entity: {
-    properties: HashEntity["properties"];
-    metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
-  },
-  includeHexChars: boolean = true,
+  entity: LabelEntity,
+  // oxlint-disable-next-line hash/prefer-options-object -- public positional signature used across the monorepo
+  includeHexChars = true,
 ): string => {
   if (!("properties" in entity)) {
     throw new Error("No 'properties' object found in entity to label");
   }
 
-  let entityTypeTitle: string | undefined;
+  const { entityTypeTitle, label } = lookUpLabelInTypeData(typeData, entity);
 
-  if (typeData && "title" in typeData) {
-    entityTypeTitle = typeData.title;
-  } else if (typeData && "allOf" in typeData) {
-    entityTypeTitle = typeData.allOf[0].title;
+  if (label !== undefined) {
+    return label;
   }
 
-  if (typeData && "roots" in typeData) {
-    /**
-     * This is a subgraph, we need to find the type information in it
-     */
-    let entityTypesAndAncestors: EntityTypeWithMetadata[] | undefined;
-    try {
-      entityTypesAndAncestors = getBreadthFirstEntityTypesAndParents(
-        typeData,
-        entity.metadata.entityTypeIds,
-      );
-
-      entityTypeTitle = entityTypesAndAncestors[0]?.schema.title;
-    } catch (error) {
-      // eslint-disable-next-line no-console -- prefer not to crash here but still have some feedback that there's an issue
-      console.error(
-        `Error looking for entity type and ancestors in provided subgraph: ${
-          (error as Error).message
-        }}`,
-      );
-    }
-
-    for (const typeToCheck of entityTypesAndAncestors ?? []) {
-      const label = getLabelPropertyValue(
-        entity,
-        typeToCheck.schema.labelProperty,
-      );
-
-      if (label) {
-        return label;
-      }
-    }
-  } else if (typeData && "title" in typeData) {
-    /**
-     * This is a PartialEntityType, which are provided alongside ClosedEntityType definitions,
-     * and represent the possible link destinations of a closed type.
-     */
-    const label = getLabelPropertyValue(entity, typeData.labelProperty);
-
-    if (label) {
-      return label;
-    }
-  } else if (typeData) {
-    /**
-     * This is a closed multi-entity-type
-     */
-    const { labelProperty } = getDisplayFieldsForClosedEntityType(typeData);
-
-    const label = getLabelPropertyValue(entity, labelProperty);
-
-    if (label) {
-      return label;
-    }
-  }
-
+  // SAFETY: simplifyProperties returns the entity's properties with their values unwrapped; only the key type is widened
   const simplifiedProperties = simplifyProperties(entity.properties) as Record<
     string,
     Property
   >;
 
-  // fallback to some likely display name properties
-  const options = [
-    "name",
-    "preferredName",
-    "displayName",
-    "title",
-    "organizationName",
-    "shortname",
-    "fileName",
-    "originalFileName",
-  ];
+  const displayName = getLikelyDisplayName(simplifiedProperties);
 
-  for (const option of options) {
-    if (
-      simplifiedProperties[option] &&
-      typeof simplifiedProperties[option] === "string"
-    ) {
-      return simplifiedProperties[option];
-    }
-  }
-
-  const firstName =
-    simplifiedProperties.firstName &&
-    typeof simplifiedProperties.firstName === "string"
-      ? simplifiedProperties.firstName
-      : undefined;
-
-  const lastName =
-    simplifiedProperties.lastName &&
-    typeof simplifiedProperties.lastName === "string"
-      ? simplifiedProperties.lastName
-      : simplifiedProperties.familyName &&
-          typeof simplifiedProperties.familyName === "string"
-        ? simplifiedProperties.familyName
-        : undefined;
-
-  if (firstName && lastName) {
-    return `${firstName} ${lastName}`;
-  } else if (firstName) {
-    return firstName;
-  } else if (lastName) {
-    return lastName;
+  if (displayName !== undefined) {
+    return displayName;
   }
 
   return getFallbackLabel({
@@ -206,6 +286,35 @@ export const generateEntityLabel = (
   });
 };
 
+interface ClosedTypeData {
+  closedType: ClosedMultiEntityType;
+  entityTypeDefinitions: ClosedMultiEntityTypesDefinitions;
+  closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
+}
+
+const resolveEntityType = ({
+  closedTypeData,
+  entitySubgraph,
+  entityTypeIds,
+}: {
+  closedTypeData: ClosedTypeData | null;
+  entitySubgraph: Subgraph;
+  entityTypeIds: EntityMetadata["entityTypeIds"];
+}): PartialEntityType | ClosedMultiEntityType | Subgraph | undefined => {
+  if (closedTypeData === null) {
+    return entitySubgraph;
+  }
+
+  try {
+    return getClosedMultiEntityTypeFromMap(
+      closedTypeData.closedMultiEntityTypesRootMap,
+      entityTypeIds,
+    );
+  } catch {
+    return closedTypeData.entityTypeDefinitions.entityTypes[entityTypeIds[0]];
+  }
+};
+
 export const generateLinkEntityLabel = (
   entitySubgraph: Subgraph,
   entity: {
@@ -213,19 +322,15 @@ export const generateLinkEntityLabel = (
     properties: HashEntity["properties"];
     metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   },
-  closedTypeData: {
-    closedType: ClosedMultiEntityType;
-    entityTypeDefinitions: ClosedMultiEntityTypesDefinitions;
-    closedMultiEntityTypesRootMap: ClosedMultiEntityTypesRootMap;
-  } | null,
-) => {
+  closedTypeData: ClosedTypeData | null,
+): string => {
   const entityLabel = generateEntityLabel(
     closedTypeData?.closedType ?? entitySubgraph,
     entity,
     false,
   );
 
-  if (!entity.linkData) {
+  if (entity.linkData === undefined) {
     return entityLabel;
   }
 
@@ -233,7 +338,7 @@ export const generateLinkEntityLabel = (
     entitySubgraph,
     entity.linkData.leftEntityId,
   );
-  if (!leftEntity) {
+  if (leftEntity === undefined) {
     return entityLabel;
   }
 
@@ -241,54 +346,25 @@ export const generateLinkEntityLabel = (
     entitySubgraph,
     entity.linkData.rightEntityId,
   );
-  if (!rightEntity) {
+  if (rightEntity === undefined) {
     return entityLabel;
   }
 
-  let typeForLeftEntity:
-    | PartialEntityType
-    | ClosedMultiEntityType
-    | Subgraph
-    | undefined;
-  let typeForRightEntity:
-    | PartialEntityType
-    | ClosedMultiEntityType
-    | Subgraph
-    | undefined;
+  const typeForLeftEntity = resolveEntityType({
+    closedTypeData,
+    entitySubgraph,
+    entityTypeIds: leftEntity.metadata.entityTypeIds,
+  });
+  const typeForRightEntity = resolveEntityType({
+    closedTypeData,
+    entitySubgraph,
+    entityTypeIds: rightEntity.metadata.entityTypeIds,
+  });
 
-  if (!closedTypeData) {
-    typeForLeftEntity = entitySubgraph;
-    typeForRightEntity = entitySubgraph;
-  } else {
-    try {
-      typeForLeftEntity = getClosedMultiEntityTypeFromMap(
-        closedTypeData.closedMultiEntityTypesRootMap,
-        leftEntity.metadata.entityTypeIds,
-      );
-    } catch {
-      typeForLeftEntity =
-        closedTypeData.entityTypeDefinitions.entityTypes[
-          leftEntity.metadata.entityTypeIds[0]
-        ];
-    }
-
-    try {
-      typeForRightEntity = getClosedMultiEntityTypeFromMap(
-        closedTypeData.closedMultiEntityTypesRootMap,
-        rightEntity.metadata.entityTypeIds,
-      );
-    } catch {
-      typeForRightEntity =
-        closedTypeData.entityTypeDefinitions.entityTypes[
-          rightEntity.metadata.entityTypeIds[0]
-        ];
-    }
-
-    if (!typeForLeftEntity || !typeForRightEntity) {
-      throw new Error(
-        `Type definitions for left or right entity not found in closed type data`,
-      );
-    }
+  if (typeForLeftEntity === undefined || typeForRightEntity === undefined) {
+    throw new Error(
+      `Type definitions for left or right entity not found in closed type data`,
+    );
   }
 
   const leftLabel = generateEntityLabel(typeForLeftEntity, leftEntity, false);

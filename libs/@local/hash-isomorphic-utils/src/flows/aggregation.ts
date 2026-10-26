@@ -22,17 +22,20 @@ const aggregationOperations: readonly string[] = [
   "max",
 ] satisfies Aggregation["operation"][];
 
-export type AggregationError = {
+export interface AggregationError {
   status: "error";
   code: "invalidAggregation";
   message: string;
-};
+}
 
 const invalidAggregation = (message: string): AggregationError => ({
   status: "error",
   code: "invalidAggregation",
   message,
 });
+
+const isEntityTypeSubject = (subject: ConditionSubject): boolean =>
+  subject.kind === "entityType";
 
 /**
  * Checks an aggregation against the kind of the items it aggregates. Run when the flow is defined for a constant
@@ -52,19 +55,17 @@ export const validateAggregation = (
     );
   }
   if (aggregation.operation === "count") {
-    return "subject" in aggregation
-      ? invalidAggregation("A count aggregation takes no subject.")
-      : undefined;
+    if ("subject" in aggregation) {
+      return invalidAggregation("A count aggregation takes no subject.");
+    }
+    return undefined;
   }
   const { subject } = aggregation;
   const subjectError = validateSubject(subject, itemKind);
-  if (subjectError) {
+  if (subjectError !== undefined && subjectError !== "") {
     return invalidAggregation(subjectError);
   }
-  if (
-    (subject as ConditionSubject).kind === "entityType" ||
-    subject.payloadKind !== "Number"
-  ) {
+  if (isEntityTypeSubject(subject) || subject.payloadKind !== "Number") {
     return invalidAggregation(
       "An aggregation's subject must be of kind Number.",
     );
@@ -90,14 +91,19 @@ export const checkAggregationInput: ActionStepCheck = ({
   if (
     source?.kind !== "constant" ||
     source.payload.kind !== "Aggregation" ||
-    !kind
+    kind === null
   ) {
     return;
   }
 
-  const error = validateAggregation(source.payload.value as Aggregation, kind);
+  const error = validateAggregation(
+    // SAFETY: a constant of kind `Aggregation` holds an aggregation; `validateAggregation` checks its shape.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the payload value is typed more broadly than the kind implies
+    source.payload.value as Aggregation,
+    kind,
+  );
 
-  if (error) {
+  if (error !== undefined) {
     report("aggregation", error.message);
   }
 };

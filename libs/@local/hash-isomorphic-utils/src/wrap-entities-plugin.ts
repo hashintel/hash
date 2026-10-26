@@ -12,17 +12,27 @@ import { entityStorePluginState } from "./entity-store-plugin.js";
 import { getBlockChildEntity, isRichTextProperties } from "./entity.js";
 import { isComponentNode, isEntityNode } from "./prosemirror.js";
 
-import type { Node } from "prosemirror-model";
+import type { Node, NodeRange, NodeType, Schema } from "prosemirror-model";
 import type { Command, Transaction } from "prosemirror-state";
 
 type WrapperNodes = [number, Node[]];
 type WrapperNodesList = WrapperNodes[];
 
+const getNodeType = (schema: Schema, name: string): NodeType => {
+  const nodeType = schema.nodes[name];
+
+  if (nodeType === undefined) {
+    throw new Error(`Schema has no "${name}" node type`);
+  }
+
+  return nodeType;
+};
+
 const getRangeForNodeAtMappedPosition = (
   pos: number,
   node: Node,
   tr: Transaction,
-) => {
+): NodeRange | null => {
   const $start = tr.doc.resolve(tr.mapping.map(pos));
   const $end = tr.doc.resolve(tr.mapping.map(pos + node.nodeSize));
 
@@ -40,7 +50,7 @@ const getRangeForNodeAtMappedPosition = (
 const ensureEntitiesAreWrapped = (
   state: EditorState,
   wrappers?: WrapperNodesList,
-) => {
+): Transaction => {
   const { tr, schema, doc } = state;
 
   doc.descendants((node, position, parent) => {
@@ -60,7 +70,7 @@ const ensureEntitiesAreWrapped = (
     ) {
       const range = getRangeForNodeAtMappedPosition(position, node, tr);
 
-      if (!range) {
+      if (range === null) {
         throw new Error("Cannot rewrap");
       }
 
@@ -71,11 +81,11 @@ const ensureEntitiesAreWrapped = (
        * @see ProsemirrorManager, createRemoteBlock
        * @todo this should never happen, can we remove it?
        */
-      const defaultWrappers = [{ type: schema.nodes.block! }];
+      const defaultWrappers = [{ type: getNodeType(schema, "block") }];
       if (node.type !== schema.nodes.entity) {
         defaultWrappers.push(
-          { type: schema.nodes.entity! },
-          { type: schema.nodes.entity! },
+          { type: getNodeType(schema, "entity") },
+          { type: getNodeType(schema, "entity") },
         );
       }
 
@@ -100,7 +110,10 @@ const ensureEntitiesAreWrapped = (
  * appendTransaction (and similar), which can be useful if you need to bypass
  * them.
  */
-const stateWithTransaction = (state: EditorState, tr: Transaction) =>
+const stateWithTransaction = (
+  state: EditorState,
+  tr: Transaction,
+): EditorState =>
   EditorState.create({
     doc: tr.doc,
     selection: tr.selection,
@@ -114,12 +127,13 @@ const stateWithTransaction = (state: EditorState, tr: Transaction) =>
 const combineTransactions = (
   targetTransaction: Transaction,
   sourceTransaction: Transaction,
-) => {
+): void => {
   for (const step of sourceTransaction.steps) {
     targetTransaction.step(step);
   }
 
   targetTransaction.setSelection(
+    // oxlint-disable-next-line unicorn/no-array-method-this-argument -- `Selection#map` is not an array method; its second argument is the mapping
     sourceTransaction.selection.map(targetTransaction.doc, new Mapping()),
   );
 };
@@ -160,15 +174,14 @@ const prepareCommandForWrappedEntities =
         const blockNode = state.doc.resolve(pos).node(1);
         const blockEntityNode = blockNode.firstChild;
 
-        if (!blockEntityNode || !isEntityNode(blockEntityNode)) {
+        if (blockEntityNode === null || !isEntityNode(blockEntityNode)) {
           throw new Error("Unexpected structure");
         }
 
-        if (blockEntityNode.attrs.draftId) {
-          const childEntity = getBlockChildEntity(
-            blockEntityNode.attrs.draftId,
-            store,
-          );
+        const { draftId } = blockEntityNode.attrs;
+
+        if (typeof draftId === "string" && draftId !== "") {
+          const childEntity = getBlockChildEntity(draftId, store);
 
           const selection: TextSelection | null =
             state.selection instanceof TextSelection ? state.selection : null;
@@ -181,18 +194,19 @@ const prepareCommandForWrappedEntities =
 
           if (
             inNode ||
-            (childEntity && isRichTextProperties(childEntity.properties))
+            (childEntity !== null &&
+              isRichTextProperties(childEntity.properties))
           ) {
             const range = getRangeForNodeAtMappedPosition(pos, node, tr);
 
-            if (!range) {
+            if (range === null) {
               throw new Error("Cannot unwrap");
             }
 
             const wrapperNodes: Node[] = [];
             const $originalStart = state.doc.resolve(pos);
 
-            for (let depth = $originalStart.depth; depth > 0; depth--) {
+            for (let depth = $originalStart.depth; depth > 0; depth -= 1) {
               /**
                * The order of wrapperNodes will be the parent order of the
                * replacement wrappers, and as we're traversing up, we need to add
@@ -238,8 +252,10 @@ const prepareCommandForWrappedEntities =
     return retVal;
   };
 
-const wrapEntitiesKeymap = (baseKeymap: Record<string, Command>) =>
-  keymap({
+const wrapEntitiesKeymap = (baseKeymap: Record<string, Command>): Plugin => {
+  const selectAllCommand = baseKeymap["Mod-a"];
+
+  return keymap({
     /**
      * Wrap all of the default keymap shortcuts to ensure that the block
      * nodeviews are unwrapped before prosemirror logic is applied (the block
@@ -248,10 +264,13 @@ const wrapEntitiesKeymap = (baseKeymap: Record<string, Command>) =>
     ...mapValues(baseKeymap, prepareCommandForWrappedEntities),
 
     // @todo better way of working out that this command doesn't need wrapping
-    "Mod-a": baseKeymap["Mod-a"]!,
+    ...(selectAllCommand === undefined ? {} : { "Mod-a": selectAllCommand }),
   });
+};
 
-export const wrapEntitiesPlugin = (baseKeymap: Record<string, Command>) => {
+export const wrapEntitiesPlugin = (
+  baseKeymap: Record<string, Command>,
+): Plugin[] => {
   const wrappedKeymapPlugin = wrapEntitiesKeymap(baseKeymap);
 
   /**
@@ -259,8 +278,9 @@ export const wrapEntitiesPlugin = (baseKeymap: Record<string, Command>) => {
    * are wrapped with block nodeviews
    */
   // eslint-disable-next-line no-restricted-syntax -- prosemirror issue
-  const ensureWrappedPlugin = new Plugin<unknown>({
-    appendTransaction: (_, __, newState) => ensureEntitiesAreWrapped(newState),
+  const ensureWrappedPlugin = new Plugin<null>({
+    appendTransaction: (_, __, newState): Transaction =>
+      ensureEntitiesAreWrapped(newState),
   });
 
   return [wrappedKeymapPlugin, ensureWrappedPlugin];

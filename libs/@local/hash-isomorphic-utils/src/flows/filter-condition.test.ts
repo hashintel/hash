@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { conditionLeaves, validateCondition } from "./filter-condition.js";
 
@@ -43,20 +43,71 @@ const featuredCondition: FilterLeaf = {
   value: { kind: "Text", value: "featured" },
 };
 
+/**
+ * A value the validator is fed although its types would reject it: a persisted definition can be malformed.
+ */
+// oxlint-disable-next-line typescript/no-restricted-types -- the tests build deliberately malformed values, which have no valid type
+type MalformedInput = unknown;
+
+const malformed = (input: MalformedInput): never =>
+  // SAFETY: only used to give the validator input its types would reject; it must handle any value.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the tests pass malformed values to the validator on purpose
+  input as never;
+
+const repeatLeaf = (leaf: FilterLeaf, count: number): FilterLeaf[] =>
+  Array.from({ length: count }, () => leaf);
+
+const invalidEntityTypeUrlResult = {
+  status: "error",
+  code: "invalidCondition",
+  message:
+    "Entity type conditions require isOfType and a versioned or base type URL.",
+};
+
+const innerNot = not(scoreCondition);
+const depthFiveGroups = all(any(all(innerNot)));
+const tripleNot = not(not(not(scoreCondition)));
+const depthFiveChain = all(tripleNot);
+const leavesInFirstGroup = all(...repeatLeaf(scoreCondition, 25));
+const leavesInSecondGroup = all(...repeatLeaf(scoreCondition, 26));
+const tooManyLeaves = any(leavesInFirstGroup, not(leavesInSecondGroup));
+const invalidOperatorLeaf = not(
+  malformed({ ...scoreCondition, operator: "contains" }),
+);
+const invalidLeafInTree = all(activeCondition, any(invalidOperatorLeaf));
+
+const maxLeavesInFirstGroup = all(...repeatLeaf(scoreCondition, 25));
+const maxLeavesInSecondGroup = all(...repeatLeaf(activeCondition, 25));
+const maxLeaves = any(maxLeavesInFirstGroup, not(maxLeavesInSecondGroup));
+const maxDepth = all(any(not(scoreCondition)));
+const nestedTree = any(
+  all(scoreCondition, not(activeCondition)),
+  featuredCondition,
+);
+const presenceLeaf = all({
+  kind: "condition",
+  subject: { kind: "field", path: ["page"], payloadKind: "WebPage" },
+  operator: "isNotEmpty",
+});
+
 describe("validateCondition", () => {
-  it.each([
+  test.each([
     { kind: "Text", value: 42 },
     { kind: "Boolean", value: "false" },
     { kind: "EntityId", value: 42 },
   ] as const)(
     "rejects a constant tagged $kind with the wrong runtime type",
     (value) => {
-      const condition = all({
+      expect.hasAssertions();
+
+      const leaf = malformed({
         kind: "condition",
         subject: { kind: "input", payloadKind: value.kind },
         operator: "equals",
         value,
-      } as unknown as FilterLeaf);
+      });
+      const condition = all(leaf);
+
       expect(validateCondition(condition, value.kind)).toMatchObject({
         status: "error",
         code: "invalidCondition",
@@ -64,7 +115,9 @@ describe("validateCondition", () => {
     },
   );
 
-  it("rejects an operator the subject's kind doesn't support, in its type and when validated", () => {
+  test("rejects an operator the subject's kind doesn't support, in its type and when validated", () => {
+    expect.hasAssertions();
+
     // @ts-expect-error -- text can't be ordered
     const leaf: FilterLeaf = {
       kind: "condition",
@@ -72,66 +125,60 @@ describe("validateCondition", () => {
       operator: "greaterThan",
       value: { kind: "Text", value: "b" },
     };
-    expect(validateCondition(all(leaf), "Text")).toEqual({
+    expect(validateCondition(all(leaf), "Text")).toStrictEqual({
       status: "error",
       code: "invalidCondition",
       message: "Operator greaterThan does not support Text.",
     });
   });
 
-  it.each([
+  test.each([
     {
       kind: "VersionedUrl",
       value: "https://example.com/types/entity-type/company/v/1",
-      valid: true,
+      expected: undefined,
     },
     {
       kind: "VersionedUrl",
       value: "https://example.com/types/entity-type/company/",
-      valid: false,
+      expected: invalidEntityTypeUrlResult,
     },
     {
       kind: "VersionedUrl",
       value: "https://example.com/types/entity-type/company/v/0",
-      valid: false,
+      expected: invalidEntityTypeUrlResult,
     },
     {
       kind: "BaseUrl",
       value: "https://example.com/types/entity-type/company/",
-      valid: true,
+      expected: undefined,
     },
     {
       kind: "BaseUrl",
       value: "https://example.com/types/entity-type/company/v/1",
-      valid: false,
+      expected: invalidEntityTypeUrlResult,
     },
     {
       kind: "Text",
       value: "https://example.com/types/entity-type/company/",
-      valid: false,
+      expected: invalidEntityTypeUrlResult,
     },
-    { kind: "VersionedUrl", value: 1, valid: false },
-    { kind: "BaseUrl", value: undefined, valid: false },
-  ])("checks that $value is a $kind type URL", ({ kind, value, valid }) => {
-    expect(
-      validateCondition(
-        all({
-          kind: "condition",
-          subject: { kind: "entityType" },
-          operator: "isOfType",
-          value: { kind, value },
-        } as never),
-        "ProposedEntity",
-      ),
-    ).toEqual(
-      valid
-        ? undefined
-        : {
-            status: "error",
-            code: "invalidCondition",
-            message:
-              "Entity type conditions require isOfType and a versioned or base type URL.",
-          },
+    { kind: "VersionedUrl", value: 1, expected: invalidEntityTypeUrlResult },
+    { kind: "BaseUrl", value: undefined, expected: invalidEntityTypeUrlResult },
+  ])("entity type URL $kind: $value", ({ kind, value, expected }) => {
+    expect.hasAssertions();
+
+    const condition = all(
+      malformed({
+        kind: "condition",
+        subject: { kind: "entityType" },
+        operator: "isOfType",
+        value: { kind, value },
+      }),
+    );
+
+    expect(validateCondition(condition, "ProposedEntity")).toStrictEqual(
+      expected,
     );
   });
 
@@ -145,18 +192,17 @@ describe("validateCondition", () => {
     },
   };
 
-  it("accepts isOfType with includeSubtypes", () => {
-    expect(
-      validateCondition(
-        all({ ...isCompany, includeSubtypes: true }),
-        "EntityId",
-      ),
-    ).toBeUndefined();
+  test("isOfType includeSubtypes", () => {
+    expect.hasAssertions();
+
+    const condition = all({ ...isCompany, includeSubtypes: true });
+
+    expect(validateCondition(condition, "EntityId")).toBeUndefined();
   });
 
-  it.each<{
+  test.each<{
     name: string;
-    leaf: unknown;
+    leaf: MalformedInput;
     inputKind: PayloadKind;
     message: string;
   }>([
@@ -183,38 +229,47 @@ describe("validateCondition", () => {
       inputKind: "EntityId",
       message: "must be a boolean",
     },
-  ])("rejects includeSubtypes on $name", ({ leaf, inputKind, message }) => {
-    expect(validateCondition(all(leaf as FilterLeaf), inputKind)).toMatchObject(
-      {
-        status: "error",
-        code: "invalidCondition",
-        message: expect.stringContaining(message),
-      },
-    );
+  ])("includeSubtypes invalid $name", ({ leaf, inputKind, message }) => {
+    expect.hasAssertions();
+
+    const condition = all(malformed(leaf));
+    const result = validateCondition(condition, inputKind);
+
+    expect(result).toMatchObject({
+      status: "error",
+      code: "invalidCondition",
+    });
+    expect(result?.message).toContain(message);
   });
 
-  it("rejects field subjects on primitive input kinds", () => {
+  test("rejects field subjects on primitive input kinds", () => {
+    expect.hasAssertions();
+
     expect(validateCondition(all(scoreCondition), "Number")).toMatchObject({
       status: "error",
       code: "invalidCondition",
     });
   });
 
-  it("validates the operand's kind, not just its JS type", () => {
-    expect(
-      validateCondition(
-        all({
-          kind: "condition",
-          subject: { kind: "input", payloadKind: "Date" },
-          operator: "equals",
-          value: { kind: "Text", value: "2026-10-08" },
-        } as never),
-        "Date",
-      ),
-    ).toMatchObject({ status: "error", code: "invalidCondition" });
+  test("validates the operand's kind, not just its JS type", () => {
+    expect.hasAssertions();
+
+    const condition = all(
+      malformed({
+        kind: "condition",
+        subject: { kind: "input", payloadKind: "Date" },
+        operator: "equals",
+        value: { kind: "Text", value: "2026-10-08" },
+      }),
+    );
+
+    expect(validateCondition(condition, "Date")).toMatchObject({
+      status: "error",
+      code: "invalidCondition",
+    });
   });
 
-  it.each([
+  test.each([
     {
       subjectKind: "DateTime",
       value: { kind: "Date", value: "2026-10-16" },
@@ -226,6 +281,8 @@ describe("validateCondition", () => {
   ] as const)(
     "rejects comparing a $subjectKind with a $value.kind",
     ({ subjectKind, value }) => {
+      expect.hasAssertions();
+
       // @ts-expect-error -- a comparison value must have its subject's kind
       const leaf: FilterLeaf = {
         kind: "condition",
@@ -240,53 +297,52 @@ describe("validateCondition", () => {
     },
   );
 
-  it("rejects scalar operators on a non-scalar subject", () => {
-    expect(
-      validateCondition(
-        all({
-          kind: "condition",
-          subject: { kind: "field", path: ["page"], payloadKind: "WebPage" },
-          operator: "equals",
-          value: { kind: "WebPage", value: "https://example.com" },
-        } as unknown as FilterLeaf),
-        "WebSearchResult",
-      ),
-    ).toMatchObject({ status: "error", code: "invalidCondition" });
+  test("rejects scalar operators on a non-scalar subject", () => {
+    expect.hasAssertions();
+
+    const condition = all(
+      malformed({
+        kind: "condition",
+        subject: { kind: "field", path: ["page"], payloadKind: "WebPage" },
+        operator: "equals",
+        value: { kind: "WebPage", value: "https://example.com" },
+      }),
+    );
+
+    expect(validateCondition(condition, "WebSearchResult")).toMatchObject({
+      status: "error",
+      code: "invalidCondition",
+    });
   });
 
-  it("accepts presence operators on a non-scalar subject", () => {
-    expect(
-      validateCondition(
-        all({
-          kind: "condition",
-          subject: { kind: "field", path: ["page"], payloadKind: "WebPage" },
-          operator: "isNotEmpty",
-        }),
-        "WebSearchResult",
-      ),
-    ).toBeUndefined();
+  test("accepts presence operators on a non-scalar subject", () => {
+    expect.hasAssertions();
+
+    expect(validateCondition(presenceLeaf, "WebSearchResult")).toBeUndefined();
   });
 
-  it.each(["__proto__", "constructor", "prototype"])(
+  test.each(["__proto__", "constructor", "prototype"])(
     "rejects unsafe field segment %s",
     (segment) => {
-      expect(
-        validateCondition(
-          all({
-            ...scoreCondition,
-            subject: {
-              kind: "field",
-              path: [segment, "score"],
-              payloadKind: "Number",
-            },
-          }),
-          "WebPage",
-        ),
-      ).toMatchObject({ status: "error", code: "invalidCondition" });
+      expect.hasAssertions();
+
+      const condition = all({
+        ...scoreCondition,
+        subject: {
+          kind: "field",
+          path: [segment, "score"],
+          payloadKind: "Number",
+        },
+      });
+
+      expect(validateCondition(condition, "WebPage")).toMatchObject({
+        status: "error",
+        code: "invalidCondition",
+      });
     },
   );
 
-  it.each<{ name: string; condition: unknown; message: string }>([
+  test.each<{ name: string; condition: MalformedInput; message: string }>([
     { name: "a leaf", condition: scoreCondition, message: "top-level" },
     { name: "not", condition: not(all(scoreCondition)), message: "top-level" },
     { name: "an empty group", condition: all(), message: "at least one" },
@@ -302,23 +358,23 @@ describe("validateCondition", () => {
     },
     {
       name: "an unknown nested kind",
-      condition: all({ kind: "xor", conditions: [scoreCondition] } as never),
+      condition: all(malformed({ kind: "xor", conditions: [scoreCondition] })),
       message: "Unknown condition kind",
     },
     { name: "a null root", condition: null, message: "must be an object" },
     {
       name: "a not without a child",
-      condition: all({ kind: "not" } as never),
+      condition: all(malformed({ kind: "not" })),
       message: "must be an object",
     },
     {
       name: "a group without a conditions array",
-      condition: any(scoreCondition, { kind: "all" } as never),
+      condition: any(scoreCondition, malformed({ kind: "all" })),
       message: "must be an array",
     },
     {
       name: "a null child",
-      condition: all(scoreCondition, null as never),
+      condition: all(scoreCondition, malformed(null)),
       message: "must be an object",
     },
     {
@@ -328,71 +384,77 @@ describe("validateCondition", () => {
     },
     {
       name: "depth 5",
-      condition: all(any(all(not(scoreCondition)))),
+      condition: depthFiveGroups,
       message: "at most 4 levels",
     },
     {
       name: "depth 5 through a chain of not",
-      condition: all(not(not(not(scoreCondition)))),
+      condition: depthFiveChain,
       message: "at most 4 levels",
     },
     {
       name: "51 leaves across nested groups",
-      condition: any(
-        all(...Array<FilterLeaf>(25).fill(scoreCondition)),
-        not(all(...Array<FilterLeaf>(26).fill(scoreCondition))),
-      ),
+      condition: tooManyLeaves,
       message: "at most 50 leaf",
     },
     {
       name: "an invalid leaf deep in the tree",
-      condition: all(
-        activeCondition,
-        any(not({ ...scoreCondition, operator: "contains" } as never)),
-      ),
+      condition: invalidLeafInTree,
       message: "Operator contains does not support Number",
     },
     {
       name: "a leaf without a subject",
-      condition: all({ kind: "condition", operator: "isEmpty" } as never),
+      condition: all(malformed({ kind: "condition", operator: "isEmpty" })),
       message: "subject must be an object",
     },
     {
       name: "a field path that is not an array",
-      condition: all({
-        ...scoreCondition,
-        subject: { kind: "field", path: "score", payloadKind: "Number" },
-      } as never),
+      condition: all(
+        malformed({
+          ...scoreCondition,
+          subject: { kind: "field", path: "score", payloadKind: "Number" },
+        }),
+      ),
       message: "path must be an array of strings",
     },
     {
       name: "a non-string path segment",
-      condition: all({
-        ...scoreCondition,
-        subject: { kind: "field", path: ["score", 1], payloadKind: "Number" },
-      } as never),
+      condition: all(
+        malformed({
+          ...scoreCondition,
+          subject: {
+            kind: "field",
+            path: ["score", 1],
+            payloadKind: "Number",
+          },
+        }),
+      ),
       message: "path must be an array of strings",
     },
     {
       name: "an unknown subject kind",
-      condition: all({
-        kind: "condition",
-        subject: { kind: "nope" },
-        operator: "isEmpty",
-      } as never),
+      condition: all(
+        malformed({
+          kind: "condition",
+          subject: { kind: "nope" },
+          operator: "isEmpty",
+        }),
+      ),
       message: "Unknown subject kind",
     },
   ])("rejects $name", ({ condition, message }) => {
-    expect(
-      validateCondition(condition as FilterCondition, "WebPage"),
-    ).toMatchObject({
+    expect.hasAssertions();
+
+    const result = validateCondition(malformed(condition), "WebPage");
+
+    expect(result).toMatchObject({
       status: "error",
       code: "invalidCondition",
-      message: expect.stringContaining(message) as string,
     });
+    expect(result?.message).toContain(message);
   });
 
-  it.each<{ name: string; subject: unknown; message: string }>([
+  test.each<{ name: string; subject: MalformedInput; message: string }>([
     {
       name: "an entity property subject without a base URL",
       subject: { kind: "entityProperty", payloadKind: "Number" },
@@ -440,62 +502,60 @@ describe("validateCondition", () => {
       message: "known payload kind",
     },
   ])("rejects $name", ({ subject, message }) => {
-    expect(
-      validateCondition(
-        all({ kind: "condition", subject, operator: "isEmpty" } as never),
-        "ProposedEntity",
-      ),
-    ).toMatchObject({
+    expect.hasAssertions();
+
+    const condition = all(
+      malformed({ kind: "condition", subject, operator: "isEmpty" }),
+    );
+
+    const result = validateCondition(condition, "ProposedEntity");
+
+    expect(result).toMatchObject({
       status: "error",
       code: "invalidCondition",
-      message: expect.stringContaining(message) as string,
     });
+    expect(result?.message).toContain(message);
   });
 
-  it("accepts trees at the depth and leaf limits", () => {
-    expect(
-      validateCondition(all(any(not(scoreCondition))), "WebPage"),
-    ).toBeUndefined();
-    expect(
-      validateCondition(
-        any(
-          all(...Array<FilterLeaf>(25).fill(scoreCondition)),
-          not(all(...Array<FilterLeaf>(25).fill(activeCondition))),
-        ),
-        "WebPage",
-      ),
-    ).toBeUndefined();
+  test("accepts trees at the depth and leaf limits", () => {
+    expect.hasAssertions();
+
+    expect(validateCondition(maxDepth, "WebPage")).toBeUndefined();
+    expect(validateCondition(maxLeaves, "WebPage")).toBeUndefined();
   });
 
-  it("lists the leaves of a nested tree in order", () => {
-    expect(
-      conditionLeaves(
-        any(all(scoreCondition, not(activeCondition)), featuredCondition),
-      ),
-    ).toEqual([scoreCondition, activeCondition, featuredCondition]);
+  test("lists the leaves of a nested tree in order", () => {
+    expect.hasAssertions();
+
+    expect(conditionLeaves(nestedTree)).toStrictEqual([
+      scoreCondition,
+      activeCondition,
+      featuredCondition,
+    ]);
   });
 
-  it("rejects a missing operand, wrong input kind, and an operand on presence checks", () => {
-    expect(
-      validateCondition(
-        all({ ...scoreCondition, value: undefined } as never),
-        "WebPage",
-      ),
-    ).toMatchObject({ status: "error" });
-    expect(
-      validateCondition(
-        all({
-          ...scoreCondition,
-          subject: { kind: "input", payloadKind: "Number" },
-        }),
-        "Text",
-      ),
-    ).toMatchObject({ status: "error" });
-    expect(
-      validateCondition(
-        all({ ...scoreCondition, operator: "isEmpty" } as never),
-        "WebPage",
-      ),
-    ).toMatchObject({ status: "error" });
+  test("rejects a missing operand, wrong input kind, and an operand on presence checks", () => {
+    expect.hasAssertions();
+
+    const missingOperand = all(
+      malformed({ ...scoreCondition, value: undefined }),
+    );
+    const wrongInputKind = all({
+      ...scoreCondition,
+      subject: { kind: "input", payloadKind: "Number" },
+    });
+    const operandOnPresenceCheck = all(
+      malformed({ ...scoreCondition, operator: "isEmpty" }),
+    );
+
+    expect(validateCondition(missingOperand, "WebPage")).toMatchObject({
+      status: "error",
+    });
+    expect(validateCondition(wrongInputKind, "Text")).toMatchObject({
+      status: "error",
+    });
+    expect(validateCondition(operandOnPresenceCheck, "WebPage")).toMatchObject({
+      status: "error",
+    });
   });
 });

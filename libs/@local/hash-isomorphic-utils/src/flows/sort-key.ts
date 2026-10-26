@@ -4,21 +4,21 @@ import type { ConditionSubject, ScalarKind } from "./filter-condition.js";
 import type { ActionStepCheck, PayloadKind } from "./types.js";
 
 /** What Order by sorts a list by: the item, one of its fields or an entity property, as in a filter condition. */
-export type SortKey = {
+export interface SortKey {
   subject: Exclude<ConditionSubject, { kind: "entityType" }>;
   direction: "ascending" | "descending";
-};
+}
 
 /** The kinds a sort key's subject can have: those with a primitive type, which Order by knows how to compare. */
 export const sortKeyKinds = scalarKinds;
 
 export type SortKeyKind = ScalarKind;
 
-export type SortKeyError = {
+export interface SortKeyError {
   status: "error";
   code: "invalidSortKey";
   message: string;
-};
+}
 
 const invalidSortKey = (message: string): SortKeyError => ({
   status: "error",
@@ -46,10 +46,11 @@ export const validateSortKey = (
     );
   }
   const subjectError = validateSubject(subject, itemKind);
-  if (subjectError) {
+  if (subjectError !== undefined) {
     return invalidSortKey(subjectError);
   }
   if (
+    // SAFETY: Persisted definitions may carry an `entityType` subject, which the declared type excludes.
     (subject as ConditionSubject).kind === "entityType" ||
     !sortKeyKinds.includes(subject.payloadKind)
   ) {
@@ -78,14 +79,19 @@ export const checkSortKeyInput: ActionStepCheck = ({
   if (
     source?.kind !== "constant" ||
     source.payload.kind !== "SortKey" ||
-    !kind
+    kind === null
   ) {
     return;
   }
 
-  const error = validateSortKey(source.payload.value as SortKey, kind);
+  const error = validateSortKey(
+    // SAFETY: The payload kind is `SortKey`; `validateSortKey` checks the shape at runtime.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the value is validated by validateSortKey immediately
+    source.payload.value as SortKey,
+    kind,
+  );
 
-  if (error) {
+  if (error !== undefined) {
     report("sortBy", error.message);
   }
 };

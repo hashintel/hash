@@ -6,8 +6,8 @@ const canonicalNonEmptyString = nonEmptyString.refine(
   { error: "String must not have leading or trailing whitespace" },
 );
 const nullableNonEmptyString = nonEmptyString.nullable();
-const nonNegativeNumber = z.number().finite().nonnegative();
-const positiveNumber = z.number().finite().positive();
+const nonNegativeNumber = z.number().nonnegative();
+const positiveNumber = z.number().positive();
 const isoDate = z.iso.date();
 
 export const productionScheduleStatusSchema = z.enum([
@@ -111,7 +111,7 @@ const allocationTotalsSchema = z.strictObject({
   unresolved: nonNegativeNumber,
 });
 
-const batchBaseShape = {
+const batchBase = {
   id: nonEmptyString,
   material: nonEmptyString,
   batch: nullableNonEmptyString,
@@ -136,7 +136,7 @@ const batchBaseShape = {
 } as const;
 
 export const productionScheduleLegacyBatchSchema = z.strictObject({
-  ...batchBaseShape,
+  ...batchBase,
   timing_kind: productionScheduleTimingKindSchema.optional(),
   allocation_overage_quantity: nonNegativeNumber.optional(),
   allocations: z.array(productionScheduleAllocationSchema),
@@ -150,7 +150,7 @@ export const productionScheduleLegacyBatchSchema = z.strictObject({
 });
 
 export const productionScheduleV12BatchSchema = z.strictObject({
-  ...batchBaseShape,
+  ...batchBase,
   timing_kind: productionScheduleTimingKindSchema,
   allocation_overage_quantity: nonNegativeNumber,
   consumption_event_ids: z.array(nonEmptyString),
@@ -168,7 +168,7 @@ export const productionScheduleV12BatchSchema = z.strictObject({
   lifecycle_exit_quantity: nonNegativeNumber,
 });
 
-const laneShape = {
+const lane = {
   material: nonEmptyString,
   name: nonEmptyString,
   bom_depth: z.number().int().nonnegative(),
@@ -178,12 +178,12 @@ const laneShape = {
 } as const;
 
 export const productionScheduleLegacyLaneSchema = z.strictObject({
-  ...laneShape,
+  ...lane,
   batches: z.array(productionScheduleLegacyBatchSchema),
 });
 
 export const productionScheduleV12LaneSchema = z.strictObject({
-  ...laneShape,
+  ...lane,
   batches: z.array(productionScheduleV12BatchSchema),
 });
 
@@ -258,7 +258,7 @@ export const productionScheduleDispatchEventSchema = z.strictObject({
   deliveries: z.array(productionScheduleDeliverySchema),
 });
 
-const scheduleBaseShape = {
+const scheduleBase = {
   artifact_type: z.literal("production_schedule"),
   product_id: nonEmptyString,
   product_name: nonEmptyString,
@@ -268,7 +268,7 @@ const scheduleBaseShape = {
   material_names: z.record(nonEmptyString, nonEmptyString).optional(),
 } as const;
 
-const sourceBaseShape = {
+const sourceBase = {
   production_windows: nonEmptyString,
   cadence: nonEmptyString,
   order_outputs: nonEmptyString,
@@ -276,20 +276,20 @@ const sourceBaseShape = {
 } as const;
 
 export const productionScheduleLegacySchema = z.strictObject({
-  ...scheduleBaseShape,
+  ...scheduleBase,
   schema_version: z.literal("1.1"),
   artifact_version: z.union([z.literal("1.0"), z.literal("1.1")]),
   lanes: z.array(productionScheduleLegacyLaneSchema).min(1),
   consumption_evidence: z.array(productionScheduleConsumptionEvidenceSchema),
   dispatch_events: z.array(productionScheduleDispatchEventSchema).optional(),
   source: z.strictObject({
-    ...sourceBaseShape,
+    ...sourceBase,
     allocations: nonEmptyString,
   }),
 });
 
 export const productionScheduleV12Schema = z.strictObject({
-  ...scheduleBaseShape,
+  ...scheduleBase,
   schema_version: z.literal("1.2"),
   artifact_version: z.literal("1.2"),
   lanes: z.array(productionScheduleV12LaneSchema).min(1),
@@ -297,7 +297,7 @@ export const productionScheduleV12Schema = z.strictObject({
   batch_links: z.array(productionScheduleBatchLinkSchema),
   dispatch_events: z.array(productionScheduleDispatchEventSchema),
   source: z.strictObject({
-    ...sourceBaseShape,
+    ...sourceBase,
     consumption_events: nonEmptyString,
   }),
 });

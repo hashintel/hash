@@ -24,20 +24,21 @@ export type BlockEntity = Omit<Block, "blockChildEntity"> & {
   blockChildEntity: Entity;
 };
 
-export type BlockCollectionContentItem = {
+export interface BlockCollectionContentItem {
   linkEntity:
     | LinkEntity<HasIndexedContent>
     | LinkEntity<HasSpatiallyPositionedContent>;
   rightEntity: BlockEntity;
-};
+}
 
 export type BlockCollection = Omit<BlockCollectionGql, "contents"> & {
   contents: BlockCollectionContentItem[];
 };
 
-export type TextProperties = {
-  [_ in typeof textualContentPropertyTypeBaseUrl]: TextToken[];
-};
+export type TextProperties = Record<
+  typeof textualContentPropertyTypeBaseUrl,
+  TextToken[]
+>;
 
 export type TextEntityStoreEntity = Omit<EntityStoreType, "properties"> & {
   properties: TextProperties;
@@ -48,27 +49,28 @@ export type TextWithTokens = Omit<Text, "properties"> & {
 };
 
 export const isRichTextProperties = (
+  // oxlint-disable-next-line typescript/no-restricted-types -- type guard over arbitrary property values, narrowed by the check below
   properties: Record<string, unknown>,
 ): properties is TextEntityStoreEntity["properties"] =>
   textualContentPropertyTypeBaseUrl in properties &&
-  Array.isArray(
-    properties[textualContentPropertyTypeBaseUrl as keyof typeof properties],
-  );
+  Array.isArray(properties[textualContentPropertyTypeBaseUrl]);
 
 export const getEntityChildEntity = (
   draftId: string,
   draftEntityStore: EntityStore["draft"],
-) => {
+): DraftEntity | null => {
   const entity = draftEntityStore[draftId];
-  if (!entity) {
+  if (entity === undefined) {
     throw new Error("invariant: missing entity");
   }
 
-  const childEntity = entity.blockChildEntity?.draftId
-    ? draftEntityStore[entity.blockChildEntity.draftId]
-    : null;
+  const childDraftId = entity.blockChildEntity?.draftId;
 
-  return childEntity;
+  if (childDraftId === undefined || childDraftId === "") {
+    return null;
+  }
+
+  return draftEntityStore[childDraftId] ?? null;
 };
 
 export const getBlockChildEntity = (
@@ -86,7 +88,7 @@ export const getBlockChildEntity = (
     entityStore.draft,
   );
 
-  if (!childEntity) {
+  if (childEntity === null) {
     throw new Error("Missing entity from draft store");
   }
 
@@ -96,28 +98,31 @@ export const getBlockChildEntity = (
 export const getFirstEntityRevision = (
   subgraph: Subgraph,
   entityId: EntityId,
-) => {
+): Entity => {
   const entityRevisions = getEntityRevisionsByEntityId(subgraph, entityId);
 
-  if (!entityRevisions[0]) {
+  const [firstRevision] = entityRevisions;
+
+  if (firstRevision === undefined) {
     throw new Error("Could not find entity revisions in subgraph");
   }
 
-  return entityRevisions.reduce<Entity>(
-    (previousEarliestRevision, currentRevision) => {
-      const currentCreatedAt = new Date(
-        currentRevision.metadata.temporalVersioning.decisionTime.start.limit,
-      );
+  let earliestRevision: Entity = firstRevision;
 
-      const previousEarliestRevisionCreatedAt = new Date(
-        previousEarliestRevision.metadata.temporalVersioning.decisionTime.start
-          .limit,
-      );
+  for (const currentRevision of entityRevisions) {
+    const currentCreatedAt = new Date(
+      currentRevision.metadata.temporalVersioning.decisionTime.start.limit,
+    );
 
-      return previousEarliestRevisionCreatedAt < currentCreatedAt
-        ? previousEarliestRevision
+    const previousEarliestRevisionCreatedAt = new Date(
+      earliestRevision.metadata.temporalVersioning.decisionTime.start.limit,
+    );
+
+    earliestRevision =
+      previousEarliestRevisionCreatedAt < currentCreatedAt
+        ? earliestRevision
         : currentRevision;
-    },
-    entityRevisions[0],
-  );
+  }
+
+  return earliestRevision;
 };

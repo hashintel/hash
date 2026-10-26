@@ -28,36 +28,42 @@ export const inferenceModelNames = [
 export type InferenceModelName = (typeof inferenceModelNames)[number];
 
 export const isInferenceModelName = (tbd: string): tbd is InferenceModelName =>
-  inferenceModelNames.includes(tbd as InferenceModelName);
+  inferenceModelNames.some((modelName) => modelName === tbd);
 
-type BaseProposedEntitySchemaOrData = {
-  entityId: unknown;
-  updateEntityId?: unknown;
+/**
+ * A value in the output of an AI model, which is not validated until it is checked against the schema.
+ */
+// oxlint-disable-next-line typescript/no-restricted-types -- the output of an AI model is unvalidated, and has no known type
+type UnvalidatedModelOutput = unknown;
+
+interface BaseProposedEntitySchemaOrData {
+  entityId: UnvalidatedModelOutput;
+  updateEntityId?: UnvalidatedModelOutput;
   /**
    * The AI Model does not reliably return an empty properties object if the entity type has no properties.
    */
-  properties?: unknown;
-};
+  properties?: UnvalidatedModelOutput;
+}
 
-type EntitySchemaOrDataLinkFields = {
-  sourceEntityId: unknown;
-  targetEntityId: unknown;
-};
+interface EntitySchemaOrDataLinkFields {
+  sourceEntityId: UnvalidatedModelOutput;
+  targetEntityId: UnvalidatedModelOutput;
+}
 
 export type ProposedEntitySchemaOrData =
   | BaseProposedEntitySchemaOrData
   | (BaseProposedEntitySchemaOrData & EntitySchemaOrDataLinkFields);
 
-type BaseProposedEntity = {
+interface BaseProposedEntity {
   entityId: number;
   updateEntityId?: string;
   properties?: PropertyObject;
-};
+}
 
-export type ProposedEntityLinkFields = {
+export interface ProposedEntityLinkFields {
   sourceEntityId: number;
   targetEntityId: number;
-};
+}
 
 /**
  * @deprecated only used in an old inference flow – use ProposedEntity from the flows/types.ts file instead
@@ -66,19 +72,20 @@ export type DeprecatedProposedEntity =
   | BaseProposedEntity
   | (BaseProposedEntity & ProposedEntityLinkFields);
 
-export type InferenceTokenUsage = {
+export interface InferenceTokenUsage {
   prompt_tokens: number;
   completion_tokens: number;
   total_tokens: number;
-};
+}
 
-type InferredEntityResultBase = {
+interface InferredEntityResultBase {
   entity?: SerializedEntity | null;
   entityTypeIds: VersionedUrl[];
   operation: "create" | "update" | "already-exists-as-proposed";
+  // oxlint-disable-next-line typescript/no-deprecated -- the old inference flow, which this result belongs to, still produces the deprecated type
   proposedEntity: DeprecatedProposedEntity;
   status: "success" | "failure";
-};
+}
 
 export type InferredEntityCreationSuccess = InferredEntityResultBase & {
   entity: SerializedEntity;
@@ -126,13 +133,13 @@ export type InferEntitiesReturn = Status<{
   usage: InferenceTokenUsage[];
 }>;
 
-type WebSocketMessageAuth = {
+interface WebSocketMessageAuth {
   /**
    * Optional fallback for clients (e.g. browser extensions) that cannot rely on
    * upgrade-request cookies being available on the WebSocket handshake.
    */
   cookie?: string;
-};
+}
 
 export type AutomaticInferenceWebsocketRequestMessage = WebSocketMessageAuth & {
   type: "automatic-inference-request";
@@ -171,11 +178,11 @@ export type InferenceWebsocketClientMessage =
   | CheckForExternalInputRequestsWebsocketRequestMessage
   | ExternalInputWebsocketResponseMessage;
 
-export type ExternalInputWebsocketRequestMessage = {
+export interface ExternalInputWebsocketRequestMessage {
   flowRunEntityId: EntityId;
   payload: ExternalInputRequestSignal;
   type: "external-input-request";
-};
+}
 
 export type InferenceWebsocketServerMessage =
   ExternalInputWebsocketRequestMessage;

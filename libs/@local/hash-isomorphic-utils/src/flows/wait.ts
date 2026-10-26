@@ -2,30 +2,41 @@ import { dayMs, hourMs, minuteMs, parseDateTime } from "./datetime.js";
 
 import type { ActionStepCheck, Duration } from "./types.js";
 
-export type WaitError = { status: "error"; message: string };
+export interface WaitError {
+  status: "error";
+  message: string;
+}
 
 const waitError = (message: string): WaitError => ({
   status: "error",
   message,
 });
 
+const secondMs = 1000;
+const daysPerWeek = 7;
+const maxWaitDays = 30;
+
 const unitMs = {
-  seconds: 1_000,
+  seconds: secondMs,
   minutes: minuteMs,
   hours: hourMs,
   days: dayMs,
-  weeks: 7 * dayMs,
+  weeks: daysPerWeek * dayMs,
 } as const satisfies Record<Duration["unit"], number>;
 
 /** The longest a Wait step can pause for. */
-export const maxWaitMs = 30 * dayMs;
+export const maxWaitMs = maxWaitDays * dayMs;
 
 export const durationToMs = (duration: Duration): number =>
   duration.amount * unitMs[duration.unit];
 
+const isDurationUnit = (unit: string): unit is Duration["unit"] =>
+  Object.hasOwn(unitMs, unit);
+
 /**
  * Reads a duration into milliseconds. It may come from JSON, so it may not have the shape its type says.
  */
+// oxlint-disable-next-line typescript/no-restricted-types -- a duration may come from JSON, so its shape is validated here
 const parseDuration = (duration: unknown): number | WaitError => {
   if (
     typeof duration !== "object" ||
@@ -35,9 +46,10 @@ const parseDuration = (duration: unknown): number | WaitError => {
     return waitError("A duration must be an object with an amount and a unit.");
   }
 
-  const { amount, unit } = duration as Record<string, unknown>;
+  const amount = "amount" in duration ? duration.amount : undefined;
+  const unit = "unit" in duration ? duration.unit : undefined;
 
-  if (typeof unit !== "string" || !Object.hasOwn(unitMs, unit)) {
+  if (typeof unit !== "string" || !isDurationUnit(unit)) {
     return waitError(
       `A duration's unit must be one of ${Object.keys(unitMs).join(", ")}.`,
     );
@@ -45,7 +57,7 @@ const parseDuration = (duration: unknown): number | WaitError => {
   if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
     return waitError("A duration's amount must be a number greater than 0.");
   }
-  const durationMs = durationToMs({ amount, unit: unit as Duration["unit"] });
+  const durationMs = durationToMs({ amount, unit });
   if (durationMs > maxWaitMs) {
     return waitError(
       `A Wait step can't wait for more than ${maxWaitMs / dayMs} days.`,
@@ -63,6 +75,7 @@ const parseDuration = (duration: unknown): number | WaitError => {
  * checked, so they're read as `unknown`.
  */
 export const resolveResumeAt = (
+  // oxlint-disable-next-line typescript/no-restricted-types -- inputs may come from a flow input or an earlier step without being checked
   inputs: { duration?: unknown; until?: unknown },
   startedAt: Date,
 ): string | WaitError => {
@@ -105,11 +118,11 @@ export const resolveResumeAt = (
 export const checkWaitInputs: ActionStepCheck = ({ step, report }) => {
   const { duration, until } = step.inputs;
 
-  if (!duration && !until) {
+  if (duration === undefined && until === undefined) {
     report("duration", "Connect either a duration or an until time");
     return;
   }
-  if (duration && until) {
+  if (duration !== undefined && until !== undefined) {
     report("until", "Connect either a duration or an until time, not both");
     return;
   }

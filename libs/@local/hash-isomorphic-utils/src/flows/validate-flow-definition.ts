@@ -2,14 +2,13 @@ import {
   actionDefinitions as defaultActionDefinitions,
   getKindSources,
 } from "./action-definitions.js";
-import { type ConnectionSource, canConnect } from "./can-connect.js";
+import { canConnect } from "./can-connect.js";
 import { flowDefinitionSchema } from "./flow-definition-schema.js";
-import {
-  type ActionDefinitions,
-  createStepShapeResolver,
-} from "./step-shapes.js";
+import { createStepShapeResolver } from "./step-shapes.js";
 import { getPayloadKindJsonType } from "./types.js";
 
+import type { ConnectionSource } from "./can-connect.js";
+import type { ActionDefinitions } from "./step-shapes.js";
 import type {
   ActionDefinition,
   ActionStepDefinition,
@@ -403,7 +402,7 @@ export const validateFlowDefinition = (
         };
       }
 
-      case "step-output":
+      case "step-output": {
         return resolveStepOutput({
           stepId: source.stepId,
           outputName: source.outputName,
@@ -411,6 +410,7 @@ export const validateFlowDefinition = (
           consumer,
           path,
         });
+      }
 
       case "item": {
         const forEachStepId = consumer.scope.at(-1);
@@ -475,23 +475,20 @@ export const validateFlowDefinition = (
       );
     }
 
-    const parallelizeOnShape = resolveSource({
+    const parallelizeOn = resolveSource({
       source: step.over,
       consumer: { stepId: step.stepId, scope: entry.scope },
       path: [...entry.path, "over"],
     });
 
-    if (
-      parallelizeOnShape &&
-      (!parallelizeOnShape.array || wrapOf(step.over))
-    ) {
+    if (parallelizeOn && (!parallelizeOn.array || wrapOf(step.over))) {
       report("overNotArray", "A for-each step must iterate over an array", [
         ...entry.path,
         "over",
       ]);
     } else if (
-      parallelizeOnShape &&
-      !parallelizeOnShape.required &&
+      parallelizeOn &&
+      !parallelizeOn.required &&
       !skipsWhenMissing(step.over)
     ) {
       report(
