@@ -4,6 +4,8 @@ Web frontend for HASH (`@apps/hash-frontend`).
 
 The frontend runs on Vinext and Vite. Vinext provides the `next/*` imports and reads `next.config.js`.
 
+The root `satori/fflate` resolution applies the 0.7.5 security fix to Vinext's `@vercel/og` dependency. Satori still pins 0.7.3, including in its latest release; remove the resolution when [the upstream fix](https://github.com/vercel/satori/pull/952) reaches the dependency tree.
+
 ## UI
 
 - Use React function components.

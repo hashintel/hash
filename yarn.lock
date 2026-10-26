@@ -28010,14 +28010,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fflate@npm:0.7.3":
-  version: 0.7.3
-  resolution: "fflate@npm:0.7.3"
-  checksum: 10c0/d116debcc828ca8860f78753e9472c3e0f14bc52cd2aab8bbcb01fd86577147993127317b8271d5f6eaaa821680e21adfa1e163211863300abfed6e006fc1d95
-  languageName: node
-  linkType: hard
-
-"fflate@npm:^0.7.3":
+"fflate@npm:0.7.5, fflate@npm:^0.7.3":
   version: 0.7.5
   resolution: "fflate@npm:0.7.5"
   checksum: 10c0/dd49302136bbe63d5e26a1e2ce7f2c9ff73a2c7eb591af433a20a4fd840e4914c7cad863945162067ec87dd871baa9250b755d06650f59c86b2d72dde4042f58
