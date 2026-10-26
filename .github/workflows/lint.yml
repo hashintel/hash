@@ -40,7 +40,14 @@ jobs:
         run: |
           # The steps gate on the per-task keys — the tasks are independent and
           # can differ in what they consider affected.
-          PACKAGES=$(.github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy lint:ruff lint:types)
+          set -o pipefail
+          PACKAGES=$(
+            .github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy lint:ruff format:ruff lint:types |
+            jq --compact-output '
+              .include |= map(select(.name != "hash-python"))
+              | .name = [.include[].name]
+            '
+          )
 
           echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
@@ -107,14 +114,17 @@ jobs:
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
 
-          # The codegen step is also the drift check for committed generated
-          # files; those are excluded from the codegen task's own inputs, so a
-          # hand-edit never marks the task affected.
-          HAS_CODEGEN=$(jq -e '.scripts.codegen' "${{ matrix.path }}/package.json" > /dev/null 2>&1 && echo 'true' || echo 'false')
+          # Generated files can change without affecting codegen. The drift check needs command discovery rather than affected-task selection.
+          set -o pipefail
+          HAS_CODEGEN=$(turbo run codegen --filter "${{ matrix.name }}" --dry=json | jq --arg package "${{ matrix.name }}" 'any(.tasks[]; .package == $package and .task == "codegen" and .command != "<NONEXISTENT>")')
           echo "has-codegen=$HAS_CODEGEN" | tee -a "$GITHUB_OUTPUT"
 
       - name: Warm up repository
         uses: $/.github/actions/warm-up-repo
+
+      - name: Install Python workspace for Python lint
+        if: matrix['lint:ruff'] != null || matrix['format:ruff'] != null || matrix['lint:types'] != null
+        run: uv sync --locked --all-packages
 
       - name: Show disk usage
         run: df -h
@@ -145,6 +155,10 @@ jobs:
       - name: Run Ruff
         if: always() && matrix['lint:ruff'] != null
         run: turbo run lint:ruff --filter "${{ matrix.name }}"
+
+      - name: Check Ruff formatting
+        if: always() && matrix['format:ruff'] != null
+        run: turbo run format:ruff --filter "${{ matrix.name }}" -- --check
 
       - name: Run basedpyright
         if: always() && matrix['lint:types'] != null
@@ -250,6 +264,9 @@ jobs:
 
       - name: Warm up repository
         uses: $/.github/actions/warm-up-repo
+
+      - name: Install Python for task resolution
+        run: uv python install --no-bin
 
       - name: Validate Dependency Diagrams
         if: ${{ success() || failure() }}

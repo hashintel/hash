@@ -21,7 +21,7 @@ const petrinautCapabilities = {
 const capabilityOf = (name: string): Capability => {
   if (name === brunchTools.draftPetrinautExperiment) return "experiment";
   if (
-    name === "task" ||
+    name === brunchTools.task ||
     name === brunchTools.activateSkill ||
     name === brunchTools.readSkillResource
   )

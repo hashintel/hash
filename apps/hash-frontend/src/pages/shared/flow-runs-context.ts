@@ -1,5 +1,4 @@
 import { createContext, useContext, useMemo } from "react";
-import { useNodeId } from "reactflow";
 
 import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
 
@@ -11,6 +10,7 @@ import type {
   StepRun,
 } from "../../graphql/api-types.gen";
 import type { EntityId } from "@blockprotocol/type-system";
+import type { FlowRunWithoutEvents } from "@local/hash-isomorphic-utils/flows/types";
 
 export type FlowRunsPaginationState = {
   currentCursor: string | null;
@@ -26,7 +26,7 @@ export type FlowRunsContextType = {
   nextCursor: string | null;
   loading: boolean;
   pagination: FlowRunsPaginationState | null;
-  selectedFlowRun: FlowRun | null;
+  selectedFlowRun: FlowRunWithoutEvents | null;
   selectedFlowRunEntityId: EntityId | null;
 };
 
@@ -152,12 +152,6 @@ export const useStatusForStep = (
 
     return getShownStepRun(selectedFlowRun.steps, nodeId);
   }, [selectedFlowRun, nodeId]);
-};
-
-export const useStatusForCurrentStep = (): StepRunStatus | null => {
-  const nodeId = useNodeId();
-
-  return useStatusForStep(nodeId);
 };
 
 type StepsStatus = {

@@ -70,6 +70,19 @@ Ask only to the precision the purpose needs: whether the typical case, the sprea
 - Answers keep needing exceptions, workarounds or new parts to fit the purpose or decomposition you hold: suspect the frame rather than the detail; name what does not fit and offer the reframing.
 - Patience or appetite running out: name the smallest gap that matters and offer the choice between spending the next turn there or stopping with it visible. Impatience changes how you ask, not what is known.
 
+## Interview length
+
+Apply this section only when an interview-length instruction names a level; without one, follow the rest of this skill unchanged. The level is appetite the _user_ has already stated: do not ask for it again. Record the level and its question cap on the `appetite` entity in your first commit, and supersede that claim when the level changes. The instruction's `remaining` is the turns the appetite leaves: it replaces your own estimate of turns left, and the exchange count a commit returns does not change it. The level changes which gaps you pursue and how many, never what counts as evidence. Every reply before closing spends one question, confirmations included; a grouped question counts as one.
+
+- **Quick:** Pursue only what the net cannot be built without. Group questions only when they share one frame. Use only construction defaults the account authorizes, each as a claim at `assumed` origin that says why and how to check it. Quick does not authorize inventing operational facts, ranges or units; record unsupported ones as `open` claims. Do not propose an experiment.
+- **Standard:** One thread per question, quantities with their units. Offer a supported default and ask; reaching the cap does not adopt an unconfirmed operational default. Propose an experiment only with the _user_'s stated range and unit and its readiness checks met.
+- **Thorough:** As Standard, plus peak versus quiet variation, durations, and return or exit flows. Record missing facts as `open` claims. Ask for the range the _user_ would consider before proposing an experiment.
+- **Deep:** As Thorough, plus units, ranges, edge cases and restrictions. Never assume missing facts. There is no cap: offer a pause between topics instead of closing because of the count.
+
+When one question remains, ask for the most consequential open fact. When none remain, settle the latest answer and close without another question, a correction question included: read back the stated facts, the `assumed` claims and the open items by name. Reaching the cap does not make the model complete or runnable; gaps are listed, not filled. Mention that continuing at a higher level is available, without asking it as a question.
+
+When the level changes, replan: earlier questions still count against the new cap. Do not repeat a settled fact.
+
 ## Closing
 
 At a voluntary close, read back the account once, with its assumptions, conflicts and gaps, and give one focused chance to correct it. State each gap by what it stops the model from answering.

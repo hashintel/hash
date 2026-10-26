@@ -12,7 +12,7 @@ import {
 } from "./button";
 import { iconSizeMap } from "./button-util";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const variants: Variant[] = ["solid", "subtle", "ghost", "link", "linkSubtle"];
 const tones: NonNullable<ButtonElementProps["tone"]>[] = [
@@ -21,7 +21,7 @@ const tones: NonNullable<ButtonElementProps["tone"]>[] = [
   "error",
 ];
 
-export default {
+const meta = {
   title: "Components/Button",
   argTypes: {
     variant: { control: { type: "select" }, options: variants },
@@ -38,7 +38,11 @@ export default {
     disabled: false,
     loading: false,
   },
-} satisfies StoryDefault<ButtonElementProps>;
+} satisfies Meta<ButtonElementProps>;
+
+export default meta;
+
+type Story = StoryObj<ButtonElementProps>;
 
 const Button = (args: ButtonElementProps) => (
   <ButtonComponent {...args} onClick={args.onClick ?? (() => {})}>
@@ -46,7 +50,7 @@ const Button = (args: ButtonElementProps) => (
   </ButtonComponent>
 );
 
-export const Default: Story<ButtonElementProps> = (args) => {
+const DefaultDemo = (args: ButtonElementProps) => {
   const [loading, setLoading] = useState<string | null>(null);
   return (
     <>
@@ -99,153 +103,165 @@ export const Default: Story<ButtonElementProps> = (args) => {
   );
 };
 
-export const Sizes: Story<ButtonElementProps> = (args) => (
-  <>
-    {variants.map((variant) => (
-      <div
-        key={variant}
-        className={css({
-          display: "flex",
-          gap: "[16px]",
-          alignItems: "center",
-          marginBottom: "4",
-        })}
-      >
-        {formInputSizes.map((size) => (
-          <div
-            key={size}
-            className={css({
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "[8px]",
-            })}
-          >
+export const Default: Story = {
+  render: (args: ButtonElementProps) => <DefaultDemo {...args} />,
+};
+
+export const Sizes: Story = {
+  render: (args: ButtonElementProps) => (
+    <>
+      {variants.map((variant) => (
+        <div
+          key={variant}
+          className={css({
+            display: "flex",
+            gap: "[16px]",
+            alignItems: "center",
+            marginBottom: "4",
+          })}
+        >
+          {formInputSizes.map((size) => (
             <div
+              key={size}
               className={css({
                 display: "flex",
-                gap: "[4px]",
+                flexDirection: "column",
                 alignItems: "center",
-                marginBottom: "4",
+                gap: "[8px]",
               })}
             >
-              <Button {...args} size={size} variant={variant}>
+              <div
+                className={css({
+                  display: "flex",
+                  gap: "[4px]",
+                  alignItems: "center",
+                  marginBottom: "4",
+                })}
+              >
+                <Button {...args} size={size} variant={variant}>
+                  {size}
+                </Button>
+                <Button {...args} size={size} variant={variant} loading>
+                  {size}
+                </Button>
+              </div>
+              <span
+                className={css({ fontSize: "[12px]", color: "neutral.s80" })}
+              >
                 {size}
-              </Button>
-              <Button {...args} size={size} variant={variant} loading>
-                {size}
-              </Button>
+              </span>
             </div>
-            <span className={css({ fontSize: "[12px]", color: "neutral.s80" })}>
-              {size}
-            </span>
-          </div>
-        ))}
-      </div>
-    ))}
-  </>
-);
+          ))}
+        </div>
+      ))}
+    </>
+  ),
+};
 
-export const WithIcon: Story<ButtonElementProps> = (args) => (
-  <>
-    {variants.map((variant) => (
-      <div
-        key={variant}
-        className={css({
-          display: "flex",
-          gap: "[16px]",
-          alignItems: "center",
-          marginBottom: "4",
-          flexWrap: "wrap",
-        })}
-      >
-        {formInputSizes.map((size) => (
-          <Fragment key={size}>
-            {/* eslint-disable -- spreading union-typed Ladle args triggers false TS errors from RequireAtLeastOne/ExclusifyUnion distribution */}
-            <Button
-              {...(args as any)}
-              variant={variant}
-              iconName="plus"
-              size={size}
-            >
-              Icon Left
-            </Button>
-            <Button
-              {...(args as any)}
-              variant={variant}
-              iconName="arrowRight"
-              iconPosition="right"
-              size={size}
-            >
-              Icon Right
-            </Button>
-            <ButtonComponent
-              {...(args as any)}
-              variant={variant}
-              size={size}
-              prefix={<Icon name="plus" size={iconSizeMap[size]} />}
-              suffix={<Icon name="arrowRight" size={iconSizeMap[size]} />}
-              onClick={() => {}}
-            >
-              Both Icons
-            </ButtonComponent>
-            <Button
-              {...(args as any)}
-              variant={variant}
-              iconName="star"
-              size={size}
-              tooltip="Star"
-            >
-              {undefined}
-            </Button>
-            <ButtonComponent
-              {...(args as any)}
-              variant={variant}
-              size={size}
-              prefix={<Icon name="plus" size={iconSizeMap[size]} />}
-              suffix={<Icon name="arrowRight" size={iconSizeMap[size]} />}
-              onClick={() => {}}
-              tooltip="Icon only with prefix and suffix"
-            >
-              {undefined}
-            </ButtonComponent>
-            {/* eslint-enable */}
-          </Fragment>
-        ))}
-        <Button
-          /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- same union spread issue */
-          {...(args as any)}
-          variant={variant}
-          iconName="star"
-          loading
-          tooltip="Star"
+export const WithIcon: Story = {
+  render: (args: ButtonElementProps) => (
+    <>
+      {variants.map((variant) => (
+        <div
+          key={variant}
+          className={css({
+            display: "flex",
+            gap: "[16px]",
+            alignItems: "center",
+            marginBottom: "4",
+            flexWrap: "wrap",
+          })}
         >
-          {undefined}
-        </Button>
-      </div>
-    ))}
-  </>
-);
+          {formInputSizes.map((size) => (
+            <Fragment key={size}>
+              {/* eslint-disable -- spreading union-typed story args triggers false TS errors from RequireAtLeastOne/ExclusifyUnion distribution */}
+              <Button
+                {...(args as any)}
+                variant={variant}
+                iconName="plus"
+                size={size}
+              >
+                Icon Left
+              </Button>
+              <Button
+                {...(args as any)}
+                variant={variant}
+                iconName="arrowRight"
+                iconPosition="right"
+                size={size}
+              >
+                Icon Right
+              </Button>
+              <ButtonComponent
+                {...(args as any)}
+                variant={variant}
+                size={size}
+                prefix={<Icon name="plus" size={iconSizeMap[size]} />}
+                suffix={<Icon name="arrowRight" size={iconSizeMap[size]} />}
+                onClick={() => {}}
+              >
+                Both Icons
+              </ButtonComponent>
+              <Button
+                {...(args as any)}
+                variant={variant}
+                iconName="star"
+                size={size}
+                tooltip="Star"
+              >
+                {undefined}
+              </Button>
+              <ButtonComponent
+                {...(args as any)}
+                variant={variant}
+                size={size}
+                prefix={<Icon name="plus" size={iconSizeMap[size]} />}
+                suffix={<Icon name="arrowRight" size={iconSizeMap[size]} />}
+                onClick={() => {}}
+                tooltip="Icon only with prefix and suffix"
+              >
+                {undefined}
+              </ButtonComponent>
+              {/* eslint-enable */}
+            </Fragment>
+          ))}
+          <Button
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any -- same union spread issue */
+            {...(args as any)}
+            variant={variant}
+            iconName="star"
+            loading
+            tooltip="Star"
+          >
+            {undefined}
+          </Button>
+        </div>
+      ))}
+    </>
+  ),
+};
 
-export const Shape: Story<ButtonElementProps> = (args) => (
-  <>
-    {variants.map((variant) => (
-      <div
-        key={variant}
-        className={css({
-          display: "flex",
-          gap: "[16px]",
-          alignItems: "center",
-          marginBottom: "4",
-        })}
-      >
-        <Button {...args} variant={variant}>
-          Default
-        </Button>
-        <Button {...args} shape="round" variant={variant}>
-          Round
-        </Button>
-      </div>
-    ))}
-  </>
-);
+export const Shape: Story = {
+  render: (args: ButtonElementProps) => (
+    <>
+      {variants.map((variant) => (
+        <div
+          key={variant}
+          className={css({
+            display: "flex",
+            gap: "[16px]",
+            alignItems: "center",
+            marginBottom: "4",
+          })}
+        >
+          <Button {...args} variant={variant}>
+            Default
+          </Button>
+          <Button {...args} shape="round" variant={variant}>
+            Round
+          </Button>
+        </div>
+      ))}
+    </>
+  ),
+};

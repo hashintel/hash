@@ -112,8 +112,8 @@ export const getActualModeMarkingAtTransitionFiringIndex = (params: {
   let marking = initialState;
 
   // TODO(actual-mode follow-up): this reconstructs markings by replaying from
-  // the beginning for each requested frame. That is acceptable for this first
-  // Brunch integration, but large streams need a prefix marking cache or
+  // the beginning for each requested frame. That is acceptable for short
+  // executions, but large streams need a prefix marking cache or
   // incremental timeline reader so scrubbing does not become O(n^2).
   for (let index = 0; index <= transitionFiringIndex; index += 1) {
     const firing = transitionFirings[index];

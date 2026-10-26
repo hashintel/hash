@@ -51,6 +51,7 @@ export type BaseInputProps = {
   styledValue?: React.ReactNode;
   /** Set to allow the input to be cleared. `true` empties the input through the normal change pipeline (`onChange` fires with `""`); pass `{ onClear }` to control clearing yourself. `false` disables clearing while still reserving the clear button's space. */
   clearable?: boolean | { onClear: () => void };
+  /** Show an edit icon inside the input */
   showEditIcon?: boolean;
   /** Defaults to false, set to true to allow browsers to autocomplete an input */
   autocomplete?: boolean;

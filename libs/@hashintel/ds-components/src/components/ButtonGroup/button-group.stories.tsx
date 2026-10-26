@@ -4,7 +4,7 @@ import { type FormInputSize, formInputSizes } from "../../util/form-shared";
 import { Button } from "../Button/button";
 import { ButtonGroup } from "./button-group";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type ButtonGroupProps = React.ComponentProps<typeof ButtonGroup>;
 
@@ -30,9 +30,20 @@ const mixedVariantPairs = buttonVariants.flatMap((first, index) =>
   buttonVariants.slice(index + 1).map((second) => [first, second] as const),
 );
 
-export default {
+const meta = {
   title: "Components/ButtonGroup",
-} satisfies StoryDefault<ButtonGroupProps>;
+  component: ButtonGroup,
+  args: {
+    spacing: "md",
+    reverse: false,
+    alignedTo: "left",
+    noWrap: false,
+  },
+} satisfies Meta<ButtonGroupProps>;
+
+export default meta;
+
+type Story = StoryObj<ButtonGroupProps>;
 
 const pageClass = css({
   display: "flex",
@@ -123,95 +134,101 @@ const Example = ({
   </div>
 );
 
-export const Default: Story = () => (
-  <div className={pageClass}>
-    <section className={sectionClass}>
-      <div className={compactRowsClass}>
-        {variants.map((variant) => (
-          <div key={variant} className={tightRowClass}>
-            <Example framed={false} label={`${variant} · normal`}>
-              <ButtonGroup variant={variant}>
-                {buttons(shortLabels)}
-              </ButtonGroup>
-            </Example>
-            <Example framed={false} label={`${variant} · reversed`}>
-              <ButtonGroup variant={variant} reverse>
-                {buttons(shortLabels)}
-              </ButtonGroup>
-            </Example>
-          </div>
-        ))}
-      </div>
-    </section>
-
-    <section className={sectionClass}>
-      <span className={sectionHeadingClass}>Wrapping onto two lines</span>
-      <div className={rowClass}>
-        {variants.map((variant) =>
-          alignments.map((alignedTo) => (
-            <Example
-              key={`${alignedTo}-${variant}`}
-              label={`${variant} · alignedTo=${alignedTo}`}
-            >
-              <ButtonGroup variant={variant} alignedTo={alignedTo}>
-                {buttons(manyLabels)}
-              </ButtonGroup>
-            </Example>
-          )),
-        )}
-      </div>
-    </section>
-  </div>
-);
-
-export const Spacing: Story = () => (
-  <div className={pageClass}>
-    <section className={sectionClass}>
-      <span className={sectionHeadingClass}>spaced · all spacing sizes</span>
-      <div className={compactRowsClass}>
-        {formInputSizes.map((spacing) => (
-          <Example key={spacing} framed={false} label={`spacing=${spacing}`}>
-            <ButtonGroup variant="spaced" spacing={spacing}>
-              {buttons(shortLabels, "subtle", spacing)}
-            </ButtonGroup>
-          </Example>
-        ))}
-      </div>
-    </section>
-  </div>
-);
-
-export const Variants: Story = () => (
-  <div className={pageClass}>
-    {buttonVariants.map((buttonVariant) => (
-      <section key={buttonVariant} className={sectionClass}>
-        <span className={sectionHeadingClass}>
-          Button variant={buttonVariant}
-        </span>
-        <div className={tightRowClass}>
+export const Default: Story = {
+  render: (args: Partial<ButtonGroupProps>) => (
+    <div className={pageClass}>
+      <section className={sectionClass}>
+        <div className={compactRowsClass}>
           {variants.map((variant) => (
-            <Example key={variant} framed={false} label={variant}>
-              <ButtonGroup variant={variant}>
-                {buttons(shortLabels, buttonVariant)}
+            <div key={variant} className={tightRowClass}>
+              <Example framed={false} label={`${variant} · normal`}>
+                <ButtonGroup {...args} variant={variant}>
+                  {buttons(shortLabels)}
+                </ButtonGroup>
+              </Example>
+              <Example framed={false} label={`${variant} · reversed`}>
+                <ButtonGroup {...args} variant={variant} reverse>
+                  {buttons(shortLabels)}
+                </ButtonGroup>
+              </Example>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className={sectionClass}>
+        <span className={sectionHeadingClass}>Wrapping onto two lines</span>
+        <div className={rowClass}>
+          {variants.map((variant) =>
+            alignments.map((alignedTo) => (
+              <Example
+                key={`${alignedTo}-${variant}`}
+                label={`${variant} · alignedTo=${alignedTo}`}
+              >
+                <ButtonGroup {...args} variant={variant} alignedTo={alignedTo}>
+                  {buttons(manyLabels)}
+                </ButtonGroup>
+              </Example>
+            )),
+          )}
+        </div>
+      </section>
+    </div>
+  ),
+};
+
+export const Spacing: Story = {
+  render: (args: Partial<ButtonGroupProps>) => (
+    <div className={pageClass}>
+      <section className={sectionClass}>
+        <span className={sectionHeadingClass}>spaced · all spacing sizes</span>
+        <div className={compactRowsClass}>
+          {formInputSizes.map((spacing) => (
+            <Example key={spacing} framed={false} label={`spacing=${spacing}`}>
+              <ButtonGroup {...args} variant="spaced" spacing={spacing}>
+                {buttons(shortLabels, "subtle", spacing)}
               </ButtonGroup>
             </Example>
           ))}
         </div>
       </section>
-    ))}
+    </div>
+  ),
+};
 
-    <section className={sectionClass}>
-      <span className={sectionHeadingClass}>edge-case: segmented mixed</span>
-      <ButtonGroup variant="segmented">
-        {mixedVariantPairs.flatMap(([first, second]) => [
-          <Button key={`${first}-${second}-left`} variant={first}>
-            {first}
-          </Button>,
-          <Button key={`${first}-${second}-right`} variant={second}>
-            {second}
-          </Button>,
-        ])}
-      </ButtonGroup>
-    </section>
-  </div>
-);
+export const Variants: Story = {
+  render: (args: Partial<ButtonGroupProps>) => (
+    <div className={pageClass}>
+      {buttonVariants.map((buttonVariant) => (
+        <section key={buttonVariant} className={sectionClass}>
+          <span className={sectionHeadingClass}>
+            Button variant={buttonVariant}
+          </span>
+          <div className={tightRowClass}>
+            {variants.map((variant) => (
+              <Example key={variant} framed={false} label={variant}>
+                <ButtonGroup {...args} variant={variant}>
+                  {buttons(shortLabels, buttonVariant)}
+                </ButtonGroup>
+              </Example>
+            ))}
+          </div>
+        </section>
+      ))}
+
+      <section className={sectionClass}>
+        <span className={sectionHeadingClass}>edge-case: segmented mixed</span>
+        <ButtonGroup {...args} variant="segmented">
+          {mixedVariantPairs.flatMap(([first, second]) => [
+            <Button key={`${first}-${second}-left`} variant={first}>
+              {first}
+            </Button>,
+            <Button key={`${first}-${second}-right`} variant={second}>
+              {second}
+            </Button>,
+          ])}
+        </ButtonGroup>
+      </section>
+    </div>
+  ),
+};

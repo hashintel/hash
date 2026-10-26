@@ -212,6 +212,7 @@ const contributionKinds: Record<
   setting: { label: "Setting", icon: "sliders" },
   provides: { label: "Provides", icon: "plug", code: true },
   root: { label: "Renders", icon: "layer" },
+  assistant: { label: "Assistant", icon: "magic" },
 };
 
 const ContributionTag = ({ item }: { item: PluginContributionItem }) => {

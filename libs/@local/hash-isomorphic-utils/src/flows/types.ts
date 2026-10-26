@@ -15,6 +15,8 @@ import type {
   EntityUuid,
   PropertyObject,
   PropertyObjectMetadata,
+  PropertyObjectWithMetadata,
+  PropertyPatchOperation,
   ProvidedEntityEditionProvenance,
   Url,
   VersionedUrl,
@@ -133,6 +135,10 @@ export type PayloadKindValues = {
   GoogleSheet: GoogleSheet;
   Number: number;
   PersistedEntityMetadata: PersistedEntityMetadata;
+  /** An entity's properties with their metadata, as the graph takes them to create an entity */
+  PropertyObjectWithMetadata: PropertyObjectWithMetadata;
+  /** A change to one of an entity's properties, as the graph takes it to update an entity */
+  PropertyPatch: PropertyPatchOperation;
   ProposedEntity: ProposedEntity;
   ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
   SortKey: SortKey;
@@ -186,6 +192,8 @@ export const payloadKindTraits = {
   GoogleSheet: { primitive: null, fields: true },
   Number: { primitive: "number" },
   PersistedEntityMetadata: { primitive: null, fields: true },
+  PropertyObjectWithMetadata: { primitive: null },
+  PropertyPatch: { primitive: null },
   ProposedEntity: { primitive: null, fields: true, entity: true },
   ProposedEntityWithResolvedLinks: {
     primitive: null,
@@ -566,7 +574,7 @@ export type ActionDefinition<
 
 /**
  * Whether a connection leaves the value available to other consumers (`read`) or takes it (`consume`). Unset
- * means the default for the input it feeds.
+ * means `read`.
  */
 export type ValueAccess = "read" | "consume";
 
@@ -1101,6 +1109,16 @@ export type SkippedStep = {
   skippedAt: string;
 };
 
+/**
+ * A for-each step the engine fanned out into a run of its steps per item. Fanning out runs no activity, so the engine
+ * records when it fanned out in the run's Temporal memo, under `startedForEachSteps`.
+ */
+export type StartedForEachStep = {
+  stepId: string;
+  itemCount: number;
+  startedAt: string;
+};
+
 export const detailedFlowFields = [
   "failureMessage",
   "flowInputs",
@@ -1112,4 +1130,7 @@ export const detailedFlowFields = [
 
 export type DetailedFlowField = (typeof detailedFlowFields)[number];
 
-export type SparseFlowRun = Omit<FlowRun, DetailedFlowField>;
+/** A run as its reader returns it: `events` has a field resolver of its own, which reads the run's history. */
+export type FlowRunWithoutEvents = Omit<FlowRun, "events">;
+
+export type SparseFlowRun = Omit<FlowRunWithoutEvents, DetailedFlowField>;

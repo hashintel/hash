@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
-type ReplayReadiness<Replay> =
+import type { AgentConversationObservationPhase } from "@flue/sdk";
+
+export type ReplayReadiness<Replay> =
   | { readonly status: "pending" }
   | { readonly status: "ready"; readonly replay: Replay };
 
@@ -19,7 +21,7 @@ type ReplayBaseline<Snapshot, Replay> = {
 export const useImmutableReplayBaseline = <Snapshot, Replay>(input: {
   readonly bindingKey: string | undefined;
   readonly emptyReplay: Replay;
-  readonly historyPhase: string | undefined;
+  readonly historyPhase: AgentConversationObservationPhase | undefined;
   readonly snapshot: Snapshot | undefined;
   readonly derive: (snapshot: Snapshot) => Promise<Replay>;
 }): ReplayReadiness<Replay> => {

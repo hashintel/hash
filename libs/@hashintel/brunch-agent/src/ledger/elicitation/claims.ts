@@ -1,6 +1,6 @@
 import * as v from "valibot";
 
-import { vOrigin, vStatus } from "../shared/epistemics";
+import { epistemicFields, resolveStatus } from "../shared/epistemics";
 import { vClaimReference, vEntityReference } from "../shared/references";
 
 export const vClaim = v.pipe(
@@ -9,7 +9,7 @@ export const vClaim = v.pipe(
       v.string(),
       v.minLength(1),
       v.description(
-        "One assertion or unresolved question, in the USER's terms.",
+        "One fact or unresolved question as a short active statement, grammar optional, e.g. 'press 2 idles when hopper empty', whatever its origin. The system prompt's Claims section sets the form.",
       ),
     ),
     entities: v.pipe(
@@ -18,8 +18,7 @@ export const vClaim = v.pipe(
         "References to the entities this claim is about: existing entity IDs or $index references to entity entries in this call. At least one, unless the claim is open or conflicted; the map shows any other claim only under its entities.",
       ),
     ),
-    origin: vOrigin,
-    status: vStatus,
+    ...epistemicFields,
     supersedes: v.optional(
       v.pipe(
         v.array(vClaimReference),
@@ -29,6 +28,7 @@ export const vClaim = v.pipe(
       ),
     ),
   }),
+  resolveStatus(),
   v.description(
     "A statement about named entities, with its source and agreement status. The system supplies its new claim ID and conversation turn; do not submit them. Revisions are new claims that explicitly supersede earlier ones.",
   ),

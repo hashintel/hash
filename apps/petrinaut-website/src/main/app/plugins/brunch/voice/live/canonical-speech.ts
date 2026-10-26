@@ -1,7 +1,7 @@
 import { hashCanonicalSpeechText } from "../../../../../../canonical-speech-fingerprint";
 
+import type { PetrinautAiMessage } from "../../chat/ai-assistant-panel";
 import type { AgentSendResult } from "@flue/sdk";
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 export { hashCanonicalSpeechText };
 

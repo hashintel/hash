@@ -18,7 +18,7 @@ import { SectionLabel } from "./section-label";
 import { flowSectionBorderRadius } from "./shared/styles";
 
 import type { FlowRun } from "../../../../../graphql/api-types.gen";
-import type { EdgesAndNodes } from "./shared/types";
+import type { FlowStepSummary } from "./shared/types";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { GoalFlowInputName } from "@local/hash-isomorphic-utils/flows/definitions/goal-flow-definitions";
 import type { PropsWithChildren } from "react";
@@ -41,18 +41,18 @@ type FlowRunSidebarProps = {
   flowDefinitionEntityId: EntityId;
   flowRunEntityId: EntityId;
   flowScheduleId: EntityUuid | null;
-  graph: EdgesAndNodes;
+  steps: FlowStepSummary[];
   name: FlowRun["name"];
-  showDag: () => void;
+  showFlowNet: () => void;
 };
 
 export const FlowRunSidebar = ({
   flowDefinitionEntityId,
   flowRunEntityId,
   flowScheduleId,
-  graph,
+  steps,
   name,
-  showDag,
+  showFlowNet,
 }: FlowRunSidebarProps) => {
   const { selectedFlowRun } = useFlowRunsContext();
 
@@ -176,7 +176,7 @@ export const FlowRunSidebar = ({
         <Stack alignItems="center" direction="row">
           <SectionLabel text="Plan" />
           <IconButton
-            onClick={() => showDag()}
+            onClick={() => showFlowNet()}
             sx={{
               px: 0.3,
               py: 0,
@@ -201,7 +201,7 @@ export const FlowRunSidebar = ({
         </Stack>
         <SidebarSection>
           <Box>
-            <GroupStatus graph={graph} />
+            <GroupStatus steps={steps} />
           </Box>
         </SidebarSection>
       </Box>

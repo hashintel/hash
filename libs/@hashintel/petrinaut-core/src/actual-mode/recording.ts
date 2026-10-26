@@ -6,8 +6,6 @@ import { parseRequiredActualModeTimestampMs } from "./time";
 import type { SDCPN } from "../types/sdcpn";
 import type {
   ActualModeMarking,
-  ActualModeReceivedEvent,
-  ActualModeReceivedEventsRecording,
   ActualModeRecording,
   ActualModeSource,
   ActualModeTransitionFiring,
@@ -28,22 +26,6 @@ export const createActualModeRecording = (params: {
   definition: params.definition,
   initialState: params.initialState,
   transitionFirings: params.transitionFirings.map((firing) => ({ ...firing })),
-});
-
-export const createActualModeReceivedEventsRecording = (params: {
-  title: string | null;
-  source: ActualModeSource | null;
-  events: readonly ActualModeReceivedEvent[];
-  exportedAt?: string;
-}): ActualModeReceivedEventsRecording => ({
-  version: ACTUAL_MODE_RECORDING_VERSION,
-  exportedAt: params.exportedAt ?? new Date().toISOString(),
-  title: params.title,
-  source: params.source,
-  events: params.events.map((event) => ({
-    event: event.event,
-    data: event.data,
-  })),
 });
 
 export const parseActualModeRecording = (

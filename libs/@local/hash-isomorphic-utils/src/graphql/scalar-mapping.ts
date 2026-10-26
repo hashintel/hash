@@ -157,6 +157,7 @@ export const scalars = {
   ExternalInputResponseWithoutUser:
     "@local/hash-isomorphic-utils/flows/types#ExternalInputResponseWithoutUser",
   StepInput: "@local/hash-isomorphic-utils/flows/types#StepInput",
+  FlowRunEvent: "@local/hash-isomorphic-utils/flows/run-events#FlowRunEvent",
   FlowInputValues: "@local/hash-isomorphic-utils/flows/types#FlowInputValues",
   ResolvedStepRunOutput:
     "@local/hash-isomorphic-utils/flows/types#ResolvedStepRunOutput",

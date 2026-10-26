@@ -14,7 +14,10 @@ import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 export const getFlowRunByIdResolver: ResolverFn<
   FlowRun | SparseFlowRun,
   Record<string, never>,
-  Pick<GraphQLContext, "authentication" | "dataSources" | "temporal">,
+  Pick<
+    GraphQLContext,
+    "authentication" | "dataSources" | "flowRunHistories" | "temporal"
+  >,
   QueryGetFlowRunByIdArgs
 > = async (_parent, args, context, info) => {
   const { flowRunEntityId } = args;
@@ -24,6 +27,7 @@ export const getFlowRunByIdResolver: ResolverFn<
   const flowRun = await getFlowRunById({
     flowRunEntityId,
     graphApiClient: context.dataSources.graphApi,
+    historiesByWorkflowId: context.flowRunHistories,
     includeDetails,
     storageProvider: context.dataSources.uploadProvider,
     temporalClient: context.temporal,

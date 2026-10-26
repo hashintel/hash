@@ -9,7 +9,7 @@ It owns:
 - the Panda preset source in `src/preset/**`
 - token/codegen scripts in `scripts/**`
 - the component library in `src/components/**`
-- the token/demo surface in `src/tokens/**`, `src/stories/Intro.mdx`, `.ladle/`, and `tests/**`
+- the token/demo surface in `src/tokens/**`, `.storybook/`, and `tests/**`
 
 It still consumes the generated runtime styling utilities from `@hashintel/ds-helpers`.
 
@@ -67,7 +67,7 @@ Key points:
 - `src/preset.ts` is the local source of truth for the preset.
 - publish codegen writes to `../ds-helpers/styled-system`
 - `panda.local.config.ts` also writes to `../ds-helpers/styled-system`; it only broadens the scanned demo/story globs.
-- `panda.local.config.ts` exists separately for local demo surfaces such as Ladle
+- `panda.local.config.ts` exists separately for local demo surfaces such as Storybook
 
 ### Token Naming Patterns (Strict Mode)
 
@@ -223,27 +223,26 @@ export const Checkbox = (props) => (
 
 ## Scripts
 
-| Script                | Description                                                        |
-| --------------------- | ------------------------------------------------------------------ |
-| `yarn dev`            | Start the primary Ladle-based demo loop                            |
-| `yarn dev:lib`        | Watch the publishable component library build                      |
-| `yarn codegen`        | Generate token source files and `../ds-helpers/styled-system`      |
-| `yarn build`          | Build the component library entrypoints                            |
-| `yarn build:ladle`    | Build the Ladle demo surface                                       |
-| `yarn lint:eslint`    | Lint the publishable package surface                               |
-| `yarn lint:tsc`       | TypeScript type checking                                           |
-| `yarn test:unit`      | Run the Vitest unit suites without the Playwright snapshot harness |
-| `yarn test:snapshots` | Build Ladle and run the Playwright snapshot suite                  |
+| Script                 | Description                                                        |
+| ---------------------- | ------------------------------------------------------------------ |
+| `yarn dev`             | Start the primary Storybook-based demo loop                        |
+| `yarn dev:lib`         | Watch the publishable component library build                      |
+| `yarn codegen`         | Generate token source files and `../ds-helpers/styled-system`      |
+| `yarn build`           | Build the component library entrypoints                            |
+| `yarn build:storybook` | Build the Storybook demo surface                                   |
+| `yarn lint:eslint`     | Lint the publishable package surface                               |
+| `yarn lint:tsc`        | TypeScript type checking                                           |
+| `yarn test:unit`       | Run the Vitest unit suites without the Playwright snapshot harness |
+| `yarn test:snapshots`  | Build Storybook and run the Playwright snapshot suite              |
 
 ## File Structure
 
 ```
 libs/@hashintel/ds-components/
-├── .ladle/                 # Ladle/demo harness
+├── .storybook/             # Storybook/demo harness
 ├── src/
 │   ├── components/
 │   ├── preset/             # Panda preset source of truth
-│   ├── stories/            # Shared docs such as Intro.mdx
 │   ├── tokens/             # Token stories and fixtures
 │   ├── tokens.ts           # Public `./tokens` facade
 ├── scripts/                # Token/codegen scripts

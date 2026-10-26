@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  createActualModeReceivedEventsRecording,
   createActualModeRecording,
   createActualModeTimelineFrameReader,
   parseActualModeRecording,
@@ -36,8 +35,8 @@ describe("Actual mode recordings", () => {
     const recording = createActualModeRecording({
       title: "Replay",
       source: {
-        kind: "brunch",
-        endpoint: "http://127.0.0.1:5184/stream",
+        id: "run-1",
+        label: "Run 1",
       },
       definition,
       initialState: { queued: 1 },
@@ -64,29 +63,6 @@ describe("Actual mode recordings", () => {
           ts: "2026-06-05T10:00:00.000Z",
         },
       ],
-    });
-  });
-
-  it("exports raw received events without mapping to SDCPN", () => {
-    const rawDefinition = {
-      title: "Raw Brunch run",
-      places: [{ id: "queued", name: "Queued" }],
-      transitions: [],
-    };
-
-    const recording = createActualModeReceivedEventsRecording({
-      title: "Replay",
-      source: null,
-      events: [{ event: "definition", data: rawDefinition }],
-      exportedAt: "2026-06-05T10:01:00.000Z",
-    });
-
-    expect(recording).toEqual({
-      version: 1,
-      exportedAt: "2026-06-05T10:01:00.000Z",
-      title: "Replay",
-      source: null,
-      events: [{ event: "definition", data: rawDefinition }],
     });
   });
 

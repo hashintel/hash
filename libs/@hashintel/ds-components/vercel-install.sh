@@ -12,7 +12,7 @@ echo "installing mise"
 ./.config/mise/install.sh
 eval "$(mise activate bash --shims)"
 
-# The ladle build is Node throughout — `ladle build` <- `codegen` <- the
+# The storybook build is Node throughout — `storybook build` <- `codegen` <- the
 # `ds-helpers` build — and `.yarnrc.yml` sets `enableScripts: false`, so nothing
 # compiles during install. That leaves out the Rust toolchain, wasm-pack,
 # binaryen, java, protoc and redocly the other Vercel apps here install; turbo

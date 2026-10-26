@@ -7,7 +7,7 @@ export {
   type BreadcrumbItem,
   BreadCrumbs,
   type BreadcrumbSubItem,
-} from "./components/Breadcumbs/breadcrumbs";
+} from "./components/Breadcrumbs/breadcrumbs";
 export { Button, type ButtonProps } from "./components/Button/button";
 export { ButtonGroup } from "./components/ButtonGroup/button-group";
 export { CharacterCount } from "./components/CharacterCount/character-count";

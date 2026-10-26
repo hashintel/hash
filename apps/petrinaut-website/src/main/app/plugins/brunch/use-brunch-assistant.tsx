@@ -35,8 +35,23 @@ import {
   type ProcessAgentBinding,
 } from "./conversation/use-process-agent-binding";
 import { brunchPlugin, WithBrunchEditorApi } from "./editor-api-plugin";
+import {
+  countInterviewReplies,
+  isInterviewClosing,
+} from "./interview-budget/brunch-interview-budget";
+import {
+  InterviewBudgetControl,
+  InterviewBudgetNote,
+  InterviewBudgetPill,
+} from "./interview-budget/interview-budget-control";
+import {
+  createInterviewBudgetLevelChange,
+  recordInterviewBudgetLevelChange,
+  withInterviewBudgetLevelChanges,
+  type InterviewBudgetLevelChange,
+} from "./interview-budget/interview-budget-level-changes";
 import { foldBrunchLedgerHistory } from "./ledger/brunch-ledger-history";
-import { BrunchLedgerPane } from "./ledger/brunch-ledger-pane";
+import { BrunchLedgerTab } from "./ledger/brunch-ledger-tab";
 import {
   brunchPetrinautClientToolNames,
   canonicalPetrinautClientToolNames,
@@ -49,14 +64,14 @@ import { BrunchExperimentFollowUp } from "./tools/brunch-experiment-follow-up";
 import {
   createBrunchMutationAdmission,
   createBrunchMutationApprovalCoordinator,
-  createBrunchMutationApprovalInteractiveTools,
+  useBrunchMutationApprovalTools,
 } from "./tools/brunch-mutation-approval";
 import {
   createCanonicalPetrinautHostTools,
   issuedCanonicalCallsFromHistory,
   EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  type CanonicalPetrinautHostToolsInput,
   type CanonicalPetrinautReplay,
-  type CanonicalPetrinautReplayReadiness,
 } from "./tools/brunch-petrinaut-tools";
 import { resolveBrunchToolPresentation } from "./tools/brunch-tool-presentation";
 import { createInBandBrowserCalls } from "./tools/in-band-browser-call";
@@ -68,12 +83,15 @@ import {
   loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
 } from "./voice/session/voice-interview-control";
+import { useConversationWords } from "./words/conversation-words";
+import { WordsHeaderAction } from "./words/words-configurer";
 
-import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
-import type {
-  PetrinautAiAssistant,
-  PetrinautAiComposerControlContext,
-} from "@hashintel/petrinaut/ui";
+import type { InterviewBudgetLevel } from "../../../../shared/interview-budget";
+import type { VoiceWord } from "../../../../shared/voice-words";
+import type { PetrinautAiComposerControlContext } from "./chat/ai-assistant-composer-control";
+import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
+import type { PetrinautAiAssistant } from "./chat/petrinaut";
+import type { SdcpnInitialData } from "@hashintel/brunch-agent";
 import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 export const brunchPreviewConfig = resolveBrunchPreviewConfig(
@@ -120,10 +138,10 @@ const useProcessAgentSession = (input: {
 };
 
 /** The open document as Brunch's browser tools reach it. */
-export interface BrunchEditorDocument {
-  readonly handle: PetrinautDocHandle;
-  readonly readTitle: () => string;
-}
+export type BrunchEditorDocument = Pick<
+  CanonicalPetrinautHostToolsInput,
+  "handle" | "readTitle"
+>;
 
 /** The document open in the editor. */
 export interface BrunchOpenDocument {
@@ -141,9 +159,24 @@ export interface BrunchVoicePreferences {
   readonly realtime: boolean;
 }
 
+/** Brunch's Interview length choices, as the host stores them. */
+export interface BrunchInterviewBudgetPreferences {
+  /** The host's Interview length experiment is loaded and on. */
+  readonly enabled: boolean;
+  /** The saved level, sent only while the experiment is on. */
+  readonly level: InterviewBudgetLevel;
+  readonly setLevel: (level: InterviewBudgetLevel) => void;
+}
+
+/** Brunch's Custom words choice, as the host stores it. */
+export interface BrunchWordsPreferences {
+  /** The host's Custom words experiment is loaded and on. */
+  readonly enabled: boolean;
+}
+
 export interface BrunchAssistant {
   /**
-   * Brunch's assistant configuration for `<Petrinaut aiAssistant>`, or `null`
+   * Brunch's assistant configuration for `BrunchAssistantContext`, or `null`
    * while Brunch is not selected or no document is bound.
    */
   readonly assistant: PetrinautAiAssistant | null;
@@ -154,8 +187,8 @@ export interface BrunchAssistant {
   readonly openAIVoiceConfig: OpenAIVoiceConfig | null | undefined;
   /**
    * The host's plugins, with Brunch's added while it is the assistant. Pass
-   * this list to `<Petrinaut plugins>`: Brunch's cards read the editor through
-   * its plugin and, without it, show a notice in place of each card.
+   * this list to `<Petrinaut plugins>`: Brunch's plugin renders its chat, and
+   * its cards read the editor through it.
    */
   readonly plugins: readonly PetrinautPlugin[];
 }
@@ -169,6 +202,8 @@ export const useBrunchAssistant = ({
   selected,
   openDocument,
   voice,
+  interviewBudget,
+  words,
   plugins,
 }: {
   /** Brunch is configured and chosen as the assistant. */
@@ -176,11 +211,21 @@ export const useBrunchAssistant = ({
   /** The open document, or `null` while none is open. */
   readonly openDocument: BrunchOpenDocument | null;
   readonly voice: BrunchVoicePreferences;
+  readonly interviewBudget: BrunchInterviewBudgetPreferences;
+  readonly words: BrunchWordsPreferences;
   /** The plugins the host gives the editor. */
   readonly plugins: readonly PetrinautPlugin[];
 }): BrunchAssistant => {
   const currentNetId = openDocument?.documentId ?? null;
   const editor = openDocument?.editor ?? null;
+  const interviewBudgetEnabled = interviewBudget.enabled;
+  const interviewBudgetLevel = interviewBudgetEnabled
+    ? interviewBudget.level
+    : "off";
+  const setInterviewBudgetLevel = interviewBudget.setLevel;
+  // Level-change notes live only in this mounted session.
+  const [interviewBudgetLevelChanges, setInterviewBudgetLevelChanges] =
+    useState<InterviewBudgetLevelChange[]>([]);
 
   const [openAIVoiceConfig, setOpenAIVoiceConfig] = useState<
     OpenAIVoiceConfig | null | undefined
@@ -250,14 +295,36 @@ export const useBrunchAssistant = ({
     [baseProcessAgentBinding],
   );
   const conversationId = processAgentBinding?.conversationId ?? null;
-  // Each binding gets its own non-persisted approval authority.
-  const mutationApproval = useMemo(
-    () => ({
+  const conversationWords = useConversationWords(
+    brunchPrincipal,
+    conversationId,
+  );
+  // Words are edited from Voice mode, so they apply only while Voice is on.
+  const wordsActive =
+    selected && voice.enabled && words.enabled && conversationId !== null;
+  const readWords = useCallback(
+    (): readonly VoiceWord[] =>
+      wordsActive
+        ? conversationWords.entries.map(({ spelling, pronunciation }) => ({
+            spelling,
+            ...(pronunciation === undefined ? {} : { pronunciation }),
+          }))
+        : [],
+    [wordsActive, conversationWords.entries],
+  );
+  // Each binding gets its own non-persisted approval authority. This is state
+  // reset on a new binding, not a memo keyed on it: the coordinator reads
+  // nothing from the binding, so the React Compiler would create it only once.
+  const [mutationApproval, setMutationApproval] = useState(() => ({
+    binding: processAgentBinding,
+    coordinator: createBrunchMutationApprovalCoordinator(),
+  }));
+  if (mutationApproval.binding !== processAgentBinding) {
+    setMutationApproval({
       binding: processAgentBinding,
       coordinator: createBrunchMutationApprovalCoordinator(),
-    }),
-    [processAgentBinding],
-  );
+    });
+  }
   // The panel stays mounted when the binding changes, so a replaced authority
   // must settle the approvals still waiting on it.
   useEffect(() => {
@@ -265,28 +332,11 @@ export const useBrunchAssistant = ({
     coordinator.open();
     return () => coordinator.close();
   }, [mutationApproval]);
-  const allMutationApprovalTools = useMemo(
-    () =>
-      createBrunchMutationApprovalInteractiveTools(
-        mutationApproval.coordinator,
-      ),
-    [mutationApproval],
-  );
   // A registered widget replaces the tool's row, so only calls still waiting
-  // for a decision render as approvals. Refresh the registry when call identities
-  // change; shouldHandle is the single gate, including for same-name calls.
-  const approvalVersion = useSyncExternalStore(
-    mutationApproval.coordinator.subscribe,
-    mutationApproval.coordinator.getVersion,
-    mutationApproval.coordinator.getVersion,
+  // for a decision render as approvals.
+  const mutationApprovalTools = useBrunchMutationApprovalTools(
+    mutationApproval.coordinator,
   );
-  const mutationApprovalTools = useMemo(
-    () => ({
-      version: approvalVersion,
-      tools: [...allMutationApprovalTools],
-    }),
-    [allMutationApprovalTools, approvalVersion],
-  ).tools;
   const processAgentSession = useProcessAgentSession({
     binding: processAgentBinding,
     brunchSelected: selected,
@@ -343,6 +393,12 @@ export const useBrunchAssistant = ({
     conversationId ?? "",
     flueAdapter,
   );
+  const interviewRepliesAsked = countInterviewReplies(
+    flueHistory.snapshot ?? { messages: [] },
+  );
+  const interviewClosing = isInterviewClosing(
+    flueHistory.snapshot ?? { messages: [] },
+  );
   const replayBindingKey = constructionBrowser
     ? `${constructionBrowser.binding.documentId}:${constructionBrowser.binding.conversationId}`
     : undefined;
@@ -363,7 +419,7 @@ export const useBrunchAssistant = ({
     historyPhase: flueHistory.phase,
     snapshot: flueHistory.snapshot,
     derive: deriveCanonicalReplay,
-  }) satisfies CanonicalPetrinautReplayReadiness;
+  });
   const canonicalHostTools = useMemo(() => {
     if (!constructionBrowser || !editor) return undefined;
     return createCanonicalPetrinautHostTools({
@@ -400,16 +456,20 @@ export const useBrunchAssistant = ({
         flueHistory.settlements,
         flueHistory.snapshot,
         mediationHistory,
+        interviewBudgetLevel,
         (toolCallId) => mutationApproval.coordinator.approvalState(toolCallId),
+        readWords,
       ),
     [
       selected,
       conversationTracker,
       flueHistory.settlements,
       flueHistory.snapshot,
+      interviewBudgetLevel,
       mediationHistory,
       mutationApproval,
       openAIVoiceConfig,
+      readWords,
       voice.enabled,
       voice.realtime,
     ],
@@ -419,8 +479,15 @@ export const useBrunchAssistant = ({
       flueClientPromise === null
         ? null
         : createBrunchPanelTransport(flueClientPromise, conversationTracker, {
+            interviewBudgetLevel,
+            interviewRepliesAsked,
+            readWords: () => readWords().map((word) => word.spelling),
             ...(constructionBrowser
-              ? { initialData: { binding: constructionBrowser.binding } }
+              ? {
+                  initialData: {
+                    binding: constructionBrowser.binding,
+                  } satisfies SdcpnInitialData,
+                }
               : {}),
             ...(conversationId === null
               ? {}
@@ -454,6 +521,9 @@ export const useBrunchAssistant = ({
       flueAdapter,
       flueClientPromise,
       flueHistory.refresh,
+      interviewBudgetLevel,
+      interviewRepliesAsked,
+      readWords,
       reportBrunchFailure,
     ],
   );
@@ -518,12 +588,22 @@ export const useBrunchAssistant = ({
                 .activityIdentities
         : undefined;
     return {
+      actionsInputMode: "voice",
+      headerActions:
+        wordsActive && conversationWords.key ? (
+          <WordsHeaderAction
+            key={conversationWords.key}
+            entries={conversationWords.entries}
+            notice={conversationWords.notice}
+            save={conversationWords.save}
+          />
+        ) : undefined,
       additionalTab: constructionBrowser
         ? {
             label: "Ledger",
             activityIdentities,
             content: (
-              <BrunchLedgerPane
+              <BrunchLedgerTab
                 messages={flueHistory.snapshot?.messages ?? []}
               />
             ),
@@ -531,19 +611,63 @@ export const useBrunchAssistant = ({
         : undefined,
       primaryLabel: "Chat",
       presentation: "brunch",
-      mapMessagesForDisplay: mapVoiceMessages,
+      mapMessagesForDisplay: (messages: PetrinautAiMessage[]) => {
+        const withNotes = withInterviewBudgetLevelChanges(
+          messages,
+          interviewBudgetLevelChanges,
+          conversationId,
+        );
+        return mapVoiceMessages?.(withNotes) ?? withNotes;
+      },
+      renderSystemMessage: (message: PetrinautAiMessage) => {
+        const change = interviewBudgetLevelChanges.find(
+          (entry) => entry.message.id === message.id,
+        );
+        return change ? (
+          <InterviewBudgetNote level={change.level} />
+        ) : undefined;
+      },
       resolveToolPresentation: resolveBrunchToolPresentation,
       workingLabel: "Working…",
       renderComposerControl: (context: PetrinautAiComposerControlContext) => (
-        <WithBrunchEditorApi>
-          {(api) => (
-            <BrunchExperimentFollowUp
-              context={context}
-              net={api.document.net}
+        <>
+          <WithBrunchEditorApi>
+            {(api) => (
+              <BrunchExperimentFollowUp
+                context={context}
+                net={api.document.net}
+              />
+            )}
+          </WithBrunchEditorApi>
+          {interviewBudgetEnabled && (
+            <InterviewBudgetControl
+              level={interviewBudgetLevel}
+              onChange={(level) => {
+                if (level === interviewBudgetLevel) return;
+                const change = createInterviewBudgetLevelChange(
+                  context.conversationId,
+                  context.messages,
+                  { from: interviewBudgetLevel, to: level },
+                );
+                if (change)
+                  setInterviewBudgetLevelChanges((changes) =>
+                    recordInterviewBudgetLevelChange(changes, change),
+                  );
+                setInterviewBudgetLevel(level);
+              }}
             />
           )}
-        </WithBrunchEditorApi>
+        </>
       ),
+      renderComposerStatus: (context: PetrinautAiComposerControlContext) =>
+        interviewBudgetEnabled ? (
+          <InterviewBudgetPill
+            level={interviewBudgetLevel}
+            context={context}
+            asked={interviewRepliesAsked}
+            closing={interviewClosing}
+          />
+        ) : null,
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: true,
       // These exact-name tools override the static registry only while a
@@ -551,6 +675,8 @@ export const useBrunchAssistant = ({
       // on Petrinaut's registry.
       inBandBrowserTools,
       automaticTools: [...(canonicalHostTools?.tools ?? [])],
+      // The automatic tools run against the handle the editor shows.
+      ...(editor === null ? {} : { documentHandle: editor.handle }),
       interactiveTools: [
         ...(inBandBrowserTools ? mutationApprovalTools : []),
         ...(draftInteractiveTool ? [draftInteractiveTool] : []),
@@ -567,6 +693,7 @@ export const useBrunchAssistant = ({
       messages: flueHistory.messages,
       onClearMessages: () => {
         if (currentNetId === null) return;
+        conversationWords.clear();
         const initialId = ordinaryConstructionConversationIdFrom(currentNetId);
         const nextId = `${initialId}:${crypto.randomUUID()}`;
         replaceBrunchConversationId(initialId, nextId);
@@ -587,17 +714,26 @@ export const useBrunchAssistant = ({
     canonicalHostTools,
     constructionBrowser,
     conversationId,
+    conversationWords,
     conversationTracker,
     currentNetId,
     draftInteractiveTool,
+    editor,
     flueClientPromise,
     flueHistory.messages,
     flueHistory.phase,
     flueHistory.ready,
     flueHistory.snapshot,
     inBandBrowserTools,
+    interviewBudgetEnabled,
+    interviewBudgetLevel,
+    interviewBudgetLevelChanges,
+    interviewClosing,
+    interviewRepliesAsked,
     mapVoiceMessages,
     mutationApprovalTools,
+    setInterviewBudgetLevel,
+    wordsActive,
   ]);
 
   const brunchActive = assistant !== null;

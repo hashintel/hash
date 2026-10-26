@@ -5,3 +5,5 @@ apps/petrinaut-opt/openapi/openapi.json linguist-generated=true
 libs/@hashintel/petrinaut-core/docs/architecture/*.d2 linguist-generated=true
 libs/@hashintel/petrinaut-core/docs/architecture/*.svg linguist-generated=true
 libs/@local/graph/api/openapi/** linguist-generated=true
+libs/@local/hash-backend-utils/tests/fixtures/flow-run-histories/*.json linguist-generated=true
+libs/@local/hash-backend-utils/tests/fixtures/flow-run-details/*.json linguist-generated=true

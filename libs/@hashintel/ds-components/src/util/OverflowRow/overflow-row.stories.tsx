@@ -5,7 +5,14 @@ import { css } from "@hashintel/ds-helpers/css";
 import { Chip } from "../../components/Chip/chip";
 import { OverflowRow, type OverflowRowProps } from "./overflow-row";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+
+// The args every story instance can take: the matrix pins (items, overflow
+// and its mode-specific companions) stay out so the spread satisfies all
+// three overflow branches.
+type OverflowRowArgs = Partial<
+  Omit<OverflowRowProps, "items" | "overflow" | "renderCountLabel" | "total">
+>;
 
 const names = [
   "Draft",
@@ -135,9 +142,9 @@ const EditableRow = ({
   align,
   showInput = true,
   initialNames = names.slice(0, 3),
-}: {
+  ...rowProps
+}: OverflowRowArgs & {
   overflow: "truncate" | "scroll" | "summary";
-  align?: OverflowRowProps["align"];
   showInput?: boolean;
   initialNames?: string[];
 }) => {
@@ -169,6 +176,7 @@ const EditableRow = ({
   if (overflow === "truncate") {
     return (
       <OverflowRow
+        {...rowProps}
         {...shared}
         overflow="truncate"
         renderCountLabel={chipCountLabel}
@@ -176,159 +184,190 @@ const EditableRow = ({
     );
   }
   if (overflow === "summary") {
-    return <OverflowRow {...shared} overflow="summary" separator=", " />;
+    return (
+      <OverflowRow
+        {...rowProps}
+        {...shared}
+        overflow="summary"
+        separator=", "
+      />
+    );
   }
-  return <OverflowRow {...shared} overflow="scroll" />;
+  return <OverflowRow {...rowProps} {...shared} overflow="scroll" />;
 };
 
-export const Default: Story = () => (
-  <div className={sections}>
-    {(["truncate", "scroll"] as const).map((overflow) => (
-      <div key={overflow}>
-        <div className={heading}>{overflow}</div>
+export const Default: Story = {
+  render: (args: OverflowRowArgs) => (
+    <div className={sections}>
+      {(["truncate", "scroll"] as const).map((overflow) => (
+        <div key={overflow}>
+          <div className={heading}>{overflow}</div>
+          <div className={row}>
+            {rowExamples.map(({ label, width }) => (
+              <Example key={label} label={label} width={width}>
+                <OverflowRow
+                  {...args}
+                  items={allItems}
+                  overflow={overflow}
+                  className={
+                    overflow === "truncate" ? chipMatchedLabel : undefined
+                  }
+                />
+              </Example>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div>
+        <div className={heading}>summary</div>
         <div className={row}>
-          {rowExamples.map(({ label, width }) => (
+          {summaryExamples.map(({ label, items, width }) => (
             <Example key={label} label={label} width={width}>
               <OverflowRow
-                items={allItems}
-                overflow={overflow}
-                className={
-                  overflow === "truncate" ? chipMatchedLabel : undefined
-                }
+                {...args}
+                items={items}
+                overflow="summary"
+                total={6}
+                separator=", "
               />
             </Example>
           ))}
         </div>
       </div>
-    ))}
-    <div>
-      <div className={heading}>summary</div>
-      <div className={row}>
-        {summaryExamples.map(({ label, items, width }) => (
-          <Example key={label} label={label} width={width}>
-            <OverflowRow
-              items={items}
-              overflow="summary"
-              total={6}
-              separator=", "
-            />
-          </Example>
-        ))}
-      </div>
-    </div>
-    {/* scroll never renders an overflow label, and rejects the prop. */}
-    <div>
-      <div className={heading}>renderCountLabel</div>
-      <div className={row}>
-        {countLabelRenderers.map(({ label, truncate }) => (
-          <Example
-            key={`truncate-${label}`}
-            label={`truncate — ${label}`}
-            width={180}
-          >
-            <OverflowRow
-              items={allItems}
-              overflow="truncate"
-              renderCountLabel={truncate}
-              className={chipMatchedLabel}
-            />
-          </Example>
-        ))}
-        {countLabelRenderers.map(({ label, summary }) => (
-          <Example
-            key={`summary-${label}`}
-            label={`summary — ${label}`}
-            width={70}
-          >
-            <OverflowRow
-              items={allItems.slice(0, 2)}
-              overflow="summary"
-              total={6}
-              renderCountLabel={summary}
-            />
-          </Example>
-        ))}
-      </div>
-    </div>
-    <div>
-      <div className={heading}>
-        withInput + withKeyboardControl — truncate/summary display as scroll
-        while focused
-      </div>
-      <div className={row}>
-        {overflowModes.map((overflow) => (
-          <Example key={overflow} label={overflow} width={200}>
-            <EditableRow overflow={overflow} />
-          </Example>
-        ))}
-        <Example label="no items" width={160}>
-          <EditableRow overflow="scroll" initialNames={[]} />
-        </Example>
-        <Example label="underflow" width={380}>
-          <EditableRow overflow="scroll" />
-        </Example>
-      </div>
-    </div>
-    <div>
-      <div className={heading}>
-        withKeyboardControl only (Tab into the row, then ← → and Backspace)
-      </div>
-      <div className={row}>
-        {overflowModes.map((overflow) => (
-          <Example key={overflow} label={overflow} width={150}>
-            <EditableRow overflow={overflow} showInput={false} />
-          </Example>
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
-export const Align: Story = () => (
-  <div className={sections}>
-    {(["center", "right"] as const).map((align) => (
-      <div key={align}>
-        <div className={heading}>align="{align}"</div>
+      {/* scroll never renders an overflow label, and rejects the prop. */}
+      <div>
+        <div className={heading}>renderCountLabel</div>
         <div className={row}>
-          <Example
-            label="scroll (overflow — start stays reachable)"
-            width={200}
-          >
-            <OverflowRow items={allItems} overflow="scroll" align={align} />
+          {countLabelRenderers.map(({ label, truncate }) => (
+            <Example
+              key={`truncate-${label}`}
+              label={`truncate — ${label}`}
+              width={180}
+            >
+              <OverflowRow
+                {...args}
+                items={allItems}
+                overflow="truncate"
+                renderCountLabel={truncate}
+                className={chipMatchedLabel}
+              />
+            </Example>
+          ))}
+          {countLabelRenderers.map(({ label, summary }) => (
+            <Example
+              key={`summary-${label}`}
+              label={`summary — ${label}`}
+              width={70}
+            >
+              <OverflowRow
+                {...args}
+                items={allItems.slice(0, 2)}
+                overflow="summary"
+                total={6}
+                renderCountLabel={summary}
+              />
+            </Example>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className={heading}>
+          withInput + withKeyboardControl — truncate/summary display as scroll
+          while focused
+        </div>
+        <div className={row}>
+          {overflowModes.map((overflow) => (
+            <Example key={overflow} label={overflow} width={200}>
+              <EditableRow {...args} overflow={overflow} />
+            </Example>
+          ))}
+          <Example label="no items" width={160}>
+            <EditableRow {...args} overflow="scroll" initialNames={[]} />
           </Example>
-          <Example label="truncate" width={300}>
-            <OverflowRow
-              items={allItems}
-              overflow="truncate"
-              align={align}
-              className={chipMatchedLabel}
-            />
-          </Example>
-          <Example label="summary" width={80}>
-            <OverflowRow
-              items={allItems.slice(0, 4)}
-              overflow="summary"
-              total={6}
-              separator=", "
-              align={align}
-            />
-          </Example>
-          <Example label="scroll (underflow)" width={380}>
-            <OverflowRow
-              items={allItems.slice(0, 3)}
-              overflow="scroll"
-              align={align}
-            />
-          </Example>
-          <Example label="withInput" width={380}>
-            <EditableRow overflow="scroll" align={align} />
+          <Example label="underflow" width={380}>
+            <EditableRow {...args} overflow="scroll" />
           </Example>
         </div>
       </div>
-    ))}
-  </div>
-);
+      <div>
+        <div className={heading}>
+          withKeyboardControl only (Tab into the row, then ← → and Backspace)
+        </div>
+        <div className={row}>
+          {overflowModes.map((overflow) => (
+            <Example key={overflow} label={overflow} width={150}>
+              <EditableRow {...args} overflow={overflow} showInput={false} />
+            </Example>
+          ))}
+        </div>
+      </div>
+    </div>
+  ),
+};
 
-export default {
+export const Alignment: Story = {
+  render: (args: OverflowRowArgs) => (
+    <div className={sections}>
+      {(["center", "right"] as const).map((align) => (
+        <div key={align}>
+          <div className={heading}>align="{align}"</div>
+          <div className={row}>
+            <Example
+              label="scroll (overflow — start stays reachable)"
+              width={200}
+            >
+              <OverflowRow
+                {...args}
+                items={allItems}
+                overflow="scroll"
+                align={align}
+              />
+            </Example>
+            <Example label="truncate" width={300}>
+              <OverflowRow
+                {...args}
+                items={allItems}
+                overflow="truncate"
+                align={align}
+                className={chipMatchedLabel}
+              />
+            </Example>
+            <Example label="summary" width={80}>
+              <OverflowRow
+                {...args}
+                items={allItems.slice(0, 4)}
+                overflow="summary"
+                total={6}
+                separator=", "
+                align={align}
+              />
+            </Example>
+            <Example label="scroll (underflow)" width={380}>
+              <OverflowRow
+                {...args}
+                items={allItems.slice(0, 3)}
+                overflow="scroll"
+                align={align}
+              />
+            </Example>
+            <Example label="withInput" width={380}>
+              <EditableRow {...args} overflow="scroll" align={align} />
+            </Example>
+          </div>
+        </div>
+      ))}
+    </div>
+  ),
+};
+
+const meta = {
   title: "Primitives/OverflowRow",
-} satisfies StoryDefault;
+  component: OverflowRow,
+  args: {
+    align: "left",
+  },
+} satisfies Meta;
+
+export default meta;
+
+type Story = StoryObj;

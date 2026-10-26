@@ -1,5 +1,5 @@
 # renovate: datasource=github-releases depName=jdx/mise
-min_version = "2026.9.1"
+min_version = "2026.10.17"
 
 [env]
 TURBO_GLOBAL_WARNING_DISABLED = 1
@@ -16,12 +16,12 @@ minimum_release_age                 = "7d"
 
 [tools]
 # Basic tools
-node        = { version = "22.21.1", postinstall = "corepack enable" }
+node        = { version = "22.23.4", postinstall = "corepack enable" }
 "npm:turbo" = "2.11.5"
 
 # Helper to install tools
 cargo-binstall = "1.19.1"
-uv             = "0.11.18"
+uv             = "0.13.4"
 
 # Tools to compile the project
 # binaryen provides `wasm-opt` prebuilt from its GitHub release assets — compiling the

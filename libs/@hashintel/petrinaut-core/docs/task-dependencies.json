@@ -6,40 +6,62 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": []
+      "dependsOn": [
+        "@local/petrinaut-optimizer-core#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
     },
     "build:pack": {
       "dependsOn": [
         "build"
       ],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
     },
     "fix:eslint": {
       "dependsOn": [
-        "@local/eslint#build"
+        "@local/eslint#build",
+        "@local/petrinaut-optimizer-core#build"
       ],
       "affectedBy": [
-        "@local/eslint"
+        "@local/eslint",
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:eslint": {
       "dependsOn": [
-        "@local/eslint#build"
+        "@local/eslint#build",
+        "@local/petrinaut-optimizer-core#build"
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
-        "@local/eslint"
+        "@local/eslint",
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:tsc": {
-      "dependsOn": []
+      "dependsOn": [
+        "@local/petrinaut-optimizer-core#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
     },
     "test:unit": {
-      "dependsOn": [],
+      "dependsOn": [
+        "@local/petrinaut-optimizer-core#build"
+      ],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
       ]
     }
   }

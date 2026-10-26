@@ -1,7 +1,12 @@
 import type { PetrinautAiAssistantPresentation } from "../petrinaut";
 import type { ComponentType } from "react";
 
-/** A runtime parser such as a Zod schema. */
+/**
+ * A runtime parser such as a Zod schema.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiInteractiveToolSchema<Value> = {
   parse: (value: unknown) => Value;
 };
@@ -22,7 +27,12 @@ type InteractiveToolWidgetCommonProps<Input, Output> = {
   toolCallId: string;
 };
 
-/** Props supplied to a host's inline interactive-tool component. */
+/**
+ * Props supplied to a host's inline interactive-tool component.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiInteractiveToolWidgetProps<Input, Output> =
   InteractiveToolWidgetCommonProps<Input, Output> &
     (
@@ -39,6 +49,9 @@ export type PetrinautAiInteractiveToolWidgetProps<Input, Output> =
 /**
  * Definition of a host-owned dynamic AI tool rendered inline in Petrinaut's
  * chat panel.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
  */
 export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
   /** Must match the dynamic tool name emitted by the host's AI transport. */
@@ -85,7 +98,12 @@ type ErasedInteractiveToolDefinition = {
 
 const interactiveToolDefinition = Symbol("PetrinautAiInteractiveTool");
 
-/** Opaque, type-safe registration accepted by `aiAssistant.interactiveTools`. */
+/**
+ * Opaque, type-safe registration accepted by `aiAssistant.interactiveTools`.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
+ */
 export type PetrinautAiInteractiveTool = {
   readonly toolName: string;
   readonly [interactiveToolDefinition]: ErasedInteractiveToolDefinition;
@@ -94,6 +112,9 @@ export type PetrinautAiInteractiveTool = {
 /**
  * Define a host-owned interactive AI tool while preserving the relationship
  * between its schemas and component props.
+ *
+ * @deprecated Part of the built-in AI chat. Provide the assistant with a
+ * plugin that declares `assistant`, which renders its own chat.
  */
 export const definePetrinautAiInteractiveTool = <Input, Output>(
   definition: PetrinautAiInteractiveToolDefinition<Input, Output>,

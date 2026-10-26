@@ -22,13 +22,17 @@ import {
   type NetworkGraphSelection,
 } from "./network-graph";
 
-import type { Story, StoryDefault } from "@ladle/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
-export default {
+const meta = {
   title: "Components/Chart/NetworkGraph",
   argTypes: {},
   args: {},
-} satisfies StoryDefault<NetworkGraphProps>;
+} satisfies Meta<NetworkGraphProps>;
+
+export default meta;
+
+type Story = StoryObj<NetworkGraphProps>;
 
 interface GraphData {
   points: NetworkGraphPoint[];
@@ -650,21 +654,23 @@ const TEN_DATASET: StoryDataset = {
  * zoom, drag to pan. The toolbar dropdown switches between the full graph, 1,000,
  * and 10 nodes.
  */
-export const Default: Story<NetworkGraphProps> = () => (
-  <NetworkGraphStory
-    datasets={[FULL_DATASET, ONE_THOUSAND_DATASET, TEN_DATASET]}
-  />
-);
+export const Default: Story = {
+  render: () => (
+    <NetworkGraphStory
+      datasets={[FULL_DATASET, ONE_THOUSAND_DATASET, TEN_DATASET]}
+    />
+  ),
+};
 
 /** The graph trimmed to the first 10 nodes — a tiny subset for inspecting individual nodes. */
-export const TenNodes: Story<NetworkGraphProps> = () => (
-  <NetworkGraphStory datasets={[TEN_DATASET]} />
-);
+export const TenNodes: Story = {
+  render: () => <NetworkGraphStory datasets={[TEN_DATASET]} />,
+};
 
 /** The graph trimmed to the first 1,000 nodes — a mid-sized subset between {@link TenNodes} and {@link Default}. */
-export const OneThousandNodes: Story<NetworkGraphProps> = () => (
-  <NetworkGraphStory datasets={[ONE_THOUSAND_DATASET]} />
-);
+export const OneThousandNodes: Story = {
+  render: () => <NetworkGraphStory datasets={[ONE_THOUSAND_DATASET]} />,
+};
 
 /** How many nodes the stream stories show on first load, then add/remove each tick. */
 const STREAM_INITIAL = 150;
@@ -712,7 +718,7 @@ const useStreamFraming = (
  * STREAM_INTERVAL_MS} another {@link STREAM_BATCH} is appended and each new node
  * grows in from radius 0.
  */
-export const StreamingNodes: Story<NetworkGraphProps> = () => {
+const StreamingNodesDemo = () => {
   const fullData = useFullGraphData();
   const [count, setCount] = useState(STREAM_INITIAL);
 
@@ -760,6 +766,10 @@ export const StreamingNodes: Story<NetworkGraphProps> = () => {
   );
 };
 
+export const StreamingNodes: Story = {
+  render: () => <StreamingNodesDemo />,
+};
+
 /** Half-cycle length (ticks) of the churn oscillation. */
 const CHURN_STEPS = Math.round((STREAM_TOTAL - STREAM_INITIAL) / STREAM_BATCH);
 
@@ -769,7 +779,7 @@ const CHURN_STEPS = Math.round((STREAM_TOTAL - STREAM_INITIAL) / STREAM_BATCH);
  * from radius 0; while it shrinks, the trailing nodes shrink to radius 0 and are then
  * dropped. Runs on a loop so both directions are always visible.
  */
-export const ChurningNodes: Story<NetworkGraphProps> = () => {
+const ChurningNodesDemo = () => {
   const fullData = useFullGraphData();
   const [tick, setTick] = useState(0);
 
@@ -823,4 +833,8 @@ export const ChurningNodes: Story<NetworkGraphProps> = () => {
       )}
     </div>
   );
+};
+
+export const ChurningNodes: Story = {
+  render: () => <ChurningNodesDemo />,
 };
