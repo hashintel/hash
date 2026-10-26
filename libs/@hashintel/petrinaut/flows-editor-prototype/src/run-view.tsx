@@ -20,6 +20,7 @@ import {
   Drawer,
   Icon,
   type IconName,
+  SegmentedControl,
   Select,
   Tooltip,
 } from "@hashintel/ds-components";
@@ -461,13 +462,16 @@ const ForEachRun = ({ step }: { step: Extract<DraftStep, { kind: "for-each" }> }
       <Section
         title={`Items · ${items.length}`}
         action={
-          <Button
-            size="xs"
-            variant="ghost"
-            onClick={() => setFailedOnly((only) => !only)}
-          >
-            {failedOnly ? "Show all" : "Failed only"}
-          </Button>
+          // A filter of the list, so it reads as a control: the DS segmented control (evaluator, 26 Oct).
+          <SegmentedControl
+            size="sm"
+            value={failedOnly ? "failed" : "all"}
+            onChange={(next) => setFailedOnly(next === "failed")}
+            items={[
+              { value: "all", label: "All" },
+              { value: "failed", label: `Failed · ${failedCount}` },
+            ]}
+          />
         }
       >
         <div className={listStyle} role="listbox" aria-label="Items">

@@ -13,7 +13,7 @@
 import { useState } from "react";
 
 import { Button, Chip, type IconName } from "@hashintel/ds-components";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { findStep, START_ID, stepLabel } from "./document";
 import { useEditor } from "./editor-context";
@@ -58,9 +58,16 @@ const dotStyle = css({
 
 const goesToStyle = css({ color: "neutral.fg.subtle" });
 
-/** A two-field path: its condition on one line, where it leads on the next, under the condition. */
-const extraStyle = css({ display: "flex", flexDirection: "column", gap: "1" });
-const indentStyle = css({ paddingLeft: "3" });
+/** A two-field path: a dot column, then the condition and, under it, where it leads, both on one text edge. */
+const extraStyle = css({
+  display: "grid",
+  gridTemplateColumns: "6px minmax(0, 1fr)",
+  columnGap: "1.5",
+  rowGap: "1",
+  alignItems: "start",
+  // The dot sits on the condition's first line, as on the paths above.
+  "& > [aria-hidden]": { marginTop: "[9px]" },
+});
 
 const labelStackStyle = css({
   display: "flex",
@@ -140,14 +147,19 @@ export const BranchRows = ({
         ))}
         {extras.map((extra) => (
           // MOCK: a path on two fields. Shown here only; no port on the canvas.
+          // MOCK: a path on two fields, drawn like the other paths: the dot, the value, then the AND chip of the
+          // filter rows and the second field's condition; where it leads sits under it, in the same text column.
           <div key={extra.id} className={extraStyle}>
+            <span className={dotStyle} aria-hidden="true" />
             <span className={pathStyle}>
-              <span className={dotStyle} aria-hidden="true" />
-              <Chip size="md">{approved?.label ?? "Approved"}</Chip>
-              <Chip size="md">AND</Chip>
-              <Chip size="md">Amount is over 10,000</Chip>
+              <span>{approved?.label ?? "Approved"}</span>
+              <Chip size="md" suffix={{ iconName: "chevronDown" }}>
+                AND
+              </Chip>
+              <span>Amount is over 10,000</span>
             </span>
-            <span className={cx(pathStyle, indentStyle)}>
+            <span />
+            <span className={pathStyle}>
               <span className={goesToStyle}>Ends here</span>
               <Button
                 size="xs"
