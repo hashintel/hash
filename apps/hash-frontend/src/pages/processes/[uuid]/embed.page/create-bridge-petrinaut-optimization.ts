@@ -145,6 +145,8 @@ const ensureListener = () => {
   listenerInstalled = true;
 
   // The host posts to this window; only this window's own messages count.
+  // Comparing `event.source` with this window is stricter than an origin check.
+  // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation
   window.addEventListener("message", (event) => {
     if (event.source !== window) {
       return;
