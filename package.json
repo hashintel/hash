@@ -80,7 +80,6 @@
   "devDependencies": {
     "@changesets/cli": "patch:@changesets/cli@npm%3A3.0.3#~/.yarn/patches/@changesets-cli-npm-3.0.3-37da92ed6c.patch",
     "@yarnpkg/types": "^4.0.1",
-    "eslint-plugin-react-hooks": "7.0.1",
     "lefthook": "2.2.0",
     "npm-run-all2": "8.0.4",
     "oxfmt": "0.71.0"

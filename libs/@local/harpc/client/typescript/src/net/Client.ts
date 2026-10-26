@@ -38,10 +38,12 @@ export const Client = GenericTag<Client>(TypeId.description!);
 export const make = Effect.fn("make")(function* (config?: ClientConfig) {
   const client = yield* internalTransport.make(config?.transport);
 
-  return createProto(ClientProto, {
+  const self: Client = createProto(ClientProto, {
     client,
     config,
   }) satisfies ClientImpl;
+
+  return self;
 });
 
 export const layer = (config?: ClientConfig) =>

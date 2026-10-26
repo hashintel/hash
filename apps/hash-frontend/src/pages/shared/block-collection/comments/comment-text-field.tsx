@@ -30,6 +30,7 @@ import {
 import { createTextEditorView } from "../create-text-editor-view";
 import { usePortals } from "../use-portals";
 import {
+  type CommentPlaceholderAction,
   commentPlaceholderPlugin,
   commentPlaceholderPluginkey,
 } from "./comment-placeholder-plugin";
@@ -215,7 +216,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
       const tr = view.state.tr.setMeta(commentPlaceholderPluginkey, {
         type: "replacePlaceholder",
         payload: { placeholder },
-      });
+      } satisfies CommentPlaceholderAction);
       view.dispatch(tr);
     }
   }, [placeholder]);

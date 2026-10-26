@@ -29217,7 +29217,6 @@ __metadata:
   dependencies:
     "@changesets/cli": "patch:@changesets/cli@npm%3A3.0.3#~/.yarn/patches/@changesets-cli-npm-3.0.3-37da92ed6c.patch"
     "@yarnpkg/types": "npm:^4.0.1"
-    eslint-plugin-react-hooks: "npm:7.0.1"
     lefthook: "npm:2.2.0"
     npm-run-all2: "npm:8.0.4"
     oxfmt: "npm:0.71.0"
