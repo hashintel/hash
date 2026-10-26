@@ -8,6 +8,7 @@ import { describe, expect, test } from "vitest";
 
 import * as JExpr from "../JExpr/index.js";
 import * as TypeSyntax from "../JExpr/Type/index.js";
+import * as Expression from "./Expression.js";
 import * as Structural from "./Structural.js";
 import * as TypeExpression from "./TypeExpression.js";
 
@@ -31,6 +32,9 @@ const dictionary = Structural.constructor(declaration);
 
 const compile = (definition: TypeExpression.TypeExpression.Any): string =>
   TypeSyntax.compile(Result.getOrThrow(TypeExpression.toType(definition)));
+
+const emit = (value: Expression.Value.Any): string =>
+  JExpr.compile(Result.getOrThrow(Expression.toJExpr(value)));
 
 describe("structural_constructor", () => {
   test("mixed_arguments", () => {
@@ -127,5 +131,137 @@ describe("structural_constructor", () => {
         reason: { _tag: "TypeArgumentCountMismatch", expected: 2, received: 1 },
       },
     });
+  });
+});
+
+describe("structural_values", () => {
+  test("record_and_tuple", () => {
+    expect.hasAssertions();
+    expect(emit(Structural.struct({ name: "Ada", pair: [1n, true] }))).toBe(
+      '{"#struct":{"name":{"#literal":"Ada"},"pair":{"#tuple":[{"#literal":1},{"#literal":true}]}}}',
+    );
+    expect(emit(Structural.tuple([1n, "x"]))).toBe(
+      '{"#tuple":[{"#literal":1},{"#literal":"x"}]}',
+    );
+    expect(emit(Structural.struct({}))).toBe('{"#struct":{}}');
+    expect(emit(Structural.tuple([]))).toBe('{"#tuple":[]}');
+  });
+
+  test("empty_collection_types", () => {
+    expect.hasAssertions();
+    expect(emit(Structural.list(BigInt, []))).toBe(
+      '{"#list":[],"#type":"::kernel::type::List<::kernel::type::Integer>"}',
+    );
+    expect(emit(Structural.dict(String, BigInt, {}))).toBe(
+      '{"#dict":[],"#type":"::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>"}',
+    );
+    expect(emit(Structural.dict(BigInt, String, []))).toBe(
+      '{"#dict":[],"#type":"::kernel::type::Dict<::kernel::type::Integer, ::kernel::type::String>"}',
+    );
+  });
+
+  test("nested_collections", () => {
+    expect.hasAssertions();
+    const rows = Structural.list({ name: String }, [{ name: "Ada" }]);
+    const counts = Structural.dict(String, BigInt, { total: 1n });
+    const record = Structural.struct({ rows, counts });
+    const syntax = Result.getOrThrow(Expression.toJExpr(record));
+    expect(syntax).toMatchObject({
+      "#struct": {
+        rows: {
+          "#list": [{ "#struct": { name: { "#literal": "Ada" } } }],
+          "#type": "::kernel::type::List<(name: ::kernel::type::String)>",
+        },
+        counts: {
+          "#type":
+            "::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>",
+        },
+      },
+    });
+    expect(emit(Structural.list([BigInt, String], [[1n, "x"]]))).toBe(
+      '{"#list":[{"#tuple":[{"#literal":1},{"#literal":"x"}]}],"#type":"::kernel::type::List<(::kernel::type::Integer, ::kernel::type::String)>"}',
+    );
+  });
+
+  test("dictionary_key_forms", () => {
+    expect.hasAssertions();
+    const key = Structural.input("key", BigInt);
+    const keyed = Structural.dict(BigInt, String, [[key, "value"]]);
+    expect(emit(keyed)).toBe(
+      '{"#dict":[[["::kernel::special_form::input","key","::kernel::type::Integer"],{"#literal":"value"}]],"#type":"::kernel::type::Dict<::kernel::type::Integer, ::kernel::type::String>"}',
+    );
+    const record = Structural.dict(String, String, {
+      "::path": "value",
+      "not an identifier": "other",
+      ["__proto__"]: "safe",
+    });
+    expect(emit(record)).toBe(
+      '{"#dict":[[{"#literal":"::path"},{"#literal":"value"}],[{"#literal":"not an identifier"},{"#literal":"other"}],[{"#literal":"__proto__"},{"#literal":"safe"}]],"#type":"::kernel::type::Dict<::kernel::type::String, ::kernel::type::String>"}',
+    );
+  });
+
+  test("failed_values", () => {
+    expect.hasAssertions();
+    const bad = Expression.number(Number.NaN);
+    const failure = Result.getOrThrow(Result.flip(Expression.toJExpr(bad)));
+    for (const expression of [
+      Structural.struct({ bad }),
+      Structural.tuple([bad]),
+      Structural.list(Number, [bad]),
+      Structural.dict(Number, String, [[bad, "x"]]),
+      Structural.dict(String, Number, { bad }),
+      Structural.input("number", Number, bad),
+    ]) {
+      expect(
+        Result.getOrThrow(Result.flip(Expression.toJExpr(expression))),
+      ).toBe(failure);
+    }
+  });
+
+  test("failed_definitions", () => {
+    expect.hasAssertions();
+    const invalid = Structural.type({ "": String });
+    const failure = Result.getOrThrow(Result.flip(invalid.syntax));
+    for (const expression of [
+      Structural.list(invalid, []),
+      Structural.dict(invalid, String, []),
+      Structural.dict(String, invalid, []),
+      Structural.input("invalid", invalid),
+    ]) {
+      expect(
+        Result.getOrThrow(Result.flip(Expression.toJExpr(expression))),
+      ).toBe(failure);
+    }
+  });
+
+  test("invalid_field_and_literal", () => {
+    expect.hasAssertions();
+    for (const expression of [
+      Structural.struct({ "": true }),
+      Structural.tuple([Number.NaN]),
+      Structural.list(Number, [Number.NaN]),
+      Structural.dict(String, Number, { bad: Number.NaN }),
+    ]) {
+      expect(
+        Result.getOrThrow(Result.flip(Expression.toJExpr(expression))).reason
+          ._tag,
+      ).toBe("InvalidExpression");
+    }
+  });
+
+  test("structural_input_defaults", () => {
+    expect.hasAssertions();
+    const count = Structural.input("count", BigInt);
+    const row = Structural.input("row", { count: BigInt }, { count });
+    expect(emit(row)).toBe(
+      '["::kernel::special_form::input","row",{"#struct":{"count":"::kernel::type::Integer"}},{"#struct":{"count":["::kernel::special_form::input","count","::kernel::type::Integer"]}}]',
+    );
+    expect(emit(Structural.input("pair", [BigInt, String], [1n, "x"]))).toBe(
+      '["::kernel::special_form::input","pair",{"#tuple":["::kernel::type::Integer","::kernel::type::String"]},{"#tuple":[{"#literal":1},{"#literal":"x"}]}]',
+    );
+    // oxlint-disable-next-line unicorn/no-useless-undefined -- explicitly absent defaults must behave like omitted defaults
+    expect(emit(Structural.input("count", BigInt, undefined))).toBe(
+      emit(count),
+    );
   });
 });
