@@ -142,10 +142,7 @@ describe("createEntityAction", () => {
     create.mockReset();
     vi.mocked(queryEntities)
       .mockReset()
-      .mockResolvedValue({
-        entities: [],
-        cursor: null,
-      } as unknown as QueryEntitiesResponse);
+      .mockResolvedValue({ entities: [], cursor: null });
     vi.mocked(hasPermissionForEntityTypes)
       .mockReset()
       .mockImplementation((_graphApi, _authentication, { entityTypeIds }) =>
