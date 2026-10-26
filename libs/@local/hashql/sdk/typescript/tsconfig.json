@@ -9,7 +9,7 @@
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true,
     "declaration": true,
-    "isolatedDeclarations": true,
+    "isolatedDeclarations": false,
     "noEmit": true
   },
   "include": [
