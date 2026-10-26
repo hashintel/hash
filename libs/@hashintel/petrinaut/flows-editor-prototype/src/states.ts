@@ -11,6 +11,7 @@ import {
   emptyDocument,
   type EditorDocument,
   fieldKey,
+  type TemplatePart,
 } from "./document";
 import { type EditorUi, initialUi } from "./editor-context";
 import { mockEntityTypes } from "./mock-graph";
@@ -254,6 +255,68 @@ const failedBatchesAlert = (): EditorDocument => {
             outputName: "count",
           },
         },
+      ],
+    },
+  };
+};
+
+/**
+ * The 26 Oct chip review (Figma 628:21179, 637:24136): an email body with several values, one that may be empty
+ * (yellow) and one that is broken (red), to try the "…" menu, fallbacks and the preview. Values are mock outputs.
+ */
+const emailBodyExample = (): EditorDocument => {
+  const found = addStep(emptyDocument(), "queryEntities", {
+    after: { stepId: START_ID, port: "next" },
+  });
+  const supplier = addStep(found.document, "queryEntities", {
+    after: { stepId: found.stepId, port: "next" },
+  });
+  const email = addStep(supplier.document, "sendEmail", {
+    after: { stepId: supplier.stepId, port: "next" },
+  });
+  const ref = (stepId: string, outputName: string): TemplatePart => ({
+    kind: "ref",
+    source: { kind: "step-output", stepId, outputName },
+  });
+  const text = (value: string): TemplatePart => ({ kind: "text", text: value });
+  return {
+    ...email.document,
+    startDescription: "Flow inputs",
+    steps: email.document.steps.map((step) => ({
+      ...step,
+      description:
+        step.stepId === found.stepId
+          ? "Failed batches"
+          : step.stepId === supplier.stepId
+            ? "Supplier"
+            : "Alert to the supplier",
+    })),
+    lists: {
+      [fieldKey(email.stepId, "to")]: [
+        {
+          kind: "constant",
+          payload: { kind: "Text", value: "purity-team@example.com" },
+        },
+      ],
+    },
+    templates: {
+      [fieldKey(email.stepId, "subject")]: [
+        text("Purity check: "),
+        ref(found.stepId, "count"),
+        text(" batches failed this month"),
+      ],
+      [fieldKey(email.stepId, "body")]: [
+        text("Hi "),
+        ref(supplier.stepId, "contactName"),
+        text(",\n\nThree batches from "),
+        ref(supplier.stepId, "name"),
+        text(" failed our purity check this month. The lowest result was "),
+        ref(found.stepId, "lowestPurity"),
+        text(" against a 98% threshold.\n\nPlease send new certificates for "),
+        ref(found.stepId, "batchIds"),
+        text(" by Friday, or reply to "),
+        ref(supplier.stepId, "primaryContactEmail"),
+        text(" if you disagree.\n\nThanks,\nPurity team"),
       ],
     },
   };
@@ -522,6 +585,21 @@ const figmaStates: ScreenState[] = [
       "A Subject of typed text, then a value chip, on one wrapping line.",
     create: () => {
       const document = failedBatchesAlert();
+      return {
+        document,
+        ui: { ...initialUi, selectedId: document.steps.at(-1)!.stepId },
+      };
+    },
+  },
+  {
+    id: "j3-d2",
+    journey: 3,
+    row: "Row D · Open values",
+    title: "J3 · D2 · Email body with several values",
+    caption:
+      "Hover a value for its path and …; yellow may be empty, red is broken. Preview shows the email both ways.",
+    create: () => {
+      const document = emailBodyExample();
       return {
         document,
         ui: { ...initialUi, selectedId: document.steps.at(-1)!.stepId },

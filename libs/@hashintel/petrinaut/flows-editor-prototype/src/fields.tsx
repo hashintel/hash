@@ -27,6 +27,7 @@ import {
   stepLabel,
   findStep,
   type QueryDraft,
+  type RefFallback,
   type RefSource,
   setInputSource,
   type TemplatePart,
@@ -47,6 +48,15 @@ import {
   mockFiles,
   mockPeopleEmails,
 } from "./mock-graph";
+import {
+  ChipHoverLayer,
+  FallbackPopover,
+  type HoveredChip,
+  InlineChip,
+  refStatus,
+  TemplatePreview,
+} from "./inline-chips";
+import { OpenMenu } from "./open-menu";
 import { describeSource, getSourceShape } from "./shapes";
 import { entityChoices, SourceMenu } from "./source-menu";
 import {
@@ -62,7 +72,6 @@ import {
   mutedTextStyle,
   PropertyRow,
   selectTriggerStyle,
-  SourceChip,
   SourceSelectTrigger,
 } from "./ui";
 
@@ -75,26 +84,6 @@ type FieldProps = {
 };
 
 /* ---------------------------------------------------------------------------------------------------------------- */
-
-/** The value's own name, for a chip with the source line under it. */
-const sourceChipLabel = (
-  document: EditorDocument,
-  source: StepInputSource,
-  stepId: string,
-) => {
-  const { owner, label } = describeSource(document, source, stepId);
-  if (source.kind === "step-output") {
-    const step = findStep(document, source.stepId)?.step;
-    const outputs =
-      step?.kind === "action"
-        ? (getCatalogEntry(step.actionDefinitionId)?.outputs ?? [])
-        : [];
-    // An output the step does not list (the mock "Count") is named after its step, as the token's hover path does.
-    const listed = outputs.some((output) => output.name === source.outputName);
-    return outputs.length > 1 || !listed ? `${owner} › ${label}` : owner;
-  }
-  return label;
-};
 
 const ownerLook = (document: EditorDocument, source: StepInputSource) => {
   if (source.kind === "flow-input") {
@@ -388,19 +377,27 @@ const editorClass = css({
   },
 });
 
+/** Shape B, no icon, colour only when something is wrong (26 Oct sync; `inline-chips.tsx`). */
 const makeChip = (
-  document: EditorDocument,
-  source: RefSource,
+  part: Extract<TemplatePart, { kind: "ref" }>,
   label: (source: RefSource) => string,
 ) => {
   const chip = globalThis.document.createElement("span");
+  const status = refStatus(part);
   chip.contentEditable = "false";
   chip.className = chipWrapClass;
-  chip.dataset.ref = JSON.stringify(source);
+  chip.dataset.ref = JSON.stringify(part.source);
+  chip.dataset.tone =
+    status?.tone === "broken"
+      ? "red"
+      : status?.tone === "warning"
+        ? "yellow"
+        : "grey";
+  if (part.fallback) {
+    chip.dataset.fallback = JSON.stringify(part.fallback);
+  }
   chip.innerHTML = renderToStaticMarkup(
-    <SourceChip icon={ownerLook(document, source)?.icon ?? "rotate"}>
-      {label(source)}
-    </SourceChip>,
+    <InlineChip status={status}>{label(part.source)}</InlineChip>,
   );
   return chip;
 };
@@ -408,14 +405,13 @@ const makeChip = (
 const renderParts = (
   element: HTMLElement,
   parts: TemplatePart[],
-  document: EditorDocument,
   label: (source: RefSource) => string,
 ) => {
   element.replaceChildren(
     ...parts.map((part) =>
       part.kind === "text"
         ? globalThis.document.createTextNode(part.text)
-        : makeChip(document, part.source, label),
+        : makeChip(part, label),
     ),
   );
 };
@@ -427,6 +423,9 @@ const readParts = (element: HTMLElement): TemplatePart[] => {
       parts.push({
         kind: "ref",
         source: JSON.parse(node.dataset.ref) as RefSource,
+        ...(node.dataset.fallback
+          ? { fallback: JSON.parse(node.dataset.fallback) as RefFallback }
+          : {}),
       });
     } else {
       const text = node.textContent ?? "";
@@ -440,6 +439,17 @@ const readParts = (element: HTMLElement): TemplatePart[] => {
   }
   return parts;
 };
+
+const previewToggleStyle = css({
+  alignSelf: "flex-start",
+  padding: "[0]",
+  border: "none",
+  background: "[transparent]",
+  cursor: "pointer",
+  textStyle: "xs",
+  color: "neutral.fg.muted",
+  _hover: { color: "neutral.fg.heading", textDecoration: "underline" },
+});
 
 /** Engine notes are for engineers only: behind `?debug`, never in the default UI. */
 const showEngineNotes = new URLSearchParams(globalThis.location.search).has(
@@ -471,17 +481,89 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
   );
 
   const label = (source: RefSource) =>
-    sourceChipLabel(document, source, step.stepId);
+    collapsePath(tokenPath(document, source, step.stepId));
+  const pathOf = (source: RefSource) =>
+    tokenPath(document, source, step.stepId);
+
+  /* The chip under the pointer, its "…" menu, and the chip being changed or given a fallback, by its place among
+   * the field's chips. */
+  const moreRef = useRef<HTMLButtonElement>(null);
+  const chipRef = useRef<HTMLElement | null>(null);
+  const [hovered, setHovered] = useState<HoveredChip | null>(null);
+  const [chipAction, setChipAction] = useState<{
+    index: number;
+    action: "menu" | "change" | "fallback";
+  } | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const refParts = parts.filter(
+    (part): part is Extract<TemplatePart, { kind: "ref" }> =>
+      part.kind === "ref",
+  );
+  const activePart =
+    chipAction === null ? undefined : refParts[chipAction.index];
+
+  /** Changes the nth chip: a new source, a fallback, or `null` to remove it (its neighbouring text joins up). */
+  const updateChip = (
+    index: number,
+    change: Partial<Extract<TemplatePart, { kind: "ref" }>> | null,
+  ) => {
+    let seen = -1;
+    const next: TemplatePart[] = [];
+    for (const part of parts) {
+      if (part.kind === "ref" && ++seen === index) {
+        if (change) {
+          next.push({ ...part, ...change });
+        }
+        continue;
+      }
+      const last = next.at(-1);
+      if (part.kind === "text" && last?.kind === "text") {
+        last.text += part.text;
+      } else {
+        next.push({ ...part });
+      }
+    }
+    setDocument((current) => ({
+      ...current,
+      templates: { ...current.templates, [key]: next },
+    }));
+  };
+
+  const chipAt = (index: number) =>
+    [...(editorRef.current?.querySelectorAll<HTMLElement>("[data-ref]") ?? [])][
+      index
+    ] ?? null;
+
+  const onEditorHover = (event: React.MouseEvent) => {
+    const chip = (event.target as HTMLElement).closest<HTMLElement>(
+      "[data-ref]",
+    );
+    const field = fieldRef.current;
+    if (!chip || !field || chipAction) {
+      return;
+    }
+    const index = [
+      ...(editorRef.current?.querySelectorAll("[data-ref]") ?? []),
+    ].indexOf(chip);
+    // The DS Chip inside the wrapper is the box to overlay.
+    const box = (chip.firstElementChild ?? chip).getBoundingClientRect();
+    const origin = field.getBoundingClientRect();
+    setHovered({
+      index,
+      tone: (chip.dataset.tone as HoveredChip["tone"] | undefined) ?? "grey",
+      box: {
+        left: box.left - origin.left,
+        top: box.top - origin.top,
+        width: box.width,
+        height: box.height,
+      },
+    });
+  };
 
   useEffect(() => {
     const element = editorRef.current;
     if (element && serialized !== lastWritten.current) {
-      renderParts(
-        element,
-        JSON.parse(serialized) as TemplatePart[],
-        document,
-        label,
-      );
+      renderParts(element, JSON.parse(serialized) as TemplatePart[], label);
       lastWritten.current = serialized;
     }
   });
@@ -524,7 +606,7 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
       return;
     }
     const found = findMention();
-    const chip = makeChip(document, source, label);
+    const chip = makeChip({ kind: "ref", source }, label);
     const space = globalThis.document.createTextNode(" ");
     if (found) {
       const text = found.node.textContent ?? "";
@@ -556,7 +638,13 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
   return (
     <div
       ref={fieldRef}
-      className={css({ display: "flex", flexDirection: "column", gap: "1" })}
+      className={css({
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        gap: "1",
+      })}
+      onMouseLeave={() => setHovered(null)}
     >
       <div
         ref={editorRef}
@@ -573,13 +661,119 @@ export const MentionField = ({ step, input, entry }: FieldProps) => {
           setMention(found ? { query: found.query } : null);
           commit();
         }}
+        onMouseMove={onEditorHover}
         onKeyDown={(event) => {
           if (event.key === "Escape" && mention) {
             event.preventDefault();
             setMention(null);
           }
+          // A new line is a "\n" in the text, so the field keeps text nodes only (no <div> per line).
+          if (event.key === "Enter" && !mention) {
+            event.preventDefault();
+            globalThis.document.execCommand("insertText", false, "\n");
+          }
         }}
       />
+      {hovered && !chipAction && refParts[hovered.index] ? (
+        <ChipHoverLayer
+          hovered={hovered}
+          moreRef={moreRef}
+          path={pathOf(refParts[hovered.index]!.source).join(" › ")}
+          note={refStatus(refParts[hovered.index]!)?.why.split(":")[0]}
+          onMore={() => {
+            chipRef.current = chipAt(hovered.index);
+            setChipAction({ index: hovered.index, action: "menu" });
+          }}
+        />
+      ) : null}
+      {chipAction?.action === "menu" && activePart ? (
+        <OpenMenu
+          label="Value"
+          anchor={chipRef}
+          onClose={() =>
+            setChipAction((current) =>
+              current?.action === "menu" ? null : current,
+            )
+          }
+          items={[
+            {
+              id: "path",
+              label: pathOf(activePart.source).join(" › "),
+              items: [
+                {
+                  id: "change",
+                  text: "Change",
+                  onClick: () =>
+                    setChipAction({ index: chipAction.index, action: "change" }),
+                },
+                {
+                  id: "fallback",
+                  text: activePart.fallback ? "Edit fallback" : "Add fallback",
+                  onClick: () =>
+                    setChipAction({
+                      index: chipAction.index,
+                      action: "fallback",
+                    }),
+                },
+                {
+                  id: "remove",
+                  text: "Remove",
+                  onClick: () => {
+                    updateChip(chipAction.index, null);
+                    setChipAction(null);
+                    setHovered(null);
+                  },
+                },
+              ],
+            },
+          ]}
+        />
+      ) : null}
+      {chipAction?.action === "fallback" && activePart ? (
+        <FallbackPopover
+          anchor={chipRef}
+          path={pathOf(activePart.source).join(" › ")}
+          value={activePart.fallback}
+          onChange={(fallback) => updateChip(chipAction.index, { fallback })}
+          onClose={() => {
+            setChipAction(null);
+            setHovered(null);
+          }}
+        />
+      ) : null}
+      {chipAction?.action === "change" ? (
+        <SourceMenu
+          anchor={fieldRef}
+          stepId={step.stepId}
+          input={input}
+          entry={entry}
+          onClose={() => setChipAction(null)}
+          onPick={(picked) => {
+            if (picked.kind !== "constant") {
+              updateChip(chipAction.index, { source: picked });
+            }
+            setChipAction(null);
+            setHovered(null);
+          }}
+        />
+      ) : null}
+      {refParts.length > 0 ? (
+        <div
+          className={css({ display: "flex", flexDirection: "column", gap: "2" })}
+        >
+          <button
+            type="button"
+            className={previewToggleStyle}
+            aria-expanded={previewOpen}
+            onClick={() => setPreviewOpen((open) => !open)}
+          >
+            {previewOpen ? "Hide preview" : "Preview"}
+          </button>
+          {previewOpen ? (
+            <TemplatePreview parts={parts} pathOf={pathOf} />
+          ) : null}
+        </div>
+      ) : null}
       {mixed && showEngineNotes ? (
         <Tooltip content="The engine takes one value per input, so text mixed with values has no engine shape yet. Kept in the prototype's mock layer.">
           <span className={mutedTextStyle}>Text with values · mock</span>

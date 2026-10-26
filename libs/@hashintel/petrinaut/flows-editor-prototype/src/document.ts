@@ -48,9 +48,16 @@ export type DraftStep = DraftActionStep | DraftForEachStep;
 /** A source that a person picks: anything but a typed constant. */
 export type RefSource = Exclude<StepInputSource, { kind: "constant" }>;
 
+/**
+ * MOCK: what a free-text value says when a reference is empty: other text in its place, or a whole other line (blank
+ * drops the line). 26 Oct sync: every reference can take one.
+ */
+export type RefFallback = { mode: "text" | "line"; text: string };
+
 /** MOCK: a free-text value mixing typed text and references. The engine takes one source per input. */
 export type TemplatePart =
-  { kind: "text"; text: string } | { kind: "ref"; source: RefSource };
+  | { kind: "text"; text: string }
+  | { kind: "ref"; source: RefSource; fallback?: RefFallback };
 
 export type ConditionOperator =
   | "equals"
