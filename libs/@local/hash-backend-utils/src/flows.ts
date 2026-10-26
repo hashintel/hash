@@ -38,7 +38,6 @@ export type {
   ActionName,
   CreateFlowActivities,
   FlowActionActivity,
-  ProxyFlowActivity,
 } from "./flows/action-types.js";
 export { createCommonFlowActivities } from "./flows/process-flow-workflow/common-activities.js";
 

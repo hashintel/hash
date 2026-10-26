@@ -21,6 +21,7 @@ import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
 
 import { sleep } from "../utils.js";
+import { getActionActivityOptions } from "./action-activity-options.js";
 import { createCommonFlowActivities } from "./process-flow-workflow/common-activities.js";
 import { getAllStepsInFlow } from "./process-flow-workflow/get-all-steps-in-flow.js";
 import { getStepDefinitionFromFlowDefinition } from "./process-flow-workflow/get-step-definition-from-flow.js";
@@ -36,11 +37,7 @@ import {
 } from "./process-flow-workflow/pass-outputs-to-unprocessed-steps.js";
 import { toRunFailure } from "./process-flow-workflow/to-run-failure.js";
 
-import type {
-  ActionName,
-  CreateFlowActivities,
-  ProxyFlowActivity,
-} from "./action-types.js";
+import type { ActionName, FlowActionActivity } from "./action-types.js";
 import type { EntityId, Timestamp } from "@blockprotocol/type-system";
 import type { FlowActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
@@ -296,20 +293,40 @@ const { persistFlowActivity } = proxyActivities<
   },
 });
 
-const processFlow = async <
-  ValidActionDefinitionId extends FlowActionDefinitionId,
-  CreateActivitiesFn extends CreateFlowActivities<ValidActionDefinitionId>,
->(
+/**
+ * The activity that runs an action, on the task queue and with the settings its definition gives
+ * (`getActionActivityOptions`), whichever worker runs the flow.
+ */
+const proxyActionActivity = ({
+  actionDefinitionId,
+  maximumAttempts,
+  activityId,
+}: {
+  actionDefinitionId: FlowActionDefinitionId;
+  maximumAttempts: number;
+  activityId: string;
+}) => {
+  const actionName =
+    `${actionDefinitionId}Action` satisfies ActionName<FlowActionDefinitionId>;
+
+  const { [actionName]: action } = proxyActivities<
+    Record<ActionName<FlowActionDefinitionId>, FlowActionActivity>
+  >({
+    ...getActionActivityOptions(actionDefinitionId),
+    retry: { maximumAttempts },
+    activityId,
+  });
+
+  return action;
+};
+
+const processFlow = async (
   params: BaseRunFlowWorkflowParams & {
     generateFlowRunName?: (params: {
       flowDefinition: FlowDefinition;
       flowDefinitionEntityId: EntityId;
       flowInputs: FlowInputValues;
     }) => Promise<string>;
-    proxyFlowActivity: ProxyFlowActivity<
-      ValidActionDefinitionId,
-      CreateActivitiesFn
-    >;
   },
 ): Promise<RunFlowWorkflowResponse> => {
   const {
@@ -318,7 +335,6 @@ const processFlow = async <
     flowRunName,
     flowInputs,
     flowTriggerEntityId,
-    proxyFlowActivity,
     userAuthentication,
     webId,
     generateFlowRunName,
@@ -467,13 +483,8 @@ const processFlow = async <
         flowDefinition,
       });
 
-      const actionName =
-        `${currentStep.actionDefinitionId}Action` satisfies ActionName<string>;
-
-      const actionActivity = proxyFlowActivity({
+      const actionActivity = proxyActionActivity({
         actionDefinitionId: currentStep.actionDefinitionId,
-        // @ts-expect-error - not sure what's going on with inference of valid names here
-        actionName,
         maximumAttempts: actionStepDefinition.retryCount ?? 3,
         activityId: currentStep.stepId,
       });
