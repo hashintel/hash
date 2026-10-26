@@ -33,7 +33,7 @@ export interface TypeExpression<T extends Type.Any> extends TypeExpression.Any {
   readonly [Relocate]: Relocatable<TypeExpression<T>>[typeof Relocate];
 }
 
-declare namespace TypeExpression {
+export declare namespace TypeExpression {
   /** A type expression with its semantic descriptor erased, for syntax-only operations. */
   export interface Any extends Relocatable<Any> {
     readonly [TypeId]: Types.Covariant<Type.Any>;
@@ -59,7 +59,7 @@ export interface Constructor<F extends Type.TypeConstructor>
   ): TypeExpression<Type.Apply<F, A>>;
 }
 
-declare namespace Constructor {
+export declare namespace Constructor {
   /** Maps each argument descriptor to the type expression accepted at that position. */
   type Arguments<A extends readonly Type.Any[]> = {
     readonly [K in keyof A]: TypeExpression<A[K]>;
