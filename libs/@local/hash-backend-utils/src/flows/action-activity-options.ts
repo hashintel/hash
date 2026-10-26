@@ -21,10 +21,13 @@ import type { ActivityOptions } from "@temporalio/workflow";
  */
 export const getActionActivityOptions = (
   actionDefinitionId: FlowActionDefinitionId,
-): Pick<
-  ActivityOptions,
-  "taskQueue" | "startToCloseTimeout" | "heartbeatTimeout" | "cancellationType"
-> => {
+): Required<
+  Pick<
+    ActivityOptions,
+    "taskQueue" | "startToCloseTimeout" | "cancellationType"
+  >
+> &
+  Pick<ActivityOptions, "heartbeatTimeout"> => {
   const {
     startToCloseTimeoutSeconds,
     heartbeatTimeoutSeconds,
