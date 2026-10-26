@@ -187,6 +187,70 @@ test("the agent offers the read, issues it as a read in a fresh conversation, an
   expect(browserNetToolNames.has(brunchTools.queryHashEntities)).toBe(false);
 });
 
+test("a step proposing the read beside a net read issues both to the browser, and the model next sees both results", async () => {
+  const chat = conversation();
+  let seenEntities: string | undefined;
+  let seenNet: string | undefined;
+  steps.push(
+    () =>
+      fauxAssistantMessage(
+        [
+          fauxToolCall(brunchTools.queryHashEntities, readInput, {
+            id: "m1",
+          }),
+          fauxToolCall("readNetOutline", {}, { id: "m2" }),
+        ],
+        { stopReason: "toolUse" },
+      ),
+    (context) => {
+      seenEntities = resultText(context, "m1");
+      seenNet = resultText(context, "m2");
+      return fauxAssistantMessage([fauxText("Read both.")]);
+    },
+  );
+  const receipt = await chat.send("Who supplies the net's inputs?");
+
+  const [entityClaim, netClaim] = await Promise.all([
+    claimed(chat.instanceId, "m1", chat.binding),
+    claimed(chat.instanceId, "m2", chat.binding),
+  ]);
+  expect(entityClaim.toolName).toBe(brunchTools.queryHashEntities);
+  expect(netClaim.toolName).toBe("readNetOutline");
+  const outline = {
+    title: "Supply",
+    definition: { places: [] },
+    extensions: {},
+  };
+  expect(
+    settleBrowserCall({
+      instanceId: chat.instanceId,
+      toolCallId: "m2",
+      capability: netClaim.capability,
+      binding: netClaim.binding,
+      toolName: "readNetOutline",
+      canonicalInput: netClaim.input,
+      output: outline,
+      metadata: { documentRevision: { before: "r1" } },
+    }),
+  ).toBe("settled");
+  expect(
+    settleBrowserCall({
+      instanceId: chat.instanceId,
+      toolCallId: "m1",
+      capability: entityClaim.capability,
+      binding: entityClaim.binding,
+      toolName: brunchTools.queryHashEntities,
+      canonicalInput: entityClaim.input,
+      output: { entities: [supplier] },
+      metadata: { documentRevision: { before: "r1" } },
+    }),
+  ).toBe("settled");
+  await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
+
+  expect(seenEntities).toBe(JSON.stringify({ entities: [supplier] }));
+  expect(JSON.parse(seenNet ?? "null")).toEqual(outline);
+});
+
 test("a read that finds nothing the user may see tells the model so", async () => {
   const chat = conversation();
   let seen: string | undefined;
