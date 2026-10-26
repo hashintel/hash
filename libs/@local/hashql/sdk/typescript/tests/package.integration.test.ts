@@ -109,6 +109,74 @@ describe("emitted_package", () => {
   });
 });
 
+describe("emitted_structural_operators", () => {
+  test("structural_operators", () => {
+    expect.hasAssertions();
+    const descriptor = Program.Structural.type({
+      count: BigInt,
+      selected: Boolean,
+    });
+    type Row = Type.Struct<{
+      readonly count: Type.PrimitiveInteger;
+      readonly selected: Type.PrimitiveBoolean;
+    }>;
+    expectTypeOf(descriptor).toEqualTypeOf<
+      Program.TypeExpression.TypeExpression<Row>
+    >();
+    const count = Expression.input("count", Program.Structural.type(BigInt));
+    const enabled = Expression.input(
+      "enabled",
+      Program.Structural.type(Boolean),
+      true,
+    );
+    const zero = 0n;
+    const selected = Program.Operators.eq(count, zero).and(enabled);
+    expectTypeOf<
+      Program.Structural.Requirements<{
+        readonly count: typeof count;
+        readonly selected: typeof selected;
+      }>
+    >().toEqualTypeOf<{
+      readonly count: Type.PrimitiveInteger;
+      readonly enabled?: Type.PrimitiveBoolean;
+    }>();
+    const root = Program.Structural.value<Row>()({ count, selected });
+    const query = Program.program(root);
+    expectTypeOf<Program.Inputs<typeof query>>().toEqualTypeOf<{
+      readonly count: Type.PrimitiveInteger;
+      readonly enabled?: Type.PrimitiveBoolean;
+    }>();
+    expectTypeOf<Program.Expression.TypeOf<typeof root>>().toEqualTypeOf<Row>();
+    const structural: Program.Structural.Value.Any = { count, selected };
+    expect(Program.Structural.toJExpr(structural)).toStrictEqual(
+      Expression.toJExpr(root),
+    );
+    expect(Result.getOrThrow(Program.compile(query))).toBe(
+      '{"#struct":{"count":["::kernel::special_form::input","count","::kernel::type::Integer"],"selected":["::core::bool::and",["::core::cmp::eq",["::kernel::special_form::input","count","::kernel::type::Integer"],{"#literal":0}],["::kernel::special_form::input","enabled","::kernel::type::Boolean",{"#literal":true}]]}}',
+    );
+    expect(selected.pipe(Program.Operators.not)).toSatisfy(
+      Expression.isExpression,
+    );
+    expect(
+      Result.getOrThrow(Expression.toJExpr(selected.$projectUnsafe("field"))),
+    ).toStrictEqual([
+      "::kernel::special_form::access",
+      Result.getOrThrow(Expression.toJExpr(selected)),
+      "field",
+    ]);
+    const indexed = selected.$indexUnsafe(count);
+    expectTypeOf<Program.Expression.Inputs<typeof indexed>>().toEqualTypeOf<{
+      readonly count: Type.PrimitiveInteger;
+      readonly enabled?: Type.PrimitiveBoolean;
+    }>();
+    expect(Result.getOrThrow(Expression.toJExpr(indexed))).toStrictEqual([
+      "::kernel::special_form::index",
+      Result.getOrThrow(Expression.toJExpr(selected)),
+      Result.getOrThrow(Expression.toJExpr(count)),
+    ]);
+  });
+});
+
 describe("emitted_program", () => {
   test("metadata", () => {
     expect.hasAssertions();

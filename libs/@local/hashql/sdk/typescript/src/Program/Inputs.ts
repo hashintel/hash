@@ -63,8 +63,10 @@ type Last<U> = Types.Covariant.Type<
   Types.UnionToIntersection<U extends U ? Types.Covariant<U> : never>
 >;
 
-// Invariance keeps Empty from swallowing a required record during Exclude. A plain union of records would let the empty record remove every remaining alternative.
-type Alternatives<I> = I extends I ? Types.Invariant<I> : never;
+// Records differing only by optional fields can be mutually assignable. Tag their key sets invariantly so union detection and member removal still distinguish them.
+type Alternatives<I> = I extends I
+  ? Types.Invariant<I> & { readonly keys: Types.Invariant<keyof I> }
+  : never;
 
 type Collapse<U, I> = [U] extends [never]
   ? I
