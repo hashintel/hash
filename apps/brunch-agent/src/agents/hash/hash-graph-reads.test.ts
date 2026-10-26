@@ -397,8 +397,11 @@ const supplierType = {
   ],
 };
 
-test("the entity type read is offered, issued as a read in a fresh conversation, and the model next sees the page's types", async () => {
-  const input = { webIds: ["alice-web"] };
+test("the entity type read is offered, issued as a read in a fresh conversation with the entities' type ids as given, and the model next sees the page's types", async () => {
+  const input = {
+    entityTypeIds: ["https://hash.ai/@alice/types/entity-type/supplier/v/2"],
+    webIds: ["alice-web"],
+  };
   const { claim, declared, seen } = await readOnce(
     brunchTools.queryHashEntityTypes,
     input,
