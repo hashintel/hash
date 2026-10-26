@@ -10,6 +10,7 @@ import {
   typedActionDefinitions as actions,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import {
+  constant,
   defineFlow,
   flowInput,
 } from "@local/hash-isomorphic-utils/flows/define-flow";
@@ -474,6 +475,52 @@ describe("startFlowNetRun", () => {
         .map(({ role }) => role),
     ).toEqual(["startForEach", "startCollecting", "finishCollecting"]);
     expect(run.held()).toEqual([]);
+  });
+
+  it("starts a forEach step over a constant array on its own", async () => {
+    const net = await compileFlowDefinition(
+      defineFlow(
+        {
+          flowDefinitionId: "get-fixed-files",
+          name: "Get fixed files",
+          description: "Get a file from each of two fixed URLs",
+          inputs: {},
+        },
+        ({ forEach }) => {
+          const files = forEach(
+            "each",
+            constant("Text", ["https://a.test", "https://b.test"]),
+            {
+              description: "Retrieve each file",
+              collectAs: "files",
+              steps: (url, scope) =>
+                scope.step("get", actions.getFileFromUrl, {
+                  description: "Retrieve the file",
+                  inputs: { url },
+                }).outputs.fileEntity,
+            },
+          );
+
+          return { outputs: { files } };
+        },
+      ).flowDefinition,
+    );
+    const run = startFlowNetRun(net, { flowInputNames: [] });
+    const forEachRun = { stepId: "each", itemPath: [] };
+
+    expect(
+      run.firings
+        .filter(({ stepRun }) => stepRun.stepId === "each")
+        .map(({ role }) => role),
+    ).toEqual(["startForEach", "startItem", "startItem", "startCollecting"]);
+    expect(run.isHeld("startForEach", forEachRun)).toBe(false);
+    expect(run.held()).toEqual([
+      ...attemptEnds({ stepId: "get", itemPath: [0] }, 1),
+      ...attemptEnds({ stepId: "get", itemPath: [1] }, 1),
+    ]);
+    expect(() =>
+      run.fire({ role: "startForEach", stepRun: forEachRun, itemCount: 2 }),
+    ).toThrow("can't startForEach now");
   });
 
   it("starts a step whose inputs read the same value", async () => {
