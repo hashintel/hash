@@ -20,6 +20,7 @@ const config: ViteUserConfig = defineConfig({
         test: {
           name: "integration",
           include: [integration],
+          typecheck: { enabled: true, include: [integration] },
         },
       },
     ],
