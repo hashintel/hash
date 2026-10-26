@@ -10,13 +10,13 @@
 // oxlint-disable max-lines -- expression constructors and their API examples belong with the private handle metadata and proxy machinery
 import {
   Function,
+  Pipeable,
   Predicate,
   Result,
   Schema,
   SchemaParser,
   identity,
   pipe,
-  Pipeable,
 } from "effect";
 
 import { Relocate } from "../internal/relocation.js";
