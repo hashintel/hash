@@ -16,4 +16,4 @@ cd ../..
 rm .env
 
 echo "Building frontend"
-NITRO_PRESET=vercel NODE_OPTIONS="--max-old-space-size=6144" turbo build --filter='@apps/hash-frontend' --env-mode=loose
+NITRO_PRESET=vercel NODE_OPTIONS="--max-old-space-size=4096" turbo build --filter='@apps/hash-frontend' --env-mode=loose
