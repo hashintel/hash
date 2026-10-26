@@ -4701,14 +4701,14 @@ __metadata:
   linkType: hard
 
 "@effect/platform-node-shared@npm:^4.0.3":
-  version: 4.0.6
-  resolution: "@effect/platform-node-shared@npm:4.0.6"
+  version: 4.0.3
+  resolution: "@effect/platform-node-shared@npm:4.0.3"
   dependencies:
     "@types/ws": "npm:^8.18.2"
     ws: "npm:^8.22.0"
   peerDependencies:
-    effect: ^4.0.6
-  checksum: 10c0/2caee178bfc9a99e92733175e023208e7b5a01e6f95430d7003d2e0ec7febc57232dadfcdf2d747d8a7e82b329ba836d8b4a2d8afc670787c2980db5d6fdfd0f
+    effect: ^4.0.3
+  checksum: 10c0/cc33c8f4d32b333555eabc72c58a3273e571ab7db832be503e88ddc30d1293ec4ca91650aa5039e06ef9840ba403aaf3feea81003d6f870c00c8cc5a620a8078
   languageName: node
   linkType: hard
 

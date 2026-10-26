@@ -97,8 +97,12 @@ export interface Connection {
 }
 
 interface TransactionContext {
-  queue: Queue.Enqueue<WireResponse.Response, Cause.Done>;
+  queue: Queue.Enqueue<
+    WireResponse.Response,
+    Transaction.TransactionLaggedError | Cause.Done
+  >;
   drop: Effect.Effect<void>;
+  dropLagged: Effect.Effect<void>;
 }
 
 interface ConnectionImpl extends Connection {
@@ -137,21 +141,21 @@ const makeSink = (connection: ConnectionImpl) =>
 
       const lagTimeout = connection.config.lagTimeout ?? Duration.seconds(0.2);
 
-      const isOnline = yield* pipe(
+      const offered = yield* pipe(
         Queue.offer(transaction.value.queue, response),
-        Effect.timeout(lagTimeout),
-        Effect.catchTag("TimeoutError", (timeout) =>
-          Effect.gen(function* () {
-            yield* Effect.logWarning(
-              "transaction has lagged behind too far, dropping it",
-            ).pipe(Effect.annotateLogs({ timeout }));
-
-            yield* transaction.value.drop;
-          }),
-        ),
+        Effect.timeoutOption(lagTimeout),
       );
 
-      if (isOnline === false) {
+      if (Option.isNone(offered)) {
+        yield* Effect.logWarning(
+          "transaction has lagged behind too far, dropping it",
+        ).pipe(Effect.annotateLogs({ lagTimeout }));
+        yield* transaction.value.dropLagged;
+
+        return;
+      }
+
+      if (!offered.value) {
         yield* Effect.logWarning("transaction has been closed, dropping it");
         yield* transaction.value.drop;
 
@@ -170,6 +174,7 @@ const wrapDrop = Effect.fn("wrapDrop")(function* (
   connection: ConnectionImpl,
   id: RequestId.RequestId,
   drop: Deferred.Deferred<void>,
+  close: (queue: TransactionContext["queue"]) => Effect.Effect<boolean>,
 ) {
   const transaction = MutableHashMap.get(connection.transactions, id);
 
@@ -180,7 +185,7 @@ const wrapDrop = Effect.fn("wrapDrop")(function* (
   }
 
   MutableHashMap.remove(connection.transactions, id);
-  yield* Queue.end(transaction.value.queue);
+  yield* close(transaction.value.queue);
 
   // call user defined drop function
   const dropImpl = yield* Deferred.poll(drop);
@@ -300,15 +305,27 @@ export const send = Function.dual<
 
     // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- it's indeed correct here
     const deferredDrop = yield* Deferred.make<void>();
-    const drop = wrapDrop(impl, request.id, deferredDrop);
-
-    const queue = yield* Queue.bounded<WireResponse.Response, Cause.Done>(
-      impl.config.responseBufferSize ?? 16,
+    const drop = wrapDrop(impl, request.id, deferredDrop, Queue.end);
+    const dropLagged = wrapDrop(
+      impl,
+      request.id,
+      deferredDrop,
+      (transactionQueue) =>
+        Queue.fail(
+          transactionQueue,
+          new Transaction.TransactionLaggedError({ id: request.id }),
+        ),
     );
+
+    const queue = yield* Queue.bounded<
+      WireResponse.Response,
+      Transaction.TransactionLaggedError | Cause.Done
+    >(impl.config.responseBufferSize ?? 16);
 
     const transactionContext: TransactionContext = {
       queue,
       drop,
+      dropLagged,
     };
 
     MutableHashMap.set(impl.transactions, request.id, transactionContext);
