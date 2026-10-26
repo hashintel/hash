@@ -108,3 +108,55 @@ describe("emitted_package", () => {
     expect(JExpr.Ident.compile(ident)).toBe(source);
   });
 });
+
+describe("emitted_program", () => {
+  test("metadata", () => {
+    expect.hasAssertions();
+    const defaultCount = 0n;
+    const enabled = Expression.input("enabled", booleanType);
+    const count = Expression.input("count", integerType, defaultCount);
+    const root = Expression.ifElse(enabled, { then: count, else: 0n });
+    const query = Program.program(root);
+    interface Requirements {
+      readonly enabled: Type.PrimitiveBoolean;
+      readonly count?: Type.PrimitiveInteger;
+    }
+    expectTypeOf(query).toEqualTypeOf<
+      Program.Program<Type.PrimitiveInteger, Requirements>
+    >();
+    expectTypeOf<Program.Inputs<typeof query>>().toEqualTypeOf<Requirements>();
+    expect(query.root).toBe(root);
+    expect(Object.isFrozen(query)).toBe(true);
+    expectTypeOf(Program.compile(query)).toEqualTypeOf<
+      Result.Result<string, Program.ProgramError.Construction>
+    >();
+  });
+
+  test("compile", () => {
+    expect.hasAssertions();
+    const greeting = Program.program(Expression.literal("hello"));
+    expect(Result.getOrThrow(Program.compile(greeting))).toBe(
+      '{"#literal":"hello"}',
+    );
+    const largeInteger = 9_007_199_254_740_993n;
+    const integerProgram = Program.program(Expression.integer(largeInteger));
+    expect(Result.getOrThrow(Program.compile(integerProgram))).toBe(
+      '{"#literal":9007199254740993}',
+    );
+  });
+
+  test("construction_failure", () => {
+    expect.hasAssertions();
+    const invalid = Expression.number(Number.NaN);
+    const query = Program.program(invalid);
+    const failure = pipe(
+      invalid,
+      Expression.toJExpr,
+      Result.flip,
+      Result.getOrThrow,
+    );
+    expect(pipe(query, Program.compile, Result.flip, Result.getOrThrow)).toBe(
+      failure,
+    );
+  });
+});
