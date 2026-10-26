@@ -16,7 +16,8 @@
     },
     "lint:oxlint": {
       "dependsOn": [
-        "@local/oxlint#build"
+        "@local/oxlint#build",
+        "build"
       ]
     },
     "lint:tsc": {
