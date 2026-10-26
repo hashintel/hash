@@ -38,7 +38,7 @@ When enabled, hidden panels remain loaded in the background. Switching between p
 
 ### AI assistant
 
-Shown when several of the host's plugins provide an AI assistant. **Assistant** chooses which one answers in the assistant panel. Each assistant keeps its own conversation. The choice is saved, and **Use … as the AI assistant** in the Command Palette changes it too. While the chosen assistant's plugin is switched off or stopped, the panel shows the first running assistant in the **Plugins** list.
+Shown when several of the host's plugins provide an AI assistant. **Assistant** chooses which one answers in the assistant panel. Each assistant keeps its own conversation. The choice is saved. The arrow beside the assistant icon in the panel's title bar and **Use … as the AI assistant** in the Command Palette change it too. While the chosen assistant's plugin is switched off or stopped, the panel shows the first running assistant in the **Plugins** list.
 
 ## Viewport
 

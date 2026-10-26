@@ -1,5 +1,11 @@
 /** @vitest-environment jsdom */
-import { act, cleanup, fireEvent, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  within,
+} from "@testing-library/react";
 import { type ReactNode, use } from "react";
 import {
   afterEach,
@@ -206,5 +212,27 @@ describe("choosing the assistant", () => {
     expect(screen.getByText("Plugin chat open")).not.toBeNull();
     expect(screen.queryByRole("textbox", { name: "Message" })).toBeNull();
     expect(registry.list()).toEqual([]);
+    expect(
+      screen.queryByRole("button", { name: "Switch AI assistant" }),
+    ).toBeNull();
+  });
+
+  test("lists the assistants in the title bar, the shown one selected", async () => {
+    renderWithCommands({});
+    const panel = screen.getByRole("complementary", { name: "AI assistant" });
+
+    fireEvent.click(
+      within(panel).getByRole("button", { name: "Switch AI assistant" }),
+    );
+    const items = within(await screen.findByRole("menu")).getAllByRole(
+      "menuitem",
+    );
+
+    expect(
+      items.map((item) => [item.textContent, item.dataset.selected]),
+    ).toEqual([
+      ["Chat", "true"],
+      ["Composer", undefined],
+    ]);
   });
 });
