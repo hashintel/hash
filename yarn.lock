@@ -10118,6 +10118,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/hashql@workspace:libs/@local/hashql/sdk/typescript"
   dependencies:
+    "@effect/platform-node": "npm:4.0.3"
     "@effect/vitest": "npm:4.0.3"
     "@local/oxlint": "workspace:*"
     "@local/tsconfig": "workspace:*"
