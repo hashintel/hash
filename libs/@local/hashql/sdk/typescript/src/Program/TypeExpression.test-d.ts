@@ -28,6 +28,7 @@ type StringIntegerPair = Program.TypeExpression.TypeExpression<
 describe("type_expression_inference", () => {
   test("specialization", () => {
     expectTypeOf(pair(text, integer)).toEqualTypeOf<StringIntegerPair>();
+    expectTypeOf(pair).toExtend<Program.TypeExpression.Constructor.Any>();
     // @ts-expect-error The declared arity is a literal two.
     TypeExpression.constructor<Pair>(path, 1);
     // @ts-expect-error A pair requires two type expressions.
