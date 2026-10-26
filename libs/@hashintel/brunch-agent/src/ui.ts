@@ -8,6 +8,7 @@
  */
 
 export * from "./ui/chat/ai-assistant-panel";
+export type * from "./ui/chat/ai-automatic-tool";
 export * from "./ui/chat/petrinaut";
 export * from "./ui/editor-api-plugin";
 export * from "./ui/interview-budget/interview-budget-control";

@@ -91,6 +91,7 @@ import { WordsHeaderAction } from "./words/words-configurer";
 import type { VoiceWord } from "../shared/voice-words";
 import type { PetrinautAiComposerControlContext } from "./chat/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
+import type { PetrinautAiAutomaticTool } from "./chat/ai-automatic-tool";
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
 import type {
   InterviewBudgetLevel,
@@ -200,6 +201,7 @@ export const useBrunchAssistant = ({
   voice,
   interviewBudget,
   words,
+  hostTools,
 }: BrunchConnection & {
   /**
    * The editor shows Brunch's assistant. Brunch reads no history, checks no
@@ -211,6 +213,12 @@ export const useBrunchAssistant = ({
   readonly voice: BrunchVoicePreferences;
   readonly interviewBudget: BrunchInterviewBudgetPreferences;
   readonly words: BrunchWordsPreferences;
+  /**
+   * Tools the host runs itself when its agent calls them, such as HASH's
+   * entity read, offered beside Brunch's own while a document is bound. Each
+   * name must be one the server issues to the browser. Pass a stable list.
+   */
+  readonly hostTools?: readonly PetrinautAiAutomaticTool[];
 }): BrunchAssistant => {
   const currentNetId = openDocument?.documentId ?? null;
   const editor = openDocument?.editor ?? null;
@@ -769,7 +777,10 @@ export const useBrunchAssistant = ({
       // document binding is attached. Every other canonical capability remains
       // on Petrinaut's registry.
       inBandBrowserTools,
-      automaticTools: [...(canonicalHostTools?.tools ?? [])],
+      automaticTools: [
+        ...(canonicalHostTools?.tools ?? []),
+        ...(canonicalHostTools ? (hostTools ?? []) : []),
+      ],
       // The automatic tools run against the handle the editor shows.
       ...(editor === null ? {} : { documentHandle: editor.handle }),
       interactiveTools: [
@@ -820,6 +831,7 @@ export const useBrunchAssistant = ({
     flueHistory.ready,
     flueHistory.snapshot,
     highlightChanges,
+    hostTools,
     inBandBrowserTools,
     interviewBudgetEnabled,
     interviewBudgetLevel,
