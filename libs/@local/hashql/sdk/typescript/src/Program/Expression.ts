@@ -132,6 +132,8 @@ class ExpressionImpl<T extends Type.Any, Inputs> {
  *
  * `T` describes the represented value, not its host wrapper. `Inputs` records the inputs needed to evaluate it. Fields and tuple positions project to new expressions. Use `$project` for fields whose names collide with SDK operations. Lists and dictionaries expose `$index`, whose result includes Null for a missing entry. Callable descriptors expose a host call that constructs HashQL call syntax.
  *
+ * `$projectUnsafe` and `$indexUnsafe` bypass descriptor restrictions and return an Unknown expression. They retain input requirements, including the index expression's requirements. They do not establish that the access is valid in HashQL.
+ *
  * Property access and calls construct syntax without reading data or executing the represented function. Extract that syntax or its retained construction failure with {@link toJExpr}.
  *
  * @example <caption>Project a field from a typed input.</caption>
@@ -259,7 +261,11 @@ const make = <T extends Type.Any, Inputs>(
       receiver,
     ): // oxlint-disable-next-line typescript/no-restricted-types -- proxy property reads may return arbitrary host values
     unknown {
-      if (property === "$index") {
+      if (property === "pipe") {
+        return Reflect.get(target, property, receiver);
+      }
+
+      if (property === "$index" || property === "$indexUnsafe") {
         return (key: Value.Any) => {
           const expr = Result.map(
             Result.all({ value: target[Binding], key: toJExpr(key) }),
@@ -270,7 +276,7 @@ const make = <T extends Type.Any, Inputs>(
         };
       }
 
-      if (property === "$project") {
+      if (property === "$project" || property === "$projectUnsafe") {
         return (key: string | number) => {
           const expr = Result.map(
             target[Binding],
@@ -545,41 +551,67 @@ export function input<T extends Type.Any>(
  * import { Result } from "effect";
  *
  * const { Expression } = Program;
- * const label = Expression.ifElse(true, { then: "enabled", else: "disabled" });
+ * const branches = { then: "enabled", else: "disabled" };
+ * const label = Expression.ifElse(true, branches);
+ * const piped = Expression.literal(true).pipe(Expression.ifElse(branches));
  * assert.equal(
  *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(label))),
  *   '["::kernel::special_form::if",{"#literal":true},{"#literal":"enabled"},{"#literal":"disabled"}]',
  * );
+ * assert.deepEqual(
+ *   Result.getOrThrow(Expression.toJExpr(piped)),
+ *   Result.getOrThrow(Expression.toJExpr(label)),
+ * );
  * ```
  */
-// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the condition and branches construct a new expression
-export const ifElse = <
-  const Condition extends Value<Type.PrimitiveBoolean>,
-  const Then extends Value.Any,
-  const Else extends Value.Any,
->(
-  condition: Condition,
-  branches: {
+export const ifElse: {
+  <const Then extends Value.Any, const Else extends Value.Any>(branches: {
     readonly then: Then;
     readonly else: Else;
-  },
-): Expression<
-  Conditional<TypeOf<Then>, TypeOf<Else>>,
-  Input.Merge<Inputs<Condition>, Input.Merge<Inputs<Then>, Inputs<Else>>>
-> =>
-  pipe(
-    {
-      condition: toNode(condition),
-      consequent: toNode(branches.then),
-      alternate: toNode(branches.else),
-    },
-    Result.all,
-    Result.map(
-      ({ condition, consequent, alternate }) =>
-        new AST.If(condition, consequent, alternate),
+  }): <const Condition extends Value<Type.PrimitiveBoolean>>(
+    condition: Condition,
+  ) => Expression<
+    Conditional<TypeOf<Then>, TypeOf<Else>>,
+    Input.Merge<Inputs<Condition>, Input.Merge<Inputs<Then>, Inputs<Else>>>
+  >;
+  <
+    const Condition extends Value<Type.PrimitiveBoolean>,
+    const Then extends Value.Any,
+    const Else extends Value.Any,
+  >(
+    condition: Condition,
+    branches: { readonly then: Then; readonly else: Else },
+  ): Expression<
+    Conditional<TypeOf<Then>, TypeOf<Else>>,
+    Input.Merge<Inputs<Condition>, Input.Merge<Inputs<Then>, Inputs<Else>>>
+  >;
+} = Function.dual(
+  2,
+  <
+    const Condition extends Value<Type.PrimitiveBoolean>,
+    const Then extends Value.Any,
+    const Else extends Value.Any,
+  >(
+    condition: Condition,
+    branches: { readonly then: Then; readonly else: Else },
+  ): Expression<
+    Conditional<TypeOf<Then>, TypeOf<Else>>,
+    Input.Merge<Inputs<Condition>, Input.Merge<Inputs<Then>, Inputs<Else>>>
+  > =>
+    pipe(
+      {
+        condition: toNode(condition),
+        consequent: toNode(branches.then),
+        alternate: toNode(branches.else),
+      },
+      Result.all,
+      Result.map(
+        ({ condition, consequent, alternate }) =>
+          new AST.If(condition, consequent, alternate),
+      ),
+      fromResult<
+        Conditional<TypeOf<Then>, TypeOf<Else>>,
+        Input.Merge<Inputs<Condition>, Input.Merge<Inputs<Then>, Inputs<Else>>>
+      >,
     ),
-    fromResult<
-      Conditional<TypeOf<Then>, TypeOf<Else>>,
-      Input.Merge<Inputs<Condition>, Input.Merge<Inputs<Then>, Inputs<Else>>>
-    >,
-  );
+);

@@ -297,9 +297,39 @@ type IndexOf<T extends Type.Any> = [T] extends [Type.List<infer Value>]
           ? CombinedIndex<"Intersection", Members>
           : undefined;
 
+/** Access operations whose validity is left to the HashQL compiler. */
+interface UnsafeAccessors<Inputs> {
+  /**
+   * Projects without checking the field or tuple position against the descriptor.
+   *
+   * The result has the {@link Type.Unknown} descriptor and retains the receiver's input requirements. This does not establish that the field or position exists.
+   */
+  readonly $projectUnsafe: (
+    key: string | number,
+  ) => Expression.Expression<Type.Unknown, Inputs>;
+
+  /**
+   * Indexes without constraining the receiver or key to their declared descriptors.
+   *
+   * The result has the {@link Type.Unknown} descriptor and combines the receiver's and key's input requirements. Existing construction failures still propagate, but the HashQL compiler must determine whether the lookup is valid.
+   */
+  readonly $indexUnsafe: <const Key extends Expression.Value.Any>(
+    key: Key,
+  ) => Expression.Expression<
+    Type.Unknown,
+    Input.Merge<Inputs, Expression.Inputs<Key>>
+  >;
+}
+
 type ProjectionAccessors<Fields, Inputs> = {
   readonly [
-    Key in Exclude<keyof Fields, "$project" | "$index" | "~hashql/Expression">
+    Key in Exclude<
+      keyof Fields,
+      | keyof Expression.Handle<Type.Any, Inputs>
+      | keyof UnsafeAccessors<Inputs>
+      | "$project"
+      | "$index"
+    >
   ]: Fields[Key] extends infer Field extends Type.Any
     ? Expression.Expression<Normalize<Field>, Inputs>
     : never;
@@ -329,10 +359,8 @@ type IndexAccessor<Descriptor, Inputs> = [Descriptor] extends [IndexDescriptor]
  *
  * Struct fields and tuple positions support property access and `$project`. For unions and intersections, a projected field must exist in every member. `$project` also accepts operation names such as `$index` when they name actual fields. List and dictionary `$index` calls merge the key's inputs and include Null in the result for an absent element. Opaque descriptors expose the operations of their underlying type.
  */
-export type Accessors<T extends Type.Any, Inputs> = ProjectionAccessors<
-  FieldsOf<Normalize<T>>,
-  Inputs
-> &
+export type Accessors<T extends Type.Any, Inputs> = UnsafeAccessors<Inputs> &
+  ProjectionAccessors<FieldsOf<Normalize<T>>, Inputs> &
   IndexAccessor<IndexOf<Normalize<T>>, Inputs>;
 
 /** Host arguments accepted at each semantic parameter position, including corresponding primitive shorthand. */

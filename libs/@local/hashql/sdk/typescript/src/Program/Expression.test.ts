@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { Result } from "effect";
+import { Result, pipe } from "effect";
 import { describe, expect, test } from "vitest";
 
 import * as JExpr from "../JExpr/index.js";
@@ -66,6 +66,92 @@ describe("expression", () => {
     expect(compile(record.$project("users"))).toBe(
       '["::kernel::special_form::access","record","users"]',
     );
+  });
+
+  test("unsafe_access", () => {
+    expect.hasAssertions();
+    const value = Expression.fromJExpr<Type.Unknown, Inputs.Empty>("value");
+    expect(compile(value.$projectUnsafe("name"))).toBe(
+      '["::kernel::special_form::access","value","name"]',
+    );
+    expect(compile(value.$projectUnsafe(3))).toBe(
+      '["::kernel::special_form::access","value",{"#literal":3}]',
+    );
+    expect(compile(value.$indexUnsafe("key"))).toBe(
+      '["::kernel::special_form::index","value",{"#literal":"key"}]',
+    );
+  });
+
+  test("unsafe_failure", () => {
+    expect.hasAssertions();
+    const invalid = Expression.number(Number.NaN);
+    const value = Expression.fromJExpr<Type.Unknown, Inputs.Empty>("value");
+    const failure = Expression.toJExpr(invalid);
+    expect(Result.isFailure(failure)).toBe(true);
+    expect(Expression.toJExpr(invalid.$projectUnsafe("name"))).toStrictEqual(
+      failure,
+    );
+    expect(Expression.toJExpr(invalid.$indexUnsafe(0n))).toStrictEqual(failure);
+    expect(Expression.toJExpr(value.$indexUnsafe(invalid))).toStrictEqual(
+      failure,
+    );
+    expect(Expression.toJExpr(value.$indexUnsafe(Number.NaN))).toStrictEqual(
+      failure,
+    );
+  });
+
+  test("pipe_and_reserved_fields", () => {
+    expect.hasAssertions();
+    const record = Expression.fromJExpr<
+      Type.Struct<{
+        readonly pipe: Type.PrimitiveBoolean;
+        readonly $projectUnsafe: Type.PrimitiveString;
+        readonly $indexUnsafe: Type.PrimitiveInteger;
+      }>,
+      Inputs.Empty
+    >("record");
+    expect(record.pipe((value) => value)).toBe(record);
+    expect(compile(record.$project("pipe"))).toBe(
+      '["::kernel::special_form::access","record","pipe"]',
+    );
+    expect(compile(record.$project("$projectUnsafe"))).toBe(
+      '["::kernel::special_form::access","record","$projectUnsafe"]',
+    );
+    expect(compile(record.$project("$indexUnsafe"))).toBe(
+      '["::kernel::special_form::access","record","$indexUnsafe"]',
+    );
+  });
+
+  test("conditional_forms", () => {
+    expect.hasAssertions();
+    const condition = Expression.literal(true);
+    const branches = { then: 1n, else: 0n };
+    const expected =
+      '["::kernel::special_form::if",{"#literal":true},{"#literal":1},{"#literal":0}]';
+    expect(compile(Expression.ifElse(condition, branches))).toBe(expected);
+    expect(compile(pipe(condition, Expression.ifElse(branches)))).toBe(
+      expected,
+    );
+    expect(compile(condition.pipe(Expression.ifElse(branches)))).toBe(expected);
+  });
+
+  test("conditional_failure", () => {
+    expect.hasAssertions();
+    const invalid = Expression.number(Number.NaN);
+    const condition = Expression.assume<Type.PrimitiveBoolean>()(invalid);
+    const failure = Expression.toJExpr(invalid);
+    expect(Result.isFailure(failure)).toBe(true);
+    expect(
+      Expression.toJExpr(Expression.ifElse(condition, { then: 1n, else: 0n })),
+    ).toStrictEqual(failure);
+    expect(
+      Expression.toJExpr(
+        pipe(false, Expression.ifElse({ then: invalid, else: 0n })),
+      ),
+    ).toStrictEqual(failure);
+    expect(
+      Expression.toJExpr(Expression.ifElse(true, { then: 1n, else: invalid })),
+    ).toStrictEqual(failure);
   });
 
   test("reserved_projection", () => {

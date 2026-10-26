@@ -21,12 +21,13 @@
     },
     "lint:tsc": {
       "dependsOn": [
-        "@local/oxlint#build"
+        "build"
       ]
     },
     "test:integration": {
       "dependsOn": [
         "@local/oxlint#build",
+        "build",
         "hashql-syntax-jexpr#build:parse:debug"
       ],
       "env": [
@@ -53,7 +54,8 @@
     },
     "test:unit": {
       "dependsOn": [
-        "@local/oxlint#build"
+        "@local/oxlint#build",
+        "build"
       ],
       "env": [
         "TEST_COVERAGE"
