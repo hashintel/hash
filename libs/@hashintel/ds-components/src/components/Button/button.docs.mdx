@@ -129,7 +129,7 @@ Set `loading` while a request runs: the button goes inert, shows a spinner, and 
 
 ### Pressed
 
-Set `pressed` when a button reflects an on/off state it controls, such as an open panel or an active filter. Pair it with `aria-pressed` semantics for toggle buttons.
+Set `pressed` when a button reflects an on/off state it controls, such as an open panel or an active filter. Note that `pressed` only changes the visual state: [toggle buttons](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles/button_role#toggle_buttons) carry a specific ARIA meaning, so pair it with `aria-pressed` when the button is a true toggle.
 
 <Stage>
   <Button variant="subtle" iconName="filter" pressed>

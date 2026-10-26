@@ -1,25 +1,33 @@
 import { InlineHighlight } from "../../src/util/InlineHighlight/inline-highlight";
 import { propsTableRecipe } from "./props-table.recipe";
 
+import type {
+  ComponentDoc,
+  PropItem,
+  PropItemType,
+} from "react-docgen-typescript";
+
 /**
  * Props reference table for MDX docs pages. react-docgen-typescript cannot see defaults applied via body
  * destructuring or recipe defaultVariants, so `defaults` lets pages supply them per prop.
  */
 
-type DocgenType = {
-  name?: string;
-  raw?: string;
+/**
+ * react-docgen-typescript's output types, projected to the fields the table
+ * renders and with the `any`-typed value fields (`PropItemType.value`,
+ * `PropItem.defaultValue`) narrowed to the shapes the producer emits.
+ */
+type DocgenType = Pick<PropItemType, "name" | "raw"> & {
   value?: { value?: string }[];
 };
 
-type DocgenProp = {
-  description?: string;
-  required?: boolean;
+type DocgenProp = Pick<PropItem, "description" | "required"> & {
+  type: DocgenType;
   defaultValue?: { value?: string } | null;
-  type?: DocgenType;
 };
 
-type DocgenInfo = { props?: Record<string, DocgenProp> };
+/** `ComponentDoc["props"]` under the projected prop shape. */
+type DocgenInfo = { props?: Record<keyof ComponentDoc["props"], DocgenProp> };
 
 /**
  * Glue each `|` to the member after it so wraps read like multi-line TS unions (`| member` starts the
@@ -30,17 +38,14 @@ type DocgenInfo = { props?: Record<string, DocgenProp> };
 const glueUnionPipes = (text: string): string =>
   text.replace(/\s*\|\s*/g, " |\u2060\u00A0");
 
-const formatType = (type: DocgenType | undefined): string => {
-  if (!type) {
-    return "unknown";
-  }
+const formatType = (type: DocgenType): string => {
   const literals = (type.value ?? [])
     .map((member) => member.value)
     .filter((value): value is string => typeof value === "string");
   let formatted: string;
   if (literals.length > 0) {
     const joined = literals.join(" | ");
-    const alias = type.raw ?? type.name ?? "";
+    const alias = type.raw ?? type.name;
     if (joined.length <= 70) {
       formatted = joined;
     } else if (alias.length <= 70) {
@@ -50,7 +55,7 @@ const formatType = (type: DocgenType | undefined): string => {
       formatted = `${shown.join(" | ")} | … ${literals.length - shown.length} more`;
     }
   } else {
-    formatted = type.raw ?? type.name ?? "unknown";
+    formatted = type.raw ?? type.name;
   }
   return glueUnionPipes(formatted);
 };
@@ -103,9 +108,7 @@ export const PropsTable = ({
                   </div>
                 )}
               </td>
-              <td className={classes.descriptionCell}>
-                {prop.description ?? ""}
-              </td>
+              <td className={classes.descriptionCell}>{prop.description}</td>
             </tr>
           );
         })}

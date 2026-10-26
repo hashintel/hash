@@ -7586,6 +7586,7 @@ __metadata:
     "@tanstack/react-form": "npm:1.29.0"
     "@tanstack/react-virtual": "npm:3.13.24"
     "@tsconfig/bases": "catalog:"
+    "@types/hast": "npm:^3.0.5"
     "@types/node": "catalog:"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
@@ -7598,10 +7599,12 @@ __metadata:
     eslint: "npm:9.39.4"
     lorem-ipsum: "npm:2.0.8"
     lucide-react: "npm:0.544.0"
+    mdast-util-mdx-jsx: "npm:^3.0.0"
     npm-run-all2: "npm:8.0.4"
     oxc-transform-react: "npm:0.152.0"
     prism-react-renderer: "npm:2.4.1"
     react: "npm:19.2.6"
+    react-docgen-typescript: "npm:^2.2.2"
     react-dom: "npm:19.2.6"
     remark-gfm: "npm:4.0.1"
     storybook: "npm:10.6.2"
@@ -25064,14 +25067,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dayjs@npm:^1.11.13":
-  version: 1.11.20
-  resolution: "dayjs@npm:1.11.20"
-  checksum: 10c0/8af525e2aa100c8db9923d706c42b2b2d30579faf89456619413a5c10916efc92c2b166e193c27c02eb3174b30aa440ee1e7b72b0a2876b3da651d204db848a0
-  languageName: node
-  linkType: hard
-
-"dayjs@npm:^1.11.23":
+"dayjs@npm:^1.11.13, dayjs@npm:^1.11.23":
   version: 1.11.23
   resolution: "dayjs@npm:1.11.23"
   checksum: 10c0/69ab04bf19c676e44ab50cc2fca223d265f3dafd107151ef3b0f3ad74d360c37caa602abe62f87cb25d90bd9f6bee003698af47df5b0dbf10a998b7b5f3bb3f1

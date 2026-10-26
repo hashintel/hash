@@ -5,7 +5,10 @@ import { isValidElement } from "react";
  * source shown on its Code tab, so preview and code can never drift apart.
  * Only the prop shapes docs examples use are supported: strings, numbers,
  * booleans (`true` as a bare flag, `false` as `={false}`) and element values
- * such as `suffix={<span>12</span>}`, serialized inline. Elements without a
+ * such as `suffix={<span>12</span>}`, serialized inline. Strings and text
+ * children that JSX source can't hold literally (quotes in attributes,
+ * `{}<>` in text) are emitted as string expressions, so the copied code
+ * always re-renders what the preview shows. Elements without a
  * trustworthy name — anything other than a host element or a component with
  * an identifier-like `displayName` (names from `Function.name` disappear
  * under minification) — serialize transparently, as their children only;
@@ -14,6 +17,21 @@ import { isValidElement } from "react";
  */
 
 const componentNamePattern = /^[A-Z][A-Za-z0-9]*$/;
+
+const formatStringProp = (propName: string, value: string): string => {
+  if (!value.includes('"') && !value.includes("\n")) {
+    return `${propName}="${value}"`;
+  }
+  if (!value.includes("'") && !value.includes("\n")) {
+    return `${propName}='${value}'`;
+  }
+  return `${propName}={${JSON.stringify(value)}}`;
+};
+
+const jsxUnsafeText = /[{}<>]/;
+
+const formatTextChild = (text: string): string =>
+  jsxUnsafeText.test(text) ? `{${JSON.stringify(text)}}` : text;
 
 const componentName = (type: unknown): string | null => {
   if (typeof type === "string") {
@@ -52,7 +70,7 @@ const formatProps = (
     } else if (propValue === false) {
       parts.push(`${propName}={false}`);
     } else if (typeof propValue === "string") {
-      parts.push(`${propName}="${propValue}"`);
+      parts.push(formatStringProp(propName, propValue));
     } else if (typeof propValue === "number") {
       parts.push(`${propName}={${propValue}}`);
     } else if (isValidElement(propValue)) {
@@ -73,7 +91,7 @@ const nodeToLines = (node: React.ReactNode, indent: string): string[] => {
   }
   if (typeof node === "string" || typeof node === "number") {
     const text = String(node).trim();
-    return text === "" ? [] : [`${indent}${text}`];
+    return text === "" ? [] : [`${indent}${formatTextChild(text)}`];
   }
   if (Array.isArray(node)) {
     return node.flatMap((child) =>

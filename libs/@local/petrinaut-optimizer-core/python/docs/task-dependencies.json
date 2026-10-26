@@ -45,6 +45,7 @@
     },
     "lint:ruff": {
       "dependsOn": [],
+      "cache": false,
       "env": [
         "PYTHONHOME",
         "PYTHONPATH",

@@ -1,3 +1,8 @@
+import type { Root, RootContent } from "hast";
+// Registers the mdxJsxFlowElement/mdxJsxTextElement node types on hast's
+// content maps.
+import type {} from "mdast-util-mdx-jsx";
+
 /**
  * Stamps the `hash-md` class on every element the MDX compiler derived from
  * markdown. Literal JSX is a different node type and is never touched — and
@@ -6,13 +11,6 @@
  * picks up docs typography. The docs prose rules in docs.css hang off this
  * class alone, which keeps them free of :not() guards.
  */
-
-type HastNode = {
-  type: string;
-  tagName?: string;
-  properties?: Record<string, unknown>;
-  children?: HastNode[];
-};
 
 const jsxNodeTypes = new Set(["mdxJsxFlowElement", "mdxJsxTextElement"]);
 
@@ -23,26 +21,21 @@ const skippedTags = new Set(["code", "pre"]);
 
 const markdownClass = "hash-md";
 
-const tagNode = (node: HastNode, insideJsx: boolean): void => {
-  if (
-    node.type === "element" &&
-    !insideJsx &&
-    !skippedTags.has(node.tagName ?? "")
-  ) {
-    node.properties ??= {};
-    const existing = node.properties["className"];
-    node.properties["className"] = Array.isArray(existing)
-      ? [...(existing as unknown[]), markdownClass]
-      : typeof existing === "string"
-        ? [existing, markdownClass]
-        : [markdownClass];
+const tagNode = (node: Root | RootContent, insideJsx: boolean): void => {
+  if (node.type === "element" && !insideJsx && !skippedTags.has(node.tagName)) {
+    node.properties["className"] = [
+      ...(node.properties["className"] ?? []),
+      markdownClass,
+    ];
   }
   const childInsideJsx = insideJsx || jsxNodeTypes.has(node.type);
-  for (const child of node.children ?? []) {
-    tagNode(child, childInsideJsx);
+  if ("children" in node) {
+    for (const child of node.children) {
+      tagNode(child, childInsideJsx);
+    }
   }
 };
 
-export const rehypeMarkdownClass = () => (tree: HastNode) => {
+export const rehypeMarkdownClass = () => (tree: Root) => {
   tagNode(tree, false);
 };
