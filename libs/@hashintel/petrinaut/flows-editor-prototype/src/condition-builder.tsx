@@ -19,7 +19,6 @@ import {
   Filter,
   type FilterOperator,
   Icon,
-  type IconName,
   Menu,
   type MenuItem,
   Tooltip,
@@ -280,25 +279,6 @@ export const collapsePath = (parts: string[]) =>
   parts.length > 2
     ? [parts[0], "…", parts.at(-1)].join(" › ")
     : parts.join(" › ");
-
-const tokenIcon = (
-  document: EditorDocument,
-  source: StepInputSource,
-): IconName => {
-  if (source.kind === "flow-input") {
-    // A flow input lives on Start: Start's icon, as J3 · B2 draws the token.
-    return "play";
-  }
-  if (source.kind === "step-output") {
-    const step = findStep(document, source.stepId)?.step;
-    return (
-      (step?.kind === "action"
-        ? getCatalogEntry(step.actionDefinitionId)?.icon
-        : undefined) ?? "rotate"
-    );
-  }
-  return "rotate";
-};
 
 /* ----------------------------------------------------------------------------------------------------------------
  * One condition row: a DS Filter chip and its ⋮ menu
@@ -657,7 +637,7 @@ const ConditionRowView = ({
               onPointerEnter={sourceHover.onPointerEnter}
               onPointerLeave={sourceHover.onPointerLeave}
             >
-              <Icon name={tokenIcon(document, row.valueSource!)} size="xs" />
+              {/* No icon: the step's name says where the value is from (ledger 23 Oct; Figma 643:22529). */}
               <TokenLabel parts={tokenParts} />
             </span>
           </Tooltip>

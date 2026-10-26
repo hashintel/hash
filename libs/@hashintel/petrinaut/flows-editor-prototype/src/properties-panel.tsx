@@ -1493,9 +1493,13 @@ const StartedBy = () => {
             {
               id: "triggers",
               label: "",
-              items: addableTriggerKinds.map((kind) => ({
+              // Two kinds (ledger, 23 Oct; Figma 637:23265): Schedule, and Responsive (an entity changes). Manual runs
+              // and API calls start a flow elsewhere, so they are not in this menu.
+              items: addableTriggerKinds
+                .filter((kind) => kind === "schedule" || kind === "entityChanged")
+                .map((kind) => ({
                 id: kind,
-                text: triggerDefinitions[kind].title,
+                text: kind === "schedule" ? "Schedule" : "Responsive",
                 icon: triggerDefinitions[kind].icon,
                 suffix:
                   showDebug && triggerDefinitions[kind].mock ? (
