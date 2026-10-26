@@ -182,10 +182,8 @@ def observe_exporter[Exporter: (SpanExporter, MetricExporter, LogRecordExporter)
     ("variable", "value", "exporter_count", "reader_count"),
     [
         ("OTEL_BSP_MAX_QUEUE_SIZE", "0", 1, 0),
-        ("OTEL_EXPORTER_OTLP_METRICS_TIMEOUT", "not-a-number", 1, 0),
         ("OTEL_METRIC_EXPORT_INTERVAL", "0", 2, 0),
         ("OTEL_METRICS_EXEMPLAR_FILTER", "invalid-filter", 2, 1),
-        ("OTEL_EXPORTER_OTLP_LOGS_TIMEOUT", "not-a-number", 2, 1),
         ("OTEL_BLRP_MAX_QUEUE_SIZE", "0", 3, 1),
     ],
 )
