@@ -51,10 +51,55 @@ Authorization: <omit>
   });
 %}
 
+### HashQL: unknown actor is rejected by authentication
+POST http://127.0.0.1:4000/hashql
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: ffffffff-ffff-ffff-ffff-ffffffffffff
+
+{
+  "query": ["let", "axes",
+    ["::graph::temporal::PinnedTransactionTimeTemporalAxes",
+      {"#struct": {
+        "pinned": ["::graph::temporal::TransactionTime",
+          ["::graph::temporal::Timestamp", {"#literal": 4102444800000}]
+        ],
+        "variable": ["::graph::temporal::DecisionTime",
+          ["::graph::temporal::Interval", {"#struct": {
+            "start": ["::graph::temporal::UnboundedTemporalBound"],
+            "end": ["::graph::temporal::ExclusiveTemporalBound",
+              ["::graph::temporal::Timestamp", {"#literal": 4102444800000}]
+            ]
+          }}]
+        ]
+      }}
+    ],
+    ["::graph::tail::collect",
+      ["::graph::body::filter",
+        ["::graph::head::entities", "axes"],
+        ["fn", {"#tuple": []}, {"#struct": {"vertex": "_"}}, "_",
+          {"#literal": false}
+        ]
+      ]
+    ]
+  ],
+  "inputs": []
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Expected 401 for unknown actor");
+  });
+  client.test("has authentication problem", function() {
+    client.assert(response.body.title === "Unauthorized", "Expected authentication problem");
+    client.assert(response.body.detail === "credentials are not accepted",
+      "Expected authentication detail without actor information");
+  });
+%}
+
 ### HashQL: filter-false returns empty list
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{system_machine_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "query": ["let", "axes",
@@ -100,7 +145,7 @@ X-Authenticated-User-Actor-Id: {{system_machine_id}}
 ### HashQL: parse error returns 400 with diagnostics
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{system_machine_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "query": {"not": "a valid query"},
@@ -120,7 +165,7 @@ X-Authenticated-User-Actor-Id: {{system_machine_id}}
 ### HashQL: missing inputs field returns 400
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{system_machine_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
   "query": {"#literal": 1}
@@ -140,7 +185,7 @@ X-Authenticated-User-Actor-Id: {{system_machine_id}}
 ### HashQL: json-compat wraps result in envelope with advisories
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{system_machine_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 Json-Compat: true
 
 {
@@ -187,7 +232,7 @@ Json-Compat: true
 ### HashQL: interactive header returns HTML on error
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{system_machine_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 Interactive: true
 
 {
