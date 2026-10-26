@@ -116,7 +116,7 @@
     "oxc-transform-react": "0.152.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "storybook": "10.4.6",
+    "storybook": "10.6.2",
     "tsup": "^8.5.1",
     "tsx": "catalog:",
     "typescript": "catalog:",
