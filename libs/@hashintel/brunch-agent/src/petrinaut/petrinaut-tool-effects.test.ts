@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { brunchTools } from "../constants";
+import { brunchTools, hashGraphReadToolNames } from "../constants";
 import {
   browserToolMutatesDocument,
   petrinautToolEffects,
@@ -34,7 +34,10 @@ test("only mutations, commands and unknown tools may change the bound document",
   expect(browserToolMutatesDocument("unmounted_tool")).toBe(true);
 });
 
-test("HASH's entity read reads the graph and never changes the bound document", () => {
-  expect(browserToolMutatesDocument(brunchTools.queryHashEntities)).toBe(false);
-  expect(petrinautToolTargets(brunchTools.queryHashEntities)).toEqual([]);
-});
+test.each([...hashGraphReadToolNames])(
+  "HASH's graph read %s never changes the bound document",
+  (name) => {
+    expect(browserToolMutatesDocument(name)).toBe(false);
+    expect(petrinautToolTargets(name)).toEqual([]);
+  },
+);

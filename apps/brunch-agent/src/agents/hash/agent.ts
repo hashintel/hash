@@ -3,7 +3,7 @@
  * Brunch for HASH: the Petrinaut agent's guidance (prompt and skills, copied
  * here so they can diverge) and its Ledger and `query_basis` tools (imported
  * from `../petrinaut/tools/`), over the shared Petrinaut browser tools, net
- * freshness and transport, plus a read of the HASH graph that HASH's process
+ * freshness and transport, plus reads of the HASH graph that HASH's process
  * page executes. HASH's process page talks to it.
  */
 
@@ -42,7 +42,7 @@ import { ping } from "../../shared/ping.ts";
 import { loadTestCompactionConfig } from "../../shared/test-compaction-config.ts";
 import { useWords } from "../../shared/words.ts";
 import { useGuidance } from "./guidance.ts";
-import { createHashEntityReadTool } from "./tools/hash-entity-read.ts";
+import { createHashGraphReadTools } from "./tools/hash-graph-reads.ts";
 
 import type { BrowserToolExecutor } from "../../shared/petrinaut-tools/petrinaut-construction.ts";
 
@@ -139,9 +139,10 @@ export function HashAgent({ id }: AgentProps) {
   );
   if (initialData) {
     useTool(createQueryBasisTool({ browser: initialData, history }));
-    // HASH's page runs it as the signed-in user, like a net read.
+    // HASH's page runs them as the signed-in user, like net reads.
     if (executeBrowserTool)
-      useTool(createHashEntityReadTool(executeBrowserTool));
+      for (const read of createHashGraphReadTools(executeBrowserTool))
+        useTool(read);
   }
   useTool(ping);
 

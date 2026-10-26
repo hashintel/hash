@@ -68,7 +68,7 @@ vi.mock("@hashintel/brunch-agent/ui", () => ({
 
 const hashHostTools = vi.hoisted((): unknown[] => []);
 
-vi.mock("./process-petrinaut/brunch-hash-entity-read", () => ({
+vi.mock("./process-petrinaut/brunch-hash-graph-reads", () => ({
   useBrunchHashHostTools: () => hashHostTools,
 }));
 

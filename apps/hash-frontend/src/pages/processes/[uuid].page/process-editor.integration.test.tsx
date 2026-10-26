@@ -694,6 +694,8 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
   });
   expect(observed.brunch?.hostTools?.map(({ toolName }) => toolName)).toEqual([
     "query_hash_entities",
+    "query_hash_entity_types",
+    "query_hash_webs",
   ]);
 
   // The route rerendering with the same URL is not a load.

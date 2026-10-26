@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { brunchTools } from "../constants";
+import { brunchTools, hashGraphReadToolNames } from "../constants";
 import {
   browserExecutedToolInputSchemas,
   browserExecutedToolNames,
@@ -11,35 +11,44 @@ import {
 import { netReaderToolNames } from "./net-readers";
 
 describe("browser-executed tools", () => {
-  test("are the canonical tools, the net readers, the draft and HASH's entity read", () => {
+  test("HASH's graph reads are its entity, entity type and web reads", () => {
+    expect([...hashGraphReadToolNames]).toEqual([
+      brunchTools.queryHashEntities,
+      brunchTools.queryHashEntityTypes,
+      brunchTools.queryHashWebs,
+    ]);
+  });
+
+  test("are the canonical tools, the net readers, the draft and HASH's graph reads", () => {
     expect([...browserExecutedToolNames].sort()).toEqual(
       [
         ...Object.keys(petrinautAiTools),
         ...Object.values(netReaderToolNames),
         brunchTools.draftPetrinautExperiment,
-        brunchTools.queryHashEntities,
+        ...hashGraphReadToolNames,
       ].sort(),
     );
   });
 
-  test("the net tools leave out only the draft and HASH's entity read", () => {
+  test("the net tools leave out only the draft and HASH's graph reads", () => {
     expect([...browserNetToolNames]).toEqual(
       [...browserExecutedToolNames].filter(
         (name) =>
           name !== brunchTools.draftPetrinautExperiment &&
-          name !== brunchTools.queryHashEntities,
+          !hashGraphReadToolNames.has(name),
       ),
     );
+    for (const name of hashGraphReadToolNames)
+      expect(browserNetToolNames.has(name)).toBe(false);
     expect(browserNetToolNames.has("toString")).toBe(false);
   });
 
-  test("compare HASH's entity read input as the server issued it", () => {
-    const issued = { entityTypes: ["Supplier"], traversalDepth: 2 };
-    expect(
-      browserExecutedToolInputSchemas[brunchTools.queryHashEntities]?.parse(
-        issued,
-      ),
-    ).toBe(issued);
+  test.each([
+    [brunchTools.queryHashEntities, { entityTypes: ["Supplier"] }],
+    [brunchTools.queryHashEntityTypes, { webIds: ["alice-web"] }],
+    [brunchTools.queryHashWebs, {}],
+  ])("compare %s input as the server issued it", (name, issued) => {
+    expect(browserExecutedToolInputSchemas[name]?.parse(issued)).toBe(issued);
   });
 
   test("parse a net reader's input strictly", () => {

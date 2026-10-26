@@ -1,6 +1,6 @@
 import { selectionItemTypes } from "@hashintel/petrinaut-core/selection";
 
-import { brunchTools } from "../constants";
+import { brunchTools, hashGraphReadToolNames } from "../constants";
 import { netReaderLevelOf } from "./net-readers";
 
 import type { PetrinautAiToolName } from "@hashintel/petrinaut-core/ai";
@@ -101,12 +101,12 @@ const canonicalEffectOf = (
 /**
  * Whether a settled browser call may have changed the bound document. The
  * experiment draft prepares in editor memory only, and the net readers and
- * HASH's entity read only read. An unknown tool's effect is unknown, so it
+ * HASH's graph reads only read. An unknown tool's effect is unknown, so it
  * counts as a possible change.
  */
 export const browserToolMutatesDocument = (toolName: string): boolean => {
   if (toolName === brunchTools.draftPetrinautExperiment) return false;
-  if (toolName === brunchTools.queryHashEntities) return false;
+  if (hashGraphReadToolNames.has(toolName)) return false;
   if (netReaderLevelOf(toolName) !== undefined) return false;
   const capability = canonicalEffectOf(toolName)?.capability;
   return (

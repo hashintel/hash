@@ -2,6 +2,7 @@ import {
   browserExecutedToolNames,
   brunchTools,
   CANONICAL_PETRINAUT_TOOL_NAMES,
+  hashGraphReadToolNames,
   netReaderToolNames,
   type PetrinautToolCapability,
   petrinautToolEffects,
@@ -79,13 +80,15 @@ const draftBrunchTool: BrunchToolCatalogueEntry = {
   capability: "petrinaut-experiment-draft",
 };
 
-/** HASH's process page runs it; only the HASH agent mounts it. */
-const hashEntityReadTool: BrunchToolCatalogueEntry = {
-  name: brunchTools.queryHashEntities,
+/** HASH's process page runs them; only the HASH agent mounts them. */
+const hashGraphReadTools: readonly BrunchToolCatalogueEntry[] = [
+  ...hashGraphReadToolNames,
+].map((name) => ({
+  name,
   definitionOwner: "brunch-app",
   executionOwner: "hash-frontend",
   capability: "hash-read",
-};
+}));
 
 /**
  * Expected provider-visible names and ownership for a document-bound Brunch conversation.
@@ -137,7 +140,7 @@ export const brunchToolCatalogue: readonly BrunchToolCatalogueEntry[] = [
   ...canonicalPetrinautToolCatalogue,
   ...netReaderTools,
   draftBrunchTool,
-  hashEntityReadTool,
+  ...hashGraphReadTools,
 ];
 
 /** The catalogue's browser-executed entries are exactly the tools the library says the browser runs. */

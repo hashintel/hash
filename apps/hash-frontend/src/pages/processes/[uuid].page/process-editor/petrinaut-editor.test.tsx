@@ -119,7 +119,7 @@ vi.mock("@hashintel/brunch-agent/ui", async () => {
   };
 });
 
-vi.mock("./petrinaut-editor/process-petrinaut/brunch-hash-entity-read", () => ({
+vi.mock("./petrinaut-editor/process-petrinaut/brunch-hash-graph-reads", () => ({
   useBrunchHashHostTools: () => observed.hashHostTools,
 }));
 
