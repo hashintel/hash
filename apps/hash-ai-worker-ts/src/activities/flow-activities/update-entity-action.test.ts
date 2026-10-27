@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { storePayload } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
-import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import { noEntityChangesMessage } from "@local/hash-isomorphic-utils/flows/entity-steps";
 import { StatusCode } from "@local/status";
 
@@ -60,11 +59,6 @@ vi.mock("@local/hash-graph-sdk/entity", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   queryEntities: vi.fn(),
 }));
-vi.mock("@local/hash-graph-sdk/entity-type", async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  hasPermissionForEntityTypes: vi.fn(),
-}));
-
 const personType =
   "https://example.com/types/entity-type/person/v/1" as VersionedUrl;
 const employeeType =
@@ -88,16 +82,12 @@ const entityIdOf = (index: number, draft = false) =>
 
 const patch = vi.fn();
 
-/**
- * Answers the graph query with a person with the given ID, if one is given, and whether the user can edit it.
- */
+/** Answers the graph query with an entity with the given ID, if one is given, and whether the user can edit it. */
 const mockEntity = (entityId: EntityId | null, { canEdit = true } = {}) =>
   vi.mocked(queryEntities).mockResolvedValueOnce({
     permissions:
       entityId && canEdit ? { [entityId]: { update: ["edition"] } } : {},
-    entities: entityId
-      ? [{ entityId, patch, metadata: { entityTypeIds: [personType] } }]
-      : [],
+    entities: entityId ? [{ entityId, patch }] : [],
     cursor: null,
   } as unknown as QueryEntitiesResponse);
 
@@ -147,11 +137,6 @@ const updated = (entityId: EntityId) => ({
 describe("updateEntityAction", () => {
   beforeEach(() => {
     vi.mocked(queryEntities).mockReset();
-    vi.mocked(hasPermissionForEntityTypes)
-      .mockReset()
-      .mockImplementation((_graphApi, _authentication, { entityTypeIds }) =>
-        Promise.resolve(entityTypeIds),
-      );
     patch.mockReset().mockResolvedValue({});
   });
 
@@ -219,7 +204,7 @@ describe("updateEntityAction", () => {
     );
   });
 
-  it("changes the entity's types alone, checking the user can instantiate the types it adds", async () => {
+  it("changes the entity's types alone", async () => {
     mockEntity(entityIdOf(1));
 
     expect(
@@ -230,11 +215,6 @@ describe("updateEntityAction", () => {
       }),
     ).toEqual(updated(entityIdOf(1)));
 
-    expect(hasPermissionForEntityTypes).toHaveBeenCalledWith(
-      {},
-      { actorId: "user" },
-      { entityTypeIds: [employeeType], action: "instantiate" },
-    );
     expect(patch).toHaveBeenCalledWith(
       {},
       { actorId: "bot" },
@@ -267,73 +247,6 @@ describe("updateEntityAction", () => {
         entityTypeIds: [employeeType],
       }),
     );
-  });
-
-  it("checks the user can instantiate the types it removes, as well as those it adds", async () => {
-    mockEntity(entityIdOf(1));
-
-    await run({
-      entityId: entityIdOf(1),
-      propertyPatches: [],
-      entityTypeIds: [employeeType],
-    });
-
-    expect(hasPermissionForEntityTypes).toHaveBeenCalledWith(
-      {},
-      { actorId: "user" },
-      { entityTypeIds: [employeeType, personType], action: "instantiate" },
-    );
-  });
-
-  it("fails for a type it removes that the user running the flow can't instantiate, without updating the entity", async () => {
-    mockEntity(entityIdOf(1));
-    vi.mocked(hasPermissionForEntityTypes).mockResolvedValueOnce([
-      employeeType,
-    ]);
-
-    expect(
-      await run({
-        entityId: entityIdOf(1),
-        propertyPatches: [],
-        entityTypeIds: [employeeType],
-      }),
-    ).toEqual({
-      code: StatusCode.PermissionDenied,
-      message: `Entity type ${personType} doesn't exist or can't be instantiated by the user running the flow.`,
-      contents: [],
-    });
-    expect(patch).not.toHaveBeenCalled();
-  });
-
-  it("doesn't check the user can instantiate types the entity already has", async () => {
-    mockEntity(entityIdOf(1));
-
-    expect(
-      await run({
-        entityId: entityIdOf(1),
-        propertyPatches: [],
-        entityTypeIds: [personType],
-      }),
-    ).toEqual(updated(entityIdOf(1)));
-    expect(hasPermissionForEntityTypes).not.toHaveBeenCalled();
-  });
-
-  it("fails for a type the user running the flow can't instantiate, without updating the entity", async () => {
-    mockEntity(entityIdOf(1));
-    vi.mocked(hasPermissionForEntityTypes).mockResolvedValueOnce([]);
-
-    expect(
-      await run({
-        entityId: entityIdOf(1),
-        propertyPatches: [],
-        entityTypeIds: [personType, employeeType],
-      }),
-    ).toEqual({
-      code: StatusCode.PermissionDenied,
-      message: `Entity type ${employeeType} doesn't exist or can't be instantiated by the user running the flow.`,
-      contents: [],
-    });
-    expect(patch).not.toHaveBeenCalled();
   });
 
   it("updates the entity an item of a stored list of entity IDs names", async () => {

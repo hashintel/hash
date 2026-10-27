@@ -3,19 +3,17 @@ import {
   getStorageProvider,
   resolvePayloadValue,
 } from "@local/hash-backend-utils/flows/payload-storage";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { noEntityChangesMessage } from "@local/hash-isomorphic-utils/flows/entity-steps";
 import { validatePropertyPatches } from "@local/hash-isomorphic-utils/flows/property-values";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { StatusCode } from "@local/status";
 
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
-import {
-  checkUserCanInstantiate,
-  validateEntityTypeIds,
-} from "./shared/entity-types.js";
-import { findEntity } from "./shared/find-entity.js";
+import { validateEntityTypeIds } from "./shared/entity-types.js";
 import { getSavingActorId, retrySave } from "./shared/save-entity.js";
 
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
@@ -72,7 +70,7 @@ export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
     );
   }
 
-  const [entityWebId, , draftId] = splitEntityId(resolvedEntityId);
+  const [entityWebId, entityUuid, draftId] = splitEntityId(resolvedEntityId);
 
   if (entityWebId !== webId) {
     return invalidArgument(
@@ -80,9 +78,26 @@ export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
     );
   }
 
-  const found = await findEntity(userAuthentication, resolvedEntityId);
+  const {
+    entities: [existingEntity],
+    permissions,
+  } = await queryEntities({ graphApi: graphApiClient }, userAuthentication, {
+    filter: {
+      all: [
+        { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
+        { equal: [{ path: ["webId"] }, { parameter: entityWebId }] },
+        draftId
+          ? { equal: [{ path: ["draftId"] }, { parameter: draftId }] }
+          : { not: { exists: { path: ["draftId"] } } },
+        { equal: [{ path: ["archived"] }, { parameter: false }] },
+      ],
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeDrafts: !!draftId,
+    includePermissions: true,
+  });
 
-  if (!found) {
+  if (!existingEntity) {
     return {
       code: StatusCode.NotFound,
       message: `Entity ${resolvedEntityId} doesn't exist or can't be read by the user running the flow.`,
@@ -90,37 +105,13 @@ export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
     };
   }
 
-  const { entity: existingEntity, canEdit } = found;
-
   /* The web's machine saves the update, so the user's own permission to edit the entity is checked here. */
-  if (!canEdit) {
+  if (!permissions?.[existingEntity.entityId]?.update) {
     return {
       code: StatusCode.PermissionDenied,
       message: `The user running the flow can't edit entity ${resolvedEntityId}.`,
       contents: [],
     };
-  }
-
-  if (entityTypeIds) {
-    const currentEntityTypeIds = existingEntity.metadata.entityTypeIds;
-
-    /* As the graph does for the actor saving, permission is needed for the types the update adds and those it removes. */
-    const instantiateError = await checkUserCanInstantiate(userAuthentication, [
-      ...entityTypeIds.filter(
-        (entityTypeId) => !currentEntityTypeIds.includes(entityTypeId),
-      ),
-      ...currentEntityTypeIds.filter(
-        (entityTypeId) => !entityTypeIds.includes(entityTypeId),
-      ),
-    ]);
-
-    if (instantiateError) {
-      return {
-        code: StatusCode.PermissionDenied,
-        message: instantiateError,
-        contents: [],
-      };
-    }
   }
 
   const savingActorId = await getSavingActorId({

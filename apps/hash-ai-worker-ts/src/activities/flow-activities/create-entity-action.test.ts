@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  entityIdFromComponents,
-  splitEntityId,
-} from "@blockprotocol/type-system";
 import { storePayload } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
@@ -14,9 +10,7 @@ import { createEntityAction } from "./create-entity-action.js";
 
 import type {
   BaseUrl,
-  DraftId,
   EntityId,
-  EntityUuid,
   PropertyObjectWithMetadata,
   VersionedUrl,
   WebId,
@@ -98,9 +92,6 @@ const ada = {
 const entityIdOf = (index: number) =>
   `${webId}~00000000-0000-4000-8000-${String(index).padStart(12, "0")}` as EntityId;
 
-const draftOf = (index: number, draftIndex = 99) =>
-  `${entityIdOf(index)}~00000000-0000-4000-8000-${String(draftIndex).padStart(12, "0")}` as EntityId;
-
 const run = (params: {
   entityTypeIds?: string[];
   properties: PropertyObjectWithMetadata;
@@ -141,61 +132,6 @@ const run = (params: {
       }),
     ] satisfies StepInput[],
   });
-
-type Condition = {
-  equal?: [{ path?: string[] }, { parameter?: string }];
-  not?: { exists?: { path: string[] } };
-};
-
-/**
- * Answers graph queries for an edition of an entity, its draft or its live edition, with it if the actor can read it.
- * Fails a query for every edition of an entity given, whose answer could take more than one page.
- */
-const mockReadable = (readable: { user: EntityId[]; bot?: EntityId[] }) =>
-  vi
-    .mocked(queryEntities)
-    .mockImplementation((_graphApi, { actorId }, { filter }) => {
-      const conditions = (filter as { all: Condition[] }).all;
-      const parameterOf = (path: string) =>
-        conditions.find(({ equal }) => equal?.[0].path?.[0] === path)
-          ?.equal?.[1].parameter;
-      const queriedWebId = parameterOf("webId") as WebId;
-      const entityUuid = parameterOf("uuid") as EntityUuid;
-      const draftId = parameterOf("draftId") as DraftId | undefined;
-      const actorReadable =
-        actorId === "user" ? readable.user : (readable.bot ?? []);
-
-      if (
-        !draftId &&
-        !conditions.some(({ not }) => not?.exists?.path[0] === "draftId")
-      ) {
-        if (
-          [...readable.user, ...(readable.bot ?? [])].some(
-            (readableId) => splitEntityId(readableId)[1] === entityUuid,
-          )
-        ) {
-          throw new Error(`Query for every edition of entity ${entityUuid}`);
-        }
-
-        return Promise.resolve({
-          entities: [],
-          cursor: null,
-        } as unknown as QueryEntitiesResponse);
-      }
-
-      const entityId = entityIdFromComponents(
-        queriedWebId,
-        entityUuid,
-        draftId,
-      );
-
-      return Promise.resolve({
-        entities: actorReadable
-          .filter((readableId) => readableId === entityId)
-          .map((readableId) => ({ entityId: readableId })),
-        cursor: null,
-      } as unknown as QueryEntitiesResponse);
-    });
 
 /** Answers the graph's creation with an entity with the given ID. */
 const mockCreated = (entityId: EntityId) =>
@@ -301,8 +237,7 @@ describe("createEntityAction", () => {
     );
   });
 
-  it("creates a link between the entities given, which the user running the flow can read", async () => {
-    mockReadable({ user: [entityIdOf(1), entityIdOf(2)] });
+  it("creates a link between the entities given", async () => {
     mockCreated(entityIdOf(3));
 
     expect(
@@ -317,11 +252,6 @@ describe("createEntityAction", () => {
       contents: [{ outputs: [{ payload: { value: entityIdOf(3) } }] }],
     });
 
-    const [left, right] = vi.mocked(queryEntities).mock.calls;
-    expect([left?.[1], right?.[1]]).toEqual([
-      { actorId: "user" },
-      { actorId: "user" },
-    ]);
     expect(create).toHaveBeenCalledWith(
       expect.anything(),
       { actorId: "bot" },
@@ -346,7 +276,6 @@ describe("createEntityAction", () => {
       value: [entityIdOf(2), entityIdOf(4)],
     });
 
-    mockReadable({ user: [entityIdOf(1), entityIdOf(4)] });
     mockCreated(entityIdOf(3));
 
     await run({
@@ -373,96 +302,6 @@ describe("createEntityAction", () => {
       }),
     );
   });
-
-  it("creates a link to a draft the user can read, of an entity with no live edition yet", async () => {
-    mockReadable({
-      user: [draftOf(1), entityIdOf(2)],
-      bot: [draftOf(1), entityIdOf(2)],
-    });
-    mockCreated(entityIdOf(3));
-
-    expect(
-      await run({
-        entityTypeIds: [worksForType],
-        properties: { value: {} },
-        leftEntityId: draftOf(1),
-        rightEntityId: entityIdOf(2),
-      }),
-    ).toMatchObject({ code: StatusCode.Ok });
-
-    expect(create).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.objectContaining({
-        linkData: { leftEntityId: draftOf(1), rightEntityId: entityIdOf(2) },
-      }),
-    );
-  });
-
-  it("creates a link to a draft the user can read, whose live entity they can read too, among other drafts of it", async () => {
-    mockReadable({
-      user: [draftOf(1, 98), draftOf(1), entityIdOf(1), entityIdOf(2)],
-      bot: [draftOf(1, 98), draftOf(1), entityIdOf(1), entityIdOf(2)],
-    });
-    mockCreated(entityIdOf(3));
-
-    expect(
-      await run({
-        entityTypeIds: [worksForType],
-        properties: { value: {} },
-        leftEntityId: draftOf(1),
-        rightEntityId: entityIdOf(2),
-      }),
-    ).toMatchObject({ code: StatusCode.Ok });
-  });
-
-  it("fails for a link to a draft the user can read, whose live entity they can't, without creating anything", async () => {
-    mockReadable({
-      user: [draftOf(1, 98), draftOf(1), entityIdOf(2)],
-      bot: [draftOf(1, 98), draftOf(1), entityIdOf(1), entityIdOf(2)],
-    });
-
-    expect(
-      await run({
-        entityTypeIds: [worksForType],
-        properties: { value: {} },
-        leftEntityId: draftOf(1),
-        rightEntityId: entityIdOf(2),
-      }),
-    ).toEqual({
-      code: StatusCode.PermissionDenied,
-      message: `A link to draft ${draftOf(1)} links to its live entity, which the user running the flow can't read.`,
-      contents: [],
-    });
-    expect(create).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    { end: "the entity it links from", left: null, right: entityIdOf(2) },
-    { end: "the entity it links to", left: entityIdOf(1), right: null },
-  ])(
-    "fails for a link if $end is missing or the user can't read it, without creating anything",
-    async ({ left, right }) => {
-      mockReadable({
-        user: [left, right].filter((entityId) => entityId !== null),
-        bot: [entityIdOf(1), entityIdOf(2)],
-      });
-
-      expect(
-        await run({
-          entityTypeIds: [worksForType],
-          properties: { value: {} },
-          leftEntityId: entityIdOf(1),
-          rightEntityId: entityIdOf(2),
-        }),
-      ).toEqual({
-        code: StatusCode.NotFound,
-        message: `Entity ${entityIdOf(left ? 2 : 1)} doesn't exist or can't be read by the user running the flow.`,
-        contents: [],
-      });
-      expect(create).not.toHaveBeenCalled();
-    },
-  );
 
   it.each([
     {

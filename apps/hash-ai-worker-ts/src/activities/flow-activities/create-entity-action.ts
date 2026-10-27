@@ -1,16 +1,14 @@
 import {
-  type EntityId,
-  entityIdFromComponents,
   type EntityUuid,
   isEntityId,
   type LinkData,
-  splitEntityId,
 } from "@blockprotocol/type-system";
 import {
   getStorageProvider,
   resolvePayloadValue,
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
+import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { linkEndsMessage } from "@local/hash-isomorphic-utils/flows/entity-steps";
 import { validatePropertiesWithMetadata } from "@local/hash-isomorphic-utils/flows/property-values";
@@ -21,15 +19,10 @@ import { StatusCode } from "@local/status";
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
-import {
-  checkUserCanInstantiate,
-  validateEntityTypeIds,
-} from "./shared/entity-types.js";
-import { findEntity } from "./shared/find-entity.js";
+import { validateEntityTypeIds } from "./shared/entity-types.js";
 import { getSavingActorId, retrySave } from "./shared/save-entity.js";
 
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 
 const createdEntityUuidNamespace = "3c0f8a52-6d1e-4b7a-9f24-81e5c7d2a6b9";
 
@@ -40,55 +33,9 @@ const invalidArgument = (message: string) => ({
 });
 
 /**
- * Why the user running the flow can't link to an entity, if they can't. The graph links to the entity, not to a draft
- * of it, so a link to a draft also links to the live entity once there is one, which the user must be able to read
- * too if there already is one. The web's machine, which saves the link, may read entities the user can't.
- */
-const getLinkEndError = async ({
-  userAuthentication,
-  savingAuthentication,
-  entityId,
-}: {
-  userAuthentication: AuthenticationContext;
-  savingAuthentication: AuthenticationContext;
-  entityId: EntityId;
-}) => {
-  if (!(await findEntity(userAuthentication, entityId))) {
-    return {
-      code: StatusCode.NotFound,
-      message: `Entity ${entityId} doesn't exist or can't be read by the user running the flow.`,
-      contents: [],
-    };
-  }
-
-  const [webId, entityUuid, draftId] = splitEntityId(entityId);
-
-  if (!draftId) {
-    return undefined;
-  }
-
-  const liveEntityId = entityIdFromComponents(webId, entityUuid);
-
-  const [userLiveEntity, savingLiveEntity] = await Promise.all([
-    findEntity(userAuthentication, liveEntityId),
-    findEntity(savingAuthentication, liveEntityId),
-  ]);
-
-  if (!userLiveEntity && savingLiveEntity) {
-    return {
-      code: StatusCode.PermissionDenied,
-      message: `A link to draft ${entityId} links to its live entity, which the user running the flow can't read.`,
-      contents: [],
-    };
-  }
-
-  return undefined;
-};
-
-/**
  * Creates an entity of the given types in the flow's web, with the given properties and their metadata, as the web's
  * machine on behalf of the user running the flow. Given the entities at its two ends, it creates a link between them.
- * The graph validates the entity; a draft may leave required properties out.
+ * The graph validates the entity and the link; a draft may leave required properties out.
  */
 export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
   inputs,
@@ -126,15 +73,28 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
   const { flowEntityId, runId, stepId, userAuthentication, webId, workflowId } =
     await getFlowContext();
 
-  const instantiateError = await checkUserCanInstantiate(
-    userAuthentication,
-    entityTypeIds,
+  /*
+   * The web's machine saves the entity, and may instantiate types the user can't, so the user's own permission to
+   * instantiate each type, and the types it inherits from, is checked here.
+   */
+  const instantiableEntityTypeIds = new Set(
+    await hasPermissionForEntityTypes(graphApiClient, userAuthentication, {
+      entityTypeIds,
+      action: "instantiate",
+    }),
   );
 
-  if (instantiateError) {
+  const forbiddenEntityTypeIds = entityTypeIds.filter(
+    (entityTypeId) => !instantiableEntityTypeIds.has(entityTypeId),
+  );
+
+  if (forbiddenEntityTypeIds.length > 0) {
     return {
       code: StatusCode.PermissionDenied,
-      message: instantiateError,
+      message:
+        forbiddenEntityTypeIds.length === 1
+          ? `Entity type ${forbiddenEntityTypeIds[0]} doesn't exist or can't be instantiated by the user running the flow.`
+          : `Entity types ${forbiddenEntityTypeIds.join(", ")} don't exist or can't be instantiated by the user running the flow.`,
       contents: [],
     };
   }
@@ -159,22 +119,6 @@ export const createEntityAction: FlowActionActivity<"createEntity"> = async ({
       return invalidArgument(
         `${String(isEntityId(left) ? right : left)} is not a valid EntityId.`,
       );
-    }
-
-    const [leftError, rightError] = await Promise.all(
-      [left, right].map((entityId) =>
-        getLinkEndError({
-          userAuthentication,
-          savingAuthentication: { actorId: savingActorId },
-          entityId,
-        }),
-      ),
-    );
-
-    const linkEndError = leftError ?? rightError;
-
-    if (linkEndError) {
-      return linkEndError;
     }
 
     linkData = { leftEntityId: left, rightEntityId: right };
