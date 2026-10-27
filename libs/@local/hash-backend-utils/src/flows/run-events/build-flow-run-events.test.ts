@@ -690,7 +690,7 @@ describe("buildFlowRunEvents", () => {
   });
 
   it("reports an input request and its answer, with the step that asked", () => {
-    const requestId = "3a160602-bf37-476d-86ce-93fe79cef08e";
+    const requestId = "3759050b-d51c-46d0-a28c-529cf9473c50";
 
     expectEvents("input-request", [
       runStartedWithPrompt,
@@ -709,7 +709,7 @@ describe("buildFlowRunEvents", () => {
         },
       ],
       [
-        "40.0",
+        "43.0",
         {
           kind: "inputResolved",
           requestStepRun: research,
@@ -723,9 +723,9 @@ describe("buildFlowRunEvents", () => {
           },
         },
       ],
-      ["44.0", { kind: "attemptStarted", stepRun: research, attempt: 1 }],
-      researchSucceeded("45.0"),
-      researchRunCompleted("66.0"),
+      ["53.0", { kind: "attemptStarted", stepRun: research, attempt: 1 }],
+      researchSucceeded("54.0"),
+      researchRunCompleted("86.0"),
     ]);
   });
 

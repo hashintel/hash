@@ -6,7 +6,12 @@ import type {
   FlowDefinitionPropertiesWithMetadata,
 } from "../system-types/flowdefinition.js";
 import type { FlowRun } from "../system-types/flowrun.js";
-import type { FlowDefinition, FlowInputValues, LocalFlowRun } from "./types.js";
+import type {
+  ExternalInputRequest,
+  FlowDefinition,
+  FlowInputValues,
+  LocalFlowRun,
+} from "./types.js";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 const toObjectArrayProperty = (values: object[]) => ({
@@ -84,6 +89,15 @@ export const getFlowDefinitionFromEntity = (
   entity: HashEntity<FlowDefinitionEntity>,
 ): FlowDefinition =>
   assertValidFlowDefinition(getUnvalidatedFlowDefinitionFromEntity(entity));
+
+/**
+ * The `Open Input Request` property of a flow run: the requests it has made that haven't been answered yet.
+ */
+export const mapOpenInputRequestsToEntityProperty = (
+  openInputRequests: ExternalInputRequest[],
+): NonNullable<
+  FlowRun["propertiesWithMetadata"]["value"]["https://hash.ai/@h/types/property-type/open-input-request/"]
+> => toObjectArrayProperty(openInputRequests);
 
 /**
  * The `Inputs` property of a flow run or trigger: one `{ inputName, payload }` object per input given a value,

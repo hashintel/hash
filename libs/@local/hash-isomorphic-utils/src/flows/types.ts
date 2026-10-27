@@ -1156,12 +1156,15 @@ export const detailedFlowFields = [
 export type DetailedFlowField = (typeof detailedFlowFields)[number];
 
 /**
- * A run as its reader returns it: `events` and `openInputRequests` have field resolvers of their own, which read the
- * run's record.
+ * A run as its reader returns it. `events` has a field resolver of its own, which reads the run's record, and so does
+ * `openInputRequests` for a run that started before its open input requests were saved on its entity.
  */
 export type FlowRunWithoutEvents = Omit<
   FlowRun,
   "events" | "openInputRequests"
->;
+> & {
+  /** The open input requests saved on the run's entity, absent for a run that started before they were saved. */
+  openInputRequests?: ExternalInputRequest[];
+};
 
 export type SparseFlowRun = Omit<FlowRunWithoutEvents, DetailedFlowField>;

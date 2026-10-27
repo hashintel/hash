@@ -2229,7 +2229,7 @@ export type FlowDefinitionPropertiesWithMetadata = {
  * An execution run of a flow.
  */
 export type FlowRun = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-run/v/2"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-run/v/3"];
   properties: FlowRunProperties;
   propertiesWithMetadata: FlowRunPropertiesWithMetadata;
 };
@@ -2249,6 +2249,7 @@ export type FlowRunOutgoingLinksByLinkEntityTypeId = {
 export type FlowRunProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
   "https://hash.ai/@h/types/property-type/inputs/": InputsPropertyValue;
+  "https://hash.ai/@h/types/property-type/open-input-request/"?: OpenInputRequestPropertyValue[];
   "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValue;
   "https://hash.ai/@h/types/property-type/step/"?: StepPropertyValue;
   "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValue;
@@ -2259,6 +2260,10 @@ export type FlowRunPropertiesWithMetadata = {
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/inputs/": InputsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/open-input-request/"?: {
+      value: OpenInputRequestPropertyValueWithMetadata[];
+      metadata?: ArrayMetadata;
+    };
     "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/step/"?: StepPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValueWithMetadata;
@@ -4604,6 +4609,14 @@ export type OfMaterialPropertiesWithMetadata = LinkPropertiesWithMetadata & {
     "https://hash.ai/@h/types/property-type/expiry-date/"?: ExpiryDatePropertyValueWithMetadata;
   };
 };
+
+/**
+ * A request for input from outside something, which hasn't been answered yet.
+ */
+export type OpenInputRequestPropertyValue = ObjectDataType;
+
+export type OpenInputRequestPropertyValueWithMetadata =
+  ObjectDataTypeWithMetadata;
 
 /**
  * The date on which an order or purchasing document was created.

@@ -1,5 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { BaseUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl, BaseUrl } from "@blockprotocol/type-system";
 
 export const systemEntityTypes = {
   academicPaper: {
@@ -149,7 +148,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/flow-definition/" as BaseUrl,
   },
   flowRun: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-run/v/2",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-run/v/3",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/flow-run/" as BaseUrl,
   },
@@ -415,7 +414,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/twitter-account/" as BaseUrl,
   },
   usageRecord: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/usage-record/v/3",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/usage-record/v/4",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/usage-record/" as BaseUrl,
   },
@@ -1670,6 +1669,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/objective/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/objective/" as BaseUrl,
+  },
+  openInputRequest: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/open-input-request/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/open-input-request/" as BaseUrl,
   },
   opportunityStatus: {
     propertyTypeId:

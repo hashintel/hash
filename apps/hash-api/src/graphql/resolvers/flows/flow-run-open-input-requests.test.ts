@@ -80,7 +80,31 @@ describe("a flow run's open input requests", () => {
     });
   });
 
-  it("gives a running run's requests that haven't been answered", async () => {
+  it("gives the requests saved on a running run's entity, without reading its record", async () => {
+    const savedRequest = {
+      requestId: "open",
+      stepId: "1",
+      type: "human-input",
+      data: { questions: ["And this?"] },
+      raisedAt: "2026-10-26T10:03:00.000Z",
+    };
+    mocks.flowRun = {
+      flowRunEntityId: "web~run",
+      status: FlowRunStatus.Running,
+      startedAt: "2026-10-26T10:00:00.000Z",
+      openInputRequests: [savedRequest],
+    };
+
+    const result = await openInputRequestsQuery();
+
+    expect(result.errors).toBeUndefined();
+    expect(result.data?.getFlowRunById).toEqual({
+      openInputRequests: [savedRequest],
+    });
+    expect(mocks.getFlowRunRecord).not.toHaveBeenCalled();
+  });
+
+  it("reads a running run's record for its unanswered requests if they weren't saved on its entity", async () => {
     mocks.flowRun = {
       flowRunEntityId: "web~run",
       status: FlowRunStatus.Running,

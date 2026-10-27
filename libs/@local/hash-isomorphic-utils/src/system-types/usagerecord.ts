@@ -48,6 +48,8 @@ import type {
   NumberDataTypeWithMetadata,
   ObjectDataType,
   ObjectDataTypeWithMetadata,
+  OpenInputRequestPropertyValue,
+  OpenInputRequestPropertyValueWithMetadata,
   OutputDefinitionPropertyValue,
   OutputDefinitionPropertyValueWithMetadata,
   OutputUnitCostPropertyValue,
@@ -132,6 +134,8 @@ export type {
   NumberDataTypeWithMetadata,
   ObjectDataType,
   ObjectDataTypeWithMetadata,
+  OpenInputRequestPropertyValue,
+  OpenInputRequestPropertyValueWithMetadata,
   OutputDefinitionPropertyValue,
   OutputDefinitionPropertyValueWithMetadata,
   OutputsPropertyValue,
@@ -290,7 +294,7 @@ export type UpdatedPropertiesWithMetadata = LinkPropertiesWithMetadata & {
  * A record of usage of a service
  */
 export type UsageRecord = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/usage-record/v/3"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/usage-record/v/4"];
   properties: UsageRecordProperties;
   propertiesWithMetadata: UsageRecordPropertiesWithMetadata;
 };

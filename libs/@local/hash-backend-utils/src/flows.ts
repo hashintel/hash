@@ -26,6 +26,7 @@ import type {
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
+  ExternalInputRequest,
   FlowRunWithoutEvents,
   SparseFlowRun,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -174,6 +175,7 @@ type MinimalFlowMetadata = {
   flowRunEntityId: EntityId;
   flowScheduleId?: EntityUuid;
   name: string;
+  openInputRequests?: ExternalInputRequest[];
   temporalWorkflowId: string;
   webId: WebId;
 };
@@ -325,11 +327,16 @@ export async function getFlowRuns({
     const temporalWorkflowId =
       entity.properties["https://hash.ai/@h/types/property-type/workflow-id/"];
 
+    const openInputRequests = entity.properties[
+      "https://hash.ai/@h/types/property-type/open-input-request/"
+    ] as ExternalInputRequest[] | undefined;
+
     temporalWorkflowIdToFlowDetails[temporalWorkflowId] = {
       flowDefinitionEntityId: links.flowDefinitionEntityId,
       flowRunEntityId,
       flowScheduleId: links.flowTriggerId ?? undefined,
       name,
+      ...(openInputRequests ? { openInputRequests } : {}),
       temporalWorkflowId,
       webId,
     };
@@ -407,7 +414,11 @@ export async function getFlowRuns({
         temporalWorkflowId: flowDetails.temporalWorkflowId,
         webId: flowDetails.webId,
       });
-      workflows.push(runInfo);
+      workflows.push(
+        flowDetails.openInputRequests
+          ? { ...runInfo, openInputRequests: flowDetails.openInputRequests }
+          : runInfo,
+      );
     }
 
     return { flowRuns: workflows, totalCount, nextCursor };
@@ -427,7 +438,11 @@ export async function getFlowRuns({
         temporalWorkflowId: flowDetails.temporalWorkflowId,
         webId: flowDetails.webId,
       });
-      workflows.push(runInfo);
+      workflows.push(
+        flowDetails.openInputRequests
+          ? { ...runInfo, openInputRequests: flowDetails.openInputRequests }
+          : runInfo,
+      );
     }
 
     return { flowRuns: workflows, totalCount, nextCursor };

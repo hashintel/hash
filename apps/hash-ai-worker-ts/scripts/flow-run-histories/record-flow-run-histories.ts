@@ -221,6 +221,7 @@ const main = async () => {
       }),
       recordFlowRunActivity: () => undefined,
       generateFlowRunName: () => currentCase?.flow.flowDefinition.name,
+      saveOpenInputRequestsActivity: () => undefined,
     },
   });
 

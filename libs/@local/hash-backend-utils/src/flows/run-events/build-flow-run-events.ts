@@ -44,6 +44,7 @@ const nonStepActivityTypes = [
   "persistFlowActivity",
   "recordFlowRunActivity",
   "generateFlowRunName",
+  "saveOpenInputRequestsActivity",
   "userHasPermissionToRunFlowInWebActivity",
 ];
 
