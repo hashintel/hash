@@ -6,13 +6,12 @@ import { expect, test, vi } from "vitest";
 import { brunchTools } from "@hashintel/brunch-agent";
 
 import { queryEntityTypesQuery } from "../../../../../../graphql/queries/ontology/entity-type.queries";
-import { AuthInfoContext } from "../../../../../shared/auth-info-context";
-import { useBrunchHashHostTools } from "./brunch-hash-graph-reads";
+import {
+  type HashWebReadUser,
+  useBrunchHashHostTools,
+} from "./brunch-hash-graph-reads";
 
-import type { User } from "../../../../../../lib/user-and-org";
-import type { AuthInfoContextValue } from "../../../../../shared/auth-info-context";
 import type { PetrinautAiAutomaticToolExecuteParams } from "@hashintel/brunch-agent/ui";
-import type { ReactNode } from "react";
 
 const apollo = vi.hoisted(() => ({
   query: vi.fn<(options: unknown) => Promise<unknown>>(),
@@ -23,30 +22,34 @@ vi.mock("@apollo/client", async (importOriginal) => ({
   useApolloClient: () => apollo,
 }));
 
-const userWith = (shortname: string, orgs: string[]) =>
-  ({
-    accountId: `${shortname}-web`,
-    shortname,
-    displayName: shortname.toUpperCase(),
-    memberOf: orgs.map((org) => ({
-      org: { webId: `${org}-web`, shortname: org, name: org.toUpperCase() },
-    })),
-  }) as unknown as User;
+/** The page's auth info, as much of it as the reads use. */
+const auth = vi.hoisted((): { authenticatedUser?: HashWebReadUser } => ({}));
 
-const renderTools = (initialUser: User) => {
-  let authenticatedUser = initialUser;
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    <AuthInfoContext.Provider
-      value={{ authenticatedUser } as unknown as AuthInfoContextValue}
-    >
-      {children}
-    </AuthInfoContext.Provider>
-  );
-  const rendered = renderHook(() => useBrunchHashHostTools(), { wrapper });
+vi.mock("../../../../../shared/auth-info-context", () => ({
+  useAuthInfo: () => auth,
+}));
+
+const userWith = (shortname: string, orgs: string[]): HashWebReadUser => ({
+  accountId: `${shortname}-web` as HashWebReadUser["accountId"],
+  shortname,
+  displayName: shortname.toUpperCase(),
+  memberOf: orgs.map((org) => ({
+    org: {
+      webId:
+        `${org}-web` as HashWebReadUser["memberOf"][number]["org"]["webId"],
+      shortname: org,
+      name: org.toUpperCase(),
+    },
+  })),
+});
+
+const renderTools = (initialUser: HashWebReadUser) => {
+  auth.authenticatedUser = initialUser;
+  const rendered = renderHook(() => useBrunchHashHostTools());
   return {
     ...rendered,
-    signIn: (user: User) => {
-      authenticatedUser = user;
+    signIn: (user: HashWebReadUser) => {
+      auth.authenticatedUser = user;
       rendered.rerender();
     },
   };
