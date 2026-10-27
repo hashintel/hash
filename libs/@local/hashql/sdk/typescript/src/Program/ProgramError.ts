@@ -99,6 +99,16 @@ export class Construction extends Schema.TaggedError<Construction>()(
     });
   }
 
+  /** Retains the invalid imported name or alias and its parser issue. */
+  static invalidImportName(
+    name: string,
+    cause: SchemaIssue.Issue,
+  ): Construction {
+    return Construction.make({
+      reason: Reason.make({ _tag: "InvalidImportName", name, cause }),
+    });
+  }
+
   /** Retains the invalid module export name and its parser issue. */
   static invalidExportName(
     name: string,

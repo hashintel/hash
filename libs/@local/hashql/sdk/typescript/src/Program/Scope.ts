@@ -5,7 +5,7 @@
  *
  * Tables are ordinary export records. Merging copies their enumerable own string-keyed properties before freezing the copies, leaving the caller's records unchanged.
  *
- * A scope holds the names available during construction.
+ * A scope holds the names available during construction. `Namespace.flatten` joins the tables into one object in which a name can hold a module, a type and a value at once.
  *
  * @module
  */

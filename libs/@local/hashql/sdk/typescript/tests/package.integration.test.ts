@@ -276,7 +276,111 @@ describe("emitted_structural_constructors", () => {
   });
 });
 
-describe("emitted_module_relocation", () => {
+describe("emitted_modules", () => {
+  test("joined_names_and_relocation", () => {
+    expect.hasAssertions();
+    const { Module, Namespace, Prelude, Scope } = Program;
+    const { uuid } = Prelude.builtin.modules;
+    const first = Scope.merge(Scope.empty, uuid);
+    const piped = pipe(Scope.empty, Scope.merge(uuid));
+    expectTypeOf(piped).toEqualTypeOf<typeof first>();
+    const joined = Namespace.flatten(piped).Uuid;
+    const id = joined("id");
+    expectTypeOf(id).toEqualTypeOf<
+      Program.Expression.Expression<Program.Prelude.Uuid, Program.Inputs.Empty>
+    >();
+    expectTypeOf(Program.Structural.type(joined)).toEqualTypeOf<
+      Program.TypeExpression.TypeExpression<Program.Prelude.Uuid>
+    >();
+    const path = Result.getOrThrow(JExpr.Path.decodeResult("local"));
+    const direct = Result.getOrThrow(Module.relocate(uuid, path));
+    const moved = Result.getOrThrow(pipe(uuid, Module.relocate(path)));
+    expectTypeOf(moved).toEqualTypeOf<typeof direct>();
+    const twice = Result.getOrThrow(
+      Module.relocate(
+        moved,
+        Result.getOrThrow(JExpr.Path.decodeResult("again")),
+      ),
+    );
+    expectTypeOf(twice.values.Uuid).toEqualTypeOf<typeof uuid.values.Uuid>();
+    expect(
+      JExpr.compile(
+        Result.getOrThrow(Expression.toJExpr(twice.values.Uuid("id"))),
+      ),
+    ).toBe('["again::Uuid",{"#literal":"id"}]');
+    expect(twice.values.Uuid.pipe((value) => value)).toBe(twice.values.Uuid);
+    expect(
+      Result.getOrThrow(
+        Expression.toJExpr(twice.values.Uuid.$projectUnsafe("field")),
+      ),
+    ).toStrictEqual(["::kernel::special_form::access", "again::Uuid", "field"]);
+    const notText = 1n;
+    // @ts-expect-error The constructor keeps its String parameter.
+    joined(notText);
+    // @ts-expect-error A UUID's nominal identity differs from an entity UUID.
+    expectTypeOf<Program.Prelude.Uuid>().toEqualTypeOf<Program.Prelude.EntityUuid>();
+  });
+
+  test("generic_types_and_requirements", () => {
+    expect.hasAssertions();
+    const { Prelude, Namespace } = Program;
+    const { List, String: Text, add } = Namespace.flatten(Prelude.builtin);
+    const strings = List(Text);
+    expectTypeOf(strings).toEqualTypeOf<
+      Program.TypeExpression.TypeExpression<Type.List<Type.PrimitiveString>>
+    >();
+    const count = Expression.input("count", Prelude.builtin.types.Integer);
+    const increment = 1n;
+    const added = add(count, increment);
+    expectTypeOf<
+      Program.Expression.Value.Type<typeof added>
+    >().toEqualTypeOf<Type.PrimitiveInteger>();
+    expectTypeOf<
+      Program.Expression.Value.Inputs<typeof added>
+    >().toEqualTypeOf<{
+      readonly count: Type.PrimitiveInteger;
+    }>();
+    expect(JExpr.compile(Result.getOrThrow(Expression.toJExpr(added)))).toBe(
+      '["::core::math::add",["::kernel::special_form::input","count","::kernel::type::Integer"],{"#literal":1}]',
+    );
+  });
+});
+
+describe("emitted_module_imports", () => {
+  test("lexical_import", () => {
+    expect.hasAssertions();
+    const { Import, Namespace, Prelude } = Program;
+    const declaration = Result.getOrThrow(
+      Import.bind(Prelude.builtin.modules.uuid, { Uuid: "Id" }),
+    );
+    const { Id } = Namespace.flatten(declaration.scope);
+    expectTypeOf(Id("id")).toEqualTypeOf<
+      Program.Expression.Expression<Program.Prelude.Uuid, Program.Inputs.Empty>
+    >();
+    expectTypeOf(Program.Structural.type(Id)).toEqualTypeOf<
+      Program.TypeExpression.TypeExpression<Program.Prelude.Uuid>
+    >();
+    const root = Result.map(Expression.toNode(Id("id")), declaration.wrap);
+    expect(
+      JExpr.compile(
+        Result.getOrThrow(Result.map(root, (node) => node.compile())),
+      ),
+    ).toBe(
+      '["::kernel::special_form::use","::core::uuid",{"#struct":{"Uuid":"Id"}},["Id",{"#literal":"id"}]]',
+    );
+    expect(
+      Import.bind(Prelude.builtin.modules.math, { add: "not an identifier" }),
+    ).toMatchObject({
+      _tag: "Failure",
+      failure: {
+        _tag: "ProgramError/Construction",
+        reason: { _tag: "InvalidImportName" },
+      },
+    });
+    // @ts-expect-error Selection names must belong to the module.
+    Import.bind(Prelude.builtin.modules.uuid, ["missing"]);
+  });
+
   test("failure_identity", () => {
     expect.hasAssertions();
     const invalid = Expression.number(Infinity);
