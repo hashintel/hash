@@ -48,7 +48,9 @@ use type_system::{
     principal::actor::{ActorEntityUuid, ActorId},
 };
 
-use super::{LockedEntityEdition, provenance::SqlEntityEditionProvenance, uuid_v7_at};
+use super::{
+    EntityEditionInsert, LockedEntityEdition, provenance::SqlEntityEditionProvenance, uuid_v7_at,
+};
 use crate::store::{
     AsClient, InTransaction, PostgresStore, error::EntityDoesNotExist, validation::StoreProvider,
 };
@@ -474,11 +476,19 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         } = changes;
         let entity_id = entity.metadata.record_id.entity_id;
         let stored_provenance =
-            SqlEntityEditionProvenance::from(entity.metadata.provenance.edition.clone());
+            SqlEntityEditionProvenance::from(entity.metadata.provenance.edition);
         let edition_id = EntityEditionId::new(uuid_v7_at(transaction_time));
-        self.insert_entity_edition(edition_id, &entity, &stored_provenance)
-            .await
-            .change_context(UpdateError)?;
+        self.insert_entity_edition(&EntityEditionInsert {
+            edition_id,
+            archived: entity.metadata.archived,
+            entity_type_ids: &entity.metadata.entity_type_ids,
+            properties: &entity.properties,
+            property_metadata: &entity.metadata.properties,
+            confidence: entity.metadata.confidence,
+            provenance: &stored_provenance,
+        })
+        .await
+        .change_context(UpdateError)?;
         entity.metadata.provenance.edition = EntityEditionProvenance::from(stored_provenance);
         let (entity_id, temporal_versioning) = match draft_transition {
             DraftTransition::Update => (
