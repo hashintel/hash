@@ -17,7 +17,7 @@ import { brunchTools } from "@hashintel/brunch-agent";
 import {
   type BrowserToolExecutor,
   browserResultEnvelope,
-} from "../../../shared/petrinaut-tools/petrinaut-construction.ts";
+} from "../../../shared/conversation/browser-tool-executor.ts";
 
 /**
  * List length and id length are deliberately unbounded: the page reads as the
