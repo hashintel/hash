@@ -35,7 +35,7 @@ type RebindableEntry<E> = E extends Capability ? Relocation.Relocatable<E> : E;
  *
  * Flattening requires this of a scope. An export extended through `Object.assign` fails it, because rebinding would drop the added properties.
  */
-export type Rebindable<S extends Program.Scope.Definition.Any> = {
+export type Rebindable<S> = {
   readonly [N in keyof S]: N extends keyof Tables
     ? {
         readonly [K in keyof S[N]]: K extends symbol
