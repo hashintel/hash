@@ -1,4 +1,5 @@
 import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
 
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -107,14 +108,14 @@ export const EntityContributors = () => (
 <DoList
   items={[
     "Use AvatarGroup to show who's associated with something — an entity's contributors, a flow's participants, a workspace's members — where there's no room for names.",
-    <>
+    <Fragment key="0">
       Use <code>max</code> to keep long collections to a predictable width — the
       badge summarises everyone it hides.
-    </>,
-    <>
+    </Fragment>,
+    <Fragment key="1">
       Use <code>total</code> when you fetch only the first page of members, so
       the +N reflects the real count.
-    </>,
+    </Fragment>,
   ]}
 />
 

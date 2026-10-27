@@ -1,4 +1,5 @@
 import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
 
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -89,10 +90,10 @@ export const EntityTrail = () => (
     "Use Breadcrumbs on pages nested three or more levels deep, so users can see where they are and step back up.",
     "Use it as secondary navigation under the page header — it supplements the sidebar or main nav, never replaces it.",
     "Use it when users land mid-hierarchy from search, notifications, or shared links and need to orient themselves.",
-    <>
+    <Fragment key="0">
       Use <code>subItems</code> to let users jump across to a level's siblings
       without going up first.
-    </>,
+    </Fragment>,
   ]}
 />
 
@@ -100,11 +101,11 @@ export const EntityTrail = () => (
 
 <DontList
   items={[
-    <>
+    <Fragment key="0">
       Don't use breadcrumbs for flat, one- or two-level structures — a single
       back link (Button <code>variant="link"</code>) carries the same
       information with less chrome.
-    </>,
+    </Fragment>,
     "Don't show progress through a multi-step flow — breadcrumbs name places, not steps; use a progress indicator.",
     "Don't reconstruct the user's browsing history — crumbs reflect where a page lives, not how the user got there; the browser's Back button covers history.",
   ]}

@@ -1,5 +1,7 @@
 import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
 
+import { noop } from "../../util/noop";
 import { DemoState } from "../../../docs/blocks/demo-state";
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -43,7 +45,7 @@ Capture free-form text that spans multiple lines, such as descriptions and comme
     <DemoState data-harness>
       <TextArea
         value="Tracks every research paper the lab has published, with links to authors and funding sources."
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>
@@ -53,7 +55,7 @@ Capture free-form text that spans multiple lines, such as descriptions and comme
         value=""
         placeholder="Describe this entity type…"
         characterLimit={120}
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>
@@ -62,7 +64,7 @@ Capture free-form text that spans multiple lines, such as descriptions and comme
       <TextArea
         variant="subtle"
         value="Combines arXiv metadata with citation counts to rank papers by influence."
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>
@@ -102,10 +104,10 @@ export const EntityDescriptionField = () => {
 <DoList
   items={[
     "Use TextArea for free-form text that runs longer than a few words: descriptions, notes, comments, feedback.",
-    <>
+    <Fragment key="0">
       Use <code>autoResize</code> for composer-style inputs — comments, chat
       messages — where the field should grow with the text.
-    </>,
+    </Fragment>,
   ]}
 />
 
@@ -131,7 +133,7 @@ The default field is bordered, `md`-sized and three rows tall, and fills the wid
       <TextArea
         value=""
         placeholder="Add a note for reviewers…"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>
@@ -144,7 +146,7 @@ Set `invalid` when the value fails validation — the border turns red and `aria
 <Stage>
   <div style={{ width: 360 }}>
     <DemoState data-harness>
-      <TextArea invalid value="TBD" onChange={() => {}} />
+      <TextArea invalid value="TBD" onChange={noop} />
     </DemoState>
   </div>
 </Stage>
@@ -158,7 +160,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
     <TextArea
       disabled
       value="Synced from GitHub — edit the repository README to change this description."
-      onChange={() => {}}
+      onChange={noop}
     />
   </div>
 </Stage>
@@ -172,7 +174,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
     <TextArea
       readonly
       value="Tracks every research paper the lab has published, with links to authors and funding sources."
-      onChange={() => {}}
+      onChange={noop}
     />
   </div>
 </Stage>
@@ -187,7 +189,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
       <TextArea
         variant="default"
         value="The default variant always shows its border."
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>
@@ -196,7 +198,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
       <TextArea
         variant="subtle"
         value="The subtle variant is borderless until hovered or focused."
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>
@@ -209,27 +211,27 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
 <Stage>
   <div style={{ width: 220 }}>
     <DemoState data-harness>
-      <TextArea size="xxs" rows={2} value="xxs" onChange={() => {}} />
+      <TextArea size="xxs" rows={2} value="xxs" onChange={noop} />
     </DemoState>
   </div>
   <div style={{ width: 220 }}>
     <DemoState data-harness>
-      <TextArea size="xs" rows={2} value="xs" onChange={() => {}} />
+      <TextArea size="xs" rows={2} value="xs" onChange={noop} />
     </DemoState>
   </div>
   <div style={{ width: 220 }}>
     <DemoState data-harness>
-      <TextArea size="sm" rows={2} value="sm" onChange={() => {}} />
+      <TextArea size="sm" rows={2} value="sm" onChange={noop} />
     </DemoState>
   </div>
   <div style={{ width: 220 }}>
     <DemoState data-harness>
-      <TextArea size="md" rows={2} value="md" onChange={() => {}} />
+      <TextArea size="md" rows={2} value="md" onChange={noop} />
     </DemoState>
   </div>
   <div style={{ width: 220 }}>
     <DemoState data-harness>
-      <TextArea size="lg" rows={2} value="lg" onChange={() => {}} />
+      <TextArea size="lg" rows={2} value="lg" onChange={noop} />
     </DemoState>
   </div>
 </Stage>
@@ -245,7 +247,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
         rows={2}
         value=""
         placeholder="Add a short note…"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>
@@ -255,7 +257,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
         rows={6}
         value=""
         placeholder="Paste the paper abstract…"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>
@@ -271,13 +273,13 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
       <TextArea
         resize="vertical"
         value="Drag the handle to make room — vertically only."
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>
   <div style={{ width: 340 }}>
     <DemoState data-harness>
-      <TextArea resize="none" value="No resize handle." onChange={() => {}} />
+      <TextArea resize="none" value="No resize handle." onChange={noop} />
     </DemoState>
   </div>
 </Stage>
@@ -293,7 +295,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
         autoResize
         rows={2}
         value="Renamed the Funding Source entity type to Grant, merged the duplicate Organization entities it pointed at, and re-ran the ingestion flow to confirm nothing else links to the old type."
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>
@@ -310,7 +312,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
         characterLimit={80}
         includeCharCountHeight
         value="Monitors the status of long-running flows."
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>
@@ -320,7 +322,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
         characterLimit={80}
         includeCharCountHeight
         value="Monitors the status of every long-running flow in the workspace and notifies the owner when one stalls."
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>
@@ -340,7 +342,7 @@ Inside a Form.Field the label is associated with the textarea automatically — 
         <TextArea
           value=""
           placeholder="Describe this entity type…"
-          onChange={() => {}}
+          onChange={noop}
         />
       </DemoState>
     </Form.Field>

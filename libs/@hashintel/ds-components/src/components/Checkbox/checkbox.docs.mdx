@@ -1,6 +1,7 @@
 import { Meta } from "@storybook/addon-docs/blocks";
-import { Children, cloneElement, useState } from "react";
+import { Children, cloneElement, Fragment, useState } from "react";
 
+import { noop } from "../../util/noop";
 import { DemoState } from "../../../docs/blocks/demo-state";
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -53,21 +54,21 @@ export const ResolvesIndeterminate = ({ children }) => {
 
 <Stage>
   <DemoState data-harness>
-    <Checkbox value label="Include draft entities" onChange={() => {}} />
+    <Checkbox value label="Include draft entities" onChange={noop} />
   </DemoState>
   <DemoState data-harness>
-    <Checkbox value tone="brand" label="Sync to GitHub" onChange={() => {}} />
+    <Checkbox value tone="brand" label="Sync to GitHub" onChange={noop} />
   </DemoState>
   <ResolvesIndeterminate data-harness>
     <Checkbox
       indeterminate
       value={false}
       label="All property types"
-      onChange={() => {}}
+      onChange={noop}
     />
   </ResolvesIndeterminate>
   <DemoState data-harness>
-    <Checkbox value={false} label="Include archived" onChange={() => {}} />
+    <Checkbox value={false} label="Include archived" onChange={noop} />
   </DemoState>
 </Stage>
 
@@ -105,10 +106,10 @@ export const IncludeArchivedOption = () => {
   items={[
     "Use Checkbox for one independent yes/no choice that takes effect when the form is saved — “Include archived entities”, “Notify teammates”.",
     "Use it to record explicit agreement, such as accepting terms before creating a workspace.",
-    <>
+    <Fragment key="0">
       Use <code>indeterminate</code> on a parent checkbox that summarizes a
       partially selected list, such as a select-all table header.
-    </>,
+    </Fragment>,
   ]}
 />
 
@@ -130,13 +131,13 @@ Checkbox is always controlled: `value` holds the checked boolean and `onChange` 
 
 <Stage>
   <DemoState data-harness>
-    <Checkbox value label="Include draft entities" onChange={() => {}} />
+    <Checkbox value label="Include draft entities" onChange={noop} />
   </DemoState>
   <DemoState data-harness>
     <Checkbox
       value={false}
       label="Include archived entities"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -150,20 +151,20 @@ A disabled checkbox keeps its checked state visible but can't be changed. Explai
     disabled
     value
     label="Inherited from workspace policy"
-    onChange={() => {}}
+    onChange={noop}
   />
   <Checkbox
     disabled
     value={false}
     label="Requires admin role"
-    onChange={() => {}}
+    onChange={noop}
   />
   <Checkbox
     disabled
     indeterminate
     value={false}
     label="Some flows selected"
-    onChange={() => {}}
+    onChange={noop}
   />
 </Stage>
 
@@ -177,7 +178,7 @@ Set `invalid` when the choice fails validation, such as required terms left unac
       invalid
       value={false}
       label="I agree to the data processing agreement"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -276,13 +277,13 @@ export const SelectAllDemo = () => {
 
 <Stage>
   <DemoState data-harness>
-    <Checkbox value tone="neutral" label="Neutral" onChange={() => {}} />
+    <Checkbox value tone="neutral" label="Neutral" onChange={noop} />
   </DemoState>
   <DemoState data-harness>
-    <Checkbox value tone="brand" label="Brand" onChange={() => {}} />
+    <Checkbox value tone="brand" label="Brand" onChange={noop} />
   </DemoState>
   <DemoState data-harness>
-    <Checkbox value tone="success" label="Success" onChange={() => {}} />
+    <Checkbox value tone="success" label="Success" onChange={noop} />
   </DemoState>
 </Stage>
 
@@ -292,19 +293,19 @@ export const SelectAllDemo = () => {
 
 <Stage>
   <DemoState data-harness>
-    <Checkbox value size="xxs" label="xxs" onChange={() => {}} />
+    <Checkbox value size="xxs" label="xxs" onChange={noop} />
   </DemoState>
   <DemoState data-harness>
-    <Checkbox value size="xs" label="xs" onChange={() => {}} />
+    <Checkbox value size="xs" label="xs" onChange={noop} />
   </DemoState>
   <DemoState data-harness>
-    <Checkbox value size="sm" label="sm" onChange={() => {}} />
+    <Checkbox value size="sm" label="sm" onChange={noop} />
   </DemoState>
   <DemoState data-harness>
-    <Checkbox value size="md" label="md" onChange={() => {}} />
+    <Checkbox value size="md" label="md" onChange={noop} />
   </DemoState>
   <DemoState data-harness>
-    <Checkbox value size="lg" label="lg" onChange={() => {}} />
+    <Checkbox value size="lg" label="lg" onChange={noop} />
   </DemoState>
 </Stage>
 
@@ -318,7 +319,7 @@ export const SelectAllDemo = () => {
       value
       labelPlacement="right"
       label="Label on the right"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -326,7 +327,7 @@ export const SelectAllDemo = () => {
       value
       labelPlacement="left"
       label="Label on the left"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -342,7 +343,7 @@ export const SelectAllDemo = () => {
         value
         labelAlign="top"
         label="I agree to the terms of service and acknowledge the data processing agreement"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>
@@ -352,7 +353,7 @@ export const SelectAllDemo = () => {
         value
         labelAlign="center"
         label="I agree to the terms of service and acknowledge the data processing agreement"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </div>

@@ -1,5 +1,7 @@
 import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
 
+import { noop } from "../../util/noop";
 import { DemoState } from "../../../docs/blocks/demo-state";
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -62,13 +64,13 @@ Structure fields, rows and sections, wiring labels, help text and errors to any 
           name="entityTypeName"
           width="md"
           value="Research paper"
-          onChange={() => {}}
+          onChange={noop}
         />
       </DemoState>
     </Form.Field>
     <Form.Field layout="inline" label="Publish to type registry">
       <DemoState data-harness>
-        <Toggle name="publishToRegistry" value={true} onChange={() => {}} />
+        <Toggle name="publishToRegistry" value={true} onChange={noop} />
       </DemoState>
     </Form.Field>
   </Form.Section>
@@ -105,15 +107,15 @@ export const EntityNameField = () => {
 <DoList
   items={[
     "Wrap every input in a Form.Field — it supplies the label, description and error display, and wires the label to the input automatically.",
-    <>
+    <Fragment key="0">
       Use <code>layout="inline"</code> fields inside a Form.Section for settings
       panels, so labels and inputs align across fields.
-    </>,
+    </Fragment>,
     "Use Form.Row for values entered as a pair, such as minimum/maximum limits or first/last name.",
-    <>
+    <Fragment key="1">
       Use <code>as="legend"</code> when the field wraps a group of inputs such
       as RadioGroup or CheckboxGroup.
-    </>,
+    </Fragment>,
   ]}
 />
 
@@ -121,15 +123,15 @@ export const EntityNameField = () => {
 
 <DontList
   items={[
-    <>
+    <Fragment key="0">
       Don't put two inputs in one Form.Field — it labels exactly one control.
       Use Form.Row for side-by-side fields, or <code>as="legend"</code> for
       groups.
-    </>,
-    <>
+    </Fragment>,
+    <Fragment key="1">
       Don't use a placeholder instead of a label — it disappears as soon as a
       value is entered. Use <code>hideLabel</code> to hide the label visually.
-    </>,
+    </Fragment>,
     "Don't wrap controls that already label themselves, such as a Checkbox or Toggle with its own label text.",
     "Don't build multi-column forms out of Form.Row — a single column reads faster. Reserve rows for naturally paired values.",
   ]}
@@ -169,7 +171,7 @@ A field needs only a `label` and a single input child — the label is associate
         name="workspaceName"
         width="md"
         value="Ontology research"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>
@@ -187,7 +189,7 @@ A field needs only a `label` and a single input child — the label is associate
         type="email"
         width="md"
         value="elena@hash.ai"
-        onChange={() => {}}
+        onChange={noop}
         required
       />
     </DemoState>
@@ -208,7 +210,7 @@ A field needs only a `label` and a single input child — the label is associate
       name="entityId"
       width="md"
       value="e7f2a49c-3b1d-4e08"
-      onChange={() => {}}
+      onChange={noop}
       disabled
     />
   </Form.Field>
@@ -224,7 +226,7 @@ A field needs only a `label` and a single input child — the label is associate
     description="Shown wherever the entity is referenced."
   >
     <DemoState data-harness>
-      <TextInput name="entityLabel" width="md" value="" onChange={() => {}} />
+      <TextInput name="entityLabel" width="md" value="" onChange={noop} />
     </DemoState>
   </Form.Field>
   <Form.Field
@@ -232,7 +234,7 @@ A field needs only a `label` and a single input child — the label is associate
     descriptionBottom="You can't change this later."
   >
     <DemoState data-harness>
-      <TextInput name="apiKeyName" width="md" value="" onChange={() => {}} />
+      <TextInput name="apiKeyName" width="md" value="" onChange={noop} />
     </DemoState>
   </Form.Field>
 </Stage>
@@ -251,7 +253,7 @@ Pass `errors` as an array — one message renders inline, several render as a li
         name="entityTypeUrl"
         width="md"
         value="example.com/types/person"
-        onChange={() => {}}
+        onChange={noop}
         invalid
       />
     </DemoState>
@@ -265,7 +267,7 @@ Pass `errors` as an array — one message renders inline, several render as a li
         name="propertyName"
         width="md"
         value=""
-        onChange={() => {}}
+        onChange={noop}
         invalid
       />
     </DemoState>
@@ -284,7 +286,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         width="md"
         value=""
         placeholder="Search entities…"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>
@@ -304,7 +306,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         name="inferenceModel"
         width="md"
         value="Default (automatic)"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>
@@ -321,7 +323,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         name="webhookUrl"
         width="md"
         value="https://api.example.com/hooks/runs"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>
@@ -340,7 +342,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         width="sm"
         value=""
         placeholder="Entity label"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>
@@ -352,7 +354,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         width="sm"
         value=""
         placeholder="Entity label"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>
@@ -364,7 +366,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         width="sm"
         value=""
         placeholder="Entity label"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>
@@ -376,7 +378,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         width="sm"
         value=""
         placeholder="Entity label"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>
@@ -388,7 +390,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         width="sm"
         value=""
         placeholder="Entity label"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>
@@ -407,7 +409,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         label="Enable AI inference"
       >
         <DemoState data-harness>
-          <Toggle name="aiInference" value={true} onChange={() => {}} />
+          <Toggle name="aiInference" value={true} onChange={noop} />
         </DemoState>
       </Form.Field>
       <Form.Field
@@ -416,7 +418,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         label="Publish entity history"
       >
         <DemoState data-harness>
-          <Toggle name="entityHistory" value={false} onChange={() => {}} />
+          <Toggle name="entityHistory" value={false} onChange={noop} />
         </DemoState>
       </Form.Field>
       <Form.Field
@@ -425,7 +427,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         label="Autosave drafts"
       >
         <DemoState data-harness>
-          <Toggle name="autosaveDrafts" value={true} onChange={() => {}} />
+          <Toggle name="autosaveDrafts" value={true} onChange={noop} />
         </DemoState>
       </Form.Field>
     </Form.Section>
@@ -451,7 +453,7 @@ A `<label>` can name only one control. When the field wraps a group — RadioGro
           { value: "public", label: "Public" },
         ]}
         value="workspace"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>
@@ -474,7 +476,7 @@ A `<label>` can name only one control. When the field wraps a group — RadioGro
           <NumberInput
             name="minInstances"
             value={10}
-            onChange={() => {}}
+            onChange={noop}
             invalid
           />
         </DemoState>
@@ -484,7 +486,7 @@ A `<label>` can name only one control. When the field wraps a group — RadioGro
           <NumberInput
             name="maxInstances"
             value={1}
-            onChange={() => {}}
+            onChange={noop}
             invalid
           />
         </DemoState>
@@ -505,7 +507,7 @@ A `<label>` can name only one control. When the field wraps a group — RadioGro
           name="workspaceName"
           width="sm"
           value="Ontology research"
-          onChange={() => {}}
+          onChange={noop}
         />
       </DemoState>
     </Form.Field>
@@ -515,13 +517,13 @@ A `<label>` can name only one control. When the field wraps a group — RadioGro
           name="snapshotRetention"
           width="xs"
           value={30}
-          onChange={() => {}}
+          onChange={noop}
         />
       </DemoState>
     </Form.Field>
     <Form.Field layout="inline" label="Public access">
       <DemoState data-harness>
-        <Toggle name="publicAccess" value={false} onChange={() => {}} />
+        <Toggle name="publicAccess" value={false} onChange={noop} />
       </DemoState>
     </Form.Field>
   </Form.Section>

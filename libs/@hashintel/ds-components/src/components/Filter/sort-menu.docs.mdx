@@ -1,6 +1,7 @@
 import { Meta } from "@storybook/addon-docs/blocks";
 import { Children, cloneElement, useState } from "react";
 
+import { noop } from "../../util/noop";
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
 import { ReferenceLinks } from "../../../docs/blocks/reference-links";
@@ -59,18 +60,18 @@ export const SortDemoState = ({ children }) => {
     <SortMenu
       items={sorters}
       value={{ sortKey: "name", direction: "ASCENDING" }}
-      onChange={() => {}}
+      onChange={noop}
     />
   </SortDemoState>
   <SortDemoState data-harness>
-    <SortMenu items={sorters} onChange={() => {}} />
+    <SortMenu items={sorters} onChange={noop} />
   </SortDemoState>
   <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "entityCount", direction: "DESCENDING" }}
       renderTrigger="icon"
-      onChange={() => {}}
+      onChange={noop}
     />
   </SortDemoState>
 </Stage>
@@ -130,7 +131,7 @@ Pass the sorters as `items` and control the selection with `value`/`onChange`. S
     <SortMenu
       items={sorters}
       value={{ sortKey: "createdAt", direction: "DESCENDING" }}
-      onChange={() => {}}
+      onChange={noop}
     />
   </SortDemoState>
 </Stage>
@@ -144,7 +145,7 @@ Each sorter declares `directionsAvailable`: `"both"` (the default), `"ascending"
     <SortMenu
       items={sorters}
       value={{ sortKey: "relevance", direction: "ASCENDING" }}
-      onChange={() => {}}
+      onChange={noop}
     />
   </SortDemoState>
 </Stage>
@@ -158,21 +159,21 @@ Each sorter declares `directionsAvailable`: `"both"` (the default), `"ascending"
     <SortMenu
       items={sorters}
       value={{ sortKey: "name", direction: "ASCENDING" }}
-      onChange={() => {}}
+      onChange={noop}
     />
   </SortDemoState>
   <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "entityCount", direction: "DESCENDING" }}
-      onChange={() => {}}
+      onChange={noop}
     />
   </SortDemoState>
   <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "priority", direction: "ASCENDING" }}
-      onChange={() => {}}
+      onChange={noop}
     />
   </SortDemoState>
 </Stage>
@@ -183,14 +184,14 @@ Each sorter declares `directionsAvailable`: `"both"` (the default), `"ascending"
 
 <Stage>
   <SortDemoState data-harness>
-    <SortMenu items={sorters} renderTrigger="icon" onChange={() => {}} />
+    <SortMenu items={sorters} renderTrigger="icon" onChange={noop} />
   </SortDemoState>
   <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "createdAt", direction: "DESCENDING" }}
       renderTrigger="icon"
-      onChange={() => {}}
+      onChange={noop}
     />
   </SortDemoState>
 </Stage>
@@ -240,7 +241,7 @@ The trigger is a Button and SortMenu forwards its props: `variant` (default `gho
     <SortMenu
       items={sorters}
       value={{ sortKey: "name", direction: "ASCENDING" }}
-      onChange={() => {}}
+      onChange={noop}
     />
   </SortDemoState>
   <SortDemoState data-harness>
@@ -248,7 +249,7 @@ The trigger is a Button and SortMenu forwards its props: `variant` (default `gho
       items={sorters}
       value={{ sortKey: "name", direction: "ASCENDING" }}
       variant="solid"
-      onChange={() => {}}
+      onChange={noop}
     />
   </SortDemoState>
   <SortDemoState data-harness>
@@ -256,7 +257,7 @@ The trigger is a Button and SortMenu forwards its props: `variant` (default `gho
       items={sorters}
       value={{ sortKey: "name", direction: "ASCENDING" }}
       size="md"
-      onChange={() => {}}
+      onChange={noop}
     />
   </SortDemoState>
   <SortDemoState data-harness>
@@ -264,7 +265,7 @@ The trigger is a Button and SortMenu forwards its props: `variant` (default `gho
       items={sorters}
       value={{ sortKey: "name", direction: "ASCENDING" }}
       align="right"
-      onChange={() => {}}
+      onChange={noop}
     />
   </SortDemoState>
 </Stage>

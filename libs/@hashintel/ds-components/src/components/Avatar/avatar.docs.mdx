@@ -1,4 +1,5 @@
 import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
 
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -79,14 +80,14 @@ export const TeammateAvatar = () => (
 <DoList
   items={[
     "Use Avatar to show who something belongs to: a comment's author, an entity's last editor, the members of a web.",
-    <>
+    <Fragment key="0">
       Use <code>shape="square"</code> for non-person subjects — organizations,
       webs, services — and the default circle for people.
-    </>,
-    <>
+    </Fragment>,
+    <Fragment key="1">
       Use <code>onClick</code> or <code>href</code> when pressing the avatar
       opens the profile or workspace it names.
-    </>,
+    </Fragment>,
   ]}
 />
 
@@ -94,11 +95,11 @@ export const TeammateAvatar = () => (
 
 <DontList
   items={[
-    <>
+    <Fragment key="0">
       Don't use Avatar for content or decorative imagery — use a plain{" "}
       <code>{"<img>"}</code>; an Avatar always announces itself as an image
       named by <code>alt</code>.
-    </>,
+    </Fragment>,
     'Don\'t overlap avatars by hand to show a set of people — use AvatarGroup, which handles stacking, hover, and the "+N" overflow badge.',
     "Don't use Avatar as a tile for pictograms that don't identify anyone — use Icon.",
   ]}

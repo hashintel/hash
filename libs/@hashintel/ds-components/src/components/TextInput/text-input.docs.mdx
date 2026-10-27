@@ -1,6 +1,7 @@
 import { Meta } from "@storybook/addon-docs/blocks";
 import { useState } from "react";
 
+import { noop } from "../../util/noop";
 import { DemoState } from "../../../docs/blocks/demo-state";
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -45,14 +46,14 @@ A single-line field for entering and editing free-form text.
       width="sm"
       placeholder="Search entities…"
       value=""
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
     <TextInput
       width="sm"
       value="Research paper"
-      onChange={() => {}}
+      onChange={noop}
       clearable
     />
   </DemoState>
@@ -62,7 +63,7 @@ A single-line field for entering and editing free-form text.
       type="email"
       value="elena@hash"
       invalid
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -126,7 +127,7 @@ TextInput is always controlled — `value` and `onChange` are required, and the 
       width="md"
       placeholder="e.g. Research paper"
       value=""
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -142,7 +143,7 @@ Set `type` to match the content so devices show the right keyboard and browsers 
       type="email"
       placeholder="name@hash.ai"
       value=""
-      onChange={() => {}}
+      onChange={noop}
       autocomplete
     />
   </DemoState>
@@ -151,7 +152,7 @@ Set `type` to match the content so devices show the right keyboard and browsers 
       width="sm"
       type="password"
       value="correct-horse-battery"
-      onChange={() => {}}
+      onChange={noop}
       autocomplete
     />
   </DemoState>
@@ -161,7 +162,7 @@ Set `type` to match the content so devices show the right keyboard and browsers 
       type="url"
       placeholder="https://hash.ai"
       value=""
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -173,13 +174,13 @@ Use `inputMode` when the content is digits but not a number — IDs, one-time co
 `disabled` greys the field and ignores input. Prefer `readonly` when the user only needs to see the value — disabled styling has poor contrast and suggests the value might become editable.
 
 <Stage>
-  <TextInput width="sm" disabled value="Research paper" onChange={() => {}} />
+  <TextInput width="sm" disabled value="Research paper" onChange={noop} />
   <TextInput
     width="sm"
     disabled
     placeholder="e.g. Research paper"
     value=""
-    onChange={() => {}}
+    onChange={noop}
   />
 </Stage>
 
@@ -194,7 +195,7 @@ Use `inputMode` when the content is digits but not a number — IDs, one-time co
       invalid
       type="email"
       value="elena@hash"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -205,7 +206,7 @@ Set `loading` while a lookup or save runs — a spinner appears at the end of th
 
 <Stage>
   <DemoState data-harness>
-    <TextInput width="sm" loading value="hash.ai/@acme" onChange={() => {}} />
+    <TextInput width="sm" loading value="hash.ai/@acme" onChange={noop} />
   </DemoState>
 </Stage>
 
@@ -214,12 +215,12 @@ Set `loading` while a lookup or save runs — a spinner appears at the end of th
 `readonly` strips the field chrome entirely and renders the value as plain text — use it to display stored values alongside editable ones. Unlike `disabled`, the value reads as content, not as a greyed-out control.
 
 <Stage>
-  <TextInput width="sm" value="e7f2a49c-3b1d-4e08" onChange={() => {}} />
+  <TextInput width="sm" value="e7f2a49c-3b1d-4e08" onChange={noop} />
   <TextInput
     width="sm"
     readonly
     value="e7f2a49c-3b1d-4e08"
-    onChange={() => {}}
+    onChange={noop}
   />
 </Stage>
 
@@ -229,7 +230,7 @@ Set `loading` while a lookup or save runs — a spinner appears at the end of th
 
 <Stage>
   <DemoState data-harness>
-    <TextInput width="sm" clearable value="Person" onChange={() => {}} />
+    <TextInput width="sm" clearable value="Person" onChange={noop} />
   </DemoState>
 </Stage>
 
@@ -244,7 +245,7 @@ Set `loading` while a lookup or save runs — a spinner appears at the end of th
       variant="subtle"
       showEditIcon
       value="Untitled flow"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -252,7 +253,7 @@ Set `loading` while a lookup or save runs — a spinner appears at the end of th
       width="sm"
       showEditIcon
       value="Research paper"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -267,11 +268,11 @@ Set `loading` while a lookup or save runs — a spinner appears at the end of th
       width="sm"
       variant="default"
       value="Default"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
-    <TextInput width="sm" variant="subtle" value="Subtle" onChange={() => {}} />
+    <TextInput width="sm" variant="subtle" value="Subtle" onChange={noop} />
   </DemoState>
 </Stage>
 
@@ -281,19 +282,19 @@ Set `loading` while a lookup or save runs — a spinner appears at the end of th
 
 <Stage>
   <DemoState data-harness>
-    <TextInput size="xxs" width="xs" value="xxs" onChange={() => {}} />
+    <TextInput size="xxs" width="xs" value="xxs" onChange={noop} />
   </DemoState>
   <DemoState data-harness>
-    <TextInput size="xs" width="xs" value="xs" onChange={() => {}} />
+    <TextInput size="xs" width="xs" value="xs" onChange={noop} />
   </DemoState>
   <DemoState data-harness>
-    <TextInput size="sm" width="xs" value="sm" onChange={() => {}} />
+    <TextInput size="sm" width="xs" value="sm" onChange={noop} />
   </DemoState>
   <DemoState data-harness>
-    <TextInput size="md" width="xs" value="md" onChange={() => {}} />
+    <TextInput size="md" width="xs" value="md" onChange={noop} />
   </DemoState>
   <DemoState data-harness>
-    <TextInput size="lg" width="xs" value="lg" onChange={() => {}} />
+    <TextInput size="lg" width="xs" value="lg" onChange={noop} />
   </DemoState>
 </Stage>
 
@@ -311,22 +312,22 @@ The presets align stacked inputs without custom CSS; `fullWidth` — the default
     }}
   >
     <DemoState data-harness>
-      <TextInput width="xs" value="xs" onChange={() => {}} />
+      <TextInput width="xs" value="xs" onChange={noop} />
     </DemoState>
     <DemoState data-harness>
-      <TextInput width="sm" value="sm" onChange={() => {}} />
+      <TextInput width="sm" value="sm" onChange={noop} />
     </DemoState>
     <DemoState data-harness>
-      <TextInput width="md" value="md" onChange={() => {}} />
+      <TextInput width="md" value="md" onChange={noop} />
     </DemoState>
     <DemoState data-harness>
-      <TextInput width="lg" value="lg" onChange={() => {}} />
+      <TextInput width="lg" value="lg" onChange={noop} />
     </DemoState>
     <DemoState data-harness>
-      <TextInput width="fullWidth" value="fullWidth" onChange={() => {}} />
+      <TextInput width="fullWidth" value="fullWidth" onChange={noop} />
     </DemoState>
     <DemoState data-harness>
-      <TextInput width="fitContent" value="fitContent" onChange={() => {}} />
+      <TextInput width="fitContent" value="fitContent" onChange={noop} />
     </DemoState>
   </div>
 </Stage>
@@ -342,7 +343,7 @@ An adornment is an icon (`{ iconName }`), text (`{ text }`), or any node (`{ con
       prefix={{ iconName: "search" }}
       placeholder="Search entities…"
       value=""
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -350,7 +351,7 @@ An adornment is an icon (`{ iconName }`), text (`{ text }`), or any node (`{ con
       width="sm"
       prefix={{ text: "https://" }}
       value="hash.ai/@acme"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -358,7 +359,7 @@ An adornment is an icon (`{ iconName }`), text (`{ text }`), or any node (`{ con
       width="sm"
       suffix={{ text: "kg" }}
       value="120"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -413,10 +414,10 @@ Set `connectToRightInput` on the left input and `connectToLeftInput` on the righ
 <Stage>
   <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
     <DemoState data-harness>
-      <TextInput connectToRightInput value="Ada" onChange={() => {}} />
+      <TextInput connectToRightInput value="Ada" onChange={noop} />
     </DemoState>
     <DemoState data-harness>
-      <TextInput connectToLeftInput value="Lovelace" onChange={() => {}} />
+      <TextInput connectToLeftInput value="Lovelace" onChange={noop} />
     </DemoState>
   </div>
 </Stage>
@@ -435,7 +436,7 @@ Form.Field supplies the label, description and errors, and links the label to th
         name="entityTypeName"
         width="md"
         value="Research paper"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>

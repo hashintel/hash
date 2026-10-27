@@ -1,5 +1,7 @@
 import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
 
+import { noop } from "../../util/noop";
 import { DemoState } from "../../../docs/blocks/demo-state";
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -48,7 +50,7 @@ Lets users pick exactly one option from a small visible set.
         { value: "public", label: "Anyone with the link" },
       ]}
       value="workspace"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -61,7 +63,7 @@ Lets users pick exactly one option from a small visible set.
         { value: "weekly", label: "Weekly" },
       ]}
       value="daily"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -107,10 +109,10 @@ export const EntityVisibility = () => {
   items={[
     "Use RadioGroup when users must pick exactly one of 2–5 mutually exclusive options",
     "Use it when seeing every option at once helps the decision — all choices stay visible, unlike Select.",
-    <>
+    <Fragment key="0">
       Give the group a sensible default selection — <code>value</code> is
       required and must match one of the item values.
-    </>,
+    </Fragment>,
   ]}
 />
 
@@ -141,7 +143,7 @@ RadioGroup is controlled: `value` holds the selected option's value and `onChang
         { value: "entity-update", label: "On entity update" },
       ]}
       value="scheduled"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -160,7 +162,7 @@ Set `disabled` on the group to lock every option, or `disabled: true` on an item
       { value: "weekly", label: "Weekly" },
     ]}
     value="daily"
-    onChange={() => {}}
+    onChange={noop}
   />
   <DemoState data-harness>
     <RadioGroup
@@ -171,7 +173,7 @@ Set `disabled` on the group to lock every option, or `disabled: true` on an item
         { value: "admin", label: "Admin", disabled: true },
       ]}
       value="editor"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -191,7 +193,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
         { value: "public", label: "Anyone with the link" },
       ]}
       value="public"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -211,7 +213,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
         { value: "review", label: "Review each conflict" },
       ]}
       value="keep-newest"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -224,7 +226,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
         { value: "weekly", label: "Weekly" },
       ]}
       value="daily"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -236,7 +238,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
         { value: "descending", label: "Descending" },
       ]}
       value="ascending"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -252,7 +254,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
       aria-label="xxs"
       items={[{ value: "xxs", label: "xxs" }]}
       value="xxs"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -261,7 +263,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
       aria-label="xs"
       items={[{ value: "xs", label: "xs" }]}
       value="xs"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -270,7 +272,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
       aria-label="sm"
       items={[{ value: "sm", label: "sm" }]}
       value="sm"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -279,7 +281,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
       aria-label="md"
       items={[{ value: "md", label: "md" }]}
       value="md"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -288,7 +290,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
       aria-label="lg"
       items={[{ value: "lg", label: "lg" }]}
       value="lg"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -303,7 +305,7 @@ Items take a `tone` that colors their selected state: `neutral` (the default), `
       aria-label="Neutral tone"
       items={[{ value: "neutral", label: "Neutral", tone: "neutral" }]}
       value="neutral"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -311,7 +313,7 @@ Items take a `tone` that colors their selected state: `neutral` (the default), `
       aria-label="Brand tone"
       items={[{ value: "brand", label: "Brand", tone: "brand" }]}
       value="brand"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -319,7 +321,7 @@ Items take a `tone` that colors their selected state: `neutral` (the default), `
       aria-label="Success tone"
       items={[{ value: "success", label: "Success", tone: "success" }]}
       value="success"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -339,7 +341,7 @@ Set `labelPlacement: "left"` on items to put the label before the circle.
         { value: "graph", label: "Graph", labelPlacement: "left" },
       ]}
       value="table"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -362,7 +364,7 @@ Wrap the group in `Form.Field` with `as="legend"` to give it a visible label, de
           { value: "public", label: "Anyone with the link" },
         ]}
         value="workspace"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>
