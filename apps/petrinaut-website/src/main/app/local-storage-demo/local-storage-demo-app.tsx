@@ -3,15 +3,10 @@
  * @role Editable demo shell: nets in local storage, one live document handle
  */
 
-import { type ComponentProps, use, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-import {
-  CommandRegistryProvider,
-  UserSettingsContext,
-  UserSettingsProvider,
-} from "@hashintel/petrinaut/react";
+import { CommandRegistryProvider } from "@hashintel/petrinaut/react";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
-import { pickAssistant } from "@hashintel/petrinaut/ui/plugin";
 
 import { useSharedSearchNavigation } from "../../../examples/use-shared-search-navigation";
 import { StatusPage } from "../../../shared/status-page";
@@ -42,16 +37,24 @@ import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
  * Petrinaut shows the first assistant until the user chooses one, so the
  * saved or default selection goes first.
  */
-const editorPlugins = () => {
+const editorPlugins = (brunchFirst: boolean) => {
   if (!brunchPreviewConfig.isBrunchConfigured) {
     return [...demoPlugins, petrinautAiPlugin];
   }
-  return readAssistantSelection() === "brunch"
+  return brunchFirst
     ? [...demoPlugins, brunchPlugin, petrinautAiPlugin]
     : [...demoPlugins, petrinautAiPlugin, brunchPlugin];
 };
 
-const LocalStorageDemoEditor = ({
+/**
+ * Local-storage demo shell for Petrinaut.
+ *
+ * Local storage is the persistence layer for saved nets, while the active
+ * Petrinaut document handle owns the currently open net's live editable state.
+ * Switching files replaces the active handle instead of keeping handles alive
+ * for background nets.
+ */
+export const LocalStorageDemoApp = ({
   netId,
   onOpenNet,
   onSearchChange,
@@ -89,18 +92,16 @@ const LocalStorageDemoEditor = ({
     ready: wordsPreferenceReady,
     setEnabled: setWordsEnabled,
   } = useWordsPreference();
-  const [plugins] = useState(editorPlugins);
-  const { assistantPluginId, disabledPluginIds } = use(UserSettingsContext);
-  // Brunch connects only while the editor shows its assistant.
-  const brunchActive =
-    pickAssistant(
-      plugins.filter(
-        ({ manifest }) =>
-          manifest.assistant === true &&
-          !disabledPluginIds.includes(manifest.id),
-      ),
-      assistantPluginId,
-    ) === brunchPlugin;
+  const [brunchFirst] = useState(() => readAssistantSelection() === "brunch");
+  const plugins = editorPlugins(brunchFirst);
+  // Brunch's panel content marks the document it shows Brunch on while the
+  // editor mounts it.
+  const [brunchShownOn, setBrunchShownOn] = useState<string | null>(null);
+  const showBrunch = (documentId: string) => {
+    setBrunchShownOn(documentId);
+    return () =>
+      setBrunchShownOn((shownOn) => (shownOn === documentId ? null : shownOn));
+  };
   /**
    * History is left to the library's default on purpose. That default already
    * replaces rather than pushes while an intent continues, so a drag-select
@@ -123,6 +124,10 @@ const LocalStorageDemoEditor = ({
   const currentNetId = currentDocument?.documentId ?? null;
 
   const { activeHandle, unsavedChangeMessage } = useActiveHandle(repository);
+  // Brunch connects only while the editor shows it on the open net's handle.
+  const brunchShown =
+    activeHandle?.document.documentId === currentNetId &&
+    activeHandle.handle.id === brunchShownOn;
 
   const existingNets: MinimalNetMetadata[] = repository.records
     .map((document) => ({
@@ -191,7 +196,7 @@ const LocalStorageDemoEditor = ({
     [currentNetId, brunchEditor],
   );
   const brunch = useBrunchAssistant({
-    selected: brunchActive,
+    selected: brunchShown,
     openDocument: brunchOpenDocument,
     voice: {
       enabled: voicePreferenceReady && voiceEnabled && realtimePreferenceReady,
@@ -234,7 +239,9 @@ const LocalStorageDemoEditor = ({
       {notice !== null ? <UnsavedChangeNotice message={notice} /> : null}
       <CommandRegistryProvider>
         {/* Brunch's plugin renders its chat from this, inside the editor. */}
-        <BrunchAssistantContext value={brunch.assistant}>
+        <BrunchAssistantContext
+          value={{ assistant: brunch.assistant, show: showBrunch }}
+        >
           <Petrinaut
             handle={activeHandle.handle}
             existingNets={existingNets}
@@ -247,7 +254,7 @@ const LocalStorageDemoEditor = ({
             slots={{
               settingsLabs: brunchPreviewConfig.isBrunchConfigured ? (
                 <AssistantLabsSettings
-                  brunchActive={brunchActive}
+                  brunchActive={brunchShown}
                   interviewBudgetEnabled={interviewBudgetEnabled}
                   interviewBudgetPreferenceReady={
                     interviewBudgetPreferenceReady
@@ -258,7 +265,7 @@ const LocalStorageDemoEditor = ({
                   setInterviewBudgetEnabled={setInterviewBudgetEnabled}
                   setRealtimeEnabled={setRealtimeEnabled}
                   setVoiceEnabled={setVoiceEnabled}
-                  voiceEnabled={brunchActive && voiceEnabled}
+                  voiceEnabled={brunchShown && voiceEnabled}
                   voicePreferenceReady={voicePreferenceReady}
                   wordsEnabled={wordsEnabled}
                   wordsPreferenceReady={wordsPreferenceReady}
@@ -273,20 +280,3 @@ const LocalStorageDemoEditor = ({
     </div>
   );
 };
-
-/**
- * Local-storage demo shell for Petrinaut.
- *
- * Local storage is the persistence layer for saved nets, while the active
- * Petrinaut document handle owns the currently open net's live editable state.
- * Switching files replaces the active handle instead of keeping handles alive
- * for background nets.
- */
-export const LocalStorageDemoApp = (
-  props: ComponentProps<typeof LocalStorageDemoEditor>,
-) => (
-  // Above the editor, so the shell reads which assistant it shows.
-  <UserSettingsProvider>
-    <LocalStorageDemoEditor {...props} />
-  </UserSettingsProvider>
-);

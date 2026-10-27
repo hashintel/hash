@@ -57,9 +57,7 @@ test("enables Voice only for the shown Brunch, and explains when Voice is unavai
     true,
   );
   expect(
-    screen.getByText(
-      "Choose Brunch in General › AI assistant to enable Voice.",
-    ),
+    screen.getByText("Available while Brunch is the AI assistant."),
   ).toBeDefined();
 
   view.rerender(<AssistantLabsSettings {...props} brunchActive />);

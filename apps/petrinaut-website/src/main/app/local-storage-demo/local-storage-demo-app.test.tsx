@@ -13,6 +13,7 @@ import {
   Children,
   isValidElement,
   use,
+  useLayoutEffect,
   useState,
   type ComponentProps,
   type ReactNode,
@@ -28,6 +29,7 @@ import {
   defaultPetrinautNavigationHistoryPolicy,
   useCommandRegistry,
   UserSettingsContext,
+  UserSettingsProvider,
 } from "@hashintel/petrinaut/react";
 
 import { BrunchPanelConversationTracker } from "../plugins/brunch/brunch-panel-transport";
@@ -204,23 +206,71 @@ vi.mock("../plugins/petrinaut-ai/plugin", () => ({
   },
 }));
 
+/** Records what the stand-in editor rendered, for the tests to read. */
+const recordEditorRender = (
+  props: Record<string, unknown>,
+  bridgedAssistant: PetrinautAiAssistant | undefined,
+  commandRegistry: CommandRegistryView | null,
+  settings: UserSettingsContextValue,
+) => {
+  editorProps.current = { ...props, bridgedAssistant };
+  renderedPetrinaut.commandRegistry = commandRegistry;
+  renderedPetrinaut.settings = settings;
+  renderedPetrinaut.aiAssistant = bridgedAssistant;
+  renderedAssistants.push(bridgedAssistant);
+};
+
+/**
+ * Stands in for the editor's view. Like the real one, it shows the chosen
+ * running assistant, else the first, and mounts Brunch's content, which marks
+ * Brunch as shown, only while it shows Brunch.
+ */
+const FakeEditorView = (props: Record<string, unknown>) => {
+  "use no memo"; // Records every render, which memoization would skip.
+  const settings = use(UserSettingsContext);
+  const host = use(BrunchAssistantContext);
+  const assistants = (
+    (props.plugins ?? []) as readonly PetrinautPlugin[]
+  ).filter(
+    ({ manifest }) =>
+      manifest.assistant === true &&
+      !settings.disabledPluginIds.includes(manifest.id),
+  );
+  const shownId = (
+    assistants.find(
+      ({ manifest }) => manifest.id === settings.assistantPluginId,
+    ) ?? assistants[0]
+  )?.manifest.id;
+  const brunchShown = shownId === "website.brunch";
+  const documentId = (props.handle as { id: string }).id;
+  const show = host?.show;
+  useLayoutEffect(
+    () => (brunchShown ? show?.(documentId) : undefined),
+    [brunchShown, show, documentId],
+  );
+
+  // Brunch's content reads its assistant from the shell's bridge, never a
+  // prop, and renders it only while mounted.
+  const bridgedAssistant = brunchShown
+    ? (host?.assistant ?? undefined)
+    : undefined;
+  // The real editor reuses the registry the host provides.
+  recordEditorRender(props, bridgedAssistant, useCommandRegistry(), settings);
+  return (
+    (props.slots as { settingsLabs?: ReactNode } | undefined)?.settingsLabs ??
+    null
+  );
+};
+
 vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => ({
   // Brunch's chat uses the editor's public UI exports; only the editor is mocked.
   ...(await importOriginal<typeof import("@hashintel/petrinaut/ui")>()),
-  Petrinaut: (props: Record<string, unknown>) => {
-    // Brunch's plugin reads its assistant from the shell's bridge, never a prop.
-    const bridgedAssistant = use(BrunchAssistantContext) ?? undefined;
-    editorProps.current = { ...props, bridgedAssistant };
-    // The real editor reuses the registry and the settings the host provides.
-    renderedPetrinaut.commandRegistry = useCommandRegistry();
-    renderedPetrinaut.settings = use(UserSettingsContext);
-    renderedPetrinaut.aiAssistant = bridgedAssistant;
-    renderedAssistants.push(bridgedAssistant);
-    return (
-      (props.slots as { settingsLabs?: ReactNode } | undefined)?.settingsLabs ??
-      null
-    );
-  },
+  // The real editor owns the user settings while the host provides none.
+  Petrinaut: (props: Record<string, unknown>) => (
+    <UserSettingsProvider>
+      <FakeEditorView {...props} />
+    </UserSettingsProvider>
+  ),
 }));
 
 /**
