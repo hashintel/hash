@@ -8,14 +8,16 @@ import {
   type VersionedUrl,
   extractDraftIdFromEntityId,
   extractWebIdFromEntityId,
-  splitEntityId,
 } from "@blockprotocol/type-system";
 import { brunchTools } from "@hashintel/brunch-agent";
 import {
   deserializeQueryEntitySubgraphResponse,
   type QueryEntitySubgraphRequest,
 } from "@local/hash-graph-sdk/entity";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  currentTimeInstantTemporalAxes,
+  generateEntityIdFilter,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { queryEntitySubgraphQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
 
 import { queryEntityTypesQuery } from "../../../../../../graphql/queries/ontology/entity-type.queries";
@@ -39,14 +41,14 @@ const hashEntityReadInputSchema = z.object({
   entityTypes: z.array(z.string()).optional(),
   webIds: z.array(z.string()).optional(),
   entityIds: z.array(z.string()).optional(),
-  traversalDepth: z.number().optional(),
+  traversalDepth: z.number().int().min(0).optional(),
   includeDrafts: z.boolean().optional(),
 });
 
-export type HashEntityReadInput = z.infer<typeof hashEntityReadInputSchema>;
+/** An entity read as the agent issued it to the page, narrowed. */
+export type IssuedHashEntityRead = z.infer<typeof hashEntityReadInputSchema>;
 
 const defaultTraversalDepth = 1;
-const maxTraversalDepth = 5;
 
 const isTypeUrl = (type: string) =>
   type.startsWith("http://") || type.startsWith("https://");
@@ -73,13 +75,19 @@ const traversalPathsTo = (depth: number) =>
         },
       ];
 
-/** The `queryEntitySubgraph` request for one read: every given filter must match. */
+/**
+ * The `queryEntitySubgraph` request for one read: every given filter must
+ * match. An entity id that names a draft reads that draft, whether or not
+ * drafts were asked for.
+ */
 export const hashEntityReadRequest = (
-  input: HashEntityReadInput,
+  input: IssuedHashEntityRead,
 ): QueryEntitySubgraphRequest => {
-  const depth = Math.min(
-    Math.max(Math.trunc(input.traversalDepth ?? defaultTraversalDepth), 0),
-    maxTraversalDepth,
+  const entityIds = (input.entityIds ?? []).map(
+    (entityId) => entityId as EntityId,
+  );
+  const namesDraft = entityIds.some(
+    (entityId) => extractDraftIdFromEntityId(entityId) !== undefined,
   );
   return {
     filter: {
@@ -93,15 +101,9 @@ export const hashEntityReadRequest = (
           })),
         ),
         ...anyOf(
-          (input.entityIds ?? []).map((entityId) => {
-            const [webId, entityUuid] = splitEntityId(entityId as EntityId);
-            return {
-              all: [
-                { equal: [{ path: ["webId"] }, { parameter: webId }] },
-                { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
-              ],
-            };
-          }),
+          entityIds.map((entityId) =>
+            generateEntityIdFilter({ entityId, includeArchived: true }),
+          ),
         ),
         ...anyOf(
           (input.webIds ?? []).map((webId) => ({
@@ -112,8 +114,10 @@ export const hashEntityReadRequest = (
       ],
     },
     temporalAxes: currentTimeInstantTemporalAxes,
-    traversalPaths: traversalPathsTo(depth),
-    includeDrafts: input.includeDrafts ?? false,
+    traversalPaths: traversalPathsTo(
+      input.traversalDepth ?? defaultTraversalDepth,
+    ),
+    includeDrafts: input.includeDrafts === true || namesDraft,
     includePermissions: false,
   };
 };
@@ -209,7 +213,8 @@ const hashEntityTypeReadInputSchema = z.object({
   webIds: z.array(z.string()).optional(),
 });
 
-export type HashEntityTypeReadInput = z.infer<
+/** An entity type read as the agent issued it to the page, narrowed. */
+export type IssuedHashEntityTypeRead = z.infer<
   typeof hashEntityTypeReadInputSchema
 >;
 
@@ -223,11 +228,11 @@ export type QueryEntityTypesRequest = QueryEntityTypesQueryVariables["request"];
  * carries the titles of their properties and links.
  */
 export const hashEntityTypeReadRequest = (
-  input: HashEntityTypeReadInput,
+  input: IssuedHashEntityTypeRead,
 ): QueryEntityTypesRequest => ({
   filter: {
     all: [
-      ...(input.entityTypeIds === undefined || input.entityTypeIds.length === 0
+      ...(input.entityTypeIds === undefined
         ? [{ equal: [{ path: ["version"] }, { parameter: "latest" }] }]
         : anyOf(
             input.entityTypeIds.map((entityTypeId) => ({
@@ -353,22 +358,17 @@ export const hashWebReadResult = (user: HashWebReadUser | undefined) =>
         ],
       };
 
-const hashWebReadInputSchema = z.object({}).strict();
-
 /**
  * Brunch's HASH web read, run in the page from the signed-in user it already
- * holds; it makes no request.
+ * holds; it takes no input and makes no request.
  */
 export const createHashWebReadTool = (
   currentUser: () => HashWebReadUser | undefined,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.queryHashWebs,
-  inputSchema: hashWebReadInputSchema,
+  inputSchema: z.object({}),
   outputSchema: { parse: (value) => value },
-  execute: ({ input }) => {
-    hashWebReadInputSchema.parse(input);
-    return hashWebReadResult(currentUser());
-  },
+  execute: () => hashWebReadResult(currentUser()),
 });
 
 /**

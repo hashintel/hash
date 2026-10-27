@@ -69,8 +69,8 @@ test("each given filter must match, and within one any listed value matches", ()
         any: [
           {
             all: [
-              { equal: [{ path: ["webId"] }, { parameter: "alice-web" }] },
               { equal: [{ path: ["uuid"] }, { parameter: "supplier" }] },
+              { equal: [{ path: ["webId"] }, { parameter: "alice-web" }] },
             ],
           },
         ],
@@ -87,7 +87,30 @@ test("each given filter must match, and within one any listed value matches", ()
   expect(request.includeDrafts).toBe(true);
 });
 
-test("traversal depth follows the input, from none up to a cap of five", () => {
+test("an entity id that names a draft reads that draft, even when drafts weren't asked for", () => {
+  const request = hashEntityReadRequest({
+    entityIds: ["alice-web~supplier~draft-1"],
+  });
+  expect(request.filter).toEqual({
+    all: [
+      {
+        any: [
+          {
+            all: [
+              { equal: [{ path: ["uuid"] }, { parameter: "supplier" }] },
+              { equal: [{ path: ["webId"] }, { parameter: "alice-web" }] },
+              { equal: [{ path: ["draftId"] }, { parameter: "draft-1" }] },
+            ],
+          },
+        ],
+      },
+      notArchived,
+    ],
+  });
+  expect(request.includeDrafts).toBe(true);
+});
+
+test("traversal depth follows the input, from none to as deep as asked", () => {
   expect(hashEntityReadRequest({ traversalDepth: 0 }).traversalPaths).toEqual(
     [],
   );
@@ -95,7 +118,7 @@ test("traversal depth follows the input, from none up to a cap of five", () => {
     edgesTo(3),
   );
   expect(hashEntityReadRequest({ traversalDepth: 9 }).traversalPaths).toEqual(
-    edgesTo(5),
+    edgesTo(9),
   );
 });
 
@@ -235,6 +258,8 @@ test("a query that fails because the call was cancelled still rejects", async ()
 test("an input the agent's contract doesn't allow is refused before any query", async () => {
   const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
   await expect(run(query, { entityTypes: "Supplier" })).rejects.toThrow();
+  await expect(run(query, { traversalDepth: -1 })).rejects.toThrow();
+  await expect(run(query, { traversalDepth: 1.5 })).rejects.toThrow();
   expect(query).not.toHaveBeenCalled();
 });
 
@@ -436,13 +461,4 @@ test("the web read lists the signed-in user's own web, then their orgs', from th
   await expect(runTool(tool, {})).resolves.toEqual({
     error: "No user is signed in to HASH.",
   });
-});
-
-test("a web read with input the agent's contract doesn't allow is refused", async () => {
-  await expect(
-    runTool(
-      createHashWebReadTool(() => alice),
-      { webIds: [] },
-    ),
-  ).rejects.toThrow();
 });
