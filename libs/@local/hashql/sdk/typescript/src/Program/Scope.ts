@@ -5,7 +5,7 @@
  *
  * Tables are ordinary export records. Merging copies their enumerable own string-keyed properties into tables without a prototype and freezes the copies, leaving the caller's records unchanged. A name a scope lacks therefore reads as `undefined`, even a name such as `toString`.
  *
- * A scope holds the names available during construction.
+ * A scope holds the names available during construction. `Namespace.flatten` joins the tables into one object in which a name can hold a module, a type and a value at once.
  *
  * @module
  */
