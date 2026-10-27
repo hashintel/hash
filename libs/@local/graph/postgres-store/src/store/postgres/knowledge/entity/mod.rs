@@ -72,7 +72,7 @@ use tracing::Instrument as _;
 use type_system::{
     Valid, Validator as _,
     knowledge::{
-        Entity, PropertyValue,
+        Confidence, Entity, PropertyValue,
         entity::{
             EntityMetadata, EntityProvenance, Link,
             id::{DraftId, EntityEditionId, EntityId, EntityRecordId, EntityUuid},
@@ -2871,6 +2871,17 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
     )
 }
 
+/// The values written for one entity edition.
+struct EntityEditionInsert<'a> {
+    edition_id: EntityEditionId,
+    archived: bool,
+    entity_type_ids: &'a HashSet<VersionedUrl>,
+    properties: &'a PropertyObject,
+    property_metadata: &'a Valid<PropertyObjectMetadata>,
+    confidence: Option<Confidence>,
+    provenance: &'a SqlEntityEditionProvenance,
+}
+
 impl<C> PostgresStore<C, InTransaction>
 where
     C: AsClient,
@@ -2878,10 +2889,7 @@ where
     #[tracing::instrument(level = "info", skip_all)]
     async fn insert_entity_edition(
         &self,
-        edition_id: EntityEditionId,
-        entity: &Entity,
-        provenance: &SqlEntityEditionProvenance,
-        metadata: &Valid<PropertyObjectMetadata>,
+        edition: &EntityEditionInsert<'_>,
     ) -> Result<(), Report<InsertionError>> {
         self.as_client()
             .execute(
@@ -2897,13 +2905,13 @@ where
                     ) VALUES ($1, $2, $3, $4, $5, $6, $7);
                 ",
                 &[
-                    &edition_id,
-                    &entity.metadata.archived,
-                    &entity.properties,
-                    &entity.metadata.confidence,
-                    &provenance.json,
-                    metadata,
-                    &provenance.created_by_id,
+                    &edition.edition_id,
+                    &edition.archived,
+                    edition.properties,
+                    &edition.confidence,
+                    &edition.provenance.json,
+                    edition.property_metadata,
+                    &edition.provenance.created_by_id,
                 ],
             )
             .instrument(tracing::info_span!(
@@ -2915,8 +2923,7 @@ where
             .await
             .change_context(InsertionError)?;
 
-        let entity_type_ontology_ids = entity
-            .metadata
+        let entity_type_ontology_ids = edition
             .entity_type_ids
             .iter()
             .map(|entity_type_id| OntologyTypeUuid::from(EntityTypeUuid::from_url(entity_type_id)))
@@ -2931,7 +2938,7 @@ where
                         inheritance_depth
                     ) SELECT $1, UNNEST($2::UUID[]), 0;
                 ",
-                &[&edition_id, &entity_type_ontology_ids],
+                &[&edition.edition_id, &entity_type_ontology_ids],
             )
             .instrument(tracing::info_span!(
                 "INSERT",
@@ -2958,7 +2965,7 @@ where
                      WHERE entity_edition_id = $1
                      GROUP BY entity_edition_id, target_entity_type_ontology_id;
                 ",
-                &[&edition_id],
+                &[&edition.edition_id],
             )
             .instrument(tracing::info_span!(
                 "INSERT",
@@ -2969,7 +2976,7 @@ where
             .await
             .change_context(InsertionError)?;
 
-        let edition_ids = [edition_id];
+        let edition_ids = [edition.edition_id];
         self.as_client()
             .query(
                 &insert_entity_edition_cache_statement(true),

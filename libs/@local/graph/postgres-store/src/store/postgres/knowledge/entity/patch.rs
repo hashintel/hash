@@ -51,7 +51,8 @@ use type_system::{
 };
 
 use super::{
-    LockedEntityEdition, provenance::SqlEntityEditionProvenance, provenance_violations, uuid_v7_at,
+    EntityEditionInsert, LockedEntityEdition, provenance::SqlEntityEditionProvenance,
+    provenance_violations, uuid_v7_at,
 };
 use crate::store::{
     AsClient, InTransaction, PostgresStore, error::EntityDoesNotExist, validation::StoreProvider,
@@ -533,9 +534,17 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         } = changes;
         let entity_id = entity.metadata.record_id.entity_id;
         let edition_id = EntityEditionId::new(uuid_v7_at(transaction_time));
-        self.insert_entity_edition(edition_id, &entity, &provenance, &property_metadata)
-            .await
-            .change_context(UpdateError)?;
+        self.insert_entity_edition(&EntityEditionInsert {
+            edition_id,
+            archived: entity.metadata.archived,
+            entity_type_ids: &entity.metadata.entity_type_ids,
+            properties: &entity.properties,
+            property_metadata: &property_metadata,
+            confidence: entity.metadata.confidence,
+            provenance: &provenance,
+        })
+        .await
+        .change_context(UpdateError)?;
         let (entity_id, temporal_versioning) = match draft_transition {
             DraftTransition::Update => (
                 entity_id,
