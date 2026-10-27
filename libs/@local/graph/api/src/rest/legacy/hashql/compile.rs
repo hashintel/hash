@@ -1,6 +1,7 @@
+use hash_graph_authorization::policies::action::ActionName;
 use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::{
-    heap::{Heap, ResetAllocator as _, Scratch},
+    heap::{self, Heap, ResetAllocator as _, Scratch},
     module::ModuleRegistry,
     span::{SpanId, SpanTable},
     symbol::sym,
@@ -16,7 +17,10 @@ use hashql_mir::{
     body::Body,
     def::{DefId, DefIdVec},
     error::MirDiagnosticCategory,
-    pass::{LowerConfig, execution::ExecutionAnalysisResidual},
+    pass::{
+        LowerConfig,
+        execution::{ExecutionAnalysisResidual, VertexType},
+    },
 };
 use hashql_syntax_jexpr::span::Span;
 
@@ -29,6 +33,10 @@ pub(crate) struct CodeCompilationArtifact<'heap> {
     pub postgres: PreparedQueries<'heap, &'heap Heap>,
 }
 
+pub(crate) struct CodeExecutionPermissions<'heap> {
+    pub actions: heap::Vec<'heap, ActionName>,
+}
+
 pub(crate) struct Compilation<'heap> {
     pub heap: &'heap Heap,
 
@@ -39,6 +47,7 @@ pub(crate) struct Compilation<'heap> {
 
     pub entrypoint: DefId,
     pub artifact: CodeCompilationArtifact<'heap>,
+    pub permissions: CodeExecutionPermissions<'heap>,
 }
 
 impl<'heap> Compilation<'heap> {
@@ -158,6 +167,16 @@ impl<'heap> Compilation<'heap> {
         let queries = postgres.compile();
         scratch.reset();
 
+        let mut actions = heap::Vec::new_in(heap);
+        for query in queries.iter() {
+            let action = match query.vertex_type {
+                VertexType::Entity => ActionName::ViewEntity,
+            };
+            actions.push(action);
+        }
+
+        let permissions = CodeExecutionPermissions { actions };
+
         context
             .diagnostics
             .into_status(())
@@ -176,6 +195,7 @@ impl<'heap> Compilation<'heap> {
                 interpreter: bodies,
                 postgres: queries,
             },
+            permissions,
         })
     }
 

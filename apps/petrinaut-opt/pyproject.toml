@@ -1,10 +1,10 @@
 [project]
-name = "petrinaut-optimization"
-version = "0.1.0"
-description = "Scenario-parameter optimization for Petrinaut using Optuna"
-readme = "README.md"
+name            = "petrinaut-optimization"
+version         = "0.1.0"
+description     = "Scenario-parameter optimization for Petrinaut using Optuna"
+readme          = "README.md"
 requires-python = ">=3.10.20"
-dependencies = [
+dependencies    = [
     "fastapi<0.142.0,>=0.141.1",
     "opentelemetry-exporter-otlp-proto-grpc>=1.44.0",
     "opentelemetry-exporter-otlp-proto-http>=1.44.0",

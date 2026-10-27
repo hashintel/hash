@@ -3,12 +3,20 @@ import { readdirSync, readFileSync } from "node:fs";
 import proto from "@temporalio/proto";
 import { describe, expect, it } from "vitest";
 
+import {
+  parseFlowRunRecord,
+  serializeFlowRunRecord,
+} from "@local/hash-isomorphic-utils/flows/run-record";
+import { generateStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { StatusCode } from "@local/status";
 
-import { getFlowRunDetailedFieldsFromHistory } from "./get-flow-run-details.js";
+import { getFlowRunDetailedFieldsFromRecord } from "./get-flow-run-details.js";
+import { getFlowRunRecordFromHistory } from "./run-record.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
-import type { FlowRunHistoryRecord } from "./get-flow-run-details.js";
+import type { ResolvePayloadContext } from "./payload-storage.js";
+import type { FlowRunHistoryRecord } from "./run-record.js";
 
 const fixturesUrl = new URL(
   "../../tests/fixtures/flow-run-histories/",
@@ -16,8 +24,8 @@ const fixturesUrl = new URL(
 );
 
 /**
- * What `getFlowRunDetailedFieldsFromHistory` returned on each fixture when it was split out of the Temporal reader,
- * or `{ throws }` with the message it threw.
+ * What `getFlowRunDetailedFieldsFromHistory` returned on each fixture when it was recorded, or `{ throws }` with the
+ * message it threw.
  */
 const recordedDetailsUrl = new URL(
   "../../tests/fixtures/flow-run-details/",
@@ -61,6 +69,17 @@ const workflowIdOf = ({ history }: FlowRunHistoryRecord) => {
     }
   ).flowRunEntityUuid;
 };
+
+const getFlowRunDetailedFieldsFromHistory = (
+  historyRecord: FlowRunHistoryRecord,
+  resolvePayloadContext: ResolvePayloadContext,
+) =>
+  getFlowRunDetailedFieldsFromRecord(
+    getFlowRunRecordFromHistory(historyRecord, {
+      workflowId: resolvePayloadContext.workflowId,
+    }),
+    resolvePayloadContext,
+  );
 
 type RecordedDetails = {
   steps?: {
@@ -174,5 +193,75 @@ describe("getFlowRunDetailedFieldsFromHistory", () => {
         closedAt: closeTime,
       },
     ]);
+  });
+});
+
+describe("getFlowRunDetailedFieldsFromRecord", () => {
+  it.each(fixtureNames)(
+    "returns the same details from the stored record of %s as from its history",
+    async (fixtureName) => {
+      const fixture = loadFixture(fixtureName);
+      const workflowId = workflowIdOf(fixture);
+      const resolvePayloadContext = { storageProvider, workflowId };
+
+      const storedRecord = parseFlowRunRecord(
+        serializeFlowRunRecord(
+          getFlowRunRecordFromHistory(fixture, { workflowId }),
+        ),
+      );
+
+      expect(
+        JSON.parse(
+          JSON.stringify(
+            await getFlowRunDetailedFieldsFromRecord(
+              storedRecord,
+              resolvePayloadContext,
+            ),
+          ),
+        ),
+      ).toStrictEqual(
+        JSON.parse(
+          JSON.stringify(
+            await getFlowRunDetailedFieldsFromHistory(
+              fixture,
+              resolvePayloadContext,
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  it("gives a completed run's step errors in its outputs, by step run id", async () => {
+    const fixture = loadFixture("succeeds");
+    const workflowId = workflowIdOf(fixture);
+    const record = getFlowRunRecordFromHistory(fixture, { workflowId });
+    const runFinishedEvent = record.events.at(-1);
+
+    if (runFinishedEvent?.kind !== "runFinished") {
+      throw new Error("The run hasn't finished");
+    }
+
+    runFinishedEvent.stepErrors = [
+      {
+        stepRun: { stepId: "double", itemPath: [2] },
+        error: { message: "No output" },
+      },
+    ];
+
+    const { outputs } = await getFlowRunDetailedFieldsFromRecord(record, {
+      storageProvider,
+      workflowId,
+    });
+
+    expect(outputs?.[0]?.contents[0]).toMatchObject({
+      stepErrors: [
+        {
+          code: StatusCode.Unknown,
+          message: "No output",
+          contents: [{ stepId: generateStepRunId("double", 2) }],
+        },
+      ],
+    });
   });
 });

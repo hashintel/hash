@@ -1,0 +1,382 @@
+import { readdirSync, readFileSync } from "node:fs";
+
+import { WorkflowNotFoundError } from "@temporalio/client";
+import proto from "@temporalio/proto";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import {
+  toStepErrors,
+  unknownErrorMessage,
+} from "@local/hash-isomorphic-utils/flows/run-events";
+import {
+  parseFlowRunRecord,
+  serializeFlowRunRecord,
+} from "@local/hash-isomorphic-utils/flows/run-record";
+import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+
+import { getFlowRunRecordStorageKey } from "../file-storage.js";
+import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
+import {
+  getFlowRunRecord,
+  getFlowRunRecordFromHistory,
+  recordEndedFlowRun,
+} from "./run-record.js";
+
+import type { FileStorageProvider } from "../file-storage.js";
+import type { FlowRunHistoryRecord } from "./run-record.js";
+import type { FlowRunRecord } from "@local/hash-isomorphic-utils/flows/run-record";
+import type {
+  FlowRunEnding,
+  RunFlowWorkflowResponse,
+} from "@local/hash-isomorphic-utils/flows/temporal-types";
+import type { Client as TemporalClient } from "@temporalio/client";
+
+const workflowId = "workflow-id";
+
+const fixturesUrl = new URL(
+  "../../tests/fixtures/flow-run-histories/",
+  import.meta.url,
+);
+
+const loadFixture = (fixtureName: string): FlowRunHistoryRecord => {
+  const { history, ...fixture } = JSON.parse(
+    readFileSync(new URL(`${fixtureName}.json`, fixturesUrl), "utf8"),
+  ) as Omit<FlowRunHistoryRecord, "history"> & {
+    history: Record<string, unknown>;
+  };
+
+  return {
+    ...fixture,
+    history: proto.temporal.api.history.v1.History.fromObject(history).events,
+  };
+};
+
+/** A Temporal client whose workflow is described as `fixture` describes it, or isn't found. */
+const createTemporalClient = (fixture: FlowRunHistoryRecord | "notFound") => {
+  const describeWorkflow = vi.fn(() =>
+    fixture === "notFound"
+      ? Promise.reject(
+          new WorkflowNotFoundError("Not found", workflowId, undefined),
+        )
+      : Promise.resolve({
+          workflowId,
+          runId: fixture.describe.runId,
+          status: { name: fixture.describe.status },
+          startTime: new Date(fixture.describe.startTime),
+          closeTime: fixture.describe.closeTime
+            ? new Date(fixture.describe.closeTime)
+            : undefined,
+        }),
+  );
+
+  const getWorkflowExecutionHistory = vi.fn(() =>
+    Promise.resolve({
+      history: { events: fixture === "notFound" ? [] : fixture.history },
+      nextPageToken: new Uint8Array(),
+    }),
+  );
+
+  /* A run started by a reset looks up when the workflow's first run started. */
+  const getHandle = (_workflowId: string, runId?: string) =>
+    fixture !== "notFound" && runId && runId !== fixture.describe.runId
+      ? {
+          describe: () =>
+            fixture.originalRunStartTime
+              ? Promise.resolve({
+                  startTime: new Date(fixture.originalRunStartTime),
+                })
+              : Promise.reject(new Error(`No run ${runId}`)),
+        }
+      : { describe: describeWorkflow };
+
+  return {
+    temporalClient: {
+      workflow: { getHandle },
+      workflowService: { getWorkflowExecutionHistory },
+    } as unknown as TemporalClient,
+    describeWorkflow,
+    getWorkflowExecutionHistory,
+  };
+};
+
+const createStorageProvider = (storedRecord?: FlowRunRecord) => {
+  const objects = new Map<string, string>(
+    storedRecord
+      ? [
+          [
+            getFlowRunRecordStorageKey(workflowId),
+            serializeFlowRunRecord(storedRecord),
+          ],
+        ]
+      : [],
+  );
+
+  return {
+    storageProvider: {
+      uploadDirect: ({ key, body }: { key: string; body: string }) => {
+        objects.set(key, body);
+        return Promise.resolve();
+      },
+      downloadDirect: ({ key }: { key: string }) =>
+        Promise.resolve(Buffer.from(objects.get(key) ?? "")),
+      getObjectLastModified: ({ key }: { key: string }) =>
+        Promise.resolve(objects.has(key) ? new Date() : null),
+    } as unknown as FileStorageProvider,
+    readStoredRecord: () => {
+      const contents = objects.get(getFlowRunRecordStorageKey(workflowId));
+      return contents === undefined ? undefined : parseFlowRunRecord(contents);
+    },
+  };
+};
+
+describe("getFlowRunRecord", () => {
+  it("reads a running run from Temporal, without storing it", async () => {
+    const fixture = loadFixture("in-progress");
+    const { temporalClient } = createTemporalClient(fixture);
+    const { storageProvider, readStoredRecord } = createStorageProvider();
+
+    const record = await getFlowRunRecord({
+      temporalClient,
+      storageProvider,
+      workflowId,
+    });
+
+    expect(record).toStrictEqual(
+      getFlowRunRecordFromHistory(fixture, { workflowId }),
+    );
+    expect(readStoredRecord()).toBeUndefined();
+  });
+
+  it("reads a closed run from its stored record", async () => {
+    const fixture = loadFixture("succeeds");
+    const { temporalClient, getWorkflowExecutionHistory } =
+      createTemporalClient(fixture);
+    const storedRecord = getFlowRunRecordFromHistory(fixture, { workflowId });
+    const { storageProvider } = createStorageProvider(storedRecord);
+
+    const record = await getFlowRunRecord({
+      temporalClient,
+      storageProvider,
+      workflowId,
+    });
+
+    expect(record).toStrictEqual(storedRecord);
+    expect(getWorkflowExecutionHistory).not.toHaveBeenCalled();
+  });
+
+  it("stores the record of a closed run that has none", async () => {
+    const fixture = loadFixture("succeeds");
+    const { temporalClient } = createTemporalClient(fixture);
+    const { storageProvider, readStoredRecord } = createStorageProvider();
+
+    const record = await getFlowRunRecord({
+      temporalClient,
+      storageProvider,
+      workflowId,
+    });
+
+    expect(record).toStrictEqual(
+      getFlowRunRecordFromHistory(fixture, { workflowId }),
+    );
+    expect(readStoredRecord()).toStrictEqual(record);
+  });
+
+  it("replaces the stored record of a run from before it was reset", async () => {
+    const fixture = loadFixture("succeeds");
+    const { temporalClient, getWorkflowExecutionHistory } =
+      createTemporalClient(fixture);
+    const recordFromBeforeReset = getFlowRunRecordFromHistory(fixture, {
+      workflowId,
+    });
+    recordFromBeforeReset.header.runId = "run-before-reset";
+    const { storageProvider, readStoredRecord } = createStorageProvider(
+      recordFromBeforeReset,
+    );
+
+    const record = await getFlowRunRecord({
+      temporalClient,
+      storageProvider,
+      workflowId,
+    });
+
+    expect(getWorkflowExecutionHistory).toHaveBeenCalled();
+    expect(record.header.runId).toBe(fixture.describe.runId);
+    expect(readStoredRecord()).toStrictEqual(record);
+  });
+
+  it("replaces the stored record of a run terminated after writing it", async () => {
+    const fixture = loadFixture("reset-base-run");
+    const { temporalClient } = createTemporalClient(fixture);
+    const recordBeforeTermination = getFlowRunRecordFromHistory(fixture, {
+      workflowId,
+    });
+    recordBeforeTermination.header.status = FlowRunStatus.Completed;
+    const { storageProvider, readStoredRecord } = createStorageProvider(
+      recordBeforeTermination,
+    );
+
+    const record = await getFlowRunRecord({
+      temporalClient,
+      storageProvider,
+      workflowId,
+    });
+
+    expect(record.header.status).toBe(FlowRunStatus.Terminated);
+    expect(readStoredRecord()).toStrictEqual(record);
+  });
+
+  it("reads a run Temporal no longer has from its stored record", async () => {
+    const storedRecord = getFlowRunRecordFromHistory(loadFixture("succeeds"), {
+      workflowId,
+    });
+    const { temporalClient } = createTemporalClient("notFound");
+    const { storageProvider } = createStorageProvider(storedRecord);
+
+    await expect(
+      getFlowRunRecord({ temporalClient, storageProvider, workflowId }),
+    ).resolves.toStrictEqual(storedRecord);
+  });
+
+  it("reads each run once per cache", async () => {
+    const fixture = loadFixture("in-progress");
+    const { temporalClient, describeWorkflow } = createTemporalClient(fixture);
+    const { storageProvider } = createStorageProvider();
+    const recordsByWorkflowId = new Map();
+
+    const [first, second] = await Promise.all([
+      getFlowRunRecord({
+        temporalClient,
+        storageProvider,
+        workflowId,
+        recordsByWorkflowId,
+      }),
+      getFlowRunRecord({
+        temporalClient,
+        storageProvider,
+        workflowId,
+        recordsByWorkflowId,
+      }),
+    ]);
+
+    expect(second).toBe(first);
+    expect(describeWorkflow).toHaveBeenCalledTimes(1);
+  });
+});
+
+const { EventType } = proto.temporal.api.enums.v1;
+
+/** How a run ended, as its workflow gives it to the record activity, from the event that closed the run. */
+const getRecordedEnding = (
+  closeEvent: proto.temporal.api.history.v1.IHistoryEvent,
+): FlowRunEnding | null => {
+  switch (closeEvent.eventType) {
+    case EventType.EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED: {
+      const [{ contents }] = parseHistoryItemPayload(
+        closeEvent.workflowExecutionCompletedEventAttributes?.result,
+      ) as [RunFlowWorkflowResponse];
+      const { outputs, stepErrors } = contents[0] ?? {};
+
+      return {
+        kind: "completed",
+        flowOutputs: outputs ?? [],
+        ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+      };
+    }
+    case EventType.EVENT_TYPE_WORKFLOW_EXECUTION_FAILED: {
+      const failure =
+        closeEvent.workflowExecutionFailedEventAttributes?.failure;
+      const [details] =
+        (parseHistoryItemPayload(failure?.applicationFailureInfo?.details) as
+          | Partial<RunFlowWorkflowResponse>[]
+          | undefined) ?? [];
+      const stepErrors = details?.contents?.[0]?.stepErrors;
+
+      return {
+        kind: "failed",
+        failure: { message: failure?.message ?? unknownErrorMessage },
+        ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+      };
+    }
+    case EventType.EVENT_TYPE_WORKFLOW_EXECUTION_CANCELED:
+      return { kind: "cancelled" };
+    default:
+      return null;
+  }
+};
+
+describe("recordEndedFlowRun", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const closedFixtures = readdirSync(fixturesUrl)
+    .filter((fileName) => fileName.endsWith(".json"))
+    .flatMap((fileName) => {
+      const fixtureName = fileName.replace(/\.json$/, "");
+      const fixture = loadFixture(fixtureName);
+      const closeEvent = fixture.history.at(-1);
+      const ending = closeEvent ? getRecordedEnding(closeEvent) : null;
+
+      return ending ? [{ fixtureName, fixture, ending }] : [];
+    });
+
+  /*
+   * The event for how the run ended is placed right after the last event in its history, but Temporal writes more
+   * before the event that closes it, and the fixtures leave out workflow task events: so only its position differs.
+   */
+  it.each(closedFixtures)(
+    "stores the record of $fixtureName as it ends as it is read after it closed, apart from where it ended",
+    async ({ fixture, ending }) => {
+      const historyBeforeClose = fixture.history.slice(0, -1);
+      const lastHistoryEventId = Number(historyBeforeClose.at(-1)?.eventId);
+      const { temporalClient } = createTemporalClient({
+        ...fixture,
+        describe: { ...fixture.describe, status: "RUNNING", closeTime: null },
+        history: historyBeforeClose,
+      });
+      const { storageProvider, readStoredRecord } = createStorageProvider();
+      vi.useFakeTimers({ now: new Date(fixture.describe.closeTime!) });
+
+      await recordEndedFlowRun({
+        temporalClient,
+        storageProvider,
+        workflowId,
+        runId: fixture.describe.runId,
+        ending,
+      });
+
+      const recordAfterClose = getFlowRunRecordFromHistory(fixture, {
+        workflowId,
+      });
+      const { header, events } = readStoredRecord()!;
+
+      expect({
+        header,
+        events: [
+          ...events.slice(0, -1),
+          {
+            ...events.at(-1)!,
+            position: recordAfterClose.events.at(-1)!.position,
+          },
+        ],
+      }).toStrictEqual(recordAfterClose);
+      expect(events.at(-1)?.position).toBe(`${lastHistoryEventId + 1}.0`);
+    },
+  );
+
+  it("doesn't store the record of a run that has been reset", async () => {
+    const fixture = loadFixture("in-progress");
+    const { temporalClient } = createTemporalClient(fixture);
+    const { storageProvider, readStoredRecord } = createStorageProvider();
+
+    await recordEndedFlowRun({
+      temporalClient,
+      storageProvider,
+      workflowId,
+      runId: "run-before-reset",
+      ending: { kind: "cancelled" },
+    });
+
+    expect(readStoredRecord()).toBeUndefined();
+  });
+});

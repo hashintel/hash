@@ -105,11 +105,13 @@ export default defineConfig(({ command }) => ({
   ],
 
   experimental: {
+    // A relative worker URL is emitted as `new URL(<path>, import.meta.url)`,
+    // which the host's bundler recognises and copies the worker for. A string
+    // is emitted against `"" + import.meta.url`, which hides the worker from
+    // the host's bundler.
     renderBuiltUrl: (filename) => {
-      // Fix worker URL for Webpack consumers
-      // Using `config.base` adds `"" +` prefix to the URL, which breaks the worker URL
       if (filename.includes(".worker")) {
-        return `./${filename}`;
+        return { relative: true };
       }
       return filename;
     },

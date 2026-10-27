@@ -1,3 +1,5 @@
+import { signalStepAttempts } from "@local/hash-backend-utils/flows/signal-step-attempts";
+
 import { aggregateAction } from "./flow-activities/aggregate-action.js";
 import { analyzeEntityDataAction } from "./flow-activities/analyze-entity-data-action.js";
 import { answerQuestionAction } from "./flow-activities/answer-question-action.js";
@@ -72,6 +74,6 @@ export const createFlowActivities = ({
 }: {
   vaultClient: VaultClient;
 }) => ({
-  ...createFlowActionActivities({ vaultClient }),
+  ...signalStepAttempts(createFlowActionActivities({ vaultClient })),
   generateFlowRunName,
 });

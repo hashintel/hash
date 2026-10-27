@@ -14,10 +14,10 @@ dev = [
 ]
 
 [tool.uv]
-preview       = true
-add-bounds    = "major"  # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
-exclude-newer = "7 days" # mirrors npm release age
-package       = false
+preview               = true
+add-bounds            = "major"                              # require cargo-style bounded ranges (>=1.2.3, <2.0.0)
+exclude-newer         = "7 days"                             # mirrors npm release age
+package               = false
 # Admit the certifi security release without relaxing other packages' age limit.
 # Remove this ceiling after 2026-10-27T02:24:17Z and regenerate the lockfile.
 exclude-newer-package = { certifi = "2026-10-20T02:24:17Z" }
@@ -30,8 +30,8 @@ members = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-q --import-mode=importlib"
-testpaths = [
+addopts    = "-q --import-mode=importlib"
+testpaths  = [
     "apps/petrinaut-opt/tests",
     "libs/@local/petrinaut-optimizer-core/python/tests",
     "libs/@local/petrinaut-python/tests",

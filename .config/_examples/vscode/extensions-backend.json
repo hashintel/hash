@@ -1,7 +1,7 @@
 {
   "recommendations": [
     "rust-lang.rust-analyzer",
-    "tamasfe.even-better-toml",
+    "tombi-toml.tombi",
     "cedar-policy.vscode-cedar"
   ]
 }
