@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 
+import { brunchRoutes } from "@hashintel/brunch-agent";
 import {
   type BrunchAssistant,
   BrunchAssistantContext,
@@ -28,7 +29,7 @@ import type { EntityId, UserId } from "@blockprotocol/type-system";
 const embedPlugins = [embedChromePlugin];
 
 /** Brunch's Petrinaut agent, reached through hash-api's Brunch route. */
-const brunchChatEndpoint = `${apiOrigin}/api/brunch/agents/petrinaut`;
+const brunchChatEndpoint = `${apiOrigin}/api/brunch${brunchRoutes.agents}/${brunchRoutes.petrinautAgent}`;
 
 /** Returns `{ ownerKey }` for the signed-in account. */
 const brunchIdentityEndpoint = `${apiOrigin}/api/brunch/identity`;
