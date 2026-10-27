@@ -226,6 +226,7 @@ const createDefaults = (
               "vitest/prefer-expect-assertions": "allow", // type tests run through the compiler, not the runtime assertion counter.
               "no-magic-numbers": "allow", // magic numbers are often used in test fixtures
               "max-lines-per-function": "allow", // tests are allowed to have more statements, because `describe` blocks are often used to group related tests
+              "max-lines": "allow", // one test file covers one module, so it grows with that module's cases
               "no-restricted-imports": [
                 "deny", // Vitest typechecks these files without running them, so a runtime assertion here never executes.
                 {
@@ -246,6 +247,7 @@ const createDefaults = (
             rules: {
               "no-magic-numbers": "allow", // magic numbers are often used in test fixtures
               "max-lines-per-function": "allow", // tests are allowed to have more statements, because `describe` blocks are often used to group related tests
+              "max-lines": "allow", // one test file covers one module, so it grows with that module's cases
             },
           }),
         );

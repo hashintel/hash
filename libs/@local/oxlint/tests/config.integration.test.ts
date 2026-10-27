@@ -139,4 +139,30 @@ export default defineConfig({
       ],
     });
   });
+
+  test("tests_exempt_from_max_lines", () => {
+    expect.hasAssertions();
+
+    const long = `${Array.from({ length: 501 }, (_, line) => `// ${line}`).join("\n")}\n`;
+    const result = lintFiles(
+      {
+        "oxlint.config.mjs": `import { defineConfig } from ${JSON.stringify(entry)};
+export default defineConfig({
+  frameworks: ["vitest"],
+  runtime: "node",
+  options: { typeAware: false },
+});
+`,
+        "src/module.ts": long,
+        "src/module.test.ts": long,
+        "src/module.test-d.ts": long,
+      },
+      "max-lines",
+    );
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      diagnostics: [{ filename: "src/module.ts", code: "eslint(max-lines)" }],
+    });
+  });
 });
