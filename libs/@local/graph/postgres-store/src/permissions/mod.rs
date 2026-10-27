@@ -132,7 +132,7 @@ where
         &mut self,
         id: Option<Uuid>,
     ) -> Result<UserId, Report<PrincipalError>> {
-        let user_id = UserId::new(id.unwrap_or_else(Uuid::new_v4));
+        let user_id = UserId::new(id.unwrap_or_else(Uuid::now_v7));
         if let Err(error) = self
             .as_mut_client()
             .execute("INSERT INTO user_actor (id) VALUES ($1)", &[&user_id])
@@ -248,7 +248,7 @@ where
         id: Option<Uuid>,
         identifier: &str,
     ) -> Result<MachineId, Report<PrincipalError>> {
-        let id = MachineId::new(id.unwrap_or_else(Uuid::new_v4));
+        let id = MachineId::new(id.unwrap_or_else(Uuid::now_v7));
         if let Err(error) = self
             .as_mut_client()
             .execute(
@@ -318,7 +318,7 @@ where
         id: Option<Uuid>,
         identifier: &str,
     ) -> Result<AiId, Report<PrincipalError>> {
-        let ai_id = AiId::new(id.unwrap_or_else(Uuid::new_v4));
+        let ai_id = AiId::new(id.unwrap_or_else(Uuid::now_v7));
         if let Err(error) = self
             .as_mut_client()
             .execute(
@@ -449,7 +449,7 @@ where
         parent_id: ActorGroupId,
         name: &str,
     ) -> Result<TeamId, Report<PrincipalError>> {
-        let id = id.unwrap_or_else(Uuid::new_v4);
+        let id = id.unwrap_or_else(Uuid::now_v7);
         let transaction = self
             .as_mut_client()
             .transaction()
@@ -604,7 +604,7 @@ where
         actor_group_id: ActorGroupId,
         name: RoleName,
     ) -> Result<RoleId, Report<PrincipalError>> {
-        let role_id = id.unwrap_or_else(Uuid::new_v4);
+        let role_id = id.unwrap_or_else(Uuid::now_v7);
         let (role_id, principal_type) = match actor_group_id {
             ActorGroupId::Web(_) => (RoleId::Web(WebRoleId::new(role_id)), PrincipalType::WebRole),
             ActorGroupId::Team(_) => (

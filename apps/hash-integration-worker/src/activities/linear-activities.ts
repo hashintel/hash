@@ -1,5 +1,5 @@
 import { LinearClient } from "@linear/sdk";
-import { v4 as uuidv4 } from "uuid";
+import { v7 as uuidv7 } from "uuid";
 
 import { getLinearMappingByHashEntityTypeId } from "@local/hash-backend-utils/linear-type-mappings";
 import {
@@ -172,7 +172,7 @@ const createOrUpdateHashEntity = async (params: {
       ),
       ...addedOutgoingLinks.map(
         async ({ linkEntityTypeId, destinationEntityId }) => {
-          const linkEntityUuid = uuidv4() as EntityUuid;
+          const linkEntityUuid = uuidv7() as EntityUuid;
           await HashLinkEntity.create(graphApiClient, params.authentication, {
             entityTypeIds: [linkEntityTypeId],
             linkData: {
