@@ -4,9 +4,13 @@ import * as z from "zod";
 
 import { getEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import {
+  type BaseUrl,
   type EntityId,
   type VersionedUrl,
+  compareOntologyTypeVersions,
+  extractBaseUrl,
   extractDraftIdFromEntityId,
+  extractVersion,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { brunchTools } from "@hashintel/brunch-agent";
@@ -50,6 +54,8 @@ const zHashEntityReadInput = z.object({
   entityIds: z.array(z.string()).optional(),
   traversalDepth: z.number().int().min(0).max(3).optional(),
   includeDrafts: z.boolean().optional(),
+  // How the agent shows the result; it doesn't change what is read.
+  fullValuesFor: z.array(z.string()).optional(),
 });
 
 /** An entity read as the agent issued it to the page, narrowed. */
@@ -145,6 +151,9 @@ export const hashEntityReadRequest = (
     ),
     includeDrafts: input.includeDrafts === true || namesDraft,
     includePermissions: false,
+    // The entities' types, closed and resolved, for the titles and
+    // descriptions of their types and properties.
+    includeEntityTypes: "resolved",
   };
 };
 
@@ -157,24 +166,92 @@ const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
 const truncatedWhen = (cursor: unknown) =>
   cursor === undefined || cursor === null ? {} : { truncated: true as const };
 
+/** What the titles are read from in a response's closed multi-type map. */
+type ClosedTypeTitlesMap = {
+  schema: { allOf?: readonly { $id?: string; title?: string }[] };
+  inner?: Record<string, ClosedTypeTitlesMap>;
+};
+
+/** Every type a closed multi-type map names, with its title, at any depth. */
+const closedTypeTitles = (
+  maps: Record<string, ClosedTypeTitlesMap> | undefined,
+  titles = new Map<string, string>(),
+) => {
+  for (const { schema, inner } of Object.values(maps ?? {})) {
+    for (const { $id, title } of schema.allOf ?? []) {
+      if ($id !== undefined && title !== undefined) {
+        titles.set($id, title);
+      }
+    }
+    closedTypeTitles(inner, titles);
+  }
+  return titles;
+};
+
 /**
  * Every entity edition in the response, each described only from itself, so
- * its edition id is the edition whose properties it carries. An entity
- * archived through its `archived` property, as pages are, is left out: the
- * request's filter applies only to the matches, not to the entities reached
- * by following links.
+ * its edition id is the edition whose properties it carries; and the title
+ * and description of each property they carry, and the title of each type.
+ * An entity archived through its `archived` property, as pages are, is left
+ * out: the request's filter applies only to the matches, not to the entities
+ * reached by following links.
  */
 export const hashEntityReadResult = (response: QueryEntitySubgraphQuery) => {
-  const { subgraph, cursor } = deserializeQueryEntitySubgraphResponse(
-    response.queryEntitySubgraph,
-  );
+  const { subgraph, closedMultiEntityTypes, definitions, cursor } =
+    deserializeQueryEntitySubgraphResponse(response.queryEntitySubgraph);
   const matched = new Set(
     getRoots(subgraph).map(({ metadata }) => metadata.recordId.editionId),
   );
   const entities = getEntities(subgraph, false).filter(
     (entity) => entity.properties[archivedBaseUrl] !== true,
   );
+
+  // Each property the entities carry, by base URL, from its latest version
+  // the response resolved; and each type they carry, by its title.
+  const usedBaseUrls = new Set(
+    entities.flatMap(({ properties }) => Object.keys(properties)),
+  );
+  const propertyTypesByBaseUrl = new Map<
+    BaseUrl,
+    { versionedUrl: VersionedUrl; title: string; description?: string }
+  >();
+  for (const [versionedUrl, propertyType] of Object.entries(
+    definitions?.propertyTypes ?? {},
+  ) as [VersionedUrl, { title: string; description?: string }][]) {
+    const baseUrl = extractBaseUrl(versionedUrl);
+    const known = propertyTypesByBaseUrl.get(baseUrl);
+    if (
+      usedBaseUrls.has(baseUrl) &&
+      (known === undefined ||
+        compareOntologyTypeVersions(
+          extractVersion(versionedUrl),
+          extractVersion(known.versionedUrl),
+        ) > 0)
+    ) {
+      propertyTypesByBaseUrl.set(baseUrl, {
+        versionedUrl,
+        title: propertyType.title,
+        description: propertyType.description,
+      });
+    }
+  }
+  const typeTitles = closedTypeTitles(closedMultiEntityTypes);
+  const usedTypeIds = new Set(
+    entities.flatMap(({ metadata }) => metadata.entityTypeIds),
+  );
+
   return {
+    propertyTypes: [...propertyTypesByBaseUrl].map(
+      ([baseUrl, { title, description }]) => ({
+        baseUrl,
+        title,
+        ...(description === undefined ? {} : { description }),
+      }),
+    ),
+    entityTypes: [...usedTypeIds].flatMap((entityTypeId) => {
+      const title = typeTitles.get(entityTypeId);
+      return title === undefined ? [] : [{ entityTypeId, title }];
+    }),
     entities: entities.map((entity) => {
       const { entityId, editionId } = entity.metadata.recordId;
       const { linkData } = entity;
