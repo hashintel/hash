@@ -3,7 +3,9 @@ import type { InterviewBudget } from "@hashintel/brunch-agent";
 /**
  * The current submission's allowance, restated for the model. The context
  * projection removes it from the user's turn, so this is the only place the
- * model reads it; without an allowance there is no instruction.
+ * model reads it; without an allowance there is no instruction. Every agent
+ * that mounts it needs an Interview length section in its own `eliciting`
+ * skill and an `appetite` entity kind, since the text points at both.
  */
 export const interviewBudgetInstruction = (
   budget: InterviewBudget | undefined,

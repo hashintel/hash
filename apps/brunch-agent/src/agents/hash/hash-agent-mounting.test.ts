@@ -17,8 +17,8 @@ import { flueConversationId } from "../../shared/conversation/identity.ts";
 import {
   commitToolDescription,
   compileToolDescription,
-} from "../petrinaut/tools/ledger.ts";
-import { queryBasisToolDescription } from "../petrinaut/tools/query-basis.ts";
+} from "../shared/ledger-tools.ts";
+import { queryBasisToolDescription } from "../shared/query-basis.ts";
 import { hashEvidencedDescription } from "./guidance.ts";
 import { hashSaveDescription } from "./petrinaut/save-net.ts";
 import {

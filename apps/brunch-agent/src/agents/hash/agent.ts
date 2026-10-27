@@ -1,8 +1,8 @@
 "use agent";
 /**
  * Brunch for HASH: the Petrinaut agent's guidance (prompt and skills, copied
- * here so they can diverge) and its Ledger and `query_basis` tools (imported
- * from `../petrinaut/tools/`), over the shared Petrinaut browser tools, net
+ * here so they can diverge), the Ledger and `query_basis` tools both agents
+ * mount from `../shared/`, over the shared Petrinaut browser tools, net
  * freshness and transport, plus reads of the HASH graph that HASH's process
  * page executes. HASH's process page talks to it.
  */
