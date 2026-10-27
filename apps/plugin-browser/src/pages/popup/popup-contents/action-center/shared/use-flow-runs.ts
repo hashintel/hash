@@ -16,7 +16,6 @@ import type {
   GetMinimalFlowRunsQueryVariables,
 } from "../../../../../graphql/api-types.gen";
 import type {
-  FlowFromBrowserOrWithPageRequest,
   LocalStorage,
   MinimalFlowRun,
 } from "../../../../../shared/storage";
@@ -31,7 +30,6 @@ import type { PayloadKindValues } from "@local/hash-isomorphic-utils/flows/types
 
 const mapFlowRunToMinimalFlowRun = ({
   flowOutputs,
-  answeredPageContentRequests: _answeredPageContentRequests,
   ...flowRun
 }: GetMinimalFlowRunsQuery["getFlowRuns"]["flowRuns"][number]): MinimalFlowRun => {
   const persistedEntities = (flowOutputs ?? []).flatMap(
@@ -54,9 +52,8 @@ const mapFlowRunToMinimalFlowRun = ({
   const webPage = flowRun.flowInputs[
     "visitedWebPage" satisfies AutomaticInferenceInputName &
       ManualInferenceInputName
-  ]?.value as
-    | PayloadKindValues[AutomaticInferenceInputs["visitedWebPage"]["kind"]]
-    | undefined;
+  ]
+    ?.value as PayloadKindValues[AutomaticInferenceInputs["visitedWebPage"]["kind"]];
 
   return {
     persistedEntities,
@@ -65,11 +62,7 @@ const mapFlowRunToMinimalFlowRun = ({
   };
 };
 
-const getFlowRuns = async ({
-  userAccountId,
-}: {
-  userAccountId: ActorEntityUuid;
-}): Promise<FlowFromBrowserOrWithPageRequest[]> =>
+const getFlowRuns = async (): Promise<MinimalFlowRun[]> =>
   queryGraphQlApi<GetMinimalFlowRunsQuery, GetMinimalFlowRunsQueryVariables>(
     getMinimalFlowRunsQuery,
   )
@@ -100,24 +93,13 @@ const getFlowRuns = async ({
         ) {
           flowRunsOfInterest.push(mapFlowRunToMinimalFlowRun(flowRun));
         }
-
-        for (const pageContentRequest of flowRun.answeredPageContentRequests) {
-          if (pageContentRequest.resolvedBy === userAccountId) {
-            for (const url of pageContentRequest.urls) {
-              flowRunsOfInterest.push({
-                ...mapFlowRunToMinimalFlowRun(flowRun),
-                requestedPageUrl: url,
-              });
-            }
-          }
-        }
       }
 
       return flowRunsOfInterest;
     });
 
 export const useFlowRuns = (): {
-  flowRuns: FlowFromBrowserOrWithPageRequest[];
+  flowRuns: MinimalFlowRun[];
 } & {
   loading: boolean;
 } => {
@@ -142,7 +124,7 @@ export const useFlowRuns = (): {
     }
 
     const pollInterval = setInterval(() => {
-      void getFlowRuns({ userAccountId }).then(setValue);
+      void getFlowRuns().then(setValue);
     }, 2_000);
 
     return () => clearInterval(pollInterval);
@@ -153,7 +135,7 @@ export const useFlowRuns = (): {
       return;
     }
 
-    void getFlowRuns({ userAccountId }).then((newValue) => {
+    void getFlowRuns().then((newValue) => {
       setValue(newValue);
       setApiChecked(true);
     });

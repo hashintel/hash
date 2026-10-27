@@ -15,8 +15,7 @@ export const getFlowRunsQuery = gql`
         startedAt
         executedAt
         closedAt
-        # For the goals list. Both read the history of a run that hasn't closed.
-        lastActivityAt
+        # For the goals list. Reads a running run's history until open requests are saved on its Flow Run entity.
         openInputRequests
       }
     }

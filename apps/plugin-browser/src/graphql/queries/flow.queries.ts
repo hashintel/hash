@@ -15,10 +15,6 @@ export const getMinimalFlowRunsQuery = /* GraphQL */ `
           outputName
           payload
         }
-        answeredPageContentRequests {
-          urls
-          resolvedBy
-        }
       }
     }
   }

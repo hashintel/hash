@@ -47,9 +47,7 @@ export const InferEntitiesAction = ({
     () =>
       flowRuns.some(({ status, webPage }) => {
         return (
-          !!webPage &&
-          webPage.url === activeTab?.url &&
-          status === FlowRunStatus.Running
+          webPage.url === activeTab?.url && status === FlowRunStatus.Running
         );
       }),
     [activeTab, flowRuns],

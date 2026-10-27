@@ -5,11 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { schema as typeDefs } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
 
-import {
-  flowRunAnsweredPageContentRequestsResolver,
-  flowRunLastActivityAtResolver,
-  flowRunOpenInputRequestsResolver,
-} from "./flow-run-list-fields";
+import { flowRunOpenInputRequestsResolver } from "./flow-run-open-input-requests";
 
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
@@ -34,23 +30,17 @@ const schema = buildASTSchema(concatAST(typeDefs));
 schema.getQueryType()!.getFields().getFlowRunById!.resolve = () =>
   mocks.flowRun;
 
-const flowRunFields = (
+(
   schema.getType("FlowRun") as GraphQLObjectType
-).getFields();
-flowRunFields.lastActivityAt!.resolve = flowRunLastActivityAtResolver as never;
-flowRunFields.openInputRequests!.resolve =
+).getFields().openInputRequests!.resolve =
   flowRunOpenInputRequestsResolver as never;
-flowRunFields.answeredPageContentRequests!.resolve =
-  flowRunAnsweredPageContentRequestsResolver as never;
 
-const listFieldsQuery = () =>
+const openInputRequestsQuery = () =>
   graphql({
     schema,
     source: `query {
       getFlowRunById(flowRunEntityId: "web~run") {
-        lastActivityAt
         openInputRequests
-        answeredPageContentRequests { requestId urls resolvedBy resolvedAt }
       }
     }`,
     contextValue: {
@@ -79,7 +69,7 @@ const recordWith = (
 
 const stepRun = { stepId: "1", itemPath: [] };
 
-describe("the fields a list of flow runs shows", () => {
+describe("a flow run's open input requests", () => {
   beforeEach(() => {
     mocks.getFlowRunEntityById.mockReset();
     mocks.getFlowRunRecord.mockReset();
@@ -90,7 +80,7 @@ describe("the fields a list of flow runs shows", () => {
     });
   });
 
-  it("gives a running run's latest event, open requests, and answered page content requests", async () => {
+  it("gives a running run's requests that haven't been answered", async () => {
     mocks.flowRun = {
       flowRunEntityId: "web~run",
       status: FlowRunStatus.Running,
@@ -108,22 +98,21 @@ describe("the fields a list of flow runs shows", () => {
           occurredAt: "2026-10-26T10:01:00.000Z",
           stepRun,
           request: {
-            requestId: "pages",
+            requestId: "answered",
             stepId: "1",
-            type: "get-urls-html-content",
-            data: { urls: ["https://example.com"] },
+            type: "human-input",
+            data: { questions: ["Which one?"] },
           },
         },
         {
           kind: "inputResolved",
           occurredAt: "2026-10-26T10:02:00.000Z",
           requestStepRun: stepRun,
-          requestId: "pages",
+          requestId: "answered",
           response: {
-            requestId: "pages",
-            type: "get-urls-html-content",
-            data: { webPages: [] },
-            resolvedBy: "user-1" as never,
+            requestId: "answered",
+            type: "human-input",
+            data: { answers: ["This one"] },
           },
         },
         {
@@ -131,41 +120,32 @@ describe("the fields a list of flow runs shows", () => {
           occurredAt: "2026-10-26T10:03:00.000Z",
           stepRun,
           request: {
-            requestId: "question",
+            requestId: "open",
             stepId: "1",
             type: "human-input",
-            data: { questions: ["Which one?"] },
+            data: { questions: ["And this?"] },
           },
         },
       ]),
     );
 
-    const result = await listFieldsQuery();
+    const result = await openInputRequestsQuery();
 
     expect(result.errors).toBeUndefined();
     expect(result.data?.getFlowRunById).toEqual({
-      lastActivityAt: "2026-10-26T10:03:00.000Z",
       openInputRequests: [
         {
-          requestId: "question",
+          requestId: "open",
           stepId: "1",
           type: "human-input",
-          data: { questions: ["Which one?"] },
+          data: { questions: ["And this?"] },
           raisedAt: "2026-10-26T10:03:00.000Z",
-        },
-      ],
-      answeredPageContentRequests: [
-        {
-          requestId: "pages",
-          urls: ["https://example.com"],
-          resolvedBy: "user-1",
-          resolvedAt: "2026-10-26T10:02:00.000Z",
         },
       ],
     });
   });
 
-  it("doesn't read a closed run's record for when it was last active or its open requests", async () => {
+  it("doesn't read the record of a run that isn't running", async () => {
     mocks.flowRun = {
       flowRunEntityId: "web~run",
       status: FlowRunStatus.Completed,
@@ -173,27 +153,10 @@ describe("the fields a list of flow runs shows", () => {
       closedAt: "2026-10-26T10:05:00.000Z",
     };
 
-    const result = await graphql({
-      schema,
-      source: `query {
-        getFlowRunById(flowRunEntityId: "web~run") {
-          lastActivityAt
-          openInputRequests
-        }
-      }`,
-      contextValue: {
-        authentication: {},
-        dataSources: { uploadProvider: {} },
-        flowRunRecords: new Map(),
-        temporal: {},
-      },
-    });
+    const result = await openInputRequestsQuery();
 
     expect(result.errors).toBeUndefined();
-    expect(result.data?.getFlowRunById).toEqual({
-      lastActivityAt: "2026-10-26T10:05:00.000Z",
-      openInputRequests: [],
-    });
+    expect(result.data?.getFlowRunById).toEqual({ openInputRequests: [] });
     expect(mocks.getFlowRunRecord).not.toHaveBeenCalled();
   });
 });

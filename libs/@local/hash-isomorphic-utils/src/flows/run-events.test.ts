@@ -4,7 +4,6 @@ import { StatusCode } from "@local/status";
 
 import { FlowRunStatus } from "../graphql/api-types.gen.js";
 import {
-  getAnsweredPageContentRequests,
   getOpenInputRequests,
   toStepErrors,
   unknownErrorMessage,
@@ -65,41 +64,6 @@ describe("getOpenInputRequests", () => {
         },
       ]),
     ).toStrictEqual([]);
-  });
-});
-
-describe("getAnsweredPageContentRequests", () => {
-  it("takes a request's URLs from the pages in its answer when the request isn't in the history", () => {
-    expect(
-      getAnsweredPageContentRequests([
-        {
-          kind: "inputResolved",
-          position: "3.0",
-          occurredAt: "2026-10-26T10:02:00.000Z",
-          requestId: "pages",
-          response: {
-            requestId: "pages",
-            type: "get-urls-html-content",
-            data: {
-              webPages: [
-                {
-                  url: "https://example.com" as never,
-                  title: "Example",
-                  htmlContent: "",
-                  innerText: "",
-                },
-              ],
-            },
-          },
-        },
-      ]),
-    ).toStrictEqual([
-      {
-        requestId: "pages",
-        urls: ["https://example.com"],
-        resolvedAt: "2026-10-26T10:02:00.000Z",
-      },
-    ]);
   });
 });
 
