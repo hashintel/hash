@@ -16,6 +16,7 @@ import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { createBrunchFlueAdapter } from "../brunch-flue-adapter";
 import { definePetrinautAiInteractiveTool } from "../chat/ai-interactive-tool";
+import { fixedBrunchAssistant } from "../chat/testing/fixed-brunch-assistant";
 import { brunchPlugin, BrunchAssistantContext } from "../editor-api-plugin";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 
@@ -168,7 +169,7 @@ const ContinuityPanel = ({
   // Brunch's chat, through its plugin, as the demo shell bridges it.
   return (
     <BrunchAssistantContext
-      value={{
+      value={fixedBrunchAssistant({
         conversationId,
         interactiveTools: [voiceAnswerTool],
         messages: history.messages,
@@ -177,7 +178,7 @@ const ContinuityPanel = ({
           <VoiceMode context={context} endVoice={endVoice} />
         ),
         transport,
-      }}
+      })}
     >
       <Petrinaut
         handle={handle}

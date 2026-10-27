@@ -129,7 +129,7 @@ export const AssistantLabsSettings = ({
   const voiceDescription = !voicePreferenceReady
     ? "Loading your Voice preference…"
     : !brunchActive
-      ? "Choose Brunch in General › AI assistant to enable Voice."
+      ? "Available while Brunch is the AI assistant."
       : openAIVoiceConfig === undefined
         ? "Checking whether Voice is available…"
         : openAIVoiceConfig === null

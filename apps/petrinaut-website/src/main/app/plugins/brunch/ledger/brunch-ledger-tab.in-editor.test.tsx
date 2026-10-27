@@ -15,6 +15,7 @@ import {
   InProcessLspWorker,
   NoopResizeObserver,
 } from "../../../shared/petrinaut-jsdom";
+import { fixedBrunchAssistant } from "../chat/testing/fixed-brunch-assistant";
 import { brunchPlugin, BrunchAssistantContext } from "../editor-api-plugin";
 import { BrunchLedgerTab } from "./brunch-ledger-tab";
 
@@ -107,7 +108,7 @@ test("a reflection's net elements become the editor's selection, which the Ledge
     },
   };
   render(
-    <BrunchAssistantContext value={aiAssistant}>
+    <BrunchAssistantContext value={fixedBrunchAssistant(aiAssistant)}>
       <Petrinaut
         handle={createJsonDocHandle({
           initial: {

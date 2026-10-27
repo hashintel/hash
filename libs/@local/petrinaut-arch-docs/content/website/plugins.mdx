@@ -23,10 +23,12 @@ The demo shell passes `demoPlugins` from `plugins/demo-plugins.ts` to
 `<Petrinaut plugins>`, with `petrinautAiPlugin` and, when
 `VITE_BRUNCH_CHAT_ENDPOINT` is set, `website.brunch`. The assistant saved under
 `petrinaut-website:assistant` goes first, so the editor shows it until the user
-chooses another. The shell runs Brunch's session from `useBrunchAssistant` only
-while `pickAssistant` picks Brunch, and hands it to `website.brunch` through
-`BrunchAssistantContext`. `/ai-experiments` passes the scripted assistant
-defined beside its route in `ai-experiments-demo/`.
+chooses another. Brunch's panel content, which the editor mounts only while it
+shows Brunch, tells the shell through `BrunchAssistantContext` which document
+it shows Brunch on. The shell runs Brunch's session from `useBrunchAssistant`
+only while that document is the open net's, and hands it back through the same
+context. `/ai-experiments` passes the scripted assistant defined beside its
+route in `ai-experiments-demo/`.
 
 `/examples/$slug` and `/share` pass `[localCopyPlugin]` alone, through
 `ReadonlyDocumentPage` in `src/examples/readonly-document-page.tsx`; the embed
