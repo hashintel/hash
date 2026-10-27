@@ -14,8 +14,13 @@ import {
 } from "./conversation-words";
 import { WordsConfigurer, WordsHeaderAction } from "./words-configurer";
 
-afterEach(() => {
+afterEach(async () => {
   cleanup();
+  // Unmounting an open dialog leaves its focus trap's return-focus timer pending;
+  // let it run while jsdom's document still exists.
+  await new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
   localStorage.clear();
 });
 

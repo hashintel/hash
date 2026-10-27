@@ -1,46 +1,37 @@
 import {
   agentOwnershipHeaders,
-  brunchTools,
+  browserExecutedToolInputSchemas,
+  browserNetToolNames,
+  brunchRoutes,
   canonicalContent,
-  draftPetrinautExperimentInputSchema,
-  netReaderToolNames,
-  parseNetReaderInput,
 } from "@hashintel/brunch-agent";
-import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import type { ProcessAgentBinding } from "../conversation/use-process-agent-binding";
 import type { FlueClient } from "@flue/sdk";
-import type { ClientToolResultMetadata } from "@hashintel/brunch-agent";
+import type {
+  BrowserCallClaim,
+  BrowserCallFailureBody,
+  BrowserCallFailureDisposition,
+  BrowserCallLeaseBody,
+  BrowserCallResultBody,
+  ClientToolResultMetadata,
+} from "@hashintel/brunch-agent";
 
-/** Every tool the server may issue to this browser, by the schema that parses its input. */
-const issuedInputSchemas: Readonly<
-  Record<string, { readonly parse: (input: unknown) => unknown }>
-> = {
-  ...Object.fromEntries(
-    Object.entries(petrinautAiTools).map(([name, tool]) => [
-      name,
-      tool.inputSchema,
-    ]),
-  ),
-  ...Object.fromEntries(
-    Object.values(netReaderToolNames).map((name) => [
-      name,
-      { parse: parseNetReaderInput },
-    ]),
-  ),
-  [brunchTools.draftPetrinautExperiment]: draftPetrinautExperimentInputSchema,
+/** A call the model made that the server issued to this browser. */
+type IssuedCall = {
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly input: unknown;
+  readonly signal: AbortSignal;
 };
 
 /**
  * Decides, after the claim and before `prepareInput`, whether a call may
  * start. A refused call settles with the given output and never starts.
  */
-export type InBandBrowserCallAdmission = (call: {
-  readonly toolCallId: string;
-  readonly toolName: string;
-  readonly input: unknown;
-  readonly signal: AbortSignal;
-}) => Promise<
+export type InBandBrowserCallAdmission = (
+  call: IssuedCall,
+) => Promise<
   | { readonly admitted: true }
   | { readonly admitted: false; readonly output: unknown }
 >;
@@ -66,14 +57,9 @@ export const createInBandBrowserCalls = (input: {
   /** Whether a change issued against `expected` may still run on the bound document. */
   readonly acceptsRevision: (expected: string) => boolean;
 }) => {
-  const claim = async (call: {
-    readonly toolCallId: string;
-    readonly toolName: string;
-    readonly input: unknown;
-    readonly signal: AbortSignal;
-  }) => {
+  const claim = async (call: IssuedCall) => {
     const client = await input.client;
-    const url = `${client.url}/browser-calls/${encodeURIComponent(call.toolCallId)}`;
+    const url = `${client.url}/${brunchRoutes.browserCalls}/${encodeURIComponent(call.toolCallId)}`;
     const boundClaimUrl = `${url}?binding=${encodeURIComponent(canonicalContent(input.binding))}`;
     const headers = agentOwnershipHeaders({
       principalKey: input.principalKey,
@@ -83,22 +69,14 @@ export const createInBandBrowserCalls = (input: {
       call.signal,
       AbortSignal.timeout(6_000),
     ]);
-    let issued:
-      | {
-          capability: string;
-          binding: string;
-          toolName: string;
-          input: unknown;
-          expectedRevision?: string;
-        }
-      | undefined;
+    let issued: BrowserCallClaim | undefined;
     while (!claimSignal.aborted) {
       const response = await fetch(boundClaimUrl, {
         headers,
         signal: claimSignal,
       });
       if (response.ok) {
-        issued = (await response.json()) as typeof issued;
+        issued = (await response.json()) as BrowserCallClaim;
         break;
       }
       if (response.status !== 404)
@@ -116,7 +94,7 @@ export const createInBandBrowserCalls = (input: {
         claimSignal.addEventListener("abort", onAbort, { once: true });
       });
     }
-    const inputSchema = issuedInputSchemas[call.toolName];
+    const inputSchema = browserExecutedToolInputSchemas[call.toolName];
     if (
       !issued ||
       issued.toolName !== call.toolName ||
@@ -140,7 +118,7 @@ export const createInBandBrowserCalls = (input: {
         body: JSON.stringify({
           capability: claimed.capability,
           binding: claimed.binding,
-        }),
+        } satisfies BrowserCallLeaseBody),
         signal: call.signal,
       }).catch(() => {});
     }, 5_000);
@@ -167,7 +145,9 @@ export const createInBandBrowserCalls = (input: {
         });
       },
       release: () => clearInterval(lease),
-      fail: async (disposition: "unstarted" | "failed" = "failed") => {
+      fail: async (
+        disposition: Exclude<BrowserCallFailureDisposition, "stale"> = "failed",
+      ) => {
         clearInterval(lease);
         if (call.signal.aborted) return;
         const response = await fetch(`${url}/fail`, {
@@ -179,7 +159,7 @@ export const createInBandBrowserCalls = (input: {
             toolName: call.toolName,
             canonicalInput: claimed.input,
             disposition: stale ? "stale" : disposition,
-          }),
+          } satisfies BrowserCallFailureBody),
           signal: call.signal,
         });
         if (!response.ok)
@@ -201,7 +181,7 @@ export const createInBandBrowserCalls = (input: {
             canonicalInput: claimed.input,
             output,
             ...(metadata === undefined ? {} : { metadata }),
-          }),
+          } satisfies BrowserCallResultBody),
           signal: call.signal,
         });
         if (!response.ok)
@@ -212,21 +192,14 @@ export const createInBandBrowserCalls = (input: {
     };
   };
   return {
-    has: (toolName: string) =>
-      toolName in petrinautAiTools ||
-      Object.values<string>(netReaderToolNames).includes(toolName),
+    has: (toolName: string) => browserNetToolNames.has(toolName),
     claim,
     /**
      * Claim at this call's turn, run it under a renewed lease, then settle it.
      * A call is unstarted until `execute` is entered; after Stop nothing is reported.
      */
     run: async (
-      call: {
-        readonly toolCallId: string;
-        readonly toolName: string;
-        readonly input: unknown;
-        readonly signal: AbortSignal;
-      },
+      call: IssuedCall,
       execute: (issuedInput: unknown) => Promise<unknown>,
     ) => {
       const issued = await claim(call);

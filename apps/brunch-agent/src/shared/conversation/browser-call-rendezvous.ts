@@ -2,7 +2,14 @@ import { randomBytes } from "node:crypto";
 
 import { browserToolMutatesDocument } from "@hashintel/brunch-agent";
 
-import type { ClientToolResult } from "@hashintel/brunch-agent";
+import type {
+  BrowserCallClaim,
+  BrowserCallFailureBody,
+  BrowserCallFailureDisposition,
+  BrowserCallLeaseBody,
+  BrowserCallResultBody,
+  ClientToolResult,
+} from "@hashintel/brunch-agent";
 
 /** Process-local handoff for the documented single-owner Node deployment. No durable effects live here. */
 const leaseMs = 25_000;
@@ -29,7 +36,7 @@ const calls = new Map<string, IssuedCall>();
 /** The one model-facing error for a call that ends without a result: unstarted, unchanged, or unknown. */
 const outcomeError = (
   entry: IssuedCall,
-  cause: "unstarted" | "stale" | "failed" | "expired" | "stopped",
+  cause: BrowserCallFailureDisposition | "expired" | "stopped",
 ): Error => {
   if (cause === "stale") return new Error(BROWSER_CALL_STALE_ERROR);
   if (!entry.claimed || cause === "unstarted")
@@ -68,12 +75,13 @@ const retire = (key: string) => {
   calls.delete(key);
 };
 
-interface LeaseProof {
+/** The call a browser request addresses, by its route parameters. */
+interface CallAddress {
   readonly instanceId: string;
   readonly toolCallId: string;
-  readonly capability: string;
-  readonly binding: string;
 }
+
+type LeaseProof = CallAddress & Readonly<BrowserCallLeaseBody>;
 
 /** The claimed, unexpired call this capability and binding hold. */
 const leasedCall = (proof: LeaseProof): IssuedCall | undefined => {
@@ -89,10 +97,8 @@ const leasedCall = (proof: LeaseProof): IssuedCall | undefined => {
 
 /** A leased call that can still finish, for exactly the tool input it was issued with. */
 const deliverableCall = (
-  proof: LeaseProof & {
-    readonly toolName: string;
-    readonly canonicalInput: unknown;
-  },
+  proof: LeaseProof &
+    Readonly<Pick<BrowserCallResultBody, "toolName" | "canonicalInput">>,
 ): IssuedCall | undefined => {
   const entry = leasedCall(proof);
   return entry &&
@@ -161,7 +167,7 @@ export const claimBrowserCall = (
   instanceId: string,
   toolCallId: string,
   binding: string,
-) => {
+): BrowserCallClaim | undefined => {
   const entry = calls.get(keyFor(instanceId, toolCallId));
   if (
     !entry ||
@@ -195,15 +201,9 @@ export const renewBrowserCall = (input: LeaseProof): boolean => {
   return true;
 };
 
-export const failBrowserCall = (input: {
-  readonly instanceId: string;
-  readonly toolCallId: string;
-  readonly capability: string;
-  readonly binding: string;
-  readonly toolName: string;
-  readonly canonicalInput: unknown;
-  readonly disposition: "unstarted" | "stale" | "failed";
-}): boolean => {
+export const failBrowserCall = (
+  input: CallAddress & Readonly<BrowserCallFailureBody>,
+): boolean => {
   const key = keyFor(input.instanceId, input.toolCallId);
   const entry = deliverableCall(input);
   if (!entry) return false;
@@ -212,16 +212,9 @@ export const failBrowserCall = (input: {
   return true;
 };
 
-export const settleBrowserCall = (input: {
-  readonly instanceId: string;
-  readonly toolCallId: string;
-  readonly capability: string;
-  readonly binding: string;
-  readonly toolName: string;
-  readonly canonicalInput: unknown;
-  readonly output: unknown;
-  readonly metadata?: unknown;
-}): "settled" | "not-issued" => {
+export const settleBrowserCall = (
+  input: CallAddress & Readonly<BrowserCallResultBody>,
+): "settled" | "not-issued" => {
   const key = keyFor(input.instanceId, input.toolCallId);
   const entry = deliverableCall(input);
   if (!entry) return "not-issued";

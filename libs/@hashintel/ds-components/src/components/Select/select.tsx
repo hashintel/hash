@@ -84,8 +84,6 @@ type SelectBaseProps<TValue extends string> = {
   connectToLeftInput?: boolean;
   /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
   connectToRightInput?: boolean;
-  /** Set to allow the input to be cleared. `true` clears by calling `onChange` with `null` (or `[]` for a multi select); pass `{ onClear }` to control clearing yourself. `false` disables clearing while still reserving the clear button's space. */
-  clearable?: boolean | { onClear: () => void };
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
   tabIndex?: number;
@@ -133,11 +131,22 @@ type SelectSingleProps<TValue extends string> = {
 } & (
   | {
       required: true;
+      /** Set to let a required select be cleared too. It then shows the clear button, and `onChange` can be called with `null`. Pass `invalid` to show the empty field's error state. */
+      clearable?: false;
       value: NoInfer<TValue>;
       onChange: (value: NoInfer<TValue>) => void;
     }
   | {
+      required: true;
+      /** Set to let a required select be cleared too. It then shows the clear button, and `onChange` can be called with `null`. Pass `invalid` to show the empty field's error state. */
+      clearable: true;
+      value: NoInfer<TValue> | null | undefined;
+      onChange: (value: NoInfer<TValue> | null) => void;
+    }
+  | {
       required?: false;
+      /** A select that is not `required` is always clearable */
+      clearable?: never;
       value: NoInfer<TValue> | null | undefined;
       /** Called with the selected value — `null` when the selection is cleared. `value` stays wider (`undefined` allowed in) for consumers holding optional data. */
       onChange: (value: NoInfer<TValue> | null) => void;
@@ -149,6 +158,8 @@ type SelectMultipleProps<TValue extends string> = {
   multiple: true;
   /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
   maxItems?: number;
+  /** Set to allow the input to be cleared. `true` clears by calling `onChange` with `[]`; pass `{ onClear }` to control clearing yourself. `false` disables clearing while still reserving the clear button's space. */
+  clearable?: boolean | { onClear: () => void };
   /** How the selected values render in the trigger when no `renderSelectedAll` is given: a row that scrolls horizontally (the default), truncates with a "+X" badge, or summarises the names (falling back to "X of Y" once they no longer fit). */
   overflow?: "scroll" | "truncate" | "summary";
   /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. A searchable multi select also renders a selection summary (an "x of y" selected count and a "Select all" / "Clear all" toggle, both spanning every option regardless of the active search filter) beneath the options — hide its parts with `hideCount` / `hideSelectAllToggle`. */
@@ -405,11 +416,15 @@ export const Select = <TValue extends string>({
   const selectRef = useRef<HTMLDivElement>(null);
   const fieldIdFromContext = useFieldId();
   const inputId = htmlForId ?? fieldIdFromContext ?? undefined;
-  // Per-instance sentinel for the "clear" row — guaranteed not to collide
+  // Per-instance id for the search-empty row — guaranteed not to collide
   // with any consumer-supplied item value.
   const noneValue = useId();
 
-  const showClear = clearable !== undefined && !disabled;
+  const canClear = multiple
+    ? !!clearable
+    : required !== true || clearable === true;
+  const showClear =
+    (multiple ? clearable !== undefined : canClear) && !disabled;
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
 
@@ -723,7 +738,6 @@ export const Select = <TValue extends string>({
     return renderSingle(selectedValue);
   };
 
-  const isOptional = required !== true && !multiple;
   const atMaxItems =
     !!multiple && maxItems !== undefined && selectedValues.length >= maxItems;
   // At maxItems only the currently-selected values stay enabled, so they can be deselected
@@ -817,15 +831,6 @@ export const Select = <TValue extends string>({
       },
     );
     const searching = searchTerms.length > 0;
-    if (isOptional && !searching && mapped.length > 0) {
-      const noneItem: Item = {
-        id: noneValue,
-        text: "\u200B",
-        subItems: undefined,
-        onClick: () => {},
-      };
-      mapped.unshift(noneItem);
-    }
     if (showSearch && mapped.length === 0) {
       return [
         {
@@ -841,7 +846,6 @@ export const Select = <TValue extends string>({
     return mapped;
   }, [
     visibleItems,
-    isOptional,
     resolvedRenderItem,
     noneValue,
     multiple,
@@ -867,14 +871,11 @@ export const Select = <TValue extends string>({
       itemToValue: (item) => getItemId(item),
       itemToString: (item) => {
         const id = getItemId(item);
-        if (id === noneValue) {
-          return "";
-        }
         return valueToText.get(id) ?? id;
       },
       isItemDisabled: (item) => !!item.disabled,
     });
-  }, [menuItems, effectiveItems, noneValue]);
+  }, [menuItems, effectiveItems]);
 
   const classes = selectRecipe({
     variant,
@@ -901,7 +902,7 @@ export const Select = <TValue extends string>({
         !!renderSelectedAll ||
         overflowMode !== undefined) &&
       (connectsLeft || connectsRight),
-    willClear: showClear && !!clearable && !hasSelection,
+    willClear: showClear && canClear && !hasSelection,
   });
 
   if (readonly) {
@@ -934,10 +935,6 @@ export const Select = <TValue extends string>({
           return;
         }
         const next = nextValue[0];
-        if (next === noneValue) {
-          (onChange as (value: null) => void)(null);
-          return;
-        }
         if (next !== undefined) {
           (onChange as (value: TValue) => void)(next as TValue);
         }
@@ -1057,15 +1054,23 @@ export const Select = <TValue extends string>({
               }}
               className={cx(
                 classes.clear,
-                (!clearable || !hasSelection) && classes.hideClear,
+                (!canClear || !hasSelection) && classes.hideClear,
               )}
               aria-label="Clear input"
             >
-              <Icon
-                name="close"
-                size={iconSizeMap[size]}
+              {/* Stroked rather than the close icon so its weight follows the arrow's */}
+              <svg
+                viewBox="0 0 10 10"
+                aria-hidden="true"
                 className={classes.clearIcon}
-              />
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  d="M0 0L10 10M10 0L0 10"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
             </button>
           )}
         </div>

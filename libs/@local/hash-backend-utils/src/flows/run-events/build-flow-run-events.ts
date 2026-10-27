@@ -1,6 +1,10 @@
 import proto from "@temporalio/proto";
 
-import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
+import {
+  toStepErrors,
+  toStepRun,
+  unknownErrorMessage,
+} from "@local/hash-isomorphic-utils/flows/run-events";
 import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { StatusCode } from "@local/status";
 
@@ -13,6 +17,7 @@ import type {
   FlowStepGaveUpReason,
 } from "@local/hash-isomorphic-utils/flows/run-events";
 import type {
+  FlowRunEnding,
   RunFlowWorkflowParams,
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
@@ -39,20 +44,13 @@ const { EventType, RetryState, WorkflowTaskFailedCause } =
 const nonStepActivityTypes = [
   "getFlowDefinitionActivity",
   "persistFlowActivity",
+  "recordFlowRunActivity",
   "generateFlowRunName",
   "userHasPermissionToRunFlowInWebActivity",
 ];
 
-const unknownErrorMessage = "Unknown error";
-
 /** A step's activity type is its action definition id with this suffix, as `processFlowWorkflow` names it. */
 const actionActivitySuffix = "Action";
-
-const toStepRun = (stepRunId: string): FlowRunEventStepRun => {
-  const { stepId, itemIndex } = parseStepRunId(stepRunId);
-
-  return { stepId, itemPath: itemIndex === undefined ? [] : [itemIndex] };
-};
 
 const gaveUpReasonByRetryState: Partial<
   Record<proto.temporal.api.enums.v1.RetryState, FlowStepGaveUpReason>
@@ -62,21 +60,34 @@ const gaveUpReasonByRetryState: Partial<
   [RetryState.RETRY_STATE_TIMEOUT]: "timedOut",
 };
 
-const toStepErrors = (
-  stepErrors: NonNullable<
-    NonNullable<RunFlowWorkflowResponse["contents"][number]>["stepErrors"]
-  >,
-) =>
-  stepErrors.map(({ message, contents: [stepError] }) => {
-    if (!stepError) {
-      throw new Error(`No step id on step error: ${message}`);
-    }
+type RunFinishedEvent = Extract<FlowRunEvent, { kind: "runFinished" }>;
 
+const runFinishedStatusByEndingKind = {
+  completed: FlowRunStatus.Completed,
+  failed: FlowRunStatus.Failed,
+  cancelled: FlowRunStatus.Cancelled,
+  terminated: FlowRunStatus.Terminated,
+  timedOut: FlowRunStatus.TimedOut,
+} as const satisfies Record<FlowRunEnding["kind"], RunFinishedEvent["status"]>;
+
+/** The event for how a run ended, without its place in the run's history. */
+export const getRunFinishedEvent = (
+  ending: FlowRunEnding,
+): Omit<RunFinishedEvent, "position" | "occurredAt"> => {
+  const status = runFinishedStatusByEndingKind[ending.kind];
+
+  if (ending.kind === "terminated") {
     return {
-      stepRun: toStepRun(stepError.stepId),
-      error: { message: message ?? unknownErrorMessage },
+      kind: "runFinished",
+      status,
+      ...(ending.reason ? { failure: { message: ending.reason } } : {}),
     };
-  });
+  }
+
+  const { kind: _kind, ...fields } = ending;
+
+  return { kind: "runFinished", status, ...fields };
+};
 
 /**
  * The events of a flow run, from its Temporal history. An event depends only on its Temporal event and the ones
@@ -620,14 +631,16 @@ export const buildFlowRunEvents = (
           historyEvent.workflowExecutionCompletedEventAttributes?.result,
           "workflow result",
         );
+
         const { outputs, stepErrors } = result.contents[0] ?? {};
 
-        addEvent({
-          kind: "runFinished",
-          status: FlowRunStatus.Completed,
-          ...(outputs ? { flowOutputs: outputs } : {}),
-          ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
-        });
+        addEvent(
+          getRunFinishedEvent({
+            kind: "completed",
+            flowOutputs: outputs ?? [],
+            ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+          }),
+        );
         break;
       }
 
@@ -641,17 +654,18 @@ export const buildFlowRunEvents = (
             | undefined) ?? [];
         const stepErrors = details?.contents?.[0]?.stepErrors;
 
-        addEvent({
-          kind: "runFinished",
-          status: FlowRunStatus.Failed,
-          failure: { message: failure?.message ?? unknownErrorMessage },
-          ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
-        });
+        addEvent(
+          getRunFinishedEvent({
+            kind: "failed",
+            failure: { message: failure?.message ?? unknownErrorMessage },
+            ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+          }),
+        );
         break;
       }
 
       case EventType.EVENT_TYPE_WORKFLOW_EXECUTION_CANCELED: {
-        addEvent({ kind: "runFinished", status: FlowRunStatus.Cancelled });
+        addEvent(getRunFinishedEvent({ kind: "cancelled" }));
         break;
       }
 
@@ -659,16 +673,17 @@ export const buildFlowRunEvents = (
         const reason =
           historyEvent.workflowExecutionTerminatedEventAttributes?.reason;
 
-        addEvent({
-          kind: "runFinished",
-          status: FlowRunStatus.Terminated,
-          ...(reason ? { failure: { message: reason } } : {}),
-        });
+        addEvent(
+          getRunFinishedEvent({
+            kind: "terminated",
+            ...(reason ? { reason } : {}),
+          }),
+        );
         break;
       }
 
       case EventType.EVENT_TYPE_WORKFLOW_EXECUTION_TIMED_OUT: {
-        addEvent({ kind: "runFinished", status: FlowRunStatus.TimedOut });
+        addEvent(getRunFinishedEvent({ kind: "timedOut" }));
         break;
       }
     }

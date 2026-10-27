@@ -4,13 +4,15 @@
  * observed progress) from slow generation (deltas still arriving); it does not
  * by itself separate provider failure from hidden reasoning.
  *
- * Content policy: ids, counts and durations only — never argument text.
+ * Content policy: ids, counts, durations and turn start times only — never
+ * argument text.
  */
 
 import type {
   FlueEventContext,
   FlueObservation,
   FlueObservationSubscriber,
+  LlmTurnPurpose,
 } from "@flue/runtime";
 
 type ToolCallChronology = {
@@ -44,7 +46,9 @@ type ResponseShape = {
 
 type TurnChronology = {
   readonly turnId: string;
-  readonly purpose: string;
+  readonly purpose: LlmTurnPurpose;
+  /** ISO-8601 time of `turn_start`, the origin of this turn's millisecond offsets. */
+  readonly startedAt: string;
   /** Milliseconds from `turn_start` to the first model event; null when none arrived. */
   readonly timeToFirstEventMs: number | null;
   /** Milliseconds from `turn_start` to `turn`, or to settlement when no `turn` arrived. */
@@ -62,7 +66,10 @@ type TurnChronology = {
 
 export type SubmissionChronology = {
   readonly submissionId: string;
-  readonly outcome: "completed" | "failed" | "aborted";
+  readonly outcome: Extract<
+    FlueObservation,
+    { type: "submission_settled" }
+  >["outcome"];
   readonly turns: readonly TurnChronology[];
 };
 
@@ -78,7 +85,7 @@ type ToolCallState = {
 
 type TurnState = {
   turnId: string;
-  purpose: string;
+  purpose: LlmTurnPurpose;
   startedAt: number;
   firstEventAt: number | null;
   endedAt: number | null;
@@ -108,6 +115,7 @@ const finishTurn = (turn: TurnState, terminalAt: number): TurnChronology => {
   return {
     turnId: turn.turnId,
     purpose: turn.purpose,
+    startedAt: new Date(turn.startedAt).toISOString(),
     timeToFirstEventMs:
       turn.firstEventAt === null ? null : turn.firstEventAt - turn.startedAt,
     durationMs: endedAt - turn.startedAt,

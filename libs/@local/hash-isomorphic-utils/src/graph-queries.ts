@@ -227,7 +227,7 @@ export const mapGqlSubgraphFieldsFragmentToSubgraph = <
     | Exclude<SubgraphRootType, EntityRootType>
     | EntityRootType<HashEntity>,
 >(
-  subgraph: SubgraphFieldsFragment,
+  subgraph: Omit<SubgraphFieldsFragment, "__typename">,
 ) => deserializeSubgraph<RootType>(subgraph);
 
 export const notificationTypesToIgnore = [

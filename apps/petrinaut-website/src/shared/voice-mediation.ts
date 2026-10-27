@@ -14,7 +14,14 @@ export const voiceBriefExtractionSchema = z.object({
   ask: quote,
 });
 
-export type VoiceBriefFields = Record<string, string>;
+/** Verbatim excerpts by extraction field, plus the fields still open. */
+export type VoiceBriefFields = Partial<
+  Record<
+    | Exclude<keyof z.infer<typeof voiceBriefExtractionSchema>, "kind">
+    | "stillOpen",
+    string
+  >
+>;
 export type VoiceLine = { text: string; state: "streaming" | "done" };
 export const voiceWrapUpResponseSchema = z.object({ text: z.string() });
 

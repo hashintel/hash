@@ -1,3 +1,5 @@
+import { parseStepRunId } from "./step-run-id.js";
+
 import type { FlowRunStatus } from "../graphql/api-types.gen.js";
 import type {
   ExternalInputRequestSignal,
@@ -8,11 +10,44 @@ import type {
   StepProgressLog,
 } from "./types.js";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import type { Status } from "@local/status";
 
 /** A run of a step: the step's id in the definition and, inside `forEach` steps, its item's index in each, outermost first. */
 export type FlowRunEventStepRun = { stepId: string; itemPath: number[] };
 
 export type FlowRunEventError = { message: string };
+
+/** A step that failed after its action returned (e.g. an output of the wrong kind). */
+export type FlowRunStepError = {
+  stepRun: FlowRunEventStepRun;
+  error: FlowRunEventError;
+};
+
+export const unknownErrorMessage = "Unknown error";
+
+export const toStepRun = (stepRunId: string): FlowRunEventStepRun => {
+  const { stepId, itemIndex } = parseStepRunId(stepRunId);
+
+  return { stepId, itemPath: itemIndex === undefined ? [] : [itemIndex] };
+};
+
+/**
+ * Step errors as the workflow reports them in its result. One without a step id is left out rather than thrown on: the
+ * workflow converts them as it ends, where an error would fail its task and keep the run from ending.
+ */
+export const toStepErrors = (
+  stepErrors: Status<{ stepId: string }>[],
+): FlowRunStepError[] =>
+  stepErrors.flatMap(({ message, contents: [stepError] }) =>
+    stepError
+      ? [
+          {
+            stepRun: toStepRun(stepError.stepId),
+            error: { message: message ?? unknownErrorMessage },
+          },
+        ]
+      : [],
+  );
 
 export type FlowStepGaveUpReason =
   | "attemptsExhausted" /* every attempt the retry policy allows failed */
@@ -107,10 +142,17 @@ export type FlowRunEvent = FlowRunEventBase &
         /** The flow's outputs, when it completed. */
         flowOutputs?: StepOutput[];
         failure?: FlowRunEventError;
-        /** Steps that failed after their action returned (e.g. an output of the wrong kind), when the run records them. */
-        stepErrors?: {
-          stepRun: FlowRunEventStepRun;
-          error: FlowRunEventError;
-        }[];
+        /** Steps that failed after their action returned, when the run records them. */
+        stepErrors?: FlowRunStepError[];
       }
+  );
+
+type RunFinishedEvent = Extract<FlowRunEvent, { kind: "runFinished" }>;
+
+/** The event for how a run ended, if it has. */
+export const findRunFinishedEvent = (
+  events: FlowRunEvent[],
+): RunFinishedEvent | undefined =>
+  events.find(
+    (event): event is RunFinishedEvent => event.kind === "runFinished",
   );

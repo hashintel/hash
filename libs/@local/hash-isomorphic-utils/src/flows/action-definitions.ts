@@ -1,6 +1,10 @@
 import { checkAggregationInput } from "./aggregation.js";
 import { checkConditionInput, filterableKinds } from "./filter-condition.js";
 import { maxEntitiesPerStep } from "./limits.js";
+import {
+  checkPropertiesWithMetadataInput,
+  checkPropertyPatchesInput,
+} from "./property-values.js";
 import { checkSortKeyInput } from "./sort-key.js";
 import { checkTakeCountInput } from "./take-count.js";
 import { allPayloadKinds } from "./types.js";
@@ -8,6 +12,7 @@ import { allPayloadKinds } from "./types.js";
 import type { InferenceModelName } from "../ai-inference-types.js";
 import type {
   AcceptedKinds,
+  ActionActivitySettings,
   ActionDefinition,
   DeepReadOnly,
   FlowActionDefinitionId,
@@ -25,6 +30,7 @@ export type AiFlowActionDefinitionId =
   | "aggregate"
   | "analyzeEntityData"
   | "answerQuestion"
+  | "createEntity"
   | "filterList"
   | "find"
   | "generateChartConfig"
@@ -44,6 +50,7 @@ export type AiFlowActionDefinitionId =
   | "queryEntities"
   | "researchEntities"
   | "takeFirst"
+  | "updateEntity"
   | "webSearch"
   | "writeGoogleSheet";
 
@@ -56,9 +63,38 @@ export type IntegrationFlowActionDefinitionId =
   | "getScheduledFlights"
   | "persistIntegrationEntities";
 
+/* How each action's activity is run (see `ActionActivitySettings`). */
+
+/** An action that finishes within 5 minutes. */
+const defaultActivitySettings = {
+  startToCloseTimeoutSeconds: 300,
+  handlesCancellation: false,
+} as const satisfies ActionActivitySettings;
+
+/** An action that heartbeats at least every 10 seconds, so can run for up to 10 hours. */
+const heartbeatingActivitySettings = {
+  startToCloseTimeoutSeconds: 36_000,
+  heartbeatTimeoutSeconds: 10,
+  handlesCancellation: false,
+} as const satisfies ActionActivitySettings;
+
+/** An action that heartbeats and handles cancellation, so can run for up to 10 hours, and a cancelled run waits for it. */
+const cancellableActivitySettings = {
+  ...heartbeatingActivitySettings,
+  handlesCancellation: true,
+} as const satisfies ActionActivitySettings;
+
+/** An action that heartbeats at least every minute, so can run for up to 10 hours. */
+const slowlyHeartbeatingActivitySettings = {
+  startToCloseTimeoutSeconds: 36_000,
+  heartbeatTimeoutSeconds: 60,
+  handlesCancellation: false,
+} as const satisfies ActionActivitySettings;
+
 const aiFlowActionDefinitionsAsConst = {
   analyzeEntityData: {
     actionDefinitionId: "analyzeEntityData",
+    activitySettings: defaultActivitySettings,
     name: "Analyze Entity Data",
     description: "Analyze entity data using Python code execution.",
     kind: "action",
@@ -136,6 +172,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   generateWebQueries: {
     actionDefinitionId: "generateWebQueries",
+    activitySettings: defaultActivitySettings,
     name: "Generate Web Query",
     description: "Generate a web query based on a prompt and model.",
     kind: "action",
@@ -168,6 +205,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   webSearch: {
     actionDefinitionId: "webSearch",
+    activitySettings: defaultActivitySettings,
     name: "Web Search",
     description:
       "Perform a web search based on a query, and receive a list of URLs.",
@@ -201,6 +239,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   getWebPageByUrl: {
     actionDefinitionId: "getWebPageByUrl",
+    activitySettings: defaultActivitySettings,
     name: "Get Web Page From URL",
     description: "Get the title and content of a web page from its URL.",
     kind: "action",
@@ -223,6 +262,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   processAutomaticBrowsingSettings: {
     actionDefinitionId: "processAutomaticBrowsingSettings",
+    activitySettings: defaultActivitySettings,
     name: "Process Automatic Browsing Settings",
     description:
       "Given a web page, determine which entities to find based on the user's settings.",
@@ -261,6 +301,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   inferEntitiesFromContent: {
     actionDefinitionId: "inferEntitiesFromContent",
+    activitySettings: defaultActivitySettings,
     name: "Infer Entities From Content",
     description: "Generate proposals for entities based on text content.",
     kind: "action",
@@ -305,6 +346,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   inferMetadataFromDocument: {
     actionDefinitionId: "inferMetadataFromDocument",
+    activitySettings: defaultActivitySettings,
     name: "Infer Metadata From Document",
     description:
       "Infer metadata from a document file (document kind, title, number of pages, etc), add the relevant type to the associated entity, and propose new entities representing its author, publisher etc.",
@@ -336,6 +378,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   persistEntity: {
     actionDefinitionId: "persistEntity",
+    activitySettings: defaultActivitySettings,
     name: "Persist Entity",
     description: "Persist a proposed entity in the database.",
     kind: "action",
@@ -368,6 +411,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   persistEntities: {
     actionDefinitionId: "persistEntities",
+    activitySettings: heartbeatingActivitySettings,
     name: "Persist Entities",
     description: "Persist multiple proposed entities in the database.",
     kind: "action",
@@ -408,6 +452,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   getFileFromUrl: {
     actionDefinitionId: "getFileFromUrl",
+    activitySettings: defaultActivitySettings,
     name: "Get File From URL",
     description: "Download a file from a URL and upload a copy to HASH",
     kind: "action",
@@ -442,6 +487,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   researchEntities: {
     actionDefinitionId: "researchEntities",
+    activitySettings: cancellableActivitySettings,
     name: "Research Entities",
     description: "Find entities on the web based on a research prompt.",
     kind: "action",
@@ -495,6 +541,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   getWebPageSummary: {
     actionDefinitionId: "getWebPageSummary",
+    activitySettings: defaultActivitySettings,
     name: "Get Web Page Summary",
     description: "Get a human-readable text summary of a web page.",
     kind: "action",
@@ -543,6 +590,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   answerQuestion: {
     actionDefinitionId: "answerQuestion",
+    activitySettings: defaultActivitySettings,
     name: "Answer Question Action",
     description:
       "Answer a question using the provided context. Question may specify any text output format, e.g. string, CSV, markdown, etc.",
@@ -602,6 +650,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   generateChartConfig: {
     actionDefinitionId: "generateChartConfig",
+    activitySettings: defaultActivitySettings,
     name: "Generate Chart Config",
     description:
       "Generate Apache ECharts configuration for chart data based on the user's visualization goal.",
@@ -666,6 +715,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   generateStructuralQuery: {
     actionDefinitionId: "generateStructuralQuery",
+    activitySettings: defaultActivitySettings,
     name: "Generate Structural Query",
     description:
       "Generate a structural query for entity data based on a natural language goal.",
@@ -729,6 +779,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   planDashboardRefinement: {
     actionDefinitionId: "planDashboardRefinement",
+    activitySettings: defaultActivitySettings,
     name: "Plan Dashboard Refinement",
     description:
       "Determine the earliest dashboard configuration stage affected by a refinement instruction.",
@@ -784,6 +835,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   writeGoogleSheet: {
     actionDefinitionId: "writeGoogleSheet",
+    activitySettings: defaultActivitySettings,
     name: "Write Google Sheet Action",
     description: "Writes the requested data to the specified Google Sheet",
     kind: "action",
@@ -841,6 +893,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   aggregate: {
     actionDefinitionId: "aggregate",
+    activitySettings: defaultActivitySettings,
     name: "Aggregate",
     description:
       "Count the items of a list, or take the sum, average, minimum or maximum of a number read from each, ignoring items without one.",
@@ -873,6 +926,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   filterList: {
     actionDefinitionId: "filterList",
+    activitySettings: defaultActivitySettings,
     name: "Filter List",
     description:
       "Split a list into the items that match a condition and those that don't, keeping their order.",
@@ -909,6 +963,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   find: {
     actionDefinitionId: "find",
+    activitySettings: defaultActivitySettings,
     name: "Find",
     description:
       "Find the first item of a list that matches a condition, or the first item if there is no condition.",
@@ -940,6 +995,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   if: {
     actionDefinitionId: "if",
+    activitySettings: defaultActivitySettings,
     name: "If",
     description:
       "Pass a value on unchanged to the true or false output, depending on whether it matches a condition.",
@@ -978,6 +1034,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   orderBy: {
     actionDefinitionId: "orderBy",
+    activitySettings: defaultActivitySettings,
     name: "Order By",
     description:
       "Sort a list by the items, one of their fields or an entity property, keeping equal items in their order. Items without a value go last.",
@@ -1008,6 +1065,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   queryEntities: {
     actionDefinitionId: "queryEntities",
+    activitySettings: defaultActivitySettings,
     name: "Query Entities",
     description:
       "Get the entities in the web that match a graph query. Archived entities are left out.",
@@ -1031,8 +1089,92 @@ const aiFlowActionDefinitionsAsConst = {
       },
     ],
   },
+  createEntity: {
+    actionDefinitionId: "createEntity",
+    activitySettings: defaultActivitySettings,
+    name: "Create Entity",
+    description:
+      "Create an entity of one or more types in the web the flow runs in, with values for some of its properties.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["VersionedUrl"],
+        name: "entityTypeIds",
+        description: "The types of the entity to create.",
+        required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["PropertyObjectWithMetadata"],
+        name: "properties",
+        description:
+          "The entity's properties with their metadata, as the graph takes them: values keyed by property type base URL, each giving the ID of its data type and optionally its provenance and confidence.",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Boolean"],
+        name: "draft",
+        description:
+          "Whether to create the entity as a draft, whose required properties can be left out.",
+        required: false,
+        default: {
+          kind: "Boolean",
+          value: false,
+        },
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "EntityId",
+        name: "entityId",
+        description: "The new entity, with a draft ID if it's a draft.",
+        array: false,
+        required: true,
+      },
+    ],
+    check: checkPropertiesWithMetadataInput,
+  },
+  updateEntity: {
+    actionDefinitionId: "updateEntity",
+    activitySettings: defaultActivitySettings,
+    name: "Update Entity",
+    description:
+      "Set or remove some of the properties of an entity in the web the flow runs in, leaving its other properties as they are.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["EntityId"],
+        name: "entityId",
+        description:
+          "The entity to update: the draft for an entity ID with a draft ID, otherwise the live entity.",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["PropertyPatch"],
+        name: "propertyPatches",
+        description:
+          "The changes to make, in order, as the graph takes them. Each changes the whole property at its path, a property type base URL, and no two change the same property: add sets it, replacing any value it has; replace changes one the entity has; remove removes it if the entity has it. Added and replaced values give the ID of their data type.",
+        required: true,
+        array: true,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "EntityId",
+        name: "entityId",
+        description: "The entity updated: the same entity ID as given.",
+        array: false,
+        required: true,
+      },
+    ],
+    check: checkPropertyPatchesInput,
+  },
   takeFirst: {
     actionDefinitionId: "takeFirst",
+    activitySettings: defaultActivitySettings,
     name: "Take First",
     description:
       "Keep the first items of a list, up to a count: all of them if the list is shorter.",
@@ -1070,6 +1212,7 @@ const aiFlowActionDefinitionsAsConst = {
 const integrationFlowActionDefinitionsAsConst = {
   getHistoricalFlightArrivals: {
     actionDefinitionId: "getHistoricalFlightArrivals",
+    activitySettings: slowlyHeartbeatingActivitySettings,
     name: "Get Historical Flight Arrivals",
     description:
       "Fetch historical flight arrivals from AeroAPI for a given airport and date range.",
@@ -1112,6 +1255,7 @@ const integrationFlowActionDefinitionsAsConst = {
   },
   getLiveFlightPositions: {
     actionDefinitionId: "getLiveFlightPositions",
+    activitySettings: defaultActivitySettings,
     name: "Get Live Flight Positions",
     description:
       "Fetch live flight positions from FlightRadar24 for flights that have departed or recently arrived.",
@@ -1138,6 +1282,7 @@ const integrationFlowActionDefinitionsAsConst = {
   },
   getScheduledFlights: {
     actionDefinitionId: "getScheduledFlights",
+    activitySettings: defaultActivitySettings,
     name: "Get Scheduled Flights",
     description:
       "Fetch scheduled flight arrivals from AeroAPI for a given airport and date.",
@@ -1172,6 +1317,7 @@ const integrationFlowActionDefinitionsAsConst = {
   },
   persistIntegrationEntities: {
     actionDefinitionId: "persistIntegrationEntities",
+    activitySettings: slowlyHeartbeatingActivitySettings,
     name: "Persist Integration Entities",
     description:
       "Persist proposed entities from an integration to the graph database.",

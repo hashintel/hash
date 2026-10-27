@@ -25,11 +25,11 @@ import { LiveSpeechCaptions } from "./live-speech-captions";
 import { createUtteranceJudgmentRequester } from "./request-utterance-judgment";
 
 import type { InterviewBudgetLevel } from "../../../../../../shared/interview-budget";
+import type { PetrinautAiVoiceModeContext } from "../../chat/ai-assistant-composer-control";
 import type {
   OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../session/voice-interview-control";
-import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 type LiveControlsContext = PetrinautAiVoiceModeContext &
   Required<

@@ -1,7 +1,7 @@
 import { interviewBudgetLevelsConfig } from "../../../../../shared/interview-budget";
 
 import type { InterviewBudgetLevel } from "../../../../../shared/interview-budget";
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiMessage } from "../chat/ai-assistant-panel";
 
 /** A level change, shown as a note after the message it followed. */
 export interface InterviewBudgetLevelChange {
