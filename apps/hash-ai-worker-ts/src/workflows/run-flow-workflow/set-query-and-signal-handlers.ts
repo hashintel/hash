@@ -22,12 +22,13 @@ import type {
 
 const sinks = proxySinks<SentrySinks>();
 
+/** Retried until it succeeds, as lists show a run's open input requests only once they're saved. */
 const { saveOpenInputRequestsActivity } = proxyActivities<
   ReturnType<typeof createCommonFlowActivities>
 >({
   startToCloseTimeout: "60 second",
   retry: {
-    maximumAttempts: 3,
+    maximumInterval: "1 minute",
   },
 });
 
