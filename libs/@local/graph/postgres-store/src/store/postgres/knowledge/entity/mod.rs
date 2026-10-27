@@ -99,7 +99,6 @@ use type_system::{
     },
     provenance::validation::{ProvenanceValidator, ProvenanceViolation, ProvenanceViolations},
 };
-use uuid::{NoContext, Uuid};
 
 use crate::store::{
     AsClient, GenericClientIter as _, PostgresStore,
@@ -1224,12 +1223,15 @@ where
         for params in &params {
             let entity_id = EntityId {
                 web_id: params.web_id,
-                entity_uuid: params
-                    .entity_uuid
-                    .unwrap_or_else(|| EntityUuid::new(uuid_v7_at(transaction_time))),
+                entity_uuid: match params.entity_uuid {
+                    Some(entity_uuid) => entity_uuid,
+                    None => EntityUuid::new_v7(transaction_time).change_context(InsertionError)?,
+                },
                 draft_id: params
                     .draft
-                    .then(|| DraftId::new(uuid_v7_at(transaction_time))),
+                    .then(|| DraftId::new_v7(transaction_time))
+                    .transpose()
+                    .change_context(InsertionError)?,
             };
             policy_components_builder.add_entity(
                 actor_id,
@@ -1518,7 +1520,8 @@ where
                 });
             }
 
-            let entity_edition_id = EntityEditionId::new(uuid_v7_at(transaction_time));
+            let entity_edition_id =
+                EntityEditionId::new_v7(transaction_time).change_context(InsertionError)?;
             entity_edition_rows.push(EntityEditionRow {
                 entity_edition_id,
                 properties: properties.clone(),
@@ -2751,17 +2754,6 @@ where
     }
 }
 
-/// A version 7 UUID that carries `timestamp`, so the ID sorts with the time it is stored with.
-///
-/// A timestamp before the Unix epoch, which a version 7 UUID cannot hold, takes the current time.
-fn uuid_v7_at<A>(timestamp: Timestamp<A>) -> Uuid {
-    let (seconds, nanoseconds) = timestamp.to_unix();
-    u64::try_from(seconds).map_or_else(
-        |_| Uuid::now_v7(),
-        |seconds| Uuid::new_v7(uuid::Timestamp::from_unix(NoContext, seconds, nanoseconds)),
-    )
-}
-
 /// Builds the statement populating `entity_edition_cache` by aggregating the editions'
 /// `entity_is_of_type` rows joined to the referenced types.
 ///
@@ -3479,28 +3471,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-    use uuid::Version;
-
-    use super::{insert_entity_edition_cache_statement, uuid_v7_at};
-
-    #[test]
-    fn uuid_v7_carries_timestamp() {
-        let uuid = uuid_v7_at(Timestamp::<TransactionTime>::from_unix_timestamp(
-            1_700_000_000,
-        ));
-
-        assert_eq!(
-            uuid.get_version(),
-            Some(Version::SortRand),
-            "the UUID should be a UUIDv7"
-        );
-        assert_eq!(
-            uuid.get_timestamp().map(|timestamp| timestamp.to_unix()),
-            Some((1_700_000_000, 0)),
-            "the UUID should carry the timestamp it was built from"
-        );
-    }
+    use super::insert_entity_edition_cache_statement;
 
     #[test]
     fn cache_statement_scoping() {

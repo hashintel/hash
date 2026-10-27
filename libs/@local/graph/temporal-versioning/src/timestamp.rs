@@ -92,10 +92,12 @@ impl<A> Timestamp<A> {
         }
     }
 
-    /// The whole seconds since the Unix epoch, and the nanoseconds past that second.
+    /// The time elapsed from the Unix epoch to this timestamp.
+    ///
+    /// Returns `None` if the timestamp lies before the Unix epoch.
     #[must_use]
-    pub const fn to_unix(self) -> (i64, u32) {
-        (self.time.unix_timestamp(), self.time.nanosecond())
+    pub fn duration_since_unix_epoch(self) -> Option<core::time::Duration> {
+        core::time::Duration::try_from(self.time - OffsetDateTime::UNIX_EPOCH).ok()
     }
 
     #[must_use]
