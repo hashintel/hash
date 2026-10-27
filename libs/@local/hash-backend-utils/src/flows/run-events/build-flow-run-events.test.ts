@@ -245,7 +245,7 @@ const inProgressEvents: ExpectedEvent[] = [
   ],
 ];
 
-const checkpointId = "23022ee1-7f04-4a6d-9588-771bf4157d7a";
+const checkpointId = "0634234e-d502-44bf-8c3a-32b120910fd7";
 
 const checkpointLog: ExpectedEvent = [
   "40.0",
@@ -255,8 +255,8 @@ const checkpointLog: ExpectedEvent = [
     log: {
       type: "ResearchActionCheckpoint",
       checkpointId,
-      eventId: 42,
-      recordedAt: "2026-10-24T11:10:54.468Z",
+      eventId: 40,
+      recordedAt: "2026-10-24T13:29:11.739Z",
       stepId: "research",
     },
   },
@@ -1000,7 +1000,7 @@ describe("buildFlowRunEvents", () => {
           log: planLog(
             "CreatedPlan",
             "Search the web",
-            "2026-10-24T11:10:55.480Z",
+            "2026-10-24T13:29:12.741Z",
           ),
         },
       ],

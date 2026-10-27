@@ -1022,6 +1022,7 @@ export type ResetToCheckpointLog = ProgressLogBase & {
 export type CheckpointLog = ProgressLogBase & {
   type: "ResearchActionCheckpoint";
   checkpointId: string;
+  /** The id of the checkpoint's signal in the run's history, which resetting to the checkpoint resets from. */
   eventId: number;
 };
 

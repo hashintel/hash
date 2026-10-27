@@ -41,9 +41,9 @@
     {
       "stepId": "research",
       "stepType": "researchEntitiesAction",
-      "startedAt": "2026-10-24T11:10:56.514Z",
-      "scheduledAt": "2026-10-24T11:10:53.462Z",
-      "closedAt": "2026-10-24T11:10:56.525Z",
+      "startedAt": "2026-10-24T13:29:13.765Z",
+      "scheduledAt": "2026-10-24T13:29:11.733Z",
+      "closedAt": "2026-10-24T13:29:13.773Z",
       "inputs": [
         {
           "inputs": [
@@ -60,9 +60,9 @@
       "logs": [
         {
           "type": "ResearchActionCheckpoint",
-          "checkpointId": "23022ee1-7f04-4a6d-9588-771bf4157d7a",
-          "eventId": 42,
-          "recordedAt": "2026-10-24T11:10:54.468Z",
+          "checkpointId": "0634234e-d502-44bf-8c3a-32b120910fd7",
+          "eventId": 40,
+          "recordedAt": "2026-10-24T13:29:11.739Z",
           "stepId": "research"
         }
       ],
@@ -95,5 +95,5 @@
       ]
     }
   ],
-  "startedAt": "2026-10-24T11:10:53.382Z"
+  "startedAt": "2026-10-24T13:29:11.660Z"
 }

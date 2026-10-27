@@ -577,7 +577,7 @@ export const buildFlowRunEvents = (
               log: {
                 type: "ResearchActionCheckpoint",
                 checkpointId,
-                eventId: Number(eventId) + 2,
+                eventId: Number(eventId),
                 recordedAt,
                 stepId,
               },
