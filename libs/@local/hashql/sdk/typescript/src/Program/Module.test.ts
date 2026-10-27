@@ -10,6 +10,7 @@ import * as JExpr from "../JExpr/index.js";
 import * as TypeSyntax from "../JExpr/Type/index.js";
 import * as Expression from "./Expression.js";
 import * as Module from "./Module.js";
+import * as Namespace from "./Namespace.js";
 import * as TypeExpression from "./TypeExpression.js";
 
 import type * as Type from "../Type.js";
@@ -517,6 +518,27 @@ describe("module_protocols", () => {
     expect(Equal.equals(visibleModule, freshModule)).toBe(
       Equal.equals(member, fresh),
     );
+  });
+
+  test("namespace_views_forward_inherited_protocols", () => {
+    expect.hasAssertions();
+    const child = Result.getOrThrow(Module.define("::child", {}));
+    const source = Result.getOrThrow(
+      Module.define("::source", { modules: { child } }),
+    );
+    const viewed = Namespace.flatten(source).child;
+    const joined = Namespace.combine(
+      viewed,
+      TypeExpression.reference<Type.PrimitiveInteger>(path("::Integer")),
+    );
+    expect(viewed.pipe((module) => JExpr.Path.compile(module.path))).toBe(
+      "::child",
+    );
+    expect(joined.pipe((module) => JExpr.Path.compile(module.path))).toBe(
+      "::child",
+    );
+    equivalent(viewed, child);
+    equivalent(joined, child);
   });
 
   test("nested_relocation_protocols", () => {
