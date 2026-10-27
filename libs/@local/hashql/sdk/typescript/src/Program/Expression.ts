@@ -41,6 +41,8 @@ import type { Types } from "effect";
 export type { Conditional } from "./ExpressionType.js";
 
 const TypeId = "~hashql/Expression";
+export type TypeId = typeof TypeId;
+
 const Binding: unique symbol = Symbol("~hashql/Expression");
 
 interface Variance<T, Inputs> {
@@ -66,49 +68,46 @@ type InputAlternatives<E> = E extends Primitive
         : { readonly [Key in keyof Requirements]: Requirements[Key] }
     : Input.Erased;
 
-/** The semantic input descriptors required by every host-side alternative, with defaults marked optional. */
-export type Inputs<E> = Input.Conservative<InputAlternatives<E>>;
-
-/** Semantic metadata and stored construction result shared by expressions and adapted callables. */
-export interface Handle<T extends Type.Any, Inputs> extends Expression.Any {
-  readonly [TypeId]: Variance<T, Inputs>;
-  readonly [Relocate]: Relocatable<Expression<T, Inputs>>[typeof Relocate];
-}
-
 /**
  * An exactly typed handle or the host primitive corresponding to its semantic descriptor.
  *
  * Argument compatibility uses the semantic metadata that adapted callables retain. {@link Type.PrimitiveInteger} operands accept bigint and Integer handles. TypeScript rejects a host number at that position rather than widening its descriptor.
  */
 export type Value<T extends Type.Any> =
-  | (Expression.Any & Pick<Handle<T, never>, typeof TypeId | typeof Binding>)
+  | (Expression.Any &
+      Pick<Expression.Handle<T, never>, typeof TypeId | typeof Binding>)
   | (T extends Type.Primitive ? T["value"] : never);
 
 export declare namespace Value {
   /** An expression or host literal accepted by syntax-only operations such as {@link toJExpr}. */
   export type Any = Expression.Any | Primitive;
-}
 
-/**
- * Reads semantic metadata without constraining an adapted callable to its original host signature.
- *
- * Host numbers remain {@link Type.PrimitiveNumber} regardless of their emitted literal syntax.
- */
-export type TypeOf<V extends Value.Any> = V extends {
-  readonly [TypeId]: { readonly _T: Types.Invariant<infer T extends Type.Any> };
+  /**
+   * Reads semantic metadata without constraining an adapted callable to its original host signature.
+   *
+   * Host numbers remain {@link Type.PrimitiveNumber} regardless of their emitted literal syntax.
+   */
+  export type Type<V extends Any> = V extends {
+    readonly [TypeId]: {
+      readonly _T: Types.Invariant<infer T extends Type.Any>;
+    };
+  }
+    ? T
+    : V extends string
+      ? Type.PrimitiveString
+      : V extends boolean
+        ? Type.PrimitiveBoolean
+        : V extends bigint
+          ? Type.PrimitiveInteger
+          : V extends number
+            ? Type.PrimitiveNumber
+            : V extends null
+              ? Type.PrimitiveNull
+              : never;
+
+  /** The semantic input descriptors required by every host-side alternative, with defaults marked optional. */
+  export type Inputs<E> = Input.Conservative<InputAlternatives<E>>;
 }
-  ? T
-  : V extends string
-    ? Type.PrimitiveString
-    : V extends boolean
-      ? Type.PrimitiveBoolean
-      : V extends bigint
-        ? Type.PrimitiveInteger
-        : V extends number
-          ? Type.PrimitiveNumber
-          : V extends null
-            ? Type.PrimitiveNull
-            : never;
 
 class ExpressionImpl<T extends Type.Any, Inputs> {
   readonly [TypeId]: Variance<T, Inputs>;
@@ -157,18 +156,35 @@ class ExpressionImpl<T extends Type.Any, Inputs> {
  * ```
  */
 export type Expression<T extends Type.Any, Inputs> = [T] extends [Type.Any]
-  ? Expression.Shape<T, Inputs>
+  ? Expression.Base<T, Inputs>
   : never;
 
 export declare namespace Expression {
   /** The structural type underlying {@link Expression}, including its descriptor-selected operations. */
-  export type Shape<T extends Type.Any, Inputs> = Handle<T, Inputs> &
+  export type Base<T extends Type.Any, Inputs> = Handle<T, Inputs> &
     Accessors<T, Inputs> &
     Callable<T, Inputs>;
 
   /** An expression with its semantic type erased, for syntax-only operations. */
   export interface Any extends Relocatable<Any>, Pipeable.Pipeable {
     readonly [Binding]: Result.Result<AST.Node, ProgramError.Construction>;
+  }
+
+  /** Semantic metadata and stored construction result shared by expressions and adapted callables. */
+  export interface Handle<T extends Type.Any, Inputs> extends Any {
+    readonly [TypeId]: Variance<T, Inputs>;
+    readonly [Relocate]: Relocatable<Expression<T, Inputs>>[typeof Relocate];
+  }
+
+  /** A replacement call signature with the source expression's semantic metadata. */
+  export type Adapted<T extends Type.Any, I, C> = C & Adapted.Metadata<T, I, C>;
+
+  export namespace Adapted {
+    /** The expression an adapted callable remains, relocating to an adapted callable rather than to its source. */
+    export interface Metadata<T extends Type.Any, I, C> extends Any {
+      readonly [TypeId]: Variance<T, I>;
+      readonly [Relocate]: Relocatable<Adapted<T, I, C>>[typeof Relocate];
+    }
   }
 }
 
@@ -179,7 +195,7 @@ export declare namespace Expression {
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- the guard accepts unchecked host values
 export const isExpression = (value: unknown): value is Expression.Any =>
-  Predicate.hasProperty(value, Binding);
+  Predicate.hasProperty(value, TypeId);
 
 const jexprParser = SchemaParser.decodeResult(Schema.toType(JExpr.Schema));
 
@@ -188,10 +204,7 @@ const parseNode = (
 ): Result.Result<AST.Node, ProgramError.Construction> =>
   Result.mapBoth(jexprParser(expression), {
     onSuccess: (syntax) => new AST.Expr(syntax),
-    onFailure: (cause) =>
-      ProgramError.Construction.make({
-        reason: ProgramError.Reason.make({ _tag: "InvalidExpression", cause }),
-      }),
+    onFailure: (cause) => ProgramError.Construction.invalidExpression(cause),
   });
 
 /**
@@ -250,7 +263,7 @@ const access = (
 const make = <T extends Type.Any, Inputs>(
   impl: ExpressionImpl<T, Inputs>,
 ): Expression<T, Inputs> => {
-  const target: Handle<T, Inputs> = Object.assign(
+  const target: Expression.Handle<T, Inputs> = Object.assign(
     (...args: Arguments.Any) =>
       make(
         new ExpressionImpl(
@@ -371,17 +384,6 @@ export const fromNode = <T extends Type.Any, Inputs>(
   node: AST.Node,
 ): Expression<T, Inputs> => pipe(node, Result.succeed, fromResult<T, Inputs>);
 
-/** A replacement call signature with the source expression's semantic metadata. */
-export type Adapted<T extends Type.Any, I, C> = C & Adapted.Metadata<T, I, C>;
-
-export declare namespace Adapted {
-  /** The expression an adapted callable remains, relocating to an adapted callable rather than to its source. */
-  export interface Metadata<T extends Type.Any, I, C> extends Expression.Any {
-    readonly [TypeId]: Variance<T, I>;
-    readonly [Relocate]: Relocatable<Adapted<T, I, C>>[typeof Relocate];
-  }
-}
-
 /**
  * Adapts host arguments while preserving expression metadata and rebinding.
  *
@@ -426,7 +428,7 @@ export const adaptCallable: {
     },
   >(
     adapt: (self: Expression<T, I>) => C,
-  ): (self: Expression<T, I>) => Adapted<T, I, C>;
+  ): (self: Expression<T, I>) => Expression.Adapted<T, I, C>;
   <
     T extends Type.Any,
     I,
@@ -436,7 +438,7 @@ export const adaptCallable: {
   >(
     self: Expression<T, I>,
     adapt: (self: Expression<T, I>) => C,
-  ): Adapted<T, I, C>;
+  ): Expression.Adapted<T, I, C>;
 } = Function.dual(
   2,
   <
@@ -448,7 +450,7 @@ export const adaptCallable: {
   >(
     self: Expression<T, I>,
     adapt: (self: Expression<T, I>) => C,
-  ): Adapted<T, I, C> => {
+  ): Expression.Adapted<T, I, C> => {
     // The markers go on a fresh function, because `adapt` may return an object that other code holds, such as `self` itself. Assigning to that object would make its relocation call itself.
     const adapted = adapt(self);
     // SAFETY: the forwarder passes its arguments to `adapted` and returns its result, so it has `C`'s call signatures.
@@ -460,8 +462,10 @@ export const adaptCallable: {
       [Binding]: self[Binding],
       [Relocate]: (
         path: JExpr.Path.Path,
-      ): Result.Result<Adapted<T, I, C>, ProgramError.Construction> =>
-        self[Relocate](path).pipe(Result.map(adaptCallable(adapt))),
+      ): Result.Result<
+        Expression.Adapted<T, I, C>,
+        ProgramError.Construction
+      > => self[Relocate](path).pipe(Result.map(adaptCallable(adapt))),
       ...Pipeable.Prototype,
     });
   },
@@ -494,8 +498,8 @@ export const adaptCallable: {
  */
 export const assume =
   <T extends Type.Any>() =>
-  <E extends Value.Any>(expression: E): Expression<T, Inputs<E>> =>
-    pipe(expression, toNode, fromResult<T, Inputs<E>>);
+  <E extends Value.Any>(expression: E): Expression<T, Value.Inputs<E>> =>
+    pipe(expression, toNode, fromResult<T, Value.Inputs<E>>);
 
 /**
  * Constructs a typed host literal with no input requirements.
@@ -504,7 +508,7 @@ export const assume =
  */
 export const literal = <const V extends Primitive>(
   value: V,
-): Expression<TypeOf<V>, Input.Empty> => fromJExpr(JExpr.literal(value));
+): Expression<Value.Type<V>, Input.Empty> => fromJExpr(JExpr.literal(value));
 
 /**
  * Constructs an Integer literal from a bigint or integral host number.
@@ -525,7 +529,7 @@ export const number = (
 /**
  * References a program input, optionally supplying its default expression.
  *
- * The inferred {@link Inputs} record requires the input when you omit the default or pass `undefined`. A definitely present default makes this occurrence optional, but another required use of the same name takes precedence. If the default's type includes `undefined`, the input remains required. Requirements of the default expression also contribute to the result.
+ * The inferred {@link Value.Inputs} record requires the input when you omit the default or pass `undefined`. A definitely present default makes this occurrence optional, but another required use of the same name takes precedence. If the default's type includes `undefined`, the input remains required. Requirements of the default expression also contribute to the result.
  *
  * @param name - The input name emitted into the program.
  * @param type - The input's HashQL type, which also constrains the default.
@@ -566,7 +570,7 @@ export function input<
   defaultValue: Default,
 ): Expression<
   T,
-  Input.Merge<Readonly<Partial<Record<Name, T>>>, Inputs<Default>>
+  Input.Merge<Readonly<Partial<Record<Name, T>>>, Value.Inputs<Default>>
 >;
 export function input<
   const Name extends string,
@@ -576,7 +580,7 @@ export function input<
   name: Name,
   type: TypeExpression.TypeExpression<T>,
   defaultValue: Default | undefined,
-): Expression<T, Input.Merge<Readonly<Record<Name, T>>, Inputs<Default>>>;
+): Expression<T, Input.Merge<Readonly<Record<Name, T>>, Value.Inputs<Default>>>;
 export function input<T extends Type.Any>(
   name: string,
   type: TypeExpression.TypeExpression<T>,
@@ -625,8 +629,11 @@ export const ifElse: {
   }): <const Condition extends Value<Type.PrimitiveBoolean>>(
     condition: Condition,
   ) => Expression<
-    Conditional<TypeOf<Then>, TypeOf<Else>>,
-    Input.Merge<Inputs<Condition>, Input.Merge<Inputs<Then>, Inputs<Else>>>
+    Conditional<Value.Type<Then>, Value.Type<Else>>,
+    Input.Merge<
+      Value.Inputs<Condition>,
+      Input.Merge<Value.Inputs<Then>, Value.Inputs<Else>>
+    >
   >;
   <
     const Condition extends Value<Type.PrimitiveBoolean>,
@@ -636,8 +643,11 @@ export const ifElse: {
     condition: Condition,
     branches: { readonly then: Then; readonly else: Else },
   ): Expression<
-    Conditional<TypeOf<Then>, TypeOf<Else>>,
-    Input.Merge<Inputs<Condition>, Input.Merge<Inputs<Then>, Inputs<Else>>>
+    Conditional<Value.Type<Then>, Value.Type<Else>>,
+    Input.Merge<
+      Value.Inputs<Condition>,
+      Input.Merge<Value.Inputs<Then>, Value.Inputs<Else>>
+    >
   >;
 } = Function.dual(
   2,
@@ -649,8 +659,11 @@ export const ifElse: {
     condition: Condition,
     branches: { readonly then: Then; readonly else: Else },
   ): Expression<
-    Conditional<TypeOf<Then>, TypeOf<Else>>,
-    Input.Merge<Inputs<Condition>, Input.Merge<Inputs<Then>, Inputs<Else>>>
+    Conditional<Value.Type<Then>, Value.Type<Else>>,
+    Input.Merge<
+      Value.Inputs<Condition>,
+      Input.Merge<Value.Inputs<Then>, Value.Inputs<Else>>
+    >
   > =>
     pipe(
       {
@@ -664,8 +677,11 @@ export const ifElse: {
           new AST.If(condition, consequent, alternate),
       ),
       fromResult<
-        Conditional<TypeOf<Then>, TypeOf<Else>>,
-        Input.Merge<Inputs<Condition>, Input.Merge<Inputs<Then>, Inputs<Else>>>
+        Conditional<Value.Type<Then>, Value.Type<Else>>,
+        Input.Merge<
+          Value.Inputs<Condition>,
+          Input.Merge<Value.Inputs<Then>, Value.Inputs<Else>>
+        >
       >,
     ),
 );

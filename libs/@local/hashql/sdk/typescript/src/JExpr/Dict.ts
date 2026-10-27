@@ -24,8 +24,11 @@ export const Schema: typeof Defs.Dict = Defs.Dict;
  * ```
  */
 export interface Dict extends Defs.DictType {}
-/** The schema-encoded representation of {@link Dict}. */
-export interface Encoded extends Defs.DictEncoded {}
+
+export declare namespace Dict {
+  /** The schema-encoded representation of {@link Dict}. */
+  export interface Encoded extends Defs.DictEncoded {}
+}
 
 /** Input accepted by {@link make} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];

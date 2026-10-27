@@ -12,8 +12,11 @@ export const Schema: typeof Defs.Tuple = Defs.Tuple;
  * An empty tuple is valid. HashQL determines each element's type.
  */
 export interface Tuple extends Defs.TupleType {}
-/** The schema-encoded representation of `Tuple`. */
-export interface Encoded extends Defs.TupleEncoded {}
+
+export declare namespace Tuple {
+  /** The schema-encoded representation of `Tuple`. */
+  export interface Encoded extends Defs.TupleEncoded {}
+}
 
 /** Input accepted by {@link make} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];
