@@ -6,7 +6,7 @@ import {
   interviewBudgetLevels,
   liveInterviewBudgetInstruction,
   liveInterviewBudgetUpdate,
-} from "./interview-budget";
+} from "./interview-budget-levels";
 
 it("uses mode-specific caps and keeps already asked questions after a downgrade", () => {
   expect(getInterviewBudget("quick", "text", 4)).toEqual({

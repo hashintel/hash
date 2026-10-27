@@ -86,12 +86,14 @@ import {
 import { useConversationWords } from "./words/conversation-words";
 import { WordsHeaderAction } from "./words/words-configurer";
 
-import type { InterviewBudgetLevel } from "../shared/interview-budget";
 import type { VoiceWord } from "../shared/voice-words";
 import type { PetrinautAiComposerControlContext } from "./chat/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
-import type { SdcpnInitialData } from "@hashintel/brunch-agent";
+import type {
+  InterviewBudgetLevel,
+  SdcpnInitialData,
+} from "@hashintel/brunch-agent";
 
 const subscribeToNothing = () => () => {};
 const readNothing = () => undefined;

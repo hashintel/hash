@@ -1,10 +1,10 @@
-import type { BrunchInputMode } from "../../shared/interview-budget";
 import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
 import type {
   PetrinautAiVoiceSessionPhase,
   PetrinautAiVoiceSessionState,
   VoiceAudioSettingsActions,
 } from "./voice-session/types";
+import type { BrunchInputMode } from "@hashintel/brunch-agent";
 import type { ReactNode } from "react";
 
 export type { PetrinautAiVoiceSessionPhase, PetrinautAiVoiceSessionState };

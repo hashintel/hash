@@ -6,8 +6,8 @@ import {
   withInterviewBudgetLevelChanges,
 } from "./interview-budget-level-changes";
 
-import type { InterviewBudgetLevel } from "../../shared/interview-budget";
 import type { PetrinautAiMessage } from "../chat/ai-assistant-panel";
+import type { InterviewBudgetLevel } from "@hashintel/brunch-agent";
 
 const message = (
   id: string,

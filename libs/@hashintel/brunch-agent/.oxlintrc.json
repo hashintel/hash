@@ -215,11 +215,11 @@
               },
               {
                 "regex": "^(\\.\\./|\\./)+(client|ui)(/|\\.ts$|$)",
-                "message": "./server imports the contracts root by package name and src/shared/ by relative path, not ./client or ./ui."
+                "message": "./server imports contracts and src/shared/ by relative path, not ./client or ./ui."
               },
               {
                 "regex": "^@hashintel/brunch-agent/(client|ui)$",
-                "message": "./server imports the contracts root by package name and src/shared/ by relative path, not ./client or ./ui."
+                "message": "./server imports contracts and src/shared/ by relative path, not ./client or ./ui."
               },
               {
                 "group": [

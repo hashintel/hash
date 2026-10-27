@@ -90,7 +90,7 @@ const brunchPreviewConfig = vi.hoisted(() => ({
   chatEndpoint: "/agents/petrinaut",
   isBrunchConfigured: true,
 }));
-vi.mock("../plugins/brunch/brunch-preview-config", () => ({
+vi.mock("./brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => brunchPreviewConfig,
 }));
 
@@ -112,7 +112,7 @@ const editorProps = vi.hoisted(() => ({
   } | null,
 }));
 
-vi.mock("../plugins/brunch/conversation/brunch-owner-key", () => ({
+vi.mock("./brunch-owner-key", () => ({
   getOrCreateBrunchOwnerKey: () => "test-owner",
 }));
 vi.mock("../plugins/petrinaut-ai/plugin", () => ({

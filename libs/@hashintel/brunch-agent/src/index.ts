@@ -77,5 +77,5 @@ export {
   type DraftPetrinautExperimentInput,
   type DraftPetrinautExperimentOutput,
 } from "./petrinaut/draft-experiment";
-export * from "./shared/interview-budget";
+export * from "./petrinaut/interview-budget-levels";
 export * from "./shared/voice-settings";

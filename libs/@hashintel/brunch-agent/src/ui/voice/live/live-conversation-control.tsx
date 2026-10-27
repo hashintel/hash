@@ -24,12 +24,12 @@ import {
   VoiceInterviewRetry,
 } from "../session/voice-interview-disclosure";
 
-import type { InterviewBudgetLevel } from "../../../shared/interview-budget";
 import type { PetrinautAiVoiceModeContext } from "../../chat/ai-assistant-composer-control";
 import type {
   OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../session/voice-interview-control";
+import type { InterviewBudgetLevel } from "@hashintel/brunch-agent";
 
 type LiveControlsContext = PetrinautAiVoiceModeContext &
   Required<

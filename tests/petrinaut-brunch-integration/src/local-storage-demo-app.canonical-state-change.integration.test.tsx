@@ -68,7 +68,7 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
   };
 });
 vi.mock(
-  "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-preview-config",
+  "@apps/petrinaut-website/src/main/app/local-storage-demo/brunch-preview-config",
   () => ({
     resolveBrunchPreviewConfig: () => ({
       chatEndpoint: "/agents/petrinaut",
@@ -77,7 +77,7 @@ vi.mock(
   }),
 );
 vi.mock(
-  "@apps/petrinaut-website/src/main/app/plugins/brunch/conversation/brunch-owner-key",
+  "@apps/petrinaut-website/src/main/app/local-storage-demo/brunch-owner-key",
   () => ({
     getOrCreateBrunchOwnerKey: () => "test-owner",
   }),

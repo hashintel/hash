@@ -1,5 +1,5 @@
 import type { VoiceProvider } from "../../../../shared/voice-settings";
-import type { PetrinautAiVoiceSessionState } from "../../../../ui/chat/voice-session/types";
+import type { PetrinautAiVoiceSessionState } from "../../../../ui/chat/ai-assistant-composer-control";
 
 type PreviewState = Exclude<
   NonNullable<PetrinautAiVoiceSessionState["audioSettings"]>["voicePreview"],

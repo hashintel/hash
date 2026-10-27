@@ -9,7 +9,6 @@ import type {
 } from "../../client/brunch-panel-transport";
 import type { ToolApprovalState } from "../../client/tools/tool-approval-state";
 import type { VoiceMediationHistory } from "../../client/voice/history/voice-mediation-history";
-import type { InterviewBudgetLevel } from "../../shared/interview-budget";
 import type { VoiceWord } from "../../shared/voice-words";
 import type {
   PetrinautAiVoiceMode,
@@ -19,6 +18,7 @@ import type {
   FlueConversationSettlement,
   FlueConversationState,
 } from "@flue/sdk";
+import type { InterviewBudgetLevel } from "@hashintel/brunch-agent";
 
 /**
  * Binds the Voice interview control to one Brunch conversation: the tracker's

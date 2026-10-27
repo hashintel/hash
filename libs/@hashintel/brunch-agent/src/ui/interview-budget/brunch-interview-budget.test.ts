@@ -1,12 +1,12 @@
 import { expect, test } from "vitest";
 
 import {
+  getInterviewBudget,
   ledgerCommentsMessage,
   petrinautContextualUserMessageBody,
 } from "@hashintel/brunch-agent";
 
 import { canonicalBrunchFlueAdapter } from "../../client/brunch-flue-adapter";
-import { getInterviewBudget } from "../../shared/interview-budget";
 import {
   countInterviewReplies,
   isInterviewClosing,

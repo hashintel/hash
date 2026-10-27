@@ -2,7 +2,7 @@ import {
   interviewBudgetHeader,
   isInterviewBudgetLevel,
   liveInterviewBudgetInstruction,
-} from "../../shared/interview-budget.js";
+} from "../../petrinaut/interview-budget-levels.js";
 import {
   isSupportedVoice,
   voicePreferenceHeader,

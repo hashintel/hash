@@ -7,16 +7,15 @@ import {
   PiStack,
 } from "react-icons/pi";
 
-import { BaseTooltip, Button, Popover } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
-
 import {
   getInterviewBudget,
   interviewBudgetLabel,
   interviewBudgetLevels,
   interviewBudgetLevelsConfig,
   type InterviewBudgetLevel,
-} from "../../shared/interview-budget";
+} from "@hashintel/brunch-agent";
+import { BaseTooltip, Button, Popover } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import type { PetrinautAiComposerControlContext } from "../chat/ai-assistant-composer-control";
 

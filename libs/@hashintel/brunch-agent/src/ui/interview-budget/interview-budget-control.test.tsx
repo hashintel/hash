@@ -9,7 +9,8 @@ import {
 import { useState } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
-import { type InterviewBudgetLevel } from "../../shared/interview-budget";
+import { type InterviewBudgetLevel } from "@hashintel/brunch-agent";
+
 import { NoopResizeObserver } from "../testing/petrinaut-jsdom";
 import {
   InterviewBudgetControl,

@@ -53,13 +53,13 @@ vi.mock("@flue/sdk", async (importOriginal) => ({
     return client.current;
   },
 }));
-vi.mock("../plugins/brunch/brunch-preview-config", () => ({
+vi.mock("./brunch-preview-config", () => ({
   resolveBrunchPreviewConfig: () => ({
     chatEndpoint: "/agents/petrinaut",
     isBrunchConfigured: true,
   }),
 }));
-vi.mock("../plugins/brunch/conversation/brunch-owner-key", () => ({
+vi.mock("./brunch-owner-key", () => ({
   getOrCreateBrunchOwnerKey: () => "prompt-test-owner",
 }));
 // The real editor, observed: the props the shell hands it.

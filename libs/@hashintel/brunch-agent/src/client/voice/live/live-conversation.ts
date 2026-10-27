@@ -2,7 +2,8 @@ import {
   interviewBudgetHeader,
   liveInterviewBudgetUpdate,
   type InterviewBudgetLevel,
-} from "../../../shared/interview-budget";
+} from "@hashintel/brunch-agent";
+
 import { voicePreferenceHeader } from "../../../shared/voice-settings";
 import { buildVoiceTranscriptionPrompt } from "../../../shared/voice-transcription";
 import {

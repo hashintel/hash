@@ -1,13 +1,12 @@
 import { generateId } from "ai";
 
-import { petrinautSubmissionContext } from "@hashintel/brunch-agent";
+import {
+  getInterviewBudget,
+  petrinautSubmissionContext,
+} from "@hashintel/brunch-agent";
 import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
-import {
-  getInterviewBudget,
-  type InterviewBudgetLevel,
-} from "../shared/interview-budget";
 import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 import { brunchSubmittedUserMessage } from "./brunch-panel-transport/submitted-user-message";
 
@@ -22,7 +21,10 @@ import type {
   FlueClient,
   FlueConversationState,
 } from "@flue/sdk";
-import type { BrowserContext } from "@hashintel/brunch-agent";
+import type {
+  BrowserContext,
+  InterviewBudgetLevel,
+} from "@hashintel/brunch-agent";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,

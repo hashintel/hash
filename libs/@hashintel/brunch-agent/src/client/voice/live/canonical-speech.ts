@@ -1,4 +1,4 @@
-import { hashCanonicalSpeechText } from "../../../shared/canonical-speech-fingerprint";
+import { hashCanonicalSpeechText } from "./canonical-speech/fingerprint";
 
 import type { PetrinautAiMessage } from "../../../ui/chat/ai-assistant-panel";
 import type { AgentSendResult } from "@flue/sdk";

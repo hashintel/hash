@@ -3,13 +3,13 @@ import { FetchError, FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
 import {
+  interviewBudgetLevels,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
   readPetrinautSubmissionContext,
 } from "@hashintel/brunch-agent";
 import { FlueChatDisconnectError } from "@local/flue-aisdk-transport";
 
-import { interviewBudgetLevels } from "../shared/interview-budget";
 import { createBrunchFlueAdapter } from "./brunch-flue-adapter";
 import {
   BrunchPanelConversationTracker,

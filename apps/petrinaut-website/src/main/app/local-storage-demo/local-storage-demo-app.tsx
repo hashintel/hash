@@ -15,12 +15,12 @@ import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { useSharedSearchNavigation } from "../../../examples/use-shared-search-navigation";
 import { StatusPage } from "../../../shared/status-page";
-import { resolveBrunchPreviewConfig } from "../plugins/brunch/brunch-preview-config";
-import { getOrCreateBrunchOwnerKey } from "../plugins/brunch/conversation/brunch-owner-key";
 import { demoPlugins } from "../plugins/demo-plugins";
 import { petrinautAiPlugin } from "../plugins/petrinaut-ai/plugin";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
 import { readAssistantSelection } from "./assistant-selection";
+import { getOrCreateBrunchOwnerKey } from "./brunch-owner-key";
+import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
 import { useInterviewBudgetPreference } from "./interview-budget-preference";

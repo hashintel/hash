@@ -43,7 +43,7 @@ test("adds a validated budget to startup instructions and leaves Off byte-for-by
   const baseline = await instructionsFor();
   expect(await instructionsFor("off")).toBe(baseline);
   expect(await instructionsFor("quick")).toBe(
-    `${baseline}\n\n${(await import("../../shared/interview-budget")).liveInterviewBudgetInstruction("quick")}`,
+    `${baseline}\n\n${(await import("../../petrinaut/interview-budget-levels")).liveInterviewBudgetInstruction("quick")}`,
   );
   const invalid = request();
   invalid.headers.set(
