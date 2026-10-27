@@ -4,9 +4,9 @@ const evidencedDescription =
   "It is in material the USER shared, such as a log or a document. A run, an optimization or anything else a tool produced is not evidence for the account: record what it showed in a reflection.";
 
 /**
- * The origin enum, with `evidenced` described for an agent whose evidence is
- * only what the USER shared. An agent that reads further records the USER
- * gives it access to names them in its own description.
+ * The origin enum. By default `evidenced` covers only material the USER
+ * shared; an agent that also reads records on the USER's behalf passes a
+ * description that names them.
  */
 export const createOrigin = (evidenced: string = evidencedDescription) =>
   v.pipe(
