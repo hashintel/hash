@@ -2,10 +2,10 @@ import { useInstruction, useModel, useSkill, useTool } from "@flue/runtime";
 
 import { vLedgerAppendWith, vOriginWith } from "@hashintel/brunch-agent";
 
-import { interviewBudgetInstruction } from "../petrinaut/interview-budget-instruction.ts";
-import { createLedgerTools } from "../petrinaut/tools/ledger.ts";
-import { createQueryBasisTool } from "../petrinaut/tools/query-basis.ts";
-import { wordsInstruction } from "../petrinaut/words-instruction.ts";
+import { interviewBudgetInstruction } from "../shared/interview-budget-instruction.ts";
+import { createLedgerTools } from "../shared/ledger-tools.ts";
+import { createQueryBasisTool } from "../shared/query-basis.ts";
+import { wordsInstruction } from "../shared/words-instruction.ts";
 import system from "./prompts/system.md?raw";
 import eliciting from "./skills/eliciting/SKILL.md";
 import hashGraph from "./skills/hash-graph/SKILL.md";

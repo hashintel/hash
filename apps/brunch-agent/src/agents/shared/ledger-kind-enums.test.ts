@@ -26,16 +26,16 @@ import {
   vStatus,
 } from "@hashintel/brunch-agent";
 
-import { openaiProviderWithAddedModels } from "../../../server/openai-provider.ts";
+import { openaiProviderWithAddedModels } from "../../server/openai-provider.ts";
 import {
   selectChatModelSpecifier,
   selectChatThinking,
-} from "../../../shared/chat-model.ts";
+} from "../../shared/chat-model.ts";
 import {
   commitToolDescription,
   createLedgerCommitTool,
   createLedgerCompileTool,
-} from "./ledger.ts";
+} from "./ledger-tools.ts";
 
 type Batch = LedgerAppend["entries"];
 
