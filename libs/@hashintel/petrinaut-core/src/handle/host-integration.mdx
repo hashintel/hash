@@ -443,12 +443,12 @@ enabled.
 
 ## Reference implementations in this repo
 
-| Pattern                                                                                                                   | Where                                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual`                                                     | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-content.tsx`            |
-| Persist on every change event to localStorage                                                                             | `apps/petrinaut-website/src/main/app/local-storage-demo/documents/use-active-handle.ts` |
-| One live handle per net, history survives switching                                                                       | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                         |
-| Host plugin: top-bar items reading page state from a host context above `<Petrinaut>`, so the plugin is a module constant | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-chrome-plugin.tsx`      |
+| Pattern                                                                                                                   | Where                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual`                                                     | `apps/hash-frontend/src/pages/processes/[uuid].page/process-editor/embed-content.tsx`                     |
+| Persist on every change event to localStorage                                                                             | `apps/petrinaut-website/src/main/app/local-storage-demo/documents/use-active-handle.ts`                   |
+| One live handle per net, history survives switching                                                                       | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                                           |
+| Host plugin: top-bar items reading page state from a host context above `<Petrinaut>`, so the plugin is a module constant | `apps/hash-frontend/src/pages/processes/[uuid].page/process-editor/embed-content/embed-chrome-plugin.tsx` |
 
 The handles among them all wrap `createJsonDocHandle`; no adapter over an
 external store has shipped yet, which is part of why the contract still has

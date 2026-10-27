@@ -4,7 +4,7 @@ import {
   type HostToIframeMessage,
   type IframeToHostMessage,
   isHostToIframeMessage,
-} from "./messages";
+} from "../shared/messages";
 
 type IframeBridgeHandlers = {
   onInit: (payload: Extract<HostToIframeMessage, { kind: "init" }>) => void;

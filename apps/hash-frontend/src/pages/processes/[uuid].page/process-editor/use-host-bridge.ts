@@ -4,7 +4,7 @@ import {
   type HostToIframeMessage,
   type IframeToHostMessage,
   isIframeToHostMessage,
-} from "./messages";
+} from "./shared/messages";
 
 type HostBridgeHandlers = {
   onReady?: () => void;

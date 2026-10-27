@@ -1,4 +1,7 @@
-import type { HostNetMode, IframeToHostMessage } from "./messages";
+import type {
+  HostNetMode,
+  IframeToHostMessage,
+} from "../[uuid].page/process-editor/shared/messages";
 import type { ErrorTrackerCaptureContext } from "@hashintel/petrinaut";
 
 type ReportError = Extract<IframeToHostMessage, { kind: "reportError" }>;

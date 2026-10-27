@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { RevisionSummary } from "../../shared/messages";
+import type { RevisionSummary } from "../shared/messages";
 
 /**
  * What the embed's top-bar items read: the page owns this state and provides
