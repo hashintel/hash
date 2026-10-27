@@ -1,7 +1,8 @@
 import * as v from "valibot";
 
 import {
-  epistemicFields,
+  createEpistemicFields,
+  type OriginSchema,
   resolveStatus,
   vOrigin,
   vStatus,
@@ -154,38 +155,44 @@ export const vEntityKind = v.pipe(
   ),
 );
 
-export const vEntity = v.pipe(
-  v.strictObject({
-    name: vEntityName,
-    kind: vEntityKind,
-    ...epistemicFields,
-    ...resolvesField,
-  }),
-  resolveStatus(),
-  v.description(
-    "An entity record. Origin and status describe its inclusion in the modelled account, independently of claims about it. The system assigns the ID.",
-  ),
-);
+export const createEntity = (origin: OriginSchema) =>
+  v.pipe(
+    v.strictObject({
+      name: vEntityName,
+      kind: vEntityKind,
+      ...createEpistemicFields(origin),
+      ...resolvesField,
+    }),
+    resolveStatus(),
+    v.description(
+      "An entity record. Origin and status describe its inclusion in the modelled account, independently of claims about it. The system assigns the ID.",
+    ),
+  );
+
+export const vEntity = createEntity(vOrigin);
 
 /** An entity/update payload: it replaces every field, so no field defaults. */
-export const vEntityUpdate = v.pipe(
-  v.strictObject({
-    name: vEntityName,
-    kind: vEntityKind,
-    origin: v.pipe(
-      vOrigin,
-      v.description("Where the entity's account now comes from. Required."),
+export const createEntityUpdate = (origin: OriginSchema) =>
+  v.pipe(
+    v.strictObject({
+      name: vEntityName,
+      kind: vEntityKind,
+      origin: v.pipe(
+        origin,
+        v.description("Where the entity's account now comes from. Required."),
+      ),
+      status: v.pipe(
+        vStatus,
+        v.description("Whether the USER now agrees to the entity. Required."),
+      ),
+      ...resolvesField,
+    }),
+    v.description(
+      "The addressed entity as it now stands. This payload replaces every field, origin and status included, and the entity keeps the turn it was created in. The Ledger's log keeps the earlier version; its map shows only the current one.",
     ),
-    status: v.pipe(
-      vStatus,
-      v.description("Whether the USER now agrees to the entity. Required."),
-    ),
-    ...resolvesField,
-  }),
-  v.description(
-    "The addressed entity as it now stands. This payload replaces every field, origin and status included, and the entity keeps the turn it was created in. The Ledger's log keeps the earlier version; its map shows only the current one.",
-  ),
-);
+  );
+
+export const vEntityUpdate = createEntityUpdate(vOrigin);
 
 export type EntityKind = v.InferOutput<typeof vEntityKind>;
 export type Entity = v.InferOutput<typeof vEntity>;
