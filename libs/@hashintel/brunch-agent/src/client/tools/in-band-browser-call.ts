@@ -3,6 +3,7 @@ import {
   browserExecutedToolInputSchemas,
   browserNetToolNames,
   brunchRoutes,
+  brunchTools,
   canonicalContent,
   hashGraphReadToolNames,
 } from "@hashintel/brunch-agent";
@@ -197,10 +198,12 @@ export const createInBandBrowserCalls = (input: {
     };
   };
   return {
-    // The draft runs through its own card; HASH's graph reads run here as
-    // host tools beside the net tools.
+    // The draft runs through its own card; HASH's graph reads and Save run
+    // here as host tools beside the net tools.
     has: (toolName: string) =>
-      browserNetToolNames.has(toolName) || hashGraphReadToolNames.has(toolName),
+      browserNetToolNames.has(toolName) ||
+      hashGraphReadToolNames.has(toolName) ||
+      toolName === brunchTools.saveHashNet,
     claim,
     /**
      * Claim at this call's turn, run it under a renewed lease, then settle it.
