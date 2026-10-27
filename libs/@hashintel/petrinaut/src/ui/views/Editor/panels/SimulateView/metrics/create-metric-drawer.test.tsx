@@ -57,6 +57,9 @@ function makeLanguageClientValue(): LanguageClientContextValue {
       }),
     ),
     requestFormatExpression: vi.fn(() => Promise.resolve(null)),
+    requestVisualizerHir: vi.fn(() =>
+      Promise.resolve({ ok: false as const, diagnostics: [] }),
+    ),
     requestHirArtifacts: vi.fn(() =>
       Promise.resolve({
         artifacts: {

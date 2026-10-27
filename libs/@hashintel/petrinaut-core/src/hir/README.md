@@ -46,20 +46,26 @@ guard-style returns, ternaries, arithmetic/comparison/logic, `Math.*`,
 parameter reads, token reads, `.length`, `.map`, metric `.reduce`/`.concat`,
 record/array literals, string/UUID helpers, distributions and constants.
 
+The `visualizer` surface covers the expressions inside a place visualizer,
+whose elements lower to the view HIR (`../view-hir`). It adds template
+literals and string `+`, `.slice`, `.filter` and `.toFixed`, `null`, and
+JavaScript's value semantics for `&&`, `||`, conditions and out-of-range
+indexes; nothing else, and no other surface sees them.
+
 Rejected code cannot run: loops, mutation, arbitrary helper calls, spread,
 computed object keys, dynamic transition-token indexes and structurally dynamic
 transition outputs.
 
 ## Compilation coverage
 
-| User-code surface                                     | Compiled through HIR | Compilation and execution path                                                                                                                                                             |
-| ----------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Differential equations (dynamics)                     | Yes                  | Compiled in the LSP worker; buffer program runs in simulation workers.                                                                                                                     |
-| Transition firing rates and predicates (lambdas)      | Yes                  | Compiled in the LSP worker; buffer program runs during transition enablement checks.                                                                                                       |
-| Transition kernels                                    | Yes                  | Compiled in the LSP worker; buffer program writes kernel staging bytes and defers seeded operations through the engine sink.                                                               |
-| Timeline and Monte-Carlo expression metrics           | Yes                  | Compiled in the LSP worker; buffer program reads packed frame views in the timeline or Monte-Carlo worker.                                                                                 |
-| Scenario initial-state code and per-place expressions | Yes                  | Lowered by `hir/scenario.ts` (LSP worker in the browser, inline in Node); type-checked and evaluated by the interpreter (`interpret.ts`) in `compile-scenario.ts`, with no `new Function`. |
-| Place visualizers                                     | No                   | Compiled in the Petrinaut UI package as JSX and executed during rendering.                                                                                                                 |
+| User-code surface                                     | Compiled through HIR | Compilation and execution path                                                                                                                                                                                                                                                                           |
+| ----------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Differential equations (dynamics)                     | Yes                  | Compiled in the LSP worker; buffer program runs in simulation workers.                                                                                                                                                                                                                                   |
+| Transition firing rates and predicates (lambdas)      | Yes                  | Compiled in the LSP worker; buffer program runs during transition enablement checks.                                                                                                                                                                                                                     |
+| Transition kernels                                    | Yes                  | Compiled in the LSP worker; buffer program writes kernel staging bytes and defers seeded operations through the engine sink.                                                                                                                                                                             |
+| Timeline and Monte-Carlo expression metrics           | Yes                  | Compiled in the LSP worker; buffer program reads packed frame views in the timeline or Monte-Carlo worker.                                                                                                                                                                                               |
+| Scenario initial-state code and per-place expressions | Yes                  | Lowered by `hir/scenario.ts` (LSP worker in the browser, inline in Node); type-checked and evaluated by the interpreter (`interpret.ts`) in `compile-scenario.ts`, with no `new Function`.                                                                                                               |
+| Place visualizers                                     | Yes                  | Lowered to the view HIR (`../view-hir`) in the LSP worker (`sdcpn/lowerVisualizer`), with every expression lowered, typed and interpreted by this pipeline under the `visualizer` surface; the editor interprets the view and turns the element values into React elements. No Babel, no `new Function`. |
 
 There is no runtime fallback from an HIR surface to the non-HIR compilers. Code
 outside the supported HIR subset is a blocking diagnostic.

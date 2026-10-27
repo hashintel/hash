@@ -1,7 +1,8 @@
-import { use, useMemo } from "react";
+import { Suspense, use } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
+  buildVisualizerContext,
   coerceTokenAttributeValue,
   createUserKeyedRecord,
   defaultTokenAttributeValue,
@@ -14,7 +15,9 @@ import {
   useDefaultParameterValues,
 } from "../../../react/hooks/use-default-parameter-values";
 import { SimulationContext } from "../../../react/simulation/context";
-import { compileVisualizer } from "../../lib/compile-visualizer";
+import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { renderVisualizerHir } from "../../lib/render-visualizer-hir";
+import { useVisualizerHir } from "../../lib/use-visualizer-hir";
 import { VisualizerErrorBoundary } from "../Editor/panels/PropertiesPanel/place-properties/subviews/place-visualizer/visualizer-error-boundary";
 
 import type { Color, Place, TokenRecord } from "@hashintel/petrinaut-core";
@@ -29,6 +32,7 @@ const messageStyle = css({
 const visualizerErrorStyle = css({
   padding: "[12px]",
   color: "[#d32f2f]",
+  whiteSpace: "pre-wrap",
 });
 
 interface PlaceStateVisualizationProps {
@@ -37,94 +41,81 @@ interface PlaceStateVisualizationProps {
 }
 
 /**
+ * The place's tokens for the frame being shown: the current frame of a run,
+ * or the initial marking before one. Marking records may hold uuid values as
+ * at-rest strings; they are coerced to runtime token values (uuid → bigint)
+ * as the engine would. Total per element: a stored value that no longer
+ * converts (e.g. legacy data predating a schema edit) falls back to the
+ * element's default instead of crashing the panel.
+ */
+const useCurrentTokens = (place: Place, placeType: Color): TokenRecord[] => {
+  const { initialMarking } = use(SimulationContext);
+  const { currentFrameReader, totalFrames } = use(ExecutionFrameSourceContext);
+
+  if (totalFrames > 0 && currentFrameReader) {
+    return currentFrameReader.getPlaceTokens(place);
+  }
+  const marking = initialMarking[place.id];
+  if (!Array.isArray(marking)) {
+    return [];
+  }
+  return marking.map((token) => {
+    const coerced: TokenRecord = createUserKeyedRecord();
+    for (const element of placeType.elements) {
+      try {
+        coerced[element.name] = coerceTokenAttributeValue(
+          element,
+          getOwn(token, element.name),
+          `Initial marking for place ${place.name}`,
+        );
+      } catch {
+        coerced[element.name] = defaultTokenAttributeValue(element.type);
+      }
+    }
+    return coerced;
+  });
+};
+
+/**
+ * The picture itself: the visualizer lowered by the language worker and
+ * interpreted here for the tokens on screen. No code from the net runs; a
+ * visualizer that does not lower shows its first diagnostic instead.
+ */
+const VisualizerPicture: React.FC<{
+  place: Place;
+  placeType: Color;
+  code: string;
+}> = ({ place, placeType, code }) => {
+  const { petriNetDefinition, extensions } = use(SDCPNContext);
+  const { parameterValues } = use(SimulationContext);
+  const defaultParameterValues = useDefaultParameterValues();
+  const hir = useVisualizerHir(
+    code,
+    buildVisualizerContext(petriNetDefinition, place, extensions),
+  );
+  const tokens = useCurrentTokens(place, placeType);
+
+  if (!hir.ok) {
+    return (
+      <div className={visualizerErrorStyle}>
+        {hir.diagnostics[0]?.message ?? "This visualizer cannot be drawn."}
+      </div>
+    );
+  }
+  return renderVisualizerHir(
+    hir.view,
+    tokens,
+    mergeParameterValues(parameterValues, defaultParameterValues),
+  );
+};
+
+/**
  * Renders a place's custom visualizer using simulation frame data, falling back
  * to the initial marking when no simulation has run.
  */
 export const PlaceStateVisualization: React.FC<
   PlaceStateVisualizationProps
 > = ({ place, placeType }) => {
-  "use no memo"; // User-authored visualizer code is compiled into a component at runtime.
-
-  const { initialMarking, parameterValues } = use(SimulationContext);
-  const { currentFrameReader, totalFrames } = use(ExecutionFrameSourceContext);
-
-  const defaultParameterValues = useDefaultParameterValues();
-
-  const VisualizerComponent = useMemo(() => {
-    if (!place.visualizerCode) {
-      return null;
-    }
-    try {
-      return compileVisualizer(place.visualizerCode);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to compile visualizer code:", error);
-      return null;
-    }
-  }, [place.visualizerCode]);
-
-  /*
-   * Rendering the picture runs user code and derives its tokens afresh, so
-   * the element is kept until the frame, the marking, the parameters or the
-   * code change; a re-render of the surface it sits on, a hover settling, a
-   * pin, a box being measured, reuses it.
-   */
-  const picture = useMemo(() => {
-    if (!VisualizerComponent || !placeType) {
-      return null;
-    }
-
-    const tokens: TokenRecord[] = [];
-
-    if (totalFrames > 0 && currentFrameReader) {
-      tokens.push(...currentFrameReader.getPlaceTokens(place));
-    } else {
-      const marking = initialMarking[place.id];
-      if (Array.isArray(marking) && marking.length > 0) {
-        // Marking records may hold uuid values as at-rest strings; coerce them
-        // to runtime token values (uuid → bigint) as the engine would. Total
-        // per element: a stored value that no longer converts (e.g. legacy
-        // data predating a schema edit) falls back to the element's default
-        // instead of crashing the panel.
-        for (const token of marking) {
-          const coerced: TokenRecord = createUserKeyedRecord();
-          for (const element of placeType.elements) {
-            try {
-              coerced[element.name] = coerceTokenAttributeValue(
-                element,
-                getOwn(token, element.name),
-                `Initial marking for place ${place.name}`,
-              );
-            } catch {
-              coerced[element.name] = defaultTokenAttributeValue(element.type);
-            }
-          }
-          tokens.push(coerced);
-        }
-      }
-    }
-
-    return (
-      // eslint-disable-next-line react/static-components -- Runtime visualizer code intentionally creates a component from user input.
-      <VisualizerComponent
-        tokens={tokens}
-        parameters={mergeParameterValues(
-          parameterValues,
-          defaultParameterValues,
-        )}
-      />
-    );
-  }, [
-    VisualizerComponent,
-    defaultParameterValues,
-    initialMarking,
-    parameterValues,
-    place,
-    placeType,
-    totalFrames,
-    currentFrameReader,
-  ]);
-
   if (!place.visualizerCode) {
     return <div className={messageStyle}>No visualizer code defined</div>;
   }
@@ -133,13 +124,15 @@ export const PlaceStateVisualization: React.FC<
     return <div className={messageStyle}>Place has no type set</div>;
   }
 
-  if (!VisualizerComponent) {
-    return (
-      <div className={visualizerErrorStyle}>
-        Failed to compile visualizer code. Check console for errors.
-      </div>
-    );
-  }
-
-  return <VisualizerErrorBoundary>{picture}</VisualizerErrorBoundary>;
+  return (
+    <VisualizerErrorBoundary>
+      <Suspense fallback={null}>
+        <VisualizerPicture
+          place={place}
+          placeType={placeType}
+          code={place.visualizerCode}
+        />
+      </Suspense>
+    </VisualizerErrorBoundary>
+  );
 };

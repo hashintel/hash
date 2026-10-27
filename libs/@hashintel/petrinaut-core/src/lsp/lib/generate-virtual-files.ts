@@ -21,7 +21,7 @@ import {
 import { SCENARIO_HELPER_TYPE_DECLARATIONS } from "../../simulation/authoring/scenario/helpers";
 import { TYPE_POLICIES } from "../../simulation/engine/type-policies";
 import { applyFormWrapper } from "./create-language-service-host";
-import { getItemFilePath } from "./file-paths";
+import { getItemFilePath, VISUALIZER_JSX_PACKAGE } from "./file-paths";
 
 import type { ConstraintSpace } from "../../constraint/constraint";
 import type {
@@ -197,6 +197,45 @@ function getPlaceDisplayNameForArc(
 }
 
 /**
+ * Every colour a place can carry: the root net's and all subnets', so port
+ * places whose colour is subnet-local still resolve. Deduplicated by id (the
+ * last definition wins). Empty when the colours extension is off.
+ */
+function collectColors(
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): Map<string, Color> {
+  const allColors = extensions.colors
+    ? [
+        ...sdcpn.types,
+        ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
+      ]
+    : [];
+  return new Map(allColors.map((color) => [color.id, color]));
+}
+
+/** The net's parameters as the `Parameters` record type. */
+function parametersDefsFile(
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): VirtualFile {
+  const parametersProperties = (extensions.parameters ? sdcpn.parameters : [])
+    .map((param) => `  "${param.variableName}": ${toTsType(param.type)};`)
+    .join("\n");
+  return { content: `export type Parameters = {\n${parametersProperties}\n};` };
+}
+
+/** A colour's token record as the `Color_<id>` type. */
+function colorDefsFile(color: Color): VirtualFile {
+  const properties = color.elements
+    .map((el) => `  ${el.name}: ${toTsType(el.type)};`)
+    .join("\n");
+  return {
+    content: `export type Color_${sanitizeColorId(color.id)} = {\n${properties}\n}`,
+  };
+}
+
+/**
  * Generates virtual files for all SDCPN entities
  */
 export function generateVirtualFiles(
@@ -228,40 +267,21 @@ export function generateVirtualFiles(
     ].join("\n"),
   });
 
-  // Build lookup maps for places and types.
-  // Colors are collected from the root net AND all subnets so that port places
-  // whose colorId references a subnet-local type are still resolvable.
-  const allColors = extensions.colors
-    ? [
-        ...sdcpn.types,
-        ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
-      ]
-    : [];
-  // Deduplicate by ID (last definition wins if the same ID appears in multiple subnets).
-  const colorById = new Map(allColors.map((color) => [color.id, color]));
+  const colorById = collectColors(sdcpn, extensions);
   const resolveArcPlace = createArcPlaceResolver(sdcpn, sdcpn, {
     componentPortsEnabled: extensions.subnets,
   });
 
-  // Generate parameters type definition
-  const parametersProperties = (extensions.parameters ? sdcpn.parameters : [])
-    .map((param) => `  "${param.variableName}": ${toTsType(param.type)};`)
-    .join("\n");
+  files.set(
+    getItemFilePath("parameters-defs"),
+    parametersDefsFile(sdcpn, extensions),
+  );
 
-  files.set(getItemFilePath("parameters-defs"), {
-    content: `export type Parameters = {\n${parametersProperties}\n};`,
-  });
-
-  // Generate type definitions for each color (root + all subnets, deduplicated)
   for (const color of colorById.values()) {
-    const sanitizedColorId = sanitizeColorId(color.id);
-    const properties = color.elements
-      .map((el) => `  ${el.name}: ${toTsType(el.type)};`)
-      .join("\n");
-
-    files.set(getItemFilePath("color-defs", { colorId: color.id }), {
-      content: `export type Color_${sanitizedColorId} = {\n${properties}\n}`,
-    });
+    files.set(
+      getItemFilePath("color-defs", { colorId: color.id }),
+      colorDefsFile(color),
+    );
   }
 
   // Generate files for each differential equation
@@ -503,6 +523,84 @@ export function generateVirtualFiles(
         }),
       );
     }
+  }
+
+  return files;
+}
+
+/**
+ * Generates the virtual files of the visualizer language service: the
+ * parameters and colour types the SDCPN service also has, and for every
+ * root-net place with a visualizer a `defs.d.ts` declaring `Visualization`
+ * over the place's token type and a `code.jsx` holding the user's module.
+ *
+ * The user file is JavaScript: TypeScript checks it with `checkJs`, so the
+ * types are inferred and any annotation is an error, and the injected
+ * prefix types `Visualization` through JSDoc for the same reason.
+ *
+ * Visualizers belong to the colours extension; with it off there is nothing
+ * to check. An uncoloured place carries black tokens, so its `tokens` are
+ * `never[]` and reading an attribute off one is a type error.
+ */
+export function generateVisualizerVirtualFiles(
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+): Map<string, VirtualFile> {
+  const files = new Map<string, VirtualFile>();
+  if (!extensions.colors) {
+    return files;
+  }
+
+  const colorById = collectColors(sdcpn, extensions);
+  const parametersDefsPath = getItemFilePath("parameters-defs");
+  files.set(parametersDefsPath, parametersDefsFile(sdcpn, extensions));
+  for (const color of colorById.values()) {
+    files.set(
+      getItemFilePath("color-defs", { colorId: color.id }),
+      colorDefsFile(color),
+    );
+  }
+
+  for (const place of sdcpn.places) {
+    if (place.visualizerCode === undefined) {
+      continue;
+    }
+    const color = place.colorId ? colorById.get(place.colorId) : undefined;
+    const sanitizedColorId = color ? sanitizeColorId(color.id) : null;
+    const defsPath = getItemFilePath("place-visualizer-defs", {
+      placeId: place.id,
+    });
+
+    files.set(defsPath, {
+      content: [
+        `import type { ReactElement } from "${VISUALIZER_JSX_PACKAGE}";`,
+        `import type { Parameters } from "${parametersDefsPath}";`,
+        color
+          ? `import type { Color_${sanitizedColorId} } from "${getItemFilePath("color-defs", { colorId: color.id })}";`
+          : "",
+        ``,
+        `export type Tokens = readonly ${sanitizedColorId ? `Color_${sanitizedColorId}` : "never"}[];`,
+        `export type VisualizerProps = { tokens: Tokens; parameters: Parameters };`,
+        `export type VisualizerComponent = (props: VisualizerProps) => ReactElement | null;`,
+        `export type Visualization = (component: VisualizerComponent) => VisualizerComponent;`,
+      ].join("\n"),
+    });
+
+    // The defs module is imported without its extension: a JSDoc import
+    // type resolves it like a module specifier. `export {}` keeps an empty
+    // or export-less file a module, so its `Visualization` binding never
+    // collides with another place's in the script scope.
+    const defsModule = defsPath.replace(/\.d\.ts$/u, "");
+    files.set(getItemFilePath("place-visualizer-code", { placeId: place.id }), {
+      prefix: [
+        `export {};`,
+        `const Visualization = /** @type {import("${defsModule}").Visualization} */ (`,
+        `  /** @type {unknown} */ (undefined)`,
+        `);`,
+        ``,
+      ].join("\n"),
+      content: place.visualizerCode,
+    });
   }
 
   return files;

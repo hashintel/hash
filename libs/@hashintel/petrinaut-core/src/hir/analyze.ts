@@ -381,6 +381,29 @@ export function foldHir(expr: HirExpr): HirExpr {
       return { ...expr, args: expr.args.map(foldHir) };
     case "distributionMap":
       return { ...expr, base: foldHir(expr.base), body: foldHir(expr.body) };
+    case "nullLit":
+      return expr;
+    case "templateLit":
+      return { ...expr, expressions: expr.expressions.map(foldHir) };
+    case "arraySlice":
+      return {
+        ...expr,
+        target: foldHir(expr.target),
+        ...(expr.start ? { start: foldHir(expr.start) } : {}),
+        ...(expr.end ? { end: foldHir(expr.end) } : {}),
+      };
+    case "arrayFilter":
+      return {
+        ...expr,
+        target: foldHir(expr.target),
+        body: foldHir(expr.body),
+      };
+    case "numberFormat":
+      return {
+        ...expr,
+        target: foldHir(expr.target),
+        ...(expr.digits ? { digits: foldHir(expr.digits) } : {}),
+      };
   }
 }
 
@@ -608,6 +631,49 @@ class Analyzer {
           },
         };
       }
+      case "nullLit":
+        return SCALAR;
+      case "templateLit":
+        for (const expression of expr.expressions) {
+          this.evalExpr(expression, env);
+        }
+        return SCALAR;
+      case "arraySlice": {
+        const target = this.evalExpr(expr.target, env);
+        if (expr.start) {
+          this.evalExpr(expr.start, env);
+        }
+        if (expr.end) {
+          this.evalExpr(expr.end, env);
+        }
+        return {
+          kind: "array",
+          elements: null,
+          element: this.elementOf(target),
+        };
+      }
+      case "arrayFilter": {
+        const target = this.evalExpr(expr.target, env);
+        const scoped = new Map(env);
+        scoped.set(expr.param.name, { value: this.elementOf(target) });
+        if (expr.indexParam) {
+          scoped.set(expr.indexParam.name, { value: SCALAR });
+        }
+        this.mapDepth += 1;
+        this.evalExpr(expr.body, scoped);
+        this.mapDepth -= 1;
+        return {
+          kind: "array",
+          elements: null,
+          element: this.elementOf(target),
+        };
+      }
+      case "numberFormat":
+        this.evalExpr(expr.target, env);
+        if (expr.digits) {
+          this.evalExpr(expr.digits, env);
+        }
+        return SCALAR;
       case "distribution": {
         const [, argDeps] = this.withDepSink(() => {
           for (const argument of expr.args) {
