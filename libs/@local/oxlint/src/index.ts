@@ -226,6 +226,19 @@ const createDefaults = (
               "vitest/prefer-expect-assertions": "allow", // type tests run through the compiler, not the runtime assertion counter.
               "no-magic-numbers": "allow", // magic numbers are often used in test fixtures
               "max-lines-per-function": "allow", // tests are allowed to have more statements, because `describe` blocks are often used to group related tests
+              "no-restricted-imports": [
+                "deny", // Vitest typechecks these files without running them, so a runtime assertion here never executes.
+                {
+                  paths: [
+                    {
+                      name: "vitest",
+                      importNames: ["expect"],
+                      message:
+                        "Vitest only typechecks *.test-d.ts files. Use expectTypeOf here, and move runtime assertions to the matching *.test.ts file.",
+                    },
+                  ],
+                },
+              ],
             },
           }),
           defineOverride({
