@@ -25,6 +25,7 @@ import {
   checkUserCanInstantiate,
   validateEntityTypeIds,
 } from "./shared/entity-types.js";
+import { findEntity } from "./shared/find-entity.js";
 import { getSavingActorId, retrySave } from "./shared/save-entity.js";
 
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
@@ -37,33 +38,6 @@ const invalidArgument = (message: string) => ({
   message,
   contents: [],
 });
-
-/** The IDs of the editions of an entity, live and drafts, that aren't archived and the actor can read. */
-const getReadableEditionIds = async (
-  authentication: AuthenticationContext,
-  entityId: EntityId,
-): Promise<EntityId[]> => {
-  const [webId, entityUuid] = splitEntityId(entityId);
-
-  const { entities } = await queryEntities(
-    { graphApi: graphApiClient },
-    authentication,
-    {
-      filter: {
-        all: [
-          { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
-          { equal: [{ path: ["webId"] }, { parameter: webId }] },
-          { equal: [{ path: ["archived"] }, { parameter: false }] },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: true,
-      includePermissions: false,
-    },
-  );
-
-  return entities.map((entity) => entity.entityId);
-};
 
 /**
  * Why the user running the flow can't link to an entity, if they can't. The graph links to the entity, not to a draft
@@ -79,12 +53,7 @@ const getLinkEndError = async ({
   savingAuthentication: AuthenticationContext;
   entityId: EntityId;
 }) => {
-  const userEditionIds = await getReadableEditionIds(
-    userAuthentication,
-    entityId,
-  );
-
-  if (!userEditionIds.includes(entityId)) {
+  if (!(await findEntity(userAuthentication, entityId))) {
     return {
       code: StatusCode.NotFound,
       message: `Entity ${entityId} doesn't exist or can't be read by the user running the flow.`,
@@ -93,15 +62,19 @@ const getLinkEndError = async ({
   }
 
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
+
+  if (!draftId) {
+    return undefined;
+  }
+
   const liveEntityId = entityIdFromComponents(webId, entityUuid);
 
-  if (
-    draftId &&
-    !userEditionIds.includes(liveEntityId) &&
-    (await getReadableEditionIds(savingAuthentication, entityId)).includes(
-      liveEntityId,
-    )
-  ) {
+  const [userLiveEntity, savingLiveEntity] = await Promise.all([
+    findEntity(userAuthentication, liveEntityId),
+    findEntity(savingAuthentication, liveEntityId),
+  ]);
+
+  if (!userLiveEntity && savingLiveEntity) {
     return {
       code: StatusCode.PermissionDenied,
       message: `A link to draft ${entityId} links to its live entity, which the user running the flow can't read.`,
