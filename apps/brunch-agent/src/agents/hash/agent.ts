@@ -46,7 +46,7 @@ import { createHashGraphReadTools } from "./tools/hash-graph-reads.ts";
 
 import type { BrowserToolExecutor } from "../../shared/petrinaut-tools/petrinaut-construction.ts";
 
-const CHAT_MODEL_SPECIFIER = selectChatModelSpecifier();
+const chatModelSpecifier = selectChatModelSpecifier();
 const chatThinkingLevel = selectChatThinking();
 
 const testCompactionConfig = loadTestCompactionConfig();
@@ -62,7 +62,7 @@ const chatModelOptions = {
 /** Instance IDs are unique only within an agent name, so each copy keeps its own. */
 const netViewTracker = createNetViewTracker();
 
-export function HashAgent({ id }: AgentProps) {
+export const HashAgent = ({ id }: AgentProps): string => {
   const initialData = useInitialData<SdcpnInitialData>();
   // Initial data is fixed when the conversation is created; the current user
   // delivery carries the changing host context. An absent or malformed
@@ -95,59 +95,56 @@ export function HashAgent({ id }: AgentProps) {
     }).history();
   };
   const { system, createQueryBasisTool } = useGuidance(
-    CHAT_MODEL_SPECIFIER,
+    chatModelSpecifier,
     chatModelOptions,
     history,
     { interviewBudget: submitted?.interviewBudget, words },
   );
-  const executeBrowserTool: BrowserToolExecutor | undefined = initialData
-    ? async ({ toolName, input, toolCallId, signal }) => {
-        const expected = browserToolMutatesDocument(toolName)
-          ? expectedNetRevision(
-              await history(),
-              toolCallId,
-              netViewTracker.view(id),
-            )
-          : undefined;
-        if (expected && "refusal" in expected)
-          throw new Error(expected.refusal);
-        return issueBrowserCall({
-          instanceId: id,
-          toolCallId,
-          toolName,
-          canonicalInput: input,
-          binding: canonicalContent(initialData.binding),
-          ...(expected === undefined
-            ? {}
-            : { expectedRevision: expected.revision }),
-          signal,
-        });
-      }
-    : undefined;
-  usePetrinautTools(
-    initialData
-      ? {
-          authorizeDraft: async (draftCallId: string) => {
-            if (!latestCanonicalNetReadBefore(await history(), draftCallId))
-              throw new Error(
-                "Experiment draft requires a prior canonical net read.",
-              );
-          },
-          executeBrowserTool,
-        }
-      : {},
-  );
   if (initialData) {
+    const executeBrowserTool: BrowserToolExecutor = async ({
+      toolName,
+      input,
+      toolCallId,
+      signal,
+    }) => {
+      const expected = browserToolMutatesDocument(toolName)
+        ? expectedNetRevision(
+            await history(),
+            toolCallId,
+            netViewTracker.view(id),
+          )
+        : undefined;
+      if (expected && "refusal" in expected) throw new Error(expected.refusal);
+      return issueBrowserCall({
+        instanceId: id,
+        toolCallId,
+        toolName,
+        canonicalInput: input,
+        binding: canonicalContent(initialData.binding),
+        ...(expected === undefined
+          ? {}
+          : { expectedRevision: expected.revision }),
+        signal,
+      });
+    };
+    usePetrinautTools({
+      authorizeDraft: async (draftCallId: string) => {
+        if (!latestCanonicalNetReadBefore(await history(), draftCallId))
+          throw new Error(
+            "Experiment draft requires a prior canonical net read.",
+          );
+      },
+      executeBrowserTool,
+    });
     useTool(createQueryBasisTool({ browser: initialData, history }));
     // HASH's page runs them as the signed-in user, like net reads.
-    if (executeBrowserTool)
-      for (const read of createHashGraphReadTools(executeBrowserTool))
-        useTool(read);
+    for (const read of createHashGraphReadTools(executeBrowserTool))
+      useTool(read);
   }
   useTool(ping);
 
   return system;
-}
+};
 
 /**
  * Conversation storage keys on this literal, and Flue requires it to be a
