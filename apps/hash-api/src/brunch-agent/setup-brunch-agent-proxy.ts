@@ -1,8 +1,6 @@
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
-import { brunchHeaders, brunchRoutes } from "@hashintel/brunch-agent";
-
 import type { UserId } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { Express, Request, Response } from "express";
@@ -18,6 +16,18 @@ import type { ReadableStream as NodeReadableStream } from "node:stream/web";
  * only authentication when Brunch is reachable through this hop alone.
  */
 const BRUNCH_AGENT_PROXY_PATH = "/api/brunch";
+
+/**
+ * Brunch's wire names, as `brunchHeaders` and `brunchRoutes` in
+ * `@hashintel/brunch-agent` define them. Written out rather than imported, so
+ * hash-api doesn't build that package; Brunch pins the headers as names that
+ * must not change.
+ */
+const brunchHeaders = {
+  conversation: "x-brunch-conversation",
+  ownerKey: "x-brunch-principal",
+};
+const brunchAgentsRoute = "/agents";
 
 const notConfiguredError = { error: "Brunch agent is not configured" };
 
@@ -93,7 +103,7 @@ export const setupBrunchAgentProxy = (
     logger: Pick<Logger, "warn">;
   },
 ) => {
-  const agentsPrefix = `${brunchRoutes.agents}/`;
+  const agentsPrefix = `${brunchAgentsRoute}/`;
 
   /**
    * The signed-in user's Brunch owner key, which is also how the frontend
