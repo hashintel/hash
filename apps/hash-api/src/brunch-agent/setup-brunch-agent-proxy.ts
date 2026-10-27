@@ -1,35 +1,37 @@
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
+import { brunchHeaders, brunchRoutes } from "@hashintel/brunch-agent";
+
 import type { UserId } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { Express, Request, Response } from "express";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 
 /**
- * FE-2010 probe: an authenticated hop from a signed-in HASH user to the Brunch
- * agent server. NodeAPI authenticates the session and sets Brunch's owner key
- * from it; Brunch keeps its own ownership check, which derives the instance id
- * from that owner key plus the conversation id.
+ * The authenticated hop from a signed-in HASH user to the Brunch agent server.
+ * NodeAPI authenticates the session and sets Brunch's owner key from it;
+ * Brunch keeps its own ownership check, which derives the instance id from
+ * that owner key plus the conversation id.
  *
  * Off unless `HASH_BRUNCH_AGENT_ORIGIN` is set. Brunch's identity headers are
  * only authentication when Brunch is reachable through this hop alone.
  */
 const BRUNCH_AGENT_PROXY_PATH = "/api/brunch";
 
-// Names from `brunchHeaders` in `@hashintel/brunch-agent`, inlined so the
-// probe adds no workspace dependency.
-const ownerKeyHeader = "x-brunch-principal";
-const conversationHeader = "x-brunch-conversation";
+const notConfiguredError = { error: "Brunch agent is not configured" };
 
 /**
  * Request headers the browser may pass through. Everything else is dropped,
  * including the HASH session cookie, which Brunch must never see.
  */
 const isForwardedRequestHeader = (name: string) =>
-  ["accept", "content-type", "last-event-id", conversationHeader].includes(
-    name,
-  ) ||
+  [
+    "accept",
+    "content-type",
+    "last-event-id",
+    brunchHeaders.conversation,
+  ].includes(name) ||
   name.startsWith("stream-") ||
   name.startsWith("flue-");
 
@@ -56,14 +58,23 @@ export const getBrunchAgentOrigin = (
 /** Brunch owner key for a HASH account: set by NodeAPI, never by the browser. */
 const brunchOwnerKey = (accountId: UserId) => `hash:${accountId}`;
 
-const requestBody = (request: Request): string | undefined => {
-  if (request.method === "GET" || request.method === "HEAD") {
+const hasRequestBody = (request: Request) =>
+  request.method !== "GET" &&
+  request.method !== "HEAD" &&
+  (request.headers["transfer-encoding"] !== undefined ||
+    Number(request.headers["content-length"] ?? 0) > 0);
+
+/**
+ * The body to forward, or `null` when it cannot be forwarded. The app-wide
+ * JSON body parser has already consumed a JSON stream, so the parsed value is
+ * re-serialised: Brunch reads the JSON value, not its exact text. Any other
+ * body was left unread and is refused rather than dropped.
+ */
+const requestBody = (request: Request): string | undefined | null => {
+  if (!hasRequestBody(request)) {
     return undefined;
   }
-  // The JSON body parser has already consumed the stream; re-serialise it.
-  // Brunch reads the JSON value, not its exact text. Non-JSON bodies
-  // (attachments) are not proxied by this probe.
-  return request.is("application/json") ? JSON.stringify(request.body) : "";
+  return request.is("application/json") ? JSON.stringify(request.body) : null;
 };
 
 export const setupBrunchAgentProxy = (
@@ -74,14 +85,29 @@ export const setupBrunchAgentProxy = (
     logger,
   }: {
     origin: URL | null;
-    /** Where browsers reach this API; the hop's public URLs are built from it. */
+    /**
+     * Where browsers reach this API, as a bare origin with no path or trailing
+     * slash (the shape of `apiOrigin`); the hop's public URLs are built from it.
+     */
     publicOrigin: string;
     logger: Pick<Logger, "warn">;
   },
 ) => {
+  const agentsPrefix = `${brunchRoutes.agents}/`;
+
+  /**
+   * The signed-in user's Brunch owner key, which is also how the frontend
+   * learns whether to offer Brunch at all: 401 without a session, and 503 with
+   * the agent routes' "not configured" body when `HASH_BRUNCH_AGENT_ORIGIN` is
+   * unset, so Brunch stays off unless it is configured.
+   */
   app.get(`${BRUNCH_AGENT_PROXY_PATH}/identity`, (request, response) => {
     if (!request.user) {
       response.status(401).json({ error: "Authentication required" });
+      return;
+    }
+    if (!origin) {
+      response.status(503).json(notConfiguredError);
       return;
     }
     response.json({ ownerKey: brunchOwnerKey(request.user.accountId) });
@@ -95,7 +121,7 @@ export const setupBrunchAgentProxy = (
         return;
       }
       if (!origin) {
-        response.status(503).json({ error: "Brunch agent is not configured" });
+        response.status(503).json(notConfiguredError);
         return;
       }
       // Check the URL that is forwarded, not the request path: URL parsing
@@ -107,9 +133,16 @@ export const setupBrunchAgentProxy = (
       );
       if (
         upstreamUrl.origin !== origin.origin ||
-        !upstreamUrl.pathname.startsWith("/agents/")
+        !upstreamUrl.pathname.startsWith(agentsPrefix)
       ) {
         response.status(404).json({ error: "Not found" });
+        return;
+      }
+      const body = requestBody(request);
+      if (body === null) {
+        response.status(415).json({
+          error: "Brunch agent requests must be JSON",
+        });
         return;
       }
       const headers = new Headers();
@@ -119,7 +152,10 @@ export const setupBrunchAgentProxy = (
         }
       }
       // Overwrites anything the browser sent under this name.
-      headers.set(ownerKeyHeader, brunchOwnerKey(request.user.accountId));
+      headers.set(
+        brunchHeaders.ownerKey,
+        brunchOwnerKey(request.user.accountId),
+      );
 
       const abort = new AbortController();
       response.on("close", () => {
@@ -132,7 +168,7 @@ export const setupBrunchAgentProxy = (
         const upstream = await fetch(upstreamUrl, {
           method: request.method,
           headers,
-          body: requestBody(request),
+          body,
           signal: abort.signal,
         });
         response.status(upstream.status);
@@ -146,8 +182,8 @@ export const setupBrunchAgentProxy = (
         // Flue builds `streamUrl` and `Location` from the URL it was reached
         // at, which names Brunch's internal origin. Point both back through
         // this hop.
-        const internalBase = `${origin.origin}/agents/`;
-        const publicBase = `${new URL(publicOrigin).origin}${BRUNCH_AGENT_PROXY_PATH}/agents/`;
+        const internalBase = `${origin.origin}${agentsPrefix}`;
+        const publicBase = `${publicOrigin}${BRUNCH_AGENT_PROXY_PATH}${agentsPrefix}`;
         for (const [name, value] of upstream.headers) {
           if (
             !droppedResponseHeaders.has(name) &&
@@ -164,6 +200,10 @@ export const setupBrunchAgentProxy = (
         if (upstream.status === 202) {
           // An admission is a small JSON body, never a stream.
           const admission = await upstream.text();
+          response.type("json");
+          // Brunch's own admission JSON, served as JSON, with only its URLs
+          // rewritten; nothing from the browser's request is reflected.
+          // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss
           response.send(admission.replaceAll(internalBase, publicBase));
           return;
         }
