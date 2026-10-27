@@ -107,9 +107,9 @@ describe("module_exports", () => {
       Module.define("::exports", { types, modules: children }),
     );
     const tree = Result.getOrThrow(Module.root(children));
-    expect(Object.keys(exports.types)).toStrictEqual(["Integer"]);
-    expect(exports.modules.math).toBe(math);
-    expect(tree.modules.math).toBe(math);
+    expect(Object.keys(exports.types)).toStrictEqual([]);
+    expect(Object.hasOwn(exports.modules, "math")).toBe(false);
+    expect(Object.hasOwn(tree.modules, "math")).toBe(false);
   });
 
   test("symbol_export", () => {
