@@ -91,6 +91,13 @@ export const FlowRunsContextProvider = ({
     };
   }, [selectedFlowRunData, selectedFlowRunEvents]);
 
+  const selectedFlowRunEventsFailure =
+    selectedFlowRunEvents.status === "failed"
+      ? selectedFlowRunEvents.message
+      : selectedFlowRunEvents.status === "loaded"
+        ? (selectedFlowRunEvents.checkFailure ?? null)
+        : null;
+
   const context = useMemo<FlowRunsContextType>(
     () => ({
       flowRuns,
@@ -104,6 +111,7 @@ export const FlowRunsContextProvider = ({
       pagination: pagination ?? null,
       selectedFlowRun,
       selectedFlowRunEntityId,
+      selectedFlowRunEventsFailure,
     }),
     [
       flowRuns,
@@ -115,6 +123,7 @@ export const FlowRunsContextProvider = ({
       selectedFlowRunEvents.status,
       selectedFlowRun,
       selectedFlowRunEntityId,
+      selectedFlowRunEventsFailure,
     ],
   );
 

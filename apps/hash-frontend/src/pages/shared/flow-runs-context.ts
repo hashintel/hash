@@ -35,6 +35,8 @@ export type FlowRunsContextType = {
   pagination: FlowRunsPaginationState | null;
   selectedFlowRun: SelectedFlowRun | null;
   selectedFlowRunEntityId: EntityId | null;
+  /** Why the selected run's events couldn't be read, or checked for new ones, while they're tried again. */
+  selectedFlowRunEventsFailure: string | null;
 };
 
 export const FlowRunsContext = createContext<FlowRunsContextType | null>(null);
