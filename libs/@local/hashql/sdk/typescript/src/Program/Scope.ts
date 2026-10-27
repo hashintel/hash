@@ -112,7 +112,11 @@ export declare namespace Scope {
   }
 
   /** A scope with its concrete export names erased. */
-  export interface Any extends Scope<Definition.Any> {}
+  export interface Any extends Base<
+    Universe<Module.Module.Any>,
+    Universe<Expression.Expression.Any>,
+    Universe<TypeExpression.Export>
+  > {}
 
   /** A scope with no names. */
   export type Empty = Scope<Names.Empty>;

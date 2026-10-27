@@ -10,6 +10,23 @@ import * as Structural from "./Structural.js";
 import type * as Type from "../Type.js";
 import type * as Inputs from "./Inputs.js";
 
+// Compiles only while a scope of any definition is assignable to the erased scope.
+const erase = <D extends Scope.Definition.Any>(
+  scope: Scope.Scope<D>,
+): Scope.Scope.Any => scope;
+
+describe("scope_any", () => {
+  test("concrete_scopes", () => {
+    expectTypeOf<Prelude.Builtin>().toExtend<Scope.Scope.Any>();
+    expectTypeOf<Scope.Scope.Empty>().toExtend<Scope.Scope.Any>();
+    expectTypeOf<Scope.Scope.Any>().not.toExtend<Prelude.Builtin>();
+  });
+
+  test("generic_scope", () => {
+    expectTypeOf(erase).returns.toEqualTypeOf<Scope.Scope.Any>();
+  });
+});
+
 describe("scope_merge_types", () => {
   test("namespace_views", () => {
     expectTypeOf<typeof Scope.empty>().toEqualTypeOf<Scope.Scope.Empty>();
