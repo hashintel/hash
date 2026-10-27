@@ -77,6 +77,7 @@
   },
   "devDependencies": {
     "@local/eslint": "workspace:*",
+    "@local/flow-petri-net": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
     "@types/dotenv-flow": "3.3.3",

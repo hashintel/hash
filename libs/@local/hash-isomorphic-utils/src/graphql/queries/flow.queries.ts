@@ -68,6 +68,26 @@ export const getFlowRunById = gql`
   }
 `;
 
+export const getFlowRunEventsQuery = gql`
+  query getFlowRunEvents(
+    $flowRunEntityId: EntityId!
+    $after: String
+    $first: Int
+  ) {
+    getFlowRunById(flowRunEntityId: $flowRunEntityId) {
+      flowRunEntityId
+      events(after: $after, first: $first) {
+        endCursor
+        hasNextPage
+        runId
+        restarted
+        keptUpTo
+        events
+      }
+    }
+  }
+`;
+
 export const submitExternalInputResponseMutation = gql`
   mutation submitExternalInputResponse(
     $flowRunEntityId: EntityId!

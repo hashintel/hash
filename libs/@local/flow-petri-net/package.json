@@ -17,6 +17,14 @@
     "./flow-net-metadata": {
       "types": "./src/flow-net-metadata.ts",
       "default": "./dist/flow-net-metadata.js"
+    },
+    "./interpret-flow-net": {
+      "types": "./src/interpret-flow-net.ts",
+      "default": "./dist/interpret-flow-net.js"
+    },
+    "./replay-flow-run-events": {
+      "types": "./src/replay-flow-run-events.ts",
+      "default": "./dist/replay-flow-run-events.js"
     }
   },
   "scripts": {
