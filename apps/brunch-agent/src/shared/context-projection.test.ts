@@ -2,9 +2,15 @@ import assert from "node:assert/strict";
 
 import { expect, test } from "vitest";
 
-import { petrinautContextualUserMessageBody } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  petrinautContextualUserMessageBody,
+} from "@hashintel/brunch-agent";
 
-import { projectBrunchContext } from "./context-projection";
+import {
+  createBrunchContextProjection,
+  projectBrunchContext,
+} from "./context-projection";
 
 import type { ContextProjectionEntry } from "@flue/runtime";
 
@@ -74,6 +80,40 @@ test("projects in-band canonical output without exposing host sidecars or alteri
   assert(JSON.stringify(input).includes("private-binding"));
   assert(!JSON.stringify(projected).includes("private-binding"));
   assert(!JSON.stringify(projected).includes("brunchBrowserResult"));
+});
+
+test("a read rendered as text reaches the model as that text where the agent names it", () => {
+  const rendered = 'entities: 1\n- Supplier "Acme"\n  entityId: web~acme';
+  const read: ContextProjectionEntry = {
+    id: "hash-read",
+    message: {
+      role: "toolResult",
+      toolCallId: "h1",
+      toolName: brunchTools.queryHashEntities,
+      isError: false,
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            brunchBrowserResult: true,
+            output: rendered,
+            metadata: sidecar,
+          }),
+        },
+      ],
+    },
+  };
+  const contentOf = (entry: ContextProjectionEntry | undefined) =>
+    entry?.message.role === "toolResult" && entry.message.content;
+  const [projected] = createBrunchContextProjection({
+    textResultToolNames: new Set([brunchTools.queryHashEntities]),
+  })([read]);
+  expect(contentOf(projected)).toEqual([{ type: "text", text: rendered }]);
+  // A projection that names no text-result tools, as the Petrinaut agent's
+  // does, still shows every output as JSON.
+  expect(contentOf(projectBrunchContext([read])[0])).toEqual([
+    { type: "text", text: JSON.stringify(rendered) },
+  ]);
 });
 
 test("user messages and server tool results pass through unchanged", () => {

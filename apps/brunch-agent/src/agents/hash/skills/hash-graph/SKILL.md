@@ -28,10 +28,10 @@ Records say what was entered, not what happens. What happened last Tuesday, or h
 
 1. `query_hash_webs`, to learn the USER's web and their organisations'.
 2. `query_hash_entities` by `webIds` from those webs, and by type title if you already know it, with `traversalDepth: 0`, to see what records each web holds.
-3. `query_hash_entity_types` with the `entityTypeIds` those entities carry, to learn their properties' titles and links. Without filters it lists every type the USER can see, which is large: filter by `entityTypeIds`.
+3. `query_hash_entity_types` with the `entityTypeIds` those entities carry, to learn the properties and links those types allow, set or not. Without filters it lists every type the USER can see, which is large: filter by `entityTypeIds`.
 4. Follow up on a found entity by its `entityId` rather than widening the filter. Use a `traversalDepth` above 0 only when links matter, such as which supplier provides a part, and go no deeper than they need.
 
-An entity's `properties` are keyed by property-type base URL; the types read gives each base URL's title.
+Reads come back as compact text. An entity read lists each property by a short name (`planned_delivery_time`) with its title and description once at the top, where any unit is stated; each entity type title with its `entityTypeId`; then each entity with its `entityId`, `editionId` and one line per property. A large value, such as a process definition, shows as `<object, 8.5 KB: 3 places, …>`. When you need it, read that entity again by `entityIds` with its id in `fullValuesFor`.
 
 ## Using what you found
 
