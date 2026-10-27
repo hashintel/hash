@@ -66,7 +66,8 @@ export type UserSettings = {
   disabledPluginIds: readonly string[];
   /**
    * The plugin whose assistant the user chose, by id. While it is not
-   * running, the editor runs the first plugin that provides an assistant.
+   * running, the editor shows the assistant of the first running plugin that
+   * provides one.
    */
   assistantPluginId: string | null;
   subViewPanels: SubViewPanelsSettings;

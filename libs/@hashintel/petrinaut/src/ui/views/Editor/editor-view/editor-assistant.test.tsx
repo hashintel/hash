@@ -4,6 +4,7 @@ import {
   cleanup,
   fireEvent,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { type ReactNode, use } from "react";
@@ -217,7 +218,7 @@ describe("choosing the assistant", () => {
     ).toBeNull();
   });
 
-  test("lists the assistants in the title bar, the shown one selected", async () => {
+  test("switches the assistant from the title bar's menu", async () => {
     renderWithCommands({});
     const panel = screen.getByRole("complementary", { name: "AI assistant" });
 
@@ -227,12 +228,25 @@ describe("choosing the assistant", () => {
     const items = within(await screen.findByRole("menu")).getAllByRole(
       "menuitem",
     );
-
     expect(
       items.map((item) => [item.textContent, item.dataset.selected]),
     ).toEqual([
       ["Chat", "true"],
       ["Composer", undefined],
     ]);
+
+    // The menu selects its highlighted item: a press highlights the item
+    // under the pointer, a moment before the click selects it.
+    const composer = () => screen.getByRole("menuitem", { name: "Composer" });
+    fireEvent.pointerDown(composer());
+    await waitFor(() => expect(composer().dataset.highlighted).toBe(""));
+    fireEvent.click(composer());
+
+    expect(
+      await screen.findByRole("textbox", { name: "Message" }),
+    ).not.toBeNull();
+    expect(
+      JSON.parse(localStorage.getItem("petrinaut:user-settings") ?? "{}"),
+    ).toMatchObject({ assistantPluginId: "test.composer" });
   });
 });

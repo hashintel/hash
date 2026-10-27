@@ -96,17 +96,21 @@ export const usePluginStatuses = (): readonly PluginStatusEntry[] =>
 
 /**
  * A value selected from the running plugins, in the host's order; the caller
- * re-renders only when the selected value changes.
+ * re-renders only when the selected value changes, as `isEqual` tells.
  */
 export const useRunningPluginsSelector = <T,>(
   selector: (running: readonly RunningPlugin[]) => T,
+  isEqual?: (previous: T, next: T) => boolean,
 ): T => {
   const statuses = use(PluginStatusesContext);
 
-  return useStoreSelector(use(PublishedContext), (map) =>
-    selector(
-      statuses.flatMap(({ plugin }) => map.get(plugin.manifest.id) ?? []),
-    ),
+  return useStoreSelector(
+    use(PublishedContext),
+    (map) =>
+      selector(
+        statuses.flatMap(({ plugin }) => map.get(plugin.manifest.id) ?? []),
+      ),
+    isEqual,
   );
 };
 

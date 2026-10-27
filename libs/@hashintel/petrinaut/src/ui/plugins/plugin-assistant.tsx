@@ -11,7 +11,6 @@ import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { PluginBoundary } from "./plugin-boundary";
 import {
   type RunningPlugin,
-  useRunningPlugins,
   useRunningPluginsSelector,
 } from "./plugins-provider";
 
@@ -70,19 +69,24 @@ export const AssistantPanelTitle = ({
 
 /**
  * The assistant the editor shows among `assistants`: the one the user chose
- * while it is there, else the first. A host applies the same rule to the
- * assistant plugins it passes, less those the user switched off.
+ * while it is there, else the first.
  */
-export const pickAssistant = <
-  Assistant extends { readonly manifest: { readonly id: string } },
->(
-  assistants: readonly Assistant[],
+const pickAssistant = (
+  assistants: readonly RunningPlugin[],
   chosenId: string | null,
-): Assistant | undefined =>
+): RunningPlugin | undefined =>
   assistants.find(({ manifest }) => manifest.id === chosenId) ?? assistants[0];
 
 const providesAssistant = ({ manifest, contributions }: RunningPlugin) =>
   manifest.assistant === true && contributions.assistant !== undefined;
+
+/** Whether two lists hold the same plugins in the same order. */
+const samePlugins = (
+  previous: readonly RunningPlugin[],
+  next: readonly RunningPlugin[],
+) =>
+  previous.length === next.length &&
+  previous.every(({ manifest }, index) => manifest === next[index]?.manifest);
 
 /** The running plugin whose assistant the editor shows, or `undefined`. */
 export const usePluginAssistant = () => {
@@ -99,7 +103,12 @@ export const usePluginAssistant = () => {
  */
 export const useAssistantChoice = () => {
   const { assistantPluginId, setAssistantPluginId } = use(UserSettingsContext);
-  const assistants = useRunningPlugins().filter(providesAssistant);
+  // Compared by plugin, so an assistant republishing its contributions, as a
+  // streaming chat does, re-renders none of the choice's readers.
+  const assistants = useRunningPluginsSelector(
+    (running) => running.filter(providesAssistant),
+    samePlugins,
+  );
 
   return {
     assistants: assistants.map(({ manifest }) => manifest),

@@ -9,7 +9,10 @@ import {
 } from "../../../plugins/plugin-assistant";
 import { PluginAssistantPanel } from "../panels/assistant-panel-shell";
 
-/** The editor's AI assistant: a running plugin's, chosen as `pickAssistant` does. */
+/**
+ * The editor's AI assistant: the chosen running plugin's, else the first
+ * running one's.
+ */
 export const useEditorAssistant = () => {
   const plugin = usePluginAssistant();
 
