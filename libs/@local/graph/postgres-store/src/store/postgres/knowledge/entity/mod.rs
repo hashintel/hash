@@ -1226,8 +1226,8 @@ where
                 web_id: params.web_id,
                 entity_uuid: params
                     .entity_uuid
-                    .unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
-                draft_id: params.draft.then(|| DraftId::new(Uuid::new_v4())),
+                    .unwrap_or_else(|| EntityUuid::new(Uuid::now_v7())),
+                draft_id: params.draft.then(|| DraftId::new(Uuid::now_v7())),
             };
             policy_components_builder.add_entity(
                 actor_id,
@@ -1516,7 +1516,7 @@ where
                 });
             }
 
-            let entity_edition_id = EntityEditionId::new(Uuid::new_v4());
+            let entity_edition_id = EntityEditionId::new(Uuid::now_v7());
             entity_edition_rows.push(EntityEditionRow {
                 entity_edition_id,
                 properties: properties.clone(),
@@ -2872,9 +2872,9 @@ where
         provenance: &SqlEntityEditionProvenance,
         metadata: &Valid<PropertyObjectMetadata>,
     ) -> Result<EntityEditionId, Report<InsertionError>> {
-        let edition_id: EntityEditionId = self
-            .as_client()
-            .query_one(
+        let edition_id = EntityEditionId::new(Uuid::now_v7());
+        self.as_client()
+            .execute(
                 "
                     INSERT INTO entity_editions (
                         entity_edition_id,
@@ -2884,10 +2884,10 @@ where
                         provenance,
                         property_metadata,
                         created_by_id
-                    ) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
-                    RETURNING entity_edition_id;
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7);
                 ",
                 &[
+                    &edition_id,
                     &archived,
                     &properties,
                     &confidence,
@@ -2903,8 +2903,7 @@ where
                 peer.service = "Postgres",
             ))
             .await
-            .change_context(InsertionError)?
-            .get(0);
+            .change_context(InsertionError)?;
 
         let entity_type_ontology_ids = entity_type_ids
             .into_iter()

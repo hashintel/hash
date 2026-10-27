@@ -591,7 +591,7 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
     ) -> Result<(EntityId, EntityTemporalMetadata), Report<UpdateError>> {
-        let draft_id = DraftId::new(Uuid::new_v4());
+        let draft_id = DraftId::new(Uuid::now_v7());
         self.as_client()
             .query(
                 "INSERT INTO entity_drafts (web_id, entity_uuid, draft_id) VALUES ($1, $2, $3);",
