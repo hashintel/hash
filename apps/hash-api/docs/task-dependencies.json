@@ -3,7 +3,6 @@
   "dependencies": [
     "@blockprotocol/graph",
     "@blockprotocol/type-system",
-    "@hashintel/brunch-agent",
     "@local/advanced-types",
     "@local/eslint",
     "@local/harpc-client",
@@ -91,7 +90,6 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
-        "@hashintel/brunch-agent#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/harpc-client#build",
@@ -127,7 +125,6 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
-        "@hashintel/brunch-agent#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/harpc-client#build",
@@ -161,7 +158,6 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
-        "@hashintel/brunch-agent#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/harpc-client#build",
@@ -198,7 +194,6 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
-        "@hashintel/brunch-agent#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/harpc-client#build",
@@ -291,7 +286,6 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
-        "@hashintel/brunch-agent#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/harpc-client#build",
@@ -418,7 +412,6 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
-        "@hashintel/brunch-agent#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/harpc-client#build",
@@ -486,7 +479,6 @@
       "dependsOn": [
         "@blockprotocol/graph#build",
         "@blockprotocol/type-system#build",
-        "@hashintel/brunch-agent#build",
         "@local/advanced-types#build",
         "@local/eslint#build",
         "@local/harpc-client#build",
