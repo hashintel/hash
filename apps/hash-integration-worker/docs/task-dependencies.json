@@ -36,6 +36,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -84,6 +85,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "petrinaut-optimizer-core",
         "problematic",
         "type-system"
       ]
@@ -114,6 +116,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -141,6 +144,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -171,6 +175,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -198,6 +203,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -218,6 +224,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimizer-core",
         "type-system"
       ]
     },
@@ -272,6 +279,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "petrinaut-optimizer-core",
         "problematic",
         "type-system"
       ]
@@ -331,6 +339,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "petrinaut-optimizer-core",
         "problematic",
         "type-system"
       ]
