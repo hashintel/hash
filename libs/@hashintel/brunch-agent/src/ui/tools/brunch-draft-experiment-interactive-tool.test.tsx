@@ -26,6 +26,10 @@ import {
   createBrunchPanelTransport,
 } from "../../client/brunch-panel-transport";
 import {
+  LocalToolCallAuthorityContext,
+  type LocalToolCallAuthority,
+} from "../chat/local-tool-call-authority";
+import {
   BrunchDraftExperimentWidget,
   resetBrunchEditorDrafts,
   type BrunchDraftExperimentApi,
@@ -189,6 +193,7 @@ const renderWidget = ({
   claim = async () => {},
   readDraftAuthority,
   instance: suppliedInstance,
+  authority,
 }: {
   input: DraftPetrinautExperimentInput;
   toolCallId: string;
@@ -200,6 +205,7 @@ const renderWidget = ({
   claim?: () => Promise<void>;
   readDraftAuthority?: (toolCallId: string) => Promise<string>;
   instance?: Petrinaut;
+  authority?: LocalToolCallAuthority;
 }) => {
   const submit = vi.fn(submitOutput);
   const claimAndSubmit = async (
@@ -225,7 +231,7 @@ const renderWidget = ({
     },
     editor: { navigate: vi.fn() },
   };
-  const utils = render(
+  const widget = (
     <BrunchDraftExperimentWidget
       {...state}
       api={api}
@@ -238,10 +244,18 @@ const renderWidget = ({
       submit={() => {}}
       claimAndSubmit={claimAndSubmit}
       toolCallId={toolCallId}
-    />,
+    />
   );
+  const withAuthority = (value: LocalToolCallAuthority) => (
+    <LocalToolCallAuthorityContext value={value}>
+      {widget}
+    </LocalToolCallAuthorityContext>
+  );
+  const utils = render(authority ? withAuthority(authority) : widget);
   return {
     ...utils,
+    rerenderWithAuthority: (value: LocalToolCallAuthority) =>
+      utils.rerender(withAuthority(value)),
     submit,
     claimAndSubmit,
     api,
@@ -609,6 +623,29 @@ describe("BrunchDraftExperimentWidget", () => {
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
     expect(readDraftAuthority).toHaveBeenCalledWith("claim-before-authority");
     expect(submit.mock.calls[0]?.[0]).toMatchObject({ status: "drafted" });
+  });
+
+  it("claims a call only once its panel records the delivery, even after its first effect ran", async () => {
+    const delivered = new Set<string>();
+    const deliveredHere = (toolCallId: string) => delivered.has(toolCallId);
+    const claim = vi.fn(async () => {});
+    const { submit, rerenderWithAuthority } = renderWidget({
+      input: makeInput(),
+      toolCallId: "late-delivery",
+      state: awaiting,
+      definition: createReadableStore(makeDefinition()),
+      runExperiment: vi.fn(),
+      claim,
+      authority: { deliveredHere, deliveries: 0 },
+    });
+
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+    expect(claim).not.toHaveBeenCalled();
+
+    delivered.add("late-delivery");
+    rerenderWithAuthority({ deliveredHere, deliveries: 1 });
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(claim).toHaveBeenCalledTimes(1);
   });
 
   it("reports a failed claim or submission on the card", async () => {

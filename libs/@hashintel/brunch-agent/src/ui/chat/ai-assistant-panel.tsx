@@ -791,6 +791,7 @@ const ConversationAiAssistantPanel = ({
   // Authority is distinct from execution deduplication. Hydration/setMessages
   // never invokes SDK onToolCall, so external/reloaded calls cannot enter here.
   const locallyStreamedToolCallsRef = useRef(new Map<string, number>());
+  const [toolCallDeliveries, setToolCallDeliveries] = useState(0);
   const automaticToolCallExecutionsRef = useRef(new Set<string>());
   const pendingAutomaticToolCallExecutionsRef = useRef(new Set<string>());
   const automaticToolTerminationRef = useRef<{
@@ -1354,6 +1355,7 @@ const ConversationAiAssistantPanel = ({
         `${toolHostIdentityRef.current}:${toolCall.toolCallId}`,
         submissionGenerationRef.current,
       );
+      setToolCallDeliveries((deliveries) => deliveries + 1);
       if (aiAssistant.inBandBrowserTools?.has(toolCall.toolName)) {
         executeIssuedBrowserCall(toolCall);
         return undefined;
@@ -2296,7 +2298,7 @@ const ConversationAiAssistantPanel = ({
   );
 
   // The same authority `onInteractiveToolSubmit` checks, for widgets that act
-  // on a call before submitting it. Read from effects, never during render.
+  // on a call before submitting it.
   const deliveredHere = (toolCallId: string): boolean =>
     aiAssistant.followMessages === undefined ||
     locallyStreamedToolCallsRef.current.get(
@@ -2470,7 +2472,9 @@ const ConversationAiAssistantPanel = ({
     />
   );
   return (
-    <LocalToolCallAuthorityContext value={deliveredHere}>
+    <LocalToolCallAuthorityContext
+      value={{ deliveredHere, deliveries: toolCallDeliveries }}
+    >
       {contents}
     </LocalToolCallAuthorityContext>
   );

@@ -312,7 +312,7 @@ export const BrunchDraftExperimentWidget = ({
     state === "awaiting",
   );
 
-  const deliveredHere = use(LocalToolCallAuthorityContext);
+  const { deliveredHere, deliveries } = use(LocalToolCallAuthorityContext);
 
   // A freshly streamed call prepares once against the live model and reports
   // back so Brunch's turn can continue. Run and Dismiss come after and are
@@ -425,6 +425,8 @@ export const BrunchDraftExperimentWidget = ({
     state,
     claimAndSubmit,
     deliveredHere,
+    // Re-runs the effect when a delivery is recorded after it last ran.
+    deliveries,
     toolCallId,
   ]);
 
