@@ -26,9 +26,7 @@ const parseVersionLoad = (value: unknown): VersionLoad | undefined => {
   const { id, decisionTime } = value as Record<string, unknown>;
   return typeof id === "string" &&
     id.length > 0 &&
-    id.length <= 100 &&
     typeof decisionTime === "string" &&
-    decisionTime.length <= 100 &&
     !Number.isNaN(Date.parse(decisionTime))
     ? { id, decisionTime }
     : undefined;

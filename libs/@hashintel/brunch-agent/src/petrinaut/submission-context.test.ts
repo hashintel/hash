@@ -47,6 +47,12 @@ test("round trips a version load on its own, and reads an invalid one as none", 
       submitted(petrinautSubmissionContext({ versionLoad })),
     ),
   ).toEqual({ versionLoad, words: [] });
+  const longLoad = { ...versionLoad, id: "load-".repeat(40) };
+  expect(
+    readPetrinautSubmissionContext(
+      submitted(petrinautSubmissionContext({ versionLoad: longLoad })),
+    ),
+  ).toEqual({ versionLoad: longLoad, words: [] });
   expect(
     readPetrinautSubmissionContext(
       parsePetrinautUserMessageBody(
