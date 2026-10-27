@@ -390,7 +390,7 @@ test("marks reflections on elements the open version lacks, and leaves the recor
   rerender(
     <BrunchLedgerPane
       messages={reflectedAcrossVersions}
-      openVersion={earlierVersion}
+      loadedVersionNet={earlierVersion}
     />,
   );
   const marked = (address: string) =>

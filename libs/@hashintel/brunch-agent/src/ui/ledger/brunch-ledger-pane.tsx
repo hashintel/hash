@@ -206,7 +206,7 @@ const commentTargetOf = (
  * The Ledger compiled from conversation history, read as a document. With a
  * canvas selection, it shows why the selection is modelled as it is and marks
  * the records behind it. With `comments`, the user can select text and comment
- * on the records it touches. With `openVersion`, it marks reflections on
+ * on the records it touches. With `loadedVersionNet`, it marks reflections on
  * elements that net lacks as not in this version.
  */
 export const BrunchLedgerPane = ({
@@ -215,7 +215,7 @@ export const BrunchLedgerPane = ({
   onSelectNetElements,
   comments,
   highlightChanges = true,
-  openVersion,
+  loadedVersionNet,
 }: {
   messages: readonly LedgerHistoryMessage[];
   /** The editor's selection, when the pane sits beside a canvas. */
@@ -226,7 +226,7 @@ export const BrunchLedgerPane = ({
   /** Mark what the latest turn changed; off once the user has moved past it. */
   highlightChanges?: boolean;
   /** The open net, once the host has loaded another saved version of it. */
-  openVersion?: SDCPN;
+  loadedVersionNet?: SDCPN;
 }) => {
   const id = useId();
   const paneRef = useRef<HTMLElement>(null);
@@ -246,7 +246,7 @@ export const BrunchLedgerPane = ({
   const trace = ledger && traceCanvasSelection(ledger, selection);
   const projection = ledger && projectLedger(ledger);
   const notInThisVersion =
-    ledger && openVersion && reflectionsNotInNet(ledger, openVersion);
+    ledger && loadedVersionNet && reflectionsNotInNet(ledger, loadedVersionNet);
 
   useEffect(() => {
     if (!comments) return;

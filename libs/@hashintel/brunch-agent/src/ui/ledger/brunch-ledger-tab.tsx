@@ -10,19 +10,20 @@ import { BrunchLedgerPane } from "./brunch-ledger-pane";
 import type { LedgerHistoryMessage } from "@hashintel/brunch-agent";
 import type { SDCPN } from "@hashintel/petrinaut-core";
 
+type LedgerBesideCanvasProps = {
+  api: BrunchEditorApi;
+  conversationId: string;
+  messages: readonly LedgerHistoryMessage[];
+  highlightChanges: boolean;
+};
+
 const LedgerBesideCanvas = ({
   api,
   messages,
   conversationId,
   highlightChanges,
-  openNet,
-}: {
-  api: BrunchEditorApi;
-  conversationId: string;
-  messages: readonly LedgerHistoryMessage[];
-  highlightChanges: boolean;
-  openNet?: SDCPN;
-}) => {
+  loadedVersionNet,
+}: LedgerBesideCanvasProps & { loadedVersionNet?: SDCPN }) => {
   const { selection } = useStore(api.editor.navigation);
   return (
     <BrunchLedgerPane
@@ -33,17 +34,15 @@ const LedgerBesideCanvas = ({
         api.editor.navigate((current) => ({ ...current, selection: items }))
       }
       comments={pendingCommentsFor(api.document.net, conversationId)}
-      {...(openNet === undefined ? {} : { openVersion: openNet })}
+      {...(loadedVersionNet === undefined ? {} : { loadedVersionNet })}
     />
   );
 };
 
 /** The Ledger beside the canvas, following the open net to mark what it lacks. */
-const LedgerBesideLoadedVersion = (
-  props: Omit<Parameters<typeof LedgerBesideCanvas>[0], "openNet">,
-) => {
+const LedgerBesideLoadedVersion = (props: LedgerBesideCanvasProps) => {
   const net = useStore(props.api.document.net);
-  return <LedgerBesideCanvas {...props} openNet={net} />;
+  return <LedgerBesideCanvas {...props} loadedVersionNet={net} />;
 };
 
 /**
