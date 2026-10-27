@@ -12,9 +12,9 @@ type SentSession = {
 };
 
 /**
- * A turn's browser actions run only in the editor lifetime that sent it
- * (D21). When the editor handle or the binding changes, or the host unmounts,
- * stop the turn the leaving session sent, if it is still running by its own
+ * A turn's browser actions run only in the editor lifetime that sent it, so
+ * when the editor handle or the binding changes, or the host unmounts, stop
+ * the turn the leaving session sent, if it is still running by its own
  * tracker and the conversation's latest snapshot.
  *
  * A session recreated for another reason (a new `fetch`, owner key or chat
@@ -27,9 +27,15 @@ export const useStopTurnOnLeave = ({
   session,
   onError,
 }: {
-  /** The editor lifetime: its document handle, or `null` while none is open. */
+  /**
+   * The editor lifetime: its document handle, or `null` while none is open.
+   * Compared by identity only, so any type will do.
+   */
   readonly editorHandle: unknown;
-  /** The binding the conversation's session serves. */
+  /**
+   * The binding the conversation's session serves. Compared by identity only,
+   * so any type will do.
+   */
   readonly binding: unknown;
   readonly session: SentSession;
   readonly onError: (error: unknown) => void;

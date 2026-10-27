@@ -83,16 +83,24 @@ export class BrunchPanelConversationTracker {
   }
 
   /**
-   * Whether a turn this tracker sent is still running: a submission between
-   * `send()` and its admission, or an admitted submission `snapshot` shows no
-   * settlement for. Without a snapshot only the first counts. Another tab's
-   * turn on the same conversation never does.
+   * Whether a turn this tracker sent may still be running: a submission
+   * between `send()` and its admission, or an admitted submission `snapshot`
+   * shows no settlement for. Without a snapshot every admitted submission
+   * counts, since nothing yet shows it finished. A submission only another tab
+   * admitted never counts.
+   *
+   * Flue's abort is conversation-wide, so this answer only decides whether to
+   * send one. When this tracker's submission has settled but `snapshot` does
+   * not show it yet (or there is no snapshot), the conversation's running turn
+   * may be another tab's newer one, and an abort would stop it; the tracker
+   * cannot tell that apart from its own turn still running. If nothing is
+   * running, the abort reports `aborted: false` and changes nothing.
    */
   public hasUnsettledTurn(
     snapshot: FlueConversationState | undefined,
   ): boolean {
     if (this.#inFlightSubmissions.size !== 0) return true;
-    if (snapshot === undefined) return false;
+    if (snapshot === undefined) return this.#admittedSubmissionIds.size !== 0;
     return [...this.#admittedSubmissionIds].some(
       (submissionId) =>
         !snapshot.settlements.some(

@@ -7,7 +7,12 @@ import { expect, test, vi } from "vitest";
 import { BrunchPanelConversationTracker } from "../../client/brunch-panel-transport";
 import { useStopTurnOnLeave } from "./use-stop-turn-on-leave";
 
-import type { FlueClient, FlueConversationState } from "@flue/sdk";
+import type {
+  FlueClient,
+  FlueConversationMessage,
+  FlueConversationSettlement,
+  FlueConversationState,
+} from "@flue/sdk";
 
 const session = () => {
   const abort = vi.fn<FlueClient["abort"]>(async () => ({ aborted: true }));
@@ -33,15 +38,24 @@ const admit = (tracker: BrunchPanelConversationTracker, submissionId: string) =>
 /** A history snapshot with settlements for exactly `settled`. */
 const snapshotSettling = (
   ...settled: readonly string[]
-): FlueConversationState =>
-  ({
-    conversationId: "conversation",
-    messages: [],
-    settlements: settled.map((submissionId) => ({
-      submissionId,
-      outcome: "completed",
-    })),
-  }) as unknown as FlueConversationState;
+): FlueConversationState => ({
+  conversationId: "conversation",
+  messages: [],
+  settlements: settled.map((submissionId): FlueConversationSettlement => ({
+    submissionId,
+    outcome: "completed",
+  })),
+});
+
+/** A user message from a submission the history shows no settlement for. */
+const runningUserMessage = (submissionId: string): FlueConversationMessage => ({
+  id: `message-${submissionId}`,
+  role: "user",
+  purpose: "user",
+  display: "visible",
+  submissionId,
+  parts: [],
+});
 
 type Props = {
   editorHandle: unknown;
@@ -96,25 +110,7 @@ test("replacing the editor stops this tab's running turn once, with the session 
   expect(sent.abort).toHaveBeenCalledOnce();
 });
 
-test("a settled turn here is not stopped while another tab's turn on the conversation runs", async () => {
-  const sent = session();
-  admit(sent.tracker, "this-tab");
-  // The other tab's submission has no settlement, and this tracker never admitted it.
-  const props = {
-    editorHandle: "handle-1",
-    binding,
-    sent,
-    snapshot: snapshotSettling("this-tab"),
-  };
-  const { rerender, unmount } = renderLeaving(props);
-
-  rerender({ ...props, editorHandle: "handle-2" });
-  unmount();
-  await new Promise((resolve) => setTimeout(resolve, 10));
-  expect(sent.abort).not.toHaveBeenCalled();
-});
-
-test("without a history snapshot an admitted turn doesn't count as unsettled", async () => {
+test("leaving before the first history snapshot stops this tab's admitted turn", async () => {
   const sent = session();
   admit(sent.tracker, "this-tab");
   const props = {
@@ -126,6 +122,40 @@ test("without a history snapshot an admitted turn doesn't count as unsettled", a
   const { rerender } = renderLeaving(props);
 
   rerender({ ...props, editorHandle: "handle-2" });
+  await vi.waitFor(() => expect(sent.abort).toHaveBeenCalledOnce());
+});
+
+test("without a history snapshot or an admission, leaving stops nothing", async () => {
+  const sent = session();
+  const props = {
+    editorHandle: "handle-1",
+    binding,
+    sent,
+    snapshot: undefined,
+  };
+  const { rerender } = renderLeaving(props);
+
+  rerender({ ...props, editorHandle: "handle-2" });
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  expect(sent.abort).not.toHaveBeenCalled();
+});
+
+test("a snapshot settling this tab's turn while another tab's runs stops nothing", async () => {
+  const sent = session();
+  admit(sent.tracker, "this-tab");
+  const props = {
+    editorHandle: "handle-1",
+    binding,
+    sent,
+    snapshot: {
+      ...snapshotSettling("this-tab"),
+      messages: [runningUserMessage("other-tab")],
+    },
+  };
+  const { rerender, unmount } = renderLeaving(props);
+
+  rerender({ ...props, editorHandle: "handle-2" });
+  unmount();
   await new Promise((resolve) => setTimeout(resolve, 10));
   expect(sent.abort).not.toHaveBeenCalled();
 });
