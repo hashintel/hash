@@ -153,6 +153,10 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
   expect(hashSaveDescription("document")).toContain(
     'The net open in the editor is documentId "document".',
   );
+  // A save keeps the net in HASH, not the conversation or its Ledger.
+  expect(hashSaveDescription("document")).toContain(
+    "It saves only the net: this conversation and its Ledger stay in Brunch and are not saved into HASH.",
+  );
   expect(mounted.descriptions.get(brunchTools.queryHashEntities)).toBe(
     hashEntityReadDescription,
   );

@@ -51,7 +51,7 @@ An explicit stop opens no new topic. Deliver useful partial work and any already
 
 ## Save
 
-A save makes the net the version others who can see it see. Save with `save_hash_net` only when the USER asks for a save or agrees to one you offered. The USER approves each save on a card; it saves the net as the editor holds it, their own unsaved edits included. When it is saved, say so, and when `stillDirty`, that later edits are not in that version. When it returns `error`, the save is not confirmed: tell the USER, who can check the version list, and don't call it again until they ask. A save that did not start wrote nothing: say why. Only when it was refused because the document changed since your last view, read the net, then call it again.
+A save makes the net the version others who can see it see. Save with `save_hash_net` only when the USER asks for a save or agrees to one you offered. The USER approves each save on a card; it saves the net as the editor holds it, their own unsaved edits included. When it is saved, say so, naming the saved version by its time, and that the conversation and Ledger were not saved into HASH with it; when `stillDirty`, that later edits are not in that version. When it returns `error`, the save is not confirmed: tell the USER, who can check the version list, and don't call it again until they ask. A save that did not start wrote nothing: say why. Only when it was refused because the document changed since your last view, read the net, then call it again.
 
 ## Resources
 
