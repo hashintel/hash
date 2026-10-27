@@ -81,7 +81,7 @@ async fn empty_entity() {
         api.create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::new(),
@@ -116,7 +116,7 @@ async fn initial_person() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -261,7 +261,7 @@ async fn create_multi() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id(), org_entity_type_id()]),
@@ -404,7 +404,7 @@ async fn summary_aggregations() {
 
     let account_id = api.account_id;
     let create_params = |entity_type_ids, properties: &str| CreateEntityParams {
-        web_id: WebId::new(account_id),
+        web_id: WebId::from_uuid(account_id.into()),
         entity_uuid: None,
         decision_time: None,
         entity_type_ids,
@@ -464,7 +464,10 @@ async fn summary_aggregations() {
     assert_eq!(response.count, Some(2));
     assert_eq!(
         response.web_ids,
-        Some(HashMap::from([(WebId::new(api.account_id), 2)]))
+        Some(HashMap::from([(
+            WebId::from_uuid(api.account_id.into()),
+            2
+        )]))
     );
     assert_eq!(
         response.created_by_ids,

@@ -89,7 +89,7 @@ impl Fixture {
         PolicyTranslationUnit {
             projections: &mut self.projections,
             parameters: &mut self.parameters,
-            actor_id: Some(ActorId::User(UserId::new(ACTOR_UUID))),
+            actor_id: Some(ActorId::User(UserId::from_uuid(ACTOR_UUID))),
         }
     }
 
@@ -105,7 +105,7 @@ impl Fixture {
         ProtectionTranslationUnit {
             projections: &mut self.projections,
             parameters: &mut self.parameters,
-            actor_id: Some(ActorId::User(UserId::new(ACTOR_UUID))),
+            actor_id: Some(ActorId::User(UserId::from_uuid(ACTOR_UUID))),
         }
     }
 }
@@ -310,9 +310,9 @@ where
         );
         if self.is_instance_admin {
             context_builder.add_actor_group(&ActorGroup::Team(Team {
-                id: TeamId::new(Uuid::nil()),
+                id: TeamId::from_uuid(Uuid::nil()),
                 name: "instance-admins".to_owned(),
-                parent_id: ActorGroupId::Web(WebId::new(Uuid::nil())),
+                parent_id: ActorGroupId::Web(WebId::from_uuid(Uuid::nil())),
                 roles: HashSet::new(),
             }));
         }
@@ -351,7 +351,7 @@ pub(crate) fn permit<'resource>(
     resource: impl Fn() -> Option<ResourceConstraint> + Send + Sync + 'resource,
 ) -> Box<dyn Fn() -> ResolvedPolicy + Send + Sync + 'resource> {
     Box::new(move || ResolvedPolicy {
-        original_policy_id: PolicyId::new(PERMIT_POLICY_UUID),
+        original_policy_id: PolicyId::from_uuid(PERMIT_POLICY_UUID),
         effect: Effect::Permit,
         actions: vec![ActionName::ViewEntity],
         resource: (resource)(),
@@ -362,7 +362,7 @@ pub(crate) fn forbid<'resource>(
     resource: impl Fn() -> Option<ResourceConstraint> + Send + Sync + 'resource,
 ) -> Box<dyn Fn() -> ResolvedPolicy + Send + Sync + 'resource> {
     Box::new(move || ResolvedPolicy {
-        original_policy_id: PolicyId::new(FORBID_POLICY_UUID),
+        original_policy_id: PolicyId::from_uuid(FORBID_POLICY_UUID),
         effect: Effect::Forbid,
         actions: vec![ActionName::ViewEntity],
         resource: (resource)(),
@@ -493,7 +493,7 @@ fn patch_with_policy_and_protection() {
 
     let compilation = CompilationFixture::new(&heap, env, body);
 
-    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let actor = Some(ActorId::User(UserId::from_uuid(ACTOR_UUID)));
     let policy = policy_components(
         actor,
         vec![
@@ -501,7 +501,7 @@ fn patch_with_policy_and_protection() {
                 Some(
                         hash_graph_authorization::policies::resource::ResourceConstraint::Entity(
                             hash_graph_authorization::policies::resource::EntityResourceConstraint::Exact {
-                                id: EntityUuid::new(ENTITY_UUID_1),
+                                id: EntityUuid::from_uuid(ENTITY_UUID_1),
                             },
                         ),
                     )
@@ -509,7 +509,7 @@ fn patch_with_policy_and_protection() {
             permit(|| {
                 Some(
                     hash_graph_authorization::policies::resource::ResourceConstraint::Web {
-                        web_id: WebId::new(WEB_UUID_1),
+                        web_id: WebId::from_uuid(WEB_UUID_1),
                     },
                 )
             }),
@@ -569,7 +569,7 @@ fn patch_blank_permit_no_protection() {
 
     let compilation = CompilationFixture::new(&heap, env, body);
 
-    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let actor = Some(ActorId::User(UserId::from_uuid(ACTOR_UUID)));
     let policy = policy_components(actor, vec![permit(|| None)]);
     let properties = PropertyProtectionFilterConfig::new();
 
@@ -604,7 +604,7 @@ fn patch_blank_forbid_denies_all() {
 
     let compilation = CompilationFixture::new(&heap, env, body);
 
-    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let actor = Some(ActorId::User(UserId::from_uuid(ACTOR_UUID)));
     let policy = policy_components(actor, vec![forbid(|| None)]);
     let properties = PropertyProtectionFilterConfig::hash_default();
 
@@ -639,7 +639,7 @@ fn patch_instance_admin_bypasses_protection() {
 
     let compilation = CompilationFixture::new(&heap, env, body);
 
-    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let actor = Some(ActorId::User(UserId::from_uuid(ACTOR_UUID)));
     let policy = policy_components_admin(actor, vec![permit(|| None)]);
     let properties = PropertyProtectionFilterConfig::hash_default();
 
@@ -675,7 +675,7 @@ fn patch_protection_with_type_base_urls() {
 
     let compilation = CompilationFixture::new(&heap, env, body);
 
-    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let actor = Some(ActorId::User(UserId::from_uuid(ACTOR_UUID)));
     let policy = policy_components(actor, vec![permit(|| None)]);
 
     // Protection uses TypeBaseUrls path, which demands entity_edition_cache join.

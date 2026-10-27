@@ -67,7 +67,7 @@ impl From<EntityUuid> for ArchivedEntityUuid {
 impl From<ArchivedEntityUuid> for EntityUuid {
     #[inline]
     fn from(id: ArchivedEntityUuid) -> Self {
-        Self::new(uuid::Uuid::from_bytes(id.0))
+        Self::from_uuid(uuid::Uuid::from_bytes(id.0))
     }
 }
 
@@ -139,7 +139,7 @@ impl From<WebId> for ArchivedWebId {
 impl From<ArchivedWebId> for WebId {
     #[inline]
     fn from(id: ArchivedWebId) -> Self {
-        Self::new(uuid::Uuid::from_bytes(id.0))
+        Self::from_uuid(uuid::Uuid::from_bytes(id.0))
     }
 }
 

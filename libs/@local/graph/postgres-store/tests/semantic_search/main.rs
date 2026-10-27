@@ -56,7 +56,7 @@ async fn search_with_real_policies() {
 
     for actor_row in actor_rows {
         // The rows come from `user_actor`, so the type is known without a lookup.
-        let actor_id = ActorId::User(UserId::new(actor_row.get::<_, Uuid>(0)));
+        let actor_id = ActorId::User(UserId::from_uuid(actor_row.get::<_, Uuid>(0)));
 
         for run in ["cold", "warm"] {
             let started = std::time::Instant::now();

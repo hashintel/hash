@@ -343,7 +343,7 @@ async fn delete_user(
     let mut store = pool.acquire(None).await.map_err(report_to_response)?;
 
     let (user_id, kratos_identity_id) = match request {
-        DeleteUserRequest::ById { user_id } => (UserId::new(user_id), None),
+        DeleteUserRequest::ById { user_id } => (UserId::from_uuid(user_id), None),
         DeleteUserRequest::ByEmail { email } => {
             let resolved = kratos
                 .find_user_by_email(&email)

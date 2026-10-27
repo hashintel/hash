@@ -209,7 +209,7 @@ impl FromCedarEntityId for EntityUuid {
     }
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
-        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+        Ok(Self::from_uuid(Uuid::from_str(eid.as_ref())?))
     }
 }
 
@@ -351,7 +351,7 @@ mod tests {
 
     #[test]
     fn constraint_exact() -> Result<(), Box<dyn Error>> {
-        let entity_uuid = EntityUuid::new(Uuid::now_v7());
+        let entity_uuid = EntityUuid::from_uuid(Uuid::now_v7());
         check_resource(
             Some(ResourceConstraint::Entity(
                 EntityResourceConstraint::Exact { id: entity_uuid },
@@ -366,7 +366,7 @@ mod tests {
         check_deserialization_error::<ResourceConstraint>(
             json!({
                 "type": "entity",
-                "webId": WebId::new(Uuid::now_v7()),
+                "webId": WebId::from_uuid(Uuid::now_v7()),
                 "id": entity_uuid,
             }),
             "data did not match any variant of untagged enum EntityResourceConstraint",
@@ -377,7 +377,7 @@ mod tests {
 
     #[test]
     fn constraint_in_web() -> Result<(), Box<dyn Error>> {
-        let web_id = WebId::new(Uuid::now_v7());
+        let web_id = WebId::from_uuid(Uuid::now_v7());
         check_resource(
             Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
                 web_id,
@@ -397,8 +397,8 @@ mod tests {
         check_deserialization_error::<ResourceConstraint>(
             json!({
                 "type": "entity",
-                "webId": WebId::new(Uuid::now_v7()),
-                "id": EntityUuid::new(Uuid::now_v7()),
+                "webId": WebId::from_uuid(Uuid::now_v7()),
+                "id": EntityUuid::from_uuid(Uuid::now_v7()),
             }),
             "data did not match any variant of untagged enum EntityResourceConstraint",
         )?;
@@ -408,7 +408,7 @@ mod tests {
 
     #[test]
     fn constraint_in_web_with_filter() -> Result<(), Box<dyn Error>> {
-        let web_id = WebId::new(Uuid::now_v7());
+        let web_id = WebId::from_uuid(Uuid::now_v7());
         check_resource(
             Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
                 web_id,

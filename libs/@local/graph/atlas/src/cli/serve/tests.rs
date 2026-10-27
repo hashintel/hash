@@ -56,7 +56,7 @@ impl AuthenticationProvider<ActorId> for HeaderActor {
     ) -> impl Future<Output = ControlFlow<Result<ActorId, Arc<Report<AuthenticationError>>>>> + Send
     {
         core::future::ready(match actor_id_from_header(headers) {
-            Ok(actor) => ControlFlow::Break(Ok(ActorId::User(UserId::new(actor)))),
+            Ok(actor) => ControlFlow::Break(Ok(ActorId::User(UserId::from_uuid(actor.into())))),
             Err(error) if *error.kind() == AuthenticationErrorKind::MissingDelegatedActor => {
                 ControlFlow::Continue(())
             }

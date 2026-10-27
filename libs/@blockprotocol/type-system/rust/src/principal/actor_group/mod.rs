@@ -43,12 +43,10 @@ use crate::knowledge::entity::id::EntityUuid;
 pub struct ActorGroupEntityUuid(EntityUuid);
 
 impl ActorGroupEntityUuid {
-    /// Creates a new [`ActorGroupEntityUuid`] from any value that can be converted to a `Uuid`.
-    ///
-    /// Wraps the provided UUID in the appropriate branded type structure.
+    /// Creates an ID from an existing UUID.
     #[must_use]
-    pub fn new(entity_uuid: impl Into<Uuid>) -> Self {
-        Self(EntityUuid::new(entity_uuid))
+    pub const fn from_uuid(uuid: Uuid) -> Self {
+        Self(EntityUuid::from_uuid(uuid))
     }
 }
 
@@ -105,10 +103,10 @@ impl ActorGroupId {
     /// Constructs the appropriate typed ID based on the specified [`ActorGroupType`],
     /// wrapping the provided UUID in the correct identifier structure.
     #[must_use]
-    pub fn new(actor_group_entity_uuid: impl Into<Uuid>, actor_type: ActorGroupType) -> Self {
+    pub const fn new(actor_group_entity_uuid: Uuid, actor_type: ActorGroupType) -> Self {
         match actor_type {
-            ActorGroupType::Team => Self::Team(TeamId::new(actor_group_entity_uuid)),
-            ActorGroupType::Web => Self::Web(WebId::new(actor_group_entity_uuid)),
+            ActorGroupType::Team => Self::Team(TeamId::from_uuid(actor_group_entity_uuid)),
+            ActorGroupType::Web => Self::Web(WebId::from_uuid(actor_group_entity_uuid)),
         }
     }
 

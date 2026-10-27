@@ -125,8 +125,8 @@ impl ProblemVariant for EntityNotFound {
     fn example() -> Option<Self> {
         Some(Self {
             entity_id: LiveEntityId::new(
-                WebId::new(Uuid::from_u128(0x8D86C8C3_D66D_43D1_859B_676C3BCAEADC)),
-                EntityUuid::new(Uuid::from_u128(0xBE2C5B2F_E3E1_4F26_A0C4_0F8B5E9C4A1D)),
+                WebId::from_uuid(Uuid::from_u128(0x8D86C8C3_D66D_43D1_859B_676C3BCAEADC)),
+                EntityUuid::from_uuid(Uuid::from_u128(0xBE2C5B2F_E3E1_4F26_A0C4_0F8B5E9C4A1D)),
             ),
         })
     }

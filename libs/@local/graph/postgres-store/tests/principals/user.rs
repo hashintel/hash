@@ -29,7 +29,7 @@ async fn create_user_with_id() -> Result<(), Box<dyn Error>> {
 
     let id = Uuid::now_v7();
     let user_id = client.create_user(Some(id)).await?;
-    assert_eq!(user_id, UserId::new(id));
+    assert_eq!(user_id, UserId::from_uuid(id));
 
     assert!(client.is_user(user_id).await?);
 
@@ -74,7 +74,7 @@ async fn get_non_existent_user() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (client, actor_id) = db.seed().await?;
 
-    let non_existent_id = UserId::new(Uuid::now_v7());
+    let non_existent_id = UserId::from_uuid(Uuid::now_v7());
     let result = client.get_user_by_id(actor_id, non_existent_id).await?;
 
     assert!(
@@ -90,7 +90,7 @@ async fn delete_non_existent_user() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed().await?;
 
-    let non_existent_id = UserId::new(Uuid::now_v7());
+    let non_existent_id = UserId::from_uuid(Uuid::now_v7());
     let result = client.delete_user(non_existent_id).await;
 
     assert_matches!(

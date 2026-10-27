@@ -54,7 +54,7 @@ async fn insert() {
         CreateEntityTypeParams {
             schema: person_et,
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
@@ -88,7 +88,7 @@ async fn query() {
         CreateEntityTypeParams {
             schema: organization_et.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
@@ -170,7 +170,7 @@ async fn update() {
         CreateEntityTypeParams {
             schema: page_et_v1.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {

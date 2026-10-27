@@ -132,7 +132,7 @@ where
         &mut self,
         id: Option<Uuid>,
     ) -> Result<UserId, Report<PrincipalError>> {
-        let user_id = UserId::new(id.unwrap_or_else(Uuid::now_v7));
+        let user_id = UserId::from_uuid(id.unwrap_or_else(Uuid::now_v7));
         if let Err(error) = self
             .as_mut_client()
             .execute("INSERT INTO user_actor (id) VALUES ($1)", &[&user_id])
@@ -217,7 +217,8 @@ where
     ///
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn is_user(&self, user_id: impl Into<Uuid>) -> Result<bool, Report<PrincipalError>> {
-        self.is_principal(ActorId::User(UserId::new(user_id))).await
+        self.is_principal(ActorId::User(UserId::from_uuid(user_id.into())))
+            .await
     }
 
     /// Deletes a user from the system.
@@ -248,7 +249,7 @@ where
         id: Option<Uuid>,
         identifier: &str,
     ) -> Result<MachineId, Report<PrincipalError>> {
-        let id = MachineId::new(id.unwrap_or_else(Uuid::now_v7));
+        let id = MachineId::from_uuid(id.unwrap_or_else(Uuid::now_v7));
         if let Err(error) = self
             .as_mut_client()
             .execute(
@@ -286,7 +287,7 @@ where
         &self,
         machine_id: impl Into<Uuid>,
     ) -> Result<bool, Report<PrincipalError>> {
-        self.is_principal(ActorId::Machine(MachineId::new(machine_id)))
+        self.is_principal(ActorId::Machine(MachineId::from_uuid(machine_id.into())))
             .await
     }
 
@@ -318,7 +319,7 @@ where
         id: Option<Uuid>,
         identifier: &str,
     ) -> Result<AiId, Report<PrincipalError>> {
-        let ai_id = AiId::new(id.unwrap_or_else(Uuid::now_v7));
+        let ai_id = AiId::from_uuid(id.unwrap_or_else(Uuid::now_v7));
         if let Err(error) = self
             .as_mut_client()
             .execute(
@@ -353,7 +354,8 @@ where
     ///
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn is_ai(&self, ai_id: impl Into<Uuid>) -> Result<bool, Report<PrincipalError>> {
-        self.is_principal(ActorId::Ai(AiId::new(ai_id))).await
+        self.is_principal(ActorId::Ai(AiId::from_uuid(ai_id.into())))
+            .await
     }
 
     /// Deletes an AI from the system.
@@ -394,8 +396,8 @@ where
             ))
             .await
             .map(|row| match row.get(0) {
-                PrincipalType::Web => ActorGroupId::Web(WebId::new(id)),
-                PrincipalType::Team => ActorGroupId::Team(TeamId::new(id)),
+                PrincipalType::Web => ActorGroupId::Web(WebId::from_uuid(id.into())),
+                PrincipalType::Team => ActorGroupId::Team(TeamId::from_uuid(id.into())),
                 principal_type @ (PrincipalType::User
                 | PrincipalType::Machine
                 | PrincipalType::Ai
@@ -415,7 +417,7 @@ where
     ///
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn is_web(&self, web_id: impl Into<Uuid>) -> Result<bool, Report<PrincipalError>> {
-        self.is_principal(ActorGroupId::Web(WebId::new(web_id)))
+        self.is_principal(ActorGroupId::Web(WebId::from_uuid(web_id.into())))
             .await
     }
 
@@ -473,7 +475,7 @@ where
             .map_err(|error| match error.current_context().code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => {
                     error.change_context(PrincipalError::PrincipalAlreadyExists {
-                        id: PrincipalId::ActorGroup(ActorGroupId::Team(TeamId::new(id))),
+                        id: PrincipalId::ActorGroup(ActorGroupId::Team(TeamId::from_uuid(id))),
                     })
                 }
                 Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
@@ -511,7 +513,7 @@ where
             .await
             .change_context(PrincipalError::StoreError)?;
 
-        Ok(TeamId::new(id))
+        Ok(TeamId::from_uuid(id))
     }
 
     /// Checks if a team with the given ID exists.
@@ -522,7 +524,7 @@ where
     ///
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn is_team(&self, team_id: impl Into<Uuid>) -> Result<bool, Report<PrincipalError>> {
-        self.is_principal(ActorGroupId::Team(TeamId::new(team_id)))
+        self.is_principal(ActorGroupId::Team(TeamId::from_uuid(team_id.into())))
             .await
     }
 
@@ -606,9 +608,12 @@ where
     ) -> Result<RoleId, Report<PrincipalError>> {
         let role_id = id.unwrap_or_else(Uuid::now_v7);
         let (role_id, principal_type) = match actor_group_id {
-            ActorGroupId::Web(_) => (RoleId::Web(WebRoleId::new(role_id)), PrincipalType::WebRole),
+            ActorGroupId::Web(_) => (
+                RoleId::Web(WebRoleId::from_uuid(role_id)),
+                PrincipalType::WebRole,
+            ),
             ActorGroupId::Team(_) => (
-                RoleId::Team(TeamRoleId::new(role_id)),
+                RoleId::Team(TeamRoleId::from_uuid(role_id)),
                 PrincipalType::TeamRole,
             ),
         };
@@ -846,17 +851,17 @@ where
                 let role_id: Uuid = row.get(0);
                 match row.get(1) {
                     PrincipalType::WebRole => (
-                        RoleId::Web(WebRoleId::new(role_id)),
+                        RoleId::Web(WebRoleId::from_uuid(role_id)),
                         Role::Web(WebRole {
-                            id: WebRoleId::new(role_id),
+                            id: WebRoleId::from_uuid(role_id),
                             web_id: row.get(2),
                             name: row.get(3),
                         }),
                     ),
                     PrincipalType::TeamRole => (
-                        RoleId::Team(TeamRoleId::new(role_id)),
+                        RoleId::Team(TeamRoleId::from_uuid(role_id)),
                         Role::Team(TeamRole {
-                            id: TeamRoleId::new(role_id),
+                            id: TeamRoleId::from_uuid(role_id),
                             team_id: row.get(2),
                             name: row.get(3),
                         }),

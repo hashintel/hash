@@ -1464,7 +1464,7 @@ mod tests {
     // =========================================================================
 
     mod transform {
-        use type_system::principal::actor::{ActorEntityUuid, UserId};
+        use type_system::principal::actor::UserId;
         use uuid::Uuid;
 
         use super::*;
@@ -1683,7 +1683,7 @@ mod tests {
         #[test]
         fn actor_compares_against_its_own_uuid() {
             let actor_uuid = Uuid::now_v7();
-            let actor_id = ActorId::User(UserId::new(ActorEntityUuid::new(actor_uuid)));
+            let actor_id = ActorId::User(UserId::from_uuid(actor_uuid));
 
             let transformed = transform_filter(
                 email_eq("test@example.com"),

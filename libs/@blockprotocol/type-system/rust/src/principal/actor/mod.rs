@@ -52,12 +52,10 @@ use crate::knowledge::entity::id::EntityUuid;
 pub struct ActorEntityUuid(EntityUuid);
 
 impl ActorEntityUuid {
-    /// Creates a new `ActorEntityUuid` from any value that can be converted to a `Uuid`.
-    ///
-    /// Wraps the provided UUID in the appropriate branded type structure.
+    /// Creates an ID from an existing UUID.
     #[must_use]
-    pub fn new(entity_uuid: impl Into<Uuid>) -> Self {
-        Self(EntityUuid::new(entity_uuid))
+    pub const fn from_uuid(uuid: Uuid) -> Self {
+        Self(EntityUuid::from_uuid(uuid))
     }
 }
 
@@ -125,11 +123,11 @@ impl ActorId {
     /// Constructs the appropriate typed ID based on the specified [`ActorType`],
     /// wrapping the provided UUID in the correct identifier structure.
     #[must_use]
-    pub fn new(actor_entity_uuid: impl Into<Uuid>, actor_type: ActorType) -> Self {
+    pub const fn new(actor_entity_uuid: Uuid, actor_type: ActorType) -> Self {
         match actor_type {
-            ActorType::User => Self::User(UserId::new(actor_entity_uuid)),
-            ActorType::Ai => Self::Ai(AiId::new(actor_entity_uuid)),
-            ActorType::Machine => Self::Machine(MachineId::new(actor_entity_uuid)),
+            ActorType::User => Self::User(UserId::from_uuid(actor_entity_uuid)),
+            ActorType::Ai => Self::Ai(AiId::from_uuid(actor_entity_uuid)),
+            ActorType::Machine => Self::Machine(MachineId::from_uuid(actor_entity_uuid)),
         }
     }
 

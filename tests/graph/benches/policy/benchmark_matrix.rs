@@ -167,9 +167,9 @@ fn get_test_actor(
 ) -> ActorId {
     match user_type {
         UserType::System => system_actor_id,
-        UserType::Empty => {
-            ActorId::User(type_system::principal::actor::UserId::new(uuid::Uuid::nil()))
-        }
+        UserType::Empty => ActorId::User(type_system::principal::actor::UserId::from_uuid(
+            uuid::Uuid::nil(),
+        )),
         UserType::Seeded => benchmark_data
             .and_then(|data| data.get_test_user(0))
             .expect("Seeded user requested but no benchmark data available"),
@@ -205,7 +205,7 @@ fn run_benchmark_seed_group(
     seed_level: SeedLevel,
     configs: Vec<BenchConfig>,
 ) {
-    let account_id = ActorId::User(type_system::principal::actor::UserId::new(
+    let account_id = ActorId::User(type_system::principal::actor::UserId::from_uuid(
         uuid::Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
     ));
 

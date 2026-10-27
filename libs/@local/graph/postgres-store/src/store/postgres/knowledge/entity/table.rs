@@ -1125,7 +1125,7 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let mut params = params(None);
         params.filter.webs = EntityTableWebScope::Exclude {
-            webs: vec![WebId::new(Uuid::nil())],
+            webs: vec![WebId::from_uuid(Uuid::nil())],
         };
         params.filter.excluded_type_base_urls = vec![
             BaseUrl::new("https://example.com/types/entity-type/noise/".to_owned())
@@ -1308,7 +1308,7 @@ mod tests {
     #[test]
     fn table_page_statement() {
         let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
-        let params = params(Some(vec![WebId::new(Uuid::nil())]));
+        let params = params(Some(vec![WebId::from_uuid(Uuid::nil())]));
 
         let scope = scope_filter(&params);
         let types = type_include_filter(&[VersionedUrl::from_str(

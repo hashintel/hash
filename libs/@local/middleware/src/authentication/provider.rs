@@ -200,14 +200,14 @@ mod tests {
     use core::{assert_matches, ops::ControlFlow};
 
     use http::HeaderMap;
-    use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
+    use type_system::principal::actor::{ActorId, UserId};
     use uuid::Uuid;
 
     use super::{AuthenticationProvider as _, Caller, StaticAuthenticationProvider};
     use crate::authentication::request::AuthenticationErrorKind;
 
     fn random_user() -> ActorId {
-        ActorId::User(UserId::new(ActorEntityUuid::new(Uuid::now_v7())))
+        ActorId::User(UserId::from_uuid(Uuid::now_v7()))
     }
 
     #[test]

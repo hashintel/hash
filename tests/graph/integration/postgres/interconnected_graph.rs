@@ -49,9 +49,9 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    let web_id = WebId::new(api.account_id);
+    let web_id = WebId::from_uuid(api.account_id.into());
 
-    let alice_id = EntityUuid::new(Uuid::now_v7());
+    let alice_id = EntityUuid::from_uuid(Uuid::now_v7());
     let alice_entity = CreateEntityParams {
         web_id,
         entity_uuid: Some(alice_id),
@@ -77,7 +77,7 @@ async fn insert() {
         read_only: false,
     };
 
-    let bob_id = EntityUuid::new(Uuid::now_v7());
+    let bob_id = EntityUuid::from_uuid(Uuid::now_v7());
     let bob_entity = CreateEntityParams {
         web_id,
         entity_uuid: Some(bob_id),
@@ -104,7 +104,7 @@ async fn insert() {
     };
 
     let friendship_entity = CreateEntityParams {
-        web_id: WebId::new(api.account_id),
+        web_id: WebId::from_uuid(api.account_id.into()),
         entity_uuid: None,
         decision_time: None,
         entity_type_ids: HashSet::from([VersionedUrl::from_str(

@@ -76,8 +76,9 @@ pub enum Effect {
 pub struct PolicyId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl PolicyId {
+    /// Creates an ID from an existing UUID.
     #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
+    pub const fn from_uuid(uuid: Uuid) -> Self {
         Self(uuid)
     }
 
@@ -102,7 +103,7 @@ impl FromCedarEntityId for PolicyId {
     }
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
-        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+        Ok(Self::from_uuid(Uuid::from_str(eid.as_ref())?))
     }
 }
 
@@ -242,7 +243,7 @@ impl Policy {
         policy: &ast::StaticPolicy,
     ) -> Result<Self, Report<InvalidPolicy>> {
         Ok(Self {
-            id: PolicyId::new(
+            id: PolicyId::from_uuid(
                 policy
                     .id()
                     .as_ref()
@@ -330,7 +331,7 @@ impl Policy {
             &parse_policy(
                 Some(ast::PolicyID::from_string(
                     policy_id
-                        .unwrap_or_else(|| PolicyId::new(Uuid::now_v7()))
+                        .unwrap_or_else(|| PolicyId::from_uuid(Uuid::now_v7()))
                         .to_string(),
                 )),
                 text,
@@ -455,11 +456,11 @@ mod tests {
 
         #[test]
         fn user_can_view_entity_uuid() -> Result<(), Box<dyn Error>> {
-            let user_id = UserId::new(Uuid::now_v7());
-            let entity_uuid = EntityUuid::new(Uuid::now_v7());
+            let user_id = UserId::from_uuid(Uuid::now_v7());
+            let entity_uuid = EntityUuid::from_uuid(Uuid::now_v7());
 
             let policy = Policy {
-                id: PolicyId::new(Uuid::now_v7()),
+                id: PolicyId::from_uuid(Uuid::now_v7()),
                 name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::Actor {

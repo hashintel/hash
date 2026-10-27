@@ -80,7 +80,7 @@ impl Producer<UserCreation> for UserProducer {
         let local_id = self.local_id.take_and_advance();
 
         let id_gid = context.global_id(local_id, Scope::Id, SubScope::Unknown);
-        let user_id = UserId::new(id_gid.encode());
+        let user_id = UserId::from_uuid(id_gid.encode());
         let shortname = format!("user-{:X}-{:X}", id_gid.shard_id, id_gid.local_id);
 
         let registration_gid = context.global_id(local_id, Scope::Registration, SubScope::Unknown);

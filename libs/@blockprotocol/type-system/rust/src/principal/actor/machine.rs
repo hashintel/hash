@@ -32,9 +32,10 @@ use crate::{knowledge::entity::id::EntityUuid, principal::role::RoleId};
 pub struct MachineId(ActorEntityUuid);
 
 impl MachineId {
+    /// Creates an ID from an existing UUID.
     #[must_use]
-    pub fn new(actor_entity_uuid: impl Into<Uuid>) -> Self {
-        Self(ActorEntityUuid::new(actor_entity_uuid))
+    pub const fn from_uuid(uuid: Uuid) -> Self {
+        Self(ActorEntityUuid::from_uuid(uuid))
     }
 }
 

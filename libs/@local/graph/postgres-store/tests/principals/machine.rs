@@ -77,7 +77,7 @@ async fn delete_non_existent_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed().await?;
 
-    let non_existent_id = MachineId::new(Uuid::now_v7());
+    let non_existent_id = MachineId::from_uuid(Uuid::now_v7());
     let result = client.delete_machine(non_existent_id).await;
     drop(client);
 
@@ -119,7 +119,7 @@ async fn get_non_existent_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (client, actor_id) = db.seed().await?;
 
-    let non_existent_id = MachineId::new(Uuid::now_v7());
+    let non_existent_id = MachineId::from_uuid(Uuid::now_v7());
     let result = client.get_machine_by_id(actor_id, non_existent_id).await?;
 
     assert!(

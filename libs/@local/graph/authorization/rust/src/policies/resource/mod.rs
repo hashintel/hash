@@ -122,7 +122,7 @@ impl ResourceConstraint {
     ) -> Result<Self, Report<InvalidResourceConstraint>> {
         if *resource.entity_type() == **EntityUuid::entity_type() {
             Ok(Self::Entity(EntityResourceConstraint::Exact {
-                id: EntityUuid::new(
+                id: EntityUuid::from_uuid(
                     Uuid::from_str(resource.eid().as_ref())
                         .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                 ),
@@ -160,7 +160,7 @@ impl ResourceConstraint {
     ) -> Result<Self, Report<InvalidResourceConstraint>> {
         if *resource.entity_type() == **WebId::entity_type() {
             Ok(Self::Web {
-                web_id: WebId::new(
+                web_id: WebId::from_uuid(
                     Uuid::from_str(resource.eid().as_ref())
                         .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                 ),
@@ -188,7 +188,7 @@ impl ResourceConstraint {
 
             if *in_resource.entity_type() == **WebId::entity_type() {
                 Ok(Self::Entity(EntityResourceConstraint::Web {
-                    web_id: WebId::new(
+                    web_id: WebId::from_uuid(
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                     ),
@@ -211,7 +211,7 @@ impl ResourceConstraint {
 
             if *in_resource.entity_type() == **WebId::entity_type() {
                 Ok(Self::EntityType(EntityTypeResourceConstraint::Web {
-                    web_id: WebId::new(
+                    web_id: WebId::from_uuid(
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                     ),
@@ -234,7 +234,7 @@ impl ResourceConstraint {
 
             if *in_resource.entity_type() == **WebId::entity_type() {
                 Ok(Self::PropertyType(PropertyTypeResourceConstraint::Web {
-                    web_id: WebId::new(
+                    web_id: WebId::from_uuid(
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                     ),
@@ -255,7 +255,7 @@ impl ResourceConstraint {
 
             if *in_resource.entity_type() == **WebId::entity_type() {
                 Ok(Self::DataType(DataTypeResourceConstraint::Web {
-                    web_id: WebId::new(
+                    web_id: WebId::from_uuid(
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                     ),
@@ -276,7 +276,7 @@ impl ResourceConstraint {
 
             if *in_resource.entity_type() == **WebId::entity_type() {
                 Ok(Self::Meta(MetaResourceConstraint::Web {
-                    web_id: WebId::new(
+                    web_id: WebId::from_uuid(
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
                     ),
@@ -328,7 +328,7 @@ mod tests {
         ResourceConstraint::try_from_cedar(&cedar_constraint, &resource_expr)?;
 
         let policy = Policy {
-            id: PolicyId::new(Uuid::now_v7()),
+            id: PolicyId::from_uuid(Uuid::now_v7()),
             name: None,
             effect: Effect::Permit,
             principal: None,
@@ -371,7 +371,7 @@ mod tests {
 
     #[test]
     fn constraint_in_web() -> Result<(), Box<dyn Error>> {
-        let web_id = WebId::new(Uuid::now_v7());
+        let web_id = WebId::from_uuid(Uuid::now_v7());
         check_resource(
             Some(ResourceConstraint::Web { web_id }),
             json!({

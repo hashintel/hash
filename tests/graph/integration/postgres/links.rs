@@ -74,7 +74,7 @@ async fn insert() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -99,7 +99,7 @@ async fn insert() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -134,7 +134,7 @@ async fn insert() {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id),
+            web_id: WebId::from_uuid(api.account_id.into()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([friend_of_type_id.clone()]),
@@ -330,7 +330,7 @@ async fn get_entity_links() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -355,7 +355,7 @@ async fn get_entity_links() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -380,7 +380,7 @@ async fn get_entity_links() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -404,7 +404,7 @@ async fn get_entity_links() {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id),
+            web_id: WebId::from_uuid(api.account_id.into()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([friend_link_type_id.clone()]),
@@ -435,7 +435,7 @@ async fn get_entity_links() {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id),
+            web_id: WebId::from_uuid(api.account_id.into()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([acquaintance_entity_link_type_id.clone()]),
@@ -587,7 +587,7 @@ async fn remove_link() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -612,7 +612,7 @@ async fn remove_link() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id.clone()]),
@@ -637,7 +637,7 @@ async fn remove_link() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([friend_link_type_id.clone()]),

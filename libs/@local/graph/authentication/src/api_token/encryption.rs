@@ -199,8 +199,8 @@ mod tests {
 
     fn fixed_associated_data(token: &HashedApiToken) -> AssociatedData {
         token.associated_data(
-            ActorEntityUuid::new(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111)),
-            WebId::new(Uuid::from_u128(0x2222_2222_2222_2222_2222_2222_2222_2222)),
+            ActorEntityUuid::from_uuid(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111)),
+            WebId::from_uuid(Uuid::from_u128(0x2222_2222_2222_2222_2222_2222_2222_2222)),
         )
     }
 
@@ -252,11 +252,11 @@ mod tests {
     #[rstest]
     #[case::environment(|data| AssociatedData { environment: Environment::Staging, ..data })]
     #[case::token_id(|data| AssociatedData { token_id: ApiTokenId::new(Uuid::from_u128(1)), ..data })]
-    #[case::actor_id(|data| AssociatedData { actor_id: ActorEntityUuid::new(Uuid::from_u128(1)), ..data })]
-    #[case::web_id(|data| AssociatedData { web_id: WebId::new(Uuid::from_u128(1)), ..data })]
+    #[case::actor_id(|data| AssociatedData { actor_id: ActorEntityUuid::from_uuid(Uuid::from_u128(1)), ..data })]
+    #[case::web_id(|data| AssociatedData { web_id: WebId::from_uuid(Uuid::from_u128(1)), ..data })]
     #[case::actor_web_swapped(|data: AssociatedData| AssociatedData {
-        actor_id: ActorEntityUuid::new(Uuid::from(data.web_id)),
-        web_id: WebId::new(Uuid::from(data.actor_id)),
+        actor_id: ActorEntityUuid::from_uuid(Uuid::from(data.web_id)),
+        web_id: WebId::from_uuid(Uuid::from(data.actor_id)),
         ..data
     })]
     fn decrypt_other_associated_data(#[case] change: fn(AssociatedData) -> AssociatedData) {

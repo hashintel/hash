@@ -40,7 +40,9 @@ impl ResolveActor for EchoingActorResolver {
         actor_entity_uuid: ActorEntityUuid,
     ) -> impl Future<Output = Result<ActorId, error_stack::Report<DetermineActorError>>> + Send
     {
-        core::future::ready(Ok(ActorId::User(UserId::new(actor_entity_uuid))))
+        core::future::ready(Ok(ActorId::User(UserId::from_uuid(
+            actor_entity_uuid.into(),
+        ))))
     }
 }
 
@@ -122,7 +124,7 @@ async fn delete_identity(client: &Client, id: &str) -> Result<(), Box<dyn Error>
 async fn verified_address_resolves_to_the_provisioned_actor() -> Result<(), Box<dyn Error>> {
     let client = Client::new();
     let email = unique_email();
-    let actor_id = ActorEntityUuid::new(Uuid::now_v7());
+    let actor_id = ActorEntityUuid::from_uuid(Uuid::now_v7());
     let identity_id = create_identity(&client, &email, true, Some(actor_id)).await?;
 
     let resolved = resolver().resolve_email_actor(&email).await;
@@ -131,7 +133,7 @@ async fn verified_address_resolves_to_the_provisioned_actor() -> Result<(), Box<
 
     let user_id = resolved.expect("a verified address should resolve");
     assert_eq!(
-        ActorEntityUuid::new(user_id),
+        ActorEntityUuid::from(user_id),
         actor_id,
         "the resolver should report the actor named in the identity's metadata"
     );
@@ -148,7 +150,7 @@ async fn unverified_address_does_not_resolve() -> Result<(), Box<dyn Error>> {
         &client,
         &email,
         false,
-        Some(ActorEntityUuid::new(Uuid::now_v7())),
+        Some(ActorEntityUuid::from_uuid(Uuid::now_v7())),
     )
     .await?;
 
@@ -204,7 +206,7 @@ async fn address_without_an_identity_does_not_resolve() {
 async fn address_resolves_regardless_of_case() -> Result<(), Box<dyn Error>> {
     let client = Client::new();
     let email = unique_email();
-    let actor_id = ActorEntityUuid::new(Uuid::now_v7());
+    let actor_id = ActorEntityUuid::from_uuid(Uuid::now_v7());
     let identity_id = create_identity(&client, &email, true, Some(actor_id)).await?;
 
     let resolved = resolver().resolve_email_actor(&email.to_uppercase()).await;

@@ -53,7 +53,7 @@ async fn insert() {
         CreateDataTypeParams {
             schema: boolean_dt,
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
@@ -84,7 +84,7 @@ async fn query() {
         CreateDataTypeParams {
             schema: list_v1.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
@@ -187,7 +187,7 @@ async fn inheritance() {
         CreateDataTypeParams {
             schema: centimeter_dt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
@@ -307,7 +307,7 @@ async fn inheritance() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl::from_str(
@@ -355,7 +355,7 @@ async fn inheritance() {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id),
+            web_id: WebId::from_uuid(api.account_id.into()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([VersionedUrl::from_str(
@@ -401,7 +401,7 @@ async fn inheritance() {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id),
+            web_id: WebId::from_uuid(api.account_id.into()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([VersionedUrl::from_str(
@@ -462,7 +462,7 @@ async fn update() {
         CreateDataTypeParams {
             schema: object_dt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
@@ -549,7 +549,7 @@ async fn insert_same_base_url() {
         CreateDataTypeParams {
             schema: object_dt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
@@ -569,7 +569,7 @@ async fn insert_same_base_url() {
             CreateDataTypeParams {
                 schema: object_dt_v1.clone(),
                 ownership: OntologyOwnership::Local {
-                    web_id: WebId::new(api.account_id),
+                    web_id: WebId::from_uuid(api.account_id.into()),
                 },
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance {
@@ -593,7 +593,7 @@ async fn insert_same_base_url() {
             CreateDataTypeParams {
                 schema: object_dt_v2.clone(),
                 ownership: OntologyOwnership::Local {
-                    web_id: WebId::new(api.account_id),
+                    web_id: WebId::from_uuid(api.account_id.into()),
                 },
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance {
@@ -699,7 +699,7 @@ async fn wrong_update_order() {
         CreateDataTypeParams {
             schema: object_dt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {

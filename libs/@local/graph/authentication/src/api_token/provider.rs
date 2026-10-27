@@ -297,7 +297,7 @@ mod tests {
     fn token(issuer: &ApiTokenIssuer) -> String {
         issuer
             .issue(
-                UserId::new(Uuid::now_v7()),
+                UserId::from_uuid(Uuid::now_v7()),
                 ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
                 None,
             )

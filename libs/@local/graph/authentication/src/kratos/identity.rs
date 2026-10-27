@@ -99,7 +99,7 @@ async fn verified_identity(
         )));
     };
 
-    Ok(ActorEntityUuid::new(actor_uuid))
+    Ok(ActorEntityUuid::from(actor_uuid))
 }
 
 impl<R> ResolveEmailActor for KratosEmailActorResolver<R>
@@ -220,7 +220,7 @@ mod tests {
             .await
             .expect("a verified email should resolve to the provisioned actor");
         assert_eq!(
-            ActorEntityUuid::new(user_id),
+            ActorEntityUuid::from(user_id),
             actor_id,
             "the resolved actor should be the provisioned user"
         );
@@ -314,7 +314,7 @@ mod tests {
     ///
     /// A real version 4 UUID, because the wire types reject UUIDs without an RFC 4122 version.
     fn case_actor() -> ActorEntityUuid {
-        ActorEntityUuid::new(
+        ActorEntityUuid::from_uuid(
             Uuid::parse_str("d290f1ee-6c54-4b01-90e6-d701748f0851")
                 .expect("the case UUID should parse"),
         )
@@ -352,7 +352,7 @@ mod tests {
     )]
     #[case::machine_actor(
         json!([identity_json(Some(case_actor()), json!([verified_address(EMAIL)]))]),
-        HashMap::from([(case_actor(), ActorId::Machine(MachineId::new(case_actor())))]),
+        HashMap::from([(case_actor(), ActorId::Machine(MachineId::from_uuid(case_actor().into())))]),
         |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::NotAUser { .. })
     )]
     #[tokio::test]

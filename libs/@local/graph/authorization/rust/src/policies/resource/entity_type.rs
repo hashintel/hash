@@ -360,7 +360,7 @@ mod tests {
         check_deserialization_error::<ResourceConstraint>(
             json!({
                 "type": "entityType",
-                "webId": WebId::new(Uuid::now_v7()),
+                "webId": WebId::from_uuid(Uuid::now_v7()),
                 "id": entity_type_id,
             }),
             "data did not match any variant of untagged enum EntityTypeResourceConstraint",
@@ -371,7 +371,7 @@ mod tests {
 
     #[test]
     fn constraint_in_web() -> Result<(), Box<dyn Error>> {
-        let web_id = WebId::new(Uuid::now_v7());
+        let web_id = WebId::from_uuid(Uuid::now_v7());
         check_resource(
             Some(ResourceConstraint::EntityType(
                 EntityTypeResourceConstraint::Web {
@@ -393,8 +393,8 @@ mod tests {
         check_deserialization_error::<ResourceConstraint>(
             json!({
                 "type": "entityType",
-                "webId": WebId::new(Uuid::now_v7()),
-                "id": EntityUuid::new(Uuid::now_v7()),
+                "webId": WebId::from_uuid(Uuid::now_v7()),
+                "id": EntityUuid::from_uuid(Uuid::now_v7()),
             }),
             "data did not match any variant of untagged enum EntityTypeResourceConstraint",
         )?;

@@ -76,7 +76,7 @@ async fn create_person(api: &mut DatabaseApi<'_>) -> EntityId {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id),
+            web_id: WebId::from_uuid(api.account_id.into()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -183,8 +183,8 @@ async fn clusters_entities_by_embedding_direction() {
     let entity_without_embedding = create_person(&mut api).await;
     // ... and one entity ID that does not exist at all.
     let nonexistent_entity = EntityId {
-        web_id: WebId::new(api.account_id),
-        entity_uuid: EntityUuid::new(Uuid::now_v7()),
+        web_id: WebId::from_uuid(api.account_id.into()),
+        entity_uuid: EntityUuid::from_uuid(Uuid::now_v7()),
         draft_id: None,
     };
 

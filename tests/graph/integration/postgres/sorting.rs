@@ -188,8 +188,8 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
         api.create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
-                entity_uuid: Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
+                web_id: WebId::from_uuid(api.account_id.into()),
+                entity_uuid: Some(EntityUuid::from_uuid(Uuid::from_u128(idx as u128))),
                 decision_time: None,
                 entity_type_ids: HashSet::from([type_id.clone()]),
                 properties: PropertyObjectWithMetadata::from_parts(properties.clone(), None)

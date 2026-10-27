@@ -470,7 +470,7 @@ pub fn actor_id_from_header(headers: &HeaderMap) -> Result<ActorEntityUuid, Auth
         .to_str()
         .ok()
         .and_then(|header_string| Uuid::from_str(header_string).ok())
-        .map(ActorEntityUuid::new)
+        .map(ActorEntityUuid::from_uuid)
         .ok_or(AuthenticationError::new(
             AuthenticationErrorKind::InvalidActorIdHeader,
         ))
@@ -521,7 +521,7 @@ mod tests {
     }
 
     fn random_user() -> ActorId {
-        ActorId::User(UserId::new(ActorEntityUuid::new(Uuid::now_v7())))
+        ActorId::User(UserId::from_uuid(Uuid::now_v7()))
     }
 
     fn actor_id_header(actor_id: ActorEntityUuid) -> HeaderMap {
@@ -553,7 +553,7 @@ mod tests {
     #[tokio::test]
     async fn rejected_credential_does_not_fall_back_to_actor_id_header() {
         let provider = StaticAuthenticationProvider::Rejected;
-        let headers = actor_id_header(ActorEntityUuid::new(Uuid::now_v7()));
+        let headers = actor_id_header(ActorEntityUuid::from_uuid(Uuid::now_v7()));
 
         let outcome: Result<ActorId, _> =
             resolve_request_actor(&provider, &headers, &test_metrics()).await;
@@ -573,7 +573,7 @@ mod tests {
     #[tokio::test]
     async fn actor_id_header_alone_fails_authentication() {
         let provider = StaticAuthenticationProvider::NotRecognized;
-        let headers = actor_id_header(ActorEntityUuid::new(Uuid::now_v7()));
+        let headers = actor_id_header(ActorEntityUuid::from_uuid(Uuid::now_v7()));
 
         let outcome: Result<ActorId, _> =
             resolve_request_actor(&provider, &headers, &test_metrics()).await;
@@ -676,7 +676,7 @@ mod tests {
     /// same errors independently, so the two cannot drift apart unnoticed.
     #[test]
     fn server_errors_are_the_services_fault() {
-        for error in every_error("identity-id", ActorEntityUuid::new(Uuid::now_v7())) {
+        for error in every_error("identity-id", ActorEntityUuid::from_uuid(Uuid::now_v7())) {
             let service_fault = error.fault_domain() == FaultDomain::Service;
             let message = error.to_string();
             let report = Report::new(error);
@@ -739,7 +739,7 @@ mod tests {
     #[test]
     fn log_representations_carry_their_identifiers() {
         let identity_id = "d290f1ee-6c54-4b01-90e6-d701748f0851";
-        let actor_id = ActorEntityUuid::new(Uuid::now_v7());
+        let actor_id = ActorEntityUuid::from_uuid(Uuid::now_v7());
         let errors = [
             (
                 AuthenticationErrorKind::NotProvisioned {

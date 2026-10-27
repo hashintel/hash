@@ -43,12 +43,10 @@ use crate::{
 pub struct UserId(ActorEntityUuid);
 
 impl UserId {
-    /// Creates a new [`UserId`] from any value that can be converted to a `Uuid`.
-    ///
-    /// Wraps the provided UUID in the appropriate branded type structure.
+    /// Creates an ID from an existing UUID.
     #[must_use]
-    pub fn new(actor_entity_uuid: impl Into<Uuid>) -> Self {
-        Self(ActorEntityUuid::new(actor_entity_uuid))
+    pub const fn from_uuid(uuid: Uuid) -> Self {
+        Self(ActorEntityUuid::from_uuid(uuid))
     }
 }
 
@@ -72,7 +70,7 @@ impl From<UserId> for Uuid {
 
 impl From<UserId> for WebId {
     fn from(user_id: UserId) -> Self {
-        Self::new(Uuid::from(user_id))
+        Self::from_uuid(Uuid::from(user_id))
     }
 }
 

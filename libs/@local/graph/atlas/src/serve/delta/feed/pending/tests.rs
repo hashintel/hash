@@ -238,7 +238,7 @@ fn observe_removals() {
         EntityEvent::Deleted(EntityDeletion {
             entity: id,
             provenance: EntityDeletionProvenance {
-                deleted_by_id: ActorEntityUuid::new(Uuid::from_u128(4)),
+                deleted_by_id: ActorEntityUuid::from_uuid(Uuid::from_u128(4)),
                 deleted_at_transaction_time: Timestamp::from_unix_timestamp(2),
                 deleted_at_decision_time: Timestamp::from_unix_timestamp(2),
             },
@@ -285,7 +285,7 @@ fn observe_other_web() {
     let mut pending = Pending::default();
     let first_id = entity(1);
     let mut second_id = first_id;
-    second_id.web_id = type_system::principal::actor_group::WebId::new(Uuid::from_u128(2));
+    second_id.web_id = type_system::principal::actor_group::WebId::from_uuid(Uuid::from_u128(2));
 
     pending.observe(update(1, 10, false));
     let EntityEvent::Updated(mut other) = update(1, 1, false) else {

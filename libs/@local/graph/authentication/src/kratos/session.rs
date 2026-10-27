@@ -363,7 +363,7 @@ where
                 whoami.identity.id,
             )));
         };
-        Ok(ActorEntityUuid::new(actor_uuid))
+        Ok(ActorEntityUuid::from(actor_uuid))
     }
 
     /// Verifies the credential against Kratos and resolves the actor it names.
@@ -779,7 +779,7 @@ mod tests {
             matches!(
                 authentication,
                 ControlFlow::Break(Ok(ActorId::User(user_id)))
-                if ActorEntityUuid::new(user_id) == actor_id
+                if ActorEntityUuid::from(user_id) == actor_id
             ),
             "a valid session should verify to the provisioned user actor"
         );
@@ -832,7 +832,7 @@ mod tests {
     ///
     /// A real version 4 UUID, because the wire types reject UUIDs without an RFC 4122 version.
     fn case_actor() -> ActorEntityUuid {
-        ActorEntityUuid::new(
+        ActorEntityUuid::from_uuid(
             Uuid::parse_str("d290f1ee-6c54-4b01-90e6-d701748f0851")
                 .expect("the case UUID should parse"),
         )
@@ -852,7 +852,7 @@ mod tests {
     )]
     #[case::machine_actor(
         FakeSession::active_for(case_actor()),
-        HashMap::from([(case_actor(), ActorId::Machine(MachineId::new(case_actor())))]),
+        HashMap::from([(case_actor(), ActorId::Machine(MachineId::from_uuid(case_actor().into())))]),
         |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::NotAUser { .. })
     )]
     #[case::inactive_session(
@@ -1086,7 +1086,7 @@ mod tests {
             matches!(
                 decision,
                 ControlFlow::Break(Ok(ActorId::User(user_id)))
-                    if ActorEntityUuid::new(user_id) == session_actor
+                    if ActorEntityUuid::from(user_id) == session_actor
             ),
             "a valid session should act as the session user, not the delegated actor"
         );
@@ -1202,7 +1202,7 @@ mod tests {
             assert_matches!(
                 first,
                 ControlFlow::Break(Ok(ActorId::User(user_id)))
-                    if ActorEntityUuid::new(user_id) == first_actor,
+                    if ActorEntityUuid::from(user_id) == first_actor,
                 "the first token should resolve to its own actor"
             );
             let second: ControlFlow<Result<ActorId, _>> =
@@ -1210,7 +1210,7 @@ mod tests {
             assert_matches!(
                 second,
                 ControlFlow::Break(Ok(ActorId::User(user_id)))
-                    if ActorEntityUuid::new(user_id) == second_actor,
+                    if ActorEntityUuid::from(user_id) == second_actor,
                 "the second token should resolve to its own actor"
             );
         }

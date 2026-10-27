@@ -25,9 +25,10 @@ use crate::principal::actor_group::WebId;
 pub struct WebRoleId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl WebRoleId {
+    /// Creates an ID from an existing UUID.
     #[must_use]
-    pub fn new(uuid: impl Into<Uuid>) -> Self {
-        Self(uuid.into())
+    pub const fn from_uuid(uuid: Uuid) -> Self {
+        Self(uuid)
     }
 }
 

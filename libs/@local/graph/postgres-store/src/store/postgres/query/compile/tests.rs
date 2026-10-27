@@ -1622,7 +1622,7 @@ fn filter_entity_by_type_base_url() {
 /// filter saw them and a restricted actor would get too few results, and the wrong ones.
 #[test]
 fn semantic_ordering_ranks_under_the_permission_filter() {
-    let permitted_webs = [WebId::new(Uuid::from_u128(1))];
+    let permitted_webs = [WebId::from_uuid(Uuid::from_u128(1))];
     let embedding = Embedding::from(vec![0.0; 3072]);
 
     let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
@@ -1726,7 +1726,7 @@ fn semantic_ordering_ranks_entity_types() {
 /// own, which then stays inside the branch.
 #[test]
 fn semantic_ordering_compiles_a_policy_branch() {
-    let permitted_webs = [WebId::new(Uuid::from_u128(1))];
+    let permitted_webs = [WebId::from_uuid(Uuid::from_u128(1))];
     let forbidden_uuid = Uuid::from_u128(2);
     let embedding = Embedding::from(vec![0.0; 3072]);
 
@@ -1815,20 +1815,20 @@ fn semantic_ordering_compiles_the_policy_branch_split() {
     };
 
     let embedding = Embedding::from(vec![0.0; 3072]);
-    let actor_id = Some(ActorId::User(UserId::new(Uuid::from_u128(10))));
+    let actor_id = Some(ActorId::User(UserId::from_uuid(Uuid::from_u128(10))));
 
     let permitted_entity = Uuid::from_u128(1);
     let forbidden_entity = Uuid::from_u128(2);
     let permit = ResourceConstraint::Entity(EntityResourceConstraint::Exact {
-        id: EntityUuid::new(permitted_entity),
+        id: EntityUuid::from_uuid(permitted_entity),
     });
     let forbid = ResourceConstraint::Entity(EntityResourceConstraint::Exact {
-        id: EntityUuid::new(forbidden_entity),
+        id: EntityUuid::from_uuid(forbidden_entity),
     });
     let optimization_data = OptimizationData {
         permitted_web_ids: vec![
-            WebId::new(Uuid::from_u128(3)),
-            WebId::new(Uuid::from_u128(4)),
+            WebId::from_uuid(Uuid::from_u128(3)),
+            WebId::from_uuid(Uuid::from_u128(4)),
         ],
         ..OptimizationData::default()
     };
@@ -2096,8 +2096,8 @@ mod predefined {
     #[test]
     fn for_entity_by_entity_id() {
         let entity_id = EntityId {
-            web_id: WebId::new(Uuid::now_v7()),
-            entity_uuid: EntityUuid::new(Uuid::now_v7()),
+            web_id: WebId::from_uuid(Uuid::now_v7()),
+            entity_uuid: EntityUuid::from_uuid(Uuid::now_v7()),
             draft_id: None,
         };
 
@@ -2129,17 +2129,17 @@ mod predefined {
 
     fn published_entity_id() -> EntityId {
         EntityId {
-            web_id: WebId::new(Uuid::now_v7()),
-            entity_uuid: EntityUuid::new(Uuid::now_v7()),
+            web_id: WebId::from_uuid(Uuid::now_v7()),
+            entity_uuid: EntityUuid::from_uuid(Uuid::now_v7()),
             draft_id: None,
         }
     }
 
     fn drafted_entity_id() -> EntityId {
         EntityId {
-            web_id: WebId::new(Uuid::now_v7()),
-            entity_uuid: EntityUuid::new(Uuid::now_v7()),
-            draft_id: Some(DraftId::new(Uuid::now_v7())),
+            web_id: WebId::from_uuid(Uuid::now_v7()),
+            entity_uuid: EntityUuid::from_uuid(Uuid::now_v7()),
+            draft_id: Some(DraftId::from_uuid(Uuid::now_v7())),
         }
     }
 

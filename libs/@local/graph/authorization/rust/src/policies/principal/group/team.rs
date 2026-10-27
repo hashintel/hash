@@ -19,7 +19,7 @@ impl FromCedarEntityId for TeamId {
     }
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
-        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+        Ok(Self::from_uuid(Uuid::from_str(eid.as_ref())?))
     }
 }
 
@@ -50,7 +50,7 @@ mod tests {
     use core::error::Error;
 
     use serde_json::json;
-    use type_system::principal::actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId};
+    use type_system::principal::actor_group::{ActorGroupId, TeamId};
     use uuid::Uuid;
 
     use crate::{
@@ -59,7 +59,7 @@ mod tests {
     };
     #[test]
     fn constraint() -> Result<(), Box<dyn Error>> {
-        let team_id = TeamId::new(ActorGroupEntityUuid::new(Uuid::now_v7()));
+        let team_id = TeamId::from_uuid(Uuid::now_v7());
         check_principal(
             PrincipalConstraint::ActorGroup {
                 actor_type: None,

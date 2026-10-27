@@ -314,7 +314,7 @@ pub async fn seed<D, P, E, C, S>(
 
                 let ownership = if domain_regex.is_match(schema.id.base_url.as_str()) {
                     OntologyOwnership::Local {
-                        web_id: WebId::new(account_id),
+                        web_id: WebId::from_uuid(account_id.into()),
                     }
                 } else {
                     OntologyOwnership::Remote {
@@ -347,7 +347,7 @@ pub async fn seed<D, P, E, C, S>(
 
                 let ownership = if domain_regex.is_match(schema.id.base_url.as_str()) {
                     OntologyOwnership::Local {
-                        web_id: WebId::new(account_id),
+                        web_id: WebId::from_uuid(account_id.into()),
                     }
                 } else {
                     OntologyOwnership::Remote {
@@ -379,7 +379,7 @@ pub async fn seed<D, P, E, C, S>(
 
                 let ownership = if domain_regex.is_match(schema.id.base_url.as_str()) {
                     OntologyOwnership::Local {
-                        web_id: WebId::new(account_id),
+                        web_id: WebId::from_uuid(account_id.into()),
                     }
                 } else {
                     OntologyOwnership::Remote {

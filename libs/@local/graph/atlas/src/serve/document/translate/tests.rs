@@ -149,15 +149,15 @@ fn identities_mixed_input() {
     let node_id = fixture.node_id(0);
     let edge_id = fixture.edge_id(0);
     let draft_node = EntityId {
-        draft_id: Some(DraftId::new(Uuid::from_u128(3))),
+        draft_id: Some(DraftId::from_uuid(Uuid::from_u128(3))),
         ..fixture.node_id(1)
     };
     let draft_edge = EntityId {
-        draft_id: Some(DraftId::new(Uuid::from_u128(4))),
+        draft_id: Some(DraftId::from_uuid(Uuid::from_u128(4))),
         ..fixture.edge_id(1)
     };
     let unknown = EntityId {
-        entity_uuid: EntityUuid::new(Uuid::nil()),
+        entity_uuid: EntityUuid::from_uuid(Uuid::nil()),
         ..node_id
     };
     let document = TranslateDocument::new(

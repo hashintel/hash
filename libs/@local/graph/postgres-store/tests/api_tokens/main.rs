@@ -206,7 +206,7 @@ async fn list_other_web() -> Result<(), Box<dyn Error>> {
 
     assert!(
         store
-            .list_api_tokens(WebId::new(Uuid::now_v7()))
+            .list_api_tokens(WebId::from_uuid(Uuid::now_v7()))
             .await?
             .is_empty(),
         "another web should not list the token"
@@ -333,7 +333,7 @@ async fn revoke_other_web() -> Result<(), Box<dyn Error>> {
     let token = create_token(&mut store, user_id, Some(LIFETIME)).await?;
 
     let result = store
-        .revoke_api_token(WebId::new(Uuid::now_v7()), token.token_id)
+        .revoke_api_token(WebId::from_uuid(Uuid::now_v7()), token.token_id)
         .await;
 
     assert_matches!(

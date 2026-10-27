@@ -269,9 +269,9 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
     }
 
     fn known_user(email: &str) -> (HashMap<String, UserId>, ActorEntityUuid) {
-        let actor_id = ActorEntityUuid::new(Uuid::now_v7());
+        let actor_id = ActorEntityUuid::from_uuid(Uuid::now_v7());
         (
-            HashMap::from([(email.to_owned(), UserId::new(actor_id))]),
+            HashMap::from([(email.to_owned(), UserId::from_uuid(actor_id.into()))]),
             actor_id,
         )
     }
@@ -331,7 +331,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
             matches!(
                 authentication,
                 ControlFlow::Break(Ok(ActorId::User(user_id)))
-                    if ActorEntityUuid::new(user_id) == actor_id
+                    if ActorEntityUuid::from(user_id) == actor_id
             ),
             "a valid token should verify to the actor resolved from its email claim"
         );

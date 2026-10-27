@@ -19,7 +19,7 @@ impl FromCedarEntityId for TeamRoleId {
     }
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
-        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+        Ok(Self::from_uuid(Uuid::from_str(eid.as_ref())?))
     }
 }
 
@@ -59,7 +59,7 @@ mod tests {
     };
     #[test]
     fn constraint() -> Result<(), Box<dyn Error>> {
-        let team_role_id = TeamRoleId::new(Uuid::now_v7());
+        let team_role_id = TeamRoleId::from_uuid(Uuid::now_v7());
         check_principal(
             PrincipalConstraint::Role {
                 actor_type: None,

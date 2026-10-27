@@ -132,7 +132,7 @@ fn is_read_only_column() {
 fn constraint_exact_entity() {
     let mut fixture = Fixture::new();
     let constraint = ResourceConstraint::Entity(EntityResourceConstraint::Exact {
-        id: EntityUuid::new(ENTITY_UUID_1),
+        id: EntityUuid::from_uuid(ENTITY_UUID_1),
     });
     let expr = convert_resource_constraint(&mut fixture.policy(), &constraint);
 
@@ -149,7 +149,7 @@ fn constraint_exact_entity() {
 fn constraint_web() {
     let mut fixture = Fixture::new();
     let constraint = ResourceConstraint::Web {
-        web_id: WebId::new(WEB_UUID_1),
+        web_id: WebId::from_uuid(WEB_UUID_1),
     };
     let expr = convert_resource_constraint(&mut fixture.policy(), &constraint);
 
@@ -188,7 +188,7 @@ fn constraint_any_with_type_filter() {
 fn constraint_web_with_created_by() {
     let mut fixture = Fixture::new();
     let constraint = ResourceConstraint::Entity(EntityResourceConstraint::Web {
-        web_id: WebId::new(WEB_UUID_1),
+        web_id: WebId::from_uuid(WEB_UUID_1),
         filter: EntityResourceFilter::CreatedByPrincipal,
     });
     let expr = convert_resource_constraint(&mut fixture.policy(), &constraint);
@@ -304,7 +304,7 @@ fn optimize_single_entity_uuid() {
     let mut fixture = Fixture::new();
     let mut permits = None;
     let data = OptimizationData {
-        permitted_entity_uuids: vec![EntityUuid::new(ENTITY_UUID_1)],
+        permitted_entity_uuids: vec![EntityUuid::from_uuid(ENTITY_UUID_1)],
         permitted_entity_type_uuids: vec![],
         permitted_property_type_uuids: vec![],
         permitted_data_type_uuids: vec![],
@@ -329,8 +329,8 @@ fn optimize_multiple_entity_uuids() {
     let mut permits = None;
     let data = OptimizationData {
         permitted_entity_uuids: vec![
-            EntityUuid::new(ENTITY_UUID_1),
-            EntityUuid::new(ENTITY_UUID_2),
+            EntityUuid::from_uuid(ENTITY_UUID_1),
+            EntityUuid::from_uuid(ENTITY_UUID_2),
         ],
         permitted_entity_type_uuids: vec![],
         permitted_property_type_uuids: vec![],
@@ -359,7 +359,7 @@ fn optimize_single_web_id() {
         permitted_entity_type_uuids: vec![],
         permitted_property_type_uuids: vec![],
         permitted_data_type_uuids: vec![],
-        permitted_web_ids: vec![WebId::new(WEB_UUID_1)],
+        permitted_web_ids: vec![WebId::from_uuid(WEB_UUID_1)],
     };
     optimize(&mut fixture.policy(), &mut permits, &data);
     let expr = permits.expect("should have a permit expression");
@@ -383,7 +383,10 @@ fn optimize_multiple_web_ids() {
         permitted_entity_type_uuids: vec![],
         permitted_property_type_uuids: vec![],
         permitted_data_type_uuids: vec![],
-        permitted_web_ids: vec![WebId::new(WEB_UUID_1), WebId::new(ENTITY_UUID_2)],
+        permitted_web_ids: vec![
+            WebId::from_uuid(WEB_UUID_1),
+            WebId::from_uuid(ENTITY_UUID_2),
+        ],
     };
     optimize(&mut fixture.policy(), &mut permits, &data);
     let expr = permits.expect("should have a permit expression");
@@ -430,7 +433,7 @@ fn filter_empty_any_is_false() {
 #[test]
 fn algebra_blank_forbid_denies_all() {
     let mut fixture = Fixture::new();
-    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let actor = Some(ActorId::User(UserId::from_uuid(ACTOR_UUID)));
     let policy = policy_components(actor, vec![forbid(|| None)]);
     let result = fixture
         .policy()
@@ -454,7 +457,7 @@ fn algebra_blank_forbid_denies_all() {
 #[test]
 fn algebra_blank_permit_allows_all() {
     let mut fixture = Fixture::new();
-    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let actor = Some(ActorId::User(UserId::from_uuid(ACTOR_UUID)));
     let policy = policy_components(actor, vec![permit(|| None)]);
     let result = fixture
         .policy()
@@ -465,12 +468,12 @@ fn algebra_blank_permit_allows_all() {
 #[test]
 fn algebra_blank_permit_with_forbids() {
     let mut fixture = Fixture::new();
-    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let actor = Some(ActorId::User(UserId::from_uuid(ACTOR_UUID)));
     let policies = vec![
         permit(|| None),
         forbid(|| {
             Some(ResourceConstraint::Web {
-                web_id: WebId::new(WEB_UUID_1),
+                web_id: WebId::from_uuid(WEB_UUID_1),
             })
         }),
     ];
@@ -497,7 +500,7 @@ fn algebra_blank_permit_forbid_read_only() {
     // Mirrors the seeded global read-only forbid policy: everything is
     // permitted except entities marked as read-only.
     let mut fixture = Fixture::new();
-    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let actor = Some(ActorId::User(UserId::from_uuid(ACTOR_UUID)));
     let policies = vec![
         permit(|| None),
         forbid(|| {
@@ -527,12 +530,12 @@ fn algebra_blank_permit_forbid_read_only() {
 #[test]
 fn algebra_no_permits_denies_all() {
     let mut fixture = Fixture::new();
-    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let actor = Some(ActorId::User(UserId::from_uuid(ACTOR_UUID)));
     let policy = policy_components(
         actor,
         vec![forbid(|| {
             Some(ResourceConstraint::Web {
-                web_id: WebId::new(WEB_UUID_1),
+                web_id: WebId::from_uuid(WEB_UUID_1),
             })
         })],
     );
@@ -558,18 +561,18 @@ fn algebra_no_permits_denies_all() {
 #[test]
 fn algebra_constrained_permits_only() {
     let mut fixture = Fixture::new();
-    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let actor = Some(ActorId::User(UserId::from_uuid(ACTOR_UUID)));
     let policies = vec![
         permit(|| {
             Some(ResourceConstraint::Entity(
                 EntityResourceConstraint::Exact {
-                    id: EntityUuid::new(ENTITY_UUID_1),
+                    id: EntityUuid::from_uuid(ENTITY_UUID_1),
                 },
             ))
         }),
         permit(|| {
             Some(ResourceConstraint::Web {
-                web_id: WebId::new(WEB_UUID_1),
+                web_id: WebId::from_uuid(WEB_UUID_1),
             })
         }),
     ];
@@ -594,12 +597,12 @@ fn algebra_constrained_permits_only() {
 #[test]
 fn algebra_permits_and_forbids() {
     let mut fixture = Fixture::new();
-    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let actor = Some(ActorId::User(UserId::from_uuid(ACTOR_UUID)));
     let policies = vec![
         permit(|| {
             Some(ResourceConstraint::Entity(
                 EntityResourceConstraint::Exact {
-                    id: EntityUuid::new(ENTITY_UUID_1),
+                    id: EntityUuid::from_uuid(ENTITY_UUID_1),
                 },
             ))
         }),
@@ -635,7 +638,7 @@ fn algebra_permits_and_forbids() {
 #[test]
 fn algebra_blank_forbid_preserves_prior_projections() {
     let mut fixture = Fixture::new();
-    let actor = Some(ActorId::User(UserId::new(ACTOR_UUID)));
+    let actor = Some(ActorId::User(UserId::from_uuid(ACTOR_UUID)));
 
     // First transpile registers entity_ids via CreatedByPrincipal.
     let first_policy = policy_components(

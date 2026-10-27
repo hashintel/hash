@@ -136,7 +136,7 @@ async fn read_only_modification_matrix() {
         .expect("could not seed database");
 
     let user = api.account_id;
-    let web_id = WebId::new(user);
+    let web_id = WebId::from_uuid(user.into());
     let person_type = VersionedUrl {
         base_url: BaseUrl::new(
             "https://blockprotocol.org/@alice/types/entity-type/person/".to_owned(),

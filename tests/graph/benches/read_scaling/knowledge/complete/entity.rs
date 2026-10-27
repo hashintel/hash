@@ -127,7 +127,7 @@ async fn seed_db(
     let link_type: EntityType =
         serde_json::from_str(entity_type::link::FRIEND_OF_V1).expect("could not parse entity type");
 
-    let web_id = WebId::new(account_id);
+    let web_id = WebId::from_uuid(account_id.into());
 
     let entity_list = transaction
         .create_entities(
@@ -282,7 +282,7 @@ fn bench_scaling_read_entity(
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorId::User(UserId::new(
+    let account_id = ActorId::User(UserId::from_uuid(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
     ));
 

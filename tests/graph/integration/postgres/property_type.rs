@@ -35,7 +35,7 @@ async fn insert() {
         CreatePropertyTypeParams {
             schema: age_pt,
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
@@ -65,7 +65,7 @@ async fn query() {
         CreatePropertyTypeParams {
             schema: favorite_quote_pt.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
@@ -125,7 +125,7 @@ async fn update() {
         CreatePropertyTypeParams {
             schema: user_id_pt_v1.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {

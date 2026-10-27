@@ -181,7 +181,7 @@ mod tests {
             matches!(
                 decision,
                 ControlFlow::Break(Ok(ActorId::User(user_id)))
-                    if ActorEntityUuid::new(user_id) == actor_id
+                    if ActorEntityUuid::from(user_id) == actor_id
             ),
             "the service secret with an actor-ID header should delegate to the named actor"
         );
@@ -222,7 +222,7 @@ mod tests {
             matches!(
                 decision,
                 ControlFlow::Break(Ok(ActorId::User(user_id)))
-                    if ActorEntityUuid::new(user_id) == actor_id
+                    if ActorEntityUuid::from(user_id) == actor_id
             ),
             "the authorization scheme should match case-insensitively"
         );
@@ -313,7 +313,7 @@ mod tests {
             &provider(),
             &headers(
                 Some(SERVICE_SECRET),
-                Some(ActorEntityUuid::new(Uuid::nil())),
+                Some(ActorEntityUuid::from_uuid(Uuid::nil())),
             ),
         )
         .await;
@@ -331,7 +331,7 @@ mod tests {
                 &provider(),
                 &headers(
                     Some(SERVICE_SECRET),
-                    Some(ActorEntityUuid::new(Uuid::nil())),
+                    Some(ActorEntityUuid::from_uuid(Uuid::nil())),
                 ),
             )
             .await,

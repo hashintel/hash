@@ -254,7 +254,7 @@ impl DatabaseApi<'_> {
         self.create_entity(
             self.account_id,
             CreateEntityParams {
-                web_id: WebId::new(self.account_id),
+                web_id: WebId::from_uuid(self.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl {
@@ -289,7 +289,7 @@ impl DatabaseApi<'_> {
         self.create_entity(
             self.account_id,
             CreateEntityParams {
-                web_id: WebId::new(self.account_id),
+                web_id: WebId::from_uuid(self.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl {
@@ -326,7 +326,7 @@ impl DatabaseApi<'_> {
         self.create_entity(
             self.account_id,
             CreateEntityParams {
-                web_id: WebId::new(self.account_id),
+                web_id: WebId::from_uuid(self.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([
@@ -1462,7 +1462,7 @@ impl DatabaseApi<'_> {
         self.create_entity(
             self.account_id,
             CreateEntityParams {
-                web_id: WebId::new(self.account_id),
+                web_id: WebId::from_uuid(self.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl {
@@ -1502,7 +1502,7 @@ impl DatabaseApi<'_> {
         self.create_entity(
             self.account_id,
             CreateEntityParams {
-                web_id: WebId::new(self.account_id),
+                web_id: WebId::from_uuid(self.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl {
@@ -2099,7 +2099,7 @@ impl DatabaseApi<'_> {
         self.create_entity(
             self.account_id,
             CreateEntityParams {
-                web_id: WebId::new(self.account_id),
+                web_id: WebId::from_uuid(self.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl {
@@ -2139,7 +2139,7 @@ impl DatabaseApi<'_> {
         self.create_entity(
             self.account_id,
             CreateEntityParams {
-                web_id: WebId::new(self.account_id),
+                web_id: WebId::from_uuid(self.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl {
@@ -2546,9 +2546,9 @@ impl DatabaseApi<'_> {
         self.create_entity(
             self.account_id,
             CreateEntityParams {
-                web_id: WebId::new(self.account_id),
+                web_id: WebId::from_uuid(self.account_id.into()),
                 // Set the entity UUID to match the actor's UUID
-                entity_uuid: Some(EntityUuid::new(Uuid::from(self.account_id))),
+                entity_uuid: Some(EntityUuid::from_uuid(Uuid::from(self.account_id))),
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl {
                     base_url: BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
@@ -3079,7 +3079,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([org_type_id.clone()]),
@@ -3111,9 +3111,10 @@ async fn subgraph_traversal_masks_linked_user_email() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
-                entity_uuid: Some(EntityUuid::new(Uuid::now_v7())), /* Different UUID = different
-                                                                     * owner */
+                web_id: WebId::from_uuid(api.account_id.into()),
+                entity_uuid: Some(EntityUuid::from_uuid(Uuid::now_v7())), /* Different UUID =
+                                                                           * different
+                                                                           * owner */
                 decision_time: None,
                 entity_type_ids: HashSet::from([user_type_id]),
                 properties: PropertyObjectWithMetadata::from_parts(
@@ -3140,7 +3141,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id),
+            web_id: WebId::from_uuid(api.account_id.into()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([link_type_id]),

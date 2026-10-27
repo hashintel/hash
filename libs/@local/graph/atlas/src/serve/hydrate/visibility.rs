@@ -250,7 +250,7 @@ mod tests {
         // A web-scoped permit is the same actor shape with one resource constraint, and it must
         // keep the query.
         let web = ResourceConstraint::Web {
-            web_id: WebId::new(Uuid::nil()),
+            web_id: WebId::from_uuid(Uuid::nil()),
         };
         let scoped =
             Filter::<Entity>::for_policies([(Effect::Permit, Some(&web))], None, &optimization);
@@ -278,7 +278,7 @@ mod tests {
         // rather than the conjunction's emptiness would answer this scoped actor with the whole
         // generation.
         let elsewhere = ResourceConstraint::Web {
-            web_id: WebId::new(Uuid::from_u128(1)),
+            web_id: WebId::from_uuid(Uuid::from_u128(1)),
         };
         let scoped_with_forbid = Filter::<Entity>::for_policies(
             [
@@ -299,8 +299,8 @@ mod tests {
         let unconstrained =
             Filter::<Entity>::for_policies([(Effect::Permit, None)], None, &optimization);
         let requested = Filter::<Entity>::for_entity_by_entity_id(EntityId {
-            web_id: WebId::new(Uuid::nil()),
-            entity_uuid: type_system::knowledge::entity::id::EntityUuid::new(Uuid::nil()),
+            web_id: WebId::from_uuid(Uuid::nil()),
+            entity_uuid: type_system::knowledge::entity::id::EntityUuid::from_uuid(Uuid::nil()),
             draft_id: None,
         });
 

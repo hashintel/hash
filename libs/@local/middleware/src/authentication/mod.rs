@@ -837,9 +837,9 @@ mod tests {
 
     #[tokio::test]
     async fn verified_actor_reaches_an_anonymous_handler_as_itself() {
-        let actor_id = ActorEntityUuid::new(Uuid::now_v7());
+        let actor_id = ActorEntityUuid::from_uuid(Uuid::now_v7());
         let response = router(StaticAuthenticationProvider::Verified(ActorId::User(
-            UserId::new(actor_id),
+            UserId::from_uuid(actor_id.into()),
         )))
         .oneshot(request("/anonymous-allowed"))
         .await
@@ -877,9 +877,9 @@ mod tests {
 
     #[tokio::test]
     async fn middleware_passes_verified_actors_to_handlers() {
-        let actor_id = ActorEntityUuid::new(Uuid::now_v7());
+        let actor_id = ActorEntityUuid::from_uuid(Uuid::now_v7());
         let response = router(StaticAuthenticationProvider::Verified(ActorId::User(
-            UserId::new(actor_id),
+            UserId::from_uuid(actor_id.into()),
         )))
         .oneshot(request("/protected"))
         .await
@@ -937,9 +937,9 @@ mod tests {
 
     #[tokio::test]
     async fn middleware_rejects_authenticated_bootstrap_requests_without_secret() {
-        let actor_id = ActorEntityUuid::new(Uuid::now_v7());
+        let actor_id = ActorEntityUuid::from_uuid(Uuid::now_v7());
         let response = router(StaticAuthenticationProvider::Verified(ActorId::User(
-            UserId::new(actor_id),
+            UserId::from_uuid(actor_id.into()),
         )))
         .oneshot(request("/bootstrap"))
         .await
@@ -950,9 +950,9 @@ mod tests {
 
     #[tokio::test]
     async fn middleware_admits_authenticated_bootstrap_requests_with_secret() {
-        let actor_id = ActorEntityUuid::new(Uuid::now_v7());
+        let actor_id = ActorEntityUuid::from_uuid(Uuid::now_v7());
         let response = router(StaticAuthenticationProvider::Verified(ActorId::User(
-            UserId::new(actor_id),
+            UserId::from_uuid(actor_id.into()),
         )))
         .oneshot(request_with_secret("/bootstrap", SERVICE_SECRET))
         .await
@@ -1058,9 +1058,11 @@ mod tests {
 
     #[tokio::test]
     async fn actor_requiring_chain_passes_verified_actors_to_handlers() {
-        let actor_id = ActorEntityUuid::new(Uuid::now_v7());
+        let actor_id = ActorEntityUuid::from_uuid(Uuid::now_v7());
         let response = actor_required_router(
-            StaticAuthenticationProvider::Verified(ActorId::User(UserId::new(actor_id))),
+            StaticAuthenticationProvider::Verified(ActorId::User(UserId::from_uuid(
+                actor_id.into(),
+            ))),
             Challenge::Service,
         )
         .oneshot(request("/protected"))
@@ -1210,7 +1212,7 @@ mod tests {
         let metrics = AuthenticationMetrics::new(&recorded.meter());
 
         for identity_id in ["first-identity", "second-identity"] {
-            let actor_id = ActorEntityUuid::new(Uuid::now_v7());
+            let actor_id = ActorEntityUuid::from_uuid(Uuid::now_v7());
             for error in [
                 AuthenticationError::not_provisioned(identity_id),
                 AuthenticationError::actor_not_found(actor_id),
@@ -1470,7 +1472,7 @@ mod tests {
 
     #[tokio::test]
     async fn rejection_private_diagnostics() {
-        let actor_id = ActorEntityUuid::new(Uuid::now_v7());
+        let actor_id = ActorEntityUuid::from_uuid(Uuid::now_v7());
         let cases = [
             AuthenticationError::not_provisioned("private-identity"),
             AuthenticationError::actor_not_found(actor_id),

@@ -244,7 +244,7 @@ where
             .iter()
             .map(|policy| {
                 let policy = policy.borrow();
-                let policy_id = PolicyId::new(Uuid::now_v7());
+                let policy_id = PolicyId::from_uuid(Uuid::now_v7());
                 let (principal_id, actor_type) = policy
                     .principal
                     .as_ref()
@@ -841,7 +841,7 @@ where
             .map_err(|error| Report::new(error).change_context(GetPoliciesError::StoreError))
             .and_then(async |row| -> Result<_, Report<GetPoliciesError>> {
                 PolicyParts {
-                    id: PolicyId::new(row.get(0)),
+                    id: PolicyId::from_uuid(row.get(0)),
                     name: row.get(1),
                     effect: row.get(2),
                     principal_uuid: row.get(3),
@@ -941,7 +941,7 @@ where
             .await
             .change_context(WebCreationError::BuildPolicyComponents)?;
 
-        let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::now_v7));
+        let web_id = WebId::from_uuid(parameter.id.unwrap_or_else(Uuid::now_v7));
 
         match policy_components
             .build_policy_set([ActionName::CreateWeb])
@@ -1028,12 +1028,12 @@ where
 
         let web_roles = [
             WebRole {
-                id: WebRoleId::new(admin_role_id),
+                id: WebRoleId::from_uuid(admin_role_id),
                 web_id,
                 name: RoleName::Administrator,
             },
             WebRole {
-                id: WebRoleId::new(member_role_id),
+                id: WebRoleId::from_uuid(member_role_id),
                 web_id,
                 name: RoleName::Member,
             },
@@ -1360,9 +1360,11 @@ where
             .ok_or(DetermineActorError::ActorNotFound { actor_entity_uuid })?;
 
         Ok(match row.get(0) {
-            PrincipalType::User => ActorId::User(UserId::new(actor_entity_uuid)),
-            PrincipalType::Machine => ActorId::Machine(MachineId::new(actor_entity_uuid)),
-            PrincipalType::Ai => ActorId::Ai(AiId::new(actor_entity_uuid)),
+            PrincipalType::User => ActorId::User(UserId::from_uuid(actor_entity_uuid.into())),
+            PrincipalType::Machine => {
+                ActorId::Machine(MachineId::from_uuid(actor_entity_uuid.into()))
+            }
+            PrincipalType::Ai => ActorId::Ai(AiId::from_uuid(actor_entity_uuid.into())),
             principal_type @ (PrincipalType::Web
             | PrincipalType::Team
             | PrincipalType::WebRole
@@ -2492,7 +2494,7 @@ where
                     ),
                     entity_types: Cow::Owned(entity_types),
                     created_by: ActorId::new(
-                        row.get::<_, ActorEntityUuid>(3),
+                        row.get::<_, Uuid>(3),
                         match row.get(4) {
                             PrincipalType::User => ActorType::User,
                             PrincipalType::Machine => ActorType::Machine,
@@ -3719,8 +3721,8 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
                         .into_iter()
                         .zip(principal_types)
                         .map(|(id, principal_type)| match principal_type {
-                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
-                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::from_uuid(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::from_uuid(id)),
                             PrincipalType::User
                             | PrincipalType::Machine
                             | PrincipalType::Ai
@@ -3811,8 +3813,8 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
                         .into_iter()
                         .zip(principal_types)
                         .map(|(id, principal_type)| match principal_type {
-                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
-                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::from_uuid(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::from_uuid(id)),
                             PrincipalType::User
                             | PrincipalType::Machine
                             | PrincipalType::Ai
@@ -3864,8 +3866,8 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
                         .into_iter()
                         .zip(principal_types)
                         .map(|(id, principal_type)| match principal_type {
-                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
-                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::from_uuid(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::from_uuid(id)),
                             PrincipalType::User
                             | PrincipalType::Machine
                             | PrincipalType::Ai
@@ -3917,8 +3919,8 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
                         .into_iter()
                         .zip(principal_types)
                         .map(|(id, principal_type)| match principal_type {
-                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
-                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::from_uuid(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::from_uuid(id)),
                             PrincipalType::User
                             | PrincipalType::Machine
                             | PrincipalType::Ai
@@ -3970,8 +3972,8 @@ impl<C: AsClient, S: TransactionState> AccountStore for PostgresStore<C, S> {
                         .into_iter()
                         .zip(principal_types)
                         .map(|(id, principal_type)| match principal_type {
-                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
-                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::from_uuid(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::from_uuid(id)),
                             PrincipalType::User
                             | PrincipalType::Machine
                             | PrincipalType::Ai

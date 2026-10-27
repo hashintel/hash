@@ -131,15 +131,15 @@ impl PrincipalId {
     /// Constructs the appropriate typed ID based on the specified principal type,
     /// wrapping the provided UUID in the correct identifier structure.
     #[must_use]
-    pub fn new(uuid: Uuid, principal_type: PrincipalType) -> Self {
+    pub const fn new(uuid: Uuid, principal_type: PrincipalType) -> Self {
         match principal_type {
-            PrincipalType::User => Self::Actor(ActorId::User(UserId::new(uuid))),
-            PrincipalType::Machine => Self::Actor(ActorId::Machine(MachineId::new(uuid))),
-            PrincipalType::Ai => Self::Actor(ActorId::Ai(AiId::new(uuid))),
-            PrincipalType::Web => Self::ActorGroup(ActorGroupId::Web(WebId::new(uuid))),
-            PrincipalType::Team => Self::ActorGroup(ActorGroupId::Team(TeamId::new(uuid))),
-            PrincipalType::WebRole => Self::Role(RoleId::Web(WebRoleId::new(uuid))),
-            PrincipalType::TeamRole => Self::Role(RoleId::Team(TeamRoleId::new(uuid))),
+            PrincipalType::User => Self::Actor(ActorId::User(UserId::from_uuid(uuid))),
+            PrincipalType::Machine => Self::Actor(ActorId::Machine(MachineId::from_uuid(uuid))),
+            PrincipalType::Ai => Self::Actor(ActorId::Ai(AiId::from_uuid(uuid))),
+            PrincipalType::Web => Self::ActorGroup(ActorGroupId::Web(WebId::from_uuid(uuid))),
+            PrincipalType::Team => Self::ActorGroup(ActorGroupId::Team(TeamId::from_uuid(uuid))),
+            PrincipalType::WebRole => Self::Role(RoleId::Web(WebRoleId::from_uuid(uuid))),
+            PrincipalType::TeamRole => Self::Role(RoleId::Team(TeamRoleId::from_uuid(uuid))),
         }
     }
 

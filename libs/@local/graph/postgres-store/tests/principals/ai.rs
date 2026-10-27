@@ -31,7 +31,7 @@ async fn create_ai_with_id() -> Result<(), Box<dyn Error>> {
 
     let id = Uuid::now_v7();
     let ai_id = client.create_ai(Some(id), "test-ai").await?;
-    assert_eq!(ai_id, AiId::new(id));
+    assert_eq!(ai_id, AiId::from_uuid(id));
 
     assert!(client.is_ai(ai_id).await?);
 
@@ -76,7 +76,7 @@ async fn get_non_existent_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (client, actor_id) = db.seed().await?;
 
-    let non_existent_id = AiId::new(Uuid::now_v7());
+    let non_existent_id = AiId::from_uuid(Uuid::now_v7());
     let result = client.get_ai_by_id(actor_id, non_existent_id).await?;
 
     assert!(
@@ -92,7 +92,7 @@ async fn delete_non_existent_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed().await?;
 
-    let non_existent_id = AiId::new(Uuid::now_v7());
+    let non_existent_id = AiId::from_uuid(Uuid::now_v7());
     let result = client.delete_ai(non_existent_id).await;
 
     let expected_actor_id = ActorId::Ai(non_existent_id);

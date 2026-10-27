@@ -61,7 +61,7 @@ async fn create_web_with_id() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .web_id;
-    assert_eq!(web_id, WebId::new(id));
+    assert_eq!(web_id, WebId::from_uuid(id));
     assert!(client.is_web(web_id).await?);
 
     Ok(())
@@ -135,7 +135,7 @@ async fn get_non_existent_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (client, actor_id) = db.seed().await?;
 
-    let non_existent_id = WebId::new(Uuid::now_v7());
+    let non_existent_id = WebId::from_uuid(Uuid::now_v7());
     let result = client.get_web_by_id(actor_id, non_existent_id).await?;
 
     assert!(
@@ -151,7 +151,7 @@ async fn delete_non_existent_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed().await?;
 
-    let non_existent_id = WebId::new(Uuid::now_v7());
+    let non_existent_id = WebId::from_uuid(Uuid::now_v7());
     let result = client.delete_web(non_existent_id).await;
 
     assert_matches!(

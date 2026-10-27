@@ -334,8 +334,8 @@ impl PostgresStorePool {
                         .into_iter()
                         .zip(principal_types)
                         .map(|(id, principal_type)| match principal_type {
-                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
-                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::from_uuid(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::from_uuid(id)),
                             PrincipalType::User
                             | PrincipalType::Machine
                             | PrincipalType::Ai
@@ -394,8 +394,8 @@ impl PostgresStorePool {
                         .into_iter()
                         .zip(principal_types)
                         .map(|(id, principal_type)| match principal_type {
-                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
-                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::from_uuid(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::from_uuid(id)),
                             PrincipalType::User
                             | PrincipalType::Machine
                             | PrincipalType::Ai
@@ -454,8 +454,8 @@ impl PostgresStorePool {
                         .into_iter()
                         .zip(principal_types)
                         .map(|(id, principal_type)| match principal_type {
-                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
-                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::from_uuid(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::from_uuid(id)),
                             PrincipalType::User
                             | PrincipalType::Machine
                             | PrincipalType::Ai

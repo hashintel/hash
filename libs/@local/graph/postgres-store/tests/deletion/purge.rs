@@ -63,7 +63,7 @@ async fn published_entity() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id()]),
@@ -127,7 +127,7 @@ async fn published_entity_with_history() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id()]),
@@ -222,8 +222,8 @@ async fn no_match_is_noop() {
     let mut api = seed(&mut database).await;
 
     let nonexistent_id = EntityId {
-        web_id: WebId::new(api.account_id),
-        entity_uuid: EntityUuid::new(Uuid::now_v7()),
+        web_id: WebId::from_uuid(api.account_id.into()),
+        entity_uuid: EntityUuid::from_uuid(Uuid::now_v7()),
         draft_id: None,
     };
 
@@ -693,7 +693,7 @@ async fn cross_web_batch() {
         .create_entity(
             second_user,
             CreateEntityParams {
-                web_id: WebId::new(second_user),
+                web_id: WebId::from_uuid(second_user.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_type_id()]),

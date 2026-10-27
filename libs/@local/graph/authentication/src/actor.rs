@@ -148,12 +148,12 @@ pub mod tests {
 
     #[must_use]
     pub fn random_actor() -> ActorEntityUuid {
-        ActorEntityUuid::new(Uuid::now_v7())
+        ActorEntityUuid::from_uuid(Uuid::now_v7())
     }
 
     /// A resolver map holding the given actor as a user.
     #[must_use]
     pub fn known_user(actor_id: ActorEntityUuid) -> HashMap<ActorEntityUuid, ActorId> {
-        HashMap::from([(actor_id, ActorId::User(UserId::new(actor_id)))])
+        HashMap::from([(actor_id, ActorId::User(UserId::from_uuid(actor_id.into())))])
     }
 }

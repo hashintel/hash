@@ -52,7 +52,9 @@ impl<C: Caller> AuthenticationProvider<C> for HeaderDelegation {
         headers: &HeaderMap,
     ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send {
         core::future::ready(match actor_id_from_header(headers) {
-            Ok(actor) => ControlFlow::Break(Ok(C::from_actor(ActorId::User(UserId::new(actor))))),
+            Ok(actor) => ControlFlow::Break(Ok(C::from_actor(ActorId::User(UserId::from_uuid(
+                actor.into(),
+            ))))),
             Err(error) if *error.kind() == AuthenticationErrorKind::MissingDelegatedActor => {
                 ControlFlow::Continue(())
             }

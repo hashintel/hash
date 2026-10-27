@@ -367,7 +367,7 @@ pub(super) fn entity(seed: u128) -> EntityId {
 pub(super) fn update(seed: u128, seconds: i64, archived: bool) -> EntityEvent {
     EntityEvent::Updated(EntityUpdate {
         entity: entity(seed),
-        edition: EntityEditionId::new(Uuid::from_u128(
+        edition: EntityEditionId::from_uuid(Uuid::from_u128(
             seed * 1_000 + u128::from(seconds.unsigned_abs()),
         )),
         archived,

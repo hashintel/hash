@@ -64,7 +64,7 @@ async fn insert() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl {
@@ -137,7 +137,7 @@ async fn query() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl {
@@ -210,7 +210,7 @@ async fn public_actor_reads_only_publicly_permitted_entities() {
 
     let account_id = api.account_id;
     let create_params = |policies| CreateEntityParams {
-        web_id: WebId::new(account_id),
+        web_id: WebId::from_uuid(account_id.into()),
         entity_uuid: None,
         decision_time: None,
         entity_type_ids: HashSet::from([VersionedUrl {
@@ -344,7 +344,7 @@ async fn update() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([VersionedUrl {
@@ -570,7 +570,7 @@ async fn create_organization(api: &mut DatabaseApi<'_>) -> EntityId {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id),
+            web_id: WebId::from_uuid(api.account_id.into()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([VersionedUrl {
@@ -656,7 +656,7 @@ async fn get_entity_by_id_missing() {
         .get_entity_by_id(
             Some(api.account_id),
             EntityId {
-                entity_uuid: EntityUuid::new(Uuid::now_v7()),
+                entity_uuid: EntityUuid::from_uuid(Uuid::now_v7()),
                 ..entity_id
             },
             None,

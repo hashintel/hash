@@ -837,7 +837,7 @@ fn source_draft_entity() {
     let fixture = Fixture::new("locate-source-draft-entity");
     let resolver = FakeResolver::unexpected();
     let draft = EntityId {
-        draft_id: Some(DraftId::new(Uuid::from_u128(7))),
+        draft_id: Some(DraftId::from_uuid(Uuid::from_u128(7))),
         ..EntityId::from(fixture.node_identity(NodeRowId::new(1)))
     };
     Fixture::assert_unknown_entity(LocateDocument::new(

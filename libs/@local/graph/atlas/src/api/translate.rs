@@ -160,8 +160,8 @@ pub(super) fn parse_entity_id(id: &str) -> Option<EntityId> {
     let entity_uuid: uuid::Uuid = entity_uuid.parse().ok()?;
 
     Some(EntityId {
-        web_id: WebId::new(web_id),
-        entity_uuid: EntityUuid::new(entity_uuid),
+        web_id: WebId::from_uuid(web_id),
+        entity_uuid: EntityUuid::from_uuid(entity_uuid),
         draft_id: None,
     })
 }

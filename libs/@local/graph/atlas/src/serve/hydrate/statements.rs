@@ -237,14 +237,14 @@ mod tests {
 
     /// Builds the reading actor the masked pins bind their self-access clause to.
     fn reading_actor() -> ActorId {
-        ActorId::User(UserId::new(Uuid::from_u128(11)))
+        ActorId::User(UserId::from_uuid(Uuid::from_u128(11)))
     }
 
     /// Builds the identity filter over one nil identity, the fixture request.
     fn nil_filter() -> super::Filter<'static, super::Entity> {
         identity_filter([EntityId {
-            web_id: WebId::new(Uuid::nil()),
-            entity_uuid: EntityUuid::new(Uuid::nil()),
+            web_id: WebId::from_uuid(Uuid::nil()),
+            entity_uuid: EntityUuid::from_uuid(Uuid::nil()),
             draft_id: None,
         }])
     }

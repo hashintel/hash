@@ -434,7 +434,7 @@ mod tests {
     /// Builds the masking actor over the user `actor` names.
     fn masking(actor: u128, instance_admin: bool) -> VisibilityActor {
         VisibilityActor {
-            id: ActorId::User(UserId::new(Uuid::from_u128(actor))),
+            id: ActorId::User(UserId::from_uuid(Uuid::from_u128(actor))),
             instance_admin,
         }
     }

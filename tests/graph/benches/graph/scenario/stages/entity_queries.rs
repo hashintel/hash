@@ -87,11 +87,12 @@ impl QueryEntitiesByUserStage {
                     reason = "https://linear.app/hashintel/issue/BE-31"
                 )]
                 let user_idx = ((num_users as f64 * 0.5) as usize).clamp(0, num_users - 1);
-                Ok(ActorId::User(UserId::new(
+                Ok(ActorId::User(UserId::from_uuid(
                     catalog
                         .get_entry(user_idx)
                         .expect("catalog should not be empty")
-                        .2,
+                        .2
+                        .into(),
                 )))
             })
             .transpose()?;

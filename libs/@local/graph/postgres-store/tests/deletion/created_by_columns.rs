@@ -146,7 +146,7 @@ async fn creator_columns_discriminate_actors() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: Some(decision_time),
                 entity_type_ids: HashSet::from([person_type_id()]),

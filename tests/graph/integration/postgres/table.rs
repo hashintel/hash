@@ -107,8 +107,8 @@ async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
         api.create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
-                entity_uuid: Some(EntityUuid::new(entity_uuid)),
+                web_id: WebId::from_uuid(api.account_id.into()),
+                entity_uuid: Some(EntityUuid::from_uuid(entity_uuid)),
                 decision_time: None,
                 entity_type_ids: HashSet::from([type_id.clone()]),
                 properties: PropertyObjectWithMetadata::from_parts(properties, None)
@@ -151,14 +151,14 @@ async fn link_rows_carry_their_endpoints() {
 
     // Alice and Bob were seeded with the deterministic uuids 0 and 1.
     let endpoint_uuid = |index: u128| {
-        EntityUuid::new(
+        EntityUuid::from_uuid(
             uuid::Builder::from_u128(index)
                 .with_variant(uuid::Variant::RFC4122)
                 .with_version(uuid::Version::Random)
                 .into_uuid(),
         )
     };
-    let web_id = WebId::new(api.account_id);
+    let web_id = WebId::from_uuid(api.account_id.into());
     let alice_id = type_system::knowledge::entity::id::EntityId {
         web_id,
         entity_uuid: endpoint_uuid(0),
@@ -304,7 +304,7 @@ async fn label_sort_pages_alphabetically() {
             }))
             .expect("the entity type fixture should parse"),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(actor_id),
+                web_id: WebId::from_uuid(actor_id.into()),
             },
             conflict_behavior: hash_graph_store::query::ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
@@ -333,7 +333,7 @@ async fn label_sort_pages_alphabetically() {
         api.create_entity(
             actor_id,
             CreateEntityParams {
-                web_id: WebId::new(actor_id),
+                web_id: WebId::from_uuid(actor_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([labeled_type.clone()]),
@@ -583,7 +583,7 @@ async fn conversions_convert_row_property_values() {
             schema: serde_json::from_str(data_type::CENTIMETER_V1)
                 .expect("the data type fixture should parse"),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(actor_id),
+                web_id: WebId::from_uuid(actor_id.into()),
             },
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
@@ -638,7 +638,7 @@ async fn conversions_convert_row_property_values() {
     api.create_entity(
         actor_id,
         CreateEntityParams {
-            web_id: WebId::new(actor_id),
+            web_id: WebId::from_uuid(actor_id.into()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([line_type]),
@@ -710,7 +710,7 @@ async fn exclude_webs_hides_the_excluded_web() {
     let mut params = page_params(10);
     params.include_summary = true;
     params.filter.webs = hash_graph_store::entity::EntityTableWebScope::Exclude {
-        webs: vec![WebId::new(actor_id)],
+        webs: vec![WebId::from_uuid(actor_id.into())],
     };
 
     let response = api
@@ -736,8 +736,8 @@ async fn archived_entities_only_appear_when_requested() {
 
     // Bob was seeded with the deterministic uuid 1.
     let bob_id = type_system::knowledge::entity::id::EntityId {
-        web_id: WebId::new(actor_id),
-        entity_uuid: EntityUuid::new(
+        web_id: WebId::from_uuid(actor_id.into()),
+        entity_uuid: EntityUuid::from_uuid(
             uuid::Builder::from_u128(1)
                 .with_variant(uuid::Variant::RFC4122)
                 .with_version(uuid::Version::Random)
@@ -935,7 +935,7 @@ async fn link_endpoints_hide_entities_the_actor_cannot_view() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = insert(&mut database).await;
     let actor_id = api.account_id;
-    let web_id = WebId::new(api.account_id);
+    let web_id = WebId::from_uuid(api.account_id.into());
 
     let hidden_person = api
         .create_entity(
@@ -979,7 +979,7 @@ async fn link_endpoints_hide_entities_the_actor_cannot_view() {
     };
     let alice_id = type_system::knowledge::entity::id::EntityId {
         web_id,
-        entity_uuid: EntityUuid::new(
+        entity_uuid: EntityUuid::from_uuid(
             uuid::Builder::from_u128(0)
                 .with_variant(uuid::Variant::RFC4122)
                 .with_version(uuid::Version::Random)
@@ -1091,7 +1091,7 @@ async fn included_webs_scope_the_page_and_empty_include_matches_nothing() {
     let mut params = page_params(10);
     params.include_summary = true;
     params.filter.webs = hash_graph_store::entity::EntityTableWebScope::Include {
-        webs: vec![WebId::new(api.account_id)],
+        webs: vec![WebId::from_uuid(api.account_id.into())],
     };
 
     let response = api
@@ -1135,7 +1135,7 @@ async fn drafts_are_never_rows() {
     api.create_entity(
         actor_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id),
+            web_id: WebId::from_uuid(api.account_id.into()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([person_entity_type()]),
@@ -1200,7 +1200,7 @@ async fn create_person_and_page(api: &mut DatabaseApi<'_>) {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id),
+            web_id: WebId::from_uuid(api.account_id.into()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([person_entity_type(), page_entity_type()]),

@@ -19,7 +19,7 @@ impl FromCedarEntityId for WebId {
     }
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
-        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
+        Ok(Self::from_uuid(Uuid::from_str(eid.as_ref())?))
     }
 }
 
@@ -59,7 +59,7 @@ mod tests {
     };
     #[test]
     fn constraint() -> Result<(), Box<dyn Error>> {
-        let web_id = WebId::new(Uuid::now_v7());
+        let web_id = WebId::from_uuid(Uuid::now_v7());
         check_principal(
             PrincipalConstraint::ActorGroup {
                 actor_type: None,

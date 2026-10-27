@@ -296,7 +296,10 @@ mod miri {
         let archived = ArchivedEntityUuid::read_from_bytes(&UUID_BYTES)
             .expect("should read an archived uuid from any 16 bytes");
 
-        assert_eq!(*archived, EntityUuid::new(Uuid::from_bytes(UUID_BYTES)));
+        assert_eq!(
+            *archived,
+            EntityUuid::from_uuid(Uuid::from_bytes(UUID_BYTES))
+        );
     }
 
     /// An `ArchivedWebId` read from sixteen bytes dereferences to the `WebId` of those bytes.
@@ -305,7 +308,7 @@ mod miri {
         let archived = ArchivedWebId::read_from_bytes(&UUID_BYTES)
             .expect("should read an archived uuid from any 16 bytes");
 
-        assert_eq!(*archived, WebId::new(Uuid::from_bytes(UUID_BYTES)));
+        assert_eq!(*archived, WebId::from_uuid(Uuid::from_bytes(UUID_BYTES)));
     }
 
     /// An `ArchivedOntologyTypeUuid` dereferences to the UUID of its source bytes.

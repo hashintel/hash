@@ -95,10 +95,10 @@ pub enum RoleId {
 }
 impl RoleId {
     #[must_use]
-    pub fn new(uuid: impl Into<Uuid>, role_type: RoleType) -> Self {
+    pub const fn new(uuid: Uuid, role_type: RoleType) -> Self {
         match role_type {
-            RoleType::Team => Self::Team(TeamRoleId::new(uuid)),
-            RoleType::Web => Self::Web(WebRoleId::new(uuid)),
+            RoleType::Team => Self::Team(TeamRoleId::from_uuid(uuid)),
+            RoleType::Web => Self::Web(WebRoleId::from_uuid(uuid)),
         }
     }
 

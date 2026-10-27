@@ -111,15 +111,15 @@ impl From<ActorId> for ArchivedActorId {
         match value {
             ActorId::User(uuid) => Self {
                 r#type: ArchivedActorType::User,
-                id: ArchivedActorEntityUuid::from(ActorEntityUuid::new(uuid)),
+                id: ArchivedActorEntityUuid::from(ActorEntityUuid::from(uuid)),
             },
             ActorId::Machine(uuid) => Self {
                 r#type: ArchivedActorType::Machine,
-                id: ArchivedActorEntityUuid::from(ActorEntityUuid::new(uuid)),
+                id: ArchivedActorEntityUuid::from(ActorEntityUuid::from(uuid)),
             },
             ActorId::Ai(uuid) => Self {
                 r#type: ArchivedActorType::Ai,
-                id: ArchivedActorEntityUuid::from(ActorEntityUuid::new(uuid)),
+                id: ArchivedActorEntityUuid::from(ActorEntityUuid::from(uuid)),
             },
         }
     }
@@ -128,9 +128,9 @@ impl From<ActorId> for ArchivedActorId {
 impl From<ArchivedActorId> for ActorId {
     fn from(value: ArchivedActorId) -> Self {
         match value.r#type {
-            ArchivedActorType::User => Self::User(UserId::new(*value.id)),
-            ArchivedActorType::Machine => Self::Machine(MachineId::new(*value.id)),
-            ArchivedActorType::Ai => Self::Ai(AiId::new(*value.id)),
+            ArchivedActorType::User => Self::User(UserId::from_uuid((*value.id).into())),
+            ArchivedActorType::Machine => Self::Machine(MachineId::from_uuid((*value.id).into())),
+            ArchivedActorType::Ai => Self::Ai(AiId::from_uuid((*value.id).into())),
         }
     }
 }

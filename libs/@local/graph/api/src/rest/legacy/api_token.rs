@@ -395,7 +395,7 @@ mod tests {
             token_id: ApiTokenId::new(Uuid::nil()),
             token_type: ApiTokenType::User,
             version: ApiTokenVersion::V0,
-            web_id: WebId::new(Uuid::nil()),
+            web_id: WebId::from_uuid(Uuid::nil()),
             name: ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
             created_at: OffsetDateTime::UNIX_EPOCH,
             expires_at,
@@ -406,7 +406,7 @@ mod tests {
 
     #[test]
     fn token_owner_user() {
-        let user_id = UserId::new(Uuid::nil());
+        let user_id = UserId::from_uuid(Uuid::nil());
 
         assert_eq!(
             token_owner(ActorId::User(user_id)).expect("a user should own their tokens"),
@@ -419,7 +419,7 @@ mod tests {
     fn token_owner_machine() {
         assert!(
             matches!(
-                token_owner(ActorId::Machine(MachineId::new(Uuid::nil()))),
+                token_owner(ActorId::Machine(MachineId::from_uuid(Uuid::nil()))),
                 Err(ApiTokenRequestError::NotAUser)
             ),
             "a machine should not manage API tokens"

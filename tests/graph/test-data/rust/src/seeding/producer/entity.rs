@@ -212,7 +212,7 @@ impl<
 
         Ok(CreateEntityParams {
             web_id: web,
-            entity_uuid: Some(EntityUuid::new(entity_gid.encode())),
+            entity_uuid: Some(EntityUuid::from_uuid(entity_gid.encode())),
             decision_time: None,
             entity_type_ids: HashSet::from([entity_type_url.url.clone()]),
             properties,

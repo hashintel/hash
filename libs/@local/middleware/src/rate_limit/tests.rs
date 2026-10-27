@@ -26,7 +26,7 @@ use http::{
 use problematic::{Answer, ProblemVariant as _, Rejection};
 use serde_json::{Value, json};
 use tower::ServiceExt as _;
-use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
+use type_system::principal::actor::{ActorId, UserId};
 use uuid::Uuid;
 
 use super::{
@@ -191,7 +191,7 @@ fn actor_request(actor_id: ActorId) -> Request<Body> {
 }
 
 fn random_actor() -> ActorId {
-    ActorId::User(UserId::new(ActorEntityUuid::new(Uuid::now_v7())))
+    ActorId::User(UserId::from_uuid(Uuid::now_v7()))
 }
 
 fn address(value: &str) -> IpAddr {

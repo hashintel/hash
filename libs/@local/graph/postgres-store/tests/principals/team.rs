@@ -138,7 +138,7 @@ async fn delete_non_existent_team() -> Result<(), Box<dyn Error>> {
     let (mut client, _actor_id) = db.seed().await?;
 
     // Try to delete a non-existent team
-    let non_existent_id = TeamId::new(Uuid::now_v7());
+    let non_existent_id = TeamId::from_uuid(Uuid::now_v7());
     let result = client.delete_team(non_existent_id).await;
 
     // Verify it returns the correct error
@@ -284,7 +284,7 @@ async fn get_non_existent_team() -> Result<(), Box<dyn Error>> {
     let (client, actor_id) = db.seed().await?;
 
     // Try to get a non-existent team
-    let non_existent_id = TeamId::new(Uuid::now_v7());
+    let non_existent_id = TeamId::from_uuid(Uuid::now_v7());
     let result = client.get_team_by_id(actor_id, non_existent_id).await?;
 
     // The implementation now returns a PrincipalNotFound error

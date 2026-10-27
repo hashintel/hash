@@ -749,11 +749,11 @@ mod tests {
         let response = QueryEntitiesTableResponse {
             rows: vec![EntityTableRow {
                 entity_id: EntityId {
-                    web_id: WebId::new(Uuid::nil()),
-                    entity_uuid: EntityUuid::new(Uuid::nil()),
+                    web_id: WebId::from_uuid(Uuid::nil()),
+                    entity_uuid: EntityUuid::from_uuid(Uuid::nil()),
                     draft_id: None,
                 },
-                entity_edition_id: EntityEditionId::new(Uuid::nil()),
+                entity_edition_id: EntityEditionId::from_uuid(Uuid::nil()),
                 label: None,
                 entity_type_ids: vec![
                     VersionedUrl::from_str("https://example.com/types/entity-type/person/v/1")
@@ -763,8 +763,8 @@ mod tests {
                 created_at_transaction_time: timestamp("2025-01-01T00:00:00Z"),
                 created_at_decision_time: timestamp("2025-01-01T00:00:00Z"),
                 edition_created_at_decision_time: timestamp("2025-01-02T00:00:00Z"),
-                created_by: ActorEntityUuid::new(Uuid::nil()),
-                last_edited_by: ActorEntityUuid::new(Uuid::nil()),
+                created_by: ActorEntityUuid::from_uuid(Uuid::nil()),
+                last_edited_by: ActorEntityUuid::from_uuid(Uuid::nil()),
                 archived: false,
                 properties: serde_json::from_value(json!({}))
                     .expect("the empty object should be a valid property object"),

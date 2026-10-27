@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn issue_matches_token() {
         let issuer = ApiTokenIssuer::new(key(), Environment::Staging);
-        let user_id = UserId::new(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111));
+        let user_id = UserId::from_uuid(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111));
         let lifetime = Duration::from_hours(24);
 
         let IssuedApiToken { token, params } = issuer
@@ -207,7 +207,7 @@ mod tests {
     fn issued(issuer: &ApiTokenIssuer) -> (HashedApiToken, ApiTokenCredential) {
         let IssuedApiToken { token, params } = issuer
             .issue(
-                UserId::new(Uuid::now_v7()),
+                UserId::from_uuid(Uuid::now_v7()),
                 ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
                 None,
             )
@@ -273,10 +273,10 @@ mod tests {
 
     #[rstest]
     #[case::user(|credential: &mut ApiTokenCredential| {
-        credential.user_id = UserId::new(Uuid::now_v7());
+        credential.user_id = UserId::from_uuid(Uuid::now_v7());
     })]
     #[case::web(|credential: &mut ApiTokenCredential| {
-        credential.web_id = WebId::new(Uuid::now_v7());
+        credential.web_id = WebId::from_uuid(Uuid::now_v7());
     })]
     fn verify_moved_row(#[case] move_row: fn(&mut ApiTokenCredential)) {
         let issuer = issuer();

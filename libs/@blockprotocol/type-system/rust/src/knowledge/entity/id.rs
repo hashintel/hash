@@ -40,9 +40,10 @@ pub struct EntityUuid(
 );
 
 impl EntityUuid {
+    /// Creates an ID from an existing UUID.
     #[must_use]
-    pub fn new(uuid: impl Into<Uuid>) -> Self {
-        Self(uuid.into())
+    pub const fn from_uuid(uuid: Uuid) -> Self {
+        Self(uuid)
     }
 }
 
@@ -70,9 +71,10 @@ impl From<EntityUuid> for Uuid {
 pub struct DraftId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl DraftId {
+    /// Creates an ID from an existing UUID.
     #[must_use]
-    pub fn new(uuid: impl Into<Uuid>) -> Self {
-        Self(uuid.into())
+    pub const fn from_uuid(uuid: Uuid) -> Self {
+        Self(uuid)
     }
 }
 
@@ -137,11 +139,13 @@ impl<'de> Deserialize<'de> for EntityId {
             });
 
         Ok(Self {
-            web_id: WebId::new(Uuid::from_str(web_id).map_err(de::Error::custom)?),
-            entity_uuid: EntityUuid::new(Uuid::from_str(entity_uuid).map_err(de::Error::custom)?),
+            web_id: WebId::from_uuid(Uuid::from_str(web_id).map_err(de::Error::custom)?),
+            entity_uuid: EntityUuid::from_uuid(
+                Uuid::from_str(entity_uuid).map_err(de::Error::custom)?,
+            ),
             draft_id: draft_id
                 .map(|draft_id| {
-                    Ok(DraftId::new(
+                    Ok(DraftId::from_uuid(
                         Uuid::from_str(draft_id).map_err(de::Error::custom)?,
                     ))
                 })
@@ -180,9 +184,10 @@ mod patch {
 pub struct EntityEditionId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl EntityEditionId {
+    /// Creates an ID from an existing UUID.
     #[must_use]
-    pub const fn new(id: Uuid) -> Self {
-        Self(id)
+    pub const fn from_uuid(uuid: Uuid) -> Self {
+        Self(uuid)
     }
 
     #[must_use]

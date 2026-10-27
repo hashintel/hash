@@ -242,7 +242,7 @@ fn transpile_empty_config_returns_none() {
 fn transpile_instance_admin_returns_none() {
     let mut fixture = Fixture::new();
     let actor = Some(type_system::principal::actor::ActorId::User(
-        type_system::principal::actor::UserId::new(ACTOR_UUID),
+        type_system::principal::actor::UserId::from_uuid(ACTOR_UUID),
     ));
     let admin_policy = policy_components_admin(actor, vec![]);
     let normal_policy = policy_components(actor, vec![]);
@@ -289,7 +289,7 @@ fn transpile_instance_admin_returns_none() {
 fn transpile_hash_default_config() {
     let mut fixture = Fixture::new();
     let actor = Some(type_system::principal::actor::ActorId::User(
-        type_system::principal::actor::UserId::new(ACTOR_UUID),
+        type_system::principal::actor::UserId::from_uuid(ACTOR_UUID),
     ));
     let policy = policy_components(actor, vec![]);
     let config = PropertyProtectionFilterConfig::hash_default();
@@ -445,7 +445,7 @@ fn lower_filter_any_disjunction() {
 fn transpile_multiple_protected_properties() {
     let mut fixture = Fixture::new();
     let actor = Some(type_system::principal::actor::ActorId::User(
-        type_system::principal::actor::UserId::new(ACTOR_UUID),
+        type_system::principal::actor::UserId::from_uuid(ACTOR_UUID),
     ));
     let policy = policy_components(actor, vec![]);
     let mut config = PropertyProtectionFilterConfig::new();

@@ -94,7 +94,7 @@ async fn properties_add() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -206,7 +206,7 @@ async fn properties_remove() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -285,7 +285,7 @@ async fn properties_replace() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -379,7 +379,7 @@ async fn type_ids() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: WebId::new(api.account_id),
+                web_id: WebId::from_uuid(api.account_id.into()),
                 entity_uuid: None,
                 decision_time: None,
                 entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -555,7 +555,7 @@ async fn create_person(api: &mut DatabaseApi<'_>) -> Entity {
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id),
+            web_id: WebId::from_uuid(api.account_id.into()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -675,7 +675,7 @@ async fn patch_entities_missing_entity() {
     let original = create_person(&mut api).await;
     let entity_id = original.metadata.record_id.entity_id;
     let missing_id = EntityId {
-        entity_uuid: EntityUuid::new(Uuid::now_v7()),
+        entity_uuid: EntityUuid::from_uuid(Uuid::now_v7()),
         ..entity_id
     };
 

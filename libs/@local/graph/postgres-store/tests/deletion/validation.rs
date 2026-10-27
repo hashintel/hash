@@ -82,7 +82,9 @@ async fn decision_time_in_past_succeeds() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: type_system::principal::actor_group::WebId::new(api.account_id),
+                web_id: type_system::principal::actor_group::WebId::from_uuid(
+                    api.account_id.into(),
+                ),
                 entity_uuid: None,
                 decision_time: Some(two_hours_ago),
                 entity_type_ids: HashSet::from([person_type_id()]),
@@ -263,7 +265,9 @@ async fn past_decision_time_deletes_all_editions() {
         .create_entity(
             api.account_id,
             CreateEntityParams {
-                web_id: type_system::principal::actor_group::WebId::new(api.account_id),
+                web_id: type_system::principal::actor_group::WebId::from_uuid(
+                    api.account_id.into(),
+                ),
                 entity_uuid: None,
                 decision_time: Some(two_hours_ago),
                 entity_type_ids: HashSet::from([person_type_id()]),

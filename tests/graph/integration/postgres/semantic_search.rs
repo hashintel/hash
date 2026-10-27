@@ -86,7 +86,7 @@ async fn create_person(
     api.create_entity(
         api.account_id,
         CreateEntityParams {
-            web_id: WebId::new(api.account_id),
+            web_id: WebId::from_uuid(api.account_id.into()),
             entity_uuid: None,
             decision_time: None,
             entity_type_ids: HashSet::from([person_entity_type_id()]),
@@ -216,7 +216,7 @@ async fn ranks_by_exact_distance() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
     let actor = api.account_id;
-    let own_web = WebId::new(actor);
+    let own_web = WebId::from_uuid(actor.into());
 
     let [near, mid, far, opposite] = seed_ranked_persons(&mut api).await;
 
@@ -233,7 +233,7 @@ async fn applies_the_distance_threshold() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
     let actor = api.account_id;
-    let own_web = WebId::new(actor);
+    let own_web = WebId::from_uuid(actor.into());
 
     let [near, mid, _far, _opposite] = seed_ranked_persons(&mut api).await;
 
@@ -250,7 +250,7 @@ async fn respects_the_limit() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
     let actor = api.account_id;
-    let own_web = WebId::new(actor);
+    let own_web = WebId::from_uuid(actor.into());
 
     let [near, mid, _far, _opposite] = seed_ranked_persons(&mut api).await;
 
@@ -267,7 +267,7 @@ async fn isolates_actors() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
     let actor = api.account_id;
-    let own_web = WebId::new(actor);
+    let own_web = WebId::from_uuid(actor.into());
 
     let visible = create_person(&mut api, false, Vec::new()).await;
     insert_embedding(&mut api, visible, embedding_towards(1.0, 0.0)).await;
@@ -299,7 +299,7 @@ async fn deduplicates_overlapping_policy_branches() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
     let actor = api.account_id;
-    let own_web = WebId::new(actor);
+    let own_web = WebId::from_uuid(actor.into());
 
     // The owner sees this entity through the web permit AND through the entity-scoped policy,
     // so it ranks in two branches and must still appear exactly once.
@@ -346,7 +346,7 @@ async fn excludes_drafts_unless_requested() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
     let actor = api.account_id;
-    let own_web = WebId::new(actor);
+    let own_web = WebId::from_uuid(actor.into());
 
     let draft = create_person(&mut api, true, Vec::new()).await;
     insert_embedding(&mut api, draft, embedding_towards(1.0, 0.0)).await;
@@ -379,7 +379,7 @@ async fn restricts_to_requested_types_and_webs() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
     let actor = api.account_id;
-    let own_web = WebId::new(actor);
+    let own_web = WebId::from_uuid(actor.into());
 
     let person = create_person(&mut api, false, Vec::new()).await;
     insert_embedding(&mut api, person, embedding_towards(1.0, 0.0)).await;
@@ -387,7 +387,7 @@ async fn restricts_to_requested_types_and_webs() {
     let results = search(
         &mut api,
         actor,
-        web_filter(WebId::new(Uuid::now_v7())),
+        web_filter(WebId::from_uuid(Uuid::now_v7())),
         2.0,
         10,
     )

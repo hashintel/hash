@@ -317,7 +317,7 @@ impl EntitySummaryQuery {
                 Some(Dimension::CreatedByIds) => {
                     if let Some(created_by_ids) = &mut summaries.created_by_ids {
                         created_by_ids.insert(
-                            ActorEntityUuid::new(
+                            ActorEntityUuid::from_uuid(
                                 row.try_get::<_, Uuid>(1).change_context(QueryError)?,
                             ),
                             matches,
@@ -327,7 +327,7 @@ impl EntitySummaryQuery {
                 Some(Dimension::EditionCreatedByIds) => {
                     if let Some(edition_created_by_ids) = &mut summaries.edition_created_by_ids {
                         edition_created_by_ids.insert(
-                            ActorEntityUuid::new(
+                            ActorEntityUuid::from_uuid(
                                 row.try_get::<_, Uuid>(1).change_context(QueryError)?,
                             ),
                             matches,

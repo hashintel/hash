@@ -190,7 +190,7 @@ pub(crate) async fn seed_db(account_id: ActorId, store_wrapper: &mut StoreWrappe
                 account_id,
                 repeat_n(
                     CreateEntityParams {
-                        web_id: WebId::new(account_id),
+                        web_id: WebId::from_uuid(account_id.into()),
                         entity_uuid: None,
                         decision_time: None,
                         entity_type_ids: HashSet::from([entity_type_id]),
@@ -236,7 +236,7 @@ pub(crate) async fn seed_db(account_id: ActorId, store_wrapper: &mut StoreWrappe
                         panic!("right entity index `{right_entity_index}` out of bounds")
                     }))
                     .map(|(left_entity, right_entity)| CreateEntityParams {
-                        web_id: WebId::new(account_id),
+                        web_id: WebId::from_uuid(account_id.into()),
                         entity_uuid: None,
                         decision_time: None,
                         entity_type_ids: HashSet::from([entity_type_id.clone()]),

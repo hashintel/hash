@@ -1017,7 +1017,7 @@ mod tests {
         .issuer()
         .expect("a complete configuration should convert")
         .expect("a complete configuration should make API tokens available");
-        let user_id = UserId::new(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111));
+        let user_id = UserId::from_uuid(Uuid::from_u128(0x1111_1111_1111_1111_1111_1111_1111_1111));
 
         let IssuedApiToken { token, params } = issuer
             .issue(
