@@ -31,6 +31,7 @@ import {
   failBrowserCall,
   settleBrowserCall,
 } from "../../shared/conversation/browser-call-rendezvous.ts";
+import { hashSaveUnconfirmedNote } from "./tools/hash-save.ts";
 
 // Only the Flue build packages skills; the save doesn't depend on their content.
 vi.mock("./skills/eliciting/SKILL.md", () => ({
@@ -151,6 +152,9 @@ test("a save with no view of the net in context is refused as not started and ne
   expect(JSON.stringify(refused?.content)).toContain(
     "Not started: no current view of the net is in your context",
   );
+  expect(JSON.stringify(refused?.content)).not.toContain(
+    hashSaveUnconfirmedNote,
+  );
   expect(
     claimBrowserCall(chat.instanceId, "s0", canonicalContent(chat.binding)),
   ).toBeUndefined();
@@ -247,11 +251,14 @@ test("an unconfirmed save tells the model it is not confirmed and not to save ag
   expect(JSON.parse(seenText ?? "null")).toEqual({
     saved: false,
     error: "Failed to fetch",
-    note: "The save is not confirmed: a version may or may not have been written. Tell the user, who can check the version list, and don't call save_hash_net again until they ask.",
+    note: hashSaveUnconfirmedNote,
   });
+  expect(hashSaveUnconfirmedNote).toContain(
+    "don't call save_hash_net again until they ask",
+  );
 });
 
-test("a save the user declined or the page refused tells the model nothing was saved, and why", async () => {
+test("a save the user declined or the page refused tells the model why", async () => {
   const { seenText } = await saveAfterRead({
     output: {
       applied: false,
@@ -261,22 +268,32 @@ test("a save the user declined or the page refused tells the model nothing was s
   expect(JSON.parse(seenText ?? "null")).toEqual({
     saved: false,
     reason: "The user declined this save; nothing was saved.",
-    note: "The save did not start; nothing was saved.",
   });
 });
 
-test("a save the browser refused as stale reaches the model as not started", async () => {
-  const { seen } = await saveAfterRead({ disposition: "stale" });
+test("a save the browser refused as stale reaches the model as not started, without the not-confirmed note", async () => {
+  const { seen, seenText } = await saveAfterRead({ disposition: "stale" });
   expect(seen?.isError).toBe(true);
-  expect(JSON.stringify(seen?.content)).toContain(
+  expect(seenText).toContain(
     "Not started: the document changed by other means after your last view of the net.",
   );
+  expect(seenText).not.toContain(hashSaveUnconfirmedNote);
 });
 
-test("a save that failed after it started reaches the model as an effect that is unknown", async () => {
-  const { seen } = await saveAfterRead({ disposition: "failed" });
+test("a save whose browser outcome was lost after it started tells the model the effect is unknown and not to save again until asked", async () => {
+  const { seen, seenText } = await saveAfterRead({ disposition: "failed" });
   expect(seen?.isError).toBe(true);
-  expect(JSON.stringify(seen?.content)).toContain(
-    "an attempted document effect is unknown",
+  expect(seenText).toContain("an attempted document effect is unknown");
+  expect(seenText).toContain(hashSaveUnconfirmedNote);
+});
+
+test("a save the page answered in an unknown shape tells the model not to save again until asked", async () => {
+  const { seen, seenText } = await saveAfterRead({
+    output: { saved: "maybe" },
+  });
+  expect(seen?.isError).toBe(true);
+  expect(seenText).toContain(
+    "HASH's page returned a save in an unknown shape.",
   );
+  expect(seenText).toContain(hashSaveUnconfirmedNote);
 });

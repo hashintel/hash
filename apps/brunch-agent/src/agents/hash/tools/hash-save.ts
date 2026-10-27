@@ -11,6 +11,11 @@ import * as v from "valibot";
 import { brunchTools } from "@hashintel/brunch-agent";
 
 import {
+  BROWSER_CALL_STALE_ERROR,
+  BROWSER_CALL_UNSTARTED_ERROR,
+} from "../../../shared/conversation/browser-call-rendezvous.ts";
+import { noNetViewRefusal } from "../../../shared/conversation/net-freshness.ts";
+import {
   type BrowserToolExecutor,
   browserResultEnvelope,
 } from "../../../shared/petrinaut-tools/petrinaut-construction.ts";
@@ -27,8 +32,11 @@ export const hashSaveInputSchema = v.strictObject({
   ),
 });
 
+/** What the model is told whenever a save may or may not have written a version. */
+export const hashSaveUnconfirmedNote = `The save is not confirmed: a version may or may not have been written. Tell the user, who can check the version list, and don't call ${brunchTools.saveHashNet} again until they ask.`;
+
 export const hashSaveDescription = (documentId: string) =>
-  `Save the net open in the editor to HASH as a new version, exactly as the editor's Save button does; others who can see the net then see that version. The net open in the editor is documentId ${JSON.stringify(documentId)}. Call it only when the user asks for a save or agrees to one. The user approves each save on a card; it saves the net as the editor holds it then, the user's own unsaved edits included. Returns { saved: true, decisionTime, title, stillDirty } when saved: decisionTime is the saved version's time, and stillDirty means edits made since are not in it. Returns { saved: false, error } when the save is not confirmed: a version may or may not have been written, so tell the user and don't call it again until they ask. Returns { saved: false, reason } when it did not start (the user declined, the net is read-only or unsaved, a save is already in progress, or it isn't the open net): nothing was saved. If it is refused because the document changed since your last view of the net, read the net, then call it again.`;
+  `Save the net open in the editor to HASH as a new version, exactly as the editor's Save button does; others who can see the net then see that version. The net open in the editor is documentId ${JSON.stringify(documentId)}. Call it only when the user asks for a save or agrees to one you offered. The user approves each save on a card; it saves the net as the editor holds it then, the user's own unsaved edits included. Returns { saved: true, decisionTime, title, stillDirty } when saved: decisionTime is the saved version's time, and stillDirty means edits made since are not in it. Returns { saved: false, error, note } when the page could not confirm the save, and fails with an error carrying the same note when the page's answer was lost: ${hashSaveUnconfirmedNote} Returns { saved: false, reason } when it did not start (the user declined, the net is read-only or unsaved, a save is already in progress, or it isn't the open net): nothing was saved. If it is refused because the document changed since your last view of the net, read the net, then call it again.`;
 
 const savedSchema = v.object({
   saved: v.literal(true),
@@ -52,19 +60,23 @@ export const hashSaveForModel = (output: unknown) => {
   if (saved.success) return saved.output;
   const unconfirmed = v.safeParse(unconfirmedSchema, output);
   if (unconfirmed.success)
-    return {
-      ...unconfirmed.output,
-      note: "The save is not confirmed: a version may or may not have been written. Tell the user, who can check the version list, and don't call save_hash_net again until they ask.",
-    };
+    return { ...unconfirmed.output, note: hashSaveUnconfirmedNote };
   const notStarted = v.safeParse(notStartedSchema, output);
   if (notStarted.success)
-    return {
-      saved: false,
-      reason: notStarted.output.reason,
-      note: "The save did not start; nothing was saved.",
-    };
+    return { saved: false, reason: notStarted.output.reason };
   throw new Error("HASH's page returned a save in an unknown shape.");
 };
+
+/**
+ * Failures of the executor that guarantee the save was never issued to, or
+ * never claimed by, the browser. Any other failure, an answer in an unknown
+ * shape included, may have followed a save the page started.
+ */
+const notStartedFailures: ReadonlySet<string> = new Set([
+  noNetViewRefusal,
+  BROWSER_CALL_STALE_ERROR,
+  BROWSER_CALL_UNSTARTED_ERROR,
+]);
 
 /** The save of the bound net, executed by whatever `execute` reaches HASH through. */
 export const createHashSaveTool = (
@@ -76,18 +88,27 @@ export const createHashSaveTool = (
     description: hashSaveDescription(documentId),
     input: hashSaveInputSchema,
     run: async ({ data, toolCallId, signal }) => {
-      const result = await execute({
-        toolName: brunchTools.saveHashNet,
-        input: data,
-        toolCallId,
-        signal,
-      });
-      return {
-        output: browserResultEnvelope({
-          ...result,
-          output: hashSaveForModel(result.output),
-        }),
-        terminate: false,
-      };
+      try {
+        const result = await execute({
+          toolName: brunchTools.saveHashNet,
+          input: data,
+          toolCallId,
+          signal,
+        });
+        return {
+          output: browserResultEnvelope({
+            ...result,
+            output: hashSaveForModel(result.output),
+          }),
+          terminate: false,
+        };
+      } catch (error) {
+        if (error instanceof Error && notStartedFailures.has(error.message))
+          throw error;
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`${message} ${hashSaveUnconfirmedNote}`, {
+          cause: error,
+        });
+      }
     },
   });
