@@ -1,8 +1,10 @@
+use core::error::Error;
+
 use error_stack::Report;
 use zeroize::Zeroize as _;
 
 /// An error from decoding hexadecimal input into a secret.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
 pub enum HexError {
     /// The input is not `expected` bytes long.
     #[display("the hexadecimal input is not {expected} bytes long")]
@@ -17,6 +19,8 @@ pub enum HexError {
     #[display("the hexadecimal input contains a character that is not a hexadecimal digit")]
     Digit,
 }
+
+impl Error for HexError {}
 
 /// The number of bytes the hexadecimal `src` encodes.
 ///

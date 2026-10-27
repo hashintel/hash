@@ -7135,6 +7135,7 @@ dependencies = [
  "rstest",
  "simple-mermaid",
  "trybuild",
+ "zerocopy",
  "zeroize",
 ]
 
