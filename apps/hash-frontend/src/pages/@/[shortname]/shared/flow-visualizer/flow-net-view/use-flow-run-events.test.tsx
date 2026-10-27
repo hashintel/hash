@@ -244,6 +244,44 @@ describe("useFlowRunEvents", () => {
     unmount();
   });
 
+  it("reads again from the start when it doesn't have the event a reset kept up to", async () => {
+    const { result, unmount } = renderWithMocks([
+      eventsPage({
+        after: null,
+        events: [runStartedEvent, stepStartedEvent("2.0")],
+        endCursor: "2.0",
+      }),
+      eventsPage({
+        after: "2.0",
+        events: [stepStartedEvent("5.0")],
+        endCursor: "5.0",
+        runId: "reset-run",
+        restarted: true,
+        keptUpTo: "1.5",
+      }),
+      eventsPage({
+        after: null,
+        events: [runStartedEvent, stepStartedEvent("5.0")],
+        endCursor: "5.0",
+        runId: "reset-run",
+      }),
+    ]);
+
+    await waitFor(() => expect(loadedEvents(result.current)).toHaveLength(2));
+
+    await act(() => vi.advanceTimersByTimeAsync(2_000));
+
+    await waitFor(() =>
+      expect(result.current).toEqual({
+        status: "loaded",
+        runId: "reset-run",
+        events: [runStartedEvent, stepStartedEvent("5.0")],
+      }),
+    );
+
+    unmount();
+  });
+
   it("drops events only on a reset's first page", async () => {
     const { result, unmount } = renderWithMocks([
       eventsPage({
