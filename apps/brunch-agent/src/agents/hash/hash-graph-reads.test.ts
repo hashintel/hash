@@ -133,6 +133,7 @@ const claimed = async (
 const readInput = { entityTypes: ["Supplier"], traversalDepth: 1 };
 const supplier = {
   entityId: "alice-web~supplier",
+  label: "Acme Parts",
   editionId: "edition-1",
   webId: "alice-web",
   entityTypeIds: ["https://hash.ai/@alice/types/entity-type/supplier/v/1"],
@@ -168,7 +169,7 @@ const supplierText = [
   '- Supplier "Acme Parts"',
   "  entityId: alice-web~supplier",
   "  editionId: edition-1",
-  "  name: Acme Parts",
+  '  name: "Acme Parts"',
 ].join("\n");
 
 test("the agent offers the read, issues it as a read in a fresh conversation, and the model next sees what the page returned", async () => {

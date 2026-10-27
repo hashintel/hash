@@ -20,23 +20,24 @@ import {
   hashWebReadForModel,
 } from "./hash-graph-reads.ts";
 
-const aliceWeb = "7bb3aed2-1d4c-447b-bc75-6ca7028a9b5a";
-const userTypeId = "https://hash.ai/@h/types/entity-type/user/v/7";
+const personWebId = "7bb3aed2-1d4c-447b-bc75-6ca7028a9b5a";
+const personTypeId = "https://hash.ai/@h/types/entity-type/user/v/7";
 const netTypeId = "https://hash.ai/@h/types/entity-type/petri-net/v/1";
 const property = (slug: string) =>
   `https://hash.ai/@h/types/property-type/${slug}/`;
 const displayName =
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/";
 
-const alice = {
-  entityId: `${aliceWeb}~${aliceWeb}`,
+const person = {
+  entityId: `${personWebId}~${personWebId}`,
+  label: "Alice",
   editionId: "2806bc27-0000-4000-8000-000000000000",
-  webId: aliceWeb,
-  entityTypeIds: [userTypeId],
+  webId: personWebId,
+  entityTypeIds: [personTypeId],
   properties: {
     [property("kratos-identity-id")]: "kratos-1",
-    [property("email")]: ["alice@example.com"],
-    [property("shortname")]: "alice",
+    [property("email")]: ["person@example.com"],
+    [property("shortname")]: "example-web",
     [property("enabled-feature-flags")]: [
       "workers",
       "ai",
@@ -72,9 +73,10 @@ const definitionBytes = new TextEncoder().encode(
 ).length;
 
 const net = {
-  entityId: `${aliceWeb}~net`,
+  entityId: `${personWebId}~net`,
+  label: "Supply Chain",
   editionId: "edition-net",
-  webId: aliceWeb,
+  webId: personWebId,
   entityTypeIds: [netTypeId],
   properties: {
     [property("title")]: "Supply Chain",
@@ -100,14 +102,14 @@ const read = (entities: object[]) => ({
     },
   ],
   entityTypes: [
-    { entityTypeId: userTypeId, title: "User" },
+    { entityTypeId: personTypeId, title: "User" },
     { entityTypeId: netTypeId, title: "Petri Net" },
   ],
   entities,
 });
 
 test("a user entity renders compactly, with readable names and its identifiers", () => {
-  const text = hashEntityReadForModel(read([alice]));
+  const text = hashEntityReadForModel(read([person]));
   expect(text).toBe(
     [
       "entities: 1",
@@ -115,21 +117,21 @@ test("a user entity renders compactly, with readable names and its identifiers",
       "  email: Email — An email address",
       "  display_name: Display Name",
       "entity types:",
-      `  User: ${userTypeId}`,
+      `  User: ${personTypeId}`,
       "entities:",
       '- User "Alice"',
-      `  entityId: ${alice.entityId}`,
-      `  editionId: ${alice.editionId}`,
-      "  kratos_identity_id: kratos-1",
-      "  email: [alice@example.com]",
-      "  shortname: alice",
-      "  enabled_feature_flags: [workers, ai, supplyChain, dashboards]",
-      "  display_name: Alice",
+      `  entityId: ${person.entityId}`,
+      `  editionId: ${person.editionId}`,
+      '  kratos_identity_id: "kratos-1"',
+      '  email: ["person@example.com"]',
+      '  shortname: "example-web"',
+      '  enabled_feature_flags: ["workers", "ai", "supplyChain", "dashboards"]',
+      '  display_name: "Alice"',
     ].join("\n"),
   );
   // The page's JSON for the same entity is larger, by its URL keys.
   expect(text.length).toBeLessThan(
-    JSON.stringify({ entities: [alice] }).length,
+    JSON.stringify({ entities: [person] }).length,
   );
 });
 
@@ -148,11 +150,19 @@ test("a net's definition is summarised with its size and shape, and the read say
 });
 
 test("an entity named in fullValuesFor shows its values in full; others stay summarised", () => {
-  const other = { ...net, entityId: `${aliceWeb}~other` };
+  const other = { ...net, entityId: `${personWebId}~other` };
   const text = hashEntityReadForModel(read([net, other]), [net.entityId]);
   expect(text).toContain(`  definition_object: ${JSON.stringify(definition)}`);
   const otherBlock = text.slice(text.indexOf(`entityId: ${other.entityId}`));
   expect(otherBlock).toContain("definition_object: <object,");
+  expect(text).not.toContain("fullValuesFor matched no entity read");
+});
+
+test("ids in fullValuesFor that match no entity read are named", () => {
+  const missing = `${personWebId}~missing`;
+  const text = hashEntityReadForModel(read([net]), [net.entityId, missing]);
+  expect(text).toContain(`fullValuesFor matched no entity read: ${missing}`);
+  expect(text).not.toContain(`matched no entity read: ${net.entityId}`);
 });
 
 test("a property's unit reaches the model in its description, beside its value", () => {
@@ -169,9 +179,9 @@ test("a property's unit reaches the model in its description, beside its value",
     entityTypes: [],
     entities: [
       {
-        ...alice,
+        ...person,
         entityTypeIds: [
-          "http://localhost:3000/@alice/types/entity-type/supplier/v/1",
+          "http://localhost:3000/@example-web/types/entity-type/supplier/v/1",
         ],
         properties: { [leadTime]: 5 },
       },
@@ -183,40 +193,41 @@ test("a property's unit reaches the model in its description, beside its value",
   expect(text).toContain("  planned_delivery_time: 5");
   // A type the page didn't title is shown by its slug, beside its id.
   expect(text).toContain(
-    "  supplier: http://localhost:3000/@alice/types/entity-type/supplier/v/1",
+    "  supplier: http://localhost:3000/@example-web/types/entity-type/supplier/v/1",
   );
 });
 
-test("links, drafts and entities reached by links are marked", () => {
+test("links, drafts and entities reached by links are marked, and an entity without a label is headed by its types", () => {
+  const { label: _label, ...unlabelled } = person;
   const link = {
-    ...alice,
-    entityId: `${aliceWeb}~link`,
+    ...unlabelled,
+    entityId: `${personWebId}~link`,
     entityTypeIds: ["https://hash.ai/@h/types/entity-type/has/v/1"],
     properties: {},
     draft: true,
     matched: false,
-    linkData: { leftEntityId: alice.entityId, rightEntityId: net.entityId },
+    linkData: { leftEntityId: person.entityId, rightEntityId: net.entityId },
   };
-  const text = hashEntityReadForModel(read([alice, link]));
+  const text = hashEntityReadForModel(read([person, link]));
   expect(text).toContain("entities: 2 (1 reached by links)");
   expect(text).toContain(
     [
       "- has (linked) (draft)",
       `  entityId: ${link.entityId}`,
       `  editionId: ${link.editionId}`,
-      `  linksFrom: ${alice.entityId}`,
+      `  linksFrom: ${person.entityId}`,
       `  linksTo: ${net.entityId}`,
     ].join("\n"),
   );
 });
 
-test("strings that YAML would misread are quoted, and two properties sharing a slug are told apart", () => {
+test("strings are JSON-quoted, and two properties sharing a slug are told apart", () => {
   const otherName =
     "https://blockprotocol.org/@blockprotocol/types/property-type/shortname/";
   const text = hashEntityReadForModel(
     read([
       {
-        ...alice,
+        ...person,
         properties: {
           [property("shortname")]: "true",
           [otherName]: "a: b",
@@ -235,7 +246,10 @@ test("strings that YAML would misread are quoted, and two properties sharing a s
 test("a long text is summarised with its size and how it begins", () => {
   const text = hashEntityReadForModel(
     read([
-      { ...alice, properties: { [property("summary")]: "word ".repeat(200) } },
+      {
+        ...person,
+        properties: { [property("summary")]: "word ".repeat(200) },
+      },
     ]),
   );
   expect(text).toMatch(/ {2}summary: <text, 1\.0 KB: "word word .*…">/);
@@ -246,7 +260,7 @@ test("an empty read says nothing matched", () => {
 });
 
 test("a result in an unknown shape fails the read rather than reaching the model", () => {
-  expect(() => hashEntityReadForModel({ entities: [alice] })).toThrow(
+  expect(() => hashEntityReadForModel({ entities: [person] })).toThrow(
     "unknown shape",
   );
 });
@@ -256,7 +270,7 @@ test("entity types render one block each, with property names as an entity read 
     entityTypes: [
       {
         entityTypeId:
-          "http://localhost:3000/@alice/types/entity-type/supplier/v/1",
+          "http://localhost:3000/@example-web/types/entity-type/supplier/v/1",
         title: "Supplier",
         description: "A vendor that supplies goods.",
         properties: [
@@ -277,7 +291,7 @@ test("entity types render one block each, with property names as an entity read 
   expect(text).toBe(
     [
       "entity types: 1",
-      "- Supplier: http://localhost:3000/@alice/types/entity-type/supplier/v/1",
+      "- Supplier: http://localhost:3000/@example-web/types/entity-type/supplier/v/1",
       "  description: A vendor that supplies goods.",
       "  properties:",
       "    planned_delivery_time: Planned Delivery Time",
@@ -291,14 +305,19 @@ test("webs render one line each, with their ids", () => {
   expect(
     hashWebReadForModel({
       webs: [
-        { webId: aliceWeb, kind: "user", shortname: "alice", name: "Alice" },
+        {
+          webId: personWebId,
+          kind: "user",
+          shortname: "example-web",
+          name: "Alice",
+        },
         { webId: "org-web", kind: "organization" },
       ],
     }),
   ).toBe(
     [
       "webs: 2",
-      `- user "Alice" @alice webId: ${aliceWeb}`,
+      `- user "Alice" @example-web webId: ${personWebId}`,
       "- organization webId: org-web",
     ].join("\n"),
   );
@@ -325,7 +344,9 @@ const sampleInputs: Readonly<Record<string, unknown>> = {
     fullValuesFor: [`${webId}~${entityUuid}`],
   },
   [brunchTools.queryHashEntityTypes]: {
-    entityTypeIds: ["https://hash.ai/@alice/types/entity-type/supplier/v/1"],
+    entityTypeIds: [
+      "https://hash.ai/@example-web/types/entity-type/supplier/v/1",
+    ],
     webIds: [webId],
   },
   [brunchTools.queryHashWebs]: {},

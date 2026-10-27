@@ -19,6 +19,10 @@ import {
   browserResultEnvelope,
 } from "../../../shared/petrinaut-tools/petrinaut-construction.ts";
 
+/**
+ * List length and id length are deliberately unbounded: the page reads as the
+ * signed-in user, and the graph enforces its own limits.
+ */
 const identifiers = (description: string) =>
   v.optional(
     v.pipe(
@@ -59,7 +63,7 @@ const truncationNote = (truncated: true | undefined) =>
   truncated === true ? ["More may match than shown; narrow the filter."] : [];
 
 /** A value whose JSON is larger than this is summarised unless asked for in full. */
-export const hashValueSummaryThresholdBytes = 500;
+const valueSummaryThresholdBytes = 500;
 
 const byteLength = (text: string) => new TextEncoder().encode(text).length;
 
@@ -77,52 +81,42 @@ const slugName = (url: string) => {
 };
 
 /**
- * The name each base URL is shown by: its slug, unless two base URLs in the
- * same read share one, in which case both are shown by their base URL.
+ * Names each of `baseUrls` by its slug, unless two of them share one, in which
+ * case both are named by their base URL.
  */
-const propertyNames = (baseUrls: Iterable<string>) => {
-  const bySlug = new Map<string, string[]>();
+const propertyNamer = (baseUrls: Iterable<string>) => {
+  const slugs = new Set<string>();
+  const sharedSlugs = new Set<string>();
   for (const baseUrl of new Set(baseUrls)) {
     const slug = slugName(baseUrl);
-    bySlug.set(slug, [...(bySlug.get(slug) ?? []), baseUrl]);
+    if (slugs.has(slug)) sharedSlugs.add(slug);
+    slugs.add(slug);
   }
-  return new Map(
-    [...bySlug].flatMap(([slug, urls]) =>
-      urls.map((baseUrl) => [baseUrl, urls.length === 1 ? slug : baseUrl]),
-    ),
-  );
+  return (baseUrl: string) => {
+    const slug = slugName(baseUrl);
+    return sharedSlugs.has(slug) ? baseUrl : slug;
+  };
 };
 
-const plainScalar = /^[^\s"'#[\]{},:&*!|>%@`-](?:[^\n#:]|:(?! )|#(?<! #))*$/;
-const lookalikeScalar =
-  /^(?:true|false|null|~|[-+]?(?:\d[\d_]*)?\.?\d+(?:e[-+]?\d+)?)$/i;
-
-/** A string as YAML would read it: bare when it can be, else JSON-quoted. */
-const renderString = (text: string, inFlow: boolean) =>
-  plainScalar.test(text) &&
-  !text.endsWith(" ") &&
-  !lookalikeScalar.test(text) &&
-  !(inFlow && /[,[\]{}]/.test(text))
-    ? text
-    : JSON.stringify(text);
-
 /** A small value on one line, with URL keys shown by their slug. */
-const renderInline = (value: unknown, inFlow = false): string => {
-  if (typeof value === "string") return renderString(value, inFlow);
+const renderInline = (value: unknown): string => {
   if (Array.isArray(value))
-    return `[${value.map((item) => renderInline(item, true)).join(", ")}]`;
+    return `[${value.map((item) => renderInline(item)).join(", ")}]`;
   if (typeof value === "object" && value !== null)
     return `{${Object.entries(value)
-      .map(([key, item]) => `${slugName(key)}: ${renderInline(item, true)}`)
+      .map(([key, item]) => `${slugName(key)}: ${renderInline(item)}`)
       .join(", ")}}`;
   return JSON.stringify(value);
 };
+
+/** Prose on one line. */
+const oneLine = (text: string) => text.replace(/\s+/g, " ");
 
 /** The kind, size and top-level shape of a value too large to show. */
 const summarise = (value: unknown, bytes: number): string => {
   const size = formatBytes(bytes);
   if (typeof value === "string") {
-    const preview = value.replace(/\s+/g, " ").slice(0, 80);
+    const preview = oneLine(value).slice(0, 80);
     return `<text, ${size}: ${JSON.stringify(`${preview}…`)}>`;
   }
   if (Array.isArray(value)) return `<array of ${value.length}, ${size}>`;
@@ -154,16 +148,9 @@ const renderValue = (
   full: boolean,
 ): { text: string; summarised: boolean } => {
   const json = JSON.stringify(value);
-  if (full)
-    return {
-      text:
-        typeof value === "object" && value !== null
-          ? json
-          : renderInline(value),
-      summarised: false,
-    };
+  if (full) return { text: json, summarised: false };
   const bytes = byteLength(json);
-  return bytes > hashValueSummaryThresholdBytes
+  return bytes > valueSummaryThresholdBytes
     ? { text: summarise(value, bytes), summarised: true }
     : { text: renderInline(value), summarised: false };
 };
@@ -172,7 +159,7 @@ const renderValue = (
 const legendLine = (title: string, description: string | undefined) =>
   description === undefined || description === ""
     ? title
-    : `${title} — ${description.replace(/\s+/g, " ")}`;
+    : `${title} — ${oneLine(description)}`;
 
 /** Issues one read to HASH's page and shows the model what it settled with. */
 const runHashRead = async (
@@ -239,6 +226,8 @@ export const hashEntityReadDescription =
 /** One entity as HASH's page returns it: every field comes from the same returned edition. */
 const vHashEntity = v.object({
   entityId: v.string(),
+  /** The entity's name as HASH labels it, where it has one. */
+  label: v.optional(v.string()),
   editionId: v.string(),
   webId: v.string(),
   entityTypeIds: v.array(v.string()),
@@ -272,15 +261,6 @@ export type HashEntityReadResult = v.InferOutput<typeof vHashEntityReadResult>;
 export const hashEntityReadEmptyNote =
   "No entities matched that the signed-in user can see. One may still exist but be hidden from them, archived, or filed under another type title or web.";
 
-/** The properties that most likely name an entity, in order of preference. */
-const labelPropertyNames = [
-  "display_name",
-  "preferred_name",
-  "name",
-  "title",
-  "shortname",
-];
-
 /**
  * What the model is shown of a settled entity read: compact text, with the
  * values of the entities in `fullValuesFor` in full.
@@ -293,13 +273,25 @@ export const hashEntityReadForModel = (
   if (!parsed.success)
     throw new Error("HASH's page returned an entity read in an unknown shape.");
   const { entities, propertyTypes, entityTypes, truncated } = parsed.output;
-  if (entities.length === 0)
-    return [hashEntityReadEmptyNote, ...truncationNote(truncated)].join("\n");
 
   const full = new Set(fullValuesFor);
-  const names = propertyNames(
+  const readIds = new Set(entities.map(({ entityId }) => entityId));
+  const unmatchedFull = [...full].filter((id) => !readIds.has(id));
+  const unmatchedFullNote =
+    unmatchedFull.length === 0
+      ? []
+      : [`fullValuesFor matched no entity read: ${unmatchedFull.join(", ")}`];
+  if (entities.length === 0)
+    return [
+      hashEntityReadEmptyNote,
+      ...truncationNote(truncated),
+      ...unmatchedFullNote,
+    ].join("\n");
+
+  const carriedBaseUrls = new Set(
     entities.flatMap(({ properties }) => Object.keys(properties)),
   );
+  const nameOf = propertyNamer(carriedBaseUrls);
   const typeTitles = new Map(
     entityTypes.map(({ entityTypeId, title }) => [entityTypeId, title]),
   );
@@ -308,19 +300,11 @@ export const hashEntityReadForModel = (
   const rendered = entities.map((entity) => {
     const isFull = full.has(entity.entityId);
     const properties = Object.entries(entity.properties).map(
-      ([baseUrl, value]) => {
-        const { text, summarised } = renderValue(value, isFull);
-        return {
-          name: names.get(baseUrl) ?? baseUrl,
-          value,
-          text,
-          summarised,
-        };
-      },
+      ([baseUrl, value]) => ({
+        name: nameOf(baseUrl),
+        ...renderValue(value, isFull),
+      }),
     );
-    const label = labelPropertyNames
-      .map((name) => properties.find((property) => property.name === name))
-      .find((property) => typeof property?.value === "string")?.value;
     const types = entity.entityTypeIds
       .map((id) => typeTitles.get(id) ?? slugName(id))
       .join(", ");
@@ -329,7 +313,7 @@ export const hashEntityReadForModel = (
       ...(entity.draft ? ["(draft)"] : []),
     ];
     const block = [
-      `- ${[types, ...(typeof label === "string" ? [JSON.stringify(label)] : []), ...flags].join(" ")}`,
+      `- ${[types, ...(entity.label === undefined ? [] : [JSON.stringify(entity.label)]), ...flags].join(" ")}`,
       `  entityId: ${entity.entityId}`,
       `  editionId: ${entity.editionId}`,
       ...(entity.linkData === undefined
@@ -347,14 +331,16 @@ export const hashEntityReadForModel = (
   });
   const summarised = rendered.some((entity) => entity.summarised);
 
-  const legend = propertyTypes.flatMap(({ baseUrl, title, description }) => {
-    const name = names.get(baseUrl);
-    return name === undefined
-      ? []
-      : [`  ${name}: ${legendLine(title, description)}`];
-  });
+  const legend = propertyTypes
+    .filter(({ baseUrl }) => carriedBaseUrls.has(baseUrl))
+    .map(
+      ({ baseUrl, title, description }) =>
+        `  ${nameOf(baseUrl)}: ${legendLine(title, description)}`,
+    );
   const typesByTitle = new Map<string, string[]>();
-  for (const id of new Set(entities.flatMap((e) => e.entityTypeIds))) {
+  for (const id of new Set(
+    entities.flatMap(({ entityTypeIds }) => entityTypeIds),
+  )) {
     const title = typeTitles.get(id) ?? slugName(id);
     typesByTitle.set(title, [...(typesByTitle.get(title) ?? []), id]);
   }
@@ -364,9 +350,10 @@ export const hashEntityReadForModel = (
     ...truncationNote(truncated),
     ...(summarised
       ? [
-          `Values over ${formatBytes(hashValueSummaryThresholdBytes)} are summarised; read an entity by entityIds with its id in fullValuesFor to see them.`,
+          `Values over ${formatBytes(valueSummaryThresholdBytes)} are summarised; read an entity by entityIds with its id in fullValuesFor to see them.`,
         ]
       : []),
+    ...unmatchedFullNote,
     ...(legend.length === 0 ? [] : ["properties:", ...legend]),
     "entity types:",
     ...[...typesByTitle].map(([title, ids]) => `  ${title}: ${ids.join(", ")}`),
@@ -436,7 +423,7 @@ export type HashEntityTypeReadResult = v.InferOutput<
   typeof vHashEntityTypeReadResult
 >;
 
-export const hashEntityTypeReadEmptyNote =
+const hashEntityTypeReadEmptyNote =
   "No entity types matched that the signed-in user can see.";
 
 /** What the model is shown of a settled entity type read: compact text. */
@@ -451,7 +438,7 @@ export const hashEntityTypeReadForModel = (output: unknown) => {
     return [hashEntityTypeReadEmptyNote, ...truncationNote(truncated)].join(
       "\n",
     );
-  const names = propertyNames(
+  const nameOf = propertyNamer(
     entityTypes.flatMap(({ properties }) =>
       properties.map(({ baseUrl }) => baseUrl),
     ),
@@ -464,14 +451,14 @@ export const hashEntityTypeReadForModel = (output: unknown) => {
         `- ${type.title}: ${type.entityTypeId}`,
         ...(type.description === undefined || type.description === ""
           ? []
-          : [`  description: ${renderString(type.description, false)}`]),
+          : [`  description: ${oneLine(type.description)}`]),
         ...(type.properties.length === 0
           ? []
           : [
               "  properties:",
               ...type.properties.map(
                 ({ baseUrl, title }) =>
-                  `    ${names.get(baseUrl) ?? baseUrl}: ${title ?? slugName(baseUrl)}`,
+                  `    ${nameOf(baseUrl)}: ${title ?? slugName(baseUrl)}`,
               ),
             ]),
         ...(type.links.length === 0
