@@ -37,6 +37,5 @@ darwin-kperf-criterion    = { workspace = true, features = ["codspeed"] }
 name    = "clustering"
 harness = false
 
-
 [lints]
 workspace = true

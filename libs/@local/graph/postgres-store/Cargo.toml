@@ -69,11 +69,11 @@ tokio                     = { workspace = true, features = ["macros", "time"] }
 tracing-subscriber        = { workspace = true, features = ["env-filter", "registry"] }
 
 [features]
-clap = ["dep:clap", "hash-secret/clap"]
+clap       = ["dep:clap", "hash-secret/clap"]
 # Exposes test-only impls, in particular `BeginReadOnlyTransaction` for stores already inside a
 # transaction. See the `TODO(BE-688)` on the trait definition.
 test-utils = []
-utoipa = [
+utoipa     = [
     "dep:utoipa",
     "hash-graph-store/utoipa",
     "hash-graph-types/utoipa",

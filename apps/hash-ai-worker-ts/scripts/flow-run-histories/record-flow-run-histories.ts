@@ -25,6 +25,7 @@ import proto from "@temporalio/proto";
 import { NativeConnection, Worker } from "@temporalio/worker";
 
 import { getActionActivityOptions } from "@local/hash-backend-utils/flows/action-activity-options";
+import { signalStepAttempts } from "@local/hash-backend-utils/flows/signal-step-attempts";
 import { temporalNamespace } from "@local/hash-backend-utils/temporal";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -162,7 +163,14 @@ const main = async () => {
       if (!action) {
         throw new Error(`The case doesn't stub ${activityName}`);
       }
-      return action(...args);
+      if (currentCase?.withoutAttemptSignals) {
+        return action(...args);
+      }
+      return signalStepAttempts({
+        action: async (
+          ...actionArgs: Parameters<RecordingCase["actions"][string]>
+        ) => action(...actionArgs),
+      }).action(...args);
     };
 
   const taskQueue = `flow-run-histories-${generateUuid()}`;

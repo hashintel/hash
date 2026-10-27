@@ -96,7 +96,7 @@ const getStepRunsFromActivityEvents = (
     if (event.kind === "attemptStarted") {
       activity.attemptStarted = event;
     } else if (event.kind === "attemptFailed") {
-      /* Always followed by the step giving up, which records the step's state. */
+      /* Followed by the step giving up, or for a failure Temporal retries, by the next attempt starting. */
       activity.attemptFailed = event;
       continue;
     }
@@ -120,17 +120,22 @@ const getStepRunsFromActivityEvents = (
     switch (event.kind) {
       case "attemptStarted": {
         if (!workflowStoppedEarly) {
-          const lastError = event.hiddenAttempts?.lastError;
-
           stepRun.status = FlowStepStatus.Started;
-          stepRun.lastFailure = lastError;
-          stepRun.logs.push({
-            type: "ActivityFailed",
-            stepId: stepRunId,
-            recordedAt: event.occurredAt,
-            retrying: true,
-            message: lastError?.message ?? unknownErrorMessage,
-          });
+
+          /* A retry: the error is the previous attempt's, recorded by its signal if Temporal didn't record it. */
+          if (event.attempt > 1) {
+            const lastError =
+              event.hiddenAttempts?.lastError ?? activity.attemptFailed?.error;
+
+            stepRun.lastFailure = lastError;
+            stepRun.logs.push({
+              type: "ActivityFailed",
+              stepId: stepRunId,
+              recordedAt: event.occurredAt,
+              retrying: true,
+              message: lastError?.message ?? unknownErrorMessage,
+            });
+          }
         }
         break;
       }

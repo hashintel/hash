@@ -2,11 +2,11 @@
 default-members = [
     "apps/hash-graph",
 ]
-exclude = [
+exclude         = [
     ".github/scripts/rust",
     "libs/@local/hashql/docs",
 ]
-members = [
+members         = [
     "apps/hash-graph",
     "apps/hash-integrations",
     "libs/@blockprotocol/type-system/rust",
@@ -65,7 +65,7 @@ members = [
     "tests/graph/integration",
     "tests/graph/test-data/rust",
 ]
-resolver = "3"
+resolver        = "3"
 
 [workspace.metadata]
 name = "hash"
@@ -426,19 +426,19 @@ allow_attributes_without_reason = "allow"
 # With the current configuration option it's pretty much unusable. We'd like to
 # use it for grouping in particular, but this comes with sorting by name as well.
 # Needs to be further tested in a smaller scope.
-arbitrary_source_item_ordering = "allow"
-arithmetic_side_effects        = "allow"
-as_conversions                 = "allow"
+arbitrary_source_item_ordering  = "allow"
+arithmetic_side_effects         = "allow"
+as_conversions                  = "allow"
 # Too many false positives when macros and/or loops are involved
-cognitive_complexity    = "allow"
-expect_used             = "allow"
-inline_modules          = "allow" # right now flags inline test modules, even if it shouldn't
-let_underscore_must_use = "allow"
-missing_assert_message  = "allow"
-multiple_inherent_impl  = "allow"
-panic                   = "allow"
-partial_pub_fields      = "allow"
-unwrap_in_result        = "allow"
+cognitive_complexity            = "allow"
+expect_used                     = "allow"
+inline_modules                  = "allow" # right now flags inline test modules, even if it shouldn't
+let_underscore_must_use         = "allow"
+missing_assert_message          = "allow"
+multiple_inherent_impl          = "allow"
+panic                           = "allow"
+partial_pub_fields              = "allow"
+unwrap_in_result                = "allow"
 
 # Consider enabling:
 default_numeric_fallback      = "allow"

@@ -24,8 +24,8 @@ const fixturesUrl = new URL(
 );
 
 /**
- * What `getFlowRunDetailedFieldsFromHistory` returned on each fixture when it was split out of the Temporal reader,
- * or `{ throws }` with the message it threw.
+ * What `getFlowRunDetailedFieldsFromHistory` returned on each fixture when it was recorded, or `{ throws }` with the
+ * message it threw.
  */
 const recordedDetailsUrl = new URL(
   "../../tests/fixtures/flow-run-details/",
