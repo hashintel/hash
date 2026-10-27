@@ -28,6 +28,7 @@ export type ToolCapabilityClass =
   | PetrinautToolCapability
   | "petrinaut-experiment-draft"
   | "hash-read"
+  | "hash-save"
   | "explanation"
   | "diagnostic";
 
@@ -90,6 +91,14 @@ const hashGraphReadTools: readonly BrunchToolCatalogueEntry[] = [
   capability: "hash-read",
 }));
 
+/** HASH's process page saves through its editor's Save; only the HASH agent mounts it. */
+const hashSaveTool: BrunchToolCatalogueEntry = {
+  name: brunchTools.saveHashNet,
+  definitionOwner: "brunch-app",
+  executionOwner: "hash-frontend",
+  capability: "hash-save",
+};
+
 /**
  * Expected provider-visible names and ownership for a document-bound Brunch conversation.
  * Schemas stay with Petrinaut; this list deliberately classifies names only.
@@ -141,6 +150,7 @@ export const brunchToolCatalogue: readonly BrunchToolCatalogueEntry[] = [
   ...netReaderTools,
   draftBrunchTool,
   ...hashGraphReadTools,
+  hashSaveTool,
 ];
 
 /** The catalogue's browser-executed entries are exactly the tools the library says the browser runs. */

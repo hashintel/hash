@@ -43,6 +43,7 @@ import { loadTestCompactionConfig } from "../../shared/test-compaction-config.ts
 import { useWords } from "../../shared/words.ts";
 import { useGuidance } from "./guidance.ts";
 import { createHashGraphReadTools } from "./tools/hash-graph-reads.ts";
+import { createHashSaveTool } from "./tools/hash-save.ts";
 
 import type { BrowserToolExecutor } from "../../shared/petrinaut-tools/petrinaut-construction.ts";
 
@@ -140,9 +141,14 @@ export function HashAgent({ id }: AgentProps) {
   if (initialData) {
     useTool(createQueryBasisTool({ browser: initialData, history }));
     // HASH's page runs them as the signed-in user, like net reads.
-    if (executeBrowserTool)
+    if (executeBrowserTool) {
       for (const read of createHashGraphReadTools(executeBrowserTool))
         useTool(read);
+      // A document change: issued against the model's last view of the net.
+      useTool(
+        createHashSaveTool(executeBrowserTool, initialData.binding.documentId),
+      );
+    }
   }
   useTool(ping);
 

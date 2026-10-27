@@ -34,6 +34,11 @@ test("only mutations, commands and unknown tools may change the bound document",
   expect(browserToolMutatesDocument("unmounted_tool")).toBe(true);
 });
 
+test("HASH's save is a document change, so it is held to the model's last view and its stop is unknown", () => {
+  expect(browserToolMutatesDocument(brunchTools.saveHashNet)).toBe(true);
+  expect(petrinautToolTargets(brunchTools.saveHashNet)).toEqual([]);
+});
+
 test.each([...hashGraphReadToolNames])(
   "HASH's graph read %s never changes the bound document",
   (name) => {

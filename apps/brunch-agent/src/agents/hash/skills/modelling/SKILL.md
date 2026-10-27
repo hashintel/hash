@@ -1,6 +1,6 @@
 ---
 name: modelling
-description: Maps the operational account to a Petrinaut SDCPN, and revises, checks and delivers it. Use before any net mutation, net revision, construction-led analysis, experiment proposal or net delivery.
+description: Maps the operational account to a Petrinaut SDCPN, and revises, checks and delivers it. Use before any net mutation, net revision, construction-led analysis, experiment proposal, net delivery or save.
 ---
 
 # Modelling the operation
@@ -48,6 +48,10 @@ Use the current Ledger and inspect the current net before delivery. State the in
 Once the USER has agreed the structure, you may offer one or two domain-specific place visualisations, such as a queue as a stacked bar or machines as a row of state-coloured rectangles.
 
 An explicit stop opens no new topic. Deliver useful partial work and any already-checked fragment. In an unbound conversation, explain the construction that the account supports and the missing capability or fact, without claiming a mutation, check or draft occurred.
+
+## Save
+
+A save makes the net the version others who can see it see. Save with `save_hash_net` only when the USER asks for a save or agrees to one you offered. The USER approves each save on a card; it saves the net as the editor holds it, their own unsaved edits included. When it is saved, say so, and when `stillDirty`, that later edits are not in that version. When it returns `error`, the save is not confirmed: tell the USER, who can check the version list, and don't call it again until they ask. A save that did not start wrote nothing: say why. Only when it was refused because the document changed since your last view, read the net, then call it again.
 
 ## Resources
 

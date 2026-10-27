@@ -23,6 +23,7 @@ import {
   hashEntityTypeReadDescription,
   hashWebReadDescription,
 } from "./tools/hash-graph-reads.ts";
+import { hashSaveDescription } from "./tools/hash-save.ts";
 
 const mounted = vi.hoisted(() => ({
   initialData: undefined as unknown,
@@ -141,8 +142,16 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
       brunchTools.queryHashEntities,
       brunchTools.queryHashEntityTypes,
       brunchTools.queryHashWebs,
+      brunchTools.saveHashNet,
       ...Object.keys(petrinautAiTools),
     ]),
+  );
+  // The save names the bound net, the one the editor that sent the turn has open.
+  expect(mounted.descriptions.get(brunchTools.saveHashNet)).toBe(
+    hashSaveDescription("document"),
+  );
+  expect(hashSaveDescription("document")).toContain(
+    'The net open in the editor is documentId "document".',
   );
   expect(mounted.descriptions.get(brunchTools.queryHashEntities)).toBe(
     hashEntityReadDescription,
@@ -216,6 +225,7 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
   expect(petrinautPrompt).not.toContain("hash-graph");
   expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
   expect(mounted.descriptions.has(brunchTools.queryHashWebs)).toBe(false);
+  expect(mounted.descriptions.has(brunchTools.saveHashNet)).toBe(false);
 });
 
 test("the agent admits a document binding or no initial data", () => {

@@ -109,8 +109,8 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
       ...Object.keys(petrinautAiTools),
     ]),
   );
-  // HASH's graph reads belong to the HASH agent alone.
-  for (const name of hashGraphReadToolNames)
+  // HASH's graph reads and save belong to the HASH agent alone.
+  for (const name of [...hashGraphReadToolNames, brunchTools.saveHashNet])
     expect(mounted.tools).not.toContain(name);
   // Petrinaut, runtime, experiment and query_basis guidance live in the
   // skills and tool descriptions, so no instruction is mounted.
@@ -263,4 +263,15 @@ test("the catalogue's website-executed tools are the library's browser-executed 
       ),
     ),
   ).toThrow(/missing: draft_petrinaut_experiment/u);
+});
+
+test("the catalogue has HASH's save, run by HASH's page", () => {
+  expect(
+    brunchToolCatalogue.find(({ name }) => name === brunchTools.saveHashNet),
+  ).toEqual({
+    name: brunchTools.saveHashNet,
+    definitionOwner: "brunch-app",
+    executionOwner: "hash-frontend",
+    capability: "hash-save",
+  });
 });

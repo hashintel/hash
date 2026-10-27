@@ -39,6 +39,11 @@ export const brunchTools = {
   /** HASH's process page lists the signed-in user's own and org webs. */
   queryHashWebs: "query_hash_webs",
   readSkillResource: "read_skill_resource",
+  /**
+   * HASH's process page saves the open net as a new version, once the person
+   * approves it, through the editor's own Save.
+   */
+  saveHashNet: "save_hash_net",
   task: "task",
 } as const;
 
