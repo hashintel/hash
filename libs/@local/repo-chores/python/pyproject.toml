@@ -1,14 +1,14 @@
 [project]
-name = "repo-chores"
-version = "0.1.0"
-description = "Check and repair Python workspace policies"
-readme = "README.md"
-license = "AGPL-3.0-only"
-authors = [
+name            = "repo-chores"
+version         = "0.1.0"
+description     = "Check and repair Python workspace policies"
+readme          = "README.md"
+license         = "AGPL-3.0-only"
+authors         = [
     { name = "HASH" },
 ]
 requires-python = "<3.15,>=3.14"
-dependencies = [
+dependencies    = [
     "json-five==1.1.2",
     "license-expression>=30.4.4,<31.0.0",
     "packaging>=26.3,<27.0",
