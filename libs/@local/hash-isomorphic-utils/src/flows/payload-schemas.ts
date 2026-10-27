@@ -259,6 +259,7 @@ export const formatPayloadPath = (path: readonly PropertyKey[]): string =>
       if (typeof segment === "number") {
         return `[${segment}]`;
       }
+      // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos
       if (typeof segment === "string" && identifierPattern.test(segment)) {
         return index === 0 ? segment : `.${segment}`;
       }

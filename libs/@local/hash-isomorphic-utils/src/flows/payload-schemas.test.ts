@@ -409,6 +409,19 @@ describe("validatePayloadValue", () => {
       validatePayloadValue({
         kind: "ProposedEntity",
         array: true,
+        value: storedItem,
+        allowStoredRefs: true,
+      }),
+    ).toEqual({
+      path: "",
+      message:
+        "Expected a reference to a stored array, but it is to a single value",
+    });
+
+    expect(
+      validatePayloadValue({
+        kind: "ProposedEntity",
+        array: true,
         value: [storedArray],
         allowStoredRefs: true,
       }),
