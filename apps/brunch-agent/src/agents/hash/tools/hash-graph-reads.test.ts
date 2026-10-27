@@ -1,7 +1,7 @@
 /**
  * What the model is shown of each HASH graph read, rendered from what HASH's
  * page returns, and that each read's input reaches the page as the model gave
- * it. The reads' path through the agent is in `../hash-graph-reads.test.ts`.
+ * it. The reads' path through the agent is in `../hash-agent-graph-reads.test.ts`.
  */
 import * as v from "valibot";
 import { expect, test } from "vitest";
