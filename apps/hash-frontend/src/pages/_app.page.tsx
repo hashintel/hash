@@ -41,7 +41,6 @@ import { PropertyTypesContextProvider } from "../shared/property-types-context-p
 import { RoutePageInfoProvider } from "../shared/routing";
 import { trackPageView } from "../shared/telemetry-client";
 import { ErrorFallback } from "./_app.page/error-fallback";
-import { reportIframeReactError } from "./processes/shared/iframe-error-reporter";
 import { redirectInGetInitialProps } from "./shared/_app.util";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthInfoProvider } from "./shared/auth-info-provider";
@@ -246,52 +245,10 @@ const App: FunctionComponent<AppProps> = ({
   );
 };
 
-const PETRINAUT_EMBED_PATHNAME = "/processes/[uuid]/embed";
-
-/**
- * Minimal `_app` shell for the Petrinaut embed route.
- */
-const PetrinautEmbedAppShell: FunctionComponent<AppProps> = ({
-  Component,
-  pageProps,
-  emotionCache = clientSideEmotionCache,
-}) => (
-  <Suspense>
-    <CacheProvider value={emotionCache}>
-      <ThemeProvider theme={theme}>
-        <ErrorBoundary
-          beforeCapture={(scope) => {
-            scope.setTag("error-boundary", "_app-embed");
-          }}
-          /**
-           * Forward into the host's Sentry. The boundary's local
-           * captureException is a no-op here because Sentry isn't
-           * initialised inside the embed iframe (see
-           * `instrumentation-client.ts`).
-           */
-          onError={(error) => reportIframeReactError(error)}
-          fallback={ErrorFallback}
-        >
-          <Component {...pageProps} />
-        </ErrorBoundary>
-      </ThemeProvider>
-    </CacheProvider>
-    {globalStyles}
-  </Suspense>
-);
-
 const AppWithTypeSystemContextProvider: AppPage<AppProps, AppInitialProps> = (
   props,
 ) => {
-  const {
-    initialAuthenticatedUserSubgraph,
-    user,
-    router: { pathname },
-  } = props;
-
-  if (pathname === PETRINAUT_EMBED_PATHNAME) {
-    return <PetrinautEmbedAppShell {...props} />;
-  }
+  const { initialAuthenticatedUserSubgraph, user } = props;
 
   return (
     <ApolloProvider client={apolloClient}>
@@ -396,21 +353,6 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   const userEntity = initialAuthenticatedUserSubgraph
     ? getRoots(initialAuthenticatedUserSubgraph)[0]
     : undefined;
-
-  if (pathname === PETRINAUT_EMBED_PATHNAME) {
-    if (userEntity) {
-      /**
-       * Don't inject user data into the Petrinaut embed route.
-       */
-      return {};
-    }
-    return {
-      redirectTo: redirectInGetInitialProps({
-        appContext,
-        location: `/signin?return_to=${req?.url ?? asPath}`,
-      }),
-    };
-  }
 
   /** @todo: make additional pages publicly accessible */
   if (!userEntity) {
