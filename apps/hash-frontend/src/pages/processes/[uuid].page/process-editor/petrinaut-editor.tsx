@@ -36,7 +36,12 @@ import {
   TopBarContext,
 } from "./petrinaut-editor/top-bar-context";
 
+import type {
+  HashSaveOutcome,
+  SaveNetForAgent,
+} from "./petrinaut-editor/brunch-hash-save";
 import type { EntityId } from "@blockprotocol/type-system";
+import type { ReadBrunchDocumentSaveState } from "@hashintel/brunch-agent/ui";
 
 /**
  * Which net the editor holds: an unsaved draft (with the example it was
@@ -155,6 +160,31 @@ const computeIsDirty = (
 };
 
 /**
+ * A save the editor started, as its load committed it: what it saved, and
+ * whether edits made meanwhile leave the committed load dirty.
+ */
+type CompletedSave = {
+  decisionTime: string | null;
+  title: string;
+  stillDirty: boolean;
+};
+
+/**
+ * A save whose host save resolved and whose snapshot `handle`'s session holds
+ * but React may not yet have committed. `snapshot` is compared by identity.
+ */
+type SaveAwaitingCommit = {
+  handle: PetrinautDocHandle;
+  snapshot: NonNullable<SavedSnapshot>;
+  committed: (save: CompletedSave) => void;
+};
+
+const abortReasonOf = (signal: AbortSignal): Error =>
+  signal.reason instanceof Error
+    ? signal.reason
+    : new Error("The agent's save was aborted.");
+
+/**
  * The Petrinaut editor for the process page, mounted once for the page's
  * lifetime and driven by its props.
  *
@@ -264,8 +294,40 @@ export const PetrinautEditor = ({
     }
   }, [handle, isDirty, onDirtyChange]);
 
+  /**
+   * The one save waiting for its snapshot to commit. It belongs to the load
+   * whose handle it names: a commit of another load drops it, leaving the
+   * agent's save to Brunch's abort, as does closing the editor.
+   */
+  const saveAwaitingCommitRef = useRef<SaveAwaitingCommit | null>(null);
+  useLayoutEffect(() => {
+    const awaiting = saveAwaitingCommitRef.current;
+    if (!awaiting) {
+      return;
+    }
+    if (awaiting.handle !== session?.handle) {
+      saveAwaitingCommitRef.current = null;
+      return;
+    }
+    if (session.savedSnapshot !== awaiting.snapshot) {
+      return;
+    }
+    saveAwaitingCommitRef.current = null;
+    awaiting.committed({
+      decisionTime: awaiting.snapshot.decisionTime,
+      title: awaiting.snapshot.title,
+      stillDirty: isDirty,
+    });
+  }, [isDirty, session]);
+
   /** Read by Brunch's tools when they need the title. */
   const readTitle = useCallback(() => liveSessionRef.current?.title ?? "", []);
+
+  /** The host's latest `onSave` and readonly state, for saves that run later. */
+  const hostSaveRef = useRef({ onSave, readonly });
+  useLayoutEffect(() => {
+    hostSaveRef.current = { onSave, readonly };
+  }, [onSave, readonly]);
 
   const reportingRef = useRef<{ mode: NetMode; readonly: boolean } | null>(
     null,
@@ -314,50 +376,157 @@ export const PetrinautEditor = ({
   );
 
   /**
-   * Submits the net, title and identity as they are when called, for the
-   * load this render shows: once another load is open, or while a save of
-   * this one is pending, it does nothing. Its completion marks what it
+   * Submits the open load's net, title and identity as they are when called,
+   * returning `null` when no save starts: with no load open, while a save of
+   * it is pending, or with no net to submit. Its completion marks what it
    * submitted as saved, so edits made meanwhile stay dirty, and applies only
-   * while the same load is open.
+   * while the same load is open. The promise settles when the host's save
+   * does, rejecting when it failed; `committed` is called only once React
+   * commits the saved snapshot in the same load.
    */
-  const save = useCallback(async (): Promise<void> => {
-    const live = liveSessionRef.current;
-    if (!live || live.handle !== handle || live.savePending) {
-      return;
-    }
-    const { handle: savedHandle, mode, title } = live;
-    const definition = savedHandle.doc();
-    if (!definition) {
-      return;
-    }
-    updateSession(savedHandle, (current) => ({
-      ...current,
-      savePending: true,
-    }));
-    try {
-      const saved = await onSave({
-        definition,
-        title,
-        entityId: mode.kind === "saved" ? mode.entityId : null,
+  const startSave = useCallback(
+    (committed?: (save: CompletedSave) => void): Promise<void> | null => {
+      const live = liveSessionRef.current;
+      if (!live || live.savePending) {
+        return null;
+      }
+      const { handle: savedHandle, mode, title } = live;
+      const definition = savedHandle.doc();
+      if (!definition) {
+        return null;
+      }
+      updateSession(savedHandle, (current) => ({
+        ...current,
+        savePending: true,
+      }));
+      return (async () => {
+        try {
+          const saved = await hostSaveRef.current.onSave({
+            definition,
+            title,
+            entityId: mode.kind === "saved" ? mode.entityId : null,
+          });
+          const snapshot = {
+            definition,
+            title,
+            decisionTime: saved.decisionTime,
+          };
+          if (committed && liveSessionRef.current?.handle === savedHandle) {
+            saveAwaitingCommitRef.current = {
+              handle: savedHandle,
+              snapshot,
+              committed,
+            };
+          }
+          updateSession(savedHandle, (current) => ({
+            ...current,
+            savePending: false,
+            mode: { kind: "saved", entityId: saved.entityId },
+            savedSnapshot: snapshot,
+          }));
+        } catch (error) {
+          updateSession(savedHandle, (current) => ({
+            ...current,
+            savePending: false,
+          }));
+          throw error;
+        }
+      })();
+    },
+    [updateSession],
+  );
+
+  /**
+   * Why the agent's save of `documentId` can't start now, with the title and
+   * last save its approval card shows. It saves only the saved net open in
+   * the editor, and only from the load this render shows.
+   */
+  const readAgentSaveState = useCallback<ReadBrunchDocumentSaveState>(
+    (documentId) => {
+      const live = liveSessionRef.current;
+      const refusal =
+        live?.mode.kind !== "saved"
+          ? "The net is an unsaved draft, which the user creates with the editor's Create."
+          : live.handle !== handle || documentId !== live.mode.entityId
+            ? "That isn't the net open in the editor."
+            : hostSaveRef.current.readonly
+              ? "The user can't edit this net, so they can't save it."
+              : live.savePending
+                ? "A save of this net is already in progress."
+                : null;
+      return {
+        title: live?.title ?? "",
+        lastSavedTime: live?.savedSnapshot?.decisionTime ?? null,
+        refusal,
+      };
+    },
+    [handle],
+  );
+
+  /**
+   * The Save button's save, for the agent once the user has approved it. It
+   * settles once the editor commits the saved snapshot, with the dirty state
+   * committed then, or with the host's error when the save failed. Aborting
+   * rejects it without cancelling a save already submitted; a load or close
+   * before the snapshot commits leaves it to that abort.
+   */
+  const saveNetForAgent = useCallback<SaveNetForAgent>(
+    (documentId, signal) => {
+      if (signal.aborted) {
+        return Promise.reject(abortReasonOf(signal));
+      }
+      const { refusal } = readAgentSaveState(documentId);
+      if (refusal !== null) {
+        return Promise.resolve<HashSaveOutcome>({
+          applied: false,
+          reason: refusal,
+        });
+      }
+      return new Promise<HashSaveOutcome>((resolve, reject) => {
+        /** Ends listening for the abort once the save settles. */
+        const listening = new AbortController();
+        const committed = (completed: CompletedSave) => {
+          listening.abort();
+          resolve({ saved: true, ...completed });
+        };
+        const saving = startSave(committed);
+        if (!saving) {
+          reject(new Error("The editor did not start the save."));
+          return;
+        }
+        signal.addEventListener(
+          "abort",
+          () => {
+            if (saveAwaitingCommitRef.current?.committed === committed) {
+              saveAwaitingCommitRef.current = null;
+            }
+            reject(abortReasonOf(signal));
+          },
+          { once: true, signal: listening.signal },
+        );
+        saving.catch((error: unknown) => {
+          listening.abort();
+          resolve({
+            saved: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
       });
-      updateSession(savedHandle, (current) => ({
-        ...current,
-        savePending: false,
-        mode: { kind: "saved", entityId: saved.entityId },
-        savedSnapshot: {
-          definition,
-          title,
-          decisionTime: saved.decisionTime,
-        },
-      }));
-    } catch (error) {
-      updateSession(savedHandle, (current) => ({
-        ...current,
-        savePending: false,
-      }));
-      throw error;
+    },
+    [readAgentSaveState, startSave],
+  );
+
+  /** The Save button's save, for the load this render shows only. */
+  const save = useCallback((): void => {
+    if (liveSessionRef.current?.handle !== handle) {
+      return;
     }
-  }, [handle, onSave, updateSession]);
+    /**
+     * A failed save leaves the net dirty and Save enabled to retry; the
+     * editor has no error UI for it.
+     */
+    startSave()?.catch(() => {});
+  }, [handle, startSave]);
 
   if (!session) {
     /** The host covers the editor with a skeleton until it has a load. */
@@ -375,13 +544,7 @@ export const PetrinautEditor = ({
     revisions,
     loadedRevisionTime: session.savedSnapshot?.decisionTime ?? null,
     onNavigateBack,
-    onSave: () => {
-      /**
-       * A failed save leaves the net dirty and Save enabled to retry; the
-       * editor has no error UI for it.
-       */
-      save().catch(() => {});
-    },
+    onSave: save,
     onLoadRevision: (revision) => onSelectRevision(revision.decisionTime),
   };
 
@@ -395,6 +558,8 @@ export const PetrinautEditor = ({
               session.mode.kind === "saved" ? session.mode.entityId : null
             }
             readTitle={readTitle}
+            readSaveState={readAgentSaveState}
+            saveNetForAgent={saveNetForAgent}
             readonly={readonly}
             setTitle={setTitle}
             title={session.title}
