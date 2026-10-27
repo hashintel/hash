@@ -276,10 +276,8 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
 
   const ownerKeyOf = async (page: Page) => {
     const ownerKey = await page.evaluate(() => {
-      const key = Object.keys(localStorage).find((entry) =>
-        entry.includes("principal"),
-      );
-      const raw = key === undefined ? null : localStorage.getItem(key);
+      // The website's pre-rename storage key for the owner key.
+      const raw = localStorage.getItem("brunch-principal-v1");
       return raw?.startsWith('"') ? (JSON.parse(raw) as string) : raw;
     });
     assert(ownerKey, "Missing browser owner key");

@@ -1,3 +1,7 @@
+/**
+ * Keeps its pre-rename name: it addresses owner keys already stored in users'
+ * browsers, and a new name would orphan their conversations.
+ */
 const ownerKeyStorageKey = "brunch-principal-v1";
 
 type OwnerKeyStorage = Pick<Storage, "getItem" | "setItem">;

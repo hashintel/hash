@@ -12,6 +12,7 @@ const smokeEnv = {
   conversationId: "BRUNCH_SMOKE_CONVERSATION_ID",
   expectedText: "BRUNCH_SMOKE_EXPECTED_TEXT",
   mode: "BRUNCH_SMOKE_MODE",
+  // Keeps its pre-rename name: deployed smoke jobs set this variable.
   ownerKey: "BRUNCH_SMOKE_PRINCIPAL",
   prompt: "BRUNCH_SMOKE_PROMPT",
   requestId: "BRUNCH_SMOKE_REQUEST_ID",

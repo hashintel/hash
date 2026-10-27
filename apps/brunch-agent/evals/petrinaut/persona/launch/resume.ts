@@ -101,6 +101,7 @@ export const openRetainedPersonaBrowser = async (
   await page.goto(checkUrl);
   await page.unroute(checkUrl);
   const saved = await page.evaluate(() => ({
+    // The website's pre-rename storage key for the owner key.
     ownerKey: localStorage.getItem("brunch-principal-v1"),
     documents: JSON.parse(
       localStorage.getItem("petrinaut-sdcpn") ?? "{}",

@@ -45,7 +45,11 @@ export const brunchSignals = {
   ledgerComments: "brunch.ledger-comments",
 } as const;
 
-/** Request headers that carry conversation identity. */
+/**
+ * Request headers that carry conversation identity. The owner key's header
+ * name predates its rename from "principal" and is a wire name: changing it
+ * needs a coordinated deploy of every client and server.
+ */
 export const brunchHeaders = {
   conversation: "x-brunch-conversation",
   ownerKey: "x-brunch-principal",
