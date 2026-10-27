@@ -1,4 +1,5 @@
 import { useMemo, useSyncExternalStore, type ComponentType } from "react";
+import { z } from "zod";
 
 import { brunchTools } from "@hashintel/brunch-agent";
 import { Button } from "@hashintel/ds-components";
@@ -83,14 +84,32 @@ export type ReadBrunchDocumentSaveState = (
   documentId: string,
 ) => BrunchDocumentSaveState;
 
-const stoppedReasonFor = (toolName: string) =>
-  toolName === saveToolName
-    ? "The save was stopped before approval; nothing was saved."
-    : "The destructive edit was stopped before approval.";
-const deniedReasonFor = (toolName: string) =>
-  toolName === saveToolName
-    ? "The user declined this save; nothing was saved."
-    : "The user denied this destructive edit.";
+type ApprovalPolicy = {
+  readonly canAlwaysAllow: boolean;
+  readonly stoppedReason: string;
+  readonly deniedReason: string;
+};
+
+const destructiveEditPolicy: ApprovalPolicy = {
+  canAlwaysAllow: true,
+  stoppedReason: "The destructive edit was stopped before approval.",
+  deniedReason: "The user denied this destructive edit.",
+};
+
+/**
+ * The person decides each time when work in progress becomes the version
+ * others see, so Always allow never covers a save.
+ */
+const savePolicy: ApprovalPolicy = {
+  canAlwaysAllow: false,
+  stoppedReason: "The save was stopped before approval; nothing was saved.",
+  deniedReason: "The user declined this save; nothing was saved.",
+};
+
+const policyFor = (toolName: string): ApprovalPolicy =>
+  toolName === saveToolName ? savePolicy : destructiveEditPolicy;
+
+const canAlwaysAllow = (toolName: string) => policyFor(toolName).canAlwaysAllow;
 
 /** One ephemeral approval authority. Create once per mounted conversation. */
 export const createBrunchMutationApprovalCoordinator =
@@ -123,15 +142,13 @@ export const createBrunchMutationApprovalCoordinator =
       request: ({ toolCallId, toolName, signal }) => {
         const stopped = {
           decision: "deny",
-          reason: stoppedReasonFor(toolName),
+          reason: policyFor(toolName).stoppedReason,
         } as const;
         if (closed || signal.aborted) {
           refused.add(toolCallId);
           return Promise.resolve(stopped);
         }
-        // The person decides each time when work in progress becomes the
-        // version others see, so Always allow never covers a save.
-        if (alwaysAllow && toolName !== saveToolName)
+        if (alwaysAllow && canAlwaysAllow(toolName))
           return Promise.resolve({ decision: "allow" });
         return new Promise((resolve) => {
           const onAbort = () => {
@@ -150,14 +167,14 @@ export const createBrunchMutationApprovalCoordinator =
       resolve: (toolCallId, choice) => {
         const approval = pending.get(toolCallId);
         if (!approval || closed) return false;
-        if (choice === "always-allow") {
-          if (approval.toolName === saveToolName) return false;
-          alwaysAllow = true;
-        }
+        if (choice === "always-allow") alwaysAllow = true;
         return settle(
           toolCallId,
           choice === "deny"
-            ? { decision: "deny", reason: deniedReasonFor(approval.toolName) }
+            ? {
+                decision: "deny",
+                reason: policyFor(approval.toolName).deniedReason,
+              }
             : { decision: "allow" },
         );
       },
@@ -179,7 +196,7 @@ export const createBrunchMutationApprovalCoordinator =
         for (const [toolCallId, { toolName }] of pending)
           settle(toolCallId, {
             decision: "deny",
-            reason: stoppedReasonFor(toolName),
+            reason: policyFor(toolName).stoppedReason,
           });
       },
       open: () => {
@@ -350,16 +367,7 @@ const removalDescriptions = (
 };
 
 /** The document a save names, as the agent's schema has already checked it. */
-const parseSaveInput = (input: unknown): { readonly documentId: string } => {
-  if (
-    typeof input !== "object" ||
-    input === null ||
-    !("documentId" in input) ||
-    typeof input.documentId !== "string"
-  )
-    throw new Error("A save names the document to save.");
-  return { documentId: input.documentId };
-};
+const saveInputSchema = z.object({ documentId: z.string() });
 
 /**
  * Later calls stay queued behind a waiting approval; a denial settles as not
@@ -375,7 +383,9 @@ export const createBrunchMutationAdmission =
     if (toolName === saveToolName) {
       if (readSaveState === undefined)
         throw new Error("This editor has no save for the agent to run.");
-      const { refusal } = readSaveState(parseSaveInput(input).documentId);
+      const { refusal } = readSaveState(
+        saveInputSchema.parse(input).documentId,
+      );
       if (refusal !== null)
         return {
           admitted: false,
@@ -409,6 +419,46 @@ const containerStyle = css({
 const actionsStyle = css({ display: "flex", gap: "2", flexWrap: "wrap" });
 
 type WidgetProps = PetrinautAiInteractiveToolWidgetProps<unknown, unknown>;
+
+const ApprovalActions = ({
+  coordinator,
+  toolCallId,
+  toolName,
+}: {
+  readonly coordinator: BrunchMutationApprovalCoordinator;
+  readonly toolCallId: string;
+  readonly toolName: string;
+}) => (
+  <div className={actionsStyle}>
+    <Button
+      size="xs"
+      tone="brand"
+      type="button"
+      onClick={() => coordinator.resolve(toolCallId, "allow")}
+    >
+      Allow
+    </Button>
+    {canAlwaysAllow(toolName) && (
+      <Button
+        size="xs"
+        variant="subtle"
+        type="button"
+        onClick={() => coordinator.resolve(toolCallId, "always-allow")}
+      >
+        Always allow
+      </Button>
+    )}
+    <Button
+      size="xs"
+      variant="ghost"
+      type="button"
+      className={css({ marginLeft: "auto" })}
+      onClick={() => coordinator.resolve(toolCallId, "deny")}
+    >
+      Deny
+    </Button>
+  </div>
+);
 
 export const createBrunchMutationApprovalWidget = (
   coordinator: BrunchMutationApprovalCoordinator,
@@ -445,33 +495,11 @@ export const createBrunchMutationApprovalWidget = (
           applies to destructive edits in this conversation only, until you
           leave or reload.
         </p>
-        <div className={actionsStyle}>
-          <Button
-            size="xs"
-            tone="brand"
-            type="button"
-            onClick={() => coordinator.resolve(toolCallId, "allow")}
-          >
-            Allow
-          </Button>
-          <Button
-            size="xs"
-            variant="subtle"
-            type="button"
-            onClick={() => coordinator.resolve(toolCallId, "always-allow")}
-          >
-            Always allow
-          </Button>
-          <Button
-            size="xs"
-            variant="ghost"
-            type="button"
-            className={css({ marginLeft: "auto" })}
-            onClick={() => coordinator.resolve(toolCallId, "deny")}
-          >
-            Deny
-          </Button>
-        </div>
+        <ApprovalActions
+          coordinator={coordinator}
+          toolCallId={toolCallId}
+          toolName={toolName}
+        />
       </section>
     );
   };
@@ -488,7 +516,7 @@ export const createBrunchSaveApprovalWidget = (
 ) => {
   const Widget = ({ input, toolCallId }: WidgetProps) => {
     const { title, lastSavedTime } = readSaveState(
-      parseSaveInput(input).documentId,
+      saveInputSchema.parse(input).documentId,
     );
     return (
       <section className={containerStyle} aria-label="Approve saving the net">
@@ -502,25 +530,11 @@ export const createBrunchSaveApprovalWidget = (
             Last saved {new Date(lastSavedTime).toLocaleString()}
           </p>
         )}
-        <div className={actionsStyle}>
-          <Button
-            size="xs"
-            tone="brand"
-            type="button"
-            onClick={() => coordinator.resolve(toolCallId, "allow")}
-          >
-            Allow
-          </Button>
-          <Button
-            size="xs"
-            variant="ghost"
-            type="button"
-            className={css({ marginLeft: "auto" })}
-            onClick={() => coordinator.resolve(toolCallId, "deny")}
-          >
-            Deny
-          </Button>
-        </div>
+        <ApprovalActions
+          coordinator={coordinator}
+          toolCallId={toolCallId}
+          toolName={saveToolName}
+        />
       </section>
     );
   };
@@ -599,7 +613,7 @@ export const createBrunchMutationApprovalInteractiveTools = (
       : [
           definePetrinautAiInteractiveTool<unknown, unknown>({
             toolName: saveToolName,
-            inputSchema: { parse: parseSaveInput },
+            inputSchema: saveInputSchema,
             outputSchema: passthrough,
             shouldHandle: ({ toolCallId }) => pending.has(toolCallId),
             component: saveComponent,
