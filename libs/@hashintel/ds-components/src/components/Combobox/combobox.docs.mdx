@@ -57,8 +57,6 @@ export const teammateItems = [
   { value: "noah", text: "Noah Levy" },
 ];
 
-export const noop = () => {};
-
 # Combobox
 
 A single field combining a text input with a filtered list of options.
@@ -71,23 +69,23 @@ A single field combining a text input with a filtered list of options.
 />
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       placeholder="Search entity types…"
       items={entityTypeItems}
       value="person"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       multiple
       placeholder="Add teammates…"
       items={teammateItems}
       value={["amara", "dev"]}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -191,12 +189,12 @@ Typing filters the dropdown; a selection commits and fills the input, and
 abandoning typed text reverts it.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       items={entityTypeItems}
       value="person"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -213,16 +211,16 @@ styling. Options can also be disabled individually via each item's `disabled` fl
     placeholder="Disabled"
     items={entityTypeItems}
     value={null}
-    onChange={noop}
+    onChange={() => {}}
   />
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       invalid
       placeholder="Invalid"
       items={entityTypeItems}
       value={null}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -234,54 +232,54 @@ table rows, and `lg` for spacious forms. Chips inside a multiple combobox
 scale with the field.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       size="xxs"
       placeholder="xxs"
       items={entityTypeItems}
       value={null}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       size="xs"
       placeholder="xs"
       items={entityTypeItems}
       value={null}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       size="sm"
       placeholder="sm"
       items={entityTypeItems}
       value={null}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       size="md"
       placeholder="md"
       items={entityTypeItems}
       value={null}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       size="lg"
       placeholder="lg"
       items={entityTypeItems}
       value={null}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -292,24 +290,24 @@ scale with the field.
 focused.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       variant="default"
       placeholder="Default"
       items={entityTypeItems}
       value={null}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       variant="subtle"
       placeholder="Subtle"
       items={entityTypeItems}
       value={null}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -321,7 +319,7 @@ group's label while any of its options match and removes the group entirely
 when none do.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       placeholder="Search entity types…"
@@ -338,7 +336,7 @@ when none do.
         },
       ]}
       value={null}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -422,14 +420,14 @@ pass `"none"` to show every option regardless of input (when filtering
 happens elsewhere — see Async search).
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       filterAlgorithm="startsWith"
       placeholder="Type to filter from the start…"
       items={teammateItems}
       value={null}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -480,7 +478,7 @@ filtered), and show `loading` while the request runs.
     placeholder="Searching entities…"
     items={[]}
     value={null}
-    onChange={noop}
+    onChange={() => {}}
   />
 </Stage>
 
@@ -540,13 +538,13 @@ stays open while toggling options. Typed text is a transient filter — it
 clears on selection and discards on close.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       multiple
       width="md"
       items={teammateItems}
       value={["amara", "dev", "ines"]}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -561,35 +559,35 @@ nothing or everything is selected).
 
 <Stage>
   <div style={{ width: 280 }}>
-    <DemoState>
+    <DemoState data-harness>
       <Combobox
         multiple
         overflow="scroll"
         items={teammateItems}
         value={["amara", "dev", "ines", "jonas", "mei", "noah"]}
-        onChange={noop}
+        onChange={() => {}}
       />
     </DemoState>
   </div>
   <div style={{ width: 280 }}>
-    <DemoState>
+    <DemoState data-harness>
       <Combobox
         multiple
         overflow="truncate"
         items={teammateItems}
         value={["amara", "dev", "ines", "jonas", "mei", "noah"]}
-        onChange={noop}
+        onChange={() => {}}
       />
     </DemoState>
   </div>
   <div style={{ width: 280 }}>
-    <DemoState>
+    <DemoState data-harness>
       <Combobox
         multiple
         overflow="summary"
         items={teammateItems}
         value={["amara", "dev", "ines", "jonas"]}
-        onChange={noop}
+        onChange={() => {}}
       />
     </DemoState>
   </div>
@@ -602,7 +600,7 @@ a value is deselected. Consider saying the limit in the placeholder or label so 
 aren't surprised.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       multiple
       width="md"
@@ -610,7 +608,7 @@ aren't surprised.
       placeholder="Add up to three reviewers…"
       items={teammateItems}
       value={["amara", "dev", "ines"]}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -623,7 +621,7 @@ button on hover that narrows the selection to just that item, as in filter
 panels.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       multiple
       width="md"
@@ -649,7 +647,7 @@ panels.
         },
       ]}
       value={["person", "company"]}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -664,7 +662,7 @@ text becomes a chip, and committed new values list as selected leading options
 so they can be deselected like any other.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       width="sm"
       allowNewValue
@@ -675,10 +673,10 @@ so they can be deselected like any other.
         { value: "seconds", text: "Seconds" },
       ]}
       value=""
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Combobox
       multiple
       width="md"
@@ -690,7 +688,7 @@ so they can be deselected like any other.
         { value: "imported", text: "imported" },
       ]}
       value={["needs-review"]}
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -718,7 +716,7 @@ Select operator with a Combobox value. Only the `default` variant connects —
 
 <Stage>
   <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
-    <DemoState>
+    <DemoState data-harness>
       <Select
         connectToRightInput
         width="xs"
@@ -727,17 +725,17 @@ Select operator with a Combobox value. Only the `default` variant connects —
           { value: "isNot", text: "Is not" },
         ]}
         value="is"
-        onChange={noop}
+        onChange={() => {}}
         aria-label="Filter operator"
       />
     </DemoState>
-    <DemoState>
+    <DemoState data-harness>
       <Combobox
         connectToLeftInput
         width="sm"
         items={entityTypeItems}
         value="person"
-        onChange={noop}
+        onChange={() => {}}
         aria-label="Entity type"
       />
     </DemoState>

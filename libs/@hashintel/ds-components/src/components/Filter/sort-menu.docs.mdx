@@ -55,17 +55,17 @@ export const SortDemoState = ({ children }) => {
 };
 
 <Stage>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "name", direction: "ASCENDING" }}
       onChange={() => {}}
     />
   </SortDemoState>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu items={sorters} onChange={() => {}} />
   </SortDemoState>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "entityCount", direction: "DESCENDING" }}
@@ -126,7 +126,7 @@ export const EntitySort = () => (
 Pass the sorters as `items` and control the selection with `value`/`onChange`. Selecting a row applies it with its current direction; re-selecting the active sort unchanged just closes the menu.
 
 <Stage>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "createdAt", direction: "DESCENDING" }}
@@ -140,7 +140,7 @@ Pass the sorters as `items` and control the selection with `value`/`onChange`. S
 Each sorter declares `directionsAvailable`: `"both"` (the default), `"ascending"` or `"descending"` for one-way fields, or `"none"` for fields like relevance where direction is meaningless — those rows render no direction icon or toggle.
 
 <Stage>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "relevance", direction: "ASCENDING" }}
@@ -154,21 +154,21 @@ Each sorter declares `directionsAvailable`: `"both"` (the default), `"ascending"
 `sortIcon` picks the glyph family for a sorter's direction icons: `alphabetical` (the default), `numeric` for counts and scores, and `generic` bars for everything else.
 
 <Stage>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "name", direction: "ASCENDING" }}
       onChange={() => {}}
     />
   </SortDemoState>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "entityCount", direction: "DESCENDING" }}
       onChange={() => {}}
     />
   </SortDemoState>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "priority", direction: "ASCENDING" }}
@@ -182,10 +182,10 @@ Each sorter declares `directionsAvailable`: `"both"` (the default), `"ascending"
 `renderTrigger="icon"` collapses the trigger to the sort glyph alone for dense toolbars; the accessible name still reads the active sort.
 
 <Stage>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu items={sorters} renderTrigger="icon" onChange={() => {}} />
   </SortDemoState>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "createdAt", direction: "DESCENDING" }}
@@ -236,14 +236,14 @@ export const EntitySort = () => {
 The trigger is a Button and SortMenu forwards its props: `variant` (default `ghost`), `tone` and `size` (default `sm`). `align="right"` moves the sort glyph to the right of the label.
 
 <Stage>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "name", direction: "ASCENDING" }}
       onChange={() => {}}
     />
   </SortDemoState>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "name", direction: "ASCENDING" }}
@@ -251,7 +251,7 @@ The trigger is a Button and SortMenu forwards its props: `variant` (default `gho
       onChange={() => {}}
     />
   </SortDemoState>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "name", direction: "ASCENDING" }}
@@ -259,7 +259,7 @@ The trigger is a Button and SortMenu forwards its props: `variant` (default `gho
       onChange={() => {}}
     />
   </SortDemoState>
-  <SortDemoState>
+  <SortDemoState data-harness>
     <SortMenu
       items={sorters}
       value={{ sortKey: "name", direction: "ASCENDING" }}

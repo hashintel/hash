@@ -57,7 +57,7 @@ Structure fields, rows and sections, wiring labels, help text and errors to any 
       description="Shown in search results and the type editor."
       required
     >
-      <DemoState>
+      <DemoState data-harness>
         <TextInput
           name="entityTypeName"
           width="md"
@@ -67,7 +67,7 @@ Structure fields, rows and sections, wiring labels, help text and errors to any 
       </DemoState>
     </Form.Field>
     <Form.Field layout="inline" label="Publish to type registry">
-      <DemoState>
+      <DemoState data-harness>
         <Toggle name="publishToRegistry" value={true} onChange={() => {}} />
       </DemoState>
     </Form.Field>
@@ -164,7 +164,7 @@ A field needs only a `label` and a single input child — the label is associate
 
 <Stage>
   <Form.Field label="Workspace name">
-    <DemoState>
+    <DemoState data-harness>
       <TextInput
         name="workspaceName"
         width="md"
@@ -181,7 +181,7 @@ A field needs only a `label` and a single input child — the label is associate
 
 <Stage>
   <Form.Field label="Teammate email" required>
-    <DemoState>
+    <DemoState data-harness>
       <TextInput
         name="teammateEmail"
         type="email"
@@ -223,7 +223,7 @@ A field needs only a `label` and a single input child — the label is associate
     label="Entity label"
     description="Shown wherever the entity is referenced."
   >
-    <DemoState>
+    <DemoState data-harness>
       <TextInput name="entityLabel" width="md" value="" onChange={() => {}} />
     </DemoState>
   </Form.Field>
@@ -231,7 +231,7 @@ A field needs only a `label` and a single input child — the label is associate
     label="API key name"
     descriptionBottom="You can't change this later."
   >
-    <DemoState>
+    <DemoState data-harness>
       <TextInput name="apiKeyName" width="md" value="" onChange={() => {}} />
     </DemoState>
   </Form.Field>
@@ -246,7 +246,7 @@ Pass `errors` as an array — one message renders inline, several render as a li
     label="Entity type URL"
     errors={["Enter a URL that starts with https://"]}
   >
-    <DemoState>
+    <DemoState data-harness>
       <TextInput
         name="entityTypeUrl"
         width="md"
@@ -260,7 +260,7 @@ Pass `errors` as an array — one message renders inline, several render as a li
     label="Property name"
     errors={["Enter a property name", "Property names must be unique"]}
   >
-    <DemoState>
+    <DemoState data-harness>
       <TextInput
         name="propertyName"
         width="md"
@@ -278,7 +278,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
 
 <Stage>
   <Form.Field label="Search entities" hideLabel>
-    <DemoState>
+    <DemoState data-harness>
       <TextInput
         name="searchEntities"
         width="md"
@@ -299,7 +299,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
     label="Inference model"
     labelTooltip="Used by flows that infer entities from the web."
   >
-    <DemoState>
+    <DemoState data-harness>
       <TextInput
         name="inferenceModel"
         width="md"
@@ -316,7 +316,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
       </Button>
     }
   >
-    <DemoState>
+    <DemoState data-harness>
       <TextInput
         name="webhookUrl"
         width="md"
@@ -333,7 +333,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
 
 <Stage>
   <Form.Field size="xxs" label="xxs">
-    <DemoState>
+    <DemoState data-harness>
       <TextInput
         name="sizeXxs"
         size="xxs"
@@ -345,7 +345,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
     </DemoState>
   </Form.Field>
   <Form.Field size="xs" label="xs">
-    <DemoState>
+    <DemoState data-harness>
       <TextInput
         name="sizeXs"
         size="xs"
@@ -357,7 +357,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
     </DemoState>
   </Form.Field>
   <Form.Field size="sm" label="sm">
-    <DemoState>
+    <DemoState data-harness>
       <TextInput
         name="sizeSm"
         size="sm"
@@ -369,7 +369,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
     </DemoState>
   </Form.Field>
   <Form.Field size="md" label="md">
-    <DemoState>
+    <DemoState data-harness>
       <TextInput
         name="sizeMd"
         size="md"
@@ -381,7 +381,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
     </DemoState>
   </Form.Field>
   <Form.Field size="lg" label="lg">
-    <DemoState>
+    <DemoState data-harness>
       <TextInput
         name="sizeLg"
         size="lg"
@@ -406,7 +406,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         inputAlign="start"
         label="Enable AI inference"
       >
-        <DemoState>
+        <DemoState data-harness>
           <Toggle name="aiInference" value={true} onChange={() => {}} />
         </DemoState>
       </Form.Field>
@@ -415,7 +415,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         inputAlign="end"
         label="Publish entity history"
       >
-        <DemoState>
+        <DemoState data-harness>
           <Toggle name="entityHistory" value={false} onChange={() => {}} />
         </DemoState>
       </Form.Field>
@@ -424,7 +424,7 @@ Every field needs a label. When the context makes a visible one redundant — a 
         labelDirection="right"
         label="Autosave drafts"
       >
-        <DemoState>
+        <DemoState data-harness>
           <Toggle name="autosaveDrafts" value={true} onChange={() => {}} />
         </DemoState>
       </Form.Field>
@@ -442,7 +442,7 @@ A `<label>` can name only one control. When the field wraps a group — RadioGro
     label="Entity visibility"
     description="Who can see entities created by this flow."
   >
-    <DemoState>
+    <DemoState data-harness>
       <RadioGroup
         name="visibility"
         items={[
@@ -470,7 +470,7 @@ A `<label>` can name only one control. When the field wraps a group — RadioGro
       }
     >
       <Form.Field label="Minimum instances">
-        <DemoState>
+        <DemoState data-harness>
           <NumberInput
             name="minInstances"
             value={10}
@@ -480,7 +480,7 @@ A `<label>` can name only one control. When the field wraps a group — RadioGro
         </DemoState>
       </Form.Field>
       <Form.Field label="Maximum instances">
-        <DemoState>
+        <DemoState data-harness>
           <NumberInput
             name="maxInstances"
             value={1}
@@ -500,7 +500,7 @@ A `<label>` can name only one control. When the field wraps a group — RadioGro
 <Stage>
   <Form.Section>
     <Form.Field layout="inline" label="Workspace name">
-      <DemoState>
+      <DemoState data-harness>
         <TextInput
           name="workspaceName"
           width="sm"
@@ -510,7 +510,7 @@ A `<label>` can name only one control. When the field wraps a group — RadioGro
       </DemoState>
     </Form.Field>
     <Form.Field layout="inline" label="Snapshot retention (days)" required>
-      <DemoState>
+      <DemoState data-harness>
         <NumberInput
           name="snapshotRetention"
           width="xs"
@@ -520,7 +520,7 @@ A `<label>` can name only one control. When the field wraps a group — RadioGro
       </DemoState>
     </Form.Field>
     <Form.Field layout="inline" label="Public access">
-      <DemoState>
+      <DemoState data-harness>
         <Toggle name="publicAccess" value={false} onChange={() => {}} />
       </DemoState>
     </Form.Field>

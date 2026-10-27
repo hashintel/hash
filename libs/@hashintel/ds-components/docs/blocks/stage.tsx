@@ -4,26 +4,27 @@ import { useState } from "react";
 import { Button } from "../../src/components/Button/button";
 import { SegmentedControl } from "../../src/components/SegmentedControl/segmented-control";
 import { stageRecipe } from "./stage.recipe";
-import { elementToJsx } from "./stage/element-to-jsx";
 
 /**
- * Live-example panel for MDX docs pages. The Code tab and the
- * Copy button use JSX serialized from the same elements the preview
- * renders.
+ * Live-example panel for MDX docs pages. The Code tab and the Copy button
+ * show the JSX as authored inside the Stage: the remark-stage-code plugin
+ * slices it from the MDX source at compile time and injects it as `code`,
+ * so preview and code can't drift apart.
  * */
 
 export const Stage = ({
   children,
-  code: codeOverride,
+  code,
   clampViewportPanels,
 }: {
   children: React.ReactNode;
   /**
-   * Replaces the serialized children on the Code tab — for previews whose
-   * live elements (demo harnesses, stateful wiring) aren't the code readers
-   * should copy.
+   * The Code tab source. Injected at MDX compile time from the authored
+   * children (see .storybook/remark-stage-code.ts); author it explicitly for
+   * previews whose live elements (render-prop harnesses, stateful wiring)
+   * aren't the code readers should copy.
    */
-  code?: string;
+  code: string;
   /**
    * Clamps overlay panels that size themselves with viewport units (e.g.
    * left/right Drawers' 100dvh height) to the OverlayDemo frame, which
@@ -35,7 +36,6 @@ export const Stage = ({
   const [copied, setCopied] = useState(false);
 
   const classes = stageRecipe({ clampViewportPanels });
-  const code = codeOverride ?? elementToJsx(children);
 
   return (
     <div className={classes.root}>

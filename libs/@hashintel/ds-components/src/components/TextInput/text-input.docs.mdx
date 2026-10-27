@@ -40,7 +40,7 @@ A single-line field for entering and editing free-form text.
 />
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="sm"
       placeholder="Search entities…"
@@ -48,7 +48,7 @@ A single-line field for entering and editing free-form text.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="sm"
       value="Research paper"
@@ -56,7 +56,7 @@ A single-line field for entering and editing free-form text.
       clearable
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="sm"
       type="email"
@@ -121,7 +121,7 @@ export const EntityTypeNameInput = () => {
 TextInput is always controlled — `value` and `onChange` are required, and the handler receives the new string first with the raw change event second. `null` and `undefined` values render as empty.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="md"
       placeholder="e.g. Research paper"
@@ -136,7 +136,7 @@ TextInput is always controlled — `value` and `onChange` are required, and the 
 Set `type` to match the content so devices show the right keyboard and browsers validate natively; for numbers use NumberInput. Autofill and password managers are blocked by default — set `autocomplete` on fields they should fill, such as sign-in emails and passwords.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="sm"
       type="email"
@@ -146,7 +146,7 @@ Set `type` to match the content so devices show the right keyboard and browsers 
       autocomplete
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="sm"
       type="password"
@@ -155,7 +155,7 @@ Set `type` to match the content so devices show the right keyboard and browsers 
       autocomplete
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="sm"
       type="url"
@@ -188,7 +188,7 @@ Use `inputMode` when the content is digits but not a number — IDs, one-time co
 `invalid` turns the border red and sets `aria-invalid`. Pair it with a visible message — Form.Field's `errors` renders and announces one.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="sm"
       invalid
@@ -204,7 +204,7 @@ Use `inputMode` when the content is digits but not a number — IDs, one-time co
 Set `loading` while a lookup or save runs — a spinner appears at the end of the field. The input stays editable.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput width="sm" loading value="hash.ai/@acme" onChange={() => {}} />
   </DemoState>
 </Stage>
@@ -228,7 +228,7 @@ Set `loading` while a lookup or save runs — a spinner appears at the end of th
 `clearable` adds a clear button that appears when the field is hovered or focused and a value is present. The default clear empties the input through the normal change pipeline — `onChange` fires with `""` — and keeps focus in the field.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput width="sm" clearable value="Person" onChange={() => {}} />
   </DemoState>
 </Stage>
@@ -238,7 +238,7 @@ Set `loading` while a lookup or save runs — a spinner appears at the end of th
 `showEditIcon` adds a pencil at the end of the field to signal that a displayed value is editable. The icon hides while the input is focused.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="sm"
       variant="subtle"
@@ -247,7 +247,7 @@ Set `loading` while a lookup or save runs — a spinner appears at the end of th
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="sm"
       showEditIcon
@@ -262,7 +262,7 @@ Set `loading` while a lookup or save runs — a spinner appears at the end of th
 `default` draws a bordered field; `subtle` is borderless and reads as inline text until hovered or focused. Use `subtle` for click-to-edit values such as titles and table cells.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="sm"
       variant="default"
@@ -270,7 +270,7 @@ Set `loading` while a lookup or save runs — a spinner appears at the end of th
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput width="sm" variant="subtle" value="Subtle" onChange={() => {}} />
   </DemoState>
 </Stage>
@@ -280,19 +280,19 @@ Set `loading` while a lookup or save runs — a spinner appears at the end of th
 `md` is the default. Use `sm` and below in dense chrome such as toolbars and table cells, and `lg` for prominent page-level fields; give Form.Field the same `size` so the label scales with the input.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput size="xxs" width="xs" value="xxs" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput size="xs" width="xs" value="xs" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput size="sm" width="xs" value="sm" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput size="md" width="xs" value="md" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput size="lg" width="xs" value="lg" onChange={() => {}} />
   </DemoState>
 </Stage>
@@ -310,22 +310,22 @@ The presets align stacked inputs without custom CSS; `fullWidth` — the default
       width: "100%",
     }}
   >
-    <DemoState>
+    <DemoState data-harness>
       <TextInput width="xs" value="xs" onChange={() => {}} />
     </DemoState>
-    <DemoState>
+    <DemoState data-harness>
       <TextInput width="sm" value="sm" onChange={() => {}} />
     </DemoState>
-    <DemoState>
+    <DemoState data-harness>
       <TextInput width="md" value="md" onChange={() => {}} />
     </DemoState>
-    <DemoState>
+    <DemoState data-harness>
       <TextInput width="lg" value="lg" onChange={() => {}} />
     </DemoState>
-    <DemoState>
+    <DemoState data-harness>
       <TextInput width="fullWidth" value="fullWidth" onChange={() => {}} />
     </DemoState>
-    <DemoState>
+    <DemoState data-harness>
       <TextInput width="fitContent" value="fitContent" onChange={() => {}} />
     </DemoState>
   </div>
@@ -336,7 +336,7 @@ The presets align stacked inputs without custom CSS; `fullWidth` — the default
 An adornment is an icon (`{ iconName }`), text (`{ text }`), or any node (`{ content }`); adding `onClick` to the first two renders it as a button. Set the adornment's `variant: "subtle"` to drop its background and divider.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="sm"
       prefix={{ iconName: "search" }}
@@ -345,7 +345,7 @@ An adornment is an icon (`{ iconName }`), text (`{ text }`), or any node (`{ con
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="sm"
       prefix={{ text: "https://" }}
@@ -353,7 +353,7 @@ An adornment is an icon (`{ iconName }`), text (`{ text }`), or any node (`{ con
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <TextInput
       width="sm"
       suffix={{ text: "kg" }}
@@ -412,10 +412,10 @@ Set `connectToRightInput` on the left input and `connectToLeftInput` on the righ
 
 <Stage>
   <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextInput connectToRightInput value="Ada" onChange={() => {}} />
     </DemoState>
-    <DemoState>
+    <DemoState data-harness>
       <TextInput connectToLeftInput value="Lovelace" onChange={() => {}} />
     </DemoState>
   </div>
@@ -430,7 +430,7 @@ Form.Field supplies the label, description and errors, and links the label to th
     label="Entity type name"
     description="Shown in search results and the type editor."
   >
-    <DemoState>
+    <DemoState data-harness>
       <TextInput
         name="entityTypeName"
         width="md"

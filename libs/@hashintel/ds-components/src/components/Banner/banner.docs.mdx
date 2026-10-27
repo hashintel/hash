@@ -57,7 +57,7 @@ Highlights a page or section-level status and the actions that resolve it.
 />
 
 <Stage>
-  <Column>
+  <Column data-harness>
     <Banner tone="brand" dismissible={{ onDismiss: () => {} }}>
       <Banner.Title>A new entity editor is available</Banner.Title>
       <Banner.Description>
@@ -148,7 +148,7 @@ export const PermissionsChangeBanner = () => (
 ### Basic
 
 <Stage>
-  <Column>
+  <Column data-harness>
     <Banner tone="neutral" variant="soft">
       <Banner.Title>Scheduled maintenance on Saturday</Banner.Title>
       <Banner.Description>
@@ -166,7 +166,7 @@ Most banners don't need a title — a lone `Banner.Description` keeps a short
 status to a single line.
 
 <Stage>
-  <Column>
+  <Column data-harness>
     <Banner tone="brand">
       <Banner.Description>
         {"This flow is shared with everyone in the workspace."}
@@ -182,7 +182,7 @@ status to a single line.
 `error` for failures that need attention now.
 
 <Stage>
-  <Column>
+  <Column data-harness>
     <Banner tone="neutral">
       <Banner.Description>
         {"Neutral — routine context that needs no action."}
@@ -218,7 +218,7 @@ status to a single line.
 saturated fill — reserve it for the most prominent page-level messages.
 
 <Stage>
-  <Column>
+  <Column data-harness>
     <Banner tone="brand" variant="soft">
       <Banner.Description>
         {"Soft — the tinted default for messages in the page flow."}
@@ -245,7 +245,7 @@ secondary treatment, and the `solid` variant restyles them to read on the
 fill; pass an explicit `variant` to opt out.
 
 <Stage>
-  <Column>
+  <Column data-harness>
     <Banner tone="warning">
       <Banner.Title>Workspace permissions are changing</Banner.Title>
       <Banner.Description>
@@ -275,7 +275,7 @@ banners dismissible unless they carry critical information or a required
 action.
 
 <Stage>
-  <Column>
+  <Column data-harness>
     <Banner tone="brand" dismissible={{ onDismiss: () => {} }}>
       <Banner.Description>
         {"Tip: drag a property onto the canvas to add it to the entity type."}
@@ -313,7 +313,7 @@ specific glyph adds meaning. Pass `{ iconName }` for a named design-system
 icon, or `false` for none. Pass `icon={{ custom }}` to lead with any node
 
 <Stage>
-  <Column>
+  <Column data-harness>
     <Banner tone="brand" icon>
       <Banner.Description>
         {"A new entity editor is available for this workspace."}
@@ -339,7 +339,7 @@ markup can replace or sit alongside the built-in parts. Custom content doesn't
 pick up the tone's text color — set your own.
 
 <Stage>
-  <Column>
+  <Column data-harness>
     <Banner tone="brand" icon={false}>
       <div style={{ fontWeight: 500 }}>
         3 of 5 import steps complete — mapping properties for Person entities.

@@ -39,10 +39,10 @@ Switches a setting on or off, applying the change immediately.
 />
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value labelOnText="Autosave" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle
       value
       tone="brand"
@@ -50,7 +50,7 @@ Switches a setting on or off, applying the change immediately.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value={false} labelOnText="Public access" onChange={() => {}} />
   </DemoState>
 </Stage>
@@ -110,10 +110,10 @@ export const PublicAccessSetting = () => {
 Toggle is always controlled: `value` holds the on/off boolean and `onChange` receives the next one (see Installation for the state wiring). Apply the change as soon as `onChange` fires — a toggle promises immediate effect.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value labelOnText="Autosave" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value={false} labelOnText="Public access" onChange={() => {}} />
   </DemoState>
 </Stage>
@@ -142,7 +142,7 @@ A disabled toggle keeps its state visible but can't be flipped. Explain the cons
 Set `invalid` when validation rejects the current state — it draws a red ring and sets `aria-invalid`. Pair it with visible error text that says what's wrong.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle
       invalid
       value={false}
@@ -157,13 +157,13 @@ Set `invalid` when validation rejects the current state — it draws a red ring 
 `tone` colors the track when the toggle is on: `neutral` (default) for everyday settings, `brand` for primary features, `success` when on means healthy or complete.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value tone="neutral" labelOnText="Neutral" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value tone="brand" labelOnText="Brand" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value tone="success" labelOnText="Success" onChange={() => {}} />
   </DemoState>
 </Stage>
@@ -173,7 +173,7 @@ Set `invalid` when validation rejects the current state — it draws a red ring 
 `offTone` colors the track when the toggle is off. The default `neutral` reads as a plain "off"; `error` flags an off state that needs attention, such as a protection left disabled. Don't signal it with color alone — say why nearby.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle
       value={false}
       offTone="neutral"
@@ -181,7 +181,7 @@ Set `invalid` when validation rejects the current state — it draws a red ring 
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle
       value={false}
       offTone="error"
@@ -196,19 +196,19 @@ Set `invalid` when validation rejects the current state — it draws a red ring 
 `md` is the default; the label text scales with the control. Use `xxs`–`sm` in dense chrome such as table rows and panel headers, `lg` for prominent settings.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value size="xxs" labelOnText="xxs" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value size="xs" labelOnText="xs" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value size="sm" labelOnText="sm" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value size="md" labelOnText="md" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value size="lg" labelOnText="lg" onChange={() => {}} />
   </DemoState>
 </Stage>
@@ -218,13 +218,13 @@ Set `invalid` when validation rejects the current state — it draws a red ring 
 `labelOnText` renders after the control, on the on side; `labelOffText` renders before it, on the off side. Use either one as the setting's label, or both to caption the two poles — both stay visible whichever way the switch sits.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value labelOnText="Require review" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value labelOffText="Autosave" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Toggle value labelOffText="Off" labelOnText="On" onChange={() => {}} />
   </DemoState>
 </Stage>

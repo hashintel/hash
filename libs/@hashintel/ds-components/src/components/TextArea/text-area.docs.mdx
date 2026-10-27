@@ -40,7 +40,7 @@ Capture free-form text that spans multiple lines, such as descriptions and comme
 
 <Stage>
   <div style={{ width: 340 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea
         value="Tracks every research paper the lab has published, with links to authors and funding sources."
         onChange={() => {}}
@@ -48,7 +48,7 @@ Capture free-form text that spans multiple lines, such as descriptions and comme
     </DemoState>
   </div>
   <div style={{ width: 340 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea
         value=""
         placeholder="Describe this entity type…"
@@ -58,7 +58,7 @@ Capture free-form text that spans multiple lines, such as descriptions and comme
     </DemoState>
   </div>
   <div style={{ width: 340 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea
         variant="subtle"
         value="Combines arXiv metadata with citation counts to rank papers by influence."
@@ -127,7 +127,7 @@ The default field is bordered, `md`-sized and three rows tall, and fills the wid
 
 <Stage>
   <div style={{ width: 360 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea
         value=""
         placeholder="Add a note for reviewers…"
@@ -143,7 +143,7 @@ Set `invalid` when the value fails validation — the border turns red and `aria
 
 <Stage>
   <div style={{ width: 360 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea invalid value="TBD" onChange={() => {}} />
     </DemoState>
   </div>
@@ -183,7 +183,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
 
 <Stage>
   <div style={{ width: 340 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea
         variant="default"
         value="The default variant always shows its border."
@@ -192,7 +192,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
     </DemoState>
   </div>
   <div style={{ width: 340 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea
         variant="subtle"
         value="The subtle variant is borderless until hovered or focused."
@@ -208,27 +208,27 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
 
 <Stage>
   <div style={{ width: 220 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea size="xxs" rows={2} value="xxs" onChange={() => {}} />
     </DemoState>
   </div>
   <div style={{ width: 220 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea size="xs" rows={2} value="xs" onChange={() => {}} />
     </DemoState>
   </div>
   <div style={{ width: 220 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea size="sm" rows={2} value="sm" onChange={() => {}} />
     </DemoState>
   </div>
   <div style={{ width: 220 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea size="md" rows={2} value="md" onChange={() => {}} />
     </DemoState>
   </div>
   <div style={{ width: 220 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea size="lg" rows={2} value="lg" onChange={() => {}} />
     </DemoState>
   </div>
@@ -240,7 +240,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
 
 <Stage>
   <div style={{ width: 340 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea
         rows={2}
         value=""
@@ -250,7 +250,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
     </DemoState>
   </div>
   <div style={{ width: 340 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea
         rows={6}
         value=""
@@ -267,7 +267,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
 
 <Stage>
   <div style={{ width: 340 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea
         resize="vertical"
         value="Drag the handle to make room — vertically only."
@@ -276,7 +276,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
     </DemoState>
   </div>
   <div style={{ width: 340 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea resize="none" value="No resize handle." onChange={() => {}} />
     </DemoState>
   </div>
@@ -288,7 +288,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
 
 <Stage>
   <div style={{ width: 340 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea
         autoResize
         rows={2}
@@ -305,7 +305,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
 
 <Stage>
   <div style={{ width: 340 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea
         characterLimit={80}
         includeCharCountHeight
@@ -315,7 +315,7 @@ Disabled fields keep their value visible but grey out and stop accepting focus. 
     </DemoState>
   </div>
   <div style={{ width: 340 }}>
-    <DemoState>
+    <DemoState data-harness>
       <TextArea
         characterLimit={80}
         includeCharCountHeight
@@ -336,7 +336,7 @@ Inside a Form.Field the label is associated with the textarea automatically — 
       label="Description"
       description="Shown on the entity type's page and in search results."
     >
-      <DemoState>
+      <DemoState data-harness>
         <TextArea
           value=""
           placeholder="Describe this entity type…"
