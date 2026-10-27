@@ -37,7 +37,7 @@
     "react-dom": "19.2.6",
     "react-icons": "5.5.0",
     "react-markdown": "10.1.0",
-    "zod": "4.4.3"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@fast-check/vitest": "0.4.1",
