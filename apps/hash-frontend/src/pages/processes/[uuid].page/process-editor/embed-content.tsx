@@ -23,14 +23,14 @@ import {
 } from "@hashintel/petrinaut";
 
 import {
-  reportIframePetrinautError,
-  setIframeErrorReporterMode,
-} from "../../shared/iframe-error-reporter";
-import {
   type EmbedChrome,
   EmbedChromeContext,
 } from "./embed-content/embed-chrome-context";
 import { EmbedPetrinaut } from "./embed-content/embed-petrinaut";
+import {
+  reportIframePetrinautError,
+  setIframeErrorReporterMode,
+} from "./embed-content/iframe-error-reporter";
 import { useIframeBridge } from "./embed-content/use-iframe-bridge";
 import {
   type HostNetMode,
