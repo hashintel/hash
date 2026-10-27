@@ -99,6 +99,7 @@ use type_system::{
     },
     provenance::validation::{ProvenanceValidator, ProvenanceViolation, ProvenanceViolations},
 };
+use uuid::Uuid;
 
 use crate::store::{
     AsClient, GenericClientIter as _, PostgresStore,
@@ -1223,15 +1224,10 @@ where
         for params in &params {
             let entity_id = EntityId {
                 web_id: params.web_id,
-                entity_uuid: match params.entity_uuid {
-                    Some(entity_uuid) => entity_uuid,
-                    None => EntityUuid::new_v7(transaction_time).change_context(InsertionError)?,
-                },
-                draft_id: params
-                    .draft
-                    .then(|| DraftId::new_v7(transaction_time))
-                    .transpose()
-                    .change_context(InsertionError)?,
+                entity_uuid: params
+                    .entity_uuid
+                    .unwrap_or_else(|| EntityUuid::new(Uuid::now_v7())),
+                draft_id: params.draft.then(|| DraftId::new(Uuid::now_v7())),
             };
             policy_components_builder.add_entity(
                 actor_id,
@@ -1520,8 +1516,7 @@ where
                 });
             }
 
-            let entity_edition_id =
-                EntityEditionId::new_v7(transaction_time).change_context(InsertionError)?;
+            let entity_edition_id = EntityEditionId::new(Uuid::now_v7());
             entity_edition_rows.push(EntityEditionRow {
                 entity_edition_id,
                 properties: properties.clone(),
@@ -2864,10 +2859,10 @@ fn insert_entity_edition_cache_statement(scoped: bool) -> String {
 }
 
 /// The values written for one entity edition.
-struct EntityEditionInsert<'a> {
+struct EntityEditionInsert<'a, I> {
     edition_id: EntityEditionId,
     archived: bool,
-    entity_type_ids: &'a HashSet<VersionedUrl>,
+    entity_type_ids: I,
     properties: &'a PropertyObject,
     property_metadata: &'a Valid<PropertyObjectMetadata>,
     confidence: Option<Confidence>,
@@ -2881,7 +2876,7 @@ where
     #[tracing::instrument(level = "info", skip_all)]
     async fn insert_entity_edition(
         &self,
-        edition: &EntityEditionInsert<'_>,
+        edition: EntityEditionInsert<'_, impl IntoIterator<Item = &VersionedUrl> + Send>,
     ) -> Result<(), Report<InsertionError>> {
         self.as_client()
             .execute(
@@ -2917,7 +2912,7 @@ where
 
         let entity_type_ontology_ids = edition
             .entity_type_ids
-            .iter()
+            .into_iter()
             .map(|entity_type_id| OntologyTypeUuid::from(EntityTypeUuid::from_url(entity_type_id)))
             .collect::<Vec<_>>();
 

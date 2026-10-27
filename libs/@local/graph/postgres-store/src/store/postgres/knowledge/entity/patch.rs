@@ -49,6 +49,7 @@ use type_system::{
     principal::actor::{ActorEntityUuid, ActorId},
     provenance::validation::{ProvenanceValidator, ProvenanceViolation},
 };
+use uuid::Uuid;
 
 use super::{
     EntityEditionInsert, LockedEntityEdition, provenance::SqlEntityEditionProvenance,
@@ -533,8 +534,8 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
             draft_transition,
         } = changes;
         let entity_id = entity.metadata.record_id.entity_id;
-        let edition_id = EntityEditionId::new_v7(transaction_time).change_context(UpdateError)?;
-        self.insert_entity_edition(&EntityEditionInsert {
+        let edition_id = EntityEditionId::new(Uuid::now_v7());
+        self.insert_entity_edition(EntityEditionInsert {
             edition_id,
             archived: entity.metadata.archived,
             entity_type_ids: &entity.metadata.entity_type_ids,
@@ -594,7 +595,7 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
     ) -> Result<(EntityId, EntityTemporalMetadata), Report<UpdateError>> {
-        let draft_id = DraftId::new_v7(transaction_time).change_context(UpdateError)?;
+        let draft_id = DraftId::new(Uuid::now_v7());
         self.as_client()
             .query(
                 "INSERT INTO entity_drafts (web_id, entity_uuid, draft_id) VALUES ($1, $2, $3);",

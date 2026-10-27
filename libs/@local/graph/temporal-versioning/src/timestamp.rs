@@ -92,14 +92,6 @@ impl<A> Timestamp<A> {
         }
     }
 
-    /// The time elapsed from the Unix epoch to this timestamp.
-    ///
-    /// Returns `None` if the timestamp lies before the Unix epoch.
-    #[must_use]
-    pub fn duration_since_unix_epoch(self) -> Option<core::time::Duration> {
-        core::time::Duration::try_from(self.time - OffsetDateTime::UNIX_EPOCH).ok()
-    }
-
     #[must_use]
     pub const fn from_anonymous(time: Timestamp<()>) -> Self {
         Self {

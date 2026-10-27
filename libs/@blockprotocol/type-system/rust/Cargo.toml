@@ -48,6 +48,7 @@ hash-graph-test-data = { workspace = true }
 insta                = { workspace = true }
 pretty_assertions    = { workspace = true }
 tokio                = { workspace = true, features = ["macros", "rt"] }
+uuid                 = { workspace = true, features = ["v7"] }
 
 [[test]]
 name              = "codegen"
@@ -61,10 +62,6 @@ utoipa   = ["dep:utoipa", "hash-graph-temporal-versioning/utoipa"]
 
 [lints]
 workspace = true
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-# `uuid` needs a JavaScript source of randomness to generate a version 7 UUID in WebAssembly.
-uuid = { workspace = true, public = true, features = ["v7"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # The `console_error_panic_hook` crate provides better debugging of panics by
