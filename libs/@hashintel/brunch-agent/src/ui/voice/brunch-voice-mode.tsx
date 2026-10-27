@@ -7,6 +7,7 @@ import type {
   BrunchPanelAdmissionTarget,
   BrunchPanelConversationTracker,
 } from "../../client/brunch-panel-transport";
+import type { ToolApprovalState } from "../../client/tools/tool-approval-state";
 import type { VoiceMediationHistory } from "../../client/voice/history/voice-mediation-history";
 import type { InterviewBudgetLevel } from "../../shared/interview-budget";
 import type { VoiceWord } from "../../shared/voice-words";
@@ -14,7 +15,6 @@ import type {
   PetrinautAiVoiceMode,
   PetrinautAiVoiceModeContext,
 } from "../chat/ai-assistant-composer-control";
-import type { ToolApprovalState } from "../tools/brunch-mutation-approval";
 import type {
   FlueConversationSettlement,
   FlueConversationState,

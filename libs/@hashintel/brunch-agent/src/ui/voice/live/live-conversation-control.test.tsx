@@ -22,8 +22,8 @@ import {
   VoiceInterviewControl,
 } from "../session/voice-interview-control";
 
+import type { ToolApprovalState } from "../../../client/tools/tool-approval-state";
 import type { PetrinautAiVoiceModeContext } from "../../chat/ai-assistant-composer-control";
-import type { ToolApprovalState } from "../../tools/brunch-mutation-approval";
 import type { FlueClient, FlueConversationState } from "@flue/sdk";
 
 const liveConversationMocks = vi.hoisted(() => ({

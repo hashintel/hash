@@ -31,8 +31,6 @@ type BrunchMutationApprovalDecision =
   | { readonly decision: "allow" }
   | { readonly decision: "deny"; readonly reason: string };
 
-export type { ToolApprovalState };
-
 type PendingApproval = {
   readonly resolve: (decision: BrunchMutationApprovalDecision) => void;
   readonly removeAbortListener: () => void;

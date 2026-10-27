@@ -30,6 +30,7 @@ import { LiveConversationControl } from "../live/live-conversation-control";
 import { VoiceInterviewDisclosure } from "./voice-interview-disclosure";
 
 import type { BrunchPanelAdmissionTarget } from "../../../client/brunch-panel-transport";
+import type { ToolApprovalState } from "../../../client/tools/tool-approval-state";
 import type { VoiceMediationHistory } from "../../../client/voice/history/voice-mediation-history";
 import type { CanonicalSpeechSegment } from "../../../client/voice/live/canonical-speech";
 import type { InterviewBudgetLevel } from "../../../shared/interview-budget";
@@ -42,7 +43,6 @@ import type {
   PetrinautAiInputMode,
   PetrinautAiVoiceModeContext,
 } from "../../chat/ai-assistant-composer-control";
-import type { ToolApprovalState } from "../../tools/brunch-mutation-approval";
 import type { AgentSendResult, FlueConversationState } from "@flue/sdk";
 
 type ResolveSubmission = (
