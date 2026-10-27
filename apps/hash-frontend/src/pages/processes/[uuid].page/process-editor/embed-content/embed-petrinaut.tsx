@@ -1,6 +1,14 @@
-import { use, useEffect, useMemo, useState } from "react";
+import {
+  memo,
+  use,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import {
+  type BrunchAssistant,
   BrunchAssistantContext,
   type BrunchOpenDocument,
   useBrunchAssistant,
@@ -50,8 +58,9 @@ const noNetSwitchingError = () => {
 
 /**
  * The signed-in account's Brunch owner key, from hash-api, or `null` while
- * it loads, when nobody is signed in, or when the request failed. Requested
- * again whenever the signed-in account changes.
+ * it loads, when nobody is signed in, when this deployment has no Brunch
+ * (hash-api answers 503), or when the request failed. Requested again
+ * whenever the signed-in account changes.
  */
 const useBrunchOwnerKey = (): string | null => {
   const { authenticatedUser } = useAuthInfo();
@@ -73,6 +82,9 @@ const useBrunchOwnerKey = (): string | null => {
           credentials: "include",
           signal: controller.signal,
         });
+        if (response.status === 503) {
+          return;
+        }
         if (!response.ok) {
           throw new Error(
             `The Brunch identity request failed with status ${response.status}`,
@@ -98,11 +110,54 @@ const useBrunchOwnerKey = (): string | null => {
     : null;
 };
 
+type BrunchSessionOutput = Pick<BrunchAssistant, "assistant" | "plugins">;
+
+/**
+ * Brunch's assistant for one saved net, mounted only while it is offered, so
+ * the hook never runs without an owner key. Renders nothing: it hands the
+ * assistant and plugins to its parent, which keeps `<Petrinaut>` mounted
+ * whether or not Brunch is offered. Unmounting withdraws them.
+ *
+ * Memoised, and its props must stay stable: the hook returns a new assistant
+ * on every render, so if the parent's update re-rendered this component, each
+ * hand-over would schedule the next and never settle.
+ */
+const BrunchSession = memo(
+  ({
+    ownerKey,
+    openDocument,
+    onChange,
+  }: {
+    ownerKey: string;
+    openDocument: BrunchOpenDocument;
+    onChange: (output: BrunchSessionOutput | null) => void;
+  }) => {
+    const { assistant, plugins } = useBrunchAssistant({
+      ownerKey,
+      chatEndpoint: brunchChatEndpoint,
+      fetch: brunchFetch,
+      selected: true,
+      openDocument,
+      voice: brunchVoice,
+      interviewBudget: brunchInterviewBudget,
+      words: brunchWords,
+      plugins: embedPlugins,
+    });
+
+    useLayoutEffect(() => {
+      onChange({ assistant, plugins });
+      return () => onChange(null);
+    }, [assistant, plugins, onChange]);
+
+    return null;
+  },
+);
+
 /**
  * The Petrinaut editor for the open net, with Brunch as its assistant while
- * the net is saved and the account's owner key is known. Rendered inside the
- * embed's `ErrorTrackerContext`, so Brunch's contained failures reach the
- * same reporter as Petrinaut's.
+ * the net is saved, the user may edit it, and the account's owner key is
+ * known. Rendered inside the embed's `ErrorTrackerContext`, so Brunch's
+ * contained failures reach the same reporter as Petrinaut's.
  */
 export const EmbedPetrinaut = ({
   handle,
@@ -117,48 +172,50 @@ export const EmbedPetrinaut = ({
   savedEntityId: EntityId | null;
   /** The editor's current title, read when Brunch's tools need it. */
   readTitle: () => string;
+  /** The user may not edit or save this net. */
   readonly: boolean;
   setTitle: (title: string) => void;
   title: string;
 }) => {
   const ownerKey = useBrunchOwnerKey();
+  const [brunch, setBrunch] = useState<BrunchSessionOutput | null>(null);
 
   const editor = useMemo(() => ({ handle, readTitle }), [handle, readTitle]);
+  // Brunch edits and saves the net, so it is offered only on saved nets the
+  // user may edit.
   const openDocument = useMemo<BrunchOpenDocument | null>(
     () =>
-      savedEntityId === null ? null : { documentId: savedEntityId, editor },
-    [savedEntityId, editor],
+      savedEntityId === null || readonly
+        ? null
+        : { documentId: savedEntityId, editor },
+    [savedEntityId, readonly, editor],
   );
 
-  const brunch = useBrunchAssistant({
-    ownerKey: ownerKey ?? "",
-    chatEndpoint: brunchChatEndpoint,
-    fetch: brunchFetch,
-    // Brunch is offered only on saved nets.
-    selected: ownerKey !== null && openDocument !== null,
-    openDocument,
-    voice: brunchVoice,
-    interviewBudget: brunchInterviewBudget,
-    words: brunchWords,
-    plugins: embedPlugins,
-  });
-
   return (
-    // Brunch's plugin renders its chat from this, inside the editor.
-    <BrunchAssistantContext value={brunch.assistant}>
-      {/* The title is the breadcrumbs' final crumb, so the editor's own
-          title field stays hidden. */}
-      <Petrinaut
-        handle={handle}
-        createNewNet={noNetSwitchingError}
-        existingNets={[]}
-        hideNetManagementControls="all"
-        loadPetriNet={noNetSwitchingError}
-        plugins={brunch.plugins}
-        readonly={readonly}
-        setTitle={setTitle}
-        title={title}
-      />
-    </BrunchAssistantContext>
+    <>
+      {ownerKey !== null && openDocument !== null && (
+        <BrunchSession
+          ownerKey={ownerKey}
+          openDocument={openDocument}
+          onChange={setBrunch}
+        />
+      )}
+      {/* Brunch's plugin renders its chat from this, inside the editor. */}
+      <BrunchAssistantContext value={brunch?.assistant ?? null}>
+        {/* The title is the breadcrumbs' final crumb, so the editor's own
+            title field stays hidden. */}
+        <Petrinaut
+          handle={handle}
+          createNewNet={noNetSwitchingError}
+          existingNets={[]}
+          hideNetManagementControls="all"
+          loadPetriNet={noNetSwitchingError}
+          plugins={brunch?.plugins ?? embedPlugins}
+          readonly={readonly}
+          setTitle={setTitle}
+          title={title}
+        />
+      </BrunchAssistantContext>
+    </>
   );
 };
