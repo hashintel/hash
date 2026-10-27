@@ -92,6 +92,12 @@ impl<A> Timestamp<A> {
         }
     }
 
+    /// The whole seconds since the Unix epoch, and the nanoseconds past that second.
+    #[must_use]
+    pub const fn to_unix(self) -> (i64, u32) {
+        (self.time.unix_timestamp(), self.time.nanosecond())
+    }
+
     #[must_use]
     pub const fn from_anonymous(time: Timestamp<()>) -> Self {
         Self {

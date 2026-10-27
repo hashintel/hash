@@ -49,9 +49,10 @@ use type_system::{
     principal::actor::{ActorEntityUuid, ActorId},
     provenance::validation::{ProvenanceValidator, ProvenanceViolation},
 };
-use uuid::Uuid;
 
-use super::{LockedEntityEdition, provenance::SqlEntityEditionProvenance, provenance_violations};
+use super::{
+    LockedEntityEdition, provenance::SqlEntityEditionProvenance, provenance_violations, uuid_v7_at,
+};
 use crate::store::{
     AsClient, InTransaction, PostgresStore, error::EntityDoesNotExist, validation::StoreProvider,
 };
@@ -531,15 +532,8 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
             draft_transition,
         } = changes;
         let entity_id = entity.metadata.record_id.entity_id;
-        let edition_id = self
-            .insert_entity_edition(
-                entity.metadata.archived,
-                &entity.metadata.entity_type_ids,
-                &entity.properties,
-                entity.metadata.confidence,
-                &provenance,
-                &property_metadata,
-            )
+        let edition_id = EntityEditionId::new(uuid_v7_at(transaction_time));
+        self.insert_entity_edition(edition_id, &entity, &provenance, &property_metadata)
             .await
             .change_context(UpdateError)?;
         let (entity_id, temporal_versioning) = match draft_transition {
@@ -591,7 +585,7 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
     ) -> Result<(EntityId, EntityTemporalMetadata), Report<UpdateError>> {
-        let draft_id = DraftId::new(Uuid::now_v7());
+        let draft_id = DraftId::new(uuid_v7_at(transaction_time));
         self.as_client()
             .query(
                 "INSERT INTO entity_drafts (web_id, entity_uuid, draft_id) VALUES ($1, $2, $3);",
