@@ -1,6 +1,7 @@
 mod authentication;
 
 use alloc::sync::Arc;
+use core::num::NonZero;
 
 use aide::{
     OperationInput,
@@ -25,7 +26,7 @@ use tower::ServiceExt as _;
 pub(super) use self::authentication::{assert_anonymous_authentication, assert_authentication};
 pub(super) use super::caller::caller as echo_caller;
 use super::{
-    Api, ApiState, Audience,
+    Api, ApiState, Audience, PublicApiConfig,
     credentials::Credentials,
     extract::Json,
     openapi,
@@ -54,7 +55,13 @@ pub(super) async fn response_json(response: Response) -> Value {
 
 /// The public and internal APIs, reading a store whose every `acquire` fails.
 pub(crate) fn apis() -> Vec<Api> {
-    let state = ApiState::new(Arc::new(unconnected_store()), None);
+    let state = ApiState::new(
+        Arc::new(unconnected_store()),
+        None,
+        PublicApiConfig {
+            query_entity_limit: NonZero::new(100).expect("100 should not be zero"),
+        },
+    );
     super::apis::<PostgresStorePool>()
         .map(|api| api.with_state(state.clone()))
         .collect()

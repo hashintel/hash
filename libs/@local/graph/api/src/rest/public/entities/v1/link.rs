@@ -39,11 +39,12 @@ impl From<EntityRef> for LinkEndpoint {
     }
 }
 
-/// The entities a link entity connects.
+/// The entities a link entity connects. More kinds may follow.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 pub(super) enum Link {
     /// A link that points from `source` to `target`.
+    #[schemars(title = "Directed")]
     Directed {
         /// The entity the link points from.
         source: EntityRef,
