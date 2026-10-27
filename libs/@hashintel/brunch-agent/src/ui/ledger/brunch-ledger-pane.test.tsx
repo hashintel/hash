@@ -27,6 +27,7 @@ import { foldBrunchLedgerHistory } from "./brunch-ledger-history";
 import { BrunchLedgerPane } from "./brunch-ledger-pane";
 
 import type { PetrinautAiComposerControlContext } from "../chat/ai-assistant-composer-control";
+import type { SDCPN } from "@hashintel/petrinaut-core";
 
 // jsdom does not implement scrolling or layout.
 const scrollIntoView = vi.fn();
@@ -247,6 +248,113 @@ test("shows reflections under their entities only when switched on, and selects 
 
   fireEvent.click(screen.getByRole("button", { name: "Show in net" }));
   expect(onSelectNetElements).toHaveBeenCalledWith([reservoirPlace]);
+});
+
+/** The reflected turn, plus a reflection on an arc and one on a place only a later version has. */
+const reflectedAcrossVersions = [
+  ...reflected,
+  assistant(
+    commit(
+      "ledger-2",
+      {},
+      [
+        [
+          "reflection/create",
+          {
+            text: "The draw arc takes supply out of the reservoir.",
+            netElements: [
+              {
+                kind: "arc",
+                id: `$A_${toPetrinautId("draw")}___place:${toPetrinautId("reservoir")}`,
+              },
+            ],
+            entities: ["e1"],
+          },
+        ],
+        [
+          "reflection/create",
+          {
+            text: "The Overflow place holds what the reservoir sheds.",
+            netElements: [
+              { kind: "place", id: "reservoir" },
+              { kind: "place", id: "overflow" },
+            ],
+            entities: ["e1"],
+          },
+        ],
+      ],
+      ["r2", "r3"],
+    ),
+  ),
+];
+
+const place = (id: string) => ({
+  id: toPetrinautId(id),
+  name: id,
+  colorId: null,
+  dynamicsEnabled: false,
+  differentialEquationId: null,
+  x: 0,
+  y: 0,
+});
+
+/** The earlier version: the reservoir and the draw transition, without the overflow. */
+const earlierVersion = {
+  places: [place("reservoir")],
+  transitions: [
+    {
+      id: toPetrinautId("draw"),
+      name: "Draw",
+      inputArcs: [],
+      outputArcs: [
+        {
+          endpoint: { kind: "place", placeId: toPetrinautId("reservoir") },
+          weight: 1,
+        },
+      ],
+      lambdaType: "predicate",
+      lambdaCode: "",
+      transitionKernelCode: "",
+      x: 0,
+      y: 0,
+    },
+  ],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+} satisfies SDCPN;
+
+test("marks reflections on elements the open version lacks, and leaves the records unchanged", async () => {
+  const { rerender } = render(
+    <BrunchLedgerPane messages={reflectedAcrossVersions} />,
+  );
+  const document = screen.getByTestId("brunch-ledger-document");
+  fireEvent.click(
+    screen.getByRole("checkbox", { name: "Show Brunch’s reflections" }),
+  );
+  await waitFor(() =>
+    expect(document.querySelector('[data-ledger-address="r3"]')).not.toBeNull(),
+  );
+  const before = document.textContent;
+  expect(before).not.toContain("not in this version");
+
+  rerender(
+    <BrunchLedgerPane
+      messages={reflectedAcrossVersions}
+      openVersion={earlierVersion}
+    />,
+  );
+  const marked = (address: string) =>
+    document
+      .querySelector(`[data-ledger-address="${address}"]`)
+      ?.closest("li")
+      ?.textContent.includes("not in this version");
+  expect(marked("r1")).toBe(false);
+  expect(marked("r2")).toBe(false);
+  expect(marked("r3")).toBe(true);
+  expect(document.textContent.match(/not in this version/g)).toHaveLength(1);
+  // Entities and claims read as before; only the mark is added.
+  expect(document.textContent.replace(" not in this version", "")).toBe(before);
 });
 
 const selectText = (element: Element) => {
