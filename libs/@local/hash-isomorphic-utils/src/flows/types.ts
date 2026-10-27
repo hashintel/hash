@@ -1155,7 +1155,16 @@ export const detailedFlowFields = [
 
 export type DetailedFlowField = (typeof detailedFlowFields)[number];
 
-/** A run as its reader returns it: `events` has a field resolver of its own, which reads the run's history. */
-export type FlowRunWithoutEvents = Omit<FlowRun, "events">;
+/**
+ * A run as its reader returns it: `events` and the fields lists show in place of it have field resolvers of their
+ * own, which read the run's record.
+ */
+export type FlowRunWithoutEvents = Omit<
+  FlowRun,
+  | "events"
+  | "lastActivityAt"
+  | "openInputRequests"
+  | "answeredPageContentRequests"
+>;
 
 export type SparseFlowRun = Omit<FlowRunWithoutEvents, DetailedFlowField>;

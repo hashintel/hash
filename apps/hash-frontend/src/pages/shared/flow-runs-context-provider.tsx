@@ -1,6 +1,8 @@
 import { useQuery } from "@apollo/client";
 import { useMemo } from "react";
 
+import { getInputRequests } from "@local/hash-isomorphic-utils/flows/run-events";
+import { getStepRunsFromEvents } from "@local/hash-isomorphic-utils/flows/step-runs";
 import { flowRunsQueryMaxLimit } from "@local/hash-isomorphic-utils/flows/types";
 import {
   getFlowRunById,
@@ -8,6 +10,7 @@ import {
 } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
 import { FlowRunsContext } from "./flow-runs-context";
+import { useFlowRunEvents } from "./use-flow-run-events";
 
 import type {
   GetFlowRunByIdQuery,
@@ -18,6 +21,7 @@ import type {
 import type {
   FlowRunsContextType,
   FlowRunsPaginationState,
+  SelectedFlowRun,
 } from "./flow-runs-context";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { PropsWithChildren } from "react";
@@ -67,19 +71,36 @@ export const FlowRunsContextProvider = ({
   const totalCount = flowRunsData?.getFlowRuns.totalCount ?? 0;
   const nextCursor = flowRunsData?.getFlowRuns.nextCursor ?? null;
 
-  const selectedFlowRun = useMemo(() => {
-    if (selectedFlowRunData) {
-      return selectedFlowRunData.getFlowRunById;
+  const selectedFlowRunEvents = useFlowRunEvents({
+    flowRunEntityId: selectedFlowRunEntityId,
+    live: !selectedFlowRunData?.getFlowRunById.closedAt,
+  });
+
+  const selectedFlowRun = useMemo<SelectedFlowRun | null>(() => {
+    if (!selectedFlowRunData || selectedFlowRunEvents.status !== "loaded") {
+      return null;
     }
-    return null;
-  }, [selectedFlowRunData]);
+
+    const flowRun = selectedFlowRunData.getFlowRunById;
+    const { events } = selectedFlowRunEvents;
+
+    return {
+      ...flowRun,
+      stepRuns: getStepRunsFromEvents(events, flowRun),
+      inputRequests: getInputRequests(events),
+    };
+  }, [selectedFlowRunData, selectedFlowRunEvents]);
 
   const context = useMemo<FlowRunsContextType>(
     () => ({
       flowRuns,
       totalCount,
       nextCursor,
-      loading: selectedFlowRunLoading || flowRunsLoading,
+      loading:
+        selectedFlowRunLoading ||
+        (!!selectedFlowRunEntityId &&
+          selectedFlowRunEvents.status === "loading") ||
+        flowRunsLoading,
       pagination: pagination ?? null,
       selectedFlowRun,
       selectedFlowRunEntityId,
@@ -91,6 +112,7 @@ export const FlowRunsContextProvider = ({
       flowRunsLoading,
       pagination,
       selectedFlowRunLoading,
+      selectedFlowRunEvents.status,
       selectedFlowRun,
       selectedFlowRunEntityId,
     ],

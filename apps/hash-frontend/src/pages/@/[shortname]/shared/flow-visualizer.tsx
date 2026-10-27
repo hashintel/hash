@@ -67,6 +67,7 @@ import type {
   FlowDefinition as FlowDefinitionType,
   PersistedEntityMetadata,
   FlowInputValues,
+  ResolvedStepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 
 /** Every step, including those inside a `forEach`, for the run sidebar's list of steps. */
@@ -226,8 +227,9 @@ export const FlowVisualizer = () => {
       { logs: LocalProgressLog[]; level: number; thread?: LogThread }
     > = {};
 
-    for (const step of selectedFlowRun.steps) {
-      const outputs = step.outputs?.[0]?.contents[0]?.outputs ?? [];
+    for (const step of selectedFlowRun.stepRuns) {
+      /* The API resolves stored payloads in the events step runs are built from. */
+      const outputs = (step.outputs ?? []) as ResolvedStepOutput[];
 
       for (const log of step.logs) {
         if (
@@ -380,7 +382,7 @@ export const FlowVisualizer = () => {
     if (selectedFlowRun.closedAt) {
       progressLogs.push({
         level: 1,
-        message: `Flow run closed: ${selectedFlowRun.failureMessage?.toLowerCase() ?? selectedFlowRun.status.toLowerCase()}`,
+        message: `Flow run closed: ${selectedFlowRun.failure?.message.toLowerCase() ?? selectedFlowRun.status.toLowerCase()}`,
         recordedAt: selectedFlowRun.closedAt,
         stepId: "closure",
         type: "StateChange",

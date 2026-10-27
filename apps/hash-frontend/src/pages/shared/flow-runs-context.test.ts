@@ -1,14 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import { generateStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
+import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
-import { FlowRunStatus, FlowStepStatus } from "../../graphql/api-types.gen";
+import { FlowRunStatus } from "../../graphql/api-types.gen";
 import { getShownStepRun, getStatusForSteps } from "./flow-runs-context";
 
-import type { StepRun } from "../../graphql/api-types.gen";
+import type { FlowRunStepRunState } from "@local/hash-isomorphic-utils/flows/step-runs";
 
-const stepRun = (stepId: string, status: FlowStepStatus): StepRun => ({
+const stepRun = (
+  stepId: string,
+  status: FlowStepStatus,
+): FlowRunStepRunState => ({
   attempt: 1,
+  inputs: [],
   logs: [],
   scheduledAt: "2026-01-01T00:00:00.000Z",
   status,
@@ -29,7 +34,7 @@ describe("getStatusForSteps", () => {
       {
         closedAt: null,
         status: FlowRunStatus.Running,
-        steps: [
+        stepRuns: [
           stepRun("fetch", FlowStepStatus.Completed),
           stepRun(generateStepRunId("summarise", 0), FlowStepStatus.Completed),
           stepRun(generateStepRunId("summarise", 1), FlowStepStatus.Started),
@@ -49,7 +54,7 @@ describe("getStatusForSteps", () => {
       {
         closedAt: null,
         status: FlowRunStatus.Running,
-        steps: [
+        stepRuns: [
           stepRun("fetch", FlowStepStatus.Completed),
           stepRun(generateStepRunId("summarise", 0), FlowStepStatus.Completed),
           stepRun(generateStepRunId("summarise", 1), FlowStepStatus.Completed),

@@ -29,22 +29,18 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { PayloadKindValues } from "@local/hash-isomorphic-utils/flows/types";
 
-const mapFlowRunToMinimalFlowRun = (
-  flowRun: GetMinimalFlowRunsQuery["getFlowRuns"]["flowRuns"][number],
-): MinimalFlowRun => {
-  const persistedEntities = (flowRun.outputs ?? []).flatMap((output) =>
-    (output.contents[0]?.outputs ?? []).flatMap(({ outputName, payload }) => {
+const mapFlowRunToMinimalFlowRun = ({
+  flowOutputs,
+  answeredPageContentRequests: _answeredPageContentRequests,
+  ...flowRun
+}: GetMinimalFlowRunsQuery["getFlowRuns"]["flowRuns"][number]): MinimalFlowRun => {
+  const persistedEntities = (flowOutputs ?? []).flatMap(
+    ({ outputName, payload }) => {
       if (
         outputName ===
         ("persistedEntities" satisfies (typeof browserInferenceFlowOutput)["name"])
       ) {
         /**
-         * The GraphQL layer resolves StoredPayloadRef values before returning them to clients,
-         * so payload.value is the actual resolved value at runtime, not a StoredPayloadRef.
-         * The type system includes StoredPayloadRef as a possible value type, but by the time
-         * the response reaches the browser, these have been resolved.
-         * @see libs/@local/hash-backend-utils/src/flows/get-flow-run-details.ts
-         *
          * Runs from before the output became an array have a single object here instead, and show no entities.
          */
         return Array.isArray(payload.value)
@@ -52,7 +48,7 @@ const mapFlowRunToMinimalFlowRun = (
           : [];
       }
       return [];
-    }),
+    },
   );
 
   const webPage = flowRun.flowInputs[
@@ -104,13 +100,9 @@ const getFlowRuns = async ({
           flowRunsOfInterest.push(mapFlowRunToMinimalFlowRun(flowRun));
         }
 
-        for (const inputRequest of flowRun.inputRequests) {
-          if (
-            inputRequest.type === "get-urls-html-content" &&
-            !!inputRequest.resolvedAt &&
-            inputRequest.resolvedBy === userAccountId
-          ) {
-            for (const url of inputRequest.data.urls) {
+        for (const pageContentRequest of flowRun.answeredPageContentRequests) {
+          if (pageContentRequest.resolvedBy === userAccountId) {
+            for (const url of pageContentRequest.urls) {
               flowRunsOfInterest.push({
                 ...mapFlowRunToMinimalFlowRun(flowRun),
                 requestedPageUrl: url,

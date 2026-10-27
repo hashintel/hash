@@ -2,6 +2,7 @@ import { parseStepRunId } from "./step-run-id.js";
 
 import type { FlowRunStatus } from "../graphql/api-types.gen.js";
 import type {
+  ExternalInputRequest,
   ExternalInputRequestSignal,
   ExternalInputResponseWithoutUser,
   FlowInputValues,
@@ -10,12 +11,16 @@ import type {
   StepProgressLog,
 } from "./types.js";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import type { Status } from "@local/status";
+import type { Status, StatusCode } from "@local/status";
 
 /** A run of a step: the step's id in the definition and, inside `forEach` steps, its item's index in each, outermost first. */
 export type FlowRunEventStepRun = { stepId: string; itemPath: number[] };
 
-export type FlowRunEventError = { message: string };
+export type FlowRunEventError = {
+  message: string;
+  /** The code of the status the run or step failed with, when it gave one. */
+  code?: StatusCode;
+};
 
 /** A step that failed after its action returned (e.g. an output of the wrong kind). */
 export type FlowRunStepError = {
@@ -38,12 +43,12 @@ export const toStepRun = (stepRunId: string): FlowRunEventStepRun => {
 export const toStepErrors = (
   stepErrors: Status<{ stepId: string }>[],
 ): FlowRunStepError[] =>
-  stepErrors.flatMap(({ message, contents: [stepError] }) =>
+  stepErrors.flatMap(({ code, message, contents: [stepError] }) =>
     stepError
       ? [
           {
             stepRun: toStepRun(stepError.stepId),
-            error: { message: message ?? unknownErrorMessage },
+            error: { message: message ?? unknownErrorMessage, code },
           },
         ]
       : [],
@@ -156,3 +161,113 @@ export const findRunFinishedEvent = (
   events.find(
     (event): event is RunFinishedEvent => event.kind === "runFinished",
   );
+
+/**
+ * A run's input requests, from its events, latest first. A request takes its data and time from its first signal, and
+ * once answered, its answer and time from its first response. An answered request's `stepId` is `"unresolved"`.
+ */
+export const getInputRequests = (
+  events: FlowRunEvent[],
+): ExternalInputRequest[] => {
+  const inputRequestsById = new Map<string, ExternalInputRequest>();
+  const lastEventIndexByRequestId = new Map<string, number>();
+
+  for (const [index, event] of events.entries()) {
+    if (event.kind !== "inputRequested" && event.kind !== "inputResolved") {
+      continue;
+    }
+
+    const requestId =
+      event.kind === "inputRequested"
+        ? event.request.requestId
+        : event.requestId;
+    const existingRequest = inputRequestsById.get(requestId);
+
+    lastEventIndexByRequestId.set(requestId, index);
+
+    if (existingRequest?.resolvedAt) {
+      continue;
+    }
+
+    if (event.kind === "inputRequested") {
+      inputRequestsById.set(requestId, {
+        ...event.request,
+        raisedAt: event.occurredAt,
+      });
+    } else {
+      const { data, type } = event.response;
+
+      inputRequestsById.set(requestId, {
+        data: (existingRequest?.data ?? {}) as never,
+        answers: "answers" in data ? data.answers : undefined,
+        requestId,
+        stepId: "unresolved",
+        type,
+        raisedAt: existingRequest?.raisedAt ?? "",
+        resolvedAt: event.occurredAt,
+      });
+    }
+  }
+
+  return [...inputRequestsById.values()].sort(
+    (left, right) =>
+      (lastEventIndexByRequestId.get(right.requestId) ?? 0) -
+      (lastEventIndexByRequestId.get(left.requestId) ?? 0),
+  );
+};
+
+/** A run's input requests that haven't been answered, latest first. A run that has finished has none. */
+export const getOpenInputRequests = (
+  events: FlowRunEvent[],
+): ExternalInputRequest[] =>
+  findRunFinishedEvent(events)
+    ? []
+    : getInputRequests(events).filter(({ resolvedAt }) => !resolvedAt);
+
+/** A run's request for the content of web pages, once a user's browser has answered it. */
+export type AnsweredPageContentRequest = {
+  requestId: string;
+  urls: string[];
+  /** The user whose browser answered, when the run's history records it. */
+  resolvedBy?: ActorEntityUuid;
+  resolvedAt: string;
+};
+
+/**
+ * A run's answered requests for the content of web pages, in the order they were answered. A request takes its URLs
+ * from its first signal, or from the pages given in its answer if the request isn't in the history, and its answer
+ * from its first response.
+ */
+export const getAnsweredPageContentRequests = (
+  events: FlowRunEvent[],
+): AnsweredPageContentRequest[] => {
+  const urlsByRequestId = new Map<string, string[]>();
+  const answeredRequestsById = new Map<string, AnsweredPageContentRequest>();
+
+  for (const event of events) {
+    if (
+      event.kind === "inputRequested" &&
+      event.request.type === "get-urls-html-content" &&
+      !urlsByRequestId.has(event.request.requestId)
+    ) {
+      urlsByRequestId.set(event.request.requestId, event.request.data.urls);
+    } else if (
+      event.kind === "inputResolved" &&
+      event.response.type === "get-urls-html-content" &&
+      !answeredRequestsById.has(event.requestId)
+    ) {
+      answeredRequestsById.set(event.requestId, {
+        requestId: event.requestId,
+        urls:
+          urlsByRequestId.get(event.requestId) ??
+          event.response.data.webPages.map(({ url }) => url),
+        ...(event.response.resolvedBy
+          ? { resolvedBy: event.response.resolvedBy }
+          : {}),
+        resolvedAt: event.occurredAt,
+      });
+    }
+  }
+
+  return [...answeredRequestsById.values()];
+};

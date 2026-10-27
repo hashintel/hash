@@ -11,8 +11,14 @@ export const getMinimalFlowRunsQuery = /* GraphQL */ `
         executedAt
         closedAt
         flowInputs
-        inputRequests
-        outputs
+        flowOutputs {
+          outputName
+          payload
+        }
+        answeredPageContentRequests {
+          urls
+          resolvedBy
+        }
       }
     }
   }

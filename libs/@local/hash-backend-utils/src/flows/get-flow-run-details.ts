@@ -1,8 +1,12 @@
 import { WorkflowNotFoundError } from "@temporalio/client";
 import proto from "@temporalio/proto";
 
-import { findRunFinishedEvent } from "@local/hash-isomorphic-utils/flows/run-events";
+import {
+  findRunFinishedEvent,
+  getInputRequests,
+} from "@local/hash-isomorphic-utils/flows/run-events";
 import { generateStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
+import { getStepRunsFromEvents } from "@local/hash-isomorphic-utils/flows/step-runs";
 import {
   FlowRunStatus,
   FlowStepStatus,
@@ -25,17 +29,15 @@ import type {
   FlowRunRecord,
   FlowRunRecordHeader,
 } from "@local/hash-isomorphic-utils/flows/run-record";
+import type { FlowRunStepRunState } from "@local/hash-isomorphic-utils/flows/step-runs";
 import type {
   DetailedFlowField,
-  ExternalInputRequest,
   FlowRunWithoutEvents,
   ResolvedPayload,
   ResolvedStepOutput,
-  ResolvedStepRunOutput,
   SparseFlowRun,
   StepInput,
   StepOutput,
-  StepRunOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type {
   FlowRun,
@@ -77,10 +79,6 @@ const resolveStoredPayloadsInOutputs = async (
   );
 };
 
-type UnresolvedStepRun = Omit<StepRun, "outputs"> & {
-  outputs?: StepRunOutput[] | null;
-};
-
 type FlowRunEventOfKind<Kind extends FlowRunEvent["kind"]> = Extract<
   FlowRunEvent,
   { kind: Kind }
@@ -100,218 +98,64 @@ const toStepRunId = ({ stepId, itemPath: [itemIndex] }: FlowRunEventStepRun) =>
   itemIndex === undefined ? stepId : generateStepRunId(stepId, itemIndex);
 
 /**
- * Each step run's state after its latest activity event, latest first: its last scheduling's inputs, its latest
- * attempt, and what happened last. A step still scheduled or running when its run stopped early counts as cancelled.
+ * A step run as the `steps` field gives it: its outputs wrapped in the status its action returned, with stored payloads
+ * resolved, and its give-up reason as a Temporal retry state.
  */
-const getStepRunsFromActivityEvents = (
-  runEvents: FlowRunEvent[],
+const toStepRun = async (
   {
-    workflowStoppedEarly,
-    workflowClosedAt,
-  }: { workflowStoppedEarly: boolean; workflowClosedAt?: string },
-): Map<string, UnresolvedStepRun> => {
-  const activitiesByStepRunId = new Map<
-    string,
-    {
-      stepStarted: FlowRunEventOfKind<"stepStarted">;
-      attemptStarted?: FlowRunEventOfKind<"attemptStarted">;
-      attemptFailed?: FlowRunEventOfKind<"attemptFailed">;
-    }
-  >();
-  const stepRunsById = new Map<string, UnresolvedStepRun>();
-
-  for (const event of runEvents) {
-    if (
-      event.kind !== "stepStarted" &&
-      event.kind !== "attemptStarted" &&
-      event.kind !== "attemptSucceeded" &&
-      event.kind !== "attemptFailed" &&
-      event.kind !== "stepGaveUp" &&
-      event.kind !== "attemptCancellationRequested" &&
-      event.kind !== "attemptCancelled"
-    ) {
-      continue;
-    }
-
-    const stepRunId = toStepRunId(event.stepRun);
-
-    if (event.kind === "stepStarted") {
-      activitiesByStepRunId.set(stepRunId, { stepStarted: event });
-    }
-
-    const activity = activitiesByStepRunId.get(stepRunId);
-    if (!activity) {
-      throw new Error(
-        `Step run ${stepRunId} has a ${event.kind} event at ${event.position} before it started`,
-      );
-    }
-
-    if (event.kind === "attemptStarted") {
-      activity.attemptStarted = event;
-    } else if (event.kind === "attemptFailed") {
-      /* Always followed by the step giving up, which records the step's state. */
-      activity.attemptFailed = event;
-      continue;
-    }
-
-    const { stepStarted, attemptStarted } = activity;
-
-    const stepRun: UnresolvedStepRun = {
-      stepId: stepRunId,
-      stepType: `${stepStarted.stepType}Action`,
-      startedAt: attemptStarted?.occurredAt,
-      scheduledAt: stepStarted.occurredAt,
-      closedAt: workflowStoppedEarly ? workflowClosedAt : "",
-      /* Clients receive the action activity's arguments as a step run's inputs, not the `StepInput`s the schema declares. */
-      inputs: [{ inputs: stepStarted.inputs }] as unknown as StepInput[],
-      logs: [],
-      status: workflowStoppedEarly
-        ? FlowStepStatus.Cancelled
-        : FlowStepStatus.Scheduled,
-      attempt: attemptStarted?.attempt ?? 1,
-    };
-
-    switch (event.kind) {
-      case "attemptStarted": {
-        if (!workflowStoppedEarly) {
-          const lastError = event.hiddenAttempts?.lastError;
-
-          stepRun.status = FlowStepStatus.Started;
-          stepRun.lastFailure = lastError;
-          stepRun.logs.push({
-            type: "ActivityFailed",
-            stepId: stepRunId,
-            recordedAt: event.occurredAt,
-            retrying: true,
-            message: lastError?.message ?? "Unknown error",
-          });
-        }
-        break;
-      }
-
-      case "attemptSucceeded": {
-        stepRun.outputs = [
+    gaveUpReason,
+    outputs,
+    outputsMessage,
+    errorStatus,
+    inputs,
+    ...stepRun
+  }: FlowRunStepRunState,
+  resolvePayloadContext: ResolvePayloadContext,
+): Promise<StepRun> => ({
+  ...stepRun,
+  /* Clients receive the action activity's arguments as a step run's inputs, not the `StepInput`s the schema declares. */
+  inputs:
+    stepRun.status === FlowStepStatus.Skipped
+      ? inputs
+      : ([{ inputs }] as unknown as StepInput[]),
+  ...(gaveUpReason
+    ? { retryState: retryStateByGaveUpReason[gaveUpReason] }
+    : {}),
+  ...(outputs
+    ? {
+        outputs: [
           {
             code: StatusCode.Ok,
-            ...(event.message ? { message: event.message } : {}),
-            contents: [{ outputs: event.outputs }],
+            ...(outputsMessage ? { message: outputsMessage } : {}),
+            contents: [
+              {
+                outputs:
+                  (await resolveStoredPayloadsInOutputs(
+                    outputs,
+                    resolvePayloadContext,
+                  )) ?? [],
+              },
+            ],
           },
-        ];
-        stepRun.status = FlowStepStatus.Completed;
-        stepRun.closedAt = event.occurredAt;
-        break;
+        ],
       }
-
-      case "stepGaveUp": {
-        const message =
-          activity.attemptFailed?.error.message ?? "Unknown error";
-
-        stepRun.closedAt = event.occurredAt;
-
-        if (event.reason === "errorStatus") {
+    : errorStatus
+      ? {
           /* The event keeps the status's message, not its code. */
-          stepRun.outputs = [
-            { code: StatusCode.Unknown, message, contents: [] },
-          ];
-          stepRun.status = FlowStepStatus.Failed;
-          break;
+          outputs: [
+            {
+              code: StatusCode.Unknown,
+              message: errorStatus.message,
+              contents: [],
+            },
+          ],
         }
-
-        stepRun.lastFailure = { message };
-        stepRun.retryState = retryStateByGaveUpReason[event.reason];
-
-        if (event.reason === "timedOut") {
-          stepRun.status = FlowStepStatus.TimedOut;
-        } else {
-          stepRun.status = FlowStepStatus.Failed;
-          stepRun.logs.push({
-            type: "ActivityFailed",
-            stepId: stepRunId,
-            recordedAt: event.occurredAt,
-            retrying: false,
-            message,
-          });
-        }
-        break;
-      }
-
-      case "attemptCancellationRequested": {
-        stepRun.status = FlowStepStatus.CancelRequested;
-        break;
-      }
-
-      case "attemptCancelled": {
-        stepRun.status = FlowStepStatus.Cancelled;
-        stepRun.closedAt = event.occurredAt;
-        break;
-      }
-    }
-
-    stepRunsById.delete(stepRunId);
-    stepRunsById.set(stepRunId, stepRun);
-  }
-
-  return new Map([...stepRunsById].reverse());
-};
+      : {}),
+});
 
 /**
- * A run's input requests, from its events, latest first. A request takes its data and time from its first signal, and
- * once answered, its answer and time from its first response. An answered request's `stepId` is `"unresolved"`.
- */
-const getInputRequests = (
-  runEvents: FlowRunEvent[],
-): ExternalInputRequest[] => {
-  const inputRequestsById = new Map<string, ExternalInputRequest>();
-  const lastEventIndexByRequestId = new Map<string, number>();
-
-  for (const [index, event] of runEvents.entries()) {
-    if (event.kind !== "inputRequested" && event.kind !== "inputResolved") {
-      continue;
-    }
-
-    const requestId =
-      event.kind === "inputRequested"
-        ? event.request.requestId
-        : event.requestId;
-    const existingRequest = inputRequestsById.get(requestId);
-
-    lastEventIndexByRequestId.set(requestId, index);
-
-    if (existingRequest?.resolvedAt) {
-      continue;
-    }
-
-    if (event.kind === "inputRequested") {
-      inputRequestsById.set(requestId, {
-        ...event.request,
-        raisedAt: event.occurredAt,
-      });
-    } else {
-      const { data, type } = event.response;
-
-      inputRequestsById.set(requestId, {
-        data: (existingRequest?.data ?? {}) as never,
-        answers: "answers" in data ? data.answers : undefined,
-        requestId,
-        stepId: "unresolved",
-        type,
-        raisedAt: existingRequest?.raisedAt ?? "",
-        resolvedAt: event.occurredAt,
-      });
-    }
-  }
-
-  return [...inputRequestsById.values()].sort(
-    (left, right) =>
-      (lastEventIndexByRequestId.get(right.requestId) ?? 0) -
-      (lastEventIndexByRequestId.get(left.requestId) ?? 0),
-  );
-};
-
-/**
- * A completed run's outputs as GraphQL gives them: as its workflow returned them, with stored payloads resolved. Its
- * `runFinished` event doesn't keep the status codes the workflow returned, so the run's is OK and its step errors' are
- * UNKNOWN.
+ * A completed run's outputs as GraphQL gives them: as its workflow returned them, with stored payloads resolved. The
+ * run's status is OK, and a step error recorded before its code was is UNKNOWN.
  */
 const getWorkflowOutputs = async (
   { flowOutputs, stepErrors }: FlowRunEventOfKind<"runFinished">,
@@ -340,7 +184,7 @@ const getWorkflowOutputs = async (
           ...(stepErrors
             ? {
                 stepErrors: stepErrors.map(({ stepRun, error }) => ({
-                  code: StatusCode.Unknown,
+                  code: error.code ?? StatusCode.Unknown,
                   message: error.message,
                   contents: [{ stepId: toStepRunId(stepRun) }],
                 })),
@@ -352,13 +196,6 @@ const getWorkflowOutputs = async (
   ];
 };
 
-const stoppedEarlyStatuses: FlowRunStatus[] = [
-  FlowRunStatus.Terminated,
-  FlowRunStatus.Cancelled,
-  FlowRunStatus.TimedOut,
-  FlowRunStatus.Failed,
-];
-
 /**
  * A run's detailed fields, from its record. Stored payloads in outputs are resolved through `resolvePayloadContext`.
  */
@@ -366,101 +203,10 @@ export const getFlowRunDetailedFieldsFromRecord = async (
   { header, events: runEvents }: FlowRunRecord,
   resolvePayloadContext: ResolvePayloadContext,
 ): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> => {
-  const inputRequests = getInputRequests(runEvents);
-
-  const workflowStoppedEarly = stoppedEarlyStatuses.includes(header.status);
-
-  const stepRunsById = getStepRunsFromActivityEvents(runEvents, {
-    workflowStoppedEarly,
-    workflowClosedAt: header.closedAt,
-  });
-
-  for (const event of runEvents) {
-    if (event.kind !== "progressLogged") {
-      continue;
-    }
-
-    const stepRun = stepRunsById.get(event.log.stepId);
-    if (!stepRun) {
-      throw new Error(
-        `No step run ${event.log.stepId} for the log at ${event.position}`,
-      );
-    }
-
-    stepRun.logs.push(event.log);
-  }
-
-  for (const inputRequest of inputRequests) {
-    if (!workflowStoppedEarly && !inputRequest.resolvedAt) {
-      const step = stepRunsById.get(inputRequest.stepId);
-      if (!step) {
-        throw new Error(
-          `Could not find step with id ${inputRequest.stepId} for input request with id ${inputRequest.requestId}`,
-        );
-      }
-      step.status = FlowStepStatus.InformationRequired;
-    }
-  }
-
-  for (const event of runEvents) {
-    if (event.kind !== "stepSkipped") {
-      continue;
-    }
-
-    const stepRunId = toStepRunId(event.stepRun);
-
-    stepRunsById.set(stepRunId, {
-      stepId: stepRunId,
-      stepType: event.stepType,
-      scheduledAt: event.occurredAt,
-      closedAt: event.occurredAt,
-      attempt: 0,
-      inputs: [],
-      logs: [],
-      status: FlowStepStatus.Skipped,
-    });
-  }
-
-  for (const step of stepRunsById.values()) {
-    step.logs.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
-  }
-
-  // Resolve any stored payload references in step outputs
-  const steps: StepRun[] = await Promise.all(
-    [...stepRunsById.values()].map(async (step) => {
-      if (!step.outputs) {
-        return step as StepRun;
-      }
-
-      const resolvedOutputs = await Promise.all(
-        step.outputs.map(async (output) => {
-          const firstContent = output.contents[0];
-          if (!firstContent?.outputs) {
-            return output as ResolvedStepRunOutput;
-          }
-
-          const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(
-            firstContent.outputs,
-            resolvePayloadContext,
-          );
-
-          return {
-            ...output,
-            contents: [
-              {
-                ...firstContent,
-                outputs: resolvedInnerOutputs ?? [],
-              },
-            ],
-          };
-        }),
-      );
-
-      return {
-        ...step,
-        outputs: resolvedOutputs,
-      };
-    }),
+  const steps = await Promise.all(
+    getStepRunsFromEvents(runEvents, header).map((stepRun) =>
+      toStepRun(stepRun, resolvePayloadContext),
+    ),
   );
 
   const runStartedEvent = runEvents.find(
@@ -484,7 +230,7 @@ export const getFlowRunDetailedFieldsFromRecord = async (
     outputs: runFinishedEvent
       ? await getWorkflowOutputs(runFinishedEvent, resolvePayloadContext)
       : undefined,
-    inputRequests,
+    inputRequests: getInputRequests(runEvents),
     steps,
     startedAt: header.firstRunStartedAt ?? header.startedAt,
   };

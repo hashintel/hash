@@ -144,6 +144,10 @@ export const flowTypedef = gql`
 
   type FlowRunError {
     message: String!
+    """
+    The code of the status the run or step failed with (a \`StatusCode\` from \`@local/status\`), when it gave one.
+    """
+    code: String
   }
 
   """
@@ -152,6 +156,19 @@ export const flowTypedef = gql`
   type FlowRunStepError {
     stepRun: FlowRunStepRun!
     error: FlowRunError!
+  }
+
+  """
+  A run's request for the content of web pages, answered by a user's browser.
+  """
+  type FlowRunPageContentRequest {
+    requestId: String!
+    urls: [String!]!
+    """
+    The user whose browser answered, when the run's history records it.
+    """
+    resolvedBy: ActorEntityUuid
+    resolvedAt: String!
   }
 
   type FlowRun {
@@ -221,6 +238,18 @@ export const flowTypedef = gql`
     Steps that failed after their action returned, once the run has ended, if it records them.
     """
     stepErrors: [FlowRunStepError!]
+    """
+    When anything last happened in the run: when it closed, or else its latest event.
+    """
+    lastActivityAt: String!
+    """
+    The run's requests for input that haven't been answered, latest first. Empty once the run has stopped.
+    """
+    openInputRequests: [ExternalInputRequest!]!
+    """
+    The run's requests for the content of web pages that a user's browser has answered.
+    """
+    answeredPageContentRequests: [FlowRunPageContentRequest!]!
     """
     Any requests for external input made by steps within the Flow
     """

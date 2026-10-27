@@ -4,6 +4,8 @@ import {
   getFlowRunEntityById,
   getFlowRuns,
 } from "@local/hash-backend-utils/flows";
+import { getFlowRunRecord } from "@local/hash-backend-utils/flows/run-record";
+import { getOpenInputRequests } from "@local/hash-isomorphic-utils/flows/run-events";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
 import { assertNoStoredPayloadRefsInFlowInputs } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 
@@ -79,21 +81,38 @@ const inferEntitiesMessageHandler = async ({
         authentication: { actorId: user.accountId },
         filters: { executionStatus: FlowRunStatus.Running },
         graphApiClient,
-        includeDetails: true,
+        includeDetails: false,
         storageProvider,
         temporalClient,
       });
 
-      for (const flowRun of openFlowRuns.flowRuns) {
-        for (const inputRequest of flowRun.inputRequests) {
-          if (!inputRequest.resolvedAt) {
-            const requestMessage: ExternalInputWebsocketRequestMessage = {
-              flowRunEntityId: flowRun.flowRunEntityId,
-              payload: inputRequest,
-              type: "external-input-request",
-            };
-            socket.send(JSON.stringify(requestMessage));
-          }
+      for (const { flowRunEntityId } of openFlowRuns.flowRuns) {
+        const flowRunEntity = await getFlowRunEntityById({
+          userAuthentication: { actorId: user.accountId },
+          flowRunEntityId,
+          graphApiClient,
+        });
+
+        if (!flowRunEntity) {
+          continue;
+        }
+
+        const { events } = await getFlowRunRecord({
+          storageProvider,
+          temporalClient,
+          workflowId:
+            flowRunEntity.properties[
+              "https://hash.ai/@h/types/property-type/workflow-id/"
+            ],
+        });
+
+        for (const inputRequest of getOpenInputRequests(events)) {
+          const requestMessage: ExternalInputWebsocketRequestMessage = {
+            flowRunEntityId,
+            payload: inputRequest,
+            type: "external-input-request",
+          };
+          socket.send(JSON.stringify(requestMessage));
         }
       }
       return;

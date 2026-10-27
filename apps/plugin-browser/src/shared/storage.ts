@@ -101,7 +101,6 @@ export type MinimalFlowRun = Pick<
   | "executedAt"
   | "status"
   | "flowInputs"
-  | "inputRequests"
 > & { persistedEntities: PersistedEntityMetadata[]; webPage: WebPage };
 
 /**

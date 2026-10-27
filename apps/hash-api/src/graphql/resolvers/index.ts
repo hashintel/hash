@@ -10,6 +10,11 @@ import {
 } from "./flows/flow-run-ending";
 import { flowRunEventsResolver } from "./flows/flow-run-events";
 import {
+  flowRunAnsweredPageContentRequestsResolver,
+  flowRunLastActivityAtResolver,
+  flowRunOpenInputRequestsResolver,
+} from "./flows/flow-run-list-fields";
+import {
   archiveFlowScheduleResolver,
   createFlowScheduleResolver,
   pauseFlowScheduleResolver,
@@ -344,6 +349,9 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     flowOutputs: flowRunFlowOutputsResolver,
     failure: flowRunFailureResolver,
     stepErrors: flowRunStepErrorsResolver,
+    lastActivityAt: flowRunLastActivityAtResolver,
+    openInputRequests: flowRunOpenInputRequestsResolver,
+    answeredPageContentRequests: flowRunAnsweredPageContentRequestsResolver,
   },
 
   EntityAuthorizationSubject: {

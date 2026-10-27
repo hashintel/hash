@@ -5,11 +5,9 @@ import type { DeliverableData } from "./outputs/deliverables/shared/types";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 export const getDeliverables = (
-  outputs: FlowRun["outputs"] | undefined,
+  flowOutputs: FlowRun["flowOutputs"] | undefined,
   persistedEntities: HashEntity[],
 ): DeliverableData[] => {
-  const flowOutputs = outputs?.[0]?.contents[0]?.outputs;
-
   const deliverables: DeliverableData[] = [];
 
   for (const output of flowOutputs ?? []) {

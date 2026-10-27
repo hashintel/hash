@@ -15,19 +15,9 @@ export const getFlowRunsQuery = gql`
         startedAt
         executedAt
         closedAt
-        # Requesting 'inputRequests' requires the API going through the event history for each flow run,
-        # which ideally we would not have to do when requesting all flow runs.
-        # This field is required to indicate goals which are pending input on the /goals page
-        # @todo consider some way of caching a 'input requested' status to avoid this, e.g. on the Flow entity
-        inputRequests
-        # We need 'steps' to be able to populate the 'last event occurred at' field in a goals list,
-        # Similarly to 'inputRequests', this involves going through the event history for each flow run
-        steps {
-          scheduledAt
-          startedAt
-          closedAt
-          logs
-        }
+        # For the goals list. Both read the history of a run that hasn't closed.
+        lastActivityAt
+        openInputRequests
       }
     }
   }
@@ -40,29 +30,40 @@ export const getFlowRunById = gql`
       flowDefinitionEntityId
       flowRunEntityId
       flowScheduleId
-      failureMessage
       webId
       status
       startedAt
       executedAt
       closedAt
-      inputRequests
       flowInputs
       dataSources
-      outputs
-      steps {
-        stepId
-        stepType
-        status
-        scheduledAt
-        startedAt
-        closedAt
-        attempt
-        lastFailure
-        retryState
-        inputs
-        outputs
-        logs
+      flowOutputs {
+        outputName
+        payload
+      }
+      failure {
+        message
+        code
+      }
+    }
+  }
+`;
+
+export const getFlowRunEventsQuery = gql`
+  query getFlowRunEvents(
+    $flowRunEntityId: EntityId!
+    $after: String
+    $first: Int
+  ) {
+    getFlowRunById(flowRunEntityId: $flowRunEntityId) {
+      flowRunEntityId
+      events(after: $after, first: $first) {
+        endCursor
+        hasNextPage
+        runId
+        restarted
+        keptUpTo
+        events
       }
     }
   }

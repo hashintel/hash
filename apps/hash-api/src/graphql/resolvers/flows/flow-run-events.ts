@@ -1,4 +1,7 @@
-import { pageFlowRunEvents } from "@local/hash-backend-utils/flows/run-events";
+import {
+  pageFlowRunEvents,
+  resolveStoredPayloadsInEvents,
+} from "@local/hash-backend-utils/flows/run-events";
 
 import * as Error from "../../error";
 import { getRecordOfFlowRun } from "./shared/get-record-of-flow-run";
@@ -23,9 +26,18 @@ export const flowRunEventsResolver: ResolverFn<
 > = async (flowRun, { after, first }, context) => {
   const { header, events } = await getRecordOfFlowRun(flowRun, context);
 
+  let page: ReturnType<typeof pageFlowRunEvents>;
   try {
-    return pageFlowRunEvents({ events, runId: header.runId, after, first });
+    page = pageFlowRunEvents({ events, runId: header.runId, after, first });
   } catch (error) {
     throw Error.badRequest((error as Error).message);
   }
+
+  return {
+    ...page,
+    events: await resolveStoredPayloadsInEvents(page.events, {
+      storageProvider: context.dataSources.uploadProvider,
+      workflowId: header.workflowId,
+    }),
+  };
 };
