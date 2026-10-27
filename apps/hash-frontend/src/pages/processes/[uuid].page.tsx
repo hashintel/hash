@@ -14,16 +14,15 @@ import type { NextPageWithLayout } from "../../shared/layout";
  * Single page backing both `/processes/draft` and `/processes/<uuid>`.
  *
  * We deliberately render `<ProcessEditor>` even before `router.isReady`
- * (passing `view={null}`) so the editor's iframe element commits on the
- * very first React render. That parallelises the iframe-bundle download
- * with `router` resolution + Apollo's `persistedNets` query — the iframe
- * starts loading immediately and is typically ready by the time we have
- * everything we need to send `init`.
+ * (passing `view={null}`) so the editor starts loading on the very first
+ * React render. That parallelises the editor-bundle download with `router`
+ * resolution + Apollo's `persistedNets` query — the editor is typically
+ * ready by the time we have everything we need to send `init`.
  *
- * `ProcessEditor` itself isn't imported via `next/dynamic` any more
- * because it no longer pulls Petrinaut into its bundle — only an iframe
- * element and the postMessage bridge — so chunk-splitting it just costs an
- * extra round-trip for no payoff.
+ * `ProcessEditor` itself isn't imported via `next/dynamic` because it
+ * already loads the Petrinaut editor through its own client-only dynamic
+ * import, leaving only the host and the postMessage bridge in its bundle —
+ * so chunk-splitting it just costs an extra round-trip for no payoff.
  */
 const ProcessRoutePage: NextPageWithLayout = () => {
   const router = useRouter();

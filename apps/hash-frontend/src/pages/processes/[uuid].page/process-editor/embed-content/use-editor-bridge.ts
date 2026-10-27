@@ -1,29 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import {
-  type HostToIframeMessage,
-  type IframeToHostMessage,
-  isHostToIframeMessage,
+  type HostToEditorMessage,
+  type EditorToHostMessage,
+  isHostToEditorMessage,
 } from "../shared/messages";
 
-type IframeBridgeHandlers = {
-  onInit: (payload: Extract<HostToIframeMessage, { kind: "init" }>) => void;
-  onLoad: (payload: Extract<HostToIframeMessage, { kind: "load" }>) => void;
+type EditorBridgeHandlers = {
+  onInit: (payload: Extract<HostToEditorMessage, { kind: "init" }>) => void;
+  onLoad: (payload: Extract<HostToEditorMessage, { kind: "load" }>) => void;
   onSetReadonly?: (readonly: boolean) => void;
   onRevisionsList?: (
     revisions: Extract<
-      HostToIframeMessage,
+      HostToEditorMessage,
       { kind: "revisionsList" }
     >["revisions"],
   ) => void;
   onSaveResult: (
-    payload: Extract<HostToIframeMessage, { kind: "saveResult" }>,
+    payload: Extract<HostToEditorMessage, { kind: "saveResult" }>,
   ) => void;
 };
 
-type IframeBridge = {
+type EditorBridge = {
   /** Send a message up to the host. */
-  send: (message: IframeToHostMessage) => void;
+  send: (message: EditorToHostMessage) => void;
 };
 
 /**
@@ -33,15 +33,15 @@ type IframeBridge = {
  * - Posts a `ready` message exactly once on mount so the host can push `init`.
  * - Listens for messages on `window` and dispatches them to the matching
  *   handler. Messages from any source other than this window are dropped, so
- *   an iframe's postMessage can't drive the bridge. Host and editor message
+ *   another frame or window can't drive the bridge. Host and editor message
  *   kinds are disjoint, so the editor ignores its own messages.
  *
  * Like the host hook, handlers are stored in a ref so the listener doesn't
  * need to re-attach when handler identities change.
  */
-export const useIframeBridge = (
-  handlers: IframeBridgeHandlers,
-): IframeBridge => {
+export const useEditorBridge = (
+  handlers: EditorBridgeHandlers,
+): EditorBridge => {
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
 
@@ -51,7 +51,7 @@ export const useIframeBridge = (
         return;
       }
       const data = event.data as unknown;
-      if (!isHostToIframeMessage(data)) {
+      if (!isHostToEditorMessage(data)) {
         return;
       }
 
@@ -78,16 +78,16 @@ export const useIframeBridge = (
     window.addEventListener("message", onMessage);
 
     window.postMessage(
-      { kind: "ready" } satisfies IframeToHostMessage,
+      { kind: "ready" } satisfies EditorToHostMessage,
       window.location.origin,
     );
 
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
-  const send = useCallback<IframeBridge["send"]>((message) => {
+  const send = useCallback<EditorBridge["send"]>((message) => {
     window.postMessage(message, window.location.origin);
   }, []);
 
-  return useMemo<IframeBridge>(() => ({ send }), [send]);
+  return useMemo<EditorBridge>(() => ({ send }), [send]);
 };

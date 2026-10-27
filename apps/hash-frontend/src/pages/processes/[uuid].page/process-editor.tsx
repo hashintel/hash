@@ -158,8 +158,8 @@ const ProcessEditorLoadingSkeleton = () => (
 
 /**
  * Process editor host. Renders the Petrinaut editor ({@link EmbedContent})
- * in this page and drives it over the bridge messages in `../shared/`,
- * posted through this window.
+ * in this page and drives it over the bridge messages in
+ * `./process-editor/shared/`, posted through this window.
  *
  * The host owns:
  * - URL routing and the discard-changes modal

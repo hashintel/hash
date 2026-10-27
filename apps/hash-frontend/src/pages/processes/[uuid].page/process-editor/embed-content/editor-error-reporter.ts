@@ -1,7 +1,7 @@
-import type { HostNetMode, IframeToHostMessage } from "../shared/messages";
+import type { HostNetMode, EditorToHostMessage } from "../shared/messages";
 import type { ErrorTrackerCaptureContext } from "@hashintel/petrinaut";
 
-type ReportError = Extract<IframeToHostMessage, { kind: "reportError" }>;
+type ReportError = Extract<EditorToHostMessage, { kind: "reportError" }>;
 
 let activeMode: HostNetMode | null = null;
 
@@ -39,7 +39,7 @@ const post = (
   if (typeof window === "undefined") {
     return;
   }
-  const message: IframeToHostMessage = {
+  const message: EditorToHostMessage = {
     kind: "reportError",
     source,
     ...serializeError(raw),
@@ -51,11 +51,11 @@ const post = (
 
 /**
  * Records the active net mode so subsequent error reports include it. The
- * iframe bridge calls this in response to `init` / `load` messages so the
+ * editor calls this when it handles `init` / `load` messages so the
  * host can tag Sentry events with which net the user was editing when
  * the error fired.
  */
-export const setIframeErrorReporterMode = (mode: HostNetMode | null): void => {
+export const setEditorErrorReporterMode = (mode: HostNetMode | null): void => {
   activeMode = mode;
 };
 
@@ -64,7 +64,7 @@ export const setIframeErrorReporterMode = (mode: HostNetMode | null): void => {
  * the tags it attached and its `source` as the `petrinaut.origin` tag.
  * Petrinaut's boundaries keep these from the app's `ErrorBoundary`.
  */
-export const reportIframePetrinautError = (
+export const reportEditorPetrinautError = (
   error: unknown,
   context?: ErrorTrackerCaptureContext,
 ): void => {

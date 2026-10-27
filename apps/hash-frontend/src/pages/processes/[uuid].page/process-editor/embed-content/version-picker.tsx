@@ -21,8 +21,8 @@ import type { RevisionSummary } from "../shared/messages";
 
 /**
  * Locale is left `undefined` so `Intl.DateTimeFormat` picks up the browser's
- * preference. The embed page renders client-side only (Petrinaut requires
- * browser APIs), so there's no SSR/hydration mismatch risk.
+ * preference. The process editor loads the editor client-side only (Petrinaut
+ * requires browser APIs), so there's no SSR/hydration mismatch risk.
  */
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   day: "2-digit",
