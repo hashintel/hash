@@ -253,10 +253,6 @@ From `@hashintel/petrinaut/ui/plugin`. `<Petrinaut>` itself comes from `@hashint
 ### Helpers
 
 - `describeRefusal(reason)`: a sentence for a refusal.
-- `pickAssistant(assistants, chosenId)`: the assistant the editor shows among
-  `assistants`, anything with a `manifest.id`: the one with `chosenId`, else
-  the first. A host passes its assistant plugins less those the user switched
-  off, with `assistantPluginId` from `UserSettingsContext`.
 - `pluginCommandId(id, key)`: `<plugin id>.<key>`, the id a declared command
   registers under.
 - `parseDocumentUri(uri)`: the code document a diagnostics key names, as
