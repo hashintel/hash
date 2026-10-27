@@ -442,6 +442,11 @@ describe("import_bindings", () => {
     ).toThrow(TypeError);
   });
 
+  test("type_only_export", () => {
+    expect.hasAssertions();
+    expect(Object.hasOwn(Import, "Bindings")).toBe(false);
+  });
+
   test("ordinary_records_remain_conservative", () => {
     expect.hasAssertions();
     const scope = {

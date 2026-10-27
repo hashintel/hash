@@ -31,7 +31,7 @@ export type TypeId = "~hashql/Import";
 const TypeId: TypeId = "~hashql/Import";
 
 /** The bindings an import adds to a scope, with the source module and selection that produced them. */
-export * as Bindings from "./Bindings.js";
+export type * as Bindings from "./Bindings.js";
 
 /**
  * The exports an import brings into scope and the local names they take.
