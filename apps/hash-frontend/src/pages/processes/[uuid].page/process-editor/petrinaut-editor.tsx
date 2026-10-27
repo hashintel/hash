@@ -207,24 +207,23 @@ const computeIsDirty = (
 };
 
 /**
- * A save the editor started, as its load committed it: what it saved, and
- * whether edits made meanwhile leave the committed load dirty.
+ * The agent's save waiting on the editor, for the load whose handle it names,
+ * from its start until the editor commits its snapshot or abandons it.
  */
-type CompletedSave = {
-  decisionTime: string | null;
-  title: string;
-  stillDirty: boolean;
+type AgentSaveInFlight = {
+  handle: PetrinautDocHandle;
+  /**
+   * What the host's save wrote, once it resolved, until the load commits it;
+   * compared with the committed snapshot by identity.
+   */
+  snapshot: NonNullable<SavedSnapshot> | null;
+  settle: (outcome: HashSaveOutcome) => void;
 };
 
-/**
- * A save whose host save resolved and whose snapshot `handle`'s session holds
- * but React may not yet have committed. `snapshot` is compared by identity.
- */
-type SaveAwaitingCommit = {
-  handle: PetrinautDocHandle;
-  snapshot: NonNullable<SavedSnapshot>;
-  committed: (save: CompletedSave) => void;
-};
+const abandonErrors = {
+  reloaded: "The editor reloaded before the save was confirmed.",
+  closed: "The editor closed before the save was confirmed.",
+} as const;
 
 const abortReasonOf = (signal: AbortSignal): Error =>
   signal.reason instanceof Error
@@ -342,30 +341,62 @@ export const PetrinautEditor = ({
   }, [handle, isDirty, onDirtyChange]);
 
   /**
-   * The one save waiting for its snapshot to commit. It belongs to the load
-   * whose handle it names: a commit of another load drops it, leaving the
-   * agent's save to Brunch's abort, as does closing the editor.
+   * The agent's save waiting on the editor, until it settles; Brunch runs one
+   * at a time, and the agent's save of the same load is refused meanwhile,
+   * including after its host save resolved and before its snapshot commits.
    */
-  const saveAwaitingCommitRef = useRef<SaveAwaitingCommit | null>(null);
+  const agentSaveRef = useRef<AgentSaveInFlight | null>(null);
+
+  /**
+   * Settles the agent's save for an editor that will never confirm it: as
+   * saved, with the convention that nothing is left unsaved, when its host
+   * save had resolved, otherwise as unconfirmed. A host result arriving
+   * afterwards settles nothing.
+   */
+  const abandonAgentSave = useCallback((cause: keyof typeof abandonErrors) => {
+    const abandoned = agentSaveRef.current;
+    if (!abandoned) {
+      return;
+    }
+    agentSaveRef.current = null;
+    abandoned.settle(
+      abandoned.snapshot
+        ? {
+            saved: true,
+            decisionTime: abandoned.snapshot.decisionTime,
+            title: abandoned.snapshot.title,
+            stillDirty: false,
+          }
+        : { saved: false, error: abandonErrors[cause] },
+    );
+  }, []);
+
+  /**
+   * Settles the agent's save once its load commits its snapshot, with the
+   * dirty state committed then, and abandons it once another load commits.
+   */
   useLayoutEffect(() => {
-    const awaiting = saveAwaitingCommitRef.current;
-    if (!awaiting) {
+    const inFlight = agentSaveRef.current;
+    if (!inFlight) {
       return;
     }
-    if (awaiting.handle !== session?.handle) {
-      saveAwaitingCommitRef.current = null;
+    if (inFlight.handle !== session?.handle) {
+      abandonAgentSave("reloaded");
       return;
     }
-    if (session.savedSnapshot !== awaiting.snapshot) {
+    if (!inFlight.snapshot || session.savedSnapshot !== inFlight.snapshot) {
       return;
     }
-    saveAwaitingCommitRef.current = null;
-    awaiting.committed({
-      decisionTime: awaiting.snapshot.decisionTime,
-      title: awaiting.snapshot.title,
+    agentSaveRef.current = null;
+    inFlight.settle({
+      saved: true,
+      decisionTime: inFlight.snapshot.decisionTime,
+      title: inFlight.snapshot.title,
       stillDirty: isDirty,
     });
-  }, [isDirty, session]);
+  }, [abandonAgentSave, isDirty, session]);
+
+  useEffect(() => () => abandonAgentSave("closed"), [abandonAgentSave]);
 
   /** Read by Brunch's tools when they need the title. */
   const readTitle = useCallback(() => liveSessionRef.current?.title ?? "", []);
@@ -428,11 +459,13 @@ export const PetrinautEditor = ({
    * it is pending, or with no net to submit. Its completion marks what it
    * submitted as saved, so edits made meanwhile stay dirty, and applies only
    * while the same load is open. The promise settles when the host's save
-   * does, rejecting when it failed; `committed` is called only once React
-   * commits the saved snapshot in the same load.
+   * does, rejecting when it failed; `hostSaved` is called with the snapshot
+   * the load is about to hold, only while the load is still open.
    */
   const startSave = useCallback(
-    (committed?: (save: CompletedSave) => void): Promise<void> | null => {
+    (
+      hostSaved?: (snapshot: NonNullable<SavedSnapshot>) => void,
+    ): Promise<void> | null => {
       const live = liveSessionRef.current;
       if (!live || live.savePending) {
         return null;
@@ -458,12 +491,8 @@ export const PetrinautEditor = ({
             title,
             decisionTime: saved.decisionTime,
           };
-          if (committed && liveSessionRef.current?.handle === savedHandle) {
-            saveAwaitingCommitRef.current = {
-              handle: savedHandle,
-              snapshot,
-              committed,
-            };
+          if (liveSessionRef.current?.handle === savedHandle) {
+            hostSaved?.(snapshot);
           }
           updateSession(savedHandle, (current) => ({
             ...current,
@@ -498,7 +527,7 @@ export const PetrinautEditor = ({
             ? "That isn't the net open in the editor."
             : hostSaveRef.current.readonly
               ? "The user can't edit this net, so they can't save it."
-              : live.savePending
+              : live.savePending || agentSaveRef.current?.handle === live.handle
                 ? "A save of this net is already in progress."
                 : null;
       return {
@@ -513,9 +542,9 @@ export const PetrinautEditor = ({
   /**
    * The Save button's save, for the agent once the user has approved it. It
    * settles once the editor commits the saved snapshot, with the dirty state
-   * committed then, or with the host's error when the save failed. Aborting
-   * rejects it without cancelling a save already submitted; a load or close
-   * before the snapshot commits leaves it to that abort.
+   * committed then, with the host's error when the save failed, or as the
+   * editor abandons it when another load commits or the editor closes first.
+   * Aborting rejects it without cancelling a save already submitted.
    */
   const saveNetForAgent = useCallback<SaveNetForAgent>(
     (documentId, signal) => {
@@ -529,31 +558,47 @@ export const PetrinautEditor = ({
           reason: refusal,
         });
       }
+      const sessionHandle = liveSessionRef.current?.handle;
+      if (!sessionHandle) {
+        return Promise.reject(new Error("The editor did not start the save."));
+      }
       return new Promise<HashSaveOutcome>((resolve, reject) => {
         /** Ends listening for the abort once the save settles. */
         const listening = new AbortController();
-        const committed = (completed: CompletedSave) => {
-          listening.abort();
-          resolve({ saved: true, ...completed });
+        const inFlight: AgentSaveInFlight = {
+          handle: sessionHandle,
+          snapshot: null,
+          settle: (outcome) => {
+            listening.abort();
+            resolve(outcome);
+          },
         };
-        const saving = startSave(committed);
+        const saving = startSave((snapshot) => {
+          if (agentSaveRef.current === inFlight) {
+            inFlight.snapshot = snapshot;
+          }
+        });
         if (!saving) {
           reject(new Error("The editor did not start the save."));
           return;
         }
+        agentSaveRef.current = inFlight;
         signal.addEventListener(
           "abort",
           () => {
-            if (saveAwaitingCommitRef.current?.committed === committed) {
-              saveAwaitingCommitRef.current = null;
+            if (agentSaveRef.current === inFlight) {
+              agentSaveRef.current = null;
             }
             reject(abortReasonOf(signal));
           },
           { once: true, signal: listening.signal },
         );
         saving.catch((error: unknown) => {
-          listening.abort();
-          resolve({
+          if (agentSaveRef.current !== inFlight) {
+            return;
+          }
+          agentSaveRef.current = null;
+          inFlight.settle({
             saved: false,
             error: error instanceof Error ? error.message : String(error),
           });

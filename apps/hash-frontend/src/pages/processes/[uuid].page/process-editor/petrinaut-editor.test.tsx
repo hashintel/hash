@@ -677,7 +677,7 @@ test("the agent's save stays unsettled after the host's save resolves until the 
   });
 });
 
-test("a load after the host's save resolves but before its snapshot commits leaves the agent's save to Brunch's abort", async () => {
+test("a load after the host's save resolves but before its snapshot commits settles the agent's save as saved, with nothing left unsaved", async () => {
   const pending = deferred<PetrinautEditorSaved>();
   onSave.mockReturnValue(pending.promise);
   const { rerender } = await renderBrunchEditor();
@@ -687,23 +687,147 @@ test("a load after the host's save resolves but before its snapshot commits leav
   await waitFor(() => expect(lastTopBar()?.persistPending).toBe(true));
   const savingHandle = lastHandle();
 
-  pending.resolve({
-    entityId: savedEntityId,
-    decisionTime: "2026-10-24T01:00:00.000Z",
-  });
+  const decisionTime = "2026-10-24T01:00:00.000Z";
+  pending.resolve({ entityId: savedEntityId, decisionTime });
   await flushMicrotasks();
   expect(save.state.settled).toBe(false);
 
   // The next commit is of another load, not of the saved snapshot.
   const otherVersion = "2026-10-23T00:00:00.000Z";
   rerender({ load: savedLoad(otherVersion) });
-  await act(async () => {});
   expect(lastHandle()).not.toBe(savingHandle);
   expect(lastTopBar()?.loadedRevisionTime).toBe(otherVersion);
+  await expect(save.settled).resolves.toEqual({
+    saved: true,
+    decisionTime,
+    title: "Net",
+    stillDirty: false,
+  });
+
+  // Brunch's later abort finds it settled.
+  controller.abort(new Error("Brunch stopped the turn"));
+  await expect(save.settled).resolves.toMatchObject({ saved: true });
+});
+
+test.each([
+  {
+    abandoned: "closing the editor",
+    abandon: () => cleanup(),
+    error: "The editor closed before the save was confirmed.",
+  },
+  {
+    abandoned: "another load",
+    abandon: (rerender: (next: EditorProps) => void) =>
+      rerender({ load: savedLoad("2026-10-23T00:00:00.000Z") }),
+    error: "The editor reloaded before the save was confirmed.",
+  },
+])(
+  "$abandoned before the host's save resolves settles the agent's save as unconfirmed, and the late result settles nothing",
+  async ({ abandon, error }) => {
+    const pending = deferred<PetrinautEditorSaved>();
+    onSave.mockReturnValue(pending.promise);
+    const { rerender } = await renderBrunchEditor();
+    editNet("before-save");
+    const controller = new AbortController();
+    const save = agentSave(savedEntityId, controller.signal);
+    await waitFor(() => expect(lastTopBar()?.persistPending).toBe(true));
+
+    act(() => abandon(rerender));
+    await expect(save.settled).resolves.toEqual({ saved: false, error });
+
+    await act(async () => {
+      pending.resolve({
+        entityId: savedEntityId,
+        decisionTime: "2026-10-24T01:00:00.000Z",
+      });
+      await pending.promise;
+    });
+    controller.abort(new Error("Brunch stopped the turn"));
+    await expect(save.settled).resolves.toEqual({ saved: false, error });
+    expect(onSave).toHaveBeenCalledOnce();
+  },
+);
+
+test("closing the editor after the host's save resolves but before its snapshot commits settles the agent's save as saved, with nothing left unsaved", async () => {
+  const pending = deferred<PetrinautEditorSaved>();
+  onSave.mockReturnValue(pending.promise);
+  await renderBrunchEditor();
+  editNet("before-save");
+  const save = agentSave(savedEntityId);
+  await waitFor(() => expect(lastTopBar()?.persistPending).toBe(true));
+
+  const decisionTime = "2026-10-24T01:00:00.000Z";
+  pending.resolve({ entityId: savedEntityId, decisionTime });
+  await flushMicrotasks();
   expect(save.state.settled).toBe(false);
 
-  controller.abort(new Error("Brunch stopped the turn"));
-  await expect(save.settled).rejects.toThrow("Brunch stopped the turn");
+  cleanup();
+  await expect(save.settled).resolves.toEqual({
+    saved: true,
+    decisionTime,
+    title: "Net",
+    stillDirty: false,
+  });
+});
+
+test("a second agent save while the first awaits its commit is refused as in progress, and the first still settles from its commit", async () => {
+  const pending = deferred<PetrinautEditorSaved>();
+  onSave.mockReturnValue(pending.promise);
+  await renderBrunchEditor();
+  editNet("before-save");
+  const first = agentSave(savedEntityId);
+  await waitFor(() => expect(lastTopBar()?.persistPending).toBe(true));
+  const rendersBefore = observed.topBars.length;
+
+  // The host's save resolves, outside any act, so React has not rendered.
+  const decisionTime = "2026-10-24T01:00:00.000Z";
+  pending.resolve({ entityId: savedEntityId, decisionTime });
+  await flushMicrotasks();
+  lastEditorHandle()?.change((draft) => {
+    draft.places[0]!.name = "after-completion";
+  });
+
+  const reason = "A save of this net is already in progress.";
+  expect(lastBrunchInput()?.readSaveState?.(savedEntityId).refusal).toBe(
+    reason,
+  );
+  await expect(agentSave(savedEntityId).settled).resolves.toEqual({
+    applied: false,
+    reason,
+  });
+  expect(observed.topBars).toHaveLength(rendersBefore);
+  expect(first.state.settled).toBe(false);
+  expect(onSave).toHaveBeenCalledOnce();
+
+  await act(async () => {});
+  await expect(first.settled).resolves.toEqual({
+    saved: true,
+    decisionTime,
+    title: "Net",
+    stillDirty: true,
+  });
+  // Once it settles, the agent may save again.
+  expect(lastBrunchInput()?.readSaveState?.(savedEntityId).refusal).toBeNull();
+});
+
+test("an agent save abandoned by a load doesn't keep the new load's agent save from starting", async () => {
+  onSave.mockReturnValueOnce(deferred<PetrinautEditorSaved>().promise);
+  const { rerender } = await renderBrunchEditor();
+  const abandoned = agentSave(savedEntityId);
+
+  rerender({ load: savedLoad("2026-10-23T00:00:00.000Z") });
+  await expect(abandoned.settled).resolves.toMatchObject({ saved: false });
+  await waitFor(() => expect(lastBrunchInput()?.selected).toBe(true));
+
+  onSave.mockResolvedValueOnce({
+    entityId: savedEntityId,
+    decisionTime: "2026-10-24T01:00:00.000Z",
+  });
+  expect(lastBrunchInput()?.readSaveState?.(savedEntityId).refusal).toBeNull();
+  await expect(agentSave(savedEntityId).settled).resolves.toMatchObject({
+    saved: true,
+  });
+  expect(onSave).toHaveBeenCalledTimes(2);
 });
 
 test("the agent's save of a net with nothing edited since reports it clean", async () => {
@@ -829,22 +953,24 @@ test("aborting the agent's save rejects it without cancelling the save it starte
   });
 });
 
-test("a load before the save completes leaves the agent's save unsettled until Brunch aborts it, and the earlier load's tool can't save the new one", async () => {
+test("a load before the save completes settles the agent's save as unconfirmed, the late completion changes nothing, and the earlier load's tool can't save the new one", async () => {
   const pending = deferred<PetrinautEditorSaved>();
   onSave.mockReturnValue(pending.promise);
   const { rerender } = await renderBrunchEditor();
   const earlierTool = agentSaveTool();
-  const controller = new AbortController();
-  const save = agentSave(savedEntityId, controller.signal);
+  const save = agentSave(savedEntityId);
 
   rerender({ load: savedLoad() });
   await waitFor(() => expect(lastTopBar()?.persistPending).toBe(false));
+  await expect(save.settled).resolves.toEqual({
+    saved: false,
+    error: "The editor reloaded before the save was confirmed.",
+  });
   // The late completion is ignored, as it is for the button.
   await act(async () => {
     pending.resolve({ entityId: savedEntityId, decisionTime: "late" });
     await pending.promise;
   });
-  expect(save.state.settled).toBe(false);
   expect(lastTopBar()?.loadedRevisionTime).toBe("2026-10-24T00:00:00.000Z");
 
   await expect(
@@ -854,9 +980,6 @@ test("a load before the save completes leaves the agent's save unsettled until B
     reason: "That isn't the net open in the editor.",
   });
   expect(onSave).toHaveBeenCalledOnce();
-
-  controller.abort(new Error("Brunch stopped the turn"));
-  await expect(save.settled).rejects.toThrow("Brunch stopped the turn");
 });
 
 test("a pick of another saved revision reaches Brunch as a version load that Saves leave unchanged", async () => {
