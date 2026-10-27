@@ -474,7 +474,7 @@ export const buildFlowRunEvents = (
 
         switch (attributes?.signalName as FlowSignalType | undefined) {
           case "stepAttemptStarted": {
-            const { stepRunId, attempt } =
+            const { stepRunId, attempt, previousAttemptError } =
               parseFirstPayload<StepAttemptStartedSignal>(
                 attributes?.input,
                 "step attempt",
@@ -486,9 +486,15 @@ export const buildFlowRunEvents = (
             }
 
             const { activity, stepRun } = signalled;
+            const previousAttemptSignalled = activity.signalledStarts.has(
+              attempt - 1,
+            );
 
             failUnfailedAttempt(activity, stepRun, attempt, {
-              message: unknownErrorMessage,
+              message:
+                (previousAttemptSignalled
+                  ? previousAttemptError?.message
+                  : undefined) ?? unknownErrorMessage,
             });
             const hiddenCount = countHiddenAttempts(activity, attempt);
 
@@ -496,13 +502,20 @@ export const buildFlowRunEvents = (
 
             activity.signalledStarts.add(attempt);
             activity.attempt = attempt;
-            /* The attempts before it whose signals didn't arrive. Their last error is only in the last attempt's start. */
+            /* The attempts before it whose signals didn't arrive, the last of which failed with the previous attempt's error. */
             addEvent({
               kind: "attemptStarted",
               stepRun,
               attempt,
               ...(hiddenCount > 0
-                ? { hiddenAttempts: { count: hiddenCount } }
+                ? {
+                    hiddenAttempts: {
+                      count: hiddenCount,
+                      ...(previousAttemptError && !previousAttemptSignalled
+                        ? { lastError: previousAttemptError }
+                        : {}),
+                    },
+                  }
                 : {}),
             });
             break;

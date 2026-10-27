@@ -23,9 +23,9 @@
     {
       "stepId": "firstTwo",
       "stepType": "takeFirstAction",
-      "startedAt": "2026-10-24T11:08:56.642Z",
-      "scheduledAt": "2026-10-24T11:08:53.602Z",
-      "closedAt": "2026-10-24T11:08:56.643Z",
+      "startedAt": "2026-10-27T10:51:27.295Z",
+      "scheduledAt": "2026-10-27T10:51:24.260Z",
+      "closedAt": "2026-10-27T10:51:27.298Z",
       "inputs": [
         {
           "inputs": [
@@ -50,7 +50,7 @@
         {
           "type": "ActivityFailed",
           "stepId": "firstTwo",
-          "recordedAt": "2026-10-24T11:08:56.643Z",
+          "recordedAt": "2026-10-27T10:51:27.298Z",
           "retrying": false,
           "message": "Failure on attempt 3"
         }
@@ -63,5 +63,5 @@
       "retryState": "4"
     }
   ],
-  "startedAt": "2026-10-24T11:08:53.575Z"
+  "startedAt": "2026-10-27T10:51:24.223Z"
 }

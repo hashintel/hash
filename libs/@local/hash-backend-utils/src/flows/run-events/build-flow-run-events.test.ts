@@ -240,7 +240,7 @@ const inProgressEvents: ExpectedEvent[] = [
       kind: "progressLogged",
       stepRun: research,
       loggedInAttempt: 2,
-      log: planLog("CreatedPlan", "Search the web", "2026-10-24T11:09:33.128Z"),
+      log: planLog("CreatedPlan", "Search the web", "2026-10-27T10:52:03.974Z"),
     },
   ],
 ];
@@ -369,7 +369,7 @@ describe("buildFlowRunEvents", () => {
         },
       ],
       [
-        "78.0",
+        "84.0",
         {
           kind: "runFinished",
           status: FlowRunStatus.Completed,
@@ -459,7 +459,13 @@ describe("buildFlowRunEvents", () => {
                 },
               ];
             case "attemptFailed":
-              return [{ kind: event.kind, attempt: event.attempt }];
+              return [
+                {
+                  kind: event.kind,
+                  attempt: event.attempt,
+                  error: event.error.message,
+                },
+              ];
             case "attemptSucceeded":
               return [{ kind: event.kind, attempt: event.attempt }];
             default:
@@ -479,7 +485,14 @@ describe("buildFlowRunEvents", () => {
           ]),
         ),
       ).toStrictEqual([
-        { kind: "attemptStarted", attempt: 3, hiddenAttempts: { count: 2 } },
+        {
+          kind: "attemptStarted",
+          attempt: 3,
+          hiddenAttempts: {
+            count: 2,
+            lastError: { message: "Flaky failure on attempt 2" },
+          },
+        },
         { kind: "attemptSucceeded", attempt: 3 },
       ]);
     });
@@ -494,8 +507,40 @@ describe("buildFlowRunEvents", () => {
         ),
       ).toStrictEqual([
         { kind: "attemptStarted", attempt: 1 },
-        { kind: "attemptFailed", attempt: 1 },
-        { kind: "attemptStarted", attempt: 3, hiddenAttempts: { count: 1 } },
+        {
+          kind: "attemptFailed",
+          attempt: 1,
+          error: "Flaky failure on attempt 1",
+        },
+        {
+          kind: "attemptStarted",
+          attempt: 3,
+          hiddenAttempts: {
+            count: 1,
+            lastError: { message: "Flaky failure on attempt 2" },
+          },
+        },
+        { kind: "attemptSucceeded", attempt: 3 },
+      ]);
+    });
+
+    it("fails an attempt whose failure signal didn't arrive with the error the next attempt's start carries", () => {
+      expect(
+        attemptEventsOf(withoutSignals([["stepAttemptFailed", 1]])),
+      ).toStrictEqual([
+        { kind: "attemptStarted", attempt: 1 },
+        {
+          kind: "attemptFailed",
+          attempt: 1,
+          error: "Flaky failure on attempt 1",
+        },
+        { kind: "attemptStarted", attempt: 2 },
+        {
+          kind: "attemptFailed",
+          attempt: 2,
+          error: "Flaky failure on attempt 2",
+        },
+        { kind: "attemptStarted", attempt: 3 },
         { kind: "attemptSucceeded", attempt: 3 },
       ]);
     });
@@ -510,8 +555,19 @@ describe("buildFlowRunEvents", () => {
           ]),
         ),
       ).toStrictEqual([
-        { kind: "attemptStarted", attempt: 2, hiddenAttempts: { count: 1 } },
-        { kind: "attemptFailed", attempt: 2 },
+        {
+          kind: "attemptStarted",
+          attempt: 2,
+          hiddenAttempts: {
+            count: 1,
+            lastError: { message: "Flaky failure on attempt 1" },
+          },
+        },
+        {
+          kind: "attemptFailed",
+          attempt: 2,
+          error: "Flaky failure on attempt 2",
+        },
         { kind: "attemptStarted", attempt: 3 },
         { kind: "attemptSucceeded", attempt: 3 },
       ]);
@@ -547,7 +603,7 @@ describe("buildFlowRunEvents", () => {
         },
       ],
       [
-        "72.0",
+        "78.0",
         {
           kind: "runFinished",
           status: FlowRunStatus.Failed,
@@ -584,15 +640,15 @@ describe("buildFlowRunEvents", () => {
     },
   );
 
-  it("reports an attempt that ended without throwing as failed when the next one starts", () => {
+  it("fails an attempt that ended without throwing with Temporal's reason, when the next one starts", () => {
     expectEvents("attempt-timed-out", [
       runStartedWithPrompt,
       researchStarted("35.0"),
       attemptStarted("36.0", research, 1),
-      attemptRetried("40.0", research, 1, "Unknown error"),
+      attemptRetried("40.0", research, 1, "activity Heartbeat timeout"),
       attemptStarted("40.1", research, 2),
       researchSucceeded("45.0", 2),
-      researchRunCompleted("66.0"),
+      researchRunCompleted("72.0"),
     ]);
   });
 
@@ -925,7 +981,7 @@ describe("buildFlowRunEvents", () => {
     expectEvents("in-progress-finished", [
       ...inProgressEvents,
       researchSucceeded("53.0", 2),
-      researchRunCompleted("74.0"),
+      researchRunCompleted("80.0"),
     ]);
   });
 

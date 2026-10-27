@@ -28,28 +28,56 @@ const getTemporalClient = () => {
   return temporalClientConnection;
 };
 
+/** The activity's run's workflow: an activity started outside one has none. */
+const getRunHandle = async ({ workflowExecution }: Info) => {
+  if (!workflowExecution) {
+    return undefined;
+  }
+
+  const temporalClient = await getTemporalClient();
+
+  return temporalClient.workflow.getHandle(
+    workflowExecution.workflowId,
+    workflowExecution.runId,
+  );
+};
+
 /** Signals the activity's run's workflow, logging rather than failing the action if it can't. */
 const signalRun = async <Payload>(
   info: Info,
   signal: SignalDefinition<[Payload]>,
   payload: Payload,
 ) => {
-  const { workflowExecution } = info;
-
-  if (!workflowExecution) {
-    return;
-  }
-
   try {
-    const temporalClient = await getTemporalClient();
-
-    await temporalClient.workflow
-      .getHandle(workflowExecution.workflowId, workflowExecution.runId)
-      .signal(signal, payload);
+    await (await getRunHandle(info))?.signal(signal, payload);
   } catch (error) {
     Context.current().log.warn(
       `Couldn't signal ${signal.name} for activity ${info.activityId}: ${(error as Error).message}`,
     );
+  }
+};
+
+/**
+ * How the attempt before this one failed, from the activity's pending state in its run, which Temporal updates when it
+ * retries. Logs rather than failing the action if it can't be read.
+ */
+const getPreviousAttemptError = async (
+  info: Info,
+): Promise<{ message: string } | undefined> => {
+  try {
+    const description = await (await getRunHandle(info))?.describe();
+    const message = description?.raw.pendingActivities?.find(
+      (pendingActivity) =>
+        pendingActivity.activityId === info.activityId &&
+        pendingActivity.attempt === info.attempt,
+    )?.lastFailure?.message;
+
+    return message ? { message } : undefined;
+  } catch (error) {
+    Context.current().log.warn(
+      `Couldn't read the previous attempt's failure for activity ${info.activityId}: ${(error as Error).message}`,
+    );
+    return undefined;
   }
 };
 
@@ -77,9 +105,10 @@ export const isRetried = (
 
 /**
  * Wraps each of a worker's flow action activities so that it signals its run's workflow when an attempt starts, and
- * when an attempt throws and Temporal retries it. Temporal records only an activity's last attempt in its run's
- * history, so the signals record the others, for the run's events. The last attempt's failure is in the history, so
- * it isn't signalled. An attempt's error is rethrown, so retries are unchanged.
+ * when an attempt throws and Temporal retries it. A later attempt's start also carries how the previous one failed,
+ * which covers an attempt that timed out or whose worker stopped. Temporal records only an activity's last attempt in
+ * its run's history, so the signals record the others, for the run's events. The last attempt's failure is in the
+ * history, so it isn't signalled. An attempt's error is rethrown, so retries are unchanged.
  */
 export const signalStepAttempts = <
   Activities extends Record<string, (...args: never[]) => Promise<unknown>>,
@@ -93,9 +122,13 @@ export const signalStepAttempts = <
         const { info } = Context.current();
         const stepRunId = info.activityId;
 
+        const previousAttemptError =
+          info.attempt > 1 ? await getPreviousAttemptError(info) : undefined;
+
         await signalRun(info, stepAttemptStartedSignal, {
           stepRunId,
           attempt: info.attempt,
+          ...(previousAttemptError ? { previousAttemptError } : {}),
         });
 
         try {

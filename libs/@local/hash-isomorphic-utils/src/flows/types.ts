@@ -1068,6 +1068,11 @@ export type StepAttemptStartedSignal = {
   /** The activity's id: the step's id, or for a step inside a `forEach`, its step run id. */
   stepRunId: string;
   attempt: number;
+  /**
+   * How the attempt before it failed, as Temporal recorded it when it retried. Temporal records it in the run's
+   * history only on the last attempt's start, and an attempt that timed out or whose worker stopped sends no failure.
+   */
+  previousAttemptError?: { message: string };
 };
 
 /**

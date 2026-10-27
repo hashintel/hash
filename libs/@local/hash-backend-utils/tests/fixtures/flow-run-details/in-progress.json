@@ -22,8 +22,8 @@
     {
       "stepId": "research",
       "stepType": "researchEntitiesAction",
-      "startedAt": "2026-10-24T11:09:33.125Z",
-      "scheduledAt": "2026-10-24T11:09:32.109Z",
+      "startedAt": "2026-10-27T10:52:03.972Z",
+      "scheduledAt": "2026-10-27T10:52:02.959Z",
       "closedAt": "",
       "inputs": [
         {
@@ -42,7 +42,7 @@
         {
           "type": "ActivityFailed",
           "stepId": "research",
-          "recordedAt": "2026-10-24T11:09:33.125Z",
+          "recordedAt": "2026-10-27T10:52:03.972Z",
           "retrying": true,
           "message": "Flaky failure on attempt 1"
         },
@@ -50,7 +50,7 @@
           "type": "CreatedPlan",
           "plan": "Search the web",
           "stepId": "research",
-          "recordedAt": "2026-10-24T11:09:33.128Z",
+          "recordedAt": "2026-10-27T10:52:03.974Z",
           "workerType": "Coordinator",
           "workerInstanceId": "coordinator",
           "parentInstanceId": null,
@@ -64,5 +64,5 @@
       }
     }
   ],
-  "startedAt": "2026-10-24T11:09:32.072Z"
+  "startedAt": "2026-10-27T10:52:02.921Z"
 }

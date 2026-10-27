@@ -41,9 +41,9 @@
     {
       "stepId": "firstTwo",
       "stepType": "takeFirstAction",
-      "startedAt": "2026-10-24T11:08:45.519Z",
-      "scheduledAt": "2026-10-24T11:08:42.503Z",
-      "closedAt": "2026-10-24T11:08:45.520Z",
+      "startedAt": "2026-10-27T10:51:16.095Z",
+      "scheduledAt": "2026-10-27T10:51:13.063Z",
+      "closedAt": "2026-10-27T10:51:16.097Z",
       "inputs": [
         {
           "inputs": [
@@ -87,5 +87,5 @@
       ]
     }
   ],
-  "startedAt": "2026-10-24T11:08:42.478Z"
+  "startedAt": "2026-10-27T10:51:13.037Z"
 }
