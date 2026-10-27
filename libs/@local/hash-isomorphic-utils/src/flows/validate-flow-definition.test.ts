@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ftseInvestorsFlow } from "./definitions/ftse-investors-flow-definition.js";
 import { goalFlow } from "./definitions/goal-flow-definitions.js";
+import { linkEndsMessage, noEntityChangesMessage } from "./entity-steps.js";
 import {
   type FlowDefinitionDiagnostic,
   validateFlowDefinition,
@@ -896,12 +897,94 @@ describe("validateFlowDefinition", () => {
     });
   });
 
+  describe("link ends of createEntity steps", () => {
+    const errorsOf = (linkInputs: Record<string, unknown>) =>
+      validateFlowDefinition({
+        ...baseDefinition,
+        inputs: [
+          {
+            name: "company",
+            payloadKind: "EntityId",
+            array: false,
+            required: true,
+          },
+          {
+            name: "person",
+            payloadKind: "EntityId",
+            array: false,
+            required: true,
+          },
+        ],
+        steps: [
+          {
+            kind: "action",
+            stepId: "create",
+            actionDefinitionId: "createEntity",
+            description: "",
+            inputs: {
+              entityTypeIds: {
+                kind: "constant",
+                payload: {
+                  kind: "VersionedUrl",
+                  value: [
+                    "https://example.com/types/entity-type/works-for/v/1",
+                  ],
+                },
+              },
+              properties: {
+                kind: "constant",
+                payload: {
+                  kind: "PropertyObjectWithMetadata",
+                  value: { value: {} },
+                },
+              },
+              ...linkInputs,
+            },
+          },
+        ],
+      }).diagnostics.filter(({ severity }) => severity === "error");
+
+    const person = { kind: "flow-input", inputName: "person" };
+    const company = { kind: "flow-input", inputName: "company" };
+
+    it("accepts both ends", () => {
+      expect(
+        errorsOf({ leftEntityId: person, rightEntityId: company }),
+      ).toEqual([]);
+    });
+
+    it.each([
+      {
+        name: "the entity a link links from without the one it links to",
+        linkInputs: { leftEntityId: person },
+        missing: "rightEntityId",
+      },
+      {
+        name: "the entity a link links to without the one it links from",
+        linkInputs: { rightEntityId: company },
+        missing: "leftEntityId",
+      },
+    ])("rejects $name", ({ linkInputs, missing }) => {
+      expect(errorsOf(linkInputs)).toEqual([
+        {
+          severity: "error",
+          code: "invalidInput",
+          message: linkEndsMessage,
+          path: ["steps", 0, "inputs", missing],
+        },
+      ]);
+    });
+  });
+
   describe("property patches of updateEntity steps", () => {
     const nameUrl = "https://example.com/types/property-type/name/";
     const emailUrl = "https://example.com/types/property-type/email/";
     const text = { dataTypeId: "https://example.com/types/data-type/text/v/1" };
 
-    const errorsOf = (propertyPatches: unknown) =>
+    const errorsOf = (
+      propertyPatches: unknown,
+      otherInputs: Record<string, unknown> = {},
+    ) =>
       validateFlowDefinition({
         ...baseDefinition,
         inputs: [
@@ -917,6 +1000,12 @@ describe("validateFlowDefinition", () => {
             array: true,
             required: true,
           },
+          {
+            name: "types",
+            payloadKind: "VersionedUrl",
+            array: true,
+            required: true,
+          },
         ],
         steps: [
           {
@@ -926,11 +1015,14 @@ describe("validateFlowDefinition", () => {
             description: "",
             inputs: {
               entityId: { kind: "flow-input", inputName: "person" },
-              propertyPatches,
+              ...(propertyPatches === undefined ? {} : { propertyPatches }),
+              ...otherInputs,
             },
           },
         ],
       }).diagnostics.filter(({ severity }) => severity === "error");
+
+    const types = { kind: "flow-input", inputName: "types" };
 
     const constant = (value: unknown) => ({
       kind: "constant",
@@ -961,15 +1053,32 @@ describe("validateFlowDefinition", () => {
         name: "a flow input, which is checked when the step runs",
         propertyPatches: { kind: "flow-input", inputName: "patches" },
       },
-    ])("accepts $name", ({ propertyPatches }) => {
-      expect(errorsOf(propertyPatches)).toEqual([]);
+      {
+        name: "types with no patches",
+        propertyPatches: constant([]),
+        otherInputs: { entityTypeIds: types },
+      },
+    ])("accepts $name", ({ propertyPatches, otherInputs }) => {
+      expect(errorsOf(propertyPatches, otherInputs)).toEqual([]);
+    });
+
+    it("rejects types without patches, so that the step is skipped when connected patches are missing", () => {
+      expect(errorsOf(undefined, { entityTypeIds: types })).toEqual([
+        {
+          severity: "error",
+          code: "missingInput",
+          message:
+            'Required input "propertyPatches" of action "updateEntity" is not connected',
+          path: ["steps", 0, "inputs"],
+        },
+      ]);
     });
 
     it.each([
       {
-        name: "no patches",
+        name: "no patches, without types",
         value: [],
-        message: "Give at least one property patch.",
+        message: noEntityChangesMessage,
       },
       {
         name: "an op the graph doesn't have",
