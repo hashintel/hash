@@ -31,7 +31,6 @@ import type {
   FlowRunWithoutEvents,
   ResolvedPayload,
   ResolvedStepOutput,
-  ResolvedStepRunOutput,
   SparseFlowRun,
   StepInput,
   StepOutput,
@@ -432,16 +431,17 @@ export const getFlowRunDetailedFieldsFromRecord = async (
 
   // Resolve any stored payload references in step outputs
   const steps: StepRun[] = await Promise.all(
-    [...stepRunsById.values()].map(async (step) => {
-      if (!step.outputs) {
-        return step as StepRun;
+    [...stepRunsById.values()].map(async ({ outputs, ...step }) => {
+      if (!outputs) {
+        return { ...step, outputs };
       }
 
       const resolvedOutputs = await Promise.all(
-        step.outputs.map(async (output) => {
+        outputs.map(async (output) => {
           const firstContent = output.contents[0];
           if (!firstContent?.outputs) {
-            return output as ResolvedStepRunOutput;
+            // Nothing to resolve: only a step that gave up has no contents.
+            return { ...output, contents: [] };
           }
 
           const resolvedInnerOutputs = await resolveStoredPayloadsInOutputs(
