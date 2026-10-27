@@ -77,7 +77,8 @@ const projectInBandBrowserResult = (
         {
           type: "text",
           // A tool whose result is rendered as text for the model reaches it
-          // as that text, not as a JSON string.
+          // as that text, not as a JSON string. Its failure, `{ error, note }`,
+          // is not rendered and is shown as JSON like any other output.
           text:
             textResultToolNames.has(entry.message.toolName) &&
             typeof envelope.output === "string"
