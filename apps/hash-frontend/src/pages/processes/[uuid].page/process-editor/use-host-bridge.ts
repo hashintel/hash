@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
-  type HostToIframeMessage,
-  type IframeToHostMessage,
-  isIframeToHostMessage,
+  type HostToEditorMessage,
+  type EditorToHostMessage,
+  isEditorToHostMessage,
 } from "./shared/messages";
 
 type HostBridgeHandlers = {
@@ -11,12 +11,12 @@ type HostBridgeHandlers = {
   onDirtyChanged?: (isDirty: boolean) => void;
   onTitleChanged?: (title: string) => void;
   onRequestSave?: (
-    payload: Extract<IframeToHostMessage, { kind: "requestSave" }>,
+    payload: Extract<EditorToHostMessage, { kind: "requestSave" }>,
   ) => void;
   onRequestNavigateBack?: () => void;
   onRequestRevision?: (decisionTime: string) => void;
   onReportError?: (
-    payload: Extract<IframeToHostMessage, { kind: "reportError" }>,
+    payload: Extract<EditorToHostMessage, { kind: "reportError" }>,
   ) => void;
 };
 
@@ -28,7 +28,7 @@ type HostBridge = {
    */
   isReady: boolean;
   /** Send a message to the editor. */
-  send: (message: HostToIframeMessage) => void;
+  send: (message: HostToEditorMessage) => void;
 };
 
 /**
@@ -37,7 +37,7 @@ type HostBridge = {
  *
  * - Listens for messages on `window` and dispatches them to the matching
  *   handler. Messages from any source other than this window are dropped, so
- *   an iframe or an unrelated window can't drive the bridge. Host and editor
+ *   another frame or window can't drive the bridge. Host and editor
  *   message kinds are disjoint, so the host ignores its own messages.
  * - Tracks whether the editor has signalled `ready` (the host waits for it
  *   to push `init`).
@@ -62,7 +62,7 @@ export const useHostBridge = ({
       }
 
       const data = event.data as unknown;
-      if (!isIframeToHostMessage(data)) {
+      if (!isEditorToHostMessage(data)) {
         return;
       }
 

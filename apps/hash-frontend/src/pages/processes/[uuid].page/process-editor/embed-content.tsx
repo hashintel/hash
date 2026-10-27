@@ -23,15 +23,15 @@ import {
 } from "@hashintel/petrinaut";
 
 import {
+  reportEditorPetrinautError,
+  setEditorErrorReporterMode,
+} from "./embed-content/editor-error-reporter";
+import {
   type EmbedChrome,
   EmbedChromeContext,
 } from "./embed-content/embed-chrome-context";
 import { EmbedPetrinaut } from "./embed-content/embed-petrinaut";
-import {
-  reportIframePetrinautError,
-  setIframeErrorReporterMode,
-} from "./embed-content/iframe-error-reporter";
-import { useIframeBridge } from "./embed-content/use-iframe-bridge";
+import { useEditorBridge } from "./embed-content/use-editor-bridge";
 import {
   type HostNetMode,
   nextRequestId,
@@ -44,7 +44,7 @@ import {
  * app's error boundary, so they go to the host's Sentry from here.
  */
 const embedErrorTracker: ErrorTracker = {
-  captureException: reportIframePetrinautError,
+  captureException: reportEditorPetrinautError,
 };
 
 type EditorState = {
@@ -120,7 +120,7 @@ export const EmbedContent = () => {
    * Brunch stops the turn that editor sent. An assistant action is never
    * carried into an editor that didn't send it.
    */
-  const bridge = useIframeBridge({
+  const bridge = useEditorBridge({
     onInit: (payload) => {
       const handle = createJsonDocHandle({
         initial: payload.initialDefinition,
@@ -141,7 +141,7 @@ export const EmbedContent = () => {
           savedSnapshot,
         ),
       );
-      setIframeErrorReporterMode(payload.mode);
+      setEditorErrorReporterMode(payload.mode);
       /**
        * Reset any in-flight save state. A re-init means the host has
        * decided to throw away whatever the editor was doing (e.g. user
@@ -168,7 +168,7 @@ export const EmbedContent = () => {
           savedSnapshot,
         ),
       );
-      setIframeErrorReporterMode(payload.mode);
+      setEditorErrorReporterMode(payload.mode);
       setPendingSaveRequestId(null);
     },
     onSetReadonly: (readonly) => {
@@ -202,7 +202,7 @@ export const EmbedContent = () => {
               }
             : prev,
         );
-        setIframeErrorReporterMode(mode);
+        setEditorErrorReporterMode(mode);
       }
     },
   });

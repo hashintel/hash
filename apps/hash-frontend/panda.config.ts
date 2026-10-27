@@ -26,15 +26,15 @@ const scopedConfig = scopedThemeConfig(".hash-ds-root");
  *
  * Petrinaut's style usage (`@hashintel/petrinaut/panda.buildinfo.json`) is
  * compiled through this same pipeline so that every Panda rule loaded in the
- * Petrinaut embed lives in one cascade-layer graph with one polyfilled
+ * process editor lives in one cascade-layer graph with one polyfilled
  * specificity contract (FE-1228). Because this stylesheet is a superset of
  * Petrinaut's own `dist/main.css` Panda output, any layer that is non-empty
  * there is non-empty here too — so the polyfill's synthetic `:not(#\#)`
  * boosts here are structurally guaranteed to be >= Petrinaut's, and every
  * Petrinaut rule wins at this stylesheet's boost level with Panda's canonical
  * intra-layer ordering (matching how the standalone Petrinaut site renders).
- * `dist/main.css` remains imported on the embed page for vendor CSS and the
- * `.petrinaut-root`-scoped preflight/token variables.
+ * `dist/main.css` remains imported by the process editor for vendor CSS and
+ * the `.petrinaut-root`-scoped preflight/token variables.
  */
 export default defineConfig({
   ...scopedConfig,
@@ -49,10 +49,11 @@ export default defineConfig({
    * scalar theme values (currently only `fonts.mono`, which Petrinaut
    * overrides for its own scope) the ds-components/panda definitions win and
    * existing HASH surfaces are byte-for-byte unaffected. (Petrinaut's mono
-   * font still applies inside the embed via the `.petrinaut-root`-scoped
-   * `--fonts-mono` variable in `dist/main.css`.) Keyframes cannot rely on
-   * ordering — Panda deep-merges same-name keyframes — which is why the
-   * Petrinaut preset namespaces all of its keyframes.
+   * font still applies inside the process editor via the
+   * `.petrinaut-root`-scoped `--fonts-mono` variable in `dist/main.css`.)
+   * Keyframes cannot rely on ordering — Panda deep-merges same-name
+   * keyframes — which is why the Petrinaut preset namespaces all of its
+   * keyframes.
    */
   presets: [petrinautPandaPreset, ...scopedConfig.presets],
 

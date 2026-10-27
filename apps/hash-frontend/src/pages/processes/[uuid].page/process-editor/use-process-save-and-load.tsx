@@ -41,7 +41,7 @@ import type { PetriNetPropertiesWithMetadata } from "@local/hash-isomorphic-util
 /**
  * Result of {@link persistDefinition}. The caller (the bridge layer in
  * `process-editor.tsx`) needs both the new entity id and the freshly-saved
- * snapshot to ack the iframe's pending save request, so we return both.
+ * snapshot to ack the editor's pending save request, so we return both.
  */
 export type PersistResult = {
   entityId: EntityId;
@@ -61,7 +61,7 @@ type UseProcessSaveAndLoadParams = {
 
 /**
  * Encapsulates the GraphQL persistence + persisted-nets-list reads needed by
- * the process editor host. The iframe owns the live SDCPN and title; the
+ * the process editor host. The editor owns the live SDCPN and title; the
  * host calls {@link persistDefinition} when forwarding a `requestSave` from
  * the bridge.
  */
