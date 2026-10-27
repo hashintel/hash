@@ -5,6 +5,7 @@ import * as z from "zod";
 import { getEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import {
   type BaseUrl,
+  type ClosedMultiEntityType,
   type EntityId,
   type VersionedUrl,
   compareOntologyTypeVersions,
@@ -16,8 +17,10 @@ import {
 import { brunchTools } from "@hashintel/brunch-agent";
 import {
   deserializeQueryEntitySubgraphResponse,
+  getClosedMultiEntityTypeFromMap,
   type QueryEntitySubgraphRequest,
 } from "@local/hash-graph-sdk/entity";
+import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import {
   currentTimeInstantTemporalAxes,
   generateEntityEditionFilter,
@@ -43,6 +46,7 @@ import type {
   EntityTraversalPath,
   Filter,
 } from "@local/hash-graph-client";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 
 /**
  * The input Brunch's HASH agent issues for its entity read. The agent's
@@ -54,8 +58,7 @@ const zHashEntityReadInput = z.object({
   entityIds: z.array(z.string()).optional(),
   traversalDepth: z.number().int().min(0).max(3).optional(),
   includeDrafts: z.boolean().optional(),
-  // How the agent shows the result; it doesn't change what is read.
-  fullValuesFor: z.array(z.string()).optional(),
+  // Keys only the agent reads, such as how it shows the result, are stripped.
 });
 
 /** An entity read as the agent issued it to the page, narrowed. */
@@ -182,37 +185,31 @@ const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
 const truncatedWhen = (cursor: unknown) =>
   cursor === undefined || cursor === null ? {} : { truncated: true as const };
 
-/** What the titles are read from in a response's closed multi-type map. */
-type ClosedTypeTitlesMap = {
-  schema: { allOf?: readonly { $id?: string; title?: string }[] };
-  inner?: Record<string, ClosedTypeTitlesMap>;
-};
-
-/** Every type a closed multi-type map names, with its title, at any depth. */
-const closedTypeTitles = (
-  maps: Record<string, ClosedTypeTitlesMap> | undefined,
-  titles = new Map<string, string>(),
-) => {
-  for (const { schema, inner } of Object.values(maps ?? {})) {
-    for (const { $id, title } of schema.allOf ?? []) {
-      if ($id !== undefined && title !== undefined) {
-        titles.set($id, title);
-      }
-    }
-    closedTypeTitles(inner, titles);
+/** The closed type of an entity with these types, if the response has it. */
+const closedTypeIn = (
+  closedMultiEntityTypes: ClosedMultiEntityTypesRootMap | undefined,
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
+): ClosedMultiEntityType | undefined => {
+  try {
+    return getClosedMultiEntityTypeFromMap(
+      closedMultiEntityTypes,
+      entityTypeIds,
+    );
+  } catch {
+    return undefined;
   }
-  return titles;
 };
 
 /**
  * Every entity edition in the response, each described only from itself, so
- * its edition id is the edition whose properties it carries, with property
- * and type titles from the resolved definitions. An entity
- * archived through its `archived` property, as pages are, is left out: the
- * request's filter applies only to the matches, not to the entities reached
- * by following links. Given `onlyDrafts`, retain named drafts and draft links
- * whose endpoint is a named draft, without expanding that set. Other drafts
- * are left out; links to excluded entities keep their endpoint ids.
+ * its edition id is the edition whose properties it carries, and labelled
+ * where its closed type was resolved; and the title and description of each
+ * property they carry, and the title of each type. An entity archived through
+ * its `archived` property, as pages are, is left out: the request's filter
+ * applies only to the matches, not to the entities reached by following links.
+ * Given `onlyDrafts`, retain named drafts and draft links whose endpoint is
+ * a named draft, without expanding that set. Other drafts are left out;
+ * links to excluded entities keep their endpoint ids.
  */
 export const hashEntityReadResult = (
   response: QueryEntitySubgraphQuery,
@@ -235,20 +232,26 @@ export const hashEntityReadResult = (
           (onlyDrafts.has(linkData.leftEntityId) ||
             onlyDrafts.has(linkData.rightEntityId)))
       );
-    });
+    })
+    .map((entity) => ({
+      entity,
+      closedType: closedTypeIn(
+        closedMultiEntityTypes,
+        entity.metadata.entityTypeIds,
+      ),
+    }));
 
   // Each property the entities carry, by base URL, from its latest version
   // the response resolved; and each type they carry, by its title.
   const usedBaseUrls = new Set(
-    entities.flatMap(({ properties }) => Object.keys(properties)),
+    entities.flatMap(({ entity }) => Object.keys(entity.properties)),
   );
   const propertyTypesByBaseUrl = new Map<
     BaseUrl,
     { versionedUrl: VersionedUrl; title: string; description?: string }
   >();
-  for (const [versionedUrl, propertyType] of Object.entries(
-    definitions?.propertyTypes ?? {},
-  ) as [VersionedUrl, { title: string; description?: string }][]) {
+  for (const propertyType of Object.values(definitions?.propertyTypes ?? {})) {
+    const versionedUrl = propertyType.$id;
     const baseUrl = extractBaseUrl(versionedUrl);
     const known = propertyTypesByBaseUrl.get(baseUrl);
     if (
@@ -266,9 +269,13 @@ export const hashEntityReadResult = (
       });
     }
   }
-  const typeTitles = closedTypeTitles(closedMultiEntityTypes);
+  const typeTitles = new Map(
+    entities.flatMap(({ closedType }) =>
+      (closedType?.allOf ?? []).map(({ $id, title }) => [$id, title] as const),
+    ),
+  );
   const usedTypeIds = new Set(
-    entities.flatMap(({ metadata }) => metadata.entityTypeIds),
+    entities.flatMap(({ entity }) => entity.metadata.entityTypeIds),
   );
 
   return {
@@ -283,7 +290,7 @@ export const hashEntityReadResult = (
       const title = typeTitles.get(entityTypeId);
       return title === undefined ? [] : [{ entityTypeId, title }];
     }),
-    entities: entities.map((entity) => {
+    entities: entities.map(({ entity, closedType }) => {
       const { entityId, editionId } = entity.metadata.recordId;
       const { linkData } = entity;
       return {
@@ -291,6 +298,9 @@ export const hashEntityReadResult = (
         editionId,
         webId: extractWebIdFromEntityId(entityId),
         entityTypeIds: entity.metadata.entityTypeIds,
+        ...(closedType === undefined
+          ? {}
+          : { label: generateEntityLabel(closedType, entity) }),
         properties: entity.properties,
         draft: extractDraftIdFromEntityId(entityId) !== undefined,
         matched: matched.has(editionId),

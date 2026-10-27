@@ -71,7 +71,7 @@ const execute = (
   );
 
 test("the page gives Brunch all three HASH reads, and keeps the list while the user is refetched", async () => {
-  const { result, signIn } = renderTools(userWith("alice", ["acme"]));
+  const { result, signIn } = renderTools(userWith("member", ["acme"]));
   const first = result.current;
   expect(first.map(({ toolName }) => toolName)).toEqual([
     brunchTools.queryHashEntities,
@@ -80,7 +80,12 @@ test("the page gives Brunch all three HASH reads, and keeps the list while the u
   ]);
   await expect(execute(first, brunchTools.queryHashWebs, {})).resolves.toEqual({
     webs: [
-      { webId: "alice-web", kind: "user", shortname: "alice", name: "ALICE" },
+      {
+        webId: "member-web",
+        kind: "user",
+        shortname: "member",
+        name: "MEMBER",
+      },
       {
         webId: "acme-web",
         kind: "organization",
@@ -90,17 +95,22 @@ test("the page gives Brunch all three HASH reads, and keeps the list while the u
     ],
   });
 
-  signIn(userWith("alice", []));
+  signIn(userWith("member", []));
   expect(result.current).toBe(first);
   await expect(execute(first, brunchTools.queryHashWebs, {})).resolves.toEqual({
     webs: [
-      { webId: "alice-web", kind: "user", shortname: "alice", name: "ALICE" },
+      {
+        webId: "member-web",
+        kind: "user",
+        shortname: "member",
+        name: "MEMBER",
+      },
     ],
   });
 });
 
 test("the type read asks the page's Apollo client for the graph's types now, and a GraphQL failure settles its message", async () => {
-  const { result } = renderTools(userWith("alice", []));
+  const { result } = renderTools(userWith("member", []));
   apollo.query.mockResolvedValueOnce({
     data: {
       queryEntityTypes: {
@@ -112,7 +122,7 @@ test("the type read asks the page's Apollo client for the graph's types now, and
   });
   await expect(
     execute(result.current, brunchTools.queryHashEntityTypes, {
-      webIds: ["alice-web"],
+      webIds: ["member-web"],
     }),
   ).resolves.toEqual({ entityTypes: [] });
   expect(apollo.query).toHaveBeenCalledWith(
