@@ -788,7 +788,7 @@ const PlaceBody: React.FC<{
             parts={parts}
             partId="code-visualizer"
             code={place.visualizerCode}
-            path={`inmemory://sdcpn/places/${place.id}/visualizer.tsx`}
+            path={getDocumentUri("place-visualizer", place.id)}
             onChange={(code) =>
               updatePlace({
                 placeId: place.id,

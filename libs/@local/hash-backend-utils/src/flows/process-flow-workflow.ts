@@ -1,12 +1,16 @@
 import {
   ApplicationFailure,
+  CancellationScope,
+  isCancellation,
   proxyActivities,
+  TemporalFailure,
   upsertMemo,
   workflowInfo,
 } from "@temporalio/workflow";
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
+import { toStepErrors } from "@local/hash-isomorphic-utils/flows/run-events";
 import {
   generateStepRunId,
   parseStepRunId,
@@ -21,7 +25,7 @@ import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
 
 import { sleep } from "../utils.js";
-import { createCommonFlowActivities } from "./process-flow-workflow/common-activities.js";
+import { getActionActivityOptions } from "./action-activity-options.js";
 import { getAllStepsInFlow } from "./process-flow-workflow/get-all-steps-in-flow.js";
 import { getStepDefinitionFromFlowDefinition } from "./process-flow-workflow/get-step-definition-from-flow.js";
 import {
@@ -36,15 +40,13 @@ import {
 } from "./process-flow-workflow/pass-outputs-to-unprocessed-steps.js";
 import { toRunFailure } from "./process-flow-workflow/to-run-failure.js";
 
-import type {
-  ActionName,
-  CreateFlowActivities,
-  ProxyFlowActivity,
-} from "./action-types.js";
+import type { ActionName, FlowActionActivity } from "./action-types.js";
+import type { createCommonFlowActivities } from "./process-flow-workflow/common-activities.js";
 import type { EntityId, Timestamp } from "@blockprotocol/type-system";
 import type { FlowActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   BaseRunFlowWorkflowParams,
+  FlowRunEnding,
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
@@ -61,8 +63,6 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
-
-export { createCommonFlowActivities };
 
 const log = (message: string) => {
   // eslint-disable-next-line no-console
@@ -296,20 +296,91 @@ const { persistFlowActivity } = proxyActivities<
   },
 });
 
-const processFlow = async <
-  ValidActionDefinitionId extends FlowActionDefinitionId,
-  CreateActivitiesFn extends CreateFlowActivities<ValidActionDefinitionId>,
->(
+/**
+ * The activity that runs an action, on the task queue and with the settings its definition gives
+ * (`getActionActivityOptions`), whichever worker runs the flow.
+ */
+const proxyActionActivity = ({
+  actionDefinitionId,
+  maximumAttempts,
+  activityId,
+}: {
+  actionDefinitionId: FlowActionDefinitionId;
+  maximumAttempts: number;
+  activityId: string;
+}) => {
+  const actionName =
+    `${actionDefinitionId}Action` satisfies ActionName<FlowActionDefinitionId>;
+
+  const { [actionName]: action } = proxyActivities<
+    Record<ActionName<FlowActionDefinitionId>, FlowActionActivity>
+  >({
+    ...getActionActivityOptions(actionDefinitionId),
+    retry: { maximumAttempts },
+    activityId,
+  });
+
+  return action;
+};
+
+const { recordFlowRunActivity } = proxyActivities<
+  ReturnType<typeof createCommonFlowActivities>
+>({
+  startToCloseTimeout: "5 minutes",
+  retry: {
+    maximumAttempts: 3,
+  },
+});
+
+/**
+ * Records how the run ended, as the last thing it does: even when the run is cancelled. A run that couldn't be
+ * recorded is recorded the next time it's read.
+ */
+const recordFlowRun = async (ending: FlowRunEnding) => {
+  try {
+    await CancellationScope.nonCancellable(() =>
+      recordFlowRunActivity({ ending }),
+    );
+  } catch (error) {
+    log(`Could not record how the run ended: ${stringifyError(error)}`);
+  }
+};
+
+/**
+ * How a run ends when it throws `runFailure`, or `null` if it doesn't end: Temporal retries the workflow task instead
+ * when it throws anything but a `TemporalFailure`.
+ */
+const getFailedRunEnding = (runFailure: unknown): FlowRunEnding | null => {
+  if (isCancellation(runFailure)) {
+    return { kind: "cancelled" };
+  }
+
+  if (!(runFailure instanceof TemporalFailure)) {
+    return null;
+  }
+
+  const [details] =
+    runFailure instanceof ApplicationFailure
+      ? ((runFailure.details as
+          | Partial<RunFlowWorkflowResponse>[]
+          | undefined) ?? [])
+      : [];
+  const stepErrors = details?.contents?.[0]?.stepErrors;
+
+  return {
+    kind: "failed",
+    failure: { message: runFailure.message },
+    ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+  };
+};
+
+const processFlow = async (
   params: BaseRunFlowWorkflowParams & {
     generateFlowRunName?: (params: {
       flowDefinition: FlowDefinition;
       flowDefinitionEntityId: EntityId;
       flowInputs: FlowInputValues;
     }) => Promise<string>;
-    proxyFlowActivity: ProxyFlowActivity<
-      ValidActionDefinitionId,
-      CreateActivitiesFn
-    >;
   },
 ): Promise<RunFlowWorkflowResponse> => {
   const {
@@ -318,7 +389,6 @@ const processFlow = async <
     flowRunName,
     flowInputs,
     flowTriggerEntityId,
-    proxyFlowActivity,
     userAuthentication,
     webId,
     generateFlowRunName,
@@ -467,12 +537,8 @@ const processFlow = async <
         flowDefinition,
       });
 
-      const actionName =
-        `${currentStep.actionDefinitionId}Action` satisfies ActionName<string>;
-
-      const actionActivity = proxyFlowActivity({
-        // @ts-expect-error - not sure what's going on with inference of valid names here
-        actionName,
+      const actionActivity = proxyActionActivity({
+        actionDefinitionId: currentStep.actionDefinitionId,
         maximumAttempts: actionStepDefinition.retryCount ?? 3,
         activityId: currentStep.stepId,
       });
@@ -899,9 +965,28 @@ const processFlow = async <
 };
 
 export const processFlowWorkflow: typeof processFlow = async (params) => {
+  let result: RunFlowWorkflowResponse;
+
   try {
-    return await processFlow(params);
+    result = await processFlow(params);
   } catch (error) {
-    throw toRunFailure(error);
+    const runFailure = toRunFailure(error);
+    const ending = getFailedRunEnding(runFailure);
+
+    if (ending) {
+      await recordFlowRun(ending);
+    }
+
+    throw runFailure;
   }
+
+  const { outputs, stepErrors } = result.contents[0] ?? {};
+
+  await recordFlowRun({
+    kind: "completed",
+    flowOutputs: outputs ?? [],
+    ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+  });
+
+  return result;
 };

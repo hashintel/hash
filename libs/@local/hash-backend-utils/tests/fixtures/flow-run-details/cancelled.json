@@ -1,28 +1,30 @@
 {
-  "dataSources": {
-    "files": {
-      "fileEntityIds": []
-    },
-    "internetAccess": {
-      "browserPlugin": {
-        "domains": [],
-        "enabled": false
-      },
-      "enabled": false
-    }
-  },
   "flowInputs": {
     "prompt": {
       "kind": "Text",
       "value": "Who makes HASH?"
     }
   },
+  "dataSources": {
+    "files": {
+      "fileEntityIds": []
+    },
+    "internetAccess": {
+      "enabled": false,
+      "browserPlugin": {
+        "enabled": false,
+        "domains": []
+      }
+    }
+  },
   "inputRequests": [],
-  "startedAt": "2026-10-21T13:36:19.100Z",
   "steps": [
     {
-      "attempt": 1,
-      "closedAt": "2026-10-21T13:36:20.723Z",
+      "stepId": "research",
+      "stepType": "researchEntitiesAction",
+      "startedAt": "2026-10-24T11:09:30.025Z",
+      "scheduledAt": "2026-10-24T11:09:30.024Z",
+      "closedAt": "2026-10-24T11:09:31.548Z",
       "inputs": [
         {
           "inputs": [
@@ -37,11 +39,9 @@
         }
       ],
       "logs": [],
-      "scheduledAt": "2026-10-21T13:36:19.204Z",
-      "startedAt": "2026-10-21T13:36:19.207Z",
       "status": "CANCELLED",
-      "stepId": "research",
-      "stepType": "researchEntitiesAction"
+      "attempt": 1
     }
-  ]
+  ],
+  "startedAt": "2026-10-24T11:09:29.985Z"
 }

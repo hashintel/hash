@@ -1,6 +1,5 @@
 import {
   actionDefinitions as defaultActionDefinitions,
-  aiActionDefinitions,
   getKindSources,
 } from "./action-definitions.js";
 import { type ConnectionSource, canConnect } from "./can-connect.js";
@@ -30,7 +29,6 @@ export type FlowDefinitionDiagnosticCode =
   | "duplicateInputName"
   | "duplicateOutputName"
   | "unknownAction"
-  | "mixedWorkers"
   | "unknownInput"
   | "missingInput"
   | "unknownFlowInput"
@@ -542,11 +540,6 @@ export const validateFlowDefinition = (
     }
   };
 
-  /** The first action checked, which decides which worker the flow's other actions must run on. */
-  let firstAction:
-    | { actionDefinitionId: string; worker: "ai" | "integration" }
-    | undefined;
-
   const checkActionStep = (
     entry: StepEntry,
     step: ActionStepDefinition<string>,
@@ -560,20 +553,6 @@ export const validateFlowDefinition = (
         [...entry.path, "actionDefinitionId"],
       );
       return;
-    }
-
-    const worker = Object.hasOwn(aiActionDefinitions, step.actionDefinitionId)
-      ? "ai"
-      : "integration";
-
-    if (!firstAction) {
-      firstAction = { actionDefinitionId: step.actionDefinitionId, worker };
-    } else if (worker !== firstAction.worker) {
-      report(
-        "mixedWorkers",
-        `Action "${step.actionDefinitionId}" runs on the ${worker} worker, but action "${firstAction.actionDefinitionId}" runs on the ${firstAction.worker} worker: a flow's actions must all run on the same worker`,
-        [...entry.path, "actionDefinitionId"],
-      );
     }
 
     for (const [inputName, source] of Object.entries(step.inputs)) {

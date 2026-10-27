@@ -27,7 +27,6 @@ codspeed-criterion-compat = { workspace = true }
 hashql-compiletest        = { workspace = true }
 insta                     = { workspace = true }
 
-
 [lints]
 workspace = true
 

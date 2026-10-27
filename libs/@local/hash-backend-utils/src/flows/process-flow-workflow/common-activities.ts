@@ -7,6 +7,10 @@ import {
   type PersistFlowActivityParams,
 } from "./common-activities/persist-flow-activity.js";
 import {
+  recordFlowRunActivity,
+  type RecordFlowRunActivityParams,
+} from "./common-activities/record-flow-run-activity.js";
+import {
   userHasPermissionToRunFlowInWebActivity,
   type UserHasPermissionToRunFlowInWebActivityParams,
 } from "./common-activities/user-has-permission-to-run-flow-in-web-activity.js";
@@ -37,5 +41,8 @@ export const createCommonFlowActivities = ({
       graphApiClient,
       ...params,
     });
+  },
+  recordFlowRunActivity(params: RecordFlowRunActivityParams) {
+    return recordFlowRunActivity(params);
   },
 });

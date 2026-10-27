@@ -1,9 +1,6 @@
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
-import {
-  buildFlowRunEvents,
-  getFlowRunHistory,
-  pageFlowRunEvents,
-} from "@local/hash-backend-utils/flows/run-events";
+import { pageFlowRunEvents } from "@local/hash-backend-utils/flows/run-events";
+import { getFlowRunRecord } from "@local/hash-backend-utils/flows/run-record";
 
 import * as Error from "../../error";
 
@@ -21,7 +18,7 @@ export const flowRunEventsResolver: ResolverFn<
   FlowRun | SparseFlowRun,
   Pick<
     GraphQLContext,
-    "authentication" | "dataSources" | "flowRunHistories" | "temporal"
+    "authentication" | "dataSources" | "flowRunRecords" | "temporal"
   >,
   FlowRunEventsArgs
 > = async ({ flowRunEntityId }, { after, first }, context) => {
@@ -35,8 +32,9 @@ export const flowRunEventsResolver: ResolverFn<
     throw Error.notFound(`Flow run with id ${flowRunEntityId} not found`);
   }
 
-  const { workflow, history } = await getFlowRunHistory({
-    historiesByWorkflowId: context.flowRunHistories,
+  const { header, events } = await getFlowRunRecord({
+    recordsByWorkflowId: context.flowRunRecords,
+    storageProvider: context.dataSources.uploadProvider,
     temporalClient: context.temporal,
     workflowId:
       flowRunEntity.properties[
@@ -44,10 +42,8 @@ export const flowRunEventsResolver: ResolverFn<
       ],
   });
 
-  const events = buildFlowRunEvents(history);
-
   try {
-    return pageFlowRunEvents({ events, runId: workflow.runId, after, first });
+    return pageFlowRunEvents({ events, runId: header.runId, after, first });
   } catch (error) {
     throw Error.badRequest((error as Error).message);
   }

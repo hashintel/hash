@@ -559,6 +559,30 @@ export type ActionStepCheck = (params: {
   report: (inputName: string, message: string) => void;
 }) => void;
 
+/**
+ * Temporal's settings for each attempt of an action's activity. The activity runs on the task queue of the worker that
+ * implements the action (see `getActionActivityOptions`).
+ */
+export type ActionActivitySettings = {
+  /** How long one attempt may take. */
+  startToCloseTimeoutSeconds: number;
+  /**
+   * For an action that heartbeats, how long an attempt may go without one before it's treated as failed. The action
+   * heartbeats more often than this, and can then run for longer (`startToCloseTimeoutSeconds`), since a stalled
+   * attempt is caught sooner.
+   */
+  heartbeatTimeoutSeconds?: number;
+  /**
+   * Whether the action handles cancellation, so that a run that's cancelled waits for it to finish rather than
+   * abandoning it. An action that does:
+   * - heartbeats often, so it's known to be running;
+   * - catches the cancellation (`Context.current().cancelled`) and rethrows it after cleaning up;
+   * - ideally, checks for cancellation at points in its work where it can stop;
+   * - ideally, records its progress in its heartbeats, and resumes from `lastHeartbeatDetails`.
+   */
+  handlesCancellation: boolean;
+};
+
 export type ActionDefinition<
   ActionDefinitionId extends FlowActionDefinitionId,
 > = {
@@ -566,6 +590,7 @@ export type ActionDefinition<
   actionDefinitionId: ActionDefinitionId;
   name: string;
   description: string;
+  activitySettings: ActionActivitySettings;
   inputs: InputDefinition[];
   outputs: OutputDefinition[];
   /** Run when a flow is validated, for each step of the action. */
@@ -1026,11 +1051,38 @@ export type FlowSignalType =
   | "externalInputResponse"
   | "logProgress"
   | "researchActionCheckpoint"
+  | "stepAttemptFailed"
+  | "stepAttemptStarted"
   | "stopWorker";
 
 export type ProgressLogSignal = {
   attempt: number;
   logs: StepProgressLog[];
+};
+
+/**
+ * Sent by a step's activity when one of its attempts starts. Temporal records only an activity's last attempt in its
+ * run's history, so these record when the others started.
+ */
+export type StepAttemptStartedSignal = {
+  /** The activity's id: the step's id, or for a step inside a `forEach`, its step run id. */
+  stepRunId: string;
+  attempt: number;
+  /**
+   * How the attempt before it failed, as Temporal recorded it when it retried. Temporal records it in the run's
+   * history only on the last attempt's start, and an attempt that timed out or whose worker stopped sends no failure.
+   */
+  previousAttemptError?: { message: string };
+};
+
+/**
+ * Sent by a step's activity when one of its attempts throws and Temporal retries it. The last attempt's failure is in
+ * the run's history, so it isn't sent.
+ */
+export type StepAttemptFailedSignal = {
+  stepRunId: string;
+  attempt: number;
+  error: { message: string };
 };
 
 type ExternalInputRequestType = "human-input" | "get-urls-html-content";

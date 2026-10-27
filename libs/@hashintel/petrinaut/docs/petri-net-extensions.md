@@ -91,7 +91,7 @@ The code is a plain function body ending in `return`, with `tokens` (the current
 
 ## Visualizer
 
-A visualizer renders a custom view of a place's tokens during simulation. It is a React component that returns JSX (SVG is recommended).
+A visualizer renders a custom view of a place's tokens during simulation. It is a function written in JavaScript with JSX that returns SVG elements.
 
 **To enable:** select a place, then turn on the **Visualizer** switch in its properties. Click the **Visualizer** header to expand its code editor.
 
@@ -108,6 +108,16 @@ export default Visualization(({ tokens, parameters }) => {
 ```
 
 The component receives `tokens` (array of token objects) and `parameters` (global parameter values). It renders in the properties panel. During simulation, it updates live as token state changes.
+
+The code editor checks a visualizer as you type. `tokens` is typed from the place's type and `parameters` from the net's parameters, so completion and hover show the attributes and values available, and a misspelt SVG attribute, an attribute the type does not have, or a name such as `window` or `fetch` that visualizers cannot use is underlined in the editor and listed in the [Diagnostics](#diagnostics) tab under the place. Visualizer errors never block a simulation: a visualizer with errors draws nothing while the rest of the net runs.
+
+Visualizer code is JavaScript: the types are inferred, and a type annotation or a cast is an error. Like the other code surfaces, a visualizer is compiled by Petrinaut's own compiler to a restricted subset, so it stays a pure function of its tokens and parameters:
+
+- `const` bindings, destructuring, ternaries, `&&` and `||`, arithmetic, comparisons, `Math.*`, template literals and string concatenation.
+- `.map`, `.filter`, `.slice` and `.reduce` over tokens, `.length`, and `.toFixed` for numbers.
+- SVG elements such as `svg`, `g`, `rect`, `circle`, `line`, `path`, `polygon`, `text`, `defs`, `marker` and gradients, with their geometry, paint and text attributes, `key`, and a `style` object of common properties. `div`, `span` and `p` are available for labels.
+
+Imports, hooks and other function calls, event handlers such as `onClick`, images, links, `href`, and `url(...)` values other than references to this picture (`url(#marker)`) are rejected with an error at the offending code.
 
 It is reachable from the canvas too, in two steps. Point at the place and a small round button appears above it; click that and the visualizer opens where the button was, whether or not anything has run. Before a run it draws the initial marking, so a net still being built can be checked by pointing at it.
 
@@ -243,12 +253,12 @@ Petrinaut only reports diagnostics for code surfaces that are active for the cur
 
 Diagnostics come in two flavours:
 
-- **Errors** (red) -- TypeScript type/syntax errors, plus code that falls outside Petrinaut's supported code subset (see below). These must be resolved before running a simulation: pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation. The status indicator in the bottom toolbar shows a red cross while errors remain.
+- **Errors** (red) -- TypeScript type/syntax errors, plus code that falls outside Petrinaut's supported code subset (see below). These must be resolved before running a simulation: pressing Play with unresolved errors opens the Diagnostics tab instead of starting the simulation. The status indicator in the bottom toolbar shows a red cross while errors remain. Errors in a [visualizer](#visualizer) are the exception: they are listed under the place, but they never stop a run.
 - **Warnings and hints** (amber indicator) -- semantic advice that does not block simulation. Examples: `Math.random()` makes runs non-reproducible (prefer `Distribution.Uniform`), a firing rate that is always 0 so the transition can never fire, a `const` binding that is never used, or one distribution feeding several output attributes (they all receive the same sampled value).
 
 ### Supported code subset
 
-Dynamics, firing-rate, transition-kernel and metric code is compiled by Petrinaut's own compiler, which accepts a focused expression subset of TypeScript rather than arbitrary programs:
+Dynamics, firing-rate, transition-kernel, metric and visualizer code is compiled by Petrinaut's own compiler, which accepts a focused expression subset rather than arbitrary programs:
 
 - `const` bindings (including destructuring like `const { a, b } = parameters` or `const [first] = input.Place`), a final `return`, and guard clauses (`if (condition) return value;`).
 - Arithmetic, comparisons, boolean logic, ternaries, and `Math.*` functions.
@@ -256,4 +266,4 @@ Dynamics, firing-rate, transition-kernel and metric code is compiled by Petrinau
 - Collection operators depend on the code surface: dynamics and statically sized transition token arrays support `.map(...)`; metric place-token arrays support `.reduce(...)` and `.concat(...)`, but not `.map(...)`. On the GPU, `.reduce(...)` over one place's tokens compiles to a loop; `.concat(...)` keeps a metric on the CPU.
 - In metric code, place state access via `state.places.<Name>.count` and `state.places.<Name>.tokens` (a metric must `return` a number). Net parameters are available ambiently as `parameters.<variable name>` (scenario parameters are not).
 
-Loops, `let`/`var`, object spread and arbitrary function calls are rejected with an error pointing at the offending code and suggesting the idiomatic alternative. This is what lets Petrinaut analyze your model (e.g. which parameters a rate depends on) and compile it to fast code that reads token values directly from the simulation's internal buffers — metrics included, so they stay cheap even across thousands of Monte Carlo runs. Scenario code is not affected by this subset.
+Loops, `let`/`var`, object spread and arbitrary function calls are rejected with an error pointing at the offending code and suggesting the idiomatic alternative. Visualizers add JSX elements from a fixed SVG set, template literals, `.filter`, `.slice` and `.toFixed`; see [Visualizer](#visualizer). This is what lets Petrinaut analyze your model (e.g. which parameters a rate depends on) and compile it to fast code that reads token values directly from the simulation's internal buffers — metrics included, so they stay cheap even across thousands of Monte Carlo runs. Scenario code is not affected by this subset.
