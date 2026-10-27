@@ -258,7 +258,7 @@ test("a step proposing the read beside a net read issues both to the browser, an
   expect(JSON.parse(seenNet ?? "null")).toEqual(outline);
 });
 
-test("a read that finds nothing the user may see tells the model so", async () => {
+test("a read that finds nothing the user may see shows the model the empty result as it is", async () => {
   const chat = conversation();
   let seen: string | undefined;
   steps.push(
@@ -291,10 +291,7 @@ test("a read that finds nothing the user may see tells the model so", async () =
   });
   await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
 
-  expect(JSON.parse(seen ?? "null")).toEqual({
-    entities: [],
-    note: "No entities matched that the signed-in user can see.",
-  });
+  expect(JSON.parse(seen ?? "null")).toEqual({ entities: [] });
 });
 
 test("a read the page fails reaches the model as a tool error that left the document unchanged", async () => {
@@ -454,31 +451,34 @@ test.each([
   },
 );
 
-test("a depth beyond the cap never reaches the browser", async () => {
-  const chat = conversation();
-  let rejected: Extract<Message, { role: "toolResult" }> | undefined;
-  steps.push(
-    () =>
-      fauxAssistantMessage(
-        [
-          fauxToolCall(
-            brunchTools.queryHashEntities,
-            { traversalDepth: 6 },
-            { id: "r4" },
-          ),
-        ],
-        { stopReason: "toolUse" },
-      ),
-    (context) => {
-      rejected = toolResult(context, "r4");
-      return fauxAssistantMessage([fauxText("Too deep.")]);
-    },
-  );
-  const receipt = await chat.send("Read everything.");
-  await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
+test.each([-1, 1.5])(
+  "a traversal depth of %s never reaches the browser",
+  async (traversalDepth) => {
+    const chat = conversation();
+    let rejected: Extract<Message, { role: "toolResult" }> | undefined;
+    steps.push(
+      () =>
+        fauxAssistantMessage(
+          [
+            fauxToolCall(
+              brunchTools.queryHashEntities,
+              { traversalDepth },
+              { id: "r4" },
+            ),
+          ],
+          { stopReason: "toolUse" },
+        ),
+      (context) => {
+        rejected = toolResult(context, "r4");
+        return fauxAssistantMessage([fauxText("Not a depth.")]);
+      },
+    );
+    const receipt = await chat.send("Read everything.");
+    await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
 
-  expect(rejected?.isError).toBe(true);
-  expect(
-    claimBrowserCall(chat.instanceId, "r4", canonicalContent(chat.binding)),
-  ).toBeUndefined();
-});
+    expect(rejected?.isError).toBe(true);
+    expect(
+      claimBrowserCall(chat.instanceId, "r4", canonicalContent(chat.binding)),
+    ).toBeUndefined();
+  },
+);
