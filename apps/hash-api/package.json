@@ -77,7 +77,7 @@
     "agentkeepalive": "4.6.0",
     "app-root-path": "3.1.0",
     "axios": "1.20.0",
-    "body-parser": "2.3.0",
+    "body-parser": "2.4.0",
     "cors": "2.8.5",
     "dedent": "1.7.0",
     "effect": "3.21.0",
