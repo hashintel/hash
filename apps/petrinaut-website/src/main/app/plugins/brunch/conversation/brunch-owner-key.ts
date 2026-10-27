@@ -1,8 +1,4 @@
-/**
- * Keeps its pre-rename name: it addresses owner keys already stored in users'
- * browsers, and a new name would orphan their conversations.
- */
-const ownerKeyStorageKey = "brunch-principal-v1";
+import { brunchOwnerKeyStorageKey } from "@hashintel/brunch-agent";
 
 type OwnerKeyStorage = Pick<Storage, "getItem" | "setItem">;
 
@@ -12,7 +8,7 @@ export const getOrCreateBrunchOwnerKey = (
 ): string => {
   let existingOwnerKey: string | null = null;
   try {
-    existingOwnerKey = storage.getItem(ownerKeyStorageKey);
+    existingOwnerKey = storage.getItem(brunchOwnerKeyStorageKey);
   } catch {
     // An unavailable browser store yields an ephemeral owner key.
   }
@@ -22,7 +18,7 @@ export const getOrCreateBrunchOwnerKey = (
 
   const ownerKey = createOwnerKey();
   try {
-    storage.setItem(ownerKeyStorageKey, ownerKey);
+    storage.setItem(brunchOwnerKeyStorageKey, ownerKey);
   } catch {
     // The generated owner key remains valid for this page load.
   }

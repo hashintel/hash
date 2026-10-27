@@ -46,6 +46,13 @@ export const brunchSignals = {
 } as const;
 
 /**
+ * Where a browser host stores its owner key. Keeps its pre-rename name: it
+ * addresses owner keys already stored in users' browsers, and a new name would
+ * orphan their conversations.
+ */
+export const brunchOwnerKeyStorageKey = "brunch-principal-v1";
+
+/**
  * Request headers that carry conversation identity. The owner key's header
  * name predates its rename from "principal" and is a wire name: changing it
  * needs a coordinated deploy of every client and server.

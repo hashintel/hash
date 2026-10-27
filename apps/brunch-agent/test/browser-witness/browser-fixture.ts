@@ -21,7 +21,10 @@ import {
 import { createFlueClient } from "@flue/sdk";
 import { chromium, type Page } from "@playwright/test";
 
-import { agentOwnershipHeaders } from "@hashintel/brunch-agent";
+import {
+  agentOwnershipHeaders,
+  brunchOwnerKeyStorageKey,
+} from "@hashintel/brunch-agent";
 import { installFauxProvider } from "@local/pi-faux-providers/install-faux-provider";
 import { nativeOpenaiProvider } from "@local/pi-faux-providers/native-openai-provider";
 
@@ -275,11 +278,10 @@ export const openBrowserFixture = async (app: BuiltBrunchApplication) => {
   };
 
   const ownerKeyOf = async (page: Page) => {
-    const ownerKey = await page.evaluate(() => {
-      // The website's pre-rename storage key for the owner key.
-      const raw = localStorage.getItem("brunch-principal-v1");
+    const ownerKey = await page.evaluate((storageKey) => {
+      const raw = localStorage.getItem(storageKey);
       return raw?.startsWith('"') ? (JSON.parse(raw) as string) : raw;
-    });
+    }, brunchOwnerKeyStorageKey);
     assert(ownerKey, "Missing browser owner key");
     return ownerKey;
   };

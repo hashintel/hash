@@ -8,6 +8,7 @@ import * as v from "valibot";
 
 import {
   agentOwnershipHeaders,
+  brunchOwnerKeyStorageKey,
   sdcpnInitialDataSchema,
 } from "@hashintel/brunch-agent";
 
@@ -100,13 +101,15 @@ export const openRetainedPersonaBrowser = async (
   );
   await page.goto(checkUrl);
   await page.unroute(checkUrl);
-  const saved = await page.evaluate(() => ({
-    // The website's pre-rename storage key for the owner key.
-    ownerKey: localStorage.getItem("brunch-principal-v1"),
-    documents: JSON.parse(
-      localStorage.getItem("petrinaut-sdcpn") ?? "{}",
-    ) as unknown,
-  }));
+  const saved = await page.evaluate(
+    (storageKey) => ({
+      ownerKey: localStorage.getItem(storageKey),
+      documents: JSON.parse(
+        localStorage.getItem("petrinaut-sdcpn") ?? "{}",
+      ) as unknown,
+    }),
+    brunchOwnerKeyStorageKey,
+  );
   const data = v.parse(sdcpnInitialDataSchema, session.initialData);
   assert(data);
   const binding = data.binding;
