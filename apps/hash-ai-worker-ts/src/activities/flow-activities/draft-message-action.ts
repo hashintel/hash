@@ -13,6 +13,7 @@ import { getArrayPayloadLength } from "@local/hash-isomorphic-utils/flows/stored
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
+  generateEntityEditionFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { StatusCode } from "@local/status";
 
@@ -26,7 +27,6 @@ import type { LlmMessage } from "../shared/get-llm-response/llm-message.js";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import type { EntityId, UserId } from "@blockprotocol/type-system";
 import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
-import type { Filter } from "@local/hash-graph-client";
 import type { FlowActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { Status } from "@local/status";
 
@@ -96,27 +96,11 @@ const loadEntities = async (
   entityIds: EntityId[],
   authentication: { actorId: UserId },
 ) => {
-  const filter: Filter = {
-    any: entityIds.map((entityId) => {
-      const [webId, entityUuid, draftId] = splitEntityId(entityId);
-
-      return {
-        all: [
-          { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
-          { equal: [{ path: ["webId"] }, { parameter: webId }] },
-          draftId
-            ? { equal: [{ path: ["draftId"] }, { parameter: draftId }] }
-            : { not: { exists: { path: ["draftId"] } } },
-        ],
-      };
-    }),
-  };
-
   const { subgraph } = await queryEntitySubgraph(
     { graphApi: graphApiClient },
     authentication,
     {
-      filter,
+      filter: { any: entityIds.map(generateEntityEditionFilter) },
       graphResolveDepths: almostFullOntologyResolveDepths,
       traversalPaths: [],
       includeDrafts: true,
@@ -373,7 +357,7 @@ export const draftMessageAction: FlowActionActivity<"draftMessage"> = async ({
   }
 
   return failure(
-    StatusCode.ResourceExhausted,
+    StatusCode.Internal,
     `The model didn't return a usable draft in ${attempts} ${attempts === 1 ? "attempt" : "attempts"}${attempts < maxAttempts ? `, and there wasn't time for another` : ""}: ${problem}`,
   );
 };

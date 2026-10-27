@@ -1175,6 +1175,7 @@ const aiFlowActionDefinitionsAsConst = {
   },
   draftMessage: {
     actionDefinitionId: "draftMessage",
+    activitySettings: defaultActivitySettings,
     name: "Draft Message",
     description:
       "Write a message, such as an email, with AI: a subject and a plain-text body, following instructions and using any context and entities given. Nothing is sent.",

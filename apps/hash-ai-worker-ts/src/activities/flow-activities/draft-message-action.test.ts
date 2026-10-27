@@ -368,7 +368,7 @@ describe("draftMessageAction", () => {
       respondWith(response, response, response);
 
       const { code, message, contents } = await run({});
-      expect(code).toBe(StatusCode.ResourceExhausted);
+      expect(code).toBe(StatusCode.Internal);
       expect(message).toContain("in 3 attempts");
       expect(contents).toEqual([]);
       expect(getLlmResponse).toHaveBeenCalledTimes(3);
@@ -436,7 +436,7 @@ describe("draftMessageAction", () => {
         });
 
       const { code, message, contents } = await run({});
-      expect(code).toBe(StatusCode.ResourceExhausted);
+      expect(code).toBe(StatusCode.Internal);
       expect(message).toContain("in 2 attempts, and there wasn't time");
       expect(contents).toEqual([]);
       expect(getLlmResponse).toHaveBeenCalledTimes(2);

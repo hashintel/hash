@@ -6,7 +6,10 @@ import {
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { validatePropertyPatches } from "@local/hash-isomorphic-utils/flows/property-values";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  currentTimeInstantTemporalAxes,
+  generateEntityEditionFilter,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { StatusCode } from "@local/status";
 
 import { extractErrorMessage } from "../infer-entities/shared/extract-validation-failure-details.js";
@@ -57,7 +60,7 @@ export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
     );
   }
 
-  const [entityWebId, entityUuid, draftId] = splitEntityId(resolvedEntityId);
+  const [entityWebId, , draftId] = splitEntityId(resolvedEntityId);
 
   if (entityWebId !== webId) {
     return invalidArgument(
@@ -71,11 +74,7 @@ export const updateEntityAction: FlowActionActivity<"updateEntity"> = async ({
   } = await queryEntities({ graphApi: graphApiClient }, userAuthentication, {
     filter: {
       all: [
-        { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
-        { equal: [{ path: ["webId"] }, { parameter: entityWebId }] },
-        draftId
-          ? { equal: [{ path: ["draftId"] }, { parameter: draftId }] }
-          : { not: { exists: { path: ["draftId"] } } },
+        generateEntityEditionFilter(resolvedEntityId),
         { equal: [{ path: ["archived"] }, { parameter: false }] },
       ],
     },
