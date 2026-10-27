@@ -22,7 +22,7 @@ import type {
   FlueClient,
   FlueConversationState,
 } from "@flue/sdk";
-import type { BrowserContext } from "@hashintel/brunch-agent";
+import type { BrowserContext, VersionLoad } from "@hashintel/brunch-agent";
 import type {
   FlueChatResponseMessageCompletedEvent,
   FlueChatResponseMessageStartedEvent,
@@ -319,6 +319,8 @@ export const createBrunchPanelTransport = (
     readonly interviewBudgetLevel?: InterviewBudgetLevel;
     /** The host's canonical count, shared with the estimate above the composer. */
     readonly interviewRepliesAsked?: number;
+    /** The host's latest version load, sent with every message while it stands. */
+    readonly versionLoad?: VersionLoad;
     readonly onAdmission?: (admission: AgentSendResult) => void;
     readonly liveToolStream?: FlueChatTransportOptions["liveToolStream"];
     readonly onToolOutputError?: FlueChatTransportOptions["onToolOutputError"];
@@ -349,6 +351,9 @@ export const createBrunchPanelTransport = (
         const submissionContext = petrinautSubmissionContext({
           ...(budget === undefined ? {} : { interviewBudget: budget }),
           words,
+          ...(options?.versionLoad === undefined
+            ? {}
+            : { versionLoad: options.versionLoad }),
         });
         const transport = (
           options?.adapter ?? canonicalBrunchFlueAdapter

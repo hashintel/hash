@@ -44,6 +44,7 @@ import { useWords } from "../../shared/words.ts";
 import { useGuidance } from "./guidance.ts";
 import { createHashGraphReadTools } from "./tools/hash-graph-reads.ts";
 import { createHashSaveTool } from "./tools/hash-save.ts";
+import { withVersionLoadNotes } from "./version-load-note.ts";
 
 import type { BrowserToolExecutor } from "../../shared/petrinaut-tools/petrinaut-construction.ts";
 
@@ -78,10 +79,14 @@ export function HashAgent({ id }: AgentProps) {
         )
       : undefined;
   const words = useWords(submitted?.words);
+  // A turn sent after the user loaded another saved version tells the model
+  // which one, once, where it happened.
   useContextProjection(
-    createBrunchContextProjection({
-      observe: (entries) => netViewTracker.observe(id, entries),
-    }),
+    withVersionLoadNotes(
+      createBrunchContextProjection({
+        observe: (entries) => netViewTracker.observe(id, entries),
+      }),
+    ),
   );
   // Agent-local acquisition of this already-authorized instance's public history.
   // Reuse the existing router and storage; no listener, companion log or private records.

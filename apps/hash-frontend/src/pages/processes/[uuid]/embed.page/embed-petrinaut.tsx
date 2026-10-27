@@ -5,6 +5,7 @@ import {
   type BrunchOpenDocument,
   type ReadBrunchDocumentSaveState,
   useBrunchAssistant,
+  type VersionLoad,
 } from "@hashintel/brunch-agent/ui";
 import {
   ErrorTrackerContext,
@@ -113,6 +114,7 @@ export const EmbedPetrinaut = ({
   readTitle,
   readSaveState,
   saveNetForAgent,
+  versionLoad,
   readonly,
   setTitle,
   title,
@@ -126,6 +128,8 @@ export const EmbedPetrinaut = ({
   readSaveState: ReadBrunchDocumentSaveState;
   /** Runs the editor's Save for the agent. Stable. */
   saveNetForAgent: SaveNetForAgent;
+  /** The latest load of another saved version of the open net, while the open net builds on it. */
+  versionLoad: VersionLoad | undefined;
   readonly: boolean;
   setTitle: (title: string) => void;
   title: string;
@@ -159,6 +163,9 @@ export const EmbedPetrinaut = ({
     // agent's save, run through the editor's Save once the user approves it.
     hostTools,
     readSaveState,
+    // Brunch tells its agent about a load once, on the next turn, and the
+    // Ledger marks reflections on elements the loaded version lacks.
+    ...(versionLoad === undefined ? {} : { versionLoad }),
   });
 
   return (

@@ -647,3 +647,102 @@ test("a load before the save's result leaves the agent's save unsettled until Br
   controller.abort(new Error("Brunch stopped the turn"));
   await expect(save.settled).rejects.toThrow("Brunch stopped the turn");
 });
+
+test("a load of another saved version reaches Brunch as a version load that Saves leave unchanged", async () => {
+  const latest = savedSnapshot;
+  const earlier = {
+    definition: { ...definition, places: [] },
+    title: "Net",
+    decisionTime: "2026-10-23T00:00:00.000Z",
+  };
+  const loadVersion = (snapshot: typeof savedSnapshot) =>
+    sendToEditor({
+      kind: "load",
+      definition: snapshot.definition,
+      title: snapshot.title,
+      mode: savedMode,
+      savedSnapshot: snapshot,
+      revisions: [],
+    });
+  const lastVersionLoad = () => lastBrunchInput()?.versionLoad;
+
+  initEditor();
+  await waitFor(() => expect(lastBrunchInput()?.selected).toBe(true));
+  // Opening the net is no load, and nor is loading the version already open.
+  expect(lastVersionLoad()).toBeUndefined();
+  loadVersion(latest);
+  await act(async () => {});
+  expect(lastVersionLoad()).toBeUndefined();
+
+  loadVersion(earlier);
+  await waitFor(() =>
+    expect(lastVersionLoad()).toEqual({
+      id: expect.any(String),
+      decisionTime: earlier.decisionTime,
+    }),
+  );
+  const firstLoad = lastVersionLoad();
+
+  // The button's Save and the agent's leave it: they build on the loaded version.
+  editNet("after-load");
+  act(() => {
+    lastChrome()?.onSave();
+  });
+  const [buttonSave] = saveRequests();
+  sendToEditor({
+    kind: "saveResult",
+    requestId: buttonSave?.requestId ?? "",
+    result: {
+      ok: true,
+      mode: savedMode,
+      savedSnapshot: {
+        definition: buttonSave?.definition ?? definition,
+        title: "Net",
+        decisionTime: "2026-10-24T02:00:00.000Z",
+      },
+    },
+  });
+  await waitFor(() =>
+    expect(lastChrome()?.loadedRevisionTime).toBe("2026-10-24T02:00:00.000Z"),
+  );
+  editNet("before-agent-save");
+  const save = agentSave(savedEntityId);
+  await waitFor(() => expect(saveRequests()).toHaveLength(2));
+  sendToEditor({
+    kind: "saveResult",
+    requestId: saveRequests()[1]?.requestId ?? "",
+    result: {
+      ok: true,
+      mode: savedMode,
+      savedSnapshot: {
+        definition: saveRequests()[1]?.definition ?? definition,
+        title: "Net",
+        decisionTime: "2026-10-24T03:00:00.000Z",
+      },
+    },
+  });
+  await expect(save.settled).resolves.toMatchObject({ saved: true });
+  expect(lastVersionLoad()).toBe(firstLoad);
+
+  // Loading the same earlier version again is a new load.
+  loadVersion(earlier);
+  await waitFor(() => expect(lastVersionLoad()).not.toBe(firstLoad));
+  expect(lastVersionLoad()).toEqual({
+    id: expect.any(String),
+    decisionTime: earlier.decisionTime,
+  });
+  expect(lastVersionLoad()?.id).not.toBe(firstLoad?.id);
+
+  // Another net, or a fresh open, carries none.
+  sendToEditor({
+    kind: "load",
+    definition,
+    title: "Other",
+    mode: { ...savedMode, entityId: "web~other" as EntityId },
+    savedSnapshot: latest,
+    revisions: [],
+  });
+  await waitFor(() => expect(lastVersionLoad()).toBeUndefined());
+  loadVersion(earlier);
+  await waitFor(() => expect(lastVersionLoad()).toBeUndefined());
+});

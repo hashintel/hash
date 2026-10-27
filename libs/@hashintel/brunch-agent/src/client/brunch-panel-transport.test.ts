@@ -131,6 +131,40 @@ test("an empty words snapshot without an allowance sends an ordinary message", a
   expect(send.mock.calls[0]?.[0].message.body).toBe("Hi");
 });
 
+test("sends the host's version load with the user's text", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(400, "Rejected");
+  });
+  const versionLoad = {
+    id: "load-1",
+    decisionTime: "2026-10-27T10:00:00.000Z",
+  };
+  const transport = createBrunchPanelTransport(
+    Promise.resolve({ send } as unknown as FlueClient),
+    new BrunchPanelConversationTracker(),
+    { readWords: () => [], versionLoad },
+  );
+  await expect(
+    transport.sendMessages({
+      trigger: "submit-message",
+      chatId: "one",
+      messageId: "user-one",
+      messages: [
+        { id: "user-one", role: "user", parts: [{ type: "text", text: "Hi" }] },
+      ],
+      abortSignal: undefined,
+    }),
+  ).rejects.toThrow();
+  const body = parsePetrinautUserMessageBody(
+    send.mock.calls[0]?.[0].message.body ?? "",
+  );
+  expect(body).toMatchObject({ userText: "Hi" });
+  expect(readPetrinautSubmissionContext(body)).toEqual({
+    words: [],
+    versionLoad,
+  });
+});
+
 test.each(interviewBudgetLevels)(
   "sends current %s budget on each submission, with Off identical to the legacy request",
   async (level) => {

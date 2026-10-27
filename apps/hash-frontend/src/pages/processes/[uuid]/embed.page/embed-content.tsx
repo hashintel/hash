@@ -39,7 +39,10 @@ import { EmbedPetrinaut } from "./embed-petrinaut";
 import { HASHPetrinautOptimizationProvider } from "./hash-petrinaut-optimization-provider";
 
 import type { HashSaveOutcome, SaveNetForAgent } from "./brunch-hash-save";
-import type { BrunchDocumentSaveState } from "@hashintel/brunch-agent/ui";
+import type {
+  BrunchDocumentSaveState,
+  VersionLoad,
+} from "@hashintel/brunch-agent/ui";
 
 /**
  * Errors Petrinaut catches itself, such as a failing plugin's, never reach the
@@ -105,6 +108,13 @@ export const EmbedContent = () => {
     string | null
   >(null);
   const [isDirty, setIsDirty] = useState(false);
+  /**
+   * The latest load of another saved version of the open net, which the open
+   * net builds on, until a fresh open or another net. Saves leave it as it
+   * is: they build on the loaded version. Each load gets a fresh id, so Brunch
+   * tells its agent about each load once, however many turns carry it.
+   */
+  const [versionLoad, setVersionLoad] = useState<VersionLoad | undefined>();
 
   /**
    * Latest saved snapshot kept in a ref so the per-handle `subscribe`
@@ -173,8 +183,22 @@ export const EmbedContent = () => {
        */
       setPendingSaveRequestId(null);
       savedForAgentRef.current = null;
+      setVersionLoad(undefined);
     },
     onLoad: (payload) => {
+      const loadedTime = payload.savedSnapshot?.decisionTime ?? null;
+      const sameNet =
+        payload.mode.kind === "saved" &&
+        state?.mode.kind === "saved" &&
+        payload.mode.entityId === state.mode.entityId;
+      if (!sameNet) {
+        setVersionLoad(undefined);
+      } else if (
+        loadedTime !== null &&
+        loadedTime !== (state.savedSnapshot?.decisionTime ?? null)
+      ) {
+        setVersionLoad({ id: nextRequestId(), decisionTime: loadedTime });
+      }
       const handle = createJsonDocHandle({ initial: payload.definition });
       const savedSnapshot = withPetrinautIds(payload.savedSnapshot);
       setState({
@@ -463,6 +487,7 @@ export const EmbedContent = () => {
               readTitle={readTitle}
               readSaveState={readAgentSaveState}
               saveNetForAgent={saveNetForAgent}
+              versionLoad={versionLoad}
               readonly={state.readonly}
               setTitle={handleSetTitle}
               title={state.title}

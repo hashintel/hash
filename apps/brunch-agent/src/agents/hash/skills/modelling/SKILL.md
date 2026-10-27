@@ -19,7 +19,7 @@ Every accepted step of net changes gets a reflection in the exchange's commit, m
 
 ## After a version load
 
-The USER may load a different saved version of the net in the editor. Suspect it when a read no longer matches the net you last saw, or a change is refused because the document changed by other means. Before building on earlier work, review your construction reflections and obligations against the net you now read. Keep elicited entities and claims: they describe the operation, not the net. Tell the USER what no longer matches, and confirm with them before redoing construction.
+The USER may load a different saved version of the net in the editor. The editor tells you on the next turn with a host note: "The user loaded the version saved at <time>; later saves build on it." Without one, suspect it when a read no longer matches the net you last saw, or a change is refused because the document changed by other means. Before building on earlier work, review your construction reflections and obligations against the net you now read. Keep elicited entities and claims: they describe the operation, not the net. Tell the USER what no longer matches, and confirm with them before redoing construction.
 
 ## Check correspondence
 

@@ -94,9 +94,10 @@ import type { PetrinautAiComposerControlContext } from "./chat/ai-assistant-comp
 import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
 import type { PetrinautAiAutomaticTool } from "./chat/ai-automatic-tool";
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
-import type { SdcpnInitialData } from "@hashintel/brunch-agent";
+import type { SdcpnInitialData, VersionLoad } from "@hashintel/brunch-agent";
 import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
+export type { VersionLoad } from "@hashintel/brunch-agent";
 export type {
   BrunchDocumentSaveState,
   ReadBrunchDocumentSaveState,
@@ -214,6 +215,7 @@ export const useBrunchAssistant = ({
   plugins,
   hostTools,
   readSaveState,
+  versionLoad,
 }: BrunchConnection & {
   /** Brunch is configured and chosen as the assistant. */
   readonly selected: boolean;
@@ -236,6 +238,12 @@ export const useBrunchAssistant = ({
    * and last saved time. Pass a stable function.
    */
   readonly readSaveState?: ReadBrunchDocumentSaveState;
+  /**
+   * The host's latest load of another saved version of the open net, while
+   * the net open builds on it. Each message carries it, so Brunch tells its
+   * agent once, and the Ledger marks reflections on elements the net lacks.
+   */
+  readonly versionLoad?: VersionLoad;
 }): BrunchAssistant => {
   const currentNetId = openDocument?.documentId ?? null;
   const editor = openDocument?.editor ?? null;
@@ -514,6 +522,7 @@ export const useBrunchAssistant = ({
             interviewBudgetLevel,
             interviewRepliesAsked,
             readWords: () => readWords().map((word) => word.spelling),
+            ...(versionLoad === undefined ? {} : { versionLoad }),
             ...(constructionBrowser
               ? {
                   initialData: {
@@ -558,6 +567,7 @@ export const useBrunchAssistant = ({
       hostFetch,
       readWords,
       reportBrunchFailure,
+      versionLoad,
     ],
   );
 
@@ -646,6 +656,7 @@ export const useBrunchAssistant = ({
               <BrunchLedgerTab
                 conversationId={constructionBrowser.binding.conversationId}
                 messages={flueHistory.snapshot?.messages ?? []}
+                versionLoaded={versionLoad !== undefined}
               />
             ),
           }
@@ -795,6 +806,7 @@ export const useBrunchAssistant = ({
     mapVoiceMessages,
     mutationApprovalTools,
     setInterviewBudgetLevel,
+    versionLoad,
     wordsActive,
   ]);
 
