@@ -14,11 +14,11 @@ import {
   BROWSER_CALL_STALE_ERROR,
   BROWSER_CALL_UNSTARTED_ERROR,
 } from "../../../shared/conversation/browser-call-rendezvous.ts";
-import { noNetViewRefusal } from "../../../shared/conversation/net-freshness.ts";
 import {
   type BrowserToolExecutor,
   browserResultEnvelope,
-} from "../../../shared/petrinaut-tools/petrinaut-construction.ts";
+} from "../../../shared/conversation/browser-tool-executor.ts";
+import { noNetViewRefusal } from "../../../shared/conversation/net-freshness.ts";
 
 /**
  * No defaults or transforms: the browser compares the input it was issued

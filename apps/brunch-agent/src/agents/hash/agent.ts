@@ -47,7 +47,7 @@ import { createHashGraphReadTools } from "./tools/hash-graph-reads.ts";
 import { createHashSaveTool } from "./tools/hash-save.ts";
 import { withVersionLoadNotes } from "./version-load-note.ts";
 
-import type { BrowserToolExecutor } from "../../shared/petrinaut-tools/petrinaut-construction.ts";
+import type { BrowserToolExecutor } from "../../shared/conversation/browser-tool-executor.ts";
 
 const chatModelSpecifier = selectChatModelSpecifier();
 const chatThinkingLevel = selectChatThinking();
