@@ -6,6 +6,7 @@ import {
   canonicalContent,
 } from "@hashintel/brunch-agent";
 
+import type { BrunchFetch } from "../brunch-flue-client";
 import type { FlueClient } from "@flue/sdk";
 import type {
   BrowserCallClaim,
@@ -57,10 +58,9 @@ export const createInBandBrowserCalls = (input: {
   /** Whether a change issued against `expected` may still run on the bound document. */
   readonly acceptsRevision: (expected: string) => boolean;
   /** Carries the claim, lease, fail and result requests; the global `fetch` when omitted. */
-  readonly fetch?: typeof globalThis.fetch;
+  readonly fetch?: BrunchFetch;
 }) => {
-  const request: typeof globalThis.fetch =
-    input.fetch ?? ((url, init) => fetch(url, init));
+  const request: BrunchFetch = input.fetch ?? ((url, init) => fetch(url, init));
   const claim = async (call: IssuedCall) => {
     const client = await input.client;
     const url = `${client.url}/${brunchRoutes.browserCalls}/${encodeURIComponent(call.toolCallId)}`;

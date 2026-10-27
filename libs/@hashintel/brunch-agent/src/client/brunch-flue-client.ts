@@ -7,6 +7,9 @@ import {
 
 import type { FlueChatTransportOptions } from "@local/flue-aisdk-transport";
 
+/** The `fetch` a host gives Brunch to carry its requests. */
+export type BrunchFetch = typeof globalThis.fetch;
+
 /** How the host reaches Brunch's server. */
 export interface BrunchConnection {
   /**
@@ -20,7 +23,7 @@ export interface BrunchConnection {
    * Carries every request Brunch makes: Flue's, the browser calls' and the
    * live-tool stream's. The global `fetch` when omitted.
    */
-  readonly fetch?: typeof globalThis.fetch;
+  readonly fetch?: BrunchFetch;
 }
 
 /** The Flue client for one conversation's instance. */
@@ -35,18 +38,18 @@ export const createBrunchFlueClient = async (
   return createFlueClient({
     url: mountUrl.href,
     headers: () => agentOwnershipHeaders(identity),
-    ...(connection.fetch === undefined ? {} : { fetch: connection.fetch }),
+    fetch: connection.fetch,
   });
 };
 
 /** The transport's live-tool stream options for one conversation. */
 export const brunchLiveToolStream = (
-  connection: BrunchConnection,
+  connection: Pick<BrunchConnection, "ownerKey" | "fetch">,
   conversationId: string,
 ): NonNullable<FlueChatTransportOptions["liveToolStream"]> => ({
   headers: agentOwnershipHeaders({
     conversationId,
     ownerKey: connection.ownerKey,
   }),
-  ...(connection.fetch === undefined ? {} : { fetch: connection.fetch }),
+  fetch: connection.fetch,
 });

@@ -13,6 +13,7 @@ import { ErrorTrackerContext } from "@hashintel/petrinaut/react";
 import { createBrunchFlueAdapter } from "../client/brunch-flue-adapter";
 import {
   brunchLiveToolStream,
+  type BrunchFetch,
   createBrunchFlueClient,
 } from "../client/brunch-flue-client";
 import {
@@ -107,7 +108,7 @@ const useProcessAgentSession = (input: {
   readonly brunchSelected: boolean;
   readonly ownerKey: string;
   readonly chatEndpoint: string;
-  readonly fetch: typeof globalThis.fetch | undefined;
+  readonly fetch: BrunchFetch | undefined;
 }) => {
   return useMemo(() => {
     const conversationTracker = createConversationTrackerFor(
@@ -212,7 +213,7 @@ export const useBrunchAssistant = ({
    * or memoized): a new identity recreates the conversation's client and
    * tracker.
    */
-  readonly fetch?: typeof globalThis.fetch;
+  readonly fetch?: BrunchFetch;
   /**
    * The editor shows Brunch's assistant. Brunch reads no history, checks no
    * Voice and opens no connection otherwise.
@@ -511,7 +512,7 @@ export const useBrunchAssistant = ({
               ? {}
               : {
                   liveToolStream: brunchLiveToolStream(
-                    { ownerKey, chatEndpoint, fetch: hostFetch },
+                    { ownerKey, fetch: hostFetch },
                     conversationId,
                   ),
                 }),
@@ -540,7 +541,6 @@ export const useBrunchAssistant = ({
       interviewBudgetLevel,
       interviewRepliesAsked,
       ownerKey,
-      chatEndpoint,
       hostFetch,
       readWords,
       reportBrunchFailure,
