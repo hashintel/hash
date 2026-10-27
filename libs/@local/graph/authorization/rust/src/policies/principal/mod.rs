@@ -256,7 +256,7 @@ mod tests {
         let cedar_string = cedar_string.as_ref();
 
         let policy = Policy {
-            id: PolicyId::new(Uuid::new_v4()),
+            id: PolicyId::new(Uuid::now_v7()),
             name: None,
             effect: Effect::Permit,
             principal: Some(constraint),

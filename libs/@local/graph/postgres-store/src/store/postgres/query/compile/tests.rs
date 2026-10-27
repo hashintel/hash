@@ -1073,8 +1073,8 @@ fn two_linked_entities() {
     let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
     let pinned_timestamp = temporal_axes.pinned_timestamp();
 
-    let entity_a_uuid = Uuid::new_v4();
-    let entity_b_uuid = Uuid::new_v4();
+    let entity_a_uuid = Uuid::now_v7();
+    let entity_b_uuid = Uuid::now_v7();
 
     let filter_a = Filter::Equal(
         FilterExpression::Path {
@@ -2096,8 +2096,8 @@ mod predefined {
     #[test]
     fn for_entity_by_entity_id() {
         let entity_id = EntityId {
-            web_id: WebId::new(Uuid::new_v4()),
-            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            web_id: WebId::new(Uuid::now_v7()),
+            entity_uuid: EntityUuid::new(Uuid::now_v7()),
             draft_id: None,
         };
 
@@ -2129,17 +2129,17 @@ mod predefined {
 
     fn published_entity_id() -> EntityId {
         EntityId {
-            web_id: WebId::new(Uuid::new_v4()),
-            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            web_id: WebId::new(Uuid::now_v7()),
+            entity_uuid: EntityUuid::new(Uuid::now_v7()),
             draft_id: None,
         }
     }
 
     fn drafted_entity_id() -> EntityId {
         EntityId {
-            web_id: WebId::new(Uuid::new_v4()),
-            entity_uuid: EntityUuid::new(Uuid::new_v4()),
-            draft_id: Some(DraftId::new(Uuid::new_v4())),
+            web_id: WebId::new(Uuid::now_v7()),
+            entity_uuid: EntityUuid::new(Uuid::now_v7()),
+            draft_id: Some(DraftId::new(Uuid::now_v7())),
         }
     }
 
@@ -2384,8 +2384,8 @@ mod predefined {
     /// plain disjunction of conjunctions with each qual pushed to its own table.
     #[test]
     fn cross_table_uuid_pairs_stay_direct() {
-        let webs = [Uuid::new_v4(), Uuid::new_v4()];
-        let actors = [Uuid::new_v4(), Uuid::new_v4()];
+        let webs = [Uuid::now_v7(), Uuid::now_v7()];
+        let actors = [Uuid::now_v7(), Uuid::now_v7()];
 
         let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
@@ -2504,16 +2504,16 @@ mod predefined {
     fn four_column_tuples_bundle_at_their_own_width() {
         let tuples: [[Uuid; 4]; 2] = [
             [
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                Uuid::new_v4(),
+                Uuid::now_v7(),
+                Uuid::now_v7(),
+                Uuid::now_v7(),
+                Uuid::now_v7(),
             ],
             [
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                Uuid::new_v4(),
+                Uuid::now_v7(),
+                Uuid::now_v7(),
+                Uuid::now_v7(),
+                Uuid::now_v7(),
             ],
         ];
 
@@ -2561,7 +2561,7 @@ mod predefined {
     /// timestamp column with a uuid column binds `timestamptz[]` beside `uuid[]`.
     #[test]
     fn mixed_type_tuples_type_each_array_from_its_column() {
-        let actors = [Uuid::new_v4(), Uuid::new_v4()];
+        let actors = [Uuid::now_v7(), Uuid::now_v7()];
 
         let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
@@ -2941,8 +2941,8 @@ mod tuple_bundling {
 
     #[test]
     fn singleton_pair_matches_recompile() {
-        let web = Uuid::new_v4();
-        let uuid = Uuid::new_v4();
+        let web = Uuid::now_v7();
+        let uuid = Uuid::now_v7();
         assert_matches_recompile(
             vec![
                 uuid_equality(EntityQueryPath::WebId, web),
@@ -2957,8 +2957,8 @@ mod tuple_bundling {
 
     #[test]
     fn repeated_column_matches_recompile() {
-        let first = Uuid::new_v4();
-        let second = Uuid::new_v4();
+        let first = Uuid::now_v7();
+        let second = Uuid::now_v7();
         assert_matches_recompile(
             vec![
                 uuid_equality(EntityQueryPath::Uuid, first),
@@ -2973,8 +2973,8 @@ mod tuple_bundling {
 
     #[test]
     fn cross_table_pair_matches_recompile() {
-        let web = Uuid::new_v4();
-        let creator = Uuid::new_v4();
+        let web = Uuid::now_v7();
+        let creator = Uuid::now_v7();
         assert_matches_recompile(
             vec![
                 uuid_equality(EntityQueryPath::WebId, web),
@@ -2989,9 +2989,9 @@ mod tuple_bundling {
 
     #[test]
     fn cross_table_triple_matches_recompile() {
-        let web = Uuid::new_v4();
-        let uuid = Uuid::new_v4();
-        let creator = Uuid::new_v4();
+        let web = Uuid::now_v7();
+        let uuid = Uuid::now_v7();
+        let creator = Uuid::now_v7();
         assert_matches_recompile(
             vec![
                 uuid_equality(EntityQueryPath::WebId, web),
@@ -3010,9 +3010,9 @@ mod tuple_bundling {
     #[test]
     fn three_table_triple_stays_direct() {
         let (statement, _) = compile(&Filter::Any(vec![Filter::All(vec![
-            uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
-            uuid_equality(EntityQueryPath::CreatedById, Uuid::new_v4()),
-            uuid_equality(EntityQueryPath::EditionCreatedById, Uuid::new_v4()),
+            uuid_equality(EntityQueryPath::WebId, Uuid::now_v7()),
+            uuid_equality(EntityQueryPath::CreatedById, Uuid::now_v7()),
+            uuid_equality(EntityQueryPath::EditionCreatedById, Uuid::now_v7()),
         ])]));
         assert!(
             !statement.contains("UNNEST"),
@@ -3028,16 +3028,16 @@ mod tuple_bundling {
     #[test]
     fn interleaving_triple_stays_direct() {
         let (statement, _) = compile(&Filter::Any(vec![Filter::All(vec![
-            uuid_equality(EntityQueryPath::Uuid, Uuid::new_v4()),
+            uuid_equality(EntityQueryPath::Uuid, Uuid::now_v7()),
             uuid_equality(
                 EntityQueryPath::EntityEdge {
                     edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
                     path: Box::new(EntityQueryPath::Uuid),
                     direction: EdgeDirection::Outgoing,
                 },
-                Uuid::new_v4(),
+                Uuid::now_v7(),
             ),
-            uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
+            uuid_equality(EntityQueryPath::WebId, Uuid::now_v7()),
         ])]));
         assert!(
             !statement.contains("UNNEST"),
@@ -3052,8 +3052,8 @@ mod tuple_bundling {
     fn mixed_variant_members_bind_per_element() {
         let (statement, parameters) = compile(&Filter::Any(vec![
             Filter::All(vec![
-                uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
-                uuid_equality(EntityQueryPath::Uuid, Uuid::new_v4()),
+                uuid_equality(EntityQueryPath::WebId, Uuid::now_v7()),
+                uuid_equality(EntityQueryPath::Uuid, Uuid::now_v7()),
             ]),
             Filter::All(vec![
                 Filter::Equal(
@@ -3065,7 +3065,7 @@ mod tuple_bundling {
                         convert: None,
                     },
                 ),
-                uuid_equality(EntityQueryPath::Uuid, Uuid::new_v4()),
+                uuid_equality(EntityQueryPath::Uuid, Uuid::now_v7()),
             ]),
         ]));
         assert_eq!(
@@ -3091,16 +3091,16 @@ mod tuple_bundling {
     fn mixed_group_bundles_only_the_same_table_tuples() {
         let (statement, parameters) = compile(&Filter::Any(vec![
             Filter::All(vec![
-                uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
-                uuid_equality(EntityQueryPath::Uuid, Uuid::new_v4()),
+                uuid_equality(EntityQueryPath::WebId, Uuid::now_v7()),
+                uuid_equality(EntityQueryPath::Uuid, Uuid::now_v7()),
             ]),
             Filter::All(vec![
-                uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
-                uuid_equality(EntityQueryPath::Uuid, Uuid::new_v4()),
+                uuid_equality(EntityQueryPath::WebId, Uuid::now_v7()),
+                uuid_equality(EntityQueryPath::Uuid, Uuid::now_v7()),
             ]),
             Filter::All(vec![
-                uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
-                uuid_equality(EntityQueryPath::CreatedById, Uuid::new_v4()),
+                uuid_equality(EntityQueryPath::WebId, Uuid::now_v7()),
+                uuid_equality(EntityQueryPath::CreatedById, Uuid::now_v7()),
             ]),
         ]));
         assert_eq!(
@@ -3138,7 +3138,7 @@ mod tuple_bundling {
                     KnowledgeGraphEdgeKind::HasLeftEntity,
                     EntityQueryPath::EditionId,
                 ),
-                Uuid::new_v4(),
+                Uuid::now_v7(),
             ),
             Filter::All(vec![
                 uuid_equality(
@@ -3146,14 +3146,14 @@ mod tuple_bundling {
                         KnowledgeGraphEdgeKind::HasRightEntity,
                         EntityQueryPath::EditionId,
                     ),
-                    Uuid::new_v4(),
+                    Uuid::now_v7(),
                 ),
                 uuid_equality(
                     edge(
                         KnowledgeGraphEdgeKind::HasRightEntity,
                         EntityQueryPath::DraftId,
                     ),
-                    Uuid::new_v4(),
+                    Uuid::now_v7(),
                 ),
             ]),
         ]));
@@ -3183,7 +3183,7 @@ mod tuple_bundling {
     /// array predicates.
     #[test]
     fn array_backed_column_group_matches_recompile_and_keeps_containment() {
-        let web = Uuid::new_v4();
+        let web = Uuid::now_v7();
         let group = || {
             vec![
                 Filter::Equal(
@@ -3238,7 +3238,7 @@ mod tuple_bundling {
                     convert: None,
                 },
             ),
-            uuid_equality(EntityQueryPath::WebId, Uuid::new_v4()),
+            uuid_equality(EntityQueryPath::WebId, Uuid::now_v7()),
         ])]);
         compiler.add_filter(&filter).expect("should compile");
         let (statement, _) = compiler.compile();

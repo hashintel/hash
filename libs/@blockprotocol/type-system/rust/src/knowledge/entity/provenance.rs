@@ -178,11 +178,11 @@ mod tests {
     #[test]
     fn entity_provenance_roundtrip_without_deletion() {
         let json = serde_json::json!({
-            "createdById": Uuid::new_v4(),
+            "createdById": Uuid::now_v7(),
             "createdAtTransactionTime": Timestamp::<TransactionTime>::now(),
             "createdAtDecisionTime": Timestamp::<DecisionTime>::now(),
             "edition": {
-                "createdById": Uuid::new_v4(),
+                "createdById": Uuid::now_v7(),
                 "actorType": "user",
                 "origin": { "type": "api" },
             },
@@ -203,16 +203,16 @@ mod tests {
         use alloc::collections::BTreeSet;
 
         let json = serde_json::json!({
-            "createdById": Uuid::new_v4(),
+            "createdById": Uuid::now_v7(),
             "createdAtTransactionTime": Timestamp::<TransactionTime>::now(),
             "createdAtDecisionTime": Timestamp::<DecisionTime>::now(),
             "firstNonDraftCreatedAtTransactionTime": Timestamp::<TransactionTime>::now(),
             "firstNonDraftCreatedAtDecisionTime": Timestamp::<DecisionTime>::now(),
-            "deletedById": Uuid::new_v4(),
+            "deletedById": Uuid::now_v7(),
             "deletedAtTransactionTime": Timestamp::<TransactionTime>::now(),
             "deletedAtDecisionTime": Timestamp::<DecisionTime>::now(),
             "edition": {
-                "createdById": Uuid::new_v4(),
+                "createdById": Uuid::now_v7(),
                 "actorType": "user",
                 "origin": { "type": "api" },
             },
@@ -239,14 +239,14 @@ mod tests {
     #[test]
     fn entity_provenance_roundtrip_with_deletion() {
         let json = serde_json::json!({
-            "createdById": Uuid::new_v4(),
+            "createdById": Uuid::now_v7(),
             "createdAtTransactionTime": Timestamp::<TransactionTime>::now(),
             "createdAtDecisionTime": Timestamp::<DecisionTime>::now(),
-            "deletedById": Uuid::new_v4(),
+            "deletedById": Uuid::now_v7(),
             "deletedAtTransactionTime": Timestamp::<TransactionTime>::now(),
             "deletedAtDecisionTime": Timestamp::<DecisionTime>::now(),
             "edition": {
-                "createdById": Uuid::new_v4(),
+                "createdById": Uuid::now_v7(),
                 "actorType": "user",
                 "origin": { "type": "api" },
             },

@@ -86,13 +86,13 @@ fn token_params(
     lifetime: Option<Duration>,
 ) -> Result<CreateApiTokenParams, Box<dyn Error>> {
     Ok(CreateApiTokenParams {
-        token_id: ApiTokenId::new(Uuid::new_v4()),
+        token_id: ApiTokenId::new(Uuid::now_v7()),
         token_type: ApiTokenType::User,
         version: ApiTokenVersion::V0,
         user_id,
         name: ApiTokenName::new("ci".to_owned())?,
         lifetime,
-        encryption_key_id: ApiTokenEncryptionKeyId::new(Uuid::new_v4()),
+        encryption_key_id: ApiTokenEncryptionKeyId::new(Uuid::now_v7()),
         encrypted_secret_hash: ApiTokenEncryptedSecretHash::new([7; 60]),
     })
 }
@@ -206,7 +206,7 @@ async fn list_other_web() -> Result<(), Box<dyn Error>> {
 
     assert!(
         store
-            .list_api_tokens(WebId::new(Uuid::new_v4()))
+            .list_api_tokens(WebId::new(Uuid::now_v7()))
             .await?
             .is_empty(),
         "another web should not list the token"
@@ -333,7 +333,7 @@ async fn revoke_other_web() -> Result<(), Box<dyn Error>> {
     let token = create_token(&mut store, user_id, Some(LIFETIME)).await?;
 
     let result = store
-        .revoke_api_token(WebId::new(Uuid::new_v4()), token.token_id)
+        .revoke_api_token(WebId::new(Uuid::now_v7()), token.token_id)
         .await;
 
     assert_matches!(
@@ -581,7 +581,7 @@ async fn authenticate_unknown() -> Result<(), Box<dyn Error>> {
     create_token(&mut store, user_id, Some(LIFETIME)).await?;
 
     let result = store
-        .authenticate_api_token(ApiTokenId::new(Uuid::new_v4()), accept)
+        .authenticate_api_token(ApiTokenId::new(Uuid::now_v7()), accept)
         .await;
 
     assert_matches!(
@@ -1054,7 +1054,7 @@ async fn provider_unknown_key() -> Result<(), Box<dyn Error>> {
         .as_client()
         .execute(
             "UPDATE api_token SET encryption_key_id = $2 WHERE token_id = $1",
-            &[&hashed.token_id(), &Uuid::new_v4()],
+            &[&hashed.token_id(), &Uuid::now_v7()],
         )
         .await?;
 

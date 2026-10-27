@@ -44,7 +44,7 @@ time            = { workspace = true }
 tokio           = { workspace = true, features = ["macros"] }
 tokio-postgres  = { workspace = true, default-features = false }
 tracing         = { workspace = true }
-uuid            = { workspace = true, features = ["v4", "serde"] }
+uuid            = { workspace = true, features = ["serde"] }
 walkdir         = { workspace = true }
 
 [lints]

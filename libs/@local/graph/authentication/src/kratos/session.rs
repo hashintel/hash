@@ -501,11 +501,11 @@ mod tests {
 
         /// Builds the whoami wire format.
         fn into_whoami_json(self) -> JsonValue {
-            let mut identity = json!({ "id": Uuid::new_v4() });
+            let mut identity = json!({ "id": Uuid::now_v7() });
             if let Some(actor_id) = self.graph_actor_id {
                 identity["metadata_public"] = json!({ "graph_actor_id": actor_id });
             }
-            let mut whoami = json!({ "id": Uuid::new_v4(), "identity": identity });
+            let mut whoami = json!({ "id": Uuid::now_v7(), "identity": identity });
             if let Some(active) = self.active {
                 whoami["active"] = json!(active);
             }

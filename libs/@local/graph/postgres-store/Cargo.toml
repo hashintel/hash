@@ -50,7 +50,7 @@ simple-mermaid   = { workspace = true }
 time             = { workspace = true }
 tracing          = { workspace = true }
 utoipa           = { workspace = true, optional = true, features = ["uuid"] }
-uuid             = { workspace = true, features = ["v4", "v7", "serde", "std"] }
+uuid             = { workspace = true, features = ["v7", "serde", "std"] }
 
 [dev-dependencies]
 hash-graph-authentication = { workspace = true }
