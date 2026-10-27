@@ -151,7 +151,7 @@ impl TemporalClient {
         execution_timeout: Option<Duration>,
     ) -> Result<WorkflowRun, Report<WorkflowError>> {
         self.execute_workflow_start(
-            Uuid::new_v4().to_string(),
+            Uuid::now_v7().to_string(),
             task_queue,
             workflow,
             payload,
@@ -244,7 +244,7 @@ impl TemporalClient {
                 normal_name: String::new(),
             }),
             identity,
-            request_id: Uuid::new_v4().to_string(),
+            request_id: Uuid::now_v7().to_string(),
             // Same conversion the high-level `Client::start_workflow` uses:
             // a `Duration` too large for the proto representation is treated
             // as "no timeout" rather than failing the start.
