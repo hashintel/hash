@@ -155,14 +155,12 @@ export const useProcessSaveAndLoad = ({
         return null;
       }
 
-      setSelectedNetId(updatedNet.entityId);
-      setUserEditable(updatedNet.userEditable);
       return {
         decisionTime: updatedNet.lastUpdated,
         userEditable: updatedNet.userEditable,
       };
     },
-    [refetch, refetchRevisions, setSelectedNetId, setUserEditable],
+    [refetch, refetchRevisions],
   );
 
   const persistDefinition = useCallback(
@@ -254,6 +252,16 @@ export const useProcessSaveAndLoad = ({
         );
       }
 
+      /**
+       * Only a create selects the net it saved: the draft had no id until
+       * now. An update leaves selection and editability alone, because by the
+       * time its refetch resolves the user may have loaded another net.
+       */
+      if (!selectedNetId) {
+        setSelectedNetId(persistedEntityId);
+        setUserEditable(refetched.userEditable);
+      }
+
       return {
         entityId: persistedEntityId,
         decisionTime: refetched.decisionTime,
@@ -265,6 +273,7 @@ export const useProcessSaveAndLoad = ({
       createEntity,
       refetchPersistedNets,
       selectedNetId,
+      setSelectedNetId,
       updateEntity,
     ],
   );
