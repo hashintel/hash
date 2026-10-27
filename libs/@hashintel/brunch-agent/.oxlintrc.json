@@ -57,6 +57,32 @@
           {
             "regex": "^@hashintel/brunch-agent/(client|ui|server)$",
             "message": "The contracts root imports none of ./client, ./ui or ./server."
+          },
+          {
+            "group": [
+              "react",
+              "react/*",
+              "react-dom",
+              "react-dom/*",
+              "react-markdown",
+              "react-icons/*",
+              "@ai-sdk/react",
+              "@ark-ui/*",
+              "monaco-editor",
+              "monaco-editor/*"
+            ],
+            "message": "The contracts root has no React or Petrinaut UI imports, so the server's built output carries none."
+          },
+          {
+            "group": [
+              "@hashintel/ds-components",
+              "@hashintel/ds-components/*",
+              "@hashintel/ds-helpers",
+              "@hashintel/ds-helpers/*",
+              "@hashintel/ds-icons",
+              "@hashintel/ds-icons/*"
+            ],
+            "message": "The contracts root has no React or Petrinaut UI imports, so the server's built output carries none."
           }
         ]
       }
@@ -128,17 +154,16 @@
               },
               {
                 "regex": "^(\\.\\./|\\./)+ui/chat/",
-                "message": "./client imports only the contracts root and ./client by value; type-only imports from ./ui/chat are the one allowed exception.",
+                "message": "./client imports the contracts root by package name, its own entry, and src/shared/ by relative path; the one allowed exception is a type-only import from ./ui/chat by relative path.",
                 "allowTypeImports": true
               },
               {
                 "regex": "^(\\.\\./|\\./)+(ui/([^c]|c[^h]|ch[^a]|cha[^t]|chat[^/])|ui$|ui\\.ts$|server(/|\\.ts$|$))",
-                "message": "./client imports only the contracts root and ./client by value; type-only imports from ./ui/chat are the one allowed exception."
+                "message": "./client imports the contracts root by package name, its own entry, and src/shared/ by relative path; the one allowed exception is a type-only import from ./ui/chat by relative path."
               },
               {
                 "regex": "^@hashintel/brunch-agent/(ui|server)$",
-                "message": "./client imports only the contracts root and ./client by value; type-only imports from ./ui/chat are the one allowed exception.",
-                "allowTypeImports": true
+                "message": "./client imports the contracts root by package name, its own entry, and src/shared/ by relative path; the one allowed exception is a type-only import from ./ui/chat by relative path."
               },
               {
                 "group": [
@@ -190,11 +215,11 @@
               },
               {
                 "regex": "^(\\.\\./|\\./)+(client|ui)(/|\\.ts$|$)",
-                "message": "./server imports only the contracts root."
+                "message": "./server imports the contracts root by package name and src/shared/ by relative path, not ./client or ./ui."
               },
               {
                 "regex": "^@hashintel/brunch-agent/(client|ui)$",
-                "message": "./server imports only the contracts root."
+                "message": "./server imports the contracts root by package name and src/shared/ by relative path, not ./client or ./ui."
               },
               {
                 "group": [
@@ -245,6 +270,10 @@
               {
                 "regex": "^(\\.\\./)+((apps|libs|tests|@[a-z0-9-]+)/|[^./][^/]*/(src|dist|test)/)",
                 "message": "Import another workspace package by its package name, not a relative path into it."
+              },
+              {
+                "group": ["@earendil-works/*"],
+                "message": "Lower-level Pi packages stay out of the Brunch library."
               }
             ]
           }

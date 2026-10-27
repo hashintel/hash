@@ -1,7 +1,12 @@
 /**
  * `@hashintel/brunch-agent/client`: Brunch's browser runtime, with no React
- * value imports. Imports only `.` and `./client` by value; type-only imports
- * from `./ui/chat` are the one allowed exception (see the README).
+ * value imports. Exports the Flue adapter, the panel transport and its
+ * conversation tracker, conversation IDs, the client tool-name sets, canonical
+ * speech selection, the OpenAI Realtime session and the Realtime bridge; the
+ * rest of `src/client/` is internal. Imports the contracts root by package
+ * name, its own entry, and `src/shared/` by relative path; the one allowed
+ * exception is a type-only import from `./ui/chat` by relative path (see the
+ * README).
  */
 
 export * from "./client/brunch-flue-adapter";

@@ -1,7 +1,9 @@
 /**
  * `@hashintel/brunch-agent/server`: Voice's web-standard handlers,
  * `(environment) => (Request) => Response`, for any server to mount. Imports
- * only `.`; type-checked by consumers under `nodenext`, so relative imports
+ * the contracts root by package name and `src/shared/` by relative path, never
+ * `./client` or `./ui`; re-exports the shared voice diagnostics and mediation
+ * contracts. Type-checked by consumers under `nodenext`, so relative imports
  * keep their `.js` extensions.
  */
 
