@@ -169,6 +169,116 @@ test("a reflection's net elements become the editor's selection, which the Ledge
   );
 });
 
+test("after a version load, the Ledger marks the reflection on an element the open net lacks", async () => {
+  vi.stubGlobal("ResizeObserver", NoopResizeObserver);
+  vi.stubGlobal("Worker", InProcessLspWorker);
+  Element.prototype.scrollIntoView = vi.fn();
+  const overflowReflection = {
+    id: "assistant-2",
+    role: "assistant",
+    purpose: "assistant",
+    parts: [
+      {
+        type: "dynamic-tool",
+        toolName: "ledger_commit",
+        toolCallId: "ledger-2",
+        state: "output-available",
+        input: {
+          entries: [
+            [
+              "reflection/create",
+              {
+                text: "The Overflow place holds what the reservoir sheds.",
+                netElements: [{ kind: "place", id: "overflow" }],
+                entities: ["e1"],
+              },
+            ],
+          ],
+        },
+        output: {
+          status: "recorded",
+          commitId: "ledger-2",
+          revision: 2,
+          ids: ["r2"],
+        },
+      },
+    ],
+  } satisfies LedgerHistoryMessage;
+  const aiAssistant: PetrinautAiAssistant = {
+    messages: [],
+    transport: {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: () => Promise.resolve(new ReadableStream<UIMessageChunk>()),
+    },
+    additionalTab: {
+      label: "Ledger",
+      content: (
+        <BrunchLedgerTab
+          conversationId="conversation"
+          messages={[...messages, overflowReflection]}
+          versionLoaded
+        />
+      ),
+    },
+  };
+  render(
+    <BrunchAssistantContext value={fixedBrunchAssistant(aiAssistant)}>
+      <Petrinaut
+        handle={createJsonDocHandle({
+          initial: {
+            places: [
+              {
+                id: reservoirId,
+                name: "Reservoir",
+                colorId: null,
+                dynamicsEnabled: false,
+                differentialEquationId: null,
+                x: 0,
+                y: 0,
+              },
+            ],
+            transitions: [],
+          },
+        })}
+        plugins={[brunchPlugin]}
+      />
+    </BrunchAssistantContext>,
+  );
+  await act(async () =>
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Show AI assistant" }),
+    ),
+  );
+  await act(async () =>
+    fireEvent.click(await screen.findByRole("tab", { name: /Ledger/u })),
+  );
+  await act(async () =>
+    fireEvent.click(
+      await screen.findByRole("checkbox", {
+        name: "Show Brunch’s reflections",
+      }),
+    ),
+  );
+  const reflectionItem = async (text: string) =>
+    (await screen.findByText(text)).closest("li");
+  const overflowItem = await reflectionItem(
+    "The Overflow place holds what the reservoir sheds.",
+  );
+  expect(overflowItem?.textContent).toContain("not in this version");
+  // The latest turn's change marks still apply to the marked reflection.
+  expect(
+    overflowItem?.querySelector<HTMLElement>("[data-ledger-change]")?.dataset
+      .ledgerChange,
+  ).toBe("added");
+  expect(
+    (
+      await reflectionItem(
+        "The Reservoir place stands in for the stored volume.",
+      )
+    )?.textContent,
+  ).not.toContain("not in this version");
+});
+
 test("the Ledger reviews without the chat composer, keeping its comments, Stop and the Chat draft", async () => {
   vi.stubGlobal("ResizeObserver", NoopResizeObserver);
   vi.stubGlobal("Worker", InProcessLspWorker);
