@@ -119,6 +119,9 @@ describe("Brunch destructive edit approval", () => {
     expect(
       screen.getByText(/associated arcs or references may also be removed/iu),
     ).not.toBeNull();
+    expect(
+      screen.getAllByRole("button").map((button) => button.textContent),
+    ).toEqual(["Allow", "Always allow", "Deny"]);
     fireEvent.click(screen.getByRole("button", { name: "Allow" }));
 
     await expect(decision).resolves.toEqual({ decision: "allow" });
@@ -324,6 +327,24 @@ describe("Brunch save approval card", () => {
     });
   });
 
+  test("a save that names no document is refused before it can wait for approval", async () => {
+    const coordinator = createBrunchMutationApprovalCoordinator();
+    const request = vi.spyOn(coordinator, "request");
+    await expect(
+      createBrunchMutationAdmission(coordinator, () => ({
+        title: "Net",
+        lastSavedTime: null,
+        refusal: null,
+      }))({
+        toolCallId: "save-1",
+        toolName: brunchTools.saveHashNet,
+        input: {},
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toThrow();
+    expect(request).not.toHaveBeenCalled();
+  });
+
   test("is offered only by a host that can save", () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
     const names = (readSaveState?: ReadBrunchDocumentSaveState) =>
@@ -476,7 +497,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     expect(posted).toEqual([expect.objectContaining({ output: saved })]);
   });
 
-  test("Always allow for destructive edits never admits a save without its card, and a save can't be always allowed", async () => {
+  test("Always allow for destructive edits never admits a save without its card", async () => {
     const readSaveState = saveState();
     const { calls, coordinator } = issuedCalls(
       brunchTools.saveHashNet,
@@ -495,8 +516,6 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     const run = runSave(calls, execute);
     await vi.waitFor(() => expect(coordinator.hasPending("save-1")).toBe(true));
     expect(execute).not.toHaveBeenCalled();
-    expect(coordinator.resolve("save-1", "always-allow")).toBe(false);
-    expect(coordinator.hasPending("save-1")).toBe(true);
     coordinator.resolve("save-1", "allow");
     await run;
     expect(execute).toHaveBeenCalledOnce();
