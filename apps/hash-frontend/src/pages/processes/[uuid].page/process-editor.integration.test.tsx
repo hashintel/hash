@@ -1253,3 +1253,47 @@ test("Brunch's agent save writes the open net through the editor's Save, and set
   expect(graph.writes).toHaveLength(2);
   expect(topBar()).toMatchObject({ isDirty: false, persistPending: false });
 });
+
+test("picking an earlier revision tells Brunch of a version load, which Saves keep and opening another net clears", async () => {
+  await renderRoute(`/processes/${uuidA}`);
+  expect(observed.brunch?.versionLoad).toBeUndefined();
+  editTitle("A2");
+  pressSave();
+  await settle();
+  const [latest, first] = topBar().revisions;
+  expect(first?.decisionTime).toBe(firstSaved);
+
+  // The version the editor already shows is no version load.
+  act(() => topBar().onLoadRevision(latest!));
+  await settle();
+  expect(observed.brunch?.versionLoad).toBeUndefined();
+
+  act(() => topBar().onLoadRevision(first!));
+  await settle();
+  const versionLoad = observed.brunch?.versionLoad;
+  expect(versionLoad).toEqual({
+    id: expect.any(String),
+    decisionTime: firstSaved,
+  });
+
+  editTitle("A3");
+  pressSave();
+  await settle();
+  expect(topBar().revisions.map(({ title }) => title)).toEqual([
+    "A3",
+    "A2",
+    "A",
+  ]);
+  expect(observed.brunch?.versionLoad).toBe(versionLoad);
+
+  // Picking it again is another load, with a fresh id.
+  act(() => topBar().onLoadRevision(topBar().revisions.at(-1)!));
+  await settle();
+  expect(observed.brunch?.versionLoad?.decisionTime).toBe(firstSaved);
+  expect(observed.brunch?.versionLoad?.id).not.toBe(versionLoad?.id);
+
+  await navigate(`/processes/${uuidB}`);
+  await settle();
+  expect(editor().title).toBe("B");
+  expect(observed.brunch?.versionLoad).toBeUndefined();
+});

@@ -158,12 +158,16 @@ const definition = {
 
 const savedEntityId = "web~net" as EntityId;
 
-const savedLoad = (decisionTime = "2026-10-24T00:00:00.000Z") =>
+const savedLoad = (
+  decisionTime = "2026-10-24T00:00:00.000Z",
+  reason: PetrinautEditorLoad["reason"] = "open",
+) =>
   ({
     definition,
     title: "Net",
     mode: { kind: "saved", entityId: savedEntityId },
     savedSnapshot: { definition, title: "Net", decisionTime },
+    reason,
   }) satisfies PetrinautEditorLoad;
 
 const draftLoad = (): PetrinautEditorLoad => ({
@@ -171,6 +175,7 @@ const draftLoad = (): PetrinautEditorLoad => ({
   title: "Draft",
   mode: { kind: "draft", seedKey: null },
   savedSnapshot: null,
+  reason: "open",
 });
 
 const deferred = <T,>() => {
@@ -855,4 +860,64 @@ test("a load before the save completes leaves the agent's save unsettled until B
 
   controller.abort(new Error("Brunch stopped the turn"));
   await expect(save.settled).rejects.toThrow("Brunch stopped the turn");
+});
+
+test("a pick of another saved revision reaches Brunch as a version load that Saves leave unchanged", async () => {
+  const latest = "2026-10-24T00:00:00.000Z";
+  const earlier = "2026-10-23T00:00:00.000Z";
+  const lastVersionLoad = () => lastBrunchInput()?.versionLoad;
+  const { rerender } = await renderBrunchEditor({ load: savedLoad(latest) });
+
+  // Opening the net is no version load, and nor is picking the version open.
+  expect(lastVersionLoad()).toBeUndefined();
+  rerender({ load: savedLoad(latest, "revision") });
+  await act(async () => {});
+  expect(lastVersionLoad()).toBeUndefined();
+
+  rerender({ load: savedLoad(earlier, "revision") });
+  await waitFor(() =>
+    expect(lastVersionLoad()).toEqual({
+      id: expect.any(String),
+      decisionTime: earlier,
+    }),
+  );
+  const firstLoad = lastVersionLoad();
+
+  // The button's Save and the agent's leave it: they build on the loaded version.
+  onSave
+    .mockResolvedValueOnce({
+      entityId: savedEntityId,
+      decisionTime: "2026-10-24T02:00:00.000Z",
+    })
+    .mockResolvedValueOnce({
+      entityId: savedEntityId,
+      decisionTime: "2026-10-24T03:00:00.000Z",
+    });
+  editNet("after-load");
+  await act(async () => {
+    lastTopBar()?.onSave();
+    await Promise.resolve();
+  });
+  await waitFor(() =>
+    expect(lastTopBar()?.loadedRevisionTime).toBe("2026-10-24T02:00:00.000Z"),
+  );
+  editNet("before-agent-save");
+  await expect(agentSave(savedEntityId).settled).resolves.toMatchObject({
+    saved: true,
+  });
+  expect(onSave).toHaveBeenCalledTimes(2);
+  expect(lastVersionLoad()).toBe(firstLoad);
+
+  // Picking the same earlier revision again is a new version load.
+  rerender({ load: savedLoad(earlier, "revision") });
+  await waitFor(() => expect(lastVersionLoad()).not.toBe(firstLoad));
+  expect(lastVersionLoad()).toEqual({
+    id: expect.any(String),
+    decisionTime: earlier,
+  });
+  expect(lastVersionLoad()?.id).not.toBe(firstLoad?.id);
+
+  // Opening a net, even this one at that version, carries none.
+  rerender({ load: savedLoad(earlier) });
+  await waitFor(() => expect(lastVersionLoad()).toBeUndefined());
 });

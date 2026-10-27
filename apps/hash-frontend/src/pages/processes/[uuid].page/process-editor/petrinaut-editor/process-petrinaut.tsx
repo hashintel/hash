@@ -17,6 +17,7 @@ import {
   type PetrinautAiAutomaticTool,
   type ReadBrunchDocumentSaveState,
   useBrunchAssistant,
+  type VersionLoad,
 } from "@hashintel/brunch-agent/ui";
 import {
   ErrorTrackerContext,
@@ -135,6 +136,7 @@ const BrunchSession = memo(
     shown,
     hostTools,
     readSaveState,
+    versionLoad,
     onChange,
   }: {
     ownerKey: string;
@@ -147,6 +149,11 @@ const BrunchSession = memo(
      */
     hostTools: readonly PetrinautAiAutomaticTool[];
     readSaveState: ReadBrunchDocumentSaveState;
+    /**
+     * Brunch tells its agent about a load once, on the next turn, and the
+     * Ledger marks reflections on elements the loaded version lacks.
+     */
+    versionLoad: VersionLoad | undefined;
     onChange: (assistant: PetrinautAiAssistant | null) => void;
   }) => {
     const { assistant } = useBrunchAssistant({
@@ -160,6 +167,7 @@ const BrunchSession = memo(
       words: brunchWords,
       hostTools,
       readSaveState,
+      ...(versionLoad === undefined ? {} : { versionLoad }),
     });
 
     useLayoutEffect(() => {
@@ -183,6 +191,7 @@ export const ProcessPetrinaut = ({
   readTitle,
   readSaveState,
   saveNetForAgent,
+  versionLoad,
   readonly,
   setTitle,
   title,
@@ -196,6 +205,8 @@ export const ProcessPetrinaut = ({
   readSaveState: ReadBrunchDocumentSaveState;
   /** Runs the editor's Save for the agent. Stable for the handle. */
   saveNetForAgent: SaveNetForAgent;
+  /** The latest load of another saved version of the open net, while the open net builds on it. */
+  versionLoad: VersionLoad | undefined;
   /** The user may not edit or save this net. */
   readonly: boolean;
   setTitle: (title: string) => void;
@@ -242,6 +253,7 @@ export const ProcessPetrinaut = ({
           shown={brunchShown}
           hostTools={hostTools}
           readSaveState={readSaveState}
+          versionLoad={versionLoad}
           onChange={setBrunchAssistant}
         />
       )}

@@ -97,8 +97,10 @@ import type { PetrinautAiAssistant } from "./chat/petrinaut";
 import type {
   InterviewBudgetLevel,
   SdcpnInitialData,
+  VersionLoad,
 } from "@hashintel/brunch-agent";
 
+export type { VersionLoad } from "@hashintel/brunch-agent";
 export type {
   BrunchDocumentSaveState,
   ReadBrunchDocumentSaveState,
@@ -209,6 +211,7 @@ export const useBrunchAssistant = ({
   words,
   hostTools,
   readSaveState,
+  versionLoad,
 }: BrunchConnection & {
   /**
    * The editor shows Brunch's assistant. Brunch reads no history, checks no
@@ -232,6 +235,12 @@ export const useBrunchAssistant = ({
    * and last saved time. Pass a stable function.
    */
   readonly readSaveState?: ReadBrunchDocumentSaveState;
+  /**
+   * The host's latest load of another saved version of the open net, while
+   * the net open builds on it. Each message carries it, so Brunch tells its
+   * agent once, and the Ledger marks reflections on elements the net lacks.
+   */
+  readonly versionLoad?: VersionLoad;
 }): BrunchAssistant => {
   const currentNetId = openDocument?.documentId ?? null;
   const editor = openDocument?.editor ?? null;
@@ -558,6 +567,7 @@ export const useBrunchAssistant = ({
             interviewBudgetLevel,
             interviewRepliesAsked,
             readWords: () => readWords().map((word) => word.spelling),
+            ...(versionLoad === undefined ? {} : { versionLoad }),
             ...(constructionBrowser
               ? {
                   initialData: {
@@ -620,6 +630,7 @@ export const useBrunchAssistant = ({
       hostFetch,
       readWords,
       reportBrunchFailure,
+      versionLoad,
     ],
   );
 
@@ -709,6 +720,7 @@ export const useBrunchAssistant = ({
                 conversationId={constructionBrowser.binding.conversationId}
                 messages={flueHistory.snapshot?.messages ?? []}
                 highlightChanges={highlightChanges}
+                versionLoaded={versionLoad !== undefined}
               />
             ),
           }
@@ -859,6 +871,7 @@ export const useBrunchAssistant = ({
     mapVoiceMessages,
     mutationApprovalTools,
     setInterviewBudgetLevel,
+    versionLoad,
     wordsActive,
   ]);
 
