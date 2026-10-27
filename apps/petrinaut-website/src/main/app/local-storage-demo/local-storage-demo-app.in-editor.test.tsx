@@ -17,13 +17,13 @@ import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
 } from "@hashintel/brunch-agent/client";
-import { conversationWordsKey } from "@hashintel/brunch-agent/ui";
-
 import {
   InProcessLspWorker,
   NoopResizeObserver,
   preloadMonaco,
-} from "../shared/petrinaut-jsdom";
+} from "@hashintel/brunch-agent/testing/petrinaut-jsdom";
+import { conversationWordsKey } from "@hashintel/brunch-agent/ui";
+
 import { assistantSelectionStorageKey } from "./assistant-selection";
 import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import {
@@ -36,7 +36,7 @@ import type { PetrinautProps } from "@hashintel/petrinaut/ui";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("../shared/petrinaut-jsdom");
+    await import("@hashintel/brunch-agent/testing/petrinaut-jsdom");
   installPetrinautDomShims();
 });
 

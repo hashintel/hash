@@ -36,6 +36,11 @@
       "@dev/source": "./src/petrinaut/words.ts",
       "import": "./dist/words.js"
     },
+    "./testing/*": {
+      "types": "./src/ui/testing/*.ts",
+      "@dev/source": "./src/ui/testing/*.ts",
+      "import": "./src/ui/testing/*.ts"
+    },
     "./panda.buildinfo.json": "./dist/panda.buildinfo.json"
   },
   "scripts": {

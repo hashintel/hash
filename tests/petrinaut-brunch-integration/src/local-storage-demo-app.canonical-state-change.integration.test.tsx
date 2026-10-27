@@ -18,12 +18,12 @@ import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 import { loadBuiltBrunchApplication } from "@apps/brunch-agent/testing/load-built-application";
 import { assistantSelectionStorageKey } from "@apps/petrinaut-website/src/main/app/local-storage-demo/assistant-selection";
 import { LocalStorageDemoApp } from "@apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app";
+import { clientToolHistoryFrom } from "@hashintel/brunch-agent";
 import {
   InProcessLspWorker,
   NoopResizeObserver,
   preloadMonaco,
-} from "@apps/petrinaut-website/src/main/app/shared/petrinaut-jsdom";
-import { clientToolHistoryFrom } from "@hashintel/brunch-agent";
+} from "@hashintel/brunch-agent/testing/petrinaut-jsdom";
 import { documentRevisionOf } from "@hashintel/brunch-agent/ui";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
 
@@ -33,7 +33,7 @@ import type { ComponentProps } from "react";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("@apps/petrinaut-website/src/main/app/shared/petrinaut-jsdom");
+    await import("@hashintel/brunch-agent/testing/petrinaut-jsdom");
   installPetrinautDomShims();
 });
 

@@ -20,11 +20,6 @@ import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { loadBuiltBrunchApplication } from "@apps/brunch-agent/testing/load-built-application";
 import {
-  InProcessLspWorker,
-  NoopResizeObserver,
-  preloadMonaco,
-} from "@apps/petrinaut-website/src/main/app/shared/petrinaut-jsdom";
-import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent";
@@ -33,6 +28,11 @@ import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "@hashintel/brunch-agent/client";
+import {
+  InProcessLspWorker,
+  NoopResizeObserver,
+  preloadMonaco,
+} from "@hashintel/brunch-agent/testing/petrinaut-jsdom";
 import {
   BrunchAssistantContext,
   brunchPlugin,
@@ -48,7 +48,7 @@ import type {
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
-    await import("@apps/petrinaut-website/src/main/app/shared/petrinaut-jsdom");
+    await import("@hashintel/brunch-agent/testing/petrinaut-jsdom");
   installPetrinautDomShims();
 });
 

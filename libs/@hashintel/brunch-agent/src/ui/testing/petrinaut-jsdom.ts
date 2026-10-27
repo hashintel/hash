@@ -1,28 +1,26 @@
-/** jsdom stand-ins for the browser capabilities a real mounted Petrinaut reads. */
+/**
+ * jsdom stand-ins for the browser capabilities a real mounted Petrinaut reads.
+ *
+ * This package owns the file. The Petrinaut website and
+ * `tests/petrinaut-brunch-integration` import it through the test-only
+ * `@hashintel/brunch-agent/testing/*` export, which resolves to source.
+ */
 import {
   compileHirArtifacts,
   lowerScenarioToHir,
 } from "@hashintel/petrinaut-core/hir";
 
+import { installMatchMedia } from "./match-media";
+
 import type { LspWorkerFactory } from "@hashintel/petrinaut-core";
 
 /**
  * Call from `vi.hoisted`: Petrinaut's dependencies read these while their
- * modules load, before any test hook runs. The website's `vitest.setup.ts`
- * also installs `matchMedia`, for its tests that skip this call; suites in
- * other packages rely on this one.
+ * modules load, before any test hook runs. Each package's `vitest.setup.ts`
+ * installs only `matchMedia`, for tests that skip this call.
  */
 export const installPetrinautDomShims = () => {
-  window.matchMedia = (media) => ({
-    media,
-    matches: false,
-    onchange: null,
-    addListener() {},
-    removeListener() {},
-    addEventListener() {},
-    removeEventListener() {},
-    dispatchEvent: () => true,
-  });
+  installMatchMedia();
   // Monaco's clipboard contrib reads this at import time; jsdom does not
   // implement it.
   Object.defineProperty(document, "queryCommandSupported", {
