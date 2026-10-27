@@ -2,14 +2,14 @@ import { expect, it, test } from "@effect/vitest";
 import { Option, Result, Schema } from "effect";
 import { describe } from "vitest";
 
-import { typeSyntax } from "../../internal/type-parser.js";
 import * as JExpr from "../index.js";
 import * as Type from "./index.js";
+import { pathGrammar } from "./schema.js";
 
 describe("roundtrip", () => {
   it.prop(
     "type_grammar",
-    [typeSyntax.arbitrary()],
+    [pathGrammar.typeSyntax.arbitrary()],
     ([type]) => {
       expect.hasAssertions();
 

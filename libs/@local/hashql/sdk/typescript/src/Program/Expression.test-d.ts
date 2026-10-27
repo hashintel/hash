@@ -18,12 +18,7 @@ import * as Structural from "./Structural.js";
 
 import type * as JExpr from "../JExpr/index.js";
 import type * as Type from "../Type.js";
-import type {
-  Adapted,
-  Expression,
-  Inputs as InputsOf,
-  Value,
-} from "./Expression.js";
+import type { Expression, Value } from "./Expression.js";
 import type { Arguments } from "./ExpressionType.js";
 import type * as Inputs from "./Inputs.js";
 import type * as ProgramError from "./ProgramError.js";
@@ -61,7 +56,7 @@ type Lookup = Type.Function<
   readonly [Type.PrimitiveString],
   Type.PrimitiveString
 >;
-type Trimmed = Adapted<
+type Trimmed = Expression.Adapted<
   Lookup,
   Inputs.Empty,
   (name: string) => Expression<Type.PrimitiveString, Inputs.Empty>
@@ -76,11 +71,11 @@ const preserve = <T extends Type.Any>(
 
 describe("namespaces", () => {
   test("shape", () => {
-    expectTypeOf<Expression.Shape<Left, Inputs.Empty>>().toEqualTypeOf<
+    expectTypeOf<Expression.Base<Left, Inputs.Empty>>().toEqualTypeOf<
       Expression<Left, Inputs.Empty>
     >();
     expectTypeOf<
-      Expression.Shape<
+      Expression.Base<
         Type.Function<readonly [Type.PrimitiveString], Type.PrimitiveBoolean>,
         { readonly enabled: Type.PrimitiveBoolean }
       >
@@ -613,7 +608,7 @@ describe("primitive", () => {
       { readonly receiver: Type.PrimitiveBoolean }
     >("fixed");
     const result = fixed(7, "literal");
-    expectTypeOf<InputsOf<typeof result>>().toEqualTypeOf<{
+    expectTypeOf<Value.Inputs<typeof result>>().toEqualTypeOf<{
       readonly receiver: Type.PrimitiveBoolean;
     }>();
     // @ts-expect-error The exact parameter descriptor is Number, not Integer.
@@ -651,11 +646,11 @@ describe("primitive", () => {
 
   test("input_defaults", () => {
     const number = input("number", numberType, 1);
-    expectTypeOf<InputsOf<typeof number>>().toEqualTypeOf<{
+    expectTypeOf<Value.Inputs<typeof number>>().toEqualTypeOf<{
       readonly number?: Type.PrimitiveNumber;
     }>();
     const uncertain = input("number", numberType, optionalNumber);
-    expectTypeOf<InputsOf<typeof uncertain>>().toEqualTypeOf<{
+    expectTypeOf<Value.Inputs<typeof uncertain>>().toEqualTypeOf<{
       readonly number: Type.PrimitiveNumber;
     }>();
     // @ts-expect-error Defaults retain the declared numeric distinction.

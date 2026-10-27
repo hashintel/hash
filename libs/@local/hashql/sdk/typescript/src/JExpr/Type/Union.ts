@@ -13,7 +13,10 @@ import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 export const Schema: typeof Defs.Union = Defs.Union;
 
 export interface Union extends Defs.UnionType {}
-export interface Encoded extends Defs.UnionEncoded {}
+
+export declare namespace Union {
+  export interface Encoded extends Defs.UnionEncoded {}
+}
 
 type MakeIn = (typeof Schema)["~type.make.in"];
 

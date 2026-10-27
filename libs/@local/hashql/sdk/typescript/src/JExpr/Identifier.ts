@@ -13,8 +13,11 @@ export const Schema: typeof Defs.Identifier = Defs.Identifier;
  * The schema accepts any string, including the empty string. HashQL parses it according to its position in the expression. In an expression position, `"user"` is a path, `"user.name"` and `"items[0]"` access a field and an element, and `"_"` is a placeholder. In a call argument, `":user"` is shorthand for the labeled argument `{":user": "user"}`. A type position reads the text as type syntax. For a single identifier object, see `JExpr.Ident`.
  */
 export type Identifier = Defs.IdentifierType;
-/** The schema-encoded representation of {@link Identifier}. */
-export type Encoded = Defs.IdentifierEncoded;
+
+export declare namespace Identifier {
+  /** The schema-encoded representation of {@link Identifier}. */
+  export type Encoded = Defs.IdentifierEncoded;
+}
 
 /** Input accepted by {@link make} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];

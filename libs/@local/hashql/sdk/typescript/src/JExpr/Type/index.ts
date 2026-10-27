@@ -33,7 +33,7 @@ export * as Union from "./Union.js";
 /**
  * Schema for validating and encoding {@link Type} values.
  *
- * Use {@link make} to construct a value or {@link compile} to render type syntax. Schema encoding produces the tagged object representation described by {@link Encoded}.
+ * Use {@link make} to construct a value or {@link compile} to render type syntax. Schema encoding produces the tagged object representation described by {@link Type.Encoded}.
  */
 export const Schema: typeof Defs.Type = Defs.Type;
 
@@ -44,12 +44,14 @@ export const Schema: typeof Defs.Type = Defs.Type;
  */
 export type Type = Defs.Type;
 
-/**
- * The schema-encoded form of a {@link Type}, which writes each path and member name as source text.
- *
- * A reference's path becomes text such as `"::core::List<Integer>"`, and a struct member name becomes text such as `` "`+`" ``. Path arguments use type syntax, which omits single-member union and intersection wrappers. Other type nodes keep their tagged objects. {@link Schema} encodes and decodes this form, and neither form is J-Expr. Use {@link compile} or {@link toExpression} for J-Expr.
- */
-export type Encoded = Defs.TypeEncoded;
+export declare namespace Type {
+  /**
+   * The schema-encoded form of a {@link Type}, which writes each path and member name as source text.
+   *
+   * A reference's path becomes text such as `"::core::List<Integer>"`, and a struct member name becomes text such as `` "`+`" ``. Path arguments use type syntax, which omits single-member union and intersection wrappers. Other type nodes keep their tagged objects. {@link Schema} encodes and decodes this form, and neither form is J-Expr. Use {@link compile} or {@link toExpression} for J-Expr.
+   */
+  export type Encoded = Defs.TypeEncoded;
+}
 
 /** Constructor input accepted by {@link Schema} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];
@@ -228,31 +230,31 @@ const segmentArgument = (
   generic: Type | Defs.GenericType,
 ): Path.SegmentArgument => {
   if (generic._tag === "GenericArgument") {
-    return generic;
+    return Path.GenericArgument.make(generic);
   }
 
   if (generic._tag === "GenericBound") {
     if (generic.bound !== undefined) {
-      return {
+      return Path.GenericConstraint.make({
         _tag: "GenericConstraint",
         name: generic.name,
         bound: generic.bound,
-      };
+      });
     }
 
-    return {
+    return Path.GenericArgument.make({
       _tag: "GenericArgument",
       bound: {
         _tag: "Reference",
-        path: {
+        path: Path.make({
           rooted: false,
           segments: [{ name: generic.name, arguments: [] }],
-        },
+        }),
       },
-    };
+    });
   }
 
-  return { _tag: "GenericArgument", bound: generic };
+  return Path.GenericArgument.make({ bound: generic });
 };
 
 /**
@@ -290,7 +292,7 @@ export const reference = (
     Result.getSuccess,
     Option.map((parsed) => ({
       _tag: "Reference",
-      path: {
+      path: Path.make({
         rooted: parsed.rooted,
         segments: Array.map(parsed.segments, (segment, index) => {
           if (index !== parsed.segments.length - 1) {
@@ -302,7 +304,7 @@ export const reference = (
             arguments: [...segment.arguments, ...generics.map(segmentArgument)],
           };
         }),
-      },
+      }),
     })),
   );
 

@@ -13,7 +13,10 @@ import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 export const Schema: typeof Defs.Tuple = Defs.Tuple;
 
 export interface Tuple extends Defs.TupleType {}
-export interface Encoded extends Defs.TupleEncoded {}
+
+export declare namespace Tuple {
+  export interface Encoded extends Defs.TupleEncoded {}
+}
 
 type MakeIn = (typeof Schema)["~type.make.in"];
 

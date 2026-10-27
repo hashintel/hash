@@ -13,7 +13,10 @@ import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
 export const Schema: typeof Defs.Intersection = Defs.Intersection;
 
 export interface Intersection extends Defs.IntersectionType {}
-export interface Encoded extends Defs.IntersectionEncoded {}
+
+export declare namespace Intersection {
+  export interface Encoded extends Defs.IntersectionEncoded {}
+}
 
 type MakeIn = (typeof Schema)["~type.make.in"];
 

@@ -317,7 +317,7 @@ interface UnsafeAccessors<Inputs> {
     key: Key,
   ) => Expression.Expression<
     Type.Unknown,
-    Input.Merge<Inputs, Expression.Inputs<Key>>
+    Input.Merge<Inputs, Expression.Value.Inputs<Key>>
   >;
 }
 
@@ -325,7 +325,7 @@ type ProjectionAccessors<Fields, Inputs> = {
   readonly [
     Key in Exclude<
       keyof Fields,
-      | keyof Expression.Handle<Type.Any, Inputs>
+      | keyof Expression.Expression.Handle<Type.Any, Inputs>
       | keyof UnsafeAccessors<Inputs>
       | "$project"
       | "$index"
@@ -349,7 +349,7 @@ type IndexAccessor<Descriptor, Inputs> = [Descriptor] extends [IndexDescriptor]
         key: Key,
       ) => Expression.Expression<
         Join<Normalize<Descriptor["value"]>, Type.PrimitiveNull>,
-        Input.Merge<Inputs, Expression.Inputs<Key>>
+        Input.Merge<Inputs, Expression.Value.Inputs<Key>>
       >;
     }
   : EmptyAccessors;
@@ -374,12 +374,12 @@ export declare namespace Arguments {
 
   /** Combined input requirements of a call's argument tuple, retaining requirements from optional positions. */
   export type Inputs<Values extends Any> = Input.All<{
-    readonly [Index in keyof Values]: Expression.Inputs<Values[Index]>;
+    readonly [Index in keyof Values]: Expression.Value.Inputs<Values[Index]>;
   }>;
 
   /** Semantic descriptors at each argument position. */
   export type Types<Values extends Any> = {
-    readonly [Index in keyof Values]: Expression.TypeOf<Values[Index]>;
+    readonly [Index in keyof Values]: Expression.Value.Type<Values[Index]>;
   };
 }
 
@@ -400,10 +400,13 @@ export type Callable<T extends Type.Any, Inputs> =
       ? <const Values extends Arguments.Any>(
           ...args: Values &
             Arguments<
-              Type.Apply<Signature, Arguments.Types<Values>>["parameters"]
+              Type.TypeLambda.Apply<
+                Signature,
+                Arguments.Types<Values>
+              >["parameters"]
             >
         ) => Expression.Expression<
-          Type.Apply<Signature, Arguments.Types<Values>>["returns"],
+          Type.TypeLambda.Apply<Signature, Arguments.Types<Values>>["returns"],
           Input.Merge<Inputs, Arguments.Inputs<Values>>
         >
       : EmptyAccessors;

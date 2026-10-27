@@ -211,7 +211,7 @@ export type ExactValues<
   T extends Type.Any,
   V extends readonly Structural.Value.Any[],
 > = {
-  readonly [K in keyof V]: Structural.Exact<T, V[K]>;
+  readonly [K in keyof V]: Structural.Value.Exact<T, V[K]>;
 };
 
 /** Converts checked members to syntax without reinterpreting their descriptors. */
@@ -234,25 +234,20 @@ export const collectionType = (
       const path = collectionPaths[name];
       return {
         _tag: "Reference",
-        path: {
+        path: JExpr.Path.make({
           rooted: path.rooted,
-          segments: Array.modifyLastNonEmpty(
-            path.segments,
-            (segment): JExpr.Path.Segment => ({
+          segments: Array.modifyLastNonEmpty(path.segments, (segment) =>
+            JExpr.Path.Segment.make({
               name: segment.name,
               arguments: [
                 ...segment.arguments,
-                ...Array.map(
-                  arguments_,
-                  (bound): JExpr.Path.SegmentArgument => ({
-                    _tag: "GenericArgument",
-                    bound,
-                  }),
+                ...Array.map(arguments_, (bound) =>
+                  JExpr.Path.GenericArgument.make({ bound }),
                 ),
               ],
             }),
           ),
-        },
+        }),
       };
     }),
   );
@@ -271,7 +266,7 @@ type ExactEntry<
   infer Key extends Structural.Value.Any,
   infer Member extends Structural.Value.Any,
 ]
-  ? readonly [Structural.Exact<K, Key>, Structural.Exact<V, Member>]
+  ? readonly [Structural.Value.Exact<K, Key>, Structural.Value.Exact<V, Member>]
   : never;
 
 /** Preserves exact structural descriptors for both dictionary keys and values. */
@@ -282,9 +277,9 @@ export type ExactEntries<
 > = E extends readonly (readonly [Structural.Value.Any, Structural.Value.Any])[]
   ? { readonly [P in keyof E]: ExactEntry<K, V, E[P]> }
   : E extends Record.ReadonlyRecord<string, Structural.Value.Any>
-    ? Structural.Exact<K, string> extends never
+    ? Structural.Value.Exact<K, string> extends never
       ? never
-      : { readonly [P in keyof E]: Structural.Exact<V, E[P]> }
+      : { readonly [P in keyof E]: Structural.Value.Exact<V, E[P]> }
     : never;
 
 interface ValueSyntaxMapping extends Struct.Lambda {
