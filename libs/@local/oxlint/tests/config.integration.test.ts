@@ -16,6 +16,7 @@ const timeout = 10_000;
 
 const lintFiles = (
   files: Readonly<Record<string, string>>,
+  rule: string,
 ): SpawnSyncReturns<string> => {
   const directory = mkdtempSync(path.join(tmpdir(), "hash-oxlint-config-"));
   try {
@@ -35,7 +36,7 @@ const lintFiles = (
         "-A",
         "all",
         "-D",
-        "no-undef",
+        rule,
         "--format",
         "json",
         ".",
@@ -56,17 +57,20 @@ describe("config_inheritance", () => {
   test("environment_globals", () => {
     expect.hasAssertions();
 
-    const result = lintFiles({
-      "oxlint.config.mjs": `import { defineConfig } from ${JSON.stringify(entry)};
+    const result = lintFiles(
+      {
+        "oxlint.config.mjs": `import { defineConfig } from ${JSON.stringify(entry)};
 export default defineConfig({
   runtime: "node",
   extends: [{ env: { browser: true }, globals: { SHARED: "readonly" } }],
   options: { typeAware: false },
 });
 `,
-      "globals.js": "console.log(process.pid, window.location, SHARED);\n",
-      "unknown.js": "UNDECLARED;\n",
-    });
+        "globals.js": "console.log(process.pid, window.location, SHARED);\n",
+        "unknown.js": "UNDECLARED;\n",
+      },
+      "no-undef",
+    );
 
     expect(result.status).toBe(1);
     expect(JSON.parse(result.stdout)).toMatchObject({
@@ -77,8 +81,9 @@ export default defineConfig({
   test("ignore_patterns", () => {
     expect.hasAssertions();
 
-    const result = lintFiles({
-      "oxlint.config.mjs": `import { defineConfig } from ${JSON.stringify(entry)};
+    const result = lintFiles(
+      {
+        "oxlint.config.mjs": `import { defineConfig } from ${JSON.stringify(entry)};
 export default defineConfig({
   runtime: "node",
   extends: [{ ignorePatterns: ["generated/**"] }],
@@ -86,14 +91,51 @@ export default defineConfig({
   options: { typeAware: false },
 });
 `,
-      "generated/ignored.js": "UNDEFINED_GENERATED;\n",
-      "generated/keep.js": "UNDEFINED_REINCLUDED;\n",
-    });
+        "generated/ignored.js": "UNDEFINED_GENERATED;\n",
+        "generated/keep.js": "UNDEFINED_REINCLUDED;\n",
+      },
+      "no-undef",
+    );
 
     expect(result.status).toBe(1);
     expect(JSON.parse(result.stdout)).toMatchObject({
       diagnostics: [
         { filename: "generated/keep.js", code: "eslint(no-undef)" },
+      ],
+    });
+  });
+});
+
+describe("vitest_profile", () => {
+  test("type_tests_reject_runtime_expect", () => {
+    expect.hasAssertions();
+
+    const result = lintFiles(
+      {
+        "oxlint.config.mjs": `import { defineConfig } from ${JSON.stringify(entry)};
+export default defineConfig({
+  frameworks: ["vitest"],
+  runtime: "node",
+  options: { typeAware: false },
+});
+`,
+        "src/runtime.test-d.ts":
+          'import { expect } from "vitest";\n\nexpect(1).toBe(1);\n',
+        "src/types.test-d.ts":
+          'import { expectTypeOf } from "vitest";\n\nexpectTypeOf(1).toBeNumber();\n',
+        "src/runtime.test.ts":
+          'import { expect } from "vitest";\n\nexpect(1).toBe(1);\n',
+      },
+      "no-restricted-imports",
+    );
+
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      diagnostics: [
+        {
+          filename: "src/runtime.test-d.ts",
+          code: "eslint(no-restricted-imports)",
+        },
       ],
     });
   });
