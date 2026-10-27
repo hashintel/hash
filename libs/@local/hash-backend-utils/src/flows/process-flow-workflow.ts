@@ -15,12 +15,13 @@ import {
   generateStepRunId,
   parseStepRunId,
 } from "@local/hash-isomorphic-utils/flows/step-run-id";
-import {
-  assertNoStoredPayloadRefsInFlowInputs,
-  getArrayPayloadItems,
-} from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
+import { getArrayPayloadItems } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 import { asPayload } from "@local/hash-isomorphic-utils/flows/types";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
+import {
+  validateActionOutputs,
+  validateFlowInputs,
+} from "@local/hash-isomorphic-utils/flows/validate-payloads";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
 
@@ -450,17 +451,19 @@ const processFlow = async (
     });
   }
 
-  try {
-    assertNoStoredPayloadRefsInFlowInputs(flowInputs);
-  } catch (error) {
-    const errorMessage = (error as Error).message;
+  const invalidFlowInputMessage = validateFlowInputs({
+    inputDefinitions: flowDefinition.inputs,
+    flowInputs,
+  });
+
+  if (invalidFlowInputMessage) {
     throw ApplicationFailure.create({
-      message: errorMessage,
+      message: invalidFlowInputMessage,
       nonRetryable: true,
       details: [
         {
           code: StatusCode.InvalidArgument,
-          message: errorMessage,
+          message: invalidFlowInputMessage,
           contents: [],
         },
       ],
@@ -614,33 +617,19 @@ const processFlow = async (
         `Step ${currentStepId}: obtained ${outputs.length} outputs from "${currentStep.actionDefinitionId}" action`,
       );
 
-      /*
-       * An output that takes its kind from an input (`kindFrom`) is only typed as any kind that input accepts, so check
-       * the action returned the kind it was given.
-       */
-      for (const outputDefinition of actionDefinitions[
-        currentStep.actionDefinitionId
-      ].outputs) {
-        if (!("kindFrom" in outputDefinition)) {
-          continue;
-        }
+      const invalidOutputMessage = validateActionOutputs({
+        actionDefinitionId: currentStep.actionDefinitionId,
+        inputs: currentStep.inputs ?? [],
+        outputs,
+      });
 
-        const outputKind = outputs.find(
-          ({ outputName }) => outputName === outputDefinition.name,
-        )?.payload.kind;
+      if (invalidOutputMessage) {
+        processStepErrors[currentStepId] = {
+          code: StatusCode.Internal,
+          message: invalidOutputMessage,
+        };
 
-        const inputKind = currentStep.inputs?.find(
-          ({ inputName }) => inputName === outputDefinition.kindFrom,
-        )?.payload.kind;
-
-        if (outputKind !== undefined && outputKind !== inputKind) {
-          processStepErrors[currentStepId] = {
-            code: StatusCode.Internal,
-            message: `Action ${currentStep.actionDefinitionId} returned output "${outputDefinition.name}" of kind ${outputKind}, but it must have the kind of input "${outputDefinition.kindFrom}" (${inputKind ?? "not given"})`,
-          };
-
-          return;
-        }
+        return;
       }
 
       currentStep.outputs = outputs;
