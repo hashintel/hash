@@ -1297,3 +1297,24 @@ test("picking an earlier revision tells Brunch of a version load, which Saves ke
   expect(editor().title).toBe("B");
   expect(observed.brunch?.versionLoad).toBeUndefined();
 });
+
+test("leaving a net while Brunch's agent save of it is pending settles the save as unconfirmed, and its write still lands", async () => {
+  await renderRoute(`/processes/${uuidA}`);
+  const release = holdNextWrite();
+  const saved = agentSave(netAId);
+  await settle();
+  expect(topBar().persistPending).toBe(true);
+
+  await navigate(`/processes/${uuidB}`);
+  expect(topBar().title).toBe("B");
+  await expect(saved).resolves.toEqual({
+    saved: false,
+    error: "The editor reloaded before the save was confirmed.",
+  });
+
+  act(() => release());
+  await settle();
+  expect(graph.writes.map(({ entityId }) => entityId)).toEqual([netAId]);
+  expect(topBar()).toMatchObject({ title: "B", persistPending: false });
+  expect(url()).toBe(`/processes/${uuidB}`);
+});
