@@ -111,31 +111,34 @@ describe("module_protocols", () => {
     expect(first.values.count).toBe(source.values.count);
   });
 
-  test("all_own_string_keys_and_member_equality", () => {
+  test("enumerable_keys_and_member_equality", () => {
     expect.hasAssertions();
     const member = TypeExpression.reference<Type.PrimitiveInteger>(
       path("::Integer"),
     );
     const hidden = Object.defineProperty({}, "Hidden", { value: member });
-    const first = Result.getOrThrow(
-      Module.define("::same", { types: { ["__proto__"]: member, ...hidden } }),
-    );
     const hiddenModule = Result.getOrThrow(
       Module.define("::same", { types: hidden }),
+    );
+    const emptyModule = Result.getOrThrow(
+      Module.define("::same", { types: {} }),
+    );
+    equivalent(hiddenModule, emptyModule);
+    const prototypeModule = Result.getOrThrow(
+      Module.define("::same", { types: { ["__proto__"]: member } }),
     );
     const visibleModule = Result.getOrThrow(
       Module.define("::same", { types: { Hidden: member } }),
     );
-    equivalent(hiddenModule, visibleModule);
-    expect(Equal.equals(first, hiddenModule)).toBe(false);
-    expect(Object.hasOwn(first.types, "__proto__")).toBe(true);
+    expect(Equal.equals(prototypeModule, visibleModule)).toBe(false);
+    expect(Object.hasOwn(prototypeModule.types, "__proto__")).toBe(true);
     const fresh = TypeExpression.reference<Type.PrimitiveInteger>(
       path("::Integer"),
     );
     const freshModule = Result.getOrThrow(
       Module.define("::same", { types: { Hidden: fresh } }),
     );
-    expect(Equal.equals(hiddenModule, freshModule)).toBe(
+    expect(Equal.equals(visibleModule, freshModule)).toBe(
       Equal.equals(member, fresh),
     );
   });

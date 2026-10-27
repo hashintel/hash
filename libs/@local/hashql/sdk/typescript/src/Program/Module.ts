@@ -9,7 +9,7 @@
  *
  * @module
  */
-import { Equal, Hash, Pipeable, Predicate, Result, pipe } from "effect";
+import { Equal, Hash, Pipeable, Predicate, Record, Result, pipe } from "effect";
 
 import {
   Relocate,
@@ -23,7 +23,6 @@ import type * as Relocation from "../internal/relocation.js";
 import type { Declaration } from "./Declaration.js";
 import type * as Expression from "./Expression.js";
 import type * as TypeExpression from "./TypeExpression.js";
-import type * as Record from "effect/Record";
 
 export { genericType, type, value } from "./Declaration.js";
 export type { Declaration } from "./Declaration.js";
@@ -162,7 +161,7 @@ const requireStringKeys = (
   return Result.void;
 };
 
-/** Maps each own name from S[K] to E[K], retaining its export type instead of an entry union. */
+/** Maps each enumerable own name from S[K] to E[K], retaining its export type instead of an entry union. */
 const mapEntries = <
   E extends Namespace<
     Module.Any | TypeExpression.Export | Expression.Expression.Any
@@ -189,14 +188,14 @@ const mapEntries = <
         Result.flatMap((ident) => resolve(name, entries[name], ident)),
       );
 
-    for (const name of Object.getOwnPropertyNames(entries)) {
+    for (const name of Record.keys(entries)) {
       const bound = yield* member(name);
 
       // Defining the property also preserves the ordinary export name __proto__.
       Object.defineProperty(exports, name, { value: bound, enumerable: true });
     }
 
-    // SAFETY: the loop fills each own string key at its original E[K] type. TypeScript cannot prove that coverage.
+    // SAFETY: the loop fills each enumerable own string key at its original E[K] type. TypeScript cannot prove that coverage.
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- completes a per-key checked Partial<E>, without changing any export type
     return Object.freeze(exports as E);
   });
@@ -330,7 +329,7 @@ class ModuleImpl<
  *
  * `name` must be an absolute path such as `::core::math`. Each declaration binds to that path extended by its key, so a value declared as `rem` emits `::core::math::rem`. An existing type expression, expression or module keeps its identity and the syntax it already emits. Child modules retain their own paths, including when mounted under an alias. Copying and freezing the records prevents caller mutations from adding or replacing exports afterward. The caller's tables are not frozen.
  *
- * Every own string key becomes an export, including non-enumerable keys and `__proto__`. A key must be a HashQL identifier. Emitted paths quote an operator name such as `%`, as in `` ::core::math::`%` ``.
+ * Every enumerable own string key becomes an export, including `__proto__`. A non-enumerable key exports nothing. A key must be a HashQL identifier. Emitted paths quote an operator name such as `%`, as in `` ::core::math::`%` ``.
  *
  * Invalid paths, export names and generic arities return construction failures. A malformed path returns `InvalidModulePath`, a relative path `RelativeModulePath`, a key that is not an identifier `InvalidExportName`, a symbol key `SymbolExportName` and an invalid generic arity `InvalidTypeArity`. Binding stops at the first failure, checking the module, type and value tables in that order.
  *
