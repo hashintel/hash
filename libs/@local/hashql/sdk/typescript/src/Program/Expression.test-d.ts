@@ -5,10 +5,15 @@
  */
 import { describe, expectTypeOf, test } from "vitest";
 
+import { Relocate, relocate } from "../internal/relocation.js";
+
+import type * as JExpr from "../JExpr/index.js";
 import type * as Type from "../Type.js";
-import type { Expression, Value } from "./Expression.js";
+import type { Adapted, Expression, Value } from "./Expression.js";
 import type { Arguments } from "./ExpressionType.js";
 import type * as Inputs from "./Inputs.js";
+import type * as ProgramError from "./ProgramError.js";
+import type { Result } from "effect";
 
 type Left = Type.Struct<{
   readonly shared: Type.List<Type.PrimitiveString>;
@@ -38,6 +43,18 @@ declare const intersection: Expression<
   Inputs.Empty
 >;
 declare const recursive: Expression<Recursive, Inputs.Empty>;
+
+type Lookup = Type.Function<
+  readonly [Type.PrimitiveString],
+  Type.PrimitiveString
+>;
+type Trimmed = Adapted<
+  Lookup,
+  Inputs.Empty,
+  (name: string) => Expression<Type.PrimitiveString, Inputs.Empty>
+>;
+declare const trimmed: Trimmed;
+declare const path: JExpr.Path.Path;
 
 const preserve = <T extends Type.Any>(
   expression: Expression<T, Inputs.Empty>,
@@ -101,6 +118,22 @@ describe("namespaces", () => {
       readonly name?: Type.PrimitiveString;
       readonly limit: Type.PrimitiveInteger;
     }>();
+  });
+});
+
+describe("adapted", () => {
+  test("erased_handle", () => {
+    expectTypeOf<Trimmed>().toExtend<Expression.Any>();
+    expectTypeOf<Trimmed>().toExtend<Value<Lookup>>();
+  });
+
+  test("relocation", () => {
+    expectTypeOf(trimmed[Relocate](path)).toEqualTypeOf<
+      Result.Result<Trimmed, ProgramError.Construction>
+    >();
+    expectTypeOf(relocate(trimmed, path)).toEqualTypeOf<
+      Result.Result<Trimmed, ProgramError.Construction>
+    >();
   });
 });
 
