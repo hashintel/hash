@@ -12,8 +12,11 @@ export const Schema: typeof Defs.List = Defs.List;
  * The schema checks each expression. HashQL determines their common element type.
  */
 export interface List extends Defs.ListType {}
-/** The schema-encoded representation of {@link List}. */
-export interface Encoded extends Defs.ListEncoded {}
+
+export declare namespace List {
+  /** The schema-encoded representation of {@link List}. */
+  export interface Encoded extends Defs.ListEncoded {}
+}
 
 /** Input accepted by {@link make} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];
