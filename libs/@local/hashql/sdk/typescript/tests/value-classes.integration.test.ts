@@ -1,7 +1,35 @@
 import { Effect, Equal, Hash, Option, Result, Schema } from "effect";
 import { assert, describe, expect, expectTypeOf, test } from "vitest";
 
-import { JExpr } from "@local/hashql";
+import { JExpr, Program } from "@local/hashql";
+
+import type { Type } from "@local/hashql";
+
+const { Module } = Program;
+
+describe("emitted_value_classes", () => {
+  test("emitted_value_class_contract", () => {
+    expect.hasAssertions();
+    const declaration = Module.value<Type.PrimitiveInteger>();
+    expectTypeOf(declaration).toExtend<Program.Module.Declaration.Any>();
+    const module = Result.getOrThrow(
+      Module.define("::public", { values: { count: declaration } }),
+    );
+    expectTypeOf(module).toExtend<Program.Module.Module.Any>();
+    const text: JExpr.Path.Path.Encoded = "local";
+    const path = Result.getOrThrow(JExpr.Path.decodeResult(text));
+    const moved = Result.getOrThrow(module.pipe(Module.relocate(path)));
+    expectTypeOf(moved).toEqualTypeOf<typeof module>();
+    expect(moved.path.pipe(JExpr.Path.compile)).toBe("local");
+    expect(Equal.isEqual(moved)).toBe(true);
+    expect(
+      Equal.equals(declaration, Module.value<Type.PrimitiveString>()),
+    ).toBe(true);
+    expect(Hash.hash(declaration)).toBe(
+      Hash.hash(Module.value<Type.PrimitiveString>()),
+    );
+  });
+});
 
 describe("emitted_path_classes", () => {
   test("emitted_nested_reference_decoding_and_construction", () => {

@@ -103,6 +103,33 @@ export class Construction extends Schema.TaggedError<Construction>()(
     });
   }
 
+  /** Retains the invalid module export name and its parser issue. */
+  static invalidExportName(
+    name: string,
+    cause: SchemaIssue.Issue,
+  ): Construction {
+    return Construction.make({
+      reason: Reason.make({ _tag: "InvalidExportName", name, cause }),
+    });
+  }
+
+  /** Retains the invalid module path and its parser issue. */
+  static invalidModulePath(
+    path: string,
+    cause: SchemaIssue.Issue,
+  ): Construction {
+    return Construction.make({
+      reason: Reason.make({ _tag: "InvalidModulePath", path, cause }),
+    });
+  }
+
+  /** Identifies a module path that is not absolute. */
+  static relativeModulePath(path: string): Construction {
+    return Construction.make({
+      reason: Reason.make({ _tag: "RelativeModulePath", path }),
+    });
+  }
+
   /** Identifies an unsupported symbol key in a module's export table. */
   static symbolExportName(name: symbol): Construction {
     return Construction.make({

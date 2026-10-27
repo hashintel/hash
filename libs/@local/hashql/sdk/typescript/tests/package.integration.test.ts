@@ -31,6 +31,25 @@ describe("emitted_namespaces", () => {
       "#literal": { _tag: "Integer", value: "42" },
     });
   });
+
+  test("type_views", () => {
+    expect.hasAssertions();
+    expectTypeOf<Program.Scope.Scope.Empty>().toEqualTypeOf<
+      typeof Program.Scope.empty
+    >();
+    expectTypeOf<
+      Program.Module.Module.Items<typeof Program.Prelude.builtin.modules.math>
+    >().toEqualTypeOf<"add">();
+    expectTypeOf<
+      Type.TypeLambda.Apply<
+        Program.Prelude.List,
+        readonly [Type.PrimitiveString]
+      >
+    >().toEqualTypeOf<Type.List<Type.PrimitiveString>>();
+    expect(
+      Program.ProgramError.Construction.relativeModulePath("core").reason,
+    ).toStrictEqual({ _tag: "RelativeModulePath", path: "core" });
+  });
 });
 
 describe("emitted_package", () => {
@@ -254,6 +273,29 @@ describe("emitted_structural_constructors", () => {
     expect(Result.getOrThrow(Program.compile(Program.program(row)))).toBe(
       '["::kernel::special_form::input","row",{"#struct":{"count":"::kernel::type::Integer"}},{"#struct":{"count":["::kernel::special_form::input","count","::kernel::type::Integer"]}}]',
     );
+  });
+});
+
+describe("emitted_module_imports", () => {
+  test("failure_identity", () => {
+    expect.hasAssertions();
+    const invalid = Expression.number(Infinity);
+    const failure = Result.getOrThrow(Result.flip(Expression.toJExpr(invalid)));
+    const source = Result.getOrThrow(
+      Program.Module.define("::source", { values: { invalid } }),
+    );
+    const moved = Program.Module.relocate(
+      source,
+      Result.getOrThrow(JExpr.Path.decodeResult("local")),
+    );
+    expect(Result.getOrThrow(Result.flip(moved))).toBe(failure);
+    expect(Program.Module.define("relative", {})).toMatchObject({
+      _tag: "Failure",
+      failure: {
+        _tag: "ProgramError/Construction",
+        reason: { _tag: "RelativeModulePath", path: "relative" },
+      },
+    });
   });
 });
 
