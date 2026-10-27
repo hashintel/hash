@@ -164,6 +164,8 @@ describe("payloadKindSchemas", () => {
     ["FormattedText", { content: "a", format: "PDF" }, "format"],
     ["GoogleAccountId", 1, ""],
     ["GoogleSheet", { spreadsheetName: "a" }, ""],
+    ["GoogleSheet", { newSheetName: "Results", spreadsheetId: 123 }, ""],
+    ["GoogleSheet", { spreadsheetId: "abc", newSheetName: 123 }, ""],
     ["Number", Number.NaN, ""],
     ["PersistedEntityMetadata", { entityId, operation: "delete" }, "operation"],
     [

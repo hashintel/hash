@@ -190,8 +190,14 @@ export const payloadKindSchemas = {
   GoogleAccountId: z.string(),
   GoogleSheet: z.union(
     [
-      z.object({ spreadsheetId: z.string() }),
-      z.object({ newSheetName: z.string() }),
+      z.object({
+        spreadsheetId: z.string(),
+        newSheetName: z.string().optional(),
+      }),
+      z.object({
+        newSheetName: z.string(),
+        spreadsheetId: z.string().optional(),
+      }),
     ],
     { error: "Expected either a spreadsheetId or a newSheetName" },
   ),
