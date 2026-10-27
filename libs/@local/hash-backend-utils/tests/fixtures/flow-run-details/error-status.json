@@ -1,16 +1,4 @@
 {
-  "dataSources": {
-    "files": {
-      "fileEntityIds": []
-    },
-    "internetAccess": {
-      "browserPlugin": {
-        "domains": [],
-        "enabled": false
-      },
-      "enabled": false
-    }
-  },
   "failureMessage": "Error processing output definition 'firstTwo': step 'firstTwo' did not produce its required output 'items'",
   "flowInputs": {
     "numbers": {
@@ -18,12 +6,26 @@
       "value": [3, 1, 4]
     }
   },
+  "dataSources": {
+    "files": {
+      "fileEntityIds": []
+    },
+    "internetAccess": {
+      "enabled": false,
+      "browserPlugin": {
+        "enabled": false,
+        "domains": []
+      }
+    }
+  },
   "inputRequests": [],
-  "startedAt": "2026-10-21T13:36:01.641Z",
   "steps": [
     {
-      "attempt": 1,
-      "closedAt": "2026-10-21T13:36:01.741Z",
+      "stepId": "firstTwo",
+      "stepType": "takeFirstAction",
+      "startedAt": "2026-10-24T11:09:12.234Z",
+      "scheduledAt": "2026-10-24T11:09:12.233Z",
+      "closedAt": "2026-10-24T11:09:12.235Z",
       "inputs": [
         {
           "inputs": [
@@ -45,18 +47,16 @@
         }
       ],
       "logs": [],
+      "status": "FAILED",
+      "attempt": 1,
       "outputs": [
         {
-          "code": "INVALID_ARGUMENT",
-          "contents": [],
-          "message": "The count must be a whole number"
+          "code": "UNKNOWN",
+          "message": "The count must be a whole number",
+          "contents": []
         }
-      ],
-      "scheduledAt": "2026-10-21T13:36:01.736Z",
-      "startedAt": "2026-10-21T13:36:01.739Z",
-      "status": "FAILED",
-      "stepId": "firstTwo",
-      "stepType": "takeFirstAction"
+      ]
     }
-  ]
+  ],
+  "startedAt": "2026-10-24T11:09:12.201Z"
 }
