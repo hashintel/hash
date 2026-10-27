@@ -29,7 +29,7 @@ async fn create_machine_with_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed().await?;
 
-    let id = Uuid::new_v4();
+    let id = Uuid::now_v7();
     let machine_id = client.create_machine(Some(id), "test-machine").await?;
     assert_eq!(Uuid::from(machine_id), id);
     assert!(client.is_machine(machine_id).await?);
@@ -57,7 +57,7 @@ async fn create_machine_with_duplicate_id() -> Result<(), Box<dyn Error>> {
     let (mut client, _actor_id) = db.seed().await?;
 
     let machine_id = client
-        .create_machine(Some(Uuid::new_v4()), "test-machine")
+        .create_machine(Some(Uuid::now_v7()), "test-machine")
         .await?;
     let result = client
         .create_machine(Some(machine_id.into()), "test-machine-duplicate")
@@ -77,7 +77,7 @@ async fn delete_non_existent_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed().await?;
 
-    let non_existent_id = MachineId::new(Uuid::new_v4());
+    let non_existent_id = MachineId::new(Uuid::now_v7());
     let result = client.delete_machine(non_existent_id).await;
     drop(client);
 
@@ -119,7 +119,7 @@ async fn get_non_existent_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (client, actor_id) = db.seed().await?;
 
-    let non_existent_id = MachineId::new(Uuid::new_v4());
+    let non_existent_id = MachineId::new(Uuid::now_v7());
     let result = client.get_machine_by_id(actor_id, non_existent_id).await?;
 
     assert!(

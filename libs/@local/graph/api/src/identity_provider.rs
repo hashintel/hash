@@ -312,9 +312,9 @@ mod tests {
 
     #[tokio::test]
     async fn trailing_slash_in_the_admin_url_still_resolves() {
-        let actor_id = Uuid::new_v4();
+        let actor_id = Uuid::now_v7();
         let provider = provider_for_url_with_path_prefix(json!([identity_json(
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             Some(actor_id)
         )]))
         .await;
@@ -333,8 +333,8 @@ mod tests {
 
     #[tokio::test]
     async fn provisioned_identity_resolves() {
-        let identity_id = Uuid::new_v4();
-        let actor_id = Uuid::new_v4();
+        let identity_id = Uuid::now_v7();
+        let actor_id = Uuid::now_v7();
         let provider = provider_for(json!([identity_json(identity_id, Some(actor_id))])).await;
 
         let resolved = provider
@@ -359,7 +359,7 @@ mod tests {
     #[tokio::test]
     async fn empty_email_is_rejected_before_the_lookup() {
         let provider =
-            provider_for(json!([identity_json(Uuid::new_v4(), Some(Uuid::new_v4()))])).await;
+            provider_for(json!([identity_json(Uuid::now_v7(), Some(Uuid::now_v7()))])).await;
 
         let outcome = provider.find_user_by_email("").await;
         assert!(
@@ -393,9 +393,9 @@ mod tests {
     async fn identity_yields_its_registered_addresses() {
         use hash_graph_store::identity_provider::IdentityProvider as _;
 
-        let identity_id = Uuid::new_v4();
+        let identity_id = Uuid::now_v7();
         let provider = provider_for(json!([with_emails(
-            identity_json(identity_id, Some(Uuid::new_v4())),
+            identity_json(identity_id, Some(Uuid::now_v7())),
             &["first@example.com", "second@example.com"]
         )]))
         .await;
@@ -418,9 +418,9 @@ mod tests {
     async fn identity_without_traits_yields_no_addresses() {
         use hash_graph_store::identity_provider::IdentityProvider as _;
 
-        let identity_id = Uuid::new_v4();
+        let identity_id = Uuid::now_v7();
         let provider =
-            provider_for(json!([identity_json(identity_id, Some(Uuid::new_v4()))])).await;
+            provider_for(json!([identity_json(identity_id, Some(Uuid::now_v7()))])).await;
 
         let emails = provider
             .get_identity_emails(&identity_id.to_string())
@@ -437,9 +437,9 @@ mod tests {
     async fn deletion_removes_the_identity() {
         use hash_graph_store::identity_provider::IdentityProvider as _;
 
-        let identity_id = Uuid::new_v4();
+        let identity_id = Uuid::now_v7();
         let provider =
-            provider_for(json!([identity_json(identity_id, Some(Uuid::new_v4()))])).await;
+            provider_for(json!([identity_json(identity_id, Some(Uuid::now_v7()))])).await;
 
         let deletion = provider
             .delete_identity(&identity_id.to_string())
@@ -486,7 +486,7 @@ mod tests {
 
     #[tokio::test]
     async fn unprovisioned_identity_fails() {
-        let provider = provider_for(json!([identity_json(Uuid::new_v4(), None)])).await;
+        let provider = provider_for(json!([identity_json(Uuid::now_v7(), None)])).await;
 
         let report = provider
             .find_user_by_email(EMAIL)
@@ -505,8 +505,8 @@ mod tests {
     #[tokio::test]
     async fn multiple_identities_fail() {
         let provider = provider_for(json!([
-            identity_json(Uuid::new_v4(), Some(Uuid::new_v4())),
-            identity_json(Uuid::new_v4(), Some(Uuid::new_v4())),
+            identity_json(Uuid::now_v7(), Some(Uuid::now_v7())),
+            identity_json(Uuid::now_v7(), Some(Uuid::now_v7())),
         ]))
         .await;
 
@@ -528,8 +528,8 @@ mod tests {
     /// authentication — the lookup accepts an unverified address.
     #[tokio::test]
     async fn unverified_address_still_resolves_for_deletion() {
-        let actor_id = Uuid::new_v4();
-        let mut identity = identity_json(Uuid::new_v4(), Some(actor_id));
+        let actor_id = Uuid::now_v7();
+        let mut identity = identity_json(Uuid::now_v7(), Some(actor_id));
         identity["verifiable_addresses"] = json!([{ "value": EMAIL, "verified": false }]);
         let provider = provider_for(json!([identity])).await;
 
@@ -599,7 +599,7 @@ mod tests {
     async fn traits_without_addresses_fail_the_read() {
         use hash_graph_store::identity_provider::IdentityProvider as _;
 
-        let identity_id = Uuid::new_v4();
+        let identity_id = Uuid::now_v7();
         let mut identity = identity_json(identity_id, None);
         identity["traits"] = json!({});
         let provider = provider_for(json!([identity])).await;

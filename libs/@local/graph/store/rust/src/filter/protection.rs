@@ -1682,7 +1682,7 @@ mod tests {
 
         #[test]
         fn actor_compares_against_its_own_uuid() {
-            let actor_uuid = Uuid::new_v4();
+            let actor_uuid = Uuid::now_v7();
             let actor_id = ActorId::User(UserId::new(ActorEntityUuid::new(actor_uuid)));
 
             let transformed = transform_filter(

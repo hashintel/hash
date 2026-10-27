@@ -1661,8 +1661,8 @@ mod tests {
     #[tokio::test]
     async fn for_entity_by_entity_id() {
         let entity_id = EntityId {
-            web_id: WebId::new(Uuid::new_v4()),
-            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            web_id: WebId::new(Uuid::now_v7()),
+            entity_uuid: EntityUuid::new(Uuid::now_v7()),
             draft_id: None,
         };
 
@@ -1685,9 +1685,9 @@ mod tests {
     #[tokio::test]
     async fn for_entity_by_entity_draft_id() {
         let entity_id = EntityId {
-            web_id: WebId::new(Uuid::new_v4()),
-            entity_uuid: EntityUuid::new(Uuid::new_v4()),
-            draft_id: Some(DraftId::new(Uuid::new_v4())),
+            web_id: WebId::new(Uuid::now_v7()),
+            entity_uuid: EntityUuid::new(Uuid::now_v7()),
+            draft_id: Some(DraftId::new(Uuid::now_v7())),
         };
 
         let expected = json!({
@@ -1733,7 +1733,7 @@ mod tests {
             resource_constraint: Option<ResourceConstraint>,
         ) -> Policy {
             Policy {
-                id: PolicyId::new(Uuid::new_v4()),
+                id: PolicyId::new(Uuid::now_v7()),
                 name: None,
                 effect,
                 principal: None, // No principal constraint for these tests
@@ -1751,8 +1751,8 @@ mod tests {
 
         #[test]
         fn single_permit_exact_entity() {
-            let entity_uuid = EntityUuid::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let entity_uuid = EntityUuid::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let policy = create_test_policy(
                 Effect::Permit,
@@ -1793,8 +1793,8 @@ mod tests {
 
         #[test]
         fn single_forbid_exact_entity() {
-            let entity_uuid = EntityUuid::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let entity_uuid = EntityUuid::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let policy = create_test_policy(
                 Effect::Forbid,
@@ -1824,10 +1824,10 @@ mod tests {
 
         #[test]
         fn multiple_permits_same_entity_type() {
-            let entity_uuid_1 = EntityUuid::new(Uuid::new_v4());
-            let entity_uuid_2 = EntityUuid::new(Uuid::new_v4());
-            let entity_uuid_3 = EntityUuid::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let entity_uuid_1 = EntityUuid::new(Uuid::now_v7());
+            let entity_uuid_2 = EntityUuid::new(Uuid::now_v7());
+            let entity_uuid_3 = EntityUuid::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let policies = [
                 create_test_policy(
@@ -1893,9 +1893,9 @@ mod tests {
 
         #[test]
         fn permit_with_forbid() {
-            let permit_uuid = EntityUuid::new(Uuid::new_v4());
-            let forbid_uuid = EntityUuid::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let permit_uuid = EntityUuid::new(Uuid::now_v7());
+            let forbid_uuid = EntityUuid::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let policies = [
                 create_test_policy(
@@ -1949,7 +1949,7 @@ mod tests {
 
         #[test]
         fn blank_permit() {
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let policy = create_test_policy(Effect::Permit, None);
             let optimization_data = OptimizationData::default();
@@ -1973,7 +1973,7 @@ mod tests {
 
         #[test]
         fn blank_forbid() {
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let policy = create_test_policy(Effect::Forbid, None);
             let optimization_data = OptimizationData::default();
@@ -1994,9 +1994,9 @@ mod tests {
 
         #[test]
         fn branches_split_permits() {
-            let entity_uuid_1 = EntityUuid::new(Uuid::new_v4());
-            let entity_uuid_2 = EntityUuid::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let entity_uuid_1 = EntityUuid::new(Uuid::now_v7());
+            let entity_uuid_2 = EntityUuid::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let policies = [
                 create_test_policy(
@@ -2039,10 +2039,10 @@ mod tests {
 
         #[test]
         fn branches_carry_forbids() {
-            let permit_uuid_1 = EntityUuid::new(Uuid::new_v4());
-            let permit_uuid_2 = EntityUuid::new(Uuid::new_v4());
-            let forbid_uuid = EntityUuid::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let permit_uuid_1 = EntityUuid::new(Uuid::now_v7());
+            let permit_uuid_2 = EntityUuid::new(Uuid::now_v7());
+            let forbid_uuid = EntityUuid::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let policies = [
                 create_test_policy(
@@ -2105,8 +2105,8 @@ mod tests {
 
         #[test]
         fn no_branches_without_permits() {
-            let forbid_uuid = EntityUuid::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let forbid_uuid = EntityUuid::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let policy = create_test_policy(
                 Effect::Forbid,
@@ -2130,8 +2130,8 @@ mod tests {
 
         #[test]
         fn blank_permit_yields_single_branch() {
-            let forbid_uuid = EntityUuid::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let forbid_uuid = EntityUuid::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
             let optimization_data = OptimizationData::default();
 
             let unrestricted = create_test_policy(Effect::Permit, None);
@@ -2175,8 +2175,8 @@ mod tests {
 
         #[test]
         fn blank_forbid_yields_no_branches() {
-            let permit_uuid = EntityUuid::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let permit_uuid = EntityUuid::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let policies = [
                 create_test_policy(
@@ -2203,10 +2203,10 @@ mod tests {
 
         #[test]
         fn blank_forbid_overrides_optimization_permits() {
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
             let optimization_data = OptimizationData {
-                permitted_entity_uuids: vec![EntityUuid::new(Uuid::new_v4())],
-                permitted_web_ids: vec![WebId::new(Uuid::new_v4())],
+                permitted_entity_uuids: vec![EntityUuid::new(Uuid::now_v7())],
+                permitted_web_ids: vec![WebId::new(Uuid::now_v7())],
                 ..OptimizationData::default()
             };
             let policy = create_test_policy(Effect::Forbid, None);
@@ -2234,10 +2234,10 @@ mod tests {
 
         #[test]
         fn optimization_permits_form_branches() {
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let single_web = OptimizationData {
-                permitted_web_ids: vec![WebId::new(Uuid::new_v4())],
+                permitted_web_ids: vec![WebId::new(Uuid::now_v7())],
                 ..OptimizationData::default()
             };
             let branches =
@@ -2258,8 +2258,8 @@ mod tests {
             }
 
             let multiple = OptimizationData {
-                permitted_entity_uuids: vec![EntityUuid::new(Uuid::new_v4())],
-                permitted_web_ids: vec![WebId::new(Uuid::new_v4()), WebId::new(Uuid::new_v4())],
+                permitted_entity_uuids: vec![EntityUuid::new(Uuid::now_v7())],
+                permitted_web_ids: vec![WebId::new(Uuid::now_v7()), WebId::new(Uuid::now_v7())],
                 ..OptimizationData::default()
             };
             let branches =
@@ -2290,8 +2290,8 @@ mod tests {
 
         #[test]
         fn unmatchable_permits_form_no_branch() {
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
-            let matchable_uuid = EntityUuid::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
+            let matchable_uuid = EntityUuid::new(Uuid::now_v7());
 
             let policies = [
                 create_test_policy(
@@ -2327,8 +2327,8 @@ mod tests {
 
         #[test]
         fn duplicate_permits_form_one_branch() {
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
-            let entity_uuid = EntityUuid::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
+            let entity_uuid = EntityUuid::new(Uuid::now_v7());
 
             let duplicate = || {
                 create_test_policy(
@@ -2524,10 +2524,10 @@ mod tests {
         /// web permits that cannot be optimized.
         #[test]
         fn optimization_combines_with_remaining_policies() {
-            let entity_uuid1 = EntityUuid::new(Uuid::new_v4());
-            let entity_uuid2 = EntityUuid::new(Uuid::new_v4());
-            let web_id = WebId::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let entity_uuid1 = EntityUuid::new(Uuid::now_v7());
+            let entity_uuid2 = EntityUuid::new(Uuid::now_v7());
+            let web_id = WebId::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let web_resource = ResourceConstraint::Web { web_id };
 
@@ -2591,10 +2591,10 @@ mod tests {
         /// for optimizable permits.
         #[test]
         fn optimization_preserves_forbid_policies() {
-            let entity_uuid1 = EntityUuid::new(Uuid::new_v4());
-            let entity_uuid2 = EntityUuid::new(Uuid::new_v4());
-            let web_id_forbid = WebId::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let entity_uuid1 = EntityUuid::new(Uuid::now_v7());
+            let entity_uuid2 = EntityUuid::new(Uuid::now_v7());
+            let web_id_forbid = WebId::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let web_resource_forbid = ResourceConstraint::Web {
                 web_id: web_id_forbid,
@@ -2639,10 +2639,10 @@ mod tests {
         /// Verifies that entity UUID optimization works alongside web permits.
         #[test]
         fn entity_optimization_with_other_permits() {
-            let entity_uuid1 = EntityUuid::new(Uuid::new_v4());
-            let entity_uuid2 = EntityUuid::new(Uuid::new_v4());
-            let web_id = WebId::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let entity_uuid1 = EntityUuid::new(Uuid::now_v7());
+            let entity_uuid2 = EntityUuid::new(Uuid::now_v7());
+            let web_id = WebId::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let web_resource = ResourceConstraint::Web { web_id };
 
@@ -2687,10 +2687,10 @@ mod tests {
         /// Verifies that multiple web ID permits are converted to a single IN clause.
         #[test]
         fn web_id_optimization_creates_in_clause() {
-            let web_id1 = WebId::new(Uuid::new_v4());
-            let web_id2 = WebId::new(Uuid::new_v4());
-            let web_id3 = WebId::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let web_id1 = WebId::new(Uuid::now_v7());
+            let web_id2 = WebId::new(Uuid::now_v7());
+            let web_id3 = WebId::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             // After optimization analysis: all web permits extracted
             let policy_tuples = vec![];
@@ -2733,11 +2733,11 @@ mod tests {
         /// creating separate IN clauses for each type.
         #[test]
         fn mixed_entity_and_web_optimization() {
-            let entity_uuid1 = EntityUuid::new(Uuid::new_v4());
-            let entity_uuid2 = EntityUuid::new(Uuid::new_v4());
-            let web_id1 = WebId::new(Uuid::new_v4());
-            let web_id2 = WebId::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let entity_uuid1 = EntityUuid::new(Uuid::now_v7());
+            let entity_uuid2 = EntityUuid::new(Uuid::now_v7());
+            let web_id1 = WebId::new(Uuid::now_v7());
+            let web_id2 = WebId::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             // After optimization analysis: all permits extracted
             let policy_tuples = vec![];
@@ -2801,10 +2801,10 @@ mod tests {
         /// with forbid policies in an All structure.
         #[test]
         fn entity_optimization_with_forbids() {
-            let entity_uuid1 = EntityUuid::new(Uuid::new_v4());
-            let entity_uuid2 = EntityUuid::new(Uuid::new_v4());
-            let web_id_forbid = WebId::new(Uuid::new_v4());
-            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+            let entity_uuid1 = EntityUuid::new(Uuid::now_v7());
+            let entity_uuid2 = EntityUuid::new(Uuid::now_v7());
+            let web_id_forbid = WebId::new(Uuid::now_v7());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::now_v7())));
 
             let web_resource_forbid = ResourceConstraint::Web {
                 web_id: web_id_forbid,

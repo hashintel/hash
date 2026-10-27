@@ -148,7 +148,7 @@ pub mod tests {
 
     #[must_use]
     pub fn random_actor() -> ActorEntityUuid {
-        ActorEntityUuid::new(Uuid::new_v4())
+        ActorEntityUuid::new(Uuid::now_v7())
     }
 
     /// A resolver map holding the given actor as a user.

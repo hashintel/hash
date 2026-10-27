@@ -31,7 +31,7 @@ time               = { workspace = true }
 tokio              = { workspace = true, default-features = false, features = ["macros"] }
 tokio-postgres     = { workspace = true, default-features = false }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
-uuid               = { workspace = true, features = ["v4", "serde"] }
+uuid               = { workspace = true, features = ["serde", "std", "v7"] }
 
 [lints]
 workspace = true

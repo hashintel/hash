@@ -387,7 +387,7 @@ async fn restricts_to_requested_types_and_webs() {
     let results = search(
         &mut api,
         actor,
-        web_filter(WebId::new(Uuid::new_v4())),
+        web_filter(WebId::new(Uuid::now_v7())),
         2.0,
         10,
     )

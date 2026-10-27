@@ -188,7 +188,7 @@ mod tests {
         let response = delegation_router()
             .oneshot(request_with_actor_header(
                 "/anonymous-allowed",
-                &Uuid::new_v4().to_string(),
+                &Uuid::now_v7().to_string(),
             ))
             .await
             .expect("the router should respond");

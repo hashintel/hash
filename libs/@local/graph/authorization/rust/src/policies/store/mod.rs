@@ -775,7 +775,7 @@ impl OldPolicyStore for MemoryPolicyStore {
         &mut self,
         identifier: String,
     ) -> Result<MachineId, Report<ActorCreationError>> {
-        let machine_id = MachineId::new(Uuid::new_v4());
+        let machine_id = MachineId::new(Uuid::now_v7());
         self.actors.insert(
             ActorId::Machine(machine_id),
             Actor::Machine(Machine {
@@ -789,7 +789,7 @@ impl OldPolicyStore for MemoryPolicyStore {
     }
 
     fn create_web(&mut self, shortname: Option<String>) -> Result<WebId, Report<WebCreationError>> {
-        let web_id = WebId::new(Uuid::new_v4());
+        let web_id = WebId::new(Uuid::now_v7());
         self.teams.insert(
             ActorGroupId::Web(web_id),
             ActorGroup::Web(Web {
@@ -810,7 +810,7 @@ impl OldPolicyStore for MemoryPolicyStore {
             bail!(WebRoleCreationError::WebNotFound { web_id })
         };
 
-        let role_id = WebRoleId::new(Uuid::new_v4());
+        let role_id = WebRoleId::new(Uuid::now_v7());
         web.roles.insert(role_id);
         self.role_ids
             .insert((ActorGroupId::Web(web_id), name), RoleId::Web(role_id));
@@ -831,7 +831,7 @@ impl OldPolicyStore for MemoryPolicyStore {
         parent_id: ActorGroupId,
         name: String,
     ) -> Result<TeamId, Report<TeamCreationError>> {
-        let team_id = TeamId::new(Uuid::new_v4());
+        let team_id = TeamId::new(Uuid::now_v7());
         self.teams.insert(
             ActorGroupId::Team(team_id),
             ActorGroup::Team(Team {
@@ -853,7 +853,7 @@ impl OldPolicyStore for MemoryPolicyStore {
             bail!(TeamRoleCreationError::TeamNotFound { team_id })
         };
 
-        let role_id = TeamRoleId::new(Uuid::new_v4());
+        let role_id = TeamRoleId::new(Uuid::now_v7());
         team.roles.insert(role_id);
         self.role_ids
             .insert((ActorGroupId::Team(team_id), name), RoleId::Team(role_id));

@@ -191,7 +191,7 @@ fn actor_request(actor_id: ActorId) -> Request<Body> {
 }
 
 fn random_actor() -> ActorId {
-    ActorId::User(UserId::new(ActorEntityUuid::new(Uuid::new_v4())))
+    ActorId::User(UserId::new(ActorEntityUuid::new(Uuid::now_v7())))
 }
 
 fn address(value: &str) -> IpAddr {

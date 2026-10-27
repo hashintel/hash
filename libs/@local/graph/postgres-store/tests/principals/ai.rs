@@ -29,7 +29,7 @@ async fn create_ai_with_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed().await?;
 
-    let id = Uuid::new_v4();
+    let id = Uuid::now_v7();
     let ai_id = client.create_ai(Some(id), "test-ai").await?;
     assert_eq!(ai_id, AiId::new(id));
 
@@ -57,7 +57,7 @@ async fn create_ai_with_duplicate_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed().await?;
 
-    let ai_id = client.create_ai(Some(Uuid::new_v4()), "test-ai").await?;
+    let ai_id = client.create_ai(Some(Uuid::now_v7()), "test-ai").await?;
     let result = client.create_ai(Some(ai_id.into()), "test-ai2").await;
     drop(client);
 
@@ -76,7 +76,7 @@ async fn get_non_existent_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (client, actor_id) = db.seed().await?;
 
-    let non_existent_id = AiId::new(Uuid::new_v4());
+    let non_existent_id = AiId::new(Uuid::now_v7());
     let result = client.get_ai_by_id(actor_id, non_existent_id).await?;
 
     assert!(
@@ -92,7 +92,7 @@ async fn delete_non_existent_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, _actor_id) = db.seed().await?;
 
-    let non_existent_id = AiId::new(Uuid::new_v4());
+    let non_existent_id = AiId::new(Uuid::now_v7());
     let result = client.delete_ai(non_existent_id).await;
 
     let expected_actor_id = ActorId::Ai(non_existent_id);

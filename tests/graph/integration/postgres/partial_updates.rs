@@ -675,7 +675,7 @@ async fn patch_entities_missing_entity() {
     let original = create_person(&mut api).await;
     let entity_id = original.metadata.record_id.entity_id;
     let missing_id = EntityId {
-        entity_uuid: EntityUuid::new(Uuid::new_v4()),
+        entity_uuid: EntityUuid::new(Uuid::now_v7()),
         ..entity_id
     };
 

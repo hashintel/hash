@@ -37,13 +37,14 @@ serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
 thiserror      = { workspace = true }
 tracing        = { workspace = true }
-uuid           = { workspace = true, features = ["v4"] }
+uuid           = { workspace = true }
 
 [dev-dependencies]
 hash-codegen = { workspace = true }
 insta        = { workspace = true }
 rstest       = { workspace = true }
 tokio        = { workspace = true, features = ["macros"] }
+uuid         = { workspace = true, features = ["std", "v7"] }
 
 [[test]]
 name              = "codegen"

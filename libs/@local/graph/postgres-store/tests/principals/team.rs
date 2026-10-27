@@ -61,7 +61,7 @@ async fn create_team_with_id() -> Result<(), Box<dyn Error>> {
         )
         .await?
         .web_id;
-    let id = Uuid::new_v4();
+    let id = Uuid::now_v7();
     let team_id = client
         .insert_team(Some(id), ActorGroupId::Web(web_id), "team")
         .await?;
@@ -138,7 +138,7 @@ async fn delete_non_existent_team() -> Result<(), Box<dyn Error>> {
     let (mut client, _actor_id) = db.seed().await?;
 
     // Try to delete a non-existent team
-    let non_existent_id = TeamId::new(Uuid::new_v4());
+    let non_existent_id = TeamId::new(Uuid::now_v7());
     let result = client.delete_team(non_existent_id).await;
 
     // Verify it returns the correct error
@@ -206,7 +206,7 @@ async fn create_team_with_duplicate_id() -> Result<(), Box<dyn Error>> {
         .web_id;
 
     // Create a team with a specific ID
-    let id = Uuid::new_v4();
+    let id = Uuid::now_v7();
     let team_id = client
         .insert_team(Some(id), ActorGroupId::Web(web_id), "team")
         .await?;
@@ -284,7 +284,7 @@ async fn get_non_existent_team() -> Result<(), Box<dyn Error>> {
     let (client, actor_id) = db.seed().await?;
 
     // Try to get a non-existent team
-    let non_existent_id = TeamId::new(Uuid::new_v4());
+    let non_existent_id = TeamId::new(Uuid::now_v7());
     let result = client.get_team_by_id(actor_id, non_existent_id).await?;
 
     // The implementation now returns a PrincipalNotFound error

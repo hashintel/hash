@@ -3112,7 +3112,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
             api.account_id,
             CreateEntityParams {
                 web_id: WebId::new(api.account_id),
-                entity_uuid: Some(EntityUuid::new(Uuid::new_v4())), /* Different UUID = different
+                entity_uuid: Some(EntityUuid::new(Uuid::now_v7())), /* Different UUID = different
                                                                      * owner */
                 decision_time: None,
                 entity_type_ids: HashSet::from([user_type_id]),

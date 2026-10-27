@@ -207,7 +207,7 @@ mod tests {
     use crate::authentication::request::AuthenticationErrorKind;
 
     fn random_user() -> ActorId {
-        ActorId::User(UserId::new(ActorEntityUuid::new(Uuid::new_v4())))
+        ActorId::User(UserId::new(ActorEntityUuid::new(Uuid::now_v7())))
     }
 
     #[test]

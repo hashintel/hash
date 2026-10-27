@@ -656,7 +656,7 @@ async fn get_entity_by_id_missing() {
         .get_entity_by_id(
             Some(api.account_id),
             EntityId {
-                entity_uuid: EntityUuid::new(Uuid::new_v4()),
+                entity_uuid: EntityUuid::new(Uuid::now_v7()),
                 ..entity_id
             },
             None,

@@ -330,7 +330,7 @@ impl Policy {
             &parse_policy(
                 Some(ast::PolicyID::from_string(
                     policy_id
-                        .unwrap_or_else(|| PolicyId::new(Uuid::new_v4()))
+                        .unwrap_or_else(|| PolicyId::new(Uuid::now_v7()))
                         .to_string(),
                 )),
                 text,
@@ -455,11 +455,11 @@ mod tests {
 
         #[test]
         fn user_can_view_entity_uuid() -> Result<(), Box<dyn Error>> {
-            let user_id = UserId::new(Uuid::new_v4());
-            let entity_uuid = EntityUuid::new(Uuid::new_v4());
+            let user_id = UserId::new(Uuid::now_v7());
+            let entity_uuid = EntityUuid::new(Uuid::now_v7());
 
             let policy = Policy {
-                id: PolicyId::new(Uuid::new_v4()),
+                id: PolicyId::new(Uuid::now_v7()),
                 name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::Actor {
