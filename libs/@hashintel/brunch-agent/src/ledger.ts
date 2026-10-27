@@ -5,7 +5,11 @@
  * same projection the server compiles.
  */
 
-export { vLedgerAppend, type LedgerAppend } from "./ledger/append";
+export {
+  createLedgerAppend,
+  vLedgerAppend,
+  type LedgerAppend,
+} from "./ledger/append";
 export {
   ledgerCommentsMessage,
   parseLedgerComments,
@@ -35,6 +39,6 @@ export {
   vReflection,
   type NetElementAddress,
 } from "./ledger/construction/reflections";
-export { vOrigin, vStatus } from "./ledger/shared/epistemics";
+export { createOrigin, vOrigin, vStatus } from "./ledger/shared/epistemics";
 export { traceLedger, type LedgerTrace } from "./ledger/trace";
 export * from "./ledger/projection";

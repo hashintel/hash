@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 
+import { toJsonSchema } from "@valibot/to-json-schema";
 import * as v from "valibot";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -18,6 +19,7 @@ import {
   compileToolDescription,
 } from "../petrinaut/tools/ledger.ts";
 import { queryBasisToolDescription } from "../petrinaut/tools/query-basis.ts";
+import { hashEvidencedDescription } from "./guidance.ts";
 import {
   hashEntityReadDescription,
   hashEntityTypeReadDescription,
@@ -29,6 +31,7 @@ const mounted = vi.hoisted(() => ({
   body: "Four agents",
   contextProjections: 0,
   descriptions: new Map<string, string>(),
+  inputs: new Map<string, v.GenericSchema | undefined>(),
   instructions: [] as string[],
   models: [] as string[],
   skills: [] as string[],
@@ -53,8 +56,13 @@ vi.mock("@flue/runtime", async (importOriginal) => ({
     vi.fn<(value: unknown) => void>(),
   ],
   useSkill: (skill: { name: string }) => mounted.skills.push(skill.name),
-  useTool: (tool: { name: string; description: string }) => {
+  useTool: (tool: {
+    name: string;
+    description: string;
+    input?: v.GenericSchema;
+  }) => {
     mounted.descriptions.set(tool.name, tool.description);
+    mounted.inputs.set(tool.name, tool.input);
     mounted.tools.push(tool.name);
   },
 }));
@@ -119,6 +127,7 @@ beforeEach(() => {
   mounted.body = "Four agents";
   mounted.contextProjections = 0;
   mounted.descriptions.clear();
+  mounted.inputs.clear();
   mounted.instructions.length = 0;
   mounted.models.length = 0;
   mounted.skills.length = 0;
@@ -224,6 +233,51 @@ test("only the HASH agent is guided to its graph: the skill, the system prompt's
   expect(petrinautPrompt).not.toContain("hash-graph");
   expect(mounted.skills).toEqual(["eliciting", "modelling", "petrinaut"]);
   expect(mounted.descriptions.has(brunchTools.queryHashWebs)).toBe(false);
+});
+
+/** Every description of the evidenced origin in the parameters Flue sends for the mounted `ledger_commit`. */
+const evidencedDescriptions = () => {
+  const input = mounted.inputs.get(brunchTools.ledgerCommit);
+  if (!input) throw new Error("ledger_commit is not mounted.");
+  const found: unknown[] = [];
+  const visit = (node: unknown): void => {
+    if (typeof node !== "object" || node === null) return;
+    if ("const" in node && node.const === "evidenced" && "description" in node)
+      found.push(node.description);
+    for (const child of Object.values(node)) visit(child);
+  };
+  visit(toJsonSchema(input, { errorMode: "ignore" }));
+  return found;
+};
+
+test("only the HASH agent counts records it read from HASH as evidence", async () => {
+  mounted.initialData = bound;
+  const [
+    { HashAgent: renderHashAgent },
+    { PetrinautAgent: renderPetrinautAgent },
+  ] = await Promise.all([
+    import("./agent.ts"),
+    import("../petrinaut/agent.ts"),
+  ]);
+  renderHashAgent({ id: "hash" });
+  const hashDescriptions = evidencedDescriptions();
+  // Entity create and update payloads and claims each describe origin.
+  expect(hashDescriptions).toHaveLength(3);
+  for (const description of hashDescriptions)
+    expect(description).toBe(hashEvidencedDescription);
+  expect(hashEvidencedDescription).toContain(
+    "or in records of the USER's own organisation that the agent read from HASH.",
+  );
+
+  mounted.inputs.clear();
+  renderPetrinautAgent({ id: "petrinaut" });
+  expect(evidencedDescriptions()).toEqual(
+    Array.from(
+      { length: 3 },
+      () =>
+        "It is in material the USER shared, such as a log or a document. A run, an optimization or anything else a tool produced is not evidence for the account: record what it showed in a reflection.",
+    ),
+  );
 });
 
 test("the agent admits a document binding or no initial data", () => {
