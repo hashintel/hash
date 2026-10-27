@@ -15,9 +15,6 @@ import {
   browserResultEnvelope,
 } from "../../../shared/petrinaut-tools/petrinaut-construction.ts";
 
-/** The deepest link traversal a read may ask for. */
-export const maxHashEntityTraversalDepth = 5;
-
 const identifiers = (description: string) =>
   v.optional(
     v.pipe(
@@ -74,18 +71,17 @@ const runHashRead = async (
  */
 export const hashEntityReadInputSchema = v.strictObject({
   entityTypes: identifiers(
-    "Entity types to match, each a type's title (for example `Organization`) or its versioned URL. Entities of any listed type match.",
+    "Entity type titles to match, for example `Organization`. A title matches every type with that title, in any web and at any version; a versioned entityTypeId matches that type version only. Entities of any listed type match.",
   ),
   webIds: identifiers(webIdsDescription),
   entityIds: identifiers(
-    "Entity ids to read, for example ids returned by an earlier read.",
+    "Entity ids to read, for example ids returned by an earlier read: `webId~entityUuid`, or `webId~entityUuid~draftId` for a draft. An id with a draft part reads that draft.",
   ),
   traversalDepth: v.optional(
     v.pipe(
       v.number(),
       v.integer(),
       v.minValue(0),
-      v.maxValue(maxHashEntityTraversalDepth),
       v.description(
         "How many links to follow from the matched entities, in either direction. 0 returns only the matches. Defaults to 1.",
       ),
@@ -94,7 +90,9 @@ export const hashEntityReadInputSchema = v.strictObject({
   includeDrafts: v.optional(
     v.pipe(
       v.boolean(),
-      v.description("Whether to include draft entities. Defaults to false."),
+      v.description(
+        "Whether to include draft entities. Defaults to false. An entity id with a draft part reads that draft either way.",
+      ),
     ),
   ),
 });
@@ -104,7 +102,7 @@ export type HashEntityReadInput = v.InferOutput<
 >;
 
 export const hashEntityReadDescription =
-  "Read entities from the HASH graph, as the signed-in user: only what they may see is returned, so an entity that is absent may exist but be hidden from them. Filters combine: an entity must match every filter given. Returns { entities }, each with its entityId, editionId (the exact version read), webId, entityTypeIds, properties (keyed by property type URL), draft, whether it matched the filters (matched) or was reached by following links, and, for a link entity, its linkData. A read that failed returns { error }. Read webs with query_hash_webs first, for the web ids to filter by; then read the types of the entities found with query_hash_entity_types, by their entityTypeIds, and follow up on a found entity by its entityId.";
+  "Read entities from the HASH graph, as the signed-in user: only what they may see is returned, and archived entities are never returned, so an entity that is absent may exist but be hidden from them, archived, or filed under another type title or web. An empty { entities } means only that nothing visible matched. Filters combine: an entity must match every filter given. Returns { entities }, each with its entityId, editionId (the exact version read), webId, entityTypeIds, properties (keyed by property type URL), draft, whether it matched the filters (matched) or was reached by following links, and, for a link entity, its linkData. A read that failed returns { error }. Read webs with query_hash_webs first, for the web ids to filter by; then read the types of the entities found with query_hash_entity_types, by their entityTypeIds, and follow up on a found entity by its entityId.";
 
 /** One entity as HASH's page returns it: every field comes from the same returned edition. */
 const hashEntitySchema = v.object({
@@ -133,13 +131,7 @@ export const hashEntityReadForModel = (output: unknown) => {
   const parsed = v.safeParse(hashEntityReadResultSchema, output);
   if (!parsed.success)
     throw new Error("HASH's page returned an entity read in an unknown shape.");
-  const { entities } = parsed.output;
-  return entities.length === 0
-    ? {
-        entities,
-        note: "No entities matched that the signed-in user can see.",
-      }
-    : { entities };
+  return parsed.output;
 };
 
 /** The entity read, executed by whatever `execute` reaches HASH through. */
@@ -176,7 +168,7 @@ export type HashEntityTypeReadInput = v.InferOutput<
 >;
 
 export const hashEntityTypeReadDescription =
-  "List the entity types in the HASH graph that the signed-in user can see: the versions named by entityTypeIds, or else each type's latest version. Filters combine: a type must match every filter given. Returns { entityTypes }, each with its entityTypeId (a versioned URL), title, description, properties (inherited ones included), each with its baseUrl (the key an entity's properties use) and title, and links, each with its linkEntityTypeId, title and the entity types it may point to (destinationEntityTypeIds, absent when any may). A type's title or entityTypeId can filter an entity read. A read that failed returns { error }. Read it after query_hash_webs and query_hash_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters every entity type the user can see is listed, which is very large.";
+  "List the entity types in the HASH graph that the signed-in user can see: the versions named by entityTypeIds, or else each type's latest version. Filters combine: a type must match every filter given. Returns { entityTypes }, each with its entityTypeId (a versioned URL), title, description, properties (inherited ones included), each with its baseUrl (the key an entity's properties use) and title, and links, each with its linkEntityTypeId, title and the entity types it may point to (destinationEntityTypeIds, absent when any may). A type's title can filter an entity read. An empty { entityTypes } means only that nothing visible matched. A read that failed returns { error }. Read it after query_hash_webs and query_hash_entities, for the entityTypeIds the entities found carry. Pass the entityTypeIds of entities you read; webIds rarely help, since most types live in HASH's shared webs. Without filters every entity type the user can see is listed, which is very large.";
 
 const hashEntityTypeSchema = v.object({
   entityTypeId: v.string(),
@@ -209,13 +201,7 @@ export const hashEntityTypeReadForModel = (output: unknown) => {
     throw new Error(
       "HASH's page returned an entity type read in an unknown shape.",
     );
-  const { entityTypes } = parsed.output;
-  return entityTypes.length === 0
-    ? {
-        entityTypes,
-        note: "No entity types matched that the signed-in user can see.",
-      }
-    : { entityTypes };
+  return parsed.output;
 };
 
 /** The entity type read, executed by whatever `execute` reaches HASH through. */
