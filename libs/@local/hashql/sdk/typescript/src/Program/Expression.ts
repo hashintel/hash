@@ -350,9 +350,15 @@ export const fromNode = <T extends Type.Any, Inputs>(
 ): Expression<T, Inputs> => Result.succeed(node).pipe(fromResult<T, Inputs>);
 
 /** A replacement call signature with the source expression's semantic metadata. */
-export type Adapted<T extends Type.Any, I, C> = C &
-  Pick<Handle<T, I>, typeof TypeId | typeof Binding> &
-  Relocatable<Adapted<T, I, C>>;
+export type Adapted<T extends Type.Any, I, C> = C & Adapted.Metadata<T, I, C>;
+
+export declare namespace Adapted {
+  /** The expression an adapted callable remains, relocating to an adapted callable rather than to its source. */
+  export interface Metadata<T extends Type.Any, I, C> extends Expression.Any {
+    readonly [TypeId]: Variance<T, I>;
+    readonly [Relocate]: Relocatable<Adapted<T, I, C>>[typeof Relocate];
+  }
+}
 
 /**
  * Adapts host arguments while preserving expression metadata and rebinding.
@@ -410,6 +416,7 @@ export const adaptCallable: {
         path: JExpr.Path.Path,
       ): Result.Result<Adapted<T, I, C>, ProgramError.Construction> =>
         self[Relocate](path).pipe(Result.map(adaptCallable(adapt))),
+      ...Pipeable.Prototype,
     }),
 );
 

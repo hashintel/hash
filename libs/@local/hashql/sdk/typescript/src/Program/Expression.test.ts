@@ -189,4 +189,23 @@ describe("expression", () => {
       '[["::kernel::special_form::access","record","then"]]',
     );
   });
+
+  test("adapted_callable", () => {
+    expect.hasAssertions();
+    const lookup = Expression.fromJExpr<
+      Type.Function<readonly [Type.PrimitiveString], Type.PrimitiveString>,
+      Inputs.Empty
+    >("lookup");
+    const trimmed = Expression.adaptCallable(
+      lookup,
+      (source) =>
+        (
+          name: string,
+        ): Expression.Expression<Type.PrimitiveString, Inputs.Empty> =>
+          source(name.trim()),
+    );
+    expect(trimmed.pipe((self) => self)).toBe(trimmed);
+    expect(compile(trimmed)).toBe('"lookup"');
+    expect(compile(trimmed(" Ada "))).toBe('["lookup",{"#literal":"Ada"}]');
+  });
 });
