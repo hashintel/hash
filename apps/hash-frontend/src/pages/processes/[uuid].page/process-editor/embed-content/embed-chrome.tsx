@@ -3,7 +3,7 @@ import { use } from "react";
 
 import { Button, Icon, TextInput } from "@hashintel/ds-components";
 
-import { ChartNetworkRegularIcon } from "../../../../shared/icons/chart-network-regular-icon";
+import { ChartNetworkRegularIcon } from "../../../../../shared/icons/chart-network-regular-icon";
 import { EmbedChromeContext } from "./embed-chrome-context";
 import { VersionPicker } from "./version-picker";
 

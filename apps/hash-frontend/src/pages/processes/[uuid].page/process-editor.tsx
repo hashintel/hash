@@ -12,8 +12,8 @@ import {
   type HostNetMode,
   type RevisionSummary,
   type SavedSnapshot,
-} from "../shared/messages";
-import { useHostBridge } from "../shared/use-host-bridge";
+} from "./process-editor/shared/messages";
+import { useHostBridge } from "./process-editor/use-host-bridge";
 import { useProcessSaveAndLoad } from "./process-editor/use-process-save-and-load";
 import { usePetriNetRevisions } from "./process-editor/use-process-save-and-load/use-petri-net-revisions";
 
@@ -35,9 +35,7 @@ const emptySDCPN: SDCPN = {
  */
 const EmbedContent = dynamic(
   () =>
-    import("../[uuid]/embed.page/embed-content").then(
-      (mod) => mod.EmbedContent,
-    ),
+    import("./process-editor/embed-content").then((mod) => mod.EmbedContent),
   { ssr: false },
 );
 

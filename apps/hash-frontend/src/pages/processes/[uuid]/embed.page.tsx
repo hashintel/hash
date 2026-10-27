@@ -8,7 +8,10 @@ import type { NextPageWithLayout } from "../../../shared/layout";
  * and we don't pay the Petrinaut import cost on the parent process page.
  */
 const EmbedContent = dynamic(
-  () => import("./embed.page/embed-content").then((mod) => mod.EmbedContent),
+  () =>
+    import("../[uuid].page/process-editor/embed-content").then(
+      (mod) => mod.EmbedContent,
+    ),
   { ssr: false },
 );
 

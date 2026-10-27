@@ -27,14 +27,17 @@ import {
   setIframeErrorReporterMode,
 } from "../../shared/iframe-error-reporter";
 import {
+  type EmbedChrome,
+  EmbedChromeContext,
+} from "./embed-content/embed-chrome-context";
+import { EmbedPetrinaut } from "./embed-content/embed-petrinaut";
+import { useIframeBridge } from "./embed-content/use-iframe-bridge";
+import {
   type HostNetMode,
   nextRequestId,
   type RevisionSummary,
   type SavedSnapshot,
-} from "../../shared/messages";
-import { useIframeBridge } from "../../shared/use-iframe-bridge";
-import { type EmbedChrome, EmbedChromeContext } from "./embed-chrome-context";
-import { EmbedPetrinaut } from "./embed-petrinaut";
+} from "./shared/messages";
 
 /**
  * Errors Petrinaut catches itself, such as a failing plugin's, never reach the

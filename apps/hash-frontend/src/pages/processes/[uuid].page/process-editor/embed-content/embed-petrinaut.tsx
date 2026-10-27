@@ -12,7 +12,7 @@ import {
 } from "@hashintel/petrinaut";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
-import { useAuthInfo } from "../../../shared/auth-info-context";
+import { useAuthInfo } from "../../../../shared/auth-info-context";
 import { embedChromePlugin } from "./embed-chrome-plugin";
 
 import type { EntityId, UserId } from "@blockprotocol/type-system";
