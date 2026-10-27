@@ -101,7 +101,11 @@ export type MinimalFlowRun = Pick<
   | "executedAt"
   | "status"
   | "flowInputs"
-> & { persistedEntities: PersistedEntityMetadata[]; webPage: WebPage };
+> & {
+  persistedEntities: PersistedEntityMetadata[];
+  /** The page a flow triggered by the browser was run on. A flow that only requested pages doesn't have one. */
+  webPage?: WebPage;
+};
 
 /**
  * One of the flow runs we expose in the History tab, which are one of:

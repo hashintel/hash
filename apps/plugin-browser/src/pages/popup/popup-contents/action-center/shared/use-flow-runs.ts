@@ -54,8 +54,9 @@ const mapFlowRunToMinimalFlowRun = ({
   const webPage = flowRun.flowInputs[
     "visitedWebPage" satisfies AutomaticInferenceInputName &
       ManualInferenceInputName
-  ]
-    ?.value as PayloadKindValues[AutomaticInferenceInputs["visitedWebPage"]["kind"]];
+  ]?.value as
+    | PayloadKindValues[AutomaticInferenceInputs["visitedWebPage"]["kind"]]
+    | undefined;
 
   return {
     persistedEntities,

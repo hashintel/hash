@@ -80,6 +80,8 @@ export const HistoryRow = ({
     return null;
   }
 
+  const url = flowRun.requestedPageUrl ?? flowRun.webPage?.url;
+
   const openFlowButton = (
     <Link
       href={`${FRONTEND_ORIGIN}${generateWorkerRunPath({
@@ -140,15 +142,10 @@ export const HistoryRow = ({
         )}
         {type === "manual" ? (
           <CellWithHoverButton button={openFlowButton}>
-            <UrlChip type={type} url={flowRun.webPage.url} />
+            {url && <UrlChip type={type} url={url} />}
           </CellWithHoverButton>
         ) : (
-          <TableCell>
-            <UrlChip
-              type={type}
-              url={flowRun.requestedPageUrl ?? flowRun.webPage.url}
-            />
-          </TableCell>
+          <TableCell>{url && <UrlChip type={type} url={url} />}</TableCell>
         )}
         {(type === "automatic" || type === "external-page-request") && (
           <CellWithHoverButton button={openFlowButton}>

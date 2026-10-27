@@ -38,6 +38,12 @@ export const queryFlowRunProgress = async (
 
   while (page.hasNextPage) {
     page = (await queryPage(page.endCursor ?? null)).events;
+
+    /* The run was reset past what's been read, so read it again from the start, along with its status and outputs. */
+    if (page.restarted) {
+      return queryFlowRunProgress(apolloClient, flowRunEntityId);
+    }
+
     events.push(...page.events);
   }
 

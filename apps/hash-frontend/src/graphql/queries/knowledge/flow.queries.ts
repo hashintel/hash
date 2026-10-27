@@ -31,6 +31,7 @@ export const getFlowRunProgressQuery = gql`
         events
         endCursor
         hasNextPage
+        restarted
       }
     }
   }
