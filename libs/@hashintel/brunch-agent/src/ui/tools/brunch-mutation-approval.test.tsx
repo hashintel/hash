@@ -306,7 +306,9 @@ describe("Brunch save approval card", () => {
       screen.getByText("Save \u2018Replenishment\u2019 as a new version?"),
     ).not.toBeNull();
     expect(
-      screen.getByText(/this includes your own unsaved edits/iu),
+      screen.getByText(
+        /every unsaved edit in the editor, yours and the assistant/iu,
+      ),
     ).not.toBeNull();
     expect(
       screen.getByText(
