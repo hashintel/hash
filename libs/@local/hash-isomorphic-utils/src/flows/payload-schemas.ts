@@ -12,6 +12,7 @@ import {
 } from "./types.js";
 
 import type { PayloadKind, PayloadKindValues } from "./types.js";
+import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 
 /**
  * Types a schema as checking `T` where zod can't infer it: a branded string, which a refinement checks, or a value
@@ -19,15 +20,15 @@ import type { PayloadKind, PayloadKindValues } from "./types.js";
  */
 const typed = <T>(schema: z.ZodType): z.ZodType<T> => schema as z.ZodType<T>;
 
-const entityIdSchema = z
-  .string()
-  .refine(isEntityId, { message: "Expected an entity id" });
+const entityIdSchema = typed<EntityId>(
+  z.string().refine(isEntityId, { message: "Expected an entity id" }),
+);
 
-const versionedUrlSchema = z
-  .string()
-  .refine((value) => validateVersionedUrl(value).type === "Ok", {
+const versionedUrlSchema = typed<VersionedUrl>(
+  z.string().refine((value) => validateVersionedUrl(value).type === "Ok", {
     message: "Expected a versioned URL",
-  });
+  }),
+);
 
 /** A JSON object whose contents aren't checked here. */
 const objectSchema = z.record(z.string(), z.unknown());
@@ -39,11 +40,11 @@ const entityOperationSchema = z.enum([
 ]);
 
 const localOrExistingEntityIdSchema = z.discriminatedUnion("kind", [
-  z.strictObject({
+  z.object({
     kind: z.literal("proposed-entity"),
     localId: entityIdSchema,
   }),
-  z.strictObject({
+  z.object({
     kind: z.literal("existing-entity"),
     entityId: entityIdSchema,
   }),
@@ -79,13 +80,13 @@ const payloadKindSchema = z.enum(allPayloadKinds);
  * `validateAggregation` check them where that kind is known.
  */
 const valueSubjectSchemas = [
-  z.strictObject({ kind: z.literal("input"), payloadKind: payloadKindSchema }),
-  z.strictObject({
+  z.object({ kind: z.literal("input"), payloadKind: payloadKindSchema }),
+  z.object({
     kind: z.literal("field"),
     path: z.array(z.string()),
     payloadKind: payloadKindSchema,
   }),
-  z.strictObject({
+  z.object({
     kind: z.literal("entityProperty"),
     propertyTypeBaseUrl: z.string(),
     payloadKind: payloadKindSchema,
@@ -96,23 +97,23 @@ const valueSubjectSchema = z.discriminatedUnion("kind", valueSubjectSchemas);
 
 const conditionSubjectSchema = z.discriminatedUnion("kind", [
   ...valueSubjectSchemas,
-  z.strictObject({ kind: z.literal("entityType") }),
+  z.object({ kind: z.literal("entityType") }),
 ]);
 
 const conditionGroupOf = (conditionNode: z.ZodType) =>
-  z.strictObject({
+  z.object({
     kind: z.enum(["all", "any"]),
     conditions: z.array(conditionNode).min(1),
   });
 
 const conditionNodeSchema: z.ZodType = z.lazy(() =>
   z.discriminatedUnion("kind", [
-    z.strictObject({
+    z.object({
       kind: z.literal("condition"),
       subject: conditionSubjectSchema,
       operator: z.string(),
       value: z
-        .strictObject({
+        .object({
           kind: z.union([payloadKindSchema, z.literal("BaseUrl")]),
           value: z.unknown(),
         })
@@ -120,7 +121,7 @@ const conditionNodeSchema: z.ZodType = z.lazy(() =>
       includeSubtypes: z.boolean().optional(),
     }),
     conditionGroupOf(conditionNodeSchema),
-    z.strictObject({ kind: z.literal("not"), condition: conditionNodeSchema }),
+    z.object({ kind: z.literal("not"), condition: conditionNodeSchema }),
   ]),
 );
 
@@ -128,9 +129,11 @@ const conditionNodeSchema: z.ZodType = z.lazy(() =>
  * The schema of each payload kind's values. Adding a kind to `PayloadKindValues` without a schema here fails to
  * compile.
  *
- * Kinds defined by flows are checked in full, except where noted. Kinds that hold the graph's own structures (entity
- * queries, properties and their metadata, and proposed entities) are checked only down to those structures: the graph
- * checks them in full when an action uses them.
+ * Kinds defined by flows are checked in full, except for what a condition, sort key or aggregation may refer to. Kinds
+ * that hold the graph's own structures (entity queries, properties and their metadata, and proposed entities) are
+ * checked only down to those structures: the graph checks them in full when an action uses them.
+ *
+ * An object may have fields its kind doesn't define, as TypeScript allows, e.g. a web search result's position.
  *
  * A stored kind's schema checks the value itself, not a stored reference to it (see `validatePayloadValue`).
  */
@@ -138,8 +141,8 @@ export const payloadKindSchemas = {
   ActorType: z.enum(["user", "machine"]),
   Aggregation: typed<PayloadKindValues["Aggregation"]>(
     z.discriminatedUnion("operation", [
-      z.strictObject({ operation: z.literal("count") }),
-      z.strictObject({
+      z.object({ operation: z.literal("count") }),
+      z.object({
         operation: z.enum(["sum", "average", "min", "max"]),
         subject: valueSubjectSchema,
       }),
@@ -155,13 +158,13 @@ export const payloadKindSchemas = {
       message:
         'Expected an ISO 8601 date and time with Z or an offset, e.g. "2026-10-16T14:00:00Z"',
     }),
-  Duration: z.strictObject({
+  Duration: z.object({
     amount: z.number(),
     unit: z.enum(["seconds", "minutes", "hours", "days", "weeks"]),
   }),
-  EntityId: typed<PayloadKindValues["EntityId"]>(entityIdSchema),
+  EntityId: entityIdSchema,
   EntityQuery: typed<PayloadKindValues["EntityQuery"]>(
-    z.strictObject({
+    z.object({
       filter: objectSchema,
       includeDrafts: z.boolean().optional(),
       limit: z.int().nonnegative().optional(),
@@ -180,25 +183,23 @@ export const payloadKindSchemas = {
   FilterCondition: typed<PayloadKindValues["FilterCondition"]>(
     conditionGroupOf(conditionNodeSchema),
   ),
-  FormattedText: z.strictObject({
+  FormattedText: z.object({
     content: z.string(),
     format: z.enum(textFormats),
   }),
   GoogleAccountId: z.string(),
   GoogleSheet: z.union(
     [
-      z.strictObject({ spreadsheetId: z.string() }),
-      z.strictObject({ newSheetName: z.string() }),
+      z.object({ spreadsheetId: z.string() }),
+      z.object({ newSheetName: z.string() }),
     ],
     { error: "Expected either a spreadsheetId or a newSheetName" },
   ),
   Number: z.number(),
-  PersistedEntityMetadata: typed<PayloadKindValues["PersistedEntityMetadata"]>(
-    z.strictObject({
-      entityId: entityIdSchema,
-      operation: entityOperationSchema,
-    }),
-  ),
+  PersistedEntityMetadata: z.object({
+    entityId: entityIdSchema,
+    operation: entityOperationSchema,
+  }),
   PropertyObjectWithMetadata: typed<
     PayloadKindValues["PropertyObjectWithMetadata"]
   >(
@@ -227,15 +228,15 @@ export const payloadKindSchemas = {
     PayloadKindValues["ProposedEntityWithResolvedLinks"]
   >(proposedEntityWithResolvedLinksSchema),
   SortKey: typed<PayloadKindValues["SortKey"]>(
-    z.strictObject({
+    z.object({
       subject: valueSubjectSchema,
       direction: z.enum(["ascending", "descending"]),
     }),
   ),
   Text: z.string(),
-  VersionedUrl: typed<PayloadKindValues["VersionedUrl"]>(versionedUrlSchema),
+  VersionedUrl: versionedUrlSchema,
   WebPage: typed<PayloadKindValues["WebPage"]>(
-    z.strictObject({
+    z.object({
       url: z.string(),
       title: z.string(),
       htmlContent: z.string(),
@@ -243,7 +244,7 @@ export const payloadKindSchemas = {
     }),
   ),
   WebSearchResult: typed<PayloadKindValues["WebSearchResult"]>(
-    z.strictObject({ url: z.string(), title: z.string() }),
+    z.object({ url: z.string(), title: z.string() }),
   ),
 } satisfies {
   [Kind in PayloadKind]: z.ZodType<PayloadKindValues[Kind]>;

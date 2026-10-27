@@ -125,7 +125,7 @@ describe("payloadKindSchemas", () => {
 
   it.each<[PayloadKind, unknown, string]>([
     ["ActorType", "robot", ""],
-    ["Aggregation", { operation: "count", subject: validValues.SortKey }, ""],
+    ["Aggregation", { operation: "median" }, "operation"],
     ["Boolean", "true", ""],
     ["Date", "2026-02-30", ""],
     ["DateTime", "2026-10-16T14:00:00", ""],
@@ -163,14 +163,9 @@ describe("payloadKindSchemas", () => {
     ["FilterCondition", validValues.FilterCondition.conditions[0], "kind"],
     ["FormattedText", { content: "a", format: "PDF" }, "format"],
     ["GoogleAccountId", 1, ""],
-    ["GoogleSheet", { spreadsheetId: "a", newSheetName: "b" }, ""],
+    ["GoogleSheet", { spreadsheetName: "a" }, ""],
     ["Number", Number.NaN, ""],
     ["PersistedEntityMetadata", { entityId, operation: "delete" }, "operation"],
-    [
-      "PersistedEntityMetadata",
-      { entityId, operation: "create", extra: true },
-      "",
-    ],
     [
       "PropertyObjectWithMetadata",
       { value: { [nameProperty]: "Alice" } },
@@ -216,6 +211,17 @@ describe("payloadKindSchemas", () => {
       }),
     ).toEqual({ path, message: expect.any(String) as string });
   });
+
+  it("accepts fields a kind doesn't define, as the web search API's position", () => {
+    expect(
+      validatePayloadValue({
+        kind: "WebSearchResult",
+        array: true,
+        value: [{ ...validValues.WebSearchResult, position: 1 }],
+        allowStoredRefs: false,
+      }),
+    ).toBe(undefined);
+  });
 });
 
 describe("payload problem messages", () => {
@@ -223,7 +229,7 @@ describe("payload problem messages", () => {
     ["Text", 3, "Invalid input: expected string, received number"],
     [
       "GoogleSheet",
-      { spreadsheetId: "a", newSheetName: "b" },
+      { spreadsheetName: "a" },
       "Expected either a spreadsheetId or a newSheetName",
     ],
     [
