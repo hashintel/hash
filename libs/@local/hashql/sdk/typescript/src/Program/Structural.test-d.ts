@@ -38,7 +38,7 @@ const dictionary = Structural.constructor(
 const withStringKey = <const D extends Structural.Definition>(
   definition: D,
 ): TypeExpression.TypeExpression<
-  Type.Dict<Type.PrimitiveString, Structural.TypeOf<D>>
+  Type.Dict<Type.PrimitiveString, Structural.Definition.Type<D>>
 > => dictionary(String, definition);
 
 type Row = Type.Struct<{ readonly count: Type.PrimitiveInteger }>;
@@ -70,8 +70,10 @@ const hostChoice = (
 
 const emptyList = <const D extends Structural.Definition>(
   definition: D,
-): Expression.Expression<Type.List<Structural.TypeOf<D>>, Inputs.Empty> =>
-  Structural.list(definition, []);
+): Expression.Expression<
+  Type.List<Structural.Definition.Type<D>>,
+  Inputs.Empty
+> => Structural.list(definition, []);
 
 const shorthandInput = <
   const Name extends string,
@@ -80,8 +82,8 @@ const shorthandInput = <
   name: Name,
   definition: D,
 ): Expression.Expression<
-  Structural.TypeOf<D>,
-  Readonly<Record<Name, Structural.TypeOf<D>>>
+  Structural.Definition.Type<D>,
+  Readonly<Record<Name, Structural.Definition.Type<D>>>
 > => {
   const expression = Structural.input(name, definition);
   return expression;
@@ -90,6 +92,23 @@ const shorthandInput = <
 const possiblyAbsent = <V>(value: V): V | undefined => value;
 
 describe("structural_constructor_types", () => {
+  test("namespace_views", () => {
+    expectTypeOf<
+      Structural.Definition.Type<StringConstructor | BigIntConstructor>
+    >().toEqualTypeOf<Type.PrimitiveString | Type.PrimitiveInteger>();
+    expectTypeOf<
+      Structural.Value.Type<readonly [string, bigint]>
+    >().toEqualTypeOf<
+      Type.Tuple<readonly [Type.PrimitiveString, Type.PrimitiveInteger]>
+    >();
+    expectTypeOf<
+      Structural.Value.Exact<Type.PrimitiveString, string>
+    >().toEqualTypeOf<string>();
+    expectTypeOf<
+      Structural.Value.Exact<Type.PrimitiveString, bigint>
+    >().toBeNever();
+  });
+
   test("argument_positions", () => {
     expectTypeOf(dictionary(String, { count: BigInt })).toEqualTypeOf<
       TypeExpression.TypeExpression<
@@ -173,7 +192,7 @@ describe("structural_constructor_types", () => {
   });
 
   test("argument_rejections", () => {
-    expectTypeOf<Structural.TypeOf<"key">>().toBeNever();
+    expectTypeOf<Structural.Definition.Type<"key">>().toBeNever();
     // @ts-expect-error Dict requires both a key type and a value type.
     dictionary(String);
     // @ts-expect-error Dict accepts exactly two arguments.
@@ -188,7 +207,7 @@ describe("structural_value_types", () => {
     const count = Structural.input("count", BigInt);
     const enabled = Structural.input("enabled", Boolean, true);
     const row = Structural.struct({ count, enabled, pair: ["x", 1n] });
-    expectTypeOf<Expression.TypeOf<typeof row>>().toEqualTypeOf<
+    expectTypeOf<Expression.Value.Type<typeof row>>().toEqualTypeOf<
       Type.Struct<{
         readonly count: Type.PrimitiveInteger;
         readonly enabled: Type.PrimitiveBoolean;
@@ -197,22 +216,22 @@ describe("structural_value_types", () => {
         >;
       }>
     >();
-    expectTypeOf<Expression.Inputs<typeof row>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof row>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
       readonly enabled?: Type.PrimitiveBoolean;
     }>();
     expectTypeOf<
-      Expression.TypeOf<(typeof row.pair)[0]>
+      Expression.Value.Type<(typeof row.pair)[0]>
     >().toEqualTypeOf<Type.PrimitiveString>();
   });
 
   test("tuple_positions", () => {
     const pair = Structural.tuple([1n, "x"]);
-    expectTypeOf<Expression.TypeOf<typeof pair>>().toEqualTypeOf<
+    expectTypeOf<Expression.Value.Type<typeof pair>>().toEqualTypeOf<
       Type.Tuple<readonly [Type.PrimitiveInteger, Type.PrimitiveString]>
     >();
     const empty = Structural.tuple([]);
-    expectTypeOf<Expression.TypeOf<typeof empty>>().toEqualTypeOf<
+    expectTypeOf<Expression.Value.Type<typeof empty>>().toEqualTypeOf<
       Type.Tuple<readonly []>
     >();
     const variable: readonly bigint[] = [1n];
@@ -226,10 +245,10 @@ describe("structural_value_types", () => {
   test("list_elements", () => {
     const count = Structural.input("count", BigInt);
     const rows = Structural.list({ count: BigInt }, [{ count }, { count: 0n }]);
-    expectTypeOf<Expression.TypeOf<typeof rows>>().toEqualTypeOf<
+    expectTypeOf<Expression.Value.Type<typeof rows>>().toEqualTypeOf<
       Type.List<Row>
     >();
-    expectTypeOf<Expression.Inputs<typeof rows>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof rows>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
     }>();
     const empty = Structural.list(BigInt, []);
@@ -246,10 +265,10 @@ describe("structural_value_types", () => {
     const key = Structural.input("key", String);
     const count = Structural.input("count", BigInt);
     const byName = Structural.dict(String, BigInt, [[key, count]]);
-    expectTypeOf<Expression.TypeOf<typeof byName>>().toEqualTypeOf<
+    expectTypeOf<Expression.Value.Type<typeof byName>>().toEqualTypeOf<
       Type.Dict<Type.PrimitiveString, Type.PrimitiveInteger>
     >();
-    expectTypeOf<Expression.Inputs<typeof byName>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof byName>>().toEqualTypeOf<{
       readonly key: Type.PrimitiveString;
       readonly count: Type.PrimitiveInteger;
     }>();
@@ -258,10 +277,10 @@ describe("structural_value_types", () => {
       { count: BigInt },
       { item: { count } },
     );
-    expectTypeOf<Expression.TypeOf<typeof record>>().toEqualTypeOf<
+    expectTypeOf<Expression.Value.Type<typeof record>>().toEqualTypeOf<
       Type.Dict<Type.PrimitiveString, Row>
     >();
-    expectTypeOf<Expression.Inputs<typeof record>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof record>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
     }>();
     const empty = Structural.dict(BigInt, String, []);
@@ -289,10 +308,10 @@ describe("structural_value_types", () => {
     const id = Expression.input("id", item);
     const ids = Structural.list(item, [id]);
     const names = Structural.dict(item, String, [[id, "x"]]);
-    expectTypeOf<Expression.TypeOf<typeof ids>>().toEqualTypeOf<
+    expectTypeOf<Expression.Value.Type<typeof ids>>().toEqualTypeOf<
       Type.List<Type.Opaque<"Item", Type.PrimitiveInteger>>
     >();
-    expectTypeOf<Expression.TypeOf<typeof names>>().toEqualTypeOf<
+    expectTypeOf<Expression.Value.Type<typeof names>>().toEqualTypeOf<
       Type.Dict<
         Type.Opaque<"Item", Type.PrimitiveInteger>,
         Type.PrimitiveString
@@ -313,7 +332,7 @@ describe("structural_value_types", () => {
       ),
     );
     const nested = Structural.list(integers, [Structural.list(BigInt, [1n])]);
-    expectTypeOf<Expression.TypeOf<typeof nested>>().toEqualTypeOf<
+    expectTypeOf<Expression.Value.Type<typeof nested>>().toEqualTypeOf<
       Type.List<Type.List<Type.PrimitiveInteger>>
     >();
     // @ts-expect-error A nested host array is a tuple, not a list.
@@ -323,10 +342,10 @@ describe("structural_value_types", () => {
   test("generic_definition", () => {
     const strings = emptyList(String);
     const count = shorthandInput("count", BigInt);
-    expectTypeOf<Expression.TypeOf<typeof strings>>().toEqualTypeOf<
+    expectTypeOf<Expression.Value.Type<typeof strings>>().toEqualTypeOf<
       Type.List<Type.PrimitiveString>
     >();
-    expectTypeOf<Expression.Inputs<typeof count>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof count>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
     }>();
   });
@@ -336,13 +355,13 @@ describe("structural_input_types", () => {
   test("default_requirements", () => {
     const count = Structural.input("count", BigInt);
     const row = Structural.input("row", { count: BigInt }, { count });
-    expectTypeOf<Expression.TypeOf<typeof row>>().toEqualTypeOf<Row>();
-    expectTypeOf<Expression.Inputs<typeof row>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Type<typeof row>>().toEqualTypeOf<Row>();
+    expectTypeOf<Expression.Value.Inputs<typeof row>>().toEqualTypeOf<{
       readonly row?: Row;
       readonly count: Type.PrimitiveInteger;
     }>();
     const required = Structural.input("row", { count: BigInt });
-    expectTypeOf<Expression.Inputs<typeof required>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof required>>().toEqualTypeOf<{
       readonly row: Row;
     }>();
     // @ts-expect-error The default cannot widen the declared field descriptor.
@@ -354,13 +373,13 @@ describe("structural_input_types", () => {
   test("uncertain_default", () => {
     const fallback = Structural.input("fallback", BigInt);
     const count = Structural.input("count", BigInt, possiblyAbsent(fallback));
-    expectTypeOf<Expression.Inputs<typeof count>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof count>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
       readonly fallback: Type.PrimitiveInteger;
     }>();
     // oxlint-disable-next-line unicorn/no-useless-undefined -- explicitly absent defaults still require the input
     const absent = Structural.input("count", BigInt, undefined);
-    expectTypeOf<Expression.Inputs<typeof absent>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof absent>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
     }>();
     // @ts-expect-error Undefined does not make an incompatible defined alternative acceptable.

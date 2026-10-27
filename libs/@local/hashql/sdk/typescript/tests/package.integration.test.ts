@@ -14,6 +14,25 @@ const integerType = TypeExpression.fromType<Type.PrimitiveInteger>(
 );
 
 // Import the package export rather than src so these checks exercise the emitted API.
+describe("emitted_namespaces", () => {
+  test("encoded_view", () => {
+    expect.hasAssertions();
+    const integer = 42n;
+    const encoded: JExpr.Expression.Encoded = Result.getOrThrow(
+      SchemaParser.encodeResult(JExpr.Schema)(JExpr.integer(integer)),
+    );
+    expectTypeOf<JExpr.Expression.Encoded>().toEqualTypeOf<
+      (typeof JExpr.Schema)["Encoded"]
+    >();
+    expectTypeOf<JExpr.Type.Type.Encoded>().toEqualTypeOf<
+      (typeof JExpr.Type.Schema)["Encoded"]
+    >();
+    expect(encoded).toStrictEqual({
+      "#literal": { _tag: "Integer", value: "42" },
+    });
+  });
+});
+
 describe("emitted_package", () => {
   test("conditional", () => {
     expect.hasAssertions();
@@ -32,7 +51,7 @@ describe("emitted_package", () => {
     >;
     expectTypeOf(selected).toEqualTypeOf<Expected>();
     expectTypeOf(selected).toEqualTypeOf<
-      Program.Expression.Expression.Shape<
+      Program.Expression.Expression.Base<
         Type.PrimitiveInteger,
         {
           readonly enabled: Type.PrimitiveBoolean;
@@ -59,7 +78,7 @@ describe("emitted_package", () => {
     >("increment");
     const incremented = increment(count);
     expectTypeOf<
-      Program.Expression.Inputs<typeof incremented>
+      Program.Expression.Value.Inputs<typeof incremented>
     >().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
     }>();
@@ -80,13 +99,17 @@ describe("emitted_package", () => {
     const projected = receiver.$projectUnsafe("name");
     const indexed = receiver.$indexUnsafe(count);
     expectTypeOf<
-      Program.Expression.TypeOf<typeof indexed>
+      Program.Expression.Value.Type<typeof indexed>
     >().toEqualTypeOf<Type.Unknown>();
-    expectTypeOf<Program.Expression.Inputs<typeof indexed>>().toEqualTypeOf<{
+    expectTypeOf<
+      Program.Expression.Value.Inputs<typeof indexed>
+    >().toEqualTypeOf<{
       readonly payload: Type.Unknown;
       readonly count: Type.PrimitiveInteger;
     }>();
-    expectTypeOf<Program.Expression.Inputs<typeof projected>>().toEqualTypeOf<{
+    expectTypeOf<
+      Program.Expression.Value.Inputs<typeof projected>
+    >().toEqualTypeOf<{
       readonly payload: Type.Unknown;
     }>();
     expect(
@@ -137,7 +160,7 @@ describe("emitted_structural_operators", () => {
     const zero = 0n;
     const selected = Program.Operators.eq(count, zero).and(enabled);
     expectTypeOf<
-      Program.Structural.Requirements<{
+      Program.Structural.Value.Requirements<{
         readonly count: typeof count;
         readonly selected: typeof selected;
       }>
@@ -147,11 +170,13 @@ describe("emitted_structural_operators", () => {
     }>();
     const root = Program.Structural.value<Row>()({ count, selected });
     const query = Program.program(root);
-    expectTypeOf<Program.Inputs<typeof query>>().toEqualTypeOf<{
+    expectTypeOf<Program.Program.Inputs<typeof query>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
       readonly enabled?: Type.PrimitiveBoolean;
     }>();
-    expectTypeOf<Program.Expression.TypeOf<typeof root>>().toEqualTypeOf<Row>();
+    expectTypeOf<
+      Program.Expression.Value.Type<typeof root>
+    >().toEqualTypeOf<Row>();
     const structural: Program.Structural.Value.Any = { count, selected };
     expect(Program.Structural.toJExpr(structural)).toStrictEqual(
       Expression.toJExpr(root),
@@ -170,7 +195,9 @@ describe("emitted_structural_operators", () => {
       "field",
     ]);
     const indexed = selected.$indexUnsafe(count);
-    expectTypeOf<Program.Expression.Inputs<typeof indexed>>().toEqualTypeOf<{
+    expectTypeOf<
+      Program.Expression.Value.Inputs<typeof indexed>
+    >().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
       readonly enabled?: Type.PrimitiveBoolean;
     }>();
@@ -192,10 +219,10 @@ describe("emitted_structural_constructors", () => {
     const pair = Program.Structural.tuple(["x", count]);
     const root = Program.Structural.struct({ numbers, named, pair });
     const query = Program.program(root);
-    expectTypeOf<Program.Inputs<typeof query>>().toEqualTypeOf<{
+    expectTypeOf<Program.Program.Inputs<typeof query>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
     }>();
-    expectTypeOf<Program.Expression.TypeOf<typeof root>>().toEqualTypeOf<
+    expectTypeOf<Program.Expression.Value.Type<typeof root>>().toEqualTypeOf<
       Type.Struct<{
         readonly numbers: Type.List<Type.PrimitiveInteger>;
         readonly named: Type.Dict<Type.PrimitiveString, Type.PrimitiveInteger>;
@@ -220,7 +247,7 @@ describe("emitted_structural_constructors", () => {
     expect.hasAssertions();
     const count = Program.Structural.input("count", BigInt);
     const row = Program.Structural.input("row", { count: BigInt }, { count });
-    expectTypeOf<Program.Expression.Inputs<typeof row>>().toEqualTypeOf<{
+    expectTypeOf<Program.Expression.Value.Inputs<typeof row>>().toEqualTypeOf<{
       readonly row?: Type.Struct<{ readonly count: Type.PrimitiveInteger }>;
       readonly count: Type.PrimitiveInteger;
     }>();
@@ -245,7 +272,9 @@ describe("emitted_program", () => {
     expectTypeOf(query).toEqualTypeOf<
       Program.Program<Type.PrimitiveInteger, Requirements>
     >();
-    expectTypeOf<Program.Inputs<typeof query>>().toEqualTypeOf<Requirements>();
+    expectTypeOf<
+      Program.Program.Inputs<typeof query>
+    >().toEqualTypeOf<Requirements>();
     expect(query.root).toBe(root);
     expect(Object.isFrozen(query)).toBe(true);
     expectTypeOf(Program.compile(query)).toEqualTypeOf<

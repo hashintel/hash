@@ -55,7 +55,28 @@ const children = (type: Type.All): readonly Type.All[] => {
   }
 };
 
+/** Keeps argument positions distinct when applying a type lambda. */
+interface Pair extends Type.TypeLambda {
+  readonly type: this["Target"] extends readonly [
+    infer L extends Type.Any,
+    infer R extends Type.Any,
+  ]
+    ? Type.Tuple<readonly [L, R]>
+    : Type.Never;
+}
+
 describe("composite_types", () => {
+  test("lambda_application", () => {
+    expectTypeOf<
+      Type.TypeLambda.Apply<
+        Pair,
+        readonly [Type.PrimitiveString, Type.PrimitiveInteger]
+      >
+    >().toEqualTypeOf<
+      Type.Tuple<readonly [Type.PrimitiveString, Type.PrimitiveInteger]>
+    >();
+  });
+
   test("generic_arguments", () => {
     expectTypeOf<User["fields"]["id"]["name"]>().toEqualTypeOf<"UserId">();
     expectTypeOf<

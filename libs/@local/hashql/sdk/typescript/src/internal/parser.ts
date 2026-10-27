@@ -26,6 +26,7 @@
  *
  * @internal
  */
+// oxlint-disable max-lines -- each builder defines its parser and its generator together, so the combinators stay one vocabulary
 import {
   Arbitrary,
   Array,
@@ -53,28 +54,10 @@ import { repeatSource, sourceText } from "./schema-arbitrary.js";
 import type { CharacterClass } from "./character-class.js";
 import type { Reason } from "./parser-error.js";
 
-/** The remaining input and value accumulated by a successful parse. */
-export interface State<T> {
-  readonly input: string;
-  readonly output: T;
-}
-
-/** A complete input accepted by a parser, paired with its decoded output. */
-export interface Sample<T> {
-  readonly source: string;
-  readonly output: T;
-}
-
-/** A prefix parse whose failure retains the reason type `R`. */
-export type Return<T, R extends Reason> = Result.Result<
-  State<T>,
-  ParserError<R>
->;
-
 /** A reusable parser and its candidate-source schema. */
 interface Definition<T, R extends Reason> {
   /** Runs immediately. Expected failures return as a failed {@link Result.Result | Result}. */
-  readonly parse: (input: string) => Return<T, R>;
+  readonly parse: (input: string) => Parser.Return<T, R>;
   /** Retains recursive structure for Effect's size-controlled source generation. */
   readonly schema: () => Schema.Codec<string>;
 }
@@ -88,13 +71,33 @@ export interface Parser<T, R extends Reason> extends Definition<T, R> {
   /** Proposes source text for the complete-consumption check in {@link Parser.arbitrary}. */
   readonly source: () => Arbitrary.Arbitrary<string>;
   /** Derives a generator whose sampling can fail with {@link Arbitrary.SampleError} after too many discarded candidates. */
-  readonly arbitrary: () => Arbitrary.Arbitrary<Sample<T>>;
+  readonly arbitrary: () => Arbitrary.Arbitrary<Parser.Sample<T>>;
 }
 
-/** A builder that appends one output and adds its reasons to the preceding parser. */
-export type Append<U, S extends Reason> = <T, R extends Reason>(
-  self: Parser<T, R>,
-) => Parser<readonly [T, U], R | S>;
+export declare namespace Parser {
+  /** The remaining input and value accumulated by a successful parse. */
+  export interface State<T> {
+    readonly input: string;
+    readonly output: T;
+  }
+
+  /** A complete input accepted by a parser, paired with its decoded output. */
+  export interface Sample<T> {
+    readonly source: string;
+    readonly output: T;
+  }
+
+  /** A prefix parse whose failure retains the reason type `R`. */
+  export type Return<T, R extends Reason> = Result.Result<
+    State<T>,
+    ParserError<R>
+  >;
+
+  /** A builder that appends one output and adds its reasons to the preceding parser. */
+  export type Append<U, S extends Reason> = <T, R extends Reason>(
+    self: Parser<T, R>,
+  ) => Parser<readonly [T, U], R | S>;
+}
 
 /** Attaches sampling once, without reparsing at each generator node. */
 export const from = <T, R extends Reason>({
@@ -144,7 +147,7 @@ export function make<T>(output?: T): Parser<T | undefined, never> {
 
 /** Appends a child parser's output. It translates the child's error offsets into the parent's input. */
 export const and =
-  <U, S extends Reason>(suffix: Parser<U, S>): Append<U, S> =>
+  <U, S extends Reason>(suffix: Parser<U, S>): Parser.Append<U, S> =>
   <T, R extends Reason>(prefix: Parser<T, R>): Parser<readonly [T, U], R | S> =>
     from<readonly [T, U], R | S>({
       parse: (input) =>
@@ -263,16 +266,18 @@ const slice = ({
 const character = slice({ minLength: 1, maxLength: 1 });
 
 /** Appends one Unicode scalar value, including an astral value, or fails at the offending unit. */
-export const nextChar: Append<string, ScalarReason> = and(character);
+export const nextChar: Parser.Append<string, ScalarReason> = and(character);
 
 /**
  * Appends exactly `length` Unicode scalar values.
  *
- * Zero appends an empty string without examining the input. Short input and isolated surrogates produce a failed {@link Return}.
+ * Zero appends an empty string without examining the input. Short input and isolated surrogates produce a failed {@link Parser.Return}.
  *
  * @throws {RangeError} If `length` is not an integer in [0, 2³² − 1].
  */
-export const nextSlice = (length: number): Append<string, ScalarReason> =>
+export const nextSlice = (
+  length: number,
+): Parser.Append<string, ScalarReason> =>
   and(slice({ minLength: length, maxLength: length }));
 
 /**
@@ -284,12 +289,12 @@ export const nextSlice = (length: number): Append<string, ScalarReason> =>
  */
 export const nextSliceBetween = (
   bounds: SliceBounds,
-): Append<string, ScalarReason> => and(slice(bounds));
+): Parser.Append<string, ScalarReason> => and(slice(bounds));
 
 /** Appends one member of a character class or fails without consuming input. */
 export const charIn = (
   characters: CharacterClass,
-): Append<string, ExpectedCharacterClass> => {
+): Parser.Append<string, ExpectedCharacterClass> => {
   const failure = ParserError.at(
     0,
     ExpectedCharacterClass({
@@ -323,7 +328,9 @@ export const charIn = (
  *
  * Zero matches succeed with an empty string. The first nonmember stays in the input, including an isolated surrogate. Parsing has no length limit. Effect's sample size controls generated lengths without limiting accepted inputs.
  */
-export const takeWhile = (characters: CharacterClass): Append<string, never> =>
+export const takeWhile = (
+  characters: CharacterClass,
+): Parser.Append<string, never> =>
   and(
     from<string, never>({
       parse: (input) => {
@@ -353,7 +360,7 @@ export const takeWhile = (characters: CharacterClass): Append<string, never> =>
  */
 export const literal = <const L extends string>(
   text: L,
-): Append<L, ExpectedLiteral> =>
+): Parser.Append<L, ExpectedLiteral> =>
   and(
     from({
       parse: (input) => {

@@ -55,7 +55,7 @@ export { compile } from "./compile.js";
 /**
  * Effect schema for the SDK's {@link Expression} tree.
  *
- * Decoding and {@link make} check the tree's structure, identifier-named struct fields and labels, and numeric literal spelling. They accept any string expression and any `#type` text. The encoded form, {@link Encoded}, keeps the tagged numeric literals, so use {@link compile} to produce J-Expr JSON text.
+ * Decoding and {@link make} check the tree's structure, identifier-named struct fields and labels, and numeric literal spelling. They accept any string expression and any `#type` text. The encoded form, {@link Expression.Encoded}, keeps the tagged numeric literals, so use {@link compile} to produce J-Expr JSON text.
  */
 export const Schema: typeof Defs.Expression = Defs.Expression;
 
@@ -66,8 +66,10 @@ export const Schema: typeof Defs.Expression = Defs.Expression;
  */
 export type Expression = Defs.ExpressionType;
 
-/** The schema-encoded tree, with the same tagged numeric literals as {@link Expression}. */
-export type Encoded = Defs.ExpressionEncoded;
+export declare namespace Expression {
+  /** The schema-encoded tree, with the same tagged numeric literals as {@link Expression}. */
+  export type Encoded = Defs.ExpressionEncoded;
+}
 
 /** Constructor input accepted by {@link Schema} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];

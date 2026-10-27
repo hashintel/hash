@@ -1,7 +1,7 @@
 /**
  * HashQL programs and the builders that construct them.
  *
- * {@link program} wraps a root expression as a program. {@link compile} serializes a program to J-Expr JSON text. {@link Expression} builds the typed expressions. {@link TypeExpression} annotates type syntax with semantic descriptors. A builder that fails stores a {@link ProgramError.Construction} in its expression instead of throwing. {@link Inputs} extracts the input requirements a program's caller must supply.
+ * {@link program} wraps a root expression as a program. {@link compile} serializes a program to J-Expr JSON text. {@link Expression} builds the typed expressions. {@link TypeExpression} annotates type syntax with semantic descriptors. A builder that fails stores a {@link ProgramError.Construction} in its expression instead of throwing. {@link Program.Inputs} extracts the input requirements a program's caller must supply.
  *
  * @module
  */
@@ -23,14 +23,16 @@ export interface Program<T extends Type.Any, Requirements> {
   readonly root: Expression.Expression<T, Requirements>;
 }
 
-/**
- * Extracts input requirements from a program's root, including optional requirements supplied by defaults.
- *
- * A union of programs requires every input that any member requires, as {@link Expression.Inputs} does for a union of expressions.
- */
-export type Inputs<P> = [P] extends [{ readonly root: infer Root }]
-  ? Expression.Inputs<Root>
-  : never;
+export declare namespace Program {
+  /**
+   * Extracts input requirements from a program's root, including optional requirements supplied by defaults.
+   *
+   * A union of programs requires every input that any member requires, as {@link Expression.Value.Inputs} does for a union of expressions.
+   */
+  export type Inputs<P> = [P] extends [{ readonly root: infer Root }]
+    ? Expression.Value.Inputs<Root>
+    : never;
+}
 
 /**
  * Wraps a root expression without validating or evaluating it.
@@ -66,12 +68,7 @@ export const compile = <T extends Type.Any, Inputs>(
     Expression.toJExpr,
     Result.flatMap((expression) =>
       Result.mapError(compileResult(expression), (cause) =>
-        ProgramError.Construction.make({
-          reason: ProgramError.Reason.make({
-            _tag: "InvalidExpression",
-            cause,
-          }),
-        }),
+        ProgramError.Construction.invalidExpression(cause),
       ),
     ),
   );

@@ -13,8 +13,11 @@ export const Schema: typeof Defs.Literal = Defs.Literal;
  * A numeric value is a `JExpr.Integer` or `JExpr.Float` object that preserves its source text. Strings, booleans and `null` appear directly under `#literal`, and a string here is a string value rather than a name. `#type` holds optional annotation text.
  */
 export interface Literal extends Defs.LiteralType {}
-/** The schema-encoded representation of {@link Literal}. */
-export interface Encoded extends Defs.LiteralEncoded {}
+
+export declare namespace Literal {
+  /** The schema-encoded representation of {@link Literal}. */
+  export interface Encoded extends Defs.LiteralEncoded {}
+}
 
 /** Input accepted by {@link make} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];

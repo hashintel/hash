@@ -16,6 +16,7 @@ import {
   Relocate,
   relocate as relocateHandle,
 } from "../internal/relocation.js";
+import * as Path from "../JExpr/Path.js";
 import * as ProgramError from "./ProgramError.js";
 
 import type { Relocatable } from "../internal/relocation.js";
@@ -26,8 +27,11 @@ import type { Types } from "effect";
 
 export type { Relocatable } from "../internal/relocation.js";
 
-const TypeId: unique symbol = Symbol("~hashql/TypeExpression");
-const ConstructorId: unique symbol = Symbol("~hashql/TypeConstructor");
+export type TypeId = "~hashql/TypeExpression";
+const TypeId: TypeId = "~hashql/TypeExpression";
+
+export type ConstructorId = "~hashql/TypeConstructor";
+const ConstructorId: ConstructorId = "~hashql/TypeConstructor";
 
 /** Type syntax or its construction failure, annotated with its semantic type. */
 export interface TypeExpression<T extends Type.Any> extends TypeExpression.Any {
@@ -50,7 +54,7 @@ export declare namespace TypeExpression {
  *
  * The argument tuple carries semantic types, and `Arguments` maps each position to its handle. TypeScript infers the tuple from ordinary calls. A generic caller can also supply it explicitly without extracting and re-inferring types from already-normalized handles.
  *
- * A call emits a reference to the constructor's path with one generic argument per supplied type. The result's descriptor is `Type.Apply<F, A>`. TypeScript rejects a call with the wrong number of arguments. At runtime, such a call returns a type expression holding a `TypeArgumentCountMismatch` failure. An argument's construction failure becomes the result's failure.
+ * A call emits a reference to the constructor's path with one generic argument per supplied type. The result's descriptor is `Type.TypeLambda.Apply<F, A>`. TypeScript rejects a call with the wrong number of arguments. At runtime, such a call returns a type expression holding a `TypeArgumentCountMismatch` failure. An argument's construction failure becomes the result's failure.
  */
 export interface Constructor<F extends Type.TypeConstructor>
   extends Constructor.Any {
@@ -58,7 +62,7 @@ export interface Constructor<F extends Type.TypeConstructor>
 
   <const A extends readonly Type.Any[]>(
     ...args: Constructor.Arguments<A> & { readonly length: F["arity"] }
-  ): TypeExpression<Type.Apply<F, A>>;
+  ): TypeExpression<Type.TypeLambda.Apply<F, A>>;
 }
 
 export declare namespace Constructor {
@@ -88,6 +92,10 @@ export type Export = TypeExpression.Any | Constructor.Any;
 export const isExport = (value: unknown): value is Export =>
   Predicate.hasProperty(value, TypeId) ||
   Predicate.hasProperty(value, ConstructorId);
+
+// oxlint-disable-next-line typescript/no-restricted-types -- this guard narrows unchecked environment entries
+export const isTypeExpression = (value: unknown): value is TypeExpression.Any =>
+  Predicate.hasProperty(value, TypeId);
 
 /** Recognizes generic type constructors by their marker property, including combined namespace handles. */
 // oxlint-disable-next-line typescript/no-restricted-types -- the guard accepts unchecked host values
@@ -192,12 +200,12 @@ export const constructor = <F extends Type.TypeConstructor>(
 
   const instantiate = <const A extends readonly Type.Any[]>(
     ...args: Constructor.Arguments<A> & { readonly length: F["arity"] }
-  ): TypeExpression<Type.Apply<F, A>> => {
+  ): TypeExpression<Type.TypeLambda.Apply<F, A>> => {
     if (args.length !== arity) {
       return pipe(
         ProgramError.Construction.typeArgumentCount(arity, args.length),
         Result.fail,
-        fromResult<Type.Apply<F, A>>,
+        fromResult<Type.TypeLambda.Apply<F, A>>,
       );
     }
 
@@ -208,24 +216,20 @@ export const constructor = <F extends Type.TypeConstructor>(
       Result.all,
       Result.map((args): Syntax.Type => ({
         _tag: "Reference",
-        path: {
+        path: Path.make({
           rooted: path.rooted,
-          segments: Array.modifyLastNonEmpty(
-            path.segments,
-            (segment): JExpr.Path.Segment => ({
+          segments: Array.modifyLastNonEmpty(path.segments, (segment) =>
+            Path.Segment.make({
               name: segment.name,
               arguments: [
                 ...segment.arguments,
-                ...args.map((bound): JExpr.Path.SegmentArgument => ({
-                  _tag: "GenericArgument",
-                  bound,
-                })),
+                ...args.map((bound) => Path.GenericArgument.make({ bound })),
               ],
             }),
           ),
-        },
+        }),
       })),
-      fromResult<Type.Apply<F, A>>,
+      fromResult<Type.TypeLambda.Apply<F, A>>,
     );
   };
 

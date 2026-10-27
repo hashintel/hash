@@ -12,8 +12,11 @@ export const Schema: typeof Defs.LabeledArgument = Defs.LabeledArgument;
  * The object has exactly one key: `:` followed by an identifier. The value is an expression. It can appear anywhere after the function in a call array, and HashQL's parser gathers it into the call's labeled arguments rather than its positional ones.
  */
 export interface LabeledArgument extends Defs.LabeledArgumentType {}
-/** The schema-encoded representation of {@link LabeledArgument}. */
-export interface Encoded extends Defs.LabeledArgumentEncoded {}
+
+export declare namespace LabeledArgument {
+  /** The schema-encoded representation of {@link LabeledArgument}. */
+  export interface Encoded extends Defs.LabeledArgumentEncoded {}
+}
 
 /** Input accepted by {@link make} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];

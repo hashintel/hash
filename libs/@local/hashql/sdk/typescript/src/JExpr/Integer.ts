@@ -22,8 +22,11 @@ export const Schema: typeof Defs.Integer = Defs.Integer;
  * ```
  */
 export interface Integer extends Defs.IntegerType {}
-/** The schema-encoded representation of {@link Integer}. */
-export interface Encoded extends Defs.IntegerEncoded {}
+
+export declare namespace Integer {
+  /** The schema-encoded representation of {@link Integer}. */
+  export interface Encoded extends Defs.IntegerEncoded {}
+}
 
 /** Input accepted by {@link make} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];

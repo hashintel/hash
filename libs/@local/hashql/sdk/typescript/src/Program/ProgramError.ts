@@ -96,6 +96,13 @@ export class Construction extends Schema.TaggedError<Construction>()(
     });
   }
 
+  /** Retains the schema issue for invalid J-Expr syntax. */
+  static invalidExpression(cause: SchemaIssue.Issue): Construction {
+    return Construction.make({
+      reason: Reason.make({ _tag: "InvalidExpression", cause }),
+    });
+  }
+
   /** Identifies an unsupported symbol key in a module's export table. */
   static symbolExportName(name: symbol): Construction {
     return Construction.make({

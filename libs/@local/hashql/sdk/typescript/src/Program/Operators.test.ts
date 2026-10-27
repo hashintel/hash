@@ -113,9 +113,9 @@ describe("operators", () => {
       syntax(position),
     ]);
     expectTypeOf<
-      Expression.TypeOf<typeof predicate>
+      Expression.Value.Type<typeof predicate>
     >().toEqualTypeOf<Type.PrimitiveBoolean>();
-    expectTypeOf<Expression.Inputs<typeof indexed>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof indexed>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
       readonly position: Type.PrimitiveInteger;
     }>();

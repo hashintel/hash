@@ -15,9 +15,10 @@ import {
 import { ParserError } from "./parser-error.js";
 import * as Parser from "./parser.js";
 
-import type { Path, SegmentArgument } from "../JExpr/Path.js";
+import type { Ident } from "../JExpr/Ident.js";
+import type { Path, Segment, SegmentArgument } from "../JExpr/Path.js";
 import type { Type } from "../JExpr/Type/schema.js";
-import type { Ident, IdentReason } from "./ident-parser.js";
+import type { IdentReason } from "./ident-parser.js";
 import type {
   ExpectedEndOfInput,
   ExpectedLiteral,
@@ -75,58 +76,26 @@ const infer = pipe(
   Parser.map((): Type => ({ _tag: "Infer" })),
 );
 
-/** Recursive type grammar shared by path arguments and parenthesized types. */
-export const typeSyntax: TypeParser = suspend(
-  // oxlint-disable-next-line no-use-before-define -- Resolved after module initialization.
-  () => ws(typeIntersection),
-);
+/** Syntax constructors that the schema module supplies after initializing its classes. */
+export interface PathConstructors {
+  readonly argument: (bound: Type) => SegmentArgument;
+  readonly constraint: (name: Ident, bound: Type) => SegmentArgument;
+  readonly segment: (name: Ident, args: readonly SegmentArgument[]) => Segment;
+  readonly path: (
+    rooted: boolean,
+    segments: readonly [Segment, ...Segment[]],
+  ) => Path;
+}
 
-const argument = pipe(
-  typeSyntax,
-  Parser.map((bound): SegmentArgument => ({ _tag: "GenericArgument", bound })),
-);
-const constraint = pipe(
-  identifier,
-  skip(colon),
-  Parser.and(typeSyntax),
-  Parser.map(([name, bound]): SegmentArgument => ({
-    _tag: "GenericConstraint",
-    name,
-    bound,
-  })),
-);
-const argumentsList = pipe(
-  Parser.choice(constraint, argument),
-  separated(comma),
-  preceded(ws(token("<"))),
-  skip(ws(cut(token(">")))),
-  Parser.optional,
-  Parser.map(Option.getOrElse((): readonly SegmentArgument[] => [])),
-);
-const segment = pipe(
-  identifier,
-  Parser.and(argumentsList),
-  Parser.map(([name, args]) => ({ name, arguments: args })),
-);
-const root = pipe(ws(token("::")), Parser.optional, Parser.map(Option.isSome));
-
-/** Prefix parser for paths with arguments on any segment. */
-export const path: Parser.Parser<Path, TypeReason> = pipe(
-  root,
-  Parser.and(separated(ws(token("::")))(segment)),
-  Parser.map(([rooted, segments]) => ({ rooted, segments })),
-);
-
-const reference = pipe(
-  path,
-  Parser.map((value): Type => ({ _tag: "Reference", path: value })),
-);
-
-const structField = pipe(
-  identifier, //
-  skip(cut(colon)),
-  Parser.and(typeSyntax),
-);
+/** Recursive productions used by path parsing and source generation. */
+export interface Grammar {
+  readonly path: Parser.Parser<Path, TypeReason>;
+  readonly typeSyntax: TypeParser;
+  readonly completePath: Parser.Parser<Path, TypeReason>;
+  readonly parsePath: (
+    input: string,
+  ) => Result.Result<Path, ParserError<TypeReason>>;
+}
 
 // The struct schema rejects repeated names, so the parser rejects them before a caller can build a struct the schema refuses. Names compare by value, as the schema's check compares them, so two spellings of one decoded name are a repeat.
 const distinctFields = (
@@ -144,96 +113,165 @@ const distinctFields = (
   return Result.succeed({ _tag: "Struct", members });
 };
 
-const struct = pipe(
-  identifier,
-  skip(colon),
-  Parser.and(typeSyntax),
-  Parser.and(repeat(preceded(comma)(structField))),
-  skip(Parser.optional(token(","))),
-  skip(closeParen),
-  Parser.tryMap(([first, rest]) => distinctFields([first, ...rest])),
-);
+/** Groups, tuples and structs share the enclosing recursive type parser. */
+const typeAtom = (
+  typeSyntax: TypeParser,
+  path: Parser.Parser<Path, TypeReason>,
+): TypeParser => {
+  const reference = pipe(
+    path,
+    Parser.map((value): Type => ({ _tag: "Reference", path: value })),
+  );
 
-const tupleTail = pipe(
-  typeSyntax,
-  separated(comma),
-  skip(Parser.optional(token(","))),
-  Parser.optional,
-  Parser.map(Option.getOrElse((): readonly Type[] => [])),
-  preceded(token(",")),
-  skip(closeParen),
-);
+  const structField = pipe(
+    identifier, //
+    skip(cut(colon)),
+    Parser.and(typeSyntax),
+  );
 
-const groupOrTuple = pipe(
-  typeSyntax,
-  Parser.and(
+  const struct = pipe(
+    identifier,
+    skip(colon),
+    Parser.and(typeSyntax),
+    Parser.and(repeat(preceded(comma)(structField))),
+    skip(Parser.optional(token(","))),
+    skip(closeParen),
+    Parser.tryMap(([first, rest]) => distinctFields([first, ...rest])),
+  );
+
+  const tupleTail = pipe(
+    typeSyntax,
+    separated(comma),
+    skip(Parser.optional(token(","))),
+    Parser.optional,
+    Parser.map(Option.getOrElse((): readonly Type[] => [])),
+    preceded(token(",")),
+    skip(closeParen),
+  );
+
+  const groupOrTuple = pipe(
+    typeSyntax,
+    Parser.and(
+      Parser.choice(
+        pipe(
+          token(")"),
+          Parser.map(() => Option.none<readonly Type[]>()),
+        ),
+        pipe(tupleTail, Parser.map(Option.some)),
+      ),
+    ),
+    Parser.map(([first, tail]): Type =>
+      Option.match(tail, {
+        onNone: () => first,
+        onSome: (rest) => ({ _tag: "Tuple", members: [first, ...rest] }),
+      }),
+    ),
+  );
+
+  const paren = pipe(
     Parser.choice(
       pipe(
-        token(")"),
-        Parser.map(() => Option.none<readonly Type[]>()),
+        token(":"),
+        skip(token(")")),
+        Parser.map((): Type => ({ _tag: "Struct", members: [] })),
       ),
-      pipe(tupleTail, Parser.map(Option.some)),
+      pipe(
+        token(")"),
+        Parser.map((): Type => ({ _tag: "Tuple", members: [] })),
+      ),
+      struct,
+      groupOrTuple,
     ),
-  ),
-  Parser.map(([first, tail]): Type =>
-    Option.match(tail, {
-      onNone: () => first,
-      onSome: (rest) => ({ _tag: "Tuple", members: [first, ...rest] }),
-    }),
-  ),
-);
+    cut,
+    preceded(ws(token("("))),
+  );
 
-const paren = pipe(
-  Parser.choice(
-    pipe(
-      token(":"),
-      skip(token(")")),
-      Parser.map((): Type => ({ _tag: "Struct", members: [] })),
+  return Parser.choice(reference, infer, paren);
+};
+
+/** Builds the recursive grammar without importing its runtime value implementations. */
+export const makeGrammar = (construct: PathConstructors): Grammar => {
+  /** Recursive type grammar shared by path arguments and parenthesized types. */
+  const typeSyntax: TypeParser = suspend(
+    // oxlint-disable-next-line no-use-before-define -- Resolved after module initialization.
+    () => ws(typeIntersection),
+  );
+
+  const argument = pipe(
+    typeSyntax,
+    Parser.map((bound): SegmentArgument => construct.argument(bound)),
+  );
+  const constraint = pipe(
+    identifier,
+    skip(colon),
+    Parser.and(typeSyntax),
+    Parser.map(([name, bound]): SegmentArgument =>
+      construct.constraint(name, bound),
     ),
-    pipe(
-      token(")"),
-      Parser.map((): Type => ({ _tag: "Tuple", members: [] })),
+  );
+  const argumentsList = pipe(
+    Parser.choice(constraint, argument),
+    separated(comma),
+    preceded(ws(token("<"))),
+    skip(ws(cut(token(">")))),
+    Parser.optional,
+    Parser.map(Option.getOrElse((): readonly SegmentArgument[] => [])),
+  );
+  const segment = pipe(
+    identifier,
+    Parser.and(argumentsList),
+    Parser.map(([name, args]) => construct.segment(name, args)),
+  );
+  const root = pipe(
+    ws(token("::")),
+    Parser.optional,
+    Parser.map(Option.isSome),
+  );
+
+  /** Prefix parser for paths with arguments on any segment. */
+  const path: Parser.Parser<Path, TypeReason> = pipe(
+    root,
+    Parser.and(separated(ws(token("::")))(segment)),
+    Parser.map(([rooted, segments]) => construct.path(rooted, segments)),
+  );
+
+  const atom = typeAtom(typeSyntax, path);
+
+  const typeUnion = pipe(
+    atom,
+    separated(ws(token("|"))),
+    Parser.map(([first, ...rest]): Type =>
+      rest.length === 0 ? first : { _tag: "Union", members: [first, ...rest] },
     ),
-    struct,
-    groupOrTuple,
-  ),
-  cut,
-  preceded(ws(token("("))),
-);
+  );
 
-const atom = Parser.choice(reference, infer, paren);
+  const typeIntersection = pipe(
+    typeUnion,
+    separated(ws(token("&"))),
+    Parser.map(([first, ...rest]): Type =>
+      rest.length === 0
+        ? first
+        : { _tag: "Intersection", members: [first, ...rest] },
+    ),
+  );
 
-const typeUnion = pipe(
-  atom,
-  separated(ws(token("|"))),
-  Parser.map(([first, ...rest]): Type =>
-    rest.length === 0 ? first : { _tag: "Union", members: [first, ...rest] },
-  ),
-);
+  /** Requires complete path consumption, including any trailing whitespace the grammar permits. */
+  const completePath: Parser.Parser<Path, TypeReason> = Parser.eof(path);
 
-const typeIntersection = pipe(
-  typeUnion,
-  separated(ws(token("&"))),
-  Parser.map(([first, ...rest]): Type =>
-    rest.length === 0
-      ? first
-      : { _tag: "Intersection", members: [first, ...rest] },
-  ),
-);
+  /** Parses a complete path without converting its structured failures to optional absence. A stack overflow fails with {@link NestingTooDeep}. */
+  const parsePath = (
+    input: string,
+  ): Result.Result<Path, ParserError<TypeReason>> => {
+    try {
+      return Result.map(completePath.parse(input), (state) => state.output);
+    } catch (error) {
+      if (isStackOverflow(error)) {
+        return Result.fail(ParserError.at(0, NestingTooDeep()));
+      }
 
-/** Requires complete path consumption, including any trailing whitespace the grammar permits. */
-export const completePath: Parser.Parser<Path, TypeReason> = Parser.eof(path);
-
-/** Parses a complete path without converting its structured failures to optional absence. A stack overflow fails with {@link NestingTooDeep}. */
-export const parsePath = (
-  input: string,
-): Result.Result<Path, ParserError<TypeReason>> => {
-  try {
-    return Result.map(completePath.parse(input), (state) => state.output);
-  } catch (error) {
-    if (isStackOverflow(error)) {
-      return Result.fail(ParserError.at(0, NestingTooDeep()));
+      throw error;
     }
-    throw error;
-  }
+  };
+
+  return { path, typeSyntax, completePath, parsePath };
 };
