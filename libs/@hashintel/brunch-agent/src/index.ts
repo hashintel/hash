@@ -41,6 +41,7 @@ export {
   petrinautSubmissionContext,
   readPetrinautSubmissionContext,
   type PetrinautSubmissionContext,
+  type VersionLoad,
 } from "./petrinaut/submission-context";
 export {
   isNetObservationTool,

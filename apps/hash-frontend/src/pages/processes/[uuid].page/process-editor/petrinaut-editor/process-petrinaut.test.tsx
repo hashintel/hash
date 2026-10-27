@@ -134,6 +134,7 @@ const renderEditor = (props: {
         readTitle={() => "Net"}
         readSaveState={readSaveState}
         saveNetForAgent={saveNetForAgent}
+        versionLoad={undefined}
         setTitle={() => {}}
         title="Net"
         {...next}

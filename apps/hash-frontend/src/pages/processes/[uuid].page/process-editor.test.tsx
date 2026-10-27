@@ -254,13 +254,14 @@ test("while the CSP gate holds Petrinaut back, the loading skeleton shows even o
   expect(container.querySelector(".MuiSkeleton-root")).not.toBeNull();
 });
 
-test("a revision pick is a new load even with identical content, and rerenders are not", async () => {
+test("a revision pick is a new load even with identical content, and says it is one; rerenders are not loads", async () => {
   const { navigate } = await renderHost(savedView(uuidA));
   const firstLoad = editor().load;
   expect(firstLoad).toMatchObject({
     title: netA.title,
     mode: { kind: "saved", entityId: netAId },
     savedSnapshot: { decisionTime: netA.lastUpdated },
+    reason: "open",
   });
   expect(editor().readonly).toBe(false);
 
@@ -270,7 +271,7 @@ test("a revision pick is a new load even with identical content, and rerenders a
   act(() => editor().onSelectRevision(netA.lastUpdated));
 
   expect(editor().load).not.toBe(firstLoad);
-  expect(editor().load).toEqual(firstLoad);
+  expect(editor().load).toEqual({ ...firstLoad, reason: "revision" });
 });
 
 test("a save writes to the net the editor names, and resolves once its revision list includes the save", async () => {

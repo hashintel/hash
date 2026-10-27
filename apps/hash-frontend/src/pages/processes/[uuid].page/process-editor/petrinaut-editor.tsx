@@ -41,7 +41,10 @@ import type {
   SaveNetForAgent,
 } from "./petrinaut-editor/brunch-hash-save";
 import type { EntityId } from "@blockprotocol/type-system";
-import type { ReadBrunchDocumentSaveState } from "@hashintel/brunch-agent/ui";
+import type {
+  ReadBrunchDocumentSaveState,
+  VersionLoad,
+} from "@hashintel/brunch-agent/ui";
 
 /**
  * Which net the editor holds: an unsaved draft (with the example it was
@@ -79,6 +82,11 @@ export type PetrinautEditorLoad = {
   title: string;
   mode: NetMode;
   savedSnapshot: SavedSnapshot;
+  /**
+   * Why the host loads it: opening a net, or the user picking one of the
+   * open net's saved revisions in the version picker.
+   */
+  reason: "open" | "revision";
 };
 
 /**
@@ -110,6 +118,12 @@ type EditorSession = {
   mode: NetMode;
   savedSnapshot: SavedSnapshot;
   savePending: boolean;
+  /**
+   * The latest load of another saved version of the open net, which the open
+   * net builds on, until the host opens a net. Saves leave it as it is: they
+   * build on the loaded version.
+   */
+  versionLoad: VersionLoad | undefined;
 };
 
 /**
@@ -126,13 +140,45 @@ const withPetrinautIds = (snapshot: SavedSnapshot): SavedSnapshot =>
       };
 
 /**
+ * The version load `load` makes after `previous`: a new one, with a fresh id,
+ * when the user picks a revision of the open saved net other than the version
+ * it holds, so Brunch tells its agent about each pick once however many turns
+ * carry it; the previous one when the pick is of the version it holds; none
+ * once the host opens a net.
+ */
+const versionLoadAfter = (
+  load: PetrinautEditorLoad,
+  previous: EditorSession | null,
+): VersionLoad | undefined => {
+  if (
+    load.reason !== "revision" ||
+    load.mode.kind !== "saved" ||
+    previous?.mode.kind !== "saved" ||
+    previous.mode.entityId !== load.mode.entityId
+  ) {
+    return undefined;
+  }
+  const decisionTime = load.savedSnapshot?.decisionTime ?? null;
+  if (
+    decisionTime === null ||
+    decisionTime === (previous.savedSnapshot?.decisionTime ?? null)
+  ) {
+    return previous.versionLoad;
+  }
+  return { id: crypto.randomUUID(), decisionTime };
+};
+
+/**
  * A new handle, with no `id`, so each load gets a fresh one. A new handle
  * starts a new editor, which remounts Petrinaut's assistant panel: runs
  * started against the previous handle abort, and Brunch stops the turn that
  * editor sent. An assistant action is never carried into an editor that
  * didn't send it.
  */
-const openSession = (load: PetrinautEditorLoad): EditorSession => {
+const openSession = (
+  load: PetrinautEditorLoad,
+  previous: EditorSession | null,
+): EditorSession => {
   const handle = createJsonDocHandle({ initial: load.definition });
   return {
     load,
@@ -142,6 +188,7 @@ const openSession = (load: PetrinautEditorLoad): EditorSession => {
     mode: load.mode,
     savedSnapshot: withPetrinautIds(load.savedSnapshot),
     savePending: false,
+    versionLoad: versionLoadAfter(load, previous),
   };
 };
 
@@ -223,7 +270,7 @@ export const PetrinautEditor = ({
   const [session, setSession] = useState<EditorSession | null>(null);
 
   if (load !== (session?.load ?? null)) {
-    setSession(load === null ? null : openSession(load));
+    setSession(load === null ? null : openSession(load, session));
   }
 
   const handle = session?.handle;
@@ -560,6 +607,7 @@ export const PetrinautEditor = ({
             readTitle={readTitle}
             readSaveState={readAgentSaveState}
             saveNetForAgent={saveNetForAgent}
+            versionLoad={session.versionLoad}
             readonly={readonly}
             setTitle={setTitle}
             title={session.title}
