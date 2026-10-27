@@ -242,13 +242,8 @@ test("an unsaved draft gets no Brunch", async () => {
   });
 
   await waitFor(() => expect(observed.petrinautHandles).not.toHaveLength(0));
-  await waitFor(() =>
-    expect(lastBrunchInput()?.ownerKey).toBe("hash:alice-account"),
-  );
-  expect(lastBrunchInput()).toMatchObject({
-    selected: false,
-    openDocument: null,
-  });
+  await waitFor(() => expect(identityRequests).toHaveLength(1));
+  expect(observed.brunchInputs).toHaveLength(0);
 });
 
 test("Brunch's and Petrinaut's contained failures reach the host's reporter with their tags", async () => {
