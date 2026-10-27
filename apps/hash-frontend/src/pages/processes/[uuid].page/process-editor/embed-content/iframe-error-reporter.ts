@@ -1,13 +1,9 @@
-import type {
-  HostNetMode,
-  IframeToHostMessage,
-} from "../[uuid].page/process-editor/shared/messages";
+import type { HostNetMode, IframeToHostMessage } from "../shared/messages";
 import type { ErrorTrackerCaptureContext } from "@hashintel/petrinaut";
 
 type ReportError = Extract<IframeToHostMessage, { kind: "reportError" }>;
 
 let activeMode: HostNetMode | null = null;
-let installed = false;
 
 const safeStringify = (value: unknown): string => {
   try {
@@ -54,32 +50,6 @@ const post = (
 };
 
 /**
- * Idempotently wires `window.error` and `window.unhandledrejection`
- * listeners that forward into the host's Sentry SDK. Intended to be
- * called as early in the iframe document's lifetime as possible — see
- * `instrumentation-client.ts` which calls it before any application code.
- */
-export const installIframeErrorReporter = (): void => {
-  if (installed || typeof window === "undefined") {
-    return;
-  }
-  installed = true;
-
-  window.addEventListener("error", (event) => {
-    /**
-     * Prefer `event.error` (the actual Error object) over `event.message`,
-     * but fall back to `message` for cross-origin script errors where
-     * `event.error` is `null` ("Script error.").
-     */
-    post("window-error", event.error ?? event.message);
-  });
-
-  window.addEventListener("unhandledrejection", (event) => {
-    post("unhandled-rejection", event.reason);
-  });
-};
-
-/**
  * Records the active net mode so subsequent error reports include it. The
  * iframe bridge calls this in response to `init` / `load` messages so the
  * host can tag Sentry events with which net the user was editing when
@@ -87,16 +57,6 @@ export const installIframeErrorReporter = (): void => {
  */
 export const setIframeErrorReporterMode = (mode: HostNetMode | null): void => {
   activeMode = mode;
-};
-
-/**
- * Forward an error caught by the embed app's React `ErrorBoundary`. The
- * boundary's `onError` callback is the right hook for this because by the
- * time `componentDidCatch` runs, the error has already been thrown out of
- * React's render path and `window.error` won't fire for it.
- */
-export const reportIframeReactError = (error: unknown): void => {
-  post("react", error);
 };
 
 /**
