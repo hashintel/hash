@@ -9,6 +9,7 @@ import { describe, expect, test } from "vitest";
 import { relocate } from "../internal/relocation.js";
 import * as JExpr from "../JExpr/index.js";
 import * as Expression from "./Expression.js";
+import * as Module from "./Module.js";
 import * as Structural from "./Structural.js";
 
 import type * as Type from "../Type.js";
@@ -21,6 +22,52 @@ const alias = Result.getOrThrow(JExpr.Path.decodeResult("alias"));
 const numberType = Result.getOrThrow(Structural.type(Number));
 
 describe("expression", () => {
+  test("generic_filter_call", () => {
+    expect.hasAssertions();
+    type Graph<T extends Type.Any> = Type.Opaque<
+      "::graph::Graph",
+      Type.Struct<{ readonly "'marker": T }>
+    >;
+    type VertexOf<T> = T extends Graph<infer VertexType> ? VertexType : never;
+    interface Filter extends Type.FunctionSignature {
+      readonly type: this["Target"] extends readonly [infer Input, Type.Any]
+        ? Type.Function<
+            readonly [
+              Graph<VertexOf<Input>>,
+              Type.Function<readonly [VertexOf<Input>], Type.PrimitiveBoolean>,
+            ],
+            Graph<VertexOf<Input>>
+          >
+        : Type.Function<readonly [never, never], Type.Never>;
+    }
+    const body = Result.getOrThrow(
+      Module.define("::graph::body", {
+        values: { filter: Module.value<Type.GenericFunction<Filter>>() },
+      }),
+    );
+    const vertices = Expression.fromJExpr<Graph<Vertex>, Inputs.Empty>(
+      "vertices",
+    );
+    const predicate = Expression.fromJExpr<
+      Type.Function<readonly [Vertex], Type.PrimitiveBoolean>,
+      Inputs.Empty
+    >([
+      "::kernel::special_form::fn",
+      { "#tuple": [] },
+      { "#struct": { vertex: "_" } },
+      "_",
+      [
+        "::core::cmp::eq",
+        ["::kernel::special_form::access", "vertex", "name"],
+        { "#literal": "Ada" },
+      ],
+    ]);
+    const prelude = { select: body.values.filter };
+    expect(compile(prelude.select(vertices, predicate))).toBe(
+      '["::graph::body::filter","vertices",["::kernel::special_form::fn",{"#tuple":[]},{"#struct":{"vertex":"_"}},"_",["::core::cmp::eq",["::kernel::special_form::access","vertex","name"],{"#literal":"Ada"}]]]',
+    );
+  });
+
   test("returned_function", () => {
     expect.hasAssertions();
     type Unary = Type.Function<
