@@ -27,16 +27,12 @@ const source = Result.getOrThrow(
   }),
 );
 
-const exports = Object.defineProperty(
-  {
-    hidden: Module.value<Type.PrimitiveInteger>(),
-    ["__proto__"]: Module.value<Type.PrimitiveInteger>(),
-    constructor: Module.value<Type.PrimitiveInteger>(),
-    toString: Module.value<Type.PrimitiveInteger>(),
-  },
-  "hidden",
-  { enumerable: false },
-);
+const exports = {
+  hidden: Module.value<Type.PrimitiveInteger>(),
+  ["__proto__"]: Module.value<Type.PrimitiveInteger>(),
+  constructor: Module.value<Type.PrimitiveInteger>(),
+  toString: Module.value<Type.PrimitiveInteger>(),
+};
 const unusual = Result.getOrThrow(
   Module.define("::unusual", { values: exports }),
 );
