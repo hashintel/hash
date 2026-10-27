@@ -76,6 +76,14 @@ pub enum Effect {
 pub struct PolicyId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl PolicyId {
+    /// Generates a new ID that carries `transaction_time`, as described in [`generate_uuid`].
+    ///
+    /// Returns `None` if `transaction_time` lies before the Unix epoch.
+    #[must_use]
+    pub fn new(transaction_time: Timestamp<TransactionTime>) -> Option<Self> {
+        generate_uuid(transaction_time).map(Self)
+    }
+
     /// Creates an ID from an existing UUID.
     #[must_use]
     pub const fn from_uuid(uuid: Uuid) -> Self {

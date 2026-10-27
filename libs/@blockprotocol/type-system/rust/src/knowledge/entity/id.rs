@@ -1,5 +1,7 @@
 use core::{fmt, str::FromStr as _};
 
+#[cfg(feature = "generate")]
+use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};
 use serde::{
@@ -10,12 +12,9 @@ use serde::{
 use utoipa::{ToSchema, openapi};
 use uuid::Uuid;
 
+#[cfg(feature = "generate")]
+use crate::generate_uuid;
 use crate::principal::actor_group::WebId;
-
-/// A timestamp before the Unix epoch, which a version 7 UUID cannot encode.
-#[derive(Debug, derive_more::Display, derive_more::Error)]
-#[display("the timestamp lies before the Unix epoch, which a version 7 UUID cannot encode")]
-pub struct TimestampBeforeUnixEpoch;
 
 #[derive(
     Debug,
@@ -40,6 +39,15 @@ pub struct EntityUuid(
 );
 
 impl EntityUuid {
+    /// Generates a new ID that carries `transaction_time`, as described in [`generate_uuid`].
+    ///
+    /// Returns `None` if `transaction_time` lies before the Unix epoch.
+    #[cfg(feature = "generate")]
+    #[must_use]
+    pub fn new(transaction_time: Timestamp<TransactionTime>) -> Option<Self> {
+        generate_uuid(transaction_time).map(Self)
+    }
+
     /// Creates an ID from an existing UUID.
     #[must_use]
     pub const fn from_uuid(uuid: Uuid) -> Self {
@@ -71,6 +79,15 @@ impl From<EntityUuid> for Uuid {
 pub struct DraftId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl DraftId {
+    /// Generates a new ID that carries `transaction_time`, as described in [`generate_uuid`].
+    ///
+    /// Returns `None` if `transaction_time` lies before the Unix epoch.
+    #[cfg(feature = "generate")]
+    #[must_use]
+    pub fn new(transaction_time: Timestamp<TransactionTime>) -> Option<Self> {
+        generate_uuid(transaction_time).map(Self)
+    }
+
     /// Creates an ID from an existing UUID.
     #[must_use]
     pub const fn from_uuid(uuid: Uuid) -> Self {
@@ -184,6 +201,15 @@ mod patch {
 pub struct EntityEditionId(#[serde(with = "hash_codec::serde::valid_uuid")] Uuid);
 
 impl EntityEditionId {
+    /// Generates a new ID that carries `transaction_time`, as described in [`generate_uuid`].
+    ///
+    /// Returns `None` if `transaction_time` lies before the Unix epoch.
+    #[cfg(feature = "generate")]
+    #[must_use]
+    pub fn new(transaction_time: Timestamp<TransactionTime>) -> Option<Self> {
+        generate_uuid(transaction_time).map(Self)
+    }
+
     /// Creates an ID from an existing UUID.
     #[must_use]
     pub const fn from_uuid(uuid: Uuid) -> Self {
@@ -208,123 +234,4 @@ impl EntityEditionId {
 pub struct EntityRecordId {
     pub entity_id: EntityId,
     pub edition_id: EntityEditionId,
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-mod v7 {
-    use error_stack::Report;
-    use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-    use uuid::{NoContext, Uuid};
-
-    use super::{DraftId, EntityEditionId, EntityUuid, TimestampBeforeUnixEpoch};
-
-    /// A version 7 UUID that carries `timestamp`.
-    fn uuid_v7_at(
-        timestamp: Timestamp<TransactionTime>,
-    ) -> Result<Uuid, Report<TimestampBeforeUnixEpoch>> {
-        let elapsed = timestamp
-            .duration_since_unix_epoch()
-            .ok_or_else(|| Report::new(TimestampBeforeUnixEpoch))?;
-        Ok(Uuid::new_v7(uuid::Timestamp::from_unix(
-            NoContext,
-            elapsed.as_secs(),
-            elapsed.subsec_nanos(),
-        )))
-    }
-
-    impl EntityUuid {
-        /// Creates an ID from a version 7 UUID that carries `transaction_time`, so the ID sorts
-        /// with the transaction time it is stored with.
-        ///
-        /// # Errors
-        ///
-        /// Returns [`TimestampBeforeUnixEpoch`] if `transaction_time` lies before the Unix epoch.
-        pub fn new_v7(
-            transaction_time: Timestamp<TransactionTime>,
-        ) -> Result<Self, Report<TimestampBeforeUnixEpoch>> {
-            uuid_v7_at(transaction_time).map(Self)
-        }
-    }
-
-    impl DraftId {
-        /// Creates an ID from a version 7 UUID that carries `transaction_time`, so the ID sorts
-        /// with the transaction time it is stored with.
-        ///
-        /// # Errors
-        ///
-        /// Returns [`TimestampBeforeUnixEpoch`] if `transaction_time` lies before the Unix epoch.
-        pub fn new_v7(
-            transaction_time: Timestamp<TransactionTime>,
-        ) -> Result<Self, Report<TimestampBeforeUnixEpoch>> {
-            uuid_v7_at(transaction_time).map(Self)
-        }
-    }
-
-    impl EntityEditionId {
-        /// Creates an ID from a version 7 UUID that carries `transaction_time`, so the ID sorts
-        /// with the transaction time it is stored with.
-        ///
-        /// # Errors
-        ///
-        /// Returns [`TimestampBeforeUnixEpoch`] if `transaction_time` lies before the Unix epoch.
-        pub fn new_v7(
-            transaction_time: Timestamp<TransactionTime>,
-        ) -> Result<Self, Report<TimestampBeforeUnixEpoch>> {
-            uuid_v7_at(transaction_time).map(Self)
-        }
-    }
-}
-
-#[cfg(all(test, not(target_arch = "wasm32")))]
-mod tests {
-    use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
-    use uuid::Version;
-
-    use super::{DraftId, EntityEditionId, EntityUuid};
-
-    #[test]
-    fn new_v7_carries_transaction_time() {
-        let transaction_time = Timestamp::<TransactionTime>::from_unix_timestamp(1_700_000_000);
-
-        for uuid in [
-            EntityUuid::new_v7(transaction_time)
-                .expect("a timestamp after the Unix epoch should be encodable")
-                .into(),
-            DraftId::new_v7(transaction_time)
-                .expect("a timestamp after the Unix epoch should be encodable")
-                .into(),
-            EntityEditionId::new_v7(transaction_time)
-                .expect("a timestamp after the Unix epoch should be encodable")
-                .into_uuid(),
-        ] {
-            assert_eq!(
-                uuid.get_version(),
-                Some(Version::SortRand),
-                "the ID should be a version 7 UUID"
-            );
-            assert_eq!(
-                uuid.get_timestamp().map(|timestamp| timestamp.to_unix()),
-                Some((1_700_000_000, 0)),
-                "the ID should carry the transaction time"
-            );
-        }
-    }
-
-    #[test]
-    fn new_v7_rejects_pre_epoch_transaction_time() {
-        let transaction_time = Timestamp::<TransactionTime>::from_unix_timestamp(-1);
-
-        assert!(
-            EntityUuid::new_v7(transaction_time).is_err(),
-            "a timestamp before the Unix epoch should be rejected"
-        );
-        assert!(
-            DraftId::new_v7(transaction_time).is_err(),
-            "a timestamp before the Unix epoch should be rejected"
-        );
-        assert!(
-            EntityEditionId::new_v7(transaction_time).is_err(),
-            "a timestamp before the Unix epoch should be rejected"
-        );
-    }
 }

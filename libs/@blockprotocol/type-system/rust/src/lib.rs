@@ -341,6 +341,8 @@
 
 extern crate alloc;
 
+#[cfg(feature = "generate")]
+mod generate;
 pub mod knowledge;
 pub mod ontology;
 pub mod principal;
@@ -356,6 +358,9 @@ use core::{borrow::Borrow, fmt::Debug, ops::Deref, ptr};
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
+
+#[cfg(feature = "generate")]
+pub use self::generate::generate_uuid;
 
 /// A trait for validating values against a schema or constraint.
 ///

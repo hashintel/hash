@@ -1,8 +1,12 @@
 use std::collections::HashSet;
 
+#[cfg(feature = "generate")]
+use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use uuid::Uuid;
 
 use super::ActorGroupEntityUuid;
+#[cfg(feature = "generate")]
+use crate::generate_uuid;
 use crate::{knowledge::entity::id::EntityUuid, principal::role::WebRoleId};
 
 #[derive(
@@ -27,6 +31,15 @@ use crate::{knowledge::entity::id::EntityUuid, principal::role::WebRoleId};
 pub struct WebId(ActorGroupEntityUuid);
 
 impl WebId {
+    /// Generates a new ID that carries `transaction_time`, as described in [`generate_uuid`].
+    ///
+    /// Returns `None` if `transaction_time` lies before the Unix epoch.
+    #[cfg(feature = "generate")]
+    #[must_use]
+    pub fn new(transaction_time: Timestamp<TransactionTime>) -> Option<Self> {
+        generate_uuid(transaction_time).map(Self::from_uuid)
+    }
+
     /// Creates an ID from an existing UUID.
     #[must_use]
     pub const fn from_uuid(uuid: Uuid) -> Self {
