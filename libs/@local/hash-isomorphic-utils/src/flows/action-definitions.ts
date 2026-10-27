@@ -1,6 +1,6 @@
 import { checkAggregationInput } from "./aggregation.js";
 import { checkConditionInput, filterableKinds } from "./filter-condition.js";
-import { maxEntitiesPerStep } from "./limits.js";
+import { maxDraftMessageEntities, maxEntitiesPerStep } from "./limits.js";
 import {
   checkPropertiesWithMetadataInput,
   checkPropertyPatchesInput,
@@ -31,6 +31,7 @@ export type AiFlowActionDefinitionId =
   | "analyzeEntityData"
   | "answerQuestion"
   | "createEntity"
+  | "draftMessage"
   | "filterList"
   | "find"
   | "generateChartConfig"
@@ -1171,6 +1172,56 @@ const aiFlowActionDefinitionsAsConst = {
       },
     ],
     check: checkPropertyPatchesInput,
+  },
+  draftMessage: {
+    actionDefinitionId: "draftMessage",
+    activitySettings: defaultActivitySettings,
+    name: "Draft Message",
+    description:
+      "Write a message, such as an email, with AI: a subject and a plain-text body, following instructions and using any context and entities given. Nothing is sent.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "instructions",
+        description:
+          "What the message should say, who it's for, and its tone, e.g. 'Thank the customer for their order and confirm the delivery date'.",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "context",
+        description:
+          "Text to draw on, e.g. a property read from an entity or an earlier step's summary.",
+        required: false,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["EntityId"],
+        name: "entities",
+        description: `Entities whose properties to draw on: the draft for an entity ID with a draft ID, otherwise the live entity. At most ${maxDraftMessageEntities}, each in the web the flow runs in. Any that is missing or can't be read fails the step.`,
+        required: false,
+        array: true,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "subject",
+        description: "The message's subject line.",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Text",
+        name: "body",
+        description:
+          "The message's body, in plain text with line breaks: no HTML or Markdown.",
+        array: false,
+        required: true,
+      },
+    ],
   },
   takeFirst: {
     actionDefinitionId: "takeFirst",

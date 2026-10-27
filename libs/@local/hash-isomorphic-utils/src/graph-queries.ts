@@ -197,6 +197,24 @@ export const generateEntityIdFilter = ({
   return { all: conditions };
 };
 
+/**
+ * Generate a filter to match exactly the edition an entity ID names: the draft for one with a draft ID, otherwise the
+ * live entity, even in a query that includes drafts. Archived entities aren't excluded.
+ */
+export const generateEntityEditionFilter = (entityId: EntityId): Filter => {
+  const [webId, entityUuid, draftId] = splitEntityId(entityId);
+
+  return {
+    all: [
+      { equal: [{ path: ["uuid"] }, { parameter: entityUuid }] },
+      { equal: [{ path: ["webId"] }, { parameter: webId }] },
+      draftId
+        ? { equal: [{ path: ["draftId"] }, { parameter: draftId }] }
+        : { not: { exists: { path: ["draftId"] } } },
+    ],
+  };
+};
+
 const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
 /**
  * A filter for entities which record 'archived' state as a property rather than via an 'archived' boolean
