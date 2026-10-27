@@ -9,8 +9,8 @@ import { EmbedContent } from "./embed-content";
 import type { EmbedChrome } from "./embed-content/embed-chrome-context";
 import type {
   HostNetMode,
-  HostToIframeMessage,
-  IframeToHostMessage,
+  HostToEditorMessage,
+  EditorToHostMessage,
 } from "./shared/messages";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { useBrunchAssistant } from "@hashintel/brunch-agent/ui";
@@ -130,9 +130,9 @@ const savedSnapshot = {
 };
 
 /** The editor's outgoing bridge messages, delivered to this window as the page does. */
-const posted: IframeToHostMessage[] = [];
+const posted: EditorToHostMessage[] = [];
 
-const sendToEditor = (message: HostToIframeMessage) =>
+const sendToEditor = (message: HostToEditorMessage) =>
   act(() => {
     window.dispatchEvent(
       new MessageEvent("message", { data: message, source: window }),
@@ -153,7 +153,7 @@ beforeEach(() => {
   posted.length = 0;
   identityRequests.length = 0;
   vi.spyOn(window, "postMessage").mockImplementation((message: unknown) => {
-    posted.push(message as IframeToHostMessage);
+    posted.push(message as EditorToHostMessage);
   });
   vi.stubGlobal(
     "fetch",
@@ -320,7 +320,7 @@ test("a save result leaves the revision list the host sent after the save", asyn
   const request = posted.find(
     (
       message,
-    ): message is Extract<IframeToHostMessage, { kind: "requestSave" }> =>
+    ): message is Extract<EditorToHostMessage, { kind: "requestSave" }> =>
       message.kind === "requestSave",
   );
   expect(request).toBeDefined();

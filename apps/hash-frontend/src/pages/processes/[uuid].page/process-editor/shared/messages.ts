@@ -3,7 +3,7 @@ import type { SDCPN } from "@hashintel/petrinaut";
 
 /**
  * Metadata about the active net surfaced by the host. Mirrors the shape the
- * iframe needs to drive the version picker and to know what (if anything) it's
+ * editor needs to drive the version picker and to know what (if anything) it's
  * currently editing on the server.
  */
 export type HostNetMode =
@@ -16,13 +16,13 @@ export type RevisionSummary = {
 };
 
 /**
- * Snapshot the iframe should treat as the canonical "last-saved" state for
- * the purposes of dirty-tracking. The iframe compares its live SDCPN against
+ * Snapshot the editor should treat as the canonical "last-saved" state for
+ * the purposes of dirty-tracking. The editor compares its live SDCPN against
  * `definition` (and `title` against this title); when they diverge it emits
  * `dirtyChanged: { isDirty: true }`.
  *
  * `null` means "there is no saved state to compare against" (a brand-new
- * draft) — in that case the iframe treats every non-empty edit as dirty.
+ * draft) — in that case the editor treats every non-empty edit as dirty.
  */
 export type SavedSnapshot = {
   definition: SDCPN;
@@ -32,12 +32,12 @@ export type SavedSnapshot = {
 } | null;
 
 /**
- * Messages sent by the host (process-editor) into the iframe.
+ * Messages sent by the host (process-editor) to the editor.
  */
-export type HostToIframeMessage =
+export type HostToEditorMessage =
   | {
       kind: "init";
-      /** Initial SDCPN the iframe should load into its handle. */
+      /** Initial SDCPN the editor should load into its handle. */
       initialDefinition: SDCPN;
       /** Initial title (mirrored into the editor's title state). */
       initialTitle: string;
@@ -87,7 +87,7 @@ export type HostToIframeMessage =
       /**
        * Reply to a `requestSave`. On success carries the new entity id (the
        * host has either created or updated the underlying entity) and the
-       * updated saved snapshot the iframe should treat as canonical. The
+       * updated saved snapshot the editor should treat as canonical. The
        * revision list that includes the new revision arrives separately, as
        * `revisionsList`, once the host's history refetch lands.
        */
@@ -103,19 +103,19 @@ export type HostToIframeMessage =
     };
 
 /**
- * Messages sent by the iframe (Petrinaut + bridge) up to the host.
+ * Messages sent by the editor (Petrinaut + bridge) to the host.
  */
-export type IframeToHostMessage =
+export type EditorToHostMessage =
   | {
       /**
-       * Sent once after the iframe has mounted and its bridge is ready to
+       * Sent once after the editor has mounted and its bridge is ready to
        * receive messages. The host responds with `init`.
        */
       kind: "ready";
     }
   | {
       /**
-       * Iframe-computed dirty flag (live SDCPN vs the `savedSnapshot` it last
+       * Editor-computed dirty flag (live SDCPN vs the `savedSnapshot` it last
        * received). The host caches this for the discard-changes modal and the
        * `beforeunload` guard.
        */
@@ -124,9 +124,9 @@ export type IframeToHostMessage =
     }
   | {
       /**
-       * Title is owned by the iframe; emitted on every change so the host
+       * Title is owned by the editor; emitted on every change so the host
        * can mirror it into the document title or into a heading rendered
-       * around the iframe.
+       * around the editor.
        */
       kind: "titleChanged";
       title: string;
@@ -135,7 +135,7 @@ export type IframeToHostMessage =
       /**
        * User clicked the save/create button. The host should persist
        * `definition` + `title` to the graph and reply with `saveResult` —
-       * including on failure. The iframe waits for the matching `requestId`
+       * including on failure. The editor waits for the matching `requestId`
        * before un-disabling the save button.
        */
       kind: "requestSave";
@@ -159,17 +159,15 @@ export type IframeToHostMessage =
     }
   | {
       /**
-       * Forwarded error from inside the iframe. The host's Sentry SDK
-       * captures it because the iframe's strict CSP blocks Sentry's own
-       * transport, and because attribution to the host's authenticated
-       * user is more useful than a free-standing iframe report.
+       * An error Petrinaut caught itself (its boundaries keep these from the
+       * app's `ErrorBoundary`), forwarded so the host captures it in Sentry
+       * tagged with the net the user was editing.
        *
-       * `name` / `message` / `stack` are extracted iframe-side from the
-       * thrown value so the host doesn't have to deal with non-Error
-       * `reason` values from `unhandledrejection` etc.
+       * `name` / `message` / `stack` are extracted editor-side from the
+       * thrown value so the host doesn't have to deal with non-Error values.
        */
       kind: "reportError";
-      source: "react" | "petrinaut" | "window-error" | "unhandled-rejection";
+      source: "petrinaut";
       name: string;
       message: string;
       stack: string | undefined;
@@ -182,13 +180,13 @@ export type IframeToHostMessage =
       tags?: Record<string, string | number | boolean>;
     };
 
-const hostToIframeMessageKinds: ReadonlySet<string> = new Set<
-  HostToIframeMessage["kind"]
+const hostToEditorMessageKinds: ReadonlySet<string> = new Set<
+  HostToEditorMessage["kind"]
 >(["init", "load", "setReadonly", "revisionsList", "saveResult"]);
 
-export const isHostToIframeMessage = (
+export const isHostToEditorMessage = (
   data: unknown,
-): data is HostToIframeMessage => {
+): data is HostToEditorMessage => {
   if (typeof data !== "object" || data === null) {
     return false;
   }
@@ -198,12 +196,12 @@ export const isHostToIframeMessage = (
     return false;
   }
 
-  return hostToIframeMessageKinds.has(record.kind);
+  return hostToEditorMessageKinds.has(record.kind);
 };
 
-export const isIframeToHostMessage = (
+export const isEditorToHostMessage = (
   data: unknown,
-): data is IframeToHostMessage =>
+): data is EditorToHostMessage =>
   typeof data === "object" &&
   data !== null &&
   typeof (data as { kind?: unknown }).kind === "string";
@@ -212,8 +210,8 @@ let requestIdCounter = 0;
 
 /**
  * Produces a process-local request id for matching `requestSave` -> `saveResult`
- * round-trips. Doesn't need cross-tab uniqueness (each iframe has its own
- * counter and the matching is done within a single host<->iframe pair).
+ * round-trips. Doesn't need cross-tab uniqueness (each window has its own
+ * counter and the matching is done within a single host<->editor pair).
  */
 export const nextRequestId = (): string => {
   requestIdCounter += 1;

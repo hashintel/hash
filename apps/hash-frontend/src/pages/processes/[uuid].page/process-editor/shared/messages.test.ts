@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { isHostToIframeMessage } from "./messages";
+import { isHostToEditorMessage } from "./messages";
 
-describe("isHostToIframeMessage", () => {
+describe("isHostToEditorMessage", () => {
   it("accepts known host message kinds", () => {
-    expect(isHostToIframeMessage({ kind: "setReadonly", readonly: true })).toBe(
+    expect(isHostToEditorMessage({ kind: "setReadonly", readonly: true })).toBe(
       true,
     );
   });
 
   it("rejects unknown host message kinds", () => {
-    expect(isHostToIframeMessage({ kind: "notAHostMessage" })).toBe(false);
+    expect(isHostToEditorMessage({ kind: "notAHostMessage" })).toBe(false);
   });
 });
