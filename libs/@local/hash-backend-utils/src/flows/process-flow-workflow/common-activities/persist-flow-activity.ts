@@ -9,6 +9,7 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
+  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getFlowRunEntityByWorkflowId } from "../../shared/get-flow-run-entity-by-workflow-id.js";
@@ -86,16 +87,27 @@ export const persistFlowActivity = async (
 
     /*
      * Each property the run's progress describes is set on its own, leaving the run's open input requests, which are
-     * saved as they're raised and answered, as they are.
+     * saved as they're raised and answered, as they are. Outputs a reset undid are removed.
      */
+    const outputsKey = "https://hash.ai/@h/types/property-type/outputs/";
+
     await existingFlowEntity.patch(graphApiClient, userAuthentication, {
-      propertyPatches: typedEntries(flowRunProperties.value).map(
-        ([baseUrl, property]) => ({
-          op: "add",
+      propertyPatches: [
+        ...typedEntries(flowRunProperties.value).map(([baseUrl, property]) => ({
+          op: "add" as const,
           path: [baseUrl as BaseUrl],
           property,
-        }),
-      ),
+        })),
+        ...(!flowRunProperties.value[outputsKey] &&
+        existingFlowEntity.properties[outputsKey] !== undefined
+          ? [
+              {
+                op: "remove" as const,
+                path: [systemPropertyTypes.outputs.propertyTypeBaseUrl],
+              },
+            ]
+          : []),
+      ],
       provenance,
     });
 

@@ -35,7 +35,7 @@ export type FlowRunsContextType = {
   pagination: FlowRunsPaginationState | null;
   selectedFlowRun: SelectedFlowRun | null;
   selectedFlowRunEntityId: EntityId | null;
-  /** Why the selected run's events couldn't be read, or checked for new ones, while they're tried again. */
+  /** Why the selected run's events couldn't be read or shown, or why the last check for new ones failed. */
   selectedFlowRunEventsFailure: string | null;
 };
 

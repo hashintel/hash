@@ -16,6 +16,7 @@ import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-in
 
 import type { GraphApi, ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
+import type { EntityId } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type {
@@ -86,7 +87,10 @@ const inferEntitiesMessageHandler = async ({
         temporalClient,
       });
 
-      for (const { flowRunEntityId } of openFlowRuns.flowRuns) {
+      /* A run started before its open input requests were saved on its entity has them read from its record. */
+      const readOpenInputRequestsFromRecord = async (
+        flowRunEntityId: EntityId,
+      ) => {
         const flowRunEntity = await getFlowRunEntityById({
           userAuthentication: { actorId: user.accountId },
           flowRunEntityId,
@@ -94,7 +98,7 @@ const inferEntitiesMessageHandler = async ({
         });
 
         if (!flowRunEntity) {
-          continue;
+          return [];
         }
 
         const { events } = await getFlowRunRecord({
@@ -106,7 +110,15 @@ const inferEntitiesMessageHandler = async ({
             ],
         });
 
-        for (const inputRequest of getOpenInputRequests(events)) {
+        return getOpenInputRequests(events);
+      };
+
+      for (const {
+        flowRunEntityId,
+        openInputRequests,
+      } of openFlowRuns.flowRuns) {
+        for (const inputRequest of openInputRequests ??
+          (await readOpenInputRequestsFromRecord(flowRunEntityId))) {
           const requestMessage: ExternalInputWebsocketRequestMessage = {
             flowRunEntityId,
             payload: inputRequest,

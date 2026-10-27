@@ -87,7 +87,6 @@ export const useFlowRunEvents = ({
 
     const readNewEvents = async () => {
       let runId: string | undefined;
-      let changed = false;
 
       for (let hasNextPage = true; hasNextPage;) {
         const { data } = await apolloClient.query<
@@ -111,7 +110,6 @@ export const useFlowRunEvents = ({
 
         if (page.restarted || page.events.length > 0) {
           progress.events = withPage(progress.events, page);
-          changed = true;
         }
         progress.cursor = page.endCursor ?? progress.cursor;
         runId = page.runId;
@@ -121,11 +119,14 @@ export const useFlowRunEvents = ({
       if (!cancelled && runId !== undefined) {
         const loadedRunId = runId;
 
-        /* An unchanged result keeps its identity, so what's derived from it isn't recomputed for nothing. */
+        /*
+         * An unchanged result keeps its identity, so what's derived from it isn't recomputed for nothing. Its events are
+         * compared rather than whether this read added any, as a read that failed or was cancelled may have added some.
+         */
         setRead((previous) =>
-          !changed &&
           previous?.flowRunEntityId === flowRunEntityId &&
           previous.result.status === "loaded" &&
+          previous.result.events === progress.events &&
           previous.result.runId === loadedRunId &&
           previous.result.checkFailure === undefined
             ? previous

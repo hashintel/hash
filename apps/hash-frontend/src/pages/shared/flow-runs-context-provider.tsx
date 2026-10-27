@@ -76,26 +76,40 @@ export const FlowRunsContextProvider = ({
     live: !selectedFlowRunData?.getFlowRunById.closedAt,
   });
 
-  const selectedFlowRun = useMemo<SelectedFlowRun | null>(() => {
+  /* Step runs are built in the browser, and inconsistent events are reported as a failure rather than thrown. */
+  const { selectedFlowRun, stepRunsFailure } = useMemo<{
+    selectedFlowRun: SelectedFlowRun | null;
+    stepRunsFailure: string | null;
+  }>(() => {
     if (!selectedFlowRunData || selectedFlowRunEvents.status !== "loaded") {
-      return null;
+      return { selectedFlowRun: null, stepRunsFailure: null };
     }
 
     const flowRun = selectedFlowRunData.getFlowRunById;
     const { events } = selectedFlowRunEvents;
 
-    return {
-      ...flowRun,
-      stepRuns: getStepRunsFromEvents(events, flowRun),
-      inputRequests: getInputRequests(events),
-    };
+    try {
+      return {
+        selectedFlowRun: {
+          ...flowRun,
+          stepRuns: getStepRunsFromEvents(events, flowRun),
+          inputRequests: getInputRequests(events),
+        },
+        stepRunsFailure: null,
+      };
+    } catch (error) {
+      return {
+        selectedFlowRun: null,
+        stepRunsFailure: error instanceof Error ? error.message : String(error),
+      };
+    }
   }, [selectedFlowRunData, selectedFlowRunEvents]);
 
   const selectedFlowRunEventsFailure =
     selectedFlowRunEvents.status === "failed"
       ? selectedFlowRunEvents.message
       : selectedFlowRunEvents.status === "loaded"
-        ? (selectedFlowRunEvents.checkFailure ?? null)
+        ? (stepRunsFailure ?? selectedFlowRunEvents.checkFailure ?? null)
         : null;
 
   const context = useMemo<FlowRunsContextType>(

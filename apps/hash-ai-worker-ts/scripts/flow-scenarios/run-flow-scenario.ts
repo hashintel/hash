@@ -510,8 +510,7 @@ const getOutputs = (outputs: StepOutput[] | undefined) =>
   );
 
 const getStepError = (step: StepRun | undefined) =>
-  step?.errorStatus?.message ??
-  (step?.lastFailure as { message?: string } | undefined)?.message;
+  step?.errorStatus?.message ?? step?.lastFailure?.message;
 
 const checkStatus = (
   label: string,

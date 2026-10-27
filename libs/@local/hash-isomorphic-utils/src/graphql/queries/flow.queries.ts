@@ -42,7 +42,6 @@ export const getFlowRunById = gql`
       }
       failure {
         message
-        code
       }
     }
   }
@@ -55,7 +54,6 @@ export const getFlowRunEventsQuery = gql`
     $first: Int
   ) {
     getFlowRunById(flowRunEntityId: $flowRunEntityId) {
-      flowRunEntityId
       events(after: $after, first: $first) {
         endCursor
         hasNextPage

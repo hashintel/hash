@@ -27,8 +27,7 @@ const WorkerFlowDefinitionResolver = () => {
           variant="smallTextParagraphs"
           sx={({ palette }) => ({ color: palette.red[80] })}
         >
-          Couldn't load this run's events, trying again:{" "}
-          {selectedFlowRunEventsFailure}
+          Couldn't load this run's events: {selectedFlowRunEventsFailure}
         </Typography>
       </Box>
     ) : (
