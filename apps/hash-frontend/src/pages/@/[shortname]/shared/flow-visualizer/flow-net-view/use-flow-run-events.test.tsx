@@ -19,10 +19,18 @@ const eventsPage = ({
   after,
   events,
   endCursor,
+  hasNextPage = false,
+  runId = "run",
+  restarted = false,
+  keptUpTo = null,
 }: {
   after: string | null;
   events: FlowRunEvent[];
   endCursor: string | null;
+  hasNextPage?: boolean;
+  runId?: string;
+  restarted?: boolean;
+  keptUpTo?: string | null;
 }): MockedResponse => ({
   request: {
     query: getFlowRunEventsQuery,
@@ -34,10 +42,10 @@ const eventsPage = ({
         flowRunEntityId,
         events: {
           endCursor,
-          hasNextPage: false,
-          runId: "run",
-          restarted: false,
-          keptUpTo: null,
+          hasNextPage,
+          runId,
+          restarted,
+          keptUpTo,
           events,
         },
       },
@@ -58,6 +66,15 @@ const runFinishedEvent: FlowRunEvent = {
   occurredAt: "2026-10-22T10:01:00.000Z",
   status: FlowRunStatus.Completed,
 };
+
+const stepStartedEvent = (position: string): FlowRunEvent => ({
+  kind: "stepStarted",
+  position,
+  occurredAt: "2026-10-22T10:00:30.000Z",
+  stepRun: { stepId: "research", itemPath: [] },
+  stepType: "researchEntities",
+  inputs: [],
+});
 
 const renderWithMocks = (mocks: MockedResponse[]) =>
   renderHook(({ live }) => useFlowRunEvents({ flowRunEntityId, live }), {
@@ -160,6 +177,108 @@ describe("useFlowRunEvents", () => {
 
     await act(() => vi.advanceTimersByTimeAsync(2_000));
     await waitFor(() => expect(loadedEvents(result.current)).toHaveLength(2));
+
+    unmount();
+  });
+
+  it("drops the events a reset undid, and keeps the ones before it", async () => {
+    const { result, unmount } = renderWithMocks([
+      eventsPage({
+        after: null,
+        events: [runStartedEvent, stepStartedEvent("2.0")],
+        endCursor: "2.0",
+      }),
+      eventsPage({
+        after: "2.0",
+        events: [stepStartedEvent("5.0")],
+        endCursor: "5.0",
+        runId: "reset-run",
+        restarted: true,
+        keptUpTo: "1.0",
+      }),
+    ]);
+
+    await waitFor(() => expect(loadedEvents(result.current)).toHaveLength(2));
+
+    await act(() => vi.advanceTimersByTimeAsync(2_000));
+
+    await waitFor(() =>
+      expect(result.current).toEqual({
+        status: "loaded",
+        runId: "reset-run",
+        events: [runStartedEvent, stepStartedEvent("5.0")],
+      }),
+    );
+
+    unmount();
+  });
+
+  it("starts again from the first event when a reset kept none", async () => {
+    const { result, unmount } = renderWithMocks([
+      eventsPage({
+        after: null,
+        events: [runStartedEvent, stepStartedEvent("2.0")],
+        endCursor: "2.0",
+      }),
+      eventsPage({
+        after: "2.0",
+        events: [runStartedEvent],
+        endCursor: "1.0",
+        runId: "reset-run",
+        restarted: true,
+      }),
+    ]);
+
+    await waitFor(() => expect(loadedEvents(result.current)).toHaveLength(2));
+
+    await act(() => vi.advanceTimersByTimeAsync(2_000));
+
+    await waitFor(() =>
+      expect(result.current).toEqual({
+        status: "loaded",
+        runId: "reset-run",
+        events: [runStartedEvent],
+      }),
+    );
+
+    unmount();
+  });
+
+  it("drops events only on a reset's first page", async () => {
+    const { result, unmount } = renderWithMocks([
+      eventsPage({
+        after: null,
+        events: [runStartedEvent, stepStartedEvent("2.0")],
+        endCursor: "2.0",
+      }),
+      eventsPage({
+        after: "2.0",
+        events: [stepStartedEvent("5.0")],
+        endCursor: "5.0",
+        hasNextPage: true,
+        runId: "reset-run",
+        restarted: true,
+        keptUpTo: "1.0",
+      }),
+      eventsPage({
+        after: "5.0",
+        events: [runFinishedEvent],
+        endCursor: "6.0",
+        runId: "reset-run",
+      }),
+    ]);
+
+    await waitFor(() => expect(loadedEvents(result.current)).toHaveLength(2));
+
+    await act(() => vi.advanceTimersByTimeAsync(2_000));
+
+    await waitFor(() =>
+      expect(loadedEvents(result.current)).toEqual([
+        runStartedEvent,
+        stepStartedEvent("5.0"),
+        runFinishedEvent,
+      ]),
+    );
 
     unmount();
   });
