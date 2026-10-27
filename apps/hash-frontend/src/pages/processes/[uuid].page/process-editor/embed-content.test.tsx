@@ -6,12 +6,12 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { EmbedContent } from "./embed-content";
 
+import type { EmbedChrome } from "./embed-content/embed-chrome-context";
 import type {
   HostNetMode,
   HostToIframeMessage,
   IframeToHostMessage,
-} from "../../shared/messages";
-import type { EmbedChrome } from "./embed-chrome-context";
+} from "./shared/messages";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { useBrunchAssistant } from "@hashintel/brunch-agent/ui";
 import type { ErrorTracker, PetrinautDocHandle } from "@hashintel/petrinaut";
@@ -35,7 +35,8 @@ vi.mock("@hashintel/petrinaut", async () => {
   const core = await vi.importActual<typeof PetrinautCore>(
     "@hashintel/petrinaut-core",
   );
-  const { EmbedChromeContext } = await import("./embed-chrome-context");
+  const { EmbedChromeContext } =
+    await import("./embed-content/embed-chrome-context");
   const errorTrackerContext = createContext<ErrorTracker>({
     captureException: () => {},
   });
@@ -88,7 +89,7 @@ vi.mock("@hashintel/brunch-agent/ui", async () => {
   };
 });
 
-vi.mock("./embed-chrome-plugin", () => ({
+vi.mock("./embed-content/embed-chrome-plugin", () => ({
   embedChromePlugin: { id: "embed-chrome" },
 }));
 
