@@ -158,7 +158,7 @@ where
         scope: Self::ExecutionScope,
         payload: CreateAccount,
     ) -> impl Future<Output = Result<ActorEntityUuid, Report<AccountError>>> {
-        core::future::ready(Ok(ActorEntityUuid::new(Uuid::new_v4())))
+        core::future::ready(Ok(ActorEntityUuid::new(Uuid::now_v7())))
     }
 }
 
