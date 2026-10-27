@@ -27,6 +27,12 @@ describe("getDocumentUri", () => {
       "inmemory://sdcpn/differential-equations/de1.ts",
     );
   });
+
+  it("builds a place-visualizer URI", () => {
+    expect(getDocumentUri("place-visualizer", "p1")).toBe(
+      "inmemory://sdcpn/places/p1/visualizer.jsx",
+    );
+  });
 });
 
 describe("parseDocumentUri", () => {
@@ -46,6 +52,12 @@ describe("parseDocumentUri", () => {
     expect(
       parseDocumentUri("inmemory://sdcpn/differential-equations/de1.ts"),
     ).toEqual({ itemType: "differential-equation", itemId: "de1" });
+  });
+
+  it("parses a place-visualizer URI", () => {
+    expect(
+      parseDocumentUri("inmemory://sdcpn/places/p1/visualizer.jsx"),
+    ).toEqual({ itemType: "place-visualizer", itemId: "p1" });
   });
 
   it("returns null for an unknown URI", () => {
@@ -76,6 +88,12 @@ describe("uriToFilePath", () => {
     ).toBe("/differential_equations/de1/code.ts");
   });
 
+  it("converts a place-visualizer URI to a file path", () => {
+    expect(uriToFilePath("inmemory://sdcpn/places/p1/visualizer.jsx")).toBe(
+      "/places/p1/visualizer/code.jsx",
+    );
+  });
+
   it("returns null for an unknown URI", () => {
     expect(uriToFilePath("inmemory://sdcpn/unknown/foo.ts")).toBeNull();
   });
@@ -100,6 +118,12 @@ describe("filePathToUri", () => {
     );
   });
 
+  it("converts a place-visualizer file path to a URI", () => {
+    expect(filePathToUri("/places/p1/visualizer/code.jsx")).toBe(
+      "inmemory://sdcpn/places/p1/visualizer.jsx",
+    );
+  });
+
   it("returns null for an unknown file path", () => {
     expect(filePathToUri("/unknown/foo/code.ts")).toBeNull();
   });
@@ -110,6 +134,7 @@ describe("roundtrip", () => {
     { itemType: "transition-lambda" as const, itemId: "t1" },
     { itemType: "transition-kernel" as const, itemId: "t2" },
     { itemType: "differential-equation" as const, itemId: "de1" },
+    { itemType: "place-visualizer" as const, itemId: "p1" },
   ];
 
   it.for(cases)(

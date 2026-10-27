@@ -16,7 +16,7 @@ export const getFlowRunByIdResolver: ResolverFn<
   Record<string, never>,
   Pick<
     GraphQLContext,
-    "authentication" | "dataSources" | "flowRunHistories" | "temporal"
+    "authentication" | "dataSources" | "flowRunRecords" | "temporal"
   >,
   QueryGetFlowRunByIdArgs
 > = async (_parent, args, context, info) => {
@@ -27,8 +27,8 @@ export const getFlowRunByIdResolver: ResolverFn<
   const flowRun = await getFlowRunById({
     flowRunEntityId,
     graphApiClient: context.dataSources.graphApi,
-    historiesByWorkflowId: context.flowRunHistories,
     includeDetails,
+    recordsByWorkflowId: context.flowRunRecords,
     storageProvider: context.dataSources.uploadProvider,
     temporalClient: context.temporal,
     userAuthentication: context.authentication,

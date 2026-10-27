@@ -1,23 +1,22 @@
 {
-  "dataSources": {
-    "files": {
-      "fileEntityIds": []
-    },
-    "internetAccess": {
-      "browserPlugin": {
-        "domains": [],
-        "enabled": false
-      },
-      "enabled": false
-    }
-  },
   "flowInputs": {
     "prompt": {
       "kind": "Text",
       "value": "Who makes HASH?"
     }
   },
-  "inputRequests": [],
+  "dataSources": {
+    "files": {
+      "fileEntityIds": []
+    },
+    "internetAccess": {
+      "enabled": false,
+      "browserPlugin": {
+        "enabled": false,
+        "domains": []
+      }
+    }
+  },
   "outputs": [
     {
       "code": "OK",
@@ -37,11 +36,14 @@
       ]
     }
   ],
-  "startedAt": "2026-10-21T13:36:25.061Z",
+  "inputRequests": [],
   "steps": [
     {
-      "attempt": 1,
-      "closedAt": "2026-10-21T13:36:27.316Z",
+      "stepId": "research",
+      "stepType": "researchEntitiesAction",
+      "startedAt": "2026-10-24T11:10:56.514Z",
+      "scheduledAt": "2026-10-24T11:10:53.462Z",
+      "closedAt": "2026-10-24T11:10:56.525Z",
       "inputs": [
         {
           "inputs": [
@@ -57,13 +59,15 @@
       ],
       "logs": [
         {
-          "checkpointId": "aeb17efb-7dec-4d65-a57d-a20772bb3d8d",
-          "eventId": 38,
-          "recordedAt": "2026-10-21T13:36:25.252Z",
-          "stepId": "research",
-          "type": "ResearchActionCheckpoint"
+          "type": "ResearchActionCheckpoint",
+          "checkpointId": "23022ee1-7f04-4a6d-9588-771bf4157d7a",
+          "eventId": 42,
+          "recordedAt": "2026-10-24T11:10:54.468Z",
+          "stepId": "research"
         }
       ],
+      "status": "COMPLETED",
+      "attempt": 1,
       "outputs": [
         {
           "code": "OK",
@@ -88,12 +92,8 @@
             }
           ]
         }
-      ],
-      "scheduledAt": "2026-10-21T13:36:25.243Z",
-      "startedAt": "2026-10-21T13:36:27.301Z",
-      "status": "COMPLETED",
-      "stepId": "research",
-      "stepType": "researchEntitiesAction"
+      ]
     }
-  ]
+  ],
+  "startedAt": "2026-10-24T11:10:53.382Z"
 }

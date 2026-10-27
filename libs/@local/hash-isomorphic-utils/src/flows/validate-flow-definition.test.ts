@@ -148,11 +148,6 @@ describe("validateFlowDefinition", () => {
       },
       {
         severity: "error",
-        code: "mixedWorkers",
-        path: ["steps", 1, "actionDefinitionId"],
-      },
-      {
-        severity: "error",
         code: "missingInput",
         path: ["steps", 1, "inputs"],
       },

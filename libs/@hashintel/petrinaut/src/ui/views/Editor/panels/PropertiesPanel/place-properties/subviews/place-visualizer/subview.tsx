@@ -18,6 +18,7 @@ import { ExecutionFrameSourceContext } from "../../../../../../../../react/execu
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
+import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
 import { PlaceStateVisualization } from "../../../../../../shared/place-state-visualization";
 import { usePlacePropertiesContext } from "../../context";
 
@@ -128,7 +129,7 @@ const PlaceVisualizerContent: React.FC = () => {
         {(activeMode === "code" || activeMode === "split") && (
           <div className={panelStyle}>
             <CodeEditor
-              path={`inmemory://sdcpn/places/${place.id}/visualizer.tsx`}
+              path={getDocumentUri("place-visualizer", place.id)}
               language="typescript"
               height="100%"
               value={place.visualizerCode}

@@ -190,10 +190,14 @@ describe("updateEntityAction", () => {
     expect(query?.filter).toMatchObject({
       all: expect.arrayContaining([
         {
-          equal: [
-            { path: ["draftId"] },
-            { parameter: "00000000-0000-4000-8000-0000000000ff" },
-          ],
+          all: expect.arrayContaining([
+            {
+              equal: [
+                { path: ["draftId"] },
+                { parameter: "00000000-0000-4000-8000-0000000000ff" },
+              ],
+            },
+          ]) as unknown[],
         },
       ]) as unknown[],
     });

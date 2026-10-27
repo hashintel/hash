@@ -47,7 +47,7 @@ pre-commit:
     toml: &toml
       tags: [backend, style]
       glob: "*.toml"
-      run: taplo format {staged_files} || true
+      run: tombi format {staged_files} || true
       stage_fixed: true
 
 # Opt out with `format: {skip: true}` in `lefthook-local.yml`; pre-commit keeps running.
@@ -71,4 +71,4 @@ format:
       run: rustfmt {files} || true
     toml:
       <<: *toml
-      run: taplo format {files} || true
+      run: tombi format {files} || true

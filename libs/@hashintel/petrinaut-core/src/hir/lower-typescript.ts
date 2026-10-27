@@ -37,6 +37,7 @@ import type {
   HirExpr,
   HirFunction,
   HirLetBinding,
+  HirFunctionSurfaceKind,
   HirMathFn,
   HirSurfaceKind,
   Span,
@@ -155,7 +156,7 @@ class LowerError extends Error {
   }
 }
 
-type LowerScope = {
+export type HirLoweringScope = {
   /** In-scope local names: fn params, `const` bindings, map params. */
   locals: Set<string>;
   /** Locals whose bound value is distribution-valued (drives `.map`
@@ -176,9 +177,61 @@ type LowerScope = {
   scenarioName: string | null;
 };
 
+/**
+ * What a statement list builds. The expression HIR builds `let` and `cond`
+ * nodes; a surface with a tree of its own (the view HIR) supplies its own.
+ */
+export type HirStatementBuilder<T> = {
+  /** The returned expression. */
+  tail(expression: ts.Expression, scope: HirLoweringScope): T;
+  /** `const` bindings in scope for `body`; `anchor` spans the block. */
+  bindings(bindings: HirLetBinding[], body: T, anchor: ts.Node): T;
+  /** A terminating or guard `if`. */
+  branch(
+    condition: HirExpr,
+    thenBranch: T,
+    elseBranch: T,
+    statement: ts.IfStatement,
+  ): T;
+};
+
+/**
+ * The expression lowering as a surface with a tree of its own uses it: the
+ * view HIR lowers JSX itself and hands every expression, block body and
+ * callback here, so scopes, bindings and the accepted expression subset
+ * have one owner.
+ */
+export type HirExpressionLowering = {
+  spanOf(node: ts.Node): Span;
+  /** Stops the lowering with one positioned diagnostic. */
+  fail(node: ts.Node, code: string, message: string): never;
+  newScope(): HirLoweringScope;
+  lowerExpr(node: ts.Expression, scope: HirLoweringScope): HirExpr;
+  lowerBlockAs<T>(
+    block: ts.Block,
+    outerScope: HirLoweringScope,
+    builder: HirStatementBuilder<T>,
+  ): T;
+  lowerCallbackParameters(
+    callback: ts.ArrowFunction | ts.FunctionExpression,
+    scope: HirLoweringScope,
+  ): {
+    param: { name: string; span: Span };
+    indexParam: { name: string; span: Span } | undefined;
+    bodyScope: HirLoweringScope;
+  };
+  bindInputParameter(
+    parameter: ts.ParameterDeclaration,
+    syntheticName: string,
+    scope: HirLoweringScope,
+  ): { name: string; span: Span };
+  makeBoolLit(node: ts.Node, value: boolean): HirExpr;
+  makeStringLit(node: ts.Node, value: string): HirExpr;
+};
+
 /** Introduces `name` as a local, shadowing any distribution marking,
  * destructured-field routing, or ambient alias it previously had. */
-function shadowAsLocal(scope: LowerScope, name: string): void {
+function shadowAsLocal(scope: HirLoweringScope, name: string): void {
   scope.locals.add(name);
   scope.distributionLocals.delete(name);
   scope.destructuredFields.delete(name);
@@ -186,7 +239,7 @@ function shadowAsLocal(scope: LowerScope, name: string): void {
   scope.scenarioAliases.delete(name);
 }
 
-function childScope(scope: LowerScope): LowerScope {
+function childScope(scope: HirLoweringScope): HirLoweringScope {
   return {
     locals: new Set(scope.locals),
     distributionLocals: new Set(scope.distributionLocals),
@@ -261,7 +314,7 @@ class Lowering {
       });
     }
     const stateParam = arrow.parameters[0]!;
-    const scope: LowerScope = {
+    const scope: HirLoweringScope = {
       locals: new Set(["state"]),
       distributionLocals: new Set(),
       destructuredFields: new Map(),
@@ -317,7 +370,7 @@ class Lowering {
     }
     const inputName = AMBIENT_INPUT_NAMES[surface];
     const [inputParam, parametersParam] = arrow.parameters;
-    const scope: LowerScope = {
+    const scope: HirLoweringScope = {
       locals: new Set([inputName]),
       distributionLocals: new Set(),
       destructuredFields: new Map(),
@@ -340,7 +393,7 @@ class Lowering {
   }
 
   /** The scope scenario code starts in: no locals, both ambient objects. */
-  private scenarioScope(): LowerScope {
+  private scenarioScope(): HirLoweringScope {
     return {
       locals: new Set(),
       distributionLocals: new Set(),
@@ -484,33 +537,24 @@ class Lowering {
     }
 
     const params: HirFunction["params"] = [];
-    const scope: LowerScope = {
-      locals: new Set(),
-      distributionLocals: new Set(),
-      destructuredFields: new Map(),
-      parameterAliases: new Map(),
-      parametersName: null,
-      scenarioAliases: new Map(),
-      scenarioName: null,
-    };
+    const scope = this.newScope();
 
     for (const [index, parameter] of fnArg.parameters.entries()) {
+      if (index === 0) {
+        params.push(this.bindInputParameter(parameter, "__input", scope));
+        continue;
+      }
       if (ts.isIdentifier(parameter.name)) {
         const name = parameter.name.text;
         params.push({ name, span: this.spanOf(parameter.name) });
-        if (index === 0) {
-          scope.locals.add(name);
-        } else {
-          scope.parametersName = name;
-        }
+        scope.parametersName = name;
         continue;
       }
       if (ts.isObjectBindingPattern(parameter.name)) {
-        // Destructured parameter: synthesize a name and route the bound
-        // identifiers to the underlying tokens object / parameter reads.
-        const syntheticName = index === 0 ? "__input" : "__parameters";
+        // Destructured parameters object: the bound identifiers become
+        // parameter reads.
         params.push({
-          name: syntheticName,
+          name: "__parameters",
           span: this.spanOf(parameter.name),
         });
         for (const element of parameter.name.elements) {
@@ -522,14 +566,7 @@ class Lowering {
               "Renames are not supported when destructuring function parameters.",
             );
           }
-          if (index === 0) {
-            scope.destructuredFields.set(bound.name, syntheticName);
-          } else {
-            scope.parameterAliases.set(bound.name, bound.sourceName);
-          }
-        }
-        if (index === 0) {
-          scope.locals.add(syntheticName);
+          scope.parameterAliases.set(bound.name, bound.sourceName);
         }
         continue;
       }
@@ -553,40 +590,124 @@ class Lowering {
     };
   }
 
+  /** A scope with nothing in it: the start of a function. */
+  newScope(): HirLoweringScope {
+    return {
+      locals: new Set(),
+      distributionLocals: new Set(),
+      destructuredFields: new Map(),
+      parameterAliases: new Map(),
+      parametersName: null,
+      scenarioAliases: new Map(),
+      scenarioName: null,
+    };
+  }
+
+  /**
+   * Binds a function's input parameter: a plain name becomes a local, and
+   * an object pattern routes each destructured name to a field of the
+   * synthetic local that holds the whole argument.
+   */
+  bindInputParameter(
+    parameter: ts.ParameterDeclaration,
+    syntheticName: string,
+    scope: HirLoweringScope,
+  ): { name: string; span: Span } {
+    if (ts.isIdentifier(parameter.name)) {
+      const name = parameter.name.text;
+      scope.locals.add(name);
+      return { name, span: this.spanOf(parameter.name) };
+    }
+    if (ts.isObjectBindingPattern(parameter.name)) {
+      for (const element of parameter.name.elements) {
+        const bound = this.bindingElementParts(element);
+        if (bound.name !== bound.sourceName) {
+          this.fail(
+            element,
+            "hir:destructured-parameter",
+            "Renames are not supported when destructuring function parameters.",
+          );
+        }
+        scope.destructuredFields.set(bound.name, syntheticName);
+      }
+      scope.locals.add(syntheticName);
+      return { name: syntheticName, span: this.spanOf(parameter.name) };
+    }
+    this.fail(
+      parameter.name,
+      "hir:destructured-parameter",
+      "Function parameters must be plain names or object destructuring like `({ Pool }, { rate })`.",
+    );
+  }
+
+  /** A literal `true`/`false` positioned at `node`. */
+  makeBoolLit(node: ts.Node, value: boolean): HirExpr {
+    return this.make(node, { kind: "boolLit", value });
+  }
+
+  /** A literal string positioned at `node`. */
+  makeStringLit(node: ts.Node, value: string): HirExpr {
+    return this.make(node, { kind: "stringLit", value });
+  }
+
+  /** How the expression HIR builds a value from a statement list. */
+  private readonly expressionStatements: HirStatementBuilder<HirExpr> = {
+    tail: (expression, scope) => this.lowerExpr(expression, scope),
+    bindings: (bindings, body, anchor) => ({
+      kind: "let",
+      bindings,
+      body,
+      id: this.nextId++,
+      span: this.spanOf(anchor),
+    }),
+    branch: (condition, thenBranch, elseBranch, statement) => ({
+      kind: "cond",
+      condition,
+      thenBranch,
+      elseBranch,
+      id: this.nextId++,
+      span: this.spanOf(statement),
+    }),
+  };
+
   /** Lowers a `{ const...; if guards...; return expr; }` block. */
-  private lowerBlock(block: ts.Block, outerScope: LowerScope): HirExpr {
-    return this.lowerStatements(
+  private lowerBlock(block: ts.Block, outerScope: HirLoweringScope): HirExpr {
+    return this.lowerBlockAs(block, outerScope, this.expressionStatements);
+  }
+
+  /** Lowers a block in a scope of its own; `builder` decides what its
+   * statements build. */
+  lowerBlockAs<T>(
+    block: ts.Block,
+    outerScope: HirLoweringScope,
+    builder: HirStatementBuilder<T>,
+  ): T {
+    return this.lowerStatementsAs(
       block.statements,
       childScope(outerScope),
       block,
+      builder,
     );
   }
 
   /**
-   * Lowers a statement list to an expression. Supported statements:
-   * `const` bindings (with object/array destructuring), guard-clause
-   * `if (cond) return a;` (the remaining statements become the else branch),
+   * Lowers a statement list to a value. Supported statements: `const`
+   * bindings (with object/array destructuring), guard-clause `if (cond)
+   * return a;` (the remaining statements become the else branch),
    * terminating `if/else` where both branches return, and a final `return`.
+   * `builder` turns that shape into a value: the expression HIR's `let` and
+   * `cond` nodes, or another tree's.
    */
-  private lowerStatements(
+  private lowerStatementsAs<T>(
     statements: readonly ts.Statement[],
-    scope: LowerScope,
+    scope: HirLoweringScope,
     anchor: ts.Node,
-  ): HirExpr {
+    builder: HirStatementBuilder<T>,
+  ): T {
     const bindings: HirLetBinding[] = [];
 
-    const wrapBindings = (body: HirExpr): HirExpr => {
-      if (bindings.length === 0) {
-        return body;
-      }
-      return {
-        kind: "let",
-        bindings,
-        body,
-        id: this.nextId++,
-        span: this.spanOf(anchor),
-      };
-    };
+    const wrapBindings = (body: T): T =>
+      bindings.length === 0 ? body : builder.bindings(bindings, body, anchor);
 
     const failUnreachable = (statement: ts.Statement): never =>
       this.fail(
@@ -619,25 +740,28 @@ class Lowering {
             "The function must return a value.",
           );
         }
-        return wrapBindings(this.lowerExpr(statement.expression, scope));
+        return wrapBindings(builder.tail(statement.expression, scope));
       } else if (ts.isIfStatement(statement)) {
         const condition = this.lowerExpr(statement.expression, scope);
-        const thenBranch = this.lowerBranch(statement.thenStatement, scope);
+        const thenBranch = this.lowerBranchAs(
+          statement.thenStatement,
+          scope,
+          builder,
+        );
 
         if (statement.elseStatement) {
           // Both branches terminate; nothing may follow.
           if (index !== statements.length - 1) {
             failUnreachable(statements[index + 1]!);
           }
-          const elseBranch = this.lowerBranch(statement.elseStatement, scope);
-          return wrapBindings({
-            kind: "cond",
-            condition,
-            thenBranch,
-            elseBranch,
-            id: this.nextId++,
-            span: this.spanOf(statement),
-          });
+          const elseBranch = this.lowerBranchAs(
+            statement.elseStatement,
+            scope,
+            builder,
+          );
+          return wrapBindings(
+            builder.branch(condition, thenBranch, elseBranch, statement),
+          );
         }
 
         // Guard clause: the remaining statements are the else branch.
@@ -649,19 +773,15 @@ class Lowering {
             "A guard `if` must be followed by more statements ending in `return`.",
           );
         }
-        const elseBranch = this.lowerStatements(
+        const elseBranch = this.lowerStatementsAs(
           rest,
           childScope(scope),
           rest[0]!,
+          builder,
         );
-        return wrapBindings({
-          kind: "cond",
-          condition,
-          thenBranch,
-          elseBranch,
-          id: this.nextId++,
-          span: this.spanOf(statement),
-        });
+        return wrapBindings(
+          builder.branch(condition, thenBranch, elseBranch, statement),
+        );
       } else if (
         ts.isForStatement(statement) ||
         ts.isForOfStatement(statement) ||
@@ -691,7 +811,11 @@ class Lowering {
   }
 
   /** Lowers an `if` branch, which must terminate with a `return`. */
-  private lowerBranch(statement: ts.Statement, scope: LowerScope): HirExpr {
+  private lowerBranchAs<T>(
+    statement: ts.Statement,
+    scope: HirLoweringScope,
+    builder: HirStatementBuilder<T>,
+  ): T {
     if (ts.isReturnStatement(statement)) {
       if (!statement.expression) {
         this.fail(
@@ -700,13 +824,14 @@ class Lowering {
           "The function must return a value.",
         );
       }
-      return this.lowerExpr(statement.expression, scope);
+      return builder.tail(statement.expression, scope);
     }
     if (ts.isBlock(statement)) {
-      return this.lowerStatements(
+      return this.lowerStatementsAs(
         statement.statements,
         childScope(scope),
         statement,
+        builder,
       );
     }
     this.fail(
@@ -723,7 +848,7 @@ class Lowering {
    */
   private lowerDeclaration(
     declaration: ts.VariableDeclaration,
-    scope: LowerScope,
+    scope: HirLoweringScope,
   ): HirLetBinding[] {
     if (!declaration.initializer) {
       this.fail(
@@ -900,7 +1025,7 @@ class Lowering {
     };
   }
 
-  private lowerExpr(node: ts.Expression, scope: LowerScope): HirExpr {
+  lowerExpr(node: ts.Expression, scope: HirLoweringScope): HirExpr {
     // Unwrap constructs that are transparent at runtime.
     if (ts.isParenthesizedExpression(node)) {
       return this.lowerExpr(node.expression, scope);
@@ -911,6 +1036,37 @@ class Lowering {
       ts.isNonNullExpression(node)
     ) {
       return this.lowerExpr(node.expression, scope);
+    }
+
+    if (this.surface === "visualizer") {
+      if (node.kind === ts.SyntaxKind.NullKeyword) {
+        return this.make(node, { kind: "nullLit" });
+      }
+      if (ts.isTemplateExpression(node)) {
+        return this.make(node, {
+          kind: "templateLit",
+          quasis: [
+            node.head.text,
+            ...node.templateSpans.map((span) => span.literal.text),
+          ],
+          expressions: node.templateSpans.map((span) =>
+            this.lowerExpr(span.expression, scope),
+          ),
+        });
+      }
+      if (
+        ts.isJsxElement(node) ||
+        ts.isJsxSelfClosingElement(node) ||
+        ts.isJsxFragment(node)
+      ) {
+        // The view HIR lowers elements where they can be drawn; in a value
+        // position there is nothing to draw them into.
+        this.fail(
+          node,
+          "hir:unsupported-syntax",
+          "An element can only be drawn as a child of another element or as the picture the visualizer returns, not used as a value.",
+        );
+      }
     }
 
     if (ts.isNumericLiteral(node)) {
@@ -1006,13 +1162,23 @@ class Lowering {
     );
   }
 
-  private lowerIdentifier(node: ts.Identifier, scope: LowerScope): HirExpr {
+  private lowerIdentifier(
+    node: ts.Identifier,
+    scope: HirLoweringScope,
+  ): HirExpr {
     const name = node.text;
     if (name === "Infinity") {
       return this.make(node, { kind: "constant", name: "Infinity" });
     }
     if (name === "NaN") {
       return this.make(node, { kind: "constant", name: "NaN" });
+    }
+    if (
+      name === "undefined" &&
+      this.surface === "visualizer" &&
+      !scope.locals.has(name)
+    ) {
+      return this.make(node, { kind: "nullLit" });
     }
     const destructuredBase = scope.destructuredFields.get(name);
     if (destructuredBase !== undefined) {
@@ -1057,7 +1223,7 @@ class Lowering {
 
   private lowerUnary(
     node: ts.PrefixUnaryExpression,
-    scope: LowerScope,
+    scope: HirLoweringScope,
   ): HirExpr {
     const op =
       node.operator === ts.SyntaxKind.MinusToken
@@ -1091,7 +1257,7 @@ class Lowering {
 
   private lowerPropertyAccess(
     node: ts.PropertyAccessExpression,
-    scope: LowerScope,
+    scope: HirLoweringScope,
   ): HirExpr {
     const property = node.name.text;
 
@@ -1159,7 +1325,7 @@ class Lowering {
     );
   }
 
-  private lowerCall(node: ts.CallExpression, scope: LowerScope): HirExpr {
+  private lowerCall(node: ts.CallExpression, scope: HirLoweringScope): HirExpr {
     const callee = node.expression;
 
     // range(...) — the scenario helper (Python-style, end-exclusive).
@@ -1276,6 +1442,70 @@ class Lowering {
         });
       }
 
+      if (this.surface === "visualizer") {
+        // <expr>.slice(start?, end?)
+        if (method === "slice") {
+          if (node.arguments.length > 2) {
+            this.fail(
+              node,
+              "hir:slice-arity",
+              "`.slice(...)` takes at most a start and an end.",
+            );
+          }
+          const [start, end] = node.arguments;
+          return this.make(node, {
+            kind: "arraySlice",
+            target: this.lowerExpr(callee.expression, scope),
+            start: start ? this.lowerExpr(start, scope) : undefined,
+            end: end ? this.lowerExpr(end, scope) : undefined,
+          });
+        }
+        // <expr>.filter((element, index?) => boolean)
+        if (method === "filter") {
+          if (node.arguments.length !== 1) {
+            this.fail(
+              node,
+              "hir:filter-callback",
+              "`.filter(...)` expects exactly one callback argument.",
+            );
+          }
+          const callback = node.arguments[0]!;
+          if (
+            !ts.isArrowFunction(callback) &&
+            !ts.isFunctionExpression(callback)
+          ) {
+            this.fail(
+              callback,
+              "hir:filter-callback",
+              "`.filter(...)` expects an inline function, e.g. `.filter((token) => token.x > 0)`.",
+            );
+          }
+          return this.lowerInlineCallbackMap(
+            node,
+            this.lowerExpr(callee.expression, scope),
+            callback,
+            scope,
+            "arrayFilter",
+          );
+        }
+        // <number>.toFixed(digits?)
+        if (method === "toFixed") {
+          if (node.arguments.length > 1) {
+            this.fail(
+              node,
+              "hir:to-fixed-arity",
+              "`.toFixed(...)` takes at most the number of digits.",
+            );
+          }
+          const [digits] = node.arguments;
+          return this.make(node, {
+            kind: "numberFormat",
+            target: this.lowerExpr(callee.expression, scope),
+            digits: digits ? this.lowerExpr(digits, scope) : undefined,
+          });
+        }
+      }
+
       // <expr>.map(...)
       if (method === "map") {
         return this.lowerMapCall(node, callee, scope);
@@ -1323,7 +1553,9 @@ class Lowering {
     this.fail(
       node,
       "hir:unsupported-call",
-      "Only `Math.*`, `Distribution.*`, `.map(...)`, `.reduce(...)` and `.concat(...)` calls are supported.",
+      this.surface === "visualizer"
+        ? "Only `Math.*`, `.map(...)`, `.filter(...)`, `.slice(...)`, `.reduce(...)` and `.toFixed(...)` calls are available in a visualizer; hooks and other functions cannot run here."
+        : "Only `Math.*`, `Distribution.*`, `.map(...)`, `.reduce(...)` and `.concat(...)` calls are supported.",
     );
   }
 
@@ -1332,7 +1564,10 @@ class Lowering {
    * `arrayMap` when a callback is given). Only the `{ length }` array-like
    * form is supported; the callback's element parameter receives the index.
    */
-  private lowerArrayFrom(node: ts.CallExpression, scope: LowerScope): HirExpr {
+  private lowerArrayFrom(
+    node: ts.CallExpression,
+    scope: HirLoweringScope,
+  ): HirExpr {
     if (node.arguments.length < 1 || node.arguments.length > 2) {
       this.fail(
         node,
@@ -1397,7 +1632,7 @@ class Lowering {
   private lowerReduceCall(
     node: ts.CallExpression,
     callee: ts.PropertyAccessExpression,
-    scope: LowerScope,
+    scope: HirLoweringScope,
   ): HirExpr {
     if (node.arguments.length !== 2) {
       this.fail(
@@ -1469,7 +1704,7 @@ class Lowering {
   private lowerMapCall(
     node: ts.CallExpression,
     callee: ts.PropertyAccessExpression,
-    scope: LowerScope,
+    scope: HirLoweringScope,
   ): HirExpr {
     if (node.arguments.length !== 1) {
       this.fail(
@@ -1496,13 +1731,45 @@ class Lowering {
   }
 
   /** Lowers an inline `(element, index?) => body` callback into an
-   * `arrayMap` over `target` (shared by `.map(...)` and `Array.from`). */
+   * `arrayMap` (or, for `.filter(...)`, an `arrayFilter`) over `target`,
+   * shared by `.map(...)`, `.filter(...)` and `Array.from`. */
   private lowerInlineCallbackMap(
     node: ts.CallExpression,
     target: HirExpr,
     callback: ts.ArrowFunction | ts.FunctionExpression,
-    scope: LowerScope,
+    scope: HirLoweringScope,
+    kind: "arrayMap" | "arrayFilter" = "arrayMap",
   ): HirExpr {
+    const { param, indexParam, bodyScope } = this.lowerCallbackParameters(
+      callback,
+      scope,
+    );
+    const body = ts.isBlock(callback.body)
+      ? this.lowerBlock(callback.body, bodyScope)
+      : this.lowerExpr(callback.body, bodyScope);
+
+    return this.make(node, {
+      kind,
+      target,
+      param,
+      indexParam,
+      body,
+    });
+  }
+
+  /**
+   * Binds an inline `(element, index?) => …` callback's parameters in a
+   * scope of its own: a plain element name becomes a local, an object
+   * pattern routes its names to the synthetic element local.
+   */
+  lowerCallbackParameters(
+    callback: ts.ArrowFunction | ts.FunctionExpression,
+    scope: HirLoweringScope,
+  ): {
+    param: { name: string; span: Span };
+    indexParam: { name: string; span: Span } | undefined;
+    bodyScope: HirLoweringScope;
+  } {
     if (callback.parameters.length > 2) {
       this.fail(
         callback.parameters[2]!,
@@ -1567,24 +1834,14 @@ class Lowering {
       shadowAsLocal(bodyScope, indexParam.name);
     }
 
-    const body = ts.isBlock(callback.body)
-      ? this.lowerBlock(callback.body, bodyScope)
-      : this.lowerExpr(callback.body, bodyScope);
-
-    return this.make(node, {
-      kind: "arrayMap",
-      target,
-      param,
-      indexParam,
-      body,
-    });
+    return { param, indexParam, bodyScope };
   }
 
   private lowerDistributionMap(
     node: ts.CallExpression,
     base: HirExpr,
     callback: ts.Expression,
-    scope: LowerScope,
+    scope: HirLoweringScope,
   ): HirExpr {
     // `dist.map(Math.cos)` — expand the function reference to a callback.
     if (
@@ -1659,7 +1916,7 @@ class Lowering {
 
   private lowerObjectLiteral(
     node: ts.ObjectLiteralExpression,
-    scope: LowerScope,
+    scope: HirLoweringScope,
   ): HirExpr {
     const entries: { key: string; keySpan: Span; value: HirExpr }[] = [];
     for (const property of node.properties) {
@@ -1705,7 +1962,10 @@ class Lowering {
    * Conservative distribution-ness test, used to disambiguate `.map(...)`
    * between array comprehensions and derived distributions.
    */
-  private isDistributionValued(expr: HirExpr, scope: LowerScope): boolean {
+  private isDistributionValued(
+    expr: HirExpr,
+    scope: HirLoweringScope,
+  ): boolean {
     switch (expr.kind) {
       case "distribution":
       case "distributionMap":
@@ -1797,7 +2057,7 @@ function shiftWrappedFunctionSpans(
   });
 }
 
-function parseErrorDiagnostics(
+export function parseErrorDiagnostics(
   sourceFile: ts.SourceFile,
 ): HirDiagnostic[] | null {
   // `parseDiagnostics` is not part of the public API but has been stable
@@ -1819,6 +2079,26 @@ function parseErrorDiagnostics(
       length: Math.max(diagnostic.length, 1),
     },
   }));
+}
+
+/**
+ * Runs `lower` with an expression lowering for `surface` over `sourceFile`,
+ * turning the first failure into a diagnostic. A surface with a tree of its
+ * own (the view HIR) lowers through this.
+ */
+export function lowerWithExpressions<T>(
+  sourceFile: ts.SourceFile,
+  surface: HirSurfaceKind,
+  lower: (lowering: HirExpressionLowering) => T,
+): { ok: true; value: T } | { ok: false; diagnostics: HirDiagnostic[] } {
+  try {
+    return { ok: true, value: lower(new Lowering(sourceFile, surface)) };
+  } catch (error) {
+    if (error instanceof LowerError) {
+      return { ok: false, diagnostics: [error.diagnostic] };
+    }
+    throw error;
+  }
 }
 
 /**
@@ -1900,7 +2180,7 @@ export const lowerStateConstraintToHir = (
  */
 export function lowerTypeScriptToHir(
   code: string,
-  surface: HirSurfaceKind,
+  surface: HirFunctionSurfaceKind,
 ): LowerTypeScriptResult {
   const wrapped = WRAPPED_SURFACES[surface];
   if (wrapped) {

@@ -57,7 +57,7 @@ const graphQLContextForUser = (user: User): LoggedInGraphQLContext => ({
   user,
   provenance: { ...graphContext.provenance, actorType: "user" },
   temporal: graphContext.temporalClient,
-  flowRunHistories: new Map(),
+  flowRunRecords: new Map(),
 });
 
 describe("org invitation with a mixed-case signup email", () => {

@@ -234,6 +234,15 @@ class HirDistributionKind(Enum):
     lognormal = "lognormal"
 
 
+class HirNullLit(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    id: int = Field(..., ge=0, le=9007199254740991)
+    span: HirSpan
+    kind: Literal["nullLit"]
+
+
 class HirSurfaceKind(Enum):
     dynamics = "dynamics"
     lambda_ = "lambda"
@@ -241,6 +250,7 @@ class HirSurfaceKind(Enum):
     metric = "metric"
     scenario_expression = "scenario-expression"
     scenario_code = "scenario-code"
+    visualizer = "visualizer"
 
 
 class HirNamedSpan(BaseModel):
@@ -341,6 +351,11 @@ class ParameterConstraintHir(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -384,6 +399,11 @@ class HirStringCall(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -416,6 +436,11 @@ class HirStringCall(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -457,6 +482,11 @@ class HirUuidFrom(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -498,7 +528,12 @@ class HirRangeCall(BaseModel):
             | HirArrayReduce
             | HirArrayConcat
             | HirDistribution
-            | HirDistributionMap,
+            | HirDistributionMap
+            | HirNullLit
+            | HirTemplateLit
+            | HirArraySlice
+            | HirArrayFilter
+            | HirNumberFormat,
             Field(discriminator="kind"),
         ]
     ]
@@ -538,6 +573,11 @@ class HirFieldAccess(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -581,6 +621,11 @@ class HirIndexAccess(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -613,6 +658,11 @@ class HirIndexAccess(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -654,6 +704,11 @@ class HirLength(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -696,6 +751,11 @@ class HirUnary(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -738,6 +798,11 @@ class HirBinary(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -770,6 +835,11 @@ class HirBinary(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -811,6 +881,11 @@ class HirCond(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -843,6 +918,11 @@ class HirCond(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -875,6 +955,11 @@ class HirCond(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -917,6 +1002,11 @@ class HirLet(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -957,6 +1047,11 @@ class HirLetBinding(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -999,7 +1094,12 @@ class HirMathCall(BaseModel):
             | HirArrayReduce
             | HirArrayConcat
             | HirDistribution
-            | HirDistributionMap,
+            | HirDistributionMap
+            | HirNullLit
+            | HirTemplateLit
+            | HirArraySlice
+            | HirArrayFilter
+            | HirNumberFormat,
             Field(discriminator="kind"),
         ]
     ]
@@ -1048,6 +1148,11 @@ class HirRecordEntry(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -1089,7 +1194,12 @@ class HirArrayLit(BaseModel):
             | HirArrayReduce
             | HirArrayConcat
             | HirDistribution
-            | HirDistributionMap,
+            | HirDistributionMap
+            | HirNullLit
+            | HirTemplateLit
+            | HirArraySlice
+            | HirArrayFilter
+            | HirNumberFormat,
             Field(discriminator="kind"),
         ]
     ]
@@ -1129,6 +1239,11 @@ class HirArrayMap(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -1163,6 +1278,11 @@ class HirArrayMap(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -1204,6 +1324,11 @@ class HirArrayReduce(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -1239,6 +1364,11 @@ class HirArrayReduce(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -1271,6 +1401,11 @@ class HirArrayReduce(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -1312,6 +1447,11 @@ class HirArrayConcat(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -1344,6 +1484,11 @@ class HirArrayConcat(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -1386,7 +1531,12 @@ class HirDistribution(BaseModel):
             | HirArrayReduce
             | HirArrayConcat
             | HirDistribution
-            | HirDistributionMap,
+            | HirDistributionMap
+            | HirNullLit
+            | HirTemplateLit
+            | HirArraySlice
+            | HirArrayFilter
+            | HirNumberFormat,
             Field(discriminator="kind"),
         ]
     ]
@@ -1426,6 +1576,11 @@ class HirDistributionMap(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -1459,8 +1614,350 @@ class HirDistributionMap(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
+        description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
+        discriminator="kind",
+    )
+
+
+class HirTemplateLit(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    id: int = Field(..., ge=0, le=9007199254740991)
+    span: HirSpan
+    kind: Literal["templateLit"]
+    quasis: list[str]
+    expressions: list[
+        Annotated[
+            HirNumberLit
+            | HirBoolLit
+            | HirStringLit
+            | HirStringCall
+            | HirUuidGenerate
+            | HirUuidFrom
+            | HirConstant
+            | HirLocalRef
+            | HirParamRef
+            | HirScenarioRef
+            | HirRangeCall
+            | HirFieldAccess
+            | HirIndexAccess
+            | HirLength
+            | HirUnary
+            | HirBinary
+            | HirCond
+            | HirLet
+            | HirMathCall
+            | HirRecordLit
+            | HirArrayLit
+            | HirArrayMap
+            | HirArrayReduce
+            | HirArrayConcat
+            | HirDistribution
+            | HirDistributionMap
+            | HirNullLit
+            | HirTemplateLit
+            | HirArraySlice
+            | HirArrayFilter
+            | HirNumberFormat,
+            Field(discriminator="kind"),
+        ]
+    ]
+
+
+class HirArraySlice(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    id: int = Field(..., ge=0, le=9007199254740991)
+    span: HirSpan
+    kind: Literal["arraySlice"]
+    target: (
+        HirNumberLit
+        | HirBoolLit
+        | HirStringLit
+        | HirStringCall
+        | HirUuidGenerate
+        | HirUuidFrom
+        | HirConstant
+        | HirLocalRef
+        | HirParamRef
+        | HirScenarioRef
+        | HirRangeCall
+        | HirFieldAccess
+        | HirIndexAccess
+        | HirLength
+        | HirUnary
+        | HirBinary
+        | HirCond
+        | HirLet
+        | HirMathCall
+        | HirRecordLit
+        | HirArrayLit
+        | HirArrayMap
+        | HirArrayReduce
+        | HirArrayConcat
+        | HirDistribution
+        | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
+    ) = Field(
+        ...,
+        description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
+        discriminator="kind",
+    )
+    start: (
+        HirNumberLit
+        | HirBoolLit
+        | HirStringLit
+        | HirStringCall
+        | HirUuidGenerate
+        | HirUuidFrom
+        | HirConstant
+        | HirLocalRef
+        | HirParamRef
+        | HirScenarioRef
+        | HirRangeCall
+        | HirFieldAccess
+        | HirIndexAccess
+        | HirLength
+        | HirUnary
+        | HirBinary
+        | HirCond
+        | HirLet
+        | HirMathCall
+        | HirRecordLit
+        | HirArrayLit
+        | HirArrayMap
+        | HirArrayReduce
+        | HirArrayConcat
+        | HirDistribution
+        | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
+        | None
+    ) = Field(
+        None,
+        description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
+        discriminator="kind",
+    )
+    end: (
+        HirNumberLit
+        | HirBoolLit
+        | HirStringLit
+        | HirStringCall
+        | HirUuidGenerate
+        | HirUuidFrom
+        | HirConstant
+        | HirLocalRef
+        | HirParamRef
+        | HirScenarioRef
+        | HirRangeCall
+        | HirFieldAccess
+        | HirIndexAccess
+        | HirLength
+        | HirUnary
+        | HirBinary
+        | HirCond
+        | HirLet
+        | HirMathCall
+        | HirRecordLit
+        | HirArrayLit
+        | HirArrayMap
+        | HirArrayReduce
+        | HirArrayConcat
+        | HirDistribution
+        | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
+        | None
+    ) = Field(
+        None,
+        description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
+        discriminator="kind",
+    )
+
+
+class HirArrayFilter(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    id: int = Field(..., ge=0, le=9007199254740991)
+    span: HirSpan
+    kind: Literal["arrayFilter"]
+    target: (
+        HirNumberLit
+        | HirBoolLit
+        | HirStringLit
+        | HirStringCall
+        | HirUuidGenerate
+        | HirUuidFrom
+        | HirConstant
+        | HirLocalRef
+        | HirParamRef
+        | HirScenarioRef
+        | HirRangeCall
+        | HirFieldAccess
+        | HirIndexAccess
+        | HirLength
+        | HirUnary
+        | HirBinary
+        | HirCond
+        | HirLet
+        | HirMathCall
+        | HirRecordLit
+        | HirArrayLit
+        | HirArrayMap
+        | HirArrayReduce
+        | HirArrayConcat
+        | HirDistribution
+        | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
+    ) = Field(
+        ...,
+        description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
+        discriminator="kind",
+    )
+    param: HirNamedSpan
+    indexParam: HirNamedSpan | None = None
+    body: (
+        HirNumberLit
+        | HirBoolLit
+        | HirStringLit
+        | HirStringCall
+        | HirUuidGenerate
+        | HirUuidFrom
+        | HirConstant
+        | HirLocalRef
+        | HirParamRef
+        | HirScenarioRef
+        | HirRangeCall
+        | HirFieldAccess
+        | HirIndexAccess
+        | HirLength
+        | HirUnary
+        | HirBinary
+        | HirCond
+        | HirLet
+        | HirMathCall
+        | HirRecordLit
+        | HirArrayLit
+        | HirArrayMap
+        | HirArrayReduce
+        | HirArrayConcat
+        | HirDistribution
+        | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
+    ) = Field(
+        ...,
+        description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
+        discriminator="kind",
+    )
+
+
+class HirNumberFormat(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    id: int = Field(..., ge=0, le=9007199254740991)
+    span: HirSpan
+    kind: Literal["numberFormat"]
+    target: (
+        HirNumberLit
+        | HirBoolLit
+        | HirStringLit
+        | HirStringCall
+        | HirUuidGenerate
+        | HirUuidFrom
+        | HirConstant
+        | HirLocalRef
+        | HirParamRef
+        | HirScenarioRef
+        | HirRangeCall
+        | HirFieldAccess
+        | HirIndexAccess
+        | HirLength
+        | HirUnary
+        | HirBinary
+        | HirCond
+        | HirLet
+        | HirMathCall
+        | HirRecordLit
+        | HirArrayLit
+        | HirArrayMap
+        | HirArrayReduce
+        | HirArrayConcat
+        | HirDistribution
+        | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
+    ) = Field(
+        ...,
+        description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
+        discriminator="kind",
+    )
+    digits: (
+        HirNumberLit
+        | HirBoolLit
+        | HirStringLit
+        | HirStringCall
+        | HirUuidGenerate
+        | HirUuidFrom
+        | HirConstant
+        | HirLocalRef
+        | HirParamRef
+        | HirScenarioRef
+        | HirRangeCall
+        | HirFieldAccess
+        | HirIndexAccess
+        | HirLength
+        | HirUnary
+        | HirBinary
+        | HirCond
+        | HirLet
+        | HirMathCall
+        | HirRecordLit
+        | HirArrayLit
+        | HirArrayMap
+        | HirArrayReduce
+        | HirArrayConcat
+        | HirDistribution
+        | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
+        | None
+    ) = Field(
+        None,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
         discriminator="kind",
     )
@@ -1519,6 +2016,11 @@ class StateConstraintHir(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -1561,6 +2063,11 @@ class HirFunction(BaseModel):
         | HirArrayConcat
         | HirDistribution
         | HirDistributionMap
+        | HirNullLit
+        | HirTemplateLit
+        | HirArraySlice
+        | HirArrayFilter
+        | HirNumberFormat
     ) = Field(
         ...,
         description="One HIR expression node, discriminated by `kind`. Evaluators must reject kinds they do not know.",
@@ -1592,4 +2099,8 @@ HirArrayReduce.model_rebuild()
 HirArrayConcat.model_rebuild()
 HirDistribution.model_rebuild()
 HirDistributionMap.model_rebuild()
+HirTemplateLit.model_rebuild()
+HirArraySlice.model_rebuild()
+HirArrayFilter.model_rebuild()
+HirNumberFormat.model_rebuild()
 StateConstraint.model_rebuild()
