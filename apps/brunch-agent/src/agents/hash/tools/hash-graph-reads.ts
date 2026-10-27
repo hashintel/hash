@@ -158,8 +158,8 @@ const renderValue = (
 /** A one-line description of a property or type, from its title and description. */
 const legendLine = (title: string, description: string | undefined) =>
   description === undefined || description === ""
-    ? title
-    : `${title} — ${oneLine(description)}`;
+    ? oneLine(title)
+    : `${oneLine(title)} — ${oneLine(description)}`;
 
 /** Issues one read to HASH's page and shows the model what it settled with. */
 const runHashRead = async (
@@ -221,7 +221,7 @@ export const vHashEntityReadInput = v.strictObject({
 export type HashEntityReadInput = v.InferOutput<typeof vHashEntityReadInput>;
 
 export const hashEntityReadDescription =
-  "Read entities from the HASH graph, as the signed-in user: only what they may see is returned, and archived entities are never returned, so an entity that is absent may exist but be hidden from them, archived, or filed under another type title or web. Filters combine: an entity must match every filter given. Returns compact text: first each property name used, with its title and description (units are in the description), and each entity type title with its entityTypeId (a versioned URL); then each entity, headed by its types' titles, its name, and (linked) if it was reached by following links rather than matching the filters, or (draft); then its entityId (`<webId>~<uuid>`), editionId (the exact version read), for a link entity the entityIds it links from and to, and one line per property. A large value is summarised as <kind, size: shape>; to see it, read the entity again by entityIds with its id in fullValuesFor. The graph returns at most 1,000 matches at once; when it stopped there, the text says more may match than shown, so narrow the filter. A read that failed returns { error }. Read webs with query_hash_webs first, for the web ids to filter by; then read the types of the entities found with query_hash_entity_types, by their entityTypeIds, for the links and other properties a type allows, and follow up on a found entity by its entityId.";
+  "Read entities from the HASH graph, as the signed-in user: only what they may see is returned, and archived entities are never returned, so an entity that is absent may exist but be hidden from them, archived, or filed under another type title or web. Filters combine: an entity must match every filter given. Returns compact text: first each property name used, with its title and description (units are in the description), and each entity type title with its entityTypeId (a versioned URL); then each entity, headed by its types' titles, its name, and (linked) if it was reached by following links rather than matching the filters, or (draft); then its entityId (`<webId>~<uuid>`, with `~<draftId>` for a draft), editionId (the exact version read), for a link entity the entityIds it links from and to, and one line per property. A large value is summarised as <kind, size: shape>; to see it, read the entity again by entityIds with its id in fullValuesFor. The graph returns at most 1,000 matches at once; when it stopped there, the text says more may match than shown, so narrow the filter. A read that failed returns { error }. Read webs with query_hash_webs first, for the web ids to filter by; then read the types of the entities found with query_hash_entity_types, by their entityTypeIds, for the links and other properties a type allows, and follow up on a found entity by its entityId.";
 
 /** One entity as HASH's page returns it: every field comes from the same returned edition. */
 const vHashEntity = v.object({
@@ -293,7 +293,10 @@ export const hashEntityReadForModel = (
   );
   const nameOf = propertyNamer(carriedBaseUrls);
   const typeTitles = new Map(
-    entityTypes.map(({ entityTypeId, title }) => [entityTypeId, title]),
+    entityTypes.map(({ entityTypeId, title }) => [
+      entityTypeId,
+      oneLine(title),
+    ]),
   );
   const linked = entities.filter(({ matched }) => !matched).length;
 
@@ -448,7 +451,7 @@ export const hashEntityTypeReadForModel = (output: unknown) => {
     ...truncationNote(truncated),
     ...entityTypes.map((type) =>
       [
-        `- ${type.title}: ${type.entityTypeId}`,
+        `- ${oneLine(type.title)}: ${type.entityTypeId}`,
         ...(type.description === undefined || type.description === ""
           ? []
           : [`  description: ${oneLine(type.description)}`]),
@@ -458,7 +461,7 @@ export const hashEntityTypeReadForModel = (output: unknown) => {
               "  properties:",
               ...type.properties.map(
                 ({ baseUrl, title }) =>
-                  `    ${nameOf(baseUrl)}: ${title ?? slugName(baseUrl)}`,
+                  `    ${nameOf(baseUrl)}: ${title === undefined ? slugName(baseUrl) : oneLine(title)}`,
               ),
             ]),
         ...(type.links.length === 0
@@ -467,7 +470,7 @@ export const hashEntityTypeReadForModel = (output: unknown) => {
               "  links:",
               ...type.links.map(
                 ({ linkEntityTypeId, title, destinationEntityTypeIds }) =>
-                  `    ${title ?? slugName(linkEntityTypeId)}: ${linkEntityTypeId} -> ${
+                  `    ${title === undefined ? slugName(linkEntityTypeId) : oneLine(title)}: ${linkEntityTypeId} -> ${
                     destinationEntityTypeIds === undefined
                       ? "any"
                       : destinationEntityTypeIds.join(", ")
