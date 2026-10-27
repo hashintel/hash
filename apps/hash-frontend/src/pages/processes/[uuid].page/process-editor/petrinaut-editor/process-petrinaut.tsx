@@ -15,6 +15,7 @@ import {
   brunchPlugin,
   type PetrinautAiAssistant,
   type PetrinautAiAutomaticTool,
+  type ReadBrunchDocumentSaveState,
   useBrunchAssistant,
 } from "@hashintel/brunch-agent/ui";
 import {
@@ -25,6 +26,7 @@ import {
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { useAuthInfo } from "../../../../shared/auth-info-context";
+import { createHashSaveTool, type SaveNetForAgent } from "./brunch-hash-save";
 import { useBrunchHashHostTools } from "./process-petrinaut/brunch-hash-graph-reads";
 import { topBarPlugin } from "./process-petrinaut/top-bar-plugin";
 
@@ -132,14 +134,19 @@ const BrunchSession = memo(
     openDocument,
     shown,
     hostTools,
+    readSaveState,
     onChange,
   }: {
     ownerKey: string;
     openDocument: BrunchOpenDocument;
     /** The editor shows Brunch's assistant. */
     shown: boolean;
-    /** Reads of the HASH graph, run here as the signed-in user. */
+    /**
+     * Reads of the HASH graph, run here as the signed-in user, and the agent's
+     * save, run through the editor's Save once the user approves it.
+     */
     hostTools: readonly PetrinautAiAutomaticTool[];
+    readSaveState: ReadBrunchDocumentSaveState;
     onChange: (assistant: PetrinautAiAssistant | null) => void;
   }) => {
     const { assistant } = useBrunchAssistant({
@@ -152,6 +159,7 @@ const BrunchSession = memo(
       interviewBudget: brunchInterviewBudget,
       words: brunchWords,
       hostTools,
+      readSaveState,
     });
 
     useLayoutEffect(() => {
@@ -173,6 +181,8 @@ export const ProcessPetrinaut = ({
   handle,
   savedEntityId,
   readTitle,
+  readSaveState,
+  saveNetForAgent,
   readonly,
   setTitle,
   title,
@@ -182,13 +192,21 @@ export const ProcessPetrinaut = ({
   savedEntityId: EntityId | null;
   /** The editor's current title, read when Brunch's tools need it. */
   readTitle: () => string;
+  /** What the editor's Save would do now, read for the agent's save card. Stable for the handle. */
+  readSaveState: ReadBrunchDocumentSaveState;
+  /** Runs the editor's Save for the agent. Stable for the handle. */
+  saveNetForAgent: SaveNetForAgent;
   /** The user may not edit or save this net. */
   readonly: boolean;
   setTitle: (title: string) => void;
   title: string;
 }) => {
   const ownerKey = useBrunchOwnerKey();
-  const hostTools = useBrunchHashHostTools();
+  const graphReads = useBrunchHashHostTools();
+  const hostTools = useMemo(
+    () => [...graphReads, createHashSaveTool(saveNetForAgent)],
+    [graphReads, saveNetForAgent],
+  );
   const [brunchAssistant, setBrunchAssistant] =
     useState<PetrinautAiAssistant | null>(null);
   // Brunch's panel content marks Brunch as shown while the editor mounts it.
@@ -223,6 +241,7 @@ export const ProcessPetrinaut = ({
           openDocument={openDocument}
           shown={brunchShown}
           hostTools={hostTools}
+          readSaveState={readSaveState}
           onChange={setBrunchAssistant}
         />
       )}

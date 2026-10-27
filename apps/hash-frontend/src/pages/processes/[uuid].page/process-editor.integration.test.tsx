@@ -696,6 +696,7 @@ test("each deliberate load opens a fresh handle; rerenders, history, permission 
     "query_hash_entities",
     "query_hash_entity_types",
     "query_hash_webs",
+    "save_hash_net",
   ]);
 
   // The route rerendering with the same URL is not a load.
@@ -1182,4 +1183,73 @@ test("contained failures reach Sentry as thrown, tagged with the net and permiss
       },
     },
   });
+});
+
+/** Runs Brunch's save tool as its panel does once the user approves it. */
+const agentSave = (
+  documentId: string,
+  signal = new AbortController().signal,
+) => {
+  const tool = observed.brunch?.hostTools?.find(
+    ({ toolName }) => toolName === "save_hash_net",
+  );
+  if (!tool) {
+    throw new Error("The page gave Brunch no save");
+  }
+  return Promise.resolve(
+    tool.execute({
+      input: { documentId },
+      toolCallId: "save-1",
+      signal,
+    } as Parameters<typeof tool.execute>[0]),
+  );
+};
+
+test("Brunch's agent save writes the open net through the editor's Save, and settles once saved with the edits made meanwhile still dirty", async () => {
+  await renderRoute(`/processes/${uuidA}`);
+  renamePlace("A-agent");
+  const submitted = editor().handle.doc();
+  const release = holdNextWrite();
+
+  const saved = agentSave(netAId);
+  await settle();
+  expect(topBar().persistPending).toBe(true);
+  // Another agent save starts nothing meanwhile.
+  await expect(agentSave(netAId)).resolves.toEqual({
+    applied: false,
+    reason: "A save of this net is already in progress.",
+  });
+  renamePlace("A-later");
+
+  act(() => release());
+  await settle();
+
+  const decisionTime = graph.nets.get(netAId)?.revisions.at(-1)?.decisionTime;
+  await expect(saved).resolves.toEqual({
+    saved: true,
+    decisionTime,
+    title: "A",
+    stillDirty: true,
+  });
+  expect(graph.writes).toEqual([
+    { kind: "update", entityId: netAId, title: "A", definition: submitted },
+  ]);
+  expect(topBar()).toMatchObject({
+    isDirty: true,
+    persistPending: false,
+    loadedRevisionTime: decisionTime,
+  });
+  expect(topBar().revisions.map(({ title }) => title)).toEqual(["A", "A"]);
+  expect(leaveIsBlocked()).toBe(true);
+
+  // An aborted agent save rejects, and the write it started still lands.
+  const releaseNext = holdNextWrite();
+  const controller = new AbortController();
+  const aborted = agentSave(netAId, controller.signal);
+  controller.abort(new Error("Brunch stopped the turn"));
+  await expect(aborted).rejects.toThrow("Brunch stopped the turn");
+  act(() => releaseNext());
+  await settle();
+  expect(graph.writes).toHaveLength(2);
+  expect(topBar()).toMatchObject({ isDirty: false, persistPending: false });
 });

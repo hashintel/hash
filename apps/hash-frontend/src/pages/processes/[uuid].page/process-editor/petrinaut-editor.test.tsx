@@ -4,6 +4,8 @@ import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { createContext, use, useEffect, useLayoutEffect } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
+import { brunchTools } from "@hashintel/brunch-agent";
+
 import { PetrinautEditor } from "./petrinaut-editor";
 
 import type {
@@ -16,6 +18,7 @@ import type { TopBarState } from "./petrinaut-editor/top-bar-context";
 import type { EntityId } from "@blockprotocol/type-system";
 import type {
   BrunchAssistantHost,
+  PetrinautAiAutomaticToolExecuteParams,
   useBrunchAssistant,
 } from "@hashintel/brunch-agent/ui";
 import type { ErrorTracker, PetrinautDocHandle } from "@hashintel/petrinaut";
@@ -258,7 +261,11 @@ test("Brunch's runner gets the handle the editor shows, a new one on every load,
     openDocument: { documentId: savedEntityId },
     voice: { enabled: false },
   });
-  expect(lastBrunchInput()?.hostTools).toBe(observed.hashHostTools);
+  // The page's graph reads, then the agent's save through the editor's Save.
+  expect(lastBrunchInput()?.hostTools).toEqual([
+    ...observed.hashHostTools,
+    expect.objectContaining({ toolName: brunchTools.saveHashNet }),
+  ]);
   expect(identityRequests).toEqual([
     {
       url: "http://localhost:5001/api/brunch/identity",
@@ -523,4 +530,329 @@ test("Create turns the draft into the saved net in the same editor, which then o
   expect(lastTopBar()).toMatchObject({ saveLabel: "Saved", isDirty: false });
   expect(lastHandle()).toBe(handle);
   expect(lastEditorHandle()).toBe(handle);
+});
+
+/** Brunch's save tool as the page gave it, for the load shown then. */
+const agentSaveTool = () => {
+  const tool = lastBrunchInput()?.hostTools?.find(
+    ({ toolName }) => toolName === brunchTools.saveHashNet,
+  );
+  if (!tool) {
+    throw new Error("The page gave Brunch no save");
+  }
+  return tool;
+};
+
+/** Runs the agent's save as Brunch's panel does, once the user has approved it. */
+const agentSave = (
+  documentId: string,
+  signal = new AbortController().signal,
+  tool = agentSaveTool(),
+) => {
+  const settled = Promise.resolve(
+    tool.execute({
+      input: { documentId },
+      toolCallId: "save-1",
+      signal,
+    } as PetrinautAiAutomaticToolExecuteParams),
+  );
+  const state = { settled: false };
+  void settled.then(
+    () => {
+      state.settled = true;
+    },
+    () => {
+      state.settled = true;
+    },
+  );
+  return { settled, state };
+};
+
+const editNet = (name: string) =>
+  act(() =>
+    lastEditorHandle()?.change((draft) => {
+      draft.places.push({
+        // Already a Petrinaut id, so the saved snapshot keeps it as it is.
+        id: crypto.randomUUID(),
+        name,
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 0,
+        y: 0,
+      });
+    }),
+  );
+
+const renderBrunchEditor = async (
+  initial: EditorProps = { load: savedLoad() },
+) => {
+  const rendered = renderEditor(initial);
+  await waitFor(() => expect(lastBrunchInput()?.selected).toBe(true));
+  return rendered;
+};
+
+test("the agent's save runs the Save button's one save and settles once saved, still dirty for an edit made after it", async () => {
+  const pending = deferred<PetrinautEditorSaved>();
+  onSave.mockReturnValue(pending.promise);
+  await renderBrunchEditor();
+  editNet("before-save");
+  const captured = lastEditorHandle()?.doc();
+
+  const save = agentSave(savedEntityId);
+  expect(onSave).toHaveBeenCalledExactlyOnceWith({
+    definition: captured,
+    title: "Net",
+    entityId: savedEntityId,
+  });
+  await waitFor(() => expect(lastTopBar()?.persistPending).toBe(true));
+  editNet("after-save");
+  await act(async () => {});
+  expect(save.state.settled).toBe(false);
+
+  const decisionTime = "2026-10-24T01:00:00.000Z";
+  await act(async () => {
+    pending.resolve({ entityId: savedEntityId, decisionTime });
+    await pending.promise;
+  });
+
+  await expect(save.settled).resolves.toEqual({
+    saved: true,
+    decisionTime,
+    title: "Net",
+    stillDirty: true,
+  });
+  expect(onSave).toHaveBeenCalledOnce();
+  expect(lastTopBar()).toMatchObject({
+    isDirty: true,
+    persistPending: false,
+    loadedRevisionTime: decisionTime,
+  });
+});
+
+/** Runs pending promise callbacks without giving React a task to render in. */
+const flushMicrotasks = async () => {
+  for (let i = 0; i < 10; i++) {
+    await Promise.resolve();
+  }
+};
+
+test("the agent's save stays unsettled after the host's save resolves until the editor commits the saved snapshot, and reports the dirty state committed then", async () => {
+  const pending = deferred<PetrinautEditorSaved>();
+  onSave.mockReturnValue(pending.promise);
+  await renderBrunchEditor();
+  editNet("before-save");
+  const save = agentSave(savedEntityId);
+  await waitFor(() => expect(lastTopBar()?.persistPending).toBe(true));
+  const rendersBefore = observed.topBars.length;
+
+  // The host's save resolves, outside any act, so React has not rendered.
+  const decisionTime = "2026-10-24T01:00:00.000Z";
+  pending.resolve({ entityId: savedEntityId, decisionTime });
+  await flushMicrotasks();
+  expect(observed.topBars).toHaveLength(rendersBefore);
+  expect(save.state.settled).toBe(false);
+
+  // An edit in the same window, before the saved snapshot commits.
+  lastEditorHandle()?.change((draft) => {
+    draft.places[0]!.name = "after-completion";
+  });
+  await flushMicrotasks();
+  expect(save.state.settled).toBe(false);
+
+  // React commits the saved snapshot with the edit.
+  await act(async () => {});
+  expect(lastTopBar()).toMatchObject({
+    persistPending: false,
+    loadedRevisionTime: decisionTime,
+    isDirty: true,
+  });
+  await expect(save.settled).resolves.toEqual({
+    saved: true,
+    decisionTime,
+    title: "Net",
+    stillDirty: true,
+  });
+});
+
+test("a load after the host's save resolves but before its snapshot commits leaves the agent's save to Brunch's abort", async () => {
+  const pending = deferred<PetrinautEditorSaved>();
+  onSave.mockReturnValue(pending.promise);
+  const { rerender } = await renderBrunchEditor();
+  editNet("before-save");
+  const controller = new AbortController();
+  const save = agentSave(savedEntityId, controller.signal);
+  await waitFor(() => expect(lastTopBar()?.persistPending).toBe(true));
+  const savingHandle = lastHandle();
+
+  pending.resolve({
+    entityId: savedEntityId,
+    decisionTime: "2026-10-24T01:00:00.000Z",
+  });
+  await flushMicrotasks();
+  expect(save.state.settled).toBe(false);
+
+  // The next commit is of another load, not of the saved snapshot.
+  const otherVersion = "2026-10-23T00:00:00.000Z";
+  rerender({ load: savedLoad(otherVersion) });
+  await act(async () => {});
+  expect(lastHandle()).not.toBe(savingHandle);
+  expect(lastTopBar()?.loadedRevisionTime).toBe(otherVersion);
+  expect(save.state.settled).toBe(false);
+
+  controller.abort(new Error("Brunch stopped the turn"));
+  await expect(save.settled).rejects.toThrow("Brunch stopped the turn");
+});
+
+test("the agent's save of a net with nothing edited since reports it clean", async () => {
+  onSave.mockResolvedValue({
+    entityId: savedEntityId,
+    decisionTime: "2026-10-24T01:00:00.000Z",
+  });
+  await renderBrunchEditor();
+  editNet("edited");
+
+  await expect(agentSave(savedEntityId).settled).resolves.toMatchObject({
+    saved: true,
+    stillDirty: false,
+  });
+  await waitFor(() => expect(lastTopBar()?.isDirty).toBe(false));
+});
+
+test("a failed save settles with its error after its one attempt, and nothing retries it", async () => {
+  onSave.mockRejectedValue(
+    new Error(
+      "Persist appeared to succeed but the entity wasn't visible on refetch",
+    ),
+  );
+  await renderBrunchEditor();
+  editNet("edited");
+
+  await expect(agentSave(savedEntityId).settled).resolves.toEqual({
+    saved: false,
+    error:
+      "Persist appeared to succeed but the entity wasn't visible on refetch",
+  });
+  await act(async () => {});
+  expect(onSave).toHaveBeenCalledOnce();
+  // The editor stays as the button leaves it: dirty against the old snapshot.
+  expect(lastTopBar()).toMatchObject({
+    isDirty: true,
+    persistPending: false,
+    loadedRevisionTime: "2026-10-24T00:00:00.000Z",
+  });
+});
+
+// Brunch is offered only on an editable saved net, so a read-only net or a
+// draft can only reach the agent's save when the net changes under a session.
+test.each([
+  {
+    refused: "another net",
+    change: null as EditorProps | null,
+    documentId: "web~other" as EntityId,
+    reason: "That isn't the net open in the editor.",
+  },
+  {
+    refused: "a read-only net",
+    change: { readonly: true },
+    documentId: savedEntityId,
+    reason: "The user can't edit this net, so they can't save it.",
+  },
+  {
+    refused: "a draft",
+    change: { load: draftLoad() },
+    documentId: savedEntityId,
+    reason:
+      "The net is an unsaved draft, which the user creates with the editor's Create.",
+  },
+])(
+  "the agent's save of $refused is refused as not started and saves nothing",
+  async ({ change, documentId, reason }) => {
+    const load = savedLoad();
+    const { rerender } = await renderBrunchEditor({ load });
+    const tool = agentSaveTool();
+    const { readSaveState } = lastBrunchInput() ?? {};
+    if (change) {
+      rerender({ load, ...change });
+      await act(async () => {});
+    }
+
+    expect(readSaveState?.(documentId).refusal).toBe(reason);
+    await expect(
+      agentSave(documentId, undefined, tool).settled,
+    ).resolves.toEqual({ applied: false, reason });
+    expect(onSave).not.toHaveBeenCalled();
+  },
+);
+
+test("the agent's save while a save is pending is refused as not started, and the card shows the net's title and last save", async () => {
+  onSave.mockReturnValue(deferred<PetrinautEditorSaved>().promise);
+  await renderBrunchEditor();
+  expect(lastBrunchInput()?.readSaveState?.(savedEntityId)).toEqual({
+    title: "Net",
+    lastSavedTime: "2026-10-24T00:00:00.000Z",
+    refusal: null,
+  });
+  act(() => lastTopBar()?.onSave());
+
+  await expect(agentSave(savedEntityId).settled).resolves.toEqual({
+    applied: false,
+    reason: "A save of this net is already in progress.",
+  });
+  expect(onSave).toHaveBeenCalledOnce();
+});
+
+test("aborting the agent's save rejects it without cancelling the save it started", async () => {
+  const pending = deferred<PetrinautEditorSaved>();
+  onSave.mockReturnValue(pending.promise);
+  await renderBrunchEditor();
+  editNet("edited");
+  const controller = new AbortController();
+  const save = agentSave(savedEntityId, controller.signal);
+
+  controller.abort(new Error("Brunch stopped the turn"));
+  await expect(save.settled).rejects.toThrow("Brunch stopped the turn");
+
+  await act(async () => {
+    pending.resolve({
+      entityId: savedEntityId,
+      decisionTime: "2026-10-24T01:00:00.000Z",
+    });
+    await pending.promise;
+  });
+  expect(lastTopBar()).toMatchObject({
+    isDirty: false,
+    persistPending: false,
+    loadedRevisionTime: "2026-10-24T01:00:00.000Z",
+  });
+});
+
+test("a load before the save completes leaves the agent's save unsettled until Brunch aborts it, and the earlier load's tool can't save the new one", async () => {
+  const pending = deferred<PetrinautEditorSaved>();
+  onSave.mockReturnValue(pending.promise);
+  const { rerender } = await renderBrunchEditor();
+  const earlierTool = agentSaveTool();
+  const controller = new AbortController();
+  const save = agentSave(savedEntityId, controller.signal);
+
+  rerender({ load: savedLoad() });
+  await waitFor(() => expect(lastTopBar()?.persistPending).toBe(false));
+  // The late completion is ignored, as it is for the button.
+  await act(async () => {
+    pending.resolve({ entityId: savedEntityId, decisionTime: "late" });
+    await pending.promise;
+  });
+  expect(save.state.settled).toBe(false);
+  expect(lastTopBar()?.loadedRevisionTime).toBe("2026-10-24T00:00:00.000Z");
+
+  await expect(
+    agentSave(savedEntityId, undefined, earlierTool).settled,
+  ).resolves.toEqual({
+    applied: false,
+    reason: "That isn't the net open in the editor.",
+  });
+  expect(onSave).toHaveBeenCalledOnce();
+
+  controller.abort(new Error("Brunch stopped the turn"));
+  await expect(save.settled).rejects.toThrow("Brunch stopped the turn");
 });
