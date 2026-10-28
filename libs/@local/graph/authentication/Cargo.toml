@@ -30,7 +30,6 @@ derive_more    = { workspace = true, features = ["display", "error"] }
 moka           = { workspace = true, features = ["future"] }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
-sha2           = { workspace = true, features = ["zeroize"] }
 simple-mermaid = { workspace = true }
 tokio          = { workspace = true, features = ["sync"] }
 tracing        = { workspace = true }
