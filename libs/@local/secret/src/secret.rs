@@ -3,6 +3,7 @@ use core::{fmt, marker::PhantomPinned, pin::Pin};
 
 use aws_lc_rs::constant_time;
 use error_stack::Report;
+use zerocopy::FromZeros;
 use zeroize::Zeroizing;
 
 use crate::{
@@ -157,6 +158,18 @@ impl Secret<[u8]> {
     }
 }
 
+impl<T: SecretBuffer + FromZeros> Secret<T> {
+    /// A secret whose contents are all zero bytes.
+    // Any other constructor that returns `Self` must return zeros as well, see the type
+    // documentation.
+    pub(crate) fn new_zeroed() -> Self {
+        Self {
+            _pinned: PhantomPinned,
+            contents: Zeroizing::new(T::new_zeroed()),
+        }
+    }
+}
+
 impl<const N: usize> Secret<[u8; N]> {
     /// A secret of `N` zero bytes.
     ///
@@ -180,14 +193,9 @@ impl<const N: usize> Secret<[u8; N]> {
     /// assert_eq!(&*boxed, b"KEY!".as_slice());
     /// assert_eq!(&*stacked, b"KEY!".as_slice());
     /// ```
-    // Any other constructor that returns `Self` must return zeros as well, see the type
-    // documentation.
     #[must_use]
     pub fn zeroed() -> Self {
-        Self {
-            _pinned: PhantomPinned,
-            contents: Zeroizing::new([0; N]),
-        }
+        Self::new_zeroed()
     }
 
     /// Decodes the `N` bytes that the hexadecimal `hex` encodes into a new secret.
