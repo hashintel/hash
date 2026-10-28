@@ -1,4 +1,5 @@
 import { Meta } from "@storybook/addon-docs/blocks";
+import { Children, cloneElement, useState } from "react";
 
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -131,13 +132,26 @@ Set `loading` while a request runs: the button goes inert, shows a spinner, and 
 
 Set `pressed` when a button reflects an on/off state it controls, such as an open panel or an active filter. Note that `pressed` only changes the visual state: [toggle buttons](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles/button_role#toggle_buttons) carry a specific ARIA meaning, so pair it with `aria-pressed` when the button is a true toggle.
 
+export const TogglesPressed = ({ children }) => {
+  const child = Children.only(children);
+  const [pressed, setPressed] = useState(!!child.props.pressed);
+  return cloneElement(child, {
+    pressed,
+    onClick: () => setPressed(!pressed),
+  });
+};
+
 <Stage>
-  <Button variant="subtle" iconName="filter" pressed>
-    Filters
-  </Button>
-  <Button variant="subtle" iconName="filter" pressed={false}>
-    Filters
-  </Button>
+  <TogglesPressed>
+    <Button variant="subtle" iconName="filter" pressed>
+      Filters
+    </Button>
+  </TogglesPressed>
+  <TogglesPressed>
+    <Button variant="subtle" iconName="filter" pressed={false}>
+      Filters
+    </Button>
+  </TogglesPressed>
 </Stage>
 
 ### Variants

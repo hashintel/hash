@@ -255,12 +255,12 @@ const DrawerRoot = ({
   size?: DrawerSize;
   onKeyDown?: React.KeyboardEventHandler<Element>;
   variant?: "partitionedFooter" | "plain";
-  /** Which viewport edge the drawer is anchored to. Defaults to `"right"`. */
+  /** Which viewport edge the drawer is anchored to. */
   position?: DrawerPosition;
   /**
-   * Render the dimmed overlay behind the drawer. Defaults to `true`.
-   * When set to false it also turns off closing on overlay clicks
-   * */
+   * Whether to render the dimmed overlay behind the drawer. When `false`,
+   * clicking outside no longer closes it.
+   */
   showBackdrop?: boolean;
   /**
    * Ties drawers that occupy the same slot together by a shared key. When one
@@ -282,10 +282,19 @@ const DrawerRoot = ({
         React.ReactElement<OverlayFooterProps, typeof OverlayFooter>?,
       ]
     | React.ReactElement<OverlayBodyProps, typeof OverlayBody>;
+  /**
+   * Which dismissals the drawer offers: `closeButtonAndOverlay` closes on the
+   * close button, Escape, swipe, and backdrop clicks (backdrop requires
+   * `showBackdrop`); `closeButton` drops backdrop dismissal; `none` renders no
+   * close button and disables Escape and swipe, leaving closing entirely to
+   * your own controls.
+   */
   shouldCloseOn?: OverlayShouldCloseOn;
   loading?: boolean;
   onClose?: () => void;
+  /** Focused when the drawer opens, instead of the default initial focus. */
   initialFocusRef?: React.RefObject<HTMLElement | null>;
+  /** Receives focus when the drawer closes, instead of the element focused before it opened. */
   returnFocusRef?: React.RefObject<HTMLElement | null>;
 } & React.AriaAttributes) => {
   const portalContainerRef = usePortalContainerRef();
@@ -426,6 +435,9 @@ const DrawerRoot = ({
     </ArkDrawer.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+DrawerRoot.displayName = "Drawer";
 
 export const Drawer = Object.assign(DrawerRoot, {
   Header: OverlayHeader,

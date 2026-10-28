@@ -12,13 +12,30 @@ import { elementToJsx } from "./stage/element-to-jsx";
  * renders.
  * */
 
-const classes = stageRecipe();
-
-export const Stage = ({ children }: { children: React.ReactNode }) => {
+export const Stage = ({
+  children,
+  code: codeOverride,
+  clampViewportPanels,
+}: {
+  children: React.ReactNode;
+  /**
+   * Replaces the serialized children on the Code tab — for previews whose
+   * live elements (demo harnesses, stateful wiring) aren't the code readers
+   * should copy.
+   */
+  code?: string;
+  /**
+   * Clamps overlay panels that size themselves with viewport units (e.g.
+   * left/right Drawers' 100dvh height) to the OverlayDemo frame, which
+   * viewport units would otherwise escape.
+   */
+  clampViewportPanels?: boolean;
+}) => {
   const [view, setView] = useState<"preview" | "code">("preview");
   const [copied, setCopied] = useState(false);
 
-  const code = elementToJsx(children);
+  const classes = stageRecipe({ clampViewportPanels });
+  const code = codeOverride ?? elementToJsx(children);
 
   return (
     <div className={classes.root}>

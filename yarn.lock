@@ -7599,6 +7599,7 @@ __metadata:
     react: "npm:19.2.6"
     react-docgen-typescript: "npm:^2.2.2"
     react-dom: "npm:19.2.6"
+    react-markdown: "npm:10.1.0"
     remark-gfm: "npm:4.0.1"
     storybook: "npm:10.6.2"
     tsup: "npm:^8.5.1"

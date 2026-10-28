@@ -12,9 +12,12 @@ import { Radio } from "../Radio/radio";
 import type { SharedInputProps } from "../../util/form-shared";
 
 type RadioGroupProps<ValueType extends string = string> = {
-  /** How the options are arranged (defaults to `block`) */
+  /**
+   * How the options are arranged: `block` stacks them vertically, `inline`
+   * lays them out in a row, `blockWithBorder` stacks them inside a bordered
+   * container with a divider between options.
+   */
   layout?: "block" | "inline" | "blockWithBorder";
-  /** The selectable options */
   items: Array<
     Omit<
       React.ComponentProps<typeof Radio>,
@@ -126,3 +129,6 @@ export const RadioGroup = <const ValueType extends string>({
     </ArkRadioGroup.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+RadioGroup.displayName = "RadioGroup";

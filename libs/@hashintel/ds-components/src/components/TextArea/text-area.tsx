@@ -3,27 +3,26 @@ import { useMergeRefs } from "use-callback-ref";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { CharacterCount } from "../../util/CharacterCount/character-count";
 import { resolveAutoFocusProps } from "../../util/form-shared";
-import { CharacterCount } from "../CharacterCount/character-count";
 import { useFieldId } from "../Form/field-id-context";
 import { textAreaRecipe } from "./text-area.recipe";
 
 import type { SharedInputProps } from "../../util/form-shared";
 
 type TextAreaProps = {
-  /** An optional placeholder shown when the textarea is empty */
   placeholder?: string;
   /** The number of visible text rows. Acts as the minimum height when `autoResize` is set. */
   rows?: number;
-  /** Disable editing. Unlike `disabled` this strips the input styles and displays the value as text. */
+  /** Whether editing is disabled. Unlike `disabled`, strips the input styles and renders the value as plain text. */
   readonly?: boolean;
   /** Which directions the user can manually resize the textarea. Ignored when `autoResize` is set. */
   resize?: "none" | "vertical" | "horizontal" | "both";
   /** Grow the textarea to fit its content instead of scrolling. Disables manual resizing. */
   autoResize?: boolean;
-  /** subtle textareas have no border and display similarly to inline text */
+  /** The textarea's visual style: `subtle` removes the border so it reads as inline text. */
   variant?: "default" | "subtle";
-  /** Set the alignment of the text in the textarea */
+  /** The alignment of the text inside the textarea. */
   align?: "left" | "center" | "right";
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
@@ -35,7 +34,7 @@ type TextAreaProps = {
    */
   characterLimit?: number;
   spellcheck?: boolean;
-  /** Whether the character counter reserves vertical space in the layout (defaults to false). */
+  /** Whether the character counter reserves vertical space in the layout. */
   includeCharCountHeight?: boolean;
 } & SharedInputProps<
   HTMLTextAreaElement,
@@ -158,3 +157,5 @@ export const TextArea = ({
     </div>
   );
 };
+
+TextArea.displayName = "TextArea";

@@ -19,9 +19,9 @@ export type Variant = "solid" | "subtle" | "ghost" | "link" | "linkSubtle";
 type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
   {
     className?: string;
-    /** The overall style of the button */
+    /** The overall visual style, from `solid` fill to inline `link` text; `subtle` and `ghost` sit between with a tinted or transparent background. */
     variant?: Variant;
-    /** Sets the color treatment of the button, ex: for primary or destructive actions. */
+    /** The color treatment of the button, e.g. for primary or destructive actions. */
     tone?: Exclude<Tone, "warning" | "success">;
     /** The size (height) of the button */
     size?: FormInputSize;
@@ -31,12 +31,10 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
     loading?: boolean;
     /** Whether the button is in a pressed/active state */
     pressed?: boolean;
-    /** Disables the button: it stays visible but cannot be activated */
     disabled?: boolean;
     tabIndex?: number;
-    /** Set to true to make the element focused on mount or 'never' to prevent the item being auto-focused */
+    /** Whether to focus the element on mount; `"never"` prevents the element being focused automatically. */
     autoFocus?: boolean | "never";
-    /** An optional testId */
     testId?: string;
     onClick?: React.ButtonHTMLAttributes<Element>["onClick"];
     onMouseDown?: React.ButtonHTMLAttributes<Element>["onMouseDown"];
@@ -67,19 +65,19 @@ type ButtonIconProps = ExclusifyUnion<
   | {
       /** Optional icon to display */
       iconName?: IconName;
-      /** Whether the icon should be on the left or right */
+      /** Which side of the label the icon is rendered on. */
       iconPosition?: "left" | "right";
     }
   | {
-      /** Optional element to include at the beginning of a button */
+      /** Element rendered at the start of the button. */
       prefix?: React.ReactNode;
-      /** Optional element to include at the end of a button */
+      /** Element rendered at the end of the button. */
       suffix?: React.ReactNode;
     }
 >;
 
 type ButtonElementOnlyProps = {
-  /** Button type - unlike <button> defaults to type="button" */
+  /** The native button `type`. Unlike a native `<button>`, it only submits forms when explicitly set to `submit`. */
   type?: "button" | "submit" | "reset";
   href?: never;
   target?: never;
@@ -93,7 +91,7 @@ export type AnchorElementOnlyProps = {
   href: string;
   /** Opens the link in a new tab */
   target?: "_blank";
-  /** Downloads the linked resource instead of navigating */
+  /** Whether to download the linked resource instead of navigating. */
   download?: boolean;
   type?: never;
   ref?: React.Ref<HTMLAnchorElement>;

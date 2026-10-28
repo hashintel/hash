@@ -59,6 +59,10 @@ export default defineConfig({
   ignorePatterns: [
     // License files have intentional formatting that shouldn't be touched
     "**/LICENSE*.md",
+    // Component docs pages pass canonical example code to Stage as
+    // template-literal `code` attributes, whose contents the MDX printer
+    // re-indents — keep these hand-formatted.
+    "libs/@hashintel/ds-components/**/*.docs.mdx",
     // Brunch Markdown is created and maintained by agents
     "libs/@hashintel/brunch-agent/**/*.md",
     "apps/brunch-agent/evals/**/*.md",

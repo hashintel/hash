@@ -20,7 +20,7 @@ export type PopoverHeaderProps = {
   title?: React.ReactNode;
   /** Content (typically buttons) rendered at the end, before the close button */
   actions?: React.ReactNode;
-  /** Hides the close button that otherwise closes the popover via its `onClose` */
+  /** Whether to hide the close button, which otherwise closes the popover via its `onClose`. */
   hideCloseButton?: boolean;
 };
 
@@ -57,6 +57,8 @@ export const PopoverHeader = ({
   );
 };
 
+PopoverHeader.displayName = "PopoverHeader";
+
 /** A single Header / Body / Footer panel accepted by `Popover.Container`. */
 type PopoverPanel =
   | React.ReactElement<PopoverHeaderProps, typeof PopoverHeader>
@@ -79,3 +81,5 @@ export const PopoverContainer = ({
 }: PopoverContainerProps) => (
   <div className={cx(containerStyles, className)}>{children}</div>
 );
+
+PopoverContainer.displayName = "PopoverContainer";

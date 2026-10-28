@@ -47,4 +47,21 @@ export const stageRecipe = sva({
       textAlign: "left",
     },
   },
+  variants: {
+    // Overlay panels sized with viewport units escape OverlayDemo's frame
+    // (viewport units ignore containing blocks); this clamps them to it,
+    // matched via their own atomic classes so other panels keep their caps.
+    clampViewportPanels: {
+      true: {
+        preview: {
+          "& [data-part='content'][class*='100dvh']": {
+            maxHeight: "[100%]",
+          },
+          "& [data-part='content'][class*='100dvw']": {
+            maxWidth: "[100%]",
+          },
+        },
+      },
+    },
+  },
 });

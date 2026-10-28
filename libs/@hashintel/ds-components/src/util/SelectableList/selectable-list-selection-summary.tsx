@@ -10,7 +10,7 @@ import {
  * `hideCount`, an "x of y" selected count renders on the left; unless hidden
  * via `hideSelectAllToggle`, a "Select all" / "Clear all" toggle renders on
  * the right (which of the two depends on whether `selectedCount` covers
- * `totalCount`). Both need the counts — what they mean (e.g. whether they
+ * `totalCount`, or on `allSelected` when given). Both need the counts — what they mean (e.g. whether they
  * follow a search filter) is the consumer's call.
  */
 export const SelectableListSelectionSummary = ({
@@ -18,6 +18,7 @@ export const SelectableListSelectionSummary = ({
   hideSelectAllToggle = false,
   selectedCount,
   totalCount,
+  allSelected: allSelectedOverride,
   onSelectAll,
   onClearAll,
 }: {
@@ -25,13 +26,18 @@ export const SelectableListSelectionSummary = ({
   hideSelectAllToggle?: boolean;
   selectedCount: number;
   totalCount: number;
+  /** Overrides the count-derived all-selected state — for when "Select all"
+   * can't reach `totalCount` (e.g. it skips disabled options), so the toggle
+   * still flips to "Clear all" once the selection is as full as it can get. */
+  allSelected?: boolean;
   onSelectAll?: () => void;
   onClearAll?: () => void;
 }) => {
   if (hideCount && hideSelectAllToggle) {
     return null;
   }
-  const allSelected = totalCount > 0 && selectedCount >= totalCount;
+  const allSelected =
+    allSelectedOverride ?? (totalCount > 0 && selectedCount >= totalCount);
 
   return (
     <div className={summaryRow()}>
