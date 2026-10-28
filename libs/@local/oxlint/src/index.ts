@@ -359,6 +359,10 @@ const createDefaults = (
       ],
       "no-ternary": "allow", // hash/no-complex-ternary restricts branch expressions without banning simple value selection.
       "no-undefined": "allow", // comparisons need `undefined`
+      "no-warning-comments": [
+        "deny", // exclude TODO, as we use TODO(NN-XXX): [...]
+        { terms: ["fixme", "xxx"] },
+      ],
       "one-var": ["deny", "never"], // use one declaration per variable
       "oxc/no-async-await": "allow", // Promise-based code uses native async functions.
       "oxc/no-optional-chaining": "allow", // optional chaining is useful for optional properties
