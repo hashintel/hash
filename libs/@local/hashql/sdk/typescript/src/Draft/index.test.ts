@@ -1087,7 +1087,7 @@ describe("boundary", () => {
 
 type Vertex = Type.Struct<{ readonly enabled: Type.PrimitiveBoolean }>;
 const graph = Result.getOrThrow(
-  Module.define("::graph::head", {
+  Module.define("::example::graph", {
     values: {
       entities:
         Module.value<
@@ -1360,7 +1360,7 @@ describe("query", () => {
       },
     );
     expect(text(result)).toBe(
-      '["::kernel::special_form::use","::graph::head",{"#tuple":["entities"]},["::graph::tail::collect",["::graph::body::filter",["entities",["::kernel::special_form::input","axis","::kernel::type::Integer"]],["fn",{"#tuple":[]},{"#struct":{"vertex":"_"}},"_",["::kernel::special_form::let","selected",["::kernel::special_form::access","vertex","enabled"],["::core::bool::and","selected",["::kernel::special_form::input","flag","::kernel::type::Boolean"]]]]]]]',
+      '["::kernel::special_form::use","::example::graph",{"#tuple":["entities"]},["::graph::tail::collect",["::graph::body::filter",["entities",["::kernel::special_form::input","axis","::kernel::type::Integer"]],["fn",{"#tuple":[]},{"#struct":{"vertex":"_"}},"_",["::kernel::special_form::let","selected",["::kernel::special_form::access","vertex","enabled"],["::core::bool::and","selected",["::kernel::special_form::input","flag","::kernel::type::Boolean"]]]]]]]',
     );
     expect(calls).toBe(1);
   });
@@ -1374,7 +1374,7 @@ describe("query", () => {
         .collect(),
     );
     expect(text(result)).toBe(
-      '["::graph::tail::collect",["::graph::body::filter",["::graph::body::filter",["::graph::head::entities",{"#literal":1}],["fn",{"#tuple":[]},{"#struct":{"first":"_"}},"_",{"#literal":true}]],["fn",{"#tuple":[]},{"#struct":{"second":"_"}},"_",["::core::cmp::eq",["::kernel::special_form::access","second","enabled"],{"#literal":true}]]]]',
+      '["::graph::tail::collect",["::graph::body::filter",["::graph::body::filter",["::example::graph::entities",{"#literal":1}],["fn",{"#tuple":[]},{"#struct":{"first":"_"}},"_",{"#literal":true}]],["fn",{"#tuple":[]},{"#struct":{"second":"_"}},"_",["::core::cmp::eq",["::kernel::special_form::access","second","enabled"],{"#literal":true}]]]]',
     );
   });
 
@@ -1391,7 +1391,7 @@ describe("query", () => {
       return Program.Query.collect(enabled);
     });
     expect(text(result)).toBe(
-      '["::kernel::special_form::let","enabled",["::graph::body::filter",["::graph::head::entities",{"#literal":1}],["fn",{"#tuple":[]},{"#struct":{"vertex":"_"}},"_",["::core::cmp::eq",["::kernel::special_form::access","vertex","enabled"],{"#literal":true}]]],["::graph::tail::collect","enabled"]]',
+      '["::kernel::special_form::let","enabled",["::graph::body::filter",["::example::graph::entities",{"#literal":1}],["fn",{"#tuple":[]},{"#struct":{"vertex":"_"}},"_",["::core::cmp::eq",["::kernel::special_form::access","vertex","enabled"],{"#literal":true}]]],["::graph::tail::collect","enabled"]]',
     );
   });
 
