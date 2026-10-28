@@ -6,7 +6,7 @@
  * @module
  */
 // oxlint-disable import/max-dependencies -- the collector composes every construction module
-import { Cause, Data, Option, Result, pipe } from "effect";
+import { Cause, Data, Option, Pipeable, Result, pipe } from "effect";
 
 import * as Referential from "../internal/referential.js";
 import * as StructuralSyntax from "../internal/structural.js";
@@ -17,13 +17,14 @@ import * as Import from "../Program/Import/index.js";
 import * as Namespace from "../Program/Namespace.js";
 import * as Operators from "../Program/Operators.js";
 import * as ProgramError from "../Program/ProgramError.js";
+import * as Query from "../Program/Query.js";
+import * as Structural from "../Program/Structural.js";
 import * as TAST from "../Program/TAST/index.js";
 import * as TypeExpression from "../Program/TypeExpression.js";
 
 import type * as Inputs from "../Program/Inputs.js";
 import type * as Module from "../Program/Module.js";
 import type * as Scope from "../Program/Scope.js";
-import type * as Structural from "../Program/Structural.js";
 import type * as Type from "../Type.js";
 import type * as Body from "./Body.js";
 import type * as Context from "./Context.js";
@@ -106,6 +107,20 @@ const nominal = <N extends string, T extends Type.Any>(
   >(value, type);
 };
 
+/** `Context.Query` with its vertex type and requirements erased, which `Context.Queries` restores. */
+interface ErasedQuery<
+  S extends Scope.Scope.Any,
+> extends Expression.Expression.Handle<Query.Graph<Type.Any>, Inputs.Empty> {
+  readonly filter: (
+    name: string,
+    predicate: (
+      $: Context.Context<S>,
+      vertex: Expression.Expression<Type.Any, Inputs.Empty>,
+    ) => Expression.Value<Type.PrimitiveBoolean>,
+  ) => ErasedQuery<S>;
+  readonly collect: () => Expression.Expression.Any;
+}
+
 /** Stops a callback when an import cannot supply its promised handles. */
 const ConstructionFailure = Data.TaggedError("DraftConstructionFailure")<{
   readonly failure: ProgramError.Construction;
@@ -130,6 +145,7 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   readonly isTrue = Operators.isTrue;
   readonly isFalse = Operators.isFalse;
   readonly isNone = Operators.isNone;
+  readonly query: Context.Queries<S>;
 
   constructor(
     scope: S & Namespace.Rebindable<S>,
@@ -139,6 +155,9 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     this.#next = next;
     this.#prelude = Namespace.flatten<S>(scope);
     this.#modules = Namespace.modules<S>(scope);
+    this.query = Object.assign(this.#start.bind(this), {
+      entities: this.#entities.bind(this),
+    });
 
     // make sure that destructuring `$` works as expected by binding `this` to each method
     this.prelude = this.prelude.bind(this);
@@ -350,6 +369,50 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
       ),
       Expression.fromResult<Type.Any, Inputs.Empty>,
     );
+  }
+
+  #start<const G extends Expression.Expression.Any>(
+    graph: G & Query.Graph.Check<G>,
+  ): Context.Query<S, Query.Graph.Vertex<G>, Expression.Value.Inputs<G>>;
+  #start(graph: Expression.Expression.Any): Expression.Expression.Any {
+    return this.#query(graph);
+  }
+
+  #entities<const A extends Expression.Value<Query.QueryTemporalAxes>>(
+    axis: A,
+  ): Context.Query<S, Query.Entity, Expression.Value.Inputs<A>>;
+  #entities(
+    axis: Expression.Value<Query.QueryTemporalAxes>,
+  ): Expression.Expression.Any {
+    return this.#query(Query.entities(axis));
+  }
+
+  /** Adds `filter` and `collect` to a graph expression. The vertex type stays erased here, and `Context.Queries` restores it. */
+  #query(graph: Expression.Expression.Any): ErasedQuery<S> {
+    const scope = this.#scope;
+    const next = this.#next;
+    const expression = pipe(
+      graph,
+      Expression.toNode,
+      Expression.fromResult<Query.Graph<Type.Any>, Inputs.Empty>,
+    );
+
+    return {
+      ...expression,
+      ...Pipeable.Prototype,
+      filter: (name, predicate) =>
+        this.#query(
+          Query.filter(expression, name, (vertex) =>
+            pipe(
+              new ContextImpl<S>(scope, next).build(($) =>
+                predicate($, vertex),
+              ),
+              Expression.fromResult<Type.PrimitiveBoolean, Inputs.Empty>,
+            ),
+          ),
+        ),
+      collect: () => Query.collect(expression),
+    };
   }
 
   build(

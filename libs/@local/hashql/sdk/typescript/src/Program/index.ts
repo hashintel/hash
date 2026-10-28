@@ -86,6 +86,7 @@ export * as Import from "./Import/index.js";
 export * as Expression from "./Expression.js";
 export type * as Inputs from "./Inputs.js";
 export * as Operators from "./Operators.js";
+export * as Query from "./Query.js";
 export * as Structural from "./Structural.js";
 export * as ProgramError from "./ProgramError.js";
 export * as TypeExpression from "./TypeExpression.js";

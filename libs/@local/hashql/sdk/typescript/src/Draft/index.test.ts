@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { Cause, Result, Schema, pipe } from "effect";
+import { Cause, Option, Result, Schema, pipe } from "effect";
 // oxlint-disable unicorn/no-thenable -- then names a HashQL branch or a declared export
 import { assert, describe, expect, expectTypeOf, test } from "vitest";
 
@@ -1085,6 +1085,27 @@ describe("boundary", () => {
   });
 });
 
+type Vertex = Type.Struct<{ readonly enabled: Type.PrimitiveBoolean }>;
+const graph = Result.getOrThrow(
+  Module.define("::graph::head", {
+    values: {
+      entities:
+        Module.value<
+          Type.Function<
+            readonly [Type.PrimitiveInteger],
+            Program.Query.Graph<Vertex>
+          >
+        >(),
+    },
+  }),
+);
+
+const axes = TypeExpression.fromType<Program.Query.QueryTemporalAxes>(
+  Option.getOrThrow(
+    JExpr.Type.reference("::graph::temporal::QueryTemporalAxes"),
+  ),
+);
+
 describe("import", () => {
   test("selected_capabilities", () => {
     expect.hasAssertions();
@@ -1321,6 +1342,91 @@ describe("import", () => {
   });
 });
 
+describe("query", () => {
+  test("imported_graph", () => {
+    expect.hasAssertions();
+    let calls = 0;
+    const result = Draft.program(
+      { axis: BigInt, flag: Boolean },
+      ($, { axis, flag }) => {
+        const { entities } = $.import(graph, ["entities"]);
+        return $.query(entities(axis))
+          .filter("vertex", (predicate, vertex) => {
+            calls += 1;
+            const selected = predicate.let("selected", vertex.enabled);
+            return $.and(selected, flag);
+          })
+          .collect();
+      },
+    );
+    expect(text(result)).toBe(
+      '["::kernel::special_form::use","::graph::head",{"#tuple":["entities"]},["::graph::tail::collect",["::graph::body::filter",["entities",["::kernel::special_form::input","axis","::kernel::type::Integer"]],["fn",{"#tuple":[]},{"#struct":{"vertex":"_"}},"_",["::kernel::special_form::let","selected",["::kernel::special_form::access","vertex","enabled"],["::core::bool::and","selected",["::kernel::special_form::input","flag","::kernel::type::Boolean"]]]]]]]',
+    );
+    expect(calls).toBe(1);
+  });
+
+  test("prelude_graph", () => {
+    expect.hasAssertions();
+    const result = Draft.withPrelude(graph).program({}, ($) =>
+      $.query($.prelude().entities(1n))
+        .filter("first", () => true)
+        .filter("second", (_, vertex) => $.isTrue(vertex.enabled))
+        .collect(),
+    );
+    expect(text(result)).toBe(
+      '["::graph::tail::collect",["::graph::body::filter",["::graph::body::filter",["::graph::head::entities",{"#literal":1}],["fn",{"#tuple":[]},{"#struct":{"first":"_"}},"_",{"#literal":true}]],["fn",{"#tuple":[]},{"#struct":{"second":"_"}},"_",["::core::cmp::eq",["::kernel::special_form::access","second","enabled"],{"#literal":true}]]]]',
+    );
+  });
+
+  test("bound_query", () => {
+    expect.hasAssertions();
+    const result = Draft.withPrelude(graph).program({}, ($) => {
+      const enabled = $.let(
+        "enabled",
+        $.query($.prelude().entities(1n)).filter("vertex", (_, vertex) =>
+          $.isTrue(vertex.enabled),
+        ),
+      );
+      expect(enabled).not.toHaveProperty("collect", expect.any(Function));
+      return Program.Query.collect(enabled);
+    });
+    expect(text(result)).toBe(
+      '["::kernel::special_form::let","enabled",["::graph::body::filter",["::graph::head::entities",{"#literal":1}],["fn",{"#tuple":[]},{"#struct":{"vertex":"_"}},"_",["::core::cmp::eq",["::kernel::special_form::access","vertex","enabled"],{"#literal":true}]]],["::graph::tail::collect","enabled"]]',
+    );
+  });
+
+  test("entities", () => {
+    expect.hasAssertions();
+    const result = Draft.program({ axis: axes }, ($, { axis }) =>
+      $.query
+        .entities(axis)
+        .filter("entity", () => true)
+        .collect(),
+    );
+    expect(text(result)).toBe(
+      '["::graph::tail::collect",["::graph::body::filter",["::graph::head::entities",["::kernel::special_form::input","axis","::graph::temporal::QueryTemporalAxes"]],["fn",{"#tuple":[]},{"#struct":{"entity":"_"}},"_",{"#literal":true}]]]',
+    );
+  });
+
+  test("invalid_parameter_name", () => {
+    expect.hasAssertions();
+    let calls = 0;
+    const result = Draft.withPrelude(graph).program({}, ($) =>
+      $.query($.prelude().entities(1n))
+        .filter("not a name", () => {
+          calls += 1;
+          return true;
+        })
+        .collect(),
+    );
+    expect(pipe(result, Result.flip, Result.getOrThrow).reason).toMatchObject({
+      _tag: "InvalidParameterName",
+      name: "not a name",
+    });
+    expect(calls).toBe(0);
+  });
+});
+
 describe("namespace", () => {
   test("joined_constructor", () => {
     expect.hasAssertions();
@@ -1417,6 +1523,13 @@ describe("exception", () => {
       Draft.program({}, ($) => $.if(false, { then: fail, else: () => 1n })),
       Draft.program({}, ($) => $.if(true, { then: () => 1n, else: fail })),
       Draft.program({}, ($) => $.if(true, { then: fail })),
+      Draft.withPrelude(graph).program({}, ($) =>
+        $.query($.prelude().entities(1n))
+          .filter("vertex", (): boolean => {
+            throw thrown;
+          })
+          .collect(),
+      ),
     ];
     for (const result of results) {
       expect(result).toMatchObject({
