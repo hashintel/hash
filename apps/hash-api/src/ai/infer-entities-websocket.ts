@@ -4,8 +4,6 @@ import {
   getFlowRunEntityById,
   getFlowRuns,
 } from "@local/hash-backend-utils/flows";
-import { getFlowRunRecord } from "@local/hash-backend-utils/flows/run-record";
-import { getOpenInputRequests } from "@local/hash-isomorphic-utils/flows/run-events";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
 import { assertNoStoredPayloadRefsInFlowInputs } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 
@@ -16,7 +14,6 @@ import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-in
 
 import type { GraphApi, ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
-import type { EntityId } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type {
@@ -87,38 +84,11 @@ const inferEntitiesMessageHandler = async ({
         temporalClient,
       });
 
-      /* A run started before its open input requests were saved on its entity has them read from its record. */
-      const readOpenInputRequestsFromRecord = async (
-        flowRunEntityId: EntityId,
-      ) => {
-        const flowRunEntity = await getFlowRunEntityById({
-          userAuthentication: { actorId: user.accountId },
-          flowRunEntityId,
-          graphApiClient,
-        });
-
-        if (!flowRunEntity) {
-          return [];
-        }
-
-        const { events } = await getFlowRunRecord({
-          storageProvider,
-          temporalClient,
-          workflowId:
-            flowRunEntity.properties[
-              "https://hash.ai/@h/types/property-type/workflow-id/"
-            ],
-        });
-
-        return getOpenInputRequests(events);
-      };
-
       for (const {
         flowRunEntityId,
         openInputRequests,
       } of openFlowRuns.flowRuns) {
-        for (const inputRequest of openInputRequests ??
-          (await readOpenInputRequestsFromRecord(flowRunEntityId))) {
+        for (const inputRequest of openInputRequests) {
           const requestMessage: ExternalInputWebsocketRequestMessage = {
             flowRunEntityId,
             payload: inputRequest,

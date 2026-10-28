@@ -2,7 +2,10 @@ import proto from "@temporalio/proto";
 import Long from "long";
 
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
+import { getFlowRunRecord } from "@local/hash-backend-utils/flows/run-record";
+import { saveOpenInputRequests } from "@local/hash-backend-utils/flows/shared/save-open-input-requests";
 import { temporalNamespace } from "@local/hash-backend-utils/temporal";
+import { getOpenInputRequests } from "@local/hash-isomorphic-utils/flows/run-events";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import { checkEntityPermission } from "../../../graph/knowledge/primitive/entity";
@@ -61,6 +64,20 @@ export const resetFlow: ResolverFn<
     reason: checkpointId,
     requestId: generateUuid(),
     workflowTaskFinishEventId: Long.fromInt(eventId),
+  });
+
+  /* A reset changes which requests are open without the workflow raising or answering any, so it saves none itself. */
+  const { events } = await getFlowRunRecord({
+    storageProvider: dataSources.uploadProvider,
+    temporalClient: temporal,
+    workflowId,
+  });
+
+  await saveOpenInputRequests({
+    graphApiClient: dataSources.graphApi,
+    openInputRequests: getOpenInputRequests(events),
+    temporalWorkflowId: workflowId,
+    userAuthentication: authentication,
   });
 
   return true;

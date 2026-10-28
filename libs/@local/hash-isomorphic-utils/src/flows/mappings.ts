@@ -148,14 +148,5 @@ export const mapFlowRunToEntityProperties = (
           },
         }
       : {}),
-    "https://hash.ai/@h/types/property-type/step/": {
-      value: flowRun.steps.map((step) => ({
-        value: step,
-        metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-        },
-      })),
-    },
   },
 });

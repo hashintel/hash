@@ -42,6 +42,13 @@ export type {
 } from "./flows/action-types.js";
 export { createCommonFlowActivities } from "./flows/process-flow-workflow/common-activities.js";
 
+/** The open input requests saved on a run's entity, which has none until its run first raises one. */
+const getSavedOpenInputRequests = ({
+  properties,
+}: Pick<FlowRunEntity, "properties">) =>
+  (properties["https://hash.ai/@h/types/property-type/open-input-request/"] ??
+    []) as ExternalInputRequest[];
+
 type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
   flowRunEntityId: EntityId;
   includeDetails: IncludeDetails;
@@ -117,6 +124,7 @@ export async function getFlowRunById({
 
   const flowDefinitionEntityId = links.flowDefinitionEntityId;
   const flowScheduleId = links.flowTriggerId ?? undefined;
+  const openInputRequests = getSavedOpenInputRequests(existingFlowEntity);
 
   if (includeDetails) {
     return getFlowRunFromTemporalWorkflowId({
@@ -125,6 +133,7 @@ export async function getFlowRunById({
       flowScheduleId,
       recordsByWorkflowId,
       name,
+      openInputRequests,
       storageProvider,
       temporalClient,
       temporalWorkflowId,
@@ -136,6 +145,7 @@ export async function getFlowRunById({
       flowRunEntityId,
       flowScheduleId,
       name,
+      openInputRequests,
       storageProvider,
       temporalClient,
       temporalWorkflowId,
@@ -175,7 +185,7 @@ type MinimalFlowMetadata = {
   flowRunEntityId: EntityId;
   flowScheduleId?: EntityUuid;
   name: string;
-  openInputRequests?: ExternalInputRequest[];
+  openInputRequests: ExternalInputRequest[];
   temporalWorkflowId: string;
   webId: WebId;
 };
@@ -327,16 +337,12 @@ export async function getFlowRuns({
     const temporalWorkflowId =
       entity.properties["https://hash.ai/@h/types/property-type/workflow-id/"];
 
-    const openInputRequests = entity.properties[
-      "https://hash.ai/@h/types/property-type/open-input-request/"
-    ] as ExternalInputRequest[] | undefined;
-
     temporalWorkflowIdToFlowDetails[temporalWorkflowId] = {
       flowDefinitionEntityId: links.flowDefinitionEntityId,
       flowRunEntityId,
       flowScheduleId: links.flowTriggerId ?? undefined,
       name,
-      ...(openInputRequests ? { openInputRequests } : {}),
+      openInputRequests: getSavedOpenInputRequests(entity),
       temporalWorkflowId,
       webId,
     };
@@ -409,16 +415,13 @@ export async function getFlowRuns({
         flowScheduleId: flowDetails.flowScheduleId,
         recordsByWorkflowId,
         name: flowDetails.name,
+        openInputRequests: flowDetails.openInputRequests,
         storageProvider,
         temporalClient,
         temporalWorkflowId: flowDetails.temporalWorkflowId,
         webId: flowDetails.webId,
       });
-      workflows.push(
-        flowDetails.openInputRequests
-          ? { ...runInfo, openInputRequests: flowDetails.openInputRequests }
-          : runInfo,
-      );
+      workflows.push(runInfo);
     }
 
     return { flowRuns: workflows, totalCount, nextCursor };
@@ -433,16 +436,13 @@ export async function getFlowRuns({
         flowRunEntityId: flowDetails.flowRunEntityId,
         flowScheduleId: flowDetails.flowScheduleId,
         name: flowDetails.name,
+        openInputRequests: flowDetails.openInputRequests,
         storageProvider,
         temporalClient,
         temporalWorkflowId: flowDetails.temporalWorkflowId,
         webId: flowDetails.webId,
       });
-      workflows.push(
-        flowDetails.openInputRequests
-          ? { ...runInfo, openInputRequests: flowDetails.openInputRequests }
-          : runInfo,
-      );
+      workflows.push(runInfo);
     }
 
     return { flowRuns: workflows, totalCount, nextCursor };

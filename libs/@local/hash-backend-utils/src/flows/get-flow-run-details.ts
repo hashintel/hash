@@ -32,6 +32,7 @@ import type {
 import type { FlowRunStepRunState } from "@local/hash-isomorphic-utils/flows/step-runs";
 import type {
   DetailedFlowField,
+  ExternalInputRequest,
   FlowRunWithoutEvents,
   ResolvedPayload,
   ResolvedStepOutput,
@@ -244,6 +245,8 @@ type FlowRunLinkedFields = {
   /** The schedule the run was `Triggered By`, if any, from its link */
   flowScheduleId?: EntityUuid;
   name: string;
+  /** The open input requests saved on the run's entity */
+  openInputRequests: ExternalInputRequest[];
   webId: WebId;
 };
 
@@ -253,6 +256,7 @@ const toSparseFlowRun = (
     flowRunEntityId,
     flowScheduleId,
     name,
+    openInputRequests,
     webId,
   }: FlowRunLinkedFields,
   {
@@ -273,6 +277,7 @@ const toSparseFlowRun = (
   startedAt,
   executedAt,
   closedAt,
+  openInputRequests,
   webId,
 });
 

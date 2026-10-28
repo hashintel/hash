@@ -1,5 +1,4 @@
 import {
-  patched,
   proxyActivities,
   proxySinks,
   setHandler,
@@ -63,10 +62,10 @@ export const setQueryAndSignalHandlers = ({
 
   /**
    * Saves happen one at a time, each with the requests open when it starts, so a save queued behind another covers
-   * every change made in the meantime. Runs from before saves were added skip them, so that their histories replay.
+   * every change made in the meantime.
    */
   const saveOpenInputRequests = () => {
-    if (!patched("save-open-input-requests") || openInputRequestsSaveQueued) {
+    if (openInputRequestsSaveQueued) {
       return;
     }
 

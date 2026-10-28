@@ -2251,7 +2251,6 @@ export type FlowRunProperties = {
   "https://hash.ai/@h/types/property-type/inputs/": InputsPropertyValue;
   "https://hash.ai/@h/types/property-type/open-input-request/"?: OpenInputRequestPropertyValue[];
   "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValue;
-  "https://hash.ai/@h/types/property-type/step/"?: StepPropertyValue;
   "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValue;
 };
 
@@ -2265,7 +2264,6 @@ export type FlowRunPropertiesWithMetadata = {
       metadata?: ArrayMetadata;
     };
     "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/step/"?: StepPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValueWithMetadata;
   };
 };
@@ -6360,16 +6358,6 @@ export type StepDefinitionPropertyValue = ObjectDataType;
 
 export type StepDefinitionPropertyValueWithMetadata =
   ObjectDataTypeWithMetadata;
-
-/**
- * A step in a flow run.
- */
-export type StepPropertyValue = ObjectDataType[];
-
-export type StepPropertyValueWithMetadata = {
-  value: ObjectDataTypeWithMetadata[];
-  metadata?: ArrayMetadata;
-};
 
 /**
  * Whether stock is increased or decreased.

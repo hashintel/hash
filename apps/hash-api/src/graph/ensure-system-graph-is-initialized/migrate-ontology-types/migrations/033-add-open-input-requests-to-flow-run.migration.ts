@@ -77,7 +77,6 @@ const migrate: MigrationFunction = async ({
             propertyType: getPropertyTypeId("inputs"),
             required: true,
           },
-          { propertyType: getPropertyTypeId("step") },
           { propertyType: getPropertyTypeId("outputs") },
           { propertyType: openInputRequestPropertyType, array: true },
         ],
