@@ -363,7 +363,11 @@ describe("emitted_module_imports", () => {
     const root = Result.map(Expression.toNode(Id("id")), declaration.wrap);
     expect(
       JExpr.compile(
-        Result.getOrThrow(Result.map(root, (node) => node.compile())),
+        Result.getOrThrow(
+          Result.flatMap(root, (node) =>
+            Expression.toJExpr(Expression.fromNode(node)),
+          ),
+        ),
       ),
     ).toBe(
       '["::kernel::special_form::use","::core::uuid",{"#struct":{"Uuid":"Id"}},["Id",{"#literal":"id"}]]',

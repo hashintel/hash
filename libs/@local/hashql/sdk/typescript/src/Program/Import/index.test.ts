@@ -1,8 +1,9 @@
-import { Equal, Hash, Record, Result } from "effect";
+import { Equal, Hash, Record, Result, pipe } from "effect";
 import { describe, expect, test } from "vitest";
 
 import { Relocate, relocate } from "../../internal/relocation.js";
 import * as JExpr from "../../JExpr/index.js";
+import * as AST from "../AST/index.js";
 import * as Program from "../index.js";
 
 import type * as Type from "../../Type.js";
@@ -45,10 +46,13 @@ const compile = (value: Program.Expression.Expression.Any): string =>
 const syntax = <M extends Program.Module.Module.Any, I>(
   declaration: Program.Import.Declaration<M, I>,
 ): string =>
-  JExpr.compile(
-    declaration
-      .wrap(Result.getOrThrow(Expression.toNode(Expression.integer(1))))
-      .compile(),
+  pipe(
+    Expression.integer(1),
+    Expression.toNode,
+    Result.getOrThrow,
+    declaration.wrap,
+    AST.compile,
+    JExpr.compile,
   );
 
 describe("import_selection", () => {
@@ -253,7 +257,7 @@ describe("import_selection", () => {
     const wrapped = Result.getOrThrow(
       Result.map(Expression.toNode(Expression.integer(1)), wrap),
     );
-    expect(JExpr.compile(wrapped.compile())).toBe(syntax(imported));
+    expect(JExpr.compile(AST.compile(wrapped))).toBe(syntax(imported));
     expect(Object.getPrototypeOf(imported)).toBe(Object.getPrototypeOf(second));
     expect(Object.getPrototypeOf(imported)).not.toBe(Object.prototype);
     expect(Object.isFrozen(imported)).toBe(true);

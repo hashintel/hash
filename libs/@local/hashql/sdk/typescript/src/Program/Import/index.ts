@@ -58,7 +58,13 @@ export type * as Bindings from "./Bindings.js";
  * const { plus } = Namespace.flatten(imported.scope);
  * const result = Result.map(Expression.toNode(plus(1n, 2n)), imported.wrap);
  * assert.equal(
- *   JExpr.compile(Result.getOrThrow(Result.map(result, (node) => node.compile()))),
+ *   JExpr.compile(
+ *     Result.getOrThrow(
+ *       Result.flatMap(result, (node) =>
+ *         Expression.toJExpr(Expression.fromNode(node)),
+ *       ),
+ *     ),
+ *   ),
  *   '["::kernel::special_form::use","::core::math",{"#struct":{"add":"plus"}},["plus",{"#literal":1},{"#literal":2}]]',
  * );
  *
