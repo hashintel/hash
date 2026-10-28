@@ -8,7 +8,7 @@ import {
   toRootNetActualModeExecution,
 } from "@local/flow-petri-net/replay-flow-run-events";
 
-import { useFlowRunEvents } from "./flow-net-view/use-flow-run-events";
+import { useFlowRunEvents } from "../../../../shared/use-flow-run-events";
 import { flowSectionBorderRadius } from "./shared/styles";
 
 import type { EntityId } from "@blockprotocol/type-system";

@@ -18,23 +18,26 @@ const pageSize = 2_000;
 const pollIntervalMs = 2_000;
 
 /**
- * Applies a page to the events read so far. A page from a run that was reset past the cursor drops the events the
- * reset undid first.
+ * The events read so far that a page keeps. A page from a run that was reset past the cursor keeps those up to its
+ * `keptUpTo`, or none if it has none. If they don't include `keptUpTo`, which they kept can't be told: `null`.
  */
-const withPage = (
-  events: readonly FlowRunEvent[],
+const eventsKeptBy = (
+  events: FlowRunEvent[],
   page: FlowRunEventsPage,
-): FlowRunEvent[] => {
-  const kept = page.restarted
-    ? events.slice(
-        0,
-        page.keptUpTo
-          ? events.findIndex(({ position }) => position === page.keptUpTo) + 1
-          : 0,
-      )
-    : events;
+): FlowRunEvent[] | null => {
+  if (!page.restarted) {
+    return events;
+  }
 
-  return [...kept, ...page.events];
+  if (!page.keptUpTo) {
+    return [];
+  }
+
+  const keptUpToIndex = events.findIndex(
+    ({ position }) => position === page.keptUpTo,
+  );
+
+  return keptUpToIndex === -1 ? null : events.slice(0, keptUpToIndex + 1);
 };
 
 export type FlowRunEvents =
@@ -87,6 +90,7 @@ export const useFlowRunEvents = ({
 
     const readNewEvents = async () => {
       let runId: string | undefined;
+      let changed = false;
 
       for (let hasNextPage = true; hasNextPage;) {
         const { data } = await apolloClient.query<
@@ -107,9 +111,19 @@ export const useFlowRunEvents = ({
         }
 
         const page = data.getFlowRunById.events;
+        const kept = eventsKeptBy(progress.events, page);
+
+        if (!kept) {
+          /* Read again from the start, as which events the reset kept can't be told. */
+          progress.events = [];
+          progress.cursor = null;
+          changed = true;
+          continue;
+        }
 
         if (page.restarted || page.events.length > 0) {
-          progress.events = withPage(progress.events, page);
+          progress.events = [...kept, ...page.events];
+          changed = true;
         }
         progress.cursor = page.endCursor ?? progress.cursor;
         runId = page.runId;
@@ -119,14 +133,11 @@ export const useFlowRunEvents = ({
       if (!cancelled && runId !== undefined) {
         const loadedRunId = runId;
 
-        /*
-         * An unchanged result keeps its identity, so what's derived from it isn't recomputed for nothing. Its events are
-         * compared rather than whether this read added any, as a read that failed or was cancelled may have added some.
-         */
+        /* An unchanged result keeps its identity, so the net is not replayed again for nothing. */
         setRead((previous) =>
+          !changed &&
           previous?.flowRunEntityId === flowRunEntityId &&
           previous.result.status === "loaded" &&
-          previous.result.events === progress.events &&
           previous.result.runId === loadedRunId &&
           previous.result.checkFailure === undefined
             ? previous

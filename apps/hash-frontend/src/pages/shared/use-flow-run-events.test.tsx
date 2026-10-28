@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getFlowRunEventsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
-import { FlowRunStatus } from "../../../../../../graphql/api-types.gen";
+import { FlowRunStatus } from "../../graphql/api-types.gen";
 import { useFlowRunEvents } from "./use-flow-run-events";
 
 import type { MockedResponse } from "@apollo/client/testing";
