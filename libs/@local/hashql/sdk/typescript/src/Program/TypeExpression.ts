@@ -12,6 +12,7 @@
 import { Array, Predicate, Result, identity, pipe } from "effect";
 import { dual } from "effect/Function";
 
+import * as Overflow from "../internal/overflow.js";
 import {
   Relocate,
   relocate as relocateHandle,
@@ -27,11 +28,16 @@ import type { Types } from "effect";
 
 export type { Relocatable } from "../internal/relocation.js";
 
+/** The string key that marks a type expression, which {@link isTypeExpression} and {@link isExport} check. */
 export type TypeId = "~hashql/TypeExpression";
 const TypeId: TypeId = "~hashql/TypeExpression";
 
+/** The string key that marks a generic type constructor, which {@link isConstructor} and {@link isExport} check. */
 export type ConstructorId = "~hashql/TypeConstructor";
 const ConstructorId: ConstructorId = "~hashql/TypeConstructor";
+
+// Applied arguments come from caller syntax that nothing has checked. Validating the path here keeps an invalid argument inside the type expression instead of throwing.
+const makePath = Overflow.makeResult(Path.Schema);
 
 /** Type syntax or its construction failure, annotated with its semantic type. */
 export interface TypeExpression<T extends Type.Any> extends TypeExpression.Any {
@@ -93,7 +99,8 @@ export const isExport = (value: unknown): value is Export =>
   Predicate.hasProperty(value, TypeId) ||
   Predicate.hasProperty(value, ConstructorId);
 
-// oxlint-disable-next-line typescript/no-restricted-types -- this guard narrows unchecked environment entries
+/** Recognizes concrete type expressions by their marker property, without checking the stored syntax or the semantic descriptor. */
+// oxlint-disable-next-line typescript/no-restricted-types -- the guard accepts unchecked host values
 export const isTypeExpression = (value: unknown): value is TypeExpression.Any =>
   Predicate.hasProperty(value, TypeId);
 
@@ -214,21 +221,31 @@ export const constructor = <F extends Type.TypeConstructor>(
       args as readonly TypeExpression.Any[],
       Array.map(toType),
       Result.all,
-      Result.map((args): Syntax.Type => ({
-        _tag: "Reference",
-        path: Path.make({
-          rooted: path.rooted,
-          segments: Array.modifyLastNonEmpty(path.segments, (segment) =>
-            Path.Segment.make({
+      Result.flatMap((args) =>
+        pipe(
+          makePath({
+            rooted: path.rooted,
+            segments: Array.modifyLastNonEmpty(path.segments, (segment) => ({
               name: segment.name,
               arguments: [
                 ...segment.arguments,
-                ...args.map((bound) => Path.GenericArgument.make({ bound })),
+                ...Array.map(args, (bound) => ({
+                  _tag: "GenericArgument" as const,
+                  bound,
+                })),
               ],
+            })),
+          }),
+          Result.mapBoth({
+            onFailure: (cause) =>
+              ProgramError.Construction.invalidExpression(cause),
+            onSuccess: (applied): Syntax.Type => ({
+              _tag: "Reference",
+              path: applied,
             }),
-          ),
-        }),
-      })),
+          }),
+        ),
+      ),
       fromResult<Type.TypeLambda.Apply<F, A>>,
     );
   };

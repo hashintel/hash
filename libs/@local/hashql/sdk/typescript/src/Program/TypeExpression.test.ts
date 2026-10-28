@@ -77,6 +77,18 @@ describe("type_expression", () => {
     expect(pipe(application, Result.flip, Result.getOrThrow)).toBe(failure);
   });
 
+  test("unchecked_argument", () => {
+    expect.hasAssertions();
+    const unchecked = TypeExpression.fromType<Type.PrimitiveInteger>({
+      _tag: "Struct",
+      members: [[{ _tag: "Lexical", value: "first name" }, { _tag: "Infer" }]],
+    });
+    const application = TypeExpression.toType(pair(text, unchecked));
+    expect(pipe(application, Result.flip, Result.getOrThrow).reason._tag).toBe(
+      "InvalidExpression",
+    );
+  });
+
   test.each([-1, 0.5, Number.NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
     "invalid_arity_%s",
     (arity) => {
