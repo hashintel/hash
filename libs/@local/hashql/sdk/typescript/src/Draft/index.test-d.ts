@@ -510,7 +510,7 @@ const unrestrictedQuery = <S extends Program.Scope.Scope.Any>(
   >,
 ): Context.Query<S, Vertex, { readonly flag: Type.PrimitiveBoolean }> =>
   $.query(entities).filter("vertex", () =>
-    Expression.input("flag", Structural.type(Boolean)),
+    Expression.input("flag", Result.getOrThrow(Structural.type(Boolean))),
   );
 
 /** An unrestricted helper's entity query keeps axes from outside any schema, which a program's `$` would reject. */
@@ -556,7 +556,10 @@ describe("query", () => {
   });
 
   test("schema_checks", () => {
-    const flag = Expression.input("flag", Structural.type(Boolean));
+    const flag = Expression.input(
+      "flag",
+      Result.getOrThrow(Structural.type(Boolean)),
+    );
     const erased: Program.Expression.Value<Type.PrimitiveBoolean> = flag;
     graphProgram({}, ($) => {
       const entities = $.prelude().entities(1n);
