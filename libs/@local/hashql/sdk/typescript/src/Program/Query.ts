@@ -15,6 +15,7 @@ import * as ProgramError from "./ProgramError.js";
 import type * as Type from "../Type.js";
 import type * as Input from "./Inputs.js";
 
+// TODO(BE-1013): take `Graph`, `QueryTemporalAxes` and `Entity` from the generated standard-library declarations and delete these, so each type is declared once.
 /** HashQL's graph of vertices of type `V`, which graph functions return and query steps take. */
 export type Graph<V extends Type.Any> = Type.Opaque<
   "::graph::Graph",
