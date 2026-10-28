@@ -5,7 +5,7 @@ import { embedCode } from "./embed";
 import { cancelFlow } from "./flows/cancel-flow";
 import {
   flowRunFailureResolver,
-  flowRunFlowOutputsResolver,
+  flowRunOutputsResolver,
   flowRunStepErrorsResolver,
 } from "./flows/flow-run-ending";
 import { flowRunEventsResolver } from "./flows/flow-run-events";
@@ -342,7 +342,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
 
   FlowRun: {
     events: flowRunEventsResolver,
-    flowOutputs: flowRunFlowOutputsResolver,
+    outputs: flowRunOutputsResolver,
     failure: flowRunFailureResolver,
     stepErrors: flowRunStepErrorsResolver,
     openInputRequests: flowRunOpenInputRequestsResolver,

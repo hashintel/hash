@@ -29,10 +29,10 @@ import type {
 import type { PayloadKindValues } from "@local/hash-isomorphic-utils/flows/types";
 
 const mapFlowRunToMinimalFlowRun = ({
-  flowOutputs,
+  outputs,
   ...flowRun
 }: GetMinimalFlowRunsQuery["getFlowRuns"]["flowRuns"][number]): MinimalFlowRun => {
-  const persistedEntities = (flowOutputs ?? []).flatMap(
+  const persistedEntities = (outputs ?? []).flatMap(
     ({ outputName, payload }) => {
       if (
         outputName ===

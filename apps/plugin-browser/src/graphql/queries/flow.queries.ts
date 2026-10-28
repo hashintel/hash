@@ -11,7 +11,7 @@ export const getMinimalFlowRunsQuery = /* GraphQL */ `
         executedAt
         closedAt
         flowInputs
-        flowOutputs {
+        outputs {
           outputName
           payload
         }

@@ -156,13 +156,9 @@ export const scalars = {
     "@local/hash-isomorphic-utils/flows/types#ExternalInputRequest",
   ExternalInputResponseWithoutUser:
     "@local/hash-isomorphic-utils/flows/types#ExternalInputResponseWithoutUser",
-  StepInput: "@local/hash-isomorphic-utils/flows/types#StepInput",
   FlowRunEvent: "@local/hash-isomorphic-utils/flows/run-events#FlowRunEvent",
   FlowInputValues: "@local/hash-isomorphic-utils/flows/types#FlowInputValues",
-  ResolvedStepRunOutput:
-    "@local/hash-isomorphic-utils/flows/types#ResolvedStepRunOutput",
   ResolvedPayload: "@local/hash-isomorphic-utils/flows/types#ResolvedPayload",
-  StepProgressLog: "@local/hash-isomorphic-utils/flows/types#StepProgressLog",
 
   RoleAssignmentStatus: "@local/hash-graph-client#RoleAssignmentStatus",
   RoleUnassignmentStatus: "@local/hash-graph-client#RoleUnassignmentStatus",

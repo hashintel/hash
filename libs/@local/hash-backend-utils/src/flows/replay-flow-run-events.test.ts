@@ -5,14 +5,14 @@ import { describe, expect, it } from "vitest";
 
 import { compileFlowDefinition } from "@local/flow-petri-net/compile-flow-definition";
 import { replayFlowRunEvents } from "@local/flow-petri-net/replay-flow-run-events";
+import { findRunFinishedEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 import { generateStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
+import { getStepRunsFromEvents } from "@local/hash-isomorphic-utils/flows/step-runs";
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
-import { getFlowRunDetailedFieldsFromRecord } from "./get-flow-run-details.js";
 import { getFlowRunRecordFromHistory } from "./run-record.js";
 
-import type { FileStorageProvider } from "../file-storage.js";
 import type { FlowRunHistoryRecord } from "./run-record.js";
 import type { FlowNetMetadata } from "@local/flow-petri-net/flow-net-metadata";
 import type {
@@ -24,8 +24,8 @@ import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 /*
  * Replays each recorded run's events on the net compiled from the definition it ran, and checks the net agrees with
- * what the run's details say happened. The replay assumes what each kind of event means for the net, so a change to
- * how events are built from a history that breaks those assumptions fails here.
+ * the run's step runs and outputs. The replay assumes what each kind of event means for the net, so a change to how
+ * events are built from a history that breaks those assumptions fails here.
  */
 
 const fixturesUrl = new URL(
@@ -36,11 +36,6 @@ const fixturesUrl = new URL(
 const fixtureNames = readdirSync(fixturesUrl)
   .filter((fileName) => fileName.endsWith(".json"))
   .map((fileName) => fileName.replace(/\.json$/, ""));
-
-const storageProvider = {
-  downloadDirect: ({ key }: { key: string }) =>
-    Promise.resolve(Buffer.from(JSON.stringify({ storageKey: key }))),
-} as unknown as FileStorageProvider;
 
 const loadFixture = (fixtureName: string): FlowRunHistoryRecord => {
   const { history, ...fixture } = JSON.parse(
@@ -169,7 +164,7 @@ const stepRunsFromNet = (replay: FlowRunReplay) => {
   return stepRuns;
 };
 
-/** The net's status for a step run with each status the run's details give it. */
+/** The net's status for a step run with each status its run's events give it. */
 const netStatusOf = (status: FlowStepStatus): NetStepRunStatus => {
   switch (status) {
     case FlowStepStatus.Completed:
@@ -215,10 +210,10 @@ const replayFixture = async (fixtureName: string) => {
     fixture,
     net,
     replay: replayFlowRunEvents(net, record.events),
-    details: await getFlowRunDetailedFieldsFromRecord(record, {
-      storageProvider,
-      workflowId,
-    }),
+    stepRuns: getStepRunsFromEvents(record.events, record.header),
+    outputNames: (findRunFinishedEvent(record.events)?.flowOutputs ?? []).map(
+      ({ outputName }) => outputName,
+    ),
   };
 };
 
@@ -235,10 +230,10 @@ describe("replayFlowRunEvents on recorded runs", () => {
   it.each(closedFixtureNames)(
     "waits on nothing once %s has closed",
     async (fixtureName) => {
-      const { replay, details } = await replayFixture(fixtureName);
+      const { replay, stepRuns } = await replayFixture(fixtureName);
 
       /* A cancelled attempt stays in progress, as the net can't cancel it. */
-      const cancelledStepRunIds = details.steps
+      const cancelledStepRunIds = stepRuns
         .filter(({ status }) => status === FlowStepStatus.Cancelled)
         .map(({ stepId }) => stepId);
 
@@ -251,16 +246,14 @@ describe("replayFlowRunEvents on recorded runs", () => {
   );
 
   it.each(replayedFixtureNames)(
-    "gives each step of %s the status and attempts its details give",
+    "gives each step of %s the status and attempts its events give",
     async (fixtureName) => {
-      const { replay, details } = await replayFixture(fixtureName);
+      const { replay, stepRuns } = await replayFixture(fixtureName);
       const fromNet = stepRunsFromNet(replay);
-      const fromDetails = new Map(
-        details.steps.map((step) => [step.stepId, step]),
-      );
+      const fromEvents = new Map(stepRuns.map((step) => [step.stepId, step]));
 
       const stepRunIds = [
-        ...new Set([...fromDetails.keys(), ...fromNet.keys()]),
+        ...new Set([...fromEvents.keys(), ...fromNet.keys()]),
       ].sort();
 
       expect(
@@ -274,11 +267,11 @@ describe("replayFlowRunEvents on recorded runs", () => {
         }),
       ).toEqual(
         stepRunIds.map((stepRunId) => {
-          const step = fromDetails.get(stepRunId);
+          const step = fromEvents.get(stepRunId);
 
           return {
             stepRunId,
-            status: step ? netStatusOf(step.status) : "not in the details",
+            status: step ? netStatusOf(step.status) : "not in the events",
             attempts: step?.attempt ?? 0,
           };
         }),
@@ -312,14 +305,8 @@ describe("replayFlowRunEvents on recorded runs", () => {
   it.each(replayedFixtureNames)(
     "puts each of %s's flow outputs where the net's metadata gives",
     async (fixtureName) => {
-      const { net, replay, details } = await replayFixture(fixtureName);
+      const { net, replay, outputNames } = await replayFixture(fixtureName);
       const { flowOutputs } = net.metadata as unknown as FlowNetMetadata;
-
-      const outputNames = (details.outputs ?? []).flatMap(({ contents }) =>
-        contents.flatMap(({ outputs }) =>
-          outputs.map(({ outputName }) => outputName),
-        ),
-      );
 
       const outputsInNet = outputNames.filter((outputName) => {
         const endpoint = flowOutputs[outputName];

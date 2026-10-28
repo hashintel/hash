@@ -63,7 +63,7 @@ describe("getFlowRunsResolver", () => {
 
   it("reads details asked for only on an aliased `flowRuns`", async () => {
     const result = await runPaginatedQuery(
-      "flowRuns { name } detailed: flowRuns { steps { stepId } }",
+      "flowRuns { name } detailed: flowRuns { flowInputs }",
     );
 
     expect(result.errors).toBeUndefined();
@@ -82,7 +82,7 @@ describe("getFlowRunsResolver", () => {
   });
 
   it("lists runs when `events` isn't asked for", async () => {
-    const result = await runQuery("name steps { stepId }");
+    const result = await runQuery("name flowInputs");
 
     expect(result.errors).toBeUndefined();
     expect(mocks.getFlowRuns).toHaveBeenCalledWith(

@@ -23,7 +23,6 @@ import type {
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { QueryEntitiesRequest } from "@local/hash-graph-sdk/entity";
-import type { Status } from "@local/status";
 
 export const flowRunsQueryMaxLimit = 100;
 
@@ -758,17 +757,6 @@ export type ResolvedStepOutput = {
   payload: ResolvedPayload;
 };
 
-export type StepRunOutput = Status<
-  Required<Pick<ActionStep<FlowActionDefinitionId>, "outputs">>
->;
-
-/**
- * StepRunOutput with resolved payloads - used in frontend/GraphQL contexts.
- */
-export type ResolvedStepRunOutput = Status<{
-  outputs: ResolvedStepOutput[];
-}>;
-
 export type ActionStep<
   ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
 > = {
@@ -1171,14 +1159,7 @@ export type StartedForEachStep = {
   startedAt: string;
 };
 
-export const detailedFlowFields = [
-  "failureMessage",
-  "flowInputs",
-  "dataSources",
-  "inputRequests",
-  "outputs",
-  "steps",
-] as const;
+export const detailedFlowFields = ["flowInputs", "dataSources"] as const;
 
 export type DetailedFlowField = (typeof detailedFlowFields)[number];
 

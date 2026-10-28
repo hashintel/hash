@@ -20,7 +20,7 @@ export const getFlowRunProgressQuery = gql`
   query getFlowRunProgress($flowRunEntityId: EntityId!, $after: String) {
     getFlowRunById(flowRunEntityId: $flowRunEntityId) {
       status
-      flowOutputs {
+      outputs {
         outputName
         payload
       }

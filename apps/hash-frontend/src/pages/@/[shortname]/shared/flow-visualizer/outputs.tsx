@@ -266,7 +266,7 @@ export const Outputs = ({
     persistedEntitiesMetadata.length > 0 || proposedEntities.length > 0;
 
   const deliverables = useMemo(
-    () => getDeliverables(selectedFlowRun?.flowOutputs, persistedEntities),
+    () => getDeliverables(selectedFlowRun?.outputs, persistedEntities),
     [selectedFlowRun, persistedEntities],
   );
 

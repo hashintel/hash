@@ -1,24 +1,5 @@
 {
-  "flowInputs": {
-    "prompt": {
-      "kind": "Text",
-      "value": "Who makes HASH?"
-    }
-  },
-  "dataSources": {
-    "files": {
-      "fileEntityIds": []
-    },
-    "internetAccess": {
-      "enabled": false,
-      "browserPlugin": {
-        "enabled": false,
-        "domains": []
-      }
-    }
-  },
-  "inputRequests": [],
-  "steps": [
+  "stepRuns": [
     {
       "stepId": "research",
       "stepType": "researchEntitiesAction",
@@ -27,15 +8,11 @@
       "closedAt": "2026-10-24T11:10:56.507Z",
       "inputs": [
         {
-          "inputs": [
-            {
-              "inputName": "prompt",
-              "payload": {
-                "kind": "Text",
-                "value": "Who makes HASH?"
-              }
-            }
-          ]
+          "inputName": "prompt",
+          "payload": {
+            "kind": "Text",
+            "value": "Who makes HASH?"
+          }
         }
       ],
       "logs": [
@@ -61,5 +38,5 @@
       "attempt": 1
     }
   ],
-  "startedAt": "2026-10-24T11:10:53.382Z"
+  "inputRequests": []
 }

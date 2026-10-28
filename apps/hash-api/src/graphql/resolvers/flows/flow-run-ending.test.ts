@@ -8,7 +8,7 @@ import { schema as typeDefs } from "@local/hash-isomorphic-utils/graphql/type-de
 
 import {
   flowRunFailureResolver,
-  flowRunFlowOutputsResolver,
+  flowRunOutputsResolver,
   flowRunStepErrorsResolver,
 } from "./flow-run-ending";
 
@@ -37,7 +37,7 @@ schema.getQueryType()!.getFields().getFlowRunById!.resolve = () =>
 const flowRunFields = (
   schema.getType("FlowRun") as GraphQLObjectType
 ).getFields();
-flowRunFields.flowOutputs!.resolve = flowRunFlowOutputsResolver as never;
+flowRunFields.outputs!.resolve = flowRunOutputsResolver as never;
 flowRunFields.failure!.resolve = flowRunFailureResolver as never;
 flowRunFields.stepErrors!.resolve = flowRunStepErrorsResolver as never;
 
@@ -59,7 +59,7 @@ const runEndingQuery = () =>
     schema,
     source: `query {
       getFlowRunById(flowRunEntityId: "web~run") {
-        flowOutputs { outputName payload }
+        outputs { outputName payload }
         failure { message }
         stepErrors { stepRun { stepId itemPath } error { message } }
       }
@@ -151,7 +151,7 @@ describe("how a flow run ended", () => {
 
     expect(result.errors).toBeUndefined();
     expect(result.data?.getFlowRunById).toEqual({
-      flowOutputs: [
+      outputs: [
         { outputName: "answer", payload: { kind: "Text", value: "42" } },
         {
           outputName: "persistedEntities",
@@ -181,7 +181,7 @@ describe("how a flow run ended", () => {
 
     expect(result.errors).toBeUndefined();
     expect(result.data?.getFlowRunById).toEqual({
-      flowOutputs: null,
+      outputs: null,
       failure: null,
       stepErrors: null,
     });

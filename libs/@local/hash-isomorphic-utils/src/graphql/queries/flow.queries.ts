@@ -36,7 +36,7 @@ export const getFlowRunById = gql`
       closedAt
       flowInputs
       dataSources
-      flowOutputs {
+      outputs {
         outputName
         payload
       }

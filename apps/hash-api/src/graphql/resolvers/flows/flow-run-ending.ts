@@ -53,18 +53,18 @@ const getFlowRunEnding = async (
   return runFinished ? { workflowId: header.workflowId, runFinished } : null;
 };
 
-export const flowRunFlowOutputsResolver: FlowRunEndingResolver<
+export const flowRunOutputsResolver: FlowRunEndingResolver<
   FlowRunOutput[]
 > = async (flowRun, _args, context) => {
   const ending = await getFlowRunEnding(flowRun, context);
-  const flowOutputs = ending?.runFinished.flowOutputs;
+  const outputs = ending?.runFinished.flowOutputs;
 
-  if (!ending || !flowOutputs) {
+  if (!ending || !outputs) {
     return null;
   }
 
   return Promise.all(
-    flowOutputs.map(async ({ outputName, payload }) => ({
+    outputs.map(async ({ outputName, payload }) => ({
       outputName,
       payload: {
         kind: payload.kind,
