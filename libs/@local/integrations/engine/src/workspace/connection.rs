@@ -20,7 +20,7 @@ use crate::{
         StatementError,
         files::WorkspaceFiles,
         interrupt::{Interrupt, InterruptGuard, RequestId},
-        metrics::Metrics,
+        metrics::{Metrics, Operation, Outcome},
         reply::Reply,
         select::Select,
     },
@@ -281,8 +281,10 @@ impl Connection {
             .into_iter()
             .map(String::into_boxed_str)
             .collect();
-        self.metrics
-            .rows("query", u64::try_from(rows.len()).unwrap_or(u64::MAX));
+        self.metrics.rows(
+            Operation::Query,
+            u64::try_from(rows.len()).unwrap_or(u64::MAX),
+        );
         self.check_disk_limit()?;
         Ok(Rows::new(columns, rows))
     }
@@ -303,7 +305,7 @@ impl Connection {
         let rows = statement
             .query_row(params_from_iter(values), |row| row.get(0))
             .map_err(StatementError::from_duckdb)?;
-        self.metrics.rows("create_table", rows);
+        self.metrics.rows(Operation::CreateTable, rows);
         self.check_disk_limit()
     }
 
@@ -388,11 +390,11 @@ impl Connection {
         drop(self.duckdb);
         drop(self.lock);
         self.metrics.request(
-            "close",
+            Operation::Close,
             if checkpoint.is_ok() {
-                "success"
+                Outcome::Success
             } else {
-                "failure"
+                Outcome::Failure
             },
             started.elapsed(),
         );
@@ -410,7 +412,7 @@ impl Connection {
         &self,
         id: RequestId,
         reply: Reply<T, C>,
-        operation: &'static str,
+        operation: Operation,
         request: impl FnOnce(&Self) -> Result<T, Report<C>>,
     ) where
         C: Error + Send + Sync + 'static,
@@ -421,17 +423,17 @@ impl Connection {
         if reply.is_closed() {
             interrupt.finish();
             self.metrics
-                .request(operation, "skipped", started.elapsed());
+                .request(operation, Outcome::Skipped, started.elapsed());
             return;
         }
         let result = request(self);
         let cancelled = interrupt.finish();
         let outcome = if cancelled {
-            "cancelled"
+            Outcome::Cancelled
         } else if result.is_ok() {
-            "success"
+            Outcome::Success
         } else {
-            "failure"
+            Outcome::Failure
         };
         self.metrics.request(operation, outcome, started.elapsed());
         if !cancelled {
@@ -446,15 +448,17 @@ impl Connection {
         while let Some((id, command)) = commands.blocking_recv() {
             match command {
                 Command::Query { sql, reply } => {
-                    self.answer(id, reply, "query", |connection| connection.query(&sql));
+                    self.answer(id, reply, Operation::Query, |connection| {
+                        connection.query(&sql)
+                    });
                 }
                 Command::CreateTable { table, sql, reply } => {
-                    self.answer(id, reply, "create_table", |connection| {
+                    self.answer(id, reply, Operation::CreateTable, |connection| {
                         connection.create_table(&table, &sql)
                     });
                 }
                 Command::Snapshot { target, reply } => {
-                    self.answer(id, reply, "snapshot", |connection| {
+                    self.answer(id, reply, Operation::Snapshot, |connection| {
                         connection.snapshot(&target)
                     });
                 }
@@ -485,8 +489,12 @@ impl Connection {
         let started = Instant::now();
         let opened = Self::open(path, config, metrics.clone());
         metrics.request(
-            "open",
-            if opened.is_ok() { "success" } else { "failure" },
+            Operation::Open,
+            if opened.is_ok() {
+                Outcome::Success
+            } else {
+                Outcome::Failure
+            },
             started.elapsed(),
         );
         let connection = match opened {

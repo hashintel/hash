@@ -5,6 +5,46 @@ use opentelemetry::{
     metrics::{Counter, Histogram},
 };
 
+#[derive(Clone, Copy)]
+pub(super) enum Operation {
+    Open,
+    Query,
+    CreateTable,
+    Snapshot,
+    Close,
+}
+
+impl Operation {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Open => "open",
+            Self::Query => "query",
+            Self::CreateTable => "create_table",
+            Self::Snapshot => "snapshot",
+            Self::Close => "close",
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum Outcome {
+    Success,
+    Failure,
+    Cancelled,
+    Skipped,
+}
+
+impl Outcome {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Success => "success",
+            Self::Failure => "failure",
+            Self::Cancelled => "cancelled",
+            Self::Skipped => "skipped",
+        }
+    }
+}
+
 /// Records the outcomes observed by workspace threads through the process's meter provider.
 #[derive(Clone)]
 pub(super) struct Metrics {
@@ -46,24 +86,19 @@ impl Metrics {
     }
 
     /// Records a request's outcome and execution time, excluding time in the queue.
-    pub(super) fn request(
-        &self,
-        operation: &'static str,
-        outcome: &'static str,
-        elapsed: Duration,
-    ) {
+    pub(super) fn request(&self, operation: Operation, outcome: Outcome, elapsed: Duration) {
         let attributes = [
-            KeyValue::new("operation", operation),
-            KeyValue::new("outcome", outcome),
+            KeyValue::new("operation", operation.as_str()),
+            KeyValue::new("outcome", outcome.as_str()),
         ];
         self.requests.add(1, &attributes);
         self.duration.record(elapsed.as_secs_f64(), &attributes);
     }
 
     /// Counts rows already read or materialized, including work followed by a disk-limit failure.
-    pub(super) fn rows(&self, operation: &'static str, count: u64) {
+    pub(super) fn rows(&self, operation: Operation, count: u64) {
         self.rows
-            .add(count, &[KeyValue::new("operation", operation)]);
+            .add(count, &[KeyValue::new("operation", operation.as_str())]);
     }
 
     pub(super) fn disk_usage(&self, bytes: u64) {
