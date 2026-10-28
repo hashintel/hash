@@ -22,7 +22,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 /**
  * Checks that `value` is a float in JSON number syntax, such as `1.0` or `1e3`.
  *
- * The text needs a fraction or exponent, so `1` and `1.` fail. `_tag` may be omitted, and the result supplies it. `options.disableChecks` skips the spelling check and keeps only the object's shape. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
+ * The text needs a fraction or exponent, so `1` and `1.` fail. The input may omit `_tag`, which the result supplies. `options.disableChecks` skips the spelling check and keeps only the object's shape. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
  * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */

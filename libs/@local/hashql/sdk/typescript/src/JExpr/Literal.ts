@@ -10,7 +10,7 @@ export const Schema: typeof Defs.Literal = Defs.Literal;
 /**
  * A primitive value in a `#literal` constructor.
  *
- * Numeric values are tagged `JExpr.Integer` or `JExpr.Float` objects that preserve their source text. Strings, booleans and `null` appear directly under `#literal`, and a string here is a string value rather than a name. `#type` holds optional annotation text.
+ * A numeric value is a `JExpr.Integer` or `JExpr.Float` object that preserves its source text. Strings, booleans and `null` appear directly under `#literal`, and a string here is a string value rather than a name. `#type` holds optional annotation text.
  */
 export interface Literal extends Defs.LiteralType {}
 /** The schema-encoded representation of {@link Literal}. */
@@ -22,7 +22,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 /**
  * Checks a literal's value and an optional type annotation.
  *
- * A string, boolean or `null` value is accepted as is. A numeric value must be a tagged integer or float object with valid spelling, and its `_tag` may be omitted. `#type` can be any text. `options.disableChecks` skips the numeric spelling check. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
+ * A string, boolean or `null` value passes as is. A numeric value must be a tagged integer or float object with valid spelling, and the input may omit its `_tag`. `#type` can be any text. `options.disableChecks` skips the numeric spelling check. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
  * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */

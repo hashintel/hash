@@ -10,7 +10,7 @@ export const Schema: typeof Defs.Integer = Defs.Integer;
 /**
  * An arbitrary-precision integer's decimal source text, stored in a literal's `#literal` field.
  *
- * `value` uses JSON integer syntax, such as `"-42"`. It has no fraction or exponent. Keeping the text avoids JavaScript's numeric precision limit, but a `number` loses precision before `JExpr.integer` reads it. Pass a `bigint` for integers beyond `Number.MAX_SAFE_INTEGER`.
+ * `value` uses JSON integer syntax, such as `"-42"`. It has no fraction or exponent. Keeping the text avoids JavaScript's numeric precision limit. A `number` beyond `Number.MAX_SAFE_INTEGER` has already lost precision when `JExpr.integer` reads it. Pass a `bigint` for those integers.
  *
  * @example <caption>Keep an integer beyond JavaScript's safe range.</caption>
  * ```ts
@@ -31,7 +31,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 /**
  * Checks that `value` is an integer in JSON number syntax, such as `-42`.
  *
- * Leading zeros, a fraction and an exponent fail. `_tag` may be omitted, and the result supplies it. `options.disableChecks` skips the spelling check and keeps only the object's shape. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
+ * Leading zeros, a fraction and an exponent fail. The input may omit `_tag`, which the result supplies. `options.disableChecks` skips the spelling check and keeps only the object's shape. Use {@link makeOption} to test validity or {@link makeEffect} to retain the validation issue.
  *
  * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
  */

@@ -128,7 +128,7 @@ export type Annotatable =
 /**
  * Creates an integer literal from a value's exact decimal digits.
  *
- * A `bigint` keeps every digit. A `number` is converted from its double value, so an integer beyond `Number.MAX_SAFE_INTEGER` may already have lost precision before this call, and `-0` becomes `0`. A non-integral or non-finite number is stored as its JavaScript text without an error. {@link make} rejects that literal, while {@link compile} emits the text, such as `1.5` or `NaN`. See `JExpr.Integer.Integer` for a precision example.
+ * A `bigint` keeps every digit. A `number` contributes the digits of its double value. An integer beyond `Number.MAX_SAFE_INTEGER` may therefore have lost precision before this call. `-0` becomes `0`. A non-integral or non-finite number keeps its JavaScript text without an error. {@link make} rejects that literal, while {@link compile} emits the text, such as `1.5` or `NaN`. See `JExpr.Integer.Integer` for a precision example.
  */
 export const integer = (value: number | bigint): Defs.LiteralType => {
   if (typeof value === "number" && Number.isInteger(value)) {
@@ -141,7 +141,7 @@ export const integer = (value: number | bigint): Defs.LiteralType => {
 /**
  * Creates a numeric literal that HashQL parses as a float.
  *
- * The text is JavaScript's shortest decimal for the double, so `float(0.1 + 0.2)` compiles to `0.30000000000000004`. HashQL reads a number as a float only when its text has a fraction or exponent. Integral values therefore gain a fraction: `float(1)` compiles to `1.0` and `-0` to `-0.0`. Magnitudes that JavaScript writes in exponent form keep it, such as `1e+21`. `NaN` and infinities are stored without an error. {@link make} rejects them, and {@link compile} emits text that is not JSON. See {@link compile} for float examples.
+ * The text is JavaScript's shortest decimal for the double, so `float(0.1 + 0.2)` compiles to `0.30000000000000004`. HashQL reads a number as a float only when its text has a fraction or exponent. Integral values therefore gain a fraction: `float(1)` compiles to `1.0` and `-0` to `-0.0`. Magnitudes that JavaScript writes in exponent form keep it, such as `1e+21`. The builder accepts `NaN` and infinities without an error. {@link make} rejects them, and {@link compile} emits text that is not JSON. See {@link compile} for float examples.
  */
 export const float = (value: number): Defs.LiteralType => {
   if (Object.is(value, -0)) {
@@ -197,7 +197,7 @@ export const tuple = (...items: readonly Expression[]): Defs.TupleType => ({
 /**
  * Creates a struct with named fields.
  *
- * Field names must be identifiers, such as `name`, `+` or `` `+` ``, which {@link make} checks and this builder does not. Each field has its own type. Use {@link dict} for arbitrary string keys. Fields follow the record's own enumerable string-key order. The tree holds the given record object rather than a copy. See {@link make} for a struct example.
+ * Field names must be identifiers, such as `name`, `+` or `` `+` ``. {@link make} checks the names, and this builder does not. Each field has its own type. Use {@link dict} for arbitrary string keys. Fields follow the record's own enumerable string-key order. The tree holds the given record object rather than a copy. See {@link make} for a struct example.
  */
 export const struct = (
   fields: Record.ReadonlyRecord<string, Expression>,
@@ -217,7 +217,7 @@ export const dict = (
 /**
  * Sets a data constructor's type annotation.
  *
- * Returns a shallow copy with `#type` set, replacing any existing annotation, and leaves `self` unchanged. The annotation is the type's annotation text, such as `(name: String)`, which HashQL parses and checks. Calls and paths cannot carry this field. Use {@link asType | as} to assert their types. Call it data-first as `typed(self, type)` or data-last in a pipeline.
+ * Returns a shallow copy with `#type` set. The new annotation replaces any existing one. The annotation is the type's annotation text, such as `(name: String)`, which HashQL parses and checks. Calls and paths cannot carry this field. Use {@link asType | as} to assert their types. Call it data-first as `typed(self, type)` or data-last in a pipeline.
  *
  * @example <caption>Annotate a literal with type syntax.</caption>
  * ```ts
@@ -241,7 +241,7 @@ export const typed: {
 /**
  * Creates a labeled argument for {@link call}, such as `{":name": value}`.
  *
- * Give `name` without the leading `:`. It must be an identifier, which {@link make} checks and this builder does not. The object keeps its place in the call array. HashQL's parser gathers labeled arguments into their own list, so this one takes no positional slot. See {@link call} for a labeled call example.
+ * Give `name` without the leading `:`. It must be an identifier. {@link make} checks it, and this builder does not. The object keeps its place in the call array. HashQL's parser gathers labeled arguments into their own list, so this one takes no positional slot. See {@link call} for a labeled call example.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 export const label = (
@@ -291,7 +291,7 @@ export { conditional as if };
 /**
  * Binds `value` to `name` within `body`.
  *
- * `name` is emitted as given, and the HashQL compiler checks that it is an identifier. Use {@link asType | as} on `value` to give it an explicit type.
+ * The builder emits `name` as given, and the HashQL compiler checks that it is an identifier. Use {@link asType | as} on `value` to give it an explicit type.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 const binding = (
@@ -305,11 +305,11 @@ export { binding as let };
 /**
  * Asserts an expression's type for the HashQL type checker.
  *
- * The assertion constrains the expression's type without converting its value. A compound type is emitted as constructor syntax, such as a `::kernel::type::Union` call or a `#struct` of types, rather than annotation text. Use {@link typed} to put an annotation directly on a data constructor.
+ * The assertion constrains the expression's type without converting its value. A compound type takes constructor syntax, such as a `::kernel::type::Union` call or a `#struct` of types, rather than annotation text. Use {@link typed} to put an annotation directly on a data constructor.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 const asType = (value: Expression, type: Type.Type): Defs.CallType => [
-  "as",
+  "::kernel::special_form::as",
   value,
   Type.toExpression(type),
 ];
@@ -326,7 +326,6 @@ export type Imports =
   | readonly string[]
   | Record.ReadonlyRecord<string, string>;
 
-/** Renders an import selection as a wildcard, tuple or alias record. */
 const compileImports = (imports: Imports): Expression => {
   if (imports === "*") {
     return imports;
@@ -418,7 +417,6 @@ export const index = (
   position: Expression,
 ): Defs.CallType => ["::kernel::special_form::index", value, position];
 
-/** Renders a declaration name, including any generic parameters. */
 const compileName = (name: string | Reference.Reference): string => {
   if (typeof name === "string") {
     return name;
