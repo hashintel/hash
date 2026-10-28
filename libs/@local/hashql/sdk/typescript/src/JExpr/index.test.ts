@@ -1,5 +1,5 @@
 import { expect, test } from "@effect/vitest";
-import { Option } from "effect";
+import { Effect, Exit, Option } from "effect";
 import { describe } from "vitest";
 
 import * as JExpr from "./index.js";
@@ -88,5 +88,18 @@ describe("make", () => {
     expect.hasAssertions();
     expect(Option.isNone(JExpr.makeOption(JExpr.integer(1.5)))).toBe(true);
     expect(Option.isNone(JExpr.makeOption(JExpr.float(Number.NaN)))).toBe(true);
+  });
+
+  test("deep_nesting", () => {
+    expect.hasAssertions();
+    let value: JExpr.Expression = "x";
+    for (let depth = 0; depth < 100_000; depth += 1) {
+      value = JExpr.call("f", value);
+    }
+
+    expect(Option.isNone(JExpr.makeOption(value))).toBe(true);
+    const exit = Effect.runSyncExit(JExpr.makeEffect(value));
+    expect(Exit.hasFails(exit)).toBe(true);
+    expect(Exit.hasDies(exit)).toBe(false);
   });
 });
