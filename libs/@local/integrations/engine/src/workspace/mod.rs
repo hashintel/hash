@@ -15,23 +15,42 @@ use tokio::sync::mpsc;
 
 pub use self::{
     error::{
-        CloseError, DataErrorType, OpenError, QueryErrorType, Setting, SnapshotError,
-        StatementError,
+        CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Setting,
+        SnapshotError, StatementError,
     },
     rows::Rows,
 };
-use crate::workspace::{
-    connection::Connection,
-    interrupt::{Interrupt, Pending, RequestId},
-    reply::Reply,
+use crate::{
+    ByteSize,
+    workspace::{
+        connection::Connection,
+        interrupt::{Interrupt, Pending, RequestId},
+        reply::Reply,
+    },
 };
 
 /// Settings for a [`Workspace`].
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct WorkspaceConfig {
     /// The number of requests that can wait while another runs. Defaults to 64.
     /// Callers wait for queue space when it is full.
     pub queue_capacity: NonZeroUsize,
+    /// The most memory DuckDB uses. A query that needs more spills to the temporary directory,
+    /// or fails if it cannot.
+    pub memory_limit: Option<ByteSize>,
+    /// The most disk space DuckDB uses for the data it spills to its temporary directory.
+    pub temp_directory_limit: Option<ByteSize>,
+    /// The disk space the workspace files can use before a request fails. The workspace files
+    /// are the database file, its log and DuckDB's temporary directory.
+    ///
+    /// The workspace checks the limit when it opens and after each [`query`](Workspace::query)
+    /// and [`create_table`](Workspace::create_table), so a single request can write past it.
+    /// When the files are over the limit, it checkpoints the database, which writes the log into
+    /// the database file, and measures them again. A table created by a request that takes the
+    /// files over the limit stays in the database.
+    pub disk_limit: Option<ByteSize>,
+    /// The number of threads DuckDB runs a query on.
+    pub threads: Option<NonZeroUsize>,
 }
 
 impl Default for WorkspaceConfig {
@@ -39,6 +58,10 @@ impl Default for WorkspaceConfig {
         Self {
             queue_capacity: NonZeroUsize::new(64)
                 .expect("the default queue capacity should be nonzero"),
+            memory_limit: None,
+            temp_directory_limit: None,
+            disk_limit: None,
+            threads: None,
         }
     }
 }
@@ -97,6 +120,8 @@ impl Workspace {
     /// - [`Locked`] if another workspace has the database open
     /// - [`Configure`] if DuckDB refuses a setting
     /// - [`Open`] if DuckDB cannot open the database
+    /// - [`DiskLimit`] if the workspace files are over [`WorkspaceConfig::disk_limit`]
+    /// - [`DiskUsage`] if the workspace files cannot be checked against the disk limit
     /// - [`Spawn`] if the workspace thread cannot be started
     /// - [`Stopped`] if the workspace thread stopped before it opened the database
     ///
@@ -104,6 +129,8 @@ impl Workspace {
     /// [`Locked`]: OpenError::Locked
     /// [`Configure`]: OpenError::Configure
     /// [`Open`]: OpenError::Open
+    /// [`DiskLimit`]: OpenError::DiskLimit
+    /// [`DiskUsage`]: OpenError::DiskUsage
     /// [`Spawn`]: OpenError::Spawn
     /// [`Stopped`]: OpenError::Stopped
     pub async fn open(path: PathBuf, config: WorkspaceConfig) -> Result<Self, Report<OpenError>> {
@@ -115,7 +142,7 @@ impl Workspace {
             .name("integrations-workspace".to_owned())
             .spawn(move || {
                 let _entered = span.entered();
-                Connection::serve(path, ready, &mut receiver);
+                Connection::serve(path, &config, ready, &mut receiver);
             })
             .change_context(OpenError::Spawn)?;
 
@@ -159,6 +186,9 @@ impl Workspace {
     /// - [`InvalidQuery`] if DuckDB cannot run the query as written
     /// - [`InvalidData`] if a value in the rows causes an error
     /// - [`Failed`] if DuckDB fails for another reason or a value cannot be read
+    /// - [`DiskLimit`] if the workspace files are over [`WorkspaceConfig::disk_limit`] after the
+    ///   query
+    /// - [`DiskUsage`] if the workspace files cannot be checked against the disk limit
     /// - [`Stopped`] if the workspace thread stopped
     ///
     /// [`NotSelect`]: StatementError::NotSelect
@@ -168,6 +198,8 @@ impl Workspace {
     /// [`InvalidQuery`]: StatementError::InvalidQuery
     /// [`InvalidData`]: StatementError::InvalidData
     /// [`Failed`]: StatementError::Failed
+    /// [`DiskLimit`]: StatementError::DiskLimit
+    /// [`DiskUsage`]: StatementError::DiskUsage
     /// [`Stopped`]: StatementError::Stopped
     pub async fn query(&self, sql: Box<str>) -> Result<Rows, Report<StatementError>> {
         self.request(
@@ -187,6 +219,9 @@ impl Workspace {
     /// - [`InvalidQuery`] if DuckDB cannot run the query as written
     /// - [`InvalidData`] if a value in the rows causes an error
     /// - [`Failed`] if DuckDB fails for another reason
+    /// - [`DiskLimit`] if the workspace files are over [`WorkspaceConfig::disk_limit`] after the
+    ///   table is created
+    /// - [`DiskUsage`] if the workspace files cannot be checked against the disk limit
     /// - [`Stopped`] if the workspace thread stopped
     ///
     /// [`NotSelect`]: StatementError::NotSelect
@@ -195,6 +230,8 @@ impl Workspace {
     /// [`InvalidQuery`]: StatementError::InvalidQuery
     /// [`InvalidData`]: StatementError::InvalidData
     /// [`Failed`]: StatementError::Failed
+    /// [`DiskLimit`]: StatementError::DiskLimit
+    /// [`DiskUsage`]: StatementError::DiskUsage
     /// [`Stopped`]: StatementError::Stopped
     pub async fn create_table(
         &self,
