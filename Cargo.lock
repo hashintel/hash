@@ -6530,6 +6530,7 @@ dependencies = [
  "rstest",
  "scalar_api_reference",
  "schemars 1.2.2",
+ "semver",
  "sentry",
  "serde",
  "serde_json",
@@ -6542,6 +6543,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "type-system",
+ "url",
  "utoipa",
  "uuid",
 ]
@@ -13538,6 +13540,7 @@ dependencies = [
  "indexmap 2.14.0",
  "ref-cast",
  "schemars_derive",
+ "semver",
  "serde",
  "serde_json",
  "uuid",

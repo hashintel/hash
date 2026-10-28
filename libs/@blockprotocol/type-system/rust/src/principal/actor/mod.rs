@@ -79,6 +79,11 @@ impl From<ActorEntityUuid> for Uuid {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(
+    feature = "schemars",
+    derive(schemars::JsonSchema),
+    schemars(description = "Whether a user, a machine or an AI acted.")
+)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum ActorType {
     User,

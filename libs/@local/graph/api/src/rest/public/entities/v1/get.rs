@@ -128,9 +128,10 @@ fn document_get_entity(operation: TransformOperation<'_>) -> TransformOperation<
         .id("getEntity")
         .summary("Get an entity")
         .description(
-            "Returns the entity's ID, the entity types, and the properties with the data types of \
-             their values, of its current edition. `propertyMetadata` leaves out a value without \
-             a stored data type, and a list that contains one.",
+            "Returns the entity's ID, the entity types, the provenance, and the properties with \
+             the data types and provenance of their values, of its current edition. \
+             `propertyMetadata` leaves out a value without a stored data type, and a list that \
+             contains one.",
         )
 }
 

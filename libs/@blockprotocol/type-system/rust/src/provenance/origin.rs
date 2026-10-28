@@ -20,6 +20,7 @@ pub enum OriginType {
         step_ids: HashSet<String>,
     },
     Migration,
+    External,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -168,6 +169,7 @@ provides.",
             "api",
             "flow",
             "migration",
+            "external",
         ] {
             let mut item_builder = ObjectBuilder::new();
             item_builder = item_builder
