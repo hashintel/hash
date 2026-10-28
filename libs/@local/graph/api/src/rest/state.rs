@@ -4,20 +4,32 @@ use error_stack::Report;
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 
-/// The store pool and Temporal client a handler reads through [`State`].
+use super::PublicApiConfig;
+
+/// The store pool, the Temporal client and the configuration a handler reads through [`State`].
 ///
 /// [`State`]: axum::extract::State
 pub(crate) struct ApiState<S> {
     store: Arc<S>,
     temporal_client: Option<Arc<TemporalClient>>,
+    public_api_config: PublicApiConfig,
 }
 
 impl<S> ApiState<S> {
-    pub(crate) const fn new(store: Arc<S>, temporal_client: Option<Arc<TemporalClient>>) -> Self {
+    pub(crate) const fn new(
+        store: Arc<S>,
+        temporal_client: Option<Arc<TemporalClient>>,
+        public_api_config: PublicApiConfig,
+    ) -> Self {
         Self {
             store,
             temporal_client,
+            public_api_config,
         }
+    }
+
+    pub(crate) const fn public_api_config(&self) -> PublicApiConfig {
+        self.public_api_config
     }
 }
 
@@ -42,6 +54,7 @@ impl<S> Clone for ApiState<S> {
         Self {
             store: Arc::clone(&self.store),
             temporal_client: self.temporal_client.clone(),
+            public_api_config: self.public_api_config,
         }
     }
 }

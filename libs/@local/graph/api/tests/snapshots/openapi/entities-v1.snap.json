@@ -299,70 +299,6 @@
           }
         }
       },
-      "NotImplemented": {
-        "content": {
-          "application/problem+json": {
-            "example": {
-              "detail": "Querying entities is not implemented yet.",
-              "status": 501,
-              "title": "Not Implemented",
-              "type": "about:blank"
-            },
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                },
-                {
-                  "properties": {
-                    "status": {
-                      "const": 501
-                    },
-                    "title": {
-                      "const": "Not Implemented"
-                    },
-                    "type": {
-                      "const": "about:blank"
-                    }
-                  },
-                  "required": [
-                    "type"
-                  ]
-                }
-              ],
-              "title": "Not Implemented"
-            }
-          }
-        },
-        "description": "The server does not answer the query yet.",
-        "headers": {
-          "Cache-Control": {
-            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
-            "example": "private, no-store",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "style": "simple"
-          },
-          "RateLimit": {
-            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
-            "example": "\"actor\";r=499",
-            "schema": {
-              "type": "string"
-            },
-            "style": "simple"
-          },
-          "RateLimit-Policy": {
-            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
-            "example": "\"actor\";q=500;w=50",
-            "schema": {
-              "type": "string"
-            },
-            "style": "simple"
-          }
-        }
-      },
       "PayloadTooLarge": {
         "content": {
           "application/problem+json": {
@@ -967,6 +903,25 @@
         "title": "Base URL",
         "type": "string"
       },
+      "BaseUrlSetMatch": {
+        "description": "The value a set has to contain, with `has`.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "The set contains the value.",
+            "properties": {
+              "has": {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            },
+            "required": [
+              "has"
+            ],
+            "title": "Has",
+            "type": "object"
+          }
+        ]
+      },
       "CreateEntitiesRequest": {
         "additionalProperties": false,
         "description": "The entities to create.",
@@ -1082,6 +1037,93 @@
         ],
         "type": "object"
       },
+      "EntityFilter": {
+        "description": "A condition an entity has to meet, named by its only key.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "Entities in the web, or in one of the webs.",
+            "properties": {
+              "webId": {
+                "$ref": "#/components/schemas/WebIdMatch"
+              }
+            },
+            "required": [
+              "webId"
+            ],
+            "title": "Web ID",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Entities of the versioned entity type, or of a type that inherits from it.",
+            "properties": {
+              "entityTypeIds": {
+                "$ref": "#/components/schemas/VersionedUrlSetMatch"
+              }
+            },
+            "required": [
+              "entityTypeIds"
+            ],
+            "title": "Entity type IDs",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Entities of any version of the entity type, or of a type that inherits from one.",
+            "properties": {
+              "entityTypeBaseIds": {
+                "$ref": "#/components/schemas/BaseUrlSetMatch"
+              }
+            },
+            "required": [
+              "entityTypeBaseIds"
+            ],
+            "title": "Entity type base IDs",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Entities that meet every condition.",
+            "properties": {
+              "and": {
+                "description": "The conditions, at least one.",
+                "items": {
+                  "$ref": "#/components/schemas/EntityFilter"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "required": [
+              "and"
+            ],
+            "title": "And",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Entities that meet at least one condition.",
+            "properties": {
+              "or": {
+                "description": "The conditions, at least one.",
+                "items": {
+                  "$ref": "#/components/schemas/EntityFilter"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "required": [
+              "or"
+            ],
+            "title": "Or",
+            "type": "object"
+          }
+        ]
+      },
       "EntityId": {
         "description": "An entity's web ID and UUID, joined by `~`.",
         "examples": [
@@ -1143,7 +1185,7 @@
         "type": "object"
       },
       "Link": {
-        "description": "The entities a link entity connects.",
+        "description": "The entities a link entity connects. More kinds may follow.",
         "oneOf": [
           {
             "additionalProperties": false,
@@ -1175,6 +1217,7 @@
               "source",
               "target"
             ],
+            "title": "Directed",
             "type": "object"
           }
         ]
@@ -1624,6 +1667,16 @@
       "QueryEntitiesRequest": {
         "additionalProperties": false,
         "description": "The query.",
+        "properties": {
+          "filter": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityFilter"
+              }
+            ],
+            "description": "The condition the entities meet, with at most 100 `eq`, `in` and `has` in all."
+          }
+        },
         "type": "object"
       },
       "QueryEntitiesResponse": {
@@ -1730,6 +1783,74 @@
         "maxLength": 2048,
         "title": "Versioned URL",
         "type": "string"
+      },
+      "VersionedUrlSetMatch": {
+        "description": "The value a set has to contain, with `has`.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "The set contains the value.",
+            "properties": {
+              "has": {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            },
+            "required": [
+              "has"
+            ],
+            "title": "Has",
+            "type": "object"
+          }
+        ]
+      },
+      "WebIdMatch": {
+        "description": "The value to equal with `eq`, or the values to equal one of with `in`.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "The field equals the value.",
+            "properties": {
+              "eq": {
+                "description": "The UUID of a web.",
+                "examples": [
+                  "8d86c8c3-d66d-43d1-859b-676c3bcaeadc"
+                ],
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "eq"
+            ],
+            "title": "Equal",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "The field equals one of the values.",
+            "properties": {
+              "in": {
+                "description": "The values, at least one.",
+                "items": {
+                  "description": "The UUID of a web.",
+                  "examples": [
+                    "8d86c8c3-d66d-43d1-859b-676c3bcaeadc"
+                  ],
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "required": [
+              "in"
+            ],
+            "title": "In",
+            "type": "object"
+          }
+        ]
       }
     },
     "securitySchemes": {
@@ -1840,7 +1961,7 @@
     },
     "/entities/v1/query": {
       "post": {
-        "description": "Returns the entities the query matches, a page at a time. The server chooses the size of a page, and the `Link` header names the next one. Not implemented yet: answers 501.",
+        "description": "Returns the current edition of each entity the caller may view that is not archived and meets `filter`, if given, a page at a time, in a stable order. The `Link` header names the next page.",
         "operationId": "queryEntities",
         "parameters": [
           {
@@ -1850,6 +1971,18 @@
             "schema": {
               "$ref": "#/components/schemas/Cursor",
               "description": "The page to return, as the previous page's `Link` header names it. Defaults to the first."
+            },
+            "style": "form"
+          },
+          {
+            "description": "The size of the page; the server's maximum is the default and caps larger values.",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "description": "The size of the page; the server's maximum is the default and caps larger values.",
+              "format": "uint",
+              "minimum": 1,
+              "type": "integer"
             },
             "style": "form"
           }
@@ -1885,8 +2018,8 @@
                 "style": "simple"
               },
               "Link": {
-                "description": "Names the next page as `<URI>; rel=\"next\"` (RFC 8288). A relative URI resolves against the URL of this request. Send the same body to it. The last page has no `Link` header.",
-                "example": "</entities/v1/query?cursor=AbCd1234>; rel=\"next\"",
+                "description": "Names the next page as `<URI>; rel=\"next\"` (RFC 8288). The URI is relative and resolves against the URL of this request. Repeat the request there, with the same body if it has one. The last page has no `Link` header.",
+                "example": "<?cursor=...>; rel=\"next\"",
                 "schema": {
                   "type": "string"
                 },
@@ -2061,39 +2194,81 @@
           "422": {
             "content": {
               "application/problem+json": {
-                "example": {
-                  "detail": "Failed to deserialize the JSON body into the target type: invalid type: string \"many\", expected u8 at line 1 column 6",
-                  "status": 422,
-                  "title": "Unprocessable Content",
-                  "type": "about:blank"
+                "examples": {
+                  "about:blank": {
+                    "summary": "Unprocessable Content: The request body does not match the schema of the operation.",
+                    "value": {
+                      "detail": "Failed to deserialize the JSON body into the target type: invalid type: string \"many\", expected u8 at line 1 column 6",
+                      "status": 422,
+                      "title": "Unprocessable Content",
+                      "type": "about:blank"
+                    }
+                  },
+                  "about:blank (2)": {
+                    "summary": "Unprocessable Content: The filter has an empty `in`, `and` or `or`, or names more values or conditions than allowed.",
+                    "value": {
+                      "detail": "The filter is invalid: the filter names 101 conditions in `eq`, `in` and `has`, but at most 100 are allowed.",
+                      "status": 422,
+                      "title": "Unprocessable Content",
+                      "type": "about:blank"
+                    }
+                  }
                 },
                 "schema": {
-                  "allOf": [
+                  "anyOf": [
                     {
-                      "$ref": "#/components/schemas/ProblemDetails"
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 422
+                            },
+                            "title": {
+                              "const": "Unprocessable Content"
+                            },
+                            "type": {
+                              "const": "about:blank"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ],
+                      "title": "Unprocessable Content: The request body does not match the schema of the operation."
                     },
                     {
-                      "properties": {
-                        "status": {
-                          "const": 422
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
                         },
-                        "title": {
-                          "const": "Unprocessable Content"
-                        },
-                        "type": {
-                          "const": "about:blank"
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 422
+                            },
+                            "title": {
+                              "const": "Unprocessable Content"
+                            },
+                            "type": {
+                              "const": "about:blank"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
                         }
-                      },
-                      "required": [
-                        "type"
-                      ]
+                      ],
+                      "title": "Unprocessable Content: The filter has an empty `in`, `and` or `or`, or names more values or conditions than allowed."
                     }
-                  ],
-                  "title": "Unprocessable Content"
+                  ]
                 }
               }
             },
-            "description": "The request body does not match the schema of the operation.",
+            "description": "- Unprocessable Content: The request body does not match the schema of the operation.\n- Unprocessable Content: The filter has an empty `in`, `and` or `or`, or names more values or conditions than allowed.",
             "headers": {
               "Cache-Control": {
                 "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -2128,72 +2303,8 @@
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           },
-          "501": {
-            "$ref": "#/components/responses/NotImplemented"
-          },
           "503": {
-            "content": {
-              "application/problem+json": {
-                "example": {
-                  "detail": "authentication is temporarily unavailable",
-                  "status": 503,
-                  "title": "Service Unavailable",
-                  "type": "about:blank"
-                },
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ProblemDetails"
-                    },
-                    {
-                      "properties": {
-                        "status": {
-                          "const": 503
-                        },
-                        "title": {
-                          "const": "Service Unavailable"
-                        },
-                        "type": {
-                          "const": "about:blank"
-                        }
-                      },
-                      "required": [
-                        "type"
-                      ]
-                    }
-                  ],
-                  "title": "Service Unavailable"
-                }
-              }
-            },
-            "description": "Authentication is temporarily unavailable.",
-            "headers": {
-              "Cache-Control": {
-                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
-                "example": "private, no-store",
-                "required": true,
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit": {
-                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
-                "example": "\"actor\";r=499",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              },
-              "RateLimit-Policy": {
-                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
-                "example": "\"actor\";q=500;w=50",
-                "schema": {
-                  "type": "string"
-                },
-                "style": "simple"
-              }
-            }
+            "$ref": "#/components/responses/ServiceUnavailable"
           }
         },
         "security": [
