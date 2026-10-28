@@ -1,4 +1,4 @@
-import { Result } from "effect";
+import { Result, pipe } from "effect";
 
 import * as Ident from "../../JExpr/Ident.js";
 import * as ProgramError from "../ProgramError.js";
@@ -13,7 +13,9 @@ export const make = <V>(
   name: string,
   value: V,
 ): Result.Result<Binding<V>, ProgramError.Construction> =>
-  Ident.decodeResult(name).pipe(
+  pipe(
+    name,
+    Ident.decodeResult,
     Result.mapError((cause) =>
       ProgramError.Construction.invalidBindingName(name, cause),
     ),

@@ -6,6 +6,7 @@
 import { describe, expectTypeOf, test } from "vitest";
 
 import { Relocate, relocate } from "../internal/relocation.js";
+import { adaptCallable } from "./Expression.js";
 
 import type * as JExpr from "../JExpr/index.js";
 import type * as Type from "../Type.js";
@@ -53,6 +54,7 @@ type Trimmed = Adapted<
   Inputs.Empty,
   (name: string) => Expression<Type.PrimitiveString, Inputs.Empty>
 >;
+declare const lookup: Expression<Lookup, Inputs.Empty>;
 declare const trimmed: Trimmed;
 declare const path: JExpr.Path.Path;
 
@@ -134,6 +136,22 @@ describe("adapted", () => {
     expectTypeOf(relocate(trimmed, path)).toEqualTypeOf<
       Result.Result<Trimmed, ProgramError.Construction>
     >();
+  });
+
+  test("expression_factory", () => {
+    expectTypeOf(
+      adaptCallable(
+        lookup,
+        // @ts-expect-error The factory returns a host function rather than an expression.
+        (self) => self,
+      ),
+    );
+    expectTypeOf(
+      adaptCallable(
+        // @ts-expect-error The factory returns a host function rather than an expression.
+        (self: Expression<Lookup, Inputs.Empty>) => self,
+      ),
+    );
   });
 });
 

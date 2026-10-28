@@ -7,7 +7,10 @@ import type * as Syntax from "../../JExpr/Type/index.js";
 import type { Binding } from "./Binding.js";
 import type { Node } from "./Node.js";
 
-export class Newtype<T extends Node> extends Pipeable.Class implements Node {
+export class Newtype<T extends Node>
+  extends Pipeable.Class
+  implements Node.Of<readonly [T]>
+{
   readonly binding: Binding<Syntax.Type>;
   readonly child: T;
 
@@ -18,11 +21,15 @@ export class Newtype<T extends Node> extends Pipeable.Class implements Node {
     this.child = child;
   }
 
-  compile(): JExpr.Expression {
+  get children(): readonly [T] {
+    return [this.child];
+  }
+
+  toExpr([body]: readonly [JExpr.Expression]): JExpr.Expression {
     return JExpr.newtype(
       Ident.compile(this.binding.name),
       this.binding.value,
-      this.child.compile(),
+      body,
     );
   }
 }

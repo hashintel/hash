@@ -1,9 +1,9 @@
 /**
  * Input requirements carried by expressions and programs.
  *
- * A required use makes a name required even when another use has a default. Shared names combine their semantic descriptors through an intersection, so incompatible uses produce Type.Never rather than a JavaScript intersection of descriptor objects.
+ * A required use makes a name required even when another use has a default. Uses of one name combine their descriptors as a {@link Type.Intersection}. Different primitives combine to {@link Type.Never}, apart from Integer and Number, which stay an intersection. Any other conflict stays an intersection, such as an opaque type with its underlying primitive, even where HashQL finds no common value.
  *
- * Host-side alternatives retain every possible requirement. The types here cannot know which expression the host will select, and an empty alternative must not hide a branch that needs an input.
+ * Host-side alternatives retain every possible requirement. The types here cannot know which expression the host will select. An empty alternative therefore must not hide a branch that needs an input.
  *
  * @module
  */
@@ -11,7 +11,7 @@ import type * as Type from "../Type.js";
 import type { Normalize } from "./ExpressionType.js";
 import type { Types } from "effect";
 
-/** An expression with no input requirements. */
+/** The requirement record of an expression that needs no inputs. */
 // oxlint-disable-next-line typescript/no-generated-empty-object-type -- a closed expression requires no input names
 export type Empty = Record<never, never>;
 
