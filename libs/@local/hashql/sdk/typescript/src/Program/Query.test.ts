@@ -60,7 +60,7 @@ describe("query", () => {
       ),
     );
     expect(compile(piped)).toBe(
-      '["::graph::tail::collect",["::graph::body::filter",["entities",{"#literal":1}],["fn",{"#tuple":[]},{"#struct":{"item":"_"}},"_",["::core::cmp::eq",["::kernel::special_form::access","item","enabled"],{"#literal":false}]]]]',
+      '["::graph::tail::collect",["::graph::body::filter",["entities",{"#literal":1}],["::kernel::special_form::fn",{"#tuple":[]},{"#struct":{"item":"_"}},"_",["::core::cmp::eq",["::kernel::special_form::access","item","enabled"],{"#literal":false}]]]]',
     );
     expect(compile(direct)).toBe(compile(piped));
     expect(calls).toBe(1);
@@ -75,7 +75,7 @@ describe("query", () => {
       Query.filter("second", () => flag),
     );
     expect(compile(filtered)).toBe(
-      '["::graph::body::filter",["::graph::body::filter",["entities",{"#literal":1}],["fn",{"#tuple":[]},{"#struct":{"first":"_"}},"_",{"#literal":true}]],["fn",{"#tuple":[]},{"#struct":{"second":"_"}},"_",["::kernel::special_form::input","flag","::kernel::type::Boolean"]]]',
+      '["::graph::body::filter",["::graph::body::filter",["entities",{"#literal":1}],["::kernel::special_form::fn",{"#tuple":[]},{"#struct":{"first":"_"}},"_",{"#literal":true}]],["::kernel::special_form::fn",{"#tuple":[]},{"#struct":{"second":"_"}},"_",["::kernel::special_form::input","flag","::kernel::type::Boolean"]]]',
     );
   });
 
