@@ -1,7 +1,7 @@
 /**
  * Character membership and constructive generation from one Unicode pattern.
  *
- * {@link xidStart} and {@link xidContinue} use the JavaScript runtime's Unicode tables. Construction caches ASCII membership from the same pattern used for Unicode matching. Their first arbitrary derivation enumerates scalar values to obtain explicit ranges supported by Effect. Later derivations reuse the result. Parsing does not enumerate Unicode.
+ * {@link xidStart} and {@link xidContinue} use the JavaScript runtime's Unicode tables. HashQL's Rust parser uses the tables of the `unicode-ident` crate. A character from a Unicode version that only one of them knows passes one parser and fails the other. Construction caches ASCII membership from the same pattern used for Unicode matching. Their first arbitrary derivation enumerates scalar values to obtain explicit ranges supported by Effect. Later derivations reuse the result. Parsing does not enumerate Unicode.
  *
  * @internal
  */
@@ -111,7 +111,7 @@ const derive = memoize((expression: Readonly<RegExp>) => {
 /**
  * Defines a named class from a Unicode-mode regular-expression source.
  *
- * Membership requires exactly one scalar to match the whole pattern. First derivation scans the runtime's Unicode range and caches the resulting arbitrary. An empty class constructs successfully, but sampling it exhausts Effect's discard budget.
+ * Membership requires exactly one scalar to match the whole pattern. First derivation scans the runtime's Unicode range and caches the resulting arbitrary. An empty class constructs successfully. Sampling it exhausts Effect's discard budget.
  *
  * @throws {SyntaxError} If the regular-expression source is invalid.
  */
