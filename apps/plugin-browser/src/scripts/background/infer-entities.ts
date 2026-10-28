@@ -391,7 +391,6 @@ export const inferEntities = async (
       executedAt: new Date().toISOString(),
       persistedEntities: [],
       webId,
-      inputRequests: [],
       flowInputs: {},
       webPage: basePayload.visitedWebPage.value,
       status: FlowRunStatus.Running,

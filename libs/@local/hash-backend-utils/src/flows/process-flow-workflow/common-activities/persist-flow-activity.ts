@@ -1,16 +1,22 @@
 import { entityIdFromComponents } from "@blockprotocol/type-system";
-import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
-import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
+import { typedEntries } from "@local/advanced-types/typed-entries";
+import { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  mapFlowRunToEntityProperties,
+  mapOpenInputRequestsToEntityProperty,
+} from "@local/hash-isomorphic-utils/flows/mappings";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { getFlowRunEntityByWorkflowId } from "../../shared/get-flow-run-entity-by-workflow-id.js";
+
 import type {
   ActorEntityUuid,
+  BaseUrl,
   EntityId,
   EntityUuid,
   OriginProvenance,
@@ -21,7 +27,6 @@ import type { GraphApi } from "@local/hash-graph-client";
 import type { LocalFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import type {
   FlowRun,
-  FlowRun as FlowRunEntity,
   FlowRunTriggeredByLink,
   FlowRunUsesLink,
 } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -62,42 +67,11 @@ export const persistFlowActivity = async (
 
   const flowRunProperties = mapFlowRunToEntityProperties(flow);
 
-  const {
-    entities: [existingFlowEntity],
-  } = await queryEntities<FlowRunEntity>(
-    { graphApi: graphApiClient },
+  const existingFlowEntity = await getFlowRunEntityByWorkflowId({
+    graphApiClient,
+    temporalWorkflowId,
     userAuthentication,
-    {
-      filter: {
-        all: [
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.workflowId.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: temporalWorkflowId },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: ["type", "baseUrl"],
-              },
-              {
-                parameter: systemEntityTypes.flowRun.entityTypeBaseUrl,
-              },
-            ],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-      includePermissions: false,
-    },
-  );
+  });
 
   if (existingFlowEntity) {
     const flowEntityId = existingFlowEntity.metadata.recordId.entityId;
@@ -111,13 +85,28 @@ export const persistFlowActivity = async (
       } satisfies OriginProvenance,
     };
 
+    /*
+     * Each property the run's progress describes is set on its own, leaving the run's open input requests, which are
+     * saved as they're raised and answered, as they are. Outputs a reset undid are removed.
+     */
+    const outputsKey = "https://hash.ai/@h/types/property-type/outputs/";
+
     await existingFlowEntity.patch(graphApiClient, userAuthentication, {
       propertyPatches: [
-        {
-          op: "replace",
-          path: [],
-          property: flowRunProperties,
-        },
+        ...typedEntries(flowRunProperties.value).map(([baseUrl, property]) => ({
+          op: "add" as const,
+          path: [baseUrl as BaseUrl],
+          property,
+        })),
+        ...(!flowRunProperties.value[outputsKey] &&
+        existingFlowEntity.properties[outputsKey] !== undefined
+          ? [
+              {
+                op: "remove" as const,
+                path: [systemPropertyTypes.outputs.propertyTypeBaseUrl],
+              },
+            ]
+          : []),
       ],
       provenance,
     });
@@ -164,7 +153,14 @@ export const persistFlowActivity = async (
       entityUuid,
       webId,
       entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
-      properties: flowRunProperties,
+      properties: {
+        ...flowRunProperties,
+        value: {
+          ...flowRunProperties.value,
+          "https://hash.ai/@h/types/property-type/open-input-request/":
+            mapOpenInputRequestsToEntityProperty([]),
+        },
+      },
       provenance,
       draft: false,
     },

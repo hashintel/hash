@@ -26,6 +26,7 @@ import type {
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
+  ExternalInputRequest,
   FlowRunWithoutEvents,
   SparseFlowRun,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -40,6 +41,13 @@ export type {
   FlowActionActivity,
 } from "./flows/action-types.js";
 export { createCommonFlowActivities } from "./flows/process-flow-workflow/common-activities.js";
+
+/** The open input requests saved on a run's entity, which has none until its run first raises one. */
+const getSavedOpenInputRequests = ({
+  properties,
+}: Pick<FlowRunEntity, "properties">) =>
+  (properties["https://hash.ai/@h/types/property-type/open-input-request/"] ??
+    []) as ExternalInputRequest[];
 
 type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
   flowRunEntityId: EntityId;
@@ -116,6 +124,7 @@ export async function getFlowRunById({
 
   const flowDefinitionEntityId = links.flowDefinitionEntityId;
   const flowScheduleId = links.flowTriggerId ?? undefined;
+  const openInputRequests = getSavedOpenInputRequests(existingFlowEntity);
 
   if (includeDetails) {
     return getFlowRunFromTemporalWorkflowId({
@@ -124,6 +133,7 @@ export async function getFlowRunById({
       flowScheduleId,
       recordsByWorkflowId,
       name,
+      openInputRequests,
       storageProvider,
       temporalClient,
       temporalWorkflowId,
@@ -135,6 +145,7 @@ export async function getFlowRunById({
       flowRunEntityId,
       flowScheduleId,
       name,
+      openInputRequests,
       storageProvider,
       temporalClient,
       temporalWorkflowId,
@@ -174,6 +185,7 @@ type MinimalFlowMetadata = {
   flowRunEntityId: EntityId;
   flowScheduleId?: EntityUuid;
   name: string;
+  openInputRequests: ExternalInputRequest[];
   temporalWorkflowId: string;
   webId: WebId;
 };
@@ -330,6 +342,7 @@ export async function getFlowRuns({
       flowRunEntityId,
       flowScheduleId: links.flowTriggerId ?? undefined,
       name,
+      openInputRequests: getSavedOpenInputRequests(entity),
       temporalWorkflowId,
       webId,
     };
@@ -402,6 +415,7 @@ export async function getFlowRuns({
         flowScheduleId: flowDetails.flowScheduleId,
         recordsByWorkflowId,
         name: flowDetails.name,
+        openInputRequests: flowDetails.openInputRequests,
         storageProvider,
         temporalClient,
         temporalWorkflowId: flowDetails.temporalWorkflowId,
@@ -422,6 +436,7 @@ export async function getFlowRuns({
         flowRunEntityId: flowDetails.flowRunEntityId,
         flowScheduleId: flowDetails.flowScheduleId,
         name: flowDetails.name,
+        openInputRequests: flowDetails.openInputRequests,
         storageProvider,
         temporalClient,
         temporalWorkflowId: flowDetails.temporalWorkflowId,

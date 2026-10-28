@@ -79,21 +79,22 @@ const inferEntitiesMessageHandler = async ({
         authentication: { actorId: user.accountId },
         filters: { executionStatus: FlowRunStatus.Running },
         graphApiClient,
-        includeDetails: true,
+        includeDetails: false,
         storageProvider,
         temporalClient,
       });
 
-      for (const flowRun of openFlowRuns.flowRuns) {
-        for (const inputRequest of flowRun.inputRequests) {
-          if (!inputRequest.resolvedAt) {
-            const requestMessage: ExternalInputWebsocketRequestMessage = {
-              flowRunEntityId: flowRun.flowRunEntityId,
-              payload: inputRequest,
-              type: "external-input-request",
-            };
-            socket.send(JSON.stringify(requestMessage));
-          }
+      for (const {
+        flowRunEntityId,
+        openInputRequests,
+      } of openFlowRuns.flowRuns) {
+        for (const inputRequest of openInputRequests) {
+          const requestMessage: ExternalInputWebsocketRequestMessage = {
+            flowRunEntityId,
+            payload: inputRequest,
+            type: "external-input-request",
+          };
+          socket.send(JSON.stringify(requestMessage));
         }
       }
       return;

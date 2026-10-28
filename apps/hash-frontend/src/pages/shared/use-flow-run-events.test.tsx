@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
+import { ApolloClient } from "@apollo/client";
 import { MockedProvider } from "@apollo/client/testing";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getFlowRunEventsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 
-import { FlowRunStatus } from "../../../../../../graphql/api-types.gen";
+import { FlowRunStatus } from "../../graphql/api-types.gen";
 import { useFlowRunEvents } from "./use-flow-run-events";
 
 import type { MockedResponse } from "@apollo/client/testing";
@@ -96,6 +97,28 @@ describe("useFlowRunEvents", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("reads nothing without a run", async () => {
+    const query = vi.spyOn(ApolloClient.prototype, "query");
+    const { result, unmount } = renderHook(
+      () => useFlowRunEvents({ flowRunEntityId: null, live: true }),
+      {
+        wrapper: ({ children }: { children: ReactNode }) => (
+          <MockedProvider mocks={[]} addTypename={false}>
+            {children}
+          </MockedProvider>
+        ),
+      },
+    );
+
+    await act(() => vi.advanceTimersByTimeAsync(4_000));
+
+    expect(result.current).toEqual({ status: "loading" });
+    expect(query).not.toHaveBeenCalled();
+
+    query.mockRestore();
+    unmount();
   });
 
   it("keeps the events it has and checks again after a check fails", async () => {

@@ -2,7 +2,10 @@ import proto from "@temporalio/proto";
 import Long from "long";
 
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
+import { getFlowRunRecord } from "@local/hash-backend-utils/flows/run-record";
+import { saveOpenInputRequests } from "@local/hash-backend-utils/flows/shared/save-open-input-requests";
 import { temporalNamespace } from "@local/hash-backend-utils/temporal";
+import { getOpenInputRequests } from "@local/hash-isomorphic-utils/flows/run-events";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import { checkEntityPermission } from "../../../graph/knowledge/primitive/entity";
@@ -62,6 +65,30 @@ export const resetFlow: ResolverFn<
     requestId: generateUuid(),
     workflowTaskFinishEventId: Long.fromInt(eventId),
   });
+
+  /* A reset changes which requests are open without the workflow raising or answering any, so it saves none itself. */
+  const { events } = await getFlowRunRecord({
+    storageProvider: dataSources.uploadProvider,
+    temporalClient: temporal,
+    workflowId,
+  });
+
+  const openInputRequests = getOpenInputRequests(events);
+
+  /* An entity from before Flow Run v3 can't hold open requests, and has none saved. */
+  const savedOpenInputRequests =
+    flow.properties[
+      "https://hash.ai/@h/types/property-type/open-input-request/"
+    ] ?? [];
+
+  if (openInputRequests.length > 0 || savedOpenInputRequests.length > 0) {
+    await saveOpenInputRequests({
+      graphApiClient: dataSources.graphApi,
+      openInputRequests,
+      temporalWorkflowId: workflowId,
+      userAuthentication: authentication,
+    });
+  }
 
   return true;
 };

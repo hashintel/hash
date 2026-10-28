@@ -1,8 +1,10 @@
-import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
-import { pageFlowRunEvents } from "@local/hash-backend-utils/flows/run-events";
-import { getFlowRunRecord } from "@local/hash-backend-utils/flows/run-record";
+import {
+  pageFlowRunEvents,
+  resolveStoredPayloadsInEvents,
+} from "@local/hash-backend-utils/flows/run-events";
 
 import * as Error from "../../error";
+import { getRecordOfFlowRun } from "./shared/get-record-of-flow-run";
 
 import type {
   FlowRun,
@@ -21,30 +23,21 @@ export const flowRunEventsResolver: ResolverFn<
     "authentication" | "dataSources" | "flowRunRecords" | "temporal"
   >,
   FlowRunEventsArgs
-> = async ({ flowRunEntityId }, { after, first }, context) => {
-  const flowRunEntity = await getFlowRunEntityById({
-    flowRunEntityId,
-    graphApiClient: context.dataSources.graphApi,
-    userAuthentication: context.authentication,
-  });
+> = async (flowRun, { after, first }, context) => {
+  const { header, events } = await getRecordOfFlowRun(flowRun, context);
 
-  if (!flowRunEntity) {
-    throw Error.notFound(`Flow run with id ${flowRunEntityId} not found`);
-  }
-
-  const { header, events } = await getFlowRunRecord({
-    recordsByWorkflowId: context.flowRunRecords,
-    storageProvider: context.dataSources.uploadProvider,
-    temporalClient: context.temporal,
-    workflowId:
-      flowRunEntity.properties[
-        "https://hash.ai/@h/types/property-type/workflow-id/"
-      ],
-  });
-
+  let page: ReturnType<typeof pageFlowRunEvents>;
   try {
-    return pageFlowRunEvents({ events, runId: header.runId, after, first });
+    page = pageFlowRunEvents({ events, runId: header.runId, after, first });
   } catch (error) {
     throw Error.badRequest((error as Error).message);
   }
+
+  return {
+    ...page,
+    events: await resolveStoredPayloadsInEvents(page.events, {
+      storageProvider: context.dataSources.uploadProvider,
+      workflowId: header.workflowId,
+    }),
+  };
 };

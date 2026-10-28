@@ -1,16 +1,17 @@
 import { createContext, useContext, useMemo } from "react";
 
 import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
+import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
-import { FlowRunStatus, FlowStepStatus } from "../../graphql/api-types.gen";
+import { FlowRunStatus } from "../../graphql/api-types.gen";
 
 import type {
-  FlowRun,
+  GetFlowRunByIdQuery,
   GetFlowRunsQuery,
-  StepRun,
 } from "../../graphql/api-types.gen";
 import type { EntityId } from "@blockprotocol/type-system";
-import type { FlowRunWithoutEvents } from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowRunStepRunState } from "@local/hash-isomorphic-utils/flows/step-runs";
+import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
 
 export type FlowRunsPaginationState = {
   currentCursor: string | null;
@@ -20,14 +21,22 @@ export type FlowRunsPaginationState = {
   onPreviousPage: () => void;
 };
 
+/** The run being viewed, with its step runs and input requests from its events. */
+export type SelectedFlowRun = GetFlowRunByIdQuery["getFlowRunById"] & {
+  stepRuns: FlowRunStepRunState[];
+  inputRequests: ExternalInputRequest[];
+};
+
 export type FlowRunsContextType = {
   flowRuns: GetFlowRunsQuery["getFlowRuns"]["flowRuns"];
   totalCount: number;
   nextCursor: string | null;
   loading: boolean;
   pagination: FlowRunsPaginationState | null;
-  selectedFlowRun: FlowRunWithoutEvents | null;
+  selectedFlowRun: SelectedFlowRun | null;
   selectedFlowRunEntityId: EntityId | null;
+  /** Why the selected run's events couldn't be read or shown, or why the last check for new ones failed. */
+  selectedFlowRunEventsFailure: string | null;
 };
 
 export const FlowRunsContext = createContext<FlowRunsContextType | null>(null);
@@ -43,8 +52,8 @@ export const useFlowRunsContext = () => {
 };
 
 export type StepRunStatus = Pick<
-  StepRun,
-  "inputs" | "outputs" | "status" | "closedAt" | "scheduledAt" | "logs"
+  FlowRunStepRunState,
+  "status" | "closedAt" | "scheduledAt"
 >;
 
 export type SimpleStatus =
@@ -57,7 +66,7 @@ export type SimpleStatus =
   | "Skipped";
 
 export const statusToSimpleStatus = (
-  status: StepRun["status"] | null,
+  status: FlowStepStatus | null,
 ): SimpleStatus => {
   let simpleStatus: SimpleStatus = "Waiting";
 
@@ -150,7 +159,7 @@ export const useStatusForStep = (
       return null;
     }
 
-    return getShownStepRun(selectedFlowRun.steps, nodeId);
+    return getShownStepRun(selectedFlowRun.stepRuns, nodeId);
   }, [selectedFlowRun, nodeId]);
 };
 
@@ -166,14 +175,14 @@ type StepsStatus = {
  * run per item: those count towards it and towards the `for-each`, which has no run of its own.
  */
 export const getStatusForSteps = (
-  flowRun: Pick<FlowRun, "closedAt" | "status" | "steps">,
+  flowRun: Pick<SelectedFlowRun, "closedAt" | "status" | "stepRuns">,
   steps: { stepId: string; parentStepId?: string }[],
 ): StepsStatus => {
   const statusByStep: Record<string, SimpleStatus> = {};
 
   const stepsById = new Map(steps.map((step) => [step.stepId, step]));
 
-  const stepRuns = flowRun.steps.filter((stepRun) =>
+  const stepRuns = flowRun.stepRuns.filter((stepRun) =>
     stepsById.has(getDefinitionStepId(stepRun.stepId)),
   );
 

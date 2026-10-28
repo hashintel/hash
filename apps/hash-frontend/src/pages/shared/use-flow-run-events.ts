@@ -6,7 +6,7 @@ import { getFlowRunEventsQuery } from "@local/hash-isomorphic-utils/graphql/quer
 import type {
   GetFlowRunEventsQuery,
   GetFlowRunEventsQueryVariables,
-} from "../../../../../../graphql/api-types.gen";
+} from "../../graphql/api-types.gen";
 import type { EntityId } from "@blockprotocol/type-system";
 import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 
@@ -59,7 +59,7 @@ export const useFlowRunEvents = ({
   flowRunEntityId,
   live,
 }: {
-  flowRunEntityId: EntityId;
+  flowRunEntityId: EntityId | null;
   live: boolean;
 }): FlowRunEvents => {
   const apolloClient = useApolloClient();
@@ -76,6 +76,10 @@ export const useFlowRunEvents = ({
   } | null>(null);
 
   useEffect(() => {
+    if (!flowRunEntityId) {
+      return;
+    }
+
     let cancelled = false;
     let pollTimeout: ReturnType<typeof setTimeout> | undefined;
 
@@ -129,7 +133,7 @@ export const useFlowRunEvents = ({
       if (!cancelled && runId !== undefined) {
         const loadedRunId = runId;
 
-        /* An unchanged result keeps its identity, so the net is not replayed again for nothing. */
+        /* An unchanged result keeps its identity, so what's derived from it isn't recomputed for nothing. */
         setRead((previous) =>
           !changed &&
           previous?.flowRunEntityId === flowRunEntityId &&
@@ -192,7 +196,7 @@ export const useFlowRunEvents = ({
     };
   }, [apolloClient, flowRunEntityId, live]);
 
-  return read?.flowRunEntityId === flowRunEntityId
+  return flowRunEntityId && read?.flowRunEntityId === flowRunEntityId
     ? read.result
     : { status: "loading" };
 };

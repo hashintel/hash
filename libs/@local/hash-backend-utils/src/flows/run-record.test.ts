@@ -293,7 +293,10 @@ const getRecordedEnding = (
 
       return {
         kind: "failed",
-        failure: { message: failure?.message ?? unknownErrorMessage },
+        failure: {
+          message: failure?.message ?? unknownErrorMessage,
+          ...(details?.code ? { code: details.code } : {}),
+        },
         ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
       };
     }

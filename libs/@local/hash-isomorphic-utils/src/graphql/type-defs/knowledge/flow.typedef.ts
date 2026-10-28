@@ -57,6 +57,7 @@ export const flowTypedef = gql`
   scalar StepInput
   scalar FlowInputValues
   scalar ResolvedStepRunOutput
+  scalar ResolvedPayload
   scalar StepProgressLog
   scalar FlowDataSources
   scalar ExternalInputResponseWithoutUser
@@ -124,6 +125,39 @@ export const flowTypedef = gql`
     outputs: [ResolvedStepRunOutput!]
   }
 
+  type FlowRunOutput {
+    outputName: String!
+    """
+    The output's value, with any payload the run stored elsewhere resolved.
+    """
+    payload: ResolvedPayload!
+  }
+
+  """
+  A run of a step: the step's id in the flow definition and, inside \`forEach\` steps, its item's index in each,
+  outermost first.
+  """
+  type FlowRunStepRun {
+    stepId: String!
+    itemPath: [Int!]!
+  }
+
+  type FlowRunError {
+    message: String!
+    """
+    The code of the status the run or step failed with (a \`StatusCode\` from \`@local/status\`), when it gave one.
+    """
+    code: String
+  }
+
+  """
+  A step that failed after its action returned, e.g. because an output was of the wrong kind.
+  """
+  type FlowRunStepError {
+    stepRun: FlowRunStepRun!
+    error: FlowRunError!
+  }
+
   type FlowRun {
     """
     The entity id of the run's Flow Run entity.
@@ -179,6 +213,22 @@ export const flowTypedef = gql`
     Outputs of the flow run
     """
     outputs: [ResolvedStepRunOutput!]
+    """
+    The flow's outputs, once the run has completed. To be renamed \`outputs\` once the old field is removed.
+    """
+    flowOutputs: [FlowRunOutput!]
+    """
+    Why the run failed, or the reason it was terminated with, once it has ended.
+    """
+    failure: FlowRunError
+    """
+    Steps that failed after their action returned, once the run has ended, if it records them.
+    """
+    stepErrors: [FlowRunStepError!]
+    """
+    The run's requests for input that haven't been answered, latest first. Empty once the run has stopped.
+    """
+    openInputRequests: [ExternalInputRequest!]!
     """
     Any requests for external input made by steps within the Flow
     """

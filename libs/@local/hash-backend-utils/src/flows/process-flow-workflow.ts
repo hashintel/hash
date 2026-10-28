@@ -369,7 +369,10 @@ const getFailedRunEnding = (runFailure: unknown): FlowRunEnding | null => {
 
   return {
     kind: "failed",
-    failure: { message: runFailure.message },
+    failure: {
+      message: runFailure.message,
+      ...(details?.code ? { code: details.code } : {}),
+    },
     ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
   };
 };

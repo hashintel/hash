@@ -1,5 +1,4 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { BaseUrl } from "@blockprotocol/type-system";
+import type { VersionedUrl, BaseUrl } from "@blockprotocol/type-system";
 
 export const systemEntityTypes = {
   academicPaper: {
@@ -149,7 +148,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/flow-definition/" as BaseUrl,
   },
   flowRun: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-run/v/2",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-run/v/3",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/flow-run/" as BaseUrl,
   },
@@ -415,7 +414,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/twitter-account/" as BaseUrl,
   },
   usageRecord: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/usage-record/v/3",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/usage-record/v/4",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/usage-record/" as BaseUrl,
   },
@@ -935,6 +934,11 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/city/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/city/" as BaseUrl,
+  },
+  closedAt: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/closed-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/closed-at/" as BaseUrl,
   },
   codeshare: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/codeshare/v/1",
@@ -1671,6 +1675,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/objective/" as BaseUrl,
   },
+  openInputRequest: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/open-input-request/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/open-input-request/" as BaseUrl,
+  },
   opportunityStatus: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/opportunity-status/v/1",
@@ -2165,6 +2175,11 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/standard-price/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/standard-price/" as BaseUrl,
+  },
+  startedAt: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/started-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/started-at/" as BaseUrl,
   },
   "statistics-relevantDeliveryDate": {
     propertyTypeId:
