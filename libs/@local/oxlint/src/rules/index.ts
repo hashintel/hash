@@ -8,6 +8,7 @@ import { preferRustSeverities } from "./prefer-rust-severities.js";
 import { requireRuleChangeComment } from "./require-rule-change-comment.js";
 import { requireSafetyCommentForTypeAssertion } from "./require-safety-comment-for-type-assertion.js";
 import { requireSuppressionComment } from "./require-suppression-comment.js";
+import { requireTodoTicket } from "./require-todo-ticket.js";
 
 // oxlint-disable-next-line import/no-default-export -- required by the plugin API
 export default definePlugin({
@@ -24,5 +25,6 @@ export default definePlugin({
     "require-safety-comment-for-type-assertion":
       requireSafetyCommentForTypeAssertion,
     "require-suppression-comment": requireSuppressionComment,
+    "require-todo-ticket": requireTodoTicket,
   },
 });
