@@ -1,4 +1,5 @@
 import { Box, Skeleton, Stack, Tooltip, Typography } from "@mui/material";
+import { useId } from "react";
 
 import { extractVersion } from "@blockprotocol/type-system";
 import { TypeCard } from "@hashintel/design-system";
@@ -31,9 +32,16 @@ export const DependentTypesSection = ({
   const failed = types === undefined && !!error;
   const loading = types === undefined && !error;
 
+  const headingId = useId();
+
   return (
-    <Box component="section" aria-busy={loading} className={fluidFontClassName}>
-      <Typography variant="h5" sx={{ mb: 2 }}>
+    <Box
+      component="section"
+      aria-busy={loading}
+      aria-labelledby={headingId}
+      className={fluidFontClassName}
+    >
+      <Typography id={headingId} variant="h5" sx={{ mb: 2 }}>
         {heading}
       </Typography>
       {failed ? (
