@@ -7,9 +7,10 @@
  *
  * @module
  */
-import { Array, Option, Record, Result, SchemaParser, Tuple } from "effect";
+import { Array, Option, Record, Result, Tuple } from "effect";
 import { compose, dual, pipe } from "effect/Function";
 
+import * as Overflow from "../../internal/overflow.js";
 import { compileType } from "../../internal/type-compile.js";
 import * as Ident from "../Ident.js";
 import * as Path from "../Path.js";
@@ -81,7 +82,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Type =
-  SchemaParser.make(Schema);
+  Overflow.make(Schema);
 
 /**
  * Constructs a type with schema failures in the effect's error channel.
@@ -94,7 +95,7 @@ export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Type =
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
-) => Effect.Effect<Type, SchemaIssue.Issue> = SchemaParser.makeEffect(Schema);
+) => Effect.Effect<Type, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
 /**
  * Constructs a type, returning `None` if schema validation fails.
@@ -107,7 +108,7 @@ export const makeEffect: (
 export const makeOption: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
-) => Option.Option<Type> = SchemaParser.makeOption(Schema);
+) => Option.Option<Type> = Overflow.makeOption(Schema);
 
 /**
  * Creates a type whose values satisfy at least one member type.
@@ -253,8 +254,6 @@ const segmentArgument = (
  * `path` accepts the SDK syntax documented by {@link Path.parse}, including per-segment generic lists. Returns `None` if parsing fails. Additional generic arguments append to the last segment's existing arguments. This checks supported path syntax, not full language validity. The HashQL compiler normalizes and resolves names and checks types.
  *
  * A plain {@link Type} supplies a positional argument. A `GenericBound` with a bound supplies a named constraint. Without a bound it supplies a reference to its name. Generic order follows the argument list.
- *
- * @throws {RangeError} If input nesting exhausts the JavaScript call stack.
  *
  * @example <caption>Refer to generic, bounded and rooted types.</caption>
  * ```ts

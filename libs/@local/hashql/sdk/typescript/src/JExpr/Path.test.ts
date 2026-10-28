@@ -2,6 +2,7 @@ import { expect, it, test } from "@effect/vitest";
 import { Arbitrary, HashSet, Option, Result, Schema } from "effect";
 import { describe } from "vitest";
 
+import { NestingTooDeep } from "../internal/type-parser.js";
 import * as Path from "./Path.js";
 import * as Type from "./Type/index.js";
 
@@ -112,6 +113,15 @@ describe("path_grammar", () => {
   ])("rejected_%j", (source) => {
     expect.hasAssertions();
     expect(Result.isFailure(Path.parse(source))).toBe(true);
+  });
+
+  test("nesting_too_deep", () => {
+    expect.hasAssertions();
+    const source = `Box<${"(".repeat(100_000)}A${",)".repeat(100_000)}>`;
+    const failure = Option.getOrThrow(Result.getFailure(Path.parse(source)));
+    expect(failure.offset).toBe(0);
+    expect([...failure.expected]).toStrictEqual([NestingTooDeep()]);
+    expect(Result.isFailure(Path.decodeResult(source))).toBe(true);
   });
 
   test("nested_failure_offset", () => {
