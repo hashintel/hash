@@ -3,6 +3,7 @@ import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontolog
 import {
   createSystemPropertyTypeIfNotExists,
   generateSystemEntityTypeSchema,
+  getCurrentHashDataTypeId,
   getCurrentHashLinkEntityTypeId,
   getCurrentHashPropertyTypeId,
   getCurrentHashSystemEntityTypeId,
@@ -13,10 +14,8 @@ import {
 import type { MigrationFunction } from "../types";
 
 /**
- * Records a running flow run's open input requests on its `Flow Run` entity, so that lists of runs can show them
- * without reading the run's history. They change only when a request is raised or answered.
- *
- * Existing `Flow Run` entities are upgraded when their open input requests are first saved.
+ * Gives a `Flow Run` entity what lists of runs show, so that they don't read the run's history: its open input
+ * requests, which change only when a request is raised or answered, and its status and when it started and closed.
  */
 const migrate: MigrationFunction = async ({
   context,
@@ -40,7 +39,43 @@ const migrate: MigrationFunction = async ({
     });
 
   /**
-   * Step 2: Add it to `Flow Run`.
+   * Step 2: Create the `Started At` and `Closed At` property types.
+   */
+  const datetimeDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "datetime",
+    migrationState,
+  });
+
+  const startedAtPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Started At",
+        description: "When something started.",
+        possibleValues: [{ dataTypeId: datetimeDataTypeId }],
+      },
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  const closedAtPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Closed At",
+        description: "When something closed, however it ended.",
+        possibleValues: [{ dataTypeId: datetimeDataTypeId }],
+      },
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  /**
+   * Step 3: Add them to `Flow Run`, with `Status` holding the run's status.
    */
   const currentFlowRunEntityTypeId = getCurrentHashSystemEntityTypeId({
     entityTypeKey: "flowRun",
@@ -79,6 +114,9 @@ const migrate: MigrationFunction = async ({
           },
           { propertyType: getPropertyTypeId("outputs") },
           { propertyType: openInputRequestPropertyType, array: true },
+          { propertyType: getPropertyTypeId("status") },
+          { propertyType: startedAtPropertyType },
+          { propertyType: closedAtPropertyType },
         ],
         outgoingLinks: [
           {
@@ -113,7 +151,7 @@ const migrate: MigrationFunction = async ({
     });
 
   /**
-   * Step 3: Update `Usage Record`, which can be incurred in a flow run, to link to the new `Flow Run` type.
+   * Step 4: Update `Usage Record`, which can be incurred in a flow run, to link to the new `Flow Run` type.
    */
   await upgradeDependenciesInHashEntityType(context, authentication, {
     upgradedEntityTypeIds: [updatedFlowRunEntityTypeId],

@@ -3,6 +3,10 @@
  */
 
 import type {
+  ClosedAtPropertyValue,
+  ClosedAtPropertyValueWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
   FlowDefinition,
@@ -42,6 +46,10 @@ import type {
   OutputDefinitionPropertyValueWithMetadata,
   OutputsPropertyValue,
   OutputsPropertyValueWithMetadata,
+  StartedAtPropertyValue,
+  StartedAtPropertyValueWithMetadata,
+  StatusPropertyValue,
+  StatusPropertyValueWithMetadata,
   StepDefinitionPropertyValue,
   StepDefinitionPropertyValueWithMetadata,
   TextDataType,
@@ -63,6 +71,10 @@ import type {
 } from "./shared.js";
 
 export type {
+  ClosedAtPropertyValue,
+  ClosedAtPropertyValueWithMetadata,
+  DateTimeDataType,
+  DateTimeDataTypeWithMetadata,
   DescriptionPropertyValue,
   DescriptionPropertyValueWithMetadata,
   FlowDefinition,
@@ -102,6 +114,10 @@ export type {
   OutputDefinitionPropertyValueWithMetadata,
   OutputsPropertyValue,
   OutputsPropertyValueWithMetadata,
+  StartedAtPropertyValue,
+  StartedAtPropertyValueWithMetadata,
+  StatusPropertyValue,
+  StatusPropertyValueWithMetadata,
   StepDefinitionPropertyValue,
   StepDefinitionPropertyValueWithMetadata,
   TextDataType,

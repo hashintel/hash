@@ -1093,6 +1093,13 @@ export type CityPropertyValue = TextDataType;
 export type CityPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * When something closed, however it ended.
+ */
+export type ClosedAtPropertyValue = DateTimeDataType;
+
+export type ClosedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
+
+/**
  * Comment associated with the issue.
  */
 export type Comment = {
@@ -2248,9 +2255,12 @@ export type FlowRunOutgoingLinksByLinkEntityTypeId = {
  */
 export type FlowRunProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/closed-at/"?: ClosedAtPropertyValue;
   "https://hash.ai/@h/types/property-type/inputs/": InputsPropertyValue;
   "https://hash.ai/@h/types/property-type/open-input-request/"?: OpenInputRequestPropertyValue[];
   "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValue;
+  "https://hash.ai/@h/types/property-type/started-at/"?: StartedAtPropertyValue;
+  "https://hash.ai/@h/types/property-type/status/"?: StatusPropertyValue;
   "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValue;
 };
 
@@ -2258,12 +2268,15 @@ export type FlowRunPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/closed-at/"?: ClosedAtPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/inputs/": InputsPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/open-input-request/"?: {
       value: OpenInputRequestPropertyValueWithMetadata[];
       metadata?: ArrayMetadata;
     };
     "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/started-at/"?: StartedAtPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/status/"?: StatusPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValueWithMetadata;
   };
 };
@@ -6335,6 +6348,13 @@ export type SquareMetresDataTypeMetadata = {
   confidence?: Confidence;
   dataTypeId: "https://hash.ai/@h/types/data-type/square-metres/v/1";
 };
+
+/**
+ * When something started.
+ */
+export type StartedAtPropertyValue = DateTimeDataType;
+
+export type StartedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * A delivery date used for vendor evaluation or statistical reporting.

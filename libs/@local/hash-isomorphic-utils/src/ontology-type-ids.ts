@@ -935,6 +935,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/city/" as BaseUrl,
   },
+  closedAt: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/closed-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/closed-at/" as BaseUrl,
+  },
   codeshare: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/codeshare/v/1",
     propertyTypeBaseUrl:
@@ -2170,6 +2175,11 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/standard-price/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/standard-price/" as BaseUrl,
+  },
+  startedAt: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/started-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/started-at/" as BaseUrl,
   },
   "statistics-relevantDeliveryDate": {
     propertyTypeId:
