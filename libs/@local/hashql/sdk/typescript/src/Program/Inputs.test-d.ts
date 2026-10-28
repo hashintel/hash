@@ -11,9 +11,9 @@ import * as TypeExpression from "./TypeExpression.js";
 import type * as Type from "../Type.js";
 import type * as Inputs from "./Inputs.js";
 
-const integer = Structural.type(BigInt);
-const boolean = Structural.type(Boolean);
-const string = Structural.type(String);
+const integer = Result.getOrThrow(Structural.type(BigInt));
+const boolean = Result.getOrThrow(Structural.type(Boolean));
+const string = Result.getOrThrow(Structural.type(String));
 
 type UserId = Type.Opaque<"example::UserId", Type.PrimitiveInteger>;
 

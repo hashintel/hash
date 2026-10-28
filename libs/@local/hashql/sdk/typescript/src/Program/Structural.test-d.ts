@@ -58,7 +58,10 @@ const hostChoice = (
         Inputs.Empty
       >;
     } => {
-  const count = Expression.input("count", Structural.type(BigInt));
+  const count = Expression.input(
+    "count",
+    Result.getOrThrow(Structural.type(BigInt)),
+  );
   if (flag) {
     return { count };
   }
