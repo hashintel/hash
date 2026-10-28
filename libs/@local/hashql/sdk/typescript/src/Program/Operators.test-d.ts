@@ -9,6 +9,9 @@ import * as Structural from "./Structural.js";
 import type * as Type from "../Type.js";
 import type * as Inputs from "./Inputs.js";
 
+const integerType = Structural.type(BigInt);
+const booleanType = Structural.type(Boolean);
+
 describe("operator_types", () => {
   test("operator_domains", () => {
     const count = Expression.input("count", Structural.type(BigInt));
@@ -46,5 +49,90 @@ describe("operator_types", () => {
     pipe(firstNominal, Operators.eq(secondNominal));
     // @ts-expect-error A fluent predicate still requires Boolean operands.
     first.and(count);
+  });
+
+  test("exact_operands", () => {
+    const integer = Expression.literal(1n);
+    const number = Expression.literal(1);
+    expectTypeOf(Operators.eq(integer, 2n)).toEqualTypeOf<
+      Operators.Predicate<Inputs.Empty>
+    >();
+    Operators.eq(number, 2);
+    // @ts-expect-error A host number does not become Integer through its value.
+    Operators.eq(integer, 2);
+    // @ts-expect-error Integer does not implicitly widen to Number.
+    Operators.eq(number, 2n);
+    // @ts-expect-error Expression handles do not implicitly widen either.
+    Operators.eq(number, integer);
+    Operators.eq(number, Expression.assume<Type.PrimitiveNumber>()(integer));
+    expectTypeOf(Expression.assume<Type.PrimitiveNumber>()(1n)).toEqualTypeOf<
+      Expression.Expression<Type.PrimitiveNumber, Inputs.Empty>
+    >();
+    // @ts-expect-error Boolean operations reject numeric truthiness.
+    Operators.and(Expression.literal(true), 1);
+    const id = Expression.fromJExpr<
+      Type.Opaque<"Id", Type.PrimitiveString>,
+      Inputs.Empty
+    >("id");
+    // @ts-expect-error Strings do not stand in for nominal values.
+    Operators.eq(id, "id");
+  });
+
+  test("defaults_and_operations", () => {
+    const count = Expression.input("count", integerType, 1n);
+    const enabled = Expression.input("enabled", booleanType);
+    const result = Operators.or(
+      Operators.and(Operators.eq(count, 2n), enabled),
+      false,
+    );
+    expectTypeOf<Expression.Inputs<typeof result>>().toEqualTypeOf<{
+      readonly count?: Type.PrimitiveInteger;
+      readonly enabled: Type.PrimitiveBoolean;
+    }>();
+  });
+
+  test("none_operand", () => {
+    type OptionalCount = Type.Union<
+      readonly [
+        Type.Opaque<"::core::option::Some", Type.PrimitiveInteger>,
+        Type.Opaque<"::core::option::None", Type.PrimitiveNull>,
+      ]
+    >;
+    const count = Expression.fromJExpr<
+      OptionalCount,
+      { readonly count: OptionalCount }
+    >("count");
+    const absent = Operators.isNone(count);
+    expectTypeOf(absent).toEqualTypeOf<
+      Operators.Predicate<{ readonly count: OptionalCount }>
+    >();
+    const none = Symbol("None");
+    const symbolic = Expression.fromJExpr<
+      Type.Union<
+        readonly [
+          Type.PrimitiveInteger,
+          Type.Opaque<typeof none, Type.PrimitiveNull>,
+        ]
+      >,
+      Inputs.Empty
+    >("symbolic");
+    // @ts-expect-error The check compares the opaque name, so a None with a symbol identity does not qualify.
+    Operators.isNone(symbolic);
+  });
+
+  test("nullable_operand", () => {
+    type Flag = Type.Union<
+      readonly [Type.PrimitiveBoolean, Type.PrimitiveNull]
+    >;
+    const flags = Expression.fromJExpr<
+      Type.Dict<Type.PrimitiveString, Type.PrimitiveBoolean>,
+      Inputs.Empty
+    >("flags");
+    const selected = flags.$index("key");
+    // @ts-expect-error Comparing a nullable result with null needs an explicit assumption.
+    Operators.eq(selected, null);
+    expectTypeOf(
+      Operators.eq(selected, Expression.assume<Flag>()(null)),
+    ).toEqualTypeOf<Operators.Predicate<Inputs.Empty>>();
   });
 });
