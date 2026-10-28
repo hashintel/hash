@@ -41,8 +41,8 @@ export const EntityTypeChildren = ({
 
   const heading = <>Types that extend {boldTitle}</>;
   const emptyMessage = <>No types extend {boldTitle} yet.</>;
-  const isLinkType = (child: EntityTypeWithMetadata) =>
-    isSpecialEntityTypeLookup?.[child.schema.$id]?.isLink ?? false;
+  const isLinkType = (type: EntityTypeWithMetadata) =>
+    isSpecialEntityTypeLookup?.[type.schema.$id]?.isLink ?? false;
 
   return (
     <DependentTypesSection
