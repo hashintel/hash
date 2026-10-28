@@ -118,6 +118,8 @@ export const setupFlowRunRecordHandler = (app: Express) => {
           res.json({ url: recordUrl.url });
           return;
         }
+        // The URL is presigned for the run's key in our own storage: the request only picks which run.
+        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect
         res.redirect(recordUrl.url);
     }
   });
