@@ -37,7 +37,7 @@ export const Schema: typeof Defs.Type = Defs.Type;
 /**
  * Tagged HashQL type syntax.
  *
- * The `_tag` discriminant selects the form. `Reference` names a type by path with optional generics, `Struct` and `Tuple` list named or positional members, and `Union` and `Intersection` combine member types. Paths and member names hold decoded identifier objects. Nothing validates an object written directly until {@link make} checks its names, and the HashQL compiler resolves those names and checks the type.
+ * The `_tag` discriminant selects the form. `Reference` names a type by path with optional generics. `Struct` lists named members and `Tuple` positional ones. `Union` and `Intersection` combine member types. `Infer` is the `_` placeholder for a type the compiler infers. Paths and member names hold decoded identifier objects. Nothing validates an object written directly until {@link make} checks its names, and the HashQL compiler resolves those names and checks the type.
  */
 export type Type = Defs.Type;
 
@@ -61,22 +61,22 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  * @example <caption>Construct and check tagged type syntax.</caption>
  * ```ts
  * import { Effect, Option } from "effect";
- * import * as Type from "./index.js";
+ * import { JExpr } from "@local/hashql";
  *
- * const integer = Type.make({
+ * const integer = JExpr.Type.make({
  *   _tag: "Reference",
  *   path: { rooted: false, segments: [{ name: { _tag: "Lexical", value: "Integer" }, arguments: [] }] },
  * });
- * Type.compile(integer); // => "Integer"
+ * JExpr.Type.compile(integer); // => "Integer"
  *
  * const invalid = {
  *   _tag: "Reference",
  *   path: { rooted: false, segments: [{ name: { _tag: "Lexical", value: "" }, arguments: [] }] },
  * } as const;
- * Option.isNone(Type.makeOption(invalid)); // => true
+ * Option.isNone(JExpr.Type.makeOption(invalid)); // => true
  *
- * const empty = Effect.runSync(Type.makeEffect({ _tag: "Tuple", members: [] }));
- * Type.compile(empty); // => "()"
+ * const empty = Effect.runSync(JExpr.Type.makeEffect({ _tag: "Tuple", members: [] }));
+ * JExpr.Type.compile(empty); // => "()"
  * ```
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
@@ -117,12 +117,12 @@ export const makeOption: (
  * @example <caption>Build a union without flattening.</caption>
  * ```ts
  * import { Option } from "effect";
- * import * as Type from "./index.js";
+ * import { JExpr } from "@local/hashql";
  *
- * const integer = Option.getOrThrow(Type.reference("Integer"));
- * const string = Option.getOrThrow(Type.reference("String"));
- * Type.compile(Type.union(integer, string)); // => "Integer | String"
- * Type.compile(Type.union(integer)); // => "Integer"
+ * const integer = Option.getOrThrow(JExpr.Type.reference("Integer"));
+ * const string = Option.getOrThrow(JExpr.Type.reference("String"));
+ * JExpr.Type.compile(JExpr.Type.union(integer, string)); // => "Integer | String"
+ * JExpr.Type.compile(JExpr.Type.union(integer)); // => "Integer"
  * ```
  */
 export const union = (
@@ -137,11 +137,11 @@ export const union = (
  * @example <caption>Build an intersection.</caption>
  * ```ts
  * import { Option } from "effect";
- * import * as Type from "./index.js";
+ * import { JExpr } from "@local/hashql";
  *
- * const named = Option.getOrThrow(Type.reference("Named"));
- * const aged = Option.getOrThrow(Type.reference("Aged"));
- * Type.compile(Type.intersection(named, aged)); // => "Named & Aged"
+ * const named = Option.getOrThrow(JExpr.Type.reference("Named"));
+ * const aged = Option.getOrThrow(JExpr.Type.reference("Aged"));
+ * JExpr.Type.compile(JExpr.Type.intersection(named, aged)); // => "Named & Aged"
  * ```
  */
 export const intersection = (
@@ -159,14 +159,14 @@ const asReadonlyUnsafe = <T>(input: T): Readonly<T> => input;
  * @example <caption>Build a struct type and reject an invalid field name.</caption>
  * ```ts
  * import { Option } from "effect";
- * import * as Type from "./index.js";
+ * import { JExpr } from "@local/hashql";
  *
- * const string = Option.getOrThrow(Type.reference("String"));
- * const integer = Option.getOrThrow(Type.reference("Integer"));
- * const person = Option.getOrThrow(Type.struct({ name: string, age: integer }));
- * Type.compile(person); // => "(name: String, age: Integer)"
- * Option.isNone(Type.struct({ "": string })); // => true
- * Type.compile(Option.getOrThrow(Type.struct({}))); // => "(:)"
+ * const string = Option.getOrThrow(JExpr.Type.reference("String"));
+ * const integer = Option.getOrThrow(JExpr.Type.reference("Integer"));
+ * const person = Option.getOrThrow(JExpr.Type.struct({ name: string, age: integer }));
+ * JExpr.Type.compile(person); // => "(name: String, age: Integer)"
+ * Option.isNone(JExpr.Type.struct({ "": string })); // => true
+ * JExpr.Type.compile(Option.getOrThrow(JExpr.Type.struct({}))); // => "(:)"
  * ```
  */
 export const struct = (
@@ -199,12 +199,12 @@ export const struct = (
  * @example <caption>Build empty, single-member and pair tuples.</caption>
  * ```ts
  * import { Option } from "effect";
- * import * as Type from "./index.js";
+ * import { JExpr } from "@local/hashql";
  *
- * const integer = Option.getOrThrow(Type.reference("Integer"));
- * Type.compile(Type.tuple()); // => "()"
- * Type.compile(Type.tuple(integer)); // => "(Integer,)"
- * Type.compile(Type.tuple(integer, integer)); // => "(Integer, Integer)"
+ * const integer = Option.getOrThrow(JExpr.Type.reference("Integer"));
+ * JExpr.Type.compile(JExpr.Type.tuple()); // => "()"
+ * JExpr.Type.compile(JExpr.Type.tuple(integer)); // => "(Integer,)"
+ * JExpr.Type.compile(JExpr.Type.tuple(integer, integer)); // => "(Integer, Integer)"
  * ```
  */
 export const tuple = (...members: readonly Type[]): Defs.TupleType => ({
@@ -259,21 +259,20 @@ const segmentArgument = (
  * @example <caption>Refer to generic, bounded and rooted types.</caption>
  * ```ts
  * import { Option } from "effect";
- * import * as Generic from "./Generic.js";
- * import * as Type from "./index.js";
+ * import { JExpr } from "@local/hashql";
  *
- * const integer = Option.getOrThrow(Type.reference("Integer"));
- * const list = Option.getOrThrow(Type.reference("List", integer));
- * Type.compile(list); // => "List<Integer>"
+ * const integer = Option.getOrThrow(JExpr.Type.reference("Integer"));
+ * const list = Option.getOrThrow(JExpr.Type.reference("List", integer));
+ * JExpr.Type.compile(list); // => "List<Integer>"
  *
  * const bounded = Option.getOrThrow(
- *   Type.reference("List", Option.getOrThrow(Generic.bound("T", integer))),
+ *   JExpr.Type.reference("List", Option.getOrThrow(JExpr.Type.Generic.bound("T", integer))),
  * );
- * Type.compile(bounded); // => "List<T: Integer>"
+ * JExpr.Type.compile(bounded); // => "List<T: Integer>"
  *
- * const rooted = Option.getOrThrow(Type.reference("::core::math::+", integer));
- * Type.compile(rooted); // => "::core::math::`+`<Integer>"
- * Option.isNone(Type.reference("")); // => true
+ * const rooted = Option.getOrThrow(JExpr.Type.reference("::core::math::+", integer));
+ * JExpr.Type.compile(rooted); // => "::core::math::`+`<Integer>"
+ * Option.isNone(JExpr.Type.reference("")); // => true
  * ```
  */
 export const reference = (
@@ -301,7 +300,6 @@ export const reference = (
     })),
   );
 
-/** Treats a non-union type as a single union member. */
 const unionMembers = (type: Type): NonEmptyReadonlyArray<Type> => {
   if (type._tag === "Union") {
     return type.members;
@@ -310,7 +308,6 @@ const unionMembers = (type: Type): NonEmptyReadonlyArray<Type> => {
   return [type];
 };
 
-/** Treats a non-intersection type as a single intersection member. */
 const intersectionMembers = (type: Type): NonEmptyReadonlyArray<Type> => {
   if (type._tag === "Intersection") {
     return type.members;
@@ -328,14 +325,14 @@ const intersectionMembers = (type: Type): NonEmptyReadonlyArray<Type> => {
  * ```ts
  * import { Option } from "effect";
  * import { pipe } from "effect/Function";
- * import * as Type from "./index.js";
+ * import { JExpr } from "@local/hashql";
  *
- * const integer = Option.getOrThrow(Type.reference("Integer"));
- * const string = Option.getOrThrow(Type.reference("String"));
- * const boolean = Option.getOrThrow(Type.reference("Boolean"));
- * const value = pipe(integer, Type.or(string), Type.or(boolean));
- * Type.compile(value); // => "Integer | String | Boolean"
- * Type.compile(Type.or(integer, string)); // => "Integer | String"
+ * const integer = Option.getOrThrow(JExpr.Type.reference("Integer"));
+ * const string = Option.getOrThrow(JExpr.Type.reference("String"));
+ * const boolean = Option.getOrThrow(JExpr.Type.reference("Boolean"));
+ * const value = pipe(integer, JExpr.Type.or(string), JExpr.Type.or(boolean));
+ * JExpr.Type.compile(value); // => "Integer | String | Boolean"
+ * JExpr.Type.compile(JExpr.Type.or(integer, string)); // => "Integer | String"
  * ```
  */
 export const or: {
@@ -355,14 +352,14 @@ export const or: {
  * ```ts
  * import { Option } from "effect";
  * import { pipe } from "effect/Function";
- * import * as Type from "./index.js";
+ * import { JExpr } from "@local/hashql";
  *
- * const named = Option.getOrThrow(Type.reference("Named"));
- * const aged = Option.getOrThrow(Type.reference("Aged"));
- * const located = Option.getOrThrow(Type.reference("Located"));
- * const person = pipe(named, Type.and(aged), Type.and(located));
- * Type.compile(person); // => "Named & Aged & Located"
- * Type.compile(Type.and(named, aged)); // => "Named & Aged"
+ * const named = Option.getOrThrow(JExpr.Type.reference("Named"));
+ * const aged = Option.getOrThrow(JExpr.Type.reference("Aged"));
+ * const located = Option.getOrThrow(JExpr.Type.reference("Located"));
+ * const person = pipe(named, JExpr.Type.and(aged), JExpr.Type.and(located));
+ * JExpr.Type.compile(person); // => "Named & Aged & Located"
+ * JExpr.Type.compile(JExpr.Type.and(named, aged)); // => "Named & Aged"
  * ```
  */
 export const and: {
@@ -381,14 +378,14 @@ export const and: {
  * @example <caption>Compile a nested type.</caption>
  * ```ts
  * import { Option } from "effect";
- * import * as Type from "./index.js";
+ * import { JExpr } from "@local/hashql";
  *
- * const integer = Option.getOrThrow(Type.reference("Integer"));
- * const string = Option.getOrThrow(Type.reference("String"));
+ * const integer = Option.getOrThrow(JExpr.Type.reference("Integer"));
+ * const string = Option.getOrThrow(JExpr.Type.reference("String"));
  * const list = Option.getOrThrow(
- *   Type.reference("List", Type.union(integer, string)),
+ *   JExpr.Type.reference("List", JExpr.Type.union(integer, string)),
  * );
- * Type.compile(list); // => "List<Integer | String>"
+ * JExpr.Type.compile(list); // => "List<Integer | String>"
  * ```
  */
 export const compile: (type: Type) => string = compileType;

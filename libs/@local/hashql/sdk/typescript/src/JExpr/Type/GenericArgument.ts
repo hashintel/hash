@@ -1,3 +1,10 @@
+/**
+ * A positional generic argument, such as the `Integer` in `List<Integer>`.
+ *
+ * {@link make} checks a decoded object such as `{ _tag: "GenericArgument", bound: integer }` rather than source text, including the paths and identifiers inside its type. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
+ *
+ * @module
+ */
 import { SchemaParser } from "effect";
 
 import * as Defs from "./schema.js";
@@ -11,6 +18,11 @@ export interface Encoded extends Defs.GenericArgumentEncoded {}
 
 type MakeIn = (typeof Schema)["~type.make.in"];
 
+/**
+ * Checks a decoded generic argument object and returns it.
+ *
+ * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (
   input: MakeIn,

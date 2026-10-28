@@ -6,5 +6,6 @@
  * @module
  */
 export * as Ident from "./Ident.js";
+export type * as ParserError from "./ParserError.js";
 export * as Path from "./Path.js";
 export * as Type from "./Type/index.js";

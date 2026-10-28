@@ -20,7 +20,8 @@ import * as Grammar from "../internal/ident-parser.js";
 import * as Parser from "../internal/parser.js";
 import { characterClass, exactly } from "../internal/schema-arbitrary.js";
 
-import type { Option } from "effect";
+import type * as ParserError from "./ParserError.js";
+import type { Arbitrary, Option } from "effect";
 import type { ParseOptions } from "effect/SchemaAST";
 
 const lexicalStart = new RegExp(xidStart.pattern, "u");
@@ -144,10 +145,20 @@ export const makeOption: (
 ) => Option.Option<Ident> = SchemaParser.makeOption(Schema);
 
 /** Parses one identifier with typed reasons and a UTF-16 error offset, preserving its spelling. */
-export const parse: typeof Grammar.parseIdent = Grammar.parseIdent;
+export const parse: (
+  input: string,
+) => Result.Result<
+  Ident,
+  ParserError.ParserError<
+    ParserError.IdentReason | ParserError.ExpectedEndOfInput
+  >
+> = Grammar.parseIdent;
+
+/** Source text accepted by the identifier grammar, paired with the identifier it parses to. */
+export type Sample = Parser.Sample<Ident>;
 
 /** Generates source text and its parsed identifier from the identifier grammar. */
-export const arbitrary: typeof Grammar.completeIdentifier.arbitrary =
+export const arbitrary: () => Arbitrary.Arbitrary<Sample> =
   Grammar.completeIdentifier.arbitrary;
 
 /**
@@ -177,6 +188,8 @@ export const decodeResult: (
 /**
  * Writes an identifier as source text.
  *
- * Lexical values keep their spelling. Symbols and base URLs take backticks, so the bare `+` decodes and compiles to `` `+` ``. This function does not validate the value.
+ * Quotes symbols and base URLs in backticks, so the bare `+` decodes and compiles to `` `+` ``, while lexical values keep their spelling.
+ *
+ * Nothing validates the value first.
  */
 export const compile: (ident: Ident) => string = Grammar.compileIdent;
