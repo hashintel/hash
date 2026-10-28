@@ -11,14 +11,21 @@ import type * as JExpr from "../JExpr/index.js";
 import type * as ProgramError from "../Program/ProgramError.js";
 import type { Result } from "effect";
 
+/** The key of the rebinding function a producer attaches to each of its handles. */
 export const Relocate: unique symbol = Symbol("~hashql/Relocate");
 
+/**
+ * A handle that can be rebound to another HashQL path.
+ *
+ * Rebinding returns a handle of type `E` that emits the new path, or a construction failure.
+ */
 export interface Relocatable<E> {
   readonly [Relocate]: (
     path: JExpr.Path.Path,
   ) => Result.Result<E, ProgramError.Construction>;
 }
 
+/** Rebinds a handle with the function its producer attached. It accepts the handle first or last. */
 export const relocate: {
   (
     path: JExpr.Path.Path,
