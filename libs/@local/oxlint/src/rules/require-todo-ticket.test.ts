@@ -19,6 +19,17 @@ tester.run("require-todo-ticket", requireTodoTicket, {
     { code: "// TODO(BE-123) cache the resolved path", errors: [ticket] },
     { code: "// TODO(BE-123):", errors: [ticket] },
     { code: "/* TODO: cache the resolved path */", errors: [ticket] },
+    { code: "/** TODO: cache the resolved path */", errors: [ticket] },
+    {
+      code: [
+        "/**",
+        " * Resolves the path.",
+        " *",
+        " * TODO: cache the resolved path",
+        " */",
+      ].join("\n"),
+      errors: [ticket],
+    },
     // Each report points to its own comment. Oxlint's columns are 0-indexed.
     {
       code: [
@@ -32,6 +43,15 @@ tester.run("require-todo-ticket", requireTodoTicket, {
     "// TODO(BE-123): cache the resolved path",
     "//   TODO(SRE-1240): rotate the key",
     "/* TODO(H-773): add the creation button */",
+    "/** TODO(BE-123): cache the resolved path */",
+    [
+      "/**",
+      " * Resolves the path.",
+      " *",
+      " * TODO(BE-123): cache the resolved path",
+      " */",
+    ].join("\n"),
+    "/** Lists the TODO comments in a file. */",
     "// a comment that mentions a TODO later in its text",
     "// TODOs live in Linear",
   ],
