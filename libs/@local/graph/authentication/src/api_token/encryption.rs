@@ -1,31 +1,38 @@
-use aws_lc_rs::aead::{AES_256_GCM, Aad, NONCE_LEN, Nonce, RandomizedNonceKey};
+use core::pin::pin;
+
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::api_token::{
     ApiTokenEncryptedSecretHash, ApiTokenEncryptionKeyId, ApiTokenId, ApiTokenSecretHash,
 };
-use hash_secret::Secret;
+use hash_secret::{
+    Secret,
+    aes_gcm::{AeadPurpose, Aes256GcmKey, Sealed},
+};
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
-use zerocopy::{FromBytes, Immutable, IntoBytes};
+use zerocopy::{Immutable, IntoBytes};
 
 use super::{ApiTokenType, ApiTokenVersion, ENVIRONMENT_LENGTH, Environment, TYPE_LENGTH};
 
+/// The length in bytes of the secret hash of a token.
 const SECRET_HASH_LENGTH: usize = 32;
-const TAG_LENGTH: usize = 16;
 
-/// The bytes of an encrypted secret hash: the nonce, then the ciphertext followed by its tag.
-#[derive(FromBytes, IntoBytes, Immutable)]
-#[repr(C)]
-struct EncryptedSecretHashLayout {
-    nonce: [u8; NONCE_LEN],
-    sealed: [u8; SECRET_HASH_LENGTH + TAG_LENGTH],
+/// The purpose of the keys that encrypt the secret hashes of API tokens.
+struct SecretHashes;
+
+impl AeadPurpose for SecretHashes {
+    type AssociatedData = AssociatedData;
+
+    fn associated_data(data: &AssociatedData) -> impl AsRef<[u8]> {
+        data.layout()
+    }
 }
 
 /// An AES-256-GCM key for the secret hashes of API tokens, and its ID.
 #[derive(Debug)]
 pub struct ApiTokenEncryptionKey {
     id: ApiTokenEncryptionKeyId,
-    key: RandomizedNonceKey,
+    key: Aes256GcmKey<SecretHashes>,
 }
 
 impl ApiTokenEncryptionKey {
@@ -33,9 +40,7 @@ impl ApiTokenEncryptionKey {
     pub fn new(id: ApiTokenEncryptionKeyId, key: &Secret<[u8; 32]>) -> Self {
         Self {
             id,
-            key: RandomizedNonceKey::new(&AES_256_GCM, key.expose()).unwrap_or_else(|error| {
-                unreachable!("AES-256-GCM should accept a 32-byte key: {error}")
-            }),
+            key: Aes256GcmKey::from_secret(key),
         }
     }
 
@@ -53,21 +58,15 @@ impl ApiTokenEncryptionKey {
         secret_hash: ApiTokenSecretHash,
         associated_data: &AssociatedData,
     ) -> ApiTokenEncryptedSecretHash {
-        let mut sealed = [0; SECRET_HASH_LENGTH + TAG_LENGTH];
-        let (ciphertext, tag_part) = sealed.split_at_mut(SECRET_HASH_LENGTH);
-        ciphertext.copy_from_slice(secret_hash.as_bytes());
-        let (nonce, tag) = self
-            .key
-            .seal_in_place_separate_tag(Aad::from(associated_data.layout().as_bytes()), ciphertext)
-            .unwrap_or_else(|error| {
-                unreachable!("AES-256-GCM should seal a SHA-256 hash: {error}")
-            });
-        tag_part.copy_from_slice(tag.as_ref());
+        let mut plaintext = pin!(Secret::<[u8; SECRET_HASH_LENGTH]>::zeroed());
+        plaintext
+            .as_mut()
+            .expose_mut()
+            .copy_from_slice(secret_hash.as_bytes());
 
-        ApiTokenEncryptedSecretHash::new(zerocopy::transmute!(EncryptedSecretHashLayout {
-            nonce: *nonce.as_ref(),
-            sealed,
-        }))
+        ApiTokenEncryptedSecretHash::new(zerocopy::transmute!(
+            self.key.seal(&plaintext, associated_data)
+        ))
     }
 
     /// Decrypts `encrypted_secret_hash` with the associated data it was encrypted with.
@@ -81,22 +80,16 @@ impl ApiTokenEncryptionKey {
         encrypted_secret_hash: ApiTokenEncryptedSecretHash,
         associated_data: &AssociatedData,
     ) -> Result<ApiTokenSecretHash, Report<ApiTokenDecryptionError>> {
-        let EncryptedSecretHashLayout { nonce, mut sealed } =
+        let sealed: Sealed<SecretHashes, SECRET_HASH_LENGTH> =
             zerocopy::transmute!(*encrypted_secret_hash.as_bytes());
-        let secret_hash = self
-            .key
-            .open_in_place(
-                Nonce::assume_unique_for_key(nonce),
-                Aad::from(associated_data.layout().as_bytes()),
-                &mut sealed,
-            )
+        let mut plaintext = pin!(Secret::<[u8; SECRET_HASH_LENGTH]>::zeroed());
+        self.key
+            .open(&sealed, associated_data, plaintext.as_mut())
             .change_context(ApiTokenDecryptionError)?;
 
-        Ok(ApiTokenSecretHash::new(
-            <[u8; SECRET_HASH_LENGTH]>::try_from(&*secret_hash).unwrap_or_else(|error| {
-                unreachable!("the plaintext should be a SHA-256 hash: {error}")
-            }),
-        ))
+        let mut secret_hash = [0; SECRET_HASH_LENGTH];
+        secret_hash.copy_from_slice(plaintext.expose());
+        Ok(ApiTokenSecretHash::new(secret_hash))
     }
 }
 
@@ -142,6 +135,12 @@ impl AssociatedData {
             actor_id: Uuid::from(self.actor_id).into_bytes(),
             web_id: Uuid::from(self.web_id).into_bytes(),
         }
+    }
+}
+
+impl AsRef<[u8]> for AssociatedDataLayout {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
     }
 }
 
@@ -282,8 +281,7 @@ mod tests {
         assert_eq!(
             format!("{key:?}"),
             format!(
-                "ApiTokenEncryptionKey {{ id: {:?}, key: RandomizedNonceKey {{ algorithm: \
-                 AES_256_GCM }} }}",
+                "ApiTokenEncryptionKey {{ id: {:?}, key: Aes256GcmKey {{ .. }} }}",
                 key.id()
             ),
             "the debug output should leave out the key"

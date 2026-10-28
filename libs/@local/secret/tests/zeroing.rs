@@ -16,7 +16,10 @@ use std::{
     sync::{Mutex, MutexGuard, PoisonError},
 };
 
-use hash_secret::{Secret, SecretBuffer};
+use hash_secret::{
+    Secret, SecretBuffer,
+    aes_gcm::{AeadPurpose, Aes256GcmKey},
+};
 use rstest::rstest;
 
 /// Fills watched ranges, so that a range nobody zeroed does not pass as zeroed.
@@ -197,5 +200,33 @@ fn decode_hex_allocation_free() {
     assert_eq!(
         after, before,
         "decoding should not copy the secret into another allocation"
+    );
+}
+
+struct Test;
+
+impl AeadPurpose for Test {
+    type AssociatedData = [u8];
+
+    fn associated_data(data: &[u8]) -> impl AsRef<[u8]> {
+        data
+    }
+}
+
+#[test]
+#[cfg_attr(miri, ignore = "Miri cannot run AWS-LC's C code")]
+fn open_allocation_free() {
+    let key = Aes256GcmKey::<Test>::from_secret(&Secret::zeroed());
+    let sealed = key.seal(&Secret::<[u8; 32]>::zeroed(), b"row");
+    let mut plaintext = pin!(Secret::<[u8; 32]>::zeroed());
+
+    let before = ALLOCATIONS.with(Cell::get);
+    let result = key.open(&sealed, b"row", plaintext.as_mut());
+    let after = ALLOCATIONS.with(Cell::get);
+
+    result.expect("the sealed value should open");
+    assert_eq!(
+        after, before,
+        "opening should not copy the plaintext into another allocation"
     );
 }

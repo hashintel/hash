@@ -15,6 +15,7 @@ import {
   HIR_TYPE_BOOL,
   HIR_TYPE_DISTRIBUTION,
   HIR_TYPE_INT,
+  HIR_TYPE_NULL,
   HIR_TYPE_REAL,
   HIR_TYPE_STRING,
   HIR_TYPE_UNKNOWN,
@@ -30,7 +31,11 @@ import type {
   HirType,
   Span,
 } from "./hir";
-import type { HirSurfaceContext, HirTokenElementInfo } from "./surface-context";
+import type {
+  HirFunctionContext,
+  HirSurfaceContext,
+  HirTokenElementInfo,
+} from "./surface-context";
 
 export type HirTypecheckResult = {
   /** Inferred type per HIR node id. */
@@ -78,8 +83,11 @@ const INT_MATH_FNS = new Set<HirMathFn>([
   "trunc",
 ]);
 
-function elementType(element: HirTokenElementInfo): HirType {
-  switch (element.type) {
+/** The HIR type of a token attribute or parameter of the given colour type. */
+export function hirTypeOfAttribute(
+  attribute: Pick<HirTokenElementInfo, "type">,
+): HirType {
+  switch (attribute.type) {
     case "real":
       return HIR_TYPE_REAL;
     case "integer":
@@ -93,12 +101,13 @@ function elementType(element: HirTokenElementInfo): HirType {
   }
 }
 
-function tokenRecordType(elements: HirTokenElementInfo[]): HirType {
+/** The record type of one token of a colour. */
+export function hirTokenRecordType(elements: HirTokenElementInfo[]): HirType {
   return {
     kind: "record",
     fields: elements.map((element) => ({
       name: element.name,
-      type: elementType(element),
+      type: hirTypeOfAttribute(element),
     })),
   };
 }
@@ -111,10 +120,34 @@ function isBoolish(type: HirType): boolean {
   return type.kind === "bool" || type.kind === "unknown";
 }
 
+/** Scalar kinds JavaScript writes as text: template interpolations, string
+ * concatenation and a picture's attributes and labels accept these. */
+export function isTextualHirType(type: HirType): boolean {
+  switch (type.kind) {
+    case "real":
+    case "int":
+    case "bool":
+    case "string":
+    case "uuid":
+    case "unknown":
+      return true;
+    default:
+      return false;
+  }
+}
+
 /** Least upper bound, collapsing to `unknown` on structural mismatch. */
 function joinTypes(left: HirType, right: HirType): HirType {
   if (left.kind === "unknown" || right.kind === "unknown") {
     return HIR_TYPE_UNKNOWN;
+  }
+  // `tokens[0] || fallback` on the visualizer surface: `null` joins with
+  // anything as that type.
+  if (left.kind === "null") {
+    return right;
+  }
+  if (right.kind === "null") {
+    return left;
   }
   if (left.kind === right.kind) {
     if (left.kind === "array" && right.kind === "array") {
@@ -174,6 +207,15 @@ class Typechecker {
     );
   }
 
+  /**
+   * Whether conditions take any value, as JavaScript does: a visualizer is
+   * JavaScript, and `tokens[0] ? … : …` or `!token` over a record is how
+   * it draws an empty place. The compiled surfaces keep booleans only.
+   */
+  private usesTruthiness(): boolean {
+    return this.context.surface === "visualizer";
+  }
+
   report(
     span: Span,
     code: string,
@@ -183,22 +225,21 @@ class Typechecker {
     this.diagnostics.push({ code, message, severity, span });
   }
 
-  check(fn: HirFunction): HirType {
+  check(fn: HirFunction, context: HirFunctionContext): HirType {
     const env = new Map<string, HirType>();
     const tokensParam = fn.params[0];
     if (tokensParam) {
-      env.set(tokensParam.name, this.tokensParamType());
+      env.set(tokensParam.name, this.tokensParamType(context));
     }
     const returnType = this.infer(fn.body, env);
-    this.checkReturnType(fn, returnType);
+    this.checkReturnType(fn, returnType, context);
     return returnType;
   }
 
-  private tokensParamType(): HirType {
-    const context = this.context;
+  private tokensParamType(context: HirFunctionContext): HirType {
     switch (context.surface) {
       case "dynamics":
-        return { kind: "array", element: tokenRecordType(context.elements) };
+        return { kind: "array", element: hirTokenRecordType(context.elements) };
       case "lambda":
       case "kernel":
         return {
@@ -207,7 +248,7 @@ class Typechecker {
             name: place.name,
             type: {
               kind: "array",
-              element: tokenRecordType(place.elements),
+              element: hirTokenRecordType(place.elements),
               length: place.tokenCount,
             } satisfies HirType,
           })),
@@ -235,7 +276,7 @@ class Typechecker {
                         name: "tokens",
                         type: {
                           kind: "array",
-                          element: tokenRecordType(place.elements),
+                          element: hirTokenRecordType(place.elements),
                         } satisfies HirType,
                       },
                     ],
@@ -248,13 +289,16 @@ class Typechecker {
     }
   }
 
-  private infer(expr: HirExpr, env: Map<string, HirType>): HirType {
+  infer(expr: HirExpr, env: ReadonlyMap<string, HirType>): HirType {
     const type = this.inferUncached(expr, env);
     this.types.set(expr.id, type);
     return type;
   }
 
-  private inferUncached(expr: HirExpr, env: Map<string, HirType>): HirType {
+  private inferUncached(
+    expr: HirExpr,
+    env: ReadonlyMap<string, HirType>,
+  ): HirType {
     switch (expr.kind) {
       case "numberLit":
         return Number.isInteger(expr.value) ? HIR_TYPE_INT : HIR_TYPE_REAL;
@@ -305,7 +349,7 @@ class Typechecker {
           );
           return HIR_TYPE_UNKNOWN;
         }
-        return elementType({ name: parameter.name, type: parameter.type });
+        return hirTypeOfAttribute(parameter);
       }
       case "scenarioRef": {
         const context = this.context;
@@ -449,7 +493,7 @@ class Typechecker {
       case "unary": {
         const operandType = this.infer(expr.operand, env);
         if (expr.op === "!") {
-          if (!isBoolish(operandType)) {
+          if (!isBoolish(operandType) && !this.usesTruthiness()) {
             this.report(
               expr.span,
               "hir:type-mismatch",
@@ -474,6 +518,17 @@ class Typechecker {
         switch (expr.op) {
           case "&&":
           case "||":
+            // A visualizer keeps JavaScript's value semantics: `flag && <g/>`
+            // draws the element or nothing, `tokens[0] || fallback` picks a
+            // record. The interpreter returns an operand either way.
+            if (
+              this.context.surface === "visualizer" &&
+              (leftType.kind !== "bool" || rightType.kind !== "bool")
+            ) {
+              return expr.op === "&&" && isBoolish(leftType)
+                ? rightType
+                : joinTypes(leftType, rightType);
+            }
             if (!isBoolish(leftType) || !isBoolish(rightType)) {
               this.report(
                 expr.span,
@@ -519,6 +574,29 @@ class Typechecker {
           case "**":
             this.expectNumeric(expr, leftType, rightType);
             return HIR_TYPE_REAL;
+          case "+":
+            // String concatenation, as JavaScript's `+` does. Visualizers
+            // build labels this way; the buffer programs of the other
+            // surfaces have no strings to concatenate.
+            if (
+              this.context.surface === "visualizer" &&
+              (leftType.kind === "string" || rightType.kind === "string")
+            ) {
+              if (!isTextualHirType(leftType) || !isTextualHirType(rightType)) {
+                this.report(
+                  expr.span,
+                  "hir:type-mismatch",
+                  "Only numbers, strings and booleans can be joined into text with `+`.",
+                );
+              }
+              return HIR_TYPE_STRING;
+            }
+            this.expectNumeric(expr, leftType, rightType);
+            return leftType.kind === "int" && rightType.kind === "int"
+              ? HIR_TYPE_INT
+              : leftType.kind === "unknown" || rightType.kind === "unknown"
+                ? HIR_TYPE_UNKNOWN
+                : HIR_TYPE_REAL;
           default:
             this.expectNumeric(expr, leftType, rightType);
             return leftType.kind === "int" && rightType.kind === "int"
@@ -530,7 +608,7 @@ class Typechecker {
       }
       case "cond": {
         const conditionType = this.infer(expr.condition, env);
-        if (!isBoolish(conditionType)) {
+        if (!isBoolish(conditionType) && !this.usesTruthiness()) {
           this.report(
             expr.condition.span,
             "hir:type-mismatch",
@@ -726,6 +804,89 @@ class Typechecker {
         }
         return HIR_TYPE_DISTRIBUTION;
       }
+      case "nullLit":
+        return HIR_TYPE_NULL;
+      case "templateLit": {
+        for (const expression of expr.expressions) {
+          const expressionType = this.infer(expression, env);
+          if (!isTextualHirType(expressionType)) {
+            this.report(
+              expression.span,
+              "hir:type-mismatch",
+              `Only numbers, strings and booleans can be written into text, got ${formatHirType(expressionType)}.`,
+            );
+          }
+        }
+        return HIR_TYPE_STRING;
+      }
+      case "arraySlice": {
+        const targetType = this.infer(expr.target, env);
+        for (const bound of [expr.start, expr.end]) {
+          if (bound && !isNumeric(this.infer(bound, env))) {
+            this.report(
+              bound.span,
+              "hir:type-mismatch",
+              "`.slice(...)` bounds must be numbers.",
+            );
+          }
+        }
+        if (targetType.kind === "array") {
+          return { kind: "array", element: targetType.element };
+        }
+        if (targetType.kind !== "unknown") {
+          this.report(
+            expr.target.span,
+            "hir:invalid-map",
+            `\`.slice(...)\` is only available on arrays, not ${formatHirType(targetType)}.`,
+          );
+        }
+        return HIR_TYPE_UNKNOWN;
+      }
+      case "arrayFilter": {
+        const targetType = this.infer(expr.target, env);
+        let elementType_: HirType = HIR_TYPE_UNKNOWN;
+        if (targetType.kind === "array") {
+          elementType_ = targetType.element;
+        } else if (targetType.kind !== "unknown") {
+          this.report(
+            expr.target.span,
+            "hir:invalid-map",
+            `\`.filter(...)\` is only available on arrays, not ${formatHirType(targetType)}.`,
+          );
+        }
+        const scoped = new Map(env);
+        scoped.set(expr.param.name, elementType_);
+        if (expr.indexParam) {
+          scoped.set(expr.indexParam.name, HIR_TYPE_INT);
+        }
+        const bodyType = this.infer(expr.body, scoped);
+        if (!isBoolish(bodyType)) {
+          this.report(
+            expr.body.span,
+            "hir:type-mismatch",
+            `\`.filter(...)\` callbacks must return a boolean, got ${formatHirType(bodyType)}.`,
+          );
+        }
+        return { kind: "array", element: elementType_ };
+      }
+      case "numberFormat": {
+        const targetType = this.infer(expr.target, env);
+        if (!isNumeric(targetType)) {
+          this.report(
+            expr.target.span,
+            "hir:type-mismatch",
+            `\`.toFixed(...)\` is only available on numbers, not ${formatHirType(targetType)}.`,
+          );
+        }
+        if (expr.digits && !isNumeric(this.infer(expr.digits, env))) {
+          this.report(
+            expr.digits.span,
+            "hir:type-mismatch",
+            "`.toFixed(...)` takes a number of digits.",
+          );
+        }
+        return HIR_TYPE_STRING;
+      }
     }
   }
 
@@ -784,8 +945,11 @@ class Typechecker {
   }
 
   /** Surface-specific checks on the function's result type. */
-  private checkReturnType(fn: HirFunction, returnType: HirType): void {
-    const context = this.context;
+  private checkReturnType(
+    fn: HirFunction,
+    returnType: HirType,
+    context: HirFunctionContext,
+  ): void {
     const bodySpan = fn.body.kind === "let" ? fn.body.body.span : fn.body.span;
 
     switch (context.surface) {
@@ -1197,13 +1361,37 @@ class Typechecker {
 /** Runs type inference and surface checks over a lowered function. */
 export function typecheckHir(
   fn: HirFunction,
-  context: HirSurfaceContext,
+  context: HirFunctionContext,
 ): HirTypecheckResult {
   const checker = new Typechecker(context);
-  const returnType = checker.check(fn);
+  const returnType = checker.check(fn, context);
   return {
     types: checker.types,
     returnType,
     diagnostics: checker.diagnostics,
   };
+}
+
+/**
+ * Expression inference as a surface with a tree of its own uses it: the
+ * view HIR binds the props and callback parameters its nodes introduce and
+ * infers each expression under them, so the typing rules have one owner.
+ */
+export type HirExpressionChecker = {
+  infer(expr: HirExpr, env: ReadonlyMap<string, HirType>): HirType;
+  report(
+    span: Span,
+    code: string,
+    message: string,
+    severity?: HirDiagnostic["severity"],
+  ): void;
+  /** Inferred type per expression id, filled as `infer` runs. */
+  readonly types: ReadonlyMap<HirNodeId, HirType>;
+  readonly diagnostics: readonly HirDiagnostic[];
+};
+
+export function createHirExpressionChecker(
+  context: HirSurfaceContext,
+): HirExpressionChecker {
+  return new Typechecker(context);
 }

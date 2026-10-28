@@ -604,6 +604,11 @@ export const FlowVisualizer = () => {
           onClose={() => setShowFlowNet(false)}
           selectedFlowDefinition={selectedFlowDefinition}
           flowDefinitionEntityId={selectedFlow.flowDefinitionEntityId}
+          flowRun={{
+            flowRunEntityId: selectedFlowRun.flowRunEntityId,
+            name: selectedFlowRun.name,
+            live: !selectedFlowRun.closedAt,
+          }}
         />
       )}
       <Stack sx={{ height: containerHeight }}>
@@ -675,7 +680,10 @@ export const FlowVisualizer = () => {
               />
             ) : (
               <Box key={flowDefinitionStateKey} sx={{ flex: 1, minHeight: 0 }}>
-                <FlowNetView flowDefinition={selectedFlowDefinition} />
+                <FlowNetView
+                  flowDefinition={selectedFlowDefinition}
+                  flowDefinitionEntityId={selectedFlow.flowDefinitionEntityId}
+                />
               </Box>
             )}
           </Stack>

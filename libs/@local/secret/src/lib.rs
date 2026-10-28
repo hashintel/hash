@@ -1,4 +1,4 @@
-//! Secret values that are zeroed on drop.
+//! Secret values that are zeroed on drop, and the cryptography that uses them.
 //!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
@@ -7,6 +7,7 @@
 
 extern crate alloc;
 
+pub mod aes_gcm;
 mod buffer;
 #[cfg(feature = "clap")]
 mod cli;

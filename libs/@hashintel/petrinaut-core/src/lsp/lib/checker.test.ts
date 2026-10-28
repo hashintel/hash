@@ -1,18 +1,19 @@
 import ts from "@typescript/typescript6";
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions";
 import { checkSDCPN } from "./checker";
-import { SDCPNLanguageServer } from "./create-sdcpn-language-service";
 import { createSDCPN } from "./helper/create-sdcpn";
+import { createLanguageServers, syncLanguageServers } from "./language-servers";
 
 import type { PetrinautExtensionSettings } from "../../extensions";
 import type { SDCPN } from "../../types/sdcpn";
 
-/** Create a server, sync the SDCPN, and run diagnostics. */
+/** Create the servers, sync the SDCPN, and run diagnostics. */
 function check(sdcpn: SDCPN, extensions?: PetrinautExtensionSettings) {
-  const server = new SDCPNLanguageServer();
-  server.syncFiles(sdcpn, extensions);
-  return checkSDCPN(sdcpn, server, extensions);
+  const servers = createLanguageServers();
+  syncLanguageServers(servers, sdcpn, extensions);
+  return checkSDCPN(sdcpn, servers, extensions);
 }
 
 describe("checkSDCPN", () => {
@@ -1667,6 +1668,73 @@ return true;`;
       expect(
         ts.flattenDiagnosticMessageText(hirDiagnostic.messageText, "\n"),
       ).toContain("return");
+    });
+  });
+  describe("Place visualizers", () => {
+    const withVisualizer = (visualizerCode: string) =>
+      createSDCPN({
+        types: [
+          {
+            id: "color1",
+            elements: [
+              { name: "x", type: "real" },
+              { name: "y", type: "real" },
+            ],
+          },
+        ],
+        places: [
+          { id: "place1", name: "Space", colorId: "color1", visualizerCode },
+        ],
+        parameters: [{ id: "p1", variableName: "radius", type: "real" }],
+      });
+
+    it("passes a visualizer that draws the place's tokens with its parameters", () => {
+      const result = check(
+        withVisualizer(`export default Visualization(({ tokens, parameters }) => (
+          <svg viewBox="0 0 10 10">
+            {tokens.map((token, index) => (
+              <circle key={index} cx={token.x} cy={token.y} r={parameters.radius} />
+            ))}
+          </svg>
+        ));`),
+      );
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
+    });
+
+    it("reports a visualizer's type errors under the place without invalidating the net", () => {
+      const result = check(
+        withVisualizer(`export default Visualization(({ tokens }) => (
+          <svg>{tokens.map((token) => <circle cx={token.z} />)}</svg>
+        ));`),
+      );
+
+      // A broken picture never stops a run.
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(1);
+      expect(result.itemDiagnostics[0]).toMatchObject({
+        itemId: "place1",
+        itemType: "place-visualizer",
+        filePath: "/places/place1/visualizer/code.jsx",
+      });
+      expect(
+        result.itemDiagnostics[0]?.diagnostics.map(
+          (diagnostic) => diagnostic.code,
+        ),
+      ).toEqual([2339]);
+    });
+
+    it("skips visualizers when the colours extension is off", () => {
+      const result = check(
+        withVisualizer(
+          `export default Visualization(() => <svg>{fetch("x")}</svg>);`,
+        ),
+        { ...DEFAULT_PETRINAUT_EXTENSIONS, colors: false },
+      );
+
+      expect(result.isValid).toBe(true);
+      expect(result.itemDiagnostics).toHaveLength(0);
     });
   });
 });

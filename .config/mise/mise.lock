@@ -188,7 +188,7 @@ url = "https://github.com/casey/just/releases/download/1.51.0/just-1.51.0-x86_64
 url_api = "https://api.github.com/repos/casey/just/releases/assets/416466221"
 
 [[tools.markdownlint-cli2]]
-version = "0.22.1"
+version = "0.24.0"
 backend = "npm:markdownlint-cli2"
 
 [[tools.node]]

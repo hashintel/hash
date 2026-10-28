@@ -1,10 +1,10 @@
 import { checkAggregationInput } from "./aggregation.js";
-import { checkConditionInput, filterableKinds } from "./filter-condition.js";
-import { maxEntitiesPerStep } from "./limits.js";
 import {
-  checkPropertiesWithMetadataInput,
-  checkPropertyPatchesInput,
-} from "./property-values.js";
+  checkCreateEntityStep,
+  checkUpdateEntityStep,
+} from "./entity-steps.js";
+import { checkConditionInput, filterableKinds } from "./filter-condition.js";
+import { maxDraftMessageEntities, maxEntitiesPerStep } from "./limits.js";
 import { checkSortKeyInput } from "./sort-key.js";
 import { checkTakeCountInput } from "./take-count.js";
 import { allPayloadKinds } from "./types.js";
@@ -31,6 +31,7 @@ export type AiFlowActionDefinitionId =
   | "analyzeEntityData"
   | "answerQuestion"
   | "createEntity"
+  | "draftMessage"
   | "filterList"
   | "find"
   | "generateChartConfig"
@@ -1094,7 +1095,7 @@ const aiFlowActionDefinitionsAsConst = {
     activitySettings: defaultActivitySettings,
     name: "Create Entity",
     description:
-      "Create an entity of one or more types in the web the flow runs in, with values for some of its properties.",
+      "Create an entity of one or more types in the web the flow runs in, with values for some of its properties. Given the entities at its two ends, it creates a link.",
     kind: "action",
     inputs: [
       {
@@ -1124,6 +1125,22 @@ const aiFlowActionDefinitionsAsConst = {
         },
         array: false,
       },
+      {
+        oneOfPayloadKinds: ["EntityId"],
+        name: "leftEntityId",
+        description:
+          "For a link, the entity it links from. Give it with rightEntityId, and a link entity type.",
+        required: false,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["EntityId"],
+        name: "rightEntityId",
+        description:
+          "For a link, the entity it links to. Give it with leftEntityId, and a link entity type.",
+        required: false,
+        array: false,
+      },
     ],
     outputs: [
       {
@@ -1134,14 +1151,14 @@ const aiFlowActionDefinitionsAsConst = {
         required: true,
       },
     ],
-    check: checkPropertiesWithMetadataInput,
+    check: checkCreateEntityStep,
   },
   updateEntity: {
     actionDefinitionId: "updateEntity",
     activitySettings: defaultActivitySettings,
     name: "Update Entity",
     description:
-      "Set or remove some of the properties of an entity in the web the flow runs in, leaving its other properties as they are.",
+      "Set or remove some of the properties of an entity in the web the flow runs in, leaving its other properties as they are, or change its types.",
     kind: "action",
     inputs: [
       {
@@ -1156,8 +1173,16 @@ const aiFlowActionDefinitionsAsConst = {
         oneOfPayloadKinds: ["PropertyPatch"],
         name: "propertyPatches",
         description:
-          "The changes to make, in order, as the graph takes them. Each changes the whole property at its path, a property type base URL, and no two change the same property: add sets it, replacing any value it has; replace changes one the entity has; remove removes it if the entity has it. Added and replaced values give the ID of their data type.",
+          "The changes to make, in order, as the graph takes them. Each changes the whole property at its path, a property type base URL, and no two change the same property: add sets it, replacing any value it has; replace changes one the entity has; remove removes it if the entity has it. Added and replaced values give the ID of their data type. Can be empty if entityTypeIds is given.",
         required: true,
+        array: true,
+      },
+      {
+        oneOfPayloadKinds: ["VersionedUrl"],
+        name: "entityTypeIds",
+        description:
+          "The types the entity should have instead of its current ones. The graph checks its properties, after any patches, against them.",
+        required: false,
         array: true,
       },
     ],
@@ -1170,7 +1195,57 @@ const aiFlowActionDefinitionsAsConst = {
         required: true,
       },
     ],
-    check: checkPropertyPatchesInput,
+    check: checkUpdateEntityStep,
+  },
+  draftMessage: {
+    actionDefinitionId: "draftMessage",
+    activitySettings: defaultActivitySettings,
+    name: "Draft Message",
+    description:
+      "Write a message, such as an email, with AI: a subject and a plain-text body, following instructions and using any context and entities given. Nothing is sent.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "instructions",
+        description:
+          "What the message should say, who it's for, and its tone, e.g. 'Thank the customer for their order and confirm the delivery date'.",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "context",
+        description:
+          "Text to draw on, e.g. a property read from an entity or an earlier step's summary.",
+        required: false,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["EntityId"],
+        name: "entities",
+        description: `Entities whose properties to draw on: the draft for an entity ID with a draft ID, otherwise the live entity. At most ${maxDraftMessageEntities}, each in the web the flow runs in. Any that is missing or can't be read fails the step.`,
+        required: false,
+        array: true,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "subject",
+        description: "The message's subject line.",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Text",
+        name: "body",
+        description:
+          "The message's body, in plain text with line breaks: no HTML or Markdown.",
+        array: false,
+        required: true,
+      },
+    ],
   },
   takeFirst: {
     actionDefinitionId: "takeFirst",
