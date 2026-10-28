@@ -14,7 +14,6 @@ export { inferred as infer };
 /** An explicit type or {@link inferred | infer}, accepted by {@link fn} for parameter and return types. */
 export type TypeArgument = Type.Type | typeof inferred;
 
-/** Renders a type argument, preserving the inference placeholder. */
 const compileType = (type: TypeArgument): Defs.ExpressionType => {
   if (type === inferred) {
     return inferred;
@@ -41,12 +40,10 @@ export interface FnOptions {
   readonly body: Defs.ExpressionType;
 }
 
-/** Renders named types as a struct of type expressions. */
 const compileTypes = (
   types: Record.ReadonlyRecord<string, TypeArgument>,
 ): Defs.StructType => ({ "#struct": pipe(types, Record.map(compileType)) });
 
-/** Renders unbounded names as a tuple and named bounds as a struct. */
 const compileGenerics = (
   generics: FnOptions["generics"],
 ): Defs.TupleType | Defs.StructType => {
@@ -64,7 +61,7 @@ const compileGenerics = (
 /**
  * Defines a closure with named parameters.
  *
- * The result is the call `["fn", generics, params, returns, body]`. Parameter names are in scope in the body, and their record order determines the argument order. The return type defaults to {@link inferred | infer}. Types are written as constructor syntax, as in `JExpr.as`. The builder checks neither the body nor its use of the parameters. Call the closure with `JExpr.call` or bind it with `JExpr.let`.
+ * The result is the call `["::kernel::special_form::fn", generics, params, returns, body]`. Parameter names are in scope in the body, and their record order determines the argument order. The return type defaults to {@link inferred | infer}. Types use constructor syntax, as in `JExpr.as`. The builder checks neither the body nor its use of the parameters. Call the closure with `JExpr.call` or bind it with `JExpr.let`.
  *
  * @example <caption>Define a predicate with an inferred parameter type.</caption>
  * ```ts
@@ -77,12 +74,12 @@ const compileGenerics = (
  * });
  * assert.equal(
  *   JExpr.compile(isDraft),
- *   '["fn",{"#tuple":[]},{"#struct":{"entity":"_"}},"_",["==","entity.draft_id",{"#literal":null}]]',
+ *   '["::kernel::special_form::fn",{"#tuple":[]},{"#struct":{"entity":"_"}},"_",["==","entity.draft_id",{"#literal":null}]]',
  * );
  * ```
  */
 export const fn = (options: FnOptions): Defs.CallType => [
-  "fn",
+  "::kernel::special_form::fn",
   compileGenerics(options.generics),
   compileTypes(options.params),
   compileType(options.returns ?? inferred),

@@ -9,20 +9,16 @@ import { isReadonlyArray } from "../internal/array.js";
 
 import type * as Defs from "./schema.js";
 
-/** An SDK expression tree to render. */
 type Expression = Defs.ExpressionType;
 
-/** Quotes object keys and joins already-rendered values. */
 const compileObject = (
   entries: readonly (readonly [string, string])[],
 ): string =>
   `{${entries.map(([key, value]) => `${JSON.stringify(key)}:${value}`).join(",")}}`;
 
-/** Joins already-rendered elements into a JSON array. */
 const compileArray = (items: readonly string[]): string =>
   `[${items.join(",")}]`;
 
-/** Adds an optional type annotation to a rendered data constructor. */
 const compileAnnotated = (
   key: string,
   value: string,
@@ -38,7 +34,6 @@ const compileAnnotated = (
   ]);
 };
 
-/** Emits numeric source text directly and JSON-encodes other primitive values. */
 const compileLiteral = (value: Defs.LiteralType["#literal"]): string => {
   if (value !== null && typeof value === "object") {
     return value.value;
@@ -47,7 +42,11 @@ const compileLiteral = (value: Defs.LiteralType["#literal"]): string => {
   return JSON.stringify(value);
 };
 
-/** Distinguishes a standalone expression from a labeled-argument object. */
+/**
+ * Tells a labeled argument from an expression by its keys, which all start with `:`, while every data constructor key starts with `#`.
+ *
+ * HashQL's parser reads only the first key. Both tests agree on every tree that `JExpr.make` accepts.
+ */
 const isPositional = (
   argument: Expression | Defs.LabeledArgumentType,
 ): argument is Expression =>
@@ -58,9 +57,12 @@ const isPositional = (
 /**
  * Writes an expression tree as compact J-Expr JSON text.
  *
- * Each numeric literal is written from its stored text, so an integer keeps every digit and a float keeps its fraction or exponent. `JSON.stringify` would write the SDK's tagged numeric objects instead, which HashQL rejects because a `#literal` value must be a JSON primitive. Strings are JSON-escaped, and object keys follow each object's own enumerable string-key order. A call argument whose keys all start with `:` is written as a labeled argument.
+ * Each numeric literal keeps its stored text, so an integer keeps every digit and a float keeps its fraction or exponent. `JSON.stringify` would write the SDK's tagged numeric objects instead, which HashQL rejects because a `#literal` value must be a JSON primitive. Strings are JSON-escaped, and object keys follow each object's own enumerable string-key order. A call argument whose keys all start with `:` becomes a labeled argument.
  *
- * Serialization does not validate. A literal that `JExpr.make` would reject keeps its stored text, so the output can contain non-JSON text such as `NaN`. An object without a constructor key throws a `TypeError`. Check a tree from an untrusted source with `JExpr.make` before compiling it.
+ * Serialization does not validate. A literal that `JExpr.make` would reject keeps its stored text, so the output can contain non-JSON text such as `NaN`. Check a tree from an untrusted source with `JExpr.make` before compiling it.
+ *
+ * @throws {TypeError} If an object in the tree has no constructor key.
+ * @throws {RangeError} If the tree's nesting exhausts the JavaScript call stack.
  *
  * @example <caption>Serialize exact numbers, unlike JSON.stringify.</caption>
  * ```ts
