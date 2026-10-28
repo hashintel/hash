@@ -12,6 +12,7 @@ mod buffer;
 #[cfg(feature = "clap")]
 mod cli;
 mod hex;
+pub mod random;
 mod secret;
 
 pub use self::{buffer::SecretBuffer, hex::HexError, secret::Secret};
