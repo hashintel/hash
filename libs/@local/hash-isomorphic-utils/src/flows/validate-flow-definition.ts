@@ -4,6 +4,7 @@ import {
 } from "./action-definitions.js";
 import { type ConnectionSource, canConnect } from "./can-connect.js";
 import { flowDefinitionSchema } from "./flow-definition-schema.js";
+import { validatePayloadValue } from "./payload-schemas.js";
 import {
   type ActionDefinitions,
   createStepShapeResolver,
@@ -443,6 +444,22 @@ export const validateFlowDefinition = (
                 ? "an object"
                 : `a ${expectedJsonType}`
             }, or an array of them`,
+            [...path, "payload", "value"],
+          );
+          return null;
+        }
+
+        const problem = validatePayloadValue({
+          kind,
+          array: Array.isArray(value),
+          value,
+          allowStoredRefs: false,
+        });
+
+        if (problem) {
+          report(
+            "invalidConstant",
+            `A ${kind} constant is invalid${problem.path ? ` at ${problem.path}` : ""}: ${problem.message}`,
             [...path, "payload", "value"],
           );
           return null;
