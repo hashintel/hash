@@ -1,7 +1,7 @@
 /**
  * Requires a TODO comment to name the ticket that tracks its work, as `TODO(KEY-123): description`.
  *
- * Checks every comment whose text starts with `TODO` in any case, the position `no-warning-comments` checks for its own terms. A TODO later in a comment's text is not checked. Provides no autofix because the author must name the ticket.
+ * Checks every line of a comment that starts with `TODO` in any case, after the `*` that a JSDoc comment puts at the start of its lines. A TODO later in a line is not checked. Provides no autofix because the author must name the ticket.
  *
  * @example Incorrect
  * ```ts
@@ -20,14 +20,19 @@ import { defineRule } from "@oxlint/plugins";
 
 const todo = /^todo\b/iu;
 const ticketed = /^TODO\([A-Z]+-\d+\): \S/u;
+const lineStart = /^[\s*]*/u;
+
+const isUnticketed = (line: string): boolean => {
+  const text = line.replace(lineStart, "");
+
+  return todo.test(text) && !ticketed.test(text);
+};
 
 export const requireTodoTicket = defineRule({
   createOnce: (context) => ({
     "Program:exit": (): void => {
       for (const comment of context.sourceCode.getAllComments()) {
-        const text = comment.value.trimStart();
-
-        if (todo.test(text) && !ticketed.test(text)) {
+        if (comment.value.split("\n").some(isUnticketed)) {
           context.report({ messageId: "ticket", node: comment });
         }
       }
