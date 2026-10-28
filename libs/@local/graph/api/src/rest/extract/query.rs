@@ -72,10 +72,6 @@ impl Expose<QueryProblem> for QueryRejection {
 /// serde hands flattened fields their values as strings, which only a string field accepts.
 ///
 /// [`openapi::build`]: crate::rest::openapi::build
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "only the tests read query parameters")
-)]
 pub(in crate::rest) struct Query<T>(pub T);
 
 impl<T, S> FromRequestParts<S> for Query<T>
