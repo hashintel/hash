@@ -60,6 +60,12 @@ impl WorkspaceFiles {
         &self.lock
     }
 
+    /// Returns the files that the disk limit counts: the database file, its log and the
+    /// temporary directory.
+    pub(super) fn measured(&self) -> [&Path; 3] {
+        [&self.database, &self.log, &self.temp]
+    }
+
     /// Returns whether `path` names one of the files, once both directories are resolved.
     pub(super) fn contains(&self, path: &Path) -> bool {
         let Some(path) = Self::resolve(path) else {
