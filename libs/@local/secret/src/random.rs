@@ -24,7 +24,7 @@ fn fill(bytes: &mut [u8]) -> Result<(), Report<RandomError>> {
 
 /// `N` random bytes for a value that is not secret, such as an ID.
 ///
-/// Secret bytes go into a [`Secret`] with [`Secret::fill_random`], which zeroes them on drop.
+/// For secret bytes, fill a [`Secret`] with [`Secret::fill_random`], so they are zeroed on drop.
 ///
 /// # Errors
 ///
@@ -70,8 +70,8 @@ impl<T: ?Sized + SecretBuffer<View = [u8]>> Secret<T> {
 impl<const N: usize> Secret<[u8; N]> {
     /// A secret of `N` random alphanumeric ASCII characters.
     ///
-    /// Each character is one of `0`–`9`, `A`–`Z` and `a`–`z`, all 62 equally likely, so the secret
-    /// carries `N · log2(62)` bits, about 5.95 per character.
+    /// Each character is one of `0`–`9`, `A`–`Z` and `a`–`z`, and all are equally likely. Each
+    /// character carries about 5.95 bits.
     ///
     /// # Errors
     ///
@@ -99,8 +99,9 @@ const POOL_LENGTH: usize = 64;
 
 /// Fills `characters` with alphanumeric characters drawn from the random bytes `fill` writes.
 ///
-/// A byte stands for the character of its upper six bits, and for no character if those are 62
-/// or 63, so every character is equally likely. The pool is refilled until `characters` is full.
+/// A byte stands for the character whose index is its upper six bits. A byte whose upper six bits
+/// are 62 or 63 stands for no character, so every character is equally likely. The pool is
+/// refilled until `characters` is full.
 fn fill_alphanumeric<E>(
     characters: &mut [u8],
     mut fill: impl FnMut(&mut [u8]) -> Result<(), E>,
@@ -139,7 +140,28 @@ mod tests {
     use crate::Secret;
 
     #[test]
-    fn fill_alphanumeric_skips_out_of_range() {
+    fn fill_alphanumeric_all_values() {
+        // The upper six bits of the byte at `index` are `index`, so the pool holds the values 0 to
+        // 63 in order.
+        let bytes: [u8; POOL_LENGTH] = core::array::from_fn(|index| {
+            u8::try_from(index << 2).expect("every index should fit in a byte after the shift")
+        });
+        let mut characters = [0; 62];
+
+        fill_alphanumeric(&mut characters, |pool| {
+            pool.copy_from_slice(&bytes);
+            Ok::<_, Infallible>(())
+        })
+        .expect("filling the pool should not fail");
+
+        assert_eq!(
+            &characters, b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+            "every value below 62 should stand for its own character"
+        );
+    }
+
+    #[test]
+    fn fill_alphanumeric_out_of_range() {
         // The upper six bits of 0xF8 and 0xFC are 62 and 63, which stand for no character. Those of
         // 0xF4, 0x03 and 0x28 are 61, 0 and 10, the characters `z`, `0` and `A`.
         let mut bytes = [0x28; POOL_LENGTH];
@@ -219,6 +241,10 @@ mod tests {
         let secret = Secret::<[u8; 32]>::random_alphanumeric()
             .expect("the random number generator should work");
 
+        assert!(
+            secret.expose().iter().all(u8::is_ascii_alphanumeric),
+            "the characters should be alphanumeric"
+        );
         // Bytes of zero stand for the character `0`.
         assert_ne!(
             secret.expose(),
