@@ -14,7 +14,7 @@ use type_system::{
     knowledge::{
         Confidence,
         entity::{
-            Entity, LinkData,
+            Entity, Link,
             id::{EntityEditionId, EntityId, EntityUuid},
             metadata::EntityTypeIdDiff,
             provenance::ProvidedEntityEditionProvenance,
@@ -163,8 +163,8 @@ pub struct CreateEntityParams {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub confidence: Option<Confidence>,
     #[serde(default)]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub link_data: Option<LinkData>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false, value_type = Option<LinkData>))]
+    pub link_data: Option<Link>,
     pub draft: bool,
     #[cfg_attr(feature = "utoipa", schema(value_type = Vec<Object>))]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -186,8 +186,8 @@ pub struct ValidateEntityParams<'a> {
     #[serde(borrow)]
     pub properties: Cow<'a, PropertyObjectWithMetadata>,
     #[serde(borrow, default)]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub link_data: Option<Cow<'a, LinkData>>,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false, value_type = Option<LinkData>))]
+    pub link_data: Option<Cow<'a, Link>>,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub components: ValidateEntityComponents,
