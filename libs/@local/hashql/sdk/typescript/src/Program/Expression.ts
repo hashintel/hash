@@ -1,7 +1,7 @@
 /**
  * Symbolic HashQL values with semantic types and input requirements.
  *
- * Handles build syntax rather than executing queries. Their descriptors select the available calls and projections. Rebinding retains those descriptors while replacing the referenced path, and construction failures remain attached to the handle.
+ * Handles build syntax rather than executing queries. Their descriptors select the available calls and projections. Rebinding retains those descriptors while replacing the referenced path. A construction failure stays attached to the handle until {@link toJExpr} reads it.
  *
  * A projected field named `then` retains its HashQL meaning. Keep handles inside their construction Result rather than passing them to `await` or `Promise.resolve`.
  *
@@ -76,7 +76,7 @@ export interface Handle<T extends Type.Any, Inputs> extends Expression.Any {
 /**
  * An exactly typed handle or the host primitive corresponding to its semantic descriptor.
  *
- * Argument compatibility uses the semantic metadata that adapted callables retain. Integer operands accept bigint and Integer handles. TypeScript rejects a host number at that position rather than widening its descriptor.
+ * Argument compatibility uses the semantic metadata that adapted callables retain. {@link Type.PrimitiveInteger} operands accept bigint and Integer handles. TypeScript rejects a host number at that position rather than widening its descriptor.
  */
 export type Value<T extends Type.Any> =
   | (Expression.Any & Pick<Handle<T, never>, typeof TypeId | typeof Binding>)
@@ -90,7 +90,7 @@ export declare namespace Value {
 /**
  * Reads semantic metadata without constraining an adapted callable to its original host signature.
  *
- * Host numbers remain Number regardless of their emitted literal syntax.
+ * Host numbers remain {@link Type.PrimitiveNumber} regardless of their emitted literal syntax.
  */
 export type TypeOf<V extends Value.Any> = V extends {
   readonly [TypeId]: { readonly _T: Types.Invariant<infer T extends Type.Any> };
@@ -130,7 +130,7 @@ class ExpressionImpl<T extends Type.Any, Inputs> {
 /**
  * A symbolic HashQL value with type-directed projection, indexing and calls.
  *
- * `T` describes the represented value, not its host wrapper. `Inputs` records the inputs needed to evaluate it. Fields and tuple positions project to new expressions. Use `$project` for fields whose names collide with SDK operations. Lists and dictionaries expose `$index`, whose result includes Null for a missing entry. Callable descriptors expose a host call that constructs HashQL call syntax.
+ * `T` describes the represented value, not its host wrapper. `Inputs` records the inputs needed to evaluate it. Fields and tuple positions project to new expressions. Use `$project` for fields whose names collide with SDK operations. Lists and dictionaries expose `$index`. Its result includes {@link Type.PrimitiveNull} for a missing entry. Callable descriptors expose a host call that constructs HashQL call syntax.
  *
  * `$projectUnsafe` and `$indexUnsafe` bypass descriptor restrictions and return an Unknown expression. They retain input requirements, including the index expression's requirements. They do not establish that the access is valid in HashQL.
  *
@@ -195,7 +195,7 @@ const parseNode = (
 /**
  * Extracts a handle's stored AST result or validates a host literal into an AST node.
  *
- * Existing construction failures pass through unchanged. Invalid primitive syntax, including non-finite numbers, returns an `InvalidExpression` failure. Prefer {@link toJExpr} when consuming J-Expr syntax rather than builder nodes.
+ * Existing construction failures pass through unchanged. Invalid primitive syntax, including a non-finite number, returns a {@link ProgramError.Construction} with the `InvalidExpression` reason. Prefer {@link toJExpr} when consuming J-Expr syntax rather than builder nodes.
  */
 export const toNode = (
   value: Value.Any,
@@ -215,7 +215,35 @@ export const toNode = (
 export const toJExpr = (
   value: Value.Any,
 ): Result.Result<JExpr.Expression, ProgramError.Construction> =>
-  toNode(value).pipe(Result.map(AST.compile));
+  pipe(value, toNode, Result.map(AST.compile));
+
+const projectionKey = (
+  key: string | number,
+): Result.Result<string | number, ProgramError.Construction> => {
+  if (typeof key === "string") {
+    return Result.succeed(key);
+  }
+
+  // `JExpr.access` writes a numeric key as an Integer literal without checking it. Parsing that literal stores a fraction or a non-finite number as a failure, as an `$index` key does.
+  return pipe(
+    key,
+    JExpr.integer,
+    parseNode,
+    Result.map(() => key),
+  );
+};
+
+const access = (
+  value: Result.Result<AST.Node, ProgramError.Construction>,
+  key: string | number,
+): Result.Result<AST.Node, ProgramError.Construction> =>
+  pipe(
+    { value, key: projectionKey(key) },
+    Result.all,
+    Result.map(
+      ({ value, key }) => new AST.Expr(JExpr.access(AST.compile(value), key)),
+    ),
+  );
 
 const make = <T extends Type.Any, Inputs>(
   impl: ExpressionImpl<T, Inputs>,
@@ -224,13 +252,15 @@ const make = <T extends Type.Any, Inputs>(
     (...args: Arguments.Any) =>
       make(
         new ExpressionImpl(
-          Result.all({
-            callee: impl[Binding],
-            arguments: Result.all(args.map(toJExpr)),
-          }).pipe(
+          pipe(
+            {
+              callee: impl[Binding],
+              arguments: Result.all(args.map(toJExpr)),
+            },
+            Result.all,
             Result.map(
               ({ callee, arguments: arguments_ }) =>
-                new AST.Expr(JExpr.call(callee.compile(), ...arguments_)),
+                new AST.Expr(JExpr.call(AST.compile(callee), ...arguments_)),
             ),
           ),
         ),
@@ -267,9 +297,13 @@ const make = <T extends Type.Any, Inputs>(
 
       if (property === "$index" || property === "$indexUnsafe") {
         return (key: Value.Any) => {
-          const expr = Result.map(
-            Result.all({ value: target[Binding], key: toJExpr(key) }),
-            ({ value, key }) => new AST.Expr(JExpr.index(value.compile(), key)),
+          const expr = pipe(
+            { value: target[Binding], key: toJExpr(key) },
+            Result.all,
+            Result.map(
+              ({ value, key }) =>
+                new AST.Expr(JExpr.index(AST.compile(value), key)),
+            ),
           );
           const impl = new ExpressionImpl(expr);
           return make(impl);
@@ -277,15 +311,8 @@ const make = <T extends Type.Any, Inputs>(
       }
 
       if (property === "$project" || property === "$projectUnsafe") {
-        return (key: string | number) => {
-          const expr = Result.map(
-            target[Binding],
-            (node) => new AST.Expr(JExpr.access(node.compile(), key)),
-          );
-
-          const impl = new ExpressionImpl(expr);
-          return make(impl);
-        };
+        return (key: string | number) =>
+          make(new ExpressionImpl(access(target[Binding], key)));
       }
 
       if (property === Binding) {
@@ -297,24 +324,13 @@ const make = <T extends Type.Any, Inputs>(
       }
 
       if (typeof property === "string" && /^\d+$/u.test(property)) {
-        const index = Number(property);
-        const expr = Result.map(
-          target[Binding],
-          (node) => new AST.Expr(JExpr.access(node.compile(), index)),
+        return make(
+          new ExpressionImpl(access(target[Binding], Number(property))),
         );
-
-        const impl = new ExpressionImpl(expr);
-        return make(impl);
       }
 
       if (typeof property === "string") {
-        const expr = Result.map(
-          target[Binding],
-          (node) => new AST.Expr(JExpr.access(node.compile(), property)),
-        );
-
-        const impl = new ExpressionImpl(expr);
-        return make(impl);
+        return make(new ExpressionImpl(access(target[Binding], property)));
       }
 
       return Reflect.get(target, property, receiver);
@@ -338,16 +354,16 @@ export const fromResult = <T extends Type.Any, Inputs>(
 /**
  * Ascribes a semantic type to syntax supplied by a declaration or another trusted builder.
  *
- * The caller supplies the semantic type and input requirements. This operation validates syntax only and stores an `InvalidExpression` construction failure if validation fails. Extract it with {@link toJExpr}. It does not resolve names or infer requirements from the syntax.
+ * The caller supplies the semantic type and input requirements. This operation validates syntax only. Invalid syntax stores a {@link ProgramError.Construction} with the `InvalidExpression` reason. Extract it with {@link toJExpr}. It does not resolve names or infer requirements from the syntax.
  */
 export const fromJExpr = <T extends Type.Any, Inputs>(
   expression: JExpr.Expression,
-): Expression<T, Inputs> => parseNode(expression).pipe(fromResult<T, Inputs>);
+): Expression<T, Inputs> => pipe(expression, parseNode, fromResult<T, Inputs>);
 
 /** Wraps an already constructed AST node without validation, using caller-supplied semantic metadata as in {@link fromResult}. */
 export const fromNode = <T extends Type.Any, Inputs>(
   node: AST.Node,
-): Expression<T, Inputs> => Result.succeed(node).pipe(fromResult<T, Inputs>);
+): Expression<T, Inputs> => pipe(node, Result.succeed, fromResult<T, Inputs>);
 
 /** A replacement call signature with the source expression's semantic metadata. */
 export type Adapted<T extends Type.Any, I, C> = C & Adapted.Metadata<T, I, C>;
@@ -363,7 +379,7 @@ export declare namespace Adapted {
 /**
  * Adapts host arguments while preserving expression metadata and rebinding.
  *
- * The adapter must retain the represented function's meaning. It may accept additional host shorthand and normalize it before emitting a call. The factory runs immediately and again with the new source expression on each relocation. Build the returned callable from that argument rather than capturing an older expression. Exceptions from the factory or returned callable propagate to their caller.
+ * The adapter must retain the represented function's meaning. It may accept additional host shorthand and normalize it before emitting a call. The factory runs immediately and again with the new source expression on each relocation. Build the returned callable from that argument rather than capturing an older expression. The factory returns a host function rather than an expression, so returning the source unchanged is a type error. Exceptions from the factory or returned callable propagate to their caller.
  *
  * Both `adaptCallable(source, factory)` and `adaptCallable(factory)(source)` preserve the source's semantic type and input metadata. The replacement host signature comes from the factory.
  *
@@ -396,20 +412,44 @@ export declare namespace Adapted {
  * ```
  */
 export const adaptCallable: {
-  <T extends Type.Any, I, C extends (...args: never[]) => Expression.Any>(
+  <
+    T extends Type.Any,
+    I,
+    C extends ((...args: never[]) => Expression.Any) & {
+      readonly [TypeId]?: never;
+    },
+  >(
     adapt: (self: Expression<T, I>) => C,
   ): (self: Expression<T, I>) => Adapted<T, I, C>;
-  <T extends Type.Any, I, C extends (...args: never[]) => Expression.Any>(
+  <
+    T extends Type.Any,
+    I,
+    C extends ((...args: never[]) => Expression.Any) & {
+      readonly [TypeId]?: never;
+    },
+  >(
     self: Expression<T, I>,
     adapt: (self: Expression<T, I>) => C,
   ): Adapted<T, I, C>;
 } = Function.dual(
   2,
-  <T extends Type.Any, I, C extends (...args: never[]) => Expression.Any>(
+  <
+    T extends Type.Any,
+    I,
+    C extends ((...args: never[]) => Expression.Any) & {
+      readonly [TypeId]?: never;
+    },
+  >(
     self: Expression<T, I>,
     adapt: (self: Expression<T, I>) => C,
-  ): Adapted<T, I, C> =>
-    Object.assign(adapt(self), {
+  ): Adapted<T, I, C> => {
+    // The markers go on a fresh function, because `adapt` may return an object that other code holds, such as `self` itself. Assigning to that object would make its relocation call itself.
+    const adapted = adapt(self);
+    // SAFETY: the forwarder passes its arguments to `adapted` and returns its result, so it has `C`'s call signatures.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot give a forwarding function the call signatures of a generic `C`
+    const callable = ((...args: never[]) => adapted(...args)) as C;
+
+    return Object.assign(callable, {
       [TypeId]: self[TypeId],
       [Binding]: self[Binding],
       [Relocate]: (
@@ -417,7 +457,8 @@ export const adaptCallable: {
       ): Result.Result<Adapted<T, I, C>, ProgramError.Construction> =>
         self[Relocate](path).pipe(Result.map(adaptCallable(adapt))),
       ...Pipeable.Prototype,
-    }),
+    });
+  },
 );
 
 /**
@@ -448,12 +489,12 @@ export const adaptCallable: {
 export const assume =
   <T extends Type.Any>() =>
   <E extends Value.Any>(expression: E): Expression<T, Inputs<E>> =>
-    toNode(expression).pipe(fromResult<T, Inputs<E>>);
+    pipe(expression, toNode, fromResult<T, Inputs<E>>);
 
 /**
  * Constructs a typed host literal with no input requirements.
  *
- * Use a string to construct a string literal rather than a name reference. A host number has the Number descriptor even when its emitted syntax is integral. Bigints have the Integer descriptor. Non-finite numbers produce an `InvalidExpression` failure retained until {@link toJExpr}. Objects and arrays need structural construction instead.
+ * Use a string to construct a string literal rather than a name reference. A host number has the {@link Type.PrimitiveNumber} descriptor even when its emitted syntax is integral. Bigints have the {@link Type.PrimitiveInteger} descriptor. A non-finite number stores a {@link ProgramError.Construction} with the `InvalidExpression` reason, which {@link toJExpr} returns. Objects and arrays need structural construction instead.
  */
 export const literal = <const V extends Primitive>(
   value: V,
@@ -462,7 +503,7 @@ export const literal = <const V extends Primitive>(
 /**
  * Constructs an Integer literal from a bigint or integral host number.
  *
- * Fractions and non-finite numbers produce an `InvalidExpression` construction failure. Use bigint when the original integer exceeds the safe number range, because a number has already undergone JavaScript rounding. See {@link toJExpr} to inspect success or failure.
+ * A fraction or a non-finite number stores a {@link ProgramError.Construction} with the `InvalidExpression` reason. Use bigint when the original integer exceeds the safe number range, because a number has already undergone JavaScript rounding. See {@link toJExpr} to inspect success or failure.
  */
 export const integer = (
   value: number | bigint,

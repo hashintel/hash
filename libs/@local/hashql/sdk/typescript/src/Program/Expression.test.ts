@@ -6,6 +6,7 @@
 import { Result, pipe } from "effect";
 import { describe, expect, test } from "vitest";
 
+import { relocate } from "../internal/relocation.js";
 import * as JExpr from "../JExpr/index.js";
 import * as Expression from "./Expression.js";
 
@@ -15,6 +16,7 @@ import type * as Inputs from "./Inputs.js";
 type Vertex = Type.Struct<{ readonly name: Type.PrimitiveString }>;
 const compile = (expression: Expression.Expression.Any): string =>
   JExpr.compile(Result.getOrThrow(Expression.toJExpr(expression)));
+const alias = Result.getOrThrow(JExpr.Path.decodeResult("alias"));
 
 describe("expression", () => {
   test("returned_function", () => {
@@ -97,6 +99,19 @@ describe("expression", () => {
     );
     expect(Expression.toJExpr(value.$indexUnsafe(Number.NaN))).toStrictEqual(
       failure,
+    );
+  });
+
+  test("unsafe_position", () => {
+    expect.hasAssertions();
+    const value = Expression.fromJExpr<Type.Unknown, Inputs.Empty>("value");
+    const fraction = Expression.toJExpr(Expression.integer(1.5));
+    expect(Result.isFailure(fraction)).toBe(true);
+    expect(Expression.toJExpr(value.$projectUnsafe(1.5))).toStrictEqual(
+      fraction,
+    );
+    expect(Expression.toJExpr(value.$projectUnsafe(Number.NaN))).toStrictEqual(
+      Expression.toJExpr(Expression.integer(Number.NaN)),
     );
   });
 
@@ -190,8 +205,7 @@ describe("expression", () => {
     );
   });
 
-  test("adapted_callable", () => {
-    expect.hasAssertions();
+  describe("adapted", () => {
     const lookup = Expression.fromJExpr<
       Type.Function<readonly [Type.PrimitiveString], Type.PrimitiveString>,
       Inputs.Empty
@@ -204,8 +218,43 @@ describe("expression", () => {
         ): Expression.Expression<Type.PrimitiveString, Inputs.Empty> =>
           source(name.trim()),
     );
-    expect(trimmed.pipe((self) => self)).toBe(trimmed);
-    expect(compile(trimmed)).toBe('"lookup"');
-    expect(compile(trimmed(" Ada "))).toBe('["lookup",{"#literal":"Ada"}]');
+
+    test("callable", () => {
+      expect.hasAssertions();
+      expect(trimmed.pipe((self) => self)).toBe(trimmed);
+      expect(compile(trimmed)).toBe('"lookup"');
+      expect(compile(trimmed(" Ada "))).toBe('["lookup",{"#literal":"Ada"}]');
+    });
+
+    test("relocation", () => {
+      expect.hasAssertions();
+      const moved = Result.getOrThrow(relocate(trimmed, alias));
+      expect(compile(moved)).toBe('"alias"');
+      expect(compile(moved(" Ada "))).toBe('["alias",{"#literal":"Ada"}]');
+      expect(compile(trimmed(" Ada "))).toBe('["lookup",{"#literal":"Ada"}]');
+    });
+
+    test("pass_through", () => {
+      expect.hasAssertions();
+      const source = Expression.fromJExpr<
+        Type.Function<readonly [Type.PrimitiveString], Type.PrimitiveString>,
+        Inputs.Empty
+      >("lookup");
+      // A narrowed view gets the source past the type that refuses an expression, which is how a caller could still hand the source back.
+      const same = Expression.adaptCallable(
+        source,
+        (
+          self,
+        ): ((
+          name: string,
+        ) => Expression.Expression<Type.PrimitiveString, Inputs.Empty>) => self,
+      );
+      expect(same).not.toBe(source);
+
+      const moved = Result.getOrThrow(relocate(same, alias));
+      expect(compile(moved("Ada"))).toBe('["alias",{"#literal":"Ada"}]');
+      const original = Result.getOrThrow(relocate(source, alias));
+      expect(compile(original("Ada"))).toBe('["alias",{"#literal":"Ada"}]');
+    });
   });
 });
