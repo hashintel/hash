@@ -1,9 +1,21 @@
-//! Tiny CLI that takes a `JExpr` string via stdin, parses it and prints the AST to stdout.
+//! Parses one J-Expr document from stdin with [`Parser::parse_expr`].
+//!
+//! The binary lets a J-Expr producer outside Rust check its output against this crate's parser. On
+//! success, it writes the [`Debug`] form of the parsed [`Expr`] to stdout and exits with status 0.
+//! On a syntax error, it writes the rendered diagnostic to stderr and exits with status 1. Input
+//! that is not UTF-8 and an I/O failure also exit with status 1, with the error on stderr. The
+//! diagnostic carries ANSI colour only when stderr is a terminal.
+//!
+//! [`Debug`]: trait@core::fmt::Debug
+//! [`Expr`]: hashql_ast::node::expr::Expr
 
-use std::io::{Read as _, Write as _};
+use std::io::{IsTerminal as _, Read as _, Write as _};
 
 use hashql_core::{heap::Heap, span::SpanTable};
-use hashql_diagnostics::{Source, Sources};
+use hashql_diagnostics::{
+    Source, Sources,
+    diagnostic::render::{ColorDepth, Format, RenderOptions},
+};
 use hashql_syntax_jexpr::Parser;
 
 fn main() -> Result<(), Box<dyn core::error::Error>> {
@@ -29,13 +41,12 @@ fn main() -> Result<(), Box<dyn core::error::Error>> {
         Err(diagnostic) => {
             let mut stderr = std::io::stderr();
 
-            let result = diagnostic.render(
-                hashql_diagnostics::diagnostic::render::RenderOptions::new(
-                    hashql_diagnostics::diagnostic::render::Format::Ansi,
-                    &sources,
-                ),
-                &mut &spans,
-            );
+            let mut options = RenderOptions::new(Format::Ansi, &sources);
+            if !stderr.is_terminal() {
+                options.color_depth = ColorDepth::Monochrome;
+            }
+
+            let result = diagnostic.render(options, &mut &spans);
             stderr.write_all(result.as_bytes())?;
 
             std::process::exit(1)
