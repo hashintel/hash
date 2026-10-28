@@ -49,9 +49,7 @@ export const EntityTypeChildren = ({
       types={children}
       error={error}
       isLinkType={(child) =>
-        isSpecialEntityTypeLookup?.[child.schema.$id]?.isLink ??
-        isSpecialEntityTypeLookup?.[entityType.schema.$id]?.isLink ??
-        false
+        isSpecialEntityTypeLookup?.[child.schema.$id]?.isLink ?? false
       }
       onTypeClick={(typeId) => onNavigateToType("entityType", typeId)}
     />
