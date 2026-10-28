@@ -686,6 +686,24 @@ mod tests {
     }
 
     #[test]
+    fn generate_distinct() {
+        let first = ApiToken::generate(ApiTokenType::User, Environment::Production)
+            .expect("the random number generator should provide bytes");
+        let second = ApiToken::generate(ApiTokenType::User, Environment::Production)
+            .expect("the random number generator should provide bytes");
+
+        assert_ne!(
+            first.token_id, second.token_id,
+            "two tokens should have different token IDs"
+        );
+        assert_ne!(
+            first.secret.expose(),
+            second.secret.expose(),
+            "two tokens should have different secrets"
+        );
+    }
+
+    #[test]
     fn token_id_extremes() {
         for value in [0, u128::MAX] {
             let token_id = ApiTokenId::new(Uuid::from_u128(value));
