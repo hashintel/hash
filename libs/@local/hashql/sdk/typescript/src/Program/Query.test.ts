@@ -68,7 +68,10 @@ describe("query", () => {
 
   test("chained_filters", () => {
     expect.hasAssertions();
-    const flag = Expression.input("flag", Structural.type(Boolean));
+    const flag = Expression.input(
+      "flag",
+      Result.getOrThrow(Structural.type(Boolean)),
+    );
     const filtered = pipe(
       entities(1n),
       Query.filter("first", () => true),
