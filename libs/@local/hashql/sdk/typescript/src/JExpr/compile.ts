@@ -6,32 +6,55 @@
 import { Record } from "effect";
 
 import { isReadonlyArray } from "../internal/array.js";
+import { printer, separated } from "../internal/printer.js";
 
 import type * as Defs from "./schema.js";
 
 type Expression = Defs.ExpressionType;
 
-const compileObject = (
-  entries: readonly (readonly [string, string])[],
-): string =>
-  `{${entries.map(([key, value]) => `${JSON.stringify(key)}:${value}`).join(",")}}`;
+/** An expression to write in place of the step. */
+interface Node {
+  readonly _tag: "Expression";
+  readonly expression: Expression;
+}
 
-const compileArray = (items: readonly string[]): string =>
-  `[${items.join(",")}]`;
+type Step = string | Node;
 
-const compileAnnotated = (
+const node = (expression: Expression): readonly Step[] => [
+  { _tag: "Expression", expression },
+];
+
+const objectSteps = (
+  entries: readonly (readonly [string, Expression])[],
+): readonly Step[] => [
+  "{",
+  ...separated(entries, ",", ([key, value]) => [
+    `${JSON.stringify(key)}:`,
+    ...node(value),
+  ]),
+  "}",
+];
+
+const arraySteps = <A>(
+  items: readonly A[],
+  steps: (item: A) => readonly Step[],
+): readonly Step[] => ["[", ...separated(items, ",", steps), "]"];
+
+const annotatedSteps = (
   key: string,
-  value: string,
+  body: readonly Step[],
   type: string | undefined,
-): string => {
+): readonly Step[] => {
+  const open = `{${JSON.stringify(key)}:`;
   if (type === undefined) {
-    return compileObject([[key, value]]);
+    return [open, ...body, "}"];
   }
 
-  return compileObject([
-    [key, value],
-    ["#type", JSON.stringify(type)],
-  ]);
+  return [
+    open,
+    ...body,
+    `,${JSON.stringify("#type")}:${JSON.stringify(type)}}`,
+  ];
 };
 
 const compileLiteral = (value: Defs.LiteralType["#literal"]): string => {
@@ -54,6 +77,70 @@ const isPositional = (
   isReadonlyArray(argument) ||
   !Object.keys(argument).every((key) => key.startsWith(":"));
 
+const print = printer(({ expression }: Node): readonly Step[] => {
+  if (typeof expression === "string") {
+    return [JSON.stringify(expression)];
+  }
+
+  if (isReadonlyArray(expression)) {
+    return arraySteps(expression, (argument) => {
+      if (isPositional(argument)) {
+        return node(argument);
+      }
+
+      return objectSteps(Record.toEntries(argument));
+    });
+  }
+
+  if ("#literal" in expression) {
+    return annotatedSteps(
+      "#literal",
+      [compileLiteral(expression["#literal"])],
+      expression["#type"],
+    );
+  }
+
+  if ("#struct" in expression) {
+    return annotatedSteps(
+      "#struct",
+      objectSteps(Record.toEntries(expression["#struct"])),
+      expression["#type"],
+    );
+  }
+
+  if ("#tuple" in expression) {
+    return annotatedSteps(
+      "#tuple",
+      arraySteps(expression["#tuple"], node),
+      expression["#type"],
+    );
+  }
+
+  if ("#list" in expression) {
+    return annotatedSteps(
+      "#list",
+      arraySteps(expression["#list"], node),
+      expression["#type"],
+    );
+  }
+
+  const entries = expression["#dict"];
+
+  if (isReadonlyArray(entries)) {
+    return annotatedSteps(
+      "#dict",
+      arraySteps(entries, ([key, value]) => arraySteps([key, value], node)),
+      expression["#type"],
+    );
+  }
+
+  return annotatedSteps(
+    "#dict",
+    objectSteps(Record.toEntries(entries)),
+    expression["#type"],
+  );
+});
+
 /**
  * Writes an expression tree as compact J-Expr JSON text.
  *
@@ -62,7 +149,6 @@ const isPositional = (
  * Serialization does not validate. A literal that `JExpr.make` would reject keeps its stored text, so the output can contain non-JSON text such as `NaN`. Check a tree from an untrusted source with `JExpr.make` before compiling it.
  *
  * @throws {TypeError} If an object in the tree has no constructor key.
- * @throws {RangeError} If the tree's nesting exhausts the JavaScript call stack.
  *
  * @example <caption>Serialize exact numbers, unlike JSON.stringify.</caption>
  * ```ts
@@ -74,84 +160,5 @@ const isPositional = (
  * assert.equal(JSON.stringify(JExpr.integer(1)), '{"#literal":{"_tag":"Integer","value":"1"}}');
  * ```
  */
-export const compile = (expression: Expression): string => {
-  if (typeof expression === "string") {
-    return JSON.stringify(expression);
-  }
-
-  if (isReadonlyArray(expression)) {
-    return compileArray(
-      expression.map((argument) => {
-        if (isPositional(argument)) {
-          return compile(argument);
-        }
-
-        return compileObject(
-          Record.toEntries(argument).map(([key, value]) => [
-            key,
-            compile(value),
-          ]),
-        );
-      }),
-    );
-  }
-
-  if ("#literal" in expression) {
-    return compileAnnotated(
-      "#literal",
-      compileLiteral(expression["#literal"]),
-      expression["#type"],
-    );
-  }
-
-  if ("#struct" in expression) {
-    return compileAnnotated(
-      "#struct",
-      compileObject(
-        Record.toEntries(expression["#struct"]).map(([key, value]) => [
-          key,
-          compile(value),
-        ]),
-      ),
-      expression["#type"],
-    );
-  }
-
-  if ("#tuple" in expression) {
-    return compileAnnotated(
-      "#tuple",
-      compileArray(expression["#tuple"].map(compile)),
-      expression["#type"],
-    );
-  }
-
-  if ("#list" in expression) {
-    return compileAnnotated(
-      "#list",
-      compileArray(expression["#list"].map(compile)),
-      expression["#type"],
-    );
-  }
-
-  const entries = expression["#dict"];
-
-  if (isReadonlyArray(entries)) {
-    return compileAnnotated(
-      "#dict",
-      compileArray(
-        entries.map(([key, value]) =>
-          compileArray([compile(key), compile(value)]),
-        ),
-      ),
-      expression["#type"],
-    );
-  }
-
-  return compileAnnotated(
-    "#dict",
-    compileObject(
-      Record.toEntries(entries).map(([key, value]) => [key, compile(value)]),
-    ),
-    expression["#type"],
-  );
-};
+export const compile = (expression: Expression): string =>
+  print(node(expression));

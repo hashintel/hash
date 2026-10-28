@@ -381,8 +381,6 @@ export const and: {
  *
  * Parentheses preserve operator precedence and nested union/intersection membership. The printer omits redundant groups. HashQL gives union higher precedence than intersection. A single-member union or intersection compiles as its member. Empty structs use `(:)`, empty tuples use `()`, and single-member tuples retain a trailing comma.
  *
- * @throws {RangeError} If the type's nesting exhausts the JavaScript call stack.
- *
  * @example <caption>Compile a nested type.</caption>
  * ```ts
  * import { Option } from "effect";
@@ -398,31 +396,88 @@ export const and: {
  */
 export const compile: (type: Type) => Identifier = compileType;
 
+/** A type and the expressions of its members built so far, in member order. */
+interface Frame {
+  readonly type: Type;
+  readonly members: readonly Type[];
+  readonly expressions: ExpressionType[];
+}
+
+const open = (type: Type): Frame => {
+  switch (type._tag) {
+    case "Infer":
+    case "Reference": {
+      return { type, members: [], expressions: [] };
+    }
+    case "Struct": {
+      return {
+        type,
+        members: Array.map(type.members, Tuple.get(1)),
+        expressions: [],
+      };
+    }
+    case "Tuple":
+    case "Union":
+    case "Intersection": {
+      return { type, members: type.members, expressions: [] };
+    }
+  }
+};
+
+const construct = ({ type, expressions }: Frame): ExpressionType => {
+  switch (type._tag) {
+    case "Infer": {
+      return "_";
+    }
+    case "Reference": {
+      return compile(type);
+    }
+    case "Tuple": {
+      return { "#tuple": expressions };
+    }
+    case "Struct": {
+      return {
+        "#struct": Record.fromEntries(
+          Array.zipWith(type.members, expressions, ([name], expression) => [
+            Ident.compile(name),
+            expression,
+          ]),
+        ),
+      };
+    }
+    case "Union": {
+      return ["::kernel::type::Union", ...expressions];
+    }
+    case "Intersection": {
+      return ["::kernel::type::Intersection", ...expressions];
+    }
+  }
+};
+
 /**
  * Encodes a type in an expression position, such as a type definition or closure parameter.
  *
  * Compound types use constructors here. Only annotation positions accept their type-syntax strings.
- *
- * @throws {RangeError} If the type's nesting exhausts the JavaScript call stack.
  */
-export const toExpression: (type: Type) => ExpressionType = Defs.Type.match({
-  Infer: () => "_",
-  Reference: compile,
-  Tuple: ({ members }) => ({ "#tuple": members.map(toExpression) }),
-  Struct: ({ members }) => ({
-    "#struct": Record.fromEntries(
-      members.map(([name, member]) => [
-        Ident.compile(name),
-        toExpression(member),
-      ]),
-    ),
-  }),
-  Union: ({ members }): ExpressionType => [
-    "::kernel::type::Union",
-    ...members.map(toExpression),
-  ],
-  Intersection: ({ members }): ExpressionType => [
-    "::kernel::type::Intersection",
-    ...members.map(toExpression),
-  ],
-});
+export const toExpression = (type: Type): ExpressionType => {
+  // Types wait here for their members instead of on the call stack, which bounds the nesting depth by memory alone.
+  const parents: Frame[] = [];
+  let current = open(type);
+
+  for (;;) {
+    const member = current.members[current.expressions.length];
+    if (member === undefined) {
+      const expression = construct(current);
+      const parent = parents.pop();
+      if (parent === undefined) {
+        return expression;
+      }
+
+      parent.expressions.push(expression);
+      current = parent;
+    } else {
+      parents.push(current);
+      current = open(member);
+    }
+  }
+};
