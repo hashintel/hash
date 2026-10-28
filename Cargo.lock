@@ -13533,6 +13533,7 @@ dependencies = [
  "indexmap 2.14.0",
  "ref-cast",
  "schemars_derive",
+ "semver",
  "serde",
  "serde_json",
  "uuid",

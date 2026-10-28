@@ -1185,7 +1185,7 @@
         "properties": {
           "description": {
             "description": "A description of the place for a reader.",
-            "maxLength": 8192,
+            "maxLength": 4095,
             "type": "string"
           },
           "name": {
@@ -1196,7 +1196,7 @@
           "uri": {
             "description": "The `http` or `https` URI the material was retrieved from.",
             "format": "uri",
-            "maxLength": 8192,
+            "maxLength": 4095,
             "type": "string"
           }
         },
@@ -1352,7 +1352,7 @@
             "items": {
               "$ref": "#/components/schemas/Source"
             },
-            "maxItems": 100,
+            "maxItems": 127,
             "type": "array"
           }
         },
@@ -1366,8 +1366,12 @@
             "type": "string"
           },
           "semanticVersion": {
-            "description": "The version of what sent the edition in the format of Semantic Versioning 2.0.",
-            "type": "string"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SemVer"
+              }
+            ],
+            "description": "The version of what sent the edition in the format of Semantic Versioning 2.0."
           },
           "stepIds": {
             "description": "For `flow`, the IDs of the flow steps that wrote the edition.",
@@ -1545,7 +1549,7 @@
             "items": {
               "$ref": "#/components/schemas/Source"
             },
-            "maxItems": 100,
+            "maxItems": 127,
             "type": "array"
           }
         },
@@ -1607,7 +1611,7 @@
             "items": {
               "$ref": "#/components/schemas/Source"
             },
-            "maxItems": 100,
+            "maxItems": 127,
             "type": "array"
           }
         },
@@ -1637,6 +1641,10 @@
           "entities"
         ],
         "type": "object"
+      },
+      "SemVer": {
+        "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+        "type": "string"
       },
       "Source": {
         "additionalProperties": false,

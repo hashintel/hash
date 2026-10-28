@@ -25,10 +25,10 @@ use crate::rest::public::present::present;
 const SHORT_TEXT: usize = 255;
 
 /// The most characters a request may give a URI or a description.
-const LONG_TEXT: usize = 8192;
+const LONG_TEXT: usize = 4095;
 
 /// The most sources a request may give an edition or a property.
-const MAX_SOURCES: usize = 100;
+const MAX_SOURCES: usize = 127;
 
 /// The text is longer than allowed.
 #[derive(Debug, derive_more::Display)]
@@ -383,7 +383,7 @@ pub(super) struct TooManySources(usize);
 
 impl Error for TooManySources {}
 
-/// Material that data was produced from. A request may give at most 100 sources.
+/// Material that data was produced from. A request may give at most 127 sources.
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(try_from = "Vec<Source>")]
 #[schemars(inline, extend("maxItems" = MAX_SOURCES))]
@@ -555,8 +555,7 @@ enum OriginType {
 #[serde(rename_all = "camelCase")]
 struct Origin {
     /// What sent the edition. HASH sets it.
-    #[serde(rename = "type")]
-    ty: OriginType,
+    r#type: OriginType,
     /// What sent the edition: for `external` the name it gave, for `flow` the flow run's ID.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "String")]
@@ -567,16 +566,16 @@ struct Origin {
     version: Option<String>,
     /// The version of what sent the edition in the format of Semantic Versioning 2.0.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(with = "String")]
-    semantic_version: Option<String>,
+    #[schemars(with = "semver::Version")]
+    semantic_version: Option<semver::Version>,
     /// For `flow`, the IDs of the flow steps that wrote the edition.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     step_ids: Vec<String>,
 }
 
 impl From<stored::OriginProvenance> for Origin {
-    fn from(origin: stored::OriginProvenance) -> Self {
-        let stored::OriginProvenance {
+    fn from(
+        stored::OriginProvenance {
             ty,
             id,
             version,
@@ -586,8 +585,9 @@ impl From<stored::OriginProvenance> for Origin {
             session_id: _,
             api_key_public_id: _,
             user_agent: _,
-        } = origin;
-        let (ty, step_ids) = match ty {
+        }: stored::OriginProvenance,
+    ) -> Self {
+        let (r#type, step_ids) = match ty {
             stored::OriginType::WebApp => (OriginType::WebApp, HashSet::new()),
             stored::OriginType::MobileApp => (OriginType::MobileApp, HashSet::new()),
             stored::OriginType::BrowserExtension => (OriginType::BrowserExtension, HashSet::new()),
@@ -600,10 +600,10 @@ impl From<stored::OriginProvenance> for Origin {
         step_ids.sort_unstable();
 
         Self {
-            ty,
+            r#type,
             id,
             version,
-            semantic_version: semantic_version.map(|version| version.to_string()),
+            semantic_version,
             step_ids,
         }
     }
@@ -717,10 +717,10 @@ mod tests {
     #[test]
     fn sources_count() {
         let source = json!({ "type": "webpage" });
-        parse(json!({ "sources": vec![source.clone(); 100] })).expect("should accept 100 sources");
+        parse(json!({ "sources": vec![source.clone(); 127] })).expect("should accept 127 sources");
         assert_matches!(
-            parse(json!({ "sources": vec![source; 101] })),
-            Err(error) if error.to_string().contains("the list has 101 sources")
+            parse(json!({ "sources": vec![source; 128] })),
+            Err(error) if error.to_string().contains("the list has 128 sources")
         );
     }
 
@@ -729,21 +729,21 @@ mod tests {
         let base = "https://example.com/";
         let uri = |length: usize| format!("{base}{}", "a".repeat(length - base.len()));
 
-        serde_json::from_value::<Uri>(json!(uri(8192)))
-            .expect("should accept a URI of 8192 characters");
+        serde_json::from_value::<Uri>(json!(uri(4095)))
+            .expect("should accept a URI of 4095 characters");
         assert_matches!(
-            serde_json::from_value::<Uri>(json!(uri(8193))),
-            Err(error) if error.to_string().contains("the text has 8193 characters")
+            serde_json::from_value::<Uri>(json!(uri(4096))),
+            Err(error) if error.to_string().contains("the text has 4096 characters")
         );
     }
 
     #[test]
     fn uri_length_encoded() {
-        // 1020 characters as sent, 9020 once each euro sign is percent-encoded.
-        let uri = format!("https://example.com/{}", "\u{20ac}".repeat(1000));
+        // 520 characters as sent, 4520 once each euro sign is percent-encoded.
+        let uri = format!("https://example.com/{}", "\u{20ac}".repeat(500));
         assert_matches!(
             serde_json::from_value::<Uri>(json!(uri)),
-            Err(error) if error.to_string().contains("the text has 9020 characters")
+            Err(error) if error.to_string().contains("the text has 4520 characters")
         );
     }
 

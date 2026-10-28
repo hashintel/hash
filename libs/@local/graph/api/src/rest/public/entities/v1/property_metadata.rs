@@ -569,9 +569,9 @@ mod tests {
         assert_matches!(
             parse(json!({ NAMES: { "items": [{
                 "dataTypeId": TEXT,
-                "provenance": { "sources": vec![source; 101] },
+                "provenance": { "sources": vec![source; 128] },
             }] } })),
-            Err(error) if error.to_string().contains("the list has 101 sources")
+            Err(error) if error.to_string().contains("the list has 128 sources")
         );
     }
 
