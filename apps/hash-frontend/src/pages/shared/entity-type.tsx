@@ -103,7 +103,6 @@ const TypeDefinition = ({
           <DefinitionTab
             entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
             entityTypeBaseUrl={entityTypeBaseUrl}
-            key={entityTypeAndPropertyTypes.entityType.schema.$id}
             onNavigateToType={onNavigateToType}
             readonly={readonly}
           />
