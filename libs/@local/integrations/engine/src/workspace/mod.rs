@@ -2,6 +2,7 @@ mod connection;
 mod error;
 mod files;
 mod interrupt;
+mod metrics;
 mod reply;
 mod rows;
 mod select;
