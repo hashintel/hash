@@ -201,4 +201,21 @@ describe("type_expression", () => {
       expect(compile(third(syntax))).toBe("::third::Pair<String, Integer>");
     }
   });
+
+  test("pass_through_adaptation", () => {
+    expect.hasAssertions();
+    const local = Result.getOrThrow(
+      TypeExpression.constructor<Pair>(path("Pair"), 2),
+    );
+    const entry = TypeExpression.adaptConstructor(local, adapt);
+    const same = TypeExpression.adaptConstructor(entry, (current) => current);
+    expect(same).not.toBe(entry);
+
+    const syntax = Result.getOrThrow(TypeExpression.toType(integer));
+    const first = Result.getOrThrow(TypeExpression.relocate(entry, firstPath));
+    const second = Result.getOrThrow(TypeExpression.relocate(same, secondPath));
+    expect(compile(first(syntax))).toBe("::first::Pair<String, Integer>");
+    expect(compile(second(syntax))).toBe("::second::Pair<String, Integer>");
+    expect(compile(entry(syntax))).toBe("Pair<String, Integer>");
+  });
 });
