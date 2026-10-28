@@ -1,7 +1,7 @@
 /**
  * Type syntax annotated with its HashQL semantic meaning.
  *
- * A {@link TypeExpression} carries syntax or a construction failure alongside a type-level descriptor. A {@link Constructor} specializes a named generic type while preserving its semantic argument tuple. Declarations supply these descriptors, and the HashQL compiler validates their use in the emitted program.
+ * A {@link TypeExpression} carries syntax or a construction failure alongside a type-level descriptor. A {@link Constructor} specializes a named generic type while preserving its semantic argument tuple. Declarations supply these descriptors. The HashQL compiler validates their use in the emitted program.
  *
  * Use {@link fromType} for existing J-Expr type syntax, {@link reference} for a named type and {@link constructor} for a generic type. These operations and {@link fromResult} attach a trusted descriptor without checking it against the syntax.
  *
@@ -23,6 +23,8 @@ import type * as JExpr from "../JExpr/index.js";
 import type * as Syntax from "../JExpr/Type/index.js";
 import type * as Type from "../Type.js";
 import type { Types } from "effect";
+
+export type { Relocatable } from "../internal/relocation.js";
 
 const TypeId: unique symbol = Symbol("~hashql/TypeExpression");
 const ConstructorId: unique symbol = Symbol("~hashql/TypeConstructor");
@@ -95,7 +97,7 @@ export const isConstructor = (value: unknown): value is Constructor.Any =>
 /**
  * Annotates type syntax, or a construction failure, with a trusted semantic descriptor.
  *
- * The caller must ensure that successful syntax denotes `T`. A failure stays in the handle until something reads its syntax. Rebinding a successful result produces a reference to the new path, while a failed result keeps its failure.
+ * The caller must ensure that successful syntax denotes `T`. A failure stays in the handle until something reads its syntax. Rebinding a successful result produces a reference to the new path. Rebinding a failed result returns its failure.
  */
 export const fromResult = <T extends Type.Any>(
   syntax: Result.Result<Syntax.Type, ProgramError.Construction>,
@@ -200,7 +202,7 @@ export const constructor = <F extends Type.TypeConstructor>(
     }
 
     return pipe(
-      // SAFETY: args are already TypeExpression.Any[]
+      // SAFETY: `Arguments<A>` maps every position to a type expression. `Array.map` cannot read that through the generic `A` and types the elements as `unknown`.
       args as readonly TypeExpression.Any[],
       Array.map(toType),
       Result.all,
@@ -238,7 +240,7 @@ export const constructor = <F extends Type.TypeConstructor>(
 /**
  * Refers to the same semantic type through another HashQL path.
  *
- * Use this when an import or type alias gives an existing type another name in the program. The returned {@link TypeExpression} emits that name while keeping its semantic descriptor. Relocation does not declare the alias or check that the new path denotes the same type: the caller must establish that relationship.
+ * Use this when an import or type alias gives an existing type another name in the program. The returned {@link TypeExpression} emits that name while keeping its semantic descriptor. Relocation does not declare the alias or check that the new path denotes the same type. The caller must establish that relationship.
  *
  * A concrete type expression becomes a plain reference to `path`, replacing its previous syntax even if it described a tuple or struct. A generic {@link Constructor} keeps its arity and applies future arguments at the new path. The original remains unchanged. A type expression holding a construction failure returns that failure. It accepts the type expression or constructor first or last.
  *
@@ -283,9 +285,12 @@ export const relocate: {
   ): Result.Result<E, ProgramError.Construction>;
 } = relocateHandle;
 
-/** An adapted callable retains both its signature and its rebinding operation. */
-
-type Adapted<C> = C &
+/**
+ * A constructor adapted by {@link adaptConstructor}, callable with the callback's call signatures.
+ *
+ * It keeps the constructor's marker. Relocating it runs the callback again at the new path.
+ */
+export type Adapted<C> = C &
   Constructor.Any & {
     readonly [Relocate]: Relocatable<Adapted<C>>[typeof Relocate];
   };
@@ -295,7 +300,7 @@ type Adapted<C> = C &
  *
  * Use this to fix some type arguments or accept shorthand before calling a {@link Constructor}. For example, a string-keyed pair helper can accept only the value type. An ordinary wrapper closes over the original constructor and has no relocation operation. This adapter keeps the helper callable through {@link relocate}, so an imported alias can use the same convenience API.
  *
- * The `adapt` callback runs immediately and again after each successful relocation, receiving the constructor at its new path. Build the callable from that argument rather than capturing the original constructor, or it will keep emitting the old path. The result retains the callback's call signature and {@link isConstructor} recognizes it. It accepts the constructor first or last.
+ * The `adapt` callback runs immediately and again after each successful relocation. Each run receives the constructor at its current path. Build the callable from that argument rather than capturing the original constructor. A callable that captures the original keeps emitting the old path. The result is a new function with the callback's call signatures. The callback may therefore return an existing callable, including its argument. {@link isConstructor} recognizes the result. It accepts the constructor first or last.
  *
  * @example <caption>Keep a string-keyed pair helper when importing its constructor under an alias.</caption>
  * ```ts
@@ -369,14 +374,21 @@ export const adaptConstructor: {
     self: S & Relocatable<S>,
     adapt: (self: S) => C,
   ): Adapted<C> => {
-    const build = (source: S): Adapted<C> =>
-      Object.assign(adapt(source), {
+    const build = (source: S): Adapted<C> => {
+      // The markers go on a fresh function, because `adapt` may return an object that other code holds, such as `source` itself. Assigning to that object would make its relocation call itself.
+      const adapted = adapt(source);
+      // SAFETY: the forwarder passes its arguments to `adapted` and returns its result, so it has `C`'s call signatures.
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TypeScript cannot give a forwarding function the call signatures of a generic `C`
+      const callable = ((...args: never[]) => adapted(...args)) as C;
+
+      return Object.assign(callable, {
         [ConstructorId]: source[ConstructorId],
         [Relocate]: (
           path: JExpr.Path.Path,
         ): Result.Result<Adapted<C>, ProgramError.Construction> =>
           pipe(relocateHandle<S>(self, path), Result.map(build)),
       });
+    };
 
     return build(self);
   },

@@ -1,9 +1,11 @@
 /**
  * Compile-time descriptions of HashQL types.
  *
- * A descriptor is a TypeScript type that stands for a HashQL type, such as `Type.Struct<{ readonly name: Type.PrimitiveString }>`. Type expressions carry descriptors so that TypeScript can preserve the semantic arguments of generic types while the SDK builds syntax. The package exports this module as types alone: no descriptor value exists at runtime, and nothing compares a descriptor with the HashQL declaration it annotates. `TypeExpression.reference<T>()` takes the descriptor on trust, and the HashQL compiler still checks the emitted program.
+ * A descriptor is a TypeScript type that stands for a HashQL type, such as `Type.Struct<{ readonly name: Type.PrimitiveString }>`. Type expressions carry descriptors so that TypeScript can preserve the semantic arguments of generic types while the SDK builds syntax. The package exports this module as types alone. No descriptor value exists at runtime. Nothing compares a descriptor with the HashQL declaration it annotates. `TypeExpression.reference<T>()` takes the descriptor on trust. The HashQL compiler checks the emitted program.
  *
- * Type parameters accept descriptors rather than JavaScript value types, so TypeScript rejects `Type.List<string>` and accepts `Type.List<Type.PrimitiveString>`. Use {@link Any} to constrain a generic without losing its concrete type arguments. Use {@link All} to inspect a type whose arguments are unknown and narrow it by `_tag`. Each generic type has corresponding `Any` and `All` forms. A descriptor with an erased child, such as `Type.List<Type.Any>`, satisfies `Any` but not `All`.
+ * TypeScript compares descriptors by `_tag`, by field and by position. This comparison is stricter than HashQL's subtyping on purpose. Where a parameter expects a union, TypeScript rejects the same members in another order and rejects a single member. It also rejects {@link PrimitiveInteger} for {@link PrimitiveNumber}, {@link Never} for any other type and any other type for {@link Unknown}. HashQL accepts each of them. The SDK leaves subtyping to the HashQL compiler rather than reproducing its type checker in TypeScript.
+ *
+ * Type parameters accept descriptors rather than JavaScript value types. TypeScript rejects `Type.List<string>` and accepts `Type.List<Type.PrimitiveString>`. Use {@link Any} to constrain a generic without losing its concrete type arguments. Use {@link All} to inspect a type whose arguments are unknown and narrow it by `_tag`. Each generic type has corresponding `Any` and `All` forms. A descriptor with an erased child, such as `Type.List<Type.Any>`, satisfies `Any` but not `All`.
  *
  * @example <caption>Type-only: describe a record and read its parts.</caption>
  * ```ts
@@ -55,10 +57,10 @@ export type All =
   | Never
   | Unknown;
 
-/** A type constraint with erased parameters. */
+/** {@link Any} under a name the type namespaces can use, because inside `declare namespace Union` a bare `Any` names `Union.Any` itself. */
 type AnyType = Any;
 
-/** The union of inspectable type forms. */
+/** {@link All} under a name the type namespaces can use, because inside `declare namespace Union` a bare `All` names `Union.All` itself. */
 type AllTypes = All;
 
 /** A value belonging to at least one of the member types. */
@@ -128,7 +130,7 @@ export declare namespace Struct {
 /**
  * A fixed-length sequence with a type for each position.
  *
- * `T` must be a tuple of required elements. Arrays, optional elements and open-ended rest elements fail the constraint. `Tuple.Any` and `Tuple.All` erase the length for code that handles arbitrary tuple types.
+ * `T` must be a tuple of required elements. Arrays, optional elements and open-ended rest elements fail the constraint. {@link Tuple.Any} and {@link Tuple.All} erase the length for code that handles arbitrary tuple types.
  */
 export interface Tuple<
   T extends readonly Any[] & {
@@ -213,7 +215,7 @@ export interface TypeLambda extends HKT.TypeLambda {
 /**
  * Computes the descriptor a {@link TypeLambda} produces for an argument tuple.
  *
- * TypeScript evaluates the operation during checking. The SDK has no runtime type interpreter, so the result is a static annotation on the syntax a call emits.
+ * TypeScript evaluates the operation during checking. The SDK has no runtime type interpreter. The result is a static annotation on the syntax a call emits.
  */
 export type Apply<
   Lambda extends TypeLambda,
@@ -258,7 +260,7 @@ export interface TypeConstructor extends TypeLambda {
 /**
  * Computes a function signature from the types of its call arguments.
  *
- * Given an argument descriptor tuple, {@link Apply} computes the function's `parameters` and `returns`. For unsupported arguments, a signature can use {@link Never} as a parameter type that no argument satisfies.
+ * Given an argument descriptor tuple, {@link Apply} computes the function's `parameters` and `returns`. A signature can reject unsupported arguments with a {@link Never} parameter type. Only an argument whose descriptor is itself {@link Never} satisfies it.
  *
  * @example <caption>Type-only: specialize a generic function signature.</caption>
  * ```ts
@@ -319,7 +321,7 @@ export interface PrimitiveInteger {
 /**
  * A number, including integer values.
  *
- * TypeScript does not widen {@link PrimitiveInteger} to this type, so a parameter of this type rejects an Integer expression or a `bigint`.
+ * TypeScript does not widen {@link PrimitiveInteger} to this type. A parameter of this type rejects an Integer expression or a `bigint`.
  */
 export interface PrimitiveNumber {
   readonly _tag: "Number";
