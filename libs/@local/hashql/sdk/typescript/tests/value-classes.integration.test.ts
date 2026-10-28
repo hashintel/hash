@@ -7,6 +7,16 @@ import type { Type } from "@local/hashql";
 
 const { Module } = Program;
 
+/** Emits a node's syntax through the public expression API. */
+const syntax = (
+  node: Parameters<typeof Program.Expression.fromNode>[0],
+): string =>
+  JExpr.compile(
+    Result.getOrThrow(
+      Program.Expression.toJExpr(Program.Expression.fromNode(node)),
+    ),
+  );
+
 describe("emitted_value_classes", () => {
   test("emitted_value_class_contract", () => {
     expect.hasAssertions();
@@ -78,7 +88,7 @@ describe("emitted_import_prototype_names", () => {
     const node = Result.getOrThrow(
       Expression.toNode(imported.scope.values.local),
     );
-    expect(JExpr.compile(imported.wrap(node).compile())).toBe(
+    expect(syntax(imported.wrap(node))).toBe(
       '["::kernel::special_form::use","::source",{"#struct":{"other":"local"}},"local"]',
     );
     // @ts-expect-error Unknown exports cannot be requested, even beside known names.
@@ -107,7 +117,7 @@ describe("emitted_import_with_value_classes", () => {
     const wrapped = Result.getOrThrow(
       Result.map(Expression.toNode(Expression.integer(1)), wrap),
     );
-    expect(JExpr.compile(wrapped.compile())).toBe(
+    expect(syntax(wrapped)).toBe(
       '["::kernel::special_form::use","::core::math",{"#struct":{}},{"#literal":1}]',
     );
     expect(Object.hasOwn(imported.scope.values, "hidden")).toBe(false);
@@ -169,14 +179,14 @@ describe("emitted_import_with_value_classes", () => {
     const node = Result.getOrThrow(
       Expression.toNode(flat.arithmetic.add(addend, increment)),
     );
-    expect(JExpr.compile(imported.wrap(node).compile())).toBe(
+    expect(syntax(imported.wrap(node))).toBe(
       '["::kernel::special_form::use","::consumer",{"#struct":{"math":"arithmetic","List":"Sequence","equal":"same"}},["arithmetic::add",{"#literal":1},{"#literal":2}]]',
     );
     const wildcard = Result.getOrThrow(Import.bind(source, "*"));
     const listed = Result.getOrThrow(Import.bind(source, ["equal"]));
     expect([
-      JExpr.compile(wildcard.wrap(node).compile()),
-      JExpr.compile(listed.wrap(node).compile()),
+      syntax(wildcard.wrap(node)),
+      syntax(listed.wrap(node)),
     ]).toStrictEqual([
       '["::kernel::special_form::use","::consumer","*",["arithmetic::add",{"#literal":1},{"#literal":2}]]',
       '["::kernel::special_form::use","::consumer",{"#tuple":["equal"]},["arithmetic::add",{"#literal":1},{"#literal":2}]]',
