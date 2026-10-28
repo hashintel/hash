@@ -20,10 +20,10 @@
  *
  * @module
  */
-import { SchemaParser } from "effect";
 import { dual } from "effect/Function";
 
 import { isReadonlyArray } from "../internal/array.js";
+import * as Overflow from "../internal/overflow.js";
 import * as Defs from "./schema.js";
 import * as Type from "./Type/index.js";
 
@@ -97,22 +97,21 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 export const make: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
-) => Expression = SchemaParser.make(Schema);
+) => Expression = Overflow.make(Schema);
 
 /** Checks a tree like {@link make}, failing the synchronous effect with the {@link SchemaIssue.Issue} instead of throwing. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
-) => Effect.Effect<Expression, SchemaIssue.Issue> =
-  SchemaParser.makeEffect(Schema);
+) => Effect.Effect<Expression, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
 /** Checks a tree like {@link make}, returning `None` instead of throwing for a schema failure. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
-) => Option.Option<Expression> = SchemaParser.makeOption(Schema);
+) => Option.Option<Expression> = Overflow.makeOption(Schema);
 
 export { fn, infer } from "./Function.js";
 export type { FnOptions, TypeArgument } from "./Function.js";
