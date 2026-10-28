@@ -294,4 +294,26 @@ describe("module_types", () => {
       }),
     );
   });
+
+  test("symbol_export", () => {
+    const name = Symbol("not a HashQL name");
+    expectTypeOf(
+      Module.define("::exports", {
+        // @ts-expect-error A symbol key cannot name a type export.
+        types: { [name]: Module.type<Type.PrimitiveInteger>() },
+      }),
+    );
+    expectTypeOf(
+      Module.define("::exports", {
+        // @ts-expect-error A symbol key cannot name a value export.
+        values: { [name]: Module.value<Remainder>() },
+      }),
+    );
+    expectTypeOf(
+      // @ts-expect-error A symbol key cannot name a child module.
+      Module.define("::exports", { modules: { [name]: math } }),
+    );
+    // @ts-expect-error A symbol key cannot name a root module.
+    expectTypeOf(Module.root({ [name]: math }));
+  });
 });
