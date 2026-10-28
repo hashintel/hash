@@ -157,7 +157,7 @@ const asReadonlyUnsafe = <T>(input: T): Readonly<T> => input;
 /**
  * Creates a type with named fields.
  *
- * Returns `None` if any field name is not a valid identifier according to `Ident.decodeResult`. Symbol names accept bare (`+`) or backticked (`` `+` ``) spelling. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
+ * Returns `None` if any field name is not a valid identifier according to `Ident.decodeResult`. Symbol names accept bare (`+`) or backticked (`` `+` ``) spelling. Spelling one name both ways, such as `+` and `` `+` ``, also returns `None`. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
  *
  * @example <caption>Build a struct type and reject an invalid field name.</caption>
  * ```ts
@@ -187,6 +187,11 @@ export const struct = (
       ),
     ),
     Option.all,
+    Option.filter(
+      (members) =>
+        Array.dedupe(Array.map(members, Tuple.get(0))).length ===
+        members.length,
+    ),
     Option.map(asReadonlyUnsafe),
     Option.map((members) => ({
       _tag: "Struct",
@@ -376,6 +381,8 @@ export const and: {
  *
  * Parentheses preserve operator precedence and nested union/intersection membership. The printer omits redundant groups. HashQL gives union higher precedence than intersection. A single-member union or intersection compiles as its member. Empty structs use `(:)`, empty tuples use `()`, and single-member tuples retain a trailing comma.
  *
+ * @throws {RangeError} If the type's nesting exhausts the JavaScript call stack.
+ *
  * @example <caption>Compile a nested type.</caption>
  * ```ts
  * import { Option } from "effect";
@@ -395,13 +402,15 @@ export const compile: (type: Type) => Identifier = compileType;
  * Encodes a type in an expression position, such as a type definition or closure parameter.
  *
  * Compound types use constructors here. Only annotation positions accept their type-syntax strings.
+ *
+ * @throws {RangeError} If the type's nesting exhausts the JavaScript call stack.
  */
 export const toExpression: (type: Type) => ExpressionType = Defs.Type.match({
   Infer: () => "_",
   Reference: compile,
   Tuple: ({ members }) => ({ "#tuple": members.map(toExpression) }),
   Struct: ({ members }) => ({
-    "#struct": Object.fromEntries(
+    "#struct": Record.fromEntries(
       members.map(([name, member]) => [
         Ident.compile(name),
         toExpression(member),

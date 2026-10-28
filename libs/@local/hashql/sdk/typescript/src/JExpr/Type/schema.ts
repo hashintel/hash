@@ -98,12 +98,19 @@ export interface IntersectionEncoded extends Schema.Codec.Encoded<
 
 export const Struct: Schema.TaggedStruct<
   "Struct",
-  { members: Schema.$Array<Schema.Tuple<[typeof Ident.Schema, TypeRef]>> }
+  {
+    members: Schema.$Array<
+      Schema.Tuple<readonly [typeof Ident.Schema, TypeRef]>
+    >;
+  }
 > = Schema.TaggedStruct("Struct", {
-  members: Schema.Array(Schema.Tuple([Ident.Schema, TypeRef])),
+  // `+` and `` `+` `` decode to the same name, and a struct holds each name once.
+  members: Schema.Array(Schema.Tuple([Ident.Schema, TypeRef])).check(
+    Schema.isUniqueKey(),
+  ),
 });
 
-/** Type syntax for named fields, holding decoded name and type pairs in order. Its annotation text is `(name: T)`, or `(:)` when empty. */
+/** Type syntax for named fields, holding distinct decoded names and their types in order. Its annotation text is `(name: T)`, or `(:)` when empty. */
 export interface StructType extends Schema.Schema.Type<typeof Struct> {}
 /** The schema-encoded form of {@link StructType}, with field names, paths and nested names as source text. */
 export interface StructEncoded extends Schema.Codec.Encoded<typeof Struct> {}
