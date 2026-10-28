@@ -265,3 +265,22 @@ describe("structural_values", () => {
     );
   });
 });
+
+describe("structural_guards", () => {
+  test("records_and_tuples", () => {
+    expect.hasAssertions();
+    expect(Structural.isDefinition({ name: String })).toBe(true);
+    expect(Structural.isDefinition([BigInt, String])).toBe(true);
+    expect(Structural.isDefinition(Object.create(null))).toBe(true);
+    expect(Structural.isValue({ name: "Ada", location: [1, 2] })).toBe(true);
+    expect(Structural.isValue(Object.create(null))).toBe(true);
+  });
+
+  test("host_instances", () => {
+    expect.hasAssertions();
+    expect(Structural.isDefinition(new Map())).toBe(false);
+    expect(Structural.isValue(new Map([["a", 1n]]))).toBe(false);
+    expect(Structural.isValue(new Set(["a"]))).toBe(false);
+    expect(Structural.isValue({ nested: new Map() })).toBe(false);
+  });
+});

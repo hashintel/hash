@@ -7,6 +7,7 @@
  *
  * @module
  */
+// oxlint-disable max-lines -- structural constructors and their API examples belong with the shorthand descriptors they compute
 import { Predicate, Result, Struct, Tuple, flow, pipe } from "effect";
 
 import * as StructuralSyntax from "../internal/structural.js";
@@ -115,9 +116,30 @@ type RequirementAlternatives<V extends Value.Any> =
           : Inputs.Empty;
 
 /**
+ * Accepts arrays and objects whose prototype is `Object.prototype` or `null`.
+ *
+ * Records compile from their enumerable own string keys. A `Map` or `Date` keeps its contents outside those keys and would compile to an empty struct.
+ */
+// oxlint-disable-next-line typescript/no-restricted-types -- the dispatch checks pass arbitrary host values, and `Object.values` reads any object
+const isTupleOrRecord = (value: unknown): value is object => {
+  if (Array.isArray(value)) {
+    return true;
+  }
+
+  if (!Predicate.isObject(value)) {
+    return false;
+  }
+
+  return (
+    Object.getPrototypeOf(value) === Object.prototype ||
+    Object.getPrototypeOf(value) === null
+  );
+};
+
+/**
  * Recognizes recursive type shorthand without confusing primitive values with constructors.
  *
- * This dispatch check examines enumerable own string-keyed values and the SDK type marker. It does not validate field names or stored type syntax. Empty records and arrays qualify. Host objects must be acyclic.
+ * This dispatch check examines enumerable own string-keyed values and the SDK type marker. It does not validate field names or stored type syntax. Empty records and arrays qualify, and other objects such as a `Map` do not. Host objects must be acyclic.
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- overload dispatch must distinguish arbitrary host arguments before normalization
 export const isDefinition = (value: unknown): value is Definition => {
@@ -134,7 +156,7 @@ export const isDefinition = (value: unknown): value is Definition => {
     return true;
   }
 
-  if (!Predicate.isObjectOrArray(value) || Predicate.isFunction(value)) {
+  if (!isTupleOrRecord(value)) {
     return false;
   }
 
@@ -144,7 +166,7 @@ export const isDefinition = (value: unknown): value is Definition => {
 /**
  * Recognizes structural value arguments, including expressions with type capabilities too.
  *
- * This dispatch check traverses enumerable own string-keyed values without validating field names or stored syntax. Non-finite numbers pass this check too. Validation belongs to {@link value} or {@link toJExpr}. Host objects must be acyclic.
+ * This dispatch check traverses enumerable own string-keyed values without validating field names or stored syntax. Arrays and records qualify, and other objects such as a `Map` do not. Non-finite numbers pass this check too. Validation belongs to {@link value} or {@link toJExpr}. Host objects must be acyclic.
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- overload dispatch must distinguish arbitrary host arguments before normalization
 export const isValue = (value: unknown): value is Value.Any => {
@@ -167,7 +189,7 @@ export const isValue = (value: unknown): value is Value.Any => {
     return true;
   }
 
-  if (!Predicate.isObjectOrArray(value) || Predicate.isFunction(value)) {
+  if (!isTupleOrRecord(value)) {
     return false;
   }
 
@@ -329,11 +351,18 @@ export const toJExpr = (
  *
  * Nested records and arrays follow {@link value}. Invalid field names and nested construction failures remain in the returned expression.
  *
- * @example
+ * @example <caption>Infer a record's fields and project one of them.</caption>
  * ```ts
- * import { Program } from "@local/hashql";
- * const account = Program.Structural.struct({ name: "Ada", active: true });
- * const active = account.active;
+ * import assert from "node:assert/strict";
+ * import { JExpr, Program } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * const { Expression, Structural } = Program;
+ * const account = Structural.struct({ name: "Ada", active: true });
+ * assert.equal(
+ *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(account.active))),
+ *   '["::kernel::special_form::access",{"#struct":{"name":{"#literal":"Ada"},"active":{"#literal":true}}},"active"]',
+ * );
  * ```
  */
 export const struct = <const V extends FieldValues>(
@@ -364,11 +393,23 @@ export const tuple = <const V extends readonly Value.Any[]>(
  *
  * The definition checks every element without widening from the supplied values. The emitted type annotation also types an empty list. Nested host records and arrays follow {@link value}, so a nested list needs its own {@link list} call. Failed definitions and elements remain construction failures.
  *
- * @example
+ * @example <caption>Annotate a list, including an empty one.</caption>
  * ```ts
- * import { Program } from "@local/hashql";
- * const counts = Program.Structural.list(BigInt, [1n, 2n]);
- * const empty = Program.Structural.list(BigInt, []);
+ * import assert from "node:assert/strict";
+ * import { JExpr, Program } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * const { Expression, Structural } = Program;
+ * const compile = (list: Program.Expression.Expression.Any) =>
+ *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(list)));
+ * assert.equal(
+ *   compile(Structural.list(BigInt, [1n, 2n])),
+ *   '{"#list":[{"#literal":1},{"#literal":2}],"#type":"::kernel::type::List<::kernel::type::Integer>"}',
+ * );
+ * assert.equal(
+ *   compile(Structural.list(BigInt, [])),
+ *   '{"#list":[],"#type":"::kernel::type::List<::kernel::type::Integer>"}',
+ * );
  * ```
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a collection from its type definition and members
@@ -396,11 +437,23 @@ export const list = <
  *
  * Entries may contain expression keys. A String key definition also accepts a record with arbitrary literal string keys. Records contribute enumerable own string keys in JavaScript order. Both forms emit entry pairs, preserving key and value requirements. The annotation types empty dictionaries too. Failed definitions and entries remain construction failures.
  *
- * @example
+ * @example <caption>Build a dictionary from a record or from entry pairs.</caption>
  * ```ts
- * import { Program } from "@local/hashql";
- * const counts = Program.Structural.dict(String, BigInt, { "first item": 1n });
- * const indexed = Program.Structural.dict(BigInt, String, [[1n, "first"]]);
+ * import assert from "node:assert/strict";
+ * import { JExpr, Program } from "@local/hashql";
+ * import { Result } from "effect";
+ *
+ * const { Expression, Structural } = Program;
+ * const compile = (dict: Program.Expression.Expression.Any) =>
+ *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(dict)));
+ * assert.equal(
+ *   compile(Structural.dict(String, BigInt, { "first item": 1n })),
+ *   '{"#dict":[[{"#literal":"first item"},{"#literal":1}]],"#type":"::kernel::type::Dict<::kernel::type::String, ::kernel::type::Integer>"}',
+ * );
+ * assert.equal(
+ *   compile(Structural.dict(BigInt, String, [[1n, "first"]])),
+ *   '{"#dict":[[{"#literal":1},{"#literal":"first"}]],"#type":"::kernel::type::Dict<::kernel::type::Integer, ::kernel::type::String>"}',
+ * );
  * ```
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a collection from independent key and value definitions and entries
