@@ -8,7 +8,7 @@ import * as Structural from "./Structural.js";
 
 import type * as Type from "../Type.js";
 
-const integer = Structural.type(BigInt);
+const integer = Result.getOrThrow(Structural.type(BigInt));
 const compile = (expression: Expression.Expression.Any): string =>
   JExpr.compile(Result.getOrThrow(Expression.toJExpr(expression)));
 

@@ -142,7 +142,7 @@ const comparison = (path: string): Comparison =>
  * import { Result, pipe } from "effect";
  *
  * const { Expression, Operators, Structural } = Program;
- * const count = Expression.input("count", Structural.type(BigInt));
+ * const count = Structural.input("count", BigInt);
  * const chained = Operators.eq(count, 1n).and(true).not();
  * const piped = pipe(count, Operators.eq(1n), Operators.and(true), Operators.not);
  * assert.deepEqual(

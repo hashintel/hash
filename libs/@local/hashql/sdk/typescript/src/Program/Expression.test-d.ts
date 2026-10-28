@@ -3,6 +3,7 @@
  *
  * @module
  */
+import { Result } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
 import { Relocate, relocate } from "../internal/relocation.js";
@@ -26,7 +27,6 @@ import type {
 import type { Arguments } from "./ExpressionType.js";
 import type * as Inputs from "./Inputs.js";
 import type * as ProgramError from "./ProgramError.js";
-import type { Result } from "effect";
 
 type Left = Type.Struct<{
   readonly shared: Type.List<Type.PrimitiveString>;
@@ -558,8 +558,8 @@ describe("key_identity", () => {
   });
 });
 
-const integerType = Structural.type(BigInt);
-const numberType = Structural.type(Number);
+const integerType = Result.getOrThrow(Structural.type(BigInt));
+const numberType = Result.getOrThrow(Structural.type(Number));
 
 interface Identity extends Type.FunctionSignature {
   readonly type: this["Target"] extends readonly [infer T extends Type.Any]

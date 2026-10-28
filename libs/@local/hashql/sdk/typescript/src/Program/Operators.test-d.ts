@@ -1,5 +1,5 @@
 /** Operator domains and input inference in both argument orders. @module */
-import { pipe } from "effect";
+import { Result, pipe } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
 import * as Expression from "./Expression.js";
@@ -9,13 +9,20 @@ import * as Structural from "./Structural.js";
 import type * as Type from "../Type.js";
 import type * as Inputs from "./Inputs.js";
 
-const integerType = Structural.type(BigInt);
-const booleanType = Structural.type(Boolean);
+const integerType = Result.getOrThrow(Structural.type(BigInt));
+const booleanType = Result.getOrThrow(Structural.type(Boolean));
 
 describe("operator_types", () => {
   test("operator_domains", () => {
-    const count = Expression.input("count", Structural.type(BigInt));
-    const other = Expression.input("other", Structural.type(BigInt), 0n);
+    const count = Expression.input(
+      "count",
+      Result.getOrThrow(Structural.type(BigInt)),
+    );
+    const other = Expression.input(
+      "other",
+      Result.getOrThrow(Structural.type(BigInt)),
+      0n,
+    );
     const first = Operators.eq(count, other);
     const last = pipe(count, Operators.eq(other));
     expectTypeOf(first).toEqualTypeOf<
