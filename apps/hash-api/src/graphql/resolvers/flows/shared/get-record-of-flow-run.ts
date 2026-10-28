@@ -19,7 +19,11 @@ export const getRecordOfFlowRun = (
   flowRun: FlowRunParent,
   context: Pick<
     GraphQLContext,
-    "authentication" | "dataSources" | "flowRunRecords" | "temporal"
+    | "authentication"
+    | "dataSources"
+    | "flowRunRecords"
+    | "runningFlowRunHistories"
+    | "temporal"
   >,
 ): Promise<FlowRunRecord> => {
   const existingRecord = recordsByFlowRun.get(flowRun);
@@ -43,6 +47,7 @@ export const getRecordOfFlowRun = (
 
     const flowRunRecord = await getFlowRunRecord({
       recordsByWorkflowId: context.flowRunRecords,
+      runningHistories: context.runningFlowRunHistories,
       storageProvider: context.dataSources.uploadProvider,
       temporalClient: context.temporal,
       workflowId:
