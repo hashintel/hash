@@ -85,10 +85,6 @@ where
 /// # Panics
 ///
 /// Panics if `transform` leaves the operation without an `operationId` or a `summary`.
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "only the tests route `POST` requests")
-)]
 pub(in crate::rest) fn post<H, I, O, T, S>(
     handler: H,
     transform: impl FnOnce(TransformOperation<'_>) -> TransformOperation<'_>,

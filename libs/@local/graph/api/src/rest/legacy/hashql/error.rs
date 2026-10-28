@@ -172,6 +172,7 @@ pub(crate) fn authorization_context_diagnostic(
             }
         },
         ContextCreationError::BuildEntityTypeContext { .. }
+        | ContextCreationError::EntityTypesNotFound { .. }
         | ContextCreationError::BuildPropertyTypeContext { .. }
         | ContextCreationError::BuildDataTypeContext { .. }
         | ContextCreationError::BuildEntityContext { .. }

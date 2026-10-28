@@ -1,0 +1,389 @@
+//! `POST /`: create entities.
+
+use alloc::{borrow::Cow, collections::BTreeSet};
+use core::error::Error;
+
+use aide::transform::TransformOperation;
+use axum::extract::State;
+use error_stack::{Report, ResultExt as _};
+use hash_graph_store::{
+    entity::{CreateEntityParams, EntityStore as _},
+    error::EntityCreationError,
+    pool::StorePool,
+};
+use hash_middleware::problem::{InternalServerError, ServiceUnavailable};
+use http::StatusCode;
+use problematic::{Answer, Expose, Problem, ProblemType, ProblemVariant, Rejection, Variant};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use type_system::{
+    knowledge::{
+        entity::provenance::ProvidedEntityEditionProvenance,
+        property::{PropertyObject, PropertyObjectWithMetadata},
+    },
+    ontology::VersionedUrl,
+    principal::{actor::ActorId, actor_group::WebId},
+    provenance::{OriginProvenance, OriginType},
+};
+
+use super::{
+    entity::{Entity, LiveEntityId},
+    property_metadata::{PropertyMetadataMismatch, PropertyObjectMetadata},
+};
+use crate::rest::{
+    ApiState,
+    credentials::Actor,
+    extract::Json,
+    public::Credentials,
+    routing::{self, Route},
+};
+
+/// The entities to create.
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CreateEntitiesRequest {
+    /// The entities to create, in one transaction, at least one.
+    entities: NewEntities,
+}
+
+/// The entities to create, at least one.
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(try_from = "Vec<NewEntity>")]
+#[schemars(inline, extend("minItems" = 1))]
+struct NewEntities(Vec<NewEntity>);
+
+/// The request names no entity.
+#[derive(Debug, derive_more::Display)]
+#[display("a request has to name at least one entity")]
+struct NoEntity;
+
+impl TryFrom<Vec<NewEntity>> for NewEntities {
+    type Error = NoEntity;
+
+    fn try_from(entities: Vec<NewEntity>) -> Result<Self, Self::Error> {
+        if entities.is_empty() {
+            return Err(NoEntity);
+        }
+        Ok(Self(entities))
+    }
+}
+
+/// An entity to create.
+#[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct NewEntityFields {
+    /// The web to create the entity in.
+    web_id: WebId,
+    /// The entity types the entity is an instance of, at least one.
+    entity_type_ids: EntityTypeIds,
+    /// The entity's properties, keyed by the base URL of their property type.
+    properties: PropertyObject,
+    /// The data types of the values in `properties`, one for every value.
+    property_metadata: PropertyObjectMetadata,
+}
+
+/// An entity to create.
+///
+/// Deserializing it checks that the property metadata fits the properties.
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(try_from = "NewEntityFields")]
+#[schemars(with = "NewEntityFields", description = "An entity to create.")]
+struct NewEntity {
+    web_id: WebId,
+    entity_type_ids: EntityTypeIds,
+    properties_with_metadata: PropertyObjectWithMetadata,
+}
+
+impl TryFrom<NewEntityFields> for NewEntity {
+    type Error = PropertyMetadataMismatch;
+
+    fn try_from(fields: NewEntityFields) -> Result<Self, Self::Error> {
+        Ok(Self {
+            web_id: fields.web_id,
+            entity_type_ids: fields.entity_type_ids,
+            properties_with_metadata: fields.property_metadata.join(fields.properties)?,
+        })
+    }
+}
+
+/// The entity types of an entity to create, at least one.
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(try_from = "BTreeSet<VersionedUrl>")]
+#[schemars(inline, extend("minItems" = 1))]
+struct EntityTypeIds(BTreeSet<VersionedUrl>);
+
+/// The entity names no entity type.
+#[derive(Debug, derive_more::Display)]
+#[display("an entity has to name at least one entity type")]
+struct NoEntityType;
+
+impl TryFrom<BTreeSet<VersionedUrl>> for EntityTypeIds {
+    type Error = NoEntityType;
+
+    fn try_from(entity_type_ids: BTreeSet<VersionedUrl>) -> Result<Self, Self::Error> {
+        if entity_type_ids.is_empty() {
+            return Err(NoEntityType);
+        }
+        Ok(Self(entity_type_ids))
+    }
+}
+
+/// The created entities.
+#[derive(Serialize, JsonSchema)]
+struct CreateEntitiesResponse {
+    /// The created entities, in the order of the request.
+    entities: Vec<Entity>,
+}
+
+/// The caller may not create an entity or instantiate an entity type or a type it inherits from.
+#[derive(Serialize, JsonSchema, derive_more::Display)]
+#[display("The caller may not create the entities.")]
+struct EntityCreationForbidden;
+
+impl ProblemVariant for EntityCreationForbidden {
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("about:blank"),
+        title: Cow::Borrowed("Forbidden"),
+        status: StatusCode::FORBIDDEN,
+    };
+
+    fn example() -> Option<Self> {
+        Some(Self)
+    }
+}
+
+/// One or more entity types do not exist.
+#[derive(Serialize, JsonSchema, derive_more::Display)]
+#[display("One or more entity types do not exist.")]
+struct UnknownEntityTypes;
+
+impl ProblemVariant for UnknownEntityTypes {
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("about:blank"),
+        title: Cow::Borrowed("Unprocessable Content"),
+        status: StatusCode::UNPROCESSABLE_ENTITY,
+    };
+
+    fn example() -> Option<Self> {
+        Some(Self)
+    }
+}
+
+/// One or more entity types are archived.
+#[derive(Serialize, JsonSchema, derive_more::Display)]
+#[display("One or more entity types are archived.")]
+struct ArchivedEntityTypes;
+
+impl ProblemVariant for ArchivedEntityTypes {
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("about:blank"),
+        title: Cow::Borrowed("Unprocessable Content"),
+        status: StatusCode::UNPROCESSABLE_ENTITY,
+    };
+
+    fn example() -> Option<Self> {
+        Some(Self)
+    }
+}
+
+/// The entity types of an entity define a property differently.
+#[derive(Serialize, JsonSchema, derive_more::Display)]
+#[display("The entity types of an entity define a property differently.")]
+struct IncompatibleEntityTypes;
+
+impl ProblemVariant for IncompatibleEntityTypes {
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("about:blank"),
+        title: Cow::Borrowed("Unprocessable Content"),
+        status: StatusCode::UNPROCESSABLE_ENTITY,
+    };
+
+    fn example() -> Option<Self> {
+        Some(Self)
+    }
+}
+
+/// One or more entities do not match their entity types.
+#[derive(Serialize, JsonSchema, derive_more::Display)]
+#[display("One or more entities do not match their entity types.")]
+struct InvalidEntities;
+
+impl ProblemVariant for InvalidEntities {
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("about:blank"),
+        title: Cow::Borrowed("Unprocessable Content"),
+        status: StatusCode::UNPROCESSABLE_ENTITY,
+    };
+
+    fn example() -> Option<Self> {
+        Some(Self)
+    }
+}
+
+/// The ways [`create_entities`] refuses a request its extractors accept.
+struct CreateEntitiesProblem;
+
+impl Problem for CreateEntitiesProblem {
+    const VARIANTS: &'static [Variant] = &[
+        Variant::of::<EntityCreationForbidden>(),
+        Variant::of::<UnknownEntityTypes>(),
+        Variant::of::<ArchivedEntityTypes>(),
+        Variant::of::<IncompatibleEntityTypes>(),
+        Variant::of::<InvalidEntities>(),
+        Variant::of::<ServiceUnavailable>(),
+        Variant::of::<InternalServerError>(),
+    ];
+}
+
+impl Expose<CreateEntitiesProblem> for Report<EntityCreationError> {
+    fn expose(&self) -> Answer<'_, CreateEntitiesProblem> {
+        match self.current_context() {
+            EntityCreationError::InstantiationForbidden { .. }
+            | EntityCreationError::CreationForbidden { .. } => Answer::new(EntityCreationForbidden),
+            EntityCreationError::UnknownEntityTypes { .. } => Answer::new(UnknownEntityTypes),
+            EntityCreationError::ArchivedEntityTypes { .. } => Answer::new(ArchivedEntityTypes),
+            EntityCreationError::IncompatibleEntityTypes { .. } => {
+                Answer::new(IncompatibleEntityTypes)
+            }
+            EntityCreationError::InvalidEntities => Answer::new(InvalidEntities),
+            EntityCreationError::Store => Answer::new(InternalServerError),
+        }
+    }
+}
+
+#[derive(Debug, derive_more::Display)]
+enum CreateEntitiesError {
+    #[display("no store could be acquired")]
+    Unavailable,
+    #[display("the store returned a draft")]
+    Draft,
+}
+
+impl Error for CreateEntitiesError {}
+
+impl Expose<CreateEntitiesProblem> for Report<CreateEntitiesError> {
+    fn expose(&self) -> Answer<'_, CreateEntitiesProblem> {
+        match self.current_context() {
+            CreateEntitiesError::Unavailable => Answer::new(ServiceUnavailable),
+            CreateEntitiesError::Draft => Answer::new(InternalServerError),
+        }
+    }
+}
+
+async fn create_entities<S>(
+    State(state): State<ApiState<S>>,
+    actor: Actor<Credentials>,
+    Json(CreateEntitiesRequest {
+        entities: NewEntities(entities),
+    }): Json<CreateEntitiesRequest>,
+) -> Result<Json<CreateEntitiesResponse, 201>, Rejection<CreateEntitiesProblem>>
+where
+    S: StorePool + Send + Sync + 'static,
+{
+    let actor_id = ActorId::from(actor);
+    let params = entities
+        .into_iter()
+        .map(|entity| CreateEntityParams {
+            web_id: entity.web_id,
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: entity.entity_type_ids.0.into_iter().collect(),
+            properties: entity.properties_with_metadata,
+            confidence: None,
+            link_data: None,
+            draft: false,
+            policies: Vec::new(),
+            provenance: ProvidedEntityEditionProvenance {
+                sources: Vec::new(),
+                actor_type: actor_id.actor_type(),
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+            },
+            read_only: false,
+        })
+        .collect::<Vec<_>>();
+
+    let mut store = state
+        .acquire()
+        .await
+        .change_context(CreateEntitiesError::Unavailable)?;
+    let created = store.create_entities(actor_id, params).await?;
+
+    let entities = created
+        .into_iter()
+        .map(|entity| {
+            let entity_id = LiveEntityId::try_from(entity.metadata.record_id.entity_id)
+                .map_err(|error| Report::new(error).change_context(CreateEntitiesError::Draft))?;
+            Ok(Entity::new(entity_id, entity))
+        })
+        .collect::<Result<Vec<_>, Report<CreateEntitiesError>>>()?;
+
+    Ok(Json(CreateEntitiesResponse { entities }))
+}
+
+fn document_create_entities(operation: TransformOperation<'_>) -> TransformOperation<'_> {
+    operation
+        .id("createEntities")
+        .summary("Create entities")
+        .description(
+            "Creates the entities in one transaction: either all of them are created or none. \
+             Returns them in the order of the request.",
+        )
+}
+
+pub(super) fn route<S>() -> Route<ApiState<S>>
+where
+    S: StorePool + Send + Sync + 'static,
+{
+    routing::post(create_entities::<S>, document_create_entities)
+}
+
+#[cfg(test)]
+mod tests {
+    use core::assert_matches;
+
+    use serde_json::json;
+
+    use super::CreateEntitiesRequest;
+
+    const WEB: &str = "8d86c8c3-d66d-43d1-859b-676c3bcaeadc";
+    const PERSON: &str = "https://example.com/@alice/types/entity-type/person/v/1";
+    const NAME: &str = "https://example.com/@alice/types/property-type/name/";
+
+    fn parse(request: serde_json::Value) -> Result<CreateEntitiesRequest, serde_json::Error> {
+        serde_json::from_value(request)
+    }
+
+    #[test]
+    fn request_no_entities() {
+        assert_matches!(
+            parse(json!({ "entities": [] })),
+            Err(error) if error.to_string().contains("at least one entity")
+        );
+    }
+
+    #[test]
+    fn request_no_entity_type() {
+        assert_matches!(
+            parse(json!({ "entities": [{
+                "webId": WEB,
+                "entityTypeIds": [],
+                "properties": {},
+                "propertyMetadata": {},
+            }] })),
+            Err(error) if error.to_string().contains("at least one entity type")
+        );
+    }
+
+    #[test]
+    fn request_metadata_mismatch() {
+        assert_matches!(
+            parse(json!({ "entities": [{
+                "webId": WEB,
+                "entityTypeIds": [PERSON],
+                "properties": { NAME: "Alice" },
+                "propertyMetadata": {},
+            }] })),
+            Err(error) if error.to_string().contains(&format!("has no entry for `[\"{NAME}\"]`"))
+        );
+    }
+}

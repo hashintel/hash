@@ -1,3 +1,5 @@
+#[cfg(feature = "schemars")]
+use alloc::borrow::Cow;
 #[cfg(feature = "postgres")]
 use core::error::Error;
 use std::collections::HashMap;
@@ -7,6 +9,8 @@ use bytes::BytesMut;
 use error_stack::Report;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
+#[cfg(feature = "schemars")]
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 
 use super::{
     Property, PropertyPath, PropertyPathElement, PropertyPathError, PropertyWithMetadata,
@@ -19,6 +23,26 @@ use crate::{knowledge::PropertyValue, ontology::BaseUrl};
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 pub struct PropertyObject(HashMap<BaseUrl, Property>);
+
+#[cfg(feature = "schemars")]
+impl JsonSchema for PropertyObject {
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("PropertyObject")
+    }
+
+    fn json_schema(generator: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "object",
+            "description": "Properties keyed by the base URL of their property type.",
+            "propertyNames": generator.subschema_for::<BaseUrl>(),
+            "additionalProperties": generator.subschema_for::<Property>(),
+            "examples": [{
+                "https://hash.ai/@h/types/property-type/shortname/": "alice",
+                "https://hash.ai/@h/types/property-type/preferred-name/": "Alice",
+            }],
+        })
+    }
+}
 
 impl PropertyObject {
     #[must_use]
