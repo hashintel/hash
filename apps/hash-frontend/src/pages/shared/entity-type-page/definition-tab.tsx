@@ -91,7 +91,7 @@ export const DefinitionTab = ({
   }
 
   return (
-    <Stack spacing={6.5}>
+    <Stack key={entityTypeAndPropertyTypes.entityType.schema.$id} spacing={6.5}>
       <EntityTypeEditor
         customization={{ onNavigateToType }}
         dataTypeOptions={dataTypeOptions}
