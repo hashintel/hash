@@ -8,6 +8,7 @@ use core::{
 
 use aws_lc_rs::error::Unspecified;
 use error_stack::Report;
+use zeroize::Zeroize as _;
 
 use crate::{Secret, SecretBuffer};
 
@@ -18,8 +19,12 @@ pub struct RandomError;
 
 impl Error for RandomError {}
 
+/// Fills `bytes` with random bytes, or zeroes them on failure.
 fn fill(bytes: &mut [u8]) -> Result<(), Report<RandomError>> {
-    aws_lc_rs::rand::fill(bytes).map_err(|Unspecified| Report::new(RandomError))
+    aws_lc_rs::rand::fill(bytes).map_err(|Unspecified| {
+        bytes.zeroize();
+        Report::new(RandomError)
+    })
 }
 
 /// `N` random bytes for a value that is not secret, such as an ID.
@@ -45,7 +50,7 @@ pub fn random_bytes<const N: usize>() -> Result<[u8; N], Report<RandomError>> {
 }
 
 impl<T: ?Sized + SecretBuffer<View = [u8]>> Secret<T> {
-    /// Fills the secret with random bytes.
+    /// Fills the secret with random bytes, or zeroes it on failure.
     ///
     /// # Errors
     ///

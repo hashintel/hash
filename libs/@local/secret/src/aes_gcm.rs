@@ -162,7 +162,7 @@ impl<P: AeadPurpose> Aes256GcmKey<P> {
         Ok(sealed)
     }
 
-    /// Opens `sealed` into `plaintext`, which is left unchanged on failure.
+    /// Opens `sealed` into `plaintext`, which is zeroed on failure.
     ///
     /// # Errors
     ///
@@ -191,6 +191,7 @@ impl<P: AeadPurpose> Aes256GcmKey<P> {
             Aad::from(P::associated_data(associated_data)),
             buffer.as_mut().expose_mut(),
         ) else {
+            plaintext.expose_mut().zeroize();
             return Err(Report::new(OpenError));
         };
 
@@ -401,8 +402,8 @@ mod tests {
 
         assert_eq!(
             plaintext.expose(),
-            [0xA5; 60].as_slice(),
-            "a value that does not open should leave the plaintext unchanged"
+            [0; 60].as_slice(),
+            "a value that does not open should zero the plaintext"
         );
     }
 

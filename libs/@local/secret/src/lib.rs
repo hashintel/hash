@@ -1,5 +1,7 @@
 //! Secret values that are zeroed on drop, and the cryptography that uses them.
 //!
+//! A function that writes into a secret zeroes it when it fails.
+//!
 //! ## Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![feature(clone_to_uninit, clone_from_ref, impl_restriction, ptr_metadata)]
