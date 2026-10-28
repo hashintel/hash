@@ -187,6 +187,18 @@ describe("type_expressions", () => {
     ]);
   });
 
+  test("deep_nesting", () => {
+    expect.hasAssertions();
+    let type: Type.Type = Type.infer();
+    for (let depth = 0; depth < 100_000; depth += 1) {
+      type = Type.tuple(type);
+    }
+
+    expect(JExpr.compile(Type.toExpression(type))).toBe(
+      `${'{"#tuple":['.repeat(100_000)}"_"${"]}".repeat(100_000)}`,
+    );
+  });
+
   test("annotation_string", () => {
     expect.hasAssertions();
     expect(JExpr.typed(JExpr.tuple(JExpr.integer(1)), tuple)["#type"]).toBe(
