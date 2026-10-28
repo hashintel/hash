@@ -9,7 +9,10 @@ const { Expression, Import, Module, Namespace, Prelude, Structural } = Program;
 const source = Result.getOrThrow(
   Module.define("::source", {
     values: {
-      count: Expression.input("count", Structural.type(BigInt)),
+      count: Expression.input(
+        "count",
+        Result.getOrThrow(Structural.type(BigInt)),
+      ),
       text: Module.value<Type.PrimitiveString>(),
     },
   }),
@@ -165,7 +168,7 @@ const checkCapabilities = (
     >();
   }
   if (flat.Item !== undefined) {
-    expectTypeOf(Structural.type(flat.Item)).toEqualTypeOf<
+    expectTypeOf(Result.getOrThrow(Structural.type(flat.Item))).toEqualTypeOf<
       Program.TypeExpression.TypeExpression<Item>
     >();
   }
@@ -232,7 +235,7 @@ const checkCorrelated = (selection: readonly "Item"[]): void => {
     expectTypeOf(flat.Item.add(one, two)).toEqualTypeOf<
       Program.Expression.Expression<Type.PrimitiveInteger, Program.Inputs.Empty>
     >();
-    expectTypeOf(Structural.type(flat.Item)).toEqualTypeOf<
+    expectTypeOf(Result.getOrThrow(Structural.type(flat.Item))).toEqualTypeOf<
       Program.TypeExpression.TypeExpression<Item>
     >();
     expect(Program.TypeExpression.isExport(flat.Item)).toBe(true);
@@ -254,7 +257,7 @@ const checkCorrelatedAliases = (
     expectTypeOf(flat.local(one)).toEqualTypeOf<
       Program.Expression.Expression<Item, Program.Inputs.Empty>
     >();
-    expectTypeOf(Structural.type(flat.local)).toEqualTypeOf<
+    expectTypeOf(Result.getOrThrow(Structural.type(flat.local))).toEqualTypeOf<
       Program.TypeExpression.TypeExpression<Item>
     >();
     expect(Module.isModule(flat.local)).toBe(true);
