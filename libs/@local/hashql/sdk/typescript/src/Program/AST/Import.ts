@@ -5,7 +5,10 @@ import * as Path from "../../JExpr/Path.js";
 
 import type { Node } from "./Node.js";
 
-export class Import<T extends Node> extends Pipeable.Class implements Node {
+export class Import<T extends Node>
+  extends Pipeable.Class
+  implements Node.Of<readonly [T]>
+{
   readonly path: Path.Path;
   readonly imports: JExpr.Imports;
   readonly child: T;
@@ -18,11 +21,11 @@ export class Import<T extends Node> extends Pipeable.Class implements Node {
     this.child = child;
   }
 
-  compile(): JExpr.Expression {
-    return JExpr.use(
-      Path.compile(this.path),
-      this.imports,
-      this.child.compile(),
-    );
+  get children(): readonly [T] {
+    return [this.child];
+  }
+
+  toExpr([body]: readonly [JExpr.Expression]): JExpr.Expression {
+    return JExpr.use(Path.compile(this.path), this.imports, body);
   }
 }

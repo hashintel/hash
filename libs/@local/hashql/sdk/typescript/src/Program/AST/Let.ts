@@ -6,7 +6,10 @@ import * as JExpr from "../../JExpr/index.js";
 import type { Binding } from "./Binding.js";
 import type { Node } from "./Node.js";
 
-export class Let<T extends Node> extends Pipeable.Class implements Node {
+export class Let<T extends Node>
+  extends Pipeable.Class
+  implements Node.Of<readonly [Node, T]>
+{
   readonly binding: Binding<Node>;
   readonly child: T;
 
@@ -17,11 +20,14 @@ export class Let<T extends Node> extends Pipeable.Class implements Node {
     this.child = child;
   }
 
-  compile(): JExpr.Expression {
-    return JExpr.let(
-      Ident.compile(this.binding.name),
-      this.binding.value.compile(),
-      this.child.compile(),
-    );
+  get children(): readonly [Node, T] {
+    return [this.binding.value, this.child];
+  }
+
+  toExpr([value, body]: readonly [
+    JExpr.Expression,
+    JExpr.Expression,
+  ]): JExpr.Expression {
+    return JExpr.let(Ident.compile(this.binding.name), value, body);
   }
 }
