@@ -77,7 +77,7 @@ describe("structural_constructor", () => {
 
   test("relocated_failure", () => {
     expect.hasAssertions();
-    const invalid = Structural.type({ "": Number });
+    const invalid = dictionary(String, { "": Number });
     expect(TypeExpression.relocate(invalid, path)).toStrictEqual(
       invalid.syntax,
     );
@@ -95,7 +95,7 @@ describe("structural_constructor", () => {
   test("unspecialized_type", () => {
     expect.hasAssertions();
     // @ts-expect-error An unapplied constructor is not a type definition.
-    const result = Structural.type(declaration).syntax;
+    const result = Structural.type(declaration);
     expect(result).toMatchObject({
       _tag: "Failure",
       failure: {
@@ -108,13 +108,44 @@ describe("structural_constructor", () => {
   test("unsupported_constructor", () => {
     expect.hasAssertions();
     // @ts-expect-error Date is outside the supported primitive shorthand.
-    const result = Structural.type(Date).syntax;
+    const result = Structural.type(Date);
     expect(result).toMatchObject({
       _tag: "Failure",
       failure: {
         reason: { _tag: "UnsupportedTypeConstructor", name: "Date" },
         message: 'Unsupported primitive type constructor: "Date"',
       },
+    });
+  });
+
+  test("invalid_field_name", () => {
+    expect.hasAssertions();
+    expect(Structural.type({ "": Number })).toMatchObject({
+      _tag: "Failure",
+      failure: { reason: { _tag: "InvalidBindingName", name: "" } },
+    });
+  });
+
+  test("duplicate_field", () => {
+    expect.hasAssertions();
+    expect(Structural.type({ "+": String, "`+`": BigInt })).toMatchObject({
+      _tag: "Failure",
+      failure: {
+        reason: { _tag: "DuplicateStructField", name: "`+`" },
+        message: 'Duplicate HashQL struct field: "`+`"',
+      },
+    });
+    expect(
+      Structural.type({ count: { "`+`": String, "+": BigInt } }),
+    ).toMatchObject({
+      _tag: "Failure",
+      failure: { reason: { _tag: "DuplicateStructField", name: "+" } },
+    });
+    expect(
+      dictionary(String, { "+": String, "`+`": BigInt }).syntax,
+    ).toMatchObject({
+      _tag: "Failure",
+      failure: { reason: { _tag: "DuplicateStructField", name: "`+`" } },
     });
   });
 
@@ -220,7 +251,7 @@ describe("structural_values", () => {
 
   test("failed_definitions", () => {
     expect.hasAssertions();
-    const invalid = Structural.type({ "": String });
+    const invalid = dictionary(String, { "": String });
     const failure = Result.getOrThrow(Result.flip(invalid.syntax));
     for (const expression of [
       Structural.list(invalid, []),

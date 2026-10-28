@@ -112,10 +112,12 @@ describe("emitted_package", () => {
 describe("emitted_structural_operators", () => {
   test("structural_operators", () => {
     expect.hasAssertions();
-    const descriptor = Program.Structural.type({
-      count: BigInt,
-      selected: Boolean,
-    });
+    const descriptor = Result.getOrThrow(
+      Program.Structural.type({
+        count: BigInt,
+        selected: Boolean,
+      }),
+    );
     type Row = Type.Struct<{
       readonly count: Type.PrimitiveInteger;
       readonly selected: Type.PrimitiveBoolean;
@@ -123,10 +125,13 @@ describe("emitted_structural_operators", () => {
     expectTypeOf(descriptor).toEqualTypeOf<
       Program.TypeExpression.TypeExpression<Row>
     >();
-    const count = Expression.input("count", Program.Structural.type(BigInt));
+    const count = Expression.input(
+      "count",
+      Result.getOrThrow(Program.Structural.type(BigInt)),
+    );
     const enabled = Expression.input(
       "enabled",
-      Program.Structural.type(Boolean),
+      Result.getOrThrow(Program.Structural.type(Boolean)),
       true,
     );
     const zero = 0n;

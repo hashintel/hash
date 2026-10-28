@@ -17,6 +17,8 @@ const Issue = Schema.declare(SchemaIssue.isIssue);
 export const Reason = Schema.TaggedUnion({
   /** A declaration name is not a valid HashQL identifier. */
   InvalidBindingName: { name: Schema.String, cause: Issue },
+  /** A struct type names a field that an earlier field already names, such as `+` after `` `+` ``. `name` is the later spelling. */
+  DuplicateStructField: { name: Schema.String },
   /** An imported name or alias is not a valid HashQL identifier. */
   InvalidImportName: { name: Schema.String, cause: Issue },
   /** A query callback parameter name is not a valid HashQL identifier. */
@@ -84,6 +86,13 @@ export class Construction extends Schema.TaggedError<Construction>()(
   ): Construction {
     return Construction.make({
       reason: Reason.make({ _tag: "InvalidBindingName", name, cause }),
+    });
+  }
+
+  /** Retains the field name whose decoded identifier repeats an earlier field. */
+  static duplicateStructField(name: string): Construction {
+    return Construction.make({
+      reason: Reason.make({ _tag: "DuplicateStructField", name }),
     });
   }
 
@@ -157,6 +166,8 @@ export class Construction extends Schema.TaggedError<Construction>()(
     return Reason.match(this.reason, {
       InvalidBindingName: ({ name }) =>
         `Invalid HashQL binding name: ${JSON.stringify(name)}`,
+      DuplicateStructField: ({ name }) =>
+        `Duplicate HashQL struct field: ${JSON.stringify(name)}`,
       InvalidImportName: ({ name }) =>
         `Invalid HashQL import name: ${JSON.stringify(name)}`,
       InvalidParameterName: ({ name }) =>

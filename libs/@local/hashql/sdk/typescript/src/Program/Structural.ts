@@ -199,7 +199,7 @@ export const isValue = (value: unknown): value is Value.Any => {
 /**
  * Constructs a type expression from primitive, tuple and record shorthand.
  *
- * The descriptor retains each tuple position and record field. Runtime records contribute enumerable own string keys. Invalid field names and failed nested type handles remain construction failures in the returned handle's `syntax` Result. The resulting type description provides no runtime validator for host values.
+ * The descriptor retains each tuple position and record field. Runtime records contribute enumerable own string keys. An invalid field name, two keys that decode to the same name, an unsupported constructor or a failed nested type handle fails the returned Result. The resulting type description provides no runtime validator for host values.
  *
  * @example <caption>Describe a record with a nested tuple.</caption>
  * ```ts
@@ -208,7 +208,9 @@ export const isValue = (value: unknown): value is Value.Any => {
  * import { Result } from "effect";
  *
  * const { Expression, Structural } = Program;
- * const account = Structural.type({ name: String, location: [Number, Number] });
+ * const account = Result.getOrThrow(
+ *   Structural.type({ name: String, location: [Number, Number] }),
+ * );
  * const input = Expression.input("account", account);
  * assert.equal(
  *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(input))),
@@ -217,6 +219,19 @@ export const isValue = (value: unknown): value is Value.Any => {
  * ```
  */
 export const type = <const D extends Definition>(
+  definition: D,
+): Result.Result<
+  TypeExpression.TypeExpression<TypeOf<D>>,
+  ProgramError.Construction
+> =>
+  pipe(
+    definition,
+    StructuralSyntax.typeSyntax,
+    Result.map(TypeExpression.fromType<TypeOf<D>>),
+  );
+
+/** Keeps a failed argument inside its handle, because the constructor reports argument failures through the type expression it returns. */
+const handle = <const D extends Definition>(
   definition: D,
 ): TypeExpression.TypeExpression<TypeOf<D>> =>
   pipe(
@@ -236,7 +251,7 @@ interface Normalize extends Struct.Lambda {
   ): TypeExpression.TypeExpression<TypeOf<D>>;
 }
 
-const normalize = Tuple.map(Struct.lambda<Normalize>(type));
+const normalize = Tuple.map(Struct.lambda<Normalize>(handle));
 
 type ArgumentTypes<A extends readonly Definition[]> = {
   readonly [K in keyof A]: TypeOf<A[K]>;

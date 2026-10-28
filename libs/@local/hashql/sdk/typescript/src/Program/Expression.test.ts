@@ -26,7 +26,7 @@ const inheritedMembers = [
   (name) =>
     !Object.hasOwn(plain, name) && name !== "arguments" && name !== "caller",
 );
-const numberType = Structural.type(Number);
+const numberType = Result.getOrThrow(Structural.type(Number));
 
 describe("expression", () => {
   test("returned_function", () => {
