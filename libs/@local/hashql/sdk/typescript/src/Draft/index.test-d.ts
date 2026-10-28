@@ -481,7 +481,7 @@ describe("import", () => {
 
 type Vertex = Type.Struct<{ readonly enabled: Type.PrimitiveBoolean }>;
 const graph = Result.getOrThrow(
-  Module.define("::graph::head", {
+  Module.define("::example::graph", {
     values: {
       entities:
         Module.value<
