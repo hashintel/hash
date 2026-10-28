@@ -133,7 +133,7 @@ export const useFlowRunEvents = ({
       if (!cancelled && runId !== undefined) {
         const loadedRunId = runId;
 
-        /* An unchanged result keeps its identity, so the net is not replayed again for nothing. */
+        /* An unchanged result keeps its identity, so what's derived from it isn't recomputed for nothing. */
         setRead((previous) =>
           !changed &&
           previous?.flowRunEntityId === flowRunEntityId &&
