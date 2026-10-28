@@ -3,6 +3,7 @@ import { JSONObjectResolver } from "graphql-scalars";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { cancelFlow } from "./flows/cancel-flow";
+import { flowRunDataSourcesResolver } from "./flows/flow-run-data-sources";
 import {
   flowRunFailureResolver,
   flowRunOutputsResolver,
@@ -340,7 +341,12 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     blockChildEntity: blockChildEntityResolver,
   },
 
+  FlowRunSummary: {
+    openInputRequests: flowRunOpenInputRequestsResolver,
+  },
+
   FlowRun: {
+    dataSources: flowRunDataSourcesResolver,
     events: flowRunEventsResolver,
     outputs: flowRunOutputsResolver,
     failure: flowRunFailureResolver,

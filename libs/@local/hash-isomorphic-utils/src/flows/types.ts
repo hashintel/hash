@@ -1,6 +1,5 @@
 import { typedKeys } from "@local/advanced-types/typed-entries";
 
-import type { FlowRun } from "../graphql/api-types.gen.js";
 import type { ActorTypeDataType } from "../system-types/google/googlesheetsfile.js";
 import type {
   AiFlowActionDefinitionId,
@@ -1158,12 +1157,3 @@ export type StartedForEachStep = {
   itemCount: number;
   startedAt: string;
 };
-
-export const detailedFlowFields = ["flowInputs", "dataSources"] as const;
-
-export type DetailedFlowField = (typeof detailedFlowFields)[number];
-
-/** A run as its reader returns it. `events` has a field resolver of its own, which reads the run's record. */
-export type FlowRunWithoutEvents = Omit<FlowRun, "events">;
-
-export type SparseFlowRun = Omit<FlowRunWithoutEvents, DetailedFlowField>;

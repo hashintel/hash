@@ -3,6 +3,7 @@ import Long from "long";
 
 import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import { getFlowRunRecord } from "@local/hash-backend-utils/flows/run-record";
+import { correctFlowRunStatusFromRecord } from "@local/hash-backend-utils/flows/shared/save-flow-run-status";
 import { saveOpenInputRequests } from "@local/hash-backend-utils/flows/shared/save-open-input-requests";
 import { temporalNamespace } from "@local/hash-backend-utils/temporal";
 import { getOpenInputRequests } from "@local/hash-isomorphic-utils/flows/run-events";
@@ -66,11 +67,21 @@ export const resetFlow: ResolverFn<
     workflowTaskFinishEventId: Long.fromInt(eventId),
   });
 
-  /* A reset changes which requests are open without the workflow raising or answering any, so it saves none itself. */
-  const { events } = await getFlowRunRecord({
+  /*
+   * A reset reopens the run and changes which requests are open, without the workflow saving either: it saves its
+   * status only when it ends, and its requests only as it raises and answers them.
+   */
+  const { header, events } = await getFlowRunRecord({
     storageProvider: dataSources.uploadProvider,
     temporalClient: temporal,
     workflowId,
+  });
+
+  await correctFlowRunStatusFromRecord({
+    flowRunEntity: flow,
+    graphApiClient: dataSources.graphApi,
+    header,
+    userAuthentication: authentication,
   });
 
   const openInputRequests = getOpenInputRequests(events);

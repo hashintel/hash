@@ -69,7 +69,6 @@ export const handleInferEntitiesRequest = async ({
         ),
       },
       graphApiClient,
-      includeDetails: true,
       storageProvider,
       temporalClient,
     });

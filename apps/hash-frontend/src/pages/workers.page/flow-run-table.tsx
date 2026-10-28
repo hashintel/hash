@@ -50,7 +50,7 @@ type FieldId =
   | "web"
   | "type"
   | "name"
-  | "executedAt"
+  | "startedAt"
   | "closedAt"
   | "status"
   | "cost";
@@ -77,7 +77,7 @@ const createColumns: (
     width: "auto",
   },
   {
-    id: "executedAt",
+    id: "startedAt",
     label: "Started At",
     sortable: true,
     width: 170,
@@ -111,7 +111,7 @@ type WorkerSummary = Subtype<
   {
     flowRunEntityId: EntityId;
     flowScheduleId: EntityUuid | null;
-    executedAt: string | null;
+    startedAt: string;
     closedAt: string | null;
     type: "flow" | "goal";
     web: {
@@ -134,7 +134,7 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
     flowScheduleId,
     type,
     name,
-    executedAt,
+    startedAt,
     closedAt,
     status,
     cost,
@@ -199,9 +199,7 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
         <Typography
           sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
         >
-          {executedAt
-            ? format(new Date(executedAt), "yyyy-MM-dd HH:mm a")
-            : "Pending..."}
+          {format(new Date(startedAt), "yyyy-MM-dd HH:mm a")}
         </Typography>
       </MuiTableCell>
       <MuiTableCell sx={flowTableCellSx}>
@@ -320,8 +318,7 @@ export const FlowRunTable = ({
           ? "goal"
           : "flow";
 
-        const { webId, flowRunEntityId, executedAt, closedAt, status } =
-          flowRun;
+        const { webId, flowRunEntityId, startedAt, closedAt, status } = flowRun;
 
         let web: WorkerSummary["web"] | undefined = webByWebId[webId];
 
@@ -370,7 +367,7 @@ export const FlowRunTable = ({
             type,
             name: flowRun.name,
             closedAt: closedAt ?? null,
-            executedAt: executedAt ?? null,
+            startedAt,
             status: flowRunStatusToStatusText(status),
             cost,
             usageAvailable,

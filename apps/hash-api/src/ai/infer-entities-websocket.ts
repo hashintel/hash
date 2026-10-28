@@ -79,7 +79,6 @@ const inferEntitiesMessageHandler = async ({
         authentication: { actorId: user.accountId },
         filters: { executionStatus: FlowRunStatus.Running },
         graphApiClient,
-        includeDetails: false,
         storageProvider,
         temporalClient,
       });

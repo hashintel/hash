@@ -40,7 +40,6 @@ export type FlowRunHistoryRecord = {
     runId: string;
     status: WorkflowExecutionStatusName;
     startTime: string;
-    executionTime?: string | null;
     closeTime?: string | null;
   };
   history: IHistoryEvent[];
@@ -84,7 +83,6 @@ export const getFlowRunRecordFromHistory = (
       ...(originalRunStartTime
         ? { firstRunStartedAt: originalRunStartTime }
         : {}),
-      ...(describe.executionTime ? { executedAt: describe.executionTime } : {}),
       ...(describe.closeTime ? { closedAt: describe.closeTime } : {}),
       ...("dataSources" in workflowParams
         ? { dataSources: workflowParams.dataSources }
@@ -172,7 +170,6 @@ const readFlowRunHistoryRecord = async ({
       runId,
       status: workflow.status.name,
       startTime: workflow.startTime.toISOString(),
-      executionTime: workflow.executionTime?.toISOString(),
       closeTime: workflow.closeTime?.toISOString(),
     },
     history,
@@ -214,8 +211,8 @@ export const readStoredFlowRunRecord = async ({
 
 /**
  * Writes the record of the run `runId` of a workflow, which is about to end as `ending`. Called by the run's workflow
- * as the last thing it does, so the run's history is complete apart from the event that closes it. Does nothing if the
- * workflow's current run is another one, e.g. because the run has been reset.
+ * as the last thing it does, so the run's history is complete apart from the event that closes it. Writes and returns
+ * nothing if the workflow's current run is another one, e.g. because the run has been reset.
  */
 export const recordEndedFlowRun = async ({
   temporalClient,
@@ -229,7 +226,7 @@ export const recordEndedFlowRun = async ({
   workflowId: string;
   runId: string;
   ending: FlowRunEnding;
-}): Promise<void> => {
+}): Promise<FlowRunRecord | null> => {
   const workflow = await temporalClient.workflow
     .getHandle(workflowId)
     .describe();
@@ -239,22 +236,23 @@ export const recordEndedFlowRun = async ({
     console.warn(
       `Not recording run ${runId} of flow ${workflowId}, because its current run is ${workflow.runId}`,
     );
-    return;
+    return null;
   }
 
   const historyRecord = await readFlowRunHistoryRecord({
     temporalClient,
     workflow,
   });
-  await writeFlowRunRecord({
-    storageProvider,
-    record: endFlowRunRecord({
-      record: getFlowRunRecordFromHistory(historyRecord, { workflowId }),
-      ending,
-      endedAt: new Date().toISOString(),
-      lastHistoryEventId: Number(historyRecord.history.at(-1)?.eventId ?? 0),
-    }),
+  const record = endFlowRunRecord({
+    record: getFlowRunRecordFromHistory(historyRecord, { workflowId }),
+    ending,
+    endedAt: new Date().toISOString(),
+    lastHistoryEventId: Number(historyRecord.history.at(-1)?.eventId ?? 0),
   });
+
+  await writeFlowRunRecord({ storageProvider, record });
+
+  return record;
 };
 
 /**

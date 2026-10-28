@@ -9,6 +9,7 @@ import type { FlowRunRecord } from "@local/hash-isomorphic-utils/flows/run-recor
 
 const mocks = vi.hoisted(() => ({
   calls: [] as string[],
+  correctFlowRunStatusFromRecord: vi.fn(),
   getFlowRunRecord: vi.fn(),
   saveOpenInputRequests: vi.fn(),
 }));
@@ -25,6 +26,10 @@ vi.mock("@local/hash-backend-utils/flows", () => ({
 
 vi.mock("@local/hash-backend-utils/flows/run-record", () => ({
   getFlowRunRecord: mocks.getFlowRunRecord,
+}));
+
+vi.mock("@local/hash-backend-utils/flows/shared/save-flow-run-status", () => ({
+  correctFlowRunStatusFromRecord: mocks.correctFlowRunStatusFromRecord,
 }));
 
 vi.mock(
@@ -92,6 +97,7 @@ describe("resetFlow", () => {
       mocks.calls.push("read record");
       return Promise.resolve(recordAfterReset);
     });
+    mocks.correctFlowRunStatusFromRecord.mockReset();
     mocks.saveOpenInputRequests.mockReset();
   });
 
@@ -133,6 +139,14 @@ describe("resetFlow", () => {
           },
         ],
       }),
+    );
+  });
+
+  it("saves the status the run has once it's reset on its entity", async () => {
+    await reset();
+
+    expect(mocks.correctFlowRunStatusFromRecord).toHaveBeenCalledWith(
+      expect.objectContaining({ header: recordAfterReset.header }),
     );
   });
 

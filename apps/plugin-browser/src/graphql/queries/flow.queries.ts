@@ -8,13 +8,20 @@ export const getMinimalFlowRunsQuery = /* GraphQL */ `
         flowRunEntityId
         webId
         status
-        executedAt
+        startedAt
         closedAt
         flowInputs
-        outputs {
-          outputName
-          payload
-        }
+      }
+    }
+  }
+`;
+
+export const getFlowRunOutputsQuery = /* GraphQL */ `
+  query getFlowRunOutputs($flowRunEntityId: EntityId!) {
+    getFlowRunById(flowRunEntityId: $flowRunEntityId) {
+      outputs {
+        outputName
+        payload
       }
     }
   }

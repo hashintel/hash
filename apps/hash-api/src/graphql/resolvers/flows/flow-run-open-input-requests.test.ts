@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-
+import { FlowRunStatus } from "../../api-types.gen";
 import { flowRunOpenInputRequestsResolver } from "./flow-run-open-input-requests";
 
-import type { FlowRunWithoutEvents } from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowRunSummary } from "../../api-types.gen";
 
 const savedRequest = {
   requestId: "open",
@@ -14,12 +13,12 @@ const savedRequest = {
   raisedAt: "2026-10-26T10:03:00.000Z",
 };
 
-const openInputRequestsOf = (flowRun: Partial<FlowRunWithoutEvents>) =>
+const openInputRequestsOf = (flowRun: Partial<FlowRunSummary>) =>
   flowRunOpenInputRequestsResolver(
     {
       openInputRequests: [savedRequest],
       ...flowRun,
-    } as FlowRunWithoutEvents,
+    } as FlowRunSummary,
     {},
     {} as never,
     {} as never,

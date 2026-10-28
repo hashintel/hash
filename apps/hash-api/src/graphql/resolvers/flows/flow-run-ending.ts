@@ -5,17 +5,14 @@ import { FlowRunStatus } from "../../api-types.gen";
 import { getRecordOfFlowRun } from "./shared/get-record-of-flow-run";
 
 import type {
-  FlowRun,
   FlowRunError,
   FlowRunOutput,
   FlowRunStepError,
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import type {
-  ResolvedPayload,
-  SparseFlowRun,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowRunParent } from "./shared/get-record-of-flow-run";
+import type { ResolvedPayload } from "@local/hash-isomorphic-utils/flows/types";
 
 type FlowRunEndingContext = Pick<
   GraphQLContext,
@@ -24,7 +21,7 @@ type FlowRunEndingContext = Pick<
 
 type FlowRunEndingResolver<Result> = ResolverFn<
   Result | null,
-  FlowRun | SparseFlowRun,
+  FlowRunParent,
   FlowRunEndingContext,
   Record<string, never>
 >;
@@ -40,7 +37,7 @@ const endedStatuses: FlowRunStatus[] = [
 
 /** How a run ended, from its record. A run that hasn't ended has no ending to read, so its record isn't read. */
 const getFlowRunEnding = async (
-  flowRun: FlowRun | SparseFlowRun,
+  flowRun: FlowRunParent,
   context: FlowRunEndingContext,
 ) => {
   if (!endedStatuses.includes(flowRun.status)) {

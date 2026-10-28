@@ -95,6 +95,54 @@ export const flowTypedef = gql`
     error: FlowRunError!
   }
 
+  """
+  A run as its Flow Run entity describes it, for lists of runs.
+  """
+  type FlowRunSummary {
+    """
+    The entity id of the run's Flow Run entity.
+    """
+    flowRunEntityId: EntityId!
+    """
+    The id of the schedule that triggered this run, if any.
+    Only present for flow runs triggered by a FlowSchedule.
+    """
+    flowScheduleId: EntityUuid
+    """
+    The entity id of the Flow Definition entity this run is executing.
+    """
+    flowDefinitionEntityId: EntityId!
+    """
+    A user-facing name for the flow run to distinguish it from other runs of its kind,
+    which might include a key input or a summary of its key inputs.
+    """
+    name: String!
+    """
+    The web this flow run is associated with
+    """
+    webId: WebId!
+    status: FlowRunStatus!
+    """
+    When the run was triggered. Resetting the run doesn't change it.
+    """
+    startedAt: String!
+    """
+    When the run stopped
+    """
+    closedAt: String
+    """
+    The values given to the flow's inputs
+    """
+    flowInputs: FlowInputValues!
+    """
+    The run's requests for input that haven't been answered, latest first. Empty once the run has stopped.
+    """
+    openInputRequests: [ExternalInputRequest!]!
+  }
+
+  """
+  A run, with what its record says about how it went.
+  """
   type FlowRun {
     """
     The entity id of the run's Flow Run entity.
@@ -118,18 +166,11 @@ export const flowTypedef = gql`
     The web this flow run is associated with
     """
     webId: WebId!
-    """
-    Details of the run's status, inputs, outputs etc
-    """
     status: FlowRunStatus!
     """
-    When the run was triggered
+    When the run was triggered. Resetting the run doesn't change it.
     """
     startedAt: String!
-    """
-    When the run began executing (which may be after it was started if it has a delay before execution)
-    """
-    executedAt: String
     """
     When the run stopped
     """
@@ -161,7 +202,6 @@ export const flowTypedef = gql`
     """
     What happened in the run, in the order its history records it.
     Ask again with \`endCursor\` to follow a run, and handle \`restarted\` before appending.
-    Only available on a run fetched with \`getFlowRunById\`: \`getFlowRuns\` refuses it.
     """
     events(
       """
@@ -205,11 +245,9 @@ export const flowTypedef = gql`
     """
     The flow runs for the requested page
     """
-    flowRuns: [FlowRun!]!
+    flowRuns: [FlowRunSummary!]!
     """
     The total number of flow run entities matching the filters.
-    Note: this count comes from the graph query and may not reflect
-    Temporal-side filtering (e.g. by executionStatus).
     """
     totalCount: Int!
     """
