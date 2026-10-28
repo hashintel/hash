@@ -1,11 +1,11 @@
 /**
  * Composes string parsers and generators from the same builder operations.
  *
- * Start with {@link make}, then compose builders with `flow` or `pipe`. A {@link Parser} consumes an input prefix and returns its remaining input with the accumulated output. Add {@link eof} to require complete consumption. Character counts use Unicode scalar values. {@link ParserError.offset} counts UTF-16 code units.
+ * Start with {@link make}, then compose builders with {@link flow} or {@link pipe}. A {@link Parser} consumes an input prefix and returns its remaining input with the accumulated output. Add {@link eof} to require complete consumption. Character counts use Unicode scalar values. {@link ParserError.offset} counts UTF-16 code units.
  *
- * Source generators propose inputs. {@link Parser.arbitrary} keeps complete parses and obtains their outputs from the parser. Those outputs are not an independent correctness oracle. Ordered choices and greedy readers can discard candidates, and restrictive grammars can exhaust Effect's discard budget.
+ * Source generators propose inputs. {@link Parser.arbitrary} keeps complete parses and obtains their outputs from the parser. Those outputs are not an independent correctness oracle. Ordered choices and greedy readers can discard candidates. Restrictive grammars can exhaust Effect's discard budget.
  *
- * Callbacks must be pure because sampling and shrinking run the parser again. Callback exceptions throw during parsing and become defects when sampling through Effect. These builders are internal and have no package export.
+ * Callbacks must be pure because sampling and shrinking run the parser again. Callback exceptions throw during parsing. Sampling through Effect turns them into defects. These builders are internal and have no package export.
  *
  * @example <caption>Compose a Unicode identifier parser.</caption>
  * ```ts
@@ -73,7 +73,7 @@ export type Return<T, R extends Reason> = Result.Result<
 
 /** A reusable parser and its candidate-source schema. */
 interface Definition<T, R extends Reason> {
-  /** Runs immediately and reports expected failures through Result. */
+  /** Runs immediately. Expected failures return as a failed {@link Result.Result | Result}. */
   readonly parse: (input: string) => Return<T, R>;
   /** Retains recursive structure for Effect's size-controlled source generation. */
   readonly schema: () => Schema.Codec<string>;
@@ -142,17 +142,15 @@ export function make<T>(output?: T): Parser<T | undefined, never> {
   });
 }
 
-/** Appends a child parser's output and translates its error offsets into the parent's input. */
+/** Appends a child parser's output. It translates the child's error offsets into the parent's input. */
 export const and =
   <U, S extends Reason>(suffix: Parser<U, S>): Append<U, S> =>
   <T, R extends Reason>(prefix: Parser<T, R>): Parser<readonly [T, U], R | S> =>
     from<readonly [T, U], R | S>({
       parse: (input) =>
-        pipe(
-          prefix.parse(input),
+        prefix.parse(input).pipe(
           Result.flatMap((previous) =>
-            pipe(
-              suffix.parse(previous.input),
+            suffix.parse(previous.input).pipe(
               Result.mapBoth({
                 onSuccess: (success) => ({
                   input: success.input,
@@ -177,8 +175,7 @@ export const eof = <T, R extends Reason>(
 ): Parser<T, R | ExpectedEndOfInput> =>
   from<T, R | ExpectedEndOfInput>({
     parse: (input) =>
-      pipe(
-        self.parse(input),
+      self.parse(input).pipe(
         Result.filterOrFail(
           (state) => String.isEmpty(state.input),
           (state) =>
@@ -281,7 +278,7 @@ export const nextSlice = (length: number): Append<string, ScalarReason> =>
 /**
  * Appends up to the maximum scalar count without searching for a delimiter.
  *
- * The reader stops at the maximum or the end of input. It fails if fewer than the minimum remain. A later parser cannot make this reader return characters it has consumed.
+ * The reader stops at the maximum or the end of input. It fails if fewer than the minimum remain. An isolated surrogate before the maximum fails with {@link ExpectedScalar}, even after the minimum. A later parser cannot make this reader return characters it has consumed.
  *
  * @throws {RangeError} If the counts violate {@link SliceBounds}.
  */
@@ -413,11 +410,9 @@ export const tryMap =
   <R extends Reason>(self: Parser<T, R>): Parser<U, R | S> =>
     from<U, R | S>({
       parse: (input) =>
-        pipe(
-          self.parse(input),
+        self.parse(input).pipe(
           Result.flatMap((state) =>
-            pipe(
-              transform(state.output),
+            transform(state.output).pipe(
               Result.mapBoth({
                 onSuccess: (output) => ({ input: state.input, output }),
                 onFailure: (reason) =>
@@ -435,8 +430,7 @@ export const optional = <T, R extends Reason>(
 ): Parser<Option.Option<T>, R> =>
   from({
     parse: (input) =>
-      pipe(
-        self.parse(input),
+      self.parse(input).pipe(
         Result.match({
           onSuccess: (success) =>
             Result.succeed({

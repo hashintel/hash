@@ -1,7 +1,7 @@
 /**
  * Constructive arbitrary generation for schema string patterns.
  *
- * Effect's arbitrary compiler requires explicit character ranges for Unicode properties and lookarounds. Generation hints supply those ranges while schema validation retains the original pattern.
+ * Effect's arbitrary compiler requires explicit character ranges for Unicode properties and lookarounds. Generation hints supply those ranges. Schema validation retains the original pattern.
  *
  * @internal
  */

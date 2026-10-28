@@ -107,28 +107,34 @@ describe("parser_builder", () => {
     );
   });
 
-  test.each(["a", "é", "Ω", "中", "😀", "\u{10FFFF}", "\0"])(
-    "scalar_%s",
-    (character) => {
-      expect.hasAssertions();
-      expect(nextChar(make()).parse(`${character}!`)).toStrictEqual(
-        Result.succeed({
-          input: "!",
-          output: [undefined, character],
-        }),
-      );
-    },
-  );
+  test.each([
+    { name: "ascii", character: "a" },
+    { name: "latin", character: "é" },
+    { name: "greek", character: "Ω" },
+    { name: "han", character: "中" },
+    { name: "emoji", character: "😀" },
+    { name: "maximum", character: "\u{10FFFF}" },
+    { name: "nul", character: "\0" },
+  ])("scalar_$name", ({ character }) => {
+    expect.hasAssertions();
+    expect(nextChar(make()).parse(`${character}!`)).toStrictEqual(
+      Result.succeed({
+        input: "!",
+        output: [undefined, character],
+      }),
+    );
+  });
 
-  test.each(["\uD800", "\uDFFF", "\uD800a"])(
-    "isolated_surrogate_%s",
-    (input) => {
-      expect.hasAssertions();
-      expect(nextChar(make()).parse(input)).toStrictEqual(
-        Result.fail(ParserError.at(0, ExpectedScalar())),
-      );
-    },
-  );
+  test.each([
+    { name: "high", input: "\uD800" },
+    { name: "low", input: "\uDFFF" },
+    { name: "high_before_ascii", input: "\uD800a" },
+  ])("isolated_surrogate_$name", ({ input }) => {
+    expect.hasAssertions();
+    expect(nextChar(make()).parse(input)).toStrictEqual(
+      Result.fail(ParserError.at(0, ExpectedScalar())),
+    );
+  });
 
   test("character_empty", () => {
     expect.hasAssertions();
@@ -341,7 +347,7 @@ describe("parser_builder", () => {
     );
   });
 
-  test("choice_commit", () => {
+  test("choice_first_success", () => {
     expect.hasAssertions();
     const parser = eof(choice(text("a"), text("ab")));
     expect(parser.parse("ab")).toStrictEqual(

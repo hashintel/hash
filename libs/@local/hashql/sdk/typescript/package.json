@@ -15,7 +15,7 @@
     }
   },
   "scripts": {
-    "bench:unit": "tsdown src/internal/parser.bench.ts --no-config --out-dir dist/bench --no-dts --no-clean --deps.never-bundle vitest && vitest bench --run --experimental.viteModuleRunner=false --experimental.nodeLoader=false dist/bench",
+    "bench:unit": "tsdown benches/parser.bench.ts --no-config --out-dir dist/bench --no-dts --no-clean --deps.never-bundle vitest && vitest bench --run --experimental.viteModuleRunner=false --experimental.nodeLoader=false dist/bench",
     "build": "tsdown",
     "fix:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts --fix",
     "lint:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts",
