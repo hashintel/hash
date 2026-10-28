@@ -6,11 +6,23 @@
 import { describe, expectTypeOf, test } from "vitest";
 
 import { Relocate, relocate } from "../internal/relocation.js";
-import { adaptCallable } from "./Expression.js";
+import {
+  adaptCallable,
+  fromJExpr,
+  ifElse,
+  input,
+  literal,
+} from "./Expression.js";
+import * as Structural from "./Structural.js";
 
 import type * as JExpr from "../JExpr/index.js";
 import type * as Type from "../Type.js";
-import type { Adapted, Expression, Value } from "./Expression.js";
+import type {
+  Adapted,
+  Expression,
+  Inputs as InputsOf,
+  Value,
+} from "./Expression.js";
 import type { Arguments } from "./ExpressionType.js";
 import type * as Inputs from "./Inputs.js";
 import type * as ProgramError from "./ProgramError.js";
@@ -542,6 +554,134 @@ describe("key_identity", () => {
   test("declared_union_key", () => {
     expectTypeOf(unionKeyed.$index(unionKey)).toEqualTypeOf<
       Expression<Type.Union<readonly [Left, Type.PrimitiveNull]>, Inputs.Empty>
+    >();
+  });
+});
+
+const integerType = Structural.type(BigInt);
+const numberType = Structural.type(Number);
+
+interface Identity extends Type.FunctionSignature {
+  readonly type: this["Target"] extends readonly [infer T extends Type.Any]
+    ? Type.Function<readonly [T], T>
+    : Type.Function<readonly [Type.Never], Type.Never>;
+}
+
+declare const hostNumber: number;
+declare const optionalNumber: number | undefined;
+
+describe("primitive", () => {
+  test("host_numeric_types", () => {
+    expectTypeOf(literal(1)).toEqualTypeOf<
+      Expression<Type.PrimitiveNumber, Inputs.Empty>
+    >();
+    expectTypeOf(literal(1.5)).toEqualTypeOf<
+      Expression<Type.PrimitiveNumber, Inputs.Empty>
+    >();
+    expectTypeOf(literal(hostNumber)).toEqualTypeOf<
+      Expression<Type.PrimitiveNumber, Inputs.Empty>
+    >();
+    expectTypeOf(literal(1n)).toEqualTypeOf<
+      Expression<Type.PrimitiveInteger, Inputs.Empty>
+    >();
+    expectTypeOf(literal(true)).toEqualTypeOf<
+      Expression<Type.PrimitiveBoolean, Inputs.Empty>
+    >();
+    expectTypeOf(literal("name")).toEqualTypeOf<
+      Expression<Type.PrimitiveString, Inputs.Empty>
+    >();
+    expectTypeOf(literal(null)).toEqualTypeOf<
+      Expression<Type.PrimitiveNull, Inputs.Empty>
+    >();
+  });
+
+  test("fixed_and_generic", () => {
+    const identity = fromJExpr<Type.GenericFunction<Identity>, Inputs.Empty>(
+      "identity",
+    );
+    expectTypeOf(identity(7)).toEqualTypeOf<
+      Expression<Type.PrimitiveNumber, Inputs.Empty>
+    >();
+    expectTypeOf(identity(7n)).toEqualTypeOf<
+      Expression<Type.PrimitiveInteger, Inputs.Empty>
+    >();
+    const fixed = fromJExpr<
+      Type.Function<
+        readonly [Type.PrimitiveNumber, Type.PrimitiveString],
+        Type.PrimitiveBoolean
+      >,
+      { readonly receiver: Type.PrimitiveBoolean }
+    >("fixed");
+    const result = fixed(7, "literal");
+    expectTypeOf<InputsOf<typeof result>>().toEqualTypeOf<{
+      readonly receiver: Type.PrimitiveBoolean;
+    }>();
+    // @ts-expect-error The exact parameter descriptor is Number, not Integer.
+    fixed(7n, "literal");
+    // @ts-expect-error Primitive arguments do not disable arity checking.
+    fixed(7);
+    // @ts-expect-error Objects require explicit construction.
+    identity({ field: true });
+  });
+
+  test("index_key", () => {
+    const list = fromJExpr<Type.List<Type.PrimitiveString>, Inputs.Empty>(
+      "list",
+    );
+    expectTypeOf(list.$index(0n)).toEqualTypeOf<
+      Expression<
+        Type.Union<readonly [Type.PrimitiveString, Type.PrimitiveNull]>,
+        Inputs.Empty
+      >
+    >();
+    // @ts-expect-error A list index requires Integer even when a number is integral.
+    list.$index(0);
+    const dict = fromJExpr<
+      Type.Dict<Type.PrimitiveString, Type.PrimitiveBoolean>,
+      Inputs.Empty
+    >("dict");
+    const selected = dict.$index("key");
+    expectTypeOf(selected).toEqualTypeOf<
+      Expression<
+        Type.Union<readonly [Type.PrimitiveBoolean, Type.PrimitiveNull]>,
+        Inputs.Empty
+      >
+    >();
+  });
+
+  test("input_defaults", () => {
+    const number = input("number", numberType, 1);
+    expectTypeOf<InputsOf<typeof number>>().toEqualTypeOf<{
+      readonly number?: Type.PrimitiveNumber;
+    }>();
+    const uncertain = input("number", numberType, optionalNumber);
+    expectTypeOf<InputsOf<typeof uncertain>>().toEqualTypeOf<{
+      readonly number: Type.PrimitiveNumber;
+    }>();
+    // @ts-expect-error Defaults retain the declared numeric distinction.
+    input("count", integerType, 1);
+    // @ts-expect-error A bigint default does not widen to Number.
+    input("number", numberType, 1n);
+  });
+
+  test("conditional_branches", () => {
+    const count = input("count", integerType);
+    const expression = ifElse(true, {
+      then: count,
+      else: 0n,
+    });
+    expectTypeOf(expression).toEqualTypeOf<
+      Expression<
+        Type.PrimitiveInteger,
+        { readonly count: Type.PrimitiveInteger }
+      >
+    >();
+    const numeric = ifElse(true, {
+      then: 1,
+      else: 2,
+    });
+    expectTypeOf(numeric).toEqualTypeOf<
+      Expression<Type.PrimitiveNumber, Inputs.Empty>
     >();
   });
 });

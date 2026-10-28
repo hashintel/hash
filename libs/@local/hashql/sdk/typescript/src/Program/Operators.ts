@@ -42,7 +42,9 @@ export interface Predicate<I> extends Expression.Expression<
   ) => Predicate<Inputs.Merge<I, Expression.Inputs<R>>>;
   /** Negates the represented predicate without changing its input requirements. */
   readonly not: () => Predicate<I>;
+  /** Compares this predicate with `true` through `::core::cmp::eq`. */
   readonly isTrue: () => Predicate<I>;
+  /** Compares this predicate with `false` through `::core::cmp::eq`. */
   readonly isFalse: () => Predicate<I>;
 
   readonly [Relocation.Relocate]: (
@@ -131,7 +133,7 @@ const comparison = (path: string): Comparison =>
 /**
  * Constructs equality between operands with matching semantic descriptors.
  *
- * `eq(left, right)` checks the right descriptor against the left. `eq(right)(left)` fixes the right descriptor first. Host primitives use their SDK descriptors: use bigint with an Integer expression and number with a Number expression. The result retains both operands' inputs and construction failures.
+ * `eq(left, right)` checks the right descriptor against the left. `eq(right)(left)` fixes the right descriptor first. Host primitives use their SDK descriptors: use bigint with an Integer expression and number with a Number expression. The operands' descriptors must be identical, with no subtyping. To compare a nullable index result with `null`, give `null` the same union descriptor through {@link Expression.assume}. The result retains both operands' inputs and construction failures.
  *
  * @example <caption>Compose the same predicate with chaining or a pipe.</caption>
  * ```ts
@@ -212,7 +214,7 @@ type Optional<E extends Expression.Value.Any> =
 /**
  * Compares an optional value with the HashQL `::core::option::None` constructor.
  *
- * The operand's normalized descriptor must be a union containing that nominal type. Null is a different value and does not satisfy this constraint. The resulting equality expression retains the operand's TypeScript descriptor without narrowing it.
+ * The operand's normalized descriptor must be a union with a {@link Type.Opaque} member whose name is the string `"::core::option::None"`. The check compares that name, so it rejects a None declared under a symbol identity or any other name. Null is a different value and does not satisfy this constraint. The resulting equality expression retains the operand's TypeScript descriptor without narrowing it.
  */
 export const isNone = <const E extends Expression.Value.Any>(
   expression: E & Optional<E>,

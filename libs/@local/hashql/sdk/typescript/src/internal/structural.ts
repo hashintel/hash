@@ -46,6 +46,7 @@ const collectionPaths = Record.map(
   (path) => pipe(path, JExpr.Path.decodeResult, Result.getOrThrow),
 );
 
+/** Tests the type marker first, because a type expression is a plain object and a type constructor is a function. */
 export const typeSyntax = (
   definition: Structural.Definition,
 ): Result.Result<Syntax.Type, ProgramError.Construction> => {
@@ -117,6 +118,7 @@ export const typeSyntax = (
   );
 };
 
+/** Tests for an expression first, because a predicate is a plain object that carries the expression markers rather than fields. */
 export const valueSyntax = (
   value: Structural.Value.Any,
 ): Result.Result<JExpr.Expression, ProgramError.Construction> => {
