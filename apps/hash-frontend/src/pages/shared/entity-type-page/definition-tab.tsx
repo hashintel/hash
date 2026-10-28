@@ -100,7 +100,6 @@ export const DefinitionTab = ({
         entityTypePermissions={
           entityTypesContext.entityTypePermissions ?? undefined
         }
-        key={entityTypeAndPropertyTypes.entityType.schema.$id} // Reset state when switching entity types, helps avoid state mismatch issues
         ontologyFunctions={ontologyFunctions}
         propertyTypeOptions={propertyTypeOptions}
         readonly={readonly}
@@ -108,7 +107,6 @@ export const DefinitionTab = ({
       <EntityTypeChildren
         entityType={entityTypeAndPropertyTypes.entityType}
         entityTypeBaseUrl={entityTypeBaseUrl}
-        key={`children-${entityTypeAndPropertyTypes.entityType.schema.$id}`} // Remount on each new version, so the query refetches the children a save may have upgraded
         onNavigateToType={onNavigateToType}
       />
     </Stack>
