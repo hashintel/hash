@@ -2,6 +2,7 @@ import { Box, Skeleton, Stack, Tooltip, Typography } from "@mui/material";
 
 import { extractVersion } from "@blockprotocol/type-system";
 import { TypeCard } from "@hashintel/design-system";
+import { fluidFontClassName } from "@hashintel/design-system/theme";
 
 import { generateLinkParameters } from "../../../../../shared/generate-link-parameters";
 import { Link } from "../../../../../shared/ui/link";
@@ -31,7 +32,7 @@ export const DependentTypesSection = ({
   const loading = types === undefined && !error;
 
   return (
-    <Box component="section" aria-busy={loading}>
+    <Box component="section" aria-busy={loading} className={fluidFontClassName}>
       <Typography variant="h5" sx={{ mb: 2 }}>
         {heading}
       </Typography>
