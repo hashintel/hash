@@ -3,7 +3,7 @@
  *
  * Missing namespace tables introduce no names. Optional tables contribute optional names instead of an arbitrary string index. Merging retains an earlier export when its replacement is optional.
  *
- * Tables are ordinary export records. Merging copies their enumerable own properties before freezing the copies, leaving the caller's records unchanged.
+ * Tables are ordinary export records. Merging copies their enumerable own string-keyed properties before freezing the copies, leaving the caller's records unchanged.
  *
  * A scope holds the names available during construction.
  *
@@ -210,6 +210,27 @@ const names = <D extends Definition.Any, K extends keyof Definition.Any>(
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Names models this exact omitted-or-present namespace choice
   (definition[key] ?? {}) as Names<D, K>;
 
+/** An export that a scope table can hold. */
+type Entry =
+  | Module.Module.Any
+  | Expression.Expression.Any
+  | TypeExpression.Export;
+
+/** Copies the enumerable own string-keyed entries of both tables into a new table, with later names replacing earlier ones. */
+const union = <B extends Universe<Entry>, A extends Universe<Entry>>(
+  before: B,
+  added: A,
+): B & A => {
+  const copy = Record.fromEntries([
+    ...Record.toEntries(before),
+    ...Record.toEntries(added),
+  ]);
+
+  // SAFETY: the copy holds exactly the string-keyed entries a spread of both tables would, which TypeScript types as `B & A`. `merge` refines the replaced names.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Record.fromEntries widens the copied table to a string index
+  return copy as B & A;
+};
+
 /**
  * Copies and merges scope tables, with later enumerable own names replacing earlier ones.
  *
@@ -230,22 +251,13 @@ export const merge: {
     added: A,
   ): Scope.Merge<B, A> => {
     const combined = new ScopeImpl({
-      modules: {
-        ...before.modules,
-        ...names(added, "modules"),
-      },
-      values: {
-        ...before.values,
-        ...names(added, "values"),
-      },
-      types: {
-        ...before.types,
-        ...names(added, "types"),
-      },
+      modules: union(before.modules, names(added, "modules")),
+      values: union(before.values, names(added, "values")),
+      types: union(before.types, names(added, "types")),
     });
 
-    // SAFETY: export records supply enumerable own entries. Spreading retains their types, with later names replacing earlier ones as Merge models.
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- spread cannot express per-key optional replacement alternatives
+    // SAFETY: export records supply enumerable own string-keyed entries. Copying them retains each entry, with later names replacing earlier ones as Merge models.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- a copied table cannot express per-key optional replacement alternatives
     return combined as Scope.Merge<B, A>;
   },
 );

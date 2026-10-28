@@ -89,6 +89,10 @@ describe("scope_merge", () => {
     const values = { count: replacement };
     Object.defineProperty(values, "count", { enumerable: false });
     Object.defineProperty(values, "hidden", { value: replacement });
+    Object.defineProperty(values, Symbol("symbol"), {
+      value: replacement,
+      enumerable: true,
+    });
     Object.setPrototypeOf(values, { inherited: replacement });
     const merged = Scope.merge(before, { values });
     expect(merged.values.count).toBe(before.values.count);
@@ -96,6 +100,7 @@ describe("scope_merge", () => {
       "count",
       "label",
     ]);
+    expect(Object.getOwnPropertySymbols(merged.values)).toStrictEqual([]);
     expect("inherited" in merged.values).toBe(false);
   });
 
