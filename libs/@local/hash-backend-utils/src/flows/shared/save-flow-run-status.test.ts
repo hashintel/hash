@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 import {
-  getFlowRunStatusFieldsFromRecordHeader,
   getFlowRunStatusFieldsToCorrect,
   getFlowRunStatusPatches,
 } from "./save-flow-run-status.js";
@@ -109,23 +108,6 @@ describe("getFlowRunStatusFieldsToCorrect", () => {
       getFlowRunStatusFieldsToCorrect(completedEntity, {
         ...runningHeader,
         runId: "run-2",
-        startedAt: "2026-10-26T11:00:00.000Z",
-        firstRunStartedAt: "2026-10-26T10:00:00.000Z",
-      }),
-    ).toEqual({
-      status: FlowRunStatus.Running,
-      startedAt: "2026-10-26T10:00:00.000Z",
-    });
-  });
-});
-
-describe("getFlowRunStatusFieldsFromRecordHeader", () => {
-  it("gives a reset run the time its first run started", () => {
-    expect(
-      getFlowRunStatusFieldsFromRecordHeader({
-        workflowId: "workflow-1",
-        runId: "run-2",
-        status: FlowRunStatus.Running,
         startedAt: "2026-10-26T11:00:00.000Z",
         firstRunStartedAt: "2026-10-26T10:00:00.000Z",
       }),

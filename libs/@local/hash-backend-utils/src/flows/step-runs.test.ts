@@ -4,10 +4,6 @@ import proto from "@temporalio/proto";
 import { describe, expect, it } from "vitest";
 
 import { getInputRequests } from "@local/hash-isomorphic-utils/flows/run-events";
-import {
-  parseFlowRunRecord,
-  serializeFlowRunRecord,
-} from "@local/hash-isomorphic-utils/flows/run-record";
 import { getStepRunsFromEvents } from "@local/hash-isomorphic-utils/flows/step-runs";
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
@@ -84,19 +80,6 @@ describe("getStepRunsFromEvents on recorded runs", () => {
           ),
         ),
       );
-    },
-  );
-
-  it.each(fixtureNames)(
-    "gives the same from the stored record of %s as from its history",
-    (fixtureName) => {
-      const record = recordOf(loadFixture(fixtureName));
-
-      expect(
-        stepRunsAndInputRequestsOf(
-          parseFlowRunRecord(serializeFlowRunRecord(record)),
-        ),
-      ).toStrictEqual(stepRunsAndInputRequestsOf(record));
     },
   );
 

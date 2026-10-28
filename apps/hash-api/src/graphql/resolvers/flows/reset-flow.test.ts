@@ -142,7 +142,7 @@ describe("resetFlow", () => {
     );
   });
 
-  it("saves the status the run has once it's reset on its entity", async () => {
+  it("corrects the run's status from its record after the reset", async () => {
     await reset();
 
     expect(mocks.correctFlowRunStatusFromRecord).toHaveBeenCalledWith(

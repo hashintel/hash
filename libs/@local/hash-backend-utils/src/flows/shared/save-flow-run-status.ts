@@ -67,7 +67,6 @@ const dateTimeProperty = (value: string) => ({
   metadata: { dataTypeId: systemDataTypes.datetime.dataTypeId },
 });
 
-/** A run's status fields, as the properties of its entity that hold them. */
 export const mapFlowRunStatusToEntityProperties = ({
   status,
   startedAt,
@@ -150,7 +149,6 @@ export const getFlowRunStatusPatches = (
 const stepPropertyBaseUrl =
   "https://hash.ai/@h/types/property-type/step/" as BaseUrl;
 
-/** Makes a run's entity hold `fields`, if it doesn't already. */
 export const saveFlowRunStatus = async ({
   fields,
   flowRunEntity,

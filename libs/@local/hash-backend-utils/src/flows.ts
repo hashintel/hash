@@ -102,7 +102,7 @@ const getFlowRunSummary = async ({
     flowInputs: mapInputsPropertyToFlowInputValues(
       properties["https://hash.ai/@h/types/property-type/inputs/"],
     ),
-    /* An entity has none until its run first raises one. */
+    /* An entity from before Flow Run v3 can't hold open requests. */
     openInputRequests: (properties[
       "https://hash.ai/@h/types/property-type/open-input-request/"
     ] ?? []) as ExternalInputRequest[],
