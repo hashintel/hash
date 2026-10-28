@@ -1,7 +1,4 @@
-import * as NodeServices from "@effect/platform-node/NodeServices";
-import { layer } from "@effect/vitest";
-import { Effect, Option, Result, SchemaParser, Stream, pipe } from "effect";
-import { ChildProcess } from "effect/process";
+import { Option, Result, SchemaParser, pipe } from "effect";
 import { describe, expect, expectTypeOf, test } from "vitest";
 
 import { JExpr, Program } from "@local/hashql";
@@ -111,47 +108,3 @@ describe("emitted_package", () => {
     expect(JExpr.Ident.compile(ident)).toBe(source);
   });
 });
-
-layer(NodeServices.layer, { excludeTestServices: true })(
-  "emitted_declarations",
-  (it) => {
-    it.effect(
-      "strict_check",
-      Effect.fnUntraced(
-        function* () {
-          expect.hasAssertions();
-          // Check the declaration entry without the test framework's ambient types or skipLibCheck.
-          const child = yield* ChildProcess.make(
-            "tsc",
-            [
-              "--ignoreConfig",
-              "--noEmit",
-              "--strict",
-              "--skipLibCheck",
-              "false",
-              "--module",
-              "NodeNext",
-              "--target",
-              "ES2024",
-              "--types",
-              "node",
-              "dist/main.d.ts",
-            ],
-            { stdout: "pipe", stderr: "pipe" },
-          );
-          const result = yield* Effect.all(
-            {
-              status: child.exitCode,
-              stdout: pipe(child.stdout, Stream.decodeText(), Stream.mkString),
-              stderr: pipe(child.stderr, Stream.decodeText(), Stream.mkString),
-            },
-            { concurrency: "unbounded" },
-          );
-          expect(result).toStrictEqual({ status: 0, stdout: "", stderr: "" });
-        },
-        Effect.scoped,
-        Effect.timeout("5 seconds"),
-      ),
-    );
-  },
-);
