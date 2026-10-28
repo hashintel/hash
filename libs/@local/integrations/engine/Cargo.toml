@@ -27,21 +27,25 @@ derive_more    = { workspace = true, features = ["display", "error"] }
 opentelemetry  = { workspace = true, features = ["metrics"] }
 parquet        = { workspace = true, features = ["arrow", "snap"] }
 reqwest        = { workspace = true }
+serde          = { workspace = true, features = ["derive"] }
 simple-mermaid = { workspace = true }
 tempfile       = { workspace = true }
 time           = { workspace = true, features = ["parsing"] }
 tokio          = { workspace = true, features = ["net", "rt", "sync", "time"] }
 tracing        = { workspace = true, features = ["attributes"] }
+url            = { workspace = true }
 
 [dev-dependencies]
-axum              = { workspace = true, features = ["http1", "tokio"] }
-opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
-pretty_assertions = { workspace = true }
-proptest          = { workspace = true, features = ["attr-macro", "std"] }
-rstest            = { workspace = true }
-serde             = { workspace = true, features = ["derive"] }
-tempfile          = { workspace = true }
-tokio             = { workspace = true, features = ["io-util", "macros", "rt", "test-util", "time"] }
+axum                   = { workspace = true, features = ["http1", "tokio"] }
+opentelemetry_sdk      = { workspace = true, features = ["metrics", "testing"] }
+pretty_assertions      = { workspace = true }
+proptest               = { workspace = true, features = ["attr-macro", "std"] }
+rstest                 = { workspace = true }
+serde                  = { workspace = true, features = ["derive"] }
+tempfile               = { workspace = true }
+testcontainers         = { workspace = true }
+testcontainers-modules = { workspace = true, features = ["postgres"] }
+tokio                  = { workspace = true, features = ["io-util", "macros", "rt", "test-util", "time"] }
 
 [lints]
 workspace = true
