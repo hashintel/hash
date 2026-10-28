@@ -23,6 +23,7 @@ import * as Expression from "../Program/Expression.js";
 import * as ProgramError from "../Program/ProgramError.js";
 import * as TypeExpression from "../Program/TypeExpression.js";
 import * as Overflow from "./overflow.js";
+import { Relocate } from "./relocation.js";
 
 import type * as Structural from "../Program/Structural.js";
 import type * as Type from "../Type.js";
@@ -73,11 +74,18 @@ const distinct = <
   return Result.succeed(fields);
 };
 
-/** Tests the type marker first, because a type expression is a plain object and a type constructor is a function. */
+/**
+ * Tests the type marker first, because a type expression is a plain object and a type constructor is a function.
+ *
+ * The marker is a string key, so a parsed JSON record can carry it. Only a handle the SDK built also carries the relocation symbol, so a marker record without one falls through to the record branch, where its marker key fails as a field name.
+ */
 export const typeSyntax = (
   definition: Structural.Definition,
 ): Result.Result<Syntax.Type, ProgramError.Construction> => {
-  if (TypeExpression.isExport(definition)) {
+  if (
+    TypeExpression.isExport(definition) &&
+    Predicate.hasProperty(definition, Relocate)
+  ) {
     if (Predicate.hasProperty(definition, "syntax")) {
       return definition.syntax;
     }
