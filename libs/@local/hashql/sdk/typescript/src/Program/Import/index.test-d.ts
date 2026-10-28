@@ -10,7 +10,10 @@ import type * as Type from "../../Type.js";
 const { Expression, Import, Module, Namespace, Prelude, Structural } = Program;
 const identity = Symbol("Item");
 type Item = Type.Opaque<typeof identity, Type.PrimitiveInteger>;
-const input = Expression.input("count", Structural.type(BigInt));
+const input = Expression.input(
+  "count",
+  Result.getOrThrow(Structural.type(BigInt)),
+);
 const source = Result.getOrThrow(
   Module.define("::source", {
     modules: { Item: Prelude.builtin.modules.math },
@@ -64,7 +67,7 @@ describe("import_types", () => {
     expectTypeOf(flat.Local(1n)).toEqualTypeOf<
       Program.Expression.Expression<Item, Program.Inputs.Empty>
     >();
-    expectTypeOf(Structural.type(flat.Local)).toEqualTypeOf<
+    expectTypeOf(Result.getOrThrow(Structural.type(flat.Local))).toEqualTypeOf<
       Program.TypeExpression.TypeExpression<Item>
     >();
     const stringified = Result.getOrThrow(
@@ -145,7 +148,7 @@ describe("import_types", () => {
     expectTypeOf(flat.Local(1n)).toEqualTypeOf<
       Program.Expression.Expression<Item, Program.Inputs.Empty>
     >();
-    expectTypeOf(Structural.type(flat.Local)).toEqualTypeOf<
+    expectTypeOf(Result.getOrThrow(Structural.type(flat.Local))).toEqualTypeOf<
       Program.TypeExpression.TypeExpression<Item>
     >();
     expectTypeOf(flat.Local.add(1n, 2n)).toEqualTypeOf<
@@ -362,7 +365,7 @@ describe("import_presence", () => {
       Program.Expression.Expression<Type.PrimitiveBoolean, Program.Inputs.Empty>
     >();
     assert.isDefined(flat.Item);
-    expectTypeOf(Structural.type(flat.Item)).toEqualTypeOf<
+    expectTypeOf(Result.getOrThrow(Structural.type(flat.Item))).toEqualTypeOf<
       Program.TypeExpression.TypeExpression<Item>
     >();
     assert.isDefined(flat.create);

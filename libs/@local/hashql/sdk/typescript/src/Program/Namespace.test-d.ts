@@ -57,10 +57,12 @@ describe("namespace_types", () => {
     >();
     expectTypeOf(flat.Item.count).toEqualTypeOf<typeof child.values.count>();
     expectTypeOf(flat.Item.then).toEqualTypeOf<typeof child.values.then>();
-    expectTypeOf(flat.Item.pipe(Program.Structural.type)).toEqualTypeOf<
-      Program.TypeExpression.TypeExpression<Item>
-    >();
-    expectTypeOf(flat.List(Program.Structural.type(BigInt))).toEqualTypeOf<
+    expectTypeOf(
+      flat.Item.pipe(Program.Structural.type, Result.getOrThrow),
+    ).toEqualTypeOf<Program.TypeExpression.TypeExpression<Item>>();
+    expectTypeOf(
+      flat.List(Result.getOrThrow(Program.Structural.type(BigInt))),
+    ).toEqualTypeOf<
       Program.TypeExpression.TypeExpression<Type.List<Type.PrimitiveInteger>>
     >();
     expectTypeOf(flat.List(1n)).toEqualTypeOf<
@@ -78,7 +80,9 @@ describe("namespace_types", () => {
     const moved = Result.getOrThrow(relocate(flat.List, path));
     expectTypeOf(moved).toEqualTypeOf<typeof flat.List>();
     expectTypeOf(moved.count).toEqualTypeOf<typeof child.values.count>();
-    expectTypeOf(moved(Program.Structural.type(String))).toEqualTypeOf<
+    expectTypeOf(
+      moved(Result.getOrThrow(Program.Structural.type(String))),
+    ).toEqualTypeOf<
       Program.TypeExpression.TypeExpression<Type.List<Type.PrimitiveString>>
     >();
     expectTypeOf(moved(1n)).toEqualTypeOf<
@@ -126,7 +130,7 @@ describe("namespace_types", () => {
     >()({ count: "shadowed", own: true });
     const joined = Program.Namespace.flatten({
       modules: { Both: child },
-      types: { Both: Program.Structural.type(BigInt) },
+      types: { Both: Result.getOrThrow(Program.Structural.type(BigInt)) },
       values: { Both: value },
     }).Both;
     expectTypeOf(joined.count).toEqualTypeOf<typeof child.values.count>();
@@ -136,15 +140,20 @@ describe("namespace_types", () => {
     expectTypeOf(joined.$project("count")).toEqualTypeOf<
       Program.Expression.Expression<Type.PrimitiveString, Program.Inputs.Empty>
     >();
-    expectTypeOf(joined.pipe(Program.Structural.type)).toEqualTypeOf<
+    expectTypeOf(
+      joined.pipe(Program.Structural.type, Result.getOrThrow),
+    ).toEqualTypeOf<
       Program.TypeExpression.TypeExpression<Type.PrimitiveInteger>
     >();
   });
 
   test("unpreserved_properties", () => {
-    const extended = Object.assign(Program.Structural.type(BigInt), {
-      note: "extra",
-    });
+    const extended = Object.assign(
+      Result.getOrThrow(Program.Structural.type(BigInt)),
+      {
+        note: "extra",
+      },
+    );
     // @ts-expect-error Rebinding the producer would drop note.
     Program.Namespace.combine(extended, Program.Expression.integer(1));
     Program.Namespace.flatten({
@@ -162,11 +171,11 @@ describe("namespace_types", () => {
   test("input_requirements", () => {
     const input = Program.Expression.input(
       "count",
-      Program.Structural.type(BigInt),
+      Result.getOrThrow(Program.Structural.type(BigInt)),
     );
     const joined = Program.Namespace.combine(
       input,
-      Program.Structural.type(BigInt),
+      Result.getOrThrow(Program.Structural.type(BigInt)),
     );
     const moved = Result.getOrThrow(relocate(joined, path));
     expectTypeOf<
@@ -177,7 +186,7 @@ describe("namespace_types", () => {
     const projected = moved.$projectUnsafe("field");
     const index = Program.Expression.input(
       "index",
-      Program.Structural.type(BigInt),
+      Result.getOrThrow(Program.Structural.type(BigInt)),
     );
     const indexed = moved.$indexUnsafe(index);
     expectTypeOf(projected).toEqualTypeOf<
