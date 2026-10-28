@@ -14,18 +14,18 @@ hash-integrations-definition = { workspace = true, public = true }
 type-system                  = { workspace = true, public = true }
 
 # Public third-party dependencies
-duckdb = { workspace = true, public = true, features = ["bundled", "json"] }
+duckdb     = { workspace = true, public = true, features = ["bundled", "json"] }
+serde_json = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
 derive_more    = { workspace = true, features = ["display", "error"] }
 opentelemetry  = { workspace = true, features = ["metrics"] }
-serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
 tokio          = { workspace = true, features = ["sync"] }
 tracing        = { workspace = true, features = ["attributes"] }
-uuid           = { workspace = true, features = ["v5"] }
+uuid           = { workspace = true, features = ["v4", "v5"] }
 
 [dev-dependencies]
 opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
