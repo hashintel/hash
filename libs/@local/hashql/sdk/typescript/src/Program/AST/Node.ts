@@ -4,7 +4,7 @@ import type { Pipeable } from "effect";
 /**
  * A builder node that emits J-Expr syntax during expression serialization.
  *
- * A node describes one level of the syntax tree: its child nodes, and how their syntax combines into its own. {@link compile} walks the levels through an explicit stack, so serialization handles any nesting depth that fits in memory. Implement {@link Node.Of}, which ties the syntax `assemble` takes to `children`.
+ * A node describes one level of the syntax tree: its child nodes, and how their syntax combines into its own. {@link compile} walks the levels through an explicit stack, so serialization handles any nesting depth that fits in memory. Implement {@link Node.Of}, which ties the syntax `toExpr` takes to `children`.
  */
 export interface Node extends Pipeable.Pipeable {
   readonly children: readonly Node[];
@@ -12,7 +12,7 @@ export interface Node extends Pipeable.Pipeable {
 }
 
 export declare namespace Node {
-  /** A node whose `assemble` takes one syntax per child, in the order of `children`. */
+  /** A node whose `toExpr` takes one syntax per child, in the order of `children`. */
   export interface Of<Children extends readonly Node[]> extends Node {
     readonly children: Children;
 
@@ -48,7 +48,7 @@ export const compile = (node: Node): JExpr.Expression => {
     const child = frame.children[frame.syntax.length];
 
     if (child === undefined) {
-      // SAFETY: `syntax` holds one entry per child, in the order of `children`, which is the tuple `Node.Of` gives `assemble`.
+      // SAFETY: `syntax` holds one entry per child, in the order of `children`, which is the tuple `Node.Of` gives `toExpr`.
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the loop fills `syntax` one child at a time, so TypeScript cannot see that its length matches `children`
       const syntax = frame.node.toExpr(frame.syntax as never);
       const parent = pending.pop();
