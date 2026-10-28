@@ -5,8 +5,9 @@
  *
  * @module
  */
-import { Option, Result, SchemaParser } from "effect";
+import { Option, Result } from "effect";
 
+import * as Overflow from "../../internal/overflow.js";
 import * as Ident from "../Ident.js";
 import * as Defs from "./schema.js";
 
@@ -26,20 +27,19 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Generic =
-  SchemaParser.make(Schema);
+  Overflow.make(Schema);
 
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
-) => Effect.Effect<Generic, SchemaIssue.Issue> =
-  SchemaParser.makeEffect(Schema);
+) => Effect.Effect<Generic, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
-) => Option.Option<Generic> = SchemaParser.makeOption(Schema);
+) => Option.Option<Generic> = Overflow.makeOption(Schema);
 
 /**
  * Creates a generic argument: the `Integer` in `List<Integer>`.
