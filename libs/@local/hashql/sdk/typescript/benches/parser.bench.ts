@@ -1,13 +1,13 @@
 import { Arbitrary, Effect, HashSet, Result, flow, pipe } from "effect";
 import { describe, expect, test } from "vitest";
 
-import { xidContinue, xidStart } from "./character-class.js";
+import { xidContinue, xidStart } from "../src/internal/character-class.js";
 import {
   ExpectedEndOfInput,
   ExpectedScalar,
   InsufficientLength,
   ParserError,
-} from "./parser-error.js";
+} from "../src/internal/parser-error.js";
 import {
   charIn,
   eof,
@@ -16,10 +16,10 @@ import {
   nextChar,
   nextSlice,
   takeWhile,
-} from "./parser.js";
+} from "../src/internal/parser.js";
 
-import type { Reason } from "./parser-error.js";
-import type { Return } from "./parser.js";
+import type { Reason } from "../src/internal/parser-error.js";
+import type { Return } from "../src/internal/parser.js";
 
 const surrogateStart = 0xd8_00;
 const surrogateEnd = 0xe0_00;

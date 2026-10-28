@@ -203,13 +203,17 @@ describe("character_class_parser", () => {
     },
   );
 
-  test.each(["", "_a", "2x", "a!", "😀", "\uD800"])(
-    "invalid_identifier_%s",
-    (input) => {
-      expect.hasAssertions();
-      expect(Result.isFailure(identifier.parse(input))).toBe(true);
-    },
-  );
+  test.each([
+    { name: "empty", input: "" },
+    { name: "underscore_start", input: "_a" },
+    { name: "digit_start", input: "2x" },
+    { name: "punctuation", input: "a!" },
+    { name: "emoji", input: "😀" },
+    { name: "isolated_surrogate", input: "\uD800" },
+  ])("invalid_identifier_$name", ({ input }) => {
+    expect.hasAssertions();
+    expect(Result.isFailure(identifier.parse(input))).toBe(true);
+  });
 
   test("prefix_and_empty_run", () => {
     expect.hasAssertions();
