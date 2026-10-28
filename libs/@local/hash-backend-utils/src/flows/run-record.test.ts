@@ -310,8 +310,9 @@ describe("getFlowRunRecord", () => {
 describe("getStoredFlowRunRecordKey", () => {
   const key = getFlowRunRecordStorageKey(workflowId);
 
-  it("has no key for a running run", async () => {
-    const { temporalClient } = createTemporalClient(loadFixture("in-progress"));
+  it("has no key for a running run, without reading its history", async () => {
+    const { temporalClient, getWorkflowExecutionHistory } =
+      createTemporalClient(loadFixture("in-progress"));
     const { storageProvider, readStoredRecord } = createStorageProvider();
 
     await expect(
@@ -321,6 +322,7 @@ describe("getStoredFlowRunRecordKey", () => {
         workflowId,
       }),
     ).resolves.toBeNull();
+    expect(getWorkflowExecutionHistory).not.toHaveBeenCalled();
     expect(readStoredRecord()).toBeUndefined();
   });
 
