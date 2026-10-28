@@ -11,7 +11,7 @@
     "types": ["node"],
     "verbatimModuleSyntax": true
   },
-  "exclude": ["node_modules", "dist", "docs/demos"],
+  "exclude": ["node_modules", "dist"],
   "extends": ["@tsconfig/bases/strictest", "@local/tsconfig/policy.json"],
   "include": [
     "src/**/*",

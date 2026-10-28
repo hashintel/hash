@@ -149,7 +149,7 @@ Add a **Keyboard** subsection (a Key | Action table) only when the component add
 
 ### 10. API reference
 
-Generated, per exported part, with the `PropsTable` block (`docs/blocks/props-table`), which renders the react-docgen prop info attached to the component. Hand-written prose about a prop is not allowed — update the component's JSDoc descriptions instead.
+Generated, per exported part, with the `PropsTable` block (`docs/blocks/props-table/props-table`), which renders the react-docgen prop info attached to the component. Hand-written prose about a prop is not allowed — update the component's JSDoc descriptions instead.
 
 ```mdx
 <PropsTable of={Component} defaults={{ variant: '"solid"', size: '"md"' }} />
@@ -193,7 +193,7 @@ Use side-by-side rendered pairs (not screenshots — they stay true to the code)
 import { Meta } from "@storybook/addon-docs/blocks";
 
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
-import { PropsTable } from "../../../docs/blocks/props-table";
+import { PropsTable } from "../../../docs/blocks/props-table/props-table";
 import { ReferenceLinks } from "../../../docs/blocks/reference-links";
 import { Stage } from "../../../docs/blocks/stage";
 import { Component } from "./component";

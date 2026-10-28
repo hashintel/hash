@@ -1,0 +1,266 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { DoList, DontList } from "../../docs/blocks/do-dont-list";
+import { ReferenceLinks } from "../../docs/blocks/reference-links";
+import { token } from "@hashintel/ds-helpers/tokens";
+
+<Meta title="Docs/Tokens/Shadows" />
+
+export const meta = {
+  title: "Shadows",
+  description:
+    "Elevation tokens that give surfaces depth, sized for large and small elements.",
+  alternativeNames: ["Elevation", "Depth"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/preset/tokens.ts",
+    stories: "https://tokens.hash.design/?path=/story/tokens--shadows",
+  },
+  related: ["Colors", "Spacing", "Typography"],
+};
+
+# Shadows
+
+Elevation tokens that give surfaces depth, sized for large and small elements.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+export const ElevationCards = () => {
+  const levels = ["drop", "lift", "raise", "float"];
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 28,
+        flexWrap: "wrap",
+        padding: 24,
+        borderRadius: 8,
+        background: token("colors.bgSolid.surface"),
+      }}
+    >
+      {levels.map((level) => (
+        <div
+          key={level}
+          style={{
+            width: 120,
+            height: 80,
+            borderRadius: 8,
+            background: token("colors.bgSolid.min"),
+            boxShadow: "var(--shadows-elevation-" + level + "-macro)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: token("fonts.mono"),
+            fontSize: token("fontSizes.xs"),
+            color: token("colors.fg.muted"),
+          }}
+        >
+          {level}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+<ElevationCards />
+
+## Using shadow tokens
+
+Reach for the semantic `elevation.*` tokens: they name how far a surface sits
+above the page, and each level comes tuned for large and small surfaces. The
+raw `shadows.*` scale underneath is for cases no elevation level covers.
+
+```tsx
+import { css } from "@hashintel/ds-helpers/css";
+
+export const TypePopover = () => (
+  <div
+    className={css({
+      backgroundColor: "bgSolid.min",
+      borderRadius: "lg",
+      boxShadow: "elevation.raise.macro",
+    })}
+  >
+    …
+  </div>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Pick the level by prominence — how far the surface sits above the page — not by pixel softness.",
+    "Use macro for large surfaces (cards, panels, dialogs) and micro for small ones (buttons, badges, menu items).",
+    "Pair shadows with an opaque bgSolid background — translucent surfaces make the shadow read as a smudge.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't hand-write box-shadow values — one-off shadows break the depth hierarchy and don't track theme changes.",
+    "Don't stack elevation on nested elements — one shadow per surface; children separate with borders and background shifts.",
+    "Don't use shadows as borders — at rest on a flat surface, bd.* tokens are the right tool.",
+  ]}
+/>
+
+## Elevation tokens
+
+Four levels, each in a `macro` and `micro` size:
+`elevation.{drop,lift,raise,float}.{macro,micro}`. Macro suits large surface
+areas; micro keeps the same depth believable on small footprints.
+
+| Level   | Reads as                      | Typical surfaces                  | Macro | Micro |
+| ------- | ----------------------------- | --------------------------------- | ----- | ----- |
+| `drop`  | Resting just above the page   | Cards, inputs at rest             | `xs`  | `2xs` |
+| `lift`  | Slightly raised               | Hover emphasis on cards and rows  | `sm`  | `xs`  |
+| `raise` | Clearly above the content     | Dropdowns, popovers, tooltips     | `md`  | `sm`  |
+| `float` | Detached from the page        | Dialogs, drawers, command bars    | `lg`  | `md`  |
+
+export const ElevationGrid = () => {
+  const levels = ["drop", "lift", "raise", "float"];
+  const scales = [
+    { name: "macro", caption: "large surface area", width: 120, height: 76 },
+    { name: "micro", caption: "small surface area", width: 64, height: 44 },
+  ];
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 28,
+        padding: 24,
+        borderRadius: 8,
+        background: token("colors.bgSolid.surface"),
+        fontFamily: token("fonts.mono"),
+        fontSize: token("fontSizes.xs"),
+        color: token("colors.fg.muted"),
+      }}
+    >
+      {scales.map((scale) => (
+        <div key={scale.name}>
+          <div style={{ marginBottom: 12 }}>
+            {scale.name} — {scale.caption}
+          </div>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "center" }}>
+            {levels.map((level) => (
+              <div key={level} style={{ textAlign: "center" }}>
+                <div
+                  style={{
+                    width: scale.width,
+                    height: scale.height,
+                    borderRadius: 8,
+                    background: token("colors.bgSolid.min"),
+                    boxShadow:
+                      "var(--shadows-elevation-" + level + "-" + scale.name + ")",
+                  }}
+                />
+                <div style={{ marginTop: 8 }}>{level}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+<ElevationGrid />
+
+## Base scale
+
+Seven steps from a hairline of depth to a heavy overlay glow. Elevation
+tokens map onto this scale; use it directly only when no semantic level fits,
+and expect such uses to be rare.
+
+| Token | Use                                                 |
+| ----- | --------------------------------------------------- |
+| `2xs` | The faintest edge definition                        |
+| `xs`  | Resting depth on large surfaces                     |
+| `sm`  | Gentle lift                                         |
+| `md`  | Overlay depth                                       |
+| `lg`  | Detached overlays                                   |
+| `xl`  | Oversized feature surfaces                          |
+| `2xl` | Maximum depth — hero and marketing moments          |
+
+export const ShadowScale = () => {
+  const steps = ["2xs", "xs", "sm", "md", "lg", "xl", "2xl"];
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 24,
+        flexWrap: "wrap",
+        padding: 24,
+        borderRadius: 8,
+        background: token("colors.bgSolid.surface"),
+        fontFamily: token("fonts.mono"),
+        fontSize: token("fontSizes.xs"),
+        color: token("colors.fg.muted"),
+      }}
+    >
+      {steps.map((step) => (
+        <div key={step} style={{ textAlign: "center" }}>
+          <div
+            style={{
+              width: 76,
+              height: 76,
+              borderRadius: 8,
+              background: token("colors.bgSolid.min"),
+              boxShadow: token("shadows." + step),
+            }}
+          />
+          <div style={{ marginTop: 8 }}>{step}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+<ShadowScale />
+
+### Inset shadows
+
+Three inset steps — `inset-2xs`, `inset-xs`, `inset-sm` — recess a surface
+into the page: wells, pressed states, scroll gutters.
+
+export const InsetShadows = () => {
+  const steps = ["inset-2xs", "inset-xs", "inset-sm"];
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 24,
+        flexWrap: "wrap",
+        fontFamily: token("fonts.mono"),
+        fontSize: token("fontSizes.xs"),
+        color: token("colors.fg.muted"),
+      }}
+    >
+      {steps.map((step) => (
+        <div key={step} style={{ textAlign: "center" }}>
+          <div
+            style={{
+              width: 76,
+              height: 76,
+              borderRadius: 8,
+              background: token("colors.bgSolid.surface"),
+              border: "1px solid " + token("colors.bd.subtle"),
+              boxShadow: token("shadows." + step),
+            }}
+          />
+          <div style={{ marginTop: 8 }}>{step}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+<InsetShadows />

@@ -1,7 +1,7 @@
 /**
  * Locates the inline demo components a docs MDX page defines at module level
  * so the publish pipeline can move them into a generated client module
- * (`docs/demos/<slug>.gen.tsx`): under React Server Components the MDX module
+ * (`.build/docs-demos/<slug>.gen.tsx`): under React Server Components the MDX module
  * compiles as a server module, where hooks and inline functions are illegal,
  * so everything component-shaped must live in an importable client module.
  * Storybook keeps rendering the inline originals.

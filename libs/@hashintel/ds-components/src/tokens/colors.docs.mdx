@@ -1,0 +1,517 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { DoList, DontList } from "../../docs/blocks/do-dont-list";
+import { ReferenceLinks } from "../../docs/blocks/reference-links";
+import { token } from "@hashintel/ds-helpers/tokens";
+
+<Meta title="Docs/Tokens/Colors" />
+
+export const meta = {
+  title: "Colors",
+  description:
+    "Palette scales and semantic aliases for backgrounds, text, and borders, in light and dark.",
+  alternativeNames: ["Color palette", "Color system"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/preset/tokens.ts",
+    stories: "https://tokens.hash.design/?path=/story/tokens--color-palettes",
+  },
+  related: ["Spacing", "Typography", "Shadows"],
+};
+
+# Colors
+
+Palette scales and semantic aliases for backgrounds, text, and borders, in light and dark.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+export const PaletteGrid = () => {
+  const palettes = [
+    "neutral",
+    "blue",
+    "green",
+    "orange",
+    "red",
+    "yellow",
+    "pink",
+    "purple",
+  ];
+  const steps = [
+    "00",
+    "10",
+    "20",
+    "30",
+    "40",
+    "50",
+    "60",
+    "70",
+    "80",
+    "90",
+    "100",
+    "110",
+    "120",
+  ];
+  const cell = { width: 26, height: 26, borderRadius: 4, flexShrink: 0 };
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        fontFamily: token("fonts.mono"),
+        fontSize: token("fontSizes.xs"),
+        color: token("colors.fg.muted"),
+        overflowX: "auto",
+      }}
+    >
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <span style={{ width: 64, flexShrink: 0 }} />
+        {steps.map((step) => (
+          <span key={step} style={{ ...cell, height: "auto", textAlign: "center" }}>
+            {step}
+          </span>
+        ))}
+      </div>
+      {palettes.map((palette) => (
+        <div key={palette} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <span style={{ width: 64, flexShrink: 0 }}>{palette}</span>
+          {steps.map((step) => (
+            <div
+              key={step}
+              title={palette + ".s" + step}
+              style={{
+                ...cell,
+                background: "var(--colors-" + palette + "-s" + step + ")",
+              }}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+<PaletteGrid />
+
+Every tenth step of the eight palettes' solid scales. The full scales run
+`s00`–`s125` in steps of 5, and every step re-resolves in dark mode.
+
+## Using color tokens
+
+Pass token names to any color-accepting property in `css()` or a recipe. Tokens
+resolve per theme, so the same name is correct in light and dark.
+
+```tsx
+import { css } from "@hashintel/ds-helpers/css";
+
+export const EntityCard = () => (
+  <div
+    className={css({
+      backgroundColor: "bg.surface",
+      border: "1px solid {colors.bd.subtle}",
+      color: "fg.body",
+    })}
+  >
+    Person
+  </div>
+);
+```
+
+## Token layers
+
+Color is layered the same way in Figma and code: raw values feed core palette
+scales, and semantic aliases name what a color is *for*. Reference the highest
+layer that exists for your case — intent survives refactors, raw values don't.
+
+| Layer          | Example               | What it encodes                                        |
+| -------------- | --------------------- | ------------------------------------------------------ |
+| Raw value      | `#ef4444`             | Nothing — never appears in product code                |
+| Core scale     | `red.s60`             | A palette position, light/dark aware                   |
+| Semantic alias | `status.error.fg.body` | The role: error-toned body text, states included      |
+
+### When to use which layer
+
+<DoList
+  items={[
+    <Fragment key="0">
+      Reach for a semantic alias first (<code>fg.muted</code>,{" "}
+      <code>bg.surface.hover</code>) — it carries theming and interaction
+      states for you.
+    </Fragment>,
+    <Fragment key="1">
+      Use <code>status.*</code> for feedback states, so the intent is readable
+      in code even when info and brand share a palette.
+    </Fragment>,
+    "Drop to a core scale step for accents and data visualization, where no semantic role exists.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't hardcode hex or rgba values — they bypass theming and break in dark mode.",
+    <Fragment key="0">
+      Don't use alpha-based <code>bg.*</code> on surfaces that must not blend
+      with what's behind them (popovers, dropdowns) — use{" "}
+      <code>bgSolid.*</code>.
+    </Fragment>,
+    <Fragment key="1">
+      Don't reach below <code>s90</code> for readable text — the system itself
+      only goes lower for disabled states; the rest of the low scale is
+      backgrounds and borders.
+    </Fragment>,
+  ]}
+/>
+
+## Palettes
+
+Eight palettes, each with a solid scale (`s00`–`s125`) and an alpha scale
+(`a00`–`a125`) in steps of 5. Alpha steps are translucent layers of the same
+hue — they tint whatever they sit on, which keeps layered UI (hover states,
+selections) consistent on any background.
+
+| Palette   | Role                                                 |
+| --------- | ---------------------------------------------------- |
+| `neutral` | Default UI: text, borders, surfaces                  |
+| `blue`    | Brand, links, selection; aliased as `status.info`    |
+| `green`   | Positive outcomes; aliased as `status.success`       |
+| `orange`  | Caution; aliased as `status.warning`                 |
+| `red`     | Errors and destructive actions; `status.error`       |
+| `yellow`  | Highlights and emphasis accents                      |
+| `pink`    | Accent and data visualization                        |
+| `purple`  | Accent and data visualization                        |
+
+export const AlphaScales = () => {
+  const steps = [];
+  for (let index = 0; index <= 125; index += 5) {
+    steps.push(index < 10 ? "0" + index : String(index));
+  }
+  const stripes =
+    "repeating-linear-gradient(45deg, " +
+    token("colors.neutral.a30") +
+    " 0 6px, transparent 6px 12px)";
+  const cell = { width: 18, height: 28, borderRadius: 3, flexShrink: 0 };
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        fontFamily: token("fonts.mono"),
+        fontSize: token("fontSizes.xs"),
+        color: token("colors.fg.muted"),
+        overflowX: "auto",
+      }}
+    >
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <span style={{ width: 56, flexShrink: 0 }}>blue.s*</span>
+        <div style={{ display: "flex", gap: 3 }}>
+          {steps.map((step) => (
+            <div
+              key={step}
+              title={"blue.s" + step}
+              style={{ ...cell, background: "var(--colors-blue-s" + step + ")" }}
+            />
+          ))}
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <span style={{ width: 56, flexShrink: 0 }}>blue.a*</span>
+        <div style={{ display: "flex", gap: 3, background: stripes, borderRadius: 3 }}>
+          {steps.map((step) => (
+            <div
+              key={step}
+              title={"blue.a" + step}
+              style={{ ...cell, background: "var(--colors-blue-a" + step + ")" }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+<AlphaScales />
+
+The two blue scales at every step. The alpha row sits on a striped background:
+low alpha steps let it show through, high steps converge on the solid color.
+
+### Scale anatomy
+
+The semantic aliases pin down what each band of a scale is for — follow the
+same bands when you use scale steps directly.
+
+| Band      | Steps                | Used for                                                  |
+| --------- | -------------------- | --------------------------------------------------------- |
+| `00`–`50` | alpha preferred      | Fills: `surface` is `a10`, `subtle` is `a30`, `shaded` is `a50` |
+| `40`–`80` | alpha                | Borders: `subtle` is `a40`, `solid` is `a60`, `strong` is `a80` |
+| `90`–`100` | solid               | Solid accents: `bg.solid` is `s90` (`s125` for neutral), hover `s100` |
+| `90`–`125` | solid               | Text: `subtle` `s90` up to `max` `s125`                    |
+
+## Semantic aliases
+
+Every palette carries the full semantic set (`blue.fg.link`, `red.bd.solid`),
+and the same set exists at the root referencing `neutral` (`fg.muted`,
+`bg.surface`). The bare name is the resting state; interaction states nest
+under it: `bg.surface`, `bg.surface.hover`, `bg.surface.active`,
+`bg.surface.disabled`.
+
+export const SemanticSwatches = () => {
+  const backgrounds = ["min", "surface", "subtle", "shaded", "solid"];
+  const foregrounds = ["max", "heading", "body", "muted", "subtle", "link"];
+  const borders = ["subtle", "solid", "strong"];
+  const label = { marginTop: 4 };
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 24,
+        fontFamily: token("fonts.mono"),
+        fontSize: token("fontSizes.xs"),
+        color: token("colors.fg.muted"),
+      }}
+    >
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        {backgrounds.map((name) => (
+          <div key={name} style={{ textAlign: "center" }}>
+            <div
+              style={{
+                width: 84,
+                height: 44,
+                borderRadius: 6,
+                border: "1px solid " + token("colors.bd.subtle"),
+                background: "var(--colors-bg-" + name + ")",
+              }}
+            />
+            <div style={label}>bg.{name}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "baseline" }}>
+        {foregrounds.map((name) => (
+          <div key={name} style={{ textAlign: "center" }}>
+            <div
+              style={{
+                color: "var(--colors-fg-" + name + ")",
+                fontFamily: token("fonts.body"),
+                fontSize: token("fontSizes.sm"),
+                fontWeight: token("fontWeights.medium"),
+              }}
+            >
+              Knowledge graph
+            </div>
+            <div style={label}>fg.{name}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        {borders.map((name) => (
+          <div key={name} style={{ textAlign: "center" }}>
+            <div
+              style={{
+                width: 84,
+                height: 44,
+                borderRadius: 6,
+                border: "1px solid var(--colors-bd-" + name + ")",
+                background: "var(--colors-bg-min)",
+              }}
+            />
+            <div style={label}>bd.{name}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+<SemanticSwatches />
+
+### Backgrounds
+
+`bg.*` layers are alpha-based so they compose on any surface; `bgSolid.*` is
+the opaque equivalent of every group, for surfaces that must not blend —
+popovers, dialogs, dropdowns.
+
+| Token        | Resting value | Use                                              |
+| ------------ | ------------- | ------------------------------------------------ |
+| `bg.min`     | `a00`         | The page itself; hover/active add the first tint |
+| `bg.surface` | `a10`         | Cards and contained regions                      |
+| `bg.subtle`  | `a30`         | Emphasized fills: selected rows, active nav      |
+| `bg.shaded`  | `a50`         | Strong fills that still read as background       |
+| `bg.solid`   | `s90` (`s125` for neutral) | Accent surfaces: solid buttons, badges |
+
+### Foregrounds
+
+| Token        | Value  | Use                                            |
+| ------------ | ------ | ---------------------------------------------- |
+| `fg.max`     | `s125` | Maximum contrast, sparingly                    |
+| `fg.heading` | `s120` | Headings                                       |
+| `fg.body`    | `s115` | Body text                                      |
+| `fg.muted`   | `s100` | Secondary text: captions, helper text          |
+| `fg.subtle`  | `s90`  | The quietest readable text: placeholders       |
+| `fg.link`    | `s110` | Links, with hover/active/disabled states       |
+| `fg.onSolid` | —      | The contrast color for text on `bg.solid`      |
+
+### Borders
+
+| Token       | Value | Use                                         |
+| ----------- | ----- | ------------------------------------------- |
+| `bd.subtle` | `a40` | Hairlines and dividers                      |
+| `bd.solid`  | `a60` | Input and card borders                      |
+| `bd.strong` | `a80` | Emphasis and selected outlines              |
+
+## Status colors
+
+`status.{info,success,warning,error}` alias the blue, green, orange, and red
+palettes — scales and semantic sets included. Use them whenever a color means
+an outcome, so the meaning stays explicit in code.
+
+export const StatusChips = () => {
+  const statuses = ["info", "success", "warning", "error"];
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 10,
+        flexWrap: "wrap",
+        fontFamily: token("fonts.body"),
+        fontSize: token("fontSizes.sm"),
+      }}
+    >
+      {statuses.map((status) => (
+        <span
+          key={status}
+          style={{
+            padding: "3px 12px",
+            borderRadius: 999,
+            background: "var(--colors-status-" + status + "-a20)",
+            border: "1px solid var(--colors-status-" + status + "-bd-subtle)",
+            color: "var(--colors-status-" + status + "-fg-body)",
+          }}
+        >
+          {status}
+        </span>
+      ))}
+    </div>
+  );
+};
+
+<StatusChips />
+
+```tsx
+css({
+  backgroundColor: "status.error.bg.surface",
+  border: "1px solid {colors.status.error.bd.subtle}",
+  color: "status.error.fg.body",
+});
+```
+
+## Static colors
+
+`black` and `white` with alpha scales (`black.a00`–`black.a125`) keep a fixed
+value in both themes. Use them for overlays tied to content rather than theme:
+scrims behind dialogs, gradients over images.
+
+export const StaticScales = () => {
+  const steps = [
+    "00",
+    "10",
+    "20",
+    "30",
+    "40",
+    "50",
+    "60",
+    "70",
+    "80",
+    "90",
+    "100",
+    "110",
+    "120",
+  ];
+  const cell = { width: 26, height: 26, borderRadius: 4, flexShrink: 0 };
+  const row = { display: "flex", gap: 6, alignItems: "center" };
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        fontFamily: token("fonts.mono"),
+        fontSize: token("fontSizes.xs"),
+        color: token("colors.fg.muted"),
+        overflowX: "auto",
+      }}
+    >
+      <div style={row}>
+        <span style={{ width: 64, flexShrink: 0 }}>black.a*</span>
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            padding: 6,
+            borderRadius: 6,
+            background: token("colors.white"),
+            border: "1px solid " + token("colors.bd.subtle"),
+          }}
+        >
+          {steps.map((step) => (
+            <div
+              key={step}
+              title={"black.a" + step}
+              style={{ ...cell, background: "var(--colors-black-a" + step + ")" }}
+            />
+          ))}
+        </div>
+      </div>
+      <div style={row}>
+        <span style={{ width: 64, flexShrink: 0 }}>white.a*</span>
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            padding: 6,
+            borderRadius: 6,
+            background: token("colors.black"),
+          }}
+        >
+          {steps.map((step) => (
+            <div
+              key={step}
+              title={"white.a" + step}
+              style={{ ...cell, background: "var(--colors-white-a" + step + ")" }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+<StaticScales />
+
+## Switching palettes with colorPalette
+
+Recipes can defer the palette choice to Panda's `colorPalette` property: style
+against `colorPalette.*` once, and switch the whole component's hue with a
+single property — Chip and Banner implement their tone variants this way.
+Only the semantic groups (`bg`, `bgSolid`, `fg`, `bd`) are available through
+`colorPalette`; scale steps like `colorPalette.s110` don't resolve.
+
+```tsx
+import { css } from "@hashintel/ds-helpers/css";
+
+const tag = css({
+  colorPalette: "purple",
+  backgroundColor: "colorPalette.bg.surface",
+  borderColor: "colorPalette.bd.subtle",
+  color: "colorPalette.fg.body",
+});
+```

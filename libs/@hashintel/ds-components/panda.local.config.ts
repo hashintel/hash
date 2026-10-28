@@ -8,6 +8,7 @@ export default defineConfig({
   include: [
     ...(coreConfig.include ?? []),
     "./src/preset/**/*.{ts,tsx}",
+    "./src/tokens/**/*.{ts,tsx}",
     "./.storybook/**/*.{ts,tsx}",
     "./docs/**/*.{ts,tsx}",
   ],

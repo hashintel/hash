@@ -1,0 +1,234 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { DoList, DontList } from "../../docs/blocks/do-dont-list";
+import { ReferenceLinks } from "../../docs/blocks/reference-links";
+import { token } from "@hashintel/ds-helpers/tokens";
+
+<Meta title="Docs/Tokens/Spacing" />
+
+export const meta = {
+  title: "Spacing",
+  description:
+    "A four-pixel rhythm for padding, gaps, and layout that scales with interface density.",
+  alternativeNames: ["Space scale", "Sizing"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/preset/tokens.ts",
+    stories: "https://tokens.hash.design/?path=/story/tokens--spacing",
+  },
+  related: ["Colors", "Typography", "Shadows"],
+};
+
+# Spacing
+
+A four-pixel rhythm for padding, gaps, and layout that scales with interface density.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+export const SpacingScale = () => {
+  const steps = [
+    "0.5",
+    "1",
+    "1.5",
+    "2",
+    "2.5",
+    "3",
+    "4",
+    "5",
+    "6",
+    "8",
+    "10",
+    "12",
+    "16",
+    "20",
+    "24",
+  ];
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        fontFamily: token("fonts.mono"),
+        fontSize: token("fontSizes.xs"),
+        color: token("colors.fg.muted"),
+      }}
+    >
+      {steps.map((step) => (
+        <div key={step} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ width: 28, textAlign: "right", flexShrink: 0 }}>{step}</span>
+          <div
+            style={{
+              height: 12,
+              borderRadius: 2,
+              background: token("colors.blue.s90"),
+              width: token("spacing." + step),
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+<SpacingScale />
+
+## Using spacing tokens
+
+Spacing tokens apply to every padding, margin, gap, and inset property. One
+unit is 4px at normal density; the rhythm keeps unrelated screens feeling
+consistent.
+
+```tsx
+import { css } from "@hashintel/ds-helpers/css";
+
+export const PropertyRow = () => (
+  <div className={css({ display: "flex", gap: "2", px: "4", py: "2" })}>
+    …
+  </div>
+);
+```
+
+With `strictTokens` enabled, off-scale values must be explicit escapes:
+`width: "[64px]"`. Treat every escape as a flag that the design may be
+off-rhythm.
+
+### When to use
+
+<DoList
+  items={[
+    "Use gap for space between siblings — it collapses cleanly when items wrap or disappear.",
+    "Use padding for space inside a surface, so borders and backgrounds hug their content.",
+    "Pick from the half steps (0.5–5.5) only below 24px, where a full 4px jump is too coarse.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use margins to position a component from inside — parents own the space between children.",
+    "Don't escape the scale for one-off values — nudge the design to the nearest step instead.",
+  ]}
+/>
+
+## The scale
+
+Token names are multiples of the 4px base unit: `1` = 4px, `2` = 8px, `4` =
+16px. Half steps add 2px precision at the small end. Values are shown at
+normal density.
+
+| Token | Size | Token | Size  |
+| ----- | ---- | ----- | ----- |
+| `0`   | 0px  | `5`   | 20px  |
+| `0.5` | 2px  | `5.5` | 22px  |
+| `1`   | 4px  | `6`   | 24px  |
+| `1.5` | 6px  | `7`   | 28px  |
+| `2`   | 8px  | `8`   | 32px  |
+| `2.5` | 10px | `9`   | 36px  |
+| `3`   | 12px | `10`  | 40px  |
+| `3.5` | 14px | `12`  | 48px  |
+| `4`   | 16px | `16`  | 64px  |
+| `4.5` | 18px | `20`  | 80px  |
+
+`11` (44px) and `14` (56px) complete the small end; above `20` the scale
+climbs by fours — `24`, `28`, `32`, … `64` — then `72`, `80`, and `96`
+(384px) for section- and page-level layout.
+
+## Density
+
+Every spacing token multiplies by `--density-factor`, so a subtree can switch
+between compact, normal, and comfortable rhythm without touching individual
+paddings. Set it with the `density` utility: `compact` (×0.75, 3px per unit),
+`normal` (×1, 4px), `comfortable` (×1.25, 5px).
+
+```tsx
+css({ density: "compact" });
+```
+
+export const DensityComparison = () => {
+  const densities = [
+    { name: "compact", factor: "0.75" },
+    { name: "normal", factor: "1" },
+    { name: "comfortable", factor: "1.25" },
+  ];
+  return (
+    <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
+      {densities.map((density) => (
+        <div key={density.name} style={{ "--density-factor": density.factor }}>
+          <div
+            style={{
+              fontFamily: token("fonts.mono"),
+              fontSize: token("fontSizes.xs"),
+              color: token("colors.fg.muted"),
+              marginBottom: 6,
+            }}
+          >
+            {density.name} ×{density.factor}
+          </div>
+          <div
+            style={{
+              width: 230,
+              padding: token("spacing.4"),
+              display: "flex",
+              flexDirection: "column",
+              gap: token("spacing.2"),
+              border: "1px solid " + token("colors.bd.subtle"),
+              borderRadius: 8,
+              background: token("colors.bg.surface"),
+              fontFamily: token("fonts.body"),
+            }}
+          >
+            <div
+              style={{
+                fontSize: token("fontSizes.sm"),
+                fontWeight: token("fontWeights.medium"),
+                color: token("colors.fg.heading"),
+              }}
+            >
+              Invite teammate
+            </div>
+            <div style={{ fontSize: token("fontSizes.xs"), color: token("colors.fg.muted") }}>
+              Grant access to this web and its entities.
+            </div>
+            <div style={{ display: "flex", gap: token("spacing.2") }}>
+              <span
+                style={{
+                  padding: token("spacing.1") + " " + token("spacing.3"),
+                  borderRadius: 6,
+                  background: token("colors.blue.s90"),
+                  color: token("colors.blue.fg.onSolid"),
+                  fontSize: token("fontSizes.xs"),
+                }}
+              >
+                Invite
+              </span>
+              <span
+                style={{
+                  padding: token("spacing.1") + " " + token("spacing.3"),
+                  borderRadius: 6,
+                  border: "1px solid " + token("colors.bd.solid"),
+                  color: token("colors.fg.body"),
+                  fontSize: token("fontSizes.xs"),
+                }}
+              >
+                Cancel
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+<DensityComparison />
+
+The same card at each density — only `--density-factor` changes between the
+three. Set density once on a subtree root (a table, a sidebar, a whole app
+surface); never compensate per element.

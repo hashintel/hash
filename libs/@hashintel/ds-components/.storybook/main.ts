@@ -1,6 +1,6 @@
 import remarkGfm from "remark-gfm";
 
-import { docgenParserOptions } from "../docs/docgen-options";
+import { docgenParserOptions } from "../scripts/generate-docs-mdx/docgen-options";
 import { rehypeMarkdownClass } from "./rehype-markdown-class";
 import { remarkStageCode } from "./remark-stage-code";
 

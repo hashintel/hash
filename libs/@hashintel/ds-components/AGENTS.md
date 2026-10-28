@@ -166,10 +166,14 @@ Recipes can defer the palette choice to Panda's `colorPalette` property:
 ```ts
 css({
   colorPalette: "red",
-  color: "colorPalette.s110",
-  borderColor: "colorPalette.a60",
+  color: "colorPalette.fg.body",
+  borderColor: "colorPalette.bd.solid",
 });
 ```
+
+Only the semantic groups (`bg`, `bgSolid`, `fg`, `bd`) are emitted for
+`colorPalette` (see `colorPalette.include` in `src/preset.ts`); scale steps
+like `colorPalette.s110` reference a CSS variable the utility never defines.
 
 ### Semantic Shadows
 
@@ -257,7 +261,7 @@ export const Checkbox = (props) => (
 
 ## Published MDX Docs
 
-The `src/components/*/*.docs.mdx` pages render in Storybook and are also
+The `src/components/*/*.docs.mdx` and `src/tokens/*.docs.mdx` pages render in Storybook and are also
 published for external sites (see README "Published Component Docs"). The
 published pages must work compiled as React Server Components (fumadocs on
 Next.js), where hooks, inline functions, and property access through client
@@ -265,12 +269,14 @@ references are all illegal — the pipeline restructures the pages accordingly
 and fails the build on violations:
 
 - `build:docs-demos` (pre-tsup) extracts every module-level export except
-  `meta` from each page into a generated client module
-  (`docs/demos/<slug>.gen.tsx` → `@hashintel/ds-components/docs/demos/<slug>`),
-  and generates `compound-parts.gen.tsx`, which flattens compound members the
-  page bodies use (`Banner.Title` → `BannerTitle`). The generated files are
-  excluded from tsc (inline MDX components were never type-checked) and are
-  validated by the esbuild compile plus render verification.
+  `meta` from each page into a generated client module, staged at
+  `.build/docs-demos/<slug>.gen.tsx` and published as
+  `@hashintel/ds-components/docs/demos/<slug>`, and generates
+  `compound-parts.gen.tsx`, which flattens compound members the page bodies
+  use (`Banner.Title` → `BannerTitle`). The staging dir sits outside tsc,
+  eslint, and the Panda scan globs (inline MDX components were never
+  type-checked) and is validated by the esbuild compile plus render
+  verification.
 - `tsup` builds those plus the doc blocks as entry points
   (`dist/docs/blocks/<name>.js`), all sharing chunks with the component
   entries so every surface uses one module instance per component, and banners
@@ -298,7 +304,7 @@ and fails the build on violations:
 - `codegen:docgen` generates `docs/blocks/props-table/docgen-registry.gen.ts`,
   the identity-keyed prop-docs registry `PropsTable` falls back to where
   Storybook's `__docgenInfo` injection is absent. Parser options are shared
-  with `.storybook/main.ts` via `docs/docgen-options.ts`.
+  with `.storybook/main.ts` via `scripts/generate-docs-mdx/docgen-options.ts`.
 - `build:buildinfo:docs` ships the doc blocks' style usage to
   `dist/docs/panda.buildinfo.json` (`panda.docs.config.ts`), separate from the
   main buildinfo so app consumers don't carry docs-only CSS.
@@ -311,8 +317,7 @@ libs/@hashintel/ds-components/
 ├── src/
 │   ├── components/
 │   ├── preset/             # Panda preset source of truth
-│   ├── tokens/             # Token stories and fixtures
-│   ├── tokens.ts           # Public `./tokens` facade
+│   ├── tokens/             # Token docs, stories, and fixtures
 ├── scripts/                # Token/codegen scripts
 ├── tests/                  # Snapshot/demo tests
 ├── panda.config.ts
@@ -320,6 +325,13 @@ libs/@hashintel/ds-components/
 ├── package.json
 └── tsconfig.json
 ```
+
+When a file grows a same-named implementation folder, move the entry point
+into that folder rather than leaving it beside it — importers reference the
+file inside the folder (`docs/blocks/props-table/props-table.tsx`,
+`scripts/generate-docs-mdx/generate-docs-mdx.ts`). This intentionally deviates
+from the repo-wide `fractal-file-structuring` skill, which keeps the entry
+point outside its implementation folder.
 
 ## Regenerating Tokens
 

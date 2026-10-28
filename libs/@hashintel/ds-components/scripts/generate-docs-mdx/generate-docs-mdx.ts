@@ -46,8 +46,8 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { VFile } from "vfile";
 
-import { remarkStageCode } from "../.storybook/remark-stage-code";
-import { fileImportSpecifier } from "./generate-docs-mdx/file-import-specifier";
+import { remarkStageCode } from "../../.storybook/remark-stage-code";
+import { fileImportSpecifier } from "./file-import-specifier";
 import { collectCompoundMemberUsages } from "./shared/compound-member-usages";
 import {
   extractInlineDemos,
@@ -73,7 +73,13 @@ const storybookImportPattern =
 const rewriteSpecifier = (slug: string, specifier: string): string => {
   const blocksMatch = /^(?:\.\.\/)+docs\/blocks\/(.+)$/.exec(specifier);
   if (blocksMatch) {
-    const block = blocksMatch[1] ?? "";
+    // A block whose entry point lives inside its own folder
+    // (`props-table/props-table`) publishes under the flat block name.
+    const segments = (blocksMatch[1] ?? "").split("/");
+    const block =
+      segments.length === 2 && segments[0] === segments[1]
+        ? segments[0]
+        : (blocksMatch[1] ?? "");
     if (!existsSync(path.join("dist", "docs", "blocks", `${block}.js`))) {
       throw new Error(`${slug}: no published entry for doc block "${block}"`);
     }
@@ -593,7 +599,10 @@ const stripDuplicatedTitle = (source: string, description: string): string => {
   return body.join("\n");
 };
 
-const pageFiles = globSync("./src/components/*/*.docs.mdx").sort();
+const pageFiles = globSync([
+  "./src/components/*/*.docs.mdx",
+  "./src/tokens/*.docs.mdx",
+]).sort();
 if (pageFiles.length === 0) {
   throw new Error("No .docs.mdx pages found");
 }

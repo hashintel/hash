@@ -28,3 +28,10 @@ writeFileSync(
   path.join("dist", "components", "noop.d.ts"),
   `export * from "../util/noop";\n`,
 );
+
+// The `./tokens` export points straight at the preset's token definitions
+// (no barrel in src); bridge the flat export-map path to the structured emit.
+writeFileSync(
+  path.join("dist", "tokens.d.ts"),
+  `export * from "./preset/tokens";\n`,
+);

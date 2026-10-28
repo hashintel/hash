@@ -9,7 +9,6 @@
   "include": [
     "src/main.ts",
     "src/preset.ts",
-    "src/tokens.ts",
     "src/types.d.ts",
     "src/components/**/*",
     "src/preset/**/*",
@@ -19,7 +18,6 @@
     "**/*.stories.tsx",
     "**/*.story.tsx",
     "**/*.test.*",
-    "**/*.spec.*",
-    "src/preset/stories/**"
+    "**/*.spec.*"
   ]
 }

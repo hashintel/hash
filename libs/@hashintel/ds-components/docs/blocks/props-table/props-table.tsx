@@ -1,9 +1,9 @@
 import Markdown from "react-markdown";
 
-import { Chip } from "../../src/components/Chip/chip";
-import { InlineHighlight } from "../../src/util/InlineHighlight/inline-highlight";
+import { Chip } from "../../../src/components/Chip/chip";
+import { InlineHighlight } from "../../../src/util/InlineHighlight/inline-highlight";
 import { propsTableRecipe } from "./props-table.recipe";
-import { docgenRegistry } from "./props-table/docgen-registry.gen";
+import { docgenRegistry } from "./docgen-registry.gen";
 
 import type {
   ComponentDoc,

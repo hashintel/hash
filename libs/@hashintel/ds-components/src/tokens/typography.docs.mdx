@@ -1,0 +1,439 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { ReferenceLinks } from "../../docs/blocks/reference-links";
+import { token } from "@hashintel/ds-helpers/tokens";
+
+<Meta title="Docs/Tokens/Typography" />
+
+export const meta = {
+  title: "Typography",
+  description:
+    "Typography is universal across all of our brands. We use the same fonts for the same things across our products.",
+  alternativeNames: ["Type scale", "Text styles"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/preset.ts",
+    stories: "https://tokens.hash.design/?path=/story/tokens--typography",
+  },
+  related: ["Colors", "Spacing", "Shadows"],
+};
+
+# Typography
+
+Typography is universal across all of our brands. We use the same fonts for the same things across our products.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+## Fonts
+
+export const FontCards = () => {
+  const fonts = [
+    {
+      name: "Inter Display",
+      tokenName: "display",
+      caption: "Display · Headings and titles",
+      href: "https://rsms.me/inter/",
+    },
+    {
+      name: "Inter",
+      tokenName: "body",
+      caption: "Body · Interface and running text",
+      href: "https://rsms.me/inter/",
+    },
+  ];
+  return (
+    <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+      {fonts.map((font) => (
+        <div
+          key={font.name}
+          style={{
+            width: 376,
+            maxWidth: "100%",
+            padding: 24,
+            borderRadius: 8,
+            border: "1px solid " + token("colors.bd.subtle"),
+            background: token("colors.bg.min"),
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            gap: 4,
+          }}
+        >
+          <div
+            style={{
+              fontFamily: token("fonts." + font.tokenName),
+              fontSize: token("fontSizes.4xl"),
+              lineHeight: 1.2,
+              color: token("colors.fg.heading"),
+            }}
+          >
+            Aa
+          </div>
+          <div
+            style={{
+              fontFamily: token("fonts.body"),
+              fontSize: token("fontSizes.base"),
+              fontWeight: token("fontWeights.semibold"),
+              color: token("colors.fg.heading"),
+            }}
+          >
+            {font.name}
+          </div>
+          <div
+            style={{
+              fontFamily: token("fonts.body"),
+              fontSize: token("fontSizes.sm"),
+              color: token("colors.fg.muted"),
+            }}
+          >
+            {font.caption}
+          </div>
+          <a
+            href={font.href}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              marginTop: 12,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "4px 12px",
+              borderRadius: 6,
+              border: "1px solid " + token("colors.bd.solid"),
+              fontFamily: token("fonts.body"),
+              fontSize: token("fontSizes.sm"),
+              color: token("colors.fg.body"),
+              textDecoration: "none",
+            }}
+          >
+            View foundry ↗
+          </a>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+<FontCards />
+
+### License
+
+We have an unlimited license to use these fonts in any medium (web, desktop,
+app, etc.) and install them on an unlimited number of employee and worker
+machines.
+
+## Why Inter
+
+Inter's simplicity, clarity and open forms make it the right functional
+typeface for HASH. Always default to Inter: it is what every product already
+renders in, it stays legible at the 12–14px sizes most of our interfaces use,
+and its tabular figures line up in tables and data. Headings use Inter
+Display, the display cut of the same family; code uses Geist Mono.
+
+export const GlyphSpecimen = () => {
+  const letters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890";
+  const symbols = [
+    "£",
+    "$",
+    "€",
+    "!",
+    "?",
+    "#",
+    "%",
+    "&",
+    "¢",
+    "∞",
+    "¥",
+    "₿",
+    "№",
+    "@",
+    "Ω",
+    "ω",
+  ];
+  const glyphs = letters.split("").concat(symbols);
+  return (
+    <div
+      style={{
+        padding: 24,
+        borderRadius: 8,
+        border: "1px solid " + token("colors.bd.subtle"),
+        background: token("colors.bg.min"),
+      }}
+    >
+      <div
+        style={{
+          fontFamily: token("fonts.body"),
+          fontSize: token("fontSizes.sm"),
+          fontWeight: token("fontWeights.medium"),
+          color: token("colors.fg.heading"),
+          marginBottom: 16,
+        }}
+      >
+        Inter Medium
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(13, minmax(28px, 48px))",
+        }}
+      >
+        {glyphs.map((glyph, index) => (
+          <div
+            key={index}
+            style={{
+              aspectRatio: "1",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px solid " + token("colors.bd.subtle"),
+              marginTop: -1,
+              marginLeft: -1,
+              fontFamily: token("fonts.body"),
+              fontWeight: token("fontWeights.medium"),
+              fontSize: token("fontSizes.xl"),
+              color: token("colors.fg.heading"),
+            }}
+          >
+            {glyph}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+<GlyphSpecimen />
+
+## Rules
+
+- Use the display family for headings and titles, the body family for
+  interface and running text, and the mono family for code and token names.
+- Use three weights only: 400 (`normal`), 500 (`medium`) and 600 (`semibold`).
+- Control text follows control size: `xs` and `sm` controls use the text style
+  of the same name; `md` and `lg` controls use `base`.
+- Line height tightens as size grows, and letter spacing goes from slightly
+  open at the small end to tight at the largest sizes.
+- Use `fg.body` or stronger for text people must read. `fg.subtle` and
+  `fg.muted` are below 4.5:1 on the page ground.
+
+## Type styles
+
+The text styles in the Figma library, with where to use each.
+
+### Display
+
+export const DisplayStyles = () => {
+  const rows = [
+    { label: "display/text-3xl", size: "3xl", ratio: "1.3", tracking: "-0.02em" },
+    { label: "display/text-2xl", size: "2xl", ratio: "1.4", tracking: "-0.015em" },
+    { label: "display/text-xl", size: "xl", ratio: "1.4", tracking: "-0.01em" },
+    { label: "display/text-lg", size: "lg", ratio: "1.5", tracking: "-0.005em" },
+    { label: "display/text-base", size: "base", ratio: "1.5", tracking: "0em" },
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+      {rows.map((row) => (
+        <div key={row.label} style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          <span
+            style={{
+              width: 280,
+              flexShrink: 0,
+              fontFamily: token("fonts.mono"),
+              fontSize: token("fontSizes.xs"),
+              color: token("colors.fg.muted"),
+            }}
+          >
+            {row.label}
+          </span>
+          <span
+            style={{
+              fontFamily: token("fonts.display"),
+              fontSize: token("fontSizes." + row.size),
+              fontWeight: token("fontWeights.semibold"),
+              lineHeight:
+                "round(1em * " + row.ratio + " * var(--leading-factor, 1), 1px)",
+              letterSpacing: row.tracking,
+              color: token("colors.fg.heading"),
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              minWidth: 0,
+            }}
+          >
+            The design system behind HASH
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+<DisplayStyles />
+
+### Text
+
+export const TextStyles = () => {
+  const rows = [
+    { label: "leading-normal/text-lg/regular", size: "lg", weight: "normal", ratio: "1.5", tracking: "-0.005em" },
+    { label: "leading-normal/text-base/normal", size: "base", weight: "normal", ratio: "1.5", tracking: "0em" },
+    { label: "leading-normal/text-base/medium", size: "base", weight: "medium", ratio: "1.5", tracking: "0em" },
+    { label: "leading-normal/text-base/semibold", size: "base", weight: "semibold", ratio: "1.5", tracking: "0em" },
+    { label: "leading-normal/text-sm/normal", size: "sm", weight: "normal", ratio: "1.6", tracking: "0.005em" },
+    { label: "leading-normal/text-sm/medium", size: "sm", weight: "medium", ratio: "1.6", tracking: "0.005em" },
+    { label: "leading-normal/text-sm/semibold", size: "sm", weight: "semibold", ratio: "1.6", tracking: "0.005em" },
+    { label: "leading-normal/text-xs/normal", size: "xs", weight: "normal", ratio: "1.6", tracking: "0.01em" },
+    { label: "leading-normal/text-xs/medium", size: "xs", weight: "medium", ratio: "1.6", tracking: "0.01em" },
+    { label: "leading-none/text-xs/normal-uppercase", size: "xs", weight: "normal", ratio: "1", tracking: "0.01em", uppercase: true },
+  ];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {rows.map((row) => (
+        <div key={row.label} style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          <span
+            style={{
+              width: 280,
+              flexShrink: 0,
+              fontFamily: token("fonts.mono"),
+              fontSize: token("fontSizes.xs"),
+              color: token("colors.fg.muted"),
+            }}
+          >
+            {row.label}
+          </span>
+          <span
+            style={{
+              fontFamily: token("fonts.body"),
+              fontSize: token("fontSizes." + row.size),
+              fontWeight: token("fontWeights." + row.weight),
+              lineHeight:
+                "round(1em * " + row.ratio + " * var(--leading-factor, 1), 1px)",
+              letterSpacing: row.tracking,
+              textTransform: row.uppercase ? "uppercase" : "none",
+              color: token("colors.fg.heading"),
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              minWidth: 0,
+            }}
+          >
+            The design system behind HASH
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+<TextStyles />
+
+The library also has leading-none and leading-tight variants of these sizes
+for single-line and compact text.
+
+## Tokens
+
+### Families
+
+| Token           | Figma         | Code        |
+| --------------- | ------------- | ----------- |
+| `fonts.display` | Inter Display | Inter Tight |
+| `fonts.body`    | Inter         | Inter       |
+| `fonts.mono`    | Geist Mono    | Geist Mono  |
+
+### Font sizes
+
+export const FontSizesTable = () => {
+  const rows = [
+    { name: "xxs", value: "10px", figma: "Code only" },
+    { name: "xs", value: "12px", figma: "size/xs" },
+    { name: "sm", value: "14px", figma: "size/sm" },
+    { name: "base", value: "16px", figma: "size/base" },
+    { name: "lg", value: "18px", figma: "size/lg" },
+    { name: "xl", value: "20px", figma: "size/xl" },
+    { name: "2xl", value: "24px", figma: "size/2xl" },
+    { name: "3xl", value: "30px", figma: "size/3xl" },
+    { name: "4xl", value: "36px", figma: "size/4xl" },
+  ];
+  const head = {
+    textAlign: "left",
+    padding: "10px 16px",
+    fontFamily: token("fonts.mono"),
+    fontSize: token("fontSizes.xxs"),
+    fontWeight: token("fontWeights.medium"),
+    letterSpacing: "0.05em",
+    textTransform: "uppercase",
+    color: token("colors.fg.muted"),
+    background: token("colors.bg.surface"),
+  };
+  const cell = {
+    padding: "10px 16px",
+    borderTop: "1px solid " + token("colors.bd.subtle"),
+    fontFamily: token("fonts.mono"),
+    fontSize: token("fontSizes.xs"),
+    color: token("colors.fg.body"),
+    verticalAlign: "middle",
+  };
+  return (
+    <table
+      style={{
+        width: "100%",
+        borderCollapse: "collapse",
+        border: "1px solid " + token("colors.bd.subtle"),
+      }}
+    >
+      <thead>
+        <tr>
+          <th style={head}>Token</th>
+          <th style={head}>Value</th>
+          <th style={head}>Figma variable</th>
+          <th style={head}>Sample</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row.name}>
+            <td style={cell}>--font-sizes-{row.name}</td>
+            <td style={cell}>{row.value}</td>
+            <td style={cell}>{row.figma}</td>
+            <td
+              style={{
+                ...cell,
+                fontFamily: token("fonts.body"),
+                fontSize: token("fontSizes." + row.name),
+                color: token("colors.fg.heading"),
+              }}
+            >
+              Ag
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+};
+
+<FontSizesTable />
+
+### Weights
+
+| Token                 | Value | Figma variable    |
+| --------------------- | ----- | ----------------- |
+| `fontWeights.normal`   | 400   | `weight/normal`   |
+| `fontWeights.medium`   | 500   | `weight/medium`   |
+| `fontWeights.semibold` | 600   | `weight/semibold` |
+
+### Line height and spacing
+
+| Sizes             | Line height | Letter spacing              |
+| ----------------- | ----------- | --------------------------- |
+| `xxs`, `xs`, `sm` | 1.6em       | Slightly open, from +0.01em |
+| `base`, `lg`      | 1.5em       | —                           |
+| `xl`, `2xl`       | 1.4em       | —                           |
+| `3xl`, `4xl`      | 1.3em       | Tight, to −0.025em at `4xl` |
+
+The leading factor rescales every line height: tight 0.9, normal 1, loose 1.1.
