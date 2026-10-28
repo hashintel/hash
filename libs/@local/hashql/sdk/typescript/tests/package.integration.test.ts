@@ -159,4 +159,22 @@ describe("emitted_program", () => {
       failure,
     );
   });
+
+  const fraction = 1.5;
+
+  test.each([Number.NaN, Number.POSITIVE_INFINITY, fraction])(
+    "projection_key %s",
+    (key) => {
+      expect.hasAssertions();
+      const count = Expression.input("count", integerType);
+      const query = Program.program(count.$projectUnsafe(key));
+      const failure = pipe(
+        query,
+        Program.compile,
+        Result.flip,
+        Result.getOrThrow,
+      );
+      expect(failure.reason._tag).toBe("InvalidExpression");
+    },
+  );
 });
