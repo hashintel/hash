@@ -297,6 +297,8 @@ export const formatPayloadPath = (path: readonly PropertyKey[]): string =>
 /** The first thing wrong with a payload value: where it is, as a path into the value (`""` for the value itself), and what's wrong. */
 export type PayloadValueProblem = { path: string; message: string };
 
+const englishErrorMap = z.locales.en().localeError;
+
 const storableKinds: readonly PayloadKind[] = [
   ...storedPayloadKinds,
   ...storedArrayPayloadKinds,
@@ -359,7 +361,13 @@ const checkItem = ({
         };
   }
 
-  const result = payloadKindSchemas[kind].safeParse(item);
+  const result = payloadKindSchemas[kind].safeParse(item, {
+    /*
+     * zod sets its English messages as a side effect of being imported, which bundlers drop (it declares no side
+     * effects), e.g. in Temporal's workflow bundle, leaving only "Invalid input".
+     */
+    error: englishErrorMap,
+  });
   const [issue] = result.error?.issues ?? [];
 
   return issue
