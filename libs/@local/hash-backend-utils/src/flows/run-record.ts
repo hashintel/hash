@@ -190,17 +190,20 @@ const writeFlowRunRecord = ({
     contentType: "application/jsonl",
   });
 
-/** The record a run wrote when it ended, if it has one. */
+/** The record a run wrote when it ended, if it has one, and it was written since `writtenSince`. */
 export const readStoredFlowRunRecord = async ({
   storageProvider,
   workflowId,
+  writtenSince,
 }: {
   storageProvider: FileStorageProvider;
   workflowId: string;
+  writtenSince?: Date;
 }): Promise<FlowRunRecord | null> => {
   const key = getFlowRunRecordStorageKey(workflowId);
+  const lastModified = await storageProvider.getObjectLastModified({ key });
 
-  if (!(await storageProvider.getObjectLastModified({ key }))) {
+  if (!lastModified || (writtenSince && lastModified < writtenSince)) {
     return null;
   }
 
@@ -255,6 +258,15 @@ export const recordEndedFlowRun = async ({
   return record;
 };
 
+export class FlowRunRecordNotFoundError extends Error {
+  constructor(workflowId: string) {
+    super(
+      `Flow run ${workflowId} is no longer in Temporal, and has no stored record`,
+    );
+    this.name = "FlowRunRecordNotFoundError";
+  }
+}
+
 /**
  * Records being read or already read, by workflow id, so the fields of one GraphQL request read each run once. Create
  * one per request: a running run's record goes stale as the run goes on.
@@ -262,9 +274,9 @@ export const recordEndedFlowRun = async ({
 export type FlowRunRecordsByWorkflowId = Map<string, Promise<FlowRunRecord>>;
 
 /**
- * A run's record: the one it wrote when it ended, once its workflow has closed, or else built from its history in
- * Temporal. A run that is still running is always read from Temporal, which has its latest events. A run that closed
- * without writing its record, e.g. because it was terminated, has it written now.
+ * A run's record: the one it wrote when it ended, or else built from its history in Temporal. A run that is still
+ * running is read from Temporal, which has its latest events. A run that closed without writing its record, e.g.
+ * because it was terminated, has it written now.
  */
 const readFlowRunRecord = async ({
   temporalClient,
@@ -290,15 +302,27 @@ const readFlowRunRecord = async ({
     });
 
     if (!storedRecord) {
-      throw new Error(
-        `Flow run ${workflowId} is no longer in Temporal, and has no stored record`,
-      );
+      throw new FlowRunRecordNotFoundError(workflowId);
     }
 
     return storedRecord;
   }
 
   if (!workflow.closeTime) {
+    /*
+     * A run writes its record, and saves how it ended on its entity, just before its workflow closes: so a run whose
+     * entity says it has ended has its ending read from that record until then.
+     */
+    const recordOfEndingRun = await readStoredFlowRunRecord({
+      storageProvider,
+      workflowId,
+      writtenSince: workflow.startTime,
+    });
+
+    if (recordOfEndingRun?.header.runId === workflow.runId) {
+      return recordOfEndingRun;
+    }
+
     return getFlowRunRecordFromHistory(
       await readFlowRunHistoryRecord({ temporalClient, workflow }),
       { workflowId },

@@ -17,6 +17,7 @@ import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.ge
 import { getFlowRunRecordStorageKey } from "../file-storage.js";
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 import {
+  FlowRunRecordNotFoundError,
   getFlowRunRecord,
   getFlowRunRecordFromHistory,
   recordEndedFlowRun,
@@ -147,6 +148,39 @@ describe("getFlowRunRecord", () => {
     expect(readStoredRecord()).toBeUndefined();
   });
 
+  it("reads the record a run wrote as it ended, before its workflow closes", async () => {
+    const fixture = loadFixture("succeeds");
+    const { temporalClient, getWorkflowExecutionHistory } =
+      createTemporalClient({
+        ...fixture,
+        describe: { ...fixture.describe, status: "RUNNING", closeTime: null },
+      });
+    const storedRecord = getFlowRunRecordFromHistory(fixture, { workflowId });
+    const { storageProvider } = createStorageProvider(storedRecord);
+
+    await expect(
+      getFlowRunRecord({ temporalClient, storageProvider, workflowId }),
+    ).resolves.toStrictEqual(storedRecord);
+    expect(getWorkflowExecutionHistory).not.toHaveBeenCalled();
+  });
+
+  it("reads a running run from Temporal when its stored record is from before it was reset", async () => {
+    const fixture = loadFixture("in-progress");
+    const { temporalClient } = createTemporalClient(fixture);
+    const recordFromBeforeReset = getFlowRunRecordFromHistory(
+      loadFixture("succeeds"),
+      { workflowId },
+    );
+    recordFromBeforeReset.header.runId = "run-before-reset";
+    const { storageProvider } = createStorageProvider(recordFromBeforeReset);
+
+    await expect(
+      getFlowRunRecord({ temporalClient, storageProvider, workflowId }),
+    ).resolves.toStrictEqual(
+      getFlowRunRecordFromHistory(fixture, { workflowId }),
+    );
+  });
+
   it("reads a closed run from its stored record", async () => {
     const fixture = loadFixture("succeeds");
     const { temporalClient, getWorkflowExecutionHistory } =
@@ -235,6 +269,15 @@ describe("getFlowRunRecord", () => {
     await expect(
       getFlowRunRecord({ temporalClient, storageProvider, workflowId }),
     ).resolves.toStrictEqual(storedRecord);
+  });
+
+  it("can't read a run Temporal no longer has without a stored record", async () => {
+    const { temporalClient } = createTemporalClient("notFound");
+    const { storageProvider } = createStorageProvider();
+
+    await expect(
+      getFlowRunRecord({ temporalClient, storageProvider, workflowId }),
+    ).rejects.toBeInstanceOf(FlowRunRecordNotFoundError);
   });
 
   it("reads each run once per cache", async () => {

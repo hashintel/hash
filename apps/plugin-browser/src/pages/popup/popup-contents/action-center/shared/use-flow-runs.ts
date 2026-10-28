@@ -50,8 +50,8 @@ const getPersistedEntitiesFromOutputs = (
   });
 
 /**
- * The entities a run persisted, which only a completed run has. They don't change once it has completed, so they're
- * read once, from its outputs.
+ * The entities a run persisted, which only a completed run has. They don't change until it's reset and completes
+ * again, closing at another time, so they're read once each time it completes.
  */
 const getPersistedEntities = async (
   flowRun: GetMinimalFlowRunsQuery["getFlowRuns"]["flowRuns"][number],
@@ -62,9 +62,10 @@ const getPersistedEntities = async (
   }
 
   const previousFlowRun = previousFlowRuns.find(
-    ({ flowRunEntityId, status }) =>
+    ({ flowRunEntityId, status, closedAt }) =>
       flowRunEntityId === flowRun.flowRunEntityId &&
-      status === FlowRunStatus.Completed,
+      status === FlowRunStatus.Completed &&
+      closedAt === flowRun.closedAt,
   );
 
   if (previousFlowRun) {

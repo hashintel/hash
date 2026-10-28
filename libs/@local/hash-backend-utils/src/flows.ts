@@ -11,7 +11,10 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { getFlowRunRecord } from "./flows/run-record.js";
+import {
+  FlowRunRecordNotFoundError,
+  getFlowRunRecord,
+} from "./flows/run-record.js";
 import { getFlowRunEntityById } from "./flows/shared/get-flow-run-entity-by-id.js";
 import { getFlowRunLinks } from "./flows/shared/get-flow-run-links.js";
 import {
@@ -27,6 +30,7 @@ import type { TemporalClient } from "./temporal.js";
 import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { FlowRunRecordHeader } from "@local/hash-isomorphic-utils/flows/run-record";
 import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
 import type {
   FlowRunStatus,
@@ -54,7 +58,7 @@ type FlowRunReaders = {
 
 /**
  * A run as its entity describes it. An entity that doesn't hold the run's status yet, because the run started before
- * runs saved it, is given it from the run's record.
+ * runs saved it, is given it from the run's record. A run with neither can't be shown.
  */
 const getFlowRunSummary = async ({
   entity,
@@ -63,20 +67,29 @@ const getFlowRunSummary = async ({
 }: FlowRunReaders & {
   entity: HashEntity<FlowRunEntity>;
   links: FlowRunLinks & { flowDefinitionEntityId: EntityId };
-}): Promise<FlowRunSummary> => {
+}): Promise<FlowRunSummary | null> => {
   const { properties } = entity;
   const flowRunEntityId = entity.metadata.recordId.entityId;
 
   let statusFields = getFlowRunStatusFieldsFromEntity(entity);
 
   if (!statusFields) {
-    const { header } = await getFlowRunRecord({
-      recordsByWorkflowId: readers.recordsByWorkflowId,
-      storageProvider: readers.storageProvider,
-      temporalClient: readers.temporalClient,
-      workflowId:
-        properties["https://hash.ai/@h/types/property-type/workflow-id/"],
-    });
+    let header: FlowRunRecordHeader;
+
+    try {
+      ({ header } = await getFlowRunRecord({
+        recordsByWorkflowId: readers.recordsByWorkflowId,
+        storageProvider: readers.storageProvider,
+        temporalClient: readers.temporalClient,
+        workflowId:
+          properties["https://hash.ai/@h/types/property-type/workflow-id/"],
+      }));
+    } catch (error) {
+      if (error instanceof FlowRunRecordNotFoundError) {
+        return null;
+      }
+      throw error;
+    }
 
     await correctFlowRunStatusFromRecord({
       flowRunEntity: entity,
@@ -278,14 +291,16 @@ export const getFlowRuns = async ({
       continue;
     }
 
-    flowRuns.push(
-      await getFlowRunSummary({
-        entity,
-        links,
-        ...readers,
-        userAuthentication: authentication,
-      }),
-    );
+    const flowRun = await getFlowRunSummary({
+      entity,
+      links,
+      ...readers,
+      userAuthentication: authentication,
+    });
+
+    if (flowRun) {
+      flowRuns.push(flowRun);
+    }
   }
 
   return {
