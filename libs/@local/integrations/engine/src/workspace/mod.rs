@@ -2,6 +2,7 @@ mod connection;
 mod error;
 mod files;
 mod interrupt;
+mod metrics;
 mod reply;
 mod rows;
 mod select;
@@ -11,6 +12,7 @@ use core::{error::Error, num::NonZeroUsize};
 use std::{path::PathBuf, thread};
 
 use error_stack::{Report, ResultExt as _};
+use hash_integrations_definition::Variables;
 use tokio::sync::mpsc;
 
 pub use self::{
@@ -35,6 +37,8 @@ pub struct WorkspaceConfig {
     /// The number of requests that can wait while another runs. Defaults to 64.
     /// Callers wait for queue space when it is full.
     pub queue_capacity: NonZeroUsize,
+    /// The values of the `$NAME` parameters that queries read.
+    pub variables: Variables,
     /// The most memory DuckDB uses. A query that needs more spills to the temporary directory,
     /// or fails if it cannot.
     pub memory_limit: Option<ByteSize>,
@@ -58,6 +62,7 @@ impl Default for WorkspaceConfig {
         Self {
             queue_capacity: NonZeroUsize::new(64)
                 .expect("the default queue capacity should be nonzero"),
+            variables: Variables::default(),
             memory_limit: None,
             temp_directory_limit: None,
             disk_limit: None,
@@ -90,8 +95,8 @@ enum Command {
 ///
 /// A dedicated thread owns the database's only connection and runs queries in the order they
 /// are sent. A query is a single `SELECT` statement, and the only table functions it can call are
-/// `range`, `generate_series` and `unnest`. Queries cannot open files, load extensions or change
-/// settings.
+/// `range`, `generate_series` and `unnest`. Queries read [`WorkspaceConfig::variables`] as
+/// `$NAME` parameters, and cannot open files, load extensions or change settings.
 /// [`WorkspaceConfig::queue_capacity`] bounds the queue; callers wait for space when it is full.
 ///
 /// Only one workspace at a time can open a database. It holds a lock on `<database>.lock` until
@@ -142,7 +147,7 @@ impl Workspace {
             .name("integrations-workspace".to_owned())
             .spawn(move || {
                 let _entered = span.entered();
-                Connection::serve(path, &config, ready, &mut receiver);
+                Connection::serve(path, config, ready, &mut receiver);
             })
             .change_context(OpenError::Spawn)?;
 
@@ -182,6 +187,8 @@ impl Workspace {
     /// - [`NotSelect`] if DuckDB does not read `sql` as a `SELECT` query
     /// - [`StatementCount`] if `sql` is not exactly one statement
     /// - [`TableFunction`] if the query calls a table function that is not allowed
+    /// - [`UnknownParameter`] if the query reads a parameter that [`WorkspaceConfig::variables`]
+    ///   does not set
     /// - [`UnsupportedType`] if a column has a type whose values cannot be read
     /// - [`InvalidQuery`] if DuckDB cannot run the query as written
     /// - [`InvalidData`] if a value in the rows causes an error
@@ -194,6 +201,7 @@ impl Workspace {
     /// [`NotSelect`]: StatementError::NotSelect
     /// [`StatementCount`]: StatementError::StatementCount
     /// [`TableFunction`]: StatementError::TableFunction
+    /// [`UnknownParameter`]: StatementError::UnknownParameter
     /// [`UnsupportedType`]: StatementError::UnsupportedType
     /// [`InvalidQuery`]: StatementError::InvalidQuery
     /// [`InvalidData`]: StatementError::InvalidData
@@ -216,6 +224,8 @@ impl Workspace {
     /// - [`NotSelect`] if DuckDB does not read `sql` as a `SELECT` query
     /// - [`StatementCount`] if `sql` is not exactly one statement
     /// - [`TableFunction`] if the query calls a table function that is not allowed
+    /// - [`UnknownParameter`] if the query reads a parameter that [`WorkspaceConfig::variables`]
+    ///   does not set
     /// - [`InvalidQuery`] if DuckDB cannot run the query as written
     /// - [`InvalidData`] if a value in the rows causes an error
     /// - [`Failed`] if DuckDB fails for another reason
@@ -227,6 +237,7 @@ impl Workspace {
     /// [`NotSelect`]: StatementError::NotSelect
     /// [`StatementCount`]: StatementError::StatementCount
     /// [`TableFunction`]: StatementError::TableFunction
+    /// [`UnknownParameter`]: StatementError::UnknownParameter
     /// [`InvalidQuery`]: StatementError::InvalidQuery
     /// [`InvalidData`]: StatementError::InvalidData
     /// [`Failed`]: StatementError::Failed

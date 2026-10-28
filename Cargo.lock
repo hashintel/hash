@@ -7045,13 +7045,19 @@ dependencies = [
  "derive_more",
  "duckdb",
  "error-stack",
+ "hash-integrations-definition",
+ "opentelemetry",
+ "opentelemetry_sdk",
  "pretty_assertions",
  "proptest",
+ "serde",
  "serde_json",
  "simple-mermaid",
  "tempfile",
  "tokio",
  "tracing",
+ "type-system",
+ "uuid",
 ]
 
 [[package]]
