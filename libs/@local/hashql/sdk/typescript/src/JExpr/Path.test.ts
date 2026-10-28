@@ -2,7 +2,10 @@ import { expect, it, test } from "@effect/vitest";
 import { Arbitrary, HashSet, Option, Result, Schema } from "effect";
 import { describe } from "vitest";
 
-import { NestingTooDeep } from "../internal/type-parser.js";
+import {
+  DuplicateStructField,
+  NestingTooDeep,
+} from "../internal/type-parser.js";
 import * as Path from "./Path.js";
 import * as Type from "./Type/index.js";
 
@@ -121,6 +124,17 @@ describe("path_grammar", () => {
     const failure = Option.getOrThrow(Result.getFailure(Path.parse(source)));
     expect(failure.offset).toBe(0);
     expect([...failure.expected]).toStrictEqual([NestingTooDeep()]);
+    expect(Result.isFailure(Path.decodeResult(source))).toBe(true);
+  });
+
+  test("duplicate_struct_field", () => {
+    expect.hasAssertions();
+    const source = "Box<(`+`: A, +: B)>";
+    const failure = Option.getOrThrow(Result.getFailure(Path.parse(source)));
+    expect(failure.offset).toBe(source.indexOf(")") + 1);
+    expect([...failure.expected]).toStrictEqual([
+      DuplicateStructField({ name: { _tag: "Symbol", value: "+" } }),
+    ]);
     expect(Result.isFailure(Path.decodeResult(source))).toBe(true);
   });
 
