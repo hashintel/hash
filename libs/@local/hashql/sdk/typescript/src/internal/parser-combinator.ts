@@ -39,7 +39,11 @@ export const cut = <T, R extends Reason>(
     schema: self.schema,
   });
 
-/** Reads zero or more items; an empty successful item fails instead of looping. */
+/**
+ * Reads zero or more items.
+ *
+ * An item that succeeds without consuming input stops the repetition with a committed {@link ExpectedProgress} failure instead of looping. {@link Parser.optional | optional} and {@link Parser.choice | choice} pass it on instead of backtracking.
+ */
 export const repeat = <T, R extends Reason>(
   self: Parser.Parser<T, R>,
 ): Parser.Parser<readonly T[], R | ExpectedProgress> =>
