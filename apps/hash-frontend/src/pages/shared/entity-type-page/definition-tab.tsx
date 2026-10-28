@@ -10,6 +10,7 @@ import { useNewTypeOwner } from "../shared/use-new-type-owner";
 import { EntityTypeChildren } from "./definition-tab/entity-type-children";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 
+import type { OnNavigateToType } from "./shared/on-navigate-to-type";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
@@ -23,10 +24,7 @@ type DefinitionTabProps = {
     propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
   };
   entityTypeBaseUrl: BaseUrl | null;
-  onNavigateToType: (
-    kind: "entityType" | "dataType",
-    url: VersionedUrl,
-  ) => void;
+  onNavigateToType: OnNavigateToType;
   readonly: boolean;
 };
 
@@ -110,7 +108,7 @@ export const DefinitionTab = ({
       <EntityTypeChildren
         entityType={entityTypeAndPropertyTypes.entityType}
         entityTypeBaseUrl={entityTypeBaseUrl}
-        key={`children-${entityTypeAndPropertyTypes.entityType.schema.$id}`}
+        key={`children-${entityTypeAndPropertyTypes.entityType.schema.$id}`} // Remount on each new version, so the query refetches the children a save may have upgraded
         onNavigateToType={onNavigateToType}
       />
     </Stack>

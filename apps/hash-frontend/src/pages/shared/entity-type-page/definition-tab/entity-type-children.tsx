@@ -5,10 +5,10 @@ import { isTypeArchived } from "../../../../shared/is-archived";
 import { DependentTypesSection } from "./entity-type-children/dependent-types-section";
 import { useEntityTypeChildren } from "./entity-type-children/use-entity-type-children";
 
+import type { OnNavigateToType } from "../shared/on-navigate-to-type";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
-  VersionedUrl,
 } from "@blockprotocol/type-system";
 
 export const EntityTypeChildren = ({
@@ -19,10 +19,7 @@ export const EntityTypeChildren = ({
   entityType: EntityTypeWithMetadata;
   /** `null` for a draft type, which nothing can refer to yet */
   entityTypeBaseUrl: BaseUrl | null;
-  onNavigateToType: (
-    kind: "entityType" | "dataType",
-    url: VersionedUrl,
-  ) => void;
+  onNavigateToType: OnNavigateToType;
 }) => {
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
@@ -36,7 +33,7 @@ export const EntityTypeChildren = ({
     return null;
   }
 
-  const title = (
+  const boldTitle = (
     <Box component="span" sx={{ fontWeight: "bold" }}>
       {entityType.schema.title}
     </Box>
@@ -44,12 +41,14 @@ export const EntityTypeChildren = ({
 
   return (
     <DependentTypesSection
-      heading={<>Types that extend {title}</>}
-      emptyMessage={<>No types extend {title} yet.</>}
+      heading={<>Types that extend {boldTitle}</>}
+      emptyMessage={<>No types extend {boldTitle} yet.</>}
       types={children}
       error={error}
-      isLink={
-        isSpecialEntityTypeLookup?.[entityType.schema.$id]?.isLink ?? false
+      isLinkType={(child) =>
+        isSpecialEntityTypeLookup?.[child.schema.$id]?.isLink ??
+        isSpecialEntityTypeLookup?.[entityType.schema.$id]?.isLink ??
+        false
       }
       onTypeClick={(typeId) => onNavigateToType("entityType", typeId)}
     />

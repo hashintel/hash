@@ -40,7 +40,7 @@ const renderSection = (
         emptyMessage="No types extend Animal yet."
         types={undefined}
         error={undefined}
-        isLink={false}
+        isLinkType={() => false}
         onTypeClick={() => {}}
         {...props}
       />
@@ -48,19 +48,21 @@ const renderSection = (
   );
 
 describe("DependentTypesSection", () => {
-  it("shows a skeleton while loading", () => {
-    expect(renderSection()).toContain('aria-busy="true"');
-  });
-
-  it("says so when there are no types", () => {
-    expect(renderSection({ types: [] })).toContain(
-      "No types extend Animal yet.",
+  it("shows a skeleton under the heading while loading", () => {
+    expect(renderSection()).toMatch(
+      /aria-busy="true".*Types that extend Animal.*MuiSkeleton-root/s,
     );
   });
 
-  it("shows an error message when loading fails", () => {
-    expect(renderSection({ error: new Error("Network down") })).toContain(
-      "Reload the page to try again.",
+  it("says so under the heading when there are no types", () => {
+    expect(renderSection({ types: [] })).toMatch(
+      /Types that extend Animal.*No types extend Animal yet\./s,
+    );
+  });
+
+  it("shows an error message under the heading when loading fails", () => {
+    expect(renderSection({ error: new Error("Network down") })).toMatch(
+      /Types that extend Animal.*Reload the page to try again\./s,
     );
   });
 
