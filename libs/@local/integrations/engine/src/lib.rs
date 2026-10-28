@@ -20,6 +20,6 @@ mod variant_name;
 mod workspace;
 
 pub use self::workspace::{
-    CloseError, DataErrorType, OpenError, QueryErrorType, Rows, Setting, StatementError, Workspace,
-    WorkspaceConfig,
+    CloseError, DataErrorType, OpenError, QueryErrorType, Rows, Setting, SnapshotError,
+    StatementError, Workspace, WorkspaceConfig,
 };

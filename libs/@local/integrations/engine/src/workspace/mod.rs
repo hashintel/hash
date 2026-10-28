@@ -14,7 +14,10 @@ use error_stack::{Report, ResultExt as _};
 use tokio::sync::mpsc;
 
 pub use self::{
-    error::{CloseError, DataErrorType, OpenError, QueryErrorType, Setting, StatementError},
+    error::{
+        CloseError, DataErrorType, OpenError, QueryErrorType, Setting, SnapshotError,
+        StatementError,
+    },
     rows::Rows,
 };
 use crate::workspace::{
@@ -50,6 +53,10 @@ enum Command {
         table: Box<str>,
         sql: Box<str>,
         reply: Reply<(), StatementError>,
+    },
+    Snapshot {
+        target: PathBuf,
+        reply: Reply<(), SnapshotError>,
     },
     Close {
         reply: Reply<(), CloseError>,
@@ -197,6 +204,34 @@ impl Workspace {
         self.request(
             |reply| Command::CreateTable { table, sql, reply },
             StatementError::Stopped,
+        )
+        .await
+    }
+
+    /// Writes a copy of the database to `target` that DuckDB can open on its own.
+    ///
+    /// The copy holds the tables of every request sent before the snapshot, and none sent after
+    /// it. It is written to a new file at `<target>.partial`, which replaces any file there, synced
+    /// to disk, and then renamed to `target`, so it replaces an existing file at `target` only once
+    /// it is complete.
+    ///
+    /// # Errors
+    ///
+    /// - [`InvalidTarget`] if `target` is relative or contains `..`
+    /// - [`WorkspaceFile`] if `target` or `<target>.partial` is one of the workspace's files
+    /// - [`Checkpoint`] if DuckDB cannot write its log into the database file
+    /// - [`Write`] if the copy cannot be written, synced or renamed
+    /// - [`Stopped`] if the workspace thread stopped
+    ///
+    /// [`InvalidTarget`]: SnapshotError::InvalidTarget
+    /// [`WorkspaceFile`]: SnapshotError::WorkspaceFile
+    /// [`Checkpoint`]: SnapshotError::Checkpoint
+    /// [`Write`]: SnapshotError::Write
+    /// [`Stopped`]: SnapshotError::Stopped
+    pub async fn snapshot(&self, target: PathBuf) -> Result<(), Report<SnapshotError>> {
+        self.request(
+            |reply| Command::Snapshot { target, reply },
+            SnapshotError::Stopped,
         )
         .await
     }
