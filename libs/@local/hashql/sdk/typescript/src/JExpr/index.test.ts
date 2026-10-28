@@ -26,6 +26,18 @@ describe("compile", () => {
     );
   });
 
+  test("deep_nesting", () => {
+    expect.hasAssertions();
+    let value: JExpr.Expression = "x";
+    for (let depth = 0; depth < 100_000; depth += 1) {
+      value = JExpr.tuple(value);
+    }
+
+    expect(JExpr.compile(value)).toBe(
+      `${'{"#tuple":['.repeat(100_000)}"x"${"]}".repeat(100_000)}`,
+    );
+  });
+
   test("special_form_heads", () => {
     expect.hasAssertions();
     const integer = Option.getOrThrow(JExpr.Type.reference("Integer"));
