@@ -1,6 +1,7 @@
 import remarkGfm from "remark-gfm";
 
 import { rehypeMarkdownClass } from "./rehype-markdown-class";
+import { remarkStageCode } from "./remark-stage-code";
 
 import type { StorybookConfig } from "@storybook/react-vite";
 
@@ -13,7 +14,7 @@ const config: StorybookConfig = {
       options: {
         mdxPluginOptions: {
           mdxCompileOptions: {
-            remarkPlugins: [remarkGfm],
+            remarkPlugins: [remarkGfm, remarkStageCode],
             rehypePlugins: [rehypeMarkdownClass],
           },
         },
@@ -39,8 +40,8 @@ const config: StorybookConfig = {
       // instead; runtime displayName assignments are unaffected.
       componentNameResolver: (exp) => exp.getName(),
       // The plugin defaults to injecting `X.displayName = "<doc name>"` after
-      // each module, which would overwrite the hand-set displayNames the docs
-      // Stage serializer relies on (e.g. "Form.Field") with export names.
+      // each module, which would overwrite hand-set displayNames
+      // (e.g. "Form.Field") with export names.
       setDisplayName: false,
       shouldExtractLiteralValuesFromEnum: true,
       shouldRemoveUndefinedFromOptional: true,

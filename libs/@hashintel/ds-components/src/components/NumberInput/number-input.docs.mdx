@@ -28,8 +28,6 @@ export const meta = {
   related: ["TextInput", "Slider", "Form"],
 };
 
-export const noop = () => {};
-
 # NumberInput
 
 Lets users enter a numeric value by typing or stepping.
@@ -42,41 +40,41 @@ Lets users enter a numeric value by typing or stepping.
 />
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={8}
       min={1}
       max={64}
       width="xs"
       aria-label="vCPU limit"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={0.75}
       step={0.05}
       width="xs"
       aria-label="Sampling temperature"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={1024}
       hideStepper
       width="xs"
       aria-label="Max tokens"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       variant="subtle"
       value={12}
       width="fitContent"
       aria-label="Page size"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -154,14 +152,14 @@ export const RetryLimitInput = ({
 NumberInput is controlled: pass `value` and take the parsed number from `onChange`, which reports `null` when the field is empty.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={32}
       min={1}
       max={512}
       width="xs"
       aria-label="Batch size"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -192,22 +190,22 @@ export const BatchSizeInput = () => {
 `step` defaults to `1`, which makes an integer input: decimal-separator keys are rejected and parsed values are truncated. A fractional step — or `"any"` — switches to decimal mode and the decimal mobile keyboard.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={0.25}
       step={0.01}
       width="xs"
       aria-label="Confidence threshold"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={3.14159}
       step="any"
       width="xs"
       aria-label="Property value"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -217,14 +215,14 @@ export const BatchSizeInput = () => {
 `min` defaults to `0` — pass a negative `min` to allow negative values. The bounds constrain stepping only: users can still type outside the range, so validate the value and set `invalid` yourself.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={5}
       min={1}
       max={10}
       width="xs"
       aria-label="Crawl depth"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -239,25 +237,25 @@ Disabled, invalid, and loading, in that order. `invalid` is presentational — a
     disabled
     width="xs"
     aria-label="Instance count"
-    onChange={noop}
+    onChange={() => {}}
   />
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={2048}
       max={1024}
       invalid
       width="xs"
       aria-label="Max tokens"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={42}
       loading
       width="xs"
       aria-label="Random seed"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -267,19 +265,19 @@ Disabled, invalid, and loading, in that order. `invalid` is presentational — a
 `readonly` renders the value as plain text — no border, stepper, or focus ring — for view modes that later switch to editing. Unlike `disabled`, it reads as content rather than a blocked control.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={1250}
       width="xs"
       aria-label="Entity count"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
   <NumberInput
     value={1250}
     readonly
     aria-label="Entity count"
-    onChange={noop}
+    onChange={() => {}}
   />
 </Stage>
 
@@ -288,22 +286,22 @@ Disabled, invalid, and loading, in that order. `invalid` is presentational — a
 `subtle` drops the border and background so the field reads as inline text until hovered or focused. Use it for in-place editing in dense surfaces; keep `default` in forms.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       variant="default"
       value={3}
       width="xs"
       aria-label="Retry limit"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       variant="subtle"
       value={3}
       width="fitContent"
       aria-label="Retry limit"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -313,54 +311,54 @@ Disabled, invalid, and loading, in that order. `invalid` is presentational — a
 `md` is the default. Match the size of neighbouring inputs and buttons; use `xxs`–`sm` in dense chrome such as table rows and toolbars.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       size="xxs"
       placeholder="xxs"
       value={null}
       width="xs"
       aria-label="xxs size"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       size="xs"
       placeholder="xs"
       value={null}
       width="xs"
       aria-label="xs size"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       size="sm"
       placeholder="sm"
       value={null}
       width="xs"
       aria-label="sm size"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       size="md"
       placeholder="md"
       value={null}
       width="xs"
       aria-label="md size"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       size="lg"
       placeholder="lg"
       value={null}
       width="xs"
       aria-label="lg size"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -370,39 +368,39 @@ Disabled, invalid, and loading, in that order. `invalid` is presentational — a
 Width presets align fields across form rows: `xs`, `sm`, `md`, `lg`, plus `fullWidth` (the default, stretching to the container) and `fitContent`, which hugs the current value. Set a custom width with `className` when alignment doesn't matter.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       width="xs"
       placeholder="xs"
       value={null}
       aria-label="xs width"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       width="sm"
       placeholder="sm"
       value={null}
       aria-label="sm width"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       width="md"
       placeholder="md"
       value={null}
       aria-label="md width"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       width="fitContent"
       value={1234}
       aria-label="fitContent width"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -412,17 +410,17 @@ Width presets align fields across form rows: `xs`, `sm`, `md`, `lg`, plus `fullW
 `width="maxNumber"` sizes the field to exactly fit `max` at `step`'s precision. It assumes the stepper is hidden, so pair it with `hideStepper`, and it needs a finite `max`.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       width="maxNumber"
       hideStepper
       value={999}
       max={999}
       aria-label="Max retries"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       width="maxNumber"
       hideStepper
@@ -430,7 +428,7 @@ Width presets align fields across form rows: `xs`, `sm`, `md`, `lg`, plus `fullW
       max={99}
       step={0.001}
       aria-label="Threshold"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -440,21 +438,21 @@ Width presets align fields across form rows: `xs`, `sm`, `md`, `lg`, plus `fullW
 The spin buttons show only while the field is focused but reserve their space; `hideStepper` removes them and reclaims it. Hide the stepper when values are typed rather than nudged.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={1024}
       width="xs"
       aria-label="With stepper"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={1024}
       hideStepper
       width="xs"
       aria-label="Without stepper"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -464,13 +462,13 @@ The spin buttons show only while the field is focused but reserve their space; `
 `clearable` shows a clear button on hover or focus; clearing reports `null` to `onChange` and refocuses the input. Pass `{ onClear }` to run your own reset instead.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={250}
       clearable
       width="xs"
       aria-label="Row limit"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -480,23 +478,23 @@ The spin buttons show only while the field is focused but reserve their space; `
 Put the unit in an adornment so users enter only the number. Text adornments take `{ text }`, icons `{ iconName }`, and either becomes a button when given `onClick`.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={512}
       suffix={{ text: "MB" }}
       width="xs"
       aria-label="Memory limit"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <NumberInput
       value={20}
       step={0.01}
       prefix={{ text: "$" }}
       width="xs"
       aria-label="Monthly budget"
-      onChange={noop}
+      onChange={() => {}}
     />
   </DemoState>
 </Stage>
@@ -556,22 +554,22 @@ connects — `subtle` and `readonly` inputs render separately.
 
 <Stage>
   <div style={{ display: "flex", alignItems: "center" }}>
-    <DemoState>
+    <DemoState data-harness>
       <NumberInput
         connectToRightInput
         value={1}
         width="xs"
         aria-label="Minimum instances"
-        onChange={noop}
+        onChange={() => {}}
       />
     </DemoState>
-    <DemoState>
+    <DemoState data-harness>
       <NumberInput
         connectToLeftInput
         value={8}
         width="xs"
         aria-label="Maximum instances"
-        onChange={noop}
+        onChange={() => {}}
       />
     </DemoState>
   </div>

@@ -39,7 +39,7 @@ Lets users select any number of options from a visible list.
 />
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       aria-label="Entity types to include"
       items={[
@@ -51,7 +51,7 @@ Lets users select any number of options from a visible list.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       aria-label="Notify me about"
       layout="blockWithBorder"
@@ -130,7 +130,7 @@ export const EntityTypeFilter = () => {
 CheckboxGroup is controlled: `value` holds the selected option values and `onChange` receives the full next array — there is no uncontrolled mode. Each item takes a unique `value` plus any Checkbox props, such as `label`, `disabled`, or `tone`.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       aria-label="Notification channels"
       items={[
@@ -160,7 +160,7 @@ Set `disabled` on the group to lock every option, or `disabled: true` on an item
     value={["person"]}
     onChange={() => {}}
   />
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       aria-label="Teammate permissions"
       items={[
@@ -179,7 +179,7 @@ Set `disabled` on the group to lock every option, or `disabled: true` on an item
 Set `invalid` when validation fails — for example, nothing checked where at least one option is needed. Pair it with an error message; the red border alone doesn't say what's wrong.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       invalid
       aria-label="Entity types to sync"
@@ -199,7 +199,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
 `block` (the default) stacks options for easy scanning. Use `blockWithBorder` for settings-style lists where each option reads as a row, and `inline` for 2–3 short options where vertical space is tight.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       layout="block"
       aria-label="Entity types"
@@ -212,7 +212,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       layout="blockWithBorder"
       aria-label="Notify me about"
@@ -225,7 +225,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       layout="inline"
       aria-label="Entity status"
@@ -245,7 +245,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
 `size` scales the boxes, labels, and spacing together, from `xxs` to `lg`; `md` is the default. Match the size of the surrounding form inputs.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       size="xxs"
       aria-label="xxs"
@@ -254,7 +254,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       size="xs"
       aria-label="xs"
@@ -263,7 +263,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       size="sm"
       aria-label="sm"
@@ -272,7 +272,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       size="md"
       aria-label="md"
@@ -281,7 +281,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       size="lg"
       aria-label="lg"
@@ -297,7 +297,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
 Set `labelPlacement: "left"` on items to put the label before the box.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       layout="blockWithBorder"
       aria-label="Notification settings"
@@ -321,7 +321,7 @@ Set `labelPlacement: "left"` on items to put the label before the box.
 `maxSelectable` caps how many options can be checked. At the cap, unchecked options disable; checked ones stay enabled so users can swap a selection. State the limit in the group's description — disabled boxes don't explain themselves.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <CheckboxGroup
       aria-label="Pinned workspaces"
       maxSelectable={2}
@@ -351,7 +351,7 @@ Wrap the group in `Form.Field` with `as="legend"` to give it a visible label, de
     label="Notify me about"
     description="Select all that apply"
   >
-    <DemoState>
+    <DemoState data-harness>
       <CheckboxGroup
         items={[
           { value: "flow-runs", label: "Flow runs" },

@@ -39,7 +39,7 @@ Lets users pick exactly one option from a small visible set.
 />
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       aria-label="Entity visibility"
       items={[
@@ -51,7 +51,7 @@ Lets users pick exactly one option from a small visible set.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       layout="blockWithBorder"
       aria-label="Sync frequency"
@@ -132,7 +132,7 @@ export const EntityVisibility = () => {
 RadioGroup is controlled: `value` holds the selected option's value and `onChange` receives the newly selected one. Each item takes a unique `value` plus any Radio props, such as `label`, `disabled`, or `tone`.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       aria-label="Flow trigger"
       items={[
@@ -162,7 +162,7 @@ Set `disabled` on the group to lock every option, or `disabled: true` on an item
     value="daily"
     onChange={() => {}}
   />
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       aria-label="Teammate role"
       items={[
@@ -181,7 +181,7 @@ Set `disabled` on the group to lock every option, or `disabled: true` on an item
 Set `invalid` when the current selection fails validation — for example, a choice the workspace's policy forbids. The error styling appears on the selected option; pair it with an error message, since the styling alone doesn't say what's wrong.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       invalid
       aria-label="Entity visibility"
@@ -201,7 +201,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
 `block` (the default) stacks options for easy scanning. Use `blockWithBorder` for settings-style lists where each option reads as a row, and `inline` only for 2–3 short options where vertical space is tight.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       layout="block"
       aria-label="When duplicates are found"
@@ -214,7 +214,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       layout="blockWithBorder"
       aria-label="Sync frequency"
@@ -227,7 +227,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       layout="inline"
       aria-label="Sort order"
@@ -246,7 +246,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
 `size` scales the circles, labels, and spacing together, from `xxs` to `lg`; `md` is the default. Match the size of the surrounding form inputs.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       size="xxs"
       aria-label="xxs"
@@ -255,7 +255,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       size="xs"
       aria-label="xs"
@@ -264,7 +264,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       size="sm"
       aria-label="sm"
@@ -273,7 +273,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       size="md"
       aria-label="md"
@@ -282,7 +282,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       size="lg"
       aria-label="lg"
@@ -298,7 +298,7 @@ Set `invalid` when the current selection fails validation — for example, a cho
 Items take a `tone` that colors their selected state: `neutral` (the default), `brand`, or `success`. Use one tone across a group — mixed tones read as different meanings.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       aria-label="Neutral tone"
       items={[{ value: "neutral", label: "Neutral", tone: "neutral" }]}
@@ -306,7 +306,7 @@ Items take a `tone` that colors their selected state: `neutral` (the default), `
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       aria-label="Brand tone"
       items={[{ value: "brand", label: "Brand", tone: "brand" }]}
@@ -314,7 +314,7 @@ Items take a `tone` that colors their selected state: `neutral` (the default), `
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       aria-label="Success tone"
       items={[{ value: "success", label: "Success", tone: "success" }]}
@@ -329,7 +329,7 @@ Items take a `tone` that colors their selected state: `neutral` (the default), `
 Set `labelPlacement: "left"` on items to put the label before the circle.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <RadioGroup
       layout="blockWithBorder"
       aria-label="Default entity view"
@@ -354,7 +354,7 @@ Wrap the group in `Form.Field` with `as="legend"` to give it a visible label, de
     label="Entity visibility"
     description="Who can see entities you create"
   >
-    <DemoState>
+    <DemoState data-harness>
       <RadioGroup
         items={[
           { value: "private", label: "Only me" },

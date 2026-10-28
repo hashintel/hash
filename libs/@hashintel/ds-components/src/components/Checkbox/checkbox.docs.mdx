@@ -52,13 +52,13 @@ export const ResolvesIndeterminate = ({ children }) => {
 };
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox value label="Include draft entities" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox value tone="brand" label="Sync to GitHub" onChange={() => {}} />
   </DemoState>
-  <ResolvesIndeterminate>
+  <ResolvesIndeterminate data-harness>
     <Checkbox
       indeterminate
       value={false}
@@ -66,7 +66,7 @@ export const ResolvesIndeterminate = ({ children }) => {
       onChange={() => {}}
     />
   </ResolvesIndeterminate>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox value={false} label="Include archived" onChange={() => {}} />
   </DemoState>
 </Stage>
@@ -129,10 +129,10 @@ export const IncludeArchivedOption = () => {
 Checkbox is always controlled: `value` holds the checked boolean and `onChange` receives the next one (see Installation for the state wiring). The default is `md`-sized and `neutral`.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox value label="Include draft entities" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox
       value={false}
       label="Include archived entities"
@@ -172,7 +172,7 @@ A disabled checkbox keeps its checked state visible but can't be changed. Explai
 Set `invalid` when the choice fails validation, such as required terms left unaccepted. Pair it with visible error text — the red box alone doesn't say what's wrong.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox
       invalid
       value={false}
@@ -275,13 +275,13 @@ export const SelectAllDemo = () => {
 `tone` colors the checked box: `neutral` (default) for everyday options, `brand` for primary opt-ins such as onboarding choices, `success` for confirmation-flavored items like completed steps.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox value tone="neutral" label="Neutral" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox value tone="brand" label="Brand" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox value tone="success" label="Success" onChange={() => {}} />
   </DemoState>
 </Stage>
@@ -291,19 +291,19 @@ export const SelectAllDemo = () => {
 `md` is the default; the label text scales with the box. Match the surrounding text — `xxs`–`sm` for dense chrome such as table rows and filter panels, `lg` for prominent confirmations.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox value size="xxs" label="xxs" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox value size="xs" label="xs" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox value size="sm" label="sm" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox value size="md" label="md" onChange={() => {}} />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox value size="lg" label="lg" onChange={() => {}} />
   </DemoState>
 </Stage>
@@ -313,7 +313,7 @@ export const SelectAllDemo = () => {
 `labelPlacement` puts the label `right` (default) or `left` of the box. 
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox
       value
       labelPlacement="right"
@@ -321,7 +321,7 @@ export const SelectAllDemo = () => {
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Checkbox
       value
       labelPlacement="left"
@@ -337,7 +337,7 @@ export const SelectAllDemo = () => {
 
 <Stage>
   <div style={{ maxWidth: 260 }}>
-    <DemoState>
+    <DemoState data-harness>
       <Checkbox
         value
         labelAlign="top"
@@ -347,7 +347,7 @@ export const SelectAllDemo = () => {
     </DemoState>
   </div>
   <div style={{ maxWidth: 260 }}>
-    <DemoState>
+    <DemoState data-harness>
       <Checkbox
         value
         labelAlign="center"

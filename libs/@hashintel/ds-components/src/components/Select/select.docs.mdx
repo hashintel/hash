@@ -45,7 +45,7 @@ Let users pick one or more options from a predefined list.
 />
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       placeholder="Select an entity type…"
@@ -58,7 +58,7 @@ Let users pick one or more options from a predefined list.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       multiple
@@ -73,7 +73,7 @@ Let users pick one or more options from a predefined list.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       variant="subtle"
       width="fitContent"
@@ -199,7 +199,7 @@ Declare `items` `as const` to narrow `value` and `onChange` to the declared
 item values.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       placeholder="Select an entity type…"
@@ -223,7 +223,7 @@ with `null`. `required` removes the button but it can be reintroduced by setting
 A multi select only displays the clear button if `clearable` is set.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       placeholder="Filter by status…"
@@ -237,7 +237,7 @@ A multi select only displays the clear button if `clearable` is set.
       aria-label="Run status"
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       required
@@ -251,7 +251,7 @@ A multi select only displays the clear button if `clearable` is set.
       aria-label="Teammate role"
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       required
@@ -283,7 +283,7 @@ pair it with a `Form.Field` error message so the reason is visible.
     onChange={() => {}}
     aria-label="Entity type (disabled)"
   />
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       invalid
@@ -345,7 +345,7 @@ throughout.
     onChange={() => {}}
     aria-label="Property type"
   />
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       loading
@@ -367,7 +367,7 @@ table rows, and `lg` for spacious forms — `size` also scales the dropdown
 list.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       size="xxs"
       width="fitContent"
@@ -376,7 +376,7 @@ list.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       size="xs"
       width="fitContent"
@@ -385,7 +385,7 @@ list.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       size="sm"
       width="fitContent"
@@ -394,7 +394,7 @@ list.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       size="md"
       width="fitContent"
@@ -403,7 +403,7 @@ list.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       size="lg"
       width="fitContent"
@@ -422,7 +422,7 @@ surrounding text styles (`size` still sizes the dropdown) — the host supplies
 any focus affordance.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       variant="default"
       width="fitContent"
@@ -431,7 +431,7 @@ any focus affordance.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       variant="subtle"
       width="fitContent"
@@ -440,7 +440,7 @@ any focus affordance.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       variant="naked"
       width="fitContent"
@@ -460,7 +460,7 @@ selection. Size with CSS instead when alignment with other inputs doesn't
 matter.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="xs"
       items={[{ value: "xs", text: "xs" }]}
@@ -468,7 +468,7 @@ matter.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       items={[{ value: "sm", text: "sm" }]}
@@ -476,7 +476,7 @@ matter.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="md"
       items={[{ value: "md", text: "md" }]}
@@ -484,7 +484,7 @@ matter.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="lg"
       items={[{ value: "lg", text: "lg" }]}
@@ -492,7 +492,7 @@ matter.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="fullWidth"
       items={[{ value: "fullWidth", text: "fullWidth" }]}
@@ -500,7 +500,7 @@ matter.
       onChange={() => {}}
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="fitContent"
       items={[{ value: "fitContent", text: "fitContent" }]}
@@ -516,7 +516,7 @@ matter.
 an icon, `{ text }` for a short string, or `{ content }` for a custom node.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       prefix={{ iconName: "filter" }}
@@ -529,7 +529,7 @@ an icon, `{ text }` for a short string, or `{ content }` for a custom node.
       aria-label="Filter by entity type"
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       prefix={{ text: "Sort:" }}
@@ -551,7 +551,7 @@ headings, not selectable rows. Group only when the categories are obvious; a
 flat list scans faster when it's short.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       placeholder="Select a property type…"
@@ -635,7 +635,7 @@ export const RunStatusSelect = () => {
 };`;
 
 <Stage code={customRenderingCode}>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       items={[
@@ -685,7 +685,7 @@ dropdown resets the search; pass `{ onSearch }` to react to the query, e.g. to
 fetch options.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       searchable
@@ -716,7 +716,7 @@ Clear all toggle beneath the options — hide either with `hideCount` /
 `hideSelectAllToggle`.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       multiple
@@ -733,7 +733,7 @@ Clear all toggle beneath the options — hide either with `hideCount` /
       aria-label="Table columns"
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       multiple
@@ -761,7 +761,7 @@ when everything is selected.
 
 <Stage>
   <div style={{ width: 220 }}>
-    <DemoState>
+    <DemoState data-harness>
       <Select
         multiple
         overflow="scroll"
@@ -780,7 +780,7 @@ when everything is selected.
     </DemoState>
   </div>
   <div style={{ width: 220 }}>
-    <DemoState>
+    <DemoState data-harness>
       <Select
         multiple
         overflow="truncate"
@@ -799,7 +799,7 @@ when everything is selected.
     </DemoState>
   </div>
   <div style={{ width: 220 }}>
-    <DemoState>
+    <DemoState data-harness>
       <Select
         multiple
         overflow="summary"
@@ -826,7 +826,7 @@ value is deselected. The Select all toggle hides when the cap puts selecting
 every enabled option out of reach.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       multiple
@@ -853,7 +853,7 @@ item. Items indicate selection with a checkbox by default — restyle per item
 with `selectedStyle` (`checkbox`, `tick`, `highlight`) and `selectedTone`.
 
 <Stage>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       multiple
@@ -883,7 +883,7 @@ with `selectedStyle` (`checkbox`, `tick`, `highlight`) and `selectedTone`.
       aria-label="Entity types"
     />
   </DemoState>
-  <DemoState>
+  <DemoState data-harness>
     <Select
       width="sm"
       multiple
@@ -922,7 +922,7 @@ connects — `subtle` and `readonly` inputs render separately.
 
 <Stage>
   <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
-    <DemoState>
+    <DemoState data-harness>
       <Select
         connectToRightInput
         width="sm"
@@ -935,7 +935,7 @@ connects — `subtle` and `readonly` inputs render separately.
         aria-label="Sort by"
       />
     </DemoState>
-    <DemoState>
+    <DemoState data-harness>
       <Select
         connectToLeftInput
         width="sm"
@@ -958,7 +958,7 @@ submits the selected value through a hidden native `<select>`.
 
 <Stage>
   <Form.Field label="Entity type" required>
-    <DemoState>
+    <DemoState data-harness>
       <Select
         name="entityType"
         width="sm"

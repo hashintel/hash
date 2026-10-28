@@ -3,9 +3,8 @@ import { Children, cloneElement, useState } from "react";
 /**
  * Makes a controlled docs example interactive: holds the tracked prop in
  * local state seeded from the prop as written in the MDX, and rebinds the
- * change handler to update it. Deliberately carries no displayName, so
- * Stage's Code tab serializes the wrapper transparently — the code shown is
- * exactly the child element as written, noop handler included.
+ * change handler to update it. Tag usages with `data-harness` so the Stage
+ * Code tab splices in the child exactly as authored, noop handler included.
  *
  * Wraps exactly one element. `prop`/`handler` default to the shared
  * controlled-input pair (`value`/`onChange`); pass them for components

@@ -34,8 +34,6 @@ export const meta = {
   related: ["SortMenu", "Select", "Chip", "Menu"],
 };
 
-export const noop = () => {};
-
 {/* Like DemoState, but Filter's onChange carries (key, value), which this
 reassembles into the FilterValue shape the value prop takes. Serializes
 transparently, so the Code tab shows the child as written. */}
@@ -129,34 +127,34 @@ Let users narrow a collection by composing property, operator and value conditio
 />
 
 <Stage>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="name"
       propertyLabel="Name"
       operators={nameOperators}
       value={{ key: "contains", value: "Ada Lovelace" }}
-      onChange={noop}
-      removeable={{ onRemove: noop }}
+      onChange={() => {}}
+      removeable={{ onRemove: () => {} }}
     />
   </FilterDemo>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="entityType"
       propertyLabel="Entity type"
       operators={entityTypeOperators}
       value={{ key: "isAnyOf", value: ["person", "company"] }}
-      onChange={noop}
-      removeable={{ onRemove: noop }}
+      onChange={() => {}}
+      removeable={{ onRemove: () => {} }}
     />
   </FilterDemo>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="propertyCount"
       propertyLabel="Properties"
       operators={propertyCountOperators}
       value={{ key: "between", value: [2, 10] }}
-      onChange={noop}
-      removeable={{ onRemove: noop }}
+      onChange={() => {}}
+      removeable={{ onRemove: () => {} }}
     />
   </FilterDemo>
 </Stage>
@@ -232,21 +230,21 @@ while `FilterGroup` lays chips out with its pinned action buttons:
 Pick an operator, fill its input, and press Enter (or leave the chip) to commit — `onChange` receives the operator key and value, or `(key, null)` when the inputs are cleared. Group operators with `{ id, label, items }` entries when the menu grows long.
 
 <Stage>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="name"
       propertyLabel="Name"
       operators={nameOperators}
-      onChange={noop}
+      onChange={() => {}}
     />
   </FilterDemo>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="name"
       propertyLabel="Name"
       operators={nameOperators}
       value={{ key: "contains", value: "Ada Lovelace" }}
-      onChange={noop}
+      onChange={() => {}}
     />
   </FilterDemo>
 </Stage>
@@ -256,31 +254,31 @@ Pick an operator, fill its input, and press Enter (or leave the chip) to commit 
 An operator's `input` declares what its value type needs: `string` renders a text input, `number`/`int`/`float` a number input, and `null` none — selecting such an operator commits immediately.
 
 <Stage>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="name"
       propertyLabel="Name"
       operators={nameOperators}
       value={{ key: "contains", value: "annual report" }}
-      onChange={noop}
+      onChange={() => {}}
     />
   </FilterDemo>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="propertyCount"
       propertyLabel="Properties"
       operators={propertyCountOperators}
       value={{ key: "atLeast", value: 5 }}
-      onChange={noop}
+      onChange={() => {}}
     />
   </FilterDemo>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="archived"
       propertyLabel="Archived"
       operators={archivedOperators}
       value={{ key: "true", value: null }}
-      onChange={noop}
+      onChange={() => {}}
     />
   </FilterDemo>
 </Stage>
@@ -290,22 +288,22 @@ An operator's `input` declares what its value type needs: `string` renders a tex
 Use `type: "select"` when values come from a known set — single by default, `multiple: true` for muliple select. `searchable` adds a search bar to the dropdown, and `overflow: "summary"` keeps a long selection to a count instead of a comma list.
 
 <Stage>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="entityType"
       propertyLabel="Entity type"
       operators={entityTypeOperators}
       value={{ key: "is", value: "person" }}
-      onChange={noop}
+      onChange={() => {}}
     />
   </FilterDemo>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="entityType"
       propertyLabel="Entity type"
       operators={entityTypeOperators}
       value={{ key: "isAnyOf", value: ["person", "company"] }}
-      onChange={noop}
+      onChange={() => {}}
     />
   </FilterDemo>
 </Stage>
@@ -361,13 +359,13 @@ export const CreatedByFilter = () => {
 };`;
 
 <Stage code={asyncOptionsCode}>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="createdBy"
       propertyLabel="Created by"
       operators={createdByOperators}
       value={{ key: "is", value: "alex" }}
-      onChange={noop}
+      onChange={() => {}}
     />
   </FilterDemo>
 </Stage>
@@ -377,14 +375,14 @@ export const CreatedByFilter = () => {
 Validate on commit and pass messages via `errors`: the chip turns red and shows them in a tooltip on hover and focus. Errors are a rendered state, not a gate.
 
 <Stage>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="score"
       propertyLabel="Score"
       operators={scoreOperators}
       value={{ key: "above", value: 420 }}
       errors={["Score must be 100 or less"]}
-      onChange={noop}
+      onChange={() => {}}
     />
   </FilterDemo>
 </Stage>
@@ -399,9 +397,9 @@ Validate on commit and pass messages via `errors`: the chip turns red and shows 
     propertyLabel="Entity type"
     operators={entityTypeOperators}
     value={{ key: "is", value: "company" }}
-    onChange={noop}
+    onChange={() => {}}
     disabled
-    removeable={{ onRemove: noop }}
+    removeable={{ onRemove: () => {} }}
   />
 </Stage>
 
@@ -410,53 +408,53 @@ Validate on commit and pass messages via `errors`: the chip turns red and shows 
 `sm` is the default, sized for filter bars above tables. Use `md`/`lg` in page-level toolbars, and reserve `xxs`/`xs` for dense chrome.
 
 <Stage>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="entityType"
       propertyLabel="xxs"
       operators={entityTypeOperators}
       value={{ key: "is", value: "person" }}
-      onChange={noop}
+      onChange={() => {}}
       size="xxs"
     />
   </FilterDemo>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="entityType"
       propertyLabel="xs"
       operators={entityTypeOperators}
       value={{ key: "is", value: "person" }}
-      onChange={noop}
+      onChange={() => {}}
       size="xs"
     />
   </FilterDemo>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="entityType"
       propertyLabel="sm"
       operators={entityTypeOperators}
       value={{ key: "is", value: "person" }}
-      onChange={noop}
+      onChange={() => {}}
       size="sm"
     />
   </FilterDemo>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="entityType"
       propertyLabel="md"
       operators={entityTypeOperators}
       value={{ key: "is", value: "person" }}
-      onChange={noop}
+      onChange={() => {}}
       size="md"
     />
   </FilterDemo>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="entityType"
       propertyLabel="lg"
       operators={entityTypeOperators}
       value={{ key: "is", value: "person" }}
-      onChange={noop}
+      onChange={() => {}}
       size="lg"
     />
   </FilterDemo>
@@ -600,23 +598,23 @@ export const SwitchPropertyDemo = () => {
 `removeable` adds a close button whose `onRemove` fires when clicked. Leave it unset for fixed filters the user can't take away.
 
 <Stage>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="entityType"
       propertyLabel="Entity type"
       operators={entityTypeOperators}
       value={{ key: "is", value: "person" }}
-      onChange={noop}
-      removeable={{ onRemove: noop }}
+      onChange={() => {}}
+      removeable={{ onRemove: () => {} }}
     />
   </FilterDemo>
-  <FilterDemo>
+  <FilterDemo data-harness>
     <Filter
       property="archived"
       propertyLabel="Archived"
       operators={archivedOperators}
       value={{ key: "false", value: null }}
-      onChange={noop}
+      onChange={() => {}}
     />
   </FilterDemo>
 </Stage>
@@ -627,28 +625,28 @@ export const SwitchPropertyDemo = () => {
 
 <Stage>
   <FilterGroup>
-    <FilterDemo>
+    <FilterDemo data-harness>
       <Filter
         property="name"
         propertyLabel="Name"
         operators={nameOperators}
         value={{ key: "contains", value: "Ada" }}
-        onChange={noop}
-        removeable={{ onRemove: noop }}
+        onChange={() => {}}
+        removeable={{ onRemove: () => {} }}
       />
     </FilterDemo>
-    <FilterDemo>
+    <FilterDemo data-harness>
       <Filter
         property="entityType"
         propertyLabel="Entity type"
         operators={entityTypeOperators}
         value={{ key: "isAnyOf", value: ["person"] }}
-        onChange={noop}
-        removeable={{ onRemove: noop }}
+        onChange={() => {}}
+        removeable={{ onRemove: () => {} }}
       />
     </FilterDemo>
-    <FilterGroup.AddFilter onClick={noop} />
-    <FilterGroup.ClearFilters onClick={noop} />
+    <FilterGroup.AddFilter onClick={() => {}} />
+    <FilterGroup.ClearFilters onClick={() => {}} />
   </FilterGroup>
 </Stage>
 
