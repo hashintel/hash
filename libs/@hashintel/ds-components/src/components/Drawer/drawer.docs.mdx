@@ -1,4 +1,5 @@
 import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
 
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { OverlayDemo } from "../../../docs/blocks/overlay-demo";
@@ -80,7 +81,7 @@ export const EditEntityTypeButton = () => {
   );
 };`;
 
-<Stage clampViewportPanels code={heroDrawerCode}>
+export const HeroDemo = () => (
   <OverlayDemo triggerLabel="Edit entity type">
     {({ close }) => (
       <Drawer onClose={close}>
@@ -107,6 +108,10 @@ export const EditEntityTypeButton = () => {
       </Drawer>
     )}
   </OverlayDemo>
+);
+
+<Stage clampViewportPanels code={heroDrawerCode}>
+  <HeroDemo />
 </Stage>
 
 ## Installation
@@ -151,10 +156,10 @@ export const EntityHistoryButton = () => {
   items={[
     "Use Drawer for a secondary task carried out alongside the page: inspecting an entity, editing a property set, reviewing a flow run.",
     "Use it when content is too long or structured for a Dialog — multi-section forms, history lists, previews.",
-    <>
+    <Fragment key="0">
       Use <code>{"showBackdrop={false}"}</code> when the user needs to keep
       reading or editing the page while the panel is open.
-    </>,
+    </Fragment>,
   ]}
 />
 
@@ -214,7 +219,7 @@ export const InspectEntityButton = () => {
   );
 };`;
 
-<Stage clampViewportPanels code={openCloseDrawerCode}>
+export const OpeningAndClosingDemo = () => (
   <OverlayDemo triggerLabel="Inspect entity">
     {({ close }) => (
       <Drawer onClose={close}>
@@ -228,6 +233,10 @@ export const InspectEntityButton = () => {
       </Drawer>
     )}
   </OverlayDemo>
+);
+
+<Stage clampViewportPanels code={openCloseDrawerCode}>
+  <OpeningAndClosingDemo />
 </Stage>
 
 ### Loading
@@ -261,7 +270,7 @@ export const FlowRunDetails = ({ loading }: { loading: boolean }) => {
   );
 };`;
 
-<Stage clampViewportPanels code={loadingDrawerCode}>
+export const LoadingDemo = () => (
   <OverlayDemo triggerLabel="Inspect run">
     {({ close }) => (
       <Drawer loading onClose={close}>
@@ -275,6 +284,10 @@ export const FlowRunDetails = ({ loading }: { loading: boolean }) => {
       </Drawer>
     )}
   </OverlayDemo>
+);
+
+<Stage clampViewportPanels code={loadingDrawerCode}>
+  <LoadingDemo />
 </Stage>
 
 ### Positions
@@ -315,7 +328,7 @@ export const drawerPositionNotes = {
   top: "Top drawers suit notifications and announcements.",
 };
 
-<Stage clampViewportPanels code={positionsDrawerCode}>
+export const PositionsDemo = () => (
   <OverlayDemo triggers={["right", "bottom", "left", "top"]}>
     {({ close, trigger }) => (
       <Drawer position={trigger} onClose={close}>
@@ -326,6 +339,10 @@ export const drawerPositionNotes = {
       </Drawer>
     )}
   </OverlayDemo>
+);
+
+<Stage clampViewportPanels code={positionsDrawerCode}>
+  <PositionsDemo />
 </Stage>
 
 ### Sizes
@@ -365,7 +382,7 @@ export const drawerSizeNotes = {
   xl: "The widest preset, for side-by-side comparisons.",
 };
 
-<Stage clampViewportPanels code={sizesDrawerCode}>
+export const SizesDemo = () => (
   <OverlayDemo triggers={["sm", "md", "lg", "xl"]}>
     {({ close, trigger }) => (
       <Drawer size={trigger} onClose={close}>
@@ -376,6 +393,10 @@ export const drawerSizeNotes = {
       </Drawer>
     )}
   </OverlayDemo>
+);
+
+<Stage clampViewportPanels code={sizesDrawerCode}>
+  <SizesDemo />
 </Stage>
 
 ### Variants
@@ -409,7 +430,7 @@ export const SyncStatusButton = () => {
   );
 };`;
 
-<Stage clampViewportPanels code={variantsDrawerCode}>
+export const VariantsDemo = () => (
   <OverlayDemo triggers={["partitionedFooter", "plain"]}>
     {({ close, trigger }) => (
       <Drawer variant={trigger} onClose={close}>
@@ -421,6 +442,10 @@ export const SyncStatusButton = () => {
       </Drawer>
     )}
   </OverlayDemo>
+);
+
+<Stage clampViewportPanels code={variantsDrawerCode}>
+  <VariantsDemo />
 </Stage>
 
 ### Header
@@ -466,7 +491,7 @@ export const WorkspaceSettingsButton = () => {
   );
 };`;
 
-<Stage clampViewportPanels code={headerDrawerCode}>
+export const HeaderDemo = () => (
   <OverlayDemo triggerLabel="Workspace settings">
     {({ close }) => (
       <Drawer onClose={close}>
@@ -490,6 +515,10 @@ export const WorkspaceSettingsButton = () => {
       </Drawer>
     )}
   </OverlayDemo>
+);
+
+<Stage clampViewportPanels code={headerDrawerCode}>
+  <HeaderDemo />
 </Stage>
 
 ### Footer actions
@@ -538,7 +567,7 @@ export const EditPropertyButton = () => {
   );
 };`;
 
-<Stage clampViewportPanels code={footerActionsDrawerCode}>
+export const FooterActionsDemo = () => (
   <OverlayDemo triggerLabel="Edit property">
     {({ close }) => (
       <Drawer onClose={close}>
@@ -566,6 +595,10 @@ export const EditPropertyButton = () => {
       </Drawer>
     )}
   </OverlayDemo>
+);
+
+<Stage clampViewportPanels code={footerActionsDrawerCode}>
+  <FooterActionsDemo />
 </Stage>
 
 ### Custom header and footer
@@ -601,7 +634,7 @@ export const AutosaveNotesButton = () => {
   );
 };`;
 
-<Stage clampViewportPanels code={customHeaderFooterDrawerCode}>
+export const CustomHeaderAndFooterDemo = () => (
   <OverlayDemo triggerLabel="Open notes">
     {({ close }) => (
       <Drawer aria-label="Research notes" onClose={close}>
@@ -617,6 +650,10 @@ export const AutosaveNotesButton = () => {
       </Drawer>
     )}
   </OverlayDemo>
+);
+
+<Stage clampViewportPanels code={customHeaderFooterDrawerCode}>
+  <CustomHeaderAndFooterDemo />
 </Stage>
 
 ### Edge-to-edge body
@@ -660,7 +697,7 @@ export const QueryResultsButton = () => {
   );
 };`;
 
-<Stage clampViewportPanels code={edgeToEdgeDrawerCode}>
+export const EdgetoedgeBodyDemo = () => (
   <OverlayDemo triggerLabel="View results">
     {({ close }) => (
       <Drawer size="lg" onClose={close}>
@@ -685,6 +722,10 @@ export const QueryResultsButton = () => {
       </Drawer>
     )}
   </OverlayDemo>
+);
+
+<Stage clampViewportPanels code={edgeToEdgeDrawerCode}>
+  <EdgetoedgeBodyDemo />
 </Stage>
 
 ### Dismissal
@@ -730,7 +771,7 @@ export const CreateEntityTypeButton = () => {
   );
 };`;
 
-<Stage clampViewportPanels code={dismissalDrawerCode}>
+export const DismissalDemo = () => (
   <OverlayDemo triggerLabel="Create entity type">
     {({ close }) => (
       <Drawer shouldCloseOn="closeButton" onClose={close}>
@@ -751,6 +792,10 @@ export const CreateEntityTypeButton = () => {
       </Drawer>
     )}
   </OverlayDemo>
+);
+
+<Stage clampViewportPanels code={dismissalDrawerCode}>
+  <DismissalDemo />
 </Stage>
 
 ### Without a backdrop
@@ -786,7 +831,7 @@ export const PropertyReferenceButton = () => {
   );
 };`;
 
-<Stage clampViewportPanels code={noBackdropDrawerCode}>
+export const WithoutABackdropDemo = () => (
   <OverlayDemo triggerLabel="Property reference">
     {({ close }) => (
       <Drawer showBackdrop={false} onClose={close}>
@@ -800,6 +845,10 @@ export const PropertyReferenceButton = () => {
       </Drawer>
     )}
   </OverlayDemo>
+);
+
+<Stage clampViewportPanels code={noBackdropDrawerCode}>
+  <WithoutABackdropDemo />
 </Stage>
 
 ### Swapping drawers in place

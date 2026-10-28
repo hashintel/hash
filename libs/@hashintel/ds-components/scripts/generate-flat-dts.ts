@@ -22,3 +22,9 @@ for (const file of componentFiles) {
     `export * from "./${dir}/${name}";\n`,
   );
 }
+
+// `noop` is a util module published flat (see tsup.config.ts).
+writeFileSync(
+  path.join("dist", "components", "noop.d.ts"),
+  `export * from "../util/noop";\n`,
+);

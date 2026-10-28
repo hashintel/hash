@@ -1,5 +1,7 @@
 import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
 
+import { noop } from "../../util/noop";
 import { DemoState } from "../../../docs/blocks/demo-state";
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -48,7 +50,7 @@ Lets users select any number of options from a visible list.
         { value: "project", label: "Project" },
       ]}
       value={["person", "company"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -61,7 +63,7 @@ Lets users select any number of options from a visible list.
         { value: "type-updates", label: "Entity type updates" },
       ]}
       value={["flow-runs", "mentions"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -116,10 +118,10 @@ export const EntityTypeFilter = () => {
   items={[
     "Don't use it when exactly one option must be chosen — use RadioGroup.",
     "Don't use it for a single on/off choice — use Checkbox alone, or Toggle when the change applies immediately.",
-    <>
+    <Fragment key="0">
       Avoid using it for long lists — beyond roughly 7 options, prefer Combobox or Select with{" "}
       <code>multiple</code>, which scale with search.
-    </>,
+    </Fragment>,
   ]}
 />
 
@@ -139,7 +141,7 @@ CheckboxGroup is controlled: `value` holds the selected option values and `onCha
         { value: "slack", label: "Slack" },
       ]}
       value={["in-app"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -158,7 +160,7 @@ Set `disabled` on the group to lock every option, or `disabled: true` on an item
       { value: "project", label: "Project" },
     ]}
     value={["person"]}
-    onChange={() => {}}
+    onChange={noop}
   />
   <DemoState data-harness>
     <CheckboxGroup
@@ -169,7 +171,7 @@ Set `disabled` on the group to lock every option, or `disabled: true` on an item
         { value: "manage-types", label: "Manage types", disabled: true },
       ]}
       value={["view"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -189,7 +191,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
         { value: "project", label: "Project" },
       ]}
       value={[]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -209,7 +211,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
         { value: "project", label: "Project" },
       ]}
       value={["person"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -222,7 +224,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
         { value: "type-updates", label: "Entity type updates" },
       ]}
       value={["flow-runs"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -235,7 +237,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
         { value: "archived", label: "Archived" },
       ]}
       value={["draft", "published"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -251,7 +253,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
       aria-label="xxs"
       items={[{ value: "xxs", label: "xxs" }]}
       value={["xxs"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -260,7 +262,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
       aria-label="xs"
       items={[{ value: "xs", label: "xs" }]}
       value={["xs"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -269,7 +271,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
       aria-label="sm"
       items={[{ value: "sm", label: "sm" }]}
       value={["sm"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -278,7 +280,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
       aria-label="md"
       items={[{ value: "md", label: "md" }]}
       value={["md"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -287,7 +289,7 @@ Set `invalid` when validation fails — for example, nothing checked where at le
       aria-label="lg"
       items={[{ value: "lg", label: "lg" }]}
       value={["lg"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -311,7 +313,7 @@ Set `labelPlacement: "left"` on items to put the label before the box.
         { value: "digest", label: "Weekly digest", labelPlacement: "left" },
       ]}
       value={["flow-runs"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -332,7 +334,7 @@ Set `labelPlacement: "left"` on items to put the label before the box.
         { value: "sandbox", label: "Sandbox" },
       ]}
       value={["research", "personal"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -359,7 +361,7 @@ Wrap the group in `Form.Field` with `as="legend"` to give it a visible label, de
           { value: "type-updates", label: "Entity type updates" },
         ]}
         value={["flow-runs"]}
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>

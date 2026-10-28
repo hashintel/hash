@@ -1,5 +1,7 @@
 import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
 
+import { noop } from "../../util/noop";
 import { DemoState } from "../../../docs/blocks/demo-state";
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -55,7 +57,7 @@ Let users pick one or more options from a predefined list.
         { value: "document", text: "Document" },
       ]}
       value="person"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -70,7 +72,7 @@ Let users pick one or more options from a predefined list.
         { value: "owner", text: "Owner" },
       ]}
       value={["name", "createdAt"]}
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -82,7 +84,7 @@ Let users pick one or more options from a predefined list.
         { value: "name", text: "Name" },
       ]}
       value="recent"
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Sort entities"
     />
   </DemoState>
@@ -126,18 +128,18 @@ export const EntityTypePicker = () => {
 <DoList
   items={[
     "Use Select to pick one value from multiple predefined options.",
-    <>
+    <Fragment key="0">
       Use <code>multiple</code> when several values apply together, such as
       table columns or entity types to filter by.
-    </>,
-    <>
+    </Fragment>,
+    <Fragment key="1">
       Use <code>searchable</code> once a list grows past roughly 10 options, so
       users filter instead of scrolling.
-    </>,
-    <>
+    </Fragment>,
+    <Fragment key="2">
       Use Select in forms — <code>name</code> submits the value through a hidden
       native <code>&lt;select&gt;</code>.
-    </>,
+    </Fragment>,
   ]}
 />
 
@@ -209,7 +211,7 @@ item values.
         { value: "document", text: "Document" },
       ]}
       value="person"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -233,7 +235,7 @@ A multi select only displays the clear button if `clearable` is set.
         { value: "failed", text: "Failed" },
       ]}
       value="succeeded"
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Run status"
     />
   </DemoState>
@@ -247,7 +249,7 @@ A multi select only displays the clear button if `clearable` is set.
         { value: "admin", text: "Admin" },
       ]}
       value="editor"
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Teammate role"
     />
   </DemoState>
@@ -262,7 +264,7 @@ A multi select only displays the clear button if `clearable` is set.
         { value: "acme", text: "Acme Corp" },
       ]}
       value="alice"
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Entity owner"
     />
   </DemoState>
@@ -280,7 +282,7 @@ pair it with a `Form.Field` error message so the reason is visible.
     disabled
     items={[{ value: "person", text: "Person" }]}
     value="person"
-    onChange={() => {}}
+    onChange={noop}
     aria-label="Entity type (disabled)"
   />
   <DemoState data-harness>
@@ -293,7 +295,7 @@ pair it with a `Form.Field` error message so the reason is visible.
         { value: "organization", text: "Organization" },
       ]}
       value={null}
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Entity type (invalid)"
     />
   </DemoState>
@@ -313,7 +315,7 @@ Use it for view modes, so the layout holds steady when editing toggles.
       { value: "organization", text: "Organization" },
     ]}
     value="person"
-    onChange={() => {}}
+    onChange={noop}
   />
   <Select
     width="fitContent"
@@ -325,7 +327,7 @@ Use it for view modes, so the layout holds steady when editing toggles.
       { value: "status", text: "Status" },
     ]}
     value={["name", "status"]}
-    onChange={() => {}}
+    onChange={noop}
   />
 </Stage>
 
@@ -342,7 +344,7 @@ throughout.
     placeholder="Loading property types…"
     items={[]}
     value={null}
-    onChange={() => {}}
+    onChange={noop}
     aria-label="Property type"
   />
   <DemoState data-harness>
@@ -354,7 +356,7 @@ throughout.
         { value: "organization", text: "Organization" },
       ]}
       value="person"
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Entity type"
     />
   </DemoState>
@@ -373,7 +375,7 @@ list.
       width="fitContent"
       items={[{ value: "xxs", text: "xxs" }]}
       value="xxs"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -382,7 +384,7 @@ list.
       width="fitContent"
       items={[{ value: "xs", text: "xs" }]}
       value="xs"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -391,7 +393,7 @@ list.
       width="fitContent"
       items={[{ value: "sm", text: "sm" }]}
       value="sm"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -400,7 +402,7 @@ list.
       width="fitContent"
       items={[{ value: "md", text: "md" }]}
       value="md"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -409,7 +411,7 @@ list.
       width="fitContent"
       items={[{ value: "lg", text: "lg" }]}
       value="lg"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -428,7 +430,7 @@ any focus affordance.
       width="fitContent"
       items={[{ value: "default", text: "Default" }]}
       value="default"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -437,7 +439,7 @@ any focus affordance.
       width="fitContent"
       items={[{ value: "subtle", text: "Subtle" }]}
       value="subtle"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -446,7 +448,7 @@ any focus affordance.
       width="fitContent"
       items={[{ value: "naked", text: "Naked" }]}
       value="naked"
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Naked variant"
     />
   </DemoState>
@@ -465,7 +467,7 @@ matter.
       width="xs"
       items={[{ value: "xs", text: "xs" }]}
       value="xs"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -473,7 +475,7 @@ matter.
       width="sm"
       items={[{ value: "sm", text: "sm" }]}
       value="sm"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -481,7 +483,7 @@ matter.
       width="md"
       items={[{ value: "md", text: "md" }]}
       value="md"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -489,7 +491,7 @@ matter.
       width="lg"
       items={[{ value: "lg", text: "lg" }]}
       value="lg"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -497,7 +499,7 @@ matter.
       width="fullWidth"
       items={[{ value: "fullWidth", text: "fullWidth" }]}
       value="fullWidth"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
   <DemoState data-harness>
@@ -505,7 +507,7 @@ matter.
       width="fitContent"
       items={[{ value: "fitContent", text: "fitContent" }]}
       value="fitContent"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -525,7 +527,7 @@ an icon, `{ text }` for a short string, or `{ content }` for a custom node.
         { value: "organization", text: "Organization" },
       ]}
       value="person"
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Filter by entity type"
     />
   </DemoState>
@@ -538,7 +540,7 @@ an icon, `{ text }` for a short string, or `{ content }` for a custom node.
         { value: "name", text: "Name" },
       ]}
       value="recent"
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Sort entities"
     />
   </DemoState>
@@ -575,7 +577,7 @@ flat list scans faster when it's short.
         },
       ]}
       value="email"
-      onChange={() => {}}
+      onChange={noop}
     />
   </DemoState>
 </Stage>
@@ -634,7 +636,7 @@ export const RunStatusSelect = () => {
   );
 };`;
 
-<Stage code={customRenderingCode}>
+export const CustomRenderingDemo = () => (
   <DemoState data-harness>
     <Select
       width="sm"
@@ -644,7 +646,7 @@ export const RunStatusSelect = () => {
         { value: "failed", text: "Failed" },
       ]}
       value="succeeded"
-      onChange={() => {}}
+      onChange={noop}
       renderItem={(value) => (
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span
@@ -671,6 +673,10 @@ export const RunStatusSelect = () => {
       aria-label="Run status"
     />
   </DemoState>
+);
+
+<Stage code={customRenderingCode}>
+  <CustomRenderingDemo />
 </Stage>
 
 In a multi select, `renderSelectedItem` renders each value in the trigger's
@@ -701,7 +707,7 @@ fetch options.
         { value: "invoice", text: "Invoice" },
       ]}
       value={null}
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Entity type"
     />
   </DemoState>
@@ -729,7 +735,7 @@ Clear all toggle beneath the options — hide either with `hideCount` /
         { value: "owner", text: "Owner" },
       ]}
       value={["name", "status"]}
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Table columns"
     />
   </DemoState>
@@ -746,7 +752,7 @@ Clear all toggle beneath the options — hide either with `hideCount` /
         { value: "tom", text: "Tom Okafor" },
       ]}
       value={["elena"]}
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Teammates to notify"
     />
   </DemoState>
@@ -774,7 +780,7 @@ when everything is selected.
           { value: "email", text: "Email" },
         ]}
         value={["name", "createdAt", "updatedAt", "status", "owner"]}
-        onChange={() => {}}
+        onChange={noop}
         aria-label="Columns (scroll)"
       />
     </DemoState>
@@ -793,7 +799,7 @@ when everything is selected.
           { value: "email", text: "Email" },
         ]}
         value={["name", "createdAt", "updatedAt", "status", "owner"]}
-        onChange={() => {}}
+        onChange={noop}
         aria-label="Columns (truncate)"
       />
     </DemoState>
@@ -812,7 +818,7 @@ when everything is selected.
           { value: "email", text: "Email" },
         ]}
         value={["name", "createdAt", "updatedAt", "status", "owner"]}
-        onChange={() => {}}
+        onChange={noop}
         aria-label="Columns (summary)"
       />
     </DemoState>
@@ -839,7 +845,7 @@ every enabled option out of reach.
         { value: "shared", text: "Shared with me" },
       ]}
       value={["all", "recent"]}
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Pinned views"
     />
   </DemoState>
@@ -879,7 +885,7 @@ with `selectedStyle` (`checkbox`, `tick`, `highlight`) and `selectedTone`.
         { value: "event", text: "Event", suffix: "86" },
       ]}
       value={["person", "document"]}
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Entity types"
     />
   </DemoState>
@@ -908,7 +914,7 @@ with `selectedStyle` (`checkbox`, `tick`, `highlight`) and `selectedTone`.
         },
       ]}
       value={["production"]}
-      onChange={() => {}}
+      onChange={noop}
       aria-label="Environments"
     />
   </DemoState>
@@ -931,7 +937,7 @@ connects — `subtle` and `readonly` inputs render separately.
           { value: "updatedAt", text: "Last updated" },
         ]}
         value="name"
-        onChange={() => {}}
+        onChange={noop}
         aria-label="Sort by"
       />
     </DemoState>
@@ -944,7 +950,7 @@ connects — `subtle` and `readonly` inputs render separately.
           { value: "desc", text: "Descending" },
         ]}
         value="asc"
-        onChange={() => {}}
+        onChange={noop}
         aria-label="Sort direction"
       />
     </DemoState>
@@ -969,7 +975,7 @@ submits the selected value through a hidden native `<select>`.
           { value: "document", text: "Document" },
         ]}
         value="person"
-        onChange={() => {}}
+        onChange={noop}
       />
     </DemoState>
   </Form.Field>

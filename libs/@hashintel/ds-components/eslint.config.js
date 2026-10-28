@@ -49,8 +49,9 @@ export default [
     },
   },
   {
-    // Doc blocks are demo-surface code that is never published, so like
-    // stories they may import devDependencies.
+    // Doc blocks ship compiled into dist/docs, but tsup bundles their
+    // devDependency imports (react-markdown, prism-react-renderer, …) into
+    // those chunks, so like stories they may import devDependencies.
     files: ["docs/**/*.ts{x,}"],
     rules: {
       "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
@@ -89,6 +90,8 @@ export default [
       curly: "off",
       "dot-notation": "off",
       "id-length": "off",
+      // ts.SymbolFlags checks are bitmask tests by design.
+      "no-bitwise": "off",
       "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
       "simple-import-sort/imports": "off",
       "unicorn/import-style": "off",

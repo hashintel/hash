@@ -1,6 +1,7 @@
 import { Meta } from "@storybook/addon-docs/blocks";
 import { createRef } from "react";
 
+import { noop } from "../../util/noop";
 import { DemoState } from "../../../docs/blocks/demo-state";
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -85,7 +86,7 @@ export const FilterEntitiesButton = () => {
   );
 };`;
 
-<Stage code={heroPopoverCode}>
+export const HeroDemo = () => (
   <OverlayDemo triggerLabel="Filter">
     {({ close, triggerRef }) => (
       <Popover triggerRef={triggerRef} onClose={close}>
@@ -108,6 +109,10 @@ export const FilterEntitiesButton = () => {
       </Popover>
     )}
   </OverlayDemo>
+);
+
+<Stage code={heroPopoverCode}>
+  <HeroDemo />
 </Stage>
 
 ## Installation
@@ -229,7 +234,7 @@ export const SavedViewsButton = () => {
   );
 };`;
 
-<Stage code={openClosePopoverCode}>
+export const OpeningAndClosingDemo = () => (
   <OverlayDemo triggerLabel="Saved views">
     {({ close, triggerRef }) => (
       <Popover triggerRef={triggerRef} onClose={close}>
@@ -240,6 +245,10 @@ export const SavedViewsButton = () => {
       </Popover>
     )}
   </OverlayDemo>
+);
+
+<Stage code={openClosePopoverCode}>
+  <OpeningAndClosingDemo />
 </Stage>
 
 ### Header
@@ -290,7 +299,7 @@ export const NotificationsButton = () => {
   );
 };`;
 
-<Stage code={headerPopoverCode}>
+export const HeaderDemo = () => (
   <OverlayDemo triggerLabel="Notifications">
     {({ close, triggerRef }) => (
       <Popover triggerRef={triggerRef} onClose={close}>
@@ -314,6 +323,10 @@ export const NotificationsButton = () => {
       </Popover>
     )}
   </OverlayDemo>
+);
+
+<Stage code={headerPopoverCode}>
+  <HeaderDemo />
 </Stage>
 
 ### Footer actions
@@ -364,7 +377,7 @@ export const SortEntitiesButton = () => {
   );
 };`;
 
-<Stage code={footerActionsPopoverCode}>
+export const FooterActionsDemo = () => (
   <OverlayDemo triggerLabel="Sort">
     {({ close, triggerRef }) => (
       <Popover triggerRef={triggerRef} onClose={close}>
@@ -387,6 +400,10 @@ export const SortEntitiesButton = () => {
       </Popover>
     )}
   </OverlayDemo>
+);
+
+<Stage code={footerActionsPopoverCode}>
+  <FooterActionsDemo />
 </Stage>
 
 ### Sectioned bodies
@@ -426,7 +443,7 @@ export const FlowRunSummaryButton = () => {
   );
 };`;
 
-<Stage code={sectionedBodiesPopoverCode}>
+export const SectionedBodiesDemo = () => (
   <OverlayDemo triggerLabel="Last run">
     {({ close, triggerRef }) => (
       <Popover triggerRef={triggerRef} onClose={close}>
@@ -440,6 +457,10 @@ export const FlowRunSummaryButton = () => {
       </Popover>
     )}
   </OverlayDemo>
+);
+
+<Stage code={sectionedBodiesPopoverCode}>
+  <SectionedBodiesDemo />
 </Stage>
 
 ### Positions
@@ -481,7 +502,7 @@ export const PropertyDetailsButton = () => {
   );
 };`;
 
-<Stage code={positionsPopoverCode}>
+export const PositionsDemo = () => (
   <OverlayDemo triggerLabel="Property details">
     {({ close, triggerRef }) => (
       <Popover triggerRef={triggerRef} position="right-start" onClose={close}>
@@ -492,6 +513,10 @@ export const PropertyDetailsButton = () => {
       </Popover>
     )}
   </OverlayDemo>
+);
+
+<Stage code={positionsPopoverCode}>
+  <PositionsDemo />
 </Stage>
 
 ### Anchoring to a point
@@ -581,7 +606,7 @@ export const NewPropertyButton = () => {
   );
 };`;
 
-<Stage code={stayOpenPopoverCode}>
+export const StayingOpenOnOutsideClicksDemo = () => (
   <OverlayDemo triggerLabel="New property">
     {({ close, triggerRef }) => (
       <Popover
@@ -605,6 +630,10 @@ export const NewPropertyButton = () => {
       </Popover>
     )}
   </OverlayDemo>
+);
+
+<Stage code={stayOpenPopoverCode}>
+  <StayingOpenOnOutsideClicksDemo />
 </Stage>
 
 ### Initial and return focus
@@ -657,7 +686,7 @@ export const RenameViewButton = () => {
 
 export const nameInputRef = createRef();
 
-<Stage code={initialFocusPopoverCode}>
+export const InitialAndReturnFocusDemo = () => (
   <OverlayDemo triggerLabel="Rename view">
     {({ close, triggerRef }) => (
       <Popover
@@ -672,7 +701,7 @@ export const nameInputRef = createRef();
               <TextInput
                 inputRef={nameInputRef}
                 value="Recently updated"
-                onChange={() => {}}
+                onChange={noop}
               />
             </DemoState>
           </Popover.Body>
@@ -680,6 +709,10 @@ export const nameInputRef = createRef();
       </Popover>
     )}
   </OverlayDemo>
+);
+
+<Stage code={initialFocusPopoverCode}>
+  <InitialAndReturnFocusDemo />
 </Stage>
 
 ## Behavior

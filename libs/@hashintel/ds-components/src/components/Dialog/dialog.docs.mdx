@@ -1,5 +1,5 @@
 import { Meta } from "@storybook/addon-docs/blocks";
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { OverlayDemo } from "../../../docs/blocks/overlay-demo";
@@ -67,7 +67,7 @@ export const EditWorkspaceDialog = ({ onClose }: { onClose: () => void }) => (
   </Dialog>
 );`;
 
-<Stage code={heroDialogCode}>
+export const HeroDemo = () => (
   <OverlayDemo triggerLabel="Edit workspace">
     {({ close }) => (
       <Dialog size="md" onClose={close}>
@@ -94,6 +94,10 @@ export const EditWorkspaceDialog = ({ onClose }: { onClose: () => void }) => (
       </Dialog>
     )}
   </OverlayDemo>
+);
+
+<Stage code={heroDialogCode}>
+  <HeroDemo />
 </Stage>
 
 ## Installation
@@ -138,10 +142,10 @@ export const InviteTeammateButton = () => {
   items={[
     "Use Dialog for a short, focused task the user must finish or abandon before returning to the page — editing settings, inviting a teammate.",
     "Use Dialog to confirm destructive or irreversible actions, such as deleting an entity type.",
-    <>
+    <Fragment key="0">
       Use <code>size="fullScreen"</code> for immersive tasks that need the whole
       viewport, such as mapping the columns of an import.
-    </>,
+    </Fragment>,
   ]}
 />
 
@@ -204,7 +208,7 @@ export const EditEntityTypeButton = () => {
   );
 };`;
 
-<Stage code={basicDialogCode}>
+export const BasicDemo = () => (
   <OverlayDemo triggerLabel="Edit entity type">
     {({ close }) => (
       <Dialog onClose={close}>
@@ -218,6 +222,10 @@ export const EditEntityTypeButton = () => {
       </Dialog>
     )}
   </OverlayDemo>
+);
+
+<Stage code={basicDialogCode}>
+  <BasicDemo />
 </Stage>
 
 ### Loading
@@ -248,7 +256,7 @@ export const SyncMappingsDialog = ({
   </Dialog>
 );`;
 
-<Stage code={loadingDialogCode}>
+export const LoadingDemo = () => (
   <OverlayDemo triggerLabel="Sync property mappings">
     {({ close }) => (
       <Dialog loading onClose={close}>
@@ -266,6 +274,10 @@ export const SyncMappingsDialog = ({
       </Dialog>
     )}
   </OverlayDemo>
+);
+
+<Stage code={loadingDialogCode}>
+  <LoadingDemo />
 </Stage>
 
 ### Sizes
@@ -294,7 +306,7 @@ export const dialogSizeNotes = {
   xl: "The widest preset.",
 };
 
-<Stage code={sizesDialogCode}>
+export const SizesDemo = () => (
   <OverlayDemo triggers={["xs", "sm", "md", "lg", "xl"]}>
     {({ close, trigger }) => (
       <Dialog size={trigger} onClose={close}>
@@ -305,6 +317,10 @@ export const dialogSizeNotes = {
       </Dialog>
     )}
   </OverlayDemo>
+);
+
+<Stage code={sizesDialogCode}>
+  <SizesDemo />
 </Stage>
 
 ### Variants
@@ -329,7 +345,7 @@ export const ReviewFlowRunDialog = ({ onClose }: { onClose: () => void }) => (
   </Dialog>
 );`;
 
-<Stage code={variantsDialogCode}>
+export const VariantsDemo = () => (
   <OverlayDemo triggers={["partitionedFooter", "plain"]}>
     {({ close, trigger }) => (
       <Dialog variant={trigger} onClose={close}>
@@ -347,6 +363,10 @@ export const ReviewFlowRunDialog = ({ onClose }: { onClose: () => void }) => (
       </Dialog>
     )}
   </OverlayDemo>
+);
+
+<Stage code={variantsDialogCode}>
+  <VariantsDemo />
 </Stage>
 
 ### Header
@@ -381,7 +401,7 @@ export const WorkspaceSettingsDialog = ({
   </Dialog>
 );`;
 
-<Stage code={headerDialogCode}>
+export const HeaderDemo = () => (
   <OverlayDemo triggerLabel="Workspace settings">
     {({ close }) => (
       <Dialog onClose={close}>
@@ -405,6 +425,10 @@ export const WorkspaceSettingsDialog = ({
       </Dialog>
     )}
   </OverlayDemo>
+);
+
+<Stage code={headerDialogCode}>
+  <HeaderDemo />
 </Stage>
 
 ### Footer actions
@@ -443,7 +467,7 @@ export const UpdatePropertyTypeDialog = ({
   </Dialog>
 );`;
 
-<Stage code={footerActionsDialogCode}>
+export const FooterActionsDemo = () => (
   <OverlayDemo triggerLabel="Update property type">
     {({ close }) => (
       <Dialog onClose={close}>
@@ -471,6 +495,10 @@ export const UpdatePropertyTypeDialog = ({
       </Dialog>
     )}
   </OverlayDemo>
+);
+
+<Stage code={footerActionsDialogCode}>
+  <FooterActionsDemo />
 </Stage>
 
 ### Confirming a destructive action
@@ -509,7 +537,7 @@ export const DeletePropertyDialog = ({
   </Dialog>
 );`;
 
-<Stage code={confirmDeleteDialogCode}>
+export const ConfirmingADestructiveActionDemo = () => (
   <OverlayDemo triggerLabel="Delete property">
     {({ close }) => (
       <Dialog size="xs" onClose={close}>
@@ -535,6 +563,10 @@ export const DeletePropertyDialog = ({
       </Dialog>
     )}
   </OverlayDemo>
+);
+
+<Stage code={confirmDeleteDialogCode}>
+  <ConfirmingADestructiveActionDemo />
 </Stage>
 
 ### Custom header and footer
@@ -562,7 +594,7 @@ export const FlowRunDialog = ({ onClose }: { onClose: () => void }) => (
   </Dialog>
 );`;
 
-<Stage code={customRegionsDialogCode}>
+export const CustomHeaderAndFooterDemo = () => (
   <OverlayDemo triggerLabel="Inspect run">
     {({ close }) => (
       <Dialog onClose={close}>
@@ -583,6 +615,10 @@ export const FlowRunDialog = ({ onClose }: { onClose: () => void }) => (
       </Dialog>
     )}
   </OverlayDemo>
+);
+
+<Stage code={customRegionsDialogCode}>
+  <CustomHeaderAndFooterDemo />
 </Stage>
 
 ### Body without padding
@@ -600,7 +636,7 @@ export const EntityHistoryDialog = ({ onClose }: { onClose: () => void }) => (
   </Dialog>
 );`;
 
-<Stage code={noPaddingDialogCode}>
+export const BodyWithoutPaddingDemo = () => (
   <OverlayDemo triggerLabel="Entity history">
     {({ close }) => (
       <Dialog size="lg" onClose={close}>
@@ -626,6 +662,10 @@ export const EntityHistoryDialog = ({ onClose }: { onClose: () => void }) => (
       </Dialog>
     )}
   </OverlayDemo>
+);
+
+<Stage code={noPaddingDialogCode}>
+  <BodyWithoutPaddingDemo />
 </Stage>
 
 ### Controlling dismissal
@@ -653,7 +693,7 @@ export const CreateEntityDialog = ({ onClose }: { onClose: () => void }) => (
   </Dialog>
 );`;
 
-<Stage code={dismissalDialogCode}>
+export const ControllingDismissalDemo = () => (
   <OverlayDemo triggerLabel="Create entity">
     {({ close }) => (
       <Dialog shouldCloseOn="closeButton" onClose={close}>
@@ -674,6 +714,10 @@ export const CreateEntityDialog = ({ onClose }: { onClose: () => void }) => (
       </Dialog>
     )}
   </OverlayDemo>
+);
+
+<Stage code={dismissalDialogCode}>
+  <ControllingDismissalDemo />
 </Stage>
 
 ### Initial and return focus
@@ -748,10 +792,14 @@ export const ArchiveFlowDemo = ({ close }) => {
   );
 };
 
-<Stage code={initialFocusDialogCode}>
+export const InitialAndReturnFocusDemo = () => (
   <OverlayDemo triggerLabel="Archive flow">
     {({ close }) => <ArchiveFlowDemo close={close} />}
   </OverlayDemo>
+);
+
+<Stage code={initialFocusDialogCode}>
+  <InitialAndReturnFocusDemo />
 </Stage>
 
 ## Behavior

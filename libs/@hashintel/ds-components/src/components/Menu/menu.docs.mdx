@@ -1,5 +1,6 @@
 import { Meta } from "@storybook/addon-docs/blocks";
 
+import { noop } from "../../util/noop";
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
 import { ReferenceLinks } from "../../../docs/blocks/reference-links";
@@ -46,22 +47,22 @@ Opens a floating list of actions or options from a trigger element.
       </Button>
     }
     items={[
-      { text: "Edit entity", onClick: () => {} },
-      { text: "Duplicate entity", onClick: () => {} },
-      { text: "View history", onClick: () => {} },
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
+      { text: "View history", onClick: noop },
       {
         text: "Delete entity",
         icon: "trash",
         tone: "error",
-        onClick: () => {},
+        onClick: noop,
       },
     ]}
   />
   <EllipsisMenu
     items={[
-      { text: "Rename view", onClick: () => {} },
-      { text: "Duplicate view", onClick: () => {} },
-      { text: "Delete view", tone: "error", onClick: () => {} },
+      { text: "Rename view", onClick: noop },
+      { text: "Duplicate view", onClick: noop },
+      { text: "Delete view", tone: "error", onClick: noop },
     ]}
   />
 </Stage>
@@ -160,9 +161,9 @@ A plain-string `text` doubles as the item's `id`.
       </Button>
     }
     items={[
-      { text: "Edit entity", onClick: () => {} },
-      { text: "Duplicate entity", onClick: () => {} },
-      { text: "Copy entity ID", onClick: () => {} },
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
+      { text: "Copy entity ID", onClick: noop },
     ]}
   />
 </Stage>
@@ -185,17 +186,17 @@ icons should differentiate important menu items, not decorate every row.
         text: "Run flow",
         icon: "play",
         description: "Uses the last saved inputs",
-        onClick: () => {},
+        onClick: noop,
       },
       {
         text: "Schedule run",
         description: "Repeat on a cron schedule",
-        onClick: () => {},
+        onClick: noop,
       },
       {
         text: "View run history",
         suffix: <span>24</span>,
-        onClick: () => {},
+        onClick: noop,
       },
     ]}
   />
@@ -218,16 +219,16 @@ uppercase label. Group related actions once a menu passes roughly six items.
         id: "view",
         label: "View",
         items: [
-          { text: "Open entity type", onClick: () => {} },
-          { text: "View dependents", onClick: () => {} },
+          { text: "Open entity type", onClick: noop },
+          { text: "View dependents", onClick: noop },
         ],
       },
       {
         id: "manage",
         label: "Manage",
         items: [
-          { text: "Create new version", onClick: () => {} },
-          { text: "Duplicate type", onClick: () => {} },
+          { text: "Create new version", onClick: noop },
+          { text: "Duplicate type", onClick: noop },
         ],
       },
     ]}
@@ -248,10 +249,10 @@ availability is still being determined.
       </Button>
     }
     items={[
-      { text: "Export as CSV", onClick: () => {} },
-      { text: "Export as JSON", onClick: () => {} },
-      { text: "Export with history", disabled: true, onClick: () => {} },
-      { text: "Checking snapshot size", loading: true, onClick: () => {} },
+      { text: "Export as CSV", onClick: noop },
+      { text: "Export as JSON", onClick: noop },
+      { text: "Export with history", disabled: true, onClick: noop },
+      { text: "Checking snapshot size", loading: true, onClick: noop },
     ]}
   />
 </Stage>
@@ -269,13 +270,13 @@ their own so they can't be hit by overshooting an adjacent item.
       </Button>
     }
     items={[
-      { text: "Edit entity", onClick: () => {} },
-      { text: "Duplicate entity", onClick: () => {} },
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
       {
         text: "Delete entity",
         icon: "trash",
         tone: "error",
-        onClick: () => {},
+        onClick: noop,
       },
     ]}
   />
@@ -320,12 +321,12 @@ devices.
       </Button>
     }
     items={[
-      { text: "Edit entity", onClick: () => {} },
+      { text: "Edit entity", onClick: noop },
       {
         text: "Export as",
         subItems: [
-          { text: "CSV", onClick: () => {} },
-          { text: "JSON", onClick: () => {} },
+          { text: "CSV", onClick: noop },
+          { text: "JSON", onClick: noop },
         ],
       },
     ]}
@@ -354,9 +355,9 @@ trigger when the menu opens upward.
       </Button>
     }
     items={[
-      { text: "Run #128 — succeeded", onClick: () => {} },
-      { text: "Run #127 — succeeded", onClick: () => {} },
-      { text: "Run #126 — failed", onClick: () => {} },
+      { text: "Run #128 — succeeded", onClick: noop },
+      { text: "Run #127 — succeeded", onClick: noop },
+      { text: "Run #126 — failed", onClick: noop },
     ]}
   />
 </Stage>
@@ -381,8 +382,8 @@ will skip it — but focusable children inside it stay reachable with Tab.
           </span>
         ),
       },
-      { text: "Invite teammate", onClick: () => {} },
-      { text: "Workspace settings", onClick: () => {} },
+      { text: "Invite teammate", onClick: noop },
+      { text: "Workspace settings", onClick: noop },
     ]}
   />
 </Stage>
@@ -398,24 +399,24 @@ automatically chosen when the menu won't fit.
     position="bottom-start"
     trigger={<Button variant="subtle">bottom-start</Button>}
     items={[
-      { text: "Edit entity", onClick: () => {} },
-      { text: "Duplicate entity", onClick: () => {} },
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
     ]}
   />
   <Menu
     position="bottom-end"
     trigger={<Button variant="subtle">bottom-end</Button>}
     items={[
-      { text: "Edit entity", onClick: () => {} },
-      { text: "Duplicate entity", onClick: () => {} },
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
     ]}
   />
   <Menu
     position="top-start"
     trigger={<Button variant="subtle">top-start</Button>}
     items={[
-      { text: "Edit entity", onClick: () => {} },
-      { text: "Duplicate entity", onClick: () => {} },
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
     ]}
   />
 </Stage>
@@ -428,9 +429,9 @@ overflow affordance for table rows and cards.
 <Stage>
   <EllipsisMenu
     items={[
-      { text: "Edit entity", onClick: () => {} },
-      { text: "Duplicate entity", onClick: () => {} },
-      { text: "Delete entity", tone: "error", onClick: () => {} },
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
+      { text: "Delete entity", tone: "error", onClick: noop },
     ]}
   />
   <EllipsisMenu
@@ -438,11 +439,11 @@ overflow affordance for table rows and cards.
     variant="solid"
     size="xs"
     items={[
-      { text: "Mute notifications", onClick: () => {} },
-      { text: "Notification settings", onClick: () => {} },
+      { text: "Mute notifications", onClick: noop },
+      { text: "Notification settings", onClick: noop },
     ]}
   />
-  <EllipsisMenu disabled items={[{ text: "Edit entity", onClick: () => {} }]} />
+  <EllipsisMenu disabled items={[{ text: "Edit entity", onClick: noop }]} />
 </Stage>
 
 ## Behavior

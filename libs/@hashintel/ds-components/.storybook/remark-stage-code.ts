@@ -220,7 +220,14 @@ export const remarkStageCode = () => (tree: Root, file: VFile) => {
     if (findAttribute(element, "code") !== undefined) {
       return;
     }
-    const code = renderChildren(element.children, 0, context).join("\n");
+    // `noop` is the serializable stand-in docs examples use for inline
+    // handlers (see src/util/noop.ts), both as JSX attributes
+    // (`onChange={noop}`) and object properties (`dismissible={{ onDismiss:
+    // noop }}`); readers should copy the plain arrow it stands for.
+    const code = renderChildren(element.children, 0, context)
+      .join("\n")
+      .replace(/=\{noop\}/g, "={() => {}}")
+      .replace(/\b(on[A-Z]\w*): noop\b/g, "$1: () => {}");
     if (code !== "") {
       element.attributes.push({
         type: "mdxJsxAttribute",

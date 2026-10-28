@@ -1,6 +1,7 @@
 import { Meta } from "@storybook/addon-docs/blocks";
 import { useState } from "react";
 
+import { noop } from "../../util/noop";
 import { DemoState } from "../../../docs/blocks/demo-state";
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -212,8 +213,8 @@ Disable individual options the user's role or plan rules out, and explain the
 constraint nearby.
 
 <Stage>
-  <Radio disabled value label="Free plan (current)" onChange={() => {}} />
-  <Radio disabled value={false} label="Enterprise plan" onChange={() => {}} />
+  <Radio disabled value label="Free plan (current)" onChange={noop} />
+  <Radio disabled value={false} label="Enterprise plan" onChange={noop} />
 </Stage>
 
 ### Invalid
@@ -224,10 +225,10 @@ alone doesn't say what's wrong.
 
 <Stage>
   <DemoState data-harness>
-    <Radio invalid value={false} label="US East" onChange={() => {}} />
+    <Radio invalid value={false} label="US East" onChange={noop} />
   </DemoState>
   <DemoState data-harness>
-    <Radio invalid value={false} label="EU West" onChange={() => {}} />
+    <Radio invalid value={false} label="EU West" onChange={noop} />
   </DemoState>
 </Stage>
 
@@ -238,9 +239,9 @@ alone doesn't say what's wrong.
 confirmation-flavored choices. Unselected radios look the same in every tone.
 
 <Stage>
-  <Radio value tone="neutral" label="Neutral" onChange={() => {}} />
-  <Radio value tone="brand" label="Brand" onChange={() => {}} />
-  <Radio value tone="success" label="Success" onChange={() => {}} />
+  <Radio value tone="neutral" label="Neutral" onChange={noop} />
+  <Radio value tone="brand" label="Brand" onChange={noop} />
+  <Radio value tone="success" label="Success" onChange={noop} />
 </Stage>
 
 ### Sizes
@@ -249,11 +250,11 @@ confirmation-flavored choices. Unselected radios look the same in every tone.
 panels, `lg` for prominent choices.
 
 <Stage>
-  <Radio value size="xxs" label="xxs" onChange={() => {}} />
-  <Radio value size="xs" label="xs" onChange={() => {}} />
-  <Radio value size="sm" label="sm" onChange={() => {}} />
-  <Radio value size="md" label="md" onChange={() => {}} />
-  <Radio value size="lg" label="lg" onChange={() => {}} />
+  <Radio value size="xxs" label="xxs" onChange={noop} />
+  <Radio value size="xs" label="xs" onChange={noop} />
+  <Radio value size="sm" label="sm" onChange={noop} />
+  <Radio value size="md" label="md" onChange={noop} />
+  <Radio value size="lg" label="lg" onChange={noop} />
 </Stage>
 
 ### Label placement
@@ -267,13 +268,13 @@ give it a width via `className`.
     value
     labelPlacement="right"
     label="Label on the right"
-    onChange={() => {}}
+    onChange={noop}
   />
   <Radio
     value
     labelPlacement="left"
     label="Label on the left"
-    onChange={() => {}}
+    onChange={noop}
   />
 </Stage>
 
@@ -289,7 +290,7 @@ whole label.
       value
       labelAlign="top"
       label="Keep both versions and mark the conflicting entities for manual review"
-      onChange={() => {}}
+      onChange={noop}
     />
   </div>
   <div style={{ maxWidth: 260 }}>
@@ -297,7 +298,7 @@ whole label.
       value
       labelAlign="center"
       label="Keep both versions and mark the conflicting entities for manual review"
-      onChange={() => {}}
+      onChange={noop}
     />
   </div>
 </Stage>

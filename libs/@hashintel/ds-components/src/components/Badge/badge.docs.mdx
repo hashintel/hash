@@ -1,4 +1,5 @@
 import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
 
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -73,14 +74,14 @@ export const NotificationsBell = () => (
 <DoList
   items={[
     "Use Badge to count new or unseen items on an icon, button, or navigation item — unread notifications, pending drafts, flagged entities.",
-    <>
+    <Fragment key="0">
       Use a dot (omit <code>content</code>) when "something changed" matters
       more than how many — presence on an avatar, unseen activity on a tab.
-    </>,
-    <>
+    </Fragment>,
+    <Fragment key="1">
       Use <code>hide</code> to clear the badge once its items have been seen,
       keeping the anchor in place.
-    </>,
+    </Fragment>,
   ]}
 />
 

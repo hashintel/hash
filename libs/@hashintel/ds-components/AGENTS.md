@@ -255,6 +255,54 @@ export const Checkbox = (props) => (
 | `yarn test:unit`       | Run the Vitest unit suites without the Playwright snapshot harness |
 | `yarn test:snapshots`  | Build Storybook and run the Playwright snapshot suite              |
 
+## Published MDX Docs
+
+The `src/components/*/*.docs.mdx` pages render in Storybook and are also
+published for external sites (see README "Published Component Docs"). The
+published pages must work compiled as React Server Components (fumadocs on
+Next.js), where hooks, inline functions, and property access through client
+references are all illegal — the pipeline restructures the pages accordingly
+and fails the build on violations:
+
+- `build:docs-demos` (pre-tsup) extracts every module-level export except
+  `meta` from each page into a generated client module
+  (`docs/demos/<slug>.gen.tsx` → `@hashintel/ds-components/docs/demos/<slug>`),
+  and generates `compound-parts.gen.tsx`, which flattens compound members the
+  page bodies use (`Banner.Title` → `BannerTitle`). The generated files are
+  excluded from tsc (inline MDX components were never type-checked) and are
+  validated by the esbuild compile plus render verification.
+- `tsup` builds those plus the doc blocks as entry points
+  (`dist/docs/blocks/<name>.js`), all sharing chunks with the component
+  entries so every surface uses one module instance per component, and banners
+  every output with `"use client"`.
+- `build:docs-mdx` emits the portable MDX to `dist/docs/mdx/<slug>.mdx`: meta
+  duplicated as YAML frontmatter, Storybook `Meta` stripped, leading
+  title/description dropped, moved exports removed and imported back from the
+  demos module, react imports pruned to server-safe names, relative imports
+  rewritten to package specifiers, each `<Stage>`'s Code tab baked in as a
+  literal `code` attribute via `.storybook/remark-stage-code.ts` (so the
+  displayed code keeps the authored `Banner.Title`-style API and `noop`
+  renders as `() => {}`), and compound members in live JSX flattened. Each
+  page is then gated (no hooks/functions/compound members in the published
+  module), compile-checked with @mdx-js/mdx, and server-rendered against the
+  published entries — which is also where the `meta` for the frontmatter is
+  read from. The `meta` export stays in the files because page bodies
+  reference it (`meta.links.source`). The script also writes hand-maintained
+  `.d.ts` stubs for the doc blocks and errors on any block lacking one.
+- Inline handlers in docs examples are authored as `onX={noop}`
+  (`src/util/noop.ts`, published flat as `@hashintel/ds-components/noop`) —
+  client-module exports cross the RSC boundary as references where inline
+  arrows cannot. Interactive stateful examples are authored as inline
+  exported components (the extraction moves them); `DemoState` makes
+  controlled examples live.
+- `codegen:docgen` generates `docs/blocks/props-table/docgen-registry.gen.ts`,
+  the identity-keyed prop-docs registry `PropsTable` falls back to where
+  Storybook's `__docgenInfo` injection is absent. Parser options are shared
+  with `.storybook/main.ts` via `docs/docgen-options.ts`.
+- `build:buildinfo:docs` ships the doc blocks' style usage to
+  `dist/docs/panda.buildinfo.json` (`panda.docs.config.ts`), separate from the
+  main buildinfo so app consumers don't carry docs-only CSS.
+
 ## File Structure
 
 ```

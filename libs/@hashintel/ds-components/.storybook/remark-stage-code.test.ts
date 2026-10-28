@@ -236,6 +236,26 @@ describe("remarkStageCode", () => {
     expect(codes).toEqual(["custom", null]);
   });
 
+  it("shows noop handler references as plain arrows", async () => {
+    const { codes } = await compileStages(
+      [
+        "<Stage>",
+        "  <DemoState data-harness>",
+        '    <Checkbox value label="Drafts" onChange={noop} />',
+        "  </DemoState>",
+        "</Stage>",
+        "",
+        "<Stage>",
+        "  <Banner dismissible={{ onDismiss: noop }}>Saved</Banner>",
+        "</Stage>",
+      ].join("\n"),
+    );
+    expect(codes).toEqual([
+      '<Checkbox value label="Drafts" onChange={() => {}} />',
+      "<Banner dismissible={{ onDismiss: () => {} }}>Saved</Banner>",
+    ]);
+  });
+
   it("strips data-harness from the compiled output", async () => {
     const { output } = await compileStages(
       [

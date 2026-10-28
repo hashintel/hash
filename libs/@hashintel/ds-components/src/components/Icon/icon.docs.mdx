@@ -1,4 +1,5 @@
 import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
 
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -68,10 +69,10 @@ export const FlowRunStatus = () => (
 <DoList
   items={[
     "Use Icon to reinforce meaning next to text: status rows, metadata labels, empty states.",
-    <>
+    <Fragment key="0">
       Use <code>alt</code> when an icon stands alone and carries meaning of its
       own.
-    </>,
+    </Fragment>,
   ]}
 />
 
@@ -79,15 +80,15 @@ export const FlowRunStatus = () => (
 
 <DontList
   items={[
-    <>
+    <Fragment key="0">
       Don't make a bare Icon clickable — use Button's <code>iconName</code> and{" "}
       <code>tooltip</code>, which add focus, hover, and an accessible name.
-    </>,
-    <>
+    </Fragment>,
+    <Fragment key="1">
       Don't place Icon manually inside components with an <code>iconName</code>{" "}
       prop (Button, Chip, Banner, Select) — the slot sizes and spaces it for
       you.
-    </>,
+    </Fragment>,
     "Don't use icons for people or workspaces — use Avatar, which handles images and fallback initials.",
   ]}
 />

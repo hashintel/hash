@@ -1,5 +1,6 @@
 import { Meta } from "@storybook/addon-docs/blocks";
 
+import { noop } from "../../util/noop";
 import { DemoState } from "../../../docs/blocks/demo-state";
 import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
 import { PropsTable } from "../../../docs/blocks/props-table";
@@ -46,7 +47,7 @@ Pick one of a few closely related options and apply it immediately.
     <SegmentedControl
       aria-label="Entity view"
       value="table"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { label: "Table", value: "table" },
         { label: "Graph", value: "graph" },
@@ -58,7 +59,7 @@ Pick one of a few closely related options and apply it immediately.
     <SegmentedControl
       aria-label="Chart view"
       value="list"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { iconName: "list", value: "list", tooltip: "List view" },
         { iconName: "grid", value: "grid", tooltip: "Grid view" },
@@ -71,7 +72,7 @@ Pick one of a few closely related options and apply it immediately.
       variant="embossed"
       aria-label="Schema editor mode"
       value="builder"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { label: "Builder", value: "builder" },
         { label: "JSON", value: "json" },
@@ -147,7 +148,7 @@ visible `label` with the `value` your state stores.
     <SegmentedControl
       aria-label="Entity view"
       value="table"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { label: "Table", value: "table" },
         { label: "Graph", value: "graph" },
@@ -169,7 +170,7 @@ broken.
     disabled
     aria-label="Entity view"
     value="table"
-    onChange={() => {}}
+    onChange={noop}
     items={[
       { label: "Table", value: "table" },
       { label: "Graph", value: "graph" },
@@ -180,7 +181,7 @@ broken.
     <SegmentedControl
       aria-label="Chart view"
       value="line"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { label: "Line", value: "line" },
         { label: "Bar", value: "bar" },
@@ -208,7 +209,7 @@ much chrome.
       variant="default"
       aria-label="Entity view"
       value="table"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { label: "Table", value: "table" },
         { label: "Graph", value: "graph" },
@@ -221,7 +222,7 @@ much chrome.
       variant="embossed"
       aria-label="Schema editor mode"
       value="builder"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { label: "Builder", value: "builder" },
         { label: "JSON", value: "json" },
@@ -241,7 +242,7 @@ headers, and `lg` where the switch is the main control on the page.
       size="xxs"
       aria-label="Entity view"
       value="table"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { label: "Table", value: "table" },
         { label: "Graph", value: "graph" },
@@ -254,7 +255,7 @@ headers, and `lg` where the switch is the main control on the page.
       size="xs"
       aria-label="Entity view"
       value="table"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { label: "Table", value: "table" },
         { label: "Graph", value: "graph" },
@@ -267,7 +268,7 @@ headers, and `lg` where the switch is the main control on the page.
       size="sm"
       aria-label="Entity view"
       value="table"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { label: "Table", value: "table" },
         { label: "Graph", value: "graph" },
@@ -280,7 +281,7 @@ headers, and `lg` where the switch is the main control on the page.
       size="md"
       aria-label="Entity view"
       value="table"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { label: "Table", value: "table" },
         { label: "Graph", value: "graph" },
@@ -293,7 +294,7 @@ headers, and `lg` where the switch is the main control on the page.
       size="lg"
       aria-label="Entity view"
       value="table"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { label: "Table", value: "table" },
         { label: "Graph", value: "graph" },
@@ -314,7 +315,7 @@ column, such as a properties panel.
       layout="vertical"
       aria-label="Entity panel"
       value="properties"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { label: "Properties", value: "properties" },
         { label: "Links", value: "links" },
@@ -327,7 +328,7 @@ column, such as a properties panel.
       layout="vertical"
       aria-label="Chart view"
       value="list"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { iconName: "list", value: "list", tooltip: "List view" },
         { iconName: "grid", value: "grid", tooltip: "Grid view" },
@@ -347,7 +348,7 @@ segment one or none — a mixed row reads unevenly.
     <SegmentedControl
       aria-label="Entity view"
       value="list"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { iconName: "list", label: "List", value: "list" },
         { iconName: "diagramProject", label: "Graph", value: "graph" },
@@ -368,7 +369,7 @@ and doubles as its accessible label.
     <SegmentedControl
       aria-label="Chart view"
       value="list"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { iconName: "list", value: "list", tooltip: "List view" },
         { iconName: "grid", value: "grid", tooltip: "Grid view" },
@@ -390,7 +391,7 @@ selection.
     <SegmentedControl
       aria-label="Type diff view"
       value="split"
-      onChange={() => {}}
+      onChange={noop}
       items={[
         { label: "Split", value: "split", tooltip: "Changes side by side" },
         {

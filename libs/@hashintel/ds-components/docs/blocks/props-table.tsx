@@ -3,6 +3,7 @@ import Markdown from "react-markdown";
 import { Chip } from "../../src/components/Chip/chip";
 import { InlineHighlight } from "../../src/util/InlineHighlight/inline-highlight";
 import { propsTableRecipe } from "./props-table.recipe";
+import { docgenRegistry } from "./props-table/docgen-registry.gen";
 
 import type {
   ComponentDoc,
@@ -102,7 +103,11 @@ export const PropsTable = ({
   /** Per-prop default values docgen cannot infer, e.g. `{ size: '"md"' }`. */
   defaults?: Record<string, string>;
 }) => {
-  const docgen = (of as { __docgenInfo?: DocgenInfo }).__docgenInfo;
+  // Storybook's bundler attaches __docgenInfo; the published docs bundles
+  // carry the same data in the generated registry instead.
+  const docgen: DocgenInfo | undefined =
+    (of as { __docgenInfo?: DocgenInfo }).__docgenInfo ??
+    docgenRegistry.get(of);
   // Required props first; the stable sort keeps declaration order within each group.
   const props = Object.entries(docgen?.props ?? {}).sort(
     ([, a], [, b]) => Number(b.required) - Number(a.required),
