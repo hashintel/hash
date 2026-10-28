@@ -119,14 +119,11 @@ const struct = pipe(
 );
 
 const tupleTail = pipe(
-  repeat(skip(comma)(typeSyntax)),
-  Parser.and(Parser.optional(typeSyntax)),
-  Parser.map(([rest, last]) =>
-    Option.match(last, {
-      onNone: () => rest,
-      onSome: (value) => [...rest, value],
-    }),
-  ),
+  typeSyntax,
+  separated(comma),
+  skip(Parser.optional(token(","))),
+  Parser.optional,
+  Parser.map(Option.getOrElse((): readonly Type[] => [])),
   preceded(token(",")),
   skip(closeParen),
 );

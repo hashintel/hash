@@ -1,3 +1,10 @@
+/**
+ * Generic entries that a reference attaches to its last path segment: a positional argument or a named bound.
+ *
+ * {@link argument} and {@link bound} build an entry. {@link make} checks a decoded `GenericArgument` or `GenericBound` object rather than source text. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
+ *
+ * @module
+ */
 import { Option, Result, SchemaParser } from "effect";
 
 import * as Ident from "../Ident.js";
@@ -12,6 +19,11 @@ export type Encoded = Defs.GenericEncoded;
 
 type MakeIn = (typeof Schema)["~type.make.in"];
 
+/**
+ * Checks a decoded generic entry object and returns it.
+ *
+ * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Generic =
   SchemaParser.make(Schema);

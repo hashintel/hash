@@ -139,12 +139,12 @@ From highest to lowest:
 **Examples:**
 
 ```jsonc
-// Intersection binds tighter than union
+// Union binds tighter than intersection
 "Int & String | Boolean & Char"
-// Parses as: (Int & String) | (Boolean & Char)
+// Parses as: Int & (String | Boolean) & Char
 
 // Use parentheses to override
-"Int & (String | Boolean) & Char"
+"(Int & String) | (Boolean & Char)"
 ```
 
 ## Whitespace

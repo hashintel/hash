@@ -1,3 +1,10 @@
+/**
+ * Type syntax that names a type by path, such as `List<Integer>`.
+ *
+ * {@link make} checks a decoded object whose `path` is a path object rather than path source text. It requires at least one segment and checks every identifier and generic argument in the path. {@link makeEffect} fails with the {@link SchemaIssue.Issue} instead of throwing. {@link makeOption} returns `None` instead.
+ *
+ * @module
+ */
 import { SchemaParser } from "effect";
 
 import * as Defs from "./schema.js";
@@ -8,13 +15,17 @@ export const Schema: typeof Defs.Reference = Defs.Reference;
 
 /**
  * Type syntax naming a type by its decoded path, with ordered generic entries on each segment.
-
  */
 export interface Reference extends Defs.ReferenceType {}
 export interface Encoded extends Defs.ReferenceEncoded {}
 
 type MakeIn = (typeof Schema)["~type.make.in"];
 
+/**
+ * Checks a decoded reference object and returns it.
+ *
+ * @throws {Error} If validation fails. The error's `cause` is a {@link SchemaIssue.Issue}.
+ */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Reference =
   SchemaParser.make(Schema);

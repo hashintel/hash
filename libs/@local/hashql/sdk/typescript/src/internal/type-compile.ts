@@ -4,7 +4,6 @@ import { compileIdent } from "./ident-parser.js";
 import type { Path, SegmentArgument } from "../JExpr/Path.js";
 import type { Type } from "../JExpr/Type/schema.js";
 
-/** Prints an argument in its positional or named form. */
 const compileArgument = (argument: SegmentArgument): string => {
   // oxlint-disable-next-line no-use-before-define -- mutually recursive printers
   const bound = compileType(argument.bound);
@@ -15,7 +14,6 @@ const compileArgument = (argument: SegmentArgument): string => {
   return bound;
 };
 
-/** Prints every segment's own arguments. */
 export const compilePath = (path: Path): string => {
   const segments = path.segments
     .map(({ name, arguments: args }) => {
