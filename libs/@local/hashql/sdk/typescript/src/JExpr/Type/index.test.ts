@@ -25,6 +25,20 @@ describe("roundtrip", () => {
   );
 });
 
+describe("compile", () => {
+  test("deep_nesting", () => {
+    expect.hasAssertions();
+    let type: Type.Type = Type.infer();
+    for (let depth = 0; depth < 50_000; depth += 1) {
+      type = Option.getOrThrow(Type.reference("List", Type.tuple(type)));
+    }
+
+    expect(Type.compile(type)).toBe(
+      `${"List<(".repeat(50_000)}_${",)>".repeat(50_000)}`,
+    );
+  });
+});
+
 describe("builder", () => {
   test("reference_argument_append", () => {
     expect.hasAssertions();
