@@ -73,12 +73,22 @@ export const resetFlow: ResolverFn<
     workflowId,
   });
 
-  await saveOpenInputRequests({
-    graphApiClient: dataSources.graphApi,
-    openInputRequests: getOpenInputRequests(events),
-    temporalWorkflowId: workflowId,
-    userAuthentication: authentication,
-  });
+  const openInputRequests = getOpenInputRequests(events);
+
+  /* An entity from before Flow Run v3 can't hold open requests, and has none saved. */
+  const savedOpenInputRequests =
+    flow.properties[
+      "https://hash.ai/@h/types/property-type/open-input-request/"
+    ] ?? [];
+
+  if (openInputRequests.length > 0 || savedOpenInputRequests.length > 0) {
+    await saveOpenInputRequests({
+      graphApiClient: dataSources.graphApi,
+      openInputRequests,
+      temporalWorkflowId: workflowId,
+      userAuthentication: authentication,
+    });
+  }
 
   return true;
 };

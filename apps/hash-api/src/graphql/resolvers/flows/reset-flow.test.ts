@@ -95,8 +95,8 @@ describe("resetFlow", () => {
     mocks.saveOpenInputRequests.mockReset();
   });
 
-  it("saves the input requests open once the run is reset on its entity", async () => {
-    await resetFlow(
+  const reset = () =>
+    resetFlow(
       {},
       {
         flowRunEntityId: "web~run" as EntityId,
@@ -119,6 +119,9 @@ describe("resetFlow", () => {
       {} as never,
     );
 
+  it("saves the input requests open once the run is reset on its entity", async () => {
+    await reset();
+
     expect(mocks.calls).toEqual(["reset", "read record"]);
     expect(mocks.saveOpenInputRequests).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -131,5 +134,16 @@ describe("resetFlow", () => {
         ],
       }),
     );
+  });
+
+  it("saves nothing when no request is open or saved", async () => {
+    mocks.getFlowRunRecord.mockResolvedValue({
+      ...recordAfterReset,
+      events: recordAfterReset.events.slice(0, 2),
+    });
+
+    await reset();
+
+    expect(mocks.saveOpenInputRequests).not.toHaveBeenCalled();
   });
 });
