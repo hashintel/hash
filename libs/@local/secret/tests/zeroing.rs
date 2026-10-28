@@ -217,7 +217,9 @@ impl AeadPurpose for Test {
 #[cfg_attr(miri, ignore = "Miri cannot run AWS-LC's C code")]
 fn open_allocation_free() {
     let key = Aes256GcmKey::<Test>::from_secret(&Secret::zeroed());
-    let sealed = key.seal(&Secret::<[u8; 32]>::zeroed(), b"row");
+    let sealed = key
+        .seal(&Secret::<[u8; 32]>::zeroed(), b"row")
+        .expect("the plaintext should seal");
     let mut plaintext = pin!(Secret::<[u8; 32]>::zeroed());
 
     let before = ALLOCATIONS.with(Cell::get);

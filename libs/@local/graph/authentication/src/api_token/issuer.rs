@@ -1,6 +1,6 @@
 use core::time::Duration;
 
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use hash_graph_store::api_token::{
     ApiTokenCredential, ApiTokenName, ApiTokenType, ApiTokenVerificationError, CreateApiTokenParams,
 };
@@ -39,7 +39,8 @@ impl ApiTokenIssuer {
     ///
     /// # Errors
     ///
-    /// Returns [`ApiTokenGenerationError`] if the random number generator fails.
+    /// Returns [`ApiTokenGenerationError`] if the random number generator fails or the secret hash
+    /// cannot be encrypted.
     pub fn issue(
         &self,
         user_id: UserId,
@@ -60,7 +61,10 @@ impl ApiTokenIssuer {
                 name,
                 lifetime,
                 encryption_key_id: self.key.id(),
-                encrypted_secret_hash: self.key.encrypt(hashed.secret_hash(), &associated_data),
+                encrypted_secret_hash: self
+                    .key
+                    .encrypt(hashed.secret_hash(), &associated_data)
+                    .change_context(ApiTokenGenerationError)?,
             },
             token,
         })
@@ -159,7 +163,7 @@ mod tests {
                 ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
                 Some(lifetime),
             )
-            .expect("the random number generator should provide bytes");
+            .expect("the API token should be issued");
 
         let hashed: HashedApiToken = token
             .to_secret()
@@ -211,7 +215,7 @@ mod tests {
                 ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
                 None,
             )
-            .expect("the random number generator should provide bytes");
+            .expect("the API token should be issued");
         let credential = ApiTokenCredential {
             token_type: params.token_type,
             version: params.version,
@@ -237,10 +241,13 @@ mod tests {
     fn verify_wrong_secret() {
         let issuer = issuer();
         let (token, mut credential) = issued(&issuer);
-        credential.encrypted_secret_hash = key().encrypt(
-            ApiTokenSecretHash::new([1; 32]),
-            &token.associated_data(ActorEntityUuid::from(credential.user_id), credential.web_id),
-        );
+        credential.encrypted_secret_hash = key()
+            .encrypt(
+                ApiTokenSecretHash::new([1; 32]),
+                &token
+                    .associated_data(ActorEntityUuid::from(credential.user_id), credential.web_id),
+            )
+            .expect("the secret hash should encrypt");
 
         let error = issuer
             .verify(&token, &credential)

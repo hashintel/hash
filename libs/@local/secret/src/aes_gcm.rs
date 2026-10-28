@@ -8,7 +8,10 @@ use core::{
     pin::{Pin, pin},
 };
 
-use aws_lc_rs::aead::{AES_256_GCM, Aad, NONCE_LEN, Nonce, RandomizedNonceKey};
+use aws_lc_rs::{
+    aead::{AES_256_GCM, Aad, NONCE_LEN, Nonce, RandomizedNonceKey},
+    error::Unspecified,
+};
 use error_stack::Report;
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 use zeroize::Zeroize;
@@ -90,7 +93,7 @@ pub trait AeadPurpose {
 ///     Aes256GcmKey::<Example>::from_secret(&*Secret::<[u8; 32]>::from_hex("ab".repeat(32))?);
 /// let plaintext = Secret::<[u8; 4]>::from_hex(String::from("deadbeef"))?;
 ///
-/// let sealed = key.seal(&plaintext, "row 1");
+/// let sealed = key.seal(&plaintext, "row 1")?;
 ///
 /// let mut opened = pin!(Secret::<[u8; 4]>::zeroed());
 /// key.open(&sealed, "row 1", opened.as_mut())?;
@@ -120,13 +123,14 @@ impl<P: AeadPurpose> Aes256GcmKey<P> {
 
     /// Seals `plaintext` bound to `associated_data`.
     ///
-    /// The process aborts if the random number generator fails.
-    #[must_use]
+    /// # Errors
+    ///
+    /// Returns [`SealError`] if the cipher fails, such as when the random number generator fails.
     pub fn seal<const N: usize>(
         &self,
         plaintext: &Secret<[u8; N]>,
         associated_data: &P::AssociatedData,
-    ) -> Sealed<P, N> {
+    ) -> Result<Sealed<P, N>, Report<SealError>> {
         const {
             assert!(
                 N as u64 <= MAX_PLAINTEXT_LEN,
@@ -145,7 +149,7 @@ impl<P: AeadPurpose> Aes256GcmKey<P> {
                 Aad::from(P::associated_data(associated_data)),
                 buffer.as_mut().expose_mut(),
             )
-            .unwrap_or_else(|error| unreachable!("AES-256-GCM should seal {N} bytes: {error}"));
+            .map_err(|Unspecified| Report::new(SealError))?;
 
         let mut sealed = Sealed {
             nonce: *nonce.as_ref(),
@@ -155,7 +159,7 @@ impl<P: AeadPurpose> Aes256GcmKey<P> {
         };
         sealed.ciphertext.copy_from_slice(buffer.expose());
         sealed.tag.copy_from_slice(tag.as_ref());
-        sealed
+        Ok(sealed)
     }
 
     /// Opens `sealed` into `plaintext`, which is left unchanged on failure.
@@ -263,7 +267,7 @@ impl<const N: usize> SecretBuffer for CiphertextWithTag<N> {
 ///
 /// let key =
 ///     Aes256GcmKey::<Example>::from_secret(&*Secret::<[u8; 32]>::from_hex("ab".repeat(32))?);
-/// let sealed = key.seal(&*Secret::<[u8; 32]>::from_hex("cd".repeat(32))?, &());
+/// let sealed = key.seal(&*Secret::<[u8; 32]>::from_hex("cd".repeat(32))?, &())?;
 ///
 /// // An array of the right length converts in both directions at compile time.
 /// let column: [u8; 60] = zerocopy::transmute!(sealed);
@@ -277,7 +281,7 @@ impl<const N: usize> SecretBuffer for CiphertextWithTag<N> {
 ///     key.open(&sealed, &(), pin!(Secret::<[u8; 32]>::zeroed()))
 ///         .is_ok()
 /// );
-/// # Ok::<(), error_stack::Report<hash_secret::HexError>>(())
+/// # Ok::<(), Box<dyn core::error::Error>>(())
 /// ```
 #[derive(FromBytes, IntoBytes, Immutable)]
 #[repr(C)]
@@ -305,6 +309,13 @@ impl<P, const N: usize> fmt::Debug for Sealed<P, N> {
             .finish()
     }
 }
+
+/// An error from sealing a value.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
+#[display("the value could not be sealed")]
+pub struct SealError;
+
+impl Error for SealError {}
 
 /// An error from opening a [`Sealed`] value.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display)]
@@ -402,7 +413,9 @@ mod tests {
         let plaintext = Secret::<[u8; 60]>::from_hex(PLAINTEXT.to_owned())
             .expect("the plaintext should be hexadecimal");
 
-        let sealed = key.seal(&plaintext, b"row");
+        let sealed = key
+            .seal(&plaintext, b"row")
+            .expect("the plaintext should seal");
         let mut opened = pin!(Secret::<[u8; 60]>::zeroed());
         key.open(&sealed, b"row", opened.as_mut())
             .expect("the sealed value should open");

@@ -39,7 +39,9 @@ use uuid::Uuid;
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
 
 pub use self::{
-    encryption::{ApiTokenDecryptionError, ApiTokenEncryptionKey, AssociatedData},
+    encryption::{
+        ApiTokenDecryptionError, ApiTokenEncryptionError, ApiTokenEncryptionKey, AssociatedData,
+    },
     issuer::{ApiTokenIssuer, IssuedApiToken},
     provider::{
         ApiTokenProvider, ApiTokenRejection, AuthenticateApiToken, StorePoolApiTokenAuthenticator,
@@ -140,7 +142,7 @@ pub enum ApiTokenParseError {
 
 /// Why no API token could be generated.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
-#[display("the random number generator provided no bytes for the API token")]
+#[display("the API token could not be generated")]
 pub struct ApiTokenGenerationError;
 
 /// An API token, made of its type, environment, version, token ID and secret.
