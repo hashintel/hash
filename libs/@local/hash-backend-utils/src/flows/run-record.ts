@@ -276,7 +276,7 @@ export type FlowRunRecordsByWorkflowId = Map<string, Promise<FlowRunRecord>>;
 /**
  * A run's record: the one it wrote when it ended, or else built from its history in Temporal. A run that is still
  * running is read from Temporal, which has its latest events. A run that closed without writing its record, e.g.
- * because it was terminated, has it written now.
+ * because it was terminated, has it written now. `isStored` is whether the record is the one in storage.
  */
 const readFlowRunRecord = async ({
   temporalClient,
@@ -286,7 +286,7 @@ const readFlowRunRecord = async ({
   temporalClient: TemporalClient;
   storageProvider: FileStorageProvider;
   workflowId: string;
-}): Promise<FlowRunRecord> => {
+}): Promise<{ record: FlowRunRecord; isStored: boolean }> => {
   let workflow: WorkflowExecutionDescription;
 
   try {
@@ -305,7 +305,7 @@ const readFlowRunRecord = async ({
       throw new FlowRunRecordNotFoundError(workflowId);
     }
 
-    return storedRecord;
+    return { record: storedRecord, isStored: true };
   }
 
   if (!workflow.closeTime) {
@@ -320,13 +320,16 @@ const readFlowRunRecord = async ({
     });
 
     if (recordOfEndingRun?.header.runId === workflow.runId) {
-      return recordOfEndingRun;
+      return { record: recordOfEndingRun, isStored: true };
     }
 
-    return getFlowRunRecordFromHistory(
-      await readFlowRunHistoryRecord({ temporalClient, workflow }),
-      { workflowId },
-    );
+    return {
+      record: getFlowRunRecordFromHistory(
+        await readFlowRunHistoryRecord({ temporalClient, workflow }),
+        { workflowId },
+      ),
+      isStored: false,
+    };
   }
 
   const storedRecord = await readStoredFlowRunRecord({
@@ -342,7 +345,7 @@ const readFlowRunRecord = async ({
     storedRecord?.header.runId === workflow.runId &&
     storedRecord.header.status === (workflow.status.name as FlowRunStatus)
   ) {
-    return storedRecord;
+    return { record: storedRecord, isStored: true };
   }
 
   const record = getFlowRunRecordFromHistory(
@@ -357,9 +360,11 @@ const readFlowRunRecord = async ({
     console.warn(
       `Could not write the record of closed flow run ${workflowId}: ${(error as Error).message}`,
     );
+
+    return { record, isStored: false };
   }
 
-  return record;
+  return { record, isStored: true };
 };
 
 export const getFlowRunRecord = ({
@@ -377,9 +382,33 @@ export const getFlowRunRecord = ({
     return existingRecord;
   }
 
-  const record = readFlowRunRecord(params);
+  const record = readFlowRunRecord(params).then(({ record: read }) => read);
 
   recordsByWorkflowId?.set(params.workflowId, record);
 
   return record;
+};
+
+/**
+ * The storage key of a run's record, once the stored record is its whole record: i.e. once the run has ended. A
+ * closed run whose stored record is missing or out of date has it written first. `null` while the run is running.
+ */
+export const getStoredFlowRunRecordKey = async (params: {
+  temporalClient: TemporalClient;
+  storageProvider: FileStorageProvider;
+  workflowId: string;
+}): Promise<string | null> => {
+  const { record, isStored } = await readFlowRunRecord(params);
+
+  if (isStored) {
+    return getFlowRunRecordStorageKey(params.workflowId);
+  }
+
+  if (!record.header.closedAt) {
+    return null;
+  }
+
+  throw new Error(
+    `Could not store the record of closed flow run ${params.workflowId}`,
+  );
 };
