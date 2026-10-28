@@ -86,7 +86,11 @@ describe("import_selection", () => {
     expect(compile(Local(1n))).toBe('["Local",{"#literal":1}]');
     expect(compile(Local.count)).toBe('"Local::count"');
     expect(
-      JExpr.Type.compile(Result.getOrThrow(Structural.type(Local).syntax)),
+      JExpr.Type.compile(
+        Result.getOrThrow(
+          Result.flatMap(Structural.type(Local), Program.TypeExpression.toType),
+        ),
+      ),
     ).toBe("Local");
     expect(compile(imported.scope.values.other)).toBe('"other"');
     expect(syntax(imported)).toBe(
@@ -279,7 +283,10 @@ describe("import_selection", () => {
 const scalars = Result.getOrThrow(
   Module.define("::scalars", {
     values: {
-      count: Expression.input("count", Structural.type(BigInt)),
+      count: Expression.input(
+        "count",
+        Result.getOrThrow(Structural.type(BigInt)),
+      ),
       text: Module.value<Type.PrimitiveString>(),
     },
   }),

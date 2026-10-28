@@ -66,7 +66,7 @@ describe("namespace", () => {
     expect(joined).toSatisfy(TypeExpression.isConstructor);
     expect(joined).toSatisfy(Expression.isExpression);
     expect(joined).toSatisfy(Module.isModule);
-    expect(typeSyntax(joined(Structural.type(BigInt)))).toBe(
+    expect(typeSyntax(joined(Result.getOrThrow(Structural.type(BigInt))))).toBe(
       "::source::Both<::kernel::type::Integer>",
     );
     expect(valueSyntax(joined(1n))).toStrictEqual([
@@ -79,7 +79,7 @@ describe("namespace", () => {
     expect.hasAssertions();
     const joined = Namespace.flatten(source).Both;
     const moved = Result.getOrThrow(relocate(joined, path("local")));
-    expect(typeSyntax(moved(Structural.type(String)))).toBe(
+    expect(typeSyntax(moved(Result.getOrThrow(Structural.type(String))))).toBe(
       "local<::kernel::type::String>",
     );
     expect(valueSyntax(moved(1n))).toStrictEqual([
@@ -94,7 +94,7 @@ describe("namespace", () => {
     const joined = Namespace.flatten(source).Both;
     const moved = Result.getOrThrow(relocate(joined, path("local")));
     const twice = Result.getOrThrow(relocate(moved, path("again")));
-    expect(typeSyntax(twice(Structural.type(BigInt)))).toBe(
+    expect(typeSyntax(twice(Result.getOrThrow(Structural.type(BigInt))))).toBe(
       "again<::kernel::type::Integer>",
     );
     expect(valueSyntax(twice.count)).toBe("again::count");
@@ -123,7 +123,10 @@ describe("namespace", () => {
   test("construction_failure_identity", () => {
     expect.hasAssertions();
     const invalid = Expression.number(Infinity);
-    const joined = Namespace.combine(invalid, Structural.type(Number));
+    const joined = Namespace.combine(
+      invalid,
+      Result.getOrThrow(Structural.type(Number)),
+    );
     const failure = Result.getOrThrow(Result.flip(Expression.toJExpr(invalid)));
     expect(Result.getOrThrow(Result.flip(Expression.toJExpr(joined)))).toBe(
       failure,
@@ -183,7 +186,7 @@ describe("namespace", () => {
     >()({ count: "shadowed", own: true });
     const joined = Namespace.flatten({
       modules: { Both: child },
-      types: { Both: Structural.type(BigInt) },
+      types: { Both: Result.getOrThrow(Structural.type(BigInt)) },
       values: { Both: value },
     }).Both;
     expect(joined.count).toBe(child.values.count);
@@ -215,7 +218,7 @@ describe("namespace", () => {
     expect.hasAssertions();
     const typeOnly = Namespace.flatten({
       modules: {},
-      types: { toString: Structural.type(BigInt) },
+      types: { toString: Result.getOrThrow(Structural.type(BigInt)) },
       values: {},
     });
     expect(typeOnly.toString).toSatisfy(TypeExpression.isExport);
@@ -238,7 +241,7 @@ describe("namespace", () => {
 
   test("nonenumerable_names", () => {
     expect.hasAssertions();
-    const types = { Integer: Structural.type(BigInt) };
+    const types = { Integer: Result.getOrThrow(Structural.type(BigInt)) };
     Object.defineProperty(types, "Integer", { enumerable: false });
     const flat = Namespace.flatten({ modules: {}, types, values: {} });
     expect(Object.keys(flat)).toStrictEqual([]);
@@ -247,7 +250,10 @@ describe("namespace", () => {
   test("joined_failure", () => {
     expect.hasAssertions();
     const failed = Expression.number(Number.NaN);
-    const joined = Namespace.combine(failed, Structural.type(BigInt));
+    const joined = Namespace.combine(
+      failed,
+      Result.getOrThrow(Structural.type(BigInt)),
+    );
     expect(relocate(joined, path("local"))).toMatchObject({ _tag: "Failure" });
   });
 
@@ -274,7 +280,7 @@ describe("namespace", () => {
     const value = Structural.value<
       Type.Struct<{ readonly count: Type.PrimitiveString }>
     >()({ count: "shadowed" });
-    const type = Structural.type(BigInt);
+    const type = Result.getOrThrow(Structural.type(BigInt));
     const joined = Namespace.combine(Namespace.combine(type, value), module);
     expect(typeSyntax(joined)).toBe("::kernel::type::Integer");
     expect(joined.count).toBe(child.values.count);
