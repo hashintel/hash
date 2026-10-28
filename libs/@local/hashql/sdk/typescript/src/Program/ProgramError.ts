@@ -96,6 +96,16 @@ export class Construction extends Schema.TaggedError<Construction>()(
     });
   }
 
+  /** Retains the invalid closure parameter name and its parser issue. */
+  static invalidParameterName(
+    name: string,
+    cause: SchemaIssue.Issue,
+  ): Construction {
+    return Construction.make({
+      reason: Reason.make({ _tag: "InvalidParameterName", name, cause }),
+    });
+  }
+
   /** Retains the schema issue for invalid J-Expr syntax. */
   static invalidExpression(cause: SchemaIssue.Issue): Construction {
     return Construction.make({

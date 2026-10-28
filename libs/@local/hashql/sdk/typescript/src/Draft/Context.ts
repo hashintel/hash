@@ -13,6 +13,7 @@ import type * as Inputs from "../Program/Inputs.js";
 import type * as Module from "../Program/Module.js";
 import type * as Namespace from "../Program/Namespace.js";
 import type * as Operators from "../Program/Operators.js";
+import type { Entity, Graph, QueryTemporalAxes } from "../Program/Query.js";
 import type * as Scope from "../Program/Scope.js";
 import type * as Structural from "../Program/Structural.js";
 import type * as TypeExpression from "../Program/TypeExpression.js";
@@ -83,6 +84,45 @@ export type Optional<
   Option<Expression.Value.Type<T>>,
   Inputs.Merge<Expression.Value.Inputs<C>, Expression.Value.Inputs<T>>
 >;
+
+/**
+ * A graph query under construction: the graph expression with `filter` and `collect`.
+ *
+ * It is an expression of the graph type, so binding it with `let` gives a reference without these methods, which `Query.filter` and `Query.collect` still take.
+ */
+export interface Query<
+  S extends Scope.Scope.Any,
+  V extends Type.Any,
+  I,
+> extends Expression.Expression.Handle<Graph<V>, I> {
+  /**
+   * Keeps the vertices `predicate` accepts, constructing it now with a fresh context whose declarations stay inside the filter.
+   *
+   * `name` becomes the filter closure's parameter and `vertex` refers to it, as in `Query.filter`, which also says when `predicate` does not run. An exception it throws becomes a `CallbackException` failure on the returned query.
+   */
+  readonly filter: <const P extends Expression.Value<Type.PrimitiveBoolean>>(
+    name: string,
+    predicate: (
+      $: Context<S>,
+      vertex: Expression.Expression<V, Inputs.Empty>,
+    ) => P,
+  ) => Query<S, V, Inputs.Merge<I, Expression.Value.Inputs<P>>>;
+
+  /** Ends the query as a list of its vertices. This is `Query.collect`. */
+  readonly collect: () => Expression.Expression<Type.List<V>, I>;
+}
+
+/** `$.query`: starts a graph query from a graph expression, or from every entity with `entities`. */
+export interface Queries<S extends Scope.Scope.Any> {
+  <const G extends Expression.Expression.Any>(
+    graph: G & Graph.Check<G>,
+  ): Query<S, Graph.Vertex<G>, Expression.Value.Inputs<G>>;
+
+  /** Starts a query from every entity at the temporal axes `axis`. This is `Query.entities`. */
+  readonly entities: <const A extends Expression.Value<QueryTemporalAxes>>(
+    axis: A,
+  ) => Query<S, Entity, Expression.Value.Inputs<A>>;
+}
 
 /**
  * The unrestricted Draft construction context for the scope `S`.
@@ -210,4 +250,7 @@ export interface Context<S extends Scope.Scope.Any>
       branches: { readonly then: ($: Context<S>) => T },
     ): Optional<C, T>;
   };
+
+  /** Starts a graph query from a graph expression, such as a call to a graph function from the prelude or an import, or from every entity with `$.query.entities(axis)`. */
+  readonly query: Queries<S>;
 }
