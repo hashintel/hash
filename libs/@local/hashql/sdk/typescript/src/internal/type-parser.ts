@@ -1,8 +1,9 @@
 /** Recursive path and type productions. Union has higher precedence than intersection. @internal */
-import { Option, Result, flow, pipe } from "effect";
+import { Data, Option, Result, pipe } from "effect";
 
 import { characterClass } from "./character-class.js";
 import { identifier } from "./ident-parser.js";
+import { isStackOverflow } from "./overflow.js";
 import {
   cut,
   preceded,
@@ -11,6 +12,7 @@ import {
   skip,
   suspend,
 } from "./parser-combinator.js";
+import { ParserError } from "./parser-error.js";
 import * as Parser from "./parser.js";
 
 import type { Path, SegmentArgument } from "../JExpr/Path.js";
@@ -20,11 +22,22 @@ import type {
   ExpectedEndOfInput,
   ExpectedLiteral,
   ExpectedProgress,
-  ParserError,
 } from "./parser-error.js";
 
+/** The input nests deeper than the call stack lets the parser follow. Its offset is 0, because the parser cannot tell where the stack ran out. */
+export interface NestingTooDeep {
+  readonly _tag: "NestingTooDeep";
+}
+
+export const NestingTooDeep: Data.TaggedEnum.Constructor<NestingTooDeep>["NestingTooDeep"] =
+  Data.taggedEnum<NestingTooDeep>().NestingTooDeep;
+
 /** All syntax and semantic reasons this recursive grammar can report. */
-export type TypeReason = IdentReason | ExpectedEndOfInput | ExpectedProgress;
+export type TypeReason =
+  | IdentReason
+  | ExpectedEndOfInput
+  | ExpectedProgress
+  | NestingTooDeep;
 type TypeParser = Parser.Parser<Type, TypeReason>;
 
 const token = <const T extends string>(
@@ -188,10 +201,16 @@ const typeIntersection = pipe(
 /** Requires complete path consumption, including any trailing whitespace the grammar permits. */
 export const completePath: Parser.Parser<Path, TypeReason> = Parser.eof(path);
 
-/** Parses a complete path without converting its structured failures to optional absence. */
-export const parsePath: (
+/** Parses a complete path without converting its structured failures to optional absence. A stack overflow fails with {@link NestingTooDeep}. */
+export const parsePath = (
   input: string,
-) => Result.Result<Path, ParserError<TypeReason>> = flow(
-  completePath.parse,
-  Result.map((state) => state.output),
-);
+): Result.Result<Path, ParserError<TypeReason>> => {
+  try {
+    return Result.map(completePath.parse(input), (state) => state.output);
+  } catch (error) {
+    if (isStackOverflow(error)) {
+      return Result.fail(ParserError.at(0, NestingTooDeep()));
+    }
+    throw error;
+  }
+};

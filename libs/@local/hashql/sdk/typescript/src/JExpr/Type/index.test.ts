@@ -39,6 +39,23 @@ describe("compile", () => {
   });
 });
 
+describe("make", () => {
+  test("deep_nesting", () => {
+    expect.hasAssertions();
+    let type: Type.Type = Type.infer();
+    for (let depth = 0; depth < 100_000; depth += 1) {
+      type = Type.tuple(type);
+    }
+
+    expect(Option.isNone(Type.makeOption(type))).toBe(true);
+    expect(
+      Option.isNone(
+        Type.reference(`Box<${"(".repeat(100_000)}_${",)".repeat(100_000)}>`),
+      ),
+    ).toBe(true);
+  });
+});
+
 describe("builder", () => {
   test("reference_argument_append", () => {
     expect.hasAssertions();

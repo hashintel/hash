@@ -7,6 +7,7 @@
  */
 import { SchemaParser } from "effect";
 
+import * as Overflow from "../internal/overflow.js";
 import { compilePath } from "../internal/type-compile.js";
 import { completePath, parsePath } from "../internal/type-parser.js";
 import * as Type from "./Type/schema.js";
@@ -73,28 +74,26 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- schema constructor
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Path =
-  SchemaParser.make(Schema);
+  Overflow.make(Schema);
 
 /** Validates a decoded path with the {@link SchemaIssue.Issue} in the effect's failure channel. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- schema constructor
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
-) => Effect.Effect<Path, SchemaIssue.Issue> = SchemaParser.makeEffect(Schema);
+) => Effect.Effect<Path, SchemaIssue.Issue> = Overflow.makeEffect(Schema);
 
 /** Validates a decoded path, returning `None` if validation fails. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- schema constructor
 export const makeOption: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
-) => Option.Option<Path> = SchemaParser.makeOption(Schema);
+) => Option.Option<Path> = Overflow.makeOption(Schema);
 
 /**
  * Parses a complete path with typed reasons and UTF-16 error offsets.
  *
- * The grammar admits ASCII spaces, tabs and line breaks around separators and generic delimiters. A plain relative path does not admit surrounding whitespace. A leading root or closing generic delimiter can consume it. Each generic list is nonempty and has no trailing comma. Type arguments support inference, paths, groups, tuples, structs, unions and intersections. Union has higher precedence than intersection.
- *
- * @throws {RangeError} If input nesting exhausts the JavaScript call stack.
+ * The grammar admits ASCII spaces, tabs and line breaks around separators and generic delimiters. A plain relative path does not admit surrounding whitespace. A leading root or closing generic delimiter can consume it. Each generic list is nonempty and has no trailing comma. Type arguments support inference, paths, groups, tuples, structs, unions and intersections. Union has higher precedence than intersection. Input nested deeper than the call stack allows fails with {@link ParserError.NestingTooDeep} at offset 0.
  *
  * @example
  * ```ts
@@ -121,8 +120,6 @@ export const arbitrary: () => Arbitrary.Arbitrary<Sample> =
 
 /**
  * Decodes path source through the schema, retaining syntax details in the returned issue.
- *
- * @throws {RangeError} If input nesting exhausts the JavaScript call stack.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- schema decoder
 export const decodeResult: (
