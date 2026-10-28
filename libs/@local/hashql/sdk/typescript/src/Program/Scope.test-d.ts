@@ -74,7 +74,7 @@ describe("scope_merge_types", () => {
     const count = Expression.integer(1);
     const before = Scope.merge(Scope.empty, { values: { count } });
     const added = {
-      types: { Text: Structural.type(String) },
+      types: { Text: Result.getOrThrow(Structural.type(String)) },
       values: { count: Expression.literal("new") },
     };
     const direct = Scope.merge(before, added);
