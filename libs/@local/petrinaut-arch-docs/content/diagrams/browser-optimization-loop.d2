@@ -13,7 +13,7 @@ one study: {
   capability -> capability: "started { requestedTrials } appended to the run log"
   capability -> worker: "start { runId, description, parallelism }"
   worker -> optuna: create_browser_study(description, parallelism), kept in a handle
-  worker -> optuna: run_browser_study(handle, trials, evaluate, on_trial, is_cancelled), one segment
+  worker -> optuna: run_browser_study(handle, trials, **callbacks), one segment
 }
 
 one trial, up to parallelism at a time: {

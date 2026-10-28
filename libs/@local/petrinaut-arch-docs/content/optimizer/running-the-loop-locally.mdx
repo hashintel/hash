@@ -90,7 +90,7 @@ is the wrong loop. Run the service directly:
 ```sh
 cd apps/petrinaut-opt
 uv sync
-uv run uvicorn src.optimization_api:app --reload --port 4004
+uv run uvicorn petrinaut_optimization.api:app --reload --port 4004
 ```
 
 Two things the Docker image otherwise provides become your problem:
