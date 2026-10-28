@@ -45,7 +45,7 @@ export const createFlowScheduleResolver: ResolverFn<
 
   const { flowDefinitionEntityId } = input;
 
-  const { flowType } = await getRunnableFlowDefinition(
+  const { flowDefinition, flowType } = await getRunnableFlowDefinition(
     graphQLContext,
     flowDefinitionEntityId,
   );
@@ -54,7 +54,7 @@ export const createFlowScheduleResolver: ResolverFn<
     throw GraphQLError.badRequest("Data sources are required for AI flows");
   }
 
-  assertClientFlowInputs(input.flowInputs);
+  assertClientFlowInputs({ flowDefinition, flowInputs: input.flowInputs });
 
   const schedule = await createFlowScheduleEntity(
     context,
