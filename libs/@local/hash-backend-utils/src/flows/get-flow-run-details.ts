@@ -136,7 +136,7 @@ export const getFlowRunFromTemporalWorkflowId = async ({
   temporalClient: TemporalClient;
   /** the identifier for the Temporal workflow */
   temporalWorkflowId: string;
-  /** Storage provider for reading the run's record and resolving stored payload references */
+  /** Storage provider for reading the run's record */
   storageProvider: FileStorageProvider;
   /** Records already read in this request, to reuse */
   recordsByWorkflowId?: FlowRunRecordsByWorkflowId;

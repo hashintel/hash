@@ -21,10 +21,7 @@ const fixturesUrl = new URL(
   import.meta.url,
 );
 
-/**
- * What each fixture's step runs and input requests were when the API last built `FlowRun.steps` and
- * `FlowRun.inputRequests` from them, which matched what the original engine returned.
- */
+/** The step runs and input requests each fixture's events give. */
 const recordedStepRunsUrl = new URL(
   "../../tests/fixtures/flow-run-step-runs/",
   import.meta.url,
