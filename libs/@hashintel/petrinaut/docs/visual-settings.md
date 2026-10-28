@@ -24,6 +24,15 @@ in a group under the plugin's name after the built-in groups.
 
 ## General
 
+### Performance
+
+The included **Performance** plugin adds **Show FPS counter** and **Expand
+performance details** switches. Both start off. Details expand inside the dark
+FPS counter when it is visible; each section can collapse separately. Open it
+from the command palette or with **⌘⇧F** / **Ctrl⇧F**, and drag its header to
+move it. Its transitions follow the Animations switch below. See
+[Performance](performance.md) for controls and measurement limits.
+
 ### Animations
 
 Toggle panel transition and UI interaction animations. Disable for a snappier feel or if animations cause performance issues. The results drawers follow it too: the header's condensing, the cards' folds and bar fills, and the purple pulse of a sweep's **Parameters** card while the optimizer drives it all hold still when animations are off, or when your system asks for reduced motion.

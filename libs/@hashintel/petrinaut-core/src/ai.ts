@@ -116,6 +116,7 @@ export const petrinautDocNames = [
   "preview",
   "ai-assistant",
   "visual-settings",
+  "performance",
   "code-editor",
   "compilation-output",
   "examples",
@@ -124,6 +125,8 @@ export const petrinautDocNames = [
 export type PetrinautDocName = (typeof petrinautDocNames)[number];
 
 export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
+  performance:
+    "Performance plugin: FPS square history, frame gaps, first-publication latency, plugin publication frequency, React profiling availability, monitoring controls and measurement limits.",
   "drawing-a-net":
     "Top bar (mode selector, menu, version history, active experiments), canvas, sidebars, adding nodes, arcs, selection, keyboard shortcuts, import/export, auto-layout.",
   "petri-net-extensions":

@@ -42,5 +42,6 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [AI Assistant](ai-assistant.md) -- Build, review, and revise nets with text or inline Voice mode.
 - [Code Editor](code-editor.md) -- Edit model functions and expand their sections within the Properties Panel.
 - [User Settings](visual-settings.md) -- Open preferences from any workspace tab and configure General, Viewport, Plugins, and Labs.
+- [Performance](performance.md) -- Show browser FPS history and plugin activity, with guidance on measurement limits.
 - [Compilation Output](compilation-output.md) -- Inspect how your net's code compiled, and what stops it running on the GPU.
 - [Examples](examples.md) -- Walkthrough of the built-in example nets.

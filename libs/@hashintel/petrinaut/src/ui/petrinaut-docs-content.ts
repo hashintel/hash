@@ -11,6 +11,7 @@ import compilationOutput from "../../docs/compilation-output.md?raw";
 import drawingANet from "../../docs/drawing-a-net.md?raw";
 import examples from "../../docs/examples.md?raw";
 import experiments from "../../docs/experiments.md?raw";
+import performance from "../../docs/performance.md?raw";
 import petriNetExtensions from "../../docs/petri-net-extensions.md?raw";
 import preview from "../../docs/preview.md?raw";
 import scenarios from "../../docs/scenarios.md?raw";
@@ -32,6 +33,7 @@ export const stripImages = (markdown: string): string =>
     .replace(tripleBlankLinePattern, "\n\n");
 
 const rawDocsByName: Record<PetrinautDocName, string> = {
+  performance,
   "drawing-a-net": drawingANet,
   "petri-net-extensions": petriNetExtensions,
   "useful-patterns": usefulPatterns,

@@ -29,6 +29,7 @@ import {
 import { PetrinautProvider } from "../react/petrinaut-provider";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
+import { performancePlugin } from "./plugins/performance-plugin";
 import { PetrinautPluginsProvider } from "./plugins/plugins-provider";
 import { EditorView } from "./views/Editor/editor-view";
 import {
@@ -245,7 +246,7 @@ export type PetrinautProps = {
   /**
    * The plugins that add buttons, top-bar items, settings and UI to the
    * editor. Define each at module scope: a plugin created during render
-   * remounts on every render.
+   * remounts on every render. The Performance plugin is included by default.
    */
   plugins?: readonly PetrinautPlugin[];
   title?: string;
@@ -371,7 +372,9 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
               className={cx(editorRootStyle, "petrinaut-root")}
               ref={portalContainerRef}
             >
-              <PetrinautPluginsProvider plugins={plugins}>
+              <PetrinautPluginsProvider
+                plugins={[performancePlugin, ...plugins]}
+              >
                 <EditorView
                   aiAssistant={aiAssistant}
                   hideNetManagementControls={hideNetManagementControls}
