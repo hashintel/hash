@@ -3,6 +3,7 @@
   "dependencies": [
     "error-stack",
     "hash-integrations-definition",
+    "hash-secret",
     "type-system"
   ],
   "tasks": {
