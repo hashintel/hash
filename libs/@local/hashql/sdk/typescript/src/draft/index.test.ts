@@ -53,7 +53,7 @@ const literal = (value: string | number | boolean): Schema.Json => ({
   "#literal": value,
 });
 
-const integer = Structural.type(BigInt);
+const integer = Result.getOrThrow(Structural.type(BigInt));
 
 // oxlint-disable-next-line typescript/promise-function-async -- this fixture supplies a Promise where the synchronous API rejects one
 const asynchronousBody = (): Promise<
@@ -264,6 +264,10 @@ describe("program", () => {
       }),
       Draft.program({}, ($) => {
         $.type("bad", { "not a field": BigInt });
+        return $.literal(true);
+      }),
+      Draft.program({}, ($) => {
+        $.newtype("Bad", { "+": BigInt, "`+`": String });
         return $.literal(true);
       }),
       Draft.program({}, ($) =>
@@ -858,7 +862,9 @@ describe("namespace", () => {
       const { Both } = $.prelude();
       expect(Both.name).toBe(child.values.name);
       expect(Both).toSatisfy(TypeExpression.isConstructor);
-      expect(Both(Structural.type(BigInt))).toSatisfy(TypeExpression.isExport);
+      expect(Both(Result.getOrThrow(Structural.type(BigInt)))).toSatisfy(
+        TypeExpression.isExport,
+      );
       return Both.name;
     });
     expect(result).toSatisfy(Result.isSuccess);

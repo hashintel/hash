@@ -205,7 +205,7 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     const binding = pipe(
       definition,
       Structural.type,
-      TypeExpression.toType,
+      Result.flatMap(TypeExpression.toType),
       Result.flatMap((syntax) => AST.make(name, syntax)),
     );
 
@@ -232,7 +232,7 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     const binding = pipe(
       definition,
       Structural.type,
-      TypeExpression.toType,
+      Result.flatMap(TypeExpression.toType),
       Result.flatMap((syntax) => AST.make(name, syntax)),
     );
 

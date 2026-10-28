@@ -24,8 +24,8 @@ const {
   TypeExpression,
 } = Program;
 
-const integer = Structural.type(BigInt);
-const string = Structural.type(String);
+const integer = Result.getOrThrow(Structural.type(BigInt));
+const string = Result.getOrThrow(Structural.type(String));
 const outside = Expression.input("outside", integer);
 type Box = Type.Struct<{ readonly foo: Type.PrimitiveInteger }>;
 
