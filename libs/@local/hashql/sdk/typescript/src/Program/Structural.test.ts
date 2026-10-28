@@ -150,6 +150,22 @@ describe("structural_constructor", () => {
     });
   });
 
+  test("marker_key_record", () => {
+    expect.hasAssertions();
+    const key: TypeExpression.TypeId = "~hashql/TypeExpression";
+    for (const result of [
+      Structural.type({ [key]: String }),
+      Structural.type({ field: { [key]: String } }),
+      // @ts-expect-error A record whose syntax field is a number is not a type definition.
+      Structural.type({ [key]: String, syntax: 1 }),
+    ]) {
+      expect(result).toMatchObject({
+        _tag: "Failure",
+        failure: { reason: { _tag: "InvalidBindingName", name: key } },
+      });
+    }
+  });
+
   test("dynamic_arity", () => {
     expect.hasAssertions();
     const dynamic = Structural.constructor(
