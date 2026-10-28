@@ -18,6 +18,7 @@ import * as Scope from "./Scope.js";
 import * as Structural from "./Structural.js";
 import * as TypeExpression from "./TypeExpression.js";
 
+import type { StringKeyed } from "../internal/record.js";
 import type * as JExpr from "../JExpr/index.js";
 import type * as Type from "../Type.js";
 import type * as ExpressionType from "./ExpressionType.js";
@@ -37,11 +38,9 @@ type RebindableEntry<E> = E extends Capability ? Relocation.Relocatable<E> : E;
  */
 export type Rebindable<S> = {
   readonly [N in keyof S]: N extends keyof Tables
-    ? {
-        readonly [K in keyof S[N]]: K extends symbol
-          ? never
-          : RebindableEntry<S[N][K]>;
-      }
+    ? StringKeyed<{
+        readonly [K in keyof S[N]]: RebindableEntry<S[N][K]>;
+      }>
     : S[N];
 };
 const Components: unique symbol = Symbol("~hashql/NamespaceComponents");

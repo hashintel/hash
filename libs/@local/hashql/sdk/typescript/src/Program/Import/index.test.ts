@@ -229,30 +229,20 @@ describe("import_selection", () => {
     );
   });
 
-  test("symbol_keys_in_records_and_lists_fail", () => {
+  test("symbol_keys", () => {
     expect.hasAssertions();
     const symbol = Symbol("Item");
     const record = { Item: "Local", [symbol]: "hidden" };
-    const list = Object.assign(["Item"] as const, { [symbol]: "hidden" });
-    for (const selection of [record, list]) {
-      expect(Import.bind(source, selection)).toMatchObject({
-        _tag: "Failure",
-        failure: {
-          reason: { _tag: "InvalidImportName", name: String(symbol) },
-        },
-      });
+    const hidden = Object.defineProperty({ Item: "Local" }, symbol, {
+      value: "hidden",
+    });
+    for (const selection of [record, hidden]) {
+      const imported = Result.getOrThrow(Import.bind(source, selection));
+      expect(Record.keys(imported.scope.values)).toStrictEqual(["Local"]);
     }
-  });
-
-  test("non_enumerable_symbol_keys_are_ignored", () => {
-    expect.hasAssertions();
-    const selection = Object.defineProperty(
-      { Item: "Local" },
-      Symbol("hidden"),
-      { value: "invalid" },
-    );
-    const imported = Result.getOrThrow(Import.bind(source, selection));
-    expect(Record.keys(imported.scope.values)).toStrictEqual(["Local"]);
+    const list = Object.assign(["Item"] as const, { [symbol]: "hidden" });
+    const listed = Result.getOrThrow(Import.bind(source, list));
+    expect(Record.keys(listed.scope.values)).toStrictEqual(["Item"]);
   });
 
   test("class_instance_keeps_detached_wrap", () => {
