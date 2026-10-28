@@ -96,7 +96,6 @@ export const getStepProgress = (
   return progress;
 };
 
-/** The value of the output called `outputName`, if there is one. */
 export const getOutputValue = <Value>(
   outputs:
     | { outputName: string; payload: { value: unknown } }[]

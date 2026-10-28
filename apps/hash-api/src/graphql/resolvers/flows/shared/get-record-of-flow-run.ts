@@ -13,7 +13,6 @@ type FlowRunParent = FlowRun | SparseFlowRun;
 /** So that a run's field resolvers look up its entity once between them. */
 const recordsByFlowRun = new WeakMap<FlowRunParent, Promise<FlowRunRecord>>();
 
-/** The record of the run a `FlowRun` field resolver is resolving. */
 export const getRecordOfFlowRun = (
   flowRun: FlowRunParent,
   context: Pick<
