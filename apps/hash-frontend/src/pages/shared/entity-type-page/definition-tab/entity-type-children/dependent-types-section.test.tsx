@@ -1,6 +1,13 @@
+// @vitest-environment jsdom
 import { ThemeProvider } from "@mui/material";
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { theme } from "@hashintel/design-system/theme";
@@ -32,8 +39,10 @@ const makeEntityType = (title: string): EntityTypeWithMetadata =>
 
 const renderSection = (
   props: Partial<ComponentProps<typeof DependentTypesSection>> = {},
-) =>
-  renderToStaticMarkup(
+) => {
+  const onTypeClick = vi.fn();
+
+  render(
     <ThemeProvider theme={theme}>
       <DependentTypesSection
         heading="Types that extend Animal"
@@ -41,36 +50,61 @@ const renderSection = (
         types={undefined}
         error={undefined}
         isLinkType={() => false}
-        onTypeClick={() => {}}
+        onTypeClick={onTypeClick}
         {...props}
       />
     </ThemeProvider>,
   );
 
+  return {
+    onTypeClick,
+    section: screen.getByRole("region", { name: "Types that extend Animal" }),
+  };
+};
+
 describe("DependentTypesSection", () => {
-  it("shows a skeleton under the heading while loading", () => {
-    expect(renderSection()).toMatch(
-      /aria-busy="true".*Types that extend Animal.*MuiSkeleton-root/s,
+  afterEach(cleanup);
+
+  it("marks the section busy while loading", () => {
+    const { section } = renderSection();
+
+    expect(section.getAttribute("aria-busy")).toBe("true");
+  });
+
+  it("says so when there are no types", () => {
+    const { section } = renderSection({ types: [] });
+
+    expect(section.getAttribute("aria-busy")).toBe("false");
+    within(section).getByText("No types extend Animal yet.");
+  });
+
+  it("shows an error message when loading fails", () => {
+    const { section } = renderSection({ error: new Error("Network down") });
+
+    expect(section.getAttribute("aria-busy")).toBe("false");
+    within(section).getByText(
+      "Couldn't load these types. Reload the page to try again.",
     );
   });
 
-  it("says so under the heading when there are no types", () => {
-    expect(renderSection({ types: [] })).toMatch(
-      /Types that extend Animal.*No types extend Animal yet\./s,
-    );
-  });
-
-  it("shows an error message under the heading when loading fails", () => {
-    expect(renderSection({ error: new Error("Network down") })).toMatch(
-      /Types that extend Animal.*Reload the page to try again\./s,
-    );
-  });
-
-  it("lists each type under the heading", () => {
-    const markup = renderSection({
+  it("lists each type with its version", () => {
+    const { section } = renderSection({
       types: [makeEntityType("Cat"), makeEntityType("Dog")],
     });
 
-    expect(markup).toMatch(/Types that extend Animal.*Cat.*Dog/s);
+    expect(
+      within(section)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual(["Cat v1", "Dog v1"]);
+  });
+
+  it("opens a type when its card is clicked", () => {
+    const cat = makeEntityType("Cat");
+    const { onTypeClick, section } = renderSection({ types: [cat] });
+
+    fireEvent.click(within(section).getByRole("link", { name: "Cat v1" }));
+
+    expect(onTypeClick).toHaveBeenCalledWith(cat.schema.$id);
   });
 });
