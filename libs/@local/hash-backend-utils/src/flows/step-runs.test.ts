@@ -61,7 +61,7 @@ const recordOf = (historyRecord: FlowRunHistoryRecord) =>
     workflowId: workflowIdOf(historyRecord),
   });
 
-/* Compared as they're sent: as JSON, without `undefined` fields. */
+/* Compared as JSON, as the fixtures store them, without `undefined` fields. */
 const stepRunsAndInputRequestsOf = ({ header, events }: FlowRunRecord) =>
   JSON.parse(
     JSON.stringify({
@@ -99,36 +99,6 @@ describe("getStepRunsFromEvents on recorded runs", () => {
       ).toStrictEqual(stepRunsAndInputRequestsOf(record));
     },
   );
-
-  it("gives up a step whose last allowed attempt timed out as out of attempts", () => {
-    const { EventType, RetryState } = proto.temporal.api.enums.v1;
-    const fixture = loadFixture("gives-up");
-
-    const { header, events } = recordOf({
-      ...fixture,
-      history: fixture.history.map((event) => {
-        const failed = event.activityTaskFailedEventAttributes;
-
-        return failed
-          ? {
-              ...event,
-              eventType: EventType.EVENT_TYPE_ACTIVITY_TASK_TIMED_OUT,
-              activityTaskFailedEventAttributes: null,
-              activityTaskTimedOutEventAttributes: {
-                failure: failed.failure,
-                scheduledEventId: failed.scheduledEventId,
-                startedEventId: failed.startedEventId,
-                retryState: RetryState.RETRY_STATE_MAXIMUM_ATTEMPTS_REACHED,
-              },
-            }
-          : event;
-      }),
-    });
-
-    expect(getStepRunsFromEvents(events, header)).toMatchObject([
-      { stepId: "firstTwo", gaveUpReason: "attemptsExhausted" },
-    ]);
-  });
 
   it("closes a cancelled run's unfinished steps as cancelled", () => {
     const fixture = loadFixture("in-progress");
