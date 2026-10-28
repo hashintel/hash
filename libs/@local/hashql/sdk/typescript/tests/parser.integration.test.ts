@@ -14,7 +14,7 @@ const parser = "../../../../../target/debug/parse";
 
 const parse = Effect.fnUntraced(
   function* (source: string) {
-    const child = yield* ChildProcess.make(parser, [], {
+    const child = yield* ChildProcess.make(parser, ["--no-output"], {
       stdin: pipe(Stream.make(source), Stream.encodeText),
       stdout: "ignore",
       stderr: "pipe",
