@@ -19,14 +19,14 @@ export const DependentTypesSection = ({
   emptyMessage,
   types,
   error,
-  isLink,
+  isLinkType,
   onTypeClick,
 }: {
   heading: ReactNode;
   emptyMessage: ReactNode;
   types: EntityTypeWithMetadata[] | undefined;
   error: Error | undefined;
-  isLink: boolean;
+  isLinkType: (type: EntityTypeWithMetadata) => boolean;
   onTypeClick: (typeId: VersionedUrl) => void;
 }) => {
   const failed = types === undefined && !!error;
@@ -73,7 +73,7 @@ export const DependentTypesSection = ({
               <Box>
                 <TypeCard
                   icon={type.schema.icon}
-                  isLink={isLink}
+                  isLink={isLinkType(type)}
                   LinkComponent={Link}
                   onClick={() => onTypeClick(type.schema.$id)}
                   title={type.schema.title}
