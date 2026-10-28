@@ -1,5 +1,4 @@
-import { SchemaParser } from "effect";
-
+import * as Overflow from "../internal/overflow.js";
 import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
@@ -30,7 +29,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 export const make: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
-) => LabeledArgument = SchemaParser.make(Schema);
+) => LabeledArgument = Overflow.make(Schema);
 
 /** Checks a value like {@link make}, failing the synchronous effect with the issue instead of throwing. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
@@ -38,11 +37,11 @@ export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<LabeledArgument, SchemaIssue.Issue> =
-  SchemaParser.makeEffect(Schema);
+  Overflow.makeEffect(Schema);
 
 /** Checks a value like {@link make}, returning `None` instead of throwing for a schema failure. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
-) => Option.Option<LabeledArgument> = SchemaParser.makeOption(Schema);
+) => Option.Option<LabeledArgument> = Overflow.makeOption(Schema);
