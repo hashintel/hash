@@ -1,7 +1,7 @@
 /**
  * Synchronous program construction with an explicit input schema.
  *
- * {@link program} runs one callback that receives a construction context `$` and typed handles for the inputs its schema declares. Draft emits the declarations made through `$`, such as `$.let`, `$.type`, `$.newtype` and `$.import`, around the callback's returned expression in call order. Every emitted initializer and nested body must fit the schema, so the result can retain unused declared inputs without overlooking discarded declarations. Branch callbacks receive their own contexts, whose declarations stay inside that branch.
+ * {@link program} runs one callback that receives a construction context `$` and typed handles for the inputs its schema declares. Draft emits the declarations made through `$`, such as `$.let`, `$.type`, `$.newtype` and `$.import`, around the callback's returned expression in call order. Every emitted initializer and nested body must fit the schema, so the result can retain unused declared inputs without overlooking discarded declarations. Branch and filter callbacks receive their own contexts, whose declarations stay inside that branch or filter. `$.query` starts a graph query from any graph expression, and `$.query.entities(axis)` from every entity, then builds it with `Query.filter` and `Query.collect`.
  *
  * {@link program} uses `Prelude.builtin`. {@link withPrelude} creates a program constructor for custom declarations instead, replacing the default and retaining their exact export keys. The `Body` namespace names the types of a program callback, and a helper that receives `$` takes `Body.Context`. The `Context` namespace names the unrestricted construction operations.
  *
