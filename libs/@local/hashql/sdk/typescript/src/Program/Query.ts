@@ -128,7 +128,7 @@ export const entities = <const A extends Expression.Value<QueryTemporalAxes>>(
  * );
  * assert.equal(
  *   JExpr.compile(Result.getOrThrow(Expression.toJExpr(enabled))),
- *   '["::graph::tail::collect",["::graph::body::filter",["entities"],["fn",{"#tuple":[]},{"#struct":{"vertex":"_"}},"_",["::core::cmp::eq",["::kernel::special_form::access","vertex","enabled"],{"#literal":true}]]]]',
+ *   '["::graph::tail::collect",["::graph::body::filter",["entities"],["::kernel::special_form::fn",{"#tuple":[]},{"#struct":{"vertex":"_"}},"_",["::core::cmp::eq",["::kernel::special_form::access","vertex","enabled"],{"#literal":true}]]]]',
  * );
  * ```
  */
