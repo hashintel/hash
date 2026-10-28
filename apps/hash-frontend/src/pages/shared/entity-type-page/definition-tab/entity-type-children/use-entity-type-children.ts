@@ -37,20 +37,20 @@ export const useEntityTypeChildren = (entityTypeBaseUrl: BaseUrl | null) => {
   });
 
   const children = useMemo(() => {
-    if (!data) {
+    if (!data || !entityTypeBaseUrl) {
       return undefined;
     }
 
-    const childrenByTypeId = new Map(
-      data.queryEntityTypes.entityTypes
-        .filter(
-          (entityType) =>
-            entityType.metadata.recordId.baseUrl !== entityTypeBaseUrl,
-        )
-        .map((entityType) => [entityType.schema.$id, entityType]),
+    // The Graph does not deduplicate the rows this filter matches.
+    const childrenByBaseUrl = new Map(
+      data.queryEntityTypes.entityTypes.map((entityType) => [
+        entityType.metadata.recordId.baseUrl,
+        entityType,
+      ]),
     );
+    childrenByBaseUrl.delete(entityTypeBaseUrl);
 
-    return [...childrenByTypeId.values()].sort((left, right) =>
+    return [...childrenByBaseUrl.values()].sort((left, right) =>
       left.schema.title.localeCompare(right.schema.title),
     );
   }, [data, entityTypeBaseUrl]);
