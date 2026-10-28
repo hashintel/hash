@@ -9,9 +9,21 @@ import * as Operators from "./Operators.js";
 import * as Structural from "./Structural.js";
 
 import type * as Type from "../Type.js";
+import type * as Inputs from "./Inputs.js";
+
+type OptionalCount = Type.Union<
+  readonly [
+    Type.Opaque<"::core::option::Some", Type.PrimitiveInteger>,
+    Type.Opaque<"::core::option::None", Type.PrimitiveNull>,
+  ]
+>;
 
 const syntax = (expression: Expression.Expression.Any): JExpr.Expression =>
   Result.getOrThrow(Expression.toJExpr(expression));
+const compile = (value: Expression.Value.Any): string =>
+  JExpr.compile(Result.getOrThrow(Expression.toJExpr(value)));
+
+const numberType = Structural.type(Number);
 
 describe("operators", () => {
   test("composition_forms", () => {
@@ -132,5 +144,32 @@ describe("operators", () => {
     expect.hasAssertions();
     const failure = Operators.eq(Number.POSITIVE_INFINITY, 1).and(true).not();
     expect(Result.isFailure(Expression.toNode(failure))).toBe(true);
+  });
+
+  test("default_and_boolean_operand", () => {
+    expect.hasAssertions();
+    const number = Expression.input("number", numberType, 1);
+    expect(compile(Operators.and(Operators.eq(number, 2), true))).toBe(
+      '["::core::bool::and",["::core::cmp::eq",["::kernel::special_form::input","number","::kernel::type::Number",{"#literal":1}],{"#literal":2}],{"#literal":true}]',
+    );
+  });
+
+  test.each([Number.NaN, Infinity, -Infinity])("nonfinite: %s", (value) => {
+    expect.hasAssertions();
+    const number = Expression.input("number", numberType);
+    const failure = Result.getOrThrow(
+      Result.flip(Expression.toJExpr(Operators.eq(number, value))),
+    );
+    expect(failure.reason._tag).toBe("InvalidExpression");
+  });
+
+  test("none_comparison", () => {
+    expect.hasAssertions();
+    const count = Expression.fromJExpr<OptionalCount, Inputs.Empty>("count");
+    expect(syntax(Operators.isNone(count))).toStrictEqual([
+      "::core::cmp::eq",
+      "count",
+      ["::core::option::None"],
+    ]);
   });
 });
