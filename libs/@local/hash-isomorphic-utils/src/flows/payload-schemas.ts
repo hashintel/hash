@@ -62,10 +62,16 @@ const entityOperationSchema = z.enum([
   "already-exists-as-proposed",
 ]);
 
+/**
+ * The id a proposed entity is known by until it's persisted. An AI action makes it an entity id, but an integration
+ * may use any unique string, e.g. the aviation actions use a flight's primary key, `flight-BA123-2026-10-28`.
+ */
+const localEntityIdSchema = typed<EntityId>(z.string());
+
 const localOrExistingEntityIdSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("proposed-entity"),
-    localId: entityIdSchema,
+    localId: localEntityIdSchema,
   }),
   z.object({
     kind: z.literal("existing-entity"),
@@ -80,7 +86,7 @@ const proposedEntityShape = {
   }),
   provenance: graphObject<ProvidedEntityEditionProvenance>(),
   propertyMetadata: graphObject<PropertyObjectMetadata>(),
-  localEntityId: entityIdSchema,
+  localEntityId: localEntityIdSchema,
   entityTypeIds: typed<[VersionedUrl, ...VersionedUrl[]]>(
     z.array(versionedUrlSchema).min(1),
   ),

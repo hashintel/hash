@@ -137,7 +137,7 @@ describe("payloadKindSchemas", () => {
     [
       "FailedEntityProposal",
       {
-        proposedEntity: { ...proposedEntity, localEntityId: "x" },
+        proposedEntity: { ...proposedEntity, localEntityId: 1 },
         message: "",
       },
       "proposedEntity.localEntityId",
@@ -212,6 +212,24 @@ describe("payloadKindSchemas", () => {
         allowStoredRefs: false,
       }),
     ).toEqual({ path, message: expect.any(String) as string });
+  });
+
+  it("accepts a local id that isn't an entity id, as an integration gives proposed entities", () => {
+    expect(
+      validatePayloadValue({
+        kind: "ProposedEntity",
+        array: false,
+        value: {
+          ...proposedEntity,
+          localEntityId: "flight-BA123-2026-10-28",
+          sourceEntityId: {
+            kind: "proposed-entity",
+            localId: "airport-EGLL",
+          },
+        },
+        allowStoredRefs: false,
+      }),
+    ).toBe(undefined);
   });
 
   it("accepts fields a kind doesn't define, as the web search API's position", () => {
