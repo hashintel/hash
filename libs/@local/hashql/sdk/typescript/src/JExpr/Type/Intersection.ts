@@ -5,8 +5,7 @@
  *
  * @module
  */
-import { SchemaParser } from "effect";
-
+import * as Overflow from "../../internal/overflow.js";
 import * as Defs from "./schema.js";
 
 import type { Schema as $Schema, Effect, Option, SchemaIssue } from "effect";
@@ -27,17 +26,17 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 export const make: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
-) => Intersection = SchemaParser.make(Schema);
+) => Intersection = Overflow.make(Schema);
 
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Intersection, SchemaIssue.Issue> =
-  SchemaParser.makeEffect(Schema);
+  Overflow.makeEffect(Schema);
 
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- false positive
 export const makeOption: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
-) => Option.Option<Intersection> = SchemaParser.makeOption(Schema);
+) => Option.Option<Intersection> = Overflow.makeOption(Schema);

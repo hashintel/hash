@@ -7,6 +7,7 @@
  */
 import type * as Ident from "../internal/ident-parser.js";
 import type * as Internal from "../internal/parser-error.js";
+import type * as TypeGrammar from "../internal/type-parser.js";
 
 export type { Reason } from "../internal/parser-error.js";
 export type { IdentReason } from "../internal/ident-parser.js";
@@ -35,3 +36,6 @@ export type ExpectedCharacterClass = Internal.ExpectedCharacterClass;
 
 /** A URL-shaped identifier that is not an HTTP(S) URL ending in a slash. */
 export type InvalidBaseUrl = Ident.InvalidBaseUrl;
+
+/** The input nests deeper than the call stack lets the parser follow. Its offset is 0, because the parser cannot tell where the stack ran out. */
+export type NestingTooDeep = TypeGrammar.NestingTooDeep;
