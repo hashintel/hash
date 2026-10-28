@@ -165,10 +165,12 @@ const PluginHostBody = ({
   plugin,
   editor,
   store,
+  telemetry,
 }: {
   plugin: PetrinautPlugin;
   editor: PluginEditorRuntime;
   store: ContributionsStore;
+  telemetry: ReturnType<PluginEditorRuntime["performance"]["createHost"]>;
 }) => {
   // The hook differs per host, which the React Compiler cannot compile; a
   // host is keyed by its plugin's `hostKey`, so it calls one hook for life.
@@ -181,10 +183,18 @@ const PluginHostBody = ({
 
   const instanceKey = `${editor.generation}:${plugin[pluginRuntime].hostKey}`;
 
-  useLayoutEffect(
-    () => store.publish({ manifest, instanceKey, contributions, settings }),
-    [store, manifest, instanceKey, contributions, settings],
-  );
+  useLayoutEffect(() => {
+    store.publish({ manifest, instanceKey, contributions, settings });
+    editor.performance.published(telemetry);
+  }, [
+    store,
+    manifest,
+    instanceKey,
+    contributions,
+    settings,
+    editor,
+    telemetry,
+  ]);
   useLayoutEffect(
     () => () => store.withdraw(manifest.id),
     [store, manifest.id],
@@ -205,6 +215,41 @@ const PluginHostBody = ({
  */
 const PluginHost = memo(PluginHostBody);
 
+const PluginHostInstance = ({
+  plugin,
+  editor,
+  store,
+  onFail,
+}: {
+  plugin: PetrinautPlugin;
+  editor: PluginEditorRuntime;
+  store: ContributionsStore;
+  onFail: (hostKey: string) => void;
+}) => {
+  const [telemetry] = useState(() =>
+    editor.performance.createHost(plugin.manifest.id, plugin.manifest.name),
+  );
+  useLayoutEffect(
+    () => editor.performance.mount(telemetry),
+    [editor, telemetry],
+  );
+
+  return (
+    <PluginBoundary
+      pluginId={plugin.manifest.id}
+      place="hook"
+      onError={() => onFail(plugin[pluginRuntime].hostKey)}
+    >
+      <PluginHost
+        plugin={plugin}
+        editor={editor}
+        store={store}
+        telemetry={telemetry}
+      />
+    </PluginBoundary>
+  );
+};
+
 /**
  * One host per running plugin, in a boundary that records its failure. A new
  * plugin editor, as a `readonly` toggle makes, remounts them all, so a host's
@@ -223,14 +268,13 @@ const PluginHosts = ({
 
   return statuses.map(({ plugin, status }) =>
     status === "on" ? (
-      <PluginBoundary
+      <PluginHostInstance
         key={`${editor.generation}:${plugin[pluginRuntime].hostKey}`}
-        pluginId={plugin.manifest.id}
-        place="hook"
-        onError={() => onFail(plugin[pluginRuntime].hostKey)}
-      >
-        <PluginHost plugin={plugin} editor={editor} store={store} />
-      </PluginBoundary>
+        plugin={plugin}
+        editor={editor}
+        store={store}
+        onFail={onFail}
+      />
     ) : null,
   );
 };

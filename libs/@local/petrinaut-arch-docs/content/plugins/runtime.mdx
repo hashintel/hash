@@ -119,3 +119,42 @@ again and re-renders every outlet.
 - `usePluginApi` opts in with `"use memo"`, because it calls no hook and
   `infer` mode would skip it. Compiled, it returns a new `api` only when the
   settings snapshot changes.
+
+## Performance measurements
+
+`PluginEditorRuntime` owns the performance collector. Plugins request its
+read-only capability through `access.performance`; the same API is available
+to first-party and third-party plugins. Subscription owns collection, so a
+monitor can stop collecting by unmounting its reader. Store publications are
+batched at 250 ms intervals and frame history holds 24 samples. Host records
+are removed on unmount; snapshots include at most 128 active hosts.
+
+With no subscribers, the collector has no animation callback or visibility
+listener. Host creation and first publication each read the clock once.
+Subsequent publication and profiler callbacks return without reading the
+clock while collection is off. The profiler wrappers keep a stable position
+in the tree when monitoring switches on or off, preserving component state.
+
+| Measurement             | Interpretation and limits                                                                                                                                                                                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Browser FPS             | Animation callbacks divided by actual elapsed time. It follows the display's refresh rate and includes main-thread stalls. It cannot establish how many frames were painted, GPU cost, or which editor caused a gap. Hidden documents stop collection and resume with a fresh window.                                           |
+| First publication       | Wall time from creation of the committed host wrapper to the hook's first contribution publication. It includes scheduling, sibling work and Suspense waiting. It excludes module download before host creation, completion of asynchronous effects, and first paint. It is a lifecycle interval, not isolated plugin CPU time. |
+| Publications per second | Contribution publications divided by the observation window. The host's layout effect publishes when contributions or settings change. This differs from hook invocations, descendant updates and React commits.                                                                                                                |
+| Profiled commits        | Distinct React commit timestamps across a plugin's hook and contribution boundaries during observation. One commit can update several boundaries.                                                                                                                                                                               |
+| Render milliseconds     | The sum of React `actualDuration` across those separate boundaries. It covers render work associated with committed updates. Commit-phase duration, layout, paint and abandoned render work are outside this value.                                                                                                             |
+| Observer milliseconds   | Synchronous frame collection, snapshot construction, listener delivery and profiler aggregation in the preceding sample. It excludes later React rendering, browser layout/paint, and React's own profiling bookkeeping. Use an external comparison to measure the full observer effect.                                        |
+
+Standard production React does not call `Profiler.onRender`. Render duration
+therefore remains `null`, and profiling stays `waiting-for-callback`; zero
+would falsely claim a measurement. Development and production profiling
+builds can supply callbacks. Development Strict Mode can repeat work and
+effects, so its counts are unsuitable for production comparisons. React's
+[Profiler reference](https://react.dev/reference/react/Profiler) documents
+the build requirement and the meaning of `actualDuration`.
+
+React Compiler can reuse component output and calculations. Neither a
+publication nor a commit proves unnecessary work. The collector leaves
+component invocation counts unavailable and applies no waste score. The
+monitor's own updates are included under its plugin id. Compare the same
+interaction with monitoring off and on, and use browser performance traces
+when attribution needs commit, layout, paint or worker timing.

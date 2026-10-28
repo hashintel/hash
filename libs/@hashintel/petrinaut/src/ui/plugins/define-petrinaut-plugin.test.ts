@@ -53,6 +53,29 @@ const EditorPlugin = definePetrinautPlugin({
 });
 
 describe("definePetrinautPlugin", () => {
+  it("grants performance reads without a write level", () => {
+    const PerformancePlugin = definePetrinautPlugin({
+      id: "test.performance",
+      name: "Performance",
+      access: { performance: "read" },
+    });
+    const usePerformancePlugin: PluginHook<typeof PerformancePlugin> = (
+      api,
+    ) => {
+      void api.performance.snapshot.get().frames;
+      // @ts-expect-error Telemetry has no setter.
+      void api.performance.snapshot.set;
+      return {};
+    };
+    PerformancePlugin(usePerformancePlugin);
+    definePetrinautPlugin({
+      id: "test.invalid",
+      name: "Invalid",
+      // @ts-expect-error Performance has only a read level.
+      access: { performance: "write" },
+    });
+  });
+
   it("exposes the manifest and gives each plugin a new host key", () => {
     const contributions = {
       buttons: { toggle: { icon: null, onClick: noop } },
@@ -76,6 +99,8 @@ describe("definePetrinautPlugin", () => {
       void api.document.edit;
       // @ts-expect-error An undeclared family is absent.
       void api.experiments;
+      // @ts-expect-error An undeclared performance capability is absent.
+      void api.performance;
       const editorMode: "edit" | "simulate" | "actual" =
         api.editor.navigation.get().mode;
       // @ts-expect-error A reader cannot navigate.
