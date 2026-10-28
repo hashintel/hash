@@ -44,7 +44,7 @@ export type * as Bindings from "./Bindings.js";
  *
  * Literal selections retain required exports. A widened array, an optional record entry or a union alias can leave a name absent, so its result entry is optional. The `"_"` alternative contributes the source name rather than a literal underscore key. Selection unions retain all possible names but require only names present in every alternative.
  *
- * One name selects the module, type and value exports that share it. Each imported export emits its local name, and the import wraps the expression built in its scope in a `use` of the module's path. An alias that is not a HashQL identifier, or an enumerable symbol key in the record, fails construction with `InvalidImportName`.
+ * One name selects the module, type and value exports that share it. Each imported export emits its local name, and the import wraps the expression built in its scope in a `use` of the module's path. An alias that is not a HashQL identifier fails construction with `InvalidImportName`, and a symbol key in the record selects nothing.
  *
  * @example <caption>Import a built-in function under another name.</caption>
  * ```ts
@@ -173,19 +173,11 @@ const plan = (
       aliases.push([name, JExpr.Ident.compile(ident)]);
     }
 
-    if (typeof selection === "object") {
-      for (const name of Object.getOwnPropertySymbols(selection)) {
-        if (Object.prototype.propertyIsEnumerable.call(selection, name)) {
-          yield* importName(String(name));
-        }
-      }
-    }
-
     let syntax: JExpr.Imports = "*";
     if (isReadonlyArray(selection)) {
       syntax = Object.freeze(Record.keys(names));
     } else if (selection !== "*") {
-      syntax = Object.freeze(Object.fromEntries(aliases));
+      syntax = Object.freeze(Record.fromEntries(aliases));
     }
 
     return { names: Object.freeze(names), syntax };
@@ -291,7 +283,7 @@ class ImportImpl<M extends Module.Module.Any, I> implements Declaration<M, I> {
 /**
  * Selects exports and rebinds each producer to its local name without changing the source module.
  *
- * Records must expose their declared entries as enumerable own properties. Non-enumerable and inherited entries select nothing. Returns a construction failure for invalid aliases or enumerable symbol keys, or propagates a producer's relocation failure. Omitted alias entries select nothing. A present entry must contain a valid identifier or the `"_"` sentinel, not `undefined`. The operation freezes the returned tables, and the compiler resolves their emitted import.
+ * Records must expose their declared entries as enumerable own string-keyed properties. Symbol keys and non-enumerable and inherited entries select nothing. Returns a construction failure for invalid aliases, or propagates a producer's relocation failure. Omitted alias entries select nothing. A present entry must contain a valid identifier or the `"_"` sentinel, not `undefined`. The operation freezes the returned tables, and the compiler resolves their emitted import.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the module and selection construct a declaration
 export const bind = <
