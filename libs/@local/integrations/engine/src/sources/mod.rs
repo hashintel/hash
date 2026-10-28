@@ -1,3 +1,5 @@
+#[cfg(test)]
+mod http;
 mod secrets;
 #[cfg(test)]
 mod tests;
