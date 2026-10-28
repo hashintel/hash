@@ -1,4 +1,4 @@
-import { resolvePayloadValue } from "../payload-storage.js";
+import { resolvePayloadValueToShow } from "../payload-storage.js";
 
 import type { ResolvePayloadContext } from "../payload-storage.js";
 import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
@@ -15,7 +15,7 @@ const resolveStoredPayloadsInOutputs = (
           ...output,
           payload: {
             kind: output.payload.kind,
-            value: await resolvePayloadValue(
+            value: await resolvePayloadValueToShow(
               context,
               output.payload.kind,
               output.payload.value,
