@@ -1,6 +1,9 @@
+mod remote;
+
 use alloc::{boxed::Box, collections::BTreeSet, string::String};
 use core::{array, mem};
 
+pub use self::remote::{Pagination, PostgresSource, RestAuth, RestSource, SecretReference};
 use crate::name::{CheckpointName, ColumnName};
 
 /// Reports that an SQL query contains only whitespace.
@@ -115,6 +118,21 @@ pub enum SourceKind {
         query: SqlQuery,
         primary_key: PrimaryKey,
     },
+    /// Rows from a Parquet file under the configured local storage root.
+    Local {
+        key: Box<str>,
+        primary_key: PrimaryKey,
+    },
+    /// Rows from a PostgreSQL or Redshift table.
+    Postgres {
+        source: PostgresSource,
+        primary_key: PrimaryKey,
+    },
+    /// Rows from a paginated REST endpoint.
+    Rest {
+        endpoint: RestSource,
+        primary_key: PrimaryKey,
+    },
     /// Rows of a checkpoint that another pipeline in the same definition produces.
     Checkpoint { checkpoint: CheckpointName },
 }
@@ -127,12 +145,39 @@ pub struct Source {
 }
 
 impl Source {
+    #[must_use]
+    pub const fn primary_key(&self) -> Option<&PrimaryKey> {
+        match &self.kind {
+            SourceKind::Sql { primary_key, .. }
+            | SourceKind::Local { primary_key, .. }
+            | SourceKind::Postgres { primary_key, .. }
+            | SourceKind::Rest { primary_key, .. } => Some(primary_key),
+            SourceKind::Checkpoint { .. } => None,
+        }
+    }
+
+    pub(crate) fn validate(&self) -> Result<(), &'static str> {
+        match &self.kind {
+            SourceKind::Postgres { source, .. } => source.validate(),
+            SourceKind::Rest { endpoint, .. } => endpoint.validate(),
+            SourceKind::Local { key, .. } if key.is_empty() => {
+                Err("local source key must be nonempty")
+            }
+            SourceKind::Sql { .. } | SourceKind::Local { .. } | SourceKind::Checkpoint { .. } => {
+                Ok(())
+            }
+        }
+    }
+
     /// Returns the checkpoint this source reads, if it reads one.
     #[must_use]
     pub const fn checkpoint(&self) -> Option<&CheckpointName> {
         match &self.kind {
             SourceKind::Checkpoint { checkpoint } => Some(checkpoint),
-            SourceKind::Sql { .. } => None,
+            SourceKind::Sql { .. }
+            | SourceKind::Local { .. }
+            | SourceKind::Postgres { .. }
+            | SourceKind::Rest { .. } => None,
         }
     }
 }

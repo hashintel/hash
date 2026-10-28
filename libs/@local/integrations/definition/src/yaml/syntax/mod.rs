@@ -34,10 +34,23 @@ enum CoverageSyntax {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PostgresSourceSyntax {
+    connection: Spanned<String>,
+    schema: Spanned<String>,
+    table: Spanned<String>,
+    credentials: crate::SecretReference,
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct SourceSyntax {
     sql: Option<Spanned<String>>,
     checkpoint: Option<Spanned<String>>,
+    local: Option<Spanned<String>>,
+    postgres: Option<Spanned<PostgresSourceSyntax>>,
+    redshift: Option<Spanned<PostgresSourceSyntax>>,
+    rest: Option<Spanned<crate::RestSource>>,
     primary_key: Option<Spanned<Vec<Spanned<String>>>>,
     coverage: Option<CoverageSyntax>,
 }
