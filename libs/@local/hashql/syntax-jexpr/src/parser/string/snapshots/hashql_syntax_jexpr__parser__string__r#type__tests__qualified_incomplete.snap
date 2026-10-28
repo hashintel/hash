@@ -9,4 +9,4 @@ info:
 (Foo::)
     ^
 invalid type
-expected `)`, `,`, `:`
+expected `)`, `,`
