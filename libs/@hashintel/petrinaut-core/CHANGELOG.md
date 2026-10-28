@@ -1,5 +1,17 @@
 # @hashintel/petrinaut-core
 
+## 0.0.6
+
+### Patch Changes
+
+- Update the browser optimizer's Optuna runtime to version 5.x.x. ([@indietyp](https://github.com/indietyp))
+
+- Start the ELK layout engine the first time a layout is calculated, rather than when the package is imported, so the package can be imported where ELK can't start, such as in a Temporal workflow. ([@CiaranMn](https://github.com/CiaranMn), [#10186](https://github.com/hashintel/hash/pull/10186))
+
+- Upgrade the language server to TypeScript 6. ([@indietyp](https://github.com/indietyp), [#9933](https://github.com/hashintel/hash/pull/9933))
+
+- Type-check place visualizers in the language worker and lower them to a view HIR the editor interprets, so no code from a net runs as JavaScript. ([@kube](https://github.com/kube), [#10189](https://github.com/hashintel/hash/pull/10189))
+
 ## 0.0.5
 
 ### Patch Changes
