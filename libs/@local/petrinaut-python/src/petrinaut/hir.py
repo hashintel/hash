@@ -780,7 +780,9 @@ def evaluate_hir(
     lists). A mapping is validated against the grammar first.
     """
     function = validate_hir_function(fn)
-    return _Evaluator(scenario or {}, parameters or {}, dict(locals_ or {})).eval(function.body)
+    return _Evaluator(scenario or {}, parameters or {}, dict[str, Value](locals_ or {})).eval(
+        function.body
+    )
 
 
 def hir_margin(
@@ -796,4 +798,6 @@ def hir_margin(
     :func:`evaluate_hir`.
     """
     function = validate_hir_function(fn)
-    return _Evaluator(scenario or {}, parameters or {}, dict(locals_ or {})).margin(function.body)
+    return _Evaluator(scenario or {}, parameters or {}, dict[str, Value](locals_ or {})).margin(
+        function.body
+    )
