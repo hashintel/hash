@@ -1,0 +1,128 @@
+import { isValidElement } from "react";
+
+/**
+ * Serializes the live example elements a docs Stage renders into the JSX
+ * source shown on its Code tab, so preview and code can never drift apart.
+ * Only the prop shapes docs examples use are supported: strings, numbers,
+ * booleans (`true` as a bare flag, `false` as `={false}`) and element values
+ * such as `suffix={<span>12</span>}`, serialized inline. Strings and text
+ * children that JSX source can't hold literally (quotes in attributes,
+ * `{}<>` in text) are emitted as string expressions, so the copied code
+ * always re-renders what the preview shows. Elements without a
+ * trustworthy name — anything other than a host element or a component with
+ * an identifier-like `displayName` (names from `Function.name` disappear
+ * under minification) — serialize transparently, as their children only;
+ * that also unwraps the paragraph wrappers MDX inserts around multiline JSX
+ * children.
+ */
+
+const componentNamePattern = /^[A-Z][A-Za-z0-9]*$/;
+
+const formatStringProp = (propName: string, value: string): string => {
+  if (!value.includes('"') && !value.includes("\n")) {
+    return `${propName}="${value}"`;
+  }
+  if (!value.includes("'") && !value.includes("\n")) {
+    return `${propName}='${value}'`;
+  }
+  return `${propName}={${JSON.stringify(value)}}`;
+};
+
+const jsxUnsafeText = /[{}<>]/;
+
+const formatTextChild = (text: string): string =>
+  jsxUnsafeText.test(text) ? `{${JSON.stringify(text)}}` : text;
+
+const componentName = (type: unknown): string | null => {
+  if (typeof type === "string") {
+    return type === "p" ? null : type;
+  }
+  if (
+    typeof type === "function" ||
+    (typeof type === "object" && type !== null)
+  ) {
+    const { displayName } = type as { displayName?: unknown };
+    if (
+      typeof displayName === "string" &&
+      componentNamePattern.test(displayName)
+    ) {
+      return displayName;
+    }
+  }
+  return null;
+};
+
+const formatProps = (
+  props: Record<string, unknown>,
+  serializeElement: (node: React.ReactNode) => string[],
+): string => {
+  const parts: string[] = [];
+  for (const [propName, propValue] of Object.entries(props)) {
+    if (
+      propName === "children" ||
+      propValue === undefined ||
+      propValue === null
+    ) {
+      continue;
+    }
+    if (propValue === true) {
+      parts.push(propName);
+    } else if (propValue === false) {
+      parts.push(`${propName}={false}`);
+    } else if (typeof propValue === "string") {
+      parts.push(formatStringProp(propName, propValue));
+    } else if (typeof propValue === "number") {
+      parts.push(`${propName}={${propValue}}`);
+    } else if (isValidElement(propValue)) {
+      const lines = serializeElement(propValue);
+      if (lines.length > 0) {
+        parts.push(
+          `${propName}={${lines.map((line) => line.trim()).join(" ")}}`,
+        );
+      }
+    }
+  }
+  return parts.length > 0 ? ` ${parts.join(" ")}` : "";
+};
+
+const nodeToLines = (node: React.ReactNode, indent: string): string[] => {
+  if (node === null || node === undefined || typeof node === "boolean") {
+    return [];
+  }
+  if (typeof node === "string" || typeof node === "number") {
+    const text = String(node).trim();
+    return text === "" ? [] : [`${indent}${formatTextChild(text)}`];
+  }
+  if (Array.isArray(node)) {
+    return node.flatMap((child) =>
+      nodeToLines(child as React.ReactNode, indent),
+    );
+  }
+  if (!isValidElement(node)) {
+    return [];
+  }
+
+  const props = node.props as Record<string, unknown> & {
+    children?: React.ReactNode;
+  };
+  const name = componentName(node.type);
+  if (name === null) {
+    return nodeToLines(props.children, indent);
+  }
+
+  const attrs = formatProps(props, (child) => nodeToLines(child, ""));
+  const inner = nodeToLines(props.children, `${indent}  `);
+  if (inner.length === 0) {
+    return [`${indent}<${name}${attrs} />`];
+  }
+  if (inner.length === 1) {
+    const oneLine = `${indent}<${name}${attrs}>${inner[0]?.trim() ?? ""}</${name}>`;
+    if (oneLine.length <= 80) {
+      return [oneLine];
+    }
+  }
+  return [`${indent}<${name}${attrs}>`, ...inner, `${indent}</${name}>`];
+};
+
+export const elementToJsx = (node: React.ReactNode): string =>
+  nodeToLines(node, "").join("\n");
