@@ -1,5 +1,5 @@
 /** Recursive path and type productions. Union has higher precedence than intersection. @internal */
-import { Data, Option, Result, pipe } from "effect";
+import { Data, MutableHashSet, Option, Result, pipe } from "effect";
 
 import { characterClass } from "./character-class.js";
 import { identifier } from "./ident-parser.js";
@@ -17,7 +17,7 @@ import * as Parser from "./parser.js";
 
 import type { Path, SegmentArgument } from "../JExpr/Path.js";
 import type { Type } from "../JExpr/Type/schema.js";
-import type { IdentReason } from "./ident-parser.js";
+import type { Ident, IdentReason } from "./ident-parser.js";
 import type {
   ExpectedEndOfInput,
   ExpectedLiteral,
@@ -32,12 +32,22 @@ export interface NestingTooDeep {
 export const NestingTooDeep: Data.TaggedEnum.Constructor<NestingTooDeep>["NestingTooDeep"] =
   Data.taggedEnum<NestingTooDeep>().NestingTooDeep;
 
+/** A struct type names the same field twice. Its offset is the end of the struct, because the parser compares names after it reads every field. */
+export interface DuplicateStructField {
+  readonly _tag: "DuplicateStructField";
+  readonly name: Ident;
+}
+
+export const DuplicateStructField: Data.TaggedEnum.Constructor<DuplicateStructField>["DuplicateStructField"] =
+  Data.taggedEnum<DuplicateStructField>().DuplicateStructField;
+
 /** All syntax and semantic reasons this recursive grammar can report. */
 export type TypeReason =
   | IdentReason
   | ExpectedEndOfInput
   | ExpectedProgress
-  | NestingTooDeep;
+  | NestingTooDeep
+  | DuplicateStructField;
 type TypeParser = Parser.Parser<Type, TypeReason>;
 
 const token = <const T extends string>(
@@ -118,6 +128,22 @@ const structField = pipe(
   Parser.and(typeSyntax),
 );
 
+// The struct schema rejects repeated names, so the parser rejects them before a caller can build a struct the schema refuses. Names compare by value, as the schema's check compares them, so two spellings of one decoded name are a repeat.
+const distinctFields = (
+  members: readonly (readonly [Ident, Type])[],
+): Result.Result<Type, DuplicateStructField> => {
+  const seen = MutableHashSet.empty<Ident>();
+  for (const [name] of members) {
+    if (MutableHashSet.has(seen, name)) {
+      return Result.fail(DuplicateStructField({ name }));
+    }
+
+    MutableHashSet.add(seen, name);
+  }
+
+  return Result.succeed({ _tag: "Struct", members });
+};
+
 const struct = pipe(
   identifier,
   skip(colon),
@@ -125,10 +151,7 @@ const struct = pipe(
   Parser.and(repeat(preceded(comma)(structField))),
   skip(Parser.optional(token(","))),
   skip(closeParen),
-  Parser.map(([[name, bound], rest]): Type => ({
-    _tag: "Struct",
-    members: [[name, bound], ...rest],
-  })),
+  Parser.tryMap(([first, rest]) => distinctFields([first, ...rest])),
 );
 
 const tupleTail = pipe(
