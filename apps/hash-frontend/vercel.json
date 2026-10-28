@@ -5,5 +5,6 @@
   },
   "buildCommand": "./vercel-build.sh",
   "installCommand": "./vercel-install.sh",
-  "outputDirectory": "./.next"
+  "outputDirectory": null,
+  "framework": null
 }

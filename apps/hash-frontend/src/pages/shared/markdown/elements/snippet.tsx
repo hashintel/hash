@@ -1,25 +1,7 @@
-/**
- * Add support for another language:
- *
- * - import the grammar package from "prismjs/components/prism-[language]"
- * - you may have to re-build and download the prism.css
- *   to support the new language at https://prismjs.com/download.html
- *   that file resides at src/theme/prism.css and has to be imported by
- *   nextjs' _app.tsx as per nextjs convention.
- *
- * @see https://prismjs.com
- */
-import Prism from "prismjs"; // oxfmt-ignore
-
-import "prismjs/components/prism-javascript";
-import "prismjs/components/prism-json";
-import "prismjs/components/prism-json5";
-import "prismjs/components/prism-markdown";
-import "prismjs/components/prism-python";
-import "prismjs/components/prism-rust";
-import "prismjs/components/prism-typescript";
 import { Box } from "@mui/material";
 import DOMPurify from "dompurify";
+
+import { Prism } from "../../../../shared/prism";
 
 import type { BoxProps } from "@mui/material";
 import type { FunctionComponent } from "react";

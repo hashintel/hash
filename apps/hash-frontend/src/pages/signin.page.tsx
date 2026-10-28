@@ -1,5 +1,4 @@
 import { Box, buttonClasses, styled, Typography } from "@mui/material";
-import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 
@@ -17,6 +16,7 @@ import { AuthLayout } from "./shared/auth-layout";
 import { AuthPaper } from "./shared/auth-paper";
 import { formatKratosMessage } from "./shared/format-kratos-message";
 import {
+  isUiNodeInputAttributes,
   mustGetCsrfTokenFromFlow,
   oryKratosClient,
   uiPathForKratosBrowserRedirect,

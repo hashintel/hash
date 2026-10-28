@@ -110,8 +110,12 @@ blocks/**/.env
 # macOS directory file
 **/.DS_Store
 
-# next.js build output
+# Vinext and Nitro output
 **/.next
+**/.vinext
+**/.output
+**/.nitro
+**/.vercel
 
 # build files
 **/dist

@@ -1,5 +1,4 @@
 import { Box, Typography } from "@mui/material";
-import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { TextField } from "@hashintel/design-system";
@@ -8,7 +7,11 @@ import { isProduction } from "../../lib/config";
 import { Button } from "../../shared/ui";
 import { AuthHeading } from "./auth-heading";
 import { AuthPaper } from "./auth-paper";
-import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./ory-kratos";
+import {
+  isUiNodeInputAttributes,
+  mustGetCsrfTokenFromFlow,
+  oryKratosClient,
+} from "./ory-kratos";
 import { useKratosErrorHandler } from "./use-kratos-flow-error-handler";
 
 import type { VerificationFlow } from "@ory/client";

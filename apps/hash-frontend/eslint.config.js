@@ -17,10 +17,14 @@ export default [
   ]),
   ...defineConfig([
     {
+      settings: {
+        "import/core-modules": ["next"],
+      },
       plugins: {
         "react-x": reactX,
       },
       rules: {
+        "import/no-unresolved": ["error", { ignore: ["^next(?:/|$)"] }],
         "jsx-a11y/label-has-associated-control": "off",
         "import/no-default-export": "error",
         "react-x/no-leaked-conditional-rendering": "error",
@@ -95,6 +99,7 @@ export default [
         "**/src/pages/**/*.page.ts",
         "**/src/pages/**/*.page.tsx",
         "**/__mocks__/**",
+        "vite.config.ts",
       ],
       rules: {
         "import/no-default-export": "off",

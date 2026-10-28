@@ -1,5 +1,4 @@
 import { Box, Container, Typography } from "@mui/material";
-import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
@@ -8,6 +7,7 @@ import { TextField } from "@hashintel/design-system";
 import { getPlainLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import {
+  isUiNodeInputAttributes,
   gatherUiNodeValuesFromFlow,
   oryKratosClient,
 } from "./shared/ory-kratos";

@@ -1,4 +1,4 @@
-import { getCurrentScope, setUser } from "@sentry/nextjs";
+import { getCurrentScope, setUser } from "@sentry/react";
 
 import type { User } from "../../lib/user-and-org";
 

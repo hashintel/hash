@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Box, Stack, useTheme } from "@mui/material";
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from "@sentry/react";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 

@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from "@sentry/node";
 
 import { buildStamp } from "./buildstamp";
 import { isProduction } from "./src/lib/config";
@@ -10,6 +10,5 @@ Sentry.init({
   environment: SENTRY_ENVIRONMENT,
   release: buildStamp,
   sendDefaultPii: true,
-  // release is set in next.config.js in the Sentry webpack plugin
   tracesSampleRate: isProduction ? 1.0 : 0,
 });

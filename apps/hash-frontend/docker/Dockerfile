@@ -87,8 +87,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,target=/usr/local/src/target,sharing=locked \
     --mount=type=cache,target=/usr/local/src/.turbo/cache,sharing=locked \
-    turbo build --filter '@apps/hash-frontend' --env-mode=loose && \
-    rm -rf /usr/local/src/apps/hash-frontend/.next/cache
+    turbo build --filter '@apps/hash-frontend' --env-mode=loose
 
 
 FROM mise AS runner
@@ -101,7 +100,7 @@ ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
 RUN groupadd --system --gid 60000 hash && \
     useradd --system frontend -G hash && \
     install -d -m 0775 -o frontend -g hash /log /home/frontend $COREPACK_HOME && \
-    chown -R frontend:hash /usr/local/src/apps/hash-frontend/.next && \
+    chown -R frontend:hash /usr/local/src/apps/hash-frontend/dist && \
     corepack prepare --activate
 
 USER frontend:hash

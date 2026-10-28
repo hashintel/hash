@@ -1,10 +1,5 @@
 import "./_app.page/why-did-you-render";
-
-// @todo have webpack polyfill this
-// @todo: https://linear.app/hash/issue/H-3769/investigate-new-eslint-errors
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-require("setimmediate");
-
+import "setimmediate";
 // React Grid Layout CSS for dashboard drag-and-drop
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -14,7 +9,7 @@ import "./ds-components-styles.gen.css";
 import { ApolloProvider } from "@apollo/client/react";
 import { CacheProvider } from "@emotion/react";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
-import { ErrorBoundary, getClient } from "@sentry/nextjs";
+import { ErrorBoundary, getClient } from "@sentry/react";
 import { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
 import { Suspense, useEffect, useState } from "react";

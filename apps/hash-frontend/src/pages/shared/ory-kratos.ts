@@ -1,5 +1,4 @@
 import { Configuration, FrontendApi } from "@ory/client";
-import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
@@ -8,7 +7,10 @@ import type {
   RecoveryFlow,
   RegistrationFlow,
   SettingsFlow,
+  UiNodeAttributes,
+  UiNodeImageAttributes,
   UiNodeInputAttributes,
+  UiNodeTextAttributes,
   UpdateLoginFlowBody,
   UpdateRecoveryFlowBody,
   UpdateRegistrationFlowBody,
@@ -17,6 +19,21 @@ import type {
   UpdateVerificationFlowBody,
   VerificationFlow,
 } from "@ory/client";
+
+export const isUiNodeInputAttributes = (
+  attributes: UiNodeAttributes,
+): attributes is UiNodeInputAttributes & { node_type: "input" } =>
+  attributes.node_type === "input";
+
+export const isUiNodeImageAttributes = (
+  attributes: UiNodeAttributes,
+): attributes is UiNodeImageAttributes & { node_type: "img" } =>
+  attributes.node_type === "img";
+
+export const isUiNodeTextAttributes = (
+  attributes: UiNodeAttributes,
+): attributes is UiNodeTextAttributes & { node_type: "text" } =>
+  attributes.node_type === "text";
 
 export const oryKratosClient = new FrontendApi(
   new Configuration({

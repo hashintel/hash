@@ -1,5 +1,4 @@
 import { Box, Typography } from "@mui/material";
-import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 
 import { AppleIcon } from "../../shared/icons/apple-icon";
 import { GitHubIcon } from "../../shared/icons/github-icon";
@@ -8,7 +7,11 @@ import { GoogleIcon } from "../../shared/icons/google-icon";
 import { MicrosoftIcon } from "../../shared/icons/microsoft-icon";
 import { Button } from "../../shared/ui";
 import { providerDisplayNames } from "./format-kratos-message";
-import { mustGetCsrfTokenFromFlow, oryKratosClient } from "./ory-kratos";
+import {
+  isUiNodeInputAttributes,
+  mustGetCsrfTokenFromFlow,
+  oryKratosClient,
+} from "./ory-kratos";
 
 import type { SvgIconProps } from "@mui/material";
 import type { LoginFlow, RegistrationFlow } from "@ory/client";

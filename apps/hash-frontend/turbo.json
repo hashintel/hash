@@ -14,24 +14,13 @@
     },
     "build": {
       "dependsOn": ["^build", "codegen"],
-      // `vercel.json` sets `outputDirectory` to `./.next`, and nothing in
-      // `next.config.js` moves it. `.next/cache` is webpack's own cache rather
-      // than part of the deployable output, and is what makes the directory too
-      // big to be worth storing. `next-env.d.ts` is written at the package root
-      // and read back by `tsconfig.json`.
-      "outputs": [".next/**", "!.next/cache/**", "next-env.d.ts"],
-      // `next.config.js` reads these and re-exports them under `NEXT_PUBLIC_`,
-      // which Next inlines into the client bundle, so a `.next` built for one
-      // environment must never be restored for another. `NODE_ENV` decides which
-      // dotenv file loads. Framework inference hashes every `NEXT_PUBLIC_*`
-      // variable that is set; the excluded ones differ per Vercel deployment,
-      // and the only build-time reader of any of them is `buildstamp.js`, which
-      // names the Sentry release.
+      "outputs": ["dist/**", ".output/**", ".vercel/output/**"],
       "env": [
-        "ANALYZE",
         "API_ORIGIN",
         "ENVIRONMENT",
         "GOOGLE_OAUTH_CLIENT_ID",
+        "NITRO_PRESET",
+        "NEXT_PUBLIC_*",
         "NODE_ENV",
         "NOTIFICATION_POLL_INTERVAL",
         "SELF_HOSTED_HASH",
@@ -39,6 +28,7 @@
         "SENTRY_ENVIRONMENT",
         "SENTRY_REPLAYS_SESSION_SAMPLE_RATE",
         "SHOW_WORKER_COST",
+        "VERCEL_ENV",
         "!NEXT_PUBLIC_VERCEL_BRANCH_URL",
         "!NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID",
         "!NEXT_PUBLIC_VERCEL_GIT_COMMIT_AUTHOR_LOGIN",

@@ -88,10 +88,15 @@ blocks/**/.env
 # macOS directory file
 **/.DS_Store
 
-# next.js build output
+# Vinext route types
 **/.next
 
-# next.js build output – once upgraded to Next.js 16, this can be removed, as it will be generated in the dist/ directory instead
+# Vinext and Nitro output
+**/.vinext
+**/.output
+**/.nitro
+
+# Vinext type declarations
 **/next-env.d.ts
 
 # build files

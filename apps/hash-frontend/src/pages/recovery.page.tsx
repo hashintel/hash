@@ -1,5 +1,4 @@
 import { Box, Collapse, Stack, Typography } from "@mui/material";
-import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 
@@ -12,6 +11,7 @@ import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { AuthPaper } from "./shared/auth-paper";
 import {
+  isUiNodeInputAttributes,
   gatherUiNodeValuesFromFlow,
   oryKratosClient,
 } from "./shared/ory-kratos";
