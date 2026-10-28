@@ -105,7 +105,7 @@ export const PathArgument = Schema.Union([
   PathGenericConstraintConstructor,
 ]);
 
-/** Validates names and arguments before constructing a protocol-bearing segment. */
+/** Validates names and arguments before constructing a segment with Effect's `Equal`, `Hash` and `Pipeable` interfaces. */
 export class PathSegment extends Schema.Class<PathSegment, Pipeable.Pipeable>(
   "hashql/Path/Segment",
 )({

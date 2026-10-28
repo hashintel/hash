@@ -60,7 +60,7 @@ describe("emitted_path_classes", () => {
     expect(Equal.isEqual(bound.path)).toBe(false);
   });
 
-  test("emitted_schema_constructors_accept_ordinary_input", () => {
+  test("emitted_constructor_ordinary_input", () => {
     expect.hasAssertions();
     const input = {
       rooted: false,

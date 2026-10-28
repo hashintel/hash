@@ -118,6 +118,22 @@ describe("builder", () => {
       Result.getOrThrow(Schema.decodeResult(Type.Schema)(encoded)),
     ).toStrictEqual(Option.getOrThrow(Type.reference("List", integer)));
   });
+
+  test("invalid_generic", () => {
+    expect.hasAssertions();
+    const name = { _tag: "Lexical", value: "first name" } as const;
+    expect(
+      Option.isNone(Type.reference("List", { _tag: "GenericBound", name })),
+    ).toBe(true);
+    expect(
+      Option.isNone(
+        Type.reference("List", {
+          _tag: "Struct",
+          members: [[name, Type.infer()]],
+        }),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("type_expressions", () => {

@@ -266,6 +266,39 @@ describe("structural_values", () => {
     }
   });
 
+  test("unchecked_definition", () => {
+    expect.hasAssertions();
+    const unchecked = TypeExpression.fromType<Type.PrimitiveInteger>({
+      _tag: "Struct",
+      members: [[{ _tag: "Lexical", value: "first name" }, { _tag: "Infer" }]],
+    });
+    for (const expression of [
+      Structural.list(unchecked, []),
+      Structural.dict(unchecked, String, []),
+      Structural.dict(String, unchecked, []),
+    ]) {
+      expect(
+        Result.getOrThrow(Result.flip(Expression.toJExpr(expression))).reason
+          ._tag,
+      ).toBe("InvalidExpression");
+    }
+  });
+
+  test("marker_key_record", () => {
+    expect.hasAssertions();
+    const key: Expression.TypeId = "~hashql/Expression";
+    for (const expression of [
+      Structural.struct({ [key]: 1n }),
+      Structural.struct({ field: { [key]: 1n } }),
+      Structural.tuple([{ [key]: 1n }]),
+    ]) {
+      expect(
+        Result.getOrThrow(Result.flip(Expression.toJExpr(expression))).reason
+          ._tag,
+      ).toBe("InvalidExpression");
+    }
+  });
+
   test("duplicate_field", () => {
     expect.hasAssertions();
     expect(
