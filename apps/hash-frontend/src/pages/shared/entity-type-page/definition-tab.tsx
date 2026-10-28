@@ -1,3 +1,4 @@
+import { Stack } from "@mui/material";
 import { useMemo } from "react";
 
 import { EntityTypeEditor } from "@hashintel/type-editor";
@@ -6,9 +7,11 @@ import { useEntityTypesContextRequired } from "../../../shared/entity-types-cont
 import { usePropertyTypes } from "../../../shared/property-types-context";
 import { useDataTypesContext } from "../data-types-context";
 import { useNewTypeOwner } from "../shared/use-new-type-owner";
+import { EntityTypeChildren } from "./definition-tab/entity-type-children";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 
 import type {
+  BaseUrl,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
   VersionedUrl,
@@ -19,6 +22,7 @@ type DefinitionTabProps = {
     entityType: EntityTypeWithMetadata;
     propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
   };
+  entityTypeBaseUrl: BaseUrl | null;
   onNavigateToType: (
     kind: "entityType" | "dataType",
     url: VersionedUrl,
@@ -28,6 +32,7 @@ type DefinitionTabProps = {
 
 export const DefinitionTab = ({
   entityTypeAndPropertyTypes,
+  entityTypeBaseUrl,
   onNavigateToType,
   readonly,
 }: DefinitionTabProps) => {
@@ -88,18 +93,26 @@ export const DefinitionTab = ({
   }
 
   return (
-    <EntityTypeEditor
-      customization={{ onNavigateToType }}
-      dataTypeOptions={dataTypeOptions}
-      entityType={entityTypeAndPropertyTypes.entityType}
-      entityTypeOptions={entityTypeOptions}
-      entityTypePermissions={
-        entityTypesContext.entityTypePermissions ?? undefined
-      }
-      key={entityTypeAndPropertyTypes.entityType.schema.$id} // Reset state when switching entity types, helps avoid state mismatch issues
-      ontologyFunctions={ontologyFunctions}
-      propertyTypeOptions={propertyTypeOptions}
-      readonly={readonly}
-    />
+    <Stack spacing={6.5}>
+      <EntityTypeEditor
+        customization={{ onNavigateToType }}
+        dataTypeOptions={dataTypeOptions}
+        entityType={entityTypeAndPropertyTypes.entityType}
+        entityTypeOptions={entityTypeOptions}
+        entityTypePermissions={
+          entityTypesContext.entityTypePermissions ?? undefined
+        }
+        key={entityTypeAndPropertyTypes.entityType.schema.$id} // Reset state when switching entity types, helps avoid state mismatch issues
+        ontologyFunctions={ontologyFunctions}
+        propertyTypeOptions={propertyTypeOptions}
+        readonly={readonly}
+      />
+      <EntityTypeChildren
+        entityType={entityTypeAndPropertyTypes.entityType}
+        entityTypeBaseUrl={entityTypeBaseUrl}
+        key={`children-${entityTypeAndPropertyTypes.entityType.schema.$id}`}
+        onNavigateToType={onNavigateToType}
+      />
+    </Stack>
   );
 };
