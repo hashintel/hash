@@ -15,6 +15,7 @@ mod buffer;
 mod cli;
 pub mod digest;
 mod hex;
+pub mod hkdf;
 pub mod hmac;
 pub mod random;
 mod secret;
