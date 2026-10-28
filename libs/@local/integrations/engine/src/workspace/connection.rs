@@ -4,6 +4,7 @@ use std::{
     fs::{self, File, OpenOptions, TryLockError},
     io, panic,
     path::{Component, Path, PathBuf},
+    time::Instant,
 };
 
 use duckdb::{Config, Statement, params_from_iter, types::Value};
@@ -19,6 +20,7 @@ use crate::{
         StatementError,
         files::WorkspaceFiles,
         interrupt::{Interrupt, InterruptGuard, RequestId},
+        metrics::{Metrics, Operation, Outcome},
         reply::Reply,
         select::Select,
     },
@@ -40,6 +42,7 @@ pub(super) struct Connection {
     files: WorkspaceFiles,
     disk_limit: Option<ByteSize>,
     variables: Variables,
+    metrics: Metrics,
     /// An exclusive lock on the workspace's lock file, held until the database is closed.
     lock: File,
 }
@@ -99,6 +102,7 @@ impl Connection {
             })?;
             used = used.saturating_add(size);
         }
+        self.metrics.disk_usage(used);
         Ok(ByteSize::from_bytes(used))
     }
 
@@ -134,7 +138,11 @@ impl Connection {
     }
 
     /// Opens the database at `path` with the limits in `config` and its settings locked.
-    pub(super) fn open(path: PathBuf, config: WorkspaceConfig) -> Result<Self, Report<OpenError>> {
+    fn open(
+        path: PathBuf,
+        config: WorkspaceConfig,
+        metrics: Metrics,
+    ) -> Result<Self, Report<OpenError>> {
         let files = WorkspaceFiles::new(path);
         let lock = Self::lock(&files)?;
 
@@ -184,6 +192,7 @@ impl Connection {
             files,
             disk_limit: config.disk_limit,
             variables: config.variables,
+            metrics,
             lock,
         };
         match opened.disk_usage().change_context(OpenError::DiskUsage)? {
@@ -272,6 +281,10 @@ impl Connection {
             .into_iter()
             .map(String::into_boxed_str)
             .collect();
+        self.metrics.rows(
+            Operation::Query,
+            u64::try_from(rows.len()).unwrap_or(u64::MAX),
+        );
         self.check_disk_limit()?;
         Ok(Rows::new(columns, rows))
     }
@@ -289,9 +302,10 @@ impl Connection {
             ))
             .map_err(StatementError::from_duckdb)?;
         let values = self.parameter_values(&statement)?;
-        statement
-            .execute(params_from_iter(values))
+        let rows = statement
+            .query_row(params_from_iter(values), |row| row.get(0))
             .map_err(StatementError::from_duckdb)?;
+        self.metrics.rows(Operation::CreateTable, rows);
         self.check_disk_limit()
     }
 
@@ -299,7 +313,7 @@ impl Connection {
     ///
     /// An existing file at `partial` is removed first, so the copy cannot write through a link to
     /// another file, such as the database file itself.
-    fn write_copy(&self, partial: &Path, target: &Path) -> io::Result<()> {
+    fn write_copy(&self, partial: &Path, target: &Path) -> io::Result<u64> {
         match fs::remove_file(partial) {
             Ok(()) => {}
             Err(error) if error.kind() == io::ErrorKind::NotFound => {}
@@ -309,14 +323,15 @@ impl Connection {
             .write(true)
             .create_new(true)
             .open(partial)?;
-        io::copy(&mut File::open(self.files.database())?, &mut copy)?;
+        let bytes = io::copy(&mut File::open(self.files.database())?, &mut copy)?;
         copy.sync_all()?;
         drop(copy);
         fs::rename(partial, target)?;
         // The engine chooses `target`, and `snapshot` refuses relative paths and `..` before this
         // runs. Opening the directory only syncs the rename to disk.
         // nosemgrep: rust.actix.path-traversal.tainted-path.tainted-path
-        File::open(WorkspaceFiles::directory(target))?.sync_all()
+        File::open(WorkspaceFiles::directory(target))?.sync_all()?;
+        Ok(bytes)
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -343,7 +358,7 @@ impl Connection {
             .execute_batch("CHECKPOINT")
             .change_context(SnapshotError::Checkpoint)?;
 
-        self.write_copy(&partial, target).map_err(|error| {
+        let bytes = self.write_copy(&partial, target).map_err(|error| {
             if let Err(removal) = fs::remove_file(&partial)
                 && removal.kind() != io::ErrorKind::NotFound
             {
@@ -356,7 +371,9 @@ impl Connection {
             Report::new(error).change_context(SnapshotError::Write {
                 target: target.to_owned(),
             })
-        })
+        })?;
+        self.metrics.snapshot(bytes);
+        Ok(())
     }
 
     /// Checkpoints the database, then closes it whether or not the checkpoint succeeded.
@@ -364,6 +381,7 @@ impl Connection {
     /// DuckDB also checkpoints when it closes the database, but it cannot report a failure from
     /// there.
     fn close(self) -> Result<(), Report<CloseError>> {
+        let started = Instant::now();
         let checkpoint = self
             .duckdb
             .execute_batch("CHECKPOINT")
@@ -371,6 +389,15 @@ impl Connection {
         drop(self.interrupt);
         drop(self.duckdb);
         drop(self.lock);
+        self.metrics.request(
+            Operation::Close,
+            if checkpoint.is_ok() {
+                Outcome::Success
+            } else {
+                Outcome::Failure
+            },
+            started.elapsed(),
+        );
         checkpoint
     }
 
@@ -385,18 +412,31 @@ impl Connection {
         &self,
         id: RequestId,
         reply: Reply<T, C>,
+        operation: Operation,
         request: impl FnOnce(&Self) -> Result<T, Report<C>>,
     ) where
         C: Error + Send + Sync + 'static,
     {
+        let started = Instant::now();
         let interrupt = self.interrupt();
         interrupt.start(id);
         if reply.is_closed() {
             interrupt.finish();
+            self.metrics
+                .request(operation, Outcome::Skipped, started.elapsed());
             return;
         }
         let result = request(self);
-        if !interrupt.finish() {
+        let cancelled = interrupt.finish();
+        let outcome = if cancelled {
+            Outcome::Cancelled
+        } else if result.is_ok() {
+            Outcome::Success
+        } else {
+            Outcome::Failure
+        };
+        self.metrics.request(operation, outcome, started.elapsed());
+        if !cancelled {
             reply.send(result);
         }
     }
@@ -408,15 +448,19 @@ impl Connection {
         while let Some((id, command)) = commands.blocking_recv() {
             match command {
                 Command::Query { sql, reply } => {
-                    self.answer(id, reply, |connection| connection.query(&sql));
+                    self.answer(id, reply, Operation::Query, |connection| {
+                        connection.query(&sql)
+                    });
                 }
                 Command::CreateTable { table, sql, reply } => {
-                    self.answer(id, reply, |connection| {
+                    self.answer(id, reply, Operation::CreateTable, |connection| {
                         connection.create_table(&table, &sql)
                     });
                 }
                 Command::Snapshot { target, reply } => {
-                    self.answer(id, reply, |connection| connection.snapshot(&target));
+                    self.answer(id, reply, Operation::Snapshot, |connection| {
+                        connection.snapshot(&target)
+                    });
                 }
                 Command::Close { reply } => {
                     reply.send(self.close());
@@ -441,7 +485,19 @@ impl Connection {
         ready: Reply<Arc<Interrupt>, OpenError>,
         commands: &mut mpsc::Receiver<(RequestId, Command)>,
     ) {
-        let connection = match Self::open(path, config) {
+        let metrics = Metrics::new();
+        let started = Instant::now();
+        let opened = Self::open(path, config, metrics.clone());
+        metrics.request(
+            Operation::Open,
+            if opened.is_ok() {
+                Outcome::Success
+            } else {
+                Outcome::Failure
+            },
+            started.elapsed(),
+        );
+        let connection = match opened {
             Ok(connection) => connection,
             Err(report) => {
                 ready.send(Err(report));
