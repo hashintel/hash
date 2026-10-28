@@ -14,7 +14,10 @@ import type * as Type from "../../Type.js";
 const { Expression, Import, Module, Namespace, Prelude, Structural } = Program;
 const identity = Symbol("Item");
 type Item = Type.Opaque<typeof identity, Type.PrimitiveInteger>;
-const input = Expression.input("count", Structural.type(BigInt));
+const input = Expression.input(
+  "count",
+  Result.getOrThrow(Structural.type(BigInt)),
+);
 const source = Result.getOrThrow(
   Module.define("::source", {
     modules: { Item: Prelude.builtin.modules.math },
@@ -192,7 +195,7 @@ describe("bindings", () => {
           Program.Inputs.Empty
         >
       >();
-      expectTypeOf(Structural.type(item)).toEqualTypeOf<
+      expectTypeOf(Result.getOrThrow(Structural.type(item))).toEqualTypeOf<
         Program.TypeExpression.TypeExpression<Item>
       >();
     });
@@ -212,9 +215,9 @@ describe("bindings", () => {
       expectTypeOf(flat.local(1n)).toEqualTypeOf<
         Program.Expression.Expression<Item, Program.Inputs.Empty>
       >();
-      expectTypeOf(Structural.type(flat.local)).toEqualTypeOf<
-        Program.TypeExpression.TypeExpression<Item>
-      >();
+      expectTypeOf(
+        Result.getOrThrow(Structural.type(flat.local)),
+      ).toEqualTypeOf<Program.TypeExpression.TypeExpression<Item>>();
     });
 
     test("generic_correlation", () => {

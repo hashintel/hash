@@ -289,7 +289,9 @@ describe("emitted_modules", () => {
     expectTypeOf(id).toEqualTypeOf<
       Program.Expression.Expression<Program.Prelude.Uuid, Program.Inputs.Empty>
     >();
-    expectTypeOf(Program.Structural.type(joined)).toEqualTypeOf<
+    expectTypeOf(
+      Result.getOrThrow(Program.Structural.type(joined)),
+    ).toEqualTypeOf<
       Program.TypeExpression.TypeExpression<Program.Prelude.Uuid>
     >();
     const path = Result.getOrThrow(JExpr.Path.decodeResult("local"));
@@ -357,7 +359,7 @@ describe("emitted_module_imports", () => {
     expectTypeOf(Id("id")).toEqualTypeOf<
       Program.Expression.Expression<Program.Prelude.Uuid, Program.Inputs.Empty>
     >();
-    expectTypeOf(Program.Structural.type(Id)).toEqualTypeOf<
+    expectTypeOf(Result.getOrThrow(Program.Structural.type(Id))).toEqualTypeOf<
       Program.TypeExpression.TypeExpression<Program.Prelude.Uuid>
     >();
     const root = Result.map(Expression.toNode(Id("id")), declaration.wrap);
