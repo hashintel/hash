@@ -13,6 +13,7 @@ pub mod aes_gcm;
 mod buffer;
 #[cfg(feature = "clap")]
 mod cli;
+pub mod digest;
 mod hex;
 pub mod hmac;
 pub mod random;
