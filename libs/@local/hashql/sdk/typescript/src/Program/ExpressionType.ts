@@ -1,7 +1,7 @@
 /**
  * Type-level normalization, calls and projections for symbolic values.
  *
- * Union projections require the field in every alternative. Intersections combine field descriptors, while index access includes Null for an absent element. These calculations retain the source expression's input requirements.
+ * Union projections require the field in every alternative. Intersections combine field descriptors. Index access includes {@link Type.PrimitiveNull} for an absent element. These calculations retain the source expression's input requirements.
  *
  * @module
  */
@@ -297,12 +297,12 @@ type IndexOf<T extends Type.Any> = [T] extends [Type.List<infer Value>]
           ? CombinedIndex<"Intersection", Members>
           : undefined;
 
-/** Access operations whose validity is left to the HashQL compiler. */
+/** Access operations whose validity the HashQL compiler decides. */
 interface UnsafeAccessors<Inputs> {
   /**
    * Projects without checking the field or tuple position against the descriptor.
    *
-   * The result has the {@link Type.Unknown} descriptor and retains the receiver's input requirements. This does not establish that the field or position exists.
+   * The result has the {@link Type.Unknown} descriptor and retains the receiver's input requirements. This does not establish that the field or position exists. A position that is not an integer, such as `1.5` or `NaN`, stores an `InvalidExpression` construction failure.
    */
   readonly $projectUnsafe: (
     key: string | number,
@@ -357,7 +357,7 @@ type IndexAccessor<Descriptor, Inputs> = [Descriptor] extends [IndexDescriptor]
 /**
  * Projection and indexing operations selected by an expression's semantic descriptor.
  *
- * Struct fields and tuple positions support property access and `$project`. For unions and intersections, a projected field must exist in every member. `$project` also accepts operation names such as `$index` when they name actual fields. List and dictionary `$index` calls merge the key's inputs and include Null in the result for an absent element. Opaque descriptors expose the operations of their underlying type.
+ * Struct fields and tuple positions support property access and `$project`. For unions and intersections, a projected field must exist in every member. `$project` also accepts operation names such as `$index` when they name actual fields. List and dictionary `$index` calls merge the key's inputs. Their result includes {@link Type.PrimitiveNull} for an absent element. Opaque descriptors expose the operations of their underlying type.
  */
 export type Accessors<T extends Type.Any, Inputs> = UnsafeAccessors<Inputs> &
   ProjectionAccessors<FieldsOf<Normalize<T>>, Inputs> &

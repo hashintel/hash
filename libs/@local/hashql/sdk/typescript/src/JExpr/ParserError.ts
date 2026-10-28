@@ -5,40 +5,17 @@
  *
  * @module
  */
-import type * as Ident from "../internal/ident-parser.js";
-import type * as Internal from "../internal/parser-error.js";
-import type * as TypeGrammar from "../internal/type-parser.js";
-
-export type { Reason } from "../internal/parser-error.js";
-export type { IdentReason } from "../internal/ident-parser.js";
-export type { TypeReason } from "../internal/type-parser.js";
-
-// The names below are also constructors in their source modules. The declaration bundler drops `type` from a re-export inside the namespace it builds, which would declare runtime values this module does not have. Each one is an alias instead.
-
-/**
- * Failure reasons at a UTF-16 offset from the beginning of the supplied input.
- *
- * Reasons in `expected` compare by value, so equal reasons appear once.
- */
-export type ParserError<R extends Internal.Reason> = Internal.ParserError<R>;
-
-/** A repeated parser succeeded without consuming input. */
-export type ExpectedProgress = Internal.ExpectedProgress;
-
-/** Input remains where the grammar requires its end. */
-export type ExpectedEndOfInput = Internal.ExpectedEndOfInput;
-
-/** The input does not match an exact source spelling. */
-export type ExpectedLiteral = Internal.ExpectedLiteral;
-
-/** The next scalar is absent or outside a named character class. */
-export type ExpectedCharacterClass = Internal.ExpectedCharacterClass;
-
-/** A URL-shaped identifier that is not an HTTP(S) URL ending in a slash. */
-export type InvalidBaseUrl = Ident.InvalidBaseUrl;
-
-/** The input nests deeper than the call stack lets the parser follow. Its offset is 0, because the parser cannot tell where the stack ran out. */
-export type NestingTooDeep = TypeGrammar.NestingTooDeep;
-
-/** A struct type names the same field twice. Its offset is the end of the struct. */
-export type DuplicateStructField = TypeGrammar.DuplicateStructField;
+export type {
+  ExpectedCharacterClass,
+  ExpectedEndOfInput,
+  ExpectedLiteral,
+  ExpectedProgress,
+  ParserError,
+  Reason,
+} from "../internal/parser-error.js";
+export type { IdentReason, InvalidBaseUrl } from "../internal/ident-parser.js";
+export type {
+  DuplicateStructField,
+  NestingTooDeep,
+  TypeReason,
+} from "../internal/type-parser.js";
