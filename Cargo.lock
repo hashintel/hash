@@ -6633,7 +6633,6 @@ dependencies = [
 name = "hash-graph-authentication"
 version = "0.0.0"
 dependencies = [
- "aws-lc-rs",
  "axum",
  "cookie",
  "crc32fast",
@@ -6643,7 +6642,6 @@ dependencies = [
  "hash-graph-store",
  "hash-middleware",
  "hash-secret",
- "hmac 0.13.0",
  "http 1.4.2",
  "jsonwebtoken",
  "moka",
