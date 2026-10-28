@@ -22,14 +22,22 @@ impl WorkspaceFiles {
         PathBuf::from(name)
     }
 
+    /// Returns the directory that holds `path`, which is the current directory for a bare file
+    /// name.
+    pub(super) fn directory(path: &Path) -> &Path {
+        path.parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."))
+    }
+
     /// Returns `path` with its directory resolved, or `None` if the directory cannot be resolved
     /// or `path` has no file name.
     fn resolve(path: &Path) -> Option<PathBuf> {
-        let directory = path
-            .parent()
-            .filter(|parent| !parent.as_os_str().is_empty())
-            .unwrap_or_else(|| Path::new("."));
-        Some(fs::canonicalize(directory).ok()?.join(path.file_name()?))
+        Some(
+            fs::canonicalize(Self::directory(path))
+                .ok()?
+                .join(path.file_name()?),
+        )
     }
 
     /// Returns the files of the workspace whose database file is `database`.

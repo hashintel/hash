@@ -493,14 +493,37 @@ async fn snapshot_holds_tables_created_before_it() {
 }
 
 #[tokio::test]
-async fn snapshot_refuses_workspace_files() {
+async fn snapshot_refuses_invalid_targets() {
     let directory = TempDir::new().expect("should create a directory");
     fs::create_dir_all(directory.path().join("nested")).expect("should create a directory");
     let workspace = open(&directory).await;
 
     for target in [
+        PathBuf::from("snapshot.duckdb"),
+        directory.path().join("nested/../snapshot.duckdb"),
+    ] {
+        let report = workspace
+            .snapshot(target.clone())
+            .await
+            .expect_err("a relative target or one with `..` should be refused");
+        assert!(
+            matches!(
+                report.current_context(),
+                SnapshotError::InvalidTarget { .. }
+            ),
+            "`{}` should be refused, not by {report:?}",
+            target.display()
+        );
+    }
+}
+
+#[tokio::test]
+async fn snapshot_refuses_workspace_files() {
+    let directory = TempDir::new().expect("should create a directory");
+    let workspace = open(&directory).await;
+
+    for target in [
         database_path(&directory),
-        directory.path().join("nested/../workspace.duckdb"),
         directory.path().join("workspace.duckdb.wal"),
         directory.path().join("workspace.duckdb.tmp"),
         directory.path().join("workspace.duckdb.lock"),

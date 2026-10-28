@@ -217,6 +217,8 @@ impl StatementError {
 /// Reports why [`Workspace::snapshot`](crate::Workspace::snapshot) failed.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum SnapshotError {
+    #[display("`{}` is relative or contains `..`", target.display())]
+    InvalidTarget { target: PathBuf },
     #[display("`{}` is one of the workspace's own files", target.display())]
     WorkspaceFile { target: PathBuf },
     #[display("could not checkpoint the database")]

@@ -3,7 +3,7 @@ use core::{error::Error, panic::AssertUnwindSafe};
 use std::{
     fs::{self, File, OpenOptions, TryLockError},
     io, panic,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 
 use duckdb::{Config, types::Value};
@@ -183,16 +183,23 @@ impl Connection {
         copy.sync_all()?;
         drop(copy);
         fs::rename(partial, target)?;
-
-        let directory = target
-            .parent()
-            .filter(|parent| !parent.as_os_str().is_empty())
-            .unwrap_or_else(|| Path::new("."));
-        File::open(directory)?.sync_all()
+        // The engine chooses `target`, and `snapshot` refuses relative paths and `..` before this
+        // runs. Opening the directory only syncs the rename to disk.
+        // nosemgrep: rust.actix.path-traversal.tainted-path.tainted-path
+        File::open(WorkspaceFiles::directory(target))?.sync_all()
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn snapshot(&self, target: &Path) -> Result<(), Report<SnapshotError>> {
+        if !target.is_absolute()
+            || target
+                .components()
+                .any(|part| matches!(part, Component::ParentDir))
+        {
+            return Err(Report::new(SnapshotError::InvalidTarget {
+                target: target.to_owned(),
+            }));
+        }
         let partial = WorkspaceFiles::partial(target);
         if self.files.contains(target) || self.files.contains(&partial) {
             return Err(Report::new(SnapshotError::WorkspaceFile {

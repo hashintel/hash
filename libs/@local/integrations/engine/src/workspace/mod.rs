@@ -217,11 +217,13 @@ impl Workspace {
     ///
     /// # Errors
     ///
+    /// - [`InvalidTarget`] if `target` is relative or contains `..`
     /// - [`WorkspaceFile`] if `target` or `<target>.partial` is one of the workspace's files
     /// - [`Checkpoint`] if DuckDB cannot write its log into the database file
     /// - [`Write`] if the copy cannot be written, synced or renamed
     /// - [`Stopped`] if the workspace thread stopped
     ///
+    /// [`InvalidTarget`]: SnapshotError::InvalidTarget
     /// [`WorkspaceFile`]: SnapshotError::WorkspaceFile
     /// [`Checkpoint`]: SnapshotError::Checkpoint
     /// [`Write`]: SnapshotError::Write
