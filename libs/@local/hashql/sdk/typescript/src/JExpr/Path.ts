@@ -11,9 +11,12 @@ import { compilePath } from "../internal/type-compile.js";
 import { completePath, parsePath } from "../internal/type-parser.js";
 import * as Type from "./Type/schema.js";
 
+import type * as Parser from "../internal/parser.js";
 import type * as Ident from "./Ident.js";
+import type * as ParserError from "./ParserError.js";
 import type {
   Schema as $Schema,
+  Arbitrary,
   Effect,
   Option,
   Result,
@@ -55,7 +58,7 @@ export const compile: (path: Path) => string = compilePath;
 /**
  * Codec between source text and a decoded {@link Path}.
  *
- * Syntax failures retain their parser error in the issue's `annotations.parserError`. Use {@link parse} to inspect the typed reason union. Argument types encode as text, so a single-member union or intersection decodes as its member.
+ * A syntax failure decodes to an `Encoding` issue. Its inner `InvalidValue` issue keeps the parser error in `annotations.parserError`, beside a message naming the UTF-16 offset. Use {@link parse} to inspect the typed reason union. Argument types encode as text, so a single-member union or intersection decodes as its member.
  */
 export const Schema: typeof Type.PathSchema = Type.PathSchema;
 /** Source text representing a path. */
@@ -66,20 +69,20 @@ type MakeIn = (typeof Schema)["~type.make.in"];
 /**
  * Validates a decoded path, requiring at least one segment.
  *
- * @throws {Error} If a name, argument type or path structure fails validation. The cause is a schema issue.
+ * @throws {Error} If a name, argument type or path structure fails validation. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- schema constructor
 export const make: (input: MakeIn, options?: $Schema.MakeOptions) => Path =
   SchemaParser.make(Schema);
 
-/** Validates a decoded path with schema issues in the effect's failure channel. */
+/** Validates a decoded path with the {@link SchemaIssue.Issue} in the effect's failure channel. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- schema constructor
 export const makeEffect: (
   input: MakeIn,
   options?: $Schema.MakeOptions,
 ) => Effect.Effect<Path, SchemaIssue.Issue> = SchemaParser.makeEffect(Schema);
 
-/** Validates a decoded path, returning None on a schema failure. */
+/** Validates a decoded path, returning `None` if validation fails. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- schema constructor
 export const makeOption: (
   input: MakeIn,
@@ -104,10 +107,17 @@ export const makeOption: (
  * assert.equal(path.segments[0].arguments.length, 1);
  * ```
  */
-export const parse: typeof parsePath = parsePath;
+export const parse: (
+  input: string,
+) => Result.Result<Path, ParserError.ParserError<ParserError.TypeReason>> =
+  parsePath;
+
+/** Source text accepted by the path grammar, paired with the path it parses to. */
+export type Sample = Parser.Sample<Path>;
 
 /** Generates supported path source and its parsed value. Depth bounds generation, not the parser's call stack. */
-export const arbitrary: typeof completePath.arbitrary = completePath.arbitrary;
+export const arbitrary: () => Arbitrary.Arbitrary<Sample> =
+  completePath.arbitrary;
 
 /**
  * Decodes path source through the schema, retaining syntax details in the returned issue.
