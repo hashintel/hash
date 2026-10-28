@@ -14,6 +14,7 @@ import {
   Predicate,
   Result,
   Schema,
+  SchemaIssue,
   SchemaParser,
   identity,
   pipe,
@@ -39,6 +40,7 @@ import type { Types } from "effect";
 export type { Conditional } from "./ExpressionType.js";
 
 const TypeId = "~hashql/Expression";
+/** The string key that marks an expression handle, which {@link isExpression} checks. */
 export type TypeId = typeof TypeId;
 
 const Binding: unique symbol = Symbol("~hashql/Expression");
@@ -208,13 +210,25 @@ const parseNode = (
 /**
  * Extracts a handle's stored AST result or validates a host literal into an AST node.
  *
- * Existing construction failures pass through unchanged. Invalid primitive syntax, including a non-finite number, returns a {@link ProgramError.Construction} with the `InvalidExpression` reason. Prefer {@link toJExpr} when consuming J-Expr syntax rather than builder nodes.
+ * Existing construction failures pass through unchanged. Invalid primitive syntax, including a non-finite number, returns a {@link ProgramError.Construction} with the `InvalidExpression` reason. A host record that carries the {@link TypeId} key without being a handle fails with the same reason. Prefer {@link toJExpr} when consuming J-Expr syntax rather than builder nodes.
  */
 export const toNode = (
   value: Value.Any,
 ): Result.Result<AST.Node, ProgramError.Construction> => {
   if (isExpression(value)) {
-    return value[Binding];
+    if (Predicate.hasProperty(value, Binding)) {
+      return value[Binding];
+    }
+
+    // The marker is a string key, so a data record can carry it. Only a handle stores a result.
+    return Result.fail(
+      ProgramError.Construction.invalidExpression(
+        new SchemaIssue.InvalidValue(
+          { message: `A record with the "${TypeId}" key is not an expression` },
+          value,
+        ),
+      ),
+    );
   }
 
   return parseNode(JExpr.literal(value));

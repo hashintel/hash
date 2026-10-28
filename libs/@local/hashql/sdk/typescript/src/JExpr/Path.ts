@@ -26,12 +26,14 @@ import type {
 } from "effect";
 import type { ParseOptions } from "effect/SchemaAST";
 
-interface GenericArgument extends Equal.Equal, Pipeable.Pipeable {
+/** A positional type argument, such as `T` in `List<T>`. */
+export interface GenericArgument extends Equal.Equal, Pipeable.Pipeable {
   readonly _tag: "GenericArgument";
   readonly bound: Type.Type;
 }
 
-interface GenericConstraint extends Equal.Equal, Pipeable.Pipeable {
+/** A named constraint with its bound, such as `U: Bound` in `Item<U: Bound>`. */
+export interface GenericConstraint extends Equal.Equal, Pipeable.Pipeable {
   readonly _tag: "GenericConstraint";
   readonly name: Ident.Ident;
   readonly bound: Type.Type;
@@ -49,7 +51,9 @@ export interface Segment extends Equal.Equal, Pipeable.Pipeable {
 /**
  * A nonempty sequence of segments. `rooted` records a leading `::`.
  *
- * Equality and hashing use rootedness and ordered segments, including names, argument kinds and nested type syntax. They do not normalize syntax or resolve names. Construction validates and copies ordinary field records, but it can share existing class instances and does not freeze the result. Do not mutate them or their nested syntax after comparison or hashing, because Effect caches those results.
+ * Equality and hashing use rootedness and ordered segments, including names, argument kinds and nested type syntax. Equality compares structure rather than compiled text, and it does not resolve names. A single-member union compiles like its member but compares unequal to it, so `Equal.equals(path, parse(compile(path)))` can be false.
+ *
+ * Construction validates and copies ordinary field records. It reuses an existing class instance instead of copying it, and it does not freeze the result. Do not mutate a path or its nested syntax after comparing or hashing it, because Effect caches those results.
  */
 export interface Path extends Equal.Equal, Pipeable.Pipeable {
   readonly rooted: boolean;
@@ -61,11 +65,15 @@ export const GenericArgument = Type.PathGenericArgument;
 /** Constructs a named path constraint from a decoded name and type. */
 export const GenericConstraint = Type.PathGenericConstraint;
 
-/** Validates a segment argument with decoded names and types. */
+/** Decodes a field record into a {@link GenericArgument} or {@link GenericConstraint} instance, and encodes the instance back into a field record. */
 export const SegmentArgument: typeof Type.PathArgument = Type.PathArgument;
-/** Validates a decoded path segment. An empty argument array omits angle brackets. */
+/** Decodes a field record into a {@link Segment} instance, and encodes the instance back into a field record. An empty argument array omits angle brackets. */
 export const Segment: typeof Type.PathSegment = Type.PathSegment;
-/** Validates path objects, including the recursive types in every argument. */
+/**
+ * Decodes field records into a {@link Path} and its segment and argument instances, validating every name and nested type.
+ *
+ * Encoding returns plain field records, which do not compare equal to the path they came from.
+ */
 export const SchemaFromSelf: typeof Type.PathFromSelf = Type.PathFromSelf;
 
 /** Writes canonical path text without validating the supplied object. */
@@ -85,9 +93,9 @@ export declare namespace Path {
 type MakeIn = (typeof Schema)["~type.make.in"];
 
 /**
- * Validates a decoded path, requiring at least one segment and constructing protocol-bearing segments and arguments.
+ * Validates a decoded path and constructs its segments and arguments as instances with Effect's `Equal`, `Hash` and `Pipeable` interfaces.
  *
- * The constructor accepts ordinary field records and preserves an existing instance's identity. The schema construction options apply to nested values too.
+ * A path needs at least one segment. The constructor accepts ordinary field records, and an existing instance keeps its identity. The schema construction options apply to nested values too.
  *
  * @throws {Error} If a name, argument type or path structure fails validation. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
