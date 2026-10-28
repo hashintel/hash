@@ -39,10 +39,13 @@ export const EntityTypeChildren = ({
     </Box>
   );
 
+  const heading = <>Types that extend {boldTitle}</>;
+  const emptyMessage = <>No types extend {boldTitle} yet.</>;
+
   return (
     <DependentTypesSection
-      heading={<>Types that extend {boldTitle}</>}
-      emptyMessage={<>No types extend {boldTitle} yet.</>}
+      heading={heading}
+      emptyMessage={emptyMessage}
       types={children}
       error={error}
       isLinkType={(child) =>
