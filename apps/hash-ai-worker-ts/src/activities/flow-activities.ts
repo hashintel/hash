@@ -1,3 +1,4 @@
+import { checkActionOutputs } from "@local/hash-backend-utils/flows";
 import { signalStepAttempts } from "@local/hash-backend-utils/flows/signal-step-attempts";
 
 import { aggregateAction } from "./flow-activities/aggregate-action.js";
@@ -35,39 +36,40 @@ import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flow
 
 export const createFlowActionActivities: CreateFlowActivities<
   AiFlowActionDefinitionId
-> = ({ vaultClient }: { vaultClient: VaultClient }) => ({
-  aggregateAction,
-  analyzeEntityDataAction,
-  generateStructuralQueryAction,
-  answerQuestionAction,
-  createEntityAction,
-  draftMessageAction,
-  filterListAction,
-  findAction,
-  generateChartConfigAction,
-  planDashboardRefinementAction,
-  generateWebQueriesAction,
-  getFileFromUrlAction,
-  getWebPageByUrlAction,
-  getWebPageSummaryAction,
-  ifAction,
-  inferEntitiesFromContentAction,
-  inferMetadataFromDocumentAction,
-  orderByAction,
-  persistEntitiesAction,
-  persistEntityAction,
-  processAutomaticBrowsingSettingsAction,
-  queryEntitiesAction,
-  researchEntitiesAction,
-  takeFirstAction,
-  updateEntityAction,
-  webSearchAction,
-  writeGoogleSheetAction(
-    params: Omit<Parameters<typeof writeGoogleSheetAction>[0], "vaultClient">,
-  ) {
-    return writeGoogleSheetAction({ ...params, vaultClient });
-  },
-});
+> = ({ vaultClient }: { vaultClient: VaultClient }) =>
+  checkActionOutputs<AiFlowActionDefinitionId>({
+    aggregateAction,
+    analyzeEntityDataAction,
+    generateStructuralQueryAction,
+    answerQuestionAction,
+    createEntityAction,
+    draftMessageAction,
+    filterListAction,
+    findAction,
+    generateChartConfigAction,
+    planDashboardRefinementAction,
+    generateWebQueriesAction,
+    getFileFromUrlAction,
+    getWebPageByUrlAction,
+    getWebPageSummaryAction,
+    ifAction,
+    inferEntitiesFromContentAction,
+    inferMetadataFromDocumentAction,
+    orderByAction,
+    persistEntitiesAction,
+    persistEntityAction,
+    processAutomaticBrowsingSettingsAction,
+    queryEntitiesAction,
+    researchEntitiesAction,
+    takeFirstAction,
+    updateEntityAction,
+    webSearchAction,
+    writeGoogleSheetAction(
+      params: Omit<Parameters<typeof writeGoogleSheetAction>[0], "vaultClient">,
+    ) {
+      return writeGoogleSheetAction({ ...params, vaultClient });
+    },
+  });
 
 export const createFlowActivities = ({
   vaultClient,

@@ -18,10 +18,7 @@ import {
 import { getArrayPayloadItems } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 import { asPayload } from "@local/hash-isomorphic-utils/flows/types";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
-import {
-  validateActionOutputs,
-  validateFlowInputs,
-} from "@local/hash-isomorphic-utils/flows/validate-payloads";
+import { validateFlowInputs } from "@local/hash-isomorphic-utils/flows/validate-payloads";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
 
@@ -616,21 +613,6 @@ const processFlow = async (
       log(
         `Step ${currentStepId}: obtained ${outputs.length} outputs from "${currentStep.actionDefinitionId}" action`,
       );
-
-      const invalidOutputMessage = validateActionOutputs({
-        actionDefinitionId: currentStep.actionDefinitionId,
-        inputs: currentStep.inputs ?? [],
-        outputs,
-      });
-
-      if (invalidOutputMessage) {
-        processStepErrors[currentStepId] = {
-          code: StatusCode.Internal,
-          message: invalidOutputMessage,
-        };
-
-        return;
-      }
 
       currentStep.outputs = outputs;
 

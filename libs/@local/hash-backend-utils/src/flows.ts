@@ -33,6 +33,7 @@ export type {
   CreateFlowActivities,
   FlowActionActivity,
 } from "./flows/action-types.js";
+export { checkActionOutputs } from "./flows/check-action-outputs.js";
 export { createCommonFlowActivities } from "./flows/process-flow-workflow/common-activities.js";
 
 /** A run's links, which every run has to the flow definition it runs. */
