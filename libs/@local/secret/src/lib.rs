@@ -14,6 +14,7 @@ mod buffer;
 #[cfg(feature = "clap")]
 mod cli;
 mod hex;
+pub mod hmac;
 pub mod random;
 mod secret;
 
