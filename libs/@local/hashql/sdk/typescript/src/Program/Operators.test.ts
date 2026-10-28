@@ -23,13 +23,20 @@ const syntax = (expression: Expression.Expression.Any): JExpr.Expression =>
 const compile = (value: Expression.Value.Any): string =>
   JExpr.compile(Result.getOrThrow(Expression.toJExpr(value)));
 
-const numberType = Structural.type(Number);
+const numberType = Result.getOrThrow(Structural.type(Number));
 
 describe("operators", () => {
   test("composition_forms", () => {
     expect.hasAssertions();
-    const count = Expression.input("count", Structural.type(BigInt));
-    const enabled = Expression.input("enabled", Structural.type(Boolean), true);
+    const count = Expression.input(
+      "count",
+      Result.getOrThrow(Structural.type(BigInt)),
+    );
+    const enabled = Expression.input(
+      "enabled",
+      Result.getOrThrow(Structural.type(Boolean)),
+      true,
+    );
     const chained = Operators.eq(count, 1n).and(enabled).or(false).not();
     const piped = pipe(
       count,
@@ -80,8 +87,14 @@ describe("operators", () => {
 
   test("expression_operations", () => {
     expect.hasAssertions();
-    const count = Expression.input("count", Structural.type(BigInt));
-    const position = Expression.input("position", Structural.type(BigInt));
+    const count = Expression.input(
+      "count",
+      Result.getOrThrow(Structural.type(BigInt)),
+    );
+    const position = Expression.input(
+      "position",
+      Result.getOrThrow(Structural.type(BigInt)),
+    );
     const predicate = Operators.eq(count, 1n);
     expect(predicate.pipe((value) => value)).toBe(predicate);
     expect(syntax(predicate.pipe(Operators.not))).toStrictEqual([

@@ -18,7 +18,7 @@ type Vertex = Type.Struct<{ readonly name: Type.PrimitiveString }>;
 const compile = (value: Expression.Value.Any): string =>
   JExpr.compile(Result.getOrThrow(Expression.toJExpr(value)));
 const alias = Result.getOrThrow(JExpr.Path.decodeResult("alias"));
-const numberType = Structural.type(Number);
+const numberType = Result.getOrThrow(Structural.type(Number));
 
 describe("expression", () => {
   test("returned_function", () => {

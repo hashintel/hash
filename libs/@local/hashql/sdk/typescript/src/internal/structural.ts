@@ -7,6 +7,7 @@
  */
 import {
   Array,
+  MutableHashSet,
   Predicate,
   Record,
   Result,
@@ -45,6 +46,31 @@ const collectionPaths = Record.map(
   { List: "::kernel::type::List", Dict: "::kernel::type::Dict" },
   (path) => pipe(path, JExpr.Path.decodeResult, Result.getOrThrow),
 );
+
+interface Field {
+  readonly key: string;
+  readonly name: JExpr.Ident.Ident;
+  readonly member: Syntax.Type;
+}
+
+// `+` and `` `+` `` decode to the same name, and a struct holds each name once. Comparing decoded names reports the later spelling before the struct reaches syntax the schema refuses.
+const distinctFields = (
+  fields: readonly Field[],
+): Result.Result<Syntax.Type, ProgramError.Construction> => {
+  const seen = MutableHashSet.empty<JExpr.Ident.Ident>();
+  for (const { key, name } of fields) {
+    if (MutableHashSet.has(seen, name)) {
+      return Result.fail(ProgramError.Construction.duplicateStructField(key));
+    }
+
+    MutableHashSet.add(seen, name);
+  }
+
+  return Result.succeed({
+    _tag: "Struct",
+    members: Array.map(fields, ({ name, member }) => [name, member] as const),
+  });
+};
 
 /** Tests the type marker first, because a type expression is a plain object and a type constructor is a function. */
 export const typeSyntax = (
@@ -97,24 +123,21 @@ export const typeSyntax = (
   return pipe(
     definition,
     Record.toEntries,
-    Array.map(([name, member]) =>
+    Array.map(([key, member]) =>
       Result.all({
+        key: Result.succeed(key),
         name: pipe(
-          name,
+          key,
           JExpr.Ident.decodeResult,
           Result.mapError((cause) =>
-            ProgramError.Construction.invalidBindingName(name, cause),
+            ProgramError.Construction.invalidBindingName(key, cause),
           ),
         ),
         member: typeSyntax(member),
       }),
     ),
     Result.all,
-    Result.map(Array.map(({ name, member }) => [name, member] as const)),
-    Result.map((members) => ({
-      _tag: "Struct",
-      members,
-    })),
+    Result.flatMap(distinctFields),
   );
 };
 
