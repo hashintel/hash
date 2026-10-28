@@ -12,6 +12,10 @@
     ".": {
       "types": "./dist/main.d.ts",
       "default": "./dist/main.js"
+    },
+    "./draft": {
+      "types": "./dist/draft/index.d.ts",
+      "default": "./dist/draft/index.js"
     }
   },
   "scripts": {

@@ -1,0 +1,952 @@
+/**
+ * Runtime checks for Draft programs: declaration order, branch scopes, the input and prelude boundaries, imports, flattened views and callback failures.
+ *
+ * @module
+ */
+import { Cause, Result, Schema, pipe } from "effect";
+// oxlint-disable unicorn/no-thenable -- then names a HashQL branch or a declared export
+import { assert, describe, expect, expectTypeOf, test } from "vitest";
+
+import * as JExpr from "../JExpr/index.js";
+import * as Program from "../Program/index.js";
+import * as Draft from "./index.js";
+
+import type * as Type from "../Type.js";
+
+const {
+  Expression,
+  Module,
+  Namespace,
+  Operators,
+  Prelude,
+  Structural,
+  TypeExpression,
+} = Program;
+
+type Built = Result.Result<
+  Program.Expression.Expression.Any,
+  Program.ProgramError.Construction
+>;
+
+/** Compiles a program's root to J-Expr text. */
+const text = (result: Built): string =>
+  pipe(
+    result,
+    Result.flatMap(Expression.toJExpr),
+    Result.map(JExpr.compile),
+    Result.getOrThrow,
+  );
+
+/** Compiles a program's root and parses the J-Expr, for comparison by structure. */
+const syntax = (result: Built): Schema.Json =>
+  pipe(
+    text(result),
+    // oxlint-disable-next-line effecttsgo/schema-sync -- malformed emitted JSON must fail this synchronous test helper
+    Schema.decodeSync(Schema.fromJsonString(Schema.Json)),
+  );
+
+const call = (name: string, ...args: readonly Schema.Json[]): Schema.Json => [
+  name,
+  ...args,
+];
+const literal = (value: string | number | boolean): Schema.Json => ({
+  "#literal": value,
+});
+
+const integer = Structural.type(BigInt);
+
+// oxlint-disable-next-line typescript/promise-function-async -- this fixture supplies a Promise where the synchronous API rejects one
+const asynchronousBody = (): Promise<
+  Program.Expression.Expression<Type.PrimitiveBoolean, Program.Inputs.Empty>
+> => Promise.resolve(Expression.literal(true));
+
+interface IdentitySignature extends Type.FunctionSignature {
+  readonly type: this["Target"] extends readonly [infer T extends Type.Any]
+    ? Type.Function<readonly [T], T>
+    : Type.Function<readonly [Type.Never], Type.Never>;
+}
+
+interface List extends Type.TypeConstructor {
+  readonly arity: 1;
+  readonly type: this["Target"] extends readonly [infer T extends Type.Any]
+    ? Type.List<T>
+    : Type.Never;
+}
+
+const leaf = Result.getOrThrow(
+  Module.define("::leaf", {
+    values: { enabled: Module.value<Type.PrimitiveBoolean>() },
+  }),
+);
+const declarations = Result.getOrThrow(
+  Module.define("::example", {
+    modules: { child: leaf },
+    types: {
+      Whole: Module.type<Type.PrimitiveInteger>(),
+      List: Prelude.builtin.types.List,
+    },
+    values: {
+      Whole:
+        Module.value<
+          Type.Function<readonly [Type.PrimitiveInteger], Type.PrimitiveInteger>
+        >(),
+    },
+  }),
+);
+const child = Result.getOrThrow(
+  Module.define("::child", {
+    values: {
+      name: Module.value<Type.PrimitiveInteger>(),
+      then: Module.value<Type.PrimitiveInteger>(),
+      $: Module.value<Type.PrimitiveInteger>(),
+    },
+    types: { ["__proto__"]: Module.type<Type.PrimitiveInteger>() },
+  }),
+);
+
+describe("program", () => {
+  test("ordered_declarations", () => {
+    expect.hasAssertions();
+    let calls = 0;
+    const result = Draft.program({}, ($) => {
+      calls += 1;
+      const Count = $.type("Count", BigInt);
+      const Foo = $.newtype("Foo", { foo: Count });
+      const value = $.let("value", Foo({ foo: 2n }));
+      expect(TypeExpression.isExport(Foo)).toBe(true);
+      expect(Expression.isExpression(Foo)).toBe(true);
+      expect(TypeExpression.isExport(Count)).toBe(true);
+      return value;
+    });
+    const output = pipe(
+      result,
+      Result.getOrThrow,
+      Program.program,
+      Program.compile,
+      Result.getOrThrow,
+    );
+    expect(JSON.parse(output)).toStrictEqual(
+      call(
+        "::kernel::special_form::type",
+        "Count",
+        "::kernel::type::Integer",
+        call(
+          "::kernel::special_form::newtype",
+          "Foo",
+          { "#struct": { foo: "Count" } },
+          call(
+            "::kernel::special_form::let",
+            "value",
+            call("Foo", { "#struct": { foo: literal(2) } }),
+            "value",
+          ),
+        ),
+      ),
+    );
+    expect(calls).toBe(1);
+  });
+
+  test("host_value_newtype", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const Flag = $.newtype("Flag", { enabled: Boolean, label: String });
+      return Flag({ enabled: true, label: "on" });
+    });
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::newtype",
+        "Flag",
+        {
+          "#struct": {
+            enabled: "::kernel::type::Boolean",
+            label: "::kernel::type::String",
+          },
+        },
+        call("Flag", {
+          "#struct": { enabled: literal(true), label: literal("on") },
+        }),
+      ),
+    );
+  });
+
+  test("branch_collectors", () => {
+    expect.hasAssertions();
+    const visits: string[] = [];
+    const result = Draft.program({}, ($) =>
+      $.if(false, {
+        then: (branch) => {
+          visits.push("then");
+          return branch.let("inside", branch.literal(1n));
+        },
+        else: (branch) => {
+          visits.push("else");
+          return branch.let("other", branch.literal(2n));
+        },
+      }),
+    );
+    expect(visits).toStrictEqual(["then", "else"]);
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::if",
+        literal(false),
+        call("::kernel::special_form::let", "inside", literal(1), "inside"),
+        call("::kernel::special_form::let", "other", literal(2), "other"),
+      ),
+    );
+  });
+
+  test("then_only", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) =>
+      $.if(true, { then: (branch) => branch.let("inside", 1n) }),
+    );
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::if",
+        literal(true),
+        call("::kernel::special_form::let", "inside", literal(1), "inside"),
+      ),
+    );
+  });
+
+  test("reentrant_collectors", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const outer = $.let("outer", 1n);
+      const inner = Draft.program({}, (nested) => nested.let("inner", 2n));
+      expect(syntax(inner)).toStrictEqual(
+        call("::kernel::special_form::let", "inner", literal(2), "inner"),
+      );
+      return $.if(true, {
+        then: (branch) =>
+          branch.if(false, {
+            then: (deeper) => deeper.let("deep", outer),
+            else: () => outer,
+          }),
+        else: () => outer,
+      });
+    });
+    expect(text(result)).not.toContain('"inner"');
+    expect(text(result)).toContain('"deep"');
+  });
+
+  test("structural_shorthand", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const { List: ListType, Dict, String: StringType, Integer } = $.prelude();
+      $.type("Collections", {
+        list: ListType(BigInt),
+        dict: Dict(StringType, Integer),
+        nested: ListType({ value: BigInt }),
+        flag: Boolean,
+        text: String,
+        number: Number,
+      });
+      const Tuple = $.newtype("Tuple", [BigInt, String]);
+      return Tuple([2n, "two"]);
+    });
+    expect(text(result)).toContain('"#tuple"');
+    expect(text(result)).toContain(
+      "::kernel::type::List<::kernel::type::Integer>",
+    );
+  });
+
+  test("construction_failures", () => {
+    expect.hasAssertions();
+    for (const result of [
+      Draft.program({}, ($) => {
+        $.let("not a name", 1n);
+        return $.literal(true);
+      }),
+      Draft.program({}, ($) => {
+        $.let("bad", Infinity);
+        return $.literal(true);
+      }),
+      Draft.program({}, ($) => {
+        $.type("bad", { "not a field": BigInt });
+        return $.literal(true);
+      }),
+      Draft.program({}, ($) =>
+        $.if(true, {
+          then: () => 1n,
+          else: (branch) => {
+            branch.let("bad", Number.NaN);
+            return 2n;
+          },
+        }),
+      ),
+    ]) {
+      expect(result._tag).toBe("Failure");
+    }
+
+    // @ts-expect-error exercise an unchecked JavaScript caller
+    const asynchronous = Draft.program({}, asynchronousBody);
+    expect(Result.isFailure(asynchronous)).toBe(true);
+  });
+
+  test("failed_type_declaration", () => {
+    expect.hasAssertions();
+    // @ts-expect-error The runtime call omits the required type argument.
+    const invalid = Prelude.builtin.types.List();
+    const alias = Draft.program({}, ($) => {
+      $.type("Alias", invalid);
+      return $.literal(true);
+    });
+    const nominal = Draft.program({}, ($) => {
+      $.newtype("Nominal", invalid);
+      return $.literal(true);
+    });
+    expect(alias).toStrictEqual(TypeExpression.toType(invalid));
+    expect(nominal).toStrictEqual(TypeExpression.toType(invalid));
+  });
+
+  test("invalid_nominal", () => {
+    expect.hasAssertions();
+    const value = Draft.program({}, ($) => {
+      const Bad = $.newtype("Bad", { number: Number });
+      return Bad({ number: Infinity });
+    });
+    expect(Result.isFailure(value)).toBe(true);
+    const declaration = Draft.program({}, ($) => {
+      $.newtype("not a name", BigInt);
+      return $.literal(true);
+    });
+    expect(Result.isFailure(declaration)).toBe(true);
+  });
+
+  test("schema_shorthand", () => {
+    expect.hasAssertions();
+    const result = Draft.program(
+      { flag: Boolean, point: { width: Number, height: Number } },
+      ($, { flag, point }) =>
+        $.if(flag, { then: () => point.width, else: () => point.height }),
+    );
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::if",
+        call(
+          "::kernel::special_form::input",
+          "flag",
+          "::kernel::type::Boolean",
+        ),
+        call(
+          "::kernel::special_form::access",
+          call("::kernel::special_form::input", "point", {
+            "#struct": {
+              width: "::kernel::type::Number",
+              height: "::kernel::type::Number",
+            },
+          }),
+          "width",
+        ),
+        call(
+          "::kernel::special_form::access",
+          call("::kernel::special_form::input", "point", {
+            "#struct": {
+              width: "::kernel::type::Number",
+              height: "::kernel::type::Number",
+            },
+          }),
+          "height",
+        ),
+      ),
+    );
+  });
+
+  test("external_inputs", () => {
+    expect.hasAssertions();
+    const external = Expression.input("count", Prelude.builtin.types.Integer);
+    const result = Draft.program(
+      { count: Prelude.builtin.types.Integer },
+      ($) => {
+        $.let("unused", external);
+        return $.literal(true);
+      },
+    );
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::let",
+        "unused",
+        call(
+          "::kernel::special_form::input",
+          "count",
+          "::kernel::type::Integer",
+        ),
+        literal(true),
+      ),
+    );
+  });
+
+  test("escaped_references", () => {
+    expect.hasAssertions();
+    let escaped: Program.Expression.Expression<
+      Type.PrimitiveInteger,
+      Program.Inputs.Empty
+    > = Expression.integer(0);
+    Draft.program({}, ($) => {
+      escaped = $.let("local", 1n);
+      return escaped;
+    });
+    expect(syntax(Draft.program({}, () => escaped))).toBe("local");
+  });
+});
+
+describe("with_prelude", () => {
+  test("custom_prelude", () => {
+    expect.hasAssertions();
+    const custom = Result.getOrThrow(
+      Module.define("::custom", {
+        types: { Item: Module.type<Type.PrimitiveInteger>() },
+        values: {
+          Item: Module.value<
+            Type.Function<
+              readonly [Type.PrimitiveInteger],
+              Type.PrimitiveInteger
+            >
+          >(),
+        },
+      }),
+    );
+    const originalKeys = Reflect.ownKeys(custom.types.Item);
+    const { program } = Draft.withPrelude(custom);
+    const result = program({}, ($) => {
+      const { Item } = $.prelude();
+      expect(TypeExpression.isExport(Item)).toBe(true);
+      expect(Expression.isExpression(Item)).toBe(true);
+      expect($.prelude()).not.toHaveProperty("Uuid");
+      expect(Result.getOrThrow(TypeExpression.toType(Item))).toStrictEqual(
+        Result.getOrThrow(TypeExpression.toType(custom.types.Item)),
+      );
+      return Item(2n);
+    });
+    expect(syntax(result)).toStrictEqual(call("::custom::Item", literal(2)));
+    expect(Reflect.ownKeys(custom.types.Item)).toStrictEqual(originalKeys);
+    expect(Object.isFrozen(custom.types)).toBe(true);
+  });
+
+  test("generic_value_collision", () => {
+    expect.hasAssertions();
+    const custom = Result.getOrThrow(
+      Module.define("::custom", {
+        types: { Both: Module.genericType<Program.Prelude.List>(1) },
+        values: {
+          Both: Module.value<
+            Type.Function<
+              readonly [Type.PrimitiveInteger],
+              Type.PrimitiveInteger
+            >
+          >(),
+        },
+      }),
+    );
+    const result = Draft.withPrelude(custom).program({}, ($) => {
+      const { Both } = $.prelude();
+      expect(TypeExpression.isExport(Both)).toBe(true);
+      expect(Expression.isExpression(Both)).toBe(true);
+      const specialized = Both(Prelude.builtin.types.Integer);
+      expect(TypeExpression.isExport(specialized)).toBe(true);
+      expect(Result.getOrThrow(TypeExpression.toType(specialized))._tag).toBe(
+        "Reference",
+      );
+      return Both(2n);
+    });
+    expect(syntax(result)).toStrictEqual(call("::custom::Both", literal(2)));
+  });
+
+  test("three_namespace_collision", () => {
+    expect.hasAssertions();
+    const nested = Result.getOrThrow(
+      Module.define("::custom::child", {
+        types: { Integer: Module.type<Type.PrimitiveInteger>() },
+      }),
+    );
+    const generic = Result.getOrThrow(
+      Module.define("::custom", {
+        types: { Both: Module.genericType<Program.Prelude.List>(1) },
+        values: {
+          Both: Module.value<Type.GenericFunction<IdentitySignature>>(),
+        },
+      }),
+    );
+    const built = Draft.withPrelude({
+      types: generic.types,
+      values: generic.values,
+      modules: { Both: nested },
+    }).program({}, ($) => {
+      const { Both } = $.prelude();
+      expect([
+        Module.isModule(Both),
+        TypeExpression.isConstructor(Both),
+        Expression.isExpression(Both),
+      ]).toStrictEqual([true, true, true]);
+      expect([Both.types.Integer, $.modules().Both.Integer]).toStrictEqual([
+        nested.types.Integer,
+        nested.types.Integer,
+      ]);
+      const applied = Both(nested.types.Integer);
+      expect(TypeExpression.isExport(applied)).toBe(true);
+      const combinedArgument = Draft.withPrelude(Prelude.builtin).program(
+        {},
+        (inner) => {
+          const result = Both(inner.prelude().Uuid);
+          expect([
+            TypeExpression.isExport(result),
+            Expression.isExpression(result),
+          ]).toStrictEqual([true, true]);
+          return inner.literal(true);
+        },
+      );
+      expect(Result.isSuccess(combinedArgument)).toBe(true);
+      return Both(2n);
+    });
+    expect(syntax(built)).toStrictEqual(call("::custom::Both", literal(2)));
+  });
+
+  test("nested_nominal_export", () => {
+    expect.hasAssertions();
+    const library = Result.getOrThrow(
+      Module.define("::custom::library", {
+        modules: { entity: Prelude.builtin.modules.entity },
+      }),
+    );
+    const root = Result.getOrThrow(
+      Module.define("::custom", { modules: { library } }),
+    );
+    const result = Draft.withPrelude({
+      modules: { root },
+      values: { Uuid: Prelude.builtin.values.Uuid },
+    }).program({}, ($) => {
+      const EntityUuid = $.modules().root.library.entity.EntityUuid;
+      expect(TypeExpression.isExport(EntityUuid)).toBe(true);
+      expect(Expression.isExpression(EntityUuid)).toBe(true);
+      expect(Module.isModule($.modules().root.library.entity)).toBe(true);
+      const alias = $.type("Id", EntityUuid);
+      expect(Result.isSuccess(TypeExpression.toType(alias))).toBe(true);
+      return EntityUuid($.prelude().Uuid("uuid"));
+    });
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::type",
+        "Id",
+        "::graph::types::knowledge::entity::EntityUuid",
+        call(
+          "::graph::types::knowledge::entity::EntityUuid",
+          call("::core::uuid::Uuid", literal("uuid")),
+        ),
+      ),
+    );
+  });
+
+  test("metadata_projection", () => {
+    expect.hasAssertions();
+    const custom = Result.getOrThrow(
+      Module.define("::custom", {
+        types: { Shared: Module.type<Type.PrimitiveInteger>() },
+        values: {
+          Shared:
+            Module.value<
+              Type.Struct<{ readonly syntax: Type.PrimitiveInteger }>
+            >(),
+        },
+      }),
+    );
+    const result = Draft.withPrelude(custom).program({}, ($) => {
+      const { Shared } = $.prelude();
+      expect(Result.isSuccess(Shared.syntax)).toBe(true);
+      expect(Result.isSuccess(TypeExpression.toType(Shared))).toBe(true);
+      return Shared.$project("syntax");
+    });
+    expect(syntax(result)).toStrictEqual(
+      call("::kernel::special_form::access", "::custom::Shared", "syntax"),
+    );
+  });
+
+  test("prelude_snapshot", () => {
+    expect.hasAssertions();
+    const first = Expression.integer(1);
+    const values = { value: first };
+    const { program } = Draft.withPrelude({ values });
+    expect(Object.isFrozen(values)).toBe(false);
+    values.value = Expression.integer(2);
+    const result = program({}, ($) => $.prelude().value);
+    expect(text(result)).toBe('{"#literal":1}');
+  });
+});
+
+describe("boundary", () => {
+  test("symbol_keys", () => {
+    expect.hasAssertions();
+    const key = Symbol("hidden");
+    const schema = { count: integer };
+    Object.defineProperty(schema, key, { value: integer, enumerable: true });
+    const values = { one: Expression.integer(1) };
+    Object.defineProperty(values, key, {
+      value: Expression.integer(2),
+      enumerable: true,
+    });
+    const result = Draft.withPrelude({ values }).program(
+      schema,
+      ($, inputs) => {
+        expect(Object.hasOwn(inputs, key)).toBe(false);
+        expect(Object.hasOwn($.prelude(), key)).toBe(false);
+        return $.prelude().one;
+      },
+    );
+    expect(text(result)).toBe('{"#literal":1}');
+  });
+
+  test("input_own_names", () => {
+    expect.hasAssertions();
+    const schema = { count: integer, ["__proto__"]: integer };
+    Object.defineProperty(schema, "count", { enumerable: false });
+    const result = Draft.program(schema, (_, inputs) => {
+      expect(Object.getPrototypeOf(inputs)).toBe(Object.prototype);
+      expect(Object.hasOwn(inputs, "count")).toBe(false);
+      // oxlint-disable-next-line eslint/no-proto -- this is a declared HashQL input, not the JavaScript prototype accessor
+      return inputs.__proto__;
+    });
+    expect(text(result)).toContain('"__proto__"');
+  });
+
+  test("nominal_relocation", () => {
+    expect.hasAssertions();
+    const second = Result.getOrThrow(JExpr.Path.decodeResult("::second::Box"));
+    const result = Draft.program({}, ($) => {
+      const Box = $.newtype("Box", { value: BigInt });
+      const module = pipe(
+        Module.define("::test", { types: { Box }, values: { Box } }),
+        Result.getOrThrow,
+      );
+      const joined = Namespace.flatten(module).Box;
+      const first = pipe(
+        joined,
+        TypeExpression.relocate(
+          Result.getOrThrow(JExpr.Path.decodeResult("::first::Box")),
+        ),
+        Result.getOrThrow,
+      );
+      const moved = pipe(
+        first,
+        TypeExpression.relocate(second),
+        Result.getOrThrow,
+      );
+      expect(Expression.isExpression(moved)).toBe(true);
+      expect(TypeExpression.isExport(moved)).toBe(true);
+      expect(Result.getOrThrow(TypeExpression.toType(moved))).toStrictEqual({
+        _tag: "Reference",
+        path: second,
+      });
+      return moved({ value: 2n });
+    });
+    expect(text(result)).toContain(
+      '["::second::Box",{"#struct":{"value":{"#literal":2}}}]',
+    );
+  });
+});
+
+describe("import", () => {
+  test("selected_capabilities", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const { Whole, List: ListType } = $.import(declarations, [
+        "Whole",
+        "List",
+      ]);
+      expectTypeOf(Whole(1n)).toEqualTypeOf<
+        Program.Expression.Expression<
+          Type.PrimitiveInteger,
+          Program.Inputs.Empty
+        >
+      >();
+      expectTypeOf(ListType(String)).toEqualTypeOf<
+        Program.TypeExpression.TypeExpression<Type.List<Type.PrimitiveString>>
+      >();
+      expect(
+        JExpr.Type.compile(
+          Result.getOrThrow(TypeExpression.toType(ListType(String))),
+        ),
+      ).toBe("List<::kernel::type::String>");
+      expect(
+        JExpr.Type.compile(Result.getOrThrow(TypeExpression.toType(Whole))),
+      ).toBe("Whole");
+      return Whole(1n);
+    });
+    expect(text(result)).toBe(
+      '["::kernel::special_form::use","::example",{"#tuple":["Whole","List"]},["Whole",{"#literal":1}]]',
+    );
+  });
+
+  test("wildcard_and_nested_module", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const imported = $.import(declarations);
+      const { active } = $.import(imported.child, { enabled: "active" });
+      expectTypeOf(active).toEqualTypeOf<typeof leaf.values.enabled>();
+      return $.and(active, true);
+    });
+    expect(text(result)).toBe(
+      '["::kernel::special_form::use","::example","*",["::kernel::special_form::use","child",{"#struct":{"enabled":"active"}},["::core::bool::and","active",{"#literal":true}]]]',
+    );
+  });
+
+  test("branch_scope", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) =>
+      $.if(true, {
+        then: (branch) => {
+          const { Whole } = branch.import(declarations, { Whole: "_" });
+          return Whole(1n);
+        },
+        else: () => 0n,
+      }),
+    );
+    expect(text(result)).toBe(
+      '["::kernel::special_form::if",{"#literal":true},["::kernel::special_form::use","::example",{"#struct":{"Whole":"Whole"}},["Whole",{"#literal":1}]],{"#literal":0}]',
+    );
+  });
+
+  test("adapted_callable", () => {
+    expect.hasAssertions();
+    const original = Expression.fromJExpr<
+      Type.Function<readonly [Type.PrimitiveString], Type.PrimitiveString>,
+      Program.Inputs.Empty
+    >("::original");
+    const adapted = Expression.adaptCallable(
+      original,
+      (self) =>
+        (value: {
+          readonly text: string;
+        }): Program.Expression.Expression<
+          Type.PrimitiveString,
+          Program.Inputs.Empty
+        > =>
+          self(value.text),
+    );
+    const source = Result.getOrThrow(
+      Module.define("::adapted", { values: { call: adapted } }),
+    );
+    const result = Draft.program({}, ($) => {
+      const { invoke } = $.import(source, { call: "invoke" });
+      expectTypeOf(invoke).toEqualTypeOf(adapted);
+      return invoke({ text: "value" });
+    });
+    expect(text(result)).toBe(
+      '["::kernel::special_form::use","::adapted",{"#struct":{"call":"invoke"}},["invoke",{"#literal":"value"}]]',
+    );
+  });
+
+  test("symbol_alias", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const imported = $.import(declarations, { Whole: "+" });
+      expect(Object.hasOwn(imported, "+")).toBe(true);
+      return imported["+"](1n);
+    });
+    expect(text(result)).toBe(
+      '["::kernel::special_form::use","::example",{"#struct":{"Whole":"`+`"}},["`+`",{"#literal":1}]]',
+    );
+  });
+
+  test("own_names", () => {
+    expect.hasAssertions();
+    const values = {
+      ["__proto__"]: Expression.literal(true),
+      hidden: Expression.literal(false),
+    };
+    const source = Result.getOrThrow(Module.define("::own", { values }));
+    const result = Draft.program({}, ($) => {
+      const imported = $.import(source);
+      expect(Object.hasOwn(imported, "__proto__")).toBe(true);
+      expect(Object.hasOwn(imported, "hidden")).toBe(true);
+      const { __proto__: prototypeNamed } = imported;
+      return $.and(prototypeNamed, imported.hidden);
+    });
+    expect(text(result)).toBe(
+      '["::kernel::special_form::use","::own","*",["::core::bool::and","__proto__","hidden"]]',
+    );
+    expect(Object.isFrozen(values)).toBe(false);
+  });
+
+  test("repeated_alias", () => {
+    expect.hasAssertions();
+    const source = Result.getOrThrow(
+      Module.define("::aliases", {
+        values: {
+          first: Module.value<Type.PrimitiveBoolean>(),
+          second: Module.value<Type.PrimitiveBoolean>(),
+        },
+      }),
+    );
+    const result = Draft.program(
+      {},
+      ($) =>
+        $.import(source, { first: "selected", second: "selected" }).selected,
+    );
+    expect(text(result)).toBe(
+      '["::kernel::special_form::use","::aliases",{"#struct":{"first":"selected","second":"selected"}},"selected"]',
+    );
+  });
+
+  test("symbol_selection", () => {
+    expect.hasAssertions();
+    const hidden = Symbol("hidden");
+    const selection = { Whole: "Whole", [hidden]: "hidden" };
+    const result = Draft.program({}, ($) => {
+      $.import(declarations, selection);
+      return $.literal(true);
+    });
+    expect(text(result)).toContain('{"#struct":{"Whole":"Whole"}}');
+    expect(text(result)).not.toContain("hidden");
+  });
+
+  test("invalid_alias", () => {
+    expect.hasAssertions();
+    let continued = false;
+    const result = Draft.program({}, ($) => {
+      const { "bad name": whole } = $.import(declarations, {
+        Whole: "bad name",
+      });
+      continued = true;
+      return whole(1n);
+    });
+    expect(result).toMatchObject({
+      _tag: "Failure",
+      failure: { reason: { _tag: "InvalidImportName", name: "bad name" } },
+    });
+    expect(continued).toBe(false);
+  });
+
+  test("caught_import_failure", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      try {
+        $.import(declarations, { Whole: "bad name" });
+      } catch {
+        /* The collector must still retain this construction failure. */
+      }
+      return $.literal(true);
+    });
+    expect(Result.isFailure(result)).toBe(true);
+  });
+
+  test("host_exception", () => {
+    expect.hasAssertions();
+    const error = new Error("host callback");
+    const result = Draft.program({}, ($) => {
+      $.import(declarations);
+      throw error;
+    });
+    expect(result).toMatchObject({
+      _tag: "Failure",
+      failure: {
+        reason: { _tag: "CallbackException", cause: { cause: error } },
+      },
+    });
+  });
+});
+
+describe("namespace", () => {
+  test("joined_constructor", () => {
+    expect.hasAssertions();
+    const custom = Result.getOrThrow(
+      Module.define("::custom", {
+        types: { Both: Module.genericType<List>(1) },
+        modules: { Both: child },
+      }),
+    );
+    const result = Draft.withPrelude(custom).program({}, ($) => {
+      const { Both } = $.prelude();
+      expect(Both.name).toBe(child.values.name);
+      expect(Both).toSatisfy(TypeExpression.isConstructor);
+      expect(Both(Structural.type(BigInt))).toSatisfy(TypeExpression.isExport);
+      return Both.name;
+    });
+    expect(result).toSatisfy(Result.isSuccess);
+  });
+
+  test("then_export", () => {
+    expect.hasAssertions();
+    const result = Draft.withPrelude({
+      modules: { Both: child },
+      values: { Both: Expression.integer(1) },
+    }).program({}, ($) => {
+      const { Both } = $.prelude();
+      expect(Both.then).toBe(child.values.then);
+      expect($.modules().Both.then).toBe(child.values.then);
+      expect(Both.values.$).toBe(child.values.$);
+      expect(Both.$).toBe(child.values.$);
+      return Operators.eq(Both, 1n);
+    });
+    expect(result).toSatisfy(Result.isSuccess);
+  });
+
+  test("prototype_type", () => {
+    expect.hasAssertions();
+    const result = Draft.withPrelude(child).program({}, ($) => {
+      // oxlint-disable-next-line eslint/no-proto -- __proto__ names a HashQL type export
+      const type = $.prelude().__proto__;
+      expect(type).toSatisfy(TypeExpression.isExport);
+      return $.literal(true);
+    });
+    expect(result).toSatisfy(Result.isSuccess);
+  });
+
+  test("prototype_join", () => {
+    expect.hasAssertions();
+    const custom = Result.getOrThrow(
+      Module.define("::custom", {
+        modules: { ["__proto__"]: child },
+        types: { ["__proto__"]: Module.type<Type.PrimitiveInteger>() },
+        values: { ["__proto__"]: Module.value<Type.PrimitiveInteger>() },
+      }),
+    );
+    const result = Draft.withPrelude(custom).program({}, ($) => {
+      // oxlint-disable-next-line eslint/no-proto -- __proto__ names a HashQL export in all three namespaces
+      const entry = $.prelude().__proto__;
+      expect(entry).toSatisfy(TypeExpression.isExport);
+      expect(entry).toSatisfy(Expression.isExpression);
+      expect(entry).toSatisfy(Module.isModule);
+      return entry;
+    });
+    expect(result).toSatisfy(Result.isSuccess);
+  });
+});
+
+describe("exception", () => {
+  test.each([new Error("user exception"), "non-error", undefined])(
+    "host_exception_%#",
+    (thrown) => {
+      expect.hasAssertions();
+      const result = Draft.program({}, () => {
+        // oxlint-disable-next-line typescript/only-throw-error -- unchecked JavaScript callbacks can throw arbitrary values
+        throw thrown;
+      });
+      const failure = pipe(result, Result.flip, Result.getOrThrow);
+      assert(failure.reason._tag === "CallbackException");
+      expect(failure.reason.cause).toBeInstanceOf(Cause.UnknownError);
+      expect(failure.reason.cause.cause).toBe(thrown);
+      expect(failure.message).toBe("A program callback threw an exception");
+    },
+  );
+
+  test("branch_exception", () => {
+    expect.hasAssertions();
+    const thrown = new Error("branch callback");
+    const fail = (): bigint => {
+      throw thrown;
+    };
+    const results = [
+      Draft.program({}, ($) => $.if(false, { then: fail, else: () => 1n })),
+      Draft.program({}, ($) => $.if(true, { then: () => 1n, else: fail })),
+      Draft.program({}, ($) => $.if(true, { then: fail })),
+    ];
+    for (const result of results) {
+      expect(result).toMatchObject({
+        _tag: "Failure",
+        failure: {
+          reason: { _tag: "CallbackException", cause: { cause: thrown } },
+        },
+      });
+    }
+  });
+});
