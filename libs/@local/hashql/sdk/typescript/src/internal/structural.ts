@@ -22,6 +22,7 @@ import * as Syntax from "../JExpr/Type/index.js";
 import * as Expression from "../Program/Expression.js";
 import * as ProgramError from "../Program/ProgramError.js";
 import * as TypeExpression from "../Program/TypeExpression.js";
+import * as Overflow from "./overflow.js";
 
 import type * as Structural from "../Program/Structural.js";
 import type * as Type from "../Type.js";
@@ -46,6 +47,9 @@ const collectionPaths = Record.map(
   { List: "::kernel::type::List", Dict: "::kernel::type::Dict" },
   (path) => pipe(path, JExpr.Path.decodeResult, Result.getOrThrow),
 );
+
+// Collection arguments come from definitions whose syntax nothing has checked. Validating the path here turns an invalid argument into a construction failure instead of a throw.
+const makePath = Overflow.makeResult(JExpr.Path.Schema);
 
 interface Field {
   readonly key: string;
@@ -211,25 +215,31 @@ export const collectionType = (
     definitions,
     Array.map(typeSyntax),
     Result.all,
-    Result.map((arguments_): Syntax.Type => {
+    Result.flatMap((arguments_) => {
       const path = collectionPaths[name];
-      return {
-        _tag: "Reference",
-        path: JExpr.Path.make({
+      return pipe(
+        makePath({
           rooted: path.rooted,
-          segments: Array.modifyLastNonEmpty(path.segments, (segment) =>
-            JExpr.Path.Segment.make({
-              name: segment.name,
-              arguments: [
-                ...segment.arguments,
-                ...Array.map(arguments_, (bound) =>
-                  JExpr.Path.GenericArgument.make({ bound }),
-                ),
-              ],
-            }),
-          ),
+          segments: Array.modifyLastNonEmpty(path.segments, (segment) => ({
+            name: segment.name,
+            arguments: [
+              ...segment.arguments,
+              ...Array.map(arguments_, (bound) => ({
+                _tag: "GenericArgument" as const,
+                bound,
+              })),
+            ],
+          })),
         }),
-      };
+        Result.mapBoth({
+          onFailure: (cause) =>
+            ProgramError.Construction.invalidExpression(cause),
+          onSuccess: (applied): Syntax.Type => ({
+            _tag: "Reference",
+            path: applied,
+          }),
+        }),
+      );
     }),
   );
 
