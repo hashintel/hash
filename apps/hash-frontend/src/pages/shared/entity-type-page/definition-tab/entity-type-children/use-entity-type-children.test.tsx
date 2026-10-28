@@ -24,7 +24,7 @@ const animalBaseUrl =
   "https://example.com/@alice/types/entity-type/animal/" as BaseUrl;
 const animalTypeId = `${animalBaseUrl}v/1` as VersionedUrl;
 
-const makeChildOfAnimal = (
+const makeEntityType = (
   baseUrl: BaseUrl,
   title: string,
   version = 1,
@@ -48,16 +48,16 @@ const makeChildOfAnimal = (
     },
   }) as unknown as EntityTypeWithMetadata;
 
-const animalV2 = makeChildOfAnimal(animalBaseUrl, "Animal", 2);
+const animalV2 = makeEntityType(animalBaseUrl, "Animal", 2);
 
-const cat = makeChildOfAnimal(
+const cat = makeEntityType(
   "https://example.com/@alice/types/entity-type/cat/" as BaseUrl,
   "Cat",
 );
-const dog = makeChildOfAnimal(
-  "https://example.com/@alice/types/entity-type/dog/" as BaseUrl,
-  "Dog",
-);
+const dogBaseUrl =
+  "https://example.com/@alice/types/entity-type/dog/" as BaseUrl;
+const dog = makeEntityType(dogBaseUrl, "Dog");
+const dogV2 = makeEntityType(dogBaseUrl, "Dog", 2);
 
 const queryReturns = (
   entityTypes: EntityTypeWithMetadata[],
@@ -90,7 +90,7 @@ describe("useEntityTypeChildren", () => {
     });
   });
 
-  it("asks for the latest versions of types that directly extend X", async () => {
+  it("asks only for the latest version of each type that directly extends Animal", async () => {
     const variableMatcher = vi.fn().mockReturnValue(true);
 
     renderEntityTypeChildren([{ ...queryReturns([]), variableMatcher }]);
@@ -117,10 +117,20 @@ describe("useEntityTypeChildren", () => {
     });
   });
 
-  it("leaves X out of its children", async () => {
+  it("leaves Animal out of its own children", async () => {
     const { result } = renderEntityTypeChildren([
       queryReturns([animalV2, dog]),
     ]);
+
+    await waitFor(() => {
+      expect(
+        result.current.children?.map((child) => child.schema.title),
+      ).toEqual(["Dog"]);
+    });
+  });
+
+  it("lists each type once", async () => {
+    const { result } = renderEntityTypeChildren([queryReturns([dog, dogV2])]);
 
     await waitFor(() => {
       expect(
@@ -147,11 +157,7 @@ describe("useEntityTypeChildren", () => {
       null,
     );
 
-    await act(async () => {
-      await new Promise((resolve) => {
-        setTimeout(resolve, 20);
-      });
-    });
+    await act(async () => {});
 
     expect(variableMatcher).not.toHaveBeenCalled();
   });
