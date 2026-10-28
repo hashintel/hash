@@ -74,7 +74,8 @@ export const validateFlowInputs = ({
 
 /**
  * Checks the outputs an action returned against its output definitions: each is one the action defines, has the
- * kind it declares (or, for a derived kind, the kind given to its kind source), and holds a valid value of it.
+ * kind it declares (or, for a derived kind, the kind given to its kind source), and holds a valid value of it, and
+ * every required output is returned.
  *
  * A value of a stored kind may be a stored reference, of which only the kind and whether it's to an array are checked.
  *
@@ -122,6 +123,12 @@ export const validateActionOutputs = ({
 
     if (problem) {
       return `Action ${actionDefinitionId} returned an invalid output "${outputName}"${describeProblem(problem)}`;
+    }
+  }
+
+  for (const { name, required } of outputDefinitions) {
+    if (required && !outputs.some(({ outputName }) => outputName === name)) {
+      return `Action ${actionDefinitionId} didn't return its required output "${name}"`;
     }
   }
 

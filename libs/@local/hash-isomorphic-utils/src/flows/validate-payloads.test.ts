@@ -56,9 +56,9 @@ describe("validateFlowInputs", () => {
       }),
     ).toBeUndefined();
 
-    expect(validateInputs({ query: { kind: "Text", value: "a" } })).toBe(
-      undefined,
-    );
+    expect(
+      validateInputs({ query: { kind: "Text", value: "a" } }),
+    ).toBeUndefined();
   });
 
   it("rejects an input the flow doesn't define", () => {
@@ -123,6 +123,11 @@ describe("validateActionOutputs", () => {
     { inputName: "items", payload: { kind: "Number", value: [1, 2, 3] } },
   ];
 
+  const nonMatching: StepOutput = {
+    outputName: "nonMatching",
+    payload: { kind: "Number", value: [2, 3] },
+  };
+
   it("accepts valid outputs, including stored references", () => {
     expect(
       validateActionOutputs({
@@ -149,6 +154,19 @@ describe("validateActionOutputs", () => {
             outputName: "persistedEntities",
             payload: { kind: "PersistedEntityMetadata", value: storedEntities },
           },
+          {
+            outputName: "failedEntityProposals",
+            payload: {
+              kind: "FailedEntityProposal",
+              value: {
+                __stored: true,
+                kind: "FailedEntityProposal",
+                storageKey: "flows/run/outputs/step-1-failed",
+                array: true,
+                length: 0,
+              },
+            },
+          },
         ],
       }),
     ).toBeUndefined();
@@ -159,7 +177,26 @@ describe("validateActionOutputs", () => {
         inputs: filterInputs,
         outputs: [
           { outputName: "matching", payload: { kind: "Number", value: [1] } },
+          nonMatching,
         ],
+      }),
+    ).toBeUndefined();
+  });
+
+  it("rejects a missing required output, accepting a missing optional one", () => {
+    expect(
+      validateActionOutputs({
+        actionDefinitionId: "filterList",
+        inputs: filterInputs,
+        outputs: [nonMatching],
+      }),
+    ).toBe(`Action filterList didn't return its required output "matching"`);
+
+    expect(
+      validateActionOutputs({
+        actionDefinitionId: "find",
+        inputs: filterInputs,
+        outputs: [],
       }),
     ).toBeUndefined();
   });
