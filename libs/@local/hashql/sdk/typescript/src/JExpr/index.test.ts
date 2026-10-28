@@ -38,6 +38,14 @@ describe("compile", () => {
     );
   });
 
+  test("missing_constructor_key", () => {
+    expect.hasAssertions();
+    // SAFETY: none, on purpose. The test needs a tree its type forbids, as a cast or an untyped caller can build.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the assertion is the point of the test
+    const unknown = {} as JExpr.Expression;
+    expect(() => JExpr.compile(JExpr.tuple(unknown))).toThrow(TypeError);
+  });
+
   test("special_form_heads", () => {
     expect.hasAssertions();
     const integer = Option.getOrThrow(JExpr.Type.reference("Integer"));
