@@ -1,5 +1,5 @@
 /** Vertex inference through filter and collect in both argument orders. @module */
-import { Option, pipe } from "effect";
+import { Option, Result, pipe } from "effect";
 import { describe, expectTypeOf, test } from "vitest";
 
 import * as JExpr from "../JExpr/index.js";
@@ -39,7 +39,9 @@ describe("query_types", () => {
   });
 
   test("vertex", () => {
-    const graph = entities(Expression.input("axis", Structural.type(BigInt)));
+    const graph = entities(
+      Expression.input("axis", Result.getOrThrow(Structural.type(BigInt))),
+    );
     const piped = pipe(
       graph,
       Query.filter("vertex", (vertex) => {
@@ -63,7 +65,11 @@ describe("query_types", () => {
   });
 
   test("predicate_inputs", () => {
-    const flag = Expression.input("flag", Structural.type(Boolean), true);
+    const flag = Expression.input(
+      "flag",
+      Result.getOrThrow(Structural.type(Boolean)),
+      true,
+    );
     const filtered = pipe(
       entities(1n),
       Query.filter("vertex", (vertex) => Operators.and(vertex.enabled, flag)),
