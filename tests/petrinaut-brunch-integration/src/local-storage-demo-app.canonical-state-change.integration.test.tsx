@@ -26,6 +26,7 @@ import {
 } from "@apps/petrinaut-website/src/main/app/shared/petrinaut-jsdom";
 import { clientToolHistoryFrom } from "@hashintel/brunch-agent";
 import { toPetrinautId } from "@hashintel/petrinaut-core";
+import { initializePetrinautRust } from "@hashintel/petrinaut-core/rust";
 
 import type { FlueClient } from "@flue/sdk";
 import type { PetrinautDocHandle, SDCPN } from "@hashintel/petrinaut-core";
@@ -62,7 +63,7 @@ vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => {
   return {
     ...actual,
     Petrinaut: (props: ComponentProps<typeof actual.Petrinaut>) => {
-      fixture.handle = props.handle;
+      fixture.handle = props.instance?.handle ?? props.handle ?? null;
       return <actual.Petrinaut {...props} />;
     },
   };
@@ -85,6 +86,7 @@ vi.mock(
 
 const originalFetch = globalThis.fetch;
 beforeAll(async () => {
+  await initializePetrinautRust();
   await preloadMonaco();
   // The panel reaches Brunch through its Flue client and its browser-call and
   // live-tool requests alike; all of them go to the built app in process.

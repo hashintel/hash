@@ -527,6 +527,19 @@ export const experimentBackendRegistrations = ({
   shardCount: number | undefined;
 }): ExperimentBackendRegistration[] => {
   const registrations: ExperimentBackendRegistration[] = [];
+  if (computeBackend === "wasm") {
+    registrations.push({
+      id: "wasm",
+      label: "Wasm (Rust, experimental)",
+      load: async () => {
+        const { createWasmExperimentBackend } =
+          await import("@hashintel/petrinaut-core/wasm");
+        return createWasmExperimentBackend({
+          shardCount: shardCount ?? getDefaultMonteCarloShardCount(),
+        });
+      },
+    });
+  }
   if (computeBackend === "webgpu") {
     registrations.push({
       id: "webgpu",

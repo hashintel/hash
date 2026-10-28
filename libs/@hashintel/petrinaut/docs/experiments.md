@@ -43,7 +43,7 @@ With a scenario selected, the Scenario section shows it through the same form: t
 | **Runs** | `1000` | Positive integer; how many independent simulations to run. For a sweep the field reads **Max runs per selection**: each selection refines progressively (8, 25, 100, … 1000, 5000, …) up to this ceiling, so large budgets — 100,000 on the GPU — sharpen the distribution the longer you stay. |
 | **Time step (dt)** | `0.1` | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)). |
 | **Max time (seconds)** | `180` | Each run advances until simulation time reaches this value, then completes. |
-| **Run on GPU** | off | Shown when your browser supports WebGPU. Greyed out with the reason on hover when this model cannot run on the GPU. See [Compute backend](#compute-backend). |
+| **Backend** | CPU (TypeScript) | Choose CPU, Wasm (Rust, experimental), or GPU (WebGPU). GPU is offered when your browser supports it. See [Compute backend](#compute-backend). |
 
 The model used is a snapshot of the current net at the time you press **Run**. Later runs and optimization use that snapshot, even if you edit the net afterwards.
 
@@ -58,7 +58,7 @@ Click **Add metric** and choose **Place tokens**, **Transition firing**, or a cu
 When the host application provides an in-browser optimizer, turning on **Sweep** for a saved scenario's parameter adds a **Constraints** section after Metrics. You can set constraints before starting optimization, whether you start it during creation or later. Its rows record boolean conditions the optimizer must respect when it [drives the sweep](#optimizing-a-sweep). The sweep itself ignores them: no run is excluded from the charts and the objective is never changed by them. An experiment created with **No scenario** has no Constraints section: the names of its generated parameters are not yours to write. Conditions are grouped under **Parameters** and **State**, each with its own **Add** button:
 
 - **Parameter constraints** -- one-line expressions over the sweep's parameters (`scenario.*` for scenario parameters, `parameters.*` for net parameters) that must produce a boolean, for example `scenario.min_load < scenario.max_load`. Before a step runs, the optimizer checks them at the step's values, snapped to the sweep's grid. A step whose values break one is **infeasible**: it costs one step and no simulation, the sliders do not move to it, it is reported as pruned with the constraint named, and its row is greyed in the steps table.
-- **State constraints** -- boolean expressions that read the simulation `state`, for example `state.places.Queue.count <= 10`. Petrinaut supplies the `return` internally. A trailing semicolon is optional. Every run of a step reports whether the condition held on every sampled frame: a run **passed** when it did and **failed** otherwise, and a run that errors reports neither, so its step's fraction is over the runs that reported. A state constraint runs beside the sweep's metrics on every batch, from the sweep's creation on, and it runs on the CPU: the WebGPU switch greys out while a state row is drafted, and a sweep with state constraints computes on the CPU whether or not a study drives it.
+- **State constraints** -- boolean expressions that read the simulation `state`, for example `state.places.Queue.count <= 10`. Petrinaut supplies the `return` internally. A trailing semicolon is optional. Every run of a step reports whether the condition held on every sampled frame: a run **passed** when it did and **failed** otherwise, and a run that errors reports neither, so its step's fraction is over the runs that reported. A state constraint runs beside the sweep's metrics on every batch, from the sweep's creation on, and it runs on CPU or, for supported scalar expressions, Wasm. The GPU option is disabled while a state row is drafted.
 
 A step's verdict comes from its runs. The **Pass threshold**, beside the State heading once a state condition exists, is the share of a step's runs that must pass (95 percent by default, an alpha of 0.05). A step is **clear** when every state constraint held on at least that share of its runs and **limited** when one fell short. Every rate in the results is printed as its raw fraction beside the percentage, `52 / 60 · 87%`, so the run count behind a percentage is always in view.
 
@@ -145,11 +145,17 @@ The panel arranges its parts by its width. The **Parameters** card spans the bod
 
 ### Compute backend
 
-Experiments run on the CPU unless you ask for the GPU. When your browser supports WebGPU, the Create Experiment panel offers a **Run on GPU** switch. Running on your graphics hardware is dramatically faster — a 4000-run experiment that takes six seconds on the CPU finishes in a few milliseconds.
+Choose a **Backend** in the Create Experiment panel. The default is **CPU (TypeScript)**. **Wasm (Rust, experimental)** runs a Rust simulator with model expressions compiled to WebAssembly when the experiment starts. **GPU (WebGPU)** is also offered when your browser supports it.
 
-The choice is per experiment, not global, so a GPU experiment and a CPU experiment can run side by side — useful for comparing the two on the same model. Each gets its own GPU device, so nothing is shared between them.
+The Wasm prototype supports uncoloured places, standard/read/inhibitor arcs, capacities, stochastic rates and predicates, parameters, and count-based metrics. Expressions can use arithmetic (`+`, `-`, `*`, `/`), comparisons, conditionals, local constants, and `Math.abs`, `ceil`, `floor`, `trunc`, `sqrt`, `min`, and `max`. Metrics can read `state.places.<name>.count`. Saved scenarios, per-run parameters, and parameter sweeps use the same experiment controls.
 
-The switch is greyed out when the current model cannot run on the GPU; hover it for the reason. The setting is only offered where your browser exposes WebGPU. Chrome, Edge and Safari 26+ do; Firefox needs it enabled.
+Coloured tokens, continuous dynamics, subnet instances, arrays, strings, UUIDs, distributions, and other expressions fall back to CPU with a reason. The **Compute** badge in **Details** shows which backend ran. To test Wasm, load the **SIR Model**, select **Wasm (Rust, experimental)**, add **Infected Fraction**, and click **Run**.
+
+The Wasm backend uses the CPU backend's seed derivation and random generator. Its arithmetic uses 64-bit floating point. Rust's exponential function can differ slightly from JavaScript's, so exact trajectories are not guaranteed at probability boundaries. The **Engine** selector at the top of the demo controls document editing separately from this experiment choice.
+
+The choice is per experiment, so CPU, Wasm and GPU experiments can run side by side on the same model. Each GPU experiment gets its own device; CPU and Wasm experiments use worker pools.
+
+The GPU option is disabled when the current model cannot run on the GPU; hover the selector for the reason. The setting is only offered where your browser exposes WebGPU. Chrome, Edge and Safari 26+ do; Firefox needs it enabled.
 
 The GPU backend handles a **subset** of nets, and it tells you when it cannot take one rather than guessing. It needs:
 
@@ -164,7 +170,7 @@ When an experiment misses a requirement the model alone decides — attributes, 
 
 Run count has no ceiling of its own: runs beyond what your GPU can hold at once execute as sequential tiles. What still falls back to the CPU is a single run whose own state exceeds the device's buffer limits, or a metric histogram too large for the device; the message says which.
 
-Two things to know before comparing results:
+When comparing GPU and CPU results:
 
 - **The same seed gives different numbers on the two backends.** They deliberately use different random number generators, so the trajectories differ while the distributions agree. On the built-in SIR example the two backends' mean token counts agree to within half a percent. The badge in each experiment's **Details** records which backend ran it, so results stay attributable after the fact.
 - Continuous dynamics are integrated with a **more accurate method** (Runge-Kutta 4) than the CPU's, so a model with differential equations may show slightly different — better — values, not just different noise.
@@ -178,7 +184,7 @@ Click **Details** for the scenario, requested runs or sampling limit, runs sampl
 
 For optimized sweeps, **Details** also shows the steps finished, runs per step, constraint pass counts, best step, and how the search ended. While optimization runs, a chip describes recent progress: **Still improving**, **Converging**, or **Too early to say**. The assessment uses a window of one tenth of the requested steps, with a minimum of five completed steps.
 
-The **Compute** badge in Details shows **CPU** or **GPU**. Hover it for more information, including why a requested GPU backend fell back to the CPU. While batches run, **Active batches** opens their individual progress.
+The **Compute** badge in Details shows **CPU**, **Wasm**, or **GPU**. Hover it for more information, including why a requested backend fell back to CPU. While batches run, **Active batches** opens their individual progress.
 
 The bar along the header's bottom edge follows sampling progress for a sweep, optimization steps while a study drives it, and simulation time for a plain experiment. Errors appear directly below the header. Scrolling the results condenses the header to one line; hovering over it or focusing a control expands it again.
 

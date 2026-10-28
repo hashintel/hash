@@ -84,6 +84,7 @@ export type MonteCarloRunUntilCompleteOptions = {
  * serializable summaries or snapshots to callers.
  */
 export interface MonteCarloSimulator {
+  dispose?(): void;
   readonly runCount: number;
   /**
    * Advance every active run by at most one simulation frame.

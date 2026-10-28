@@ -86,7 +86,11 @@ vi.mock("./views/Editor/editor-view", async () => {
   };
 });
 
-import { createJsonDocHandle, type SDCPN } from "@hashintel/petrinaut-core";
+import {
+  createJsonDocHandle,
+  createPetrinaut,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 
 import { defaultPetrinautNavigationState } from "../react/navigation";
 import { Petrinaut } from "./petrinaut";
@@ -276,4 +280,14 @@ test("mounts a plugin's hook once when the editor opens", () => {
   render(<Petrinaut handle={createHandle()} plugins={[mountPlugin]} />);
 
   expect(hookMounts).toEqual(["mount"]);
+});
+
+test("accepts a host-owned instance without disposing it on unmount", () => {
+  const instance = createPetrinaut({ document: createHandle() });
+  const dispose = vi.spyOn(instance, "dispose");
+  const view = render(<Petrinaut instance={instance} title="Host instance" />);
+  expect(screen.getByText("Host instance")).not.toBeNull();
+  view.unmount();
+  expect(dispose).not.toHaveBeenCalled();
+  instance.dispose();
 });

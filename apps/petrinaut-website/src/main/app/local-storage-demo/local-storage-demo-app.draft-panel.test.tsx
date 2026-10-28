@@ -149,6 +149,7 @@ test.each(["Dismiss", "Run"] as const)(
     vi.stubGlobal("ResizeObserver", NoopResizeObserver);
     // Brunch is the chosen assistant and the welcome guide was dismissed.
     const stored = new Map([
+      ["petrinaut-website:instance-engine", "typescript"],
       [assistantSelectionStorageKey, "brunch"],
       [
         "petrinaut:plugin:website.walkthrough",

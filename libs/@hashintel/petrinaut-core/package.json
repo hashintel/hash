@@ -86,7 +86,15 @@
       "types": "./dist/webgpu.d.ts",
       "import": "./dist/webgpu.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./rust": {
+      "types": "./dist/rust.d.ts",
+      "import": "./dist/rust.js"
+    },
+    "./wasm": {
+      "types": "./dist/wasm.d.ts",
+      "import": "./dist/wasm.js"
+    }
   },
   "publishConfig": {
     "access": "public"
@@ -94,6 +102,7 @@
   "scripts": {
     "build": "vite build && node scripts/check-browser-safe-entries.mjs",
     "build:pack": "node ../../../scripts/check-package-payload.mjs",
+    "build:wasm": "wasm-pack build rust --target web --out-name petrinaut_core --release --no-pack",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",

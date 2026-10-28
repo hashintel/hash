@@ -1,0 +1,387 @@
+---
+title: Rust document engine
+description: A working Rust-backed Petrinaut instance and the remaining migration work.
+attachTo: core.rust
+---
+
+`createRustPetrinaut` gives the editor a local instance whose document, patches,
+undo/redo history, extension policies and all public document mutations run in Rust. It returns the
+existing `Petrinaut` TypeScript interface. The published entry is
+`@hashintel/petrinaut-core/rust`; loading the regular core entry keeps the
+TypeScript implementation.
+
+## Migration increments
+
+The command entry point accepts a tagged Rust `Command` and commits it atomically.
+Extension policy is fixed at construction and enforced in Rust for initial state,
+native commands and compatibility drafts. This includes disabled colour/dynamics
+fields, parameter overrides, scenario token counts, component-port arcs and
+transition code availability. Rust now owns typed document entities, authoring defaults, identifier normalization
+and full entity-shape validation. Public mutation schemas remain available in
+TypeScript for callers and AI tools. Rust generates the command and document
+TypeScript declarations through `tsify`.
+
+Place creation, updates and removal now execute native commands. Rust validates
+place fields and differential-equation references, removes connected arcs and
+cross-subnet port references, and refreshes transition code availability. Default
+kernel templates also run in Rust when a place edit enables a typed output.
+These operations pass only command inputs across the Wasm boundary and share the
+same atomic history path as position edits.
+
+Transition creation, updates and removal, plus arc creation, removal, weight,
+type and endpoint edits now execute native commands too. Rust checks endpoint
+references, including component-port membership, prevents duplicate arcs and
+preserves existing transition code when it remains applicable. Optional fields
+explicitly set to `undefined` in TypeScript are sent as field removals.
+
+The Rust instance now routes all 41 public mutation methods to Rust,
+including the four position methods from the initial draft. This is a count of
+API methods, not a percentage of the full core codebase. Paste and layout application also run in Rust; ELK calculation stays in TypeScript.
+
+Token-type element edits migrate stored scenario rows in Rust, including column
+reordering, default cells and JavaScript-compatible numeric, string and UUID conversions.
+Definition-edit parity tests exercise all 32 extension policies and undo/redo.
+
+Subnet removal deletes referencing component instances and their arcs across
+all nets. Bulk deletion resolves synthetic arc IDs and cascades removed subnet
+ports in one transaction. Native component edits validate subnet and parameter references.
+
+Paste assigns host-generated fresh IDs, remaps references, deduplicates entity
+names and parameter variable names, offsets positions and drops uncopied arc
+endpoints. Rust rejects reused fresh IDs. Browser clipboard access and ELK
+calculation stay in TypeScript; applying either result is one native transaction.
+
+## What runs where
+
+| Responsibility                             | Implementation                                                       | Remaining work                                              |
+| ------------------------------------------ | -------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Document model and bindings                | Typed Rust `Sdcpn`, Serde validation, generated `tsify` declarations | Broader schema compatibility and fuzz testing               |
+| All 41 mutation methods                    | Native Rust commands                                                 | Incremental transactions for structural edits               |
+| Node positions and position-only undo/redo | Typed in-place updates and direct patches                            | Browser profiling on larger nets                            |
+| Other history and compatibility drafts     | Rust patches with full-document transactions                         | Reduce copying and retained allocation                      |
+| Paste and layout application               | Rust paste; native position command for ELK results                  | Host clipboard access and ELK remain TypeScript             |
+| React stores and lifecycle                 | TypeScript adapter                                                   | Retain the existing editor API                              |
+| Experiment simulation                      | Opt-in Rust/Wasm count-based runtime and HIR-to-Wasm emitter         | Coloured tokens, dynamics, and subnets remain on CPU/WebGPU |
+| HIR frontend, LSP, optimization, WebGPU    | Existing TypeScript implementations                                  | Reuse the frontend and experiment protocol                  |
+| Persistence and collaboration              | Host document repository and existing handles                        | Native Automerge integration and synchronization protocol   |
+
+This is a working document-engine migration draft. It is not a complete port of
+`@hashintel/petrinaut-core`. Interactive simulation and browser services remain in TypeScript; experiments have an opt-in Rust/Wasm backend for uncoloured nets. Native Rust callers can create an instance from authoring JSON, read its typed
+`Sdcpn` model, commit validated document replacements, move nodes, edit places,
+transitions, arcs, token types, equations, parameters, scenarios and metrics, and navigate history. Initialization normalizes identifiers
+and supplies plain-net defaults. Compatibility drafts preserve their identifiers
+and optional fields while validating entity shapes.
+
+## TypeScript and editor usage
+
+```tsx
+import { createRustPetrinaut } from "@hashintel/petrinaut-core/rust";
+import { Petrinaut } from "@hashintel/petrinaut";
+
+// Load once in the host's document lifecycle, before rendering the editor.
+const instance = await createRustPetrinaut({
+  initial: {
+    places: [{ id: "queue", name: "Queue", x: 0, y: 0 }],
+    transitions: [],
+  },
+  historyLimit: 50,
+});
+
+const editor = <Petrinaut instance={instance} title="Queue" />;
+
+// After unmounting the editor, when the host closes the document:
+instance.dispose();
+```
+
+`PetrinautProvider` also accepts the instance directly. Existing handle-based
+editor callers retain their API. Passing `instance` makes the host own its
+lifetime; the editor does not dispose it on unmount. Set `readonly` and extension
+capabilities when creating the instance. The `instance` and `handle` props are
+mutually exclusive.
+
+`createRustPetrinaut` loads Wasm asynchronously once. Reads, mutations, subscriptions,
+and history remain synchronous after creation. Load failures reject the promise;
+a subsequent call can retry. `dispose()` releases the Rust allocation, removes
+subscriptions, and makes stale handles reject writes. Disposal is idempotent.
+An unmounted or cancelled asynchronous loader must still dispose an instance that
+finishes loading later; the `Petrinaut/Rust instance` story demonstrates this.
+
+The built package initializes in both Node and browsers using its embedded Wasm.
+Node callers using generated bindings directly supply bytes through the `wasm`
+option, because Node's fetch does not load a local file URL. Hosts can also pass a
+URL string when serving their own asset. Initialization is shared within one module instance;
+the first successful initialization chooses the module for later instances.
+
+## Demo website
+
+The editable `/local/$netId` demo defaults to Rust. The required **Document
+engine** website plugin adds an **Engine** selector to the top bar. It requests
+an engine change through a host context; `LocalStorageDemoApp` owns instance
+creation, loading errors and disposal. Plugins mount after the instance exists,
+so the factory remains outside the plugin runtime.
+
+Both engines use the same `DocumentRepository` and `petrinaut-sdcpn` local-storage
+records. The engine preference is stored separately. Switching waits for pending
+writes, loads the latest document into a new instance and remounts the editor.
+Undo history and simulation state reset; the net, title and stored revisions stay
+in the repository. External revisions supersede pending loads, and cancelled
+loads dispose their instances when they complete. A failed Rust load exposes a
+retry and the TypeScript choice instead of silently falling back.
+
+The read-only example pages and AI evaluation demo retain their existing handles.
+Open an editable copy of an example to compare document engines. The experiment form selects its compute backend independently; the interactive simulator remains TypeScript.
+
+## Experimental Wasm experiment backend
+
+Select **Wasm (Rust, experimental)** in the experiment form. The existing provider requests HIR trees, assesses support, and starts the Rust worker pool through `createWasmExperimentBackend()` from `@hashintel/petrinaut-core/wasm`. Unsupported requests use CPU with a recorded reason. Results label the backend that ran. The SIR example and its Infected Fraction metric exercise both compiled rates and compiled metric code.
+
+The numeric ABI is version 1. Each Rust run owns a fixed f64 buffer containing parameters, counts, firing flags, cumulative firing counts, elapsed frames, and frame/status/RNG metadata. Generated code imports that memory and the Rust `simulation_begin`, `simulation_fire`, and `simulation_finish` exports. These are direct Wasm-to-Wasm calls. JavaScript calls one generated step per run per frame and handles worker scheduling and metric aggregation. JSON is used to create a run, outside stepping. Views are reconstructed after allocations because Wasm memory growth can replace its backing buffer.
+
+The emitter supports scalar constants, parameter reads, metric place counts, local bindings, arithmetic (`+`, `-`, `*`, `/`), comparisons, logical operators, conditionals, and `abs`, `ceil`, `floor`, `trunc`, `sqrt`, `min`, and `max`. Unsupported expressions cause assessment to decline the backend. User code passes through the existing TypeScript type checker and HIR lowering; neither a TypeScript compiler nor arbitrary source evaluation is added to the simulation worker. Compiled modules are cached by their complete bytes, with at most eight entries per worker.
+
+The Rust runtime implements standard, read, and inhibitor arcs, pending outputs, capacity checks, deterministic LCG draws, transition counters, and deadlock/max-time termination. It builds natively too. The browser binding registers integer run handles without unsafe pointer dereferences. Disposal releases the associated Rust allocations; cancellation during compilation discards and frees a late result. Memory allocated to a Wasm instance remains at its high-water mark until its worker terminates.
+
+Scope and tradeoffs:
+
+- Places must be uncoloured and have no dynamics. Subnet instances, token kernels, arrays, strings, UUIDs, distributions, and unsupported math functions decline to CPU. Uncoloured output counts come from arc weights, matching the CPU engine.
+- Scenario preparation, LSP, optimization, result aggregation, and charts remain TypeScript. Parameter sweeps and state constraints use the common worker protocol. Per-run parameter values are read by the generated Wasm code.
+- Rust and CPU use the same transition order, seed derivation, and RNG. Parity tests compare every frame and result. Their `exp` implementations may differ in the last bits; a random draw at a probability boundary may therefore produce a different trajectory.
+- Counts and frame limits are bounded to u32. Counts exceeding 4,294,967,295 fail the run. Each run has its own Rust state. The [simulation benchmark](doc:core/wasm-simulation-benchmark) compares timing and memory for supported uncoloured models in Node; browser performance remains unmeasured.
+- Runtime code generation requires the host's WebAssembly compilation policy to allow it. Loading or compilation failures become backend declines during startup. The runtime shares the document crate's embedded Wasm asset, so cold start and worker memory include that crate. A separate simulation artifact and batched stepping are candidates for measurement.
+- Native callers can use `simulation::Simulation`; runtime-generated model modules would need a native Wasm engine to run outside the browser. This prototype does not bundle one.
+
+## Binding choice
+
+The crate uses `wasm-bindgen` with the `web` target. It generates the low-level
+JavaScript class and TypeScript declarations. A handwritten adapter translates
+that class to `PetrinautDocHandle`, readable stores, and the existing mutation API.
+The native crate has no browser dependency in its document algorithms.
+
+The transport is JSON, and the persisted document format stays unchanged. Rust
+owns typed SDCPN entities, including scenario and ad-hoc authoring state. A JSON
+snapshot is cached for patching and compatibility callbacks. Entity and command
+declarations are generated from Rust through `tsify`; compile-time tests check
+that the document types are assignable to the existing TypeScript API.
+
+Rust normalizes legacy identifiers using the same fixed UUIDv5 namespace, fills
+plain-net defaults, and validates entity shapes and values. Initial documents
+with invalid entity names, parameter values or unknown entity fields are rejected.
+Cross-entity references may remain unresolved while authoring; migrated commands
+validate the references they change. JSON file-format version migrations remain
+in the host import layer.
+
+The [wasm-bindgen deployment guide](https://wasm-bindgen.github.io/wasm-bindgen/reference/deployment.html)
+describes the `web` output and explicit startup. Its
+[Serde guide](https://wasm-bindgen.github.io/wasm-bindgen/reference/arbitrary-data-with-serde.html)
+explains the tradeoff between JSON and direct JavaScript-value conversion. Neither
+transport has a universal performance advantage; benchmark Petrinaut documents
+before changing it.
+
+A native Node addon would need platform-specific builds and a second browser
+implementation. Wasm lets this draft use one engine in the browser and Node.
+Native Rust consumers use the same crate without crossing the JavaScript boundary.
+
+## Compatibility and limits
+
+- The TypeScript adapter keeps a cached, immutable snapshot. Rust returns patches;
+  applying them preserves unaffected object references on `handle.doc()`. Repeated
+  definition reads return the same object until the document changes. The existing
+  definition-store sanitizer still copies entities after a change; it can be optimized
+  separately.
+- Public mutations and composite commands pass their inputs to Rust. The compatibility
+  `handle.change` callback still uses an Immer draft and serializes its result. Rust
+  uses direct typed updates for positions and position-only history; other edits
+  still clone, validate and compare the complete document.
+- The current document exists in both Wasm memory and the JavaScript heap. History
+  stores patches rather than full snapshots, but large replacements can still
+  retain substantial data. The default limit is 50 transactions; zero disables history.
+- Patch paths and operations match the existing public format. Patch ordering and
+  granularity can differ from Immer. Consumers must interpret patches by their
+  documented operations, rather than depending on an exact sequence. Rust omits
+  transactions whose final document is unchanged. The TypeScript handle can record
+  redundant array replacements during extension sanitization, so history indices
+  need not correspond between backends even when their document states match.
+- Values must fit JSON. Non-finite numbers, bigint, functions, and symbols are
+  rejected. Optional object properties set to `undefined` are omitted; JSON arrays
+  turn missing or undefined entries into null. Negative zero becomes zero. Documents
+  must use plain JSON objects, and JavaScript numbers retain their existing precision.
+  Property names `__proto__`, `constructor`, and `prototype` are rejected before a
+  commit because the Immer patch adapter rejects these paths.
+- Rust validates required top-level arrays and migrated commands, including
+  place dynamics and arc endpoint references. Rust also enforces extension policies on every commit.
+  Document defaults, ID normalization and entity validation run in Rust. File-format
+  migrations remain in the host import layer. Entity validation does not require
+  every reference to resolve while a document is being authored.
+- Commands run synchronously on the main thread. Large commits can block editing.
+  Moving the instance into a worker would require an asynchronous command protocol
+  and a strategy for optimistic UI updates.
+- The new backend is local memory. It provides neither persistence nor CRDT merging.
+  Replacing an Automerge or remote handle would change collaboration semantics.
+- Browser deployments must permit WebAssembly compilation in their content security
+  policy. Startup requires Wasm-capable runtimes. Packaging, cold-start time and
+  browser memory limits need release testing before making this the default.
+- Model code is authored in TypeScript. The experimental Wasm experiment backend
+  compiles supported scalar rates and metrics through HIR; transition kernels,
+  dynamics and visualizers still require the TypeScript runtime. Deterministic
+  random streams and floating-point parity need tests as support expands.
+
+## Incremental transactions and measurements
+
+Position commands validate the complete batch before writing, collapse repeated
+moves of the same node, and emit patches only for final coordinate changes. Rust
+updates its typed model and any cached JSON snapshot directly. Position-only
+history jumps use the same path; mixed structural history retains the general
+transaction path. Tests cover unchanged batches, rejected edits, history truncation
+and typed allocation preservation.
+
+At **1,000 nodes** (3.6 MB of JSON): **7.8× faster node moves**, **1.4× faster deletion**, and **15% more peak process memory** for Rust/Wasm.
+
+Measured at `d09eae9f10` with release Wasm, Node v22.23.4, Apple M1 Max and 64 GiB RAM on macOS ARM64. The Wasm binary is 1.69 MiB before compression. `rust/benchmark-comparison.json` contains all samples, memory readings and build metadata.
+
+| Nodes |    JSON |  TS move | Rust move | Rust comparison | TS peak process | Rust peak process |
+| ----: | ------: | -------: | --------: | --------------: | --------------: | ----------------: |
+|    50 | 0.18 MB |  0.83 ms |   0.20 ms |     4.1× faster |       129.5 MiB |         150.7 MiB |
+|   500 | 1.81 MB | 27.00 ms |   3.52 ms |     7.7× faster |       201.2 MiB |         210.3 MiB |
+| 1,000 | 3.63 MB | 96.01 ms |  12.26 ms |     7.8× faster |       248.0 MiB |         284.0 MiB |
+
+At 1,000 nodes, operation times are:
+
+| Operation         | TypeScript | Rust/Wasm | Rust comparison |
+| ----------------- | ---------: | --------: | --------------: |
+| Load instance     |   22.56 ms | 150.53 ms | **6.7× slower** |
+| Move one node     |   96.01 ms |  12.26 ms | **7.8× faster** |
+| Undo move         |   68.11 ms |  12.12 ms | **5.6× faster** |
+| Redo move         |   68.07 ms |  12.23 ms | **5.6× faster** |
+| Move 100 nodes    |   98.17 ms |  13.61 ms | **7.2× faster** |
+| Delete 100 places |  172.27 ms | 125.49 ms | **1.4× faster** |
+
+Deletion also depends on fixture size. Deleting 30 places at 50 nodes takes 1.25 ms in TypeScript and 4.05 ms in Rust (3.2× slower). At 500 nodes, deleting 100 places takes 41.80 ms and 49.86 ms (1.2× slower).
+
+Loading starts after engine initialization. Rust entry loading, file reading and Wasm initialization add a median 39.60 ms. Network startup is outside this measurement.
+
+For node movement, p95 is 99.49 ms in TypeScript and 14.02 ms in Rust. The three per-process medians range from 95.63–96.41 ms and 11.84–12.43 ms, respectively.
+
+For deletion, p95 is 177.86 ms in TypeScript and 141.68 ms in Rust. The three per-process medians range from 171.79–172.62 ms and 122.08–126.22 ms, respectively.
+
+Memory at 1,000 nodes uses medians of three independent processes. Lifecycle rows describe the first cycle; peak process memory covers all three cycles.
+
+| Stage                | TS JS heap | Rust JS heap | TS process | Rust process |
+| -------------------- | ---------: | -----------: | ---------: | -----------: |
+| Before instance      |   27.6 MiB |     33.9 MiB |  133.6 MiB |    152.0 MiB |
+| Loaded instance      |   29.6 MiB |     38.6 MiB |  136.1 MiB |    198.4 MiB |
+| 50 moves in history  |   32.0 MiB |     40.5 MiB |  244.2 MiB |    259.0 MiB |
+| Delete + undo        |   34.0 MiB |     40.9 MiB |  244.4 MiB |    272.4 MiB |
+| History cleared      |   33.8 MiB |     40.9 MiB |  244.4 MiB |    272.4 MiB |
+| Instance disposed    |   28.3 MiB |     34.4 MiB |  244.4 MiB |    272.4 MiB |
+| Peak across 3 cycles |            |              |  248.0 MiB |    284.0 MiB |
+
+After disposal in cycles 1, 2 and 3, TypeScript uses 28.3, 28.3, 26.6 MiB of JavaScript heap and 244.4, 246.4, 247.7 MiB of process memory.
+
+After disposal in cycles 1, 2 and 3, Rust uses 34.4, 32.9, 32.4 MiB of JavaScript heap and 272.4, 277.0, 277.8 MiB of process memory.
+
+The fixture repeats the satellite example with remapped identifiers: 50, 500 and
+1,000 total nodes (places and transitions). It includes the example's definitions, scenarios
+and source code. Batch moves and deletion affect up to 100 places (30 in the
+50-node fixture). Repeated example data is synthetic; real nets can have different
+code, topology and string sharing.
+
+The comparison runs three fresh processes per engine, size and measurement mode,
+with alternating engine order: 36 processes in total. Timing uses the built public
+API, including validation, the Wasm adapter, one definition subscriber and one
+patch subscriber. Each process warms up 10 move/undo pairs, one batch/undo pair and
+one delete/undo pair, then clears history. Moves, undo and redo have 30 samples per
+process; batches and deletion have 10. Medians and p95 use the pooled samples.
+Raw results also record the range of per-process medians. The definition subscriber
+includes the shared TypeScript document-copying cost in both engines.
+
+Document hashes must match between engines after loading, movement, undo, redo,
+batching and deletion restoration. Assertions check deletion counts, subscriber
+updates and the history limit. Instance loading is measured after engine setup;
+common module loading, fixture generation and correctness checks are outside the
+operation timers. Deletion timing excludes the undo used to restore the fixture.
+
+Memory uses separate processes. Each runs three create/edit/clear/dispose cycles
+with a 50-entry history limit. A cycle moves one node 50 times, deletes up to 100
+places, undoes the deletion, clears history and disposes the instance. Two forced
+JavaScript garbage collections precede each reading. Disposal readings occur on
+the next event-loop turn, after the instance and its snapshot references have
+left scope.
+
+Heap means V8 heap used. Process memory means RSS, including the fixture, runtime,
+JavaScript heap and Wasm. Peak RSS covers the entire process lifetime, including
+fixture construction. These values do not isolate live Rust allocations. Wasm,
+V8 and the native allocator can retain memory for reuse after disposal. Three
+cycles can reveal growth, but cannot establish the absence of a leak. The raw
+`external` count includes `arrayBuffers`; adding them would double-count memory.
+
+This document benchmark covers Node APIs. Browser rendering, storage, network startup
+and native Rust executables need separate measurements. Simulation has a
+[separate comparison](doc:core/wasm-simulation-benchmark). The older
+`rust/benchmark-results.json` retains the mutation-only comparison before and after
+incremental positions; its timings exclude the subscribers used here.
+
+After building core, reproduce the comparison from the repository root:
+
+```sh
+mise x -- node libs/@hashintel/petrinaut-core/scripts/benchmark-comparison.mjs \
+  --output=/tmp/petrinaut-benchmark.json
+```
+
+For a quick correctness check, add `--nodes=50 --repeats=1`. The runner starts child
+processes with `--expose-gc`; runtime source code needs no profiling API.
+
+An earlier 5,000-node TypeScript memory worker exceeded the five-minute process
+timeout while running the three 50-edit lifecycles. That interrupted stress case
+provides no completed memory result. The routine comparison uses 1,000 nodes as
+its largest fixture. Completed workers are saved beside `--output` in a
+`.partial.jsonl` file until the whole comparison succeeds. To inspect the stress
+case without the comparison timeout, run its worker directly:
+
+```sh
+mise x -- node --expose-gc libs/@hashintel/petrinaut-core/scripts/benchmark-rust.mjs \
+  --engine=typescript --nodes=5000 --mode=memory
+```
+
+## Build and verification
+
+From the repository root, using the pinned mise tools and rustup toolchain:
+
+```sh
+mise x -- yarn install --immutable
+mise x -- turbo run build test:unit lint:tsc lint:eslint \
+  --filter @hashintel/petrinaut-core --filter @hashintel/petrinaut
+cargo test -p petrinaut-core
+cargo clippy -p petrinaut-core --all-features --all-targets --no-deps
+yarn workspace @local/petrinaut-arch-docs lint:arch-docs
+```
+
+The TypeScript tasks depend on `petrinaut-core#build:wasm`. The crate builds through
+`wasm-pack` and the repository's `wasm32-unknown-unknown` target. Generated bindings
+and Wasm live under `rust/pkg` and are ignored by Git. The library build includes
+them in the opt-in Rust entry. The current Vite library build embeds the Wasm bytes
+as a data URL. Extracting a separate,
+cacheable asset is a release-packaging follow-up. npm consumers do not need a Rust compiler.
+
+The document contract and action suites run against both the TypeScript and real Wasm implementations.
+A 32-policy extension matrix compares every migrated entity operation and all
+undo/redo states. It also checks that native operations never call the TypeScript
+draft callback. Native tests cover rejected dynamics and endpoint references,
+subnet port deletion, duplicate arcs, fractional weights and failed edits after undo.
+Additional tests cover native node movement, identity preservation, rejected drafts,
+read-only access, disposal, and React updates through the document provider. The
+native tests exercise history truncation, nested data, invalid commits, subnet
+movement, and numeric no-ops.
+
+## Next implementation steps
+
+1. Extend incremental transactions to structural edits, guided by bulk-deletion and
+   paste profiles. Keep rejected changes atomic and preserve redo after failures.
+2. Expand schema and command parity with generated inputs and fuzzing, including
+   native callers that do not pass through TypeScript validation.
+3. Measure cold startup and browser memory; separate the Wasm asset for caching and
+   test the published package in browser, Node and SSR hosts.
+4. Define persistence and collaboration ownership, remote-change application and
+   local undo before adopting native Automerge.
+5. Extend the Wasm experiment prototype to coloured tokens and dynamics, guided by
+   parity tests. Measure compilation, stepping and aggregation separately before
+   changing the default backend or adding a native Wasm host.

@@ -1,0 +1,293 @@
+{
+  "environment": "macOS ARM64, Node 22.23.4, release Wasm; local package API measurements",
+  "baselineRevision": "bef5ae205a",
+  "optimizedRevision": "The incremental-position implementation in this commit",
+  "optimizedWasmSha256": "cafc2d9211554436ae4f2d394a121657d278f98723abf81212bf8a172f0f728e",
+  "notes": [
+    "The baseline harness measured the same startup, move, undo, redo and batch operations; bulk deletion was added for the final comparison.",
+    "30 samples per movement/history operation and 10 per batch/delete operation; setup and warmup affect startup samples.",
+    "Heap and RSS deltas include allocator/JIT noise; they do not isolate live Rust allocations."
+  ],
+  "before": {
+    "engine": "rust",
+    "node": "v22.23.4",
+    "wasmBytes": 1745772,
+    "initializeMs": 31.69704200000001,
+    "rows": [
+      {
+        "copies": 1,
+        "nodes": 5,
+        "documentBytes": 18488,
+        "startupMs": 10.057333999999997,
+        "move": {
+          "medianMs": 0.47358399999998824,
+          "p95Ms": 0.8240419999999915
+        },
+        "undo": {
+          "medianMs": 0.176667000000009,
+          "p95Ms": 0.24279200000000856
+        },
+        "redo": {
+          "medianMs": 0.17116700000002538,
+          "p95Ms": 0.19775000000004184
+        },
+        "bulk": {
+          "medianMs": 0.5118330000000242,
+          "p95Ms": 1.043875000000014
+        },
+        "instanceHeapBytes": 125000,
+        "moveHistoryHeapBytes": 182816,
+        "retainedHeapAfterClearBytes": 236096,
+        "processRssDeltaBytes": 4521984
+      },
+      {
+        "copies": 10,
+        "nodes": 50,
+        "documentBytes": 181622,
+        "startupMs": 6.928708000000029,
+        "move": {
+          "medianMs": 3.0645829999999705,
+          "p95Ms": 3.3858749999999986
+        },
+        "undo": {
+          "medianMs": 1.0997910000000388,
+          "p95Ms": 1.342917
+        },
+        "redo": {
+          "medianMs": 1.0846670000000245,
+          "p95Ms": 1.25912500000004
+        },
+        "bulk": {
+          "medianMs": 3.230082999999979,
+          "p95Ms": 3.633457999999962
+        },
+        "instanceHeapBytes": 203048,
+        "moveHistoryHeapBytes": 5264,
+        "retainedHeapAfterClearBytes": 32672,
+        "processRssDeltaBytes": 3358720
+      },
+      {
+        "copies": 100,
+        "nodes": 500,
+        "documentBytes": 1812962,
+        "startupMs": 58.33020900000008,
+        "move": {
+          "medianMs": 45.61349999999993,
+          "p95Ms": 48.3074160000001
+        },
+        "undo": {
+          "medianMs": 18.080083000000286,
+          "p95Ms": 19.31966599999987
+        },
+        "redo": {
+          "medianMs": 17.646666000000096,
+          "p95Ms": 19.18104200000016
+        },
+        "bulk": {
+          "medianMs": 48.74287499999991,
+          "p95Ms": 50.08750000000009
+        },
+        "instanceHeapBytes": 1827280,
+        "moveHistoryHeapBytes": -20464,
+        "retainedHeapAfterClearBytes": 41960,
+        "processRssDeltaBytes": 29868032
+      }
+    ]
+  },
+  "after": {
+    "engine": "rust",
+    "node": "v22.23.4",
+    "wasmBytes": 1773088,
+    "initializeMs": 37.185958,
+    "rows": [
+      {
+        "copies": 1,
+        "nodes": 5,
+        "documentBytes": 18488,
+        "startupMs": 20.56079200000005,
+        "move": {
+          "medianMs": 0.060416000000032,
+          "p95Ms": 0.5629579999999805
+        },
+        "undo": {
+          "medianMs": 0.146458999999993,
+          "p95Ms": 0.57162500000004
+        },
+        "redo": {
+          "medianMs": 0.046291999999994005,
+          "p95Ms": 0.062124999999980446
+        },
+        "bulk": {
+          "medianMs": 0.2518749999999841,
+          "p95Ms": 2.1248749999999745
+        },
+        "bulkDelete": {
+          "medianMs": 0.6281250000000114,
+          "p95Ms": 2.6257499999999823
+        },
+        "instanceHeapBytes": 133544,
+        "moveHistoryHeapBytes": 179008,
+        "retainedHeapAfterClearBytes": 291632,
+        "processRssDeltaBytes": 4276224
+      },
+      {
+        "copies": 10,
+        "nodes": 50,
+        "documentBytes": 181622,
+        "startupMs": 18.31654199999997,
+        "move": {
+          "medianMs": 0.05158299999999372,
+          "p95Ms": 0.1898750000000291
+        },
+        "undo": {
+          "medianMs": 0.04579100000000835,
+          "p95Ms": 0.0665000000000191
+        },
+        "redo": {
+          "medianMs": 0.044083999999998014,
+          "p95Ms": 0.14929200000000264
+        },
+        "bulk": {
+          "medianMs": 0.29579200000000583,
+          "p95Ms": 0.41970900000001166
+        },
+        "bulkDelete": {
+          "medianMs": 4.739625000000046,
+          "p95Ms": 8.830500000000029
+        },
+        "instanceHeapBytes": 197312,
+        "moveHistoryHeapBytes": 4648,
+        "retainedHeapAfterClearBytes": 123240,
+        "processRssDeltaBytes": 6946816
+      },
+      {
+        "copies": 100,
+        "nodes": 500,
+        "documentBytes": 1812962,
+        "startupMs": 92.25383299999999,
+        "move": {
+          "medianMs": 0.10745800000006511,
+          "p95Ms": 0.41449999999997544
+        },
+        "undo": {
+          "medianMs": 0.10212500000000091,
+          "p95Ms": 0.3509999999999991
+        },
+        "redo": {
+          "medianMs": 0.09891600000003109,
+          "p95Ms": 0.26187500000003183
+        },
+        "bulk": {
+          "medianMs": 1.1936249999999973,
+          "p95Ms": 2.798999999999978
+        },
+        "bulkDelete": {
+          "medianMs": 85.80058299999996,
+          "p95Ms": 115.09762500000011
+        },
+        "instanceHeapBytes": 1815168,
+        "moveHistoryHeapBytes": -18768,
+        "retainedHeapAfterClearBytes": 103680,
+        "processRssDeltaBytes": 31047680
+      }
+    ]
+  },
+  "typescript": {
+    "engine": "typescript",
+    "node": "v22.23.4",
+    "wasmBytes": 1773088,
+    "initializeMs": 0.00041699999999877946,
+    "rows": [
+      {
+        "copies": 1,
+        "nodes": 5,
+        "documentBytes": 18488,
+        "startupMs": 2.320875000000001,
+        "move": {
+          "medianMs": 0.11629099999998971,
+          "p95Ms": 0.39449999999999363
+        },
+        "undo": {
+          "medianMs": 0.2994170000000054,
+          "p95Ms": 0.46325000000001637
+        },
+        "redo": {
+          "medianMs": 0.2466670000000022,
+          "p95Ms": 0.4392919999999947
+        },
+        "bulk": {
+          "medianMs": 0.1273339999999905,
+          "p95Ms": 0.8455419999999947
+        },
+        "bulkDelete": {
+          "medianMs": 0.20445800000001668,
+          "p95Ms": 0.8931249999999977
+        },
+        "instanceHeapBytes": 86000,
+        "moveHistoryHeapBytes": 278904,
+        "retainedHeapAfterClearBytes": 463776,
+        "processRssDeltaBytes": 6586368
+      },
+      {
+        "copies": 10,
+        "nodes": 50,
+        "documentBytes": 181622,
+        "startupMs": 0.8789580000000115,
+        "move": {
+          "medianMs": 0.7584589999999594,
+          "p95Ms": 1.7649580000000356
+        },
+        "undo": {
+          "medianMs": 2.2183750000000373,
+          "p95Ms": 4.572790999999995
+        },
+        "redo": {
+          "medianMs": 2.1660420000000045,
+          "p95Ms": 2.708665999999994
+        },
+        "bulk": {
+          "medianMs": 0.8547499999999673,
+          "p95Ms": 1.0775840000000017
+        },
+        "bulkDelete": {
+          "medianMs": 1.3427499999999668,
+          "p95Ms": 1.4410839999999894
+        },
+        "instanceHeapBytes": 89968,
+        "moveHistoryHeapBytes": 136008,
+        "retainedHeapAfterClearBytes": 196560,
+        "processRssDeltaBytes": 14565376
+      },
+      {
+        "copies": 100,
+        "nodes": 500,
+        "documentBytes": 1812962,
+        "startupMs": 9.520582999999988,
+        "move": {
+          "medianMs": 24.65183300000001,
+          "p95Ms": 31.58783299999982
+        },
+        "undo": {
+          "medianMs": 26.06337499999995,
+          "p95Ms": 30.1115420000001
+        },
+        "redo": {
+          "medianMs": 24.650208999999904,
+          "p95Ms": 37.15812499999993
+        },
+        "bulk": {
+          "medianMs": 33.387624999999844,
+          "p95Ms": 37.417917000000216
+        },
+        "bulkDelete": {
+          "medianMs": 47.68837500000018,
+          "p95Ms": 67.17829099999972
+        },
+        "instanceHeapBytes": 699104,
+        "moveHistoryHeapBytes": 77624,
+        "retainedHeapAfterClearBytes": 172512,
+        "processRssDeltaBytes": 45826048
+      }
+    ]
+  }
+}

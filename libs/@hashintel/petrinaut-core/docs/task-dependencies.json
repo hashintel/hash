@@ -7,9 +7,11 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@local/petrinaut-optimizer-core#build"
+        "@local/petrinaut-optimizer-core#build",
+        "petrinaut-core#build:wasm"
       ],
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimizer-core"
       ]
     },
@@ -19,6 +21,7 @@
       ],
       "cache": false,
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimizer-core"
       ]
     },
@@ -29,38 +32,45 @@
       ],
       "affectedBy": [
         "@local/eslint",
+        "petrinaut-core",
         "petrinaut-optimizer-core"
       ]
     },
     "lint:eslint": {
       "dependsOn": [
         "@local/eslint#build",
-        "@local/petrinaut-optimizer-core#build"
+        "@local/petrinaut-optimizer-core#build",
+        "petrinaut-core#build:wasm"
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
         "@local/eslint",
+        "petrinaut-core",
         "petrinaut-optimizer-core"
       ]
     },
     "lint:tsc": {
       "dependsOn": [
-        "@local/petrinaut-optimizer-core#build"
+        "@local/petrinaut-optimizer-core#build",
+        "petrinaut-core#build:wasm"
       ],
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimizer-core"
       ]
     },
     "test:unit": {
       "dependsOn": [
-        "@local/petrinaut-optimizer-core#build"
+        "@local/petrinaut-optimizer-core#build",
+        "petrinaut-core#build:wasm"
       ],
       "env": [
         "TEST_COVERAGE"
       ],
       "affectedBy": [
+        "petrinaut-core",
         "petrinaut-optimizer-core"
       ]
     }

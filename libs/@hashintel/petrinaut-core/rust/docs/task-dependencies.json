@@ -1,0 +1,21 @@
+{
+  "package": "petrinaut-core",
+  "dependencies": [],
+  "tasks": {
+    "build:wasm": {
+      "dependsOn": []
+    },
+    "lint:clippy": {
+      "dependsOn": [],
+      "env": [
+        "GITHUB_EVENT_NAME"
+      ]
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
+  }
+}

@@ -13,6 +13,10 @@ run on a 10-core Apple Silicon laptop, Node 25.6, against the built `dist` of
 `@hashintel/petrinaut-core`. Absolute figures are machine-specific; the ratios
 are the point.
 
+The experimental Rust/Wasm backend has a [separate CPU/Wasm comparison](doc:core/wasm-simulation-benchmark)
+for supported uncoloured nets. Its fixtures, runtime and methodology differ from
+the earlier measurements below, so their ratios should not be combined.
+
 ## State of play
 
 | Area                                                  | Status                                                                                               |
@@ -23,7 +27,7 @@ are the point.
 | [Weighted-arc enumeration](#weighted-arc-enumeration) | Fixed (FE-1526, FE-1528). Lazy, allocation-free, and skipped outright for token-independent lambdas. |
 | [Hot-path fixes](#hot-path-fixes)                     | Open. Estimated 5–15× combined, behaviour-preserving.                                                |
 | [Whole-loop codegen](#whole-loop-codegen)             | Proposed. Where the largest single-thread win is.                                                    |
-| [WASM and native](#wasm-and-native)                   | Proposed. A second codegen backend once whole-loop codegen exists.                                   |
+| [WASM and native](#wasm-and-native)                   | Experimental Wasm backend shipped for uncoloured nets; native hosting remains open.                  |
 | [Event-driven stepping](#event-driven-stepping)       | Proposed. A semantics change; potentially a bigger lever than everything above.                      |
 
 ## The two stepping paths
@@ -563,6 +567,11 @@ interpreted path as a reference implementation and differential-test against
 it); and code size for large nets.
 
 ### WASM and native
+
+The proposal below predates the experimental backend. The current implementation
+combines an ahead-of-time Rust runtime with scalar HIR compiled to Wasm at runtime,
+and calls Wasm once per run per frame. Its [measured comparison](doc:core/wasm-simulation-benchmark)
+covers that implementation; whole-batch stepping remains a possible follow-up.
 
 WASM buys predictable numeric performance without JIT warm-up or
 deoptimisation cliffs. Against well-written JS over typed arrays, expect

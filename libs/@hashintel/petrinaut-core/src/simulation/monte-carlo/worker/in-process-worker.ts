@@ -7,7 +7,10 @@
  * thread is shared rather than blocked, but nothing runs in parallel: this is
  * the correctness fallback, not the fast path.
  */
-import { attachMonteCarloWorker } from "./attach";
+import {
+  attachMonteCarloWorker,
+  type MonteCarloWorkerSimulationFactory,
+} from "./attach";
 
 import type { WorkerLike } from "../../../environment";
 import type {
@@ -31,41 +34,46 @@ function onMicrotask(callback: () => void): void {
   }
 }
 
-export function createInProcessMonteCarloWorker(): WorkerLike {
+export function createInProcessMonteCarloWorker(
+  createSimulation?: MonteCarloWorkerSimulationFactory,
+): WorkerLike {
   const mainListeners = new Set<(event: { data: unknown }) => void>();
   let workerListener: ((message: MonteCarloToWorkerMessage) => void) | null =
     null;
   let terminated = false;
 
-  attachMonteCarloWorker({
-    postMessage: (message: MonteCarloToMainMessage) => {
-      if (terminated) {
-        return;
-      }
-      // Delivered on a microtask so a message posted while handling `init`
-      // reaches listeners added after `postMessage` returned, matching how a
-      // real worker's replies are always asynchronous.
-      onMicrotask(() => {
+  attachMonteCarloWorker(
+    {
+      postMessage: (message: MonteCarloToMainMessage) => {
         if (terminated) {
           return;
         }
-        for (const listener of mainListeners) {
-          listener({ data: message });
-        }
-      });
+        // Delivered on a microtask so a message posted while handling `init`
+        // reaches listeners added after `postMessage` returned, matching how a
+        // real worker's replies are always asynchronous.
+        onMicrotask(() => {
+          if (terminated) {
+            return;
+          }
+          for (const listener of mainListeners) {
+            listener({ data: message });
+          }
+        });
+      },
+      onMessage: (listener) => {
+        workerListener = listener;
+      },
+      delay: (timeout) =>
+        new Promise((resolve) => {
+          if (scheduler.setTimeout) {
+            scheduler.setTimeout(() => resolve(undefined), timeout);
+          } else {
+            onMicrotask(() => resolve(undefined));
+          }
+        }),
     },
-    onMessage: (listener) => {
-      workerListener = listener;
-    },
-    delay: (timeout) =>
-      new Promise((resolve) => {
-        if (scheduler.setTimeout) {
-          scheduler.setTimeout(() => resolve(undefined), timeout);
-        } else {
-          onMicrotask(() => resolve(undefined));
-        }
-      }),
-  });
+    createSimulation,
+  );
 
   return {
     postMessage(message) {

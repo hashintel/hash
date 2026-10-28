@@ -240,8 +240,15 @@ import type { NetManagement } from "../react/net-management-context";
 import type { PetrinautPlugin } from "./plugins/define-petrinaut-plugin";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
 
-export type PetrinautProps = {
-  handle: PetrinautDocHandle;
+export type PetrinautProps = (
+  | { handle: PetrinautDocHandle; instance?: never; readonly?: boolean }
+  | {
+      /** Host-owned instance. Configure read-only access when creating it and dispose it in the host. */
+      instance: Instance;
+      handle?: never;
+      readonly?: never;
+    }
+) & {
   /**
    * The plugins that add buttons, top-bar items, settings and UI to the
    * editor. Define each at module scope: a plugin created during render
@@ -250,7 +257,6 @@ export type PetrinautProps = {
   plugins?: readonly PetrinautPlugin[];
   title?: string;
   setTitle?: (title: string) => void;
-  readonly?: boolean;
   /**
    * Controls visibility of net-management UI in the editor's top bar and
    * burger menu.
@@ -310,15 +316,15 @@ const noop = () => {};
 const noPlugins: readonly PetrinautPlugin[] = [];
 
 /**
- * Handle-driven entry point. Creates a Core {@link Instance} from the given
- * handle, mounts {@link PetrinautProvider} to connect every bridge, and renders
- * the editor.
+ * Renders the editor using a host-owned Core {@link Instance}, or creates one
+ * from a handle. Mounts {@link PetrinautProvider} to connect the UI stores.
  *
  * Net-management concerns (title, switching) are passed alongside the handle
  * because they're not part of Core — they live in the host app.
  */
 export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   handle,
+  instance: providedInstance,
   plugins = noPlugins,
   title = "Untitled",
   setTitle,
@@ -338,11 +344,16 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   const titleEditable = setTitle !== undefined;
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(
-    () => createPetrinaut({ document: handle, readonly }),
-    [handle, readonly],
+    () => providedInstance ?? createPetrinaut({ document: handle!, readonly }),
+    [handle, readonly, providedInstance],
   );
 
-  useEffect(() => () => instance.dispose(), [instance]);
+  useEffect(() => {
+    if (providedInstance) {
+      return;
+    }
+    return () => instance.dispose();
+  }, [instance, providedInstance]);
 
   const netManagement: NetManagement = {
     title,

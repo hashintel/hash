@@ -29,6 +29,7 @@ export default defineConfig(({ command }) => ({
     lib: {
       entry: {
         index: resolve(packageRoot, "src/index.ts"),
+        rust: resolve(packageRoot, "src/rust/index.ts"),
         // Dedicated edge-safe entry exposing only the AI prompt + tool schemas.
         ai: resolve(packageRoot, "src/ai.ts"),
         // Node/tooling-only reusable model compiler. This depends on the
@@ -59,6 +60,7 @@ export default defineConfig(({ command }) => ({
         // and carries the whole shader generator, so it must stay out of the
         // main bundle and load only when a GPU experiment is requested.
         webgpu: resolve(packageRoot, "src/webgpu.ts"),
+        wasm: resolve(packageRoot, "src/wasm.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),
         "workers/monte-carlo": resolve(

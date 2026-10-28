@@ -37,6 +37,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
     mise install --locked yq && \
     echo "Installing Rust toolchain: $(yq '.toolchain.channel' rust-toolchain.toml)" && \
     mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml) && \
+    rustup target add --toolchain "$(yq '.toolchain.channel' rust-toolchain.toml)" wasm32-unknown-unknown && \
     mise lock --global rust && \
     mise list rust && \
     rustc --version && \

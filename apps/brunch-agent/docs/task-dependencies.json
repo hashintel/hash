@@ -29,6 +29,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "type-system"
       ]
@@ -78,6 +79,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "problematic",
         "type-system"
@@ -105,6 +107,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "type-system"
       ]
@@ -130,6 +133,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "type-system"
       ]
@@ -158,6 +162,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "type-system"
       ]
@@ -182,6 +187,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "type-system"
       ]
@@ -208,6 +214,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "type-system"
       ]
@@ -231,6 +238,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "type-system"
       ]
@@ -286,6 +294,7 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "problematic",
         "type-system"
@@ -315,6 +324,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimizer-core",
         "type-system"
       ]
@@ -349,6 +359,7 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-core",
         "petrinaut-optimization",
         "petrinaut-optimizer-core",
         "petrinaut-python",
