@@ -1,3 +1,4 @@
+mod capture;
 mod pipeline;
 mod staging;
 
@@ -15,6 +16,7 @@ use error_stack::{Report, ResultExt as _};
 use hash_integrations_definition::Variables;
 use tokio::sync::mpsc;
 
+use self::capture::{CaptureSchema, SchemaTable};
 use crate::{
     ByteSize, WorkspaceConfig,
     sql::Identifier,
@@ -46,6 +48,7 @@ pub(super) struct Connection {
     disk_limit: Option<ByteSize>,
     variables: Variables,
     metrics: Metrics,
+    capture_schema: CaptureSchema,
     /// An exclusive lock on the workspace's lock file, held until the database is closed.
     lock: File,
 }
@@ -189,6 +192,15 @@ impl Connection {
                 path: files.database().to_owned(),
             })?;
 
+        let capture_schema = CaptureSchema::default();
+        duckdb
+            .register_table_function_with_extra_info::<SchemaTable, _>(
+                "_capture_schema",
+                &capture_schema,
+            )
+            .change_context_lazy(|| OpenError::Open {
+                path: files.database().to_owned(),
+            })?;
         let opened = Self {
             interrupt: InterruptGuard::new(Arc::new(Interrupt::new(duckdb.interrupt_handle()))),
             duckdb,
@@ -196,6 +208,7 @@ impl Connection {
             disk_limit: config.disk_limit,
             variables: config.variables,
             metrics,
+            capture_schema,
             lock,
         };
         match opened.disk_usage().change_context(OpenError::DiskUsage)? {
@@ -441,6 +454,20 @@ impl Connection {
     pub(super) fn run(self, commands: &mut mpsc::Receiver<(RequestId, Command)>) {
         while let Some((id, command)) = commands.blocking_recv() {
             match command {
+                Command::LoadCapture {
+                    capture,
+                    table,
+                    reply,
+                } => {
+                    self.answer(id, reply, "load_capture", |connection| {
+                        connection.load_capture(&capture, &table)
+                    });
+                }
+                Command::Capture { sql, target, reply } => {
+                    self.answer(id, reply, "capture", |connection| {
+                        connection.capture(&sql, &target)
+                    });
+                }
                 Command::Stage { request, reply } => {
                     self.answer(id, reply, "stage_table", |connection| {
                         connection.stage_table(&request)

@@ -16,6 +16,7 @@
 extern crate alloc;
 
 mod byte_size;
+mod capture;
 mod coerce;
 mod entity_id;
 mod pipeline;
@@ -26,6 +27,7 @@ mod workspace;
 
 pub use self::{
     byte_size::ByteSize,
+    capture::{CaptureError, SourceCapture},
     coerce::{MeasuredValue, coerce_measure, coerce_value},
     entity_id::derive_entity_id,
     pipeline::{
