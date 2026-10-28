@@ -5,9 +5,9 @@ expression: "(Int, String, Boolean)"
 info:
   kind: Ok
 ---
-Type#4294967040@17
+Type#4294967040@13
   TypeKind (Tuple)
-    TupleType#4294967040@17
+    TupleType#4294967040@13
       TupleField#4294967040@4
         Type#4294967040@4
           TypeKind (Path)
@@ -18,8 +18,8 @@ Type#4294967040@17
           TypeKind (Path)
             Path#4294967040@7 (rooted: false)
               PathSegment#4294967040@6 (name: String)
-      TupleField#4294967040@16
-        Type#4294967040@15
+      TupleField#4294967040@12
+        Type#4294967040@11
           TypeKind (Path)
-            Path#4294967040@15 (rooted: false)
-              PathSegment#4294967040@14 (name: Boolean)
+            Path#4294967040@11 (rooted: false)
+              PathSegment#4294967040@10 (name: Boolean)

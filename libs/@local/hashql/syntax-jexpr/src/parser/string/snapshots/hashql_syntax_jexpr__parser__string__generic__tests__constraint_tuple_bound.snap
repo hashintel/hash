@@ -5,17 +5,17 @@ expression: "T: (Int, String)"
 info:
   kind: Ok
 ---
-GenericConstraint#4294967040@15 (name: T)
-  Type#4294967040@14
+GenericConstraint#4294967040@11 (name: T)
+  Type#4294967040@10
     TypeKind (Tuple)
-      TupleType#4294967040@14
+      TupleType#4294967040@10
         TupleField#4294967040@5
           Type#4294967040@5
             TypeKind (Path)
               Path#4294967040@5 (rooted: false)
                 PathSegment#4294967040@4 (name: Int)
-        TupleField#4294967040@13
-          Type#4294967040@12
+        TupleField#4294967040@9
+          Type#4294967040@8
             TypeKind (Path)
-              Path#4294967040@12 (rooted: false)
-                PathSegment#4294967040@11 (name: String)
+              Path#4294967040@8 (rooted: false)
+                PathSegment#4294967040@7 (name: String)
