@@ -25,10 +25,6 @@ export const Reason = Schema.TaggedUnion({
   InvalidParameterName: { name: Schema.String, cause: Issue },
   /** A module export name is not a valid HashQL identifier. */
   InvalidExportName: { name: Schema.String, cause: Issue },
-  /** A module export table has a symbol key rather than a string name. */
-  SymbolExportName: { name: Schema.Symbol },
-  /** An explicit input schema has a symbol key rather than a string name. */
-  SymbolInputName: { name: Schema.Symbol },
   /** A syntax value failed J-Expr schema validation. */
   InvalidExpression: { cause: Issue },
   /** A synchronous authoring callback threw a host value. */
@@ -130,20 +126,6 @@ export class Construction extends Schema.TaggedError<Construction>()(
     });
   }
 
-  /** Identifies an unsupported symbol key in a module's export table. */
-  static symbolExportName(name: symbol): Construction {
-    return Construction.make({
-      reason: Reason.make({ _tag: "SymbolExportName", name }),
-    });
-  }
-
-  /** Identifies an unsupported symbol key in an explicit input schema. */
-  static symbolInputName(name: symbol): Construction {
-    return Construction.make({
-      reason: Reason.make({ _tag: "SymbolInputName", name }),
-    });
-  }
-
   /** Retains an arity outside the non-negative safe-integer range. */
   static invalidTypeArity(arity: number): Construction {
     return Construction.make({
@@ -208,10 +190,6 @@ export class Construction extends Schema.TaggedError<Construction>()(
         `Invalid HashQL parameter name: ${JSON.stringify(name)}`,
       InvalidExportName: ({ name }) =>
         `Invalid HashQL export name: ${JSON.stringify(name)}`,
-      SymbolExportName: ({ name }) =>
-        `A HashQL export needs a string name, received ${String(name)}`,
-      SymbolInputName: ({ name }) =>
-        `A HashQL input needs a string name, received ${String(name)}`,
       InvalidExpression: () =>
         "The expression does not have valid J-Expr structure",
       CallbackException: () => "A program callback threw an exception",

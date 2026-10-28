@@ -19,6 +19,7 @@ import * as JExpr from "../JExpr/index.js";
 import * as Deferred from "./Declaration.js";
 import * as ProgramError from "./ProgramError.js";
 
+import type { StringKeyed } from "../internal/record.js";
 import type * as Relocation from "../internal/relocation.js";
 import type { Declaration } from "./Declaration.js";
 import type * as Expression from "./Expression.js";
@@ -88,7 +89,9 @@ type Rebindable<E> =
       ? undefined
       : E & Relocation.Relocatable<E>;
 
-type RebindableEntries<E> = { readonly [K in keyof E]: Rebindable<E[K]> };
+type RebindableEntries<E> = StringKeyed<{
+  readonly [K in keyof E]: Rebindable<E[K]>;
+}>;
 
 /** Requires every table of a module definition to hold rebindable entries. */
 type RebindableDefinition<S> = {
@@ -148,19 +151,6 @@ const memberName = (
     ),
   );
 
-/** Symbol keys cannot appear in HashQL paths and must not disappear during binding. */
-const requireStringKeys = (
-  symbols: readonly symbol[],
-): Result.Result<void, ProgramError.Construction> => {
-  const [name] = symbols;
-
-  if (name !== undefined) {
-    return Result.fail(ProgramError.Construction.symbolExportName(name));
-  }
-
-  return Result.void;
-};
-
 /** Maps each enumerable own name from S[K] to E[K], retaining its export type instead of an entry union. */
 const mapEntries = <
   E extends Namespace<
@@ -174,19 +164,18 @@ const mapEntries = <
     entry: S[K],
     ident: JExpr.Ident.Ident,
   ) => Result.Result<E[K], ProgramError.Construction>,
-): Result.Result<Readonly<E>, ProgramError.Construction> =>
-  Result.gen(function* () {
-    yield* pipe(entries, Object.getOwnPropertySymbols, requireStringKeys);
+): Result.Result<Readonly<E>, ProgramError.Construction> => {
+  const member = <K extends keyof E & string>(
+    name: K,
+  ): Result.Result<E[K], ProgramError.Construction> =>
+    pipe(
+      name,
+      memberName,
+      Result.flatMap((ident) => resolve(name, entries[name], ident)),
+    );
 
+  return Result.gen(function* () {
     const exports: Partial<E> = {};
-    const member = <K extends keyof E & string>(
-      name: K,
-    ): Result.Result<E[K], ProgramError.Construction> =>
-      pipe(
-        name,
-        memberName,
-        Result.flatMap((ident) => resolve(name, entries[name], ident)),
-      );
 
     for (const name of Record.keys(entries)) {
       const bound = yield* member(name);
@@ -199,6 +188,7 @@ const mapEntries = <
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- completes a per-key checked Partial<E>, without changing any export type
     return Object.freeze(exports as E);
   });
+};
 
 const copyModules = <M extends Namespace<Module.Any>>(
   modules: M,
@@ -331,9 +321,9 @@ class ModuleImpl<
  *
  * Every enumerable own string key becomes an export, including `__proto__`. A non-enumerable key exports nothing. A key must be a HashQL identifier. Emitted paths quote an operator name such as `%`, as in `` ::core::math::`%` ``.
  *
- * Invalid paths, export names and generic arities return construction failures. A malformed path returns `InvalidModulePath`, a relative path `RelativeModulePath`, a key that is not an identifier `InvalidExportName`, a symbol key `SymbolExportName` and an invalid generic arity `InvalidTypeArity`. Binding stops at the first failure, checking the module, type and value tables in that order.
+ * Invalid paths, export names and generic arities return construction failures. A malformed path returns `InvalidModulePath`, a relative path `RelativeModulePath`, a key that is not an identifier `InvalidExportName` and an invalid generic arity `InvalidTypeArity`. Binding stops at the first failure, checking the module, type and value tables in that order.
  *
- * TypeScript keeps the namespaces apart: a value declaration cannot enter `types`, and a type declaration cannot enter `values`. Each existing export must rebind to its own type. TypeScript rejects a handle extended through `Object.assign`, because rebinding would drop the added properties.
+ * TypeScript keeps the namespaces apart: a value declaration cannot enter `types`, and a type declaration cannot enter `values`. It also rejects a symbol key, which cannot name an export. Each existing export must rebind to its own type. TypeScript rejects a handle extended through `Object.assign`, because rebinding would drop the added properties.
  *
  * @example <caption>Declare a type and its value constructor under one name.</caption>
  * ```ts
@@ -469,7 +459,7 @@ export const relocate: {
  * The result is a frozen `{ modules }` record keyed by the supplied names. It is not a module: it has no path, and {@link isModule} rejects it. Each child keeps its identity and its own path. The record fits any parameter that takes a scope definition, such as a prelude. Names follow the rules and failures of the module table of {@link define}.
  */
 export const root = <const M extends Namespace<Module.Any>>(
-  modules: M,
+  modules: M & StringKeyed<M>,
 ): Result.Result<
   { readonly modules: Readonly<M> },
   ProgramError.Construction

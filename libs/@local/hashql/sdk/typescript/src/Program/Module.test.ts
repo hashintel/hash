@@ -112,25 +112,24 @@ describe("module_exports", () => {
     expect(Object.hasOwn(tree.modules, "math")).toBe(false);
   });
 
-  test("symbol_export", () => {
+  test("symbol_exports", () => {
     expect.hasAssertions();
     const name = Symbol("not a HashQL name");
-    const results = [
-      Module.define("::exports", {
-        types: { [name]: Module.type<Type.PrimitiveInteger>() },
-      }),
-      Module.define("::exports", {
-        values: { [name]: Module.value<Type.PrimitiveInteger>() },
-      }),
-      Module.define("::exports", { modules: { [name]: math } }),
-      Module.root({ [name]: math }),
-    ];
-    for (const result of results) {
-      expect(result).toMatchObject({
-        _tag: "Failure",
-        failure: { reason: { _tag: "SymbolExportName", name } },
-      });
-    }
+    const types = { Integer: Module.type<Type.PrimitiveInteger>() };
+    const children = { math };
+    Object.defineProperty(types, name, {
+      value: Module.type<Type.PrimitiveInteger>(),
+      enumerable: true,
+    });
+    Object.defineProperty(children, name, { value: math, enumerable: true });
+    const exports = Result.getOrThrow(
+      Module.define("::exports", { types, modules: children }),
+    );
+    const tree = Result.getOrThrow(Module.root(children));
+    expect(Object.keys(exports.types)).toStrictEqual(["Integer"]);
+    expect(Object.getOwnPropertySymbols(exports.types)).toStrictEqual([]);
+    expect(Object.getOwnPropertySymbols(exports.modules)).toStrictEqual([]);
+    expect(Object.getOwnPropertySymbols(tree.modules)).toStrictEqual([]);
   });
 
   test("optional_namespace", () => {
