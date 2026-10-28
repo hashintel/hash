@@ -720,9 +720,9 @@
                 }
               },
               "about:blank (5)": {
-                "summary": "Unprocessable Content: One or more entities do not match their entity types.",
+                "summary": "Unprocessable Content: One or more entities do not match their entity types, or link to an entity that does not exist.",
                 "value": {
-                  "detail": "One or more entities do not match their entity types.",
+                  "detail": "One or more entities do not match their entity types, or link to an entity that does not exist.",
                   "status": 422,
                   "title": "Unprocessable Content",
                   "type": "about:blank"
@@ -849,13 +849,13 @@
                       ]
                     }
                   ],
-                  "title": "Unprocessable Content: One or more entities do not match their entity types."
+                  "title": "Unprocessable Content: One or more entities do not match their entity types, or link to an entity that does not exist."
                 }
               ]
             }
           }
         },
-        "description": "- Unprocessable Content: The request body does not match the schema of the operation.\n- Unprocessable Content: One or more entity types do not exist.\n- Unprocessable Content: One or more entity types are archived.\n- Unprocessable Content: The entity types of an entity define a property differently.\n- Unprocessable Content: One or more entities do not match their entity types.",
+        "description": "- Unprocessable Content: The request body does not match the schema of the operation.\n- Unprocessable Content: One or more entity types do not exist.\n- Unprocessable Content: One or more entity types are archived.\n- Unprocessable Content: The entity types of an entity define a property differently.\n- Unprocessable Content: One or more entities do not match their entity types, or link to an entity that does not exist.",
         "headers": {
           "Cache-Control": {
             "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -1000,6 +1000,14 @@
       "Entity": {
         "description": "An entity the caller may view.",
         "properties": {
+          "link": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              }
+            ],
+            "description": "The entities it connects, if the entity is a link."
+          },
           "metadata": {
             "allOf": [
               {
@@ -1065,6 +1073,61 @@
         ],
         "type": "object"
       },
+      "EntityRef": {
+        "additionalProperties": false,
+        "description": "An entity a link connects.",
+        "properties": {
+          "entityId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityId"
+              }
+            ],
+            "description": "The ID of the entity."
+          }
+        },
+        "required": [
+          "entityId"
+        ],
+        "type": "object"
+      },
+      "Link": {
+        "description": "The entities a link entity connects.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "A link that points from `source` to `target`.",
+            "properties": {
+              "kind": {
+                "const": "directed",
+                "type": "string"
+              },
+              "source": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EntityRef"
+                  }
+                ],
+                "description": "The entity the link points from."
+              },
+              "target": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EntityRef"
+                  }
+                ],
+                "description": "The entity the link points to."
+              }
+            },
+            "required": [
+              "kind",
+              "source",
+              "target"
+            ],
+            "type": "object"
+          }
+        ]
+      },
       "NewEntity": {
         "additionalProperties": false,
         "description": "An entity to create.",
@@ -1077,6 +1140,14 @@
             "minItems": 1,
             "type": "array",
             "uniqueItems": true
+          },
+          "link": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              }
+            ],
+            "description": "The entities it connects, for an entity of a link type."
           },
           "properties": {
             "allOf": [

@@ -29,7 +29,7 @@ use crate::rest::{
     ApiState,
     credentials::Actor,
     extract::{Json, Query},
-    public::Credentials,
+    public::{Credentials, present::present},
     routing::{self, Route},
 };
 
@@ -47,7 +47,7 @@ struct QueryEntitiesRequest {}
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct QueryEntitiesParameters {
     /// The page to return, as the previous page's `Link` header names it. Defaults to the first.
-    #[serde(default, deserialize_with = "cursor::named")]
+    #[serde(default, deserialize_with = "present")]
     #[cfg_attr(
         not(test),
         expect(dead_code, reason = "the query is not implemented yet")
