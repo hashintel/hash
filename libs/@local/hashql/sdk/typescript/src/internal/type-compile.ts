@@ -1,76 +1,109 @@
 /** Printers for the mutually recursive path and type model. @internal */
 import { compileIdent } from "./ident-parser.js";
+import { printer, separated } from "./printer.js";
 
 import type { Path, SegmentArgument } from "../JExpr/Path.js";
 import type { Type } from "../JExpr/Type/schema.js";
 
-const compileArgument = (argument: SegmentArgument): string => {
-  // oxlint-disable-next-line no-use-before-define -- mutually recursive printers
-  const bound = compileType(argument.bound);
+/** A type to print below an operator of the given precedence, or a path to print. */
+type Node =
+  | { readonly _tag: "Type"; readonly type: Type; readonly precedence: number }
+  | { readonly _tag: "Path"; readonly path: Path };
+
+type Step = string | Node;
+
+const typeStep = (type: Type, precedence: number): Node => ({
+  _tag: "Type",
+  type,
+  precedence,
+});
+
+const argumentSteps = (argument: SegmentArgument): readonly Step[] => {
+  const bound = typeStep(argument.bound, 0);
   if (argument._tag === "GenericConstraint") {
-    return `${compileIdent(argument.name)}: ${bound}`;
+    return [`${compileIdent(argument.name)}: `, bound];
   }
 
-  return bound;
+  return [bound];
 };
 
-export const compilePath = (path: Path): string => {
-  const segments = path.segments
-    .map(({ name, arguments: args }) => {
-      const ident = compileIdent(name);
-      if (args.length === 0) {
-        return ident;
-      }
-      return `${ident}<${args.map(compileArgument).join(", ")}>`;
-    })
-    .join("::");
+const pathSteps = (path: Path): readonly Step[] => [
+  ...(path.rooted ? ["::"] : []),
+  ...separated(path.segments, "::", ({ name, arguments: args }) => {
+    const ident = compileIdent(name);
+    if (args.length === 0) {
+      return [ident];
+    }
 
-  return path.rooted ? `::${segments}` : segments;
-};
+    return [`${ident}<`, ...separated(args, ", ", argumentSteps), ">"];
+  }),
+];
 
 /** Inserts parentheses only where precedence or nested members require them. */
-const renderType = (type: Type, parentPrecedence: number): string => {
+const typeSteps = (type: Type, parentPrecedence: number): readonly Step[] => {
   switch (type._tag) {
     case "Infer": {
-      return "_";
+      return ["_"];
     }
     case "Reference": {
-      return compilePath(type.path);
+      return [{ _tag: "Path", path: type.path }];
     }
     case "Union":
     case "Intersection": {
       const [first, ...rest] = type.members;
       if (rest.length === 0) {
-        return renderType(first, parentPrecedence);
+        return [typeStep(first, parentPrecedence)];
       }
 
       const precedence = type._tag === "Union" ? 2 : 1;
       const separator = type._tag === "Union" ? " | " : " & ";
-      const body = type.members
-        .map((member) => renderType(member, precedence))
-        .join(separator);
+      const body = separated(type.members, separator, (member) => [
+        typeStep(member, precedence),
+      ]);
 
-      return precedence <= parentPrecedence ? `(${body})` : body;
+      return precedence <= parentPrecedence ? ["(", ...body, ")"] : body;
     }
     case "Tuple": {
       if (type.members.length === 0) {
-        return "()";
+        return ["()"];
       }
 
-      const members = type.members
-        .map((member) => renderType(member, 0))
-        .join(", ");
-      return `(${members}${type.members.length === 1 ? "," : ""})`;
+      return [
+        "(",
+        ...separated(type.members, ", ", (member) => [typeStep(member, 0)]),
+        type.members.length === 1 ? ",)" : ")",
+      ];
     }
     case "Struct": {
       if (type.members.length === 0) {
-        return "(:)";
+        return ["(:)"];
       }
 
-      return `(${type.members.map(([name, member]) => `${compileIdent(name)}: ${renderType(member, 0)}`).join(", ")})`;
+      return [
+        "(",
+        ...separated(type.members, ", ", ([name, member]) => [
+          `${compileIdent(name)}: `,
+          typeStep(member, 0),
+        ]),
+        ")",
+      ];
     }
   }
 };
 
+const print = printer((node: Node): readonly Step[] => {
+  switch (node._tag) {
+    case "Path": {
+      return pathSteps(node.path);
+    }
+    case "Type": {
+      return typeSteps(node.type, node.precedence);
+    }
+  }
+});
+
+export const compilePath = (path: Path): string =>
+  print([{ _tag: "Path", path }]);
+
 /** Prints type syntax without adding redundant groups around qualified paths. */
-export const compileType = (type: Type): string => renderType(type, 0);
+export const compileType = (type: Type): string => print([typeStep(type, 0)]);
