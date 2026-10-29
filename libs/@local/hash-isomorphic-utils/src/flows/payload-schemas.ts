@@ -11,8 +11,20 @@ import {
   textFormats,
 } from "./types.js";
 
-import type { PayloadKind, PayloadKindValues } from "./types.js";
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
+import type { ConditionNode } from "./filter-condition.js";
+import type { EntityQuery, PayloadKind, PayloadKindValues } from "./types.js";
+import type {
+  BaseUrl,
+  EntityId,
+  PropertyObject,
+  PropertyObjectMetadata,
+  PropertyObjectWithMetadata,
+  PropertyPath,
+  PropertyWithMetadata,
+  ProvidedEntityEditionProvenance,
+  Url,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
 /**
  * Types a schema as checking `T` where zod can't infer it: a branded string, which a refinement checks, or a value
@@ -32,6 +44,17 @@ const versionedUrlSchema = typed<VersionedUrl>(
 
 /** A JSON object whose contents aren't checked here. */
 const objectSchema = z.record(z.string(), z.unknown());
+
+/** A graph-owned object, typed as what the graph checks it is when an action uses it. */
+const graphObject = <T>() => typed<T>(objectSchema);
+
+const baseUrlSchema = typed<BaseUrl>(z.string());
+
+const urlSchema = typed<Url>(z.string());
+
+const propertyPathSchema = typed<PropertyPath>(
+  z.array(z.union([z.string(), z.int().nonnegative()])),
+);
 
 const entityOperationSchema = z.enum([
   "create",
@@ -55,12 +78,14 @@ const proposedEntityShape = {
     isSubjectOf: z.array(entityIdSchema),
     isObjectOf: z.array(entityIdSchema),
   }),
-  provenance: objectSchema,
-  propertyMetadata: objectSchema,
+  provenance: graphObject<ProvidedEntityEditionProvenance>(),
+  propertyMetadata: graphObject<PropertyObjectMetadata>(),
   localEntityId: entityIdSchema,
-  entityTypeIds: z.array(versionedUrlSchema).min(1),
+  entityTypeIds: typed<[VersionedUrl, ...VersionedUrl[]]>(
+    z.array(versionedUrlSchema).min(1),
+  ),
   summary: z.string().optional(),
-  properties: objectSchema,
+  properties: graphObject<PropertyObject>(),
   sourceEntityId: localOrExistingEntityIdSchema.optional(),
   targetEntityId: localOrExistingEntityIdSchema.optional(),
 };
@@ -88,7 +113,7 @@ const valueSubjectSchemas = [
   }),
   z.object({
     kind: z.literal("entityProperty"),
-    propertyTypeBaseUrl: z.string(),
+    propertyTypeBaseUrl: baseUrlSchema,
     payloadKind: payloadKindSchema,
   }),
 ] as const;
@@ -100,29 +125,38 @@ const conditionSubjectSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("entityType") }),
 ]);
 
-const conditionGroupOf = (conditionNode: z.ZodType) =>
-  z.object({
-    kind: z.enum(["all", "any"]),
-    conditions: z.array(conditionNode).min(1),
-  });
-
-const conditionNodeSchema: z.ZodType = z.lazy(() =>
-  z.discriminatedUnion("kind", [
+const conditionGroupsOf = (conditionNode: z.ZodType<ConditionNode>) =>
+  [
     z.object({
-      kind: z.literal("condition"),
-      subject: conditionSubjectSchema,
-      operator: z.string(),
-      value: z
-        .object({
-          kind: z.union([payloadKindSchema, z.literal("BaseUrl")]),
-          value: z.unknown(),
-        })
-        .optional(),
-      includeSubtypes: z.boolean().optional(),
+      kind: z.literal("all"),
+      conditions: z.array(conditionNode).min(1),
     }),
-    conditionGroupOf(conditionNodeSchema),
-    z.object({ kind: z.literal("not"), condition: conditionNodeSchema }),
-  ]),
+    z.object({
+      kind: z.literal("any"),
+      conditions: z.array(conditionNode).min(1),
+    }),
+  ] as const;
+
+/** A condition node's shape: whether its operator and value suit its subject is checked by `validateCondition`. */
+const conditionNodeSchema: z.ZodType<ConditionNode> = typed<ConditionNode>(
+  z.lazy(() =>
+    z.discriminatedUnion("kind", [
+      z.object({
+        kind: z.literal("condition"),
+        subject: conditionSubjectSchema,
+        operator: z.string(),
+        value: z
+          .object({
+            kind: z.union([payloadKindSchema, z.literal("BaseUrl")]),
+            value: z.unknown(),
+          })
+          .optional(),
+        includeSubtypes: z.boolean().optional(),
+      }),
+      ...conditionGroupsOf(conditionNodeSchema),
+      z.object({ kind: z.literal("not"), condition: conditionNodeSchema }),
+    ]),
+  ),
 );
 
 /**
@@ -139,15 +173,13 @@ const conditionNodeSchema: z.ZodType = z.lazy(() =>
  */
 export const payloadKindSchemas = {
   ActorType: z.enum(["user", "machine"]),
-  Aggregation: typed<PayloadKindValues["Aggregation"]>(
-    z.discriminatedUnion("operation", [
-      z.object({ operation: z.literal("count") }),
-      z.object({
-        operation: z.enum(["sum", "average", "min", "max"]),
-        subject: valueSubjectSchema,
-      }),
-    ]),
-  ),
+  Aggregation: z.discriminatedUnion("operation", [
+    z.object({ operation: z.literal("count") }),
+    z.object({
+      operation: z.enum(["sum", "average", "min", "max"]),
+      subject: valueSubjectSchema,
+    }),
+  ]),
   Boolean: z.boolean(),
   Date: z.string().refine(isIsoDate, {
     message: "Expected an ISO calendar date (YYYY-MM-DD)",
@@ -163,25 +195,25 @@ export const payloadKindSchemas = {
     unit: z.enum(["seconds", "minutes", "hours", "days", "weeks"]),
   }),
   EntityId: entityIdSchema,
-  EntityQuery: typed<PayloadKindValues["EntityQuery"]>(
-    z.object({
-      filter: objectSchema,
-      includeDrafts: z.boolean().optional(),
-      limit: z.int().nonnegative().optional(),
-      sortingPaths: z.array(objectSchema).optional(),
-      temporalAxes: objectSchema.optional(),
-    }),
-  ),
-  FailedEntityProposal: typed<PayloadKindValues["FailedEntityProposal"]>(
-    z.object({
-      existingEntityId: entityIdSchema.optional(),
-      operation: entityOperationSchema.optional(),
-      proposedEntity: proposedEntityWithResolvedLinksSchema,
-      message: z.string(),
-    }),
-  ),
-  FilterCondition: typed<PayloadKindValues["FilterCondition"]>(
-    conditionGroupOf(conditionNodeSchema),
+  EntityQuery: z.object({
+    filter: graphObject<EntityQuery["filter"]>(),
+    includeDrafts: z.boolean().optional(),
+    limit: z.int().nonnegative().optional(),
+    sortingPaths: z
+      .array(graphObject<NonNullable<EntityQuery["sortingPaths"]>[number]>())
+      .optional(),
+    temporalAxes:
+      graphObject<NonNullable<EntityQuery["temporalAxes"]>>().optional(),
+  }),
+  FailedEntityProposal: z.object({
+    existingEntityId: entityIdSchema.optional(),
+    operation: entityOperationSchema.optional(),
+    proposedEntity: proposedEntityWithResolvedLinksSchema,
+    message: z.string(),
+  }),
+  FilterCondition: z.discriminatedUnion(
+    "kind",
+    conditionGroupsOf(conditionNodeSchema),
   ),
   FormattedText: z.object({
     content: z.string(),
@@ -206,52 +238,41 @@ export const payloadKindSchemas = {
     entityId: entityIdSchema,
     operation: entityOperationSchema,
   }),
-  PropertyObjectWithMetadata: typed<
-    PayloadKindValues["PropertyObjectWithMetadata"]
-  >(
+  PropertyObjectWithMetadata: z.object({
+    value: z.record(baseUrlSchema, graphObject<PropertyWithMetadata>()),
+    metadata:
+      graphObject<
+        NonNullable<PropertyObjectWithMetadata["metadata"]>
+      >().optional(),
+  }),
+  PropertyPatch: z.discriminatedUnion("op", [
     z.object({
-      value: z.record(z.string(), objectSchema),
-      metadata: objectSchema.optional(),
+      op: z.literal("add"),
+      path: propertyPathSchema,
+      property: graphObject<PropertyWithMetadata>(),
     }),
-  ),
-  PropertyPatch: typed<PayloadKindValues["PropertyPatch"]>(
-    z.discriminatedUnion("op", [
-      z.object({
-        op: z.enum(["add", "replace"]),
-        path: z.array(z.union([z.string(), z.int().nonnegative()])),
-        property: objectSchema,
-      }),
-      z.object({
-        op: z.literal("remove"),
-        path: z.array(z.union([z.string(), z.int().nonnegative()])),
-      }),
-    ]),
-  ),
-  ProposedEntity: typed<PayloadKindValues["ProposedEntity"]>(
-    z.object(proposedEntityShape),
-  ),
-  ProposedEntityWithResolvedLinks: typed<
-    PayloadKindValues["ProposedEntityWithResolvedLinks"]
-  >(proposedEntityWithResolvedLinksSchema),
-  SortKey: typed<PayloadKindValues["SortKey"]>(
     z.object({
-      subject: valueSubjectSchema,
-      direction: z.enum(["ascending", "descending"]),
+      op: z.literal("replace"),
+      path: propertyPathSchema,
+      property: graphObject<PropertyWithMetadata>(),
     }),
-  ),
+    z.object({ op: z.literal("remove"), path: propertyPathSchema }),
+  ]),
+  ProposedEntity: z.object(proposedEntityShape),
+  ProposedEntityWithResolvedLinks: proposedEntityWithResolvedLinksSchema,
+  SortKey: z.object({
+    subject: valueSubjectSchema,
+    direction: z.enum(["ascending", "descending"]),
+  }),
   Text: z.string(),
   VersionedUrl: versionedUrlSchema,
-  WebPage: typed<PayloadKindValues["WebPage"]>(
-    z.object({
-      url: z.string(),
-      title: z.string(),
-      htmlContent: z.string(),
-      innerText: z.string(),
-    }),
-  ),
-  WebSearchResult: typed<PayloadKindValues["WebSearchResult"]>(
-    z.object({ url: z.string(), title: z.string() }),
-  ),
+  WebPage: z.object({
+    url: urlSchema,
+    title: z.string(),
+    htmlContent: z.string(),
+    innerText: z.string(),
+  }),
+  WebSearchResult: z.object({ url: urlSchema, title: z.string() }),
 } satisfies {
   [Kind in PayloadKind]: z.ZodType<PayloadKindValues[Kind]>;
 };
