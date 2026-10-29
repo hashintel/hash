@@ -14,14 +14,15 @@ For new internal work, treat `ds-components` as the source of truth.
 
 ## Public Entry Points
 
-| Entry point                                          | Purpose                                                                                                     |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `@hashintel/ds-components`                           | Published component entrypoints from `src/components/*.tsx`                                                 |
-| `@hashintel/ds-components/preset`                    | Panda preset helpers such as `preset`, `createPreset`, `scopedThemeConfig`, and `resolvePandaBuildInfoPath` |
-| `@hashintel/ds-components/tokens`                    | Package-owned Panda token objects such as `tokens` and `semanticTokens`                                     |
-| `@hashintel/ds-components/docs/mdx/<slug>.mdx`       | Raw MDX docs page per component — see [Published component docs](#published-component-docs-mdx)             |
-| `@hashintel/ds-components/docs/blocks/<name>`        | Doc-block components the raw MDX pages import (`stage`, `props-table`, `do-dont-list`, …)                   |
-| `@hashintel/ds-components/docs/panda.buildinfo.json` | Panda build info covering the doc blocks' styles                                                            |
+| Entry point                                           | Purpose                                                                                                     |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `@hashintel/ds-components`                            | Published component entrypoints from `src/components/*.tsx`                                                 |
+| `@hashintel/ds-components/preset`                     | Panda preset helpers such as `preset`, `createPreset`, `scopedThemeConfig`, and `resolvePandaBuildInfoPath` |
+| `@hashintel/ds-components/tokens`                     | Package-owned Panda token objects such as `tokens` and `semanticTokens`                                     |
+| `@hashintel/ds-components/docs/mdx/<slug>.mdx`        | Raw MDX docs page per component — see [Published component docs](#published-component-docs-mdx)             |
+| `@hashintel/ds-components/docs/blocks/<name>`         | Doc-block components the raw MDX pages import (`stage`, `props-table`, `do-dont-list`, …)                   |
+| `@hashintel/ds-components/docs/rehype-markdown-class` | `rehypeMarkdownClass` — rehype plugin stamping `hash-md` on markdown-derived elements (see below)           |
+| `@hashintel/ds-components/docs/panda.buildinfo.json`  | Panda build info covering the doc blocks' styles                                                            |
 
 Component implementation still uses the generated Panda runtime from `@hashintel/ds-helpers`:
 
@@ -77,6 +78,23 @@ cp node_modules/@hashintel/ds-components/dist/docs/mdx/*.mdx content/docs/compon
 ```
 
 The site's MDX pipeline then owns everything markdown: typography, TOC extraction, heading anchors, search indexing, and code-fence highlighting — the package ships **no markdown typography CSS**. The live component examples and doc blocks render as-is. Frontmatter fields beyond `title`/`description` surface by extending the site's frontmatter schema.
+
+To scope its own markdown typography the way Storybook does, a site can add the published `rehypeMarkdownClass` rehype plugin to its MDX pipeline. It stamps a `hash-md` class on every element derived from markdown and leaves literal JSX — the live component examples and doc blocks — untouched, so a stylesheet keyed on `hash-md` styles prose without reaching into component content:
+
+```ts
+import { rehypeMarkdownClass } from "@hashintel/ds-components/docs/rehype-markdown-class";
+
+// e.g. in a fumadocs source.config.ts / @mdx-js config
+const mdxOptions = {
+  rehypePlugins: [rehypeMarkdownClass],
+};
+```
+
+```css
+.hash-md:is(h1, h2, h3) {
+  /* your prose styles; component content never matches */
+}
+```
 
 The published pages are **React Server Components-compatible** (verified on fumadocs' default Next.js setup, where content MDX compiles as server modules): every published module carries `"use client"`; the pages' interactive demo components and data are extracted at build time into generated client modules (`@hashintel/ds-components/docs/demos/<slug>`); compound-component members (`Banner.Title`, `Dialog.Body`) are rewritten to flat bindings from a generated client module, since property access through a client reference does not resolve; and inline handlers use the serializable `noop` from `@hashintel/ds-components/noop`. The publish build fails on any construct that would break under RSC, so this holds as pages evolve.
 

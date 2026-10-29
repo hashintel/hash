@@ -12,6 +12,7 @@
       "!**/node_modules",
       "!**/pkg",
       "!**/.venv",
+      "!**/.build",
       "apps/**",
       "libs/**",
       "tests/**"
