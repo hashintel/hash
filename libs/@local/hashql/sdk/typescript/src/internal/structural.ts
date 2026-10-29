@@ -77,7 +77,7 @@ const distinct = <
 /**
  * Tests the type marker first, because a type expression is a plain object and a type constructor is a function.
  *
- * The marker is a string key, so a parsed JSON record can carry it. Only a handle the SDK built also carries the relocation symbol, so a marker record without one falls through to the record branch, where its marker key fails as a field name.
+ * The marker is a string key, so a parsed JSON record can carry it. Only a handle the SDK built also carries the relocation symbol. A marker record without that symbol takes the record branch, and its marker key fails there as a field name.
  */
 export const typeSyntax = (
   definition: Structural.Definition,
