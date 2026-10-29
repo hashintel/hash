@@ -29,7 +29,7 @@ const source = Result.getOrThrow(
 );
 
 describe("import_types", () => {
-  test("partial_records_do_not_select_inherited_object_names", () => {
+  test("partial_record_object_names", () => {
     const prototypeNames = Result.getOrThrow(
       Module.define("::prototype_names", {
         values: {
@@ -109,7 +109,7 @@ describe("import_types", () => {
     Import.bind(prototypeNames, { toString: () => "local" });
   });
 
-  test("wildcard_and_list_keep_per_key_types", () => {
+  test("wildcard_and_list_types", () => {
     const wildcard = Result.getOrThrow(Import.bind(source, "*"));
     expectTypeOf(wildcard.scope.values).toExtend<typeof source.values>();
     expectTypeOf<keyof typeof wildcard.scope.values>().toEqualTypeOf<
@@ -135,7 +135,7 @@ describe("import_types", () => {
     Import.bind(source, { missing: "local" });
   });
 
-  test("aliases_keep_nominal_generic_adapted_and_input_relationships", () => {
+  test("alias_types", () => {
     const imported = Result.getOrThrow(
       Import.bind(source, {
         Item: "Local",
