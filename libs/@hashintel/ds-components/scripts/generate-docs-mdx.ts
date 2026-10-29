@@ -721,7 +721,13 @@ writeFileSync(
   path.join("dist", "docs", "rehype-markdown-class.d.ts"),
   `import type { Root } from "hast";
 
-export declare const rehypeMarkdownClass: () => (tree: Root) => void;
+export type RehypeMarkdownClassOptions = {
+  mode?: "class" | "not-prose";
+};
+
+export declare const rehypeMarkdownClass: (
+  options?: RehypeMarkdownClassOptions,
+) => (tree: Root) => void;
 `,
 );
 
