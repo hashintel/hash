@@ -32,6 +32,10 @@
     },
     "./panda.buildinfo.json": "./dist/panda.buildinfo.json",
     "./docs/panda.buildinfo.json": "./dist/docs/panda.buildinfo.json",
+    "./docs/rehype-markdown-class": {
+      "types": "./dist/docs/rehype-markdown-class.d.ts",
+      "import": "./dist/docs/rehype-markdown-class.js"
+    },
     "./docs/mdx/*": "./dist/docs/mdx/*",
     "./docs/blocks/*": {
       "types": "./dist/docs/blocks/*.d.ts",

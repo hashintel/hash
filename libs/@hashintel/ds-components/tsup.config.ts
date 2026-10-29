@@ -29,6 +29,10 @@ const docsDemoEntries = Object.fromEntries(
   ]),
 );
 
+const docsRehypeEntry = {
+  "docs/rehype-markdown-class": "./.storybook/rehype-markdown-class.ts",
+};
+
 export default {
   // Everything in this package is client-side React (hooks throughout);
   // the directive makes the modules importable from React Server Components
@@ -51,6 +55,7 @@ export default {
     ...componentEntries,
     ...docsBlockEntries,
     ...docsDemoEntries,
+    ...docsRehypeEntry,
   },
   esbuildPlugins: [svgr()],
   format: ["esm"],

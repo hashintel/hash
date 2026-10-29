@@ -713,4 +713,16 @@ for (const blockFile of globSync("./dist/docs/blocks/*.js")) {
   writeFileSync(path.join("dist", "docs", "blocks", `${name}.d.ts`), stub);
 }
 
+const rehypePluginJs = path.join("dist", "docs", "rehype-markdown-class.js");
+if (!existsSync(rehypePluginJs)) {
+  throw new Error(`${rehypePluginJs} is missing — did tsup build its entry?`);
+}
+writeFileSync(
+  path.join("dist", "docs", "rehype-markdown-class.d.ts"),
+  `import type { Root } from "hast";
+
+export declare const rehypeMarkdownClass: () => (tree: Root) => void;
+`,
+);
+
 console.log(`Wrote ${pageFiles.length} raw MDX pages to ${outDir}`);
