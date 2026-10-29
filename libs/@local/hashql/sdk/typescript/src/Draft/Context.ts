@@ -88,7 +88,7 @@ export type Optional<
 /**
  * A graph query under construction: the graph expression with `filter` and `collect`.
  *
- * It is an expression of the graph type, so binding it with `let` gives a reference without these methods, which `Query.filter` and `Query.collect` still take.
+ * It is an expression of the graph type. Binding it with `let` gives a reference without these methods, and {@link @local/hashql!Program.Query.filter | Query.filter} and {@link @local/hashql!Program.Query.collect | Query.collect} still take that reference.
  */
 export interface Query<
   S extends Scope.Scope.Any,
@@ -98,7 +98,7 @@ export interface Query<
   /**
    * Keeps the vertices `predicate` accepts, constructing it now with a fresh context whose declarations stay inside the filter. Declarations made through a captured outer `$` belong to the outer callback instead.
    *
-   * `name` becomes the filter closure's parameter and `vertex` refers to it, as in `Query.filter`, which also says when `predicate` does not run. `vertex` is valid inside the predicate alone, so using it in a declaration made through the outer `$` fails the program with the `StaleReference` reason. An exception it throws becomes a `CallbackException` failure on the returned query.
+   * `name` becomes the filter closure's parameter and `vertex` refers to it, as in {@link @local/hashql!Program.Query.filter | Query.filter}, whose documentation also says when `predicate` does not run. `vertex` is valid inside the predicate alone, so using it in a declaration made through the outer `$` fails the program with the `StaleReference` reason. An exception it throws becomes a `CallbackException` failure on the returned query.
    */
   readonly filter: <const P extends Expression.Value<Type.PrimitiveBoolean>>(
     name: string,
@@ -108,7 +108,7 @@ export interface Query<
     ) => P,
   ) => Query<S, V, Inputs.Merge<I, Expression.Value.Inputs<P>>>;
 
-  /** Ends the query as a list of its vertices. This is `Query.collect`. */
+  /** Ends the query as a list of its vertices. This is {@link @local/hashql!Program.Query.collect | Query.collect}. */
   readonly collect: () => Expression.Expression<Type.List<V>, I>;
 }
 
@@ -118,7 +118,7 @@ export interface Queries<S extends Scope.Scope.Any> {
     graph: G & Graph.Check<G>,
   ): Query<S, Graph.Vertex<G>, Expression.Value.Inputs<G>>;
 
-  /** Starts a query from every entity at the temporal axes `axis`. This is `Query.entities`. */
+  /** Starts a query from every entity at the temporal axes `axis`. This is {@link @local/hashql!Program.Query.entities | Query.entities}. */
   readonly entities: <const A extends Expression.Value<QueryTemporalAxes>>(
     axis: A,
   ) => Query<S, Entity, Expression.Value.Inputs<A>>;

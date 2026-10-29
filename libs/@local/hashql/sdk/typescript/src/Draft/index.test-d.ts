@@ -508,10 +508,15 @@ const unrestrictedQuery = <S extends Program.Scope.Scope.Any>(
     Program.Query.Graph<Vertex>,
     Program.Inputs.Empty
   >,
-): Context.Query<S, Vertex, { readonly flag: Type.PrimitiveBoolean }> =>
-  $.query(entities).filter("vertex", () =>
+): Context.Query<S, Vertex, { readonly flag: Type.PrimitiveBoolean }> => {
+  const query = $.query(entities).filter("vertex", () =>
     Expression.input("flag", Result.getOrThrow(Structural.type(Boolean))),
   );
+  expectTypeOf(query).toEqualTypeOf<
+    Context.Query<S, Vertex, { readonly flag: Type.PrimitiveBoolean }>
+  >();
+  return query;
+};
 
 /** An unrestricted helper's entity query keeps axes from outside any schema, which a program's `$` would reject. */
 const unrestrictedEntities = <S extends Program.Scope.Scope.Any>(
@@ -520,7 +525,17 @@ const unrestrictedEntities = <S extends Program.Scope.Scope.Any>(
   S,
   Program.Query.Entity,
   { readonly outsideAxis: Program.Query.QueryTemporalAxes }
-> => $.query.entities(outsideAxis);
+> => {
+  const query = $.query.entities(outsideAxis);
+  expectTypeOf(query).toEqualTypeOf<
+    Context.Query<
+      S,
+      Program.Query.Entity,
+      { readonly outsideAxis: Program.Query.QueryTemporalAxes }
+    >
+  >();
+  return query;
+};
 
 describe("query", () => {
   test("vertex", () => {

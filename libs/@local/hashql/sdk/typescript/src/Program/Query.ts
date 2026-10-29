@@ -17,7 +17,7 @@ import * as TAST from "./TAST/index.js";
 import type * as Type from "../Type.js";
 import type * as Input from "./Inputs.js";
 
-// TODO(BE-1013): take `Graph`, `QueryTemporalAxes` and `Entity` from the generated standard-library declarations and delete these, so each type is declared once.
+// TODO(BE-1013): take `Graph`, `QueryTemporalAxes` and `Entity` from the generated standard-library declarations and delete these, so the standard library declares each type once.
 /** HashQL's graph of vertices of type `V`, which graph functions return and query steps take. */
 export type Graph<V extends Type.Any> = Type.Opaque<
   "::graph::Graph",
@@ -29,7 +29,7 @@ export declare namespace Graph {
   export type Vertex<E extends Expression.Value.Any> =
     Expression.Value.Type<E> extends Graph<infer V> ? V : never;
 
-  /** Accepts a graph expression: `unknown`, which leaves an intersection unchanged, when `E` is one, and `never`, which rejects the value it constrains, otherwise. */
+  /** Accepts a graph expression and rejects any other: it is `unknown` when `E` is a graph expression and `never` otherwise. Intersected with a value's type, `unknown` changes nothing and `never` rejects the value. */
   export type Check<E extends Expression.Value.Any> = [Vertex<E>] extends [
     never,
   ]
@@ -39,7 +39,7 @@ export declare namespace Graph {
 }
 
 /**
- * HashQL's `QueryTemporalAxes`, the time axes a graph is read at, known by its name alone.
+ * HashQL's `QueryTemporalAxes`, the time axes a query reads the graph at, known by its name alone.
  *
  * The SDK does not describe its alternatives, so an expression has this type when it comes from an input declared with it, or from `Expression.assume`.
  */
@@ -58,7 +58,7 @@ export type Entity = Type.Opaque<
   Type.Unknown
 >;
 
-/** The query {@link filter} returns: the graph it was given, requiring the graph's inputs and the predicate's. */
+/** The query {@link filter} returns: the graph it received, requiring the graph's inputs and the predicate's. */
 export type Filtered<
   G extends Expression.Expression.Any,
   P extends Expression.Value<Type.PrimitiveBoolean>,
@@ -112,7 +112,7 @@ export const entities = <const A extends Expression.Value<QueryTemporalAxes>>(
 /**
  * Keeps the vertices of a graph that `predicate` accepts, emitting `::graph::body::filter` with a closure over one parameter.
  *
- * `name` becomes the closure's parameter, and `predicate` receives a reference to it typed as the graph's vertex. `predicate` runs once, immediately, unless the graph already carries a construction failure or `name` is not a HashQL identifier, which fails construction with `InvalidParameterName`. It returns a Boolean expression or a host boolean, whose input requirements the result keeps, and an exception it throws propagates to the caller. The reference names the parameter, so carrying it out of the predicate leaves it unbound, and a Draft program that does so fails with the `StaleReference` reason.
+ * `name` becomes the closure's parameter, and `predicate` receives a reference to it typed as the graph's vertex. `predicate` runs once, when `filter` receives the graph: at the call in the data-first form, and when a caller applies the returned function in the data-last form. It does not run when the graph already carries a construction failure. It does not run either when `name` is not a HashQL identifier, and construction then fails with `InvalidParameterName`. It returns a Boolean expression or a host boolean, whose input requirements the result keeps, and an exception it throws propagates to the caller. The reference names the parameter, so carrying it out of the predicate leaves it unbound, and a Draft program that does so fails with the `StaleReference` reason.
  *
  * @example <caption>Keep the enabled vertices of a declared graph.</caption>
  * ```ts
