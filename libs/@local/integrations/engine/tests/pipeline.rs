@@ -136,6 +136,48 @@ async fn staging_assertion_failures() {
         ),
         "all failed constraints should be retained: {failures:?}"
     );
+    assert_eq!(
+        report.to_string(),
+        "source table failed its assertions: row count is 3, expected at least 4 rows; column \
+         `NAME` has 2 null or blank rows; duplicate value groups for columns `ID`: 1",
+        "the error should display every failed constraint"
+    );
+    let diagnostic = format!("{report:?}");
+    for failure in failures {
+        assert!(
+            diagnostic.contains(&failure.to_string()),
+            "the diagnostic should include each failure: {diagnostic}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn staging_assertion_row_bounds() {
+    let directory = TempDir::new().expect("the directory should be created");
+    let workspace = open(&directory).await;
+    for (min_rows, max_rows, expected) in [
+        (None, Some(2), "at most 2 rows"),
+        (Some(4), Some(5), "between 4 and 5 rows"),
+    ] {
+        let report = workspace
+            .stage_table(
+                "source".into(),
+                "SELECT * FROM (VALUES (1), (2), (3)) AS source(ID)".into(),
+                key(&["ID"]),
+                TableAssertions {
+                    min_rows,
+                    max_rows,
+                    ..TableAssertions::default()
+                },
+            )
+            .await
+            .expect_err("the source should fail the row-count assertion");
+        assert_eq!(
+            report.to_string(),
+            format!("source table failed its assertions: row count is 3, expected {expected}"),
+            "the error should display the actual count and configured bounds"
+        );
+    }
 }
 
 #[tokio::test]

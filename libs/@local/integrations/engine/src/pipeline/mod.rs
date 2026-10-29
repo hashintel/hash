@@ -16,21 +16,30 @@ pub struct TableAssertions {
 }
 
 /// An assertion that a source table did not satisfy.
-#[derive(Debug)]
+#[derive(Debug, derive_more::Display)]
 pub enum AssertionFailure {
+    #[display("row count is {actual}, expected {}", row_count_bounds(*min, *max))]
     RowCount {
         actual: u64,
         min: Option<u64>,
         max: Option<u64>,
     },
-    NotNull {
-        column: ColumnName,
-        rows: u64,
-    },
-    Unique {
-        columns: PrimaryKey,
-        groups: u64,
-    },
+    #[display("column `{column}` has {rows} null or blank rows")]
+    NotNull { column: ColumnName, rows: u64 },
+    #[display(
+        "duplicate value groups for columns {}: {groups}",
+        columns.columns().iter().map(|column| format!("`{column}`")).collect::<Vec<_>>().join(", ")
+    )]
+    Unique { columns: PrimaryKey, groups: u64 },
+}
+
+fn row_count_bounds(min: Option<u64>, max: Option<u64>) -> String {
+    match (min, max) {
+        (Some(min), Some(max)) => format!("between {min} and {max} rows"),
+        (Some(min), None) => format!("at least {min} rows"),
+        (None, Some(max)) => format!("at most {max} rows"),
+        (None, None) => "any number of rows".to_owned(),
+    }
 }
 
 /// Reports why staging or executing a pipeline failed.
@@ -46,7 +55,10 @@ pub enum PreparationError {
     MissingColumn { column: Box<str> },
     #[display("table `{table}` must retain non-null VARCHAR `_op` and `_key` columns")]
     Metadata { table: Box<str> },
-    #[display("source table failed its assertions")]
+    #[display(
+        "source table failed its assertions: {}",
+        failures.iter().map(ToString::to_string).collect::<Vec<_>>().join("; ")
+    )]
     Assertions { failures: Vec<AssertionFailure> },
     #[display("checkpoint `{checkpoint}` has not been materialized")]
     MissingCheckpoint { checkpoint: CheckpointName },
