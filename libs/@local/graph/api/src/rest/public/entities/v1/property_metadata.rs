@@ -18,7 +18,7 @@ use type_system::{
     ontology::{BaseUrl, VersionedUrl},
 };
 
-use super::provenance::PropertyProvenance;
+use super::provenance::property_provenance;
 
 /// The metadata of properties, keyed by the base URL of their property type.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -32,8 +32,8 @@ pub(super) struct PropertyValueMetadata {
     data_type_id: VersionedUrl,
     /// Where the value comes from.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(with = "PropertyProvenance")]
-    provenance: Option<PropertyProvenance>,
+    #[schemars(with = "stored::PropertyProvenance")]
+    provenance: Option<stored::PropertyProvenance>,
 }
 
 /// The metadata of a property that holds a list of properties.
@@ -44,8 +44,8 @@ pub(super) struct PropertyArrayMetadata {
     items: Vec<PropertyMetadata>,
     /// Where the list as a whole comes from.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(with = "PropertyProvenance")]
-    provenance: Option<PropertyProvenance>,
+    #[schemars(with = "stored::PropertyProvenance")]
+    provenance: Option<stored::PropertyProvenance>,
 }
 
 /// The metadata of a property that holds properties keyed by base URL.
@@ -56,8 +56,8 @@ pub(super) struct NestedPropertyObjectMetadata {
     properties: PropertyObjectMetadata,
     /// Where the properties as a whole come from.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(with = "PropertyProvenance")]
-    provenance: Option<PropertyProvenance>,
+    #[schemars(with = "stored::PropertyProvenance")]
+    provenance: Option<stored::PropertyProvenance>,
 }
 
 /// The metadata of a property, with exactly one of `dataTypeId`, `items` and `properties`.
@@ -326,7 +326,7 @@ impl PropertyMetadata {
                 .map(|items| {
                     Self::Array(PropertyArrayMetadata {
                         items,
-                        provenance: PropertyProvenance::from_stored(sources),
+                        provenance: property_provenance(sources),
                     })
                 }),
             stored::PropertyMetadata::Object(stored::PropertyObjectMetadata {
@@ -338,7 +338,7 @@ impl PropertyMetadata {
                     },
             }) => Some(Self::Object(NestedPropertyObjectMetadata {
                 properties: PropertyObjectMetadata::from_stored_entries(value),
-                provenance: PropertyProvenance::from_stored(sources),
+                provenance: property_provenance(sources),
             })),
             stored::PropertyMetadata::Value(stored::PropertyValueMetadata {
                 metadata:
@@ -352,7 +352,7 @@ impl PropertyMetadata {
             }) => data_type_id.map(|data_type_id| {
                 Self::Value(PropertyValueMetadata {
                     data_type_id,
-                    provenance: PropertyProvenance::from_stored(sources),
+                    provenance: property_provenance(sources),
                 })
             }),
         }
@@ -387,7 +387,7 @@ impl PropertyMetadata {
                     value,
                     metadata: stored::ArrayMetadata {
                         provenance: stored::PropertyProvenance {
-                            sources: provenance.map_or_default(PropertyProvenance::into_stored),
+                            sources: provenance.map_or_default(|provenance| provenance.sources),
                         },
                         confidence: None,
                     },
@@ -403,7 +403,7 @@ impl PropertyMetadata {
                 value: metadata.join_entries(properties, path)?,
                 metadata: stored::ObjectMetadata {
                     provenance: stored::PropertyProvenance {
-                        sources: provenance.map_or_default(PropertyProvenance::into_stored),
+                        sources: provenance.map_or_default(|provenance| provenance.sources),
                     },
                     confidence: None,
                 },
@@ -418,7 +418,7 @@ impl PropertyMetadata {
                 value: into_value(property),
                 metadata: ValueMetadata {
                     provenance: ValueProvenance {
-                        sources: provenance.map_or_default(PropertyProvenance::into_stored),
+                        sources: provenance.map_or_default(|provenance| provenance.sources),
                     },
                     confidence: None,
                     data_type_id: Some(data_type_id),
@@ -565,13 +565,12 @@ mod tests {
 
     #[test]
     fn parse_inner_error() {
-        let source = json!({ "type": "webpage" });
         assert_matches!(
             parse(json!({ NAMES: { "items": [{
                 "dataTypeId": TEXT,
-                "provenance": { "sources": vec![source; 128] },
+                "provenance": { "sources": [{ "type": "letter" }] },
             }] } })),
-            Err(error) if error.to_string().contains("the list has 128 sources")
+            Err(error) if error.to_string().contains("unknown variant `letter`")
         );
     }
 
@@ -746,6 +745,31 @@ mod tests {
             with_provenance(),
             "each source should be shown at its position, and the sources of the properties as a \
              whole should be left out"
+        );
+    }
+
+    #[test]
+    fn from_stored_draft_source() {
+        let entity_id = "8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d";
+        let stored: stored::PropertyObjectMetadata = serde_json::from_value(json!({ "value": {
+            CITY: { "metadata": {
+                "dataTypeId": TEXT,
+                "provenance": { "sources": [{
+                    "type": "document",
+                    "entityId": format!("{entity_id}~4b2a7c1e-9f3d-4e8a-b6c5-d1e2f3a4b5c6"),
+                }] },
+            } },
+        } }))
+        .expect("should be stored metadata");
+
+        assert_eq!(
+            serde_json::to_value(PropertyObjectMetadata::from_stored(stored))
+                .expect("should serialize the metadata"),
+            json!({ CITY: {
+                "dataTypeId": TEXT,
+                "provenance": { "sources": [{ "type": "document", "entityId": entity_id }] },
+            } }),
+            "the draft ID of a source should be left out"
         );
     }
 

@@ -75,7 +75,10 @@ use type_system::{
         value::{ValueMetadata, metadata::ValueProvenance},
     },
     principal::actor::ActorType,
-    provenance::{Location, OriginProvenance, SourceProvenance, SourceType},
+    provenance::{
+        Location, OriginProvenance, SourceProvenance, SourceType,
+        validation::{ProvenanceOwner, ProvenanceRule, ProvenanceViolation},
+    },
 };
 
 use self::query::{
@@ -201,6 +204,9 @@ use crate::rest::legacy::{
             MetadataValidationReport,
             EntityTypesError,
             PropertyMetadataValidationReport,
+            ProvenanceViolation,
+            ProvenanceOwner,
+            ProvenanceRule,
             ObjectPropertyValidationReport,
             JsonSchemaValueTypeMismatch,
             ArrayValidationReport,

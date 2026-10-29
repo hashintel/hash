@@ -2,9 +2,7 @@
 use core::error::Error;
 
 #[cfg(feature = "postgres")]
-use bytes::BytesMut;
-#[cfg(feature = "postgres")]
-use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
+use postgres_types::{FromSql, Json, Type};
 
 use crate::provenance::SourceProvenance;
 
@@ -36,21 +34,5 @@ impl<'a> FromSql<'a> for ValueProvenance {
 
     fn accepts(ty: &Type) -> bool {
         <Json<Self> as FromSql>::accepts(ty)
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl ToSql for ValueProvenance {
-    postgres_types::to_sql_checked!();
-
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
-        Json(self).to_sql(ty, out)
-    }
-
-    fn accepts(ty: &Type) -> bool {
-        <Json<Self> as ToSql>::accepts(ty)
     }
 }

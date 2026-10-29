@@ -70,6 +70,7 @@ use tokio::sync::oneshot;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
+    Valid, Validator as _,
     knowledge::{
         Confidence, Entity, PropertyValue,
         entity::{
@@ -80,8 +81,7 @@ use type_system::{
         },
         property::{
             PropertyObject, PropertyObjectWithMetadata, PropertyPath, PropertyPathError,
-            PropertyValueWithMetadata, PropertyWithMetadata,
-            metadata::{PropertyObjectMetadata, PropertyProvenance},
+            PropertyValueWithMetadata, PropertyWithMetadata, metadata::PropertyObjectMetadata,
         },
     },
     ontology::{
@@ -97,6 +97,7 @@ use type_system::{
         actor::{ActorEntityUuid, ActorId},
         actor_group::WebId,
     },
+    provenance::validation::{ProvenanceValidator, ProvenanceViolation, ProvenanceViolations},
 };
 use uuid::Uuid;
 
@@ -1453,7 +1454,7 @@ where
                 .decision_time
                 .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
 
-            let stored_provenance = SqlEntityProvenance::from(EntityProvenance {
+            let stored_provenance = SqlEntityProvenance::try_from(EntityProvenance {
                 created_by_id: ActorEntityUuid::from(actor_id),
                 created_at_transaction_time: transaction_time,
                 created_at_decision_time: decision_time,
@@ -1472,6 +1473,29 @@ where
                     provided: params.provenance,
                 },
             });
+            let stored_property_metadata = ProvenanceValidator.validate(property_metadata.clone());
+            let link = params
+                .link_data
+                .map(|link| ProvenanceValidator.validate(link))
+                .transpose();
+            let (stored_provenance, stored_property_metadata, link) =
+                match (stored_provenance, stored_property_metadata, link) {
+                    (Ok(stored_provenance), Ok(stored_property_metadata), Ok(link)) => {
+                        (stored_provenance, stored_property_metadata, link)
+                    }
+                    (stored_provenance, stored_property_metadata, link) => {
+                        validation_reports
+                            .entry(index)
+                            .or_default()
+                            .metadata
+                            .provenance = provenance_violations([
+                            stored_provenance.err(),
+                            stored_property_metadata.err(),
+                            link.err(),
+                        ]);
+                        continue;
+                    }
+                };
             entity_id_rows.push(EntityIdRow {
                 web_id: entity_id.web_id,
                 entity_uuid: entity_id.entity_uuid,
@@ -1499,7 +1523,7 @@ where
                 archived: false,
                 confidence: params.confidence,
                 provenance: stored_provenance.edition.json.clone(),
-                property_metadata: property_metadata.clone(),
+                property_metadata: stored_property_metadata,
                 created_by_id: stored_provenance.edition.created_by_id,
             });
             entity_edition_ids.push(entity_edition_id);
@@ -1534,8 +1558,9 @@ where
                 });
             }
 
-            let link_data = params.link_data.inspect(|link| {
-                let Link::Directed { source, target } = link;
+            let link_data = link.map(|link| {
+                let (source_provenance, target_provenance) = link.endpoint_provenance();
+                let Link::Directed { source, target } = &*link;
                 entity_edge_rows.extend([
                     EntityEdgeRow {
                         source_web_id: entity_id.web_id,
@@ -1543,7 +1568,7 @@ where
                         target_web_id: source.entity_id.web_id,
                         target_entity_uuid: source.entity_id.entity_uuid,
                         confidence: source.confidence,
-                        provenance: source.provenance.clone(),
+                        provenance: source_provenance.clone(),
                         kind: EntityTraversalEdgeKind::HasLeftEntity,
                         direction: EdgeDirection::Outgoing,
                     },
@@ -1553,7 +1578,7 @@ where
                         target_web_id: entity_id.web_id,
                         target_entity_uuid: entity_id.entity_uuid,
                         confidence: None,
-                        provenance: PropertyProvenance::default(),
+                        provenance: Valid::default(),
                         kind: EntityTraversalEdgeKind::HasLeftEntity,
                         direction: EdgeDirection::Incoming,
                     },
@@ -1563,7 +1588,7 @@ where
                         target_web_id: target.entity_id.web_id,
                         target_entity_uuid: target.entity_id.entity_uuid,
                         confidence: target.confidence,
-                        provenance: target.provenance.clone(),
+                        provenance: target_provenance.clone(),
                         kind: EntityTraversalEdgeKind::HasRightEntity,
                         direction: EdgeDirection::Outgoing,
                     },
@@ -1573,11 +1598,12 @@ where
                         target_web_id: entity_id.web_id,
                         target_entity_uuid: entity_id.entity_uuid,
                         confidence: None,
-                        provenance: PropertyProvenance::default(),
+                        provenance: Valid::default(),
                         kind: EntityTraversalEdgeKind::HasRightEntity,
                         direction: EdgeDirection::Incoming,
                     },
                 ]);
+                link.into_inner()
             });
 
             entities.push(Entity {
@@ -1615,6 +1641,30 @@ where
                             },
                         )),
                     }),
+            );
+        }
+
+        // The loop builds no rows for an entity whose provenance breaks a rule, so the request has
+        // to end before any row is inserted.
+        let mut violations = validation_reports
+            .iter()
+            .flat_map(|(index, report)| {
+                report
+                    .metadata
+                    .provenance
+                    .iter()
+                    .map(|violation| (*index, violation.clone()))
+            })
+            .collect::<Vec<_>>();
+        if !violations.is_empty() {
+            violations.sort_by_key(|(index, _)| *index);
+            tracing::info!(
+                ?validation_reports,
+                "the provenance of the entities breaks a rule"
+            );
+            return Err(
+                Report::new(EntityCreationError::InvalidProvenance { violations })
+                    .attach_opaque(validation_reports),
             );
         }
 
@@ -1812,6 +1862,13 @@ where
 
         for (index, mut params) in params.into_iter().enumerate() {
             let mut validation_report = EntityValidationReport::default();
+            validation_report.metadata.provenance = provenance_violations([
+                ProvenanceValidator.validate_ref(&*params.properties).err(),
+                params
+                    .link_data
+                    .as_deref()
+                    .and_then(|link| ProvenanceValidator.validate_ref(link).err()),
+            ]);
 
             let schema = match params.entity_types {
                 EntityValidationType::ClosedSchema(schema) => schema,
@@ -2138,6 +2195,12 @@ where
                         changes,
                         validation,
                     } = *prepared;
+                    let changes = match changes.validate_provenance() {
+                        Ok(changes) => changes,
+                        Err(provenance) => {
+                            return Err(validation.reject_provenance(provenance, index));
+                        }
+                    };
                     let entity = transaction
                         .persist_entity_patch(
                             actor_id,
@@ -2574,6 +2637,17 @@ struct LockedEntityEdition {
     transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
+/// The violations of every failed check in `checks`, in order.
+fn provenance_violations(
+    checks: impl IntoIterator<Item = Option<ProvenanceViolations>>,
+) -> Vec<ProvenanceViolation> {
+    checks
+        .into_iter()
+        .flatten()
+        .flat_map(ProvenanceViolations::into_violations)
+        .collect()
+}
+
 /// The entity types among `entity_type_ids` that the actor may not view.
 fn invisible_entity_types<'url>(
     policy_components: &PolicyComponents,
@@ -2796,7 +2870,7 @@ where
         properties: &PropertyObject,
         confidence: Option<Confidence>,
         provenance: &SqlEntityEditionProvenance,
-        metadata: &PropertyObjectMetadata,
+        metadata: &Valid<PropertyObjectMetadata>,
     ) -> Result<EntityEditionId, Report<InsertionError>> {
         let edition_id: EntityEditionId = self
             .as_client()
