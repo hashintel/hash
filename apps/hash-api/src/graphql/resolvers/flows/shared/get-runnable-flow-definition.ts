@@ -36,13 +36,8 @@ export const getRunnableFlowDefinition = async (
   try {
     flowDefinition = getFlowDefinitionFromEntity(flowDefinitionEntity);
   } catch (error) {
-    /*
-     * A flow can be saved before it's valid, so an invalid one is something the user can fix, not a fault here. The
-     * message lists every problem.
-     */
-    throw GraphQLError.badRequest(
-      `This flow can't run until its problems are fixed. ${(error as Error).message}`,
-    );
+    /* A flow can be saved before it's valid, so this is for the user to fix. The message lists every problem. */
+    throw GraphQLError.badRequest((error as Error).message);
   }
 
   const flowType = getFlowType(flowDefinition);

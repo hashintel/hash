@@ -73,7 +73,7 @@ type FlowSummary = Subtype<
     name: string;
     flowDefinitionEntityId: EntityId;
     description: string;
-    /** Whether the flow is valid, so can run: one saved before it was finished isn't. */
+    /** False for a flow saved before it was finished, which can't run yet. */
     isValid: boolean;
     lastRunStartedAt: string | null;
   }

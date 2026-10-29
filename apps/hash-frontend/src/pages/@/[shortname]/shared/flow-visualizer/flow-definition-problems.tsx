@@ -7,8 +7,7 @@ import { flowSectionBorderRadius } from "./shared/styles";
 import type { FlowDefinitionDiagnostic } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 
 /**
- * The problems that stop a flow from being shown as a net or run, in place of its net: a flow can be saved before
- * it's valid. Warnings don't stop it running, so aren't listed.
+ * Shown in place of the net of a flow saved before it was valid: the errors that stop it being compiled or run.
  */
 export const FlowDefinitionProblems = ({
   diagnostics,
