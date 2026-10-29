@@ -44,7 +44,9 @@ export type * as Bindings from "./Bindings.js";
  *
  * Literal selections retain required exports. A widened array, an optional record entry or a union alias can leave a name absent, so its result entry is optional. The `"_"` alternative contributes the source name rather than a literal underscore key. Selection unions retain all possible names but require only names present in every alternative.
  *
- * One name selects the module, type and value exports that share it. Each imported export emits its local name, and the import wraps the expression built in its scope in a `use` of the module's path. An alias that is not a HashQL identifier fails construction with `InvalidImportName`, and a symbol key in the record selects nothing.
+ * One name selects the module, type and value exports that share it. Each imported export emits its local name. The import wraps the expression built in its scope in a `use` of the module's path. An alias that is not a HashQL identifier fails construction with a {@link ProgramError.Construction} whose reason is `InvalidImportName`. A symbol key in the record selects nothing.
+ *
+ * `"*"` emits a glob `use`. HashQL then binds every export it provides under the module's path, including names the record does not declare. TypeScript does not see such a name. Inside the import, it shadows an enclosing binding of the same name. A record that declares every export of its path gives both the same names.
  *
  * @example <caption>Import a built-in function under another name.</caption>
  * ```ts
@@ -110,7 +112,8 @@ const importName = (
   name: string | undefined,
 ): Result.Result<JExpr.Ident.Ident, ProgramError.Construction> =>
   pipe(
-    decodeName(name),
+    name,
+    decodeName,
     Result.mapError((cause) =>
       ProgramError.Construction.invalidImportName(String(name), cause),
     ),
@@ -141,14 +144,12 @@ const requests = (
   }
 
   if (isReadonlyArray(selection)) {
-    return pipe(
-      selection,
-      Array.map((name) => ({ name, alias: name })),
-    );
+    return Array.map(selection, (name) => ({ name, alias: name }));
   }
 
   return pipe(
-    Record.toEntries(selection),
+    selection,
+    Record.toEntries,
     Array.map(([name, alias]) => {
       if (alias === "_") {
         return { name, alias: name };
@@ -215,14 +216,13 @@ const select = <E extends Record.ReadonlyRecord<string, Capability>, I>(
       Partial<Bindings.Selected<E, I>>,
       ProgramError.Construction
     > =>
-      pipe(
-        relocate<E[K]>(
-          sources[name],
-          JExpr.Path.make({
-            rooted: false,
-            segments: [{ name: ident, arguments: [] }],
-          }),
-        ),
+      relocate<E[K]>(
+        sources[name],
+        JExpr.Path.make({
+          rooted: false,
+          segments: [{ name: ident, arguments: [] }],
+        }),
+      ).pipe(
         Result.map((value) =>
           Object.defineProperty(selected, alias, {
             value,
@@ -289,7 +289,9 @@ class ImportImpl<M extends Module.Module.Any, I> implements Declaration<M, I> {
 /**
  * Selects exports and rebinds each producer to its local name without changing the source module.
  *
- * Records must expose their declared entries as enumerable own string-keyed properties. Symbol keys and non-enumerable and inherited entries select nothing. Returns a construction failure for invalid aliases, or propagates a producer's relocation failure. Omitted alias entries select nothing. A present entry must contain a valid identifier or the `"_"` sentinel, not `undefined`. The operation freezes the returned tables, and the compiler resolves their emitted import.
+ * The import emits a `use` of the module's path. HashQL must therefore provide every selected export under that path, aliases included. A `"*"` selection also binds the exports the record does not declare, as {@link Selection} describes.
+ *
+ * Records must expose their declared entries as enumerable own string-keyed properties. Symbol keys and non-enumerable and inherited entries select nothing. Returns a construction failure for invalid aliases, or propagates a producer's relocation failure. Omitted alias entries select nothing. A present entry must contain a valid identifier or the `"_"` sentinel, not `undefined`. It freezes the returned tables. The HashQL compiler resolves the emitted import.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the module and selection construct a declaration
 export const bind = <

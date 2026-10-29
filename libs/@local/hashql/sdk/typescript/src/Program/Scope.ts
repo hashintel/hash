@@ -5,7 +5,7 @@
  *
  * Tables are ordinary export records. Merging copies their enumerable own string-keyed properties before freezing the copies, leaving the caller's records unchanged.
  *
- * A scope holds the names available during construction. `Namespace.flatten` joins the tables into one object in which a name can hold a module, a type and a value at once.
+ * A scope holds the names available during construction. {@link @local/hashql!Program.Namespace.flatten | Namespace.flatten} joins the tables into one object. A name in it can hold a module, a type and a value at once.
  *
  * @module
  */
@@ -121,7 +121,7 @@ export declare namespace Scope {
   export interface Base<M, V, T>
     extends Pipeable.Pipeable, Inspectable.Inspectable {
     readonly [TypeId]: Variance<M, V, T>;
-    /** Modules by local name, the starting points for qualified references. */
+    /** Modules by local name, the starting points for imports and qualified references. */
     readonly modules: Readonly<M>;
     /** Value expressions by name. */
     readonly values: Readonly<V>;

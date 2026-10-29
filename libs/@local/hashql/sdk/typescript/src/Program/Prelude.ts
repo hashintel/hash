@@ -135,7 +135,7 @@ export interface Builtin extends Scope.Scope<{
  *
  * `List` and `Dict` accept structural shorthand as well as type expressions, so `List(String)` and `List(Prelude.builtin.types.String)` emit the same type. `eq` accepts operands of any two types, which need not match. `add` accepts Integer and Number operands, as {@link Semantic.Arithmetic | Prelude.Arithmetic} describes. The SDK takes these signatures on trust, and the HashQL compiler checks the emitted calls.
  *
- * `Namespace.flatten(builtin)` joins the three tables into one object. There `Uuid` is both the type and its constructor, and the module `cmp` exposes `eq` directly.
+ * {@link @local/hashql!Program.Namespace.flatten | Namespace.flatten} joins the three tables of `builtin` into one object. In it, `Uuid` is both the type and its constructor. The module `cmp` exposes `eq` directly.
  *
  * @example <caption>Use built-in types and functions outside a program callback.</caption>
  * ```ts
