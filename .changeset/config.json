@@ -24,7 +24,6 @@
     "useCalculatedVersion": true
   },
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
-    "updateInternalDependents": "always",
     "onlyUpdatePeerDependentsWhenOutOfRange": true
   }
 }
