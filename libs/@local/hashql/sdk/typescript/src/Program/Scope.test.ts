@@ -27,9 +27,9 @@ describe("scope_merge", () => {
   test("inspection", () => {
     expect.hasAssertions();
     expect(before.toJSON()).toStrictEqual({
-      modules: {},
+      modules: Scope.empty.modules,
       values: before.values,
-      types: {},
+      types: Scope.empty.types,
     });
     expect(before[Inspectable.NodeInspectSymbol]()).toStrictEqual(
       before.toJSON(),
@@ -75,7 +75,7 @@ describe("scope_merge", () => {
     const merged = pipe(before, Scope.merge({ values }));
     expect(merged.values.count).toBe(replacement);
     expect(Object.hasOwn(merged.values, "__proto__")).toBe(true);
-    expect(Object.getPrototypeOf(merged.values)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(merged.values)).toBeNull();
     expect(Object.keys(merged.values)).toStrictEqual([
       "count",
       "label",
@@ -102,6 +102,15 @@ describe("scope_merge", () => {
     ]);
     expect(Object.getOwnPropertySymbols(merged.values)).toStrictEqual([]);
     expect("inherited" in merged.values).toBe(false);
+  });
+
+  test("inherited_names", () => {
+    expect.hasAssertions();
+    const values: {
+      readonly toString?: ReturnType<typeof Expression.number> | undefined;
+    } = { toString: undefined };
+    expect(Scope.merge(before, { values }).values.toString).toBeUndefined();
+    expect("toString" in Scope.empty.values).toBe(false);
   });
 
   test("absent_optional_replacement", () => {
