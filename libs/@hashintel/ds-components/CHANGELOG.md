@@ -1,5 +1,11 @@
 # @hashintel/ds-components
 
+## 0.5.1
+
+### Patch Changes
+
+- Export rehype-markdown-class for mdx doc consumers ([@alex-e-leon](https://github.com/alex-e-leon), [#10265](https://github.com/hashintel/hash/pull/10265))
+
 ## 0.5.0
 
 ### Minor Changes
