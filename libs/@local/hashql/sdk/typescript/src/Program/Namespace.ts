@@ -11,6 +11,7 @@
 // oxlint-disable import/max-dependencies -- namespace cannot be further subdivided
 import { Equal, Function, Hash, Result } from "effect";
 
+import { emptyTable } from "../internal/record.js";
 import * as Relocation from "../internal/relocation.js";
 import * as Expression from "./Expression.js";
 import * as Module from "./Module.js";
@@ -105,7 +106,7 @@ type Combined<L, R> = WithMetadata<
 /**
  * One name carrying the capabilities of two exports, such as a value constructor and the type it constructs.
  *
- * Property reads follow the precedence the module introduction states. A call with type arguments reaches the type constructor. Value arguments reach the value instead. When the arguments fit both, such as when there are none, the call reaches both and returns the join of their results. The last relocation signature returns the whole joined capability set.
+ * Property reads follow the precedence the module introduction states. When only the type constructor or only the value is callable, every call goes to it with its arguments unchanged. An adapted signature can therefore take host values. When both can, a call with type arguments reaches the type constructor and value arguments reach the value instead. Arguments that fit both, such as none at all, reach the value. They also reach the type constructor when their count equals its {@link TypeExpression.arity | arity}, and the call then returns the join of both results. An adapted constructor keeps the arity of the constructor it adapts, so such arguments reach it only at that count. The last relocation signature returns the whole joined capability set.
  */
 export type Joined<L, R> = Combined<L, R> & {
   readonly [Components]: readonly [L, R];
@@ -210,8 +211,8 @@ const expressionReserved = new Set<PropertyKey>([
   "~hashql/Expression",
 ]);
 
-/** Selects a matching SDK callable from unchecked proxy arguments, returning another SDK capability. */
-const invoke = (
+/** Calls an SDK callable with unchecked proxy arguments, returning another SDK capability. */
+const forward = (
   candidate: Capability | undefined,
   // oxlint-disable-next-line typescript/no-restricted-types -- a proxy call receives unchecked host arguments
   args: readonly unknown[],
@@ -220,20 +221,8 @@ const invoke = (
     return undefined;
   }
 
-  const typeCall =
-    TypeExpression.isConstructor(candidate) &&
-    args.every(Structural.isDefinition);
-
-  const valueCall =
-    Expression.isExpression(candidate) && args.every(Structural.isValue);
-
-  if (!typeCall && !valueCall) {
-    return undefined;
-  }
-
-  // SAFETY: each matching SDK callable returns a type or value handle.
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- invocation erases the argument tuple at the proxy boundary
-  return Reflect.apply(candidate, undefined, args) as Capability;
+  // SAFETY: each SDK callable returns a type or value handle.
+  return Reflect.apply(candidate, undefined, args);
 };
 
 /**
@@ -286,8 +275,31 @@ export const combine: {
 
     // oxlint-disable-next-line typescript/no-restricted-types -- proxy invocation selects a callable from the host arguments
     const callable = (...args: readonly unknown[]): Capability | undefined => {
-      const first = invoke(type, args);
-      const second = invoke(value, args);
+      if (!TypeExpression.isConstructor(type)) {
+        return forward(value, args);
+      }
+
+      if (value === undefined) {
+        return forward(type, args);
+      }
+
+      const typeCall = args.every(Structural.isDefinition);
+      const valueCall = args.every(Structural.isValue);
+
+      if (typeCall !== valueCall) {
+        return forward(typeCall ? type : value, args);
+      }
+
+      if (!typeCall) {
+        return undefined;
+      }
+
+      if (args.length !== TypeExpression.arity(type)) {
+        return forward(value, args);
+      }
+
+      const first = forward(type, args);
+      const second = forward(value, args);
 
       if (first === undefined || second === undefined) {
         return first ?? second;
@@ -392,7 +404,8 @@ function viewModule<M extends Module.Module.Any & Relocation.Relocatable<M>>(
           return rebind;
         }
 
-        if (hasExport(module, key)) {
+        // A key that names no child reads the module itself, including the members it inherits.
+        if (hasExport(module, key) || !Object.hasOwn(children, key)) {
           return Reflect.get(module, key);
         }
 
@@ -463,7 +476,7 @@ const define = <O, K extends keyof O>(
 };
 
 const flattenScope = <S extends Tables>(scope: S): Flatten<S> => {
-  const entries: Partial<Members<S>> = {};
+  const entries = emptyTable<Members<S>>();
 
   // oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- K ties three lookups to the same destination member
   const resolve = <K extends Keys<S> & string>(name: K): void => {
@@ -494,9 +507,9 @@ const flattenScope = <S extends Tables>(scope: S): Flatten<S> => {
 };
 
 /**
- * Joins a scope's module, type and value tables into one frozen object.
+ * Joins a scope's module, type and value tables into one frozen object without a prototype.
  *
- * Each enumerable own string key of the three tables becomes one property, joining the exports that share it as {@link Flatten} describes. It skips inherited and non-enumerable keys. Each module becomes a view that also exposes its child exports. `flatten` builds the views of the whole module tree before it returns. It cannot fail.
+ * A name the scope lacks therefore reads as `undefined`, even a name such as `toString`. Each enumerable own string key of the three tables becomes one property, joining the exports that share it as {@link Flatten} describes. It skips inherited and non-enumerable keys. Each module becomes a view that also exposes its child exports. `flatten` builds the views of the whole module tree before it returns. It cannot fail.
  *
  * {@link Module.define} checks the same producer requirement for the tables of a nested module.
  */
