@@ -51,26 +51,27 @@ export const serializeFlowRunRecord = ({
   return lines.map((line) => `${JSON.stringify(line)}\n`).join("");
 };
 
-export const parseFlowRunRecord = (text: string): FlowRunRecord => {
-  const lines = text
-    .split("\n")
-    .filter((line) => line !== "")
-    .map((line, index) => {
-      const parsedLine = JSON.parse(line) as { formatVersion: unknown };
+const parseFlowRunRecordLine = (line: string, lineNumber: number) => {
+  const parsedLine = JSON.parse(line) as { formatVersion: unknown };
 
-      if (parsedLine.formatVersion !== flowRunRecordFormatVersion) {
-        throw new Error(
-          `Line ${index + 1} of the flow run record has format version ${String(parsedLine.formatVersion)}, but only version ${flowRunRecordFormatVersion} can be read`,
-        );
-      }
+  if (parsedLine.formatVersion !== flowRunRecordFormatVersion) {
+    throw new Error(
+      `Line ${lineNumber} of the flow run record has format version ${String(parsedLine.formatVersion)}, but only version ${flowRunRecordFormatVersion} can be read`,
+    );
+  }
 
-      const { formatVersion: _formatVersion, ...content } =
-        parsedLine as FlowRunRecordLine;
+  const { formatVersion: _formatVersion, ...content } =
+    parsedLine as FlowRunRecordLine;
 
-      return content;
-    });
+  return content;
+};
 
-  const [headerLine, ...eventLines] = lines;
+/** A run's header, from the first line of its record. */
+export const parseFlowRunRecordHeader = (
+  firstLine: string,
+): FlowRunRecordHeader => {
+  const headerLine =
+    firstLine === "" ? undefined : parseFlowRunRecordLine(firstLine, 1);
 
   if (headerLine?.kind !== "header") {
     throw new Error("The flow run record doesn't start with its header");
@@ -78,9 +79,21 @@ export const parseFlowRunRecord = (text: string): FlowRunRecord => {
 
   const { kind: _kind, ...header } = headerLine;
 
+  return header;
+};
+
+export const parseFlowRunRecord = (text: string): FlowRunRecord => {
+  const [firstLine = "", ...eventLines] = text
+    .split("\n")
+    .filter((line) => line !== "");
+
+  const header = parseFlowRunRecordHeader(firstLine);
+
   return {
     header,
-    events: eventLines.map((eventLine, index) => {
+    events: eventLines.map((line, index) => {
+      const eventLine = parseFlowRunRecordLine(line, index + 2);
+
       if (eventLine.kind === "header") {
         throw new Error(
           `Line ${index + 2} of the flow run record is a second header`,

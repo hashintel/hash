@@ -125,17 +125,23 @@ const createStorageProvider = (storedRecord?: FlowRunRecord) => {
       : [],
   );
 
+  const downloadDirect = vi.fn(({ key }: { key: string }) =>
+    Promise.resolve(Buffer.from(objects.get(key) ?? "")),
+  );
+
   return {
     storageProvider: {
       uploadDirect: ({ key, body }: { key: string; body: string }) => {
         objects.set(key, body);
         return Promise.resolve();
       },
-      downloadDirect: ({ key }: { key: string }) =>
-        Promise.resolve(Buffer.from(objects.get(key) ?? "")),
+      downloadDirect,
+      readFirstLine: ({ key }: { key: string }) =>
+        Promise.resolve(objects.get(key)?.split("\n")[0] ?? null),
       getObjectLastModified: ({ key }: { key: string }) =>
         Promise.resolve(objects.has(key) ? new Date() : null),
     } as unknown as FileStorageProvider,
+    downloadDirect,
     readStoredRecord: () => {
       const contents = objects.get(getFlowRunRecordStorageKey(workflowId));
       return contents === undefined ? undefined : parseFlowRunRecord(contents);
@@ -355,6 +361,23 @@ describe("getStoredFlowRunRecordKey", () => {
         workflowId,
       }),
     ).resolves.toBe(key);
+  });
+
+  it("gives the key of a closed run's stored record without downloading it", async () => {
+    const fixture = loadFixture("succeeds");
+    const { temporalClient } = createTemporalClient(fixture);
+    const { storageProvider, downloadDirect } = createStorageProvider(
+      getFlowRunRecordFromHistory(fixture, { workflowId }),
+    );
+
+    await expect(
+      getStoredFlowRunRecordKey({
+        temporalClient,
+        storageProvider,
+        workflowId,
+      }),
+    ).resolves.toBe(key);
+    expect(downloadDirect).not.toHaveBeenCalled();
   });
 
   it("stores the record of a closed run that has none, and gives its key", async () => {
