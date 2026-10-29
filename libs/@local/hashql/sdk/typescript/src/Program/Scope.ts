@@ -44,7 +44,7 @@ export const universeKeys = <U extends Universe<Entry>>(
 /**
  * Tables that supply a scope, such as a prelude.
  *
- * Each table is optional. A module record, the record {@link Module.root} returns and `Prelude.builtin` all fit.
+ * Each table is optional. A module record, the record {@link Module.root} returns and {@link @local/hashql!Program.Prelude.builtin | Prelude.builtin} all fit.
  */
 export interface Definition<S extends Scope.Any> extends Definition.Base<
   S["modules"],
