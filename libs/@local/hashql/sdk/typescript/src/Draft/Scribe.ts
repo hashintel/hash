@@ -155,7 +155,7 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
       entities: this.#entities.bind(this),
     });
 
-    // make sure that destructuring `$` works as expected by binding `this` to each method
+    // Binding each method to this context keeps it working after a caller destructures `$`.
     this.prelude = this.prelude.bind(this);
     this.modules = this.modules.bind(this);
     this.import = this.import.bind(this);
