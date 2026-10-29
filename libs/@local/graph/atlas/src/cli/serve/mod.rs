@@ -13,7 +13,6 @@ use hash_middleware::{
     rate_limit::{CallerLimitLayer, IpGateLayer, RateLimitConfig, RateLimiters},
     telemetry::HttpTracingLayer,
 };
-use rand::rngs::SysRng;
 use tower::ServiceBuilder;
 use type_system::principal::actor::ActorId;
 
@@ -206,7 +205,7 @@ impl ServeCommand {
                 .change_context(ServeError::Download)?;
         }
 
-        let authority = Authority::new(self.secret.expose(), visibility.hard, SysRng)
+        let authority = Authority::new(self.secret.as_secret(), visibility.hard)
             .change_context(ServeError::Authority)?;
         let feed = (!self.delta.no_delta).then(|| FeedOptions {
             task: self.delta.into(),

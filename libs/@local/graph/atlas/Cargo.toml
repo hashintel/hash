@@ -44,7 +44,6 @@ aws-config                = { workspace = true }
 burn                      = { workspace = true, features = ["autodiff", "cubecl", "cuda", "dispatch", "metal", "ndarray"] }
 bytecheck                 = { workspace = true, public = true }
 bytes.workspace           = true
-chacha20poly1305          = { workspace = true }
 clap                      = { workspace = true, features = ["derive", "env"] }
 fst                       = { workspace = true, public = true }
 futures                   = { workspace = true }
@@ -55,7 +54,6 @@ hash-graph-store          = { workspace = true, features = ["postgres"] }
 hash-temporal-client      = { workspace = true, public = true }
 hashbrown                 = { workspace = true }
 heed                      = { workspace = true }
-hkdf                      = { workspace = true }
 kiddo                     = { workspace = true, features = ["rkyv_08", "simd", "multi-threaded"] }
 memchr                    = { workspace = true }
 memmap2                   = { workspace = true }

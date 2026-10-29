@@ -35,3 +35,15 @@ impl core::fmt::Display for AuthorityError {
 }
 
 impl core::error::Error for AuthorityError {}
+
+/// A failure to derive an [`Authority`](super::authority::Authority)'s sealing key.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) struct AuthorityKeyError;
+
+impl core::fmt::Display for AuthorityKeyError {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        fmt.write_str("failed to derive the authority key")
+    }
+}
+
+impl core::error::Error for AuthorityKeyError {}
