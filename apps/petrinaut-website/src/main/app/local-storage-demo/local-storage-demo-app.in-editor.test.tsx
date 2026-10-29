@@ -347,7 +347,6 @@ test("Brunch's own plugin is the editor's assistant, with no built-in chat and n
   });
   await vi.waitFor(() => expect(pluginIds()).toContain("website.brunch"));
   expect(pluginIds()).not.toContain("website.petrinaut-ai");
-  expect(editorProps.current?.aiAssistant).toBeUndefined();
   expect(
     editorProps.current?.plugins?.find(
       ({ manifest }) => manifest.id === "website.brunch",

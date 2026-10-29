@@ -416,7 +416,7 @@ disappears and the result remains under **Simulate → Experiments**.
 
 **Dismiss** retains the proposal as a **Dismissed** record. After **Run**, the
 draft is replaced in place by the same blue simulation or purple optimization
-card used by the built-in assistant: **Validating**, steps and runs, then
+card used by the stock assistant: **Validating**, steps and runs, then
 **Finished** with metrics. **Cancel**
 leaves a **Cancelled** record. A failed run offers **Retry run**; model changes
 still require review before retrying. Drafting and starting a run keep your

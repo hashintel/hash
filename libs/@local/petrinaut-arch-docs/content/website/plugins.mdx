@@ -22,8 +22,9 @@ Each plugin here is written against the [plugin API](doc:plugins/overview).
 The demo shell passes `demoPlugins` from `plugins/demo-plugins.ts` to
 `<Petrinaut plugins>`, with `petrinautAiPlugin` added while Brunch's assistant
 is not ready. With Brunch selected, `useBrunchAssistant` adds `website.brunch`
-and passes Brunch's chat through the `aiAssistant` prop. `/ai-experiments`
-passes the scripted assistant defined beside its route in `ai-experiments-demo/`.
+and the shell hands Brunch's chat to that plugin through
+`BrunchAssistantContext`. `/ai-experiments` passes the scripted assistant
+defined beside its route in `ai-experiments-demo/`.
 
 `/examples/$slug` and `/share` pass `[localCopyPlugin]` alone, through
 `ReadonlyDocumentPage` in `src/examples/readonly-document-page.tsx`; the embed
