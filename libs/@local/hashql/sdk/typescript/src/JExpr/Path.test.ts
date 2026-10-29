@@ -199,6 +199,19 @@ describe("path_grammar", () => {
     expect(Result.isFailure(Path.decodeResult(source))).toBe(true);
   });
 
+  test.each([
+    ["\u00E9", "e\u0301"],
+    ["e\u0301", "\u00E9"],
+  ])("canonical_duplicate_struct_field_%#", (first, second) => {
+    expect.hasAssertions();
+    const failure = Option.getOrThrow(
+      Result.getFailure(Path.parse(`Box<(${first}: A, ${second}: B)>`)),
+    );
+    expect([...failure.expected]).toStrictEqual([
+      DuplicateStructField({ name: { _tag: "Lexical", value: second } }),
+    ]);
+  });
+
   test("nested_failure_offset", () => {
     expect.hasAssertions();
     const failure = Option.getOrThrow(

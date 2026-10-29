@@ -1,5 +1,6 @@
 // oxlint-disable max-classes-per-file -- the path value classes and the type schema are mutually recursive through Schema.suspend
 import {
+  Array,
   Effect,
   Equal,
   Hash,
@@ -229,9 +230,19 @@ export const Struct: Schema.TaggedStruct<
     >;
   }
 > = Schema.TaggedStruct("Struct", {
-  // `+` and `` `+` `` decode to the same name, and a struct holds each name once.
+  // A struct holds each name once, and two spellings of one name, such as `+` and `` `+` ``, repeat a field.
   members: Schema.Array(Schema.Tuple([Ident.Schema, TypeRef])).check(
-    Schema.isUniqueKey(),
+    Schema.makeFilter(
+      (members) =>
+        Array.dedupe(Array.map(members, ([name]) => Ident.name(name)))
+          .length === members.length,
+      {
+        expected: "fields with distinct names",
+        arbitraryConstraint: {
+          uniqueBy: ([name]: readonly [Ident.Ident, Type]) => Ident.name(name),
+        },
+      },
+    ),
   ),
 });
 

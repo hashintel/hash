@@ -7,6 +7,7 @@
  *
  * @module
  */
+
 // oxlint-disable max-lines -- namespace cannot be further subdivided
 // oxlint-disable import/max-dependencies -- namespace cannot be further subdivided
 import { Equal, Function, Hash, Result } from "effect";
@@ -20,7 +21,6 @@ import * as Structural from "./Structural.js";
 import * as TypeExpression from "./TypeExpression.js";
 
 import type { StringKeyed } from "../internal/record.js";
-import type * as JExpr from "../JExpr/index.js";
 import type * as Type from "../Type.js";
 import type * as ExpressionType from "./ExpressionType.js";
 import type * as Program from "./index.js";
@@ -255,12 +255,13 @@ export const combine: {
     const leftSource: Relocation.Relocatable<L> = left;
     const rightSource: Relocation.Relocatable<R> = right;
 
-    const rebind = (
-      path: JExpr.Path.Path,
-    ): Result.Result<Joined<L, R>, Program.ProgramError.Construction> =>
+    // Each source keeps the id of its own universe from `bound`, so a joined type and value move together.
+    const rebind: Relocation.Relocatable<
+      Joined<L, R>
+    >[typeof Relocation.Relocate] = (path, bound) =>
       Result.all({
-        left: leftSource[Relocation.Relocate](path),
-        right: rightSource[Relocation.Relocate](path),
+        left: leftSource[Relocation.Relocate](path, bound),
+        right: rightSource[Relocation.Relocate](path, bound),
       }).pipe(Result.map((moved) => combine<L, R>(moved.left, moved.right)));
 
     const type =
@@ -384,10 +385,10 @@ function viewModule<M extends Module.Module.Any & Relocation.Relocatable<M>>(
   const children = flattenScope(module);
   const source: Relocation.Relocatable<M> = module;
 
-  const rebind = (
-    path: JExpr.Path.Path,
-  ): Result.Result<ModuleView<M>, Program.ProgramError.Construction> =>
-    source[Relocation.Relocate](path).pipe(
+  const rebind: Relocation.Relocatable<
+    ModuleView<M>
+  >[typeof Relocation.Relocate] = (path, bound) =>
+    source[Relocation.Relocate](path, bound).pipe(
       Result.map((moved) => viewModule<M>(moved)),
     );
 
