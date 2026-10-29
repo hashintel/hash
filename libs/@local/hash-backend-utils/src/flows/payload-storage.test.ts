@@ -11,6 +11,7 @@ import {
   resolveInputPayload,
   resolvePayloadValue,
   resolvePayloadValueToShow,
+  retrievePayload,
   prepareOutputPayload,
   storePayload,
 } from "./payload-storage.js";
@@ -473,6 +474,9 @@ describe("checking values against their kind's schema", () => {
       "The stored ProposedEntity value is invalid at [1].properties: ",
     );
     await expect(resolving).rejects.toMatchObject({ nonRetryable: true });
+    await expect(retrievePayload(context, ref)).rejects.toThrow(
+      "The stored ProposedEntity value is invalid at [1].properties: ",
+    );
 
     await expect(
       resolvePayloadValue(context, "ProposedEntity", secondItem!),

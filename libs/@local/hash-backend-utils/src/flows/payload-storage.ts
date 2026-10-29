@@ -244,6 +244,25 @@ const retrieveStoredValue = async (
 };
 
 /**
+ * @throws a non-retryable failure, with the path of the invalid value, if a value retrieved from storage isn't valid
+ *   of its kind (see `validatePayloadValue`).
+ */
+const checkRetrievedValue = (params: {
+  kind: PayloadKind;
+  array: boolean;
+  value: unknown;
+}) => {
+  const problem = validatePayloadValue({ ...params, allowStoredRefs: false });
+
+  if (problem) {
+    throw ApplicationFailure.nonRetryable(
+      `The stored ${params.kind} value is invalid${describePayloadValueProblem(problem)}`,
+      invalidPayloadValueFailureType,
+    );
+  }
+};
+
+/**
  * The value a stored reference or payload value resolves to.
  */
 type ResolvedValue<Kind extends PayloadKind, Value> = Value extends
@@ -254,7 +273,7 @@ type ResolvedValue<Kind extends PayloadKind, Value> = Value extends
 
 /**
  * Retrieve a payload from S3 using a stored reference: a stored object, one item of a stored array, or a
- * concatenation of stored arrays.
+ * concatenation of stored arrays. The value is checked against the reference's kind, as `resolvePayloadValue` checks.
  */
 export const retrievePayload = async <
   Kind extends StorablePayloadKind,
@@ -262,8 +281,13 @@ export const retrievePayload = async <
 >(
   context: ResolvePayloadContext,
   ref: StoredRef,
-): Promise<ResolvedValue<Kind, StoredRef>> =>
-  retrieveStoredValue(context, ref) as Promise<ResolvedValue<Kind, StoredRef>>;
+): Promise<ResolvedValue<Kind, StoredRef>> => {
+  const value = await retrieveStoredValue(context, ref);
+
+  checkRetrievedValue({ kind: ref.kind, array: ref.array, value });
+
+  return value as ResolvedValue<Kind, StoredRef>;
+};
 
 /**
  * The value a payload value resolves to: a stored reference retrieved, or the item references in an array retrieved
@@ -313,19 +337,11 @@ export const resolvePayloadValue = async <
 
   const resolved = await resolveStoredValues(context, value);
 
-  const problem = validatePayloadValue({
+  checkRetrievedValue({
     kind,
     array: isStoredPayloadRef(value) ? value.array : true,
     value: resolved,
-    allowStoredRefs: false,
   });
-
-  if (problem) {
-    throw ApplicationFailure.nonRetryable(
-      `The stored ${kind} value is invalid${describePayloadValueProblem(problem)}`,
-      invalidPayloadValueFailureType,
-    );
-  }
 
   return resolved as ResolvedValue<Kind, Value>;
 };
