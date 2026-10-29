@@ -5,23 +5,26 @@ import * as JExpr from "../../JExpr/index.js";
 
 import type { Node } from "./Node.js";
 
+/**
+ * A path, such as a binding's name or a module's path.
+ *
+ * A path keeps the id of the binding it names in the program. The module path an import reads names no binding, so it keeps none.
+ */
 export class Path
   extends Pipeable.Class
   implements Node.Of<"Path", string, readonly [], readonly []>
 {
   readonly _tag = "Path" as const;
   readonly path: JExpr.Path.Path;
-  readonly children: readonly [];
-  readonly types: readonly [];
+  readonly children: readonly [] = [];
+  readonly types: readonly [] = [];
   readonly [Referential.References]: readonly Referential.ReferenceId[];
 
-  constructor(reference: Referential.ReferenceId, path: JExpr.Path.Path) {
+  constructor(path: JExpr.Path.Path, reference?: Referential.ReferenceId) {
     super();
 
-    this[Referential.References] = [reference];
     this.path = path;
-    this.children = [];
-    this.types = [];
+    this[Referential.References] = reference === undefined ? [] : [reference];
   }
 
   toExpr(_types: readonly [], _children: readonly []): string {

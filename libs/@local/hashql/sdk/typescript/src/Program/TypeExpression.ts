@@ -12,14 +12,12 @@
 import { Array, Predicate, Result, identity, pipe } from "effect";
 import { dual } from "effect/Function";
 
-import * as Overflow from "../internal/overflow.js";
 import {
   Relocate,
   relocate as relocateHandle,
 } from "../internal/relocation.js";
-import * as Path from "../JExpr/Path.js";
-import { References, referencesOf } from "./AST/Reference.js";
 import * as ProgramError from "./ProgramError.js";
+import * as TAST from "./TAST/index.js";
 
 import type { Relocatable } from "../internal/relocation.js";
 import type * as JExpr from "../JExpr/index.js";
@@ -37,9 +35,6 @@ const TypeId: TypeId = "~hashql/TypeExpression";
 export type ConstructorId = "~hashql/TypeConstructor";
 const ConstructorId: ConstructorId = "~hashql/TypeConstructor";
 
-// Applied arguments come from caller syntax that nothing has checked. Validating the path here keeps an invalid argument inside the type expression instead of throwing.
-const makePath = Overflow.makeResult(Path.Schema);
-
 /** Type syntax or its construction failure, annotated with its semantic type. */
 export interface TypeExpression<T extends Type.Any> extends TypeExpression.Any {
   readonly [TypeId]: Types.Covariant<T>;
@@ -53,6 +48,12 @@ export declare namespace TypeExpression {
 
     /** The type syntax this handle emits, or the construction failure that prevented it. */
     readonly syntax: Result.Result<Syntax.Type, ProgramError.Construction>;
+
+    /** The type node this handle emits, which keeps the ids of the program's bindings its syntax names. */
+    readonly [TAST.Node]: Result.Result<
+      TAST.TypeNode.Any,
+      ProgramError.Construction
+    >;
   }
 }
 
@@ -111,23 +112,40 @@ export const isConstructor = (value: unknown): value is Constructor.Any =>
   Predicate.hasProperty(value, ConstructorId);
 
 /**
+ * Annotates a type node, or a construction failure, with a trusted semantic descriptor.
+ *
+ * The caller must ensure that the node's syntax denotes `T`. A failure stays in the handle until something reads its syntax. Rebinding a successful result produces a reference to the new path. Rebinding a failed result returns its failure.
+ */
+export const fromNode = <T extends Type.Any>(
+  node: Result.Result<TAST.TypeNode.Any, ProgramError.Construction>,
+): TypeExpression<T> => ({
+  get syntax(): Result.Result<Syntax.Type, ProgramError.Construction> {
+    return Result.map(node, TAST.compile);
+  },
+  [TAST.Node]: node,
+  [TypeId]: identity<T>,
+  [Relocate]: (path) =>
+    pipe(
+      node,
+      Result.map(() =>
+        fromNode<T>(Result.succeed(new TAST.Reference(path, []))),
+      ),
+    ),
+});
+
+/**
  * Annotates type syntax, or a construction failure, with a trusted semantic descriptor.
  *
  * The caller must ensure that successful syntax denotes `T`. A failure stays in the handle until something reads its syntax. Rebinding a successful result produces a reference to the new path. Rebinding a failed result returns its failure.
  */
 export const fromResult = <T extends Type.Any>(
   syntax: Result.Result<Syntax.Type, ProgramError.Construction>,
-): TypeExpression<T> => ({
-  syntax,
-  [TypeId]: identity<T>,
-  [Relocate]: (path) =>
-    pipe(
-      syntax,
-      Result.map(() =>
-        fromResult<T>(Result.succeed({ _tag: "Reference", path })),
-      ),
-    ),
-});
+): TypeExpression<T> =>
+  pipe(
+    syntax,
+    Result.map((syntax) => new TAST.Syntax(syntax)),
+    fromNode<T>,
+  );
 
 /** Reads the type syntax a type expression emits, or its construction failure. */
 export const toType = (
@@ -150,7 +168,8 @@ export const fromType = <T extends Type.Any>(
  */
 export const reference = <T extends Type.Any>(
   path: JExpr.Path.Path,
-): TypeExpression<T> => fromType({ _tag: "Reference", path });
+): TypeExpression<T> =>
+  pipe(new TAST.Reference(path, []), Result.succeed, fromNode<T>);
 
 /**
  * Binds a trusted generic declaration to its named type reference.
@@ -220,42 +239,13 @@ export const constructor = <F extends Type.TypeConstructor>(
     // SAFETY: `Arguments<A>` maps every position to a type expression. `Array.map` cannot read that through the generic `A` and types the elements as `unknown`.
     const handles = args as readonly TypeExpression.Any[];
 
-    const applied = pipe(
+    return pipe(
       handles,
-      Array.map(toType),
+      Array.map((handle) => handle[TAST.Node]),
       Result.all,
-      Result.flatMap((args) =>
-        pipe(
-          makePath({
-            rooted: path.rooted,
-            segments: Array.modifyLastNonEmpty(path.segments, (segment) => ({
-              name: segment.name,
-              arguments: [
-                ...segment.arguments,
-                ...Array.map(args, (bound) => ({
-                  _tag: "GenericArgument" as const,
-                  bound,
-                })),
-              ],
-            })),
-          }),
-          Result.mapBoth({
-            onFailure: (cause) =>
-              ProgramError.Construction.invalidExpression(cause),
-            onSuccess: (applied): Syntax.Type => ({
-              _tag: "Reference",
-              path: applied,
-            }),
-          }),
-        ),
-      ),
-      fromResult<Type.TypeLambda.Apply<F, A>>,
+      Result.flatMap((arguments_) => TAST.apply(path, arguments_)),
+      fromNode<Type.TypeLambda.Apply<F, A>>,
     );
-
-    // A Draft's type handles emit bare names, so the application keeps the bindings its arguments came from.
-    return Object.assign(applied, {
-      [References]: Array.flatMap(handles, referencesOf),
-    });
   };
 
   return Result.succeed(

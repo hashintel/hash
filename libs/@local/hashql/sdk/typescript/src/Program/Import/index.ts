@@ -249,7 +249,7 @@ export interface Declaration<M extends Module.Module.Any, I> {
   readonly [TypeId]: TypeId;
   readonly scope: Bindings.Bindings<M, I> &
     Namespace.Rebindable<Bindings.Bindings<M, I>>;
-  readonly wrap: (child: AST.Node) => AST.Node;
+  readonly wrap: (child: AST.Node.Any) => AST.Node.Any;
 }
 
 /** Selects all three tables with one plan and marks them as the module's bindings. */
@@ -281,7 +281,8 @@ class ImportImpl<M extends Module.Module.Any, I> implements Declaration<M, I> {
     scope: Declaration<M, I>["scope"],
   ) {
     this.scope = scope;
-    this.wrap = (child): AST.Node => new AST.Import(path, syntax, child);
+    this.wrap = (child): AST.Node.Any =>
+      new AST.Import(new AST.Path(path), syntax, child);
     Object.freeze(this);
   }
 }

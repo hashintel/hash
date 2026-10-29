@@ -1,46 +1,46 @@
-import { Option, Result } from "effect";
+import { Result } from "effect";
 import { describe, expect, test } from "vitest";
 
+import * as Referential from "../../internal/referential.js";
 import * as JExpr from "../../JExpr/index.js";
+import * as TAST from "../TAST/index.js";
 import * as AST from "./index.js";
 
-const bind = <V>(value: V): AST.Binding<V> =>
-  Result.getOrThrow(AST.make("x", value));
-
-const draft = Symbol("deep_nesting");
-const id = (universe: AST.Universe): AST.ReferenceId => ({
-  draft,
-  universe,
-  ident: Result.getOrThrow(JExpr.Ident.decodeResult("x")),
-  generation: 0,
-});
+const next = Referential.referenceProducer(Symbol("deep_nesting"));
+const ident = Result.getOrThrow(JExpr.Ident.decodeResult("x"));
 
 describe("compile", () => {
   test("deep_nesting", () => {
     expect.hasAssertions();
-    const integer: AST.TypeSyntax = {
-      syntax: Option.getOrThrow(JExpr.Type.reference("Integer")),
-      references: [],
-    };
+    const integer = new TAST.Reference(
+      Result.getOrThrow(JExpr.Path.decodeResult("Integer")),
+      [],
+    );
     const path = Result.getOrThrow(JExpr.Path.decodeResult("::core::math"));
 
     // Each round nests through every node kind, and through both children of `Let`.
-    let node: AST.Node = new AST.Expr("x");
+    let node: AST.Node.Any = new AST.Expr("x");
     for (let round = 0; round < 20_000; round += 1) {
       node = new AST.If(
         new AST.Expr(JExpr.literal(true)),
         node,
         new AST.Expr(JExpr.literal(0n)),
       );
-      node = new AST.Let(bind(node), id("value"), new AST.Expr("y"));
-      node = new AST.Let(bind(new AST.Expr("y")), id("value"), node);
-      node = new AST.Type(bind(integer), id("type"), node);
-      node = new AST.Newtype(
-        bind(integer),
-        { type: id("type"), value: id("value") },
+      node = new AST.Let(
+        AST.make(next("value", ident), node),
+        new AST.Expr("y"),
+      );
+      node = new AST.Let(
+        AST.make(next("value", ident), new AST.Expr("y")),
         node,
       );
-      node = new AST.Import(path, "*", node);
+      node = new AST.Type(AST.make(next("type", ident), integer), node);
+      node = new AST.Newtype(
+        AST.make(next("type", ident), integer),
+        next("value", ident),
+        node,
+      );
+      node = new AST.Import(new AST.Path(path), "*", node);
     }
 
     const open = [

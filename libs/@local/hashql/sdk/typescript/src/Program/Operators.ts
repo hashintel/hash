@@ -67,7 +67,7 @@ const call = <I>(
 
 /** Copies own handle metadata and explicitly forwards proxy-provided expression operations. */
 const predicate = <I>(
-  node: Result.Result<AST.Node, ProgramError.Construction>,
+  node: Result.Result<AST.Node.Any, ProgramError.Construction>,
 ): Predicate<I> => {
   const expression = Expression.fromResult<Type.PrimitiveBoolean, I>(node);
 

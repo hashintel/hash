@@ -15,15 +15,18 @@ export interface ReferenceId<U extends Universe = Universe> {
 }
 
 export const References: unique symbol = Symbol("~hashql/References");
-export type ReferenceProducer = (
-  universe: Universe,
+export type ReferenceProducer = <U extends Universe>(
+  universe: U,
   ident: Ident.Ident,
-) => ReferenceId;
+) => ReferenceId<U>;
 
-export const referenceProducer = (source: symbol) => {
+export const referenceProducer = (source: symbol): ReferenceProducer => {
   const references = MutableHashMap.empty<[Universe, Ident.Ident], number>();
 
-  return (universe: Universe, ident: Ident.Ident): ReferenceId => {
+  return <U extends Universe>(
+    universe: U,
+    ident: Ident.Ident,
+  ): ReferenceId<U> => {
     MutableHashMap.modifyAt(
       references,
       [universe, ident],

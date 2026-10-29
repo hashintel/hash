@@ -1,7 +1,8 @@
-import { Pipeable } from "effect";
+import { Pipeable, Result } from "effect";
 
 import * as Referential from "../../internal/referential.js";
 import * as JExpr from "../../JExpr/index.js";
+import * as ProgramError from "../ProgramError.js";
 
 import type { TypeNode } from "../TAST/TypeNode.js";
 import type { Node } from "./Node.js";
@@ -51,3 +52,11 @@ export class Input
     return JExpr.input(JExpr.Ident.compile(this.name), type, defaultValue);
   }
 }
+
+/** Decodes an input's name, where a name HashQL cannot spell fails with the `InvalidExpression` reason. */
+export const decodeInputName = (
+  name: string,
+): Result.Result<JExpr.Ident.Ident, ProgramError.Construction> =>
+  Result.mapError(JExpr.Ident.decodeResult(name), (cause) =>
+    ProgramError.Construction.invalidExpression(cause),
+  );

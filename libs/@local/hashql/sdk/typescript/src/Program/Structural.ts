@@ -254,9 +254,9 @@ export const type = <const D extends Definition>(
 > =>
   pipe(
     definition,
-    StructuralSyntax.typeSyntax,
-    Result.map((syntax) =>
-      StructuralSyntax.typeHandle<Definition.Type<D>>(Result.succeed(syntax)),
+    StructuralSyntax.typeNode,
+    Result.map((node) =>
+      TypeExpression.fromNode<Definition.Type<D>>(Result.succeed(node)),
     ),
   );
 
@@ -266,8 +266,8 @@ const handle = <const D extends Definition>(
 ): TypeExpression.TypeExpression<Definition.Type<D>> =>
   pipe(
     definition,
-    StructuralSyntax.typeSyntax,
-    StructuralSyntax.typeHandle<Definition.Type<D>>,
+    StructuralSyntax.typeNode,
+    TypeExpression.fromNode<Definition.Type<D>>,
   );
 
 /** Applies normalization independently at every position instead of collapsing the tuple to an element union. */
@@ -456,7 +456,7 @@ export const list = <
       members: StructuralSyntax.memberNodes(members),
     },
     Result.all,
-    Result.map(({ type, members }) => new AST.List(type, members)),
+    Result.map(({ type, members }) => new AST.List(members, type)),
     StructuralSyntax.fromNode<
       Type.List<Definition.Type<D>>,
       Value.Requirements<V>
@@ -511,7 +511,7 @@ export const dict = <
       entries: StructuralSyntax.dictionaryEntries(entries),
     },
     Result.all,
-    Result.map(({ type, entries }) => new AST.Dict(type, entries)),
+    Result.map(({ type, entries }) => new AST.Dict(entries, type)),
     StructuralSyntax.fromNode<
       Type.Dict<Definition.Type<K>, Definition.Type<D>>,
       Value.Requirements<E>
@@ -564,15 +564,16 @@ export const input = <
   InputRequirements<Name, Definition.Type<D>, Defaults>
 > =>
   Result.gen(function* () {
-    const type = yield* StructuralSyntax.typeSyntax(definition);
+    const ident = yield* AST.decodeInputName(name);
+    const type = yield* StructuralSyntax.typeNode(definition);
     const [defaultValue] = defaults;
 
     if (defaultValue === undefined) {
-      return new AST.Input(name, type, undefined);
+      return new AST.Input(ident, type, undefined);
     }
 
     const fallback = yield* StructuralSyntax.valueNode(defaultValue);
-    return new AST.Input(name, type, fallback);
+    return new AST.Input(ident, type, fallback);
   }).pipe(
     StructuralSyntax.fromNode<
       Definition.Type<D>,

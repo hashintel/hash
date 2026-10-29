@@ -579,6 +579,15 @@ describe("references", () => {
       ),
     );
 
+    // Each universe counts its own bindings, so the value is the second `T` and the type the first.
+    const counted = Draft.program({}, ($) => {
+      $.let("T", 0n);
+      const second = $.let("T", 1n);
+      $.type("T", BigInt);
+      return second;
+    });
+    expect(Result.isSuccess(counted)).toBe(true);
+
     const type = Draft.program({}, ($) => {
       const alias = $.type("T", BigInt);
       $.let("T", 1n);

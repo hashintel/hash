@@ -8,6 +8,7 @@
 // oxlint-disable import/max-dependencies -- the collector composes every construction module
 import { Cause, Data, Option, Result, pipe } from "effect";
 
+import * as Referential from "../internal/referential.js";
 import * as StructuralSyntax from "../internal/structural.js";
 import * as JExpr from "../JExpr/index.js";
 import * as AST from "../Program/AST/index.js";
@@ -16,60 +17,28 @@ import * as Import from "../Program/Import/index.js";
 import * as Namespace from "../Program/Namespace.js";
 import * as Operators from "../Program/Operators.js";
 import * as ProgramError from "../Program/ProgramError.js";
+import * as TAST from "../Program/TAST/index.js";
+import * as TypeExpression from "../Program/TypeExpression.js";
 
 import type * as Inputs from "../Program/Inputs.js";
 import type * as Module from "../Program/Module.js";
 import type * as Scope from "../Program/Scope.js";
 import type * as Structural from "../Program/Structural.js";
-import type * as TypeExpression from "../Program/TypeExpression.js";
 import type * as Type from "../Type.js";
 import type * as Body from "./Body.js";
 import type * as Context from "./Context.js";
 
-type Wrap = (child: AST.Node) => AST.Node;
+type Wrap = (child: AST.Node.Any) => AST.Node.Any;
 
-/** Makes the id of a program's next binding of a name, so each binding of one name in one program has its own generation. */
-type Generations = (
-  universe: AST.Universe,
-  ident: JExpr.Ident.Ident,
-) => AST.ReferenceId;
-
-const generations = (): Generations => {
-  const draft = Symbol("~hashql/Draft");
-  const counts = new Map<string, number>();
-
-  return (universe, ident) => {
-    const name = JExpr.Ident.compile(ident);
-    const generation = counts.get(name) ?? 0;
-    counts.set(name, generation + 1);
-
-    return { draft, universe, ident, generation };
-  };
-};
-
-/** A newtype's binding and the ids of its type and its constructor. */
+/** A newtype's binding and the id of its constructor. */
 interface NominalBinding {
-  readonly bound: AST.Binding<AST.TypeSyntax>;
-  readonly ids: {
-    readonly type: AST.ReferenceId;
-    readonly value: AST.ReferenceId;
-  };
+  readonly binding: AST.Binding.Type;
+  readonly valueReference: Referential.ReferenceId<"value">;
 }
 
-/** Refers to a type declaration by its bare name, keeping the binding the name came from. */
-const reference = (
-  name: JExpr.Ident.Ident,
-  id: AST.ReferenceId,
-): AST.TypeSyntax => ({
-  syntax: {
-    _tag: "Reference",
-    path: JExpr.Path.make({
-      rooted: false,
-      segments: [{ name, arguments: [] }],
-    }),
-  },
-  references: [id],
-});
+/** The one-segment path that spells a binding's name. */
+const bare = (name: JExpr.Ident.Ident): JExpr.Path.Path =>
+  JExpr.Path.make({ rooted: false, segments: [{ name, arguments: [] }] });
 
 /** Adds structural argument normalization without losing the nominal identity on relocation. */
 const nominalValue = <N extends string, T extends Type.Any>(
@@ -108,17 +77,22 @@ const nominalValue = <N extends string, T extends Type.Any>(
   );
 
 const nominal = <N extends string, T extends Type.Any>(
-  binding: Result.Result<NominalBinding, ProgramError.Construction>,
+  nominalBinding: Result.Result<NominalBinding, ProgramError.Construction>,
 ): Context.Nominal<N, T> => {
   const type = pipe(
-    binding,
-    Result.map(({ bound, ids }) => reference(bound.name, ids.type)),
-    StructuralSyntax.typeHandle<Type.Opaque<N, T>>,
+    nominalBinding,
+    Result.map(
+      ({ binding }) => new TAST.Reference(bare(binding.name), [], binding.id),
+    ),
+    TypeExpression.fromNode<Type.Opaque<N, T>>,
   );
 
   const value = pipe(
-    binding,
-    Result.map(({ ids }) => new AST.Reference(ids.value)),
+    nominalBinding,
+    Result.map(
+      ({ binding, valueReference }) =>
+        new AST.Path(bare(binding.name), valueReference),
+    ),
     Expression.fromResult<
       Type.Function<readonly [T], Type.Opaque<N, T>>,
       Inputs.Empty
@@ -139,7 +113,7 @@ const ConstructionFailure = Data.TaggedError("DraftConstructionFailure")<{
 
 class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   readonly #scope: S & Namespace.Rebindable<S>;
-  readonly #next: Generations;
+  readonly #next: Referential.ReferenceProducer;
   readonly #prelude: Namespace.Flatten<S>;
   readonly #modules: Namespace.Modules<S>;
   readonly #wrappers: Result.Result<Wrap, ProgramError.Construction>[] = [];
@@ -157,7 +131,10 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   readonly isFalse = Operators.isFalse;
   readonly isNone = Operators.isNone;
 
-  constructor(scope: S & Namespace.Rebindable<S>, next: Generations) {
+  constructor(
+    scope: S & Namespace.Rebindable<S>,
+    next: Referential.ReferenceProducer,
+  ) {
     this.#scope = scope;
     this.#next = next;
     this.#prelude = Namespace.flatten<S>(scope);
@@ -223,23 +200,23 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     Expression.Value.Inputs<E>
   > {
     const binding = pipe(
-      Expression.toNode(value),
-      Result.flatMap((node) => AST.make(name, node)),
-      Result.map((bound) => ({ bound, id: this.#next("value", bound.name) })),
+      { name: AST.decodeName(name), node: Expression.toNode(value) },
+      Result.all,
+      Result.map(({ name, node }) => AST.make(this.#next("value", name), node)),
     );
 
     this.#wrappers.push(
       Result.map(
         binding,
-        ({ bound, id }): Wrap =>
+        (binding): Wrap =>
           (child) =>
-            new AST.Let(bound, id, child),
+            new AST.Let(binding, child),
       ),
     );
 
     return pipe(
       binding,
-      Result.map(({ id }) => new AST.Reference(id)),
+      Result.map(({ id, name }) => new AST.Path(bare(name), id)),
       Expression.fromResult<
         Expression.Value.Type<E>,
         Expression.Value.Inputs<E>
@@ -252,25 +229,27 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     definition: D,
   ): TypeExpression.TypeExpression<Structural.Definition.Type<D>> {
     const binding = pipe(
-      definition,
-      StructuralSyntax.typeSyntax,
-      Result.flatMap((syntax) => AST.make(name, syntax)),
-      Result.map((bound) => ({ bound, id: this.#next("type", bound.name) })),
+      {
+        name: AST.decodeName(name),
+        type: StructuralSyntax.typeNode(definition),
+      },
+      Result.all,
+      Result.map(({ name, type }) => AST.make(this.#next("type", name), type)),
     );
 
     this.#wrappers.push(
       Result.map(
         binding,
-        ({ bound, id }): Wrap =>
+        (binding): Wrap =>
           (child) =>
-            new AST.Type(bound, id, child),
+            new AST.Type(binding, child),
       ),
     );
 
     return pipe(
       binding,
-      Result.map(({ bound, id }) => reference(bound.name, id)),
-      StructuralSyntax.typeHandle<Structural.Definition.Type<D>>,
+      Result.map(({ id, name }) => new TAST.Reference(bare(name), [], id)),
+      TypeExpression.fromNode<Structural.Definition.Type<D>>,
     );
   }
 
@@ -279,24 +258,23 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     definition: D,
   ): Context.Nominal<N, Structural.Definition.Type<D>> {
     const binding = pipe(
-      definition,
-      StructuralSyntax.typeSyntax,
-      Result.flatMap((syntax) => AST.make(name, syntax)),
-      Result.map((bound): NominalBinding => ({
-        bound,
-        ids: {
-          type: this.#next("type", bound.name),
-          value: this.#next("value", bound.name),
-        },
+      {
+        name: AST.decodeName(name),
+        type: StructuralSyntax.typeNode(definition),
+      },
+      Result.all,
+      Result.map(({ name, type }): NominalBinding => ({
+        binding: AST.make(this.#next("type", name), type),
+        valueReference: this.#next("value", name),
       })),
     );
 
     this.#wrappers.push(
       Result.map(
         binding,
-        ({ bound, ids }): Wrap =>
+        ({ binding, valueReference }): Wrap =>
           (child) =>
-            new AST.Newtype(bound, ids, child),
+            new AST.Newtype(binding, valueReference, child),
       ),
     );
 
@@ -353,7 +331,7 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
 
   build(
     body: ($: Context.Context<S>) => Expression.Value.Any,
-  ): Result.Result<AST.Node, ProgramError.Construction> {
+  ): Result.Result<AST.Node.Any, ProgramError.Construction> {
     try {
       const expression = body(this);
       if (
@@ -409,7 +387,10 @@ export const evaluate = <
   ProgramError.Construction
 > =>
   pipe(
-    new ContextImpl<S>(scope, generations()).build(($) => {
+    new ContextImpl<S>(
+      scope,
+      Referential.referenceProducer(Symbol("~hashql/Draft")),
+    ).build(($) => {
       const expression = body($);
       if (Expression.isExpression(expression)) {
         return expression;

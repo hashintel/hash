@@ -1,8 +1,14 @@
-import { Pipeable } from "effect";
+import { fold } from "../../internal/fold.js";
 
-import * as Referential from "../../internal/referential.js";
-import * as JExpr from "../../JExpr/index.js";
+import type * as Referential from "../../internal/referential.js";
+import type * as JExpr from "../../JExpr/index.js";
+import type { Pipeable } from "effect";
 
+/**
+ * A builder node that emits J-Expr type syntax.
+ *
+ * A type node describes one level of a type: its child nodes, and how their syntax combines into its own. It keeps the ids of the bindings its own syntax names under {@link Referential.References}, as an expression node does. {@link compile} walks the levels through an explicit stack. Implement {@link TypeNode.Of}, which ties the syntax `toType` takes to `children`.
+ */
 export interface TypeNode<Type extends JExpr.Type.Type>
   extends Pipeable.Pipeable, Referential.Referential {
   readonly _tag: Type["_tag"];
@@ -12,12 +18,16 @@ export interface TypeNode<Type extends JExpr.Type.Type>
   readonly toType: (syntax: never) => Type;
 }
 
+/** The key under which a type expression keeps its type node. No public module exports it, so only the SDK reads the tree. */
+export const Node: unique symbol = Symbol("~hashql/TypeNode");
+
 export declare namespace TypeNode {
   export type Type<T> = T extends TypeNode<infer Type> ? Type : never;
   type TypeOf<T> = Type<T>;
 
   export interface Any extends TypeNode<JExpr.Type.Type> {}
 
+  /** A type node whose `toType` takes one syntax per child, in the order of `children`. */
   export interface Of<
     Type extends JExpr.Type.Type,
     Children extends readonly Any[],
@@ -30,82 +40,16 @@ export declare namespace TypeNode {
   }
 }
 
-class UnionNode implements TypeNode.Of<
-  JExpr.Type.Union.Union,
-  readonly [TypeNode.Any, ...TypeNode.Any[]]
-> {
-  readonly _tag = "Union" as const;
-  readonly children: readonly [TypeNode.Any, ...TypeNode.Any[]];
-  readonly [Referential.References]: readonly Referential.ReferenceId[];
-
-  constructor(members: readonly [TypeNode.Any, ...TypeNode.Any[]]) {
-    this.children = members;
-    this[Referential.References] = [];
-  }
-
-  toType(
-    members: readonly [JExpr.Type.Type, ...JExpr.Type.Type[]],
-  ): JExpr.Type.Union.Union {
-    return JExpr.Type.Union.make({ members });
-  }
-}
-
-class IntersectionNode implements TypeNode.Of<
-  JExpr.Type.Intersection.Intersection,
-  readonly [TypeNode.Any, ...TypeNode.Any[]]
-> {
-  readonly _tag = "Intersection" as const;
-  readonly children: readonly [TypeNode.Any, ...TypeNode.Any[]];
-  readonly [Referential.References]: readonly Referential.ReferenceId[];
-
-  constructor(members: readonly [TypeNode.Any, ...TypeNode.Any[]]) {
-    this.children = members;
-    this[Referential.References] = [];
-  }
-
-  toType(
-    members: readonly [JExpr.Type.Type, ...JExpr.Type.Type[]],
-  ): JExpr.Type.Intersection.Intersection {
-    return JExpr.Type.Intersection.make({ members });
-  }
-}
-
-class StructNode implements TypeNode.Of<
-  JExpr.Type.Struct.Struct,
-  readonly TypeNode.Any[]
-> {
-  readonly _tag = "Struct" as const;
-  readonly fields: readonly JExpr.Ident.Ident[];
-  readonly children: readonly TypeNode.Any[];
-  readonly [Referential.References]: readonly Referential.ReferenceId[];
-}
-
-class TupleNode implements TypeNode.Of<
-  JExpr.Type.Tuple.Tuple,
-  readonly TypeNode.Any[]
-> {
-  readonly _tag = "Tuple" as const;
-  readonly children: readonly TypeNode.Any[];
-  readonly [Referential.References]: readonly Referential.ReferenceId[];
-}
-
-class ReferenceNode
-  extends Pipeable.Class
-  implements TypeNode.Of<JExpr.Type.Reference.Reference, readonly []>
-{
-  readonly _tag = "Reference" as const;
-  readonly path: JExpr.Path.Path;
-  readonly children: readonly [] = [];
-  readonly [Referential.References]: readonly Referential.ReferenceId[];
-
-  constructor(reference: Referential.ReferenceId, path: JExpr.Path.Path) {
-    super();
-
-    this[Referential.References] = [reference];
-    this.path = path;
-  }
-
-  toType(): JExpr.Type.Reference.Reference {
-    return JExpr.Type.Reference.make({ path: this.path });
-  }
-}
+/**
+ * Returns a type node's syntax.
+ *
+ * A node waiting for the syntax of its children waits on an array instead of the call stack, so memory rather than the stack limits how deep the type can nest.
+ */
+export const compile = (node: TypeNode.Any): JExpr.Type.Type =>
+  fold(
+    node,
+    (node) => node.children,
+    // SAFETY: `fold` passes one syntax per child, in the order of `children`, which is the tuple `TypeNode.Of` gives `toType`.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the fold fills the syntax one child at a time, so TypeScript cannot see that its length matches `children`
+    (node, syntax: readonly JExpr.Type.Type[]) => node.toType(syntax as never),
+  );

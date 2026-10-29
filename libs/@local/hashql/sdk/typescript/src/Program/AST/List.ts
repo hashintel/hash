@@ -34,6 +34,7 @@ export class List
     return this.members;
   }
 
+  // oxlint-disable-next-line eslint/class-methods-use-this -- `Node.Of` requires the method, and a list needs only its annotation's and members' syntax
   toExpr(
     [type]: readonly [JExpr.Type.Type?],
     members: readonly JExpr.Expression[],

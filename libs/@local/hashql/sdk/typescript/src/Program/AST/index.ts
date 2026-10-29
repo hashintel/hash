@@ -10,6 +10,7 @@ export * from "./Let.js";
 export * from "./List.js";
 export * from "./Newtype.js";
 export * from "./Node.js";
+export * from "./Path.js";
 export * from "./Reference.js";
 export * from "./Struct.js";
 export * from "./Subscript.js";

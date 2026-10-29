@@ -24,7 +24,7 @@ import { Relocate } from "../internal/relocation.js";
 import * as JExpr from "../JExpr/index.js";
 import * as AST from "./AST/index.js";
 import * as ProgramError from "./ProgramError.js";
-import * as TypeExpression from "./TypeExpression.js";
+import * as TAST from "./TAST/index.js";
 
 import type { Relocatable } from "../internal/relocation.js";
 import type * as Type from "../Type.js";
@@ -35,6 +35,7 @@ import type {
   Conditional,
 } from "./ExpressionType.js";
 import type * as Input from "./Inputs.js";
+import type * as TypeExpression from "./TypeExpression.js";
 import type { Types } from "effect";
 
 export type { Conditional } from "./ExpressionType.js";
@@ -112,9 +113,9 @@ export declare namespace Value {
 class ExpressionImpl<T extends Type.Any, Inputs> {
   readonly [TypeId]: Variance<T, Inputs>;
 
-  readonly #expr: Result.Result<AST.Node, ProgramError.Construction>;
+  readonly #expr: Result.Result<AST.Node.Any, ProgramError.Construction>;
 
-  constructor(expr: Result.Result<AST.Node, ProgramError.Construction>) {
+  constructor(expr: Result.Result<AST.Node.Any, ProgramError.Construction>) {
     this.#expr = expr;
     this[TypeId] = {
       _T: identity,
@@ -123,7 +124,7 @@ class ExpressionImpl<T extends Type.Any, Inputs> {
     };
   }
 
-  get [Binding](): Result.Result<AST.Node, ProgramError.Construction> {
+  get [Binding](): Result.Result<AST.Node.Any, ProgramError.Construction> {
     return this.#expr;
   }
 }
@@ -167,7 +168,7 @@ export declare namespace Expression {
 
   /** An expression with its semantic type erased, for syntax-only operations. */
   export interface Any extends Relocatable<Any>, Pipeable.Pipeable {
-    readonly [Binding]: Result.Result<AST.Node, ProgramError.Construction>;
+    readonly [Binding]: Result.Result<AST.Node.Any, ProgramError.Construction>;
   }
 
   /** Semantic metadata and stored construction result shared by expressions and adapted callables. */
@@ -201,7 +202,7 @@ const jexprParser = SchemaParser.decodeResult(Schema.toType(JExpr.Schema));
 
 const parseNode = (
   expression: JExpr.Expression,
-): Result.Result<AST.Node, ProgramError.Construction> =>
+): Result.Result<AST.Node.Any, ProgramError.Construction> =>
   Result.mapBoth(jexprParser(expression), {
     onSuccess: (syntax) => new AST.Expr(syntax),
     onFailure: (cause) => ProgramError.Construction.invalidExpression(cause),
@@ -214,7 +215,7 @@ const parseNode = (
  */
 export const toNode = (
   value: Value.Any,
-): Result.Result<AST.Node, ProgramError.Construction> => {
+): Result.Result<AST.Node.Any, ProgramError.Construction> => {
   if (isExpression(value)) {
     if (Predicate.hasProperty(value, Binding)) {
       return value[Binding];
@@ -261,9 +262,9 @@ const projectionKey = (
 };
 
 const access = (
-  value: Result.Result<AST.Node, ProgramError.Construction>,
+  value: Result.Result<AST.Node.Any, ProgramError.Construction>,
   key: string | number,
-): Result.Result<AST.Node, ProgramError.Construction> =>
+): Result.Result<AST.Node.Any, ProgramError.Construction> =>
   pipe(
     { value, key: projectionKey(key) },
     Result.all,
@@ -370,7 +371,7 @@ const make = <T extends Type.Any, Inputs>(
  * This low-level builder operation trusts the caller to establish `T`, `Inputs` and the node's validity. Use {@link fromJExpr} when syntax needs validation.
  */
 export const fromResult = <T extends Type.Any, Inputs>(
-  node: Result.Result<AST.Node, ProgramError.Construction>,
+  node: Result.Result<AST.Node.Any, ProgramError.Construction>,
 ): Expression<T, Inputs> => make(new ExpressionImpl<T, Inputs>(node));
 
 /**
@@ -384,7 +385,7 @@ export const fromJExpr = <T extends Type.Any, Inputs>(
 
 /** Wraps an already constructed AST node without validation, using caller-supplied semantic metadata as in {@link fromResult}. */
 export const fromNode = <T extends Type.Any, Inputs>(
-  node: AST.Node,
+  node: AST.Node.Any,
 ): Expression<T, Inputs> => pipe(node, Result.succeed, fromResult<T, Inputs>);
 
 /**
@@ -590,14 +591,14 @@ export function input<T extends Type.Any>(
   defaultValue?: Value.Any,
 ): Expression<T, never> {
   return Result.gen(function* () {
-    const syntax = yield* TypeExpression.toType(type);
-    const typeSyntax = { syntax, references: AST.referencesOf(type) };
+    const ident = yield* AST.decodeInputName(name);
+    const node = yield* type[TAST.Node];
     if (defaultValue === undefined) {
-      return yield* AST.validate(new AST.Input(name, typeSyntax, undefined));
+      return yield* AST.validate(new AST.Input(ident, node, undefined));
     }
 
     const value = yield* toNode(defaultValue);
-    return yield* AST.validate(new AST.Input(name, typeSyntax, value));
+    return yield* AST.validate(new AST.Input(ident, node, value));
   }).pipe(fromResult<T, never>);
 }
 

@@ -1,5 +1,6 @@
 import { Pipeable } from "effect";
 
+import * as Referential from "../../internal/referential.js";
 import * as JExpr from "../../JExpr/index.js";
 
 import type { Node } from "./Node.js";
@@ -8,11 +9,18 @@ import type { Node } from "./Node.js";
 export class Subscript
   extends Pipeable.Class
   implements
-    Node.Of<"Subscript", JExpr.Call.Call, readonly [Node.Any, Node.Any]>
+    Node.Of<
+      "Subscript",
+      JExpr.Call.Call,
+      readonly [],
+      readonly [Node.Any, Node.Any]
+    >
 {
   readonly _tag = "Subscript" as const;
   readonly value: Node.Any;
   readonly position: Node.Any;
+  readonly types: readonly [] = [];
+  readonly [Referential.References]: readonly Referential.ReferenceId[] = [];
 
   constructor(value: Node.Any, position: Node.Any) {
     super();
@@ -26,10 +34,10 @@ export class Subscript
   }
 
   // oxlint-disable-next-line eslint/class-methods-use-this -- `Node.Of` requires the method, and a lookup needs only its children's syntax
-  toExpr([value, position]: readonly [
-    JExpr.Expression,
-    JExpr.Expression,
-  ]): JExpr.Call.Call {
+  toExpr(
+    _types: readonly [],
+    [value, position]: readonly [JExpr.Expression, JExpr.Expression],
+  ): JExpr.Call.Call {
     return JExpr.index(value, position);
   }
 }
