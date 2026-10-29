@@ -5,23 +5,49 @@
  *
  * @module
  */
+
 import { dual } from "effect/Function";
 
 import type * as JExpr from "../JExpr/index.js";
 import type * as ProgramError from "../Program/ProgramError.js";
+import type * as Referential from "./referential.js";
 import type { Result } from "effect";
 
 /** The key of the rebinding function a producer attaches to each of its handles. */
 export const Relocate: unique symbol = Symbol("~hashql/Relocate");
 
+/** The ids of the bindings one name has, one per universe, such as an import's local name. */
+export type Bound = {
+  readonly [U in Referential.Universe]?: Referential.ReferenceId<U>;
+};
+
+/**
+ * Returns the id a handle at `path` keeps: the binding its first segment resolves to.
+ *
+ * A one-segment path is the handle's own name, so it resolves in the handle's universe. A longer path resolves its first segment among modules.
+ */
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- reads the id a path's first segment names
+export const head = (
+  path: JExpr.Path.Path,
+  universe: Referential.Universe,
+  bound: Bound | undefined,
+): Referential.ReferenceId | undefined => {
+  if (path.segments.length > 1) {
+    return bound?.module;
+  }
+
+  return bound?.[universe];
+};
+
 /**
  * A handle that can be rebound to another HashQL path.
  *
- * Rebinding returns a handle of type `E` that emits the new path, or a construction failure.
+ * Rebinding returns a handle of type `E` that emits the new path, or a construction failure. An import also passes the ids of its local name's bindings. The handle keeps the one its path resolves through, so `AST.resolveReferences` can check that the name still means that binding wherever the program uses the handle.
  */
 export interface Relocatable<E> {
   readonly [Relocate]: (
     path: JExpr.Path.Path,
+    bound?: Bound,
   ) => Result.Result<E, ProgramError.Construction>;
 }
 

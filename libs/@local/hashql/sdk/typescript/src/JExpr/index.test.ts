@@ -54,6 +54,16 @@ describe("compile", () => {
       "::kernel::special_form::fn",
     );
   });
+
+  test("annotated_let", () => {
+    expect.hasAssertions();
+    const integer = Option.getOrThrow(JExpr.Type.reference("Integer"));
+    expect(
+      JExpr.compile(
+        JExpr.let({ name: "x", type: integer }, JExpr.literal(1), "x"),
+      ),
+    ).toBe('["::kernel::special_form::let","x","Integer",{"#literal":1},"x"]');
+  });
 });
 
 describe("make", () => {

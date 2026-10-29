@@ -242,6 +242,29 @@ describe("structural_value_types", () => {
     Structural.tuple(optional);
   });
 
+  test("annotations", () => {
+    const count = Structural.input("count", BigInt);
+    const row = Structural.struct({ count, label: "x" }, { count: Number });
+    expectTypeOf<Expression.Value.Type<typeof row>>().toEqualTypeOf<
+      Type.Struct<{ readonly count: Type.PrimitiveNumber }>
+    >();
+    expectTypeOf<Expression.Value.Inputs<typeof row>>().toEqualTypeOf<{
+      readonly count: Type.PrimitiveInteger;
+    }>();
+    const pair = Structural.tuple([1n, "x"], [Number, String]);
+    expectTypeOf<Expression.Value.Type<typeof pair>>().toEqualTypeOf<
+      Type.Tuple<readonly [Type.PrimitiveNumber, Type.PrimitiveString]>
+    >();
+    const unannotated = Structural.struct({ count: 1n });
+    expectTypeOf<Expression.Value.Type<typeof unannotated>>().toEqualTypeOf<
+      Type.Struct<{ readonly count: Type.PrimitiveInteger }>
+    >();
+    // @ts-expect-error An annotation that may be absent cannot decide the struct's type.
+    Structural.struct({ count: 1n }, possiblyAbsent(String));
+    // @ts-expect-error An annotation that may be absent cannot decide the tuple's type.
+    Structural.tuple([1n], possiblyAbsent(String));
+  });
+
   test("list_elements", () => {
     const count = Structural.input("count", BigInt);
     const rows = Structural.list({ count: BigInt }, [{ count }, { count: 0n }]);
