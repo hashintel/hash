@@ -1,5 +1,5 @@
 /**
- * Record key constraints shared by export tables and input schemas.
+ * Record key constraints shared by export tables and input schemas, and the constructor of an export table.
  *
  * @internal
  */
@@ -12,3 +12,13 @@
 export type StringKeyed<E> = {
   readonly [K in keyof E]: K extends symbol ? never : E[K];
 };
+
+/**
+ * Creates an empty export table without a prototype.
+ *
+ * A name the table lacks reads as `undefined`, as the type of an optional entry says, and a name such as `toString` or `__proto__` is an ordinary entry.
+ */
+export const emptyTable = <E>(): Partial<E> =>
+  // SAFETY: an object without a prototype has no properties, which every `Partial<E>` allows.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.create returns any
+  Object.create(null) as Partial<E>;

@@ -3,7 +3,7 @@
  *
  * A module record describes exports that the HashQL environment provides under one path. Defining it emits no syntax and creates nothing in HashQL. Its declarations emit references beneath that path for the HashQL compiler to resolve.
  *
- * Modules keep type and value exports separate because a type and its constructor can share a name. An existing export is an alias, a claim that HashQL also exports the item under this module's path. It keeps the reference it already emits until {@link relocate} moves the module. Declarations supply trusted type information. The HashQL compiler checks the emitted query.
+ * Modules keep type and value exports separate because a type and its constructor can share a name. Each export table has no prototype, so a name the module does not export reads as `undefined`, even a name such as `toString`. An existing export is an alias, a claim that HashQL also exports the item under this module's path. It keeps the reference it already emits until {@link relocate} moves the module. Declarations supply trusted type information. The HashQL compiler checks the emitted query.
  *
  * Expected construction failures, such as an invalid path or export name, arrive in a `Result`.
  *
@@ -11,6 +11,7 @@
  */
 import { Equal, Hash, Pipeable, Predicate, Record, Result, pipe } from "effect";
 
+import { emptyTable } from "../internal/record.js";
 import {
   Relocate,
   relocate as relocateHandle,
@@ -176,7 +177,7 @@ const mapEntries = <
     );
 
   return Result.gen(function* () {
-    const exports: Partial<E> = {};
+    const exports = emptyTable<E>();
 
     for (const name of Record.keys(entries)) {
       const bound = yield* member(name);
@@ -204,7 +205,7 @@ const bind = <
   entries: Declarations<E> | undefined,
 ): Result.Result<Readonly<E> | Empty, ProgramError.Construction> => {
   if (entries === undefined) {
-    return Result.succeed(Object.freeze({}));
+    return Result.succeed(Object.freeze(emptyTable<Empty>()));
   }
 
   const resolve = <K extends keyof E & string>(
@@ -392,7 +393,7 @@ export function define<
       );
     }
 
-    let modules: Readonly<M> | Empty = Object.freeze({});
+    let modules: Readonly<M> | Empty = Object.freeze(emptyTable<Empty>());
     if (definition.modules !== undefined) {
       modules = yield* copyModules(definition.modules);
     }

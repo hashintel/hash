@@ -102,7 +102,7 @@ describe("module_exports", () => {
       }),
     );
     expect(Object.hasOwn(exports.types, name)).toBe(true);
-    expect(Object.getPrototypeOf(exports.types)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(exports.types)).toBeNull();
     expect(
       TypeSyntax.compile(Result.getOrThrow(exports.types[name].syntax)),
     ).toBe("::exports::__proto__");
@@ -152,9 +152,21 @@ describe("module_exports", () => {
         >;
       };
     } = {};
-    expect(
-      Result.getOrThrow(Module.define("::exports", definition)).types,
-    ).toStrictEqual({});
+    expect({
+      ...Result.getOrThrow(Module.define("::exports", definition)).types,
+    }).toStrictEqual({});
+  });
+
+  test("inherited_names", () => {
+    expect.hasAssertions();
+    const exports = Result.getOrThrow(
+      Module.define("::exports", {
+        types: { Integer: Module.type<Type.PrimitiveInteger>() },
+      }),
+    );
+    expect("toString" in exports.types).toBe(false);
+    expect("toString" in exports.values).toBe(false);
+    expect("toString" in exports.modules).toBe(false);
   });
 
   test("qualified_call", () => {
@@ -174,7 +186,7 @@ describe("module_exports", () => {
       }),
     );
     expect(aliases.values.remainder).toBe(math.values.rem);
-    expect(aliases.modules).toStrictEqual({ arithmetic: math });
+    expect({ ...aliases.modules }).toStrictEqual({ arithmetic: math });
     expect(aliases.types.Whole).toBe(kernelTypes.types.Integer);
     expect(aliases.types.Sequence).toBe(kernelTypes.types.List);
     expect(
