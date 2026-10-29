@@ -3,7 +3,7 @@
  *
  * Missing namespace tables introduce no names. Optional tables contribute optional names instead of an arbitrary string index. Merging retains an earlier export when its replacement is absent or holds `undefined`, so an optional table never removes a name.
  *
- * Tables are ordinary export records. Merging copies their enumerable own string-keyed properties before freezing the copies, leaving the caller's records unchanged.
+ * Tables are ordinary export records. Merging copies their enumerable own string-keyed properties into tables without a prototype and freezes the copies, leaving the caller's records unchanged. A name a scope lacks therefore reads as `undefined`, even a name such as `toString`.
  *
  * A scope holds the names available during construction.
  *
@@ -18,6 +18,8 @@ import {
   Record,
   identity,
 } from "effect";
+
+import { emptyTable } from "../internal/record.js";
 
 import type { StringKeyed } from "../internal/record.js";
 import type * as Expression from "./Expression.js";
@@ -232,13 +234,16 @@ const union = <B extends Universe<Entry>, A extends Universe<Entry>>(
   before: B,
   added: A,
 ): B & A => {
-  const copy = Record.fromEntries([
-    ...Record.toEntries(before),
-    ...Array.filter(
-      Record.toEntries(added),
-      ([, entry]) => entry !== undefined,
-    ),
-  ]);
+  const copy = Object.assign(
+    emptyTable<B & A>(),
+    Record.fromEntries([
+      ...Record.toEntries(before),
+      ...Array.filter(
+        Record.toEntries(added),
+        ([, entry]) => entry !== undefined,
+      ),
+    ]),
+  );
 
   // SAFETY: the copy holds the string-keyed entries of both tables, an added name replacing an earlier one unless it holds `undefined`. `merge` gives each name the type `Scope.Merge` models.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Record.fromEntries widens the copied table to a string index
@@ -278,7 +283,7 @@ export const merge: {
 
 /** An immutable scope with no exported names. */
 export const empty: Scope.Empty = new ScopeImpl({
-  modules: {},
-  values: {},
-  types: {},
+  modules: emptyTable(),
+  values: emptyTable(),
+  types: emptyTable(),
 });

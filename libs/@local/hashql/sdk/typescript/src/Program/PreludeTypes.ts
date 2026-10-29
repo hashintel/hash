@@ -6,7 +6,6 @@
  * @module
  */
 import type * as Type from "../Type.js";
-import type * as ExpressionType from "./ExpressionType.js";
 
 /** The UUID type, an opaque string named by its HashQL path. */
 export type Uuid = Type.Opaque<"::core::uuid::Uuid", Type.PrimitiveString>;
@@ -52,13 +51,18 @@ export interface Comparison extends Type.FunctionSignature {
 /**
  * The signature of the built-in `add`.
  *
- * Each operand must be an Integer or a Number. The result is Integer when both operands are Integer, Number when both are Number, and the union of Integer and Number for one of each. Other operands select parameters that no argument satisfies, with a Never result.
+ * Each operand must be an Integer or a Number. The result is Integer when both operands are Integer and Number otherwise, because Integer is a subtype of Number. Other operands select parameters that no argument satisfies, with a Never result.
  */
 export interface Arithmetic extends Type.FunctionSignature {
   readonly type: this["Target"] extends readonly [
     infer L extends Type.PrimitiveInteger | Type.PrimitiveNumber,
     infer R extends Type.PrimitiveInteger | Type.PrimitiveNumber,
   ]
-    ? Type.Function<readonly [L, R], ExpressionType.Conditional<L, R>>
+    ? Type.Function<
+        readonly [L, R],
+        [L, R] extends [Type.PrimitiveInteger, Type.PrimitiveInteger]
+          ? Type.PrimitiveInteger
+          : Type.PrimitiveNumber
+      >
     : Type.Function<readonly [Type.Never, Type.Never], Type.Never>;
 }
