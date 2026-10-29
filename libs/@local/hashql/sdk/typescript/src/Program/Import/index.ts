@@ -16,6 +16,7 @@ import {
 } from "effect";
 
 import { isReadonlyArray } from "../../internal/array.js";
+import { emptyTable } from "../../internal/record.js";
 import { relocate } from "../../internal/relocation.js";
 import * as JExpr from "../../JExpr/index.js";
 import * as AST from "../AST/index.js";
@@ -206,7 +207,7 @@ const select = <E extends Record.ReadonlyRecord<string, Capability>, I>(
   names: Plan["names"],
 ): Result.Result<Bindings.Selected<E, I>, ProgramError.Construction> =>
   Result.gen(function* () {
-    const selected: Partial<Bindings.Selected<E, I>> = {};
+    const selected = emptyTable<Bindings.Selected<E, I>>();
     const sources: Rebindings<E> = entries;
     // oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- K retains the original producer result E[K] before the alias changes its key
     const member = <K extends keyof E & string>(
@@ -291,7 +292,7 @@ class ImportImpl<M extends Module.Module.Any, I> implements Declaration<M, I> {
  *
  * The import emits a `use` of the module's path. HashQL must therefore provide every selected export under that path, aliases included. A `"*"` selection also binds the exports the record does not declare, as {@link Selection} describes.
  *
- * Records must expose their declared entries as enumerable own string-keyed properties. Symbol keys and non-enumerable and inherited entries select nothing. Returns a construction failure for invalid aliases, or propagates a producer's relocation failure. Omitted alias entries select nothing. A present entry must contain a valid identifier or the `"_"` sentinel, not `undefined`. It freezes the returned tables. The HashQL compiler resolves the emitted import.
+ * Records must expose their declared entries as enumerable own string-keyed properties. Symbol keys and non-enumerable and inherited entries select nothing. Returns a construction failure for invalid aliases, or propagates a producer's relocation failure. Omitted alias entries select nothing. A present entry must contain a valid identifier or the `"_"` sentinel, not `undefined`. It returns frozen tables without a prototype, so a name the import does not bind reads as `undefined`. The HashQL compiler resolves the emitted import.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the module and selection construct a declaration
 export const bind = <

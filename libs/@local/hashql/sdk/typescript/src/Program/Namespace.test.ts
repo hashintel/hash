@@ -23,6 +23,16 @@ interface List extends Type.TypeConstructor {
     : Type.Never;
 }
 
+interface Pair extends Type.TypeConstructor {
+  readonly arity: 2;
+  readonly type: this["Target"] extends readonly [
+    infer L extends Type.Any,
+    infer R extends Type.Any,
+  ]
+    ? Type.Tuple<readonly [L, R]>
+    : Type.Never;
+}
+
 const path = flow(JExpr.Path.decodeResult, Result.getOrThrow);
 const valueSyntax = flow(Expression.toJExpr, Result.getOrThrow);
 const typeSyntax = flow(
@@ -73,6 +83,68 @@ describe("namespace", () => {
       "::source::Both",
       { "#literal": { _tag: "Integer", value: "1" } },
     ]);
+  });
+
+  test("adapted_signatures", () => {
+    expect.hasAssertions();
+    const list = Result.getOrThrow(
+      TypeExpression.constructor<List>(path("::source::List"), 1),
+    );
+    const fromSyntax = TypeExpression.adaptConstructor(
+      list,
+      (self) =>
+        (
+          syntax: JExpr.Type.Type,
+        ): TypeExpression.TypeExpression<Type.List<Type.PrimitiveInteger>> =>
+          self(TypeExpression.fromType<Type.PrimitiveInteger>(syntax)),
+    );
+    const deferred = Expression.adaptCallable(
+      source.values.Both,
+      (self) =>
+        (count: () => bigint): Expression.Expression.Any =>
+          self(count()),
+    );
+    const typeOnly = Namespace.combine(child, fromSyntax);
+    const valueOnly = Namespace.combine(
+      Result.getOrThrow(Structural.type(BigInt)),
+      deferred,
+    );
+    const integer = Result.getOrThrow(
+      TypeExpression.toType(Result.getOrThrow(Structural.type(BigInt))),
+    );
+    expect(typeSyntax(typeOnly(integer))).toBe(
+      "::source::List<::kernel::type::Integer>",
+    );
+    expect(valueSyntax(valueOnly(() => 1n))).toStrictEqual(
+      valueSyntax(deferred(() => 1n)),
+    );
+  });
+
+  test("joined_arity", () => {
+    expect.hasAssertions();
+    const nullary = Result.getOrThrow(
+      Module.define("::nullary", {
+        types: {
+          Pair: Module.genericType<Pair>(2),
+          Unit: Module.genericType<Type.TypeConstructor>(0),
+        },
+        values: {
+          Pair: Module.value<
+            Type.Function<readonly [], Type.PrimitiveString>
+          >(),
+          Unit: Module.value<
+            Type.Function<readonly [], Type.PrimitiveString>
+          >(),
+        },
+      }),
+    );
+    const flat = Namespace.flatten(nullary);
+    const pair = flat.Pair();
+    expect(pair).not.toSatisfy(TypeExpression.isExport);
+    expect(valueSyntax(pair)).toStrictEqual(["::nullary::Pair"]);
+    const unit = flat.Unit();
+    expect(unit).toSatisfy(TypeExpression.isExport);
+    expect(unit).toSatisfy(Expression.isExpression);
   });
 
   test("joined_relocation", () => {
@@ -225,6 +297,12 @@ describe("namespace", () => {
     expect(typeOnly.toString).not.toSatisfy(Expression.isExpression);
   });
 
+  test("absent_names", () => {
+    expect.hasAssertions();
+    const flat = Namespace.flatten({ modules: {}, types: {}, values: {} });
+    expect("toString" in flat).toBe(false);
+  });
+
   test("optional_absence", () => {
     expect.hasAssertions();
     const modules: { readonly child?: typeof child } = {};
@@ -272,6 +350,20 @@ describe("namespace", () => {
     expect(valueSyntax(moved.modules.nested.values.count)).toBe(
       "local::nested::count",
     );
+  });
+
+  test("module_view_inherited_members", () => {
+    expect.hasAssertions();
+    const tree = Result.getOrThrow(
+      Module.define("::tree", { modules: { nested: child } }),
+    );
+    const view = Namespace.modules({
+      modules: { tree },
+      types: {},
+      values: {},
+    }).tree;
+    // oxlint-disable-next-line typescript/no-base-to-string -- the default conversion is the behavior under test
+    expect(() => String(view)).not.toThrow();
   });
 
   test("join_order", () => {

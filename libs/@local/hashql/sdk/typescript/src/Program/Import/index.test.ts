@@ -1,4 +1,4 @@
-import { Equal, Hash, Record, Result, pipe } from "effect";
+import { Equal, Function, Hash, Record, Result, pipe } from "effect";
 import { describe, expect, test } from "vitest";
 
 import { Relocate, relocate } from "../../internal/relocation.js";
@@ -306,6 +306,13 @@ const capabilities = Result.getOrThrow(
 );
 
 describe("import_presence", () => {
+  test("absent_alias", () => {
+    expect.hasAssertions();
+    const alias = Function.identity<"local" | "toString">("local");
+    const imported = Result.getOrThrow(Import.bind(scalars, { count: alias }));
+    expect(imported.scope.values.toString).toBeUndefined();
+  });
+
   test("selected_names", () => {
     expect.hasAssertions();
     for (const [selection, expected] of [
