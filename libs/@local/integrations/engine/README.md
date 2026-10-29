@@ -6,8 +6,6 @@ Each run gets a `Workspace`, a DuckDB database file in which the run's queries e
 
 `Workspace::stage_table` materializes a source query with `_op` and `_key` metadata and applies row-count, non-null, and uniqueness assertions. `prepare_pipeline` runs SQL steps, branches, and checkpoints, returning entity sink tables with `_content_hash` columns. Branches start from the same input, and checkpoints and sinks retain separate copies of their rows. `prepare_link_pipeline` runs link SQL against checkpoint inputs.
 
-`coerce_value` converts scalar property values using the definition's coercions. `coerce_measure` converts an amount and selects its data type from a unit map.
-
 `derive_entity_id` derives stable entity IDs from an integration namespace, entity type and source record ID using UUID v5.
 
 `Progress` counts an operation's observed work and emits structured tracing events at most every ten seconds as work advances. Call `report` for a final observation, including short operations. Reports carry the operation name, observed count, optional expected total, and elapsed seconds in the tracing span where tracking started. `snapshot` reads the counters for other reporting backends.

@@ -16,7 +16,6 @@
 extern crate alloc;
 
 mod byte_size;
-mod coerce;
 mod entity_id;
 mod pipeline;
 mod progress;
@@ -26,7 +25,6 @@ mod workspace;
 
 pub use self::{
     byte_size::ByteSize,
-    coerce::{MeasuredValue, coerce_measure, coerce_value},
     entity_id::derive_entity_id,
     pipeline::{
         AssertionFailure, PreparationError, PreparedLink, PreparedPipeline, PreparedSink,
