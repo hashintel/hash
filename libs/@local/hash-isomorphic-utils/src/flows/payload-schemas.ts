@@ -354,7 +354,11 @@ const storedRefShape = {
   kind: z.enum(storableKinds),
 };
 
-const storedArrayObjectRefSchema = z.object({
+/**
+ * Strict, as it's also a concatenation's part and an item's array, which aren't picked by shape: storage would resolve
+ * one with a `parts` or `of` field as that shape, ignoring its storage key.
+ */
+const storedArrayObjectRefSchema = z.strictObject({
   ...storedRefShape,
   storageKey: z.string(),
   array: z.literal(true),

@@ -563,6 +563,8 @@ describe("validatePayloadValue", () => {
         [storedConcat, "parts[1].storageKey"],
         [{ ...secondArray, array: false }, "parts[1].array"],
         [null, "parts[1]"],
+        /* Storage would resolve this part as a concatenation of nothing, dropping its item. */
+        [{ ...secondArray, parts: [] }, "parts[1]"],
       ] as const) {
         expect(
           problemWith(true, { ...storedConcat, parts: [storedArray, part] }),
@@ -585,6 +587,7 @@ describe("validatePayloadValue", () => {
         [{ ...storedArray, array: false }, "of.array"],
         [storedConcat, "of.storageKey"],
         [storedItem, "of.storageKey"],
+        [{ ...storedArray, of: storedArray }, "of"],
       ] as const) {
         expect(problemWith(false, { ...storedItem, of })).toEqual({
           path,
