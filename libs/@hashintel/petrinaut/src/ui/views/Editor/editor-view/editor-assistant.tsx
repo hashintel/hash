@@ -26,13 +26,16 @@ export const useEditorAssistant = () => {
   };
 };
 
-/** The assistant panel beside the editor, around the plugin's content. */
+/**
+ * The assistant panel beside the editor. The plugin's content renders in the
+ * panel's shell and reads it with `useAssistantPanel`.
+ */
 export const EditorAssistantPanel = ({
   plugin,
   petriNetId,
   focusRequest,
 }: {
-  plugin: NonNullable<ReturnType<typeof usePluginAssistant>>;
+  plugin: ReturnType<typeof usePluginAssistant>;
   petriNetId: string | null;
   focusRequest: number;
 }) => {
@@ -42,6 +45,10 @@ export const EditorAssistantPanel = ({
     setAiAssistantCollapsed,
     setAiAssistantOpen,
   } = use(EditorContext);
+
+  if (plugin === undefined) {
+    return null;
+  }
 
   return (
     <PluginAssistantPanel

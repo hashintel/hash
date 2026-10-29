@@ -127,13 +127,7 @@ const Editor = () => {
       <output aria-label="Dock height">
         {aiAssistantDockHeight ?? "none"}
       </output>
-      {plugin && (
-        <EditorAssistantPanel
-          plugin={plugin}
-          petriNetId="net"
-          focusRequest={0}
-        />
-      )}
+      <EditorAssistantPanel plugin={plugin} petriNetId="net" focusRequest={0} />
     </>
   );
 };
