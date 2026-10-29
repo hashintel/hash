@@ -17,7 +17,7 @@ const Issue = Schema.declare(SchemaIssue.isIssue);
 export const Reason = Schema.TaggedUnion({
   /** A declaration name is not a valid HashQL identifier. */
   InvalidBindingName: { name: Schema.String, cause: Issue },
-  /** A struct type names a field that an earlier field already names, such as `+` after `` `+` ``. `name` is the later spelling. */
+  /** A struct or struct type names a field that an earlier field already names, such as `+` after `` `+` ``. `name` is the later spelling. */
   DuplicateStructField: { name: Schema.String },
   /** An imported name or alias is not a valid HashQL identifier. */
   InvalidImportName: { name: Schema.String, cause: Issue },

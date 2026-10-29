@@ -9,6 +9,7 @@ import { describe, expect, test } from "vitest";
 import * as JExpr from "../JExpr/index.js";
 import * as TypeSyntax from "../JExpr/Type/index.js";
 import * as Expression from "./Expression.js";
+import * as ProgramError from "./ProgramError.js";
 import * as Structural from "./Structural.js";
 import * as TypeExpression from "./TypeExpression.js";
 
@@ -263,6 +264,22 @@ describe("structural_values", () => {
         Result.getOrThrow(Result.flip(Expression.toJExpr(expression))),
       ).toBe(failure);
     }
+  });
+
+  test("duplicate_field", () => {
+    expect.hasAssertions();
+    expect(
+      Result.getOrThrow(
+        Result.flip(
+          Expression.toJExpr(Structural.struct({ "+": 1n, "`+`": 2n })),
+        ),
+      ).reason,
+    ).toStrictEqual(
+      ProgramError.Reason.make({
+        _tag: "DuplicateStructField",
+        name: "`+`",
+      }),
+    );
   });
 
   test("invalid_field_and_literal", () => {

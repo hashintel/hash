@@ -47,16 +47,16 @@ const collectionPaths = Record.map(
   (path) => pipe(path, JExpr.Path.decodeResult, Result.getOrThrow),
 );
 
-interface Field {
-  readonly key: string;
-  readonly name: JExpr.Ident.Ident;
-  readonly member: Syntax.Type;
-}
-
-// `+` and `` `+` `` decode to the same name, and a struct holds each name once. Comparing decoded names reports the later spelling before the struct reaches syntax the schema refuses.
-const distinctFields = (
-  fields: readonly Field[],
-): Result.Result<Syntax.Type, ProgramError.Construction> => {
+/**
+ * Checks that no two fields share a name.
+ *
+ * Fields compare by decoded identifier, so `+` and `` `+` `` are one field. Comparing names reports the later spelling before the struct reaches syntax.
+ */
+const distinct = <
+  F extends { readonly key: string; readonly name: JExpr.Ident.Ident },
+>(
+  fields: readonly F[],
+): Result.Result<readonly F[], ProgramError.Construction> => {
   const seen = MutableHashSet.empty<JExpr.Ident.Ident>();
   for (const { key, name } of fields) {
     if (MutableHashSet.has(seen, name)) {
@@ -66,10 +66,7 @@ const distinctFields = (
     MutableHashSet.add(seen, name);
   }
 
-  return Result.succeed({
-    _tag: "Struct",
-    members: Array.map(fields, ({ name, member }) => [name, member] as const),
-  });
+  return Result.succeed(fields);
 };
 
 /** Tests the type marker first, because a type expression is a plain object and a type constructor is a function. */
@@ -137,7 +134,11 @@ export const typeSyntax = (
       }),
     ),
     Result.all,
-    Result.flatMap(distinctFields),
+    Result.flatMap(distinct),
+    Result.map((fields) => ({
+      _tag: "Struct",
+      members: Array.map(fields, ({ name, member }) => [name, member] as const),
+    })),
   );
 };
 
@@ -165,15 +166,33 @@ export const valueSyntax = (
   return pipe(
     value,
     Record.toEntries,
-    Array.map(([name, member]) =>
-      pipe(
-        member,
-        valueSyntax,
-        Result.map((syntax) => [name, syntax] as const),
-      ),
+    Array.map(([key, member]) =>
+      Result.all({
+        key: Result.succeed(key),
+        name: pipe(
+          key,
+          JExpr.Ident.decodeResult,
+          Result.mapError((cause) =>
+            ProgramError.Construction.make({
+              reason: ProgramError.Reason.make({
+                _tag: "InvalidExpression",
+                cause,
+              }),
+            }),
+          ),
+        ),
+        syntax: valueSyntax(member),
+      }),
     ),
     Result.all,
-    Result.map(flow(Record.fromEntries, JExpr.struct)),
+    Result.flatMap(distinct),
+    Result.map(
+      flow(
+        Array.map(({ key, syntax }) => [key, syntax] as const),
+        Record.fromEntries,
+        JExpr.struct,
+      ),
+    ),
   );
 };
 
