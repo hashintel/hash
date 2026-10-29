@@ -10,7 +10,11 @@ export const flowRunDataSourcesResolver: ResolverFn<
   FlowRunParent,
   Pick<
     GraphQLContext,
-    "authentication" | "dataSources" | "flowRunRecords" | "temporal"
+    | "authentication"
+    | "dataSources"
+    | "flowRunRecords"
+    | "runningFlowRunHistories"
+    | "temporal"
   >,
   Record<string, never>
 > = async (flowRun, _args, context) =>

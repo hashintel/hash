@@ -16,6 +16,7 @@ import {
 import { readFlowRunHistoryEvents } from "./run-events/get-flow-run-history.js";
 
 import type { FileStorageProvider } from "../file-storage.js";
+import type { RunningFlowRunHistoryCache } from "./run-events/running-flow-run-history-cache.js";
 import type { FlowRunRecord } from "@local/hash-isomorphic-utils/flows/run-record";
 import type {
   FlowRunEnding,
@@ -122,21 +123,29 @@ const endFlowRunRecord = ({
   };
 };
 
-/** A run's description and the whole history of its current run, from Temporal. */
+/**
+ * A run's description and the whole history of its current run, from Temporal, or from `runningHistories` for a
+ * running run.
+ */
 const readFlowRunHistoryRecord = async ({
   temporalClient,
   workflow,
+  runningHistories,
 }: {
   temporalClient: TemporalClient;
   workflow: WorkflowExecutionDescription;
+  runningHistories?: RunningFlowRunHistoryCache;
 }): Promise<FlowRunHistoryRecord> => {
   const { workflowId, runId } = workflow;
 
-  const history = await readFlowRunHistoryEvents({
-    temporalClient,
-    workflowId,
-    runId,
-  });
+  const history = runningHistories
+    ? await runningHistories.readHistory({
+        temporalClient,
+        workflowId,
+        runId,
+        historyLength: workflow.historyLength,
+      })
+    : await readFlowRunHistoryEvents({ temporalClient, workflowId, runId });
 
   /**
    * If this workflow run has been started after the original was reset or 'continue-as-new'd,
@@ -181,12 +190,18 @@ const readFlowRunHistoryRecord = async ({
 const readFlowRunRecordFromHistory = async ({
   temporalClient,
   workflow,
+  runningHistories,
 }: {
   temporalClient: TemporalClient;
   workflow: WorkflowExecutionDescription;
+  runningHistories?: RunningFlowRunHistoryCache;
 }): Promise<FlowRunRecord> =>
   getFlowRunRecordFromHistory(
-    await readFlowRunHistoryRecord({ temporalClient, workflow }),
+    await readFlowRunHistoryRecord({
+      temporalClient,
+      workflow,
+      runningHistories,
+    }),
     { workflowId: workflow.workflowId },
   );
 
@@ -296,6 +311,7 @@ const readFlowRunRecord = async <RunningRecord extends FlowRunRecord | null>({
   storageProvider,
   workflowId,
   readRunningRecord,
+  runningHistories,
 }: {
   temporalClient: TemporalClient;
   storageProvider: FileStorageProvider;
@@ -303,6 +319,7 @@ const readFlowRunRecord = async <RunningRecord extends FlowRunRecord | null>({
   readRunningRecord: (
     workflow: WorkflowExecutionDescription,
   ) => Promise<RunningRecord>;
+  runningHistories?: RunningFlowRunHistoryCache;
 }): Promise<{ record: FlowRunRecord | RunningRecord; isStored: boolean }> => {
   let workflow: WorkflowExecutionDescription;
 
@@ -312,6 +329,8 @@ const readFlowRunRecord = async <RunningRecord extends FlowRunRecord | null>({
     if (!(error instanceof WorkflowNotFoundError)) {
       throw error;
     }
+
+    runningHistories?.delete(workflowId);
 
     const storedRecord = await readStoredFlowRunRecord({
       storageProvider,
@@ -337,11 +356,14 @@ const readFlowRunRecord = async <RunningRecord extends FlowRunRecord | null>({
     });
 
     if (recordOfEndingRun?.header.runId === workflow.runId) {
+      runningHistories?.delete(workflowId);
       return { record: recordOfEndingRun, isStored: true };
     }
 
     return { record: await readRunningRecord(workflow), isStored: false };
   }
+
+  runningHistories?.delete(workflowId);
 
   const storedRecord = await readStoredFlowRunRecord({
     storageProvider,
@@ -386,6 +408,7 @@ export const getFlowRunRecord = ({
   storageProvider: FileStorageProvider;
   workflowId: string;
   recordsByWorkflowId?: FlowRunRecordsByWorkflowId;
+  runningHistories?: RunningFlowRunHistoryCache;
 }): Promise<FlowRunRecord> => {
   const existingRecord = recordsByWorkflowId?.get(params.workflowId);
 
@@ -399,6 +422,7 @@ export const getFlowRunRecord = ({
       readFlowRunRecordFromHistory({
         temporalClient: params.temporalClient,
         workflow,
+        runningHistories: params.runningHistories,
       }),
   }).then(({ record: read }) => read);
 

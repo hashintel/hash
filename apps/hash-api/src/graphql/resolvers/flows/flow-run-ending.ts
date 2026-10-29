@@ -16,7 +16,11 @@ import type { ResolvedPayload } from "@local/hash-isomorphic-utils/flows/types";
 
 type FlowRunEndingContext = Pick<
   GraphQLContext,
-  "authentication" | "dataSources" | "flowRunRecords" | "temporal"
+  | "authentication"
+  | "dataSources"
+  | "flowRunRecords"
+  | "runningFlowRunHistories"
+  | "temporal"
 >;
 
 type FlowRunEndingResolver<Result> = ResolverFn<
