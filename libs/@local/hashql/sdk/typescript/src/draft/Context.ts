@@ -32,7 +32,7 @@ export type NominalCall<N extends string, T extends Type.Any> = <
 /**
  * A Draft nominal constructor: an expression of function type that also accepts structural shorthand.
  *
- * Rebinding it, as an import or module export does, keeps both the call signature and the nominal identity. `Expression.adaptCallable` constructs it. It is an interface rather than that function's `Expression.Expression.Adapted` result, because TypeScript resolves an interface's recursive rebinding lazily, which keeps comparisons of `newtype` signatures within its instantiation depth.
+ * Rebinding it, as an import or module export does, keeps both the call signature and the nominal identity. `Expression.adaptCallable` constructs it. It is an interface rather than that function's `Expression.Expression.Adapted` result, because TypeScript defers an interface's recursive rebinding until a comparison reaches it. That keeps comparisons of `newtype` signatures within TypeScript's instantiation depth.
  */
 export interface NominalValue<N extends string, T extends Type.Any>
   extends
@@ -75,7 +75,7 @@ export type Conditional<
   >
 >;
 
-/** The expression `if` returns without `else`: an {@link Option} of the `then` branch's type, requiring the condition's inputs and the branch's. */
+/** The expression `if` returns without `else`: its type is an {@link Option} of the `then` branch's type, and it requires the condition's inputs and the branch's. */
 export type Optional<
   C extends Expression.Value<Type.PrimitiveBoolean>,
   T extends Expression.Value.Any,

@@ -123,6 +123,15 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     this.#scope = scope;
     this.#prelude = Namespace.flatten<S>(scope);
     this.#modules = Namespace.modules<S>(scope);
+
+    // make sure that destructuring `$` works as expected by binding `this` to each method
+    this.prelude = this.prelude.bind(this);
+    this.modules = this.modules.bind(this);
+    this.import = this.import.bind(this);
+    this.let = this.let.bind(this);
+    this.type = this.type.bind(this);
+    this.newtype = this.newtype.bind(this);
+    this.if = this.if.bind(this);
   }
 
   prelude(): Namespace.Flatten<S> {

@@ -1,5 +1,5 @@
 /**
- * Type checks for Draft programs: the explicit-input boundary, nominal identity, imports and the requirements composition must keep.
+ * Type checks for the explicit-input boundary of Draft programs, and for nominal identity, imports and requirement composition inside them.
  *
  * @module
  */
@@ -298,6 +298,25 @@ describe("construction", () => {
     // @ts-expect-error an unrestricted helper can hide inputs in discarded declarations
     Draft.withPrelude({}).program({}, unrestricted);
     expectTypeOf(unrestricted);
+  });
+
+  test("restricted_helper", () => {
+    const schema = { limit: BigInt };
+    type Next = Program.Expression.Expression<
+      Type.PrimitiveInteger,
+      { readonly limit: Type.PrimitiveInteger }
+    >;
+    const next = (
+      $: Draft.Body.Context<
+        Program.Prelude.Builtin,
+        Draft.Body.Requirements<typeof schema>
+      >,
+      { limit }: Draft.Body.Handles<typeof schema>,
+    ): Next => $.let("next", $.prelude().add(limit, 1n));
+
+    expectTypeOf(
+      Draft.program(schema, ($, inputs) => next($, inputs)),
+    ).toEqualTypeOf<Result.Result<Next, Program.ProgramError.Construction>>();
   });
 
   test("then_only", () => {

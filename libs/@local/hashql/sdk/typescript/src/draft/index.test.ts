@@ -1,5 +1,5 @@
 /**
- * Runtime checks for Draft programs: declaration order, branch scopes, the input and prelude boundaries, imports, flattened views and callback failures.
+ * Runtime checks for Draft programs, covering declaration order, branch scopes, the input and prelude boundaries, imports, flattened views and callback failures.
  *
  * @module
  */
@@ -228,6 +228,29 @@ describe("program", () => {
     });
     expect(text(result)).not.toContain('"inner"');
     expect(text(result)).toContain('"deep"');
+  });
+
+  test("detached_members", () => {
+    expect.hasAssertions();
+    const result = Draft.program({ flag: Boolean }, ($, { flag }) => {
+      const {
+        prelude,
+        modules,
+        import: use,
+        let: bind,
+        type,
+        newtype,
+        if: choose,
+      } = $;
+      const { add } = prelude();
+      const { sum } = use(modules().math, { add: "sum" });
+      const Count = newtype("Count", type("Whole", BigInt));
+      const total = bind("total", Count(sum(add(1n, 2n), 3n)));
+      return choose(flag, { then: () => total, else: () => total });
+    });
+    expect(text(result)).toBe(
+      '["::kernel::special_form::use","::core::math",{"#struct":{"add":"sum"}},["::kernel::special_form::type","Whole","::kernel::type::Integer",["::kernel::special_form::newtype","Count","Whole",["::kernel::special_form::let","total",["Count",["sum",["::core::math::add",{"#literal":1},{"#literal":2}],{"#literal":3}]],["::kernel::special_form::if",["::kernel::special_form::input","flag","::kernel::type::Boolean"],"total","total"]]]]]',
+    );
   });
 
   test("structural_shorthand", () => {
