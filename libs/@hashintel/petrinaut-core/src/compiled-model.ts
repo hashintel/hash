@@ -3,11 +3,16 @@
 export { compilePetrinautModel } from "./simulation/compiled-model";
 export type {
   CompilePetrinautModelConfig,
+  PetrinautChoiceLever,
   PetrinautCompiledModel,
   PetrinautCompiledModelMetadata,
   PetrinautCompiledModelMetricMetadata,
   PetrinautCompiledModelParameterMetadata,
   PetrinautCompiledModelPlaceMetadata,
+  PetrinautControlledRun,
+  PetrinautControlledRunConfig,
+  PetrinautControlPoint,
+  PetrinautDecision,
   PetrinautRunCompletionReason,
   PetrinautRunConfig,
   PetrinautRunResult,

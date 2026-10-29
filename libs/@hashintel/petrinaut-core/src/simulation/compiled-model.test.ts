@@ -3,7 +3,12 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { sirModel } from "../examples";
 import { compilePetrinautModel } from "./compiled-model";
 
-import type { PetrinautCompiledModel } from "./compiled-model";
+import type { Place, SDCPN, Transition } from "../types/sdcpn";
+import type {
+  PetrinautChoiceLever,
+  PetrinautCompiledModel,
+  PetrinautControlledRun,
+} from "./compiled-model";
 
 describe("compilePetrinautModel", () => {
   let model: PetrinautCompiledModel;
@@ -399,5 +404,361 @@ describe("compilePetrinautModel", () => {
         seed: 1,
       }).finalPlaceTokenCounts,
     ).toEqual({ "empty-colored-place": 2 });
+  });
+});
+
+const place = (id: string): Place => ({
+  id,
+  name: id,
+  colorId: null,
+  dynamicsEnabled: false,
+  differentialEquationId: null,
+  x: 0,
+  y: 0,
+});
+
+const transition = (
+  id: string,
+  from: string[],
+  to: string[],
+  lambda: { type: "predicate" | "stochastic"; body: string },
+): Transition => ({
+  id,
+  name: id,
+  inputArcs: from.map((placeId) => ({ placeId, weight: 1, type: "standard" })),
+  outputArcs: to.map((placeId) => ({ placeId, weight: 1 })),
+  lambdaType: lambda.type,
+  lambdaCode: `export default Lambda(() => ${lambda.body});`,
+  transitionKernelCode: "export default TransitionKernel(() => ({}));",
+  x: 0,
+  y: 0,
+});
+
+/**
+ * Jobs arrive at random and wait in Queue. A controller routes each to Fast
+ * or Slow; RouteBlocked's predicate is always false. Left to the net, the
+ * routing transitions would empty Queue at once, so a token stays in Queue
+ * only if the controller leaves it there.
+ */
+const routingNet: SDCPN = {
+  places: ["Queue", "Fast", "Slow", "Blocked", "Always"].map(place),
+  transitions: [
+    transition("Arrive", [], ["Queue"], { type: "stochastic", body: "2" }),
+    transition("RouteFast", ["Queue"], ["Fast"], {
+      type: "stochastic",
+      body: "Infinity",
+    }),
+    transition("RouteSlow", ["Queue"], ["Slow"], {
+      type: "stochastic",
+      body: "Infinity",
+    }),
+    transition("RouteBlocked", ["Queue"], ["Blocked"], {
+      type: "predicate",
+      body: "false",
+    }),
+  ],
+  types: [],
+  differentialEquations: [],
+  parameters: [],
+  metrics: [
+    {
+      id: "metric_always",
+      name: "Always",
+      code: "return state.places.Always.count;",
+    },
+  ],
+};
+
+const router = (allowWait = false): PetrinautChoiceLever[] => [
+  {
+    id: "route",
+    transitionIds: ["RouteFast", "RouteSlow", "RouteBlocked"],
+    allowWait,
+  },
+];
+
+const counts = (run: PetrinautControlledRun) => {
+  const frame = run.frame();
+  return Object.fromEntries(
+    ["Queue", "Fast", "Slow", "Blocked"].map((id) => [
+      id,
+      frame.getPlaceTokenCount(id),
+    ]),
+  );
+};
+
+/** Routes alternately to Fast and Slow until the run ends. */
+const alternate = (run: PetrinautControlledRun) => {
+  let decisions = 0;
+  while (run.point.kind === "decision") {
+    run.decide({ fire: decisions % 2 === 0 ? "RouteFast" : "RouteSlow" });
+    decisions++;
+  }
+  return decisions;
+};
+
+describe("startControlledRun", () => {
+  const model = compilePetrinautModel({ sdcpn: routingNet });
+
+  it("fires a chosen transition before the net's own transitions can take its tokens", () => {
+    const leakyNet: SDCPN = {
+      ...routingNet,
+      places: ["Queue", "Fast", "Leaked"].map(place),
+      transitions: [
+        transition("Leak", ["Queue"], ["Leaked"], {
+          type: "stochastic",
+          body: "Infinity",
+        }),
+        transition("RouteFast", ["Queue"], ["Fast"], {
+          type: "predicate",
+          body: "true",
+        }),
+      ],
+      metrics: [],
+    };
+    const run = compilePetrinautModel({ sdcpn: leakyNet }).startControlledRun({
+      levers: [{ id: "route", transitionIds: ["RouteFast"] }],
+      initialMarking: { Queue: 1 },
+      seed: 1,
+      dt: 0.1,
+      maxSteps: 1,
+    });
+
+    run.decide({ fire: "RouteFast" });
+
+    const frame = run.frame();
+    expect(frame.getPlaceTokenCount("Fast")).toBe(1);
+    expect(frame.getPlaceTokenCount("Leaked")).toBe(0);
+  });
+
+  it("fires a lever's transitions only when chosen", () => {
+    const run = model.startControlledRun({
+      levers: router(true),
+      initialMarking: { Queue: 3 },
+      seed: 1,
+      dt: 0.1,
+      maxSteps: 5,
+    });
+
+    for (let waits = 0; waits < 5; waits++) {
+      expect(run.point.kind).toBe("decision");
+      run.decide({ wait: true });
+    }
+    expect(run.point.kind).toBe("end");
+    expect(counts(run)).toMatchObject({ Fast: 0, Slow: 0 });
+  });
+
+  it("fires the chosen transition", () => {
+    const run = model.startControlledRun({
+      levers: router(),
+      initialMarking: { Queue: 1 },
+      seed: 1,
+      dt: 0.1,
+      maxSteps: 1,
+    });
+
+    run.decide({ fire: "RouteSlow" });
+
+    expect(counts(run)).toMatchObject({ Fast: 0, Slow: 1 });
+  });
+
+  it("reports a transition whose predicate is false as not fireable, and refuses it", () => {
+    const run = model.startControlledRun({
+      levers: router(),
+      initialMarking: { Queue: 1 },
+      seed: 1,
+      dt: 0.1,
+      maxSteps: 1,
+    });
+
+    expect(run.point).toMatchObject({
+      kind: "decision",
+      fireable: ["RouteFast", "RouteSlow"],
+    });
+    expect(() => run.decide({ fire: "RouteBlocked" })).toThrow(
+      'Transition "RouteBlocked" of lever "route" cannot fire now',
+    );
+  });
+
+  it("judges whether a transition can fire after the frame's dynamics", () => {
+    const tankNet: SDCPN = {
+      places: [
+        {
+          ...place("Tank"),
+          colorId: "tank",
+          dynamicsEnabled: true,
+          differentialEquationId: "fill",
+        },
+        place("Done"),
+      ],
+      transitions: [
+        {
+          ...transition("Drain", ["Tank"], ["Done"], {
+            type: "predicate",
+            body: "true",
+          }),
+          lambdaCode:
+            "export default Lambda((tokens) => tokens.Tank[0].level < 1);",
+        },
+      ],
+      types: [
+        {
+          id: "tank",
+          name: "Tank",
+          iconSlug: "circle",
+          displayColor: "#000000",
+          elements: [{ elementId: "level", name: "level", type: "real" }],
+        },
+      ],
+      differentialEquations: [
+        {
+          id: "fill",
+          name: "Fill",
+          colorId: "tank",
+          code: "export default Dynamics((tokens) => tokens.map(() => ({ level: 1 })));",
+        },
+      ],
+      parameters: [],
+      metrics: [],
+    };
+    const tankModel = compilePetrinautModel({ sdcpn: tankNet });
+    const start = (level: number) =>
+      tankModel.startControlledRun({
+        levers: [{ id: "drain", transitionIds: ["Drain"] }],
+        initialMarking: { Tank: [{ level }] },
+        seed: 1,
+        dt: 0.1,
+        maxSteps: 1,
+      });
+
+    // The level rises by 0.1 a frame, so 0.95 is under 1 before the dynamics
+    // and over it after them.
+    expect(start(0.95).point.kind).toBe("end");
+
+    const run = start(0.85);
+    run.decide({ fire: "Drain" });
+    expect(run.frame().getPlaceTokenCount("Done")).toBe(1);
+  });
+
+  it("asks a waiting lever again once the wait's simulation time has passed", () => {
+    const run = model.startControlledRun({
+      levers: router(true),
+      initialMarking: { Queue: 3 },
+      seed: 1,
+      dt: 0.3,
+      maxTime: 5,
+    });
+
+    run.decide({ wait: { for: 1 } });
+
+    expect(run.point.kind).toBe("decision");
+    expect(run.point.time).toBeCloseTo(1.2);
+  });
+
+  it("sets the fields of the tokens a chosen transition adds", () => {
+    const orderNet: SDCPN = {
+      places: [place("Due"), { ...place("Shipped"), colorId: "order" }],
+      transitions: [
+        {
+          ...transition("Ship", ["Due"], ["Shipped"], {
+            type: "predicate",
+            body: "true",
+          }),
+          transitionKernelCode:
+            "export default TransitionKernel(() => ({ Shipped: [{ lots: 1 }] }));",
+        },
+      ],
+      types: [
+        {
+          id: "order",
+          name: "Order",
+          iconSlug: "circle",
+          displayColor: "#000000",
+          elements: [{ elementId: "lots", name: "lots", type: "real" }],
+        },
+      ],
+      differentialEquations: [],
+      parameters: [],
+      metrics: [],
+    };
+    const run = compilePetrinautModel({ sdcpn: orderNet }).startControlledRun({
+      levers: [{ id: "ship", transitionIds: ["Ship"] }],
+      initialMarking: { Due: 1 },
+      seed: 1,
+      dt: 0.1,
+      maxSteps: 1,
+    });
+
+    run.decide({ fire: "Ship", outcome: { Shipped: { lots: 3 } } });
+
+    expect(run.frame().getPlaceTokens(orderNet.places[1]!)).toEqual([
+      { lots: 3 },
+    ]);
+  });
+
+  it("reproduces a run from its seed and choices", () => {
+    const config = {
+      levers: router(),
+      seed: 4242,
+      dt: 0.1,
+      maxTime: 20,
+    };
+
+    const first = model.startControlledRun(config);
+    const firstDecisions = alternate(first);
+    const second = model.startControlledRun(config);
+    const secondDecisions = alternate(second);
+
+    expect(firstDecisions).toBeGreaterThan(10);
+    expect(secondDecisions).toBe(firstDecisions);
+    expect(counts(second)).toEqual(counts(first));
+  });
+
+  it("plays a fork out independently of the run it was forked from", () => {
+    const config = {
+      levers: router(),
+      initialMarking: { Always: 1 },
+      integrate: ["Always"],
+      seed: 4242,
+      dt: 0.1,
+      maxTime: 20,
+    };
+    const unforked = model.startControlledRun(config);
+    alternate(unforked);
+
+    const run = model.startControlledRun(config);
+    run.decide({ fire: "RouteFast" });
+    run.decide({ fire: "RouteSlow" });
+    const fork = run.fork();
+    while (fork.point.kind === "decision") {
+      fork.decide({ fire: "RouteFast" });
+    }
+    const twin = run.fork();
+    let decisions = 2;
+    while (run.point.kind === "decision") {
+      run.decide({ fire: decisions % 2 === 0 ? "RouteFast" : "RouteSlow" });
+      decisions++;
+    }
+    alternate(twin);
+
+    expect(counts(fork)).not.toEqual(counts(unforked));
+    expect(counts(run)).toEqual(counts(unforked));
+    expect(run.integrals()).toEqual(unforked.integrals());
+    expect(counts(twin)).toEqual(counts(unforked));
+  });
+
+  it("integrates metrics over simulation time, up to maxTime", () => {
+    const run = model.startControlledRun({
+      levers: router(),
+      initialMarking: { Always: 1 },
+      integrate: ["Always"],
+      seed: 1,
+      dt: 0.3,
+      maxTime: 1,
+    });
+    alternate(run);
+
+    expect(run.point).toMatchObject({ kind: "end", reason: "maxTime" });
+    expect(run.integrals().Always).toBeCloseTo(1);
   });
 });

@@ -45,6 +45,12 @@ export function computePossibleTransition(
    * written into the frame; see `executeTransitions`.
    */
   pendingOutputCounts: Uint32Array | null = null,
+  /**
+   * Whether a controller chose this transition. A controller replaces the
+   * random timing a rate gives, not whether the transition can fire: a chosen
+   * transition fires when its predicate is true or its rate is positive.
+   */
+  chosen = false,
 ): {
   firing: null | {
     remove: Record<PlaceID, Set<number> | number>;
@@ -190,7 +196,9 @@ export function computePossibleTransition(
     const fires =
       typeof lambdaResult === "boolean"
         ? lambdaResult
-        : Math.exp(-lambdaResult * simulation.dt) <= U1;
+        : chosen
+          ? lambdaResult > 0
+          : Math.exp(-lambdaResult * simulation.dt) <= U1;
 
     if (fires) {
       // Transition fires! The compiled kernel writes output tokens into the

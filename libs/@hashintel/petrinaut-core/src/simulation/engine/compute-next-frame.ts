@@ -6,7 +6,8 @@ import { checkTransitionEnablement } from "./check-transition-enablement";
 import { computePlaceNextState } from "./compute-place-next-state";
 import { executeTransitions } from "./execute-transitions";
 
-import type { SimulationInstance } from "./types";
+import type { TransitionControl } from "./execute-transitions";
+import type { EngineFrame, SimulationInstance } from "./types";
 
 /**
  * Reason why the simulation completed.
@@ -37,39 +38,18 @@ export type ComputeNextFrameResult = {
 };
 
 /**
- * Computes the next frame of the simulation by:
- * 1. Applying differential equations to all places with dynamics enabled (that have a type)
- * 2. Executing all possible transitions
- *
- * This integrates continuous dynamics (ODEs) and discrete transitions into a single step.
- *
- * @param simulation - The simulation instance containing the current state
- * @returns An object containing the updated SimulationInstance and whether any transition fired
+ * Applies the differential equations of places with dynamics enabled to
+ * `currentFrame`, over the simulation's `dt`.
  */
-export function computeNextFrame(
+export function applyDynamics(
   simulation: SimulationInstance,
-): ComputeNextFrameResult {
-  // Get the current frame
-  const currentFrame = simulation.frames[simulation.currentFrameNumber]!;
-
-  // Check if maxTime has been reached before computing
-  if (
-    simulation.maxTime !== null &&
-    simulation.currentTime >= simulation.maxTime
-  ) {
-    return {
-      simulation,
-      transitionFired: false,
-      completionReason: "maxTime",
-    };
-  }
-
+  currentFrame: EngineFrame,
+): EngineFrame {
   const currentSnapshot = materializeEngineFrame(
     simulation.frameLayout,
     currentFrame,
   );
 
-  // Step 1: Apply differential equations to places with dynamics enabled
   let frameAfterDynamics = currentFrame;
 
   // Only apply dynamics if there are places with differential equations
@@ -121,12 +101,48 @@ export function computeNextFrame(
     });
   }
 
+  return frameAfterDynamics;
+}
+
+/**
+ * Computes the next frame of the simulation by:
+ * 1. Applying differential equations to all places with dynamics enabled (that have a type)
+ * 2. Executing all possible transitions, with `control` deciding the controlled ones
+ *
+ * This integrates continuous dynamics (ODEs) and discrete transitions into a single step.
+ *
+ * @param simulation - The simulation instance containing the current state
+ * @returns An object containing the updated SimulationInstance and whether any transition fired
+ */
+export function computeNextFrame(
+  simulation: SimulationInstance,
+  control: TransitionControl | null = null,
+): ComputeNextFrameResult {
+  // Get the current frame
+  const currentFrame = simulation.frames[simulation.currentFrameNumber]!;
+
+  // Check if maxTime has been reached before computing
+  if (
+    simulation.maxTime !== null &&
+    simulation.currentTime >= simulation.maxTime
+  ) {
+    return {
+      simulation,
+      transitionFired: false,
+      completionReason: "maxTime",
+    };
+  }
+
+  // Step 1: Apply differential equations to places with dynamics enabled
+  const frameAfterDynamics = applyDynamics(simulation, currentFrame);
+
   // Step 2: Execute all transitions on the frame with updated dynamics
   const transitionsResult = executeTransitions(
     frameAfterDynamics,
     simulation,
     simulation.dt,
     simulation.rngState,
+    control,
   );
   const frameAfterTransitions = transitionsResult.frame;
   const transitionFired = transitionsResult.transitionFired;

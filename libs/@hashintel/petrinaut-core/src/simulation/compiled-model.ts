@@ -8,7 +8,8 @@ import { compileHirArtifacts } from "../hir";
 import { resolveNetParameterValues } from "../parameter-values";
 import { getOwn } from "../validation/record-keys";
 import { buildSimulation } from "./engine/build-simulation";
-import { computeNextFrame } from "./engine/compute-next-frame";
+import { applyDynamics, computeNextFrame } from "./engine/compute-next-frame";
+import { computePossibleTransition } from "./engine/compute-possible-transition";
 import { readTokenRecord } from "./engine/token-layout";
 import { createHirMetricEvaluator } from "./frames/hir-metric";
 import { readEngineFrame } from "./frames/internal-frame";
@@ -23,6 +24,8 @@ import type {
   SimulationFrameState,
 } from "./api";
 import type { SimulationCompletionReason } from "./engine/compute-next-frame";
+import type { TransitionOutcome } from "./engine/execute-transitions";
+import type { SimulationInstance } from "./engine/types";
 import type { EngineFrame, EngineFrameLayout } from "./frames/internal-frame";
 
 export type PetrinautRunCompletionReason =
@@ -100,6 +103,104 @@ export type PetrinautRunResult = {
   metrics: Record<string, number>;
 };
 
+/**
+ * Transitions a controller decides between. They never fire by their own
+ * lambda. A controlled run asks for a choice whenever one of them could fire.
+ */
+export type PetrinautChoiceLever = {
+  id: string;
+  transitionIds: readonly string[];
+  /** Whether the controller may fire none of them when some could fire. */
+  allowWait?: boolean;
+};
+
+export type PetrinautControlledRunConfig = PetrinautRunConfig & {
+  levers: readonly PetrinautChoiceLever[];
+  /** Metric ids or names to integrate over simulation time. */
+  integrate?: readonly string[];
+};
+
+/**
+ * Where a controlled run stopped: a lever waiting for a decision, or the end.
+ *
+ * `fireable` lists the lever's transitions that would fire if chosen: their
+ * arcs, capacities and lambdas all allow it on the frame they would fire on.
+ */
+export type PetrinautControlPoint =
+  | {
+      kind: "decision";
+      lever: PetrinautChoiceLever;
+      fireable: readonly string[];
+      time: number;
+      step: number;
+    }
+  | {
+      kind: "end";
+      reason: PetrinautRunCompletionReason;
+      time: number;
+      step: number;
+    };
+
+/**
+ * A controller's answer to a decision.
+ *
+ * - `fire`: fire this transition, which must be fireable. It consumes the
+ *   first combination of input tokens, in token order, whose lambda allows
+ *   firing. `outcome` sets
+ *   fields of the tokens it adds, keyed by output place id, then field name,
+ *   overwriting what its kernel wrote; only number and boolean fields can be
+ *   set.
+ * - `wait`: fire none of the lever's transitions now (only for levers that
+ *   allow waiting). `true` asks again at the next frame where one can fire;
+ *   `{ for: duration }` asks again once that much simulation time has passed.
+ */
+export type PetrinautDecision =
+  | {
+      fire: string;
+      outcome?: Readonly<
+        Record<string, Readonly<Record<string, number | boolean>>>
+      >;
+    }
+  | { wait: true | { for: number } };
+
+/**
+ * A run that pauses whenever a lever has a transition that could fire, and
+ * resumes when the caller decides.
+ *
+ * Before each frame, every lever with a fireable transition asks for a
+ * decision, one lever at a time. The chosen transitions then fire first in
+ * the frame, in definition order; a choice that an earlier choice in the same
+ * frame has made unfireable does not fire. A run is reproducible from its seed
+ * and the sequence of decisions.
+ *
+ * A controller decides when a controlled transition fires, in place of the
+ * timing its rate gives, but not whether it can: a transition is fireable
+ * when it is enabled and its predicate is true or its rate positive. This is
+ * judged after the frame's continuous dynamics, where chosen transitions
+ * fire, so it can depend on token values the controller has not yet seen.
+ */
+export type PetrinautControlledRun = {
+  readonly point: PetrinautControlPoint;
+  /** Answers the current decision, and runs to the next decision or the end. */
+  decide(this: void, decision: PetrinautDecision): PetrinautControlPoint;
+  /** The current frame. */
+  frame(this: void): SimulationFrameReader;
+  /** The run's `metrics`, evaluated on the current frame and keyed by name. */
+  metrics(this: void): Record<string, number>;
+  /**
+   * Metric values integrated over simulation time so far, keyed by metric
+   * name: the sum over completed frames of the metric at the frame's start
+   * times the frame's duration.
+   */
+  integrals(this: void): Record<string, number>;
+  /**
+   * An independent copy of the run at this point. It keeps the run's random
+   * state, so answering both the same way plays both out the same way, unless
+   * `seed` gives it a random state of its own.
+   */
+  fork(this: void, seed?: number): PetrinautControlledRun;
+};
+
 export type PetrinautCompiledModel = {
   readonly metadata: PetrinautCompiledModelMetadata;
   /**
@@ -112,6 +213,11 @@ export type PetrinautCompiledModel = {
   readonly sdcpn: SDCPN;
   readonly hirArtifacts: HirArtifacts;
   run(this: void, config: PetrinautRunConfig): PetrinautRunResult;
+  /** Starts a run that pauses for decisions; see `PetrinautControlledRun`. */
+  startControlledRun(
+    this: void,
+    config: PetrinautControlledRunConfig,
+  ): PetrinautControlledRun;
 };
 
 export type CompilePetrinautModelConfig = {
@@ -322,9 +428,313 @@ function evaluateMetrics(
   );
 }
 
+function resolveRunLimits(config: {
+  seed?: number;
+  dt?: number;
+  maxTime?: number | null;
+  maxSteps?: number;
+}) {
+  const seed = config.seed ?? generateSeed();
+  const dt = config.dt ?? 1;
+  const maxTime = config.maxTime ?? null;
+  const maxSteps = config.maxSteps;
+  if (!Number.isInteger(seed) || seed < 0 || seed > MAX_SEED) {
+    throw new Error(
+      `Run config seed must be an integer between 0 and ${MAX_SEED}`,
+    );
+  }
+  if (maxTime === null && maxSteps === undefined) {
+    throw new Error("Run config requires either maxTime or maxSteps");
+  }
+  if (maxTime !== null && (!Number.isFinite(maxTime) || maxTime < 0)) {
+    throw new Error(
+      "Run config maxTime must be a finite non-negative number or null",
+    );
+  }
+  if (!Number.isFinite(dt) || dt <= 0) {
+    throw new Error("Run config dt must be a finite positive number");
+  }
+  if (maxSteps !== undefined && (!Number.isInteger(maxSteps) || maxSteps < 0)) {
+    throw new Error("Run config maxSteps must be a non-negative integer");
+  }
+  return { seed, dt, maxTime, maxSteps };
+}
+
 function timesAreEqual(left: number, right: number): boolean {
   const scale = Math.max(1, Math.abs(left), Math.abs(right));
   return Math.abs(left - right) <= Number.EPSILON * scale * 16;
+}
+
+type PendingLever = { lever: PetrinautChoiceLever; fireable: string[] };
+
+/** What a controlled run holds between decisions; `fork` copies it. */
+type ControlledRunState = {
+  simulation: SimulationInstance;
+  steps: number;
+  completionReason: PetrinautRunCompletionReason | null;
+  chosen: ReadonlySet<string>;
+  outcomes: ReadonlyMap<string, TransitionOutcome>;
+  pending: readonly PendingLever[] | null;
+  resumeAt: ReadonlyMap<string, number>;
+  integrals: Readonly<Record<string, number>>;
+};
+
+function createControlledRun(args: {
+  simulation: SimulationInstance;
+  levers: readonly PetrinautChoiceLever[];
+  maxTime: number | null;
+  maxSteps: number | undefined;
+  evaluateMetrics: (frame: SimulationFrameReader) => Record<string, number>;
+  evaluateIntegrands: (frame: SimulationFrameReader) => Record<string, number>;
+  /** The state of the run being forked, for `fork`. */
+  forkOf?: ControlledRunState;
+}): PetrinautControlledRun {
+  const { levers, maxTime, maxSteps, forkOf } = args;
+  let simulation = forkOf?.simulation ?? args.simulation;
+  const dt = simulation.dt;
+
+  const controlled = new Set<string>();
+  for (const lever of levers) {
+    for (const transitionId of lever.transitionIds) {
+      if (!simulation.transitions.has(transitionId)) {
+        throw new Error(
+          `Lever "${lever.id}" names transition "${transitionId}", which is not in the model`,
+        );
+      }
+      if (controlled.has(transitionId)) {
+        throw new Error(
+          `Transition "${transitionId}" belongs to more than one lever`,
+        );
+      }
+      controlled.add(transitionId);
+    }
+  }
+
+  let steps = forkOf?.steps ?? 0;
+  let completionReason: PetrinautRunCompletionReason | null = forkOf
+    ? forkOf.completionReason
+    : maxTime !== null && maxTime <= simulation.currentTime
+      ? "maxTime"
+      : null;
+  let chosen = new Set(forkOf?.chosen);
+  let outcomes = new Map(forkOf?.outcomes);
+  let pending: PendingLever[] | null = forkOf?.pending
+    ? [...forkOf.pending]
+    : null;
+  /** Simulation times before which waiting levers are not asked again. */
+  const resumeAt = new Map(forkOf?.resumeAt);
+  const integrals: Record<string, number> = { ...forkOf?.integrals };
+
+  const currentFrame = (): SimulationFrameReader =>
+    createFrameReader({
+      layout: simulation.frameLayout,
+      frame: simulation.frames[0]!,
+      number: steps,
+      time: simulation.currentTime,
+      places: simulation.places,
+      stringPool: simulation.stringPool,
+    });
+
+  /** The duration of the next frame: `dt`, or less to end at `maxTime`. */
+  const frameDt = () =>
+    maxTime === null ? dt : Math.min(dt, maxTime - simulation.currentTime);
+
+  // Evaluating a transition as chosen on the frame after the next frame's
+  // dynamics, where chosen transitions fire, and discarding the result and RNG
+  // state, says whether it would fire if chosen.
+  const liveLevers = () => {
+    const stepping = { ...simulation, dt: frameDt() };
+    const frameAfterDynamics = applyDynamics(stepping, simulation.frames[0]!);
+    return levers.flatMap((lever) => {
+      const until = resumeAt.get(lever.id);
+      if (
+        until !== undefined &&
+        simulation.currentTime < until &&
+        !timesAreEqual(simulation.currentTime, until)
+      ) {
+        return [];
+      }
+      resumeAt.delete(lever.id);
+      const fireable = lever.transitionIds.filter(
+        (transitionId) =>
+          computePossibleTransition(
+            frameAfterDynamics,
+            stepping,
+            transitionId,
+            simulation.rngState,
+            null,
+            true,
+          ).firing !== null,
+      );
+      return fireable.length > 0 ? [{ lever, fireable }] : [];
+    });
+  };
+
+  /** The decision's outcome as field values the engine writes. */
+  const resolveOutcome = (
+    transitionId: string,
+    outcome: NonNullable<
+      Extract<PetrinautDecision, { fire: string }>["outcome"]
+    >,
+  ): TransitionOutcome => {
+    const transition = simulation.compiledTransitions.get(transitionId)!;
+    return Object.fromEntries(
+      Object.entries(outcome).map(([placeId, values]) => {
+        const fields = transition.outputPlaces.find(
+          (place) => place.placeId === placeId,
+        )?.tokenLayout?.fields;
+        if (!fields) {
+          throw new Error(
+            `Transition "${transitionId}" adds no coloured tokens to place "${placeId}"`,
+          );
+        }
+        return [
+          placeId,
+          Object.fromEntries(
+            Object.entries(values).map(([name, value]) => {
+              const field = fields.find(
+                (candidate) => candidate.element.name === name,
+              );
+              if (!field || (field.kind !== "f64" && field.kind !== "u8")) {
+                throw new Error(
+                  `Place "${placeId}" has no number or boolean field "${name}"`,
+                );
+              }
+              const encoded = Number(value);
+              if (!Number.isFinite(encoded)) {
+                throw new Error(`Field "${name}" must be finite, not ${value}`);
+              }
+              return [name, encoded];
+            }),
+          ),
+        ];
+      }),
+    );
+  };
+
+  const step = () => {
+    const duration = frameDt();
+    for (const [name, value] of Object.entries(
+      args.evaluateIntegrands(currentFrame()),
+    )) {
+      integrals[name] = (integrals[name] ?? 0) + value * duration;
+    }
+
+    const result = computeNextFrame(
+      { ...simulation, dt: duration },
+      { controlled, chosen, outcomes },
+    );
+    simulation = {
+      ...result.simulation,
+      dt,
+      frames: [result.simulation.frames[result.simulation.currentFrameNumber]!],
+      currentFrameNumber: 0,
+    };
+    completionReason = result.completionReason;
+    if (maxTime !== null && timesAreEqual(simulation.currentTime, maxTime)) {
+      simulation = { ...simulation, currentTime: maxTime };
+      completionReason = "maxTime";
+    }
+    steps++;
+    chosen = new Set();
+    outcomes = new Map();
+    pending = null;
+  };
+
+  const advance = (): PetrinautControlPoint => {
+    for (;;) {
+      if (
+        completionReason === null &&
+        maxSteps !== undefined &&
+        steps >= maxSteps
+      ) {
+        completionReason = "maxSteps";
+      }
+      if (completionReason !== null) {
+        return {
+          kind: "end",
+          reason: completionReason,
+          time: simulation.currentTime,
+          step: steps,
+        };
+      }
+      pending ??= liveLevers();
+      const next = pending[0];
+      if (next) {
+        return {
+          kind: "decision",
+          lever: next.lever,
+          fireable: next.fireable,
+          time: simulation.currentTime,
+          step: steps,
+        };
+      }
+      step();
+    }
+  };
+
+  let point = advance();
+
+  return {
+    get point() {
+      return point;
+    },
+    decide(decision) {
+      const next = pending?.[0];
+      if (point.kind !== "decision" || !next) {
+        throw new Error("The run is not waiting for a decision");
+      }
+      const { lever, fireable } = next;
+      if ("wait" in decision) {
+        if (!lever.allowWait) {
+          throw new Error(`Lever "${lever.id}" does not allow waiting`);
+        }
+        if (decision.wait !== true) {
+          const duration = decision.wait.for;
+          if (!Number.isFinite(duration) || duration <= 0) {
+            throw new Error("A wait must be for a finite positive duration");
+          }
+          resumeAt.set(lever.id, simulation.currentTime + duration);
+        }
+      } else {
+        if (!fireable.includes(decision.fire)) {
+          throw new Error(
+            `Transition "${decision.fire}" of lever "${lever.id}" cannot fire now`,
+          );
+        }
+        if (decision.outcome) {
+          outcomes.set(
+            decision.fire,
+            resolveOutcome(decision.fire, decision.outcome),
+          );
+        }
+        chosen.add(decision.fire);
+      }
+      pending!.shift();
+      point = advance();
+      return point;
+    },
+    frame: currentFrame,
+    metrics: () => args.evaluateMetrics(currentFrame()),
+    integrals: () => ({ ...integrals }),
+    fork: (seed) =>
+      createControlledRun({
+        ...args,
+        forkOf: {
+          simulation: {
+            ...simulation,
+            ...(seed === undefined ? {} : { rngState: seed }),
+          },
+          steps,
+          completionReason,
+          chosen,
+          outcomes,
+          pending,
+          resumeAt,
+          integrals,
+        },
+      }),
+  };
 }
 
 /**
@@ -383,32 +793,7 @@ export function compilePetrinautModel(
         maxTime?: number | null;
         maxSteps?: number;
       } = (runConfig as PetrinautRunConfig | undefined) ?? {};
-      const seed = runtimeConfig.seed ?? generateSeed();
-      const dt = runtimeConfig.dt ?? 1;
-      const maxTime = runtimeConfig.maxTime ?? null;
-      const maxSteps = runtimeConfig.maxSteps;
-      if (!Number.isInteger(seed) || seed < 0 || seed > MAX_SEED) {
-        throw new Error(
-          `Run config seed must be an integer between 0 and ${MAX_SEED}`,
-        );
-      }
-      if (maxTime === null && maxSteps === undefined) {
-        throw new Error("Run config requires either maxTime or maxSteps");
-      }
-      if (maxTime !== null && (!Number.isFinite(maxTime) || maxTime < 0)) {
-        throw new Error(
-          "Run config maxTime must be a finite non-negative number or null",
-        );
-      }
-      if (!Number.isFinite(dt) || dt <= 0) {
-        throw new Error("Run config dt must be a finite positive number");
-      }
-      if (
-        maxSteps !== undefined &&
-        (!Number.isInteger(maxSteps) || maxSteps < 0)
-      ) {
-        throw new Error("Run config maxSteps must be a non-negative integer");
-      }
+      const { seed, dt, maxTime, maxSteps } = resolveRunLimits(runtimeConfig);
 
       const metrics = resolveMetrics({
         sdcpn,
@@ -513,6 +898,45 @@ export function compilePetrinautModel(
         finalPlaceTokenCounts,
         metrics: evaluateMetrics(metrics, finalFrameReader),
       };
+    },
+    startControlledRun(controlledRunConfig) {
+      const { seed, dt, maxTime, maxSteps } =
+        resolveRunLimits(controlledRunConfig);
+      const parameterValues = resolveNetParameterValues(
+        sdcpn.parameters,
+        controlledRunConfig.parameterValues ?? {},
+        extensions.parameters,
+      );
+      const metrics = resolveMetrics({
+        sdcpn,
+        artifacts,
+        metricNamesOrIds: controlledRunConfig.metrics ?? [],
+        parameterValues,
+      });
+      const integrands = resolveMetrics({
+        sdcpn,
+        artifacts,
+        metricNamesOrIds: controlledRunConfig.integrate ?? [],
+        parameterValues,
+      });
+
+      return createControlledRun({
+        simulation: buildSimulation({
+          sdcpn,
+          extensions,
+          initialMarking: controlledRunConfig.initialMarking ?? {},
+          parameterValues: controlledRunConfig.parameterValues ?? {},
+          seed,
+          dt,
+          maxTime,
+          hirArtifacts: artifacts,
+        }),
+        levers: controlledRunConfig.levers,
+        maxTime,
+        maxSteps,
+        evaluateMetrics: (frame) => evaluateMetrics(metrics, frame),
+        evaluateIntegrands: (frame) => evaluateMetrics(integrands, frame),
+      });
     },
   };
 }

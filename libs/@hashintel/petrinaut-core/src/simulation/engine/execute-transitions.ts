@@ -4,9 +4,11 @@ import {
 } from "../frames/internal-frame";
 import { computePossibleTransition } from "./compute-possible-transition";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
+import { createTokenRegionViews, writeTokenValue } from "./token-layout";
 
 import type { ID } from "../../types/sdcpn";
 import type {
+  CompiledTransition,
   EngineFrame,
   EngineFrameLayout,
   EngineFrameSnapshot,
@@ -137,6 +139,59 @@ function addTokensToSimulationFrame(
 }
 
 /**
+ * Field values a controller sets on the tokens a chosen transition adds,
+ * keyed by output place id, then field name. They overwrite what the
+ * transition's kernel wrote, on every token it adds to that place.
+ */
+export type TransitionOutcome = Readonly<
+  Record<ID, Readonly<Record<string, number>>>
+>;
+
+/**
+ * The transitions a controller decides, for one frame.
+ */
+export type TransitionControl = {
+  /** Transitions that fire only when chosen. */
+  controlled: ReadonlySet<ID>;
+  /** Controlled transitions chosen for this frame. */
+  chosen: ReadonlySet<ID>;
+  /** Outcomes of chosen transitions, by transition id. */
+  outcomes: ReadonlyMap<ID, TransitionOutcome>;
+};
+
+function applyOutcome(
+  add: Record<PlaceID, Uint8Array[]>,
+  outcome: TransitionOutcome,
+  transition: CompiledTransition,
+): void {
+  for (const [placeId, values] of Object.entries(outcome)) {
+    const fields =
+      transition.outputPlaces.find((place) => place.placeId === placeId)
+        ?.tokenLayout?.fields ?? [];
+    for (const [name, value] of Object.entries(values)) {
+      const field = fields.find((candidate) => candidate.element.name === name);
+      if (!field) {
+        throw new Error(
+          `Transition ${transition.id} adds no tokens with field "${name}" to place ${placeId}`,
+        );
+      }
+      for (const block of add[placeId] ?? []) {
+        writeTokenValue(
+          field,
+          createTokenRegionViews(
+            block.buffer,
+            block.byteOffset,
+            block.byteLength,
+          ),
+          0,
+          value,
+        );
+      }
+    }
+  }
+}
+
+/**
  * Result of executing transitions on a frame.
  */
 export type ExecuteTransitionsResult = {
@@ -169,6 +224,7 @@ export function executeTransitions(
   simulation: SimulationInstance,
   dt: number,
   rngState: number,
+  control: TransitionControl | null = null,
 ): ExecuteTransitionsResult {
   // Map to accumulate all tokens to add: PlaceID -> array of token byte blocks
   const tokensToAdd = new Map<PlaceID, Uint8Array[]>();
@@ -190,8 +246,18 @@ export function executeTransitions(
   // Track current RNG state
   let currentRngState = rngState;
 
-  // Iterate through all transitions in the frame
-  for (const transitionId of simulation.frameLayout.transitionIds) {
+  // Chosen transitions go first, so that net-controlled transitions cannot take
+  // their input tokens within the frame. Unchosen controlled transitions do not fire.
+  const { transitionIds } = simulation.frameLayout;
+  const evaluationOrder =
+    control === null
+      ? transitionIds
+      : [
+          ...transitionIds.filter((id) => control.chosen.has(id)),
+          ...transitionIds.filter((id) => !control.controlled.has(id)),
+        ];
+
+  for (const transitionId of evaluationOrder) {
     // Compute if this transition can fire based on the current state
     const { firing, newRngState } = computePossibleTransition(
       currentFrame,
@@ -199,6 +265,7 @@ export function executeTransitions(
       transitionId,
       currentRngState,
       pendingOutputCounts,
+      control?.chosen.has(transitionId) ?? false,
     );
 
     // Every evaluation's randomness is consumed, fired or not — reusing the
@@ -208,6 +275,15 @@ export function executeTransitions(
     if (firing !== null) {
       // Transition fired!
       transitionsFired.add(transitionId);
+
+      const outcome = control?.outcomes.get(transitionId);
+      if (outcome) {
+        applyOutcome(
+          firing.add,
+          outcome,
+          simulation.compiledTransitions.get(transitionId)!,
+        );
+      }
 
       // Immediately remove tokens from the current frame
       // Convert the result.remove Record to a Map
