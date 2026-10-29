@@ -32,7 +32,7 @@ use core::{
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash, ApiTokenType, ApiTokenVersion};
-use hash_secret::{Secret, digest::sha256, random::random_bytes};
+use hash_secret::{Secret, digest::Sha256Digest, random::random_bytes};
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
@@ -395,7 +395,7 @@ impl FromStr for HashedApiToken {
 
 /// The SHA-256 hash of `secret`.
 fn hash_secret(secret: &[u8]) -> ApiTokenSecretHash {
-    ApiTokenSecretHash::new(sha256(secret))
+    ApiTokenSecretHash::new(Sha256Digest::of(secret).to_bytes())
 }
 
 /// Writes the `Display` output of a token: the token up to the first
