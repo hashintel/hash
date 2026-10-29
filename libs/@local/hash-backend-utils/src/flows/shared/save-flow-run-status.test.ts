@@ -33,11 +33,10 @@ const patchedPaths = (patches: ReturnType<typeof getFlowRunStatusPatches>) =>
   patches.map(({ op, path }) => `${op} ${path.join(".")}`);
 
 describe("getFlowRunStatusPatches", () => {
-  it("patches nothing when the entity holds the status, whatever moment its times are from", () => {
+  it("patches nothing when the entity holds the status, whatever moment its close time is from", () => {
     expect(
       getFlowRunStatusPatches(completedEntity, {
         status: FlowRunStatus.Completed,
-        startedAt: "2026-10-26T09:59:59.000Z",
         closedAt: "2026-10-26T10:05:01.000Z",
       }),
     ).toEqual([]);
@@ -48,7 +47,6 @@ describe("getFlowRunStatusPatches", () => {
       patchedPaths(
         getFlowRunStatusPatches(runningEntity, {
           status: FlowRunStatus.Terminated,
-          startedAt: "2026-10-26T10:00:00.000Z",
           closedAt: "2026-10-26T10:07:00.000Z",
         }),
       ),
@@ -63,28 +61,11 @@ describe("getFlowRunStatusPatches", () => {
       patchedPaths(
         getFlowRunStatusPatches(completedEntity, {
           status: FlowRunStatus.Running,
-          startedAt: "2026-10-26T10:00:00.000Z",
         }),
       ),
     ).toEqual([
       "add https://hash.ai/@h/types/property-type/status/",
       "remove https://hash.ai/@h/types/property-type/closed-at/",
-    ]);
-  });
-
-  it("saves all of them on an entity that doesn't hold a status yet", () => {
-    expect(
-      patchedPaths(
-        getFlowRunStatusPatches(entityHolding({}), {
-          status: FlowRunStatus.Completed,
-          startedAt: "2026-10-26T10:00:00.000Z",
-          closedAt: "2026-10-26T10:05:00.000Z",
-        }),
-      ),
-    ).toEqual([
-      "add https://hash.ai/@h/types/property-type/status/",
-      "add https://hash.ai/@h/types/property-type/started-at/",
-      "add https://hash.ai/@h/types/property-type/closed-at/",
     ]);
   });
 });
@@ -109,11 +90,7 @@ describe("getFlowRunStatusFieldsToCorrect", () => {
         ...runningHeader,
         runId: "run-2",
         startedAt: "2026-10-26T11:00:00.000Z",
-        firstRunStartedAt: "2026-10-26T10:00:00.000Z",
       }),
-    ).toEqual({
-      status: FlowRunStatus.Running,
-      startedAt: "2026-10-26T10:00:00.000Z",
-    });
+    ).toEqual({ status: FlowRunStatus.Running });
   });
 });

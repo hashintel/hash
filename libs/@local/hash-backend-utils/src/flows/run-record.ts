@@ -44,10 +44,6 @@ export type FlowRunHistoryRecord = {
     closeTime?: string | null;
   };
   history: IHistoryEvent[];
-  /**
-   * When the run's first execution started, if this run was started by resetting or continuing it.
-   */
-  originalRunStartTime?: string;
 };
 
 const findHistoryEvent = (
@@ -57,7 +53,7 @@ const findHistoryEvent = (
 
 /** A run's record, from its Temporal description and history. */
 export const getFlowRunRecordFromHistory = (
-  { describe, history, originalRunStartTime }: FlowRunHistoryRecord,
+  { describe, history }: FlowRunHistoryRecord,
   { workflowId }: { workflowId: string },
 ): FlowRunRecord => {
   const events = buildFlowRunEvents(history);
@@ -81,9 +77,6 @@ export const getFlowRunRecordFromHistory = (
         findRunFinishedEvent(events)?.status ??
         (describe.status as FlowRunStatus),
       startedAt: describe.startTime,
-      ...(originalRunStartTime
-        ? { firstRunStartedAt: originalRunStartTime }
-        : {}),
       ...(describe.closeTime ? { closedAt: describe.closeTime } : {}),
       ...("dataSources" in workflowParams
         ? { dataSources: workflowParams.dataSources }
@@ -147,33 +140,6 @@ const readFlowRunHistoryRecord = async ({
       })
     : await readFlowRunHistoryEvents({ temporalClient, workflowId, runId });
 
-  /**
-   * If this workflow run has been started after the original was reset or 'continue-as-new'd,
-   * its start time will be the point at which it was reset/continued.
-   * We can check if it has a different firstExecutionRunId and if so, get the start time of the original run.
-   */
-  let originalRunStartTime: string | undefined;
-  const firstExecutionRunId = findHistoryEvent(
-    history,
-    EventType.EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
-  )?.workflowExecutionStartedEventAttributes?.firstExecutionRunId;
-
-  if (firstExecutionRunId && firstExecutionRunId !== runId) {
-    try {
-      const originalRun = await temporalClient.workflow
-        .getHandle(workflowId, firstExecutionRunId)
-        .describe();
-
-      originalRunStartTime = originalRun.startTime.toISOString();
-    } catch {
-      /* The original run is no longer retained by Temporal. */
-      // eslint-disable-next-line no-console
-      console.warn(
-        `Could not find original run with id ${firstExecutionRunId} for workflow ${workflowId}`,
-      );
-    }
-  }
-
   return {
     describe: {
       runId,
@@ -182,7 +148,6 @@ const readFlowRunHistoryRecord = async ({
       closeTime: workflow.closeTime?.toISOString(),
     },
     history,
-    originalRunStartTime,
   };
 };
 

@@ -98,22 +98,9 @@ const createTemporalClient = (fixture: FlowRunHistoryRecord | "notFound") => {
     },
   );
 
-  /* A run started by a reset looks up when the workflow's first run started. */
-  const getHandle = (_workflowId: string, runId?: string) =>
-    fixture !== "notFound" && runId && runId !== fixture.describe.runId
-      ? {
-          describe: () =>
-            fixture.originalRunStartTime
-              ? Promise.resolve({
-                  startTime: new Date(fixture.originalRunStartTime),
-                })
-              : Promise.reject(new Error(`No run ${runId}`)),
-        }
-      : { describe: describeWorkflow };
-
   return {
     temporalClient: {
-      workflow: { getHandle },
+      workflow: { getHandle: () => ({ describe: describeWorkflow }) },
       workflowService: {
         getWorkflowExecutionHistory,
         getWorkflowExecutionHistoryReverse,

@@ -20,14 +20,14 @@ export type FlowRunStatusFields = {
   closedAt?: string;
 };
 
+/** The status fields a run saves as it goes on. Its start time is saved once, as its entity is created. */
+export type FlowRunStatusUpdate = Omit<FlowRunStatusFields, "startedAt">;
+
 export const getFlowRunStatusFieldsFromRecordHeader = ({
   status,
-  startedAt,
-  firstRunStartedAt,
   closedAt,
-}: FlowRunRecordHeader): FlowRunStatusFields => ({
+}: FlowRunRecordHeader): FlowRunStatusUpdate => ({
   status,
-  startedAt: firstRunStartedAt ?? startedAt,
   ...(closedAt ? { closedAt } : {}),
 });
 
@@ -94,12 +94,13 @@ export const mapFlowRunStatusToEntityProperties = ({
 };
 
 /**
- * The patches that make a run's entity hold `fields`, which are none if it already does. Its times are only replaced
- * when its status changes, as the run's workflow and its record can each take a slightly different moment for them.
+ * The patches that make a run's entity hold the given status fields, which are none if it already does. Its close
+ * time is only replaced when its status changes, as the run's workflow and its record can each take a slightly
+ * different moment for it.
  */
 export const getFlowRunStatusPatches = (
   { properties }: Pick<FlowRunEntity, "properties">,
-  { status, startedAt, closedAt }: FlowRunStatusFields,
+  { status, closedAt }: FlowRunStatusUpdate,
 ): PropertyPatchOperation[] => {
   const statusChanged =
     properties["https://hash.ai/@h/types/property-type/status/"] !== status;
@@ -114,16 +115,6 @@ export const getFlowRunStatusPatches = (
             op: "add" as const,
             path: [systemPropertyTypes.status.propertyTypeBaseUrl],
             property: statusProperty(status),
-          },
-        ]
-      : []),
-    ...(properties["https://hash.ai/@h/types/property-type/started-at/"] ===
-    undefined
-      ? [
-          {
-            op: "add" as const,
-            path: [systemPropertyTypes.startedAt.propertyTypeBaseUrl],
-            property: dateTimeProperty(startedAt),
           },
         ]
       : []),
@@ -153,7 +144,7 @@ export const saveFlowRunStatus = async ({
   graphApiClient,
   userAuthentication,
 }: {
-  fields: FlowRunStatusFields;
+  fields: FlowRunStatusUpdate;
   flowRunEntity: HashEntity<FlowRunEntity>;
   graphApiClient: GraphApi;
   userAuthentication: { actorId: ActorEntityUuid };
@@ -184,7 +175,7 @@ export const saveFlowRunStatus = async ({
 export const getFlowRunStatusFieldsToCorrect = (
   { properties }: Pick<FlowRunEntity, "properties">,
   header: FlowRunRecordHeader,
-): FlowRunStatusFields | null => {
+): FlowRunStatusUpdate | null => {
   const entityClosedAt =
     properties["https://hash.ai/@h/types/property-type/closed-at/"];
 

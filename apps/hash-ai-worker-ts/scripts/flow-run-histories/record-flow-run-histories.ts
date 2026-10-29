@@ -76,19 +76,6 @@ const recordRun = async (
     handle.fetchHistory(),
   ]);
 
-  const firstExecutionRunId =
-    history.events?.[0]?.workflowExecutionStartedEventAttributes
-      ?.firstExecutionRunId;
-
-  const originalRunStartTime =
-    firstExecutionRunId && firstExecutionRunId !== description.runId
-      ? (
-          await client.workflow
-            .getHandle(workflowId, firstExecutionRunId)
-            .describe()
-        ).startTime.toISOString()
-      : undefined;
-
   mkdirSync(fixturesDirectory, { recursive: true });
   writeFileSync(
     path.join(fixturesDirectory, `${fixtureName}.json`),
@@ -102,7 +89,6 @@ const recordRun = async (
           closeTime: description.closeTime?.toISOString() ?? null,
           memo: description.memo ?? {},
         },
-        ...(originalRunStartTime ? { originalRunStartTime } : {}),
         /*
          * `historyToJSON` throws on payload metadata with the version of `proto3-json-serializer` installed, so the
          * history is written as protobuf.js writes it, which `History.fromObject` reads.
