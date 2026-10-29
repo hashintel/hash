@@ -1,12 +1,10 @@
 import {
   systemDataTypes,
-  systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import type {
   ActorEntityUuid,
-  BaseUrl,
   PropertyPatchOperation,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -33,10 +31,11 @@ export const getFlowRunStatusFieldsFromRecordHeader = ({
   ...(closedAt ? { closedAt } : {}),
 });
 
-/** The status fields a run's entity holds. A run that hasn't saved its status yet has none. */
+/** The status fields a run's entity holds, which it's created with. */
 export const getFlowRunStatusFieldsFromEntity = ({
+  metadata,
   properties,
-}: Pick<FlowRunEntity, "properties">): FlowRunStatusFields | null => {
+}: HashEntity<FlowRunEntity>): FlowRunStatusFields => {
   const status = properties["https://hash.ai/@h/types/property-type/status/"];
   const startedAt =
     properties["https://hash.ai/@h/types/property-type/started-at/"];
@@ -44,7 +43,9 @@ export const getFlowRunStatusFieldsFromEntity = ({
     properties["https://hash.ai/@h/types/property-type/closed-at/"];
 
   if (!status || !startedAt) {
-    return null;
+    throw new Error(
+      `Flow run ${metadata.recordId.entityId} has no status or start time`,
+    );
   }
 
   return {
@@ -146,9 +147,6 @@ export const getFlowRunStatusPatches = (
   ];
 };
 
-const stepPropertyBaseUrl =
-  "https://hash.ai/@h/types/property-type/step/" as BaseUrl;
-
 export const saveFlowRunStatus = async ({
   fields,
   flowRunEntity,
@@ -166,22 +164,8 @@ export const saveFlowRunStatus = async ({
     return;
   }
 
-  const flowRunEntityTypeId = systemEntityTypes.flowRun.entityTypeId;
-  const isOfCurrentType =
-    flowRunEntity.metadata.entityTypeIds.includes(flowRunEntityTypeId);
-
   await flowRunEntity.patch(graphApiClient, userAuthentication, {
-    /* An entity of the previous `Flow Run` type can't hold a status, and holds a `Step` that the current type doesn't. */
-    ...(isOfCurrentType ? {} : { entityTypeIds: [flowRunEntityTypeId] }),
-    propertyPatches: [
-      ...(!isOfCurrentType &&
-      (flowRunEntity.properties as Record<BaseUrl, unknown>)[
-        stepPropertyBaseUrl
-      ] !== undefined
-        ? [{ op: "remove" as const, path: [stepPropertyBaseUrl] }]
-        : []),
-      ...propertyPatches,
-    ],
+    propertyPatches,
     provenance: {
       actorType: "machine",
       origin: {

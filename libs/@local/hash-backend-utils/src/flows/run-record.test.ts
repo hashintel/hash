@@ -18,7 +18,6 @@ import { getFlowRunRecordStorageKey } from "../file-storage.js";
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 import { createRunningFlowRunHistoryCache } from "./run-events/running-flow-run-history-cache.js";
 import {
-  FlowRunRecordNotFoundError,
   getFlowRunRecord,
   getFlowRunRecordFromHistory,
   recordEndedFlowRun,
@@ -303,7 +302,7 @@ describe("getFlowRunRecord", () => {
 
     await expect(
       getFlowRunRecord({ temporalClient, storageProvider, workflowId }),
-    ).rejects.toBeInstanceOf(FlowRunRecordNotFoundError);
+    ).rejects.toThrow("no longer in Temporal");
   });
 
   it("reads each run once per cache", async () => {

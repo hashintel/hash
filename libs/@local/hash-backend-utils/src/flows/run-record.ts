@@ -267,15 +267,6 @@ export const recordEndedFlowRun = async ({
   return record;
 };
 
-export class FlowRunRecordNotFoundError extends Error {
-  constructor(workflowId: string) {
-    super(
-      `Flow run ${workflowId} is no longer in Temporal, and has no stored record`,
-    );
-    this.name = "FlowRunRecordNotFoundError";
-  }
-}
-
 /**
  * Records being read or already read, by workflow id, so the fields of one GraphQL request read each run once. Create
  * one per request: a running run's record goes stale as the run goes on.
@@ -315,7 +306,9 @@ const readFlowRunRecord = async ({
     });
 
     if (!storedRecord) {
-      throw new FlowRunRecordNotFoundError(workflowId);
+      throw new Error(
+        `Flow run ${workflowId} is no longer in Temporal, and has no stored record`,
+      );
     }
 
     return storedRecord;

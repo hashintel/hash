@@ -13,10 +13,7 @@ import type { GraphQLContext } from "../../context";
 export const getFlowRunByIdResolver: ResolverFn<
   FlowRunSummary,
   Record<string, never>,
-  Pick<
-    GraphQLContext,
-    "authentication" | "dataSources" | "flowRunRecords" | "temporal"
-  >,
+  Pick<GraphQLContext, "authentication" | "dataSources">,
   QueryGetFlowRunByIdArgs
 > = async (_parent, args, context) => {
   const { flowRunEntityId } = args;
@@ -24,9 +21,6 @@ export const getFlowRunByIdResolver: ResolverFn<
   const flowRun = await getFlowRunById({
     flowRunEntityId,
     graphApiClient: context.dataSources.graphApi,
-    recordsByWorkflowId: context.flowRunRecords,
-    storageProvider: context.dataSources.uploadProvider,
-    temporalClient: context.temporal,
     userAuthentication: context.authentication,
   });
 
