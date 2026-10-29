@@ -70,7 +70,6 @@ rkyv                      = { workspace = true, public = true, features = ["poin
 roaring                   = { workspace = true, features = ["std"] }
 serde                     = { workspace = true, features = ["derive"] }
 serde_json                = { workspace = true, features = ["float_roundtrip", "raw_value"] }
-sha2                      = { workspace = true }
 simple-mermaid            = { workspace = true }
 siphasher                 = { workspace = true }
 smallvec                  = { workspace = true }
