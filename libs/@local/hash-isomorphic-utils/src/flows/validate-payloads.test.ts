@@ -85,6 +85,12 @@ describe("validateFlowInputs", () => {
     expect(validateInputs({ query: { kind: "Number", value: 1 } })).toBe(
       `Flow input "query" must be of kind Text, but is of kind Number`,
     );
+
+    expect(
+      validateInputs({
+        query: { kind: JSON.parse(`{ "toString": null }`), value: "a" },
+      }),
+    ).toBe(`Flow input "query" must be of kind Text`);
   });
 
   it("rejects an invalid value, with the path to it", () => {

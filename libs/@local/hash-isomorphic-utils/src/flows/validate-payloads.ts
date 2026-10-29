@@ -90,7 +90,10 @@ export const validateFlowInputs = ({
     }
 
     if (payload.kind !== payloadKind) {
-      return `Flow input "${name}" must be of kind ${payloadKind}, but is of kind ${String(payload.kind)}`;
+      /* Not coerced to a string, which throws for e.g. `{ "toString": null }`. */
+      return typeof payload.kind === "string"
+        ? `Flow input "${name}" must be of kind ${payloadKind}, but is of kind ${payload.kind}`
+        : `Flow input "${name}" must be of kind ${payloadKind}`;
     }
 
     const problem = validatePayloadValue({
