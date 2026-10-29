@@ -3,11 +3,11 @@
  *
  * Export types derive from the bound declarations, without a second list of semantic annotations. Generated declarations can supply the same module, type and value tables. This default includes primitive types, List, Dict, UUID identities, equality and addition. It is not a complete standard-library binding.
  *
- * This module also re-exports the semantic types of the declarations, such as `Prelude.Uuid` and the `Prelude.Arithmetic` signature.
+ * This module also re-exports the semantic types of the declarations, such as {@link Semantic.Uuid | Prelude.Uuid} and the {@link Semantic.Arithmetic | Prelude.Arithmetic} signature.
  *
  * @module
  */
-import { Result, pipe } from "effect";
+import { Result } from "effect";
 
 import * as Module from "./Module.js";
 import * as Scope from "./Scope.js";
@@ -88,25 +88,19 @@ const arithmeticDeclarations: {
   };
 } = { values: { add: Module.value() } };
 
-const primitives: Module.Module<typeof primitiveDeclarations> = pipe(
-  Module.define("::kernel::type", primitiveDeclarations),
-  Result.getOrThrow,
-);
-const uuid: Module.Module<typeof uuidDeclarations> = pipe(
+const primitives: Module.Module<typeof primitiveDeclarations> =
+  Result.getOrThrow(Module.define("::kernel::type", primitiveDeclarations));
+const uuid: Module.Module<typeof uuidDeclarations> = Result.getOrThrow(
   Module.define("::core::uuid", uuidDeclarations),
-  Result.getOrThrow,
 );
-const entity: Module.Module<typeof entityDeclarations> = pipe(
+const entity: Module.Module<typeof entityDeclarations> = Result.getOrThrow(
   Module.define("::graph::types::knowledge::entity", entityDeclarations),
-  Result.getOrThrow,
 );
-const cmp: Module.Module<typeof comparisonDeclarations> = pipe(
+const cmp: Module.Module<typeof comparisonDeclarations> = Result.getOrThrow(
   Module.define("::core::cmp", comparisonDeclarations),
-  Result.getOrThrow,
 );
-const math: Module.Module<typeof arithmeticDeclarations> = pipe(
+const math: Module.Module<typeof arithmeticDeclarations> = Result.getOrThrow(
   Module.define("::core::math", arithmeticDeclarations),
-  Result.getOrThrow,
 );
 
 /**
@@ -139,7 +133,7 @@ export interface Builtin extends Scope.Scope<{
  * - `values` holds the constructors `Uuid` and `EntityUuid` at the same paths as their types, `eq` at `::core::cmp::eq` and `add` at `::core::math::add`.
  * - `modules` holds `uuid` at `::core::uuid`, `entity` at `::graph::types::knowledge::entity`, `cmp` at `::core::cmp` and `math` at `::core::math`. The `::kernel::type` module that declares the primitive types is not among them.
  *
- * `List` and `Dict` accept structural shorthand as well as type expressions, so `List(String)` and `List(Prelude.builtin.types.String)` emit the same type. `eq` accepts operands of any two types, which need not match. `add` accepts Integer and Number operands, as `Prelude.Arithmetic` describes. The SDK takes these signatures on trust, and the HashQL compiler checks the emitted calls.
+ * `List` and `Dict` accept structural shorthand as well as type expressions, so `List(String)` and `List(Prelude.builtin.types.String)` emit the same type. `eq` accepts operands of any two types, which need not match. `add` accepts Integer and Number operands, as {@link Semantic.Arithmetic | Prelude.Arithmetic} describes. The SDK takes these signatures on trust, and the HashQL compiler checks the emitted calls.
  *
  * @example <caption>Use built-in types and functions outside a program callback.</caption>
  * ```ts
