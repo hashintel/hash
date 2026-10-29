@@ -673,6 +673,9 @@ const processFlow = async (
           message: `Step ${currentStepId} can't iterate over its array: ${(error as Error).message}`,
         };
 
+        /* A step with an array to iterate over is ready, so it would be processed again on every pass. */
+        processedStepIds.push(currentStep.stepId);
+
         return;
       }
 
