@@ -20,6 +20,7 @@ import { createRunningFlowRunHistoryCache } from "./run-events/running-flow-run-
 import {
   getFlowRunRecord,
   getFlowRunRecordFromHistory,
+  getStoredFlowRunRecordKey,
   recordEndedFlowRun,
 } from "./run-record.js";
 
@@ -124,17 +125,23 @@ const createStorageProvider = (storedRecord?: FlowRunRecord) => {
       : [],
   );
 
+  const downloadDirect = vi.fn(({ key }: { key: string }) =>
+    Promise.resolve(Buffer.from(objects.get(key) ?? "")),
+  );
+
   return {
     storageProvider: {
       uploadDirect: ({ key, body }: { key: string; body: string }) => {
         objects.set(key, body);
         return Promise.resolve();
       },
-      downloadDirect: ({ key }: { key: string }) =>
-        Promise.resolve(Buffer.from(objects.get(key) ?? "")),
+      downloadDirect,
+      readFirstLine: ({ key }: { key: string }) =>
+        Promise.resolve(objects.get(key)?.split("\n")[0] ?? null),
       getObjectLastModified: ({ key }: { key: string }) =>
         Promise.resolve(objects.has(key) ? new Date() : null),
     } as unknown as FileStorageProvider,
+    downloadDirect,
     readStoredRecord: () => {
       const contents = objects.get(getFlowRunRecordStorageKey(workflowId));
       return contents === undefined ? undefined : parseFlowRunRecord(contents);
@@ -315,6 +322,108 @@ describe("getFlowRunRecord", () => {
 
     expect(second).toBe(first);
     expect(describeWorkflow).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("getStoredFlowRunRecordKey", () => {
+  const key = getFlowRunRecordStorageKey(workflowId);
+
+  it("has no key for a running run, without reading its history", async () => {
+    const { temporalClient, getWorkflowExecutionHistory } =
+      createTemporalClient(loadFixture("in-progress"));
+    const { storageProvider, readStoredRecord } = createStorageProvider();
+
+    await expect(
+      getStoredFlowRunRecordKey({
+        temporalClient,
+        storageProvider,
+        workflowId,
+      }),
+    ).resolves.toBeNull();
+    expect(getWorkflowExecutionHistory).not.toHaveBeenCalled();
+    expect(readStoredRecord()).toBeUndefined();
+  });
+
+  it("gives the key of the record a run wrote as it ended, before its workflow closes", async () => {
+    const fixture = loadFixture("succeeds");
+    const { temporalClient } = createTemporalClient({
+      ...fixture,
+      describe: { ...fixture.describe, status: "RUNNING", closeTime: null },
+    });
+    const { storageProvider } = createStorageProvider(
+      getFlowRunRecordFromHistory(fixture, { workflowId }),
+    );
+
+    await expect(
+      getStoredFlowRunRecordKey({
+        temporalClient,
+        storageProvider,
+        workflowId,
+      }),
+    ).resolves.toBe(key);
+  });
+
+  it("gives the key of a closed run's stored record without downloading it", async () => {
+    const fixture = loadFixture("succeeds");
+    const { temporalClient } = createTemporalClient(fixture);
+    const { storageProvider, downloadDirect } = createStorageProvider(
+      getFlowRunRecordFromHistory(fixture, { workflowId }),
+    );
+
+    await expect(
+      getStoredFlowRunRecordKey({
+        temporalClient,
+        storageProvider,
+        workflowId,
+      }),
+    ).resolves.toBe(key);
+    expect(downloadDirect).not.toHaveBeenCalled();
+  });
+
+  it("stores the record of a closed run that has none, and gives its key", async () => {
+    const fixture = loadFixture("succeeds");
+    const { temporalClient } = createTemporalClient(fixture);
+    const { storageProvider, readStoredRecord } = createStorageProvider();
+
+    await expect(
+      getStoredFlowRunRecordKey({
+        temporalClient,
+        storageProvider,
+        workflowId,
+      }),
+    ).resolves.toBe(key);
+    expect(readStoredRecord()).toStrictEqual(
+      getFlowRunRecordFromHistory(fixture, { workflowId }),
+    );
+  });
+
+  it("can't give a key for a closed run whose record can't be stored", async () => {
+    const { temporalClient } = createTemporalClient(loadFixture("succeeds"));
+    const { storageProvider } = createStorageProvider();
+    storageProvider.uploadDirect = () => Promise.reject(new Error("No access"));
+
+    await expect(
+      getStoredFlowRunRecordKey({
+        temporalClient,
+        storageProvider,
+        workflowId,
+      }),
+    ).rejects.toThrow("Could not store the record");
+  });
+
+  it("gives the key of a run Temporal no longer has, if it has a stored record", async () => {
+    const { temporalClient } = createTemporalClient("notFound");
+    const { storageProvider } = createStorageProvider(
+      getFlowRunRecordFromHistory(loadFixture("succeeds"), { workflowId }),
+    );
+
+    await expect(
+      getStoredFlowRunRecordKey({
+        temporalClient,
+        storageProvider,
+        workflowId,
+      }),
+    ).resolves.toBe(key);
   });
 });
 

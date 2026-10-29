@@ -9,7 +9,7 @@ import mime from "mime-types";
 
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
-import { getSafeContentType } from "../file-storage.js";
+import { getSafeContentType, readFirstLineOfStream } from "../file-storage.js";
 
 import type {
   FileStorageProvider,
@@ -273,6 +273,31 @@ export class AwsS3StorageProvider implements FileStorageProvider {
     }
 
     return Buffer.concat(chunks);
+  }
+
+  /** Read the first line of an object, stopping the download once it has it. */
+  async readFirstLine({ key }: { key: string }): Promise<string | null> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+    });
+
+    let response;
+
+    try {
+      response = await this.client.send(command);
+    } catch (error) {
+      if (error instanceof Error && error.name === "NoSuchKey") {
+        return null;
+      }
+      throw error;
+    }
+
+    if (!response.Body) {
+      throw new Error(`No body returned for S3 key: ${key}`);
+    }
+
+    return readFirstLineOfStream(response.Body as AsyncIterable<Uint8Array>);
   }
 
   /**
