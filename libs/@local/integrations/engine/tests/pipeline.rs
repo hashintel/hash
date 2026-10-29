@@ -603,7 +603,8 @@ async fn pipeline_converted_hashes() {
     let mut hashes = Vec::new();
     for sql in [
         "SELECT 1 AS ID, 'a' AS NAME, 1 AS NOISE",
-        "SELECT 1 AS ID, 'a' AS NAME, 2 AS NOISE",
+        "SELECT 2 AS ID, 'a' AS NAME, 2 AS NOISE",
+        "SELECT 2 AS ID, 'b' AS NAME, 2 AS NOISE",
     ] {
         stage(&workspace, sql).await;
         let prepared = workspace
@@ -623,12 +624,16 @@ async fn pipeline_converted_hashes() {
                 .clone(),
         );
     }
-    let [first, second] = hashes.as_slice() else {
-        panic!("two hashes should exist");
+    let [first, second, third] = hashes.as_slice() else {
+        panic!("three hashes should exist");
     };
-    assert_ne!(
+    assert_eq!(
         first, second,
-        "converted accessors should conservatively hash all data columns"
+        "converted accessors should exclude IDs and unmapped columns from the hash"
+    );
+    assert_ne!(
+        second, third,
+        "a changed coercion input should change the hash"
     );
     stage(&workspace, "SELECT 1 AS ID").await;
     let report = workspace
@@ -636,6 +641,52 @@ async fn pipeline_converted_hashes() {
         .await
         .expect_err("converted accessors should require their columns");
     assert!(report.frames().any(|frame| matches!(frame.downcast_ref::<PreparationError>(), Some(PreparationError::MissingColumn { column }) if column.as_ref() == "NAME")), "the missing accessor column should be reported: {report:?}");
+}
+
+#[tokio::test]
+async fn pipeline_measured_hashes() {
+    let directory = TempDir::new().expect("the directory should be created");
+    let workspace = open(&directory).await;
+    let definition = Definition::from_yaml(include_str!("fixtures/pipeline-measured.yaml"))
+        .expect("the measured property definition should parse");
+    let pipeline = definition
+        .entity_pipelines()
+        .first()
+        .expect("the definition should contain a pipeline");
+    let mut hashes = Vec::new();
+    for sql in [
+        "SELECT 1 AS ID, 10 AS AMOUNT, 'KG' AS UNIT, 1 AS NOISE",
+        "SELECT 2 AS ID, 10 AS AMOUNT, 'KG' AS UNIT, 2 AS NOISE",
+        "SELECT 2 AS ID, 11 AS AMOUNT, 'KG' AS UNIT, 2 AS NOISE",
+        "SELECT 2 AS ID, 11 AS AMOUNT, 'LB' AS UNIT, 2 AS NOISE",
+    ] {
+        stage(&workspace, sql).await;
+        let prepared = workspace
+            .prepare_pipeline(pipeline.clone(), "source".into(), BTreeMap::new())
+            .await
+            .expect("the sink should be prepared");
+        let table = &prepared.sinks.first().expect("the sink should exist").table;
+        let rows = workspace
+            .query(format!("SELECT _content_hash FROM \"{table}\"").into_boxed_str())
+            .await
+            .expect("the hash should be readable");
+        hashes.push(
+            rows.iter()
+                .next()
+                .and_then(|row| row.first())
+                .expect("the hash should exist")
+                .clone(),
+        );
+    }
+    let [first, second, third, fourth] = hashes.as_slice() else {
+        panic!("four hashes should exist");
+    };
+    assert_eq!(
+        first, second,
+        "measured accessors should exclude IDs and unmapped columns from the hash"
+    );
+    assert_ne!(second, third, "a changed amount should change the hash");
+    assert_ne!(third, fourth, "a changed unit should change the hash");
 }
 
 #[tokio::test]

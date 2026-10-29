@@ -203,37 +203,25 @@ impl Execution<'_> {
         }
     }
 
-    /// Adds the sink's content hash using mapped columns, or all data columns for converted
-    /// accessors.
+    /// Adds the sink's content hash using the columns its property accessors read.
     fn sink(&self, input: &str, sink: &EntitySink) -> Result<Box<str>, Report<PreparationError>> {
         let schema = self
             .connection
             .describe(&format!("SELECT * FROM {}", Identifier::new(input)))?;
         check_column(sink.entity_id.as_ref(), &schema)?;
         check_properties(&sink.properties, &schema)?;
-        let columns: Option<Vec<_>> = sink
+        let columns = sink
             .properties
             .iter()
-            .map(|(_, accessor)| match accessor {
-                Accessor::Column(column) => Some(column.as_ref()),
-                Accessor::Coerce { .. } | Accessor::Measure { .. } => None,
+            .flat_map(|(_, accessor)| match accessor {
+                Accessor::Column(column) => [Some((column.as_ref(), true)), None],
+                Accessor::Coerce { column, .. } => [Some((column.as_ref(), false)), None],
+                Accessor::Measure { amount, unit, .. } => {
+                    [Some((amount.as_ref(), false)), Some((unit.as_ref(), false))]
+                }
             })
-            .collect();
-        let hash = match columns {
-            Some(columns) => hash_expression(columns.into_iter(), &schema, true)?,
-            None => hash_expression(
-                schema
-                    .iter()
-                    .map(|(column, _)| column.as_str())
-                    .filter(|column| {
-                        !["_op", "_key", "_content_hash"]
-                            .iter()
-                            .any(|metadata| column.eq_ignore_ascii_case(metadata))
-                    }),
-                &schema,
-                false,
-            )?,
-        };
+            .flatten();
+        let hash = hash_expression(columns, &schema)?;
         let table = table_name();
         self.connection
             .create_table(
@@ -253,15 +241,14 @@ fn table_name() -> Box<str> {
     format!("_step/{}", Uuid::new_v4()).into_boxed_str()
 }
 
-/// Hashes fields in their supplied order, normalizing mapped text values as the sink does.
+/// Hashes accessor inputs in property order, normalizing plain text column mappings.
 fn hash_expression<'column>(
-    columns: impl Iterator<Item = &'column str>,
+    columns: impl Iterator<Item = (&'column str, bool)>,
     schema: &[(String, String)],
-    normalize: bool,
 ) -> Result<String, Report<PreparationError>> {
     let fields = columns
         .enumerate()
-        .map(|(index, column)| {
+        .map(|(index, (column, normalize))| {
             let (_, kind) = schema
                 .iter()
                 .find(|(name, _)| name.eq_ignore_ascii_case(column))
