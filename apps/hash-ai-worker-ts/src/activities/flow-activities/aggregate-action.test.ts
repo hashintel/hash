@@ -72,7 +72,7 @@ const storedEntities = async (scores: number[]): Promise<Payload> => ({
     kind: "ProposedEntity",
     value: scores.map((score, index) =>
       createProposedEntity({
-        localEntityId: `entity-${index}` as EntityId,
+        localEntityId: `entity-${index}`,
         properties: { [scoreUrl]: score },
       }),
     ),

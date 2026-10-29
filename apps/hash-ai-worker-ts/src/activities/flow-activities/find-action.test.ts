@@ -90,7 +90,7 @@ const hasSummary = (summary: string): FilterCondition => ({
 const entities = ["A", "B", "B"].map((summary, index) =>
   createProposedEntity({
     summary,
-    localEntityId: `entity-${index}` as EntityId,
+    localEntityId: `entity-${index}`,
   }),
 );
 
@@ -172,7 +172,7 @@ describe("findAction", () => {
     } as unknown as Awaited<ReturnType<typeof queryEntityTypeSubgraph>>);
     const proposed = ["person", "startup", "company"].map((name) =>
       createProposedEntity({
-        localEntityId: name as EntityId,
+        localEntityId: name,
         entityTypeIds: [typeUrl(name, 1)],
       }),
     );

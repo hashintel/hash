@@ -9,7 +9,6 @@ import { StatusCode } from "@local/status";
 import { createProposedEntity } from "../../shared/testing-utilities/create-proposed-entity.js";
 import { takeFirstAction } from "./take-first-action.js";
 
-import type { EntityId } from "@blockprotocol/type-system";
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type {
   Payload,
@@ -58,7 +57,7 @@ const run = (items: Payload, count: number) =>
 const entities = ["A", "B", "C"].map((summary, index) =>
   createProposedEntity({
     summary,
-    localEntityId: `entity-${index}` as EntityId,
+    localEntityId: `entity-${index}`,
   }),
 );
 

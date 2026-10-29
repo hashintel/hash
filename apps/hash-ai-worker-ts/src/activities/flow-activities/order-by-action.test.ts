@@ -87,7 +87,7 @@ describe("orderByAction", () => {
     const entities = ["B", "C", "A"].map((summary, index) =>
       createProposedEntity({
         summary,
-        localEntityId: `entity-${index}` as EntityId,
+        localEntityId: `entity-${index}`,
       }),
     );
 

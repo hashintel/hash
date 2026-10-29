@@ -89,7 +89,7 @@ describe("filterListAction", () => {
     const entities = ["A", "B", "A", "C"].map((summary, index) =>
       createProposedEntity({
         summary,
-        localEntityId: `entity-${index}` as EntityId,
+        localEntityId: `entity-${index}`,
       }),
     );
 
