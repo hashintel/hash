@@ -61,6 +61,7 @@ export const flowTypedef = gql`
   scalar CreateFlowScheduleInput
   scalar UpdateFlowScheduleInput
   scalar FlowRunEvent
+  scalar FlowDefinitionDiagnostic
 
   type FlowRunOutput {
     outputName: String!
@@ -241,6 +242,31 @@ export const flowTypedef = gql`
     keptUpTo: String
   }
 
+  """
+  A flow definition as saved. A definition is saved even when it isn't valid yet, so that it can be finished later,
+  but it can only run once none of its diagnostics is an error.
+  """
+  type FlowDefinitionSaveResult {
+    """
+    The entity id of the Flow Definition entity holding the definition.
+    """
+    flowDefinitionEntityId: EntityId!
+    """
+    The edition of the Flow Definition entity the save created, to give as \`expectedEditionId\` when saving it next.
+    """
+    editionId: EntityEditionId!
+    """
+    Every problem with the definition, including warnings, which don't stop it running. Each is a
+    \`FlowDefinitionDiagnostic\` from \`@local/hash-isomorphic-utils/flows/validate-flow-definition\`, with the id of the
+    step it's in, if any.
+    """
+    diagnostics: [FlowDefinitionDiagnostic!]!
+    """
+    Whether the flow can run: none of its diagnostics is an error.
+    """
+    isRunnable: Boolean!
+  }
+
   type PaginatedFlowRuns {
     """
     The flow runs for the requested page
@@ -320,6 +346,40 @@ export const flowTypedef = gql`
       response: ExternalInputResponseWithoutUser!
       flowRunEntityId: EntityId!
     ): Boolean!
+
+    """
+    Save a new flow definition in a web. It's saved even if it isn't valid yet, as long as it has the shape of one.
+    """
+    createFlowDefinition(
+      webId: WebId!
+      """
+      A \`FlowDefinition\` from \`@local/hash-isomorphic-utils/flows/types\`.
+      """
+      definition: JSONObject!
+    ): FlowDefinitionSaveResult!
+
+    """
+    Replace a flow's definition. Runs already started keep the definition they started with.
+
+    The save is refused if the flow has changed since \`expectedEditionId\`, or if the flow has active schedules and
+    the new definition isn't valid or no longer takes the inputs they give it. Pause them first to make such a change.
+    """
+    updateFlowDefinition(
+      flowDefinitionEntityId: EntityId!
+      """
+      The edition of the Flow Definition entity the new definition was made from.
+      """
+      expectedEditionId: EntityEditionId!
+      """
+      A \`FlowDefinition\` from \`@local/hash-isomorphic-utils/flows/types\`.
+      """
+      definition: JSONObject!
+    ): FlowDefinitionSaveResult!
+
+    """
+    Archive a flow, pausing its active schedules first. Its past runs stay readable.
+    """
+    archiveFlowDefinition(flowDefinitionEntityId: EntityId!): Boolean!
 
     """
     Create a new flow schedule for recurring executions

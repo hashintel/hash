@@ -31,7 +31,9 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
+import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/flowschedule";
 
 export const createFlowScheduleResolver: ResolverFn<
   Promise<Mutation["createFlowSchedule"]>,
@@ -209,13 +211,50 @@ export const updateFlowScheduleResolver: ResolverFn<
   return true;
 };
 
+/**
+ * Pauses an active schedule: marks its entity paused, then pauses its Temporal schedule, marking the entity active
+ * again if that fails.
+ */
+export const pauseActiveFlowSchedule = async (
+  graphQLContext: LoggedInGraphQLContext,
+  {
+    schedule: activeSchedule,
+    note,
+  }: { schedule: HashEntity<FlowSchedule>; note?: string },
+) => {
+  const { temporal } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+  const { authentication } = graphQLContext;
+
+  const schedule = await pauseFlowScheduleEntity(context, authentication, {
+    existingEntity: activeSchedule,
+    note,
+  });
+
+  const scheduleEntityId = schedule.metadata.recordId.entityId;
+
+  try {
+    const handle = temporal.schedule.getHandle(
+      extractEntityUuidFromEntityId(scheduleEntityId),
+    );
+    await handle.pause(note);
+  } catch (err) {
+    await revertFlowSchedulePause(context, authentication, {
+      pausedEntity: schedule,
+    });
+
+    throw GraphQLError.internal(
+      `Failed to pause Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+};
+
 export const pauseFlowScheduleResolver: ResolverFn<
   Promise<Mutation["pauseFlowSchedule"]>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationPauseFlowScheduleArgs
 > = async (_, { scheduleEntityId, note }, graphQLContext) => {
-  const { temporal } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
   const { authentication } = graphQLContext;
 
@@ -231,28 +270,10 @@ export const pauseFlowScheduleResolver: ResolverFn<
     return true;
   }
 
-  const schedule = await pauseFlowScheduleEntity(context, authentication, {
-    existingEntity: existingSchedule,
+  await pauseActiveFlowSchedule(graphQLContext, {
+    schedule: existingSchedule,
     note: note ?? undefined,
   });
-
-  // Pause the Temporal schedule
-  const scheduleId = extractEntityUuidFromEntityId(
-    schedule.metadata.recordId.entityId,
-  );
-
-  try {
-    const handle = temporal.schedule.getHandle(scheduleId);
-    await handle.pause(note ?? undefined);
-  } catch (err) {
-    await revertFlowSchedulePause(context, authentication, {
-      pausedEntity: schedule,
-    });
-
-    throw GraphQLError.internal(
-      `Failed to pause Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
 
   return true;
 };
