@@ -1,7 +1,8 @@
 {
   "package": "durable-kernel",
   "dependencies": [
-    "error-stack"
+    "error-stack",
+    "hash-secret"
   ],
   "tasks": {
     "doc:dependency-diagram": {
