@@ -1,7 +1,7 @@
 /**
  * Immutable tables of module, type and value exports.
  *
- * Missing namespace tables introduce no names. Optional tables contribute optional names instead of an arbitrary string index. Merging retains an earlier export when its replacement is optional.
+ * Missing namespace tables introduce no names. Optional tables contribute optional names instead of an arbitrary string index. Merging retains an earlier export when its replacement is absent or holds `undefined`, so an optional table never removes a name.
  *
  * Tables are ordinary export records. Merging copies their enumerable own string-keyed properties before freezing the copies, leaving the caller's records unchanged.
  *
@@ -10,6 +10,7 @@
  * @module
  */
 import {
+  Array,
   Function,
   Inspectable,
   Pipeable,
@@ -18,6 +19,7 @@ import {
   identity,
 } from "effect";
 
+import type { StringKeyed } from "../internal/record.js";
 import type * as Expression from "./Expression.js";
 import type * as Module from "./Module.js";
 import type * as TypeExpression from "./TypeExpression.js";
@@ -29,14 +31,20 @@ const TypeId: TypeId = "~hashql/Scope";
 /** A table of exports by name, in which an optional name can be absent. */
 interface Universe<V> extends Record.ReadonlyRecord<string, V | undefined> {}
 
-export const universeKeys = <U extends Universe<V>, V>(
+type Entry =
+  | Module.Module.Any
+  | Expression.Expression.Any
+  | TypeExpression.Export;
+
+/** Lists a table's enumerable own names, typed as its literal keys rather than `string`. */
+export const universeKeys = <U extends Universe<Entry>>(
   universe: U,
 ): (string & keyof U)[] => Record.keys<string & keyof U, U[keyof U]>(universe);
 
 /**
  * Tables that supply a scope, such as a prelude.
  *
- * Each table is optional. A module record, the record `Module.root` returns and `Prelude.builtin` all fit.
+ * Each table is optional. A module record, the record {@link Module.root} returns and `Prelude.builtin` all fit.
  */
 export interface Definition<S extends Scope.Any> extends Definition.Base<
   S["modules"],
@@ -79,11 +87,21 @@ type RequiredKeys<S> = {
   [K in keyof S]-?: Names.Empty extends Pick<S, K> ? never : K;
 }[keyof S];
 type At<S, K extends PropertyKey> = K extends keyof S ? S[K] : undefined;
+/** Merging skips an added `undefined`, so a replacement that can hold it keeps the earlier entry as an alternative. */
 type Overridden<B, A, K extends PropertyKey> = K extends keyof A
   ? K extends RequiredKeys<A>
-    ? A[K]
-    : A[K] | At<B, K>
+    ? undefined extends A[K]
+      ? Exclude<A[K], undefined> | At<B, K>
+      : A[K]
+    : Exclude<A[K], undefined> | At<B, K>
   : At<B, K>;
+
+/** Rejects a symbol key in each table, because merging copies string keys alone. */
+type StringKeyedTables<D> = {
+  readonly [K in keyof D]: K extends keyof Definition.Any
+    ? StringKeyed<D[K]>
+    : D[K];
+};
 
 /** The module, value and type tables of a construction scope. */
 export interface Scope<D extends Definition.Any> extends Scope.Base<
@@ -103,7 +121,7 @@ export declare namespace Scope {
   export interface Base<M, V, T>
     extends Pipeable.Pipeable, Inspectable.Inspectable {
     readonly [TypeId]: Variance<M, V, T>;
-    /** Modules by local name, the starting points for imports and qualified references. */
+    /** Modules by local name, the starting points for qualified references. */
     readonly modules: Readonly<M>;
     /** Value expressions by name. */
     readonly values: Readonly<V>;
@@ -201,7 +219,6 @@ class ScopeImpl<M, V, T>
 export const isScope = (value: unknown): value is Scope.Any =>
   Predicate.hasProperty(value, TypeId);
 
-/** Replaces an omitted namespace with an empty table. */
 const names = <D extends Definition.Any, K extends keyof Definition.Any>(
   definition: D,
   key: K,
@@ -210,23 +227,20 @@ const names = <D extends Definition.Any, K extends keyof Definition.Any>(
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Names models this exact omitted-or-present namespace choice
   (definition[key] ?? {}) as Names<D, K>;
 
-/** An export that a scope table can hold. */
-type Entry =
-  | Module.Module.Any
-  | Expression.Expression.Any
-  | TypeExpression.Export;
-
-/** Copies the enumerable own string-keyed entries of both tables into a new table, with later names replacing earlier ones. */
+/** Copies the enumerable own string-keyed entries of both tables into a new table, with later names replacing earlier ones. It skips an added entry holding `undefined`. */
 const union = <B extends Universe<Entry>, A extends Universe<Entry>>(
   before: B,
   added: A,
 ): B & A => {
   const copy = Record.fromEntries([
     ...Record.toEntries(before),
-    ...Record.toEntries(added),
+    ...Array.filter(
+      Record.toEntries(added),
+      ([, entry]) => entry !== undefined,
+    ),
   ]);
 
-  // SAFETY: the copy holds exactly the string-keyed entries a spread of both tables would, which TypeScript types as `B & A`. `merge` refines the replaced names.
+  // SAFETY: the copy holds the string-keyed entries of both tables, an added name replacing an earlier one unless it holds `undefined`. `merge` gives each name the type `Scope.Merge` models.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Record.fromEntries widens the copied table to a string index
   return copy as B & A;
 };
@@ -234,15 +248,15 @@ const union = <B extends Universe<Entry>, A extends Universe<Entry>>(
 /**
  * Copies and merges scope tables, with later enumerable own names replacing earlier ones.
  *
- * Accepts the original scope first or last. Optional added names retain the earlier export as a type alternative. The operation neither freezes nor mutates either input.
+ * Accepts the original scope first or last. An added name that is absent or holds `undefined` keeps the earlier export, and its type keeps the earlier export as an alternative. TypeScript rejects a symbol key, which cannot name an export. The operation neither freezes nor mutates either input.
  */
 export const merge: {
   <const D extends Definition.Any>(
-    added: D,
+    added: D & StringKeyedTables<D>,
   ): <S extends Scope.Any>(before: S) => Scope.Merge<S, D>;
   <S extends Scope.Any, const D extends Definition.Any>(
     before: S,
-    added: D,
+    added: D & StringKeyedTables<D>,
   ): Scope.Merge<S, D>;
 } = Function.dual(
   2,
