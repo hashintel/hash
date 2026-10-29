@@ -1,3 +1,4 @@
+// oxlint-disable import/max-dependencies -- `resolveReferences` reads the scope rule of every node that binds a name
 import { Array, Result, Schema, SchemaParser, pipe } from "effect";
 
 import { fold } from "../../internal/fold.js";
@@ -5,6 +6,7 @@ import * as Referential from "../../internal/referential.js";
 import * as JExpr from "../../JExpr/index.js";
 import * as ProgramError from "../ProgramError.js";
 import * as TAST from "../TAST/index.js";
+import { isClosure } from "./Closure.js";
 import { isImport } from "./Import.js";
 import { isLet } from "./Let.js";
 import { isNewtype } from "./Newtype.js";
@@ -166,6 +168,22 @@ const steps = (node: Node.Any): readonly Task[] => {
     ];
   }
 
+  // `fn` binds every type parameter before it reads a bound, so the type parameters are in scope in each other's bounds, the signature and the body. The parameters are in scope in the body alone.
+  if (isClosure(node)) {
+    const { generics, parameters, returns } = node.signature;
+
+    return [
+      ...Array.map(generics, ({ id }) => enter(id)),
+      ...Array.map(generics, ({ bound }) => visitType(bound)),
+      ...Array.map(parameters, ({ type }) => visitType(type)),
+      visitType(returns),
+      ...Array.map(parameters, ({ id }) => enter(id)),
+      visit(node.child),
+      ...Array.map(parameters.toReversed(), ({ id }) => leave(id)),
+      ...Array.map(generics.toReversed(), ({ id }) => leave(id)),
+    ];
+  }
+
   return [
     ...Array.map(node[Referential.References], resolve),
     ...Array.map(node.types, visitType),
@@ -181,7 +199,7 @@ const typeSteps = (node: TAST.TypeNode.Any): readonly Task[] => [
 /**
  * Checks that every reference in a finished tree resolves to the binding it came from.
  *
- * HashQL resolves a bare name to the innermost binding of that name, so a handle that emits `v` means whichever `v` encloses it. The check walks the tree with HashQL's scope rules and compares each id a node or a type node keeps under {@link Referential.References} with the binding its name would resolve to there. Run it on a program's root, where every binding encloses the uses it can reach. A value or type reference fails with the `StaleReference` reason when a later binding of its name shadows it, when its binding is in another program, or when its binding is in a branch that does not enclose it. The walk keeps its pending steps in an array, so the check handles any nesting depth that fits in memory, as `compile` does.
+ * HashQL resolves a bare name to the innermost binding of that name, so a handle that emits `v` means whichever `v` encloses it. The check walks the tree with HashQL's scope rules and compares each id a node or a type node keeps under {@link Referential.References} with the binding its name would resolve to there. Run it on a program's root, where every binding encloses the uses it can reach. A value or type reference fails with the `StaleReference` reason when a later binding of its name shadows it, when its binding is in another program, or when its binding is in a branch or a closure that does not enclose it. The walk keeps its pending steps in an array, so the check handles any nesting depth that fits in memory, as `compile` does.
  */
 export const resolveReferences = (
   root: Node.Any,

@@ -10,7 +10,6 @@ import { Cause, Data, Option, Pipeable, Result, pipe } from "effect";
 
 import * as Referential from "../internal/referential.js";
 import * as StructuralSyntax from "../internal/structural.js";
-import * as JExpr from "../JExpr/index.js";
 import * as AST from "../Program/AST/index.js";
 import * as Expression from "../Program/Expression.js";
 import * as Import from "../Program/Import/index.js";
@@ -18,13 +17,13 @@ import * as Namespace from "../Program/Namespace.js";
 import * as Operators from "../Program/Operators.js";
 import * as ProgramError from "../Program/ProgramError.js";
 import * as Query from "../Program/Query.js";
-import * as Structural from "../Program/Structural.js";
 import * as TAST from "../Program/TAST/index.js";
 import * as TypeExpression from "../Program/TypeExpression.js";
 
 import type * as Inputs from "../Program/Inputs.js";
 import type * as Module from "../Program/Module.js";
 import type * as Scope from "../Program/Scope.js";
+import type * as Structural from "../Program/Structural.js";
 import type * as Type from "../Type.js";
 import type * as Body from "./Body.js";
 import type * as Context from "./Context.js";
@@ -36,10 +35,6 @@ interface NominalBinding {
   readonly binding: AST.Binding.Type;
   readonly valueReference: Referential.ReferenceId<"value">;
 }
-
-/** The one-segment path that spells a binding's name. */
-const bare = (name: JExpr.Ident.Ident): JExpr.Path.Path =>
-  JExpr.Path.make({ rooted: false, segments: [{ name, arguments: [] }] });
 
 /** Adds structural argument normalization without losing the nominal identity on relocation. */
 const nominalValue = <N extends string, T extends Type.Any>(
@@ -83,7 +78,8 @@ const nominal = <N extends string, T extends Type.Any>(
   const type = pipe(
     nominalBinding,
     Result.map(
-      ({ binding }) => new TAST.Reference(bare(binding.name), [], binding.id),
+      ({ binding }) =>
+        new TAST.Reference(Referential.bare(binding.name), [], binding.id),
     ),
     TypeExpression.fromNode<Type.Opaque<N, T>>,
   );
@@ -92,7 +88,7 @@ const nominal = <N extends string, T extends Type.Any>(
     nominalBinding,
     Result.map(
       ({ binding, valueReference }) =>
-        new AST.Path(bare(binding.name), valueReference),
+        new AST.Path(Referential.bare(binding.name), valueReference),
     ),
     Expression.fromResult<
       Type.Function<readonly [T], Type.Opaque<N, T>>,
@@ -261,7 +257,10 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
 
     return pipe(
       declaration,
-      Result.map(({ binding }) => new AST.Path(bare(binding.name), binding.id)),
+      Result.map(
+        ({ binding }) =>
+          new AST.Path(Referential.bare(binding.name), binding.id),
+      ),
       Expression.fromResult<Type.Any, Inputs.Empty>,
     );
   }
@@ -290,7 +289,9 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
 
     return pipe(
       binding,
-      Result.map(({ id, name }) => new TAST.Reference(bare(name), [], id)),
+      Result.map(
+        ({ id, name }) => new TAST.Reference(Referential.bare(name), [], id),
+      ),
       TypeExpression.fromNode<Structural.Definition.Type<D>>,
     );
   }

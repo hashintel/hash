@@ -1,6 +1,7 @@
 import { Brand, MutableHashMap, Number, Option, Predicate, flow } from "effect";
 
 import * as Ident from "../JExpr/Ident.js";
+import * as Path from "../JExpr/Path.js";
 
 /** HashQL keeps value, type and module names apart, so a binding in one universe never shadows a name in another. A path that continues past its first segment resolves that segment among modules. */
 export type Universe = "value" | "type" | "module";
@@ -23,6 +24,10 @@ export interface ReferenceId<U extends Universe = Universe> {
 
   readonly generation: Generation;
 }
+
+/** The one-segment path that spells a binding's name, as a reference to the binding emits it. */
+export const bare = (name: Ident.Ident): Path.Path =>
+  Path.make({ rooted: false, segments: [{ name, arguments: [] }] });
 
 /** The key under which a node or a handle keeps its reference ids. */
 export const References: unique symbol = Symbol("~hashql/References");
