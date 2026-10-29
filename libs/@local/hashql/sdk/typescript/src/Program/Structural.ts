@@ -364,7 +364,7 @@ export const toJExpr = (
 /**
  * Infers a struct's field descriptors and combines their input requirements.
  *
- * Nested records and arrays follow {@link value}. Invalid field names and nested construction failures remain in the returned expression.
+ * Nested records and arrays follow {@link value}. Invalid field names, two keys that decode to the same name and nested construction failures remain in the returned expression.
  *
  * @example <caption>Infer a record's fields and project one of them.</caption>
  * ```ts
