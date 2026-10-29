@@ -11,7 +11,6 @@ import * as Relocation from "../internal/relocation.js";
 import * as AST from "./AST/index.js";
 import * as Expression from "./Expression.js";
 
-import type * as JExpr from "../JExpr/index.js";
 import type * as Type from "../Type.js";
 import type * as ExpressionType from "./ExpressionType.js";
 import type * as Inputs from "./Inputs.js";
@@ -47,9 +46,9 @@ export interface Predicate<I> extends Expression.Expression<
   /** Compares this predicate with `false` through `::core::cmp::eq`. */
   readonly isFalse: () => Predicate<I>;
 
-  readonly [Relocation.Relocate]: (
-    path: JExpr.Path.Path,
-  ) => Result.Result<Predicate<I>, ProgramError.Construction>;
+  readonly [Relocation.Relocate]: Relocation.Relocatable<
+    Predicate<I>
+  >[typeof Relocation.Relocate];
 }
 
 const call = <I>(

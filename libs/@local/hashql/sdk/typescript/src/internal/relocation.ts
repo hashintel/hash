@@ -9,6 +9,7 @@ import { dual } from "effect/Function";
 
 import type * as JExpr from "../JExpr/index.js";
 import type * as ProgramError from "../Program/ProgramError.js";
+import type * as Referential from "./referential.js";
 import type { Result } from "effect";
 
 /** The key of the rebinding function a producer attaches to each of its handles. */
@@ -17,11 +18,12 @@ export const Relocate: unique symbol = Symbol("~hashql/Relocate");
 /**
  * A handle that can be rebound to another HashQL path.
  *
- * Rebinding returns a handle of type `E` that emits the new path, or a construction failure.
+ * Rebinding returns a handle of type `E` that emits the new path, or a construction failure. An import also passes the ids its local name is bound to, and the handle keeps the one its path resolves through, so a program can check that the name still means that binding where the handle is used.
  */
 export interface Relocatable<E> {
   readonly [Relocate]: (
     path: JExpr.Path.Path,
+    bound?: Referential.Bound,
   ) => Result.Result<E, ProgramError.Construction>;
 }
 

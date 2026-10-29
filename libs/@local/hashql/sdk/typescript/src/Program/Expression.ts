@@ -20,6 +20,7 @@ import {
   pipe,
 } from "effect";
 
+import * as Referential from "../internal/referential.js";
 import { Relocate } from "../internal/relocation.js";
 import * as JExpr from "../JExpr/index.js";
 import * as AST from "./AST/index.js";
@@ -296,12 +297,15 @@ const make = <T extends Type.Any, Inputs>(
       [Binding]: impl[Binding],
       [Relocate]: (
         path: JExpr.Path.Path,
+        bound?: Referential.Bound,
       ): Result.Result<Expression<T, Inputs>, ProgramError.Construction> =>
         impl[Binding].pipe(
           Result.map(() =>
             make(
               new ExpressionImpl<T, Inputs>(
-                parseNode(JExpr.Path.compile(path)),
+                Result.succeed(
+                  new AST.Path(path, Referential.head(path, "value", bound)),
+                ),
               ),
             ),
           ),
@@ -466,10 +470,11 @@ export const adaptCallable: {
       [Binding]: self[Binding],
       [Relocate]: (
         path: JExpr.Path.Path,
+        bound?: Referential.Bound,
       ): Result.Result<
         Expression.Adapted<T, I, C>,
         ProgramError.Construction
-      > => self[Relocate](path).pipe(Result.map(adaptCallable(adapt))),
+      > => self[Relocate](path, bound).pipe(Result.map(adaptCallable(adapt))),
       ...Pipeable.Prototype,
     });
   },

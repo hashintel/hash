@@ -5,11 +5,11 @@ import * as Referential from "../../internal/referential.js";
 import * as JExpr from "../../JExpr/index.js";
 import * as ProgramError from "../ProgramError.js";
 import * as TAST from "../TAST/index.js";
+import { isImport } from "./Import.js";
 import { isLet } from "./Let.js";
 import { isNewtype } from "./Newtype.js";
 import { isType } from "./Type.js";
 
-import type { TypeNode } from "../TAST/TypeNode.js";
 import type { Pipeable } from "effect";
 
 /**
@@ -22,7 +22,7 @@ export interface Node<Name extends string, Expr extends JExpr.Expression>
   readonly _tag: Name;
 
   /** The types the node's syntax annotates or declares, such as an input's type. */
-  readonly types: readonly TypeNode.Any[];
+  readonly types: readonly TAST.TypeNode.Any[];
   readonly children: readonly Node.Any[];
   readonly toExpr: (types: never, children: never) => Expr;
 }
@@ -37,7 +37,7 @@ export declare namespace Node {
   export interface Of<
     Name extends string,
     Expr extends JExpr.Expression,
-    Types extends readonly TypeNode.Any[],
+    Types extends readonly TAST.TypeNode.Any[],
     Children extends readonly Any[],
   > extends Node<Name, Expr> {
     readonly types: Types;
@@ -46,7 +46,7 @@ export declare namespace Node {
     /** Combines the syntax of the children without executing the represented HashQL expression. */
     readonly toExpr: (
       types: {
-        readonly [K in keyof Types]: TypeNode.Type<Types[K]>;
+        readonly [K in keyof Types]: TAST.TypeNode.Type<Types[K]>;
       },
       children: {
         readonly [K in keyof Children]: ExprOf<Children[K]>;
@@ -95,13 +95,16 @@ export const validate = (
 
 type Task =
   | { readonly _tag: "Visit"; readonly node: Node.Any }
-  | { readonly _tag: "VisitType"; readonly node: TypeNode.Any }
+  | { readonly _tag: "VisitType"; readonly node: TAST.TypeNode.Any }
   | { readonly _tag: "Enter"; readonly binding: Referential.ReferenceId }
   | { readonly _tag: "Leave"; readonly binding: Referential.ReferenceId }
   | { readonly _tag: "Resolve"; readonly reference: Referential.ReferenceId };
 
 const visit = (node: Node.Any): Task => ({ _tag: "Visit", node });
-const visitType = (node: TypeNode.Any): Task => ({ _tag: "VisitType", node });
+const visitType = (node: TAST.TypeNode.Any): Task => ({
+  _tag: "VisitType",
+  node,
+});
 const enter = (binding: Referential.ReferenceId): Task => ({
   _tag: "Enter",
   binding,
@@ -128,6 +131,16 @@ const steps = (node: Node.Any): readonly Task[] => {
       enter(node.binding.id),
       visit(node.child),
       leave(node.binding.id),
+    ];
+  }
+
+  // An import's path resolves outside it, and the names it binds are in scope in its body alone.
+  if (isImport(node)) {
+    return [
+      visit(node.path),
+      ...Array.map(node.bindings, enter),
+      visit(node.child),
+      ...Array.map(node.bindings.toReversed(), leave),
     ];
   }
 
@@ -160,7 +173,7 @@ const steps = (node: Node.Any): readonly Task[] => {
   ];
 };
 
-const typeSteps = (node: TypeNode.Any): readonly Task[] => [
+const typeSteps = (node: TAST.TypeNode.Any): readonly Task[] => [
   ...Array.map(node[Referential.References], resolve),
   ...Array.map(node.children, visitType),
 ];

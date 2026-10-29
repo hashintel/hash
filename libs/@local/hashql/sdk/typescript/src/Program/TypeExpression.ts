@@ -12,6 +12,7 @@
 import { Array, Predicate, Result, identity, pipe } from "effect";
 import { dual } from "effect/Function";
 
+import * as Referential from "../internal/referential.js";
 import {
   Relocate,
   relocate as relocateHandle,
@@ -124,11 +125,15 @@ export const fromNode = <T extends Type.Any>(
   },
   [TAST.Node]: node,
   [TypeId]: identity<T>,
-  [Relocate]: (path) =>
+  [Relocate]: (path, bound) =>
     pipe(
       node,
       Result.map(() =>
-        fromNode<T>(Result.succeed(new TAST.Reference(path, []))),
+        fromNode<T>(
+          Result.succeed(
+            new TAST.Reference(path, [], Referential.head(path, "type", bound)),
+          ),
+        ),
       ),
     ),
 });
@@ -170,6 +175,44 @@ export const reference = <T extends Type.Any>(
   path: JExpr.Path.Path,
 ): TypeExpression<T> =>
   pipe(new TAST.Reference(path, []), Result.succeed, fromNode<T>);
+
+/** A constructor at `path` whose applications keep `reference`, the binding the path's first segment resolves to. */
+const constructorAt = <F extends Type.TypeConstructor>(
+  path: JExpr.Path.Path,
+  arity: F["arity"],
+  reference: Referential.ReferenceId | undefined,
+): Constructor<F> => {
+  const instantiate = <const A extends readonly Type.Any[]>(
+    ...args: Constructor.Arguments<A> & { readonly length: F["arity"] }
+  ): TypeExpression<Type.TypeLambda.Apply<F, A>> => {
+    if (args.length !== arity) {
+      return pipe(
+        ProgramError.Construction.typeArgumentCount(arity, args.length),
+        Result.fail,
+        fromResult<Type.TypeLambda.Apply<F, A>>,
+      );
+    }
+
+    // SAFETY: `Arguments<A>` maps every position to a type expression. `Array.map` cannot read that through the generic `A` and types the elements as `unknown`.
+    const handles = args as readonly TypeExpression.Any[];
+
+    return pipe(
+      handles,
+      Array.map((handle) => handle[TAST.Node]),
+      Result.all,
+      Result.flatMap((arguments_) => TAST.apply(path, arguments_, reference)),
+      fromNode<Type.TypeLambda.Apply<F, A>>,
+    );
+  };
+
+  return Object.assign(instantiate, {
+    [ConstructorId]: { path, arity },
+    [Relocate]: (next: JExpr.Path.Path, bound?: Referential.Bound) =>
+      Result.succeed(
+        constructorAt<F>(next, arity, Referential.head(next, "type", bound)),
+      ),
+  });
+};
 
 /**
  * Binds a trusted generic declaration to its named type reference.
@@ -225,35 +268,7 @@ export const constructor = <F extends Type.TypeConstructor>(
     return Result.fail(ProgramError.Construction.invalidTypeArity(arity));
   }
 
-  const instantiate = <const A extends readonly Type.Any[]>(
-    ...args: Constructor.Arguments<A> & { readonly length: F["arity"] }
-  ): TypeExpression<Type.TypeLambda.Apply<F, A>> => {
-    if (args.length !== arity) {
-      return pipe(
-        ProgramError.Construction.typeArgumentCount(arity, args.length),
-        Result.fail,
-        fromResult<Type.TypeLambda.Apply<F, A>>,
-      );
-    }
-
-    // SAFETY: `Arguments<A>` maps every position to a type expression. `Array.map` cannot read that through the generic `A` and types the elements as `unknown`.
-    const handles = args as readonly TypeExpression.Any[];
-
-    return pipe(
-      handles,
-      Array.map((handle) => handle[TAST.Node]),
-      Result.all,
-      Result.flatMap((arguments_) => TAST.apply(path, arguments_)),
-      fromNode<Type.TypeLambda.Apply<F, A>>,
-    );
-  };
-
-  return Result.succeed(
-    Object.assign(instantiate, {
-      [ConstructorId]: { path, arity },
-      [Relocate]: (next: JExpr.Path.Path) => constructor<F>(next, arity),
-    }),
-  );
+  return Result.succeed(constructorAt<F>(path, arity, undefined));
 };
 
 /**
@@ -393,6 +408,7 @@ export const adaptConstructor: {
     self: S & Relocatable<S>,
     adapt: (self: S) => C,
   ): Adapted<C> => {
+    const relocatable: Relocatable<S> = self;
     const build = (source: S): Adapted<C> => {
       // The markers go on a fresh function, because `adapt` may return an object that other code holds, such as `source` itself. Assigning to that object would make its relocation call itself.
       const adapted = adapt(source);
@@ -404,8 +420,9 @@ export const adaptConstructor: {
         [ConstructorId]: source[ConstructorId],
         [Relocate]: (
           path: JExpr.Path.Path,
+          bound?: Referential.Bound,
         ): Result.Result<Adapted<C>, ProgramError.Construction> =>
-          pipe(relocateHandle<S>(self, path), Result.map(build)),
+          pipe(relocatable[Relocate](path, bound), Result.map(build)),
       });
     };
 

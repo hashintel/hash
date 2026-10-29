@@ -112,6 +112,10 @@ const child = Result.getOrThrow(
     types: { ["__proto__"]: Module.type<Type.PrimitiveInteger>() },
   }),
 );
+/** Exports another module as `child`, so importing `child` from both modules binds that name twice. */
+const rival = Result.getOrThrow(
+  Module.define("::rival", { modules: { child } }),
+);
 
 describe("program", () => {
   test("ordered_declarations", () => {
@@ -684,6 +688,100 @@ describe("references", () => {
     const other = Draft.program({}, () => Structural.list(escaped, []));
     expect(reason(branch)).toStrictEqual(stale("Inner"));
     expect(reason(other)).toStrictEqual(stale("Local"));
+  });
+
+  test("imported_shadowed", () => {
+    expect.hasAssertions();
+    const value = Draft.program({}, ($) => {
+      const { Whole } = $.import(declarations, ["Whole"]);
+      $.let("Whole", 1n);
+      return Whole(2n);
+    });
+    expect(reason(value)).toStrictEqual(stale("Whole"));
+
+    const type = Draft.program({}, ($) => {
+      const { Whole } = $.import(declarations, ["Whole"]);
+      $.type("Whole", String);
+      return Structural.list(Whole, []);
+    });
+    expect(reason(type)).toStrictEqual(stale("Whole"));
+
+    // A value binding leaves the imported type in scope, because each universe keeps its own names.
+    const universes = Draft.program({}, ($) => {
+      const { Whole } = $.import(declarations, ["Whole"]);
+      $.let("Whole", 1n);
+      return Structural.list(Whole, []);
+    });
+    expect(Result.isSuccess(universes)).toBe(true);
+  });
+
+  test("imported_branch_escape", () => {
+    expect.hasAssertions();
+    let escaped = (
+      value: bigint,
+    ): Program.Expression.Expression<
+      Type.PrimitiveInteger,
+      Program.Inputs.Empty
+    > => Expression.integer(value);
+    const result = Draft.program({}, ($) => {
+      const conditional = $.if(true, {
+        then: (branch) => {
+          escaped = branch.import(declarations, ["Whole"]).Whole;
+          return 1n;
+        },
+      });
+      return Structural.tuple([conditional, escaped(1n)]);
+    });
+    expect(reason(result)).toStrictEqual(stale("Whole"));
+  });
+
+  test("imported_nominal", () => {
+    expect.hasAssertions();
+    // The module's two tables share one joined handle, whose type and value halves each keep their own universe's id.
+    const program = (shadow: boolean) =>
+      Draft.program({}, ($) => {
+        const Box = $.newtype("Box", BigInt);
+        const library = Result.getOrThrow(
+          Module.define("::library", { types: { Box }, values: { Box } }),
+        );
+        const imported = $.import(library, ["Box"]).Box;
+        if (shadow) {
+          $.let("Box", 1n);
+        }
+
+        return Structural.tuple([imported(2n), Structural.list(imported, [])]);
+      });
+
+    expect(Result.isSuccess(program(false))).toBe(true);
+    expect(reason(program(true))).toStrictEqual(stale("Box"));
+  });
+
+  test("imported_module", () => {
+    expect.hasAssertions();
+    const shadowed = Draft.program({}, ($) => {
+      const { child: first } = $.import(declarations, ["child"]);
+      $.import(rival, ["child"]);
+      return first.enabled;
+    });
+    expect(reason(shadowed)).toStrictEqual(stale("child"));
+
+    // A value binding never shadows a module, so `child::enabled` still reads the imported module.
+    const value = Draft.program({}, ($) => {
+      const { child: first } = $.import(declarations, ["child"]);
+      $.let("child", 1n);
+      return first.enabled;
+    });
+    expect(text(value)).toBe(
+      '["::kernel::special_form::use","::example",{"#tuple":["child"]},["::kernel::special_form::let","child",{"#literal":1},"child::enabled"]]',
+    );
+
+    // An import through an imported module reads the module's binding in its own path.
+    const nested = Draft.program({}, ($) => {
+      const { child: first } = $.import(declarations, ["child"]);
+      $.import(rival, ["child"]);
+      return $.import(first, ["enabled"]).enabled;
+    });
+    expect(reason(nested)).toStrictEqual(stale("child"));
   });
 });
 

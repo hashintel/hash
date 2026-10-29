@@ -9,6 +9,7 @@ import {
   Array,
   Iterable,
   Option,
+  Predicate,
   Record,
   Result,
   SchemaParser,
@@ -16,13 +17,13 @@ import {
 } from "effect";
 
 import { isReadonlyArray } from "../../internal/array.js";
-import { relocate } from "../../internal/relocation.js";
+import * as Referential from "../../internal/referential.js";
+import * as Relocation from "../../internal/relocation.js";
 import * as JExpr from "../../JExpr/index.js";
 import * as AST from "../AST/index.js";
 import * as ProgramError from "../ProgramError.js";
 import * as Bindings from "./Bindings.js";
 
-import type * as Relocation from "../../internal/relocation.js";
 import type * as Module from "../Module.js";
 import type * as Namespace from "../Namespace.js";
 
@@ -93,15 +94,17 @@ export declare namespace Selection {
     I extends Selection<M, keyof I & (string | number)> ? I : never;
 }
 
-/** A validated local name and its parsed identifier. */
+/** A validated local name, its parsed identifier and the ids of the bindings the import gives it. */
 interface Alias {
   readonly alias: string;
   readonly ident: JExpr.Ident.Ident;
+  readonly bound: Referential.Bound;
 }
 
-/** Validated source-to-local names and the matching import syntax. */
+/** Validated source-to-local names, the ids of every binding the import makes and the matching import syntax. */
 interface Plan {
   readonly names: Record.ReadonlyRecord<string, Alias>;
+  readonly bindings: readonly Referential.ReferenceId[];
   readonly syntax: JExpr.Imports;
 }
 
@@ -160,23 +163,52 @@ const requests = (
   );
 };
 
+/**
+ * Makes the ids of the bindings a local name gets, one in each universe whose table exports the source name.
+ *
+ * Each import makes its ids from its own source, so a handle names the import it came from.
+ */
+const bindingsOf = (
+  module: Module.Module.Any,
+  name: string,
+  ident: JExpr.Ident.Ident,
+  next: Referential.ReferenceProducer,
+): Referential.Bound => ({
+  ...(Object.hasOwn(module.modules, name) && {
+    module: next("module", ident),
+  }),
+  ...(Object.hasOwn(module.types, name) && {
+    type: next("value", ident) as never,
+  }),
+  ...(Object.hasOwn(module.values, name) && { value: next("value", ident) }),
+});
+
 /** Validates aliases before any relocation and snapshots the emitted selection. */
 const plan = (
   module: Module.Module.Any,
   selection: Selection<Module.Module.Any>,
 ): Result.Result<Plan, ProgramError.Construction> =>
   Result.gen(function* () {
+    const next = Referential.referenceProducer(Symbol("~hashql/Import"));
     const names: Record<string, Alias> = {};
+    const bindings: Referential.ReferenceId[] = [];
 
     const aliases: [string, string][] = [];
     for (const { name, alias } of requests(module, selection)) {
       const ident = yield* importName(alias);
+      const bound = bindingsOf(module, name, ident, next);
       Object.defineProperty(names, name, {
-        value: { alias: String(alias), ident },
+        value: { alias: String(alias), ident, bound },
         enumerable: true,
         configurable: true,
       });
 
+      bindings.push(
+        ...Array.filter(
+          [bound.module, bound.type, bound.value],
+          Predicate.isNotUndefined,
+        ),
+      );
       aliases.push([name, JExpr.Ident.compile(ident)]);
     }
 
@@ -187,7 +219,7 @@ const plan = (
       syntax = Object.freeze(Record.fromEntries(aliases));
     }
 
-    return { names: Object.freeze(names), syntax };
+    return { names: Object.freeze(names), bindings, syntax };
   });
 
 interface Capability extends Relocation.Relocatable<Capability> {}
@@ -211,26 +243,28 @@ const select = <E extends Record.ReadonlyRecord<string, Capability>, I>(
     // oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- K retains the original producer result E[K] before the alias changes its key
     const member = <K extends keyof E & string>(
       name: K,
-      { alias, ident }: Alias,
+      { alias, ident, bound }: Alias,
     ): Result.Result<
       Partial<Bindings.Selected<E, I>>,
       ProgramError.Construction
     > =>
-      relocate<E[K]>(
-        sources[name],
-        JExpr.Path.make({
-          rooted: false,
-          segments: [{ name: ident, arguments: [] }],
-        }),
-      ).pipe(
-        Result.map((value) =>
-          Object.defineProperty(selected, alias, {
-            value,
-            enumerable: true,
-            configurable: true,
+      sources[name]
+        [Relocation.Relocate](
+          JExpr.Path.make({
+            rooted: false,
+            segments: [{ name: ident, arguments: [] }],
           }),
-        ),
-      );
+          bound,
+        )
+        .pipe(
+          Result.map((value) =>
+            Object.defineProperty(selected, alias, {
+              value,
+              enumerable: true,
+              configurable: true,
+            }),
+          ),
+        );
 
     for (const name of Record.keys(entries)) {
       const alias = Record.get(names, name);
@@ -276,13 +310,16 @@ class ImportImpl<M extends Module.Module.Any, I> implements Declaration<M, I> {
   readonly wrap: Declaration<M, I>["wrap"];
 
   constructor(
-    path: JExpr.Path.Path,
-    syntax: JExpr.Imports,
+    module: M,
+    { bindings, syntax }: Pick<Plan, "bindings" | "syntax">,
     scope: Declaration<M, I>["scope"],
   ) {
+    // The module's path keeps the binding its first segment resolves to, when the module was itself imported.
+    const path = new AST.Path(module.path, module[Referential.References][0]);
+
     this.scope = scope;
     this.wrap = (child): AST.Node.Any =>
-      new AST.Import(new AST.Path(path), syntax, child);
+      new AST.Import(path, syntax, bindings, child);
     Object.freeze(this);
   }
 }
@@ -306,5 +343,5 @@ export const bind = <
     const selected = yield* plan(module, selection);
 
     const scope = yield* selectBindings<M, I>(module, selected.names);
-    return new ImportImpl<M, I>(module.path, selected.syntax, scope);
+    return new ImportImpl<M, I>(module, selected, scope);
   });

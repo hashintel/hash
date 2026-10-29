@@ -11,6 +11,7 @@
  */
 import { Equal, Hash, Pipeable, Predicate, Record, Result, pipe } from "effect";
 
+import * as Referential from "../internal/referential.js";
 import {
   Relocate,
   relocate as relocateHandle,
@@ -108,7 +109,11 @@ type RebindableDefinition<S> = {
  * Equality and hashing compare the path and all three export tables. Members use their existing Effect equality, not their printed syntax, so two binding calls need not produce equal exports. Construction freezes the records and tables but shares alias members and paths. Treat those values as immutable after comparison or hashing, because Effect caches its results.
  */
 export interface Module<S extends Definition>
-  extends Equal.Equal, Pipeable.Pipeable, Relocation.Relocatable<Module<S>> {
+  extends
+    Equal.Equal,
+    Pipeable.Pipeable,
+    Relocation.Relocatable<Module<S>>,
+    Referential.Referential {
   readonly [TypeId]: TypeId;
 
   readonly path: JExpr.Path.Path;
@@ -236,19 +241,21 @@ const rebase = <
 >(
   path: JExpr.Path.Path,
   entries: E,
+  bound: Referential.Bound | undefined,
 ): Result.Result<Readonly<E>, ProgramError.Construction> => {
   const sources: Rebindings<E> = entries;
+  // A member's path continues the module's, so it resolves through the same first segment.
   const resolve = <K extends keyof E & string>(
     name: K,
     _entry: E[K],
     ident: JExpr.Ident.Ident,
   ): Result.Result<E[K], ProgramError.Construction> =>
-    relocateHandle<E[K]>(
-      sources[name],
+    sources[name][Relocate](
       JExpr.Path.make({
         rooted: path.rooted,
         segments: [...path.segments, { name: ident, arguments: [] }],
       }),
+      bound,
     );
 
   return mapEntries<E, E>(entries, resolve);
@@ -268,6 +275,8 @@ class ModuleImpl<
   readonly modules: Readonly<M>;
   readonly types: Readonly<T>;
   readonly values: Readonly<V>;
+  /** The binding the path's first segment resolves to, which an import of this module reads through. */
+  readonly [Referential.References]: readonly Referential.ReferenceId[];
 
   constructor(
     path: JExpr.Path.Path,
@@ -276,6 +285,7 @@ class ModuleImpl<
       types,
       values,
     }: { readonly modules: M; readonly types: T; readonly values: V },
+    reference?: Referential.ReferenceId,
   ) {
     super();
 
@@ -283,20 +293,29 @@ class ModuleImpl<
     this.modules = modules;
     this.types = types;
     this.values = values;
+    this[Referential.References] = reference === undefined ? [] : [reference];
     Object.freeze(this);
   }
 
   [Relocate](
     next: JExpr.Path.Path,
+    bound?: Referential.Bound,
   ): Result.Result<ModuleImpl<M, T, V>, ProgramError.Construction> {
     return pipe(
       {
-        modules: rebase<M>(next, this.modules),
-        types: rebase<T>(next, this.types),
-        values: rebase<V>(next, this.values),
+        modules: rebase<M>(next, this.modules, bound),
+        types: rebase<T>(next, this.types, bound),
+        values: rebase<V>(next, this.values, bound),
       },
       Result.all,
-      Result.map((exports) => new ModuleImpl<M, T, V>(next, exports)),
+      Result.map(
+        (exports) =>
+          new ModuleImpl<M, T, V>(
+            next,
+            exports,
+            Referential.head(next, "module", bound),
+          ),
+      ),
     );
   }
 

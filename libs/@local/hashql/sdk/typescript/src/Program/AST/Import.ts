@@ -1,4 +1,4 @@
-import { Pipeable } from "effect";
+import { Pipeable, Predicate } from "effect";
 
 import * as Referential from "../../internal/referential.js";
 import * as JExpr from "../../JExpr/index.js";
@@ -14,15 +14,23 @@ export class Import<T extends Node.Any>
   readonly _tag = "Import" as const;
   readonly path: Path;
   readonly imports: JExpr.Imports;
+  /** The bindings the import makes, which `child` sees and the code around the import does not. */
+  readonly bindings: readonly Referential.ReferenceId[];
   readonly child: T;
   readonly types: readonly [] = [];
   readonly [Referential.References]: readonly Referential.ReferenceId[] = [];
 
-  constructor(path: Path, imports: JExpr.Imports, child: T) {
+  constructor(
+    path: Path,
+    imports: JExpr.Imports,
+    bindings: readonly Referential.ReferenceId[],
+    child: T,
+  ) {
     super();
 
     this.path = path;
     this.imports = imports;
+    this.bindings = bindings;
     this.child = child;
   }
 
@@ -37,3 +45,7 @@ export class Import<T extends Node.Any>
     return JExpr.use(path, this.imports, body);
   }
 }
+
+/** Recognizes an `Import` node with its child typed as a `Node`, where `instanceof` alone gives `Import<any>`. */
+export const isImport = (node: Node.Any): node is Import<Node.Any> =>
+  Predicate.isTagged(node, "Import");

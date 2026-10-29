@@ -75,18 +75,21 @@ const makePath = Overflow.makeResult(JExpr.Path.Schema);
 /**
  * Applies generic arguments to a named type, after checking the path they make.
  *
+ * `reference` is the binding the path's first segment resolves to, when the program binds it.
+ *
  * An argument whose syntax the path schema refuses returns a {@link ProgramError.Construction} with the `InvalidExpression` reason.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- applies arguments to the path that names the type
 export const apply = (
   path: JExpr.Path.Path,
   arguments_: readonly TypeNode.Any[],
+  reference?: Referential.ReferenceId,
 ): Result.Result<Reference, ProgramError.Construction> =>
   pipe(
     applied(path, Array.map(arguments_, compile)),
     makePath,
     Result.mapBoth({
       onFailure: (cause) => ProgramError.Construction.invalidExpression(cause),
-      onSuccess: () => new Reference(path, arguments_),
+      onSuccess: () => new Reference(path, arguments_, reference),
     }),
   );
