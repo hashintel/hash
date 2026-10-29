@@ -1,7 +1,7 @@
 /**
  * Syntax conversion shared by structural constructors.
  *
- * The public signatures retain semantic descriptors and input requirements. These operations lower their statically checked values to J-Expr while retaining construction failures.
+ * The public signatures retain semantic descriptors and input requirements. These operations lower their statically checked values to AST nodes while retaining construction failures.
  *
  * @module
  */
@@ -18,7 +18,7 @@ import {
 } from "effect";
 
 import * as JExpr from "../JExpr/index.js";
-import * as Syntax from "../JExpr/Type/index.js";
+import * as AST from "../Program/AST/index.js";
 import * as Expression from "../Program/Expression.js";
 import * as ProgramError from "../Program/ProgramError.js";
 import * as TypeExpression from "../Program/TypeExpression.js";
@@ -30,12 +30,14 @@ import type * as Type from "../Type.js";
 
 const primitiveSyntax = (
   name: "Integer" | "Number" | "String" | "Boolean",
-): Syntax.Type =>
-  Syntax.Reference.make({
+): AST.TypeSyntax => ({
+  syntax: JExpr.Type.Reference.make({
     path: JExpr.Path.decodeResult(`::kernel::type::${name}`).pipe(
       Result.getOrThrow,
     ),
-  });
+  }),
+  references: [],
+});
 
 const primitives = {
   integer: primitiveSyntax("Integer"),
@@ -55,13 +57,13 @@ const makePath = Overflow.makeResult(JExpr.Path.Schema);
 interface Field {
   readonly key: string;
   readonly name: JExpr.Ident.Ident;
-  readonly member: Syntax.Type;
+  readonly member: AST.TypeSyntax;
 }
 
 // `+` and `` `+` `` decode to the same name, and a struct holds each name once. Comparing decoded names reports the later spelling before the struct reaches syntax the schema refuses.
 const distinctFields = (
   fields: readonly Field[],
-): Result.Result<Syntax.Type, ProgramError.Construction> => {
+): Result.Result<AST.TypeSyntax, ProgramError.Construction> => {
   const seen = MutableHashSet.empty<JExpr.Ident.Ident>();
   for (const { key, name } of fields) {
     if (MutableHashSet.has(seen, name)) {
@@ -72,8 +74,14 @@ const distinctFields = (
   }
 
   return Result.succeed({
-    _tag: "Struct",
-    members: Array.map(fields, ({ name, member }) => [name, member] as const),
+    syntax: {
+      _tag: "Struct",
+      members: Array.map(
+        fields,
+        ({ name, member }) => [name, member.syntax] as const,
+      ),
+    },
+    references: Array.flatMap(fields, ({ member }) => member.references),
   });
 };
 
@@ -84,13 +92,16 @@ const distinctFields = (
  */
 export const typeSyntax = (
   definition: Structural.Definition,
-): Result.Result<Syntax.Type, ProgramError.Construction> => {
+): Result.Result<AST.TypeSyntax, ProgramError.Construction> => {
   if (
     TypeExpression.isExport(definition) &&
     Predicate.hasProperty(definition, Relocate)
   ) {
     if (Predicate.hasProperty(definition, "syntax")) {
-      return definition.syntax;
+      return Result.map(definition.syntax, (syntax) => ({
+        syntax,
+        references: AST.referencesOf(definition),
+      }));
     }
 
     return Result.fail(
@@ -126,8 +137,11 @@ export const typeSyntax = (
       Array.map(typeSyntax),
       Result.all,
       Result.map((members) => ({
-        _tag: "Tuple",
-        members,
+        syntax: {
+          _tag: "Tuple",
+          members: Array.map(members, ({ syntax }) => syntax),
+        },
+        references: Array.flatMap(members, ({ references }) => references),
       })),
     );
   }
@@ -153,24 +167,39 @@ export const typeSyntax = (
   );
 };
 
+/** Builds a type handle that keeps the ids of the Draft type bindings its syntax names, for the Draft's check where the handle is used. */
+export const typeHandle = <T extends Type.Any>(
+  result: Result.Result<AST.TypeSyntax, ProgramError.Construction>,
+): TypeExpression.TypeExpression<T> =>
+  Object.assign(
+    TypeExpression.fromResult<T>(Result.map(result, ({ syntax }) => syntax)),
+    {
+      [AST.References]: pipe(
+        result,
+        Result.map(({ references }) => references),
+        Result.getOrElse((): readonly AST.ReferenceId[] => []),
+      ),
+    },
+  );
+
 /** Tests for an expression first, because a predicate is a plain object that carries the expression markers rather than fields. */
-export const valueSyntax = (
+export const valueNode = (
   value: Structural.Value.Any,
-): Result.Result<JExpr.Expression, ProgramError.Construction> => {
+): Result.Result<AST.Node, ProgramError.Construction> => {
   if (
     Expression.isExpression(value) ||
     value === null ||
     typeof value !== "object"
   ) {
-    return Expression.toJExpr(value);
+    return Expression.toNode(value);
   }
 
   if (Array.isArray<Structural.Value.Any>(value)) {
     return pipe(
       value,
-      Array.map(valueSyntax),
+      Array.map(valueNode),
       Result.all,
-      Result.map((members) => JExpr.tuple(...members)),
+      Result.map((members) => new AST.Tuple(members)),
     );
   }
 
@@ -180,24 +209,20 @@ export const valueSyntax = (
     Array.map(([name, member]) =>
       pipe(
         member,
-        valueSyntax,
-        Result.map((syntax) => [name, syntax] as const),
+        valueNode,
+        Result.map((node) => [name, node] as const),
       ),
     ),
     Result.all,
-    Result.map(flow(Record.fromEntries, JExpr.struct)),
+    Result.map((fields) => new AST.Struct(fields)),
   );
 };
 
-/** Validates assembled syntax before attaching its statically established descriptor and requirements. */
-export const fromSyntax = <T extends Type.Any, I>(
-  syntax: Result.Result<JExpr.Expression, ProgramError.Construction>,
+/** Validates an assembled node before attaching its statically established descriptor and requirements. */
+export const fromNode = <T extends Type.Any, I>(
+  node: Result.Result<AST.Node, ProgramError.Construction>,
 ): Expression.Expression<T, I> =>
-  pipe(
-    syntax,
-    Result.flatMap(flow(Expression.fromJExpr, Expression.toNode)),
-    Expression.fromResult<T, I>,
-  );
+  pipe(node, Result.flatMap(AST.validate), Expression.fromResult<T, I>);
 
 /** Checks every element without hiding extra fields in a structural value. */
 export type ExactValues<
@@ -207,18 +232,18 @@ export type ExactValues<
   readonly [K in keyof V]: Structural.Value.Exact<T, V[K]>;
 };
 
-/** Converts checked members to syntax without reinterpreting their descriptors. */
-export const membersSyntax = (
+/** Converts checked members to nodes without reinterpreting their descriptors. */
+export const memberNodes = (
   members: readonly Structural.Value.Any[],
-): Result.Result<readonly JExpr.Expression[], ProgramError.Construction> =>
-  Result.all(Array.map(members, valueSyntax));
+): Result.Result<readonly AST.Node[], ProgramError.Construction> =>
+  Result.all(Array.map(members, valueNode));
 
 /** Applies a fixed kernel collection type to successfully normalized arguments. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a collection type from its name and arguments
 export const collectionType = (
   name: "List" | "Dict",
   definitions: readonly Structural.Definition[],
-): Result.Result<Syntax.Type, ProgramError.Construction> =>
+): Result.Result<AST.TypeSyntax, ProgramError.Construction> =>
   pipe(
     definitions,
     Array.map(typeSyntax),
@@ -232,9 +257,9 @@ export const collectionType = (
             name: segment.name,
             arguments: [
               ...segment.arguments,
-              ...Array.map(arguments_, (bound) => ({
+              ...Array.map(arguments_, ({ syntax }) => ({
                 _tag: "GenericArgument" as const,
-                bound,
+                bound: syntax,
               })),
             ],
           })),
@@ -242,9 +267,12 @@ export const collectionType = (
         Result.mapBoth({
           onFailure: (cause) =>
             ProgramError.Construction.invalidExpression(cause),
-          onSuccess: (applied): Syntax.Type => ({
-            _tag: "Reference",
-            path: applied,
+          onSuccess: (applied): AST.TypeSyntax => ({
+            syntax: { _tag: "Reference", path: applied },
+            references: Array.flatMap(
+              arguments_,
+              ({ references }) => references,
+            ),
           }),
         }),
       );
@@ -281,26 +309,28 @@ export type ExactEntries<
       : { readonly [P in keyof E]: Structural.Value.Exact<V, E[P]> }
     : never;
 
-interface ValueSyntaxMapping extends Struct.Lambda {
-  readonly "~lambda.out": ReturnType<typeof valueSyntax>;
+interface ValueNodeMapping extends Struct.Lambda {
+  readonly "~lambda.out": ReturnType<typeof valueNode>;
 }
 
-const valueSyntaxLambda = Struct.lambda<
-  typeof valueSyntax & ValueSyntaxMapping
->(valueSyntax);
+const valueNodeLambda = Struct.lambda<typeof valueNode & ValueNodeMapping>(
+  valueNode,
+);
 
 /** Normalizes record keys as literals and preserves explicit expression keys. */
-export const dictionarySyntax = (
+export const dictionaryEntries = (
   entries: DictionaryValues,
-): Result.Result<ReturnType<typeof JExpr.dict>, ProgramError.Construction> => {
+): Result.Result<
+  readonly (readonly [AST.Node, AST.Node])[],
+  ProgramError.Construction
+> => {
   if (!Array.isArray<DictionaryValues>(entries)) {
-    return dictionarySyntax(Record.toEntries(entries));
+    return dictionaryEntries(Record.toEntries(entries));
   }
 
   return pipe(
     entries,
-    Array.map(flow(Tuple.map(valueSyntaxLambda), Result.all)),
+    Array.map(flow(Tuple.map(valueNodeLambda), Result.all)),
     Result.all,
-    Result.map(JExpr.dict),
   );
 };

@@ -8,10 +8,10 @@
 import { Array, Function, Pipeable, Result, flow, pipe } from "effect";
 
 import * as Relocation from "../internal/relocation.js";
-import * as JExpr from "../JExpr/index.js";
 import * as AST from "./AST/index.js";
 import * as Expression from "./Expression.js";
 
+import type * as JExpr from "../JExpr/index.js";
 import type * as Type from "../Type.js";
 import type * as ExpressionType from "./ExpressionType.js";
 import type * as Inputs from "./Inputs.js";
@@ -58,9 +58,9 @@ const call = <I>(
 ): Predicate<I> =>
   pipe(
     operands,
-    Array.map(Expression.toJExpr),
+    Array.map(Expression.toNode),
     Result.all,
-    Result.map((arguments_) => new AST.Expr(JExpr.call(path, ...arguments_))),
+    Result.map((arguments_) => new AST.Call(new AST.Expr(path), arguments_)),
     // oxlint-disable-next-line eslint/no-use-before-define -- syntax construction and predicate decoration are mutually recursive
     predicate<I>,
   );
@@ -222,16 +222,13 @@ export const isNone = <const E extends Expression.Value.Any>(
 ): Predicate<Expression.Value.Inputs<E>> =>
   pipe(
     expression,
-    Expression.toJExpr,
+    Expression.toNode,
     Result.map(
       (value) =>
-        new AST.Expr(
-          JExpr.call(
-            "::core::cmp::eq",
-            value,
-            JExpr.call("::core::option::None"),
-          ),
-        ),
+        new AST.Call(new AST.Expr("::core::cmp::eq"), [
+          value,
+          new AST.Call(new AST.Expr("::core::option::None"), []),
+        ]),
     ),
     predicate<Expression.Value.Inputs<E>>,
   );

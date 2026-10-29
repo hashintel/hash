@@ -7,10 +7,21 @@ import * as AST from "./index.js";
 const bind = <V>(value: V): AST.Binding<V> =>
   Result.getOrThrow(AST.make("x", value));
 
+const draft = Symbol("deep_nesting");
+const id = (universe: AST.Universe): AST.ReferenceId => ({
+  draft,
+  universe,
+  ident: Result.getOrThrow(JExpr.Ident.decodeResult("x")),
+  generation: 0,
+});
+
 describe("compile", () => {
   test("deep_nesting", () => {
     expect.hasAssertions();
-    const integer = Option.getOrThrow(JExpr.Type.reference("Integer"));
+    const integer: AST.TypeSyntax = {
+      syntax: Option.getOrThrow(JExpr.Type.reference("Integer")),
+      references: [],
+    };
     const path = Result.getOrThrow(JExpr.Path.decodeResult("::core::math"));
 
     // Each round nests through every node kind, and through both children of `Let`.
@@ -21,10 +32,14 @@ describe("compile", () => {
         node,
         new AST.Expr(JExpr.literal(0n)),
       );
-      node = new AST.Let(bind(node), new AST.Expr("y"));
-      node = new AST.Let(bind(new AST.Expr("y")), node);
-      node = new AST.Type(bind(integer), node);
-      node = new AST.Newtype(bind(integer), node);
+      node = new AST.Let(bind(node), id("value"), new AST.Expr("y"));
+      node = new AST.Let(bind(new AST.Expr("y")), id("value"), node);
+      node = new AST.Type(bind(integer), id("type"), node);
+      node = new AST.Newtype(
+        bind(integer),
+        { type: id("type"), value: id("value") },
+        node,
+      );
       node = new AST.Import(path, "*", node);
     }
 

@@ -8,6 +8,7 @@
 // oxlint-disable import/max-dependencies -- the collector composes every construction module
 import { Cause, Data, Option, Result, pipe } from "effect";
 
+import * as StructuralSyntax from "../internal/structural.js";
 import * as JExpr from "../JExpr/index.js";
 import * as AST from "../Program/AST/index.js";
 import * as Expression from "../Program/Expression.js";
@@ -15,26 +16,59 @@ import * as Import from "../Program/Import/index.js";
 import * as Namespace from "../Program/Namespace.js";
 import * as Operators from "../Program/Operators.js";
 import * as ProgramError from "../Program/ProgramError.js";
-import * as Structural from "../Program/Structural.js";
-import * as TypeExpression from "../Program/TypeExpression.js";
 
-import type * as Syntax from "../JExpr/Type/index.js";
 import type * as Inputs from "../Program/Inputs.js";
 import type * as Module from "../Program/Module.js";
 import type * as Scope from "../Program/Scope.js";
+import type * as Structural from "../Program/Structural.js";
+import type * as TypeExpression from "../Program/TypeExpression.js";
 import type * as Type from "../Type.js";
 import type * as Body from "./Body.js";
 import type * as Context from "./Context.js";
 
 type Wrap = (child: AST.Node) => AST.Node;
 
-/** Refers to a declaration by its bare name. */
-const reference = (bound: AST.Binding<Syntax.Type>): Syntax.Type => ({
-  _tag: "Reference",
-  path: JExpr.Path.make({
-    rooted: false,
-    segments: [{ name: bound.name, arguments: [] }],
-  }),
+/** Makes the id of a program's next binding of a name, so each binding of one name in one program has its own generation. */
+type Generations = (
+  universe: AST.Universe,
+  ident: JExpr.Ident.Ident,
+) => AST.ReferenceId;
+
+const generations = (): Generations => {
+  const draft = Symbol("~hashql/Draft");
+  const counts = new Map<string, number>();
+
+  return (universe, ident) => {
+    const name = JExpr.Ident.compile(ident);
+    const generation = counts.get(name) ?? 0;
+    counts.set(name, generation + 1);
+
+    return { draft, universe, ident, generation };
+  };
+};
+
+/** A newtype's binding and the ids of its type and its constructor. */
+interface NominalBinding {
+  readonly bound: AST.Binding<AST.TypeSyntax>;
+  readonly ids: {
+    readonly type: AST.ReferenceId;
+    readonly value: AST.ReferenceId;
+  };
+}
+
+/** Refers to a type declaration by its bare name, keeping the binding the name came from. */
+const reference = (
+  name: JExpr.Ident.Ident,
+  id: AST.ReferenceId,
+): AST.TypeSyntax => ({
+  syntax: {
+    _tag: "Reference",
+    path: JExpr.Path.make({
+      rooted: false,
+      segments: [{ name, arguments: [] }],
+    }),
+  },
+  references: [id],
 });
 
 /** Adds structural argument normalization without losing the nominal identity on relocation. */
@@ -55,13 +89,16 @@ const nominalValue = <N extends string, T extends Type.Any>(
       > =>
         pipe(
           {
-            callee: Expression.toJExpr(self),
-            argument: Structural.toJExpr(value),
+            callee: Expression.toNode(self),
+            argument: pipe(
+              value,
+              StructuralSyntax.valueNode,
+              Result.flatMap(AST.validate),
+            ),
           },
           Result.all,
           Result.map(
-            ({ callee, argument }) =>
-              new AST.Expr(JExpr.call(callee, argument)),
+            ({ callee, argument }) => new AST.Call(callee, [argument]),
           ),
           Expression.fromResult<
             Type.Opaque<N, T>,
@@ -71,17 +108,17 @@ const nominalValue = <N extends string, T extends Type.Any>(
   );
 
 const nominal = <N extends string, T extends Type.Any>(
-  binding: Result.Result<AST.Binding<Syntax.Type>, ProgramError.Construction>,
+  binding: Result.Result<NominalBinding, ProgramError.Construction>,
 ): Context.Nominal<N, T> => {
   const type = pipe(
     binding,
-    Result.map(reference),
-    TypeExpression.fromResult<Type.Opaque<N, T>>,
+    Result.map(({ bound, ids }) => reference(bound.name, ids.type)),
+    StructuralSyntax.typeHandle<Type.Opaque<N, T>>,
   );
 
   const value = pipe(
     binding,
-    Result.map((bound) => new AST.Expr(JExpr.Ident.compile(bound.name))),
+    Result.map(({ ids }) => new AST.Reference(ids.value)),
     Expression.fromResult<
       Type.Function<readonly [T], Type.Opaque<N, T>>,
       Inputs.Empty
@@ -102,6 +139,7 @@ const ConstructionFailure = Data.TaggedError("DraftConstructionFailure")<{
 
 class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   readonly #scope: S & Namespace.Rebindable<S>;
+  readonly #next: Generations;
   readonly #prelude: Namespace.Flatten<S>;
   readonly #modules: Namespace.Modules<S>;
   readonly #wrappers: Result.Result<Wrap, ProgramError.Construction>[] = [];
@@ -119,8 +157,9 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   readonly isFalse = Operators.isFalse;
   readonly isNone = Operators.isNone;
 
-  constructor(scope: S & Namespace.Rebindable<S>) {
+  constructor(scope: S & Namespace.Rebindable<S>, next: Generations) {
     this.#scope = scope;
+    this.#next = next;
     this.#prelude = Namespace.flatten<S>(scope);
     this.#modules = Namespace.modules<S>(scope);
 
@@ -186,20 +225,21 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     const binding = pipe(
       Expression.toNode(value),
       Result.flatMap((node) => AST.make(name, node)),
+      Result.map((bound) => ({ bound, id: this.#next("value", bound.name) })),
     );
 
     this.#wrappers.push(
       Result.map(
         binding,
-        (bound): Wrap =>
+        ({ bound, id }): Wrap =>
           (child) =>
-            new AST.Let(bound, child),
+            new AST.Let(bound, id, child),
       ),
     );
 
     return pipe(
       binding,
-      Result.map((bound) => new AST.Expr(JExpr.Ident.compile(bound.name))),
+      Result.map(({ id }) => new AST.Reference(id)),
       Expression.fromResult<
         Expression.Value.Type<E>,
         Expression.Value.Inputs<E>
@@ -213,24 +253,24 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   ): TypeExpression.TypeExpression<Structural.Definition.Type<D>> {
     const binding = pipe(
       definition,
-      Structural.type,
-      Result.flatMap(TypeExpression.toType),
+      StructuralSyntax.typeSyntax,
       Result.flatMap((syntax) => AST.make(name, syntax)),
+      Result.map((bound) => ({ bound, id: this.#next("type", bound.name) })),
     );
 
     this.#wrappers.push(
       Result.map(
         binding,
-        (bound): Wrap =>
+        ({ bound, id }): Wrap =>
           (child) =>
-            new AST.Type(bound, child),
+            new AST.Type(bound, id, child),
       ),
     );
 
     return pipe(
       binding,
-      Result.map(reference),
-      TypeExpression.fromResult<Structural.Definition.Type<D>>,
+      Result.map(({ bound, id }) => reference(bound.name, id)),
+      StructuralSyntax.typeHandle<Structural.Definition.Type<D>>,
     );
   }
 
@@ -240,17 +280,23 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   ): Context.Nominal<N, Structural.Definition.Type<D>> {
     const binding = pipe(
       definition,
-      Structural.type,
-      Result.flatMap(TypeExpression.toType),
+      StructuralSyntax.typeSyntax,
       Result.flatMap((syntax) => AST.make(name, syntax)),
+      Result.map((bound): NominalBinding => ({
+        bound,
+        ids: {
+          type: this.#next("type", bound.name),
+          value: this.#next("value", bound.name),
+        },
+      })),
     );
 
     this.#wrappers.push(
       Result.map(
         binding,
-        (bound): Wrap =>
+        ({ bound, ids }): Wrap =>
           (child) =>
-            new AST.Newtype(bound, child),
+            new AST.Newtype(bound, ids, child),
       ),
     );
 
@@ -282,10 +328,12 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
       readonly else?: ($: Context.Context<S>) => Expression.Value.Any;
     },
   ): Expression.Expression.Any {
-    const consequent = new ContextImpl<S>(this.#scope).build(branches.then);
+    const consequent = new ContextImpl<S>(this.#scope, this.#next).build(
+      branches.then,
+    );
     const alternate = Result.transposeMapOption(
       Option.fromUndefinedOr(branches.else),
-      (body) => new ContextImpl<S>(this.#scope).build(body),
+      (body) => new ContextImpl<S>(this.#scope, this.#next).build(body),
     );
 
     return pipe(
@@ -361,7 +409,7 @@ export const evaluate = <
   ProgramError.Construction
 > =>
   pipe(
-    new ContextImpl<S>(scope).build(($) => {
+    new ContextImpl<S>(scope, generations()).build(($) => {
       const expression = body($);
       if (Expression.isExpression(expression)) {
         return expression;
@@ -371,6 +419,7 @@ export const evaluate = <
         Body.Requirements<I>
       >(Result.fail(ProgramError.Construction.invalidBodyResult()));
     }),
+    Result.flatMap(AST.resolveReferences),
     Result.map(
       Expression.fromNode<Expression.Value.Type<O>, Body.Requirements<I>>,
     ),

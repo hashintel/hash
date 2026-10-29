@@ -1,19 +1,20 @@
 import { Pipeable } from "effect";
 
 import * as JExpr from "../../JExpr/index.js";
-import * as Path from "../../JExpr/Path.js";
+import { Path } from "./Path.js";
 
 import type { Node } from "./Node.js";
 
-export class Import<T extends Node>
+export class Import<T extends Node.Any>
   extends Pipeable.Class
-  implements Node.Of<readonly [T]>
+  implements Node.Of<"Import", readonly [Path, T]>
 {
-  readonly path: Path.Path;
+  readonly _tag = "Import" as const;
+  readonly path: Path;
   readonly imports: JExpr.Imports;
   readonly child: T;
 
-  constructor(path: Path.Path, imports: JExpr.Imports, child: T) {
+  constructor(path: Path, imports: JExpr.Imports, child: T) {
     super();
 
     this.path = path;
@@ -21,11 +22,14 @@ export class Import<T extends Node>
     this.child = child;
   }
 
-  get children(): readonly [T] {
-    return [this.child];
+  get children(): readonly [Path, T] {
+    return [this.path, this.child];
   }
 
-  toExpr([body]: readonly [JExpr.Expression]): JExpr.Expression {
-    return JExpr.use(Path.compile(this.path), this.imports, body);
+  toExpr([path, body]: readonly [
+    JExpr.Expression,
+    JExpr.Expression,
+  ]): JExpr.Expression {
+    return JExpr.use(path, this.imports, body);
   }
 }

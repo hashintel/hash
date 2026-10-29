@@ -8,14 +8,15 @@
  * @module
  */
 // oxlint-disable max-lines -- type and value shorthand share one definition vocabulary with its guards and normalization
-import { Predicate, Result, Struct, Tuple, flow, pipe } from "effect";
+import { Predicate, Result, Struct, Tuple, pipe } from "effect";
 
 import * as StructuralSyntax from "../internal/structural.js";
-import * as JExpr from "../JExpr/index.js";
+import * as AST from "./AST/index.js";
 import * as Expression from "./Expression.js";
 import * as TypeExpression from "./TypeExpression.js";
 
 import type * as Relocation from "../internal/relocation.js";
+import type * as JExpr from "../JExpr/index.js";
 import type * as Type from "../Type.js";
 import type * as Inputs from "./Inputs.js";
 import type * as ProgramError from "./ProgramError.js";
@@ -254,7 +255,9 @@ export const type = <const D extends Definition>(
   pipe(
     definition,
     StructuralSyntax.typeSyntax,
-    Result.map(TypeExpression.fromType<Definition.Type<D>>),
+    Result.map((syntax) =>
+      StructuralSyntax.typeHandle<Definition.Type<D>>(Result.succeed(syntax)),
+    ),
   );
 
 /** Keeps a failed argument inside its handle, because the constructor reports argument failures through the type expression it returns. */
@@ -264,7 +267,7 @@ const handle = <const D extends Definition>(
   pipe(
     definition,
     StructuralSyntax.typeSyntax,
-    TypeExpression.fromResult<Definition.Type<D>>,
+    StructuralSyntax.typeHandle<Definition.Type<D>>,
   );
 
 /** Applies normalization independently at every position instead of collapsing the tuple to an element union. */
@@ -351,8 +354,8 @@ export const value =
   ): Expression.Expression<T, Value.Requirements<V>> =>
     pipe(
       input,
-      StructuralSyntax.valueSyntax,
-      StructuralSyntax.fromSyntax<T, Value.Requirements<V>>,
+      StructuralSyntax.valueNode,
+      StructuralSyntax.fromNode<T, Value.Requirements<V>>,
     );
 
 /**
@@ -365,8 +368,9 @@ export const toJExpr = (
 ): Result.Result<JExpr.Expression, ProgramError.Construction> =>
   pipe(
     value,
-    StructuralSyntax.valueSyntax,
-    Result.flatMap(flow(Expression.fromJExpr, Expression.toJExpr)),
+    StructuralSyntax.valueNode,
+    Result.flatMap(AST.validate),
+    Result.map(AST.compile),
   );
 
 /**
@@ -393,8 +397,8 @@ export const struct = <const V extends FieldValues>(
 ): Expression.Expression<Value.Type<V>, Value.Requirements<V>> =>
   pipe(
     fields,
-    StructuralSyntax.valueSyntax,
-    StructuralSyntax.fromSyntax<Value.Type<V>, Value.Requirements<V>>,
+    StructuralSyntax.valueNode,
+    StructuralSyntax.fromNode<Value.Type<V>, Value.Requirements<V>>,
   );
 
 /**
@@ -407,8 +411,8 @@ export const tuple = <const V extends readonly Value.Any[]>(
 ): Expression.Expression<Value.Type<V>, Value.Requirements<V>> =>
   pipe(
     members,
-    StructuralSyntax.valueSyntax,
-    StructuralSyntax.fromSyntax<Value.Type<V>, Value.Requirements<V>>,
+    StructuralSyntax.valueNode,
+    StructuralSyntax.fromNode<Value.Type<V>, Value.Requirements<V>>,
   );
 
 /**
@@ -449,13 +453,11 @@ export const list = <
   pipe(
     {
       type: StructuralSyntax.collectionType("List", [definition]),
-      members: StructuralSyntax.membersSyntax(members),
+      members: StructuralSyntax.memberNodes(members),
     },
     Result.all,
-    Result.map(({ type, members }) =>
-      JExpr.typed(JExpr.list(...members), type),
-    ),
-    StructuralSyntax.fromSyntax<
+    Result.map(({ type, members }) => new AST.List(type, members)),
+    StructuralSyntax.fromNode<
       Type.List<Definition.Type<D>>,
       Value.Requirements<V>
     >,
@@ -506,11 +508,11 @@ export const dict = <
   pipe(
     {
       type: StructuralSyntax.collectionType("Dict", [key, definition]),
-      syntax: StructuralSyntax.dictionarySyntax(entries),
+      entries: StructuralSyntax.dictionaryEntries(entries),
     },
     Result.all,
-    Result.map(({ type, syntax }) => JExpr.typed(syntax, type)),
-    StructuralSyntax.fromSyntax<
+    Result.map(({ type, entries }) => new AST.Dict(type, entries)),
+    StructuralSyntax.fromNode<
       Type.Dict<Definition.Type<K>, Definition.Type<D>>,
       Value.Requirements<E>
     >,
@@ -562,17 +564,17 @@ export const input = <
   InputRequirements<Name, Definition.Type<D>, Defaults>
 > =>
   Result.gen(function* () {
-    const syntax = yield* StructuralSyntax.typeSyntax(definition);
+    const type = yield* StructuralSyntax.typeSyntax(definition);
     const [defaultValue] = defaults;
 
     if (defaultValue === undefined) {
-      return JExpr.input(name, syntax);
+      return new AST.Input(name, type, undefined);
     }
 
-    const fallback = yield* StructuralSyntax.valueSyntax(defaultValue);
-    return JExpr.input(name, syntax, fallback);
+    const fallback = yield* StructuralSyntax.valueNode(defaultValue);
+    return new AST.Input(name, type, fallback);
   }).pipe(
-    StructuralSyntax.fromSyntax<
+    StructuralSyntax.fromNode<
       Definition.Type<D>,
       InputRequirements<Name, Definition.Type<D>, Defaults>
     >,

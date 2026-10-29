@@ -18,6 +18,7 @@ import {
   relocate as relocateHandle,
 } from "../internal/relocation.js";
 import * as Path from "../JExpr/Path.js";
+import { References, referencesOf } from "./AST/Reference.js";
 import * as ProgramError from "./ProgramError.js";
 
 import type { Relocatable } from "../internal/relocation.js";
@@ -216,9 +217,11 @@ export const constructor = <F extends Type.TypeConstructor>(
       );
     }
 
-    return pipe(
-      // SAFETY: `Arguments<A>` maps every position to a type expression. `Array.map` cannot read that through the generic `A` and types the elements as `unknown`.
-      args as readonly TypeExpression.Any[],
+    // SAFETY: `Arguments<A>` maps every position to a type expression. `Array.map` cannot read that through the generic `A` and types the elements as `unknown`.
+    const handles = args as readonly TypeExpression.Any[];
+
+    const applied = pipe(
+      handles,
       Array.map(toType),
       Result.all,
       Result.flatMap((args) =>
@@ -248,6 +251,11 @@ export const constructor = <F extends Type.TypeConstructor>(
       ),
       fromResult<Type.TypeLambda.Apply<F, A>>,
     );
+
+    // A Draft's type handles emit bare names, so the application keeps the bindings its arguments came from.
+    return Object.assign(applied, {
+      [References]: Array.flatMap(handles, referencesOf),
+    });
   };
 
   return Result.succeed(

@@ -55,6 +55,15 @@ const literal = (value: string | number | boolean): Schema.Json => ({
 
 const integer = Result.getOrThrow(Structural.type(BigInt));
 
+/** The reason a program failed with, for comparison by structure. */
+const reason = (result: Built): Program.ProgramError.Construction["reason"] => {
+  assert(Result.isFailure(result));
+  return result.failure.reason;
+};
+
+const stale = (name: string): Program.ProgramError.Construction["reason"] =>
+  Program.ProgramError.Reason.make({ _tag: "StaleReference", name });
+
 // oxlint-disable-next-line typescript/promise-function-async -- this fixture supplies a Promise where the synchronous API rejects one
 const asynchronousBody = (): Promise<
   Program.Expression.Expression<Type.PrimitiveBoolean, Program.Inputs.Empty>
@@ -414,7 +423,258 @@ describe("program", () => {
       escaped = $.let("local", 1n);
       return escaped;
     });
-    expect(syntax(Draft.program({}, () => escaped))).toBe("local");
+    expect(reason(Draft.program({}, () => escaped))).toStrictEqual(
+      stale("local"),
+    );
+  });
+});
+
+describe("references", () => {
+  test("reused_let", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const first = $.let("v", 1n);
+      $.let("v", "text");
+      return first;
+    });
+    expect(reason(result)).toStrictEqual(stale("v"));
+  });
+
+  test("before_after", () => {
+    expect.hasAssertions();
+    // Without the check this emits `eq(n, n)`, which is true for every limit.
+    const result = Draft.program({ limit: BigInt }, ($, { limit }) => {
+      const { add } = $.prelude();
+      const before = $.let("n", limit);
+      const after = $.let("n", add(before, 1n));
+      return $.eq(before, after);
+    });
+    expect(reason(result)).toStrictEqual(stale("n"));
+  });
+
+  test("shadowing_initializer", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const { add } = $.prelude();
+      const first = $.let("n", 1n);
+      return $.let("n", add(first, 1n));
+    });
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::let",
+        "n",
+        literal(1),
+        call(
+          "::kernel::special_form::let",
+          "n",
+          call("::core::math::add", "n", literal(1)),
+          "n",
+        ),
+      ),
+    );
+  });
+
+  test("helper_twice", () => {
+    expect.hasAssertions();
+    // Both `eq` calls read their `tmp` while it is the innermost one. The check still sees each reference inside the composite it built.
+    const result = Draft.program({}, ($) => {
+      const isZero = (
+        value: bigint,
+      ): Program.Operators.Predicate<Program.Inputs.Empty> =>
+        $.eq($.let("tmp", value), 0n);
+      return $.and(isZero(1n), isZero(2n));
+    });
+    expect(reason(result)).toStrictEqual(stale("tmp"));
+  });
+
+  test("branch_redeclaration", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const total = $.let("total", 1n);
+      return $.if(true, {
+        then: (branch) => {
+          branch.let("total", 2n);
+          return total;
+        },
+        else: () => total,
+      });
+    });
+    expect(reason(result)).toStrictEqual(stale("total"));
+  });
+
+  test("branch_escape", () => {
+    expect.hasAssertions();
+    let inner: Program.Expression.Expression<
+      Type.PrimitiveInteger,
+      Program.Inputs.Empty
+    > = Expression.integer(0);
+    const result = Draft.program({}, ($) => {
+      const conditional = $.if(true, {
+        then: (branch) => {
+          inner = branch.let("inner", 1n);
+          return inner;
+        },
+      });
+      return Structural.tuple([conditional, inner]);
+    });
+    expect(reason(result)).toStrictEqual(stale("inner"));
+  });
+
+  test("embedded_program", () => {
+    expect.hasAssertions();
+    // A program's root carries its own bindings, so its references resolve inside another program too.
+    const inner = Result.getOrThrow(Draft.program({}, ($) => $.let("v", 1n)));
+    const result = Draft.program({}, ($) => {
+      $.let("v", "text");
+      return inner;
+    });
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::let",
+        "v",
+        literal("text"),
+        call("::kernel::special_form::let", "v", literal(1), "v"),
+      ),
+    );
+  });
+
+  test("newtype_constructor", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const Old = $.newtype("Id", BigInt);
+      $.newtype("Id", String);
+      return Old(1n);
+    });
+    expect(reason(result)).toStrictEqual(stale("Id"));
+  });
+
+  test("newtype_shadows_value", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const flag = $.let("Flag", true);
+      $.newtype("Flag", Boolean);
+      return flag;
+    });
+    expect(reason(result)).toStrictEqual(stale("Flag"));
+  });
+
+  test("universes", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const value = $.let("T", 1n);
+      $.type("T", BigInt);
+      return value;
+    });
+    expect(syntax(result)).toStrictEqual(
+      call(
+        "::kernel::special_form::let",
+        "T",
+        literal(1),
+        call(
+          "::kernel::special_form::type",
+          "T",
+          "::kernel::type::Integer",
+          "T",
+        ),
+      ),
+    );
+
+    const type = Draft.program({}, ($) => {
+      const alias = $.type("T", BigInt);
+      $.let("T", 1n);
+      return Structural.list(alias, []);
+    });
+    expect(syntax(type)).toStrictEqual(
+      call(
+        "::kernel::special_form::type",
+        "T",
+        "::kernel::type::Integer",
+        call("::kernel::special_form::let", "T", literal(1), {
+          "#list": [],
+          "#type": "::kernel::type::List<T>",
+        }),
+      ),
+    );
+  });
+
+  test("reused_type", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const first = $.type("T", BigInt);
+      $.type("T", String);
+      return Structural.list(first, []);
+    });
+    expect(reason(result)).toStrictEqual(stale("T"));
+  });
+
+  test("recursive_definition", () => {
+    expect.hasAssertions();
+    // A definition sees its own name, so both emit the recursive `T = (T, String)` rather than a pair of an integer and a string.
+    const type = Draft.program({}, ($) => {
+      const first = $.type("T", BigInt);
+      $.type("T", [first, String]);
+      return $.literal(true);
+    });
+    const nominal = Draft.program({}, ($) => {
+      const first = $.type("T", BigInt);
+      $.newtype("T", [first, String]);
+      return $.literal(true);
+    });
+    expect(reason(type)).toStrictEqual(stale("T"));
+    expect(reason(nominal)).toStrictEqual(stale("T"));
+  });
+
+  test("newtype_type", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const Old = $.newtype("Id", BigInt);
+      $.newtype("Id", String);
+      return Structural.dict(String, Old, []);
+    });
+    expect(reason(result)).toStrictEqual(stale("Id"));
+  });
+
+  test("constructor_argument", () => {
+    expect.hasAssertions();
+    const result = Draft.program({}, ($) => {
+      const { List: ListType } = $.prelude();
+      const first = $.type("T", BigInt);
+      $.type("T", String);
+      $.type("Items", ListType(first));
+      return $.literal(true);
+    });
+    expect(reason(result)).toStrictEqual(stale("T"));
+  });
+
+  test("input_annotation", () => {
+    expect.hasAssertions();
+    const result = Draft.program({ count: BigInt }, ($) => {
+      const first = $.type("T", BigInt);
+      $.type("T", String);
+      return $.let("count", Expression.input("count", first));
+    });
+    expect(reason(result)).toStrictEqual(stale("T"));
+  });
+
+  test("escaped_type", () => {
+    expect.hasAssertions();
+    let escaped = integer;
+    const branch = Draft.program({}, ($) => {
+      const conditional = $.if(true, {
+        then: (inner) => {
+          escaped = inner.type("Inner", BigInt);
+          return 1n;
+        },
+      });
+      return Structural.tuple([conditional, Structural.list(escaped, [])]);
+    });
+    Draft.program({}, ($) => {
+      escaped = $.type("Local", BigInt);
+      return $.literal(true);
+    });
+    const other = Draft.program({}, () => Structural.list(escaped, []));
+    expect(reason(branch)).toStrictEqual(stale("Inner"));
+    expect(reason(other)).toStrictEqual(stale("Local"));
   });
 });
 

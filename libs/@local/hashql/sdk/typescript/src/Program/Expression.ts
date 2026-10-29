@@ -267,9 +267,7 @@ const access = (
   pipe(
     { value, key: projectionKey(key) },
     Result.all,
-    Result.map(
-      ({ value, key }) => new AST.Expr(JExpr.access(AST.compile(value), key)),
-    ),
+    Result.map(({ value, key }) => new AST.Access(value, key)),
   );
 
 const make = <T extends Type.Any, Inputs>(
@@ -282,12 +280,12 @@ const make = <T extends Type.Any, Inputs>(
           pipe(
             {
               callee: impl[Binding],
-              arguments: Result.all(args.map(toJExpr)),
+              arguments: Result.all(args.map(toNode)),
             },
             Result.all,
             Result.map(
               ({ callee, arguments: arguments_ }) =>
-                new AST.Expr(JExpr.call(AST.compile(callee), ...arguments_)),
+                new AST.Call(callee, arguments_),
             ),
           ),
         ),
@@ -325,12 +323,9 @@ const make = <T extends Type.Any, Inputs>(
       if (property === "$index" || property === "$indexUnsafe") {
         return (key: Value.Any) => {
           const expr = pipe(
-            { value: target[Binding], key: toJExpr(key) },
+            { value: target[Binding], key: toNode(key) },
             Result.all,
-            Result.map(
-              ({ value, key }) =>
-                new AST.Expr(JExpr.index(AST.compile(value), key)),
-            ),
+            Result.map(({ value, key }) => new AST.Subscript(value, key)),
           );
           const impl = new ExpressionImpl(expr);
           return make(impl);
@@ -596,12 +591,13 @@ export function input<T extends Type.Any>(
 ): Expression<T, never> {
   return Result.gen(function* () {
     const syntax = yield* TypeExpression.toType(type);
+    const typeSyntax = { syntax, references: AST.referencesOf(type) };
     if (defaultValue === undefined) {
-      return yield* toNode(fromJExpr(JExpr.input(name, syntax)));
+      return yield* AST.validate(new AST.Input(name, typeSyntax, undefined));
     }
 
-    const value = yield* toJExpr(defaultValue);
-    return yield* toNode(fromJExpr(JExpr.input(name, syntax, value)));
+    const value = yield* toNode(defaultValue);
+    return yield* AST.validate(new AST.Input(name, typeSyntax, value));
   }).pipe(fromResult<T, never>);
 }
 
