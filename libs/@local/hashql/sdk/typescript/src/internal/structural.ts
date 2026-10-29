@@ -8,6 +8,7 @@
 import {
   Array,
   MutableHashSet,
+  Option,
   Predicate,
   Record,
   Result,
@@ -147,6 +148,63 @@ export const typeNode = (
   );
 };
 
+/** Lowers an optional annotation, or nothing when the caller passes no `type`. */
+export const annotation = (
+  type: Structural.Definition | undefined,
+): Result.Result<TAST.TypeNode.Any | undefined, ProgramError.Construction> =>
+  pipe(
+    Result.transposeMapOption(Option.fromUndefinedOr(type), typeNode),
+    Result.map(Option.getOrUndefined),
+  );
+
+/** Lowers a tuple's members, with the type that annotates it when there is one. */
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- lowers the members and the annotation of one tuple
+export const tupleNode = (
+  members: readonly Structural.Value.Any[],
+  type?: TAST.TypeNode.Any,
+): Result.Result<AST.Node.Any, ProgramError.Construction> =>
+  pipe(
+    members,
+    // oxlint-disable-next-line eslint/no-use-before-define -- a tuple's members and a value's tuple are mutually recursive
+    Array.map(valueNode),
+    Result.all,
+    Result.map((nodes) => new AST.Tuple(nodes, type)),
+  );
+
+/** Lowers a struct's fields, with the type that annotates it when there is one. */
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- lowers the fields and the annotation of one struct
+export const structNode = (
+  fields: Record.ReadonlyRecord<string, Structural.Value.Any>,
+  type?: TAST.TypeNode.Any,
+): Result.Result<AST.Node.Any, ProgramError.Construction> =>
+  pipe(
+    fields,
+    Record.toEntries,
+    Array.map(([key, member]) =>
+      Result.all({
+        key: Result.succeed(key),
+        name: pipe(
+          key,
+          JExpr.Ident.decodeResult,
+          Result.mapError((cause) =>
+            ProgramError.Construction.invalidExpression(cause),
+          ),
+        ),
+        // oxlint-disable-next-line eslint/no-use-before-define -- a struct's fields and a value's struct are mutually recursive
+        node: valueNode(member),
+      }),
+    ),
+    Result.all,
+    Result.flatMap(distinct),
+    Result.map(
+      (fields) =>
+        new AST.Struct(
+          Array.map(fields, ({ name, node }) => [name, node]),
+          type,
+        ),
+    ),
+  );
+
 /** Tests for an expression first, because a predicate is a plain object that carries the expression markers rather than fields. */
 export const valueNode = (
   value: Structural.Value.Any,
@@ -160,37 +218,10 @@ export const valueNode = (
   }
 
   if (Array.isArray<Structural.Value.Any>(value)) {
-    return pipe(
-      value,
-      Array.map(valueNode),
-      Result.all,
-      Result.map((members) => new AST.Tuple(members)),
-    );
+    return tupleNode(value);
   }
 
-  return pipe(
-    value,
-    Record.toEntries,
-    Array.map(([key, member]) =>
-      Result.all({
-        key: Result.succeed(key),
-        name: pipe(
-          key,
-          JExpr.Ident.decodeResult,
-          Result.mapError((cause) =>
-            ProgramError.Construction.invalidExpression(cause),
-          ),
-        ),
-        node: valueNode(member),
-      }),
-    ),
-    Result.all,
-    Result.flatMap(distinct),
-    Result.map(
-      (fields) =>
-        new AST.Struct(Array.map(fields, ({ name, node }) => [name, node])),
-    ),
-  );
+  return structNode(value);
 };
 
 /** Validates an assembled node before attaching its statically established descriptor and requirements. */

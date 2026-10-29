@@ -315,6 +315,16 @@ describe("structural_values", () => {
     }
   });
 
+  test("annotations", () => {
+    expect.hasAssertions();
+    expect(emit(Structural.struct({ count: 1n }, { count: Number }))).toBe(
+      '{"#struct":{"count":{"#literal":1}},"#type":"(count: ::kernel::type::Number)"}',
+    );
+    expect(emit(Structural.tuple([1n, "x"], [Number, String]))).toBe(
+      '{"#tuple":[{"#literal":1},{"#literal":"x"}],"#type":"(::kernel::type::Number, ::kernel::type::String)"}',
+    );
+  });
+
   test("duplicate_field", () => {
     expect.hasAssertions();
     expect(

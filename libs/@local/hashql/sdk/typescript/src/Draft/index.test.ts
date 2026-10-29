@@ -475,6 +475,22 @@ describe("references", () => {
     expect(reason(result)).toStrictEqual(stale("n"));
   });
 
+  test("let_annotation", () => {
+    expect.hasAssertions();
+    const annotated = Draft.program({}, ($) => $.let("x", 1n, Number));
+    expect(text(annotated)).toBe(
+      '["::kernel::special_form::let","x","::kernel::type::Number",{"#literal":1},"x"]',
+    );
+
+    // The annotation names a type binding, which the check follows like any other use.
+    const shadowed = Draft.program({}, ($) => {
+      const alias = $.type("T", BigInt);
+      $.type("T", String);
+      return $.let("x", 1n, alias);
+    });
+    expect(reason(shadowed)).toStrictEqual(stale("T"));
+  });
+
   test("shadowing_initializer", () => {
     expect.hasAssertions();
     const result = Draft.program({}, ($) => {

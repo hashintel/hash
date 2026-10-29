@@ -373,10 +373,17 @@ export const toJExpr = (
     Result.map(AST.compile),
   );
 
+/** The annotation's type when there is one, and otherwise the type the value infers. */
+type Annotated<V extends Value.Any, D extends Definition> = [D] extends [never]
+  ? Value.Type<V>
+  : Definition.Type<D>;
+
 /**
  * Infers a struct's field descriptors and combines their input requirements.
  *
  * Nested records and arrays follow {@link value}. Invalid field names and nested construction failures remain in the returned expression.
+ *
+ * Pass `type`, a type expression or structural shorthand as {@link type} takes it, to annotate the struct with `#type`. The expression then has the annotation's type, which widens the fields' types. Nothing here checks the fields against it, as with `Expression.assume`, and the HashQL compiler does.
  *
  * @example <caption>Infer a record's fields and project one of them.</caption>
  * ```ts
@@ -392,27 +399,37 @@ export const toJExpr = (
  * );
  * ```
  */
-export const struct = <const V extends FieldValues>(
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a struct from its fields and an optional annotation
+export const struct = <
+  const V extends FieldValues,
+  const D extends Definition = never,
+>(
   fields: V,
-): Expression.Expression<Value.Type<V>, Value.Requirements<V>> =>
+  type?: D,
+): Expression.Expression<Annotated<V, D>, Value.Requirements<V>> =>
   pipe(
-    fields,
-    StructuralSyntax.valueNode,
-    StructuralSyntax.fromNode<Value.Type<V>, Value.Requirements<V>>,
+    StructuralSyntax.annotation(type),
+    Result.flatMap((type) => StructuralSyntax.structNode(fields, type)),
+    StructuralSyntax.fromNode<Annotated<V, D>, Value.Requirements<V>>,
   );
 
 /**
  * Infers a fixed-length tuple without merging its positional descriptors.
  *
- * The argument must have a statically known length and required positions. Use {@link list} for a variable-length array. Nested values and failures follow {@link value}.
+ * The argument must have a statically known length and required positions. Use {@link list} for a variable-length array. Nested values and failures follow {@link value}. A `type` annotates the tuple as it does a {@link struct}.
  */
-export const tuple = <const V extends readonly Value.Any[]>(
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a tuple from its members and an optional annotation
+export const tuple = <
+  const V extends readonly Value.Any[],
+  const D extends Definition = never,
+>(
   members: V & { readonly length: number extends V["length"] ? never : number },
-): Expression.Expression<Value.Type<V>, Value.Requirements<V>> =>
+  type?: D,
+): Expression.Expression<Annotated<V, D>, Value.Requirements<V>> =>
   pipe(
-    members,
-    StructuralSyntax.valueNode,
-    StructuralSyntax.fromNode<Value.Type<V>, Value.Requirements<V>>,
+    StructuralSyntax.annotation(type),
+    Result.flatMap((type) => StructuralSyntax.tupleNode(members, type)),
+    StructuralSyntax.fromNode<Annotated<V, D>, Value.Requirements<V>>,
   );
 
 /**

@@ -198,29 +198,52 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   ): Expression.Expression<
     Expression.Value.Type<E>,
     Expression.Value.Inputs<E>
-  > {
-    const binding = pipe(
-      { name: AST.decodeName(name), node: Expression.toNode(value) },
+  >;
+  let<
+    const E extends Expression.Value.Any,
+    const D extends Structural.Definition,
+  >(
+    name: string,
+    value: E,
+    type: D,
+  ): Expression.Expression<
+    Structural.Definition.Type<D>,
+    Expression.Value.Inputs<E>
+  >;
+  let(
+    name: string,
+    value: Expression.Value.Any,
+    type?: Structural.Definition,
+  ): Expression.Expression.Any {
+    const declaration = pipe(
+      {
+        name: AST.decodeName(name),
+        node: Expression.toNode(value),
+        type: Result.transposeMapOption(
+          Option.fromUndefinedOr(type),
+          StructuralSyntax.typeNode,
+        ),
+      },
       Result.all,
-      Result.map(({ name, node }) => AST.make(this.#next("value", name), node)),
+      Result.map(({ name, node, type }) => ({
+        binding: AST.make(this.#next("value", name), node),
+        type: Option.getOrUndefined(type),
+      })),
     );
 
     this.#wrappers.push(
       Result.map(
-        binding,
-        (binding): Wrap =>
+        declaration,
+        ({ binding, type }): Wrap =>
           (child) =>
-            new AST.Let(binding, child),
+            new AST.Let(binding, child, type),
       ),
     );
 
     return pipe(
-      binding,
-      Result.map(({ id, name }) => new AST.Path(bare(name), id)),
-      Expression.fromResult<
-        Expression.Value.Type<E>,
-        Expression.Value.Inputs<E>
-      >,
+      declaration,
+      Result.map(({ binding }) => new AST.Path(bare(binding.name), binding.id)),
+      Expression.fromResult<Type.Any, Inputs.Empty>,
     );
   }
 

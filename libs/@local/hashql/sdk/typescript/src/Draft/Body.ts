@@ -113,14 +113,29 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
    * Binds a value to a HashQL name and returns a reference to the binding.
    *
    * Draft emits the binding around this callback's returned expression, in call order with its other declarations, even when nothing refers to it. `value` is an expression or host primitive whose input requirements fit the schema, and the reference keeps its semantic type and requirements. An invalid name, or a value whose construction failed, does not interrupt the callback, but Draft records the failure and the program fails. The reference is the binding's bare name, so carrying it out of this callback leaves it without its binding.
+   *
+   * A `type` annotates the binding, and the reference takes the annotation's type, as `Context.let` describes.
    */
-  readonly let: <const E extends Expression.Value.Any>(
-    name: string,
-    value: E & Accept<I, E>,
-  ) => Expression.Expression<
-    Expression.Value.Type<E>,
-    Expression.Value.Inputs<E>
-  >;
+  readonly let: {
+    <const E extends Expression.Value.Any>(
+      name: string,
+      value: E & Accept<I, E>,
+    ): Expression.Expression<
+      Expression.Value.Type<E>,
+      Expression.Value.Inputs<E>
+    >;
+    <
+      const E extends Expression.Value.Any,
+      const D extends Structural.Definition,
+    >(
+      name: string,
+      value: E & Accept<I, E>,
+      type: D,
+    ): Expression.Expression<
+      Structural.Definition.Type<D>,
+      Expression.Value.Inputs<E>
+    >;
+  };
 
   /**
    * Constructs a HashQL conditional from a Boolean condition and a record of branch callbacks.

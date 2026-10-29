@@ -140,14 +140,29 @@ export interface Context<S extends Scope.Scope.Any>
    * Binds a value to a HashQL name and returns a reference to the binding.
    *
    * Draft emits the binding around the declaring callback's returned expression, in call order with its other declarations, even when nothing refers to it. An invalid name, or a value whose construction failed, does not interrupt the callback, but Draft records the failure and the program fails. The reference is the binding's bare name, so carrying it out of the declaring callback leaves it without its binding.
+   *
+   * Pass `type`, a type expression or structural shorthand as `$.type` takes it, to annotate the binding as in `let name: type = value`. The reference then has the annotation's type, which widens the value's. Draft does not check the value against the annotation, as with `assume`, and the HashQL compiler does.
    */
-  readonly let: <const E extends Expression.Value.Any>(
-    name: string,
-    value: E,
-  ) => Expression.Expression<
-    Expression.Value.Type<E>,
-    Expression.Value.Inputs<E>
-  >;
+  readonly let: {
+    <const E extends Expression.Value.Any>(
+      name: string,
+      value: E,
+    ): Expression.Expression<
+      Expression.Value.Type<E>,
+      Expression.Value.Inputs<E>
+    >;
+    <
+      const E extends Expression.Value.Any,
+      const D extends Structural.Definition,
+    >(
+      name: string,
+      value: E,
+      type: D,
+    ): Expression.Expression<
+      Structural.Definition.Type<D>,
+      Expression.Value.Inputs<E>
+    >;
+  };
 
   /**
    * Declares a type alias and returns a reference to it.

@@ -70,6 +70,13 @@ const unrestricted = (
       { readonly outside: Type.PrimitiveInteger }
     >
   >();
+  // The annotation's type replaces the value's, and the value keeps its inputs.
+  expectTypeOf($.let("widened", outside, Number)).toEqualTypeOf<
+    Program.Expression.Expression<
+      Type.PrimitiveNumber,
+      { readonly outside: Type.PrimitiveInteger }
+    >
+  >();
   return $.literal(true);
 };
 
