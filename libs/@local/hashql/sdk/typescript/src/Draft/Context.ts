@@ -96,9 +96,9 @@ export interface Query<
   I,
 > extends Expression.Expression.Handle<Graph<V>, I> {
   /**
-   * Keeps the vertices `predicate` accepts, constructing it now with a fresh context whose declarations stay inside the filter.
+   * Keeps the vertices `predicate` accepts, constructing it now with a fresh context whose declarations stay inside the filter. Declarations made through a captured outer `$` belong to the outer callback instead.
    *
-   * `name` becomes the filter closure's parameter and `vertex` refers to it, as in `Query.filter`, which also says when `predicate` does not run. An exception it throws becomes a `CallbackException` failure on the returned query.
+   * `name` becomes the filter closure's parameter and `vertex` refers to it, as in `Query.filter`, which also says when `predicate` does not run. `vertex` is valid inside the predicate alone, so using it in a declaration made through the outer `$` fails the program with the `StaleReference` reason. An exception it throws becomes a `CallbackException` failure on the returned query.
    */
   readonly filter: <const P extends Expression.Value<Type.PrimitiveBoolean>>(
     name: string,

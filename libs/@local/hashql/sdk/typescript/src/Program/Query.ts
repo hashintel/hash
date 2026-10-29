@@ -7,10 +7,12 @@
  */
 import { Function, Result, pipe } from "effect";
 
+import * as Referential from "../internal/referential.js";
 import * as JExpr from "../JExpr/index.js";
 import * as AST from "./AST/index.js";
 import * as Expression from "./Expression.js";
 import * as ProgramError from "./ProgramError.js";
+import * as TAST from "./TAST/index.js";
 
 import type * as Type from "../Type.js";
 import type * as Input from "./Inputs.js";
@@ -69,6 +71,9 @@ export type Filtered<
 export type Collected<G extends Expression.Expression.Any> =
   Expression.Expression<Type.List<Graph.Vertex<G>>, Expression.Value.Inputs<G>>;
 
+/** The type `_`, which a filter closure writes for its parameter and its result so that HashQL infers them. */
+const inferred = new TAST.Syntax(JExpr.Type.infer());
+
 /**
  * Starts a query from every entity at the temporal axes `axis`, emitting `::graph::head::entities`.
  *
@@ -96,9 +101,10 @@ export const entities = <const A extends Expression.Value<QueryTemporalAxes>>(
 ): Expression.Expression<Graph<Entity>, Expression.Value.Inputs<A>> =>
   pipe(
     axis,
-    Expression.toJExpr,
+    Expression.toNode,
     Result.map(
-      (source) => new AST.Expr(JExpr.call("::graph::head::entities", source)),
+      (source) =>
+        new AST.Call(new AST.Expr("::graph::head::entities"), [source]),
     ),
     Expression.fromResult<Graph<Entity>, Expression.Value.Inputs<A>>,
   );
@@ -106,7 +112,7 @@ export const entities = <const A extends Expression.Value<QueryTemporalAxes>>(
 /**
  * Keeps the vertices of a graph that `predicate` accepts, emitting `::graph::body::filter` with a closure over one parameter.
  *
- * `name` becomes the closure's parameter, and `predicate` receives a reference to it typed as the graph's vertex. `predicate` runs once, immediately, unless the graph already carries a construction failure or `name` is not a HashQL identifier, which fails construction with `InvalidParameterName`. It returns a Boolean expression or a host boolean, whose input requirements the result keeps, and an exception it throws propagates to the caller. The reference names the parameter, so carrying it out of the predicate leaves it unbound.
+ * `name` becomes the closure's parameter, and `predicate` receives a reference to it typed as the graph's vertex. `predicate` runs once, immediately, unless the graph already carries a construction failure or `name` is not a HashQL identifier, which fails construction with `InvalidParameterName`. It returns a Boolean expression or a host boolean, whose input requirements the result keeps, and an exception it throws propagates to the caller. The reference names the parameter, so carrying it out of the predicate leaves it unbound, and a Draft program that does so fails with the `StaleReference` reason.
  *
  * @example <caption>Keep the enabled vertices of a declared graph.</caption>
  * ```ts
@@ -166,28 +172,36 @@ export const filter: {
     ) => P,
   ): Filtered<G, P> =>
     Result.gen(function* () {
-      const source = yield* Expression.toJExpr(graph);
-      const parameter = yield* pipe(
+      const source = yield* Expression.toNode(graph);
+      const ident = yield* pipe(
         JExpr.Ident.decodeResult(name),
         Result.mapError((cause) =>
           ProgramError.Construction.invalidParameterName(name, cause),
         ),
-        Result.map(JExpr.Ident.compile),
+      );
+      // Each closure makes its parameter's id from its own source, so the reference names this closure's parameter.
+      const parameter = Referential.referenceProducer(Symbol("~hashql/Query"))(
+        "value",
+        ident,
       );
       const body = yield* pipe(
-        parameter,
-        Expression.fromJExpr<Graph.Vertex<G>, Input.Empty>,
+        new AST.Path(Referential.bare(ident), parameter),
+        Expression.fromNode<Graph.Vertex<G>, Input.Empty>,
         predicate,
-        Expression.toJExpr,
+        Expression.toNode,
       );
 
-      return new AST.Expr(
-        JExpr.call(
-          "::graph::body::filter",
-          source,
-          JExpr.fn({ params: { [parameter]: JExpr.infer }, body }),
+      return new AST.Call(new AST.Expr("::graph::body::filter"), [
+        source,
+        new AST.Closure(
+          {
+            generics: [],
+            parameters: [{ id: parameter, type: inferred }],
+            returns: inferred,
+          },
+          body,
         ),
-      );
+      ]);
     }).pipe(
       Expression.fromResult<
         Graph<Graph.Vertex<G>>,
@@ -202,9 +216,10 @@ export const collect = <const G extends Expression.Expression.Any>(
 ): Collected<G> =>
   pipe(
     graph,
-    Expression.toJExpr,
+    Expression.toNode,
     Result.map(
-      (source) => new AST.Expr(JExpr.call("::graph::tail::collect", source)),
+      (source) =>
+        new AST.Call(new AST.Expr("::graph::tail::collect"), [source]),
     ),
     Expression.fromResult<
       Type.List<Graph.Vertex<G>>,
