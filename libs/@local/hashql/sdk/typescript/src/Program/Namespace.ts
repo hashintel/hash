@@ -1,15 +1,15 @@
 /**
  * Shared names with separate module, type and value capabilities.
  *
- * A flattened name can be a value, a type constructor and a module at once. Type metadata wins property collisions, followed by module exports and then value projections. Explicit projection and indexing remain available through `$project` and `$index`. Rebinding a joined name moves every capability, rather than following property-lookup precedence.
+ * A flattened name can be a value, a type constructor and a module at once. Type metadata wins property collisions, followed by module exports and then value projections. Explicit projection and indexing remain available through the `$project` and `$index` {@link ExpressionType.Accessors | accessors}. Rebinding a joined name moves every capability, rather than following property-lookup precedence.
  *
- * The flattening functions return these views. A name that only optional entries supply is optional, and a module also exposes its child exports directly, beside its own `modules`, `types` and `values` tables.
+ * {@link flatten} and {@link modules} return these views, typed as {@link Flatten} describes.
  *
  * @module
  */
 // oxlint-disable max-lines -- namespace cannot be further subdivided
 // oxlint-disable import/max-dependencies -- namespace cannot be further subdivided
-import { Equal, Function, Hash, Result, pipe } from "effect";
+import { Equal, Function, Hash, Result } from "effect";
 
 import * as Relocation from "../internal/relocation.js";
 import * as Expression from "./Expression.js";
@@ -105,7 +105,7 @@ type Combined<L, R> = WithMetadata<
 /**
  * One name carrying the capabilities of two exports, such as a value constructor and the type it constructs.
  *
- * Property reads follow the precedence the module introduction states. A call with type arguments reaches the type constructor, and a call with value arguments reaches the value. The last relocation signature returns the whole joined capability set.
+ * Property reads follow the precedence the module introduction states. A call with type arguments reaches the type constructor. Value arguments reach the value instead. When the arguments fit both, such as when there are none, the call reaches both and returns the join of their results. The last relocation signature returns the whole joined capability set.
  */
 export type Joined<L, R> = Combined<L, R> & {
   readonly [Components]: readonly [L, R];
@@ -236,7 +236,11 @@ const invoke = (
   return Reflect.apply(candidate, undefined, args) as Capability;
 };
 
-/** Joins concrete capability producers and rebinds both with their original result types. */
+/**
+ * Joins two capability producers under one name and rebinds both with their original result types.
+ *
+ * For each kind of capability, the right side's wins when both sides carry one. The left one is then unreachable, but relocation still moves it. A left side that cannot move fails the joined relocation. A call reaches the type constructor, the value or both, as {@link Joined} describes.
+ */
 export const combine: {
   <R extends Capability & Relocation.Relocatable<R>>(
     right: R,
@@ -265,13 +269,10 @@ export const combine: {
     const rebind = (
       path: JExpr.Path.Path,
     ): Result.Result<Joined<L, R>, Program.ProgramError.Construction> =>
-      pipe(
-        Result.all({
-          left: leftSource[Relocation.Relocate](path),
-          right: rightSource[Relocation.Relocate](path),
-        }),
-        Result.map((moved) => combine<L, R>(moved.left, moved.right)),
-      );
+      Result.all({
+        left: leftSource[Relocation.Relocate](path),
+        right: rightSource[Relocation.Relocate](path),
+      }).pipe(Result.map((moved) => combine<L, R>(moved.left, moved.right)));
 
     const type =
       find(right, TypeExpression.isExport) ??
@@ -374,8 +375,7 @@ function viewModule<M extends Module.Module.Any & Relocation.Relocatable<M>>(
   const rebind = (
     path: JExpr.Path.Path,
   ): Result.Result<ModuleView<M>, Program.ProgramError.Construction> =>
-    pipe(
-      source[Relocation.Relocate](path),
+    source[Relocation.Relocate](path).pipe(
       Result.map((moved) => viewModule<M>(moved)),
     );
 
@@ -493,7 +493,13 @@ const flattenScope = <S extends Tables>(scope: S): Flatten<S> => {
   return Object.freeze(entries) as Flatten<S>;
 };
 
-/** Joins a checked scope. Module.define performs the same producer check for nested tables. */
+/**
+ * Joins a scope's module, type and value tables into one frozen object.
+ *
+ * Each enumerable own string key of the three tables becomes one property, joining the exports that share it as {@link Flatten} describes. It skips inherited and non-enumerable keys. Each module becomes a view that also exposes its child exports. `flatten` builds the views of the whole module tree before it returns. It cannot fail.
+ *
+ * {@link Module.define} checks the same producer requirement for the tables of a nested module.
+ */
 export const flatten = <S extends Tables>(
   scope: S & Rebindable<S>,
 ): Flatten<S> => flattenScope<S>(scope);

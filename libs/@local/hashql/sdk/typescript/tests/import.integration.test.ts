@@ -347,7 +347,7 @@ const checkIndependent = (scope: {
 };
 
 describe("import_presence", () => {
-  test("same_source_capabilities_arrive_together", () => {
+  test("same_source_capabilities", () => {
     expect.hasAssertions();
     checkCorrelated([]);
     checkCorrelated(["Item"]);
@@ -358,7 +358,7 @@ describe("import_presence", () => {
     checkGenericCorrelation(["Generic"]);
   });
 
-  test("different_sources_and_optional_exports_remain_independent", () => {
+  test("independent_capabilities", () => {
     expect.hasAssertions();
     checkDifferentSources({ Kind: "local" });
     checkDifferentSources({ create: "local" });
@@ -371,13 +371,13 @@ describe("import_presence", () => {
     });
   });
 
-  test("alias_alternatives_are_optional", () => {
+  test("alias_alternatives", () => {
     expect.hasAssertions();
     checkAlias("first");
     checkAlias("second");
   });
 
-  test("sentinel_alternatives_use_the_source_name", () => {
+  test("sentinel_alternatives", () => {
     expect.hasAssertions();
     checkSentinel("_", "count");
     checkSentinel("local", "local");
@@ -385,7 +385,7 @@ describe("import_presence", () => {
     checkSameName("count");
   });
 
-  test("widened_lists_and_union_slots_are_optional", () => {
+  test("widened_lists_and_union_slots", () => {
     expect.hasAssertions();
     checkList([]);
     checkList(["count"]);
@@ -396,13 +396,13 @@ describe("import_presence", () => {
     checkMixedTuple(["count", "text"]);
   });
 
-  test("optional_aliases_keep_possible_names", () => {
+  test("optional_alias", () => {
     expect.hasAssertions();
     checkOptional({}, []);
     checkOptional({ count: "local" }, ["local"]);
   });
 
-  test("selection_unions_keep_possible_keys_and_guaranteed_common_names", () => {
+  test("selection_unions", () => {
     expect.hasAssertions();
     checkUnion({ count: "local" }, "local");
     checkUnion({ text: "label" }, "label");
@@ -410,13 +410,13 @@ describe("import_presence", () => {
     checkCommon({ text: "local" });
   });
 
-  test("optional_names_keep_each_namespace_capability", () => {
+  test("optional_capabilities", () => {
     expect.hasAssertions();
     checkCapabilities([], []);
     checkCapabilities(["math", "List", "equal", "Item", "create"], ["math"]);
   });
 
-  test("broad_alias_and_optional_source_preserve_uncertainty", () => {
+  test("broad_alias_and_optional_source", () => {
     expect.hasAssertions();
     checkBroadAlias("local");
     checkOptionalSource({});
@@ -450,7 +450,7 @@ describe("import_bindings", () => {
     expect(Object.hasOwn(Import, "Bindings")).toBe(false);
   });
 
-  test("ordinary_records_remain_conservative", () => {
+  test("ordinary_scope", () => {
     expect.hasAssertions();
     const scope = {
       modules: {},

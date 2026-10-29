@@ -1,7 +1,7 @@
 /**
  * The names an import binds, with the module and selection that produced them.
  *
- * An import selects module, type and value exports from one module under local names. Its bindings keep each selected export's type, and their marker records the source module and the selection. `Namespace.flatten` reads that record to keep capabilities that arrive together under one source name.
+ * An import selects module, type and value exports from one module under local names. Its bindings keep each selected export's type. The type of their marker records the source module and the selection. {@link @local/hashql!Program.Namespace.Flatten | Namespace.Flatten} reads that type to keep capabilities that arrive together under one source name. No runtime code reads the marker.
  *
  * @module
  */
@@ -93,7 +93,7 @@ declare namespace Selected {
  *
  * Flattening keeps the capabilities that one source name supplies together, without treating independently optional exports as required. A destination with more than one possible source name keeps the independent view, as does a scope without the marker.
  *
- * Flattening trusts the marker. It reads a copy that keeps the marker while replacing a table, or a record written with it by hand, as an import's result. The import freezes the bindings and their tables.
+ * The flattened type trusts the marker. A copy that keeps the marker while replacing a table flattens as an import's result, as does a record written with the marker by hand. Its flattened type can then claim a capability the object lacks. The import freezes the bindings and their tables.
  */
 export interface Bindings<M extends Module.Module.Any, I> {
   readonly [TypeId]: Bindings.Variance<M, I>;
@@ -103,6 +103,7 @@ export interface Bindings<M extends Module.Module.Any, I> {
 }
 
 export declare namespace Bindings {
+  /** The marker's type, recording the source module and the selection. */
   interface Variance<M, I> {
     readonly _M: Types.Covariant<M>;
     readonly _I: Types.Covariant<I>;
@@ -115,6 +116,7 @@ export declare namespace Bindings {
       : never
     : never;
 
+  /** Each local name, mapped to the source export names the selection can bind to it. */
   type Origins<M extends Module.Module.Any, I> = Selected<
     {
       readonly [K in Module.Module.Items<M>]: K;
@@ -122,10 +124,12 @@ export declare namespace Bindings {
     I
   >;
 
+  /** The one source export name that local name `K` can come from, or `never` when the selection allows more than one. */
   type Origin<M extends Module.Module.Any, I, K> = Single<
     Exclude<Origins<M, I>[K & keyof Origins<M, I>], undefined>
   >;
 
+  /** The namespaces in which module `M` guarantees an export named `K`. */
   type RequiredAt<M extends Module.Module.Any, K> = [K] extends [never]
     ? never
     : {
