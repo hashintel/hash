@@ -25,16 +25,14 @@ from petrinaut import PetrinautSession
 
 with PetrinautSession.from_model_file("./sir-model.json") as session:
     metadata = session.metadata()
-    result = session.run(
-        {
-            "parameters": {"infection_rate": 1.5, "recovery_rate": 0.8},
-            "initialState": {"Susceptible": 990, "Infected": 10, "Recovered": 0},
-            "metrics": ["Infected Fraction"],
-            "maxSteps": 100,
-            "dt": 0.1,
-            "seed": 4242,
-        }
-    )
+    result = session.run({
+        "parameters": {"infection_rate": 1.5, "recovery_rate": 0.8},
+        "initialState": {"Susceptible": 990, "Infected": 10, "Recovered": 0},
+        "metrics": ["Infected Fraction"],
+        "maxSteps": 100,
+        "dt": 0.1,
+        "seed": 4242,
+    })
     print(result["metrics"]["Infected Fraction"])
 ```
 
@@ -101,7 +99,7 @@ ordering = constraints[0]  # a ParameterConstraint
 ordering({"min_load": 2, "max_load": 8})  # True
 ordering.margin({"min_load": 2, "max_load": 8})  # 6.0, >= 0 iff satisfied
 ordering.violation({"min_load": 8, "max_load": 2})  # 6.0, <= 0 iff satisfied
-ordering.check({"min_load": 8, "max_load": 2})  # raises ConstraintViolation
+ordering.check({"min_load": 8, "max_load": 2})  # raises ConstraintViolationError
 ```
 
 - `ParameterConstraint` ranges over the parameter space and takes a `scenario`
@@ -148,6 +146,6 @@ and `Math.random()` have no symbolic form and raise `NotSymbolicError`.
 
 ## Tests
 
-`turbo run test:unit --filter @local/petrinaut-python` builds the CLI bundle
+`turbo run test --filter=petrinaut-python` builds the CLI bundle
 first, so the end-to-end tests run; a plain `uv run pytest` skips them when the
 bundle is missing.

@@ -15,7 +15,9 @@ export const FormRow = ({
   children:
     | React.ReactElement<typeof FormField>
     | Array<React.ReactElement<typeof FormField>>;
+  /** A `Form.Field.Errors` element rendered under the whole row, for messages that span its fields */
   errors?: React.ReactElement<typeof Errors>;
+  /** Horizontal spacing between the row's fields; `spaceBetween` spreads them to the row's edges */
   gap?: "md" | "lg" | "xl" | "spaceBetween" | "none";
   align?: "bottom" | "center" | "top";
   noWrap?: boolean;
@@ -29,3 +31,5 @@ export const FormRow = ({
     </div>
   );
 };
+
+FormRow.displayName = "Form.Row";

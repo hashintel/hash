@@ -29,3 +29,5 @@ export const Tooltip = ({
     content={<div className={contentStyles({ variant })}>{content}</div>}
   />
 );
+
+Tooltip.displayName = "Tooltip";

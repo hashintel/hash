@@ -1,0 +1,365 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Children, cloneElement, useState } from "react";
+
+import { noop } from "../../util/noop";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { SorterDoc, SortMenu } from "./sort-menu";
+
+<Meta title="Docs/SortMenu" />
+
+export const meta = {
+  title: "SortMenu",
+  description:
+    "Let users pick the field and direction a collection is sorted by.",
+  alternativeNames: ["Sorting", "SortDropdown", "SortButton"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Filter/sort-menu.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-sortmenu--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/",
+  },
+  related: ["Filter", "Menu", "Select", "Button"],
+};
+
+export const sorters = [
+  { name: "Name", sortKey: "name" },
+  { name: "Created at", sortKey: "createdAt" },
+  { name: "Entity count", sortKey: "entityCount", sortIcon: "numeric" },
+  { name: "Priority", sortKey: "priority", sortIcon: "generic" },
+  { name: "Relevance", sortKey: "relevance", directionsAvailable: "none" },
+];
+
+# SortMenu
+
+Let users pick the field and direction a collection is sorted by.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+export const SortDemoState = ({ children }) => {
+  const child = Children.only(children);
+  const [value, setValue] = useState(child.props.value);
+  return cloneElement(child, {
+    value,
+    onChange: (sortKey, direction) => setValue({ sortKey, direction }),
+  });
+};
+
+<Stage>
+  <SortDemoState data-harness>
+    <SortMenu
+      items={sorters}
+      value={{ sortKey: "name", direction: "ASCENDING" }}
+      onChange={noop}
+    />
+  </SortDemoState>
+  <SortDemoState data-harness>
+    <SortMenu items={sorters} onChange={noop} />
+  </SortDemoState>
+  <SortDemoState data-harness>
+    <SortMenu
+      items={sorters}
+      value={{ sortKey: "entityCount", direction: "DESCENDING" }}
+      renderTrigger="icon"
+      onChange={noop}
+    />
+  </SortDemoState>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { SortMenu } from "@hashintel/ds-components";
+
+export const EntitySort = () => (
+  <SortMenu
+    items={[
+      { name: "Name", sortKey: "name" },
+      { name: "Created at", sortKey: "createdAt" },
+    ]}
+    onChange={(sortKey, direction) => {
+      // re-query the collection with the new sort
+    }}
+  />
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use SortMenu above lists, grids and card collections where column-header sorting isn't available.",
+    "Use one SortMenu per collection, placed in the same toolbar as its filters.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't add a SortMenu to a table whose column headers already sort — one control should own the order.",
+    "Don't offer sorting on short static lists users can scan at a glance — order them sensibly instead.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+Pass the sorters as `items` and control the selection with `value`/`onChange`. Selecting a row applies it with its current direction; re-selecting the active sort unchanged just closes the menu.
+
+<Stage>
+  <SortDemoState data-harness>
+    <SortMenu
+      items={sorters}
+      value={{ sortKey: "createdAt", direction: "DESCENDING" }}
+      onChange={noop}
+    />
+  </SortDemoState>
+</Stage>
+
+### Direction availability
+
+Each sorter declares `directionsAvailable`: `"both"` (the default), `"ascending"` or `"descending"` for one-way fields, or `"none"` for fields like relevance where direction is meaningless — those rows render no direction icon or toggle.
+
+<Stage>
+  <SortDemoState data-harness>
+    <SortMenu
+      items={sorters}
+      value={{ sortKey: "relevance", direction: "ASCENDING" }}
+      onChange={noop}
+    />
+  </SortDemoState>
+</Stage>
+
+### Sort icons
+
+`sortIcon` picks the glyph family for a sorter's direction icons: `alphabetical` (the default), `numeric` for counts and scores, and `generic` bars for everything else.
+
+<Stage>
+  <SortDemoState data-harness>
+    <SortMenu
+      items={sorters}
+      value={{ sortKey: "name", direction: "ASCENDING" }}
+      onChange={noop}
+    />
+  </SortDemoState>
+  <SortDemoState data-harness>
+    <SortMenu
+      items={sorters}
+      value={{ sortKey: "entityCount", direction: "DESCENDING" }}
+      onChange={noop}
+    />
+  </SortDemoState>
+  <SortDemoState data-harness>
+    <SortMenu
+      items={sorters}
+      value={{ sortKey: "priority", direction: "ASCENDING" }}
+      onChange={noop}
+    />
+  </SortDemoState>
+</Stage>
+
+### Icon-only trigger
+
+`renderTrigger="icon"` collapses the trigger to the sort glyph alone for dense toolbars; the accessible name still reads the active sort.
+
+<Stage>
+  <SortDemoState data-harness>
+    <SortMenu items={sorters} renderTrigger="icon" onChange={noop} />
+  </SortDemoState>
+  <SortDemoState data-harness>
+    <SortMenu
+      items={sorters}
+      value={{ sortKey: "createdAt", direction: "DESCENDING" }}
+      renderTrigger="icon"
+      onChange={noop}
+    />
+  </SortDemoState>
+</Stage>
+
+### Custom trigger
+
+Pass a function to render a fully custom trigger; it receives the active sorter and direction. You are then responsible for the trigger's label and accessible name.
+
+```tsx
+import { useState } from "react";
+
+import { Button, SortMenu, type SortDirection } from "@hashintel/ds-components";
+
+type SortKey = "name" | "createdAt";
+
+export const EntitySort = () => {
+  const [sort, setSort] = useState<{
+    sortKey: SortKey;
+    direction: SortDirection;
+  }>({ sortKey: "name", direction: "ASCENDING" });
+
+  return (
+    <SortMenu<SortKey>
+      items={[
+        { name: "Name", sortKey: "name" },
+        { name: "Created at", sortKey: "createdAt" },
+      ]}
+      value={sort}
+      onChange={(sortKey, direction) => setSort({ sortKey, direction })}
+      renderTrigger={(sorter, direction) => (
+        <Button variant="subtle" iconName="sortDown">
+          {sorter ? `Sorted by ${sorter.name}` : "Sort"}
+          {direction === "DESCENDING" ? " (desc)" : ""}
+        </Button>
+      )}
+    />
+  );
+};
+```
+
+### Trigger appearance
+
+The trigger is a Button and SortMenu forwards its props: `variant` (default `ghost`), `tone` and `size` (default `sm`). `align="right"` moves the sort glyph to the right of the label.
+
+<Stage>
+  <SortDemoState data-harness>
+    <SortMenu
+      items={sorters}
+      value={{ sortKey: "name", direction: "ASCENDING" }}
+      onChange={noop}
+    />
+  </SortDemoState>
+  <SortDemoState data-harness>
+    <SortMenu
+      items={sorters}
+      value={{ sortKey: "name", direction: "ASCENDING" }}
+      variant="solid"
+      onChange={noop}
+    />
+  </SortDemoState>
+  <SortDemoState data-harness>
+    <SortMenu
+      items={sorters}
+      value={{ sortKey: "name", direction: "ASCENDING" }}
+      size="md"
+      onChange={noop}
+    />
+  </SortDemoState>
+  <SortDemoState data-harness>
+    <SortMenu
+      items={sorters}
+      value={{ sortKey: "name", direction: "ASCENDING" }}
+      align="right"
+      onChange={noop}
+    />
+  </SortDemoState>
+</Stage>
+
+### Searchable
+
+`searchable` adds a search field above the options — reach for it once a menu passes roughly 10 sorters. The search clears whenever the menu closes.
+
+<Stage>
+  <SortMenu items={sorters} searchable />
+</Stage>
+
+### Persisting the choice
+
+`saveSortId` writes each change to `localStorage` and restores the saved sort on mount through `onChange` — only while `value` is still `undefined`, so state you restore yourself always wins. A saved sort naming a removed sorter or an unavailable direction is ignored.
+
+```tsx
+import { useState } from "react";
+
+import { SortMenu, type SortDirection } from "@hashintel/ds-components";
+
+type SortKey = "name" | "createdAt";
+
+export const EntitySort = () => {
+  const [sort, setSort] = useState<
+    { sortKey: SortKey; direction: SortDirection } | undefined
+  >(undefined);
+
+  return (
+    <SortMenu<SortKey>
+      items={[
+        { name: "Name", sortKey: "name" },
+        { name: "Created at", sortKey: "createdAt" },
+      ]}
+      value={sort}
+      onChange={(sortKey, direction) => setSort({ sortKey, direction })}
+      saveSortId="entities-table"
+    />
+  );
+};
+```
+
+## Behavior
+
+- Persistence via `saveSortId` is best-effort: storage errors are swallowed, and the restore runs at most once per mount.
+
+## Content
+
+- Name sorters after the field, 1–3 words in sentence case: "Name", "Created at", "Entity count". The name doubles as the trigger label, so keep it short.
+- Give every sorter a distinct name — the search field and accessible names match on it.
+
+## Accessibility
+
+SortMenu implements the [WAI-ARIA menu button pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/) through Menu.
+
+- The trigger's accessible name reads the active sort — "Sort by Name, ascending" — or "Sort" when nothing is selected.
+- Direction toggles stay out of the tab order and their labels name the outcome of activating them ("Sort by Name, descending"). 
+
+### Keyboard
+
+| Key   | Action                                                                         |
+| ----- | ------------------------------------------------------------------------------ |
+| ← / → | Flip and apply the highlighted sorter's direction (bidirectional sorters only) |
+
+### What you must do
+
+- With a custom `renderTrigger`, provide the trigger's accessible name yourself and keep it in step with the active sort.
+- Pick `saveSortId` values unique per collection — saved sorts are keyed by it globally.
+
+## API reference
+
+### SortMenu
+
+<PropsTable
+  of={SortMenu}
+  defaults={{
+    items: "[]",
+    searchable: "false",
+    align: '"left"',
+    position: '"bottom-start"',
+    renderTrigger: '"default"',
+    variant: '"ghost"',
+    size: '"sm"',
+  }}
+/>
+
+### Sorter
+
+The shape of `items` entries — one sortable field each.
+
+<PropsTable
+  of={SorterDoc}
+  defaults={{
+    directionsAvailable: '"both"',
+    sortIcon: '"alphabetical"',
+  }}
+/>

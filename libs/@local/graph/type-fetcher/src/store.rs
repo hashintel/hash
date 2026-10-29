@@ -55,7 +55,8 @@ use hash_graph_store::{
         UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{
-        CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
+        CheckPermissionError, ClusterError, DeletionError, EntityCreationError, InsertionError,
+        QueryError, UpdateError,
     },
     filter::{Filter, QueryRecord},
     pool::StorePool,
@@ -1627,7 +1628,7 @@ where
         &mut self,
         actor_id: ActorId,
         params: Vec<CreateEntityParams>,
-    ) -> Result<Vec<Entity>, Report<InsertionError>> {
+    ) -> Result<Vec<Entity>, Report<EntityCreationError>> {
         let type_ids = params
             .iter()
             .flat_map(|params| &params.entity_type_ids)
@@ -1643,7 +1644,8 @@ where
                 ConflictBehavior::Skip,
                 &HashSet::new(),
             )
-            .await?;
+            .await
+            .change_context(EntityCreationError::Store)?;
         }
 
         self.store.create_entities(actor_id, params).await

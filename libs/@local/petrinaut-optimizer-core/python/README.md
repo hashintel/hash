@@ -34,32 +34,30 @@ import asyncio
 
 from petrinaut_optimizer_core import create_study, parse_description, run_study
 
-description = parse_description(
-    {
-        "direction": "maximize",
-        "study": {"trials": 20, "sampler": "tpe", "seed": 42},
-        "parameters": [
-            {
-                "identifier": "rate",
-                "type": "float",
-                "default": 0.5,
-                "minimum": 0.1,
-                "maximum": 2.0,
-                "scale": "log",
-            },
-            {
-                "identifier": "count",
-                "type": "int",
-                "default": 4,
-                "minimum": 2,
-                "maximum": 8,
-                "step": 2,
-                "scale": "linear",
-            },
-            {"identifier": "enabled", "type": "boolean", "default": True},
-        ],
-    }
-)
+description = parse_description({
+    "direction": "maximize",
+    "study": {"trials": 20, "sampler": "tpe", "seed": 42},
+    "parameters": [
+        {
+            "identifier": "rate",
+            "type": "float",
+            "default": 0.5,
+            "minimum": 0.1,
+            "maximum": 2.0,
+            "scale": "log",
+        },
+        {
+            "identifier": "count",
+            "type": "int",
+            "default": 4,
+            "minimum": 2,
+            "maximum": 8,
+            "step": 2,
+            "scale": "linear",
+        },
+        {"identifier": "enabled", "type": "boolean", "default": True},
+    ],
+})
 
 
 async def evaluate(values):
@@ -69,9 +67,7 @@ async def evaluate(values):
 
 study = create_study(description)
 summary = asyncio.run(
-    run_study(
-        study, description, trials=description.trials, evaluate=evaluate, on_trial=print
-    )
+    run_study(study, description, trials=description.trials, evaluate=evaluate, on_trial=print)
 )
 print(summary)
 ```

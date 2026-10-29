@@ -6530,6 +6530,7 @@ dependencies = [
  "rstest",
  "scalar_api_reference",
  "schemars 1.2.2",
+ "semver",
  "sentry",
  "serde",
  "serde_json",
@@ -6542,6 +6543,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "type-system",
+ "url",
  "utoipa",
  "uuid",
 ]
@@ -7050,13 +7052,19 @@ dependencies = [
  "derive_more",
  "duckdb",
  "error-stack",
+ "hash-integrations-definition",
+ "opentelemetry",
+ "opentelemetry_sdk",
  "pretty_assertions",
  "proptest",
+ "serde",
  "serde_json",
  "simple-mermaid",
  "tempfile",
  "tokio",
  "tracing",
+ "type-system",
+ "uuid",
 ]
 
 [[package]]
@@ -13473,9 +13481,9 @@ dependencies = [
 
 [[package]]
 name = "scalar_api_reference"
-version = "0.2.2"
+version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d67c85edd56c41f364603eff688a330f01dee99bdfc84c005d3bc3d0721d6b2"
+checksum = "9c62b7de171e54b082e5a7865858b8d08cfa227dba5762efa255b81371d27dc1"
 dependencies = [
  "rust-embed",
  "serde",
@@ -13532,6 +13540,7 @@ dependencies = [
  "indexmap 2.14.0",
  "ref-cast",
  "schemars_derive",
+ "semver",
  "serde",
  "serde_json",
  "uuid",

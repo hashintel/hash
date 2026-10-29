@@ -25,19 +25,20 @@ export type BannerRootProps = {
   tone: Tone;
   /**
    * The leading icon: `true` for the tone's default icon, `false` for none, a
-   * named design-system icon, or arbitrary custom content. Defaults to `true`.
+   * named design-system icon, or arbitrary custom content.
    */
   icon?: boolean | { iconName: IconName } | { custom: React.ReactNode };
   /**
-   * `solid` is a saturated tone fill with white text; `soft` tints the surface;
-   * `outline` sits on an opaque surface.
+   * `solid` fills with the saturated tone and contrast text; `soft` tints the
+   * surface; `outline` draws a border on an opaque, page-colored background.
    */
   variant?: BannerVariant;
-  /** Set to render a trailing dismiss button. `false` hides it. */
+  /** Whether to render a trailing dismiss button. */
   dismissible?: false | { onDismiss: () => void };
   /**
-   * The ARIA role for the banner. Not set by default — pass e.g. `"status"`
-   * (polite) or `"alert"` (assertive) to announce it to assistive technology.
+   * The ARIA role for the banner: pass e.g. `"status"` (polite) or `"alert"`
+   * (assertive) to announce it to assistive technology. Omit to leave the
+   * banner unannounced.
    */
   role?: React.AriaRole;
 } & React.AriaAttributes;
@@ -100,6 +101,7 @@ export const BannerActions = ({
   children,
 }: {
   className?: string;
+  /** The `Banner.ActionButton`s for resolving the condition in place. */
   children: React.ReactNode;
 }) => {
   const { actions } = styles();
@@ -192,3 +194,11 @@ export const Banner = Object.assign(BannerRoot, {
   Actions: BannerActions,
   ActionButton: BannerActionButton,
 });
+
+// Stable names for the docs Stage code serializer under minification; the
+// dotted part names intentionally serialize transparently.
+BannerRoot.displayName = "Banner";
+BannerTitle.displayName = "Banner.Title";
+BannerDescription.displayName = "Banner.Description";
+BannerActions.displayName = "Banner.Actions";
+BannerActionButton.displayName = "Banner.ActionButton";

@@ -11,26 +11,14 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import {
-  FlowRunRecordNotFoundError,
-  getFlowRunRecord,
-} from "./flows/run-record.js";
 import { getFlowRunEntityById } from "./flows/shared/get-flow-run-entity-by-id.js";
 import { getFlowRunLinks } from "./flows/shared/get-flow-run-links.js";
-import {
-  correctFlowRunStatusFromRecord,
-  getFlowRunStatusFieldsFromEntity,
-  getFlowRunStatusFieldsFromRecordHeader,
-} from "./flows/shared/save-flow-run-status.js";
+import { getFlowRunStatusFieldsFromEntity } from "./flows/shared/save-flow-run-status.js";
 
-import type { FileStorageProvider } from "./file-storage.js";
-import type { FlowRunRecordsByWorkflowId } from "./flows/run-record.js";
 import type { FlowRunLinks } from "./flows/shared/get-flow-run-links.js";
-import type { TemporalClient } from "./temporal.js";
 import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { FlowRunRecordHeader } from "@local/hash-isomorphic-utils/flows/run-record";
 import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
 import type {
   FlowRunStatus,
@@ -47,59 +35,30 @@ export type {
 } from "./flows/action-types.js";
 export { createCommonFlowActivities } from "./flows/process-flow-workflow/common-activities.js";
 
-type FlowRunReaders = {
-  graphApiClient: GraphApi;
-  storageProvider: FileStorageProvider;
-  temporalClient: TemporalClient;
-  userAuthentication: { actorId: ActorEntityUuid };
-  /** Records already read in this request, to reuse */
-  recordsByWorkflowId?: FlowRunRecordsByWorkflowId;
+/** A run's links, which every run has to the flow definition it runs. */
+const getFlowDefinitionLinks = (
+  flowRunEntityId: EntityId,
+  links: FlowRunLinks | undefined,
+): FlowRunLinks & { flowDefinitionEntityId: EntityId } => {
+  if (!links?.flowDefinitionEntityId) {
+    throw new Error(`Flow run ${flowRunEntityId} has no flow definition`);
+  }
+
+  return { ...links, flowDefinitionEntityId: links.flowDefinitionEntityId };
 };
 
-/**
- * A run as its entity describes it. An entity that doesn't hold the run's status yet, because the run started before
- * runs saved it, is given it from the run's record. A run with neither can't be shown.
- */
-const getFlowRunSummary = async ({
+/** A run as its entity describes it. */
+const getFlowRunSummary = ({
   entity,
   links,
-  ...readers
-}: FlowRunReaders & {
+}: {
   entity: HashEntity<FlowRunEntity>;
   links: FlowRunLinks & { flowDefinitionEntityId: EntityId };
-}): Promise<FlowRunSummary | null> => {
+}): FlowRunSummary => {
   const { properties } = entity;
   const flowRunEntityId = entity.metadata.recordId.entityId;
 
-  let statusFields = getFlowRunStatusFieldsFromEntity(entity);
-
-  if (!statusFields) {
-    let header: FlowRunRecordHeader;
-
-    try {
-      ({ header } = await getFlowRunRecord({
-        recordsByWorkflowId: readers.recordsByWorkflowId,
-        storageProvider: readers.storageProvider,
-        temporalClient: readers.temporalClient,
-        workflowId:
-          properties["https://hash.ai/@h/types/property-type/workflow-id/"],
-      }));
-    } catch (error) {
-      if (error instanceof FlowRunRecordNotFoundError) {
-        return null;
-      }
-      throw error;
-    }
-
-    await correctFlowRunStatusFromRecord({
-      flowRunEntity: entity,
-      graphApiClient: readers.graphApiClient,
-      header,
-      userAuthentication: readers.userAuthentication,
-    });
-
-    statusFields = getFlowRunStatusFieldsFromRecordHeader(header);
-  }
+  const statusFields = getFlowRunStatusFieldsFromEntity(entity);
 
   return {
     flowDefinitionEntityId: links.flowDefinitionEntityId,
@@ -115,48 +74,41 @@ const getFlowRunSummary = async ({
     flowInputs: mapInputsPropertyToFlowInputValues(
       properties["https://hash.ai/@h/types/property-type/inputs/"],
     ),
-    /* An entity from before Flow Run v3 can't hold open requests. */
     openInputRequests: (properties[
       "https://hash.ai/@h/types/property-type/open-input-request/"
     ] ?? []) as ExternalInputRequest[],
   };
 };
 
-const hasFlowDefinition = (
-  links: FlowRunLinks | undefined,
-): links is FlowRunLinks & { flowDefinitionEntityId: EntityId } =>
-  !!links?.flowDefinitionEntityId;
-
 export const getFlowRunById = async ({
   flowRunEntityId,
-  ...readers
-}: FlowRunReaders & {
+  graphApiClient,
+  userAuthentication,
+}: {
   flowRunEntityId: EntityId;
+  graphApiClient: GraphApi;
+  userAuthentication: { actorId: ActorEntityUuid };
 }): Promise<FlowRunSummary | null> => {
   const entity = await getFlowRunEntityById({
     flowRunEntityId,
-    graphApiClient: readers.graphApiClient,
-    userAuthentication: readers.userAuthentication,
+    graphApiClient,
+    userAuthentication,
   });
 
   if (!entity) {
     return null;
   }
 
-  const links = (
-    await getFlowRunLinks({
-      flowRunEntityIds: [flowRunEntityId],
-      graphApiClient: readers.graphApiClient,
-      userAuthentication: readers.userAuthentication,
-    })
-  ).get(flowRunEntityId);
+  const links = await getFlowRunLinks({
+    flowRunEntityIds: [flowRunEntityId],
+    graphApiClient,
+    userAuthentication,
+  });
 
-  if (!hasFlowDefinition(links)) {
-    /* A run from before flow runs linked to their definition: it can't be shown. */
-    return null;
-  }
-
-  return getFlowRunSummary({ entity, links, ...readers });
+  return getFlowRunSummary({
+    entity,
+    links: getFlowDefinitionLinks(flowRunEntityId, links.get(flowRunEntityId)),
+  });
 };
 
 type GetFlowRunsFilters = {
@@ -176,10 +128,11 @@ type PaginatedFlowRuns = {
 export const getFlowRuns = async ({
   authentication,
   filters,
-  ...readers
-}: Omit<FlowRunReaders, "userAuthentication"> & {
+  graphApiClient,
+}: {
   authentication: { actorId: ActorEntityUuid };
   filters: GetFlowRunsFilters;
+  graphApiClient: GraphApi;
 }): Promise<PaginatedFlowRuns> => {
   const effectiveLimit = Math.min(
     Math.max(filters.limit ?? flowRunsQueryMaxLimit, 0),
@@ -239,21 +192,17 @@ export const getFlowRuns = async ({
   };
 
   const [queryResult, summaryResult] = await Promise.all([
-    queryEntities<FlowRunEntity>(
-      { graphApi: readers.graphApiClient },
-      authentication,
-      {
-        filter,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: false,
-        includePermissions: false,
-        limit: effectiveLimit,
-        ...(filters.cursor
-          ? { cursor: JSON.parse(filters.cursor) as object[] }
-          : {}),
-      },
-    ),
-    summarizeEntities({ graphApi: readers.graphApiClient }, authentication, {
+    queryEntities<FlowRunEntity>({ graphApi: graphApiClient }, authentication, {
+      filter,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
+      limit: effectiveLimit,
+      ...(filters.cursor
+        ? { cursor: JSON.parse(filters.cursor) as object[] }
+        : {}),
+    }),
+    summarizeEntities({ graphApi: graphApiClient }, authentication, {
       filter,
       temporalAxes: currentTimeInstantTemporalAxes,
       includeDrafts: false,
@@ -265,43 +214,31 @@ export const getFlowRuns = async ({
     flowRunEntityIds: queryResult.entities.map(
       (entity) => entity.metadata.recordId.entityId,
     ),
-    graphApiClient: readers.graphApiClient,
+    graphApiClient,
     userAuthentication: authentication,
   });
 
-  const flowRuns: FlowRunSummary[] = [];
+  const flowRuns = queryResult.entities
+    .map((entity) => {
+      const flowRunEntityId = entity.metadata.recordId.entityId;
 
-  /* One at a time, as a run whose entity doesn't hold its status yet has its record read. */
-  for (const entity of queryResult.entities) {
-    const links = linksByFlowRunEntityId.get(entity.metadata.recordId.entityId);
-
-    if (!hasFlowDefinition(links)) {
-      /* A run from before flow runs linked to their definition: it can't be shown. */
-      continue;
-    }
-
+      return getFlowRunSummary({
+        entity,
+        links: getFlowDefinitionLinks(
+          flowRunEntityId,
+          linksByFlowRunEntityId.get(flowRunEntityId),
+        ),
+      });
+    })
     /*
      * The query's filter matches a `Uses` link in any web, so a run is only kept if the link in its own web is to
      * one of the requested definitions. A page can then hold fewer runs than its limit.
      */
-    if (
-      filters.flowDefinitionEntityIds &&
-      !filters.flowDefinitionEntityIds.includes(links.flowDefinitionEntityId)
-    ) {
-      continue;
-    }
-
-    const flowRun = await getFlowRunSummary({
-      entity,
-      links,
-      ...readers,
-      userAuthentication: authentication,
-    });
-
-    if (flowRun) {
-      flowRuns.push(flowRun);
-    }
-  }
+    .filter(
+      ({ flowDefinitionEntityId }) =>
+        !filters.flowDefinitionEntityIds ||
+        filters.flowDefinitionEntityIds.includes(flowDefinitionEntityId),
+    );
 
   return {
     flowRuns: flowRuns.sort((a, b) => b.startedAt.localeCompare(a.startedAt)),

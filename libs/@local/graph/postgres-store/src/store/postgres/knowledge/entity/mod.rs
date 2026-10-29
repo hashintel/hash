@@ -12,13 +12,13 @@ use alloc::borrow::Cow;
 use core::{any::Any, borrow::Borrow as _, fmt, mem};
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, ensure};
+use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_authorization::policies::{
-    Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
+    Authorized, MergePolicies, PolicyComponents, PolicySet, Request, RequestContext, ResourceId,
     action::ActionName,
     resource::{EntityResourceConstraint, ResourceConstraint},
-    store::PolicyCreationParams,
+    store::{PolicyCreationParams, PolicyStore, PrincipalStore, error::ContextCreationError},
 };
 use hash_graph_embeddings::{Dimension, clustering::Clustering};
 use hash_graph_store::{
@@ -35,7 +35,8 @@ use hash_graph_store::{
     },
     entity_type::{EntityTypeStore as _, IncludeEntityTypeOption},
     error::{
-        CheckPermissionError, ClusterError, DeletionError, InsertionError, QueryError, UpdateError,
+        CheckPermissionError, ClusterError, DeletionError, EntityCreationError, InsertionError,
+        QueryError, UpdateError,
     },
     filter::{Filter, FilterExpression, FilterExpressionList, ParameterList},
     query::QueryResult as _,
@@ -72,7 +73,7 @@ use type_system::{
     knowledge::{
         Confidence, Entity, PropertyValue,
         entity::{
-            EntityMetadata, EntityProvenance,
+            EntityMetadata, EntityProvenance, Link,
             id::{DraftId, EntityEditionId, EntityId, EntityRecordId, EntityUuid},
             metadata::EntityTemporalMetadata,
             provenance::EntityEditionProvenance,
@@ -86,7 +87,10 @@ use type_system::{
     ontology::{
         InheritanceDepth,
         data_type::schema::DataTypeReference,
-        entity_type::{ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid},
+        entity_type::{
+            ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid,
+            schema::ResolveClosedEntityTypeError,
+        },
         id::{OntologyTypeUuid, VersionedUrl},
     },
     principal::{
@@ -1185,7 +1189,7 @@ where
         &mut self,
         actor_id: ActorId,
         params: Vec<CreateEntityParams>,
-    ) -> Result<Vec<Entity>, Report<InsertionError>> {
+    ) -> Result<Vec<Entity>, Report<EntityCreationError>> {
         let transaction_time = Timestamp::<TransactionTime>::now().remove_nanosecond();
         let mut entity_edition_ids = Vec::with_capacity(params.len());
 
@@ -1206,7 +1210,7 @@ where
         let transaction = self
             .begin_transaction()
             .await
-            .change_context(InsertionError)?;
+            .change_context(EntityCreationError::Store)?;
 
         let mut policy_components_builder = PolicyComponents::builder(&transaction, Some(actor_id));
 
@@ -1236,27 +1240,96 @@ where
 
         // The policy components builder will make sure, that also parent entity types are added to
         // the set of entity type IDs. These are accessible via `tracked_entity_types` method.
-        let policy_components = policy_components_builder
-            .with_entity_type_ids(entity_type_id_set)
+        let policy_components = match policy_components_builder
+            .with_entity_type_ids(entity_type_id_set.iter().copied())
             .with_actions(
-                [ActionName::Instantiate, ActionName::CreateEntity],
+                [
+                    ActionName::Instantiate,
+                    ActionName::CreateEntity,
+                    ActionName::ViewEntityType,
+                ],
                 MergePolicies::No,
             )
             .with_actions(
                 [
                     ActionName::ViewEntity,
-                    ActionName::ViewEntityType,
                     ActionName::ViewPropertyType,
                     ActionName::ViewDataType,
                 ],
                 MergePolicies::Yes,
             )
             .await
-            .change_context(InsertionError)?;
+        {
+            Ok(policy_components) => policy_components,
+            Err(report) => {
+                return Err(entity_creation_error(
+                    &transaction,
+                    actor_id,
+                    &entity_type_id_set,
+                    report,
+                )
+                .await);
+            }
+        };
 
         let policy_set = policy_components
-            .build_policy_set([ActionName::Instantiate, ActionName::CreateEntity])
-            .change_context(InsertionError)?;
+            .build_policy_set([
+                ActionName::Instantiate,
+                ActionName::CreateEntity,
+                ActionName::ViewEntityType,
+            ])
+            .change_context(EntityCreationError::Store)?;
+
+        // An entity type the actor may not view is reported like one that does not exist, also by
+        // the legacy API's status code. This runs before the instantiation check, whose answer
+        // would reveal that the entity type exists.
+        let invisible_entity_types = invisible_entity_types(
+            &policy_components,
+            &policy_set,
+            entity_type_id_set.iter().copied(),
+        )?;
+        if !invisible_entity_types.is_empty() {
+            return Err(Report::new(EntityCreationError::UnknownEntityTypes {
+                entity_type_ids: invisible_entity_types,
+            })
+            .attach_opaque(StatusCode::NotFound));
+        }
+
+        let requested_entity_types = entity_type_id_set.iter().copied().collect::<Vec<_>>();
+        let archived_entity_types = transaction
+            .as_client()
+            .query(
+                "
+                    SELECT input.url
+                    FROM unnest($1::text[]) AS input(url)
+                    WHERE NOT EXISTS (
+                        SELECT 1
+                        FROM entity_types
+                        JOIN ontology_temporal_metadata USING (ontology_id)
+                        WHERE entity_types.schema ->> '$id' = input.url
+                          AND ontology_temporal_metadata.transaction_time @> now()
+                    )
+                ",
+                &[&requested_entity_types],
+            )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(EntityCreationError::Store)?
+            .into_iter()
+            .map(|row| row.get::<_, VersionedUrl>(0))
+            .collect::<HashSet<_>>();
+
+        if !archived_entity_types.is_empty() {
+            return Err(Report::new(EntityCreationError::ArchivedEntityTypes {
+                entity_type_ids: archived_entity_types,
+            })
+            .attach_opaque(StatusCode::InvalidArgument));
+        }
 
         let mut forbidden_instantiations = Vec::new();
         for entity_type_id in policy_components.tracked_entity_types() {
@@ -1270,7 +1343,7 @@ where
                     },
                     policy_components.context(),
                 )
-                .change_context(InsertionError)?
+                .change_context(EntityCreationError::Store)?
             {
                 Authorized::Always => {}
                 Authorized::Never => {
@@ -1280,19 +1353,10 @@ where
         }
 
         if !forbidden_instantiations.is_empty() {
-            return Err(Report::new(InsertionError)
-                .attach_opaque(StatusCode::PermissionDenied)
-                .attach(
-                    "The actor does not have permission to instantiate one or more entity types",
-                )
-                .attach(
-                    forbidden_instantiations
-                        .into_iter()
-                        .map(ToString::to_string)
-                        .map(Cow::Owned)
-                        .intersperse(Cow::Borrowed(", "))
-                        .collect::<String>(),
-                ));
+            return Err(Report::new(EntityCreationError::InstantiationForbidden {
+                entity_type_ids: forbidden_instantiations.into_iter().cloned().collect(),
+            })
+            .attach_opaque(StatusCode::PermissionDenied));
         }
 
         let mut forbidden_entity_creations = Vec::new();
@@ -1307,26 +1371,20 @@ where
                     },
                     policy_components.context(),
                 )
-                .change_context(InsertionError)?
+                .change_context(EntityCreationError::Store)?
             {
                 Authorized::Always => {}
                 Authorized::Never => {
-                    forbidden_entity_creations.push(entity_id);
+                    forbidden_entity_creations.push(*entity_id);
                 }
             }
         }
 
         if !forbidden_entity_creations.is_empty() {
-            return Err(Report::new(InsertionError)
-                .attach_opaque(StatusCode::PermissionDenied)
-                .attach("The actor does not have permission to create one or more entities")
-                .attach(
-                    forbidden_entity_creations
-                        .into_iter()
-                        .map(ToString::to_string)
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                ));
+            return Err(Report::new(EntityCreationError::CreationForbidden {
+                entity_ids: forbidden_entity_creations,
+            })
+            .attach_opaque(StatusCode::PermissionDenied));
         }
 
         let validator_provider = StoreProvider::new(&transaction, &policy_components);
@@ -1353,9 +1411,23 @@ where
                     })
                     .try_collect::<Vec<ClosedEntityType>>()
                     .await
-                    .change_context(InsertionError)?,
+                    .change_context(EntityCreationError::Store)?,
             )
-            .change_context(InsertionError)?;
+            .map_err(|report| match report.current_context() {
+                ResolveClosedEntityTypeError::IncompatibleProperty(property_type) => {
+                    let context = EntityCreationError::IncompatibleEntityTypes {
+                        property_type: property_type.clone(),
+                    };
+                    report
+                        .change_context(context)
+                        .attach_opaque(StatusCode::InvalidArgument)
+                }
+                ResolveClosedEntityTypeError::UnknownSchemas(_)
+                | ResolveClosedEntityTypeError::EmptySchema
+                | ResolveClosedEntityTypeError::InheritanceDepthOverflow => {
+                    report.change_context(EntityCreationError::Store)
+                }
+            })?;
 
             let mut preprocessor = EntityPreprocessor {
                 components: if params.draft {
@@ -1462,21 +1534,22 @@ where
                 });
             }
 
-            let link_data = params.link_data.inspect(|link_data| {
+            let link_data = params.link_data.inspect(|link| {
+                let Link::Directed { source, target } = link;
                 entity_edge_rows.extend([
                     EntityEdgeRow {
                         source_web_id: entity_id.web_id,
                         source_entity_uuid: entity_id.entity_uuid,
-                        target_web_id: link_data.left_entity_id.web_id,
-                        target_entity_uuid: link_data.left_entity_id.entity_uuid,
-                        confidence: link_data.left_entity_confidence,
-                        provenance: link_data.left_entity_provenance.clone(),
+                        target_web_id: source.entity_id.web_id,
+                        target_entity_uuid: source.entity_id.entity_uuid,
+                        confidence: source.confidence,
+                        provenance: source.provenance.clone(),
                         kind: EntityTraversalEdgeKind::HasLeftEntity,
                         direction: EdgeDirection::Outgoing,
                     },
                     EntityEdgeRow {
-                        source_web_id: link_data.left_entity_id.web_id,
-                        source_entity_uuid: link_data.left_entity_id.entity_uuid,
+                        source_web_id: source.entity_id.web_id,
+                        source_entity_uuid: source.entity_id.entity_uuid,
                         target_web_id: entity_id.web_id,
                         target_entity_uuid: entity_id.entity_uuid,
                         confidence: None,
@@ -1487,16 +1560,16 @@ where
                     EntityEdgeRow {
                         source_web_id: entity_id.web_id,
                         source_entity_uuid: entity_id.entity_uuid,
-                        target_web_id: link_data.right_entity_id.web_id,
-                        target_entity_uuid: link_data.right_entity_id.entity_uuid,
-                        confidence: link_data.right_entity_confidence,
-                        provenance: link_data.right_entity_provenance.clone(),
+                        target_web_id: target.entity_id.web_id,
+                        target_entity_uuid: target.entity_id.entity_uuid,
+                        confidence: target.confidence,
+                        provenance: target.provenance.clone(),
                         kind: EntityTraversalEdgeKind::HasRightEntity,
                         direction: EdgeDirection::Outgoing,
                     },
                     EntityEdgeRow {
-                        source_web_id: link_data.right_entity_id.web_id,
-                        source_entity_uuid: link_data.right_entity_id.entity_uuid,
+                        source_web_id: target.entity_id.web_id,
+                        source_entity_uuid: target.entity_id.entity_uuid,
                         target_web_id: entity_id.web_id,
                         target_entity_uuid: entity_id.entity_uuid,
                         confidence: None,
@@ -1595,9 +1668,9 @@ where
                     db.query.text = statement,
                 ))
                 .await
-                .change_context(InsertionError)?;
+                .change_context(EntityCreationError::Store)?;
             if inserted_rows != *expected_rows as u64 {
-                return Err(Report::new(InsertionError).attach(format!(
+                return Err(Report::new(EntityCreationError::Store).attach(format!(
                     "bulk insert into `{table}` affected {inserted_rows} rows but {expected_rows} \
                      were provided",
                     table = table.as_str(),
@@ -1632,7 +1705,7 @@ where
                 peer.service = "Postgres",
             ))
             .await
-            .change_context(InsertionError)?;
+            .change_context(EntityCreationError::Store)?;
 
         transaction
             .as_client()
@@ -1647,7 +1720,7 @@ where
                 peer.service = "Postgres",
             ))
             .await
-            .change_context(InsertionError)?;
+            .change_context(EntityCreationError::Store)?;
 
         for (index, (entity, (schema, components))) in
             entities.iter().zip(validation_params).enumerate()
@@ -1665,14 +1738,22 @@ where
         transaction
             .insert_policies_into_database(policies)
             .await
-            .change_context(InsertionError)?;
+            .change_context(EntityCreationError::Store)?;
 
-        ensure!(
-            validation_reports.is_empty(),
-            Report::new(InsertionError).attach_opaque(validation_reports)
-        );
+        if !validation_reports.is_empty() {
+            tracing::info!(
+                ?validation_reports,
+                "the entities do not match their entity types"
+            );
+            return Err(
+                Report::new(EntityCreationError::InvalidEntities).attach_opaque(validation_reports)
+            );
+        }
 
-        transaction.commit().await.change_context(InsertionError)?;
+        transaction
+            .commit()
+            .await
+            .change_context(EntityCreationError::Store)?;
 
         if !self.settings.skip_embedding_creation
             && let Some(temporal_client) = &self.temporal_client
@@ -1681,14 +1762,22 @@ where
                 .iter()
                 .map(|entity| entity.metadata.record_id.entity_id)
                 .collect();
-            temporal_client
+            // The entities are committed at this point. Failing the request would make the caller
+            // create them again.
+            if let Err(report) = temporal_client
                 .start_update_entity_embeddings_workflow(
                     ActorEntityUuid::from(actor_id),
                     &entity_ids,
                     self.settings.filter_protection.embedding_exclusions(),
                 )
                 .await
-                .change_context(InsertionError)?;
+            {
+                tracing::warn!(
+                    error = ?report,
+                    entity_count = entity_ids.len(),
+                    "could not start the embedding workflow for the created entities"
+                );
+            }
         }
 
         Ok(entities)
@@ -2483,6 +2572,107 @@ struct LockedEntityEdition {
     entity_edition_id: EntityEditionId,
     decision_time: LeftClosedTemporalInterval<DecisionTime>,
     transaction_time: LeftClosedTemporalInterval<TransactionTime>,
+}
+
+/// The entity types among `entity_type_ids` that the actor may not view.
+fn invisible_entity_types<'url>(
+    policy_components: &PolicyComponents,
+    policy_set: &PolicySet,
+    entity_type_ids: impl IntoIterator<Item = &'url VersionedUrl>,
+) -> Result<HashSet<VersionedUrl>, Report<EntityCreationError>> {
+    let mut invisible = HashSet::new();
+    for entity_type_id in entity_type_ids {
+        match policy_set
+            .evaluate(
+                &Request {
+                    actor: policy_components.actor_id(),
+                    action: ActionName::ViewEntityType,
+                    resource: &ResourceId::EntityType(Cow::Borrowed(entity_type_id.into())),
+                    context: RequestContext::default(),
+                },
+                policy_components.context(),
+            )
+            .change_context(EntityCreationError::Store)?
+        {
+            Authorized::Always => {}
+            Authorized::Never => {
+                invisible.insert(entity_type_id.clone());
+            }
+        }
+    }
+    Ok(invisible)
+}
+
+/// The `missing` entity types together with the `requested` ones the actor may not view.
+async fn unknown_entity_types<S>(
+    store: &S,
+    actor_id: ActorId,
+    requested: &HashSet<&VersionedUrl>,
+    missing: &HashSet<VersionedUrl>,
+) -> Result<HashSet<VersionedUrl>, Report<EntityCreationError>>
+where
+    S: PrincipalStore + PolicyStore + Sync,
+{
+    let existing = requested
+        .iter()
+        .copied()
+        .filter(|entity_type_id| !missing.contains(*entity_type_id))
+        .collect::<Vec<_>>();
+    let mut unknown = missing.clone();
+    if existing.is_empty() {
+        return Ok(unknown);
+    }
+
+    let policy_components = PolicyComponents::builder(store, Some(actor_id))
+        .with_entity_type_ids(existing.iter().copied())
+        .with_action(ActionName::ViewEntityType, MergePolicies::No)
+        .await
+        .change_context(EntityCreationError::Store)?;
+    let policy_set = policy_components
+        .build_policy_set([ActionName::ViewEntityType])
+        .change_context(EntityCreationError::Store)?;
+    unknown.extend(invisible_entity_types(
+        &policy_components,
+        &policy_set,
+        existing,
+    )?);
+    Ok(unknown)
+}
+
+/// Classifies a failure to resolve the policies for creating entities.
+async fn entity_creation_error<S>(
+    store: &S,
+    actor_id: ActorId,
+    requested: &HashSet<&VersionedUrl>,
+    report: Report<ContextCreationError>,
+) -> Report<EntityCreationError>
+where
+    S: PrincipalStore + PolicyStore + Sync,
+{
+    match report.current_context() {
+        // The entity types the actor may not view are reported with the missing ones, so the
+        // answer does not tell them apart. It is a new report, because the legacy API serializes
+        // the sources of a report.
+        ContextCreationError::EntityTypesNotFound { entity_type_ids } => {
+            match unknown_entity_types(store, actor_id, requested, entity_type_ids).await {
+                Ok(entity_type_ids) => {
+                    Report::new(EntityCreationError::UnknownEntityTypes { entity_type_ids })
+                        .attach_opaque(StatusCode::NotFound)
+                }
+                Err(report) => report,
+            }
+        }
+        ContextCreationError::ActorNotFound { .. }
+        | ContextCreationError::BuildPrincipalContext { .. }
+        | ContextCreationError::BuildEntityTypeContext { .. }
+        | ContextCreationError::BuildPropertyTypeContext { .. }
+        | ContextCreationError::BuildDataTypeContext { .. }
+        | ContextCreationError::BuildEntityContext { .. }
+        | ContextCreationError::ResolveActorPolicies { .. }
+        | ContextCreationError::CreatePolicySet
+        | ContextCreationError::CreatePolicyContext
+        | ContextCreationError::StoreError => report.change_context(EntityCreationError::Store),
+    }
 }
 
 /// Builds the statement populating `entity_edition_cache` by aggregating the editions'

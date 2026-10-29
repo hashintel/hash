@@ -1,6 +1,11 @@
 #![expect(missing_docs, reason = "integration tests")]
 
-use core::{future::poll_fn, num::NonZeroUsize, pin::Pin, task::Poll, time::Duration};
+extern crate alloc;
+
+use alloc::collections::BTreeMap;
+use core::{
+    future::poll_fn, num::NonZeroUsize, pin::Pin, str::FromStr as _, task::Poll, time::Duration,
+};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -8,6 +13,7 @@ use std::{
 
 use duckdb::types::{TimeUnit, Value};
 use error_stack::Report;
+use hash_integrations_definition::{VariableName, Variables};
 use hash_integrations_engine::{
     ByteSize, DataErrorType, OpenError, QueryErrorType, SnapshotError, StatementError, Workspace,
     WorkspaceConfig,
@@ -770,4 +776,77 @@ async fn disk_limit_checkpoints_before_refusing() {
         Value::Int(19),
         "the last table should be kept"
     );
+}
+
+#[tokio::test]
+async fn query_binds_parameters() {
+    let directory = TempDir::new().expect("should create a directory");
+    let variables = Variables::try_from(BTreeMap::from(
+        [
+            ("MIN_SEATS", "300"),
+            ("Excluded", "'); DROP TABLE flights; --"),
+        ]
+        .map(|(name, value)| {
+            (
+                VariableName::from_str(name).expect("should be a valid variable name"),
+                value.into(),
+            )
+        }),
+    ))
+    .expect("the variables should be valid");
+    let workspace = open_with(
+        &directory,
+        WorkspaceConfig {
+            variables,
+            ..WorkspaceConfig::default()
+        },
+    )
+    .await;
+
+    workspace
+        .create_table(
+            "flights".into(),
+            "SELECT * FROM (VALUES ('BA117', 214), ('LH400', 364)) AS flights (code, seats) WHERE \
+             seats >= $min_seats::INTEGER - 100"
+                .into(),
+        )
+        .await
+        .expect("the table should be created");
+    let rows = workspace
+        .query(
+            "SELECT code, $EXCLUDED AS excluded FROM flights WHERE seats > $MIN_SEATS::INTEGER \
+             AND code <> $excluded"
+                .into(),
+        )
+        .await
+        .expect("the query should run");
+
+    assert_eq!(
+        rows.iter().collect::<Vec<_>>(),
+        [[
+            Value::Text("LH400".to_owned()),
+            Value::Text("'); DROP TABLE flights; --".to_owned()),
+        ]],
+        "each parameter should be bound as text, matched without regard to case"
+    );
+}
+
+#[tokio::test]
+async fn query_refuses_unknown_parameter() {
+    let directory = TempDir::new().expect("should create a directory");
+    let workspace = open(&directory).await;
+
+    for (sql, name) in [("SELECT $MISSING", "MISSING"), ("SELECT ?", "1")] {
+        let report = workspace
+            .query(sql.into())
+            .await
+            .expect_err("a parameter without a value should be refused");
+        assert!(
+            matches!(
+                report.current_context(),
+                StatementError::UnknownParameter { name: found } if &**found == name
+            ),
+            "`{sql}` should be refused for parameter `{name}`, not by {report:?}"
+        );
+    }
 }

@@ -21,8 +21,8 @@ export const RightClickMenu = ({
 }: {
   items: Array<ItemOrGroup<MenuItem>>;
   /**
-   * Preferred placement of the menu relative to the pointer position it opens
-   * at. As with `Menu`, another placement may be chosen for a better fit.
+   * The preferred position of the menu relative to the pointer it opens at;
+   * another may be chosen for a better fit.
    */
   position?: Position;
   /** Applied to the menu content, as with `Menu`. */
@@ -73,3 +73,6 @@ export const RightClickMenu = ({
     </ArkMenu.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+RightClickMenu.displayName = "RightClickMenu";

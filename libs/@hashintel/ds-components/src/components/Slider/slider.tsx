@@ -210,3 +210,5 @@ export const Slider: React.FC<SliderProps> = ({
     </BaseSlider.Root>
   );
 };
+
+Slider.displayName = "Slider";

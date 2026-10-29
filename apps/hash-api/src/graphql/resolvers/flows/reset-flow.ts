@@ -86,7 +86,6 @@ export const resetFlow: ResolverFn<
 
   const openInputRequests = getOpenInputRequests(events);
 
-  /* An entity from before Flow Run v3 can't hold open requests, and has none saved. */
   const savedOpenInputRequests =
     flow.properties[
       "https://hash.ai/@h/types/property-type/open-input-request/"

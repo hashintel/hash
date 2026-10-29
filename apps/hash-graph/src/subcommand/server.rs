@@ -17,7 +17,7 @@ use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
     rest::{
-        self,
+        self, PublicApiConfig,
         authentication::{
             KratosSessionConfig, SessionCacheConfig,
             api_token::{self, ApiTokenEncryptionKey, ApiTokenIssuer},
@@ -443,6 +443,9 @@ pub struct ServerConfig {
     pub api_config: ApiConfig,
 
     #[clap(flatten)]
+    pub public_api_config: PublicApiConfig,
+
+    #[clap(flatten)]
     pub rate_limit: RateLimitConfig,
 
     #[clap(flatten)]
@@ -726,6 +729,7 @@ where
         domain_regex: DomainValidator::new(config.allowed_url_domain),
         query_logger,
         api_config: config.api_config,
+        public_api_config: config.public_api_config,
         session_auth: authentication.session_auth,
         service_secret: authentication.service_secret,
         api_tokens: authentication.api_tokens,

@@ -67,6 +67,7 @@ const BreadCrumbsRoot = ({
   className?: string;
   children: React.ReactNode;
   size?: FormInputSize;
+  /** Caps how many crumbs stay visible even when there is room */
   maxItems?: number;
   /** The aria-label of the ellipsis menu trigger, if one is rendered. */
   ellipsisLabel?: string;
@@ -273,5 +274,8 @@ const BreadCrumbsRoot = ({
     </nav>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+BreadCrumbsRoot.displayName = "BreadCrumbs";
 
 export const BreadCrumbs = Object.assign(BreadCrumbsRoot, { Item });

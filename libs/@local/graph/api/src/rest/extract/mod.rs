@@ -1,7 +1,8 @@
 //! Extractors whose rejections are problem details responses.
 //!
 //! [`Json`] also answers with a JSON body, and answers a body that fails to serialize with a
-//! problem details response.
+//! problem details response. [`Page`] is a response only: it answers like [`Json`] and, when
+//! another page follows, names it in a `Link` header.
 //!
 //! The extractors of axum and axum-extra answer a rejection with plain text. These wrap them and
 //! answer `application/problem+json`, with the status axum chose for each rejection they name. Each
@@ -10,6 +11,7 @@
 //! reads its request through, next to those the middleware documents at the same status.
 
 mod json;
+mod page;
 mod path;
 mod query;
 #[cfg(test)]
@@ -18,12 +20,12 @@ mod tests;
 use aide::openapi::Operation;
 use serde_json::Value;
 
-#[cfg_attr(
-    not(test),
-    expect(unused_imports, reason = "only the tests read query parameters")
-)]
-pub(in crate::rest) use self::query::Query;
-pub(in crate::rest) use self::{json::Json, path::Path};
+pub(in crate::rest) use self::{
+    json::Json,
+    page::{NextPage, Page},
+    path::Path,
+    query::Query,
+};
 
 /// The part of a request that [`Json`], [`Path`] or [`Query`] reads.
 ///

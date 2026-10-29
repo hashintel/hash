@@ -18,7 +18,6 @@ import { getFlowRunRecordStorageKey } from "../file-storage.js";
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 import { createRunningFlowRunHistoryCache } from "./run-events/running-flow-run-history-cache.js";
 import {
-  FlowRunRecordNotFoundError,
   getFlowRunRecord,
   getFlowRunRecordFromHistory,
   getStoredFlowRunRecordKey,
@@ -100,22 +99,9 @@ const createTemporalClient = (fixture: FlowRunHistoryRecord | "notFound") => {
     },
   );
 
-  /* A run started by a reset looks up when the workflow's first run started. */
-  const getHandle = (_workflowId: string, runId?: string) =>
-    fixture !== "notFound" && runId && runId !== fixture.describe.runId
-      ? {
-          describe: () =>
-            fixture.originalRunStartTime
-              ? Promise.resolve({
-                  startTime: new Date(fixture.originalRunStartTime),
-                })
-              : Promise.reject(new Error(`No run ${runId}`)),
-        }
-      : { describe: describeWorkflow };
-
   return {
     temporalClient: {
-      workflow: { getHandle },
+      workflow: { getHandle: () => ({ describe: describeWorkflow }) },
       workflowService: {
         getWorkflowExecutionHistory,
         getWorkflowExecutionHistoryReverse,
@@ -304,7 +290,7 @@ describe("getFlowRunRecord", () => {
 
     await expect(
       getFlowRunRecord({ temporalClient, storageProvider, workflowId }),
-    ).rejects.toBeInstanceOf(FlowRunRecordNotFoundError);
+    ).rejects.toThrow("no longer in Temporal");
   });
 
   it("reads each run once per cache", async () => {

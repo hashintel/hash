@@ -16,12 +16,16 @@
 extern crate alloc;
 
 mod byte_size;
+mod entity_id;
+mod progress;
 mod sql;
 mod variant_name;
 mod workspace;
 
 pub use self::{
     byte_size::ByteSize,
+    entity_id::derive_entity_id,
+    progress::{Progress, ProgressSnapshot},
     workspace::{
         CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,
         SnapshotError, StatementError, Workspace, WorkspaceConfig,

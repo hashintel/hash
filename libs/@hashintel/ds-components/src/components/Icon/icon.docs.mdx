@@ -1,0 +1,171 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Icon, IconProvider } from "./icon";
+
+<Meta title="Docs/Icon" />
+
+export const meta = {
+  title: "Icon",
+  description:
+    "Display a glyph from the shared icon set to reinforce nearby text and actions.",
+  alternativeNames: ["SvgIcon", "Glyph"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Icon/icon.tsx",
+    stories: "https://tokens.hash.design/?path=/story/components-icon--default",
+  },
+  referenceLinks: {
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/SVG/Element/svg",
+  },
+  related: ["Button", "LoadingSpinner", "Avatar"],
+};
+
+# Icon
+
+Display a glyph from the shared icon set to reinforce nearby text and actions.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Icon name="cube" />
+  <Icon name="sparkles" />
+  <Icon name="diagramProject" />
+  <Icon name="warning" />
+  <Icon name="lockClosed" size="lg" />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Icon } from "@hashintel/ds-components";
+
+export const FlowRunStatus = () => (
+  <span>
+    <Icon name="circleCheck" size="sm" /> Flow completed
+  </span>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Icon to reinforce meaning next to text: status rows, metadata labels, empty states.",
+    <Fragment key="0">
+      Use <code>alt</code> when an icon stands alone and carries meaning of its
+      own.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    <Fragment key="0">
+      Don't make a bare Icon clickable — use Button's <code>iconName</code> and{" "}
+      <code>tooltip</code>, which add focus, hover, and an accessible name.
+    </Fragment>,
+    <Fragment key="1">
+      Don't place Icon manually inside components with an <code>iconName</code>{" "}
+      prop (Button, Chip, Banner, Select) — the slot sizes and spaces it for
+      you.
+    </Fragment>,
+    "Don't use icons for people or workspaces — use Avatar, which handles images and fallback initials.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+`name` picks a glyph from the set. Icons render at `md` and are hidden
+from assistive technology by default.
+
+<Stage>
+  <Icon name="gear" />
+</Stage>
+
+### Sizes
+
+Five fixed steps: `xxs`, `xs`, `sm`, `md` (the
+default), and `lg`. Match the step to the surrounding text or control —
+`sm` pairs with body text, `md` and up with headings and empty states.
+
+<Stage>
+  <Icon name="cube" size="xxs" />
+  <Icon name="cube" size="xs" />
+  <Icon name="cube" size="sm" />
+  <Icon name="cube" size="md" />
+  <Icon name="cube" size="lg" />
+</Stage>
+
+### Color
+
+Glyphs fill with `currentColor`, so an icon takes the surrounding text color —
+including the hover and state colors of a parent component. There is no color
+prop; set a text color on the icon or a wrapper.
+
+export const colorIconCode = `import { Icon } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
+export const FailedRunLabel = () => (
+  <span className={css({ color: "red.s100" })}>
+    <Icon name="warning" size="sm" /> Run failed
+  </span>
+);`;
+
+{/* The preview sets the token through its CSS variable: Panda cannot extract
+    a css() call from MDX, while the Code tab shows the canonical form. */}
+
+<Stage code={colorIconCode}>
+  <span style={{ color: "var(--colors-red-s100)" }}>
+    <Icon name="warning" size="sm" /> Run failed
+  </span>
+</Stage>
+
+## Accessibility
+
+### What Icon provides
+
+- Renders `aria-hidden="true"` by default, so decorative icons are invisible to
+  assistive technology.
+- Setting `alt` switches the SVG to `role="img"` with the text as its
+  `aria-label`, announcing it like an image.
+
+### What you must do
+
+- Set `alt` only when the icon carries meaning nearby text doesn't — labelling
+  an icon that sits next to the same words announces it twice.
+- Describe the meaning, not the glyph: `alt="Private entity type"`, not
+  `alt="Lock"`.
+- Never attach click handlers to a bare Icon — interactive glyphs belong on
+  Button, which provides focus and an accessible name.
+
+## API reference
+
+### Icon
+
+<PropsTable of={Icon} defaults={{ size: '"md"' }} />
+
+## Styling
+
+- Use `--icon-size` to set a custom size for an icon.

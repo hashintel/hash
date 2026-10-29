@@ -10,13 +10,10 @@ import type { GraphQLContext } from "../../context";
 export const getFlowRunsResolver: ResolverFn<
   PaginatedFlowRuns,
   Record<string, never>,
-  Pick<
-    GraphQLContext,
-    "authentication" | "dataSources" | "flowRunRecords" | "temporal"
-  >,
+  Pick<GraphQLContext, "authentication" | "dataSources">,
   QueryGetFlowRunsArgs
 > = async (_parent, args, context) => {
-  const { authentication, dataSources, flowRunRecords, temporal } = context;
+  const { authentication, dataSources } = context;
 
   const { flowDefinitionEntityIds, executionStatus, cursor, limit } = args;
 
@@ -29,8 +26,5 @@ export const getFlowRunsResolver: ResolverFn<
       limit,
     },
     graphApiClient: dataSources.graphApi,
-    recordsByWorkflowId: flowRunRecords,
-    storageProvider: dataSources.uploadProvider,
-    temporalClient: temporal,
   });
 };

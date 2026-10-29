@@ -35,7 +35,7 @@ use type_system::{
     knowledge::{
         Entity,
         entity::{
-            EntityId, LinkData,
+            EntityId, Link, LinkEndpoint,
             id::{DraftId, EntityUuid},
             provenance::{EntityDeletionProvenance, ProvidedEntityEditionProvenance},
         },
@@ -393,13 +393,17 @@ pub(crate) async fn create_link(
                 properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
                     .expect("could not create property with metadata object"),
                 confidence: None,
-                link_data: Some(LinkData {
-                    left_entity_id: source,
-                    right_entity_id: target,
-                    left_entity_confidence: None,
-                    left_entity_provenance: PropertyProvenance::default(),
-                    right_entity_confidence: None,
-                    right_entity_provenance: PropertyProvenance::default(),
+                link_data: Some(Link::Directed {
+                    source: LinkEndpoint {
+                        entity_id: source,
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                    },
+                    target: LinkEndpoint {
+                        entity_id: target,
+                        confidence: None,
+                        provenance: PropertyProvenance::default(),
+                    },
                 }),
                 draft: false,
                 policies: Vec::new(),

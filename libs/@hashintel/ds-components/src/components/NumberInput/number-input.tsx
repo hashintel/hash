@@ -83,7 +83,7 @@ export const NumberInput = ({
   | "style"
 > & {
   value: number | null | undefined;
-  /** Preset input width. `maxNumber` sets the width to be equal to the width of the max value if set, assuming that stepper is hidden */
+  /** Preset input width. `maxNumber` sizes the input to fit the `max` value when one is set; assumes the stepper is hidden. */
   width?: FormInputWidth | "maxNumber";
   hideStepper?: boolean;
   onChange: (
@@ -161,3 +161,6 @@ export const NumberInput = ({
     />
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+NumberInput.displayName = "NumberInput";

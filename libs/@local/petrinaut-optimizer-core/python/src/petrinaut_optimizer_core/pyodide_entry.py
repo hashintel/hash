@@ -7,13 +7,11 @@ unwrapped by duck-typing its `to_py`, so the module runs under CPython too and
 its tests need no browser.
 """
 
-from __future__ import annotations
-
 import json
 import warnings
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import cast
 
 import optuna
 from optuna.exceptions import ExperimentalWarning
@@ -26,6 +24,7 @@ from .importance import (
     importance_floor,
     parameter_importances,
 )
+from .reports import BrowserSummary, ImportanceReport, TrialEvent
 from .study import Scalar, create_study
 
 
@@ -51,35 +50,37 @@ def to_python(value: object) -> object:
     return converter() if callable(converter) else value
 
 
-def _object(value: object, name: str) -> Mapping[str, Any]:
+def _object(value: object, name: str) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
-        raise ValueError(f"{name} must be a JSON object")
-    return cast("Mapping[str, Any]", value)
+        raise TypeError(f"{name} must be a JSON object")
+    return cast("Mapping[str, object]", value)
 
 
 def _positive_integer(value: object, name: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise TypeError(f"optimization {name} must be a positive integer")
+    if value < 1:
         raise ValueError(f"optimization {name} must be a positive integer")
     return value
 
 
-def importances_of(study: optuna.Study) -> dict[str, Any] | None:
-    """The `importances` block for an event, or None when the estimate is unavailable."""
+def importances_of(study: optuna.Study) -> ImportanceReport | None:
+    """Return the `importances` block for an event, or None when the estimate is unavailable."""
     values = parameter_importances(study)
     if values is None:
         return None
     return {"values": values, "completedTrials": completed_trials(study)}
 
 
-def attach_importances(study: optuna.Study, event: dict[str, Any]) -> None:
+def attach_importances(study: optuna.Study, event: TrialEvent | BrowserSummary) -> None:
     importances = importances_of(study)
     if importances is not None:
         event["importances"] = importances
 
 
 def with_importances_at_cadence(
-    study: optuna.Study, requested: int, on_trial: Callable[[dict[str, Any]], object]
-) -> Callable[[dict[str, Any]], object]:
+    study: optuna.Study, requested: int, on_trial: Callable[[TrialEvent], object]
+) -> Callable[[TrialEvent], object]:
     """Wrap `on_trial` so every `importance_cadence` completed trials past the floor carry an estimate.
 
     The count is the study's own, so a continued study keeps the rhythm it had.
@@ -89,7 +90,7 @@ def with_importances_at_cadence(
     floor = importance_floor(requested)
     cadence = importance_cadence(requested)
 
-    def report(event: dict[str, Any]) -> object:
+    def report(event: TrialEvent) -> object:
         if event.get("state") == "complete":
             completed = completed_trials(study)
             if completed >= floor and (completed - floor) % cadence == 0:
@@ -121,11 +122,12 @@ def create_browser_study(description_json: str, parallelism: int = 1) -> StudyHa
 def run_browser_study(
     handle: StudyHandle,
     trials: int,
+    *,
     evaluate: Callable[[dict[str, Scalar]], Awaitable[object]],
-    on_trial: Callable[[dict[str, Any]], object],
+    on_trial: Callable[[TrialEvent], object],
     is_cancelled: Callable[[], object],
     is_paused: Callable[[], object] = lambda: False,
-) -> Awaitable[dict[str, Any]]:
+) -> Awaitable[BrowserSummary]:
     """Run `trials` more trials on the handle's study and return the awaitable summary.
 
     The arguments are checked and `handle.requested` grows by `trials` before
@@ -143,18 +145,16 @@ def run_browser_study(
         raise ValueError("the optimization study is already running")
     trials = _positive_integer(trials, "trials")
     if handle.requested + trials > MAX_STUDY_TRIALS:
-        raise ValueError(
-            f"an optimization study must not exceed {MAX_STUDY_TRIALS} trials"
-        )
+        raise ValueError(f"an optimization study must not exceed {MAX_STUDY_TRIALS} trials")
     handle.requested += trials
     handle.running = True
 
-    async def evaluate_trial(values: dict[str, Scalar]) -> Mapping[str, Any]:
+    async def evaluate_trial(values: dict[str, Scalar]) -> Mapping[str, object]:
         return _object(to_python(await evaluate(values)), "trial outcome")
 
-    async def run() -> dict[str, Any]:
+    async def run() -> BrowserSummary:
         try:
-            summary = await run_study(
+            core_summary = await run_study(
                 study,
                 handle.description,
                 trials=trials,
@@ -164,7 +164,7 @@ def run_browser_study(
                 is_paused=lambda: bool(is_paused()),
                 parallelism=handle.parallelism,
             )
-            summary["requestedTrials"] = handle.requested
+            summary: BrowserSummary = {**core_summary, "requestedTrials": handle.requested}
             attach_importances(study, summary)
             return summary
         finally:
