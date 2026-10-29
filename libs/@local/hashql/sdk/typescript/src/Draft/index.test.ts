@@ -1408,6 +1408,65 @@ describe("query", () => {
     );
   });
 
+  test("predicate_escape", () => {
+    expect.hasAssertions();
+    // The outer `$` emits its `let` outside the closure, where `vertex` names nothing.
+    const result = Draft.withPrelude(graph).program({}, ($) =>
+      $.query($.prelude().entities(1n))
+        .filter("vertex", (_, vertex) =>
+          $.let("enabled", $.isTrue(vertex.enabled)),
+        )
+        .collect(),
+    );
+    expect(reason(result)).toStrictEqual(stale("vertex"));
+  });
+
+  test("parameter_shadows", () => {
+    expect.hasAssertions();
+    const result = Draft.withPrelude(graph).program({}, ($) => {
+      const vertex = $.let("vertex", true);
+      return $.query($.prelude().entities(1n))
+        .filter("vertex", () => $.isTrue(vertex))
+        .collect();
+    });
+    expect(reason(result)).toStrictEqual(stale("vertex"));
+  });
+
+  test("escaped_operands", () => {
+    expect.hasAssertions();
+    const reasons: Program.ProgramError.Construction["reason"][] = [];
+    Draft.withPrelude(graph).program({ axis: axes }, ($, { axis }) => {
+      const bound = $.let("bound", axis);
+      const all = $.let("all", $.prelude().entities(1n));
+      const flag = $.let("flag", true);
+      reasons.push(
+        reason(
+          Draft.program({ axis: axes }, (other) => other.query.entities(bound)),
+        ),
+        reason(Draft.program({}, (other) => other.query(all).collect())),
+        reason(
+          Draft.program({}, (other) =>
+            other.query(all).filter("vertex", () => true),
+          ),
+        ),
+        reason(
+          Draft.withPrelude(graph).program({}, (other) =>
+            other
+              .query(other.prelude().entities(1n))
+              .filter("vertex", () => other.isTrue(flag)),
+          ),
+        ),
+      );
+      return flag;
+    });
+    expect(reasons).toStrictEqual([
+      stale("bound"),
+      stale("all"),
+      stale("all"),
+      stale("flag"),
+    ]);
+  });
+
   test("invalid_parameter_name", () => {
     expect.hasAssertions();
     let calls = 0;
