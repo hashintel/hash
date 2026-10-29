@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useMemo } from "react";
 
 import { HouseSolidIcon } from "../../../shared/icons/house-solid-icon";
+import { KeySolidIcon } from "../../../shared/icons/key-solid-icon";
 import { LockSolidIcon } from "../../../shared/icons/lock-solid-icon";
 import { PeopleGroupIcon } from "../../../shared/icons/people-group-icon";
 import { PlugSolidIcon } from "../../../shared/icons/plug-solid-icon";
@@ -64,6 +65,11 @@ const generateMenuLinks = (
       icon: <PlugSolidIcon sx={{ fontSize: 16 }} />,
     },
     {
+      label: "API tokens",
+      href: "/settings/api-tokens",
+      icon: <KeySolidIcon sx={{ fontSize: 14 }} />,
+    },
+    {
       label: "Personalization",
       href: "/settings/personalization",
       icon: <HouseSolidIcon sx={{ fontSize: 14 }} />,
@@ -83,7 +89,7 @@ const generateMenuLinks = (
 };
 
 const containerSx = {
-  maxWidth: { lg: 1040 },
+  maxWidth: { lg: 1200 },
   margin: "0 auto",
   px: { xs: 4 },
 };
@@ -159,7 +165,7 @@ export const SettingsLayout = ({ children }: PropsWithChildren) => {
       <Container sx={{ ...containerSx, py: 6 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
           <SettingsSidebar heading="Account" menuItems={menuItems} />
-          <Box sx={{ flex: 1 }}>{children}</Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>{children}</Box>
         </Box>
       </Container>
     </LayoutWithSidebar>
