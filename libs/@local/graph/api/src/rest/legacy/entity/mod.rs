@@ -298,7 +298,7 @@ where
     S: StorePool + Send + Sync,
 {
     let params = CreateEntityParams::deserialize(&body)
-        .map_err(Report::from)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -339,7 +339,7 @@ where
     S: StorePool + Send + Sync,
 {
     let params = Vec::<CreateEntityParams>::deserialize(&body)
-        .map_err(Report::from)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let mut store = store_pool
@@ -385,7 +385,7 @@ where
     }
 
     let params = ValidateEntityParams::deserialize(&body)
-        .map_err(Report::from)
+        .attach_opaque(hash_status::StatusCode::InvalidArgument)
         .map_err(report_to_response)?;
 
     let store = store_pool
