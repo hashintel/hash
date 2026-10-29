@@ -140,9 +140,11 @@ const fromScope =
 export const withPrelude = <const D extends Scope.Definition.Any>(
   prelude: D & Namespace.Rebindable<D>,
 ): { readonly program: Draft<Scope.Scope<D>> } => {
+  // `Namespace.Rebindable` already rejects symbol keys, and the broad definition lets `Scope.merge` accept a generic prelude without proving that again.
+  const tables: Scope.Definition.Any = prelude;
   // SAFETY: merging into the empty scope copies each enumerable string-keyed export of `prelude` unchanged into the table of the same name, so every table keeps the rebindable exports `Scope.Scope<D>` names.
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the merged scope cannot carry the rebindability of a generic definition's exports
-  const scope = Scope.merge(Scope.empty, prelude) as Scope.Scope<D> &
+  const scope = Scope.merge(Scope.empty, tables) as Scope.Scope<D> &
     Namespace.Rebindable<Scope.Scope<D>>;
 
   return Object.freeze({ program: fromScope<Scope.Scope<D>>(scope) });
