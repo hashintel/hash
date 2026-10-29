@@ -107,6 +107,28 @@ describe("builder", () => {
     ).toBe(true);
   });
 
+  test.each([
+    ["\u00E9", "e\u0301"],
+    ["e\u0301", "\u00E9"],
+  ])("struct_canonical_names_%#", (first, second) => {
+    expect.hasAssertions();
+    const integer = Option.getOrThrow(Type.reference("Integer"));
+    expect(
+      Option.isNone(Type.struct({ [first]: integer, [second]: integer })),
+    ).toBe(true);
+    expect(
+      Result.isFailure(
+        Schema.decodeResult(Type.Schema)({
+          _tag: "Struct",
+          members: [
+            [first, { _tag: "Infer" }],
+            [second, { _tag: "Infer" }],
+          ],
+        }),
+      ),
+    ).toBe(true);
+  });
+
   test("singleton_argument", () => {
     expect.hasAssertions();
     const integer = Option.getOrThrow(Type.reference("Integer"));

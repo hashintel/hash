@@ -20,13 +20,13 @@ import {
   pipe,
 } from "effect";
 
-import { Relocate } from "../internal/relocation.js";
+import { Relocate, head } from "../internal/relocation.js";
 import * as JExpr from "../JExpr/index.js";
 import * as AST from "./AST/index.js";
 import * as ProgramError from "./ProgramError.js";
-import * as TypeExpression from "./TypeExpression.js";
+import * as TAST from "./TAST/index.js";
 
-import type { Relocatable } from "../internal/relocation.js";
+import type { Bound, Relocatable } from "../internal/relocation.js";
 import type * as Type from "../Type.js";
 import type {
   Accessors,
@@ -35,6 +35,7 @@ import type {
   Conditional,
 } from "./ExpressionType.js";
 import type * as Input from "./Inputs.js";
+import type * as TypeExpression from "./TypeExpression.js";
 import type { Types } from "effect";
 
 export type { Conditional } from "./ExpressionType.js";
@@ -112,9 +113,9 @@ export declare namespace Value {
 class ExpressionImpl<T extends Type.Any, Inputs> {
   readonly [TypeId]: Variance<T, Inputs>;
 
-  readonly #expr: Result.Result<AST.Node, ProgramError.Construction>;
+  readonly #expr: Result.Result<AST.Node.Any, ProgramError.Construction>;
 
-  constructor(expr: Result.Result<AST.Node, ProgramError.Construction>) {
+  constructor(expr: Result.Result<AST.Node.Any, ProgramError.Construction>) {
     this.#expr = expr;
     this[TypeId] = {
       _T: identity,
@@ -123,7 +124,7 @@ class ExpressionImpl<T extends Type.Any, Inputs> {
     };
   }
 
-  get [Binding](): Result.Result<AST.Node, ProgramError.Construction> {
+  get [Binding](): Result.Result<AST.Node.Any, ProgramError.Construction> {
     return this.#expr;
   }
 }
@@ -167,7 +168,7 @@ export declare namespace Expression {
 
   /** An expression with its semantic type erased, for syntax-only operations. */
   export interface Any extends Relocatable<Any>, Pipeable.Pipeable {
-    readonly [Binding]: Result.Result<AST.Node, ProgramError.Construction>;
+    readonly [Binding]: Result.Result<AST.Node.Any, ProgramError.Construction>;
   }
 
   /** Semantic metadata and stored construction result shared by expressions and adapted callables. */
@@ -201,7 +202,7 @@ const jexprParser = SchemaParser.decodeResult(Schema.toType(JExpr.Schema));
 
 const parseNode = (
   expression: JExpr.Expression,
-): Result.Result<AST.Node, ProgramError.Construction> =>
+): Result.Result<AST.Node.Any, ProgramError.Construction> =>
   Result.mapBoth(jexprParser(expression), {
     onSuccess: (syntax) => new AST.Expr(syntax),
     onFailure: (cause) => ProgramError.Construction.invalidExpression(cause),
@@ -214,7 +215,7 @@ const parseNode = (
  */
 export const toNode = (
   value: Value.Any,
-): Result.Result<AST.Node, ProgramError.Construction> => {
+): Result.Result<AST.Node.Any, ProgramError.Construction> => {
   if (isExpression(value)) {
     if (Predicate.hasProperty(value, Binding)) {
       return value[Binding];
@@ -261,15 +262,13 @@ const projectionKey = (
 };
 
 const access = (
-  value: Result.Result<AST.Node, ProgramError.Construction>,
+  value: Result.Result<AST.Node.Any, ProgramError.Construction>,
   key: string | number,
-): Result.Result<AST.Node, ProgramError.Construction> =>
+): Result.Result<AST.Node.Any, ProgramError.Construction> =>
   pipe(
     { value, key: projectionKey(key) },
     Result.all,
-    Result.map(
-      ({ value, key }) => new AST.Expr(JExpr.access(AST.compile(value), key)),
-    ),
+    Result.map(({ value, key }) => new AST.Access(value, key)),
   );
 
 const make = <T extends Type.Any, Inputs>(
@@ -282,12 +281,12 @@ const make = <T extends Type.Any, Inputs>(
           pipe(
             {
               callee: impl[Binding],
-              arguments: Result.all(args.map(toJExpr)),
+              arguments: Result.all(args.map(toNode)),
             },
             Result.all,
             Result.map(
               ({ callee, arguments: arguments_ }) =>
-                new AST.Expr(JExpr.call(AST.compile(callee), ...arguments_)),
+                new AST.Call(callee, arguments_),
             ),
           ),
         ),
@@ -297,12 +296,13 @@ const make = <T extends Type.Any, Inputs>(
       [Binding]: impl[Binding],
       [Relocate]: (
         path: JExpr.Path.Path,
+        bound?: Bound,
       ): Result.Result<Expression<T, Inputs>, ProgramError.Construction> =>
         impl[Binding].pipe(
           Result.map(() =>
             make(
               new ExpressionImpl<T, Inputs>(
-                parseNode(JExpr.Path.compile(path)),
+                Result.succeed(new AST.Path(path, head(path, "value", bound))),
               ),
             ),
           ),
@@ -325,12 +325,9 @@ const make = <T extends Type.Any, Inputs>(
       if (property === "$index" || property === "$indexUnsafe") {
         return (key: Value.Any) => {
           const expr = pipe(
-            { value: target[Binding], key: toJExpr(key) },
+            { value: target[Binding], key: toNode(key) },
             Result.all,
-            Result.map(
-              ({ value, key }) =>
-                new AST.Expr(JExpr.index(AST.compile(value), key)),
-            ),
+            Result.map(({ value, key }) => new AST.Subscript(value, key)),
           );
           const impl = new ExpressionImpl(expr);
           return make(impl);
@@ -375,7 +372,7 @@ const make = <T extends Type.Any, Inputs>(
  * This low-level builder operation trusts the caller to establish `T`, `Inputs` and the node's validity. Use {@link fromJExpr} when syntax needs validation.
  */
 export const fromResult = <T extends Type.Any, Inputs>(
-  node: Result.Result<AST.Node, ProgramError.Construction>,
+  node: Result.Result<AST.Node.Any, ProgramError.Construction>,
 ): Expression<T, Inputs> => make(new ExpressionImpl<T, Inputs>(node));
 
 /**
@@ -389,7 +386,7 @@ export const fromJExpr = <T extends Type.Any, Inputs>(
 
 /** Wraps an already constructed AST node without validation, using caller-supplied semantic metadata as in {@link fromResult}. */
 export const fromNode = <T extends Type.Any, Inputs>(
-  node: AST.Node,
+  node: AST.Node.Any,
 ): Expression<T, Inputs> => pipe(node, Result.succeed, fromResult<T, Inputs>);
 
 /**
@@ -470,10 +467,11 @@ export const adaptCallable: {
       [Binding]: self[Binding],
       [Relocate]: (
         path: JExpr.Path.Path,
+        bound?: Bound,
       ): Result.Result<
         Expression.Adapted<T, I, C>,
         ProgramError.Construction
-      > => self[Relocate](path).pipe(Result.map(adaptCallable(adapt))),
+      > => self[Relocate](path, bound).pipe(Result.map(adaptCallable(adapt))),
       ...Pipeable.Prototype,
     });
   },
@@ -595,13 +593,14 @@ export function input<T extends Type.Any>(
   defaultValue?: Value.Any,
 ): Expression<T, never> {
   return Result.gen(function* () {
-    const syntax = yield* TypeExpression.toType(type);
+    const ident = yield* AST.decodeInputName(name);
+    const node = yield* type[TAST.Node];
     if (defaultValue === undefined) {
-      return yield* toNode(fromJExpr(JExpr.input(name, syntax)));
+      return yield* AST.validate(new AST.Input(ident, node, undefined));
     }
 
-    const value = yield* toJExpr(defaultValue);
-    return yield* toNode(fromJExpr(JExpr.input(name, syntax, value)));
+    const value = yield* toNode(defaultValue);
+    return yield* AST.validate(new AST.Input(ident, node, value));
   }).pipe(fromResult<T, never>);
 }
 

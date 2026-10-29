@@ -5,11 +5,13 @@
  *
  * @module
  */
+// oxlint-disable import/max-dependencies -- an import selects a module's exports, rebinds each producer and emits its AST node
 import {
   Array,
   Iterable,
   MutableHashMap,
   Option,
+  Predicate,
   Record,
   Result,
   SchemaParser,
@@ -18,13 +20,13 @@ import {
 
 import { isReadonlyArray } from "../../internal/array.js";
 import { emptyTable } from "../../internal/record.js";
-import { relocate } from "../../internal/relocation.js";
+import * as Referential from "../../internal/referential.js";
+import * as Relocation from "../../internal/relocation.js";
 import * as JExpr from "../../JExpr/index.js";
 import * as AST from "../AST/index.js";
 import * as ProgramError from "../ProgramError.js";
 import * as Bindings from "./Bindings.js";
 
-import type * as Relocation from "../../internal/relocation.js";
 import type * as Module from "../Module.js";
 import type * as Namespace from "../Namespace.js";
 
@@ -48,7 +50,7 @@ export type * as Bindings from "./Bindings.js";
  *
  * One name selects the module, type and value exports that share it. Each imported export emits its local name. The import wraps the expression built in its scope in a `use` of the module's path. An alias that is not a HashQL identifier fails construction with a {@link ProgramError.Construction} whose reason is `InvalidImportName`. HashQL binds a local name once, so two exports under one local name fail with `DuplicateImportName`. Names compare by decoded identifier, so `+` and `` `+` `` are one name. A symbol key in the record selects nothing.
  *
- * `"*"` emits a glob `use`. HashQL then binds every export it provides under the module's path, including names the record does not declare. TypeScript does not see such a name. Inside the import, it shadows an enclosing binding of the same name. A record that declares every export of its path gives both the same names.
+ * `"*"` emits a glob `use`. HashQL then binds every export it provides under the module's path, including names the record does not declare. A selected name likewise binds the module, type and value that HashQL exports under it, including a table the record does not declare. TypeScript does not see such a binding. Inside the import, it shadows an enclosing binding of the same name. A record that declares every export of its path gives both the same bindings.
  *
  * @example <caption>Import a built-in function under another name.</caption>
  * ```ts
@@ -95,15 +97,17 @@ export declare namespace Selection {
     I extends Selection<M, keyof I & (string | number)> ? I : never;
 }
 
-/** A validated local name and its parsed identifier. */
+/** A validated local name, its parsed identifier and the ids of the bindings the import gives it. */
 interface Alias {
   readonly alias: string;
   readonly ident: JExpr.Ident.Ident;
+  readonly bound: Relocation.Bound;
 }
 
-/** Validated source-to-local names and the matching import syntax. */
+/** Validated source-to-local names, the ids of every binding the import makes and the matching import syntax. */
 interface Plan {
   readonly names: Record.ReadonlyRecord<string, Alias>;
+  readonly bindings: readonly Referential.ReferenceId[];
   readonly syntax: JExpr.Imports;
 }
 
@@ -168,7 +172,10 @@ const plan = (
   selection: Selection<Module.Module.Any>,
 ): Result.Result<Plan, ProgramError.Construction> =>
   Result.gen(function* () {
+    // Each import makes its ids from its own source, so a handle names the import it came from.
+    const next = Referential.referenceProducer(Symbol("~hashql/Import"));
     const names: Record<string, Alias> = {};
+    const bindings: Referential.ReferenceId[] = [];
     // A name list may repeat a source name, which binds it once.
     const sources = MutableHashMap.empty<JExpr.Ident.Ident, string>();
 
@@ -183,12 +190,30 @@ const plan = (
       }
 
       MutableHashMap.set(sources, ident, name);
+
+      // The import binds the local name in each universe whose table exports the source name.
+      const bound: Relocation.Bound = {
+        ...(Object.hasOwn(module.modules, name) && {
+          module: next("module", ident),
+        }),
+        ...(Object.hasOwn(module.types, name) && { type: next("type", ident) }),
+        ...(Object.hasOwn(module.values, name) && {
+          value: next("value", ident),
+        }),
+      };
+
       Object.defineProperty(names, name, {
-        value: { alias: String(alias), ident },
+        value: { alias: String(alias), ident, bound },
         enumerable: true,
         configurable: true,
       });
 
+      bindings.push(
+        ...Array.filter(
+          [bound.module, bound.type, bound.value],
+          Predicate.isNotUndefined,
+        ),
+      );
       aliases.push([name, JExpr.Ident.compile(ident)]);
     }
 
@@ -199,7 +224,7 @@ const plan = (
       syntax = Object.freeze(Record.fromEntries(aliases));
     }
 
-    return { names: Object.freeze(names), syntax };
+    return { names: Object.freeze(names), bindings, syntax };
   });
 
 interface Capability extends Relocation.Relocatable<Capability> {}
@@ -212,6 +237,14 @@ export interface Rebindable<M extends Module.Module.Any> {
   readonly values: M["values"] & Rebindings<M["values"]>;
 }
 
+/** Rebinds a handle to its local name with the ids of that name's bindings. */
+const relocateTo = <E>(
+  source: Relocation.Relocatable<E>,
+  path: JExpr.Path.Path,
+  bound: Relocation.Bound,
+): Result.Result<E, ProgramError.Construction> =>
+  source[Relocation.Relocate](path, bound);
+
 /** Rebinds each value at its original E[K] type before asserting the renamed table. */
 const select = <E extends Record.ReadonlyRecord<string, Capability>, I>(
   entries: E & Rebindings<E>,
@@ -223,17 +256,18 @@ const select = <E extends Record.ReadonlyRecord<string, Capability>, I>(
     // oxlint-disable-next-line typescript/no-unnecessary-type-parameters -- K retains the original producer result E[K] before the alias changes its key
     const member = <K extends keyof E & string>(
       name: K,
-      { alias, ident }: Alias,
+      { alias, ident, bound }: Alias,
     ): Result.Result<
       Partial<Bindings.Selected<E, I>>,
       ProgramError.Construction
     > =>
-      relocate<E[K]>(
+      relocateTo(
         sources[name],
         JExpr.Path.make({
           rooted: false,
           segments: [{ name: ident, arguments: [] }],
         }),
+        bound,
       ).pipe(
         Result.map((value) =>
           Object.defineProperty(selected, alias, {
@@ -261,7 +295,7 @@ export interface Declaration<M extends Module.Module.Any, I> {
   readonly [TypeId]: TypeId;
   readonly scope: Bindings.Bindings<M, I> &
     Namespace.Rebindable<Bindings.Bindings<M, I>>;
-  readonly wrap: (child: AST.Node) => AST.Node;
+  readonly wrap: (child: AST.Node.Any) => AST.Node.Any;
 }
 
 /** Selects all three tables with one plan and marks them as the module's bindings. */
@@ -288,12 +322,15 @@ class ImportImpl<M extends Module.Module.Any, I> implements Declaration<M, I> {
   readonly wrap: Declaration<M, I>["wrap"];
 
   constructor(
-    path: JExpr.Path.Path,
-    syntax: JExpr.Imports,
+    module: M,
+    imported: AST.Imported,
     scope: Declaration<M, I>["scope"],
   ) {
+    // The module's path keeps the binding its first segment resolves to, when the module was itself imported.
+    const path = new AST.Path(module.path, module[Referential.References][0]);
+
     this.scope = scope;
-    this.wrap = (child): AST.Node => new AST.Import(path, syntax, child);
+    this.wrap = (child): AST.Node.Any => new AST.Import(path, imported, child);
     Object.freeze(this);
   }
 }
@@ -301,7 +338,7 @@ class ImportImpl<M extends Module.Module.Any, I> implements Declaration<M, I> {
 /**
  * Selects exports and rebinds each producer to its local name without changing the source module.
  *
- * The import emits a `use` of the module's path. HashQL must therefore provide every selected export under that path, aliases included. A `"*"` selection also binds the exports the record does not declare, as {@link Selection} describes.
+ * The import emits a `use` of the module's path. HashQL must therefore provide every selected export under that path, aliases included. HashQL can also bind exports the record does not declare, as {@link Selection} describes.
  *
  * Records must expose their declared entries as enumerable own string-keyed properties. Symbol keys and non-enumerable and inherited entries select nothing. Returns a construction failure for an invalid alias or one that two exports share, or propagates a producer's relocation failure. Omitted alias entries select nothing. A present entry must contain a valid identifier or the `"_"` sentinel, not `undefined`. It returns frozen tables without a prototype, so a name the import does not bind reads as `undefined`. The HashQL compiler resolves the emitted import.
  */
@@ -317,5 +354,5 @@ export const bind = <
     const selected = yield* plan(module, selection);
 
     const scope = yield* selectBindings<M, I>(module, selected.names);
-    return new ImportImpl<M, I>(module.path, selected.syntax, scope);
+    return new ImportImpl<M, I>(module, selected, scope);
   });

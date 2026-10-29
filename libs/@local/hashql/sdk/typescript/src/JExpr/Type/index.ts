@@ -159,7 +159,7 @@ const asReadonlyUnsafe = <T>(input: T): Readonly<T> => input;
 /**
  * Creates a type with named fields.
  *
- * Returns `None` if any field name is not a valid identifier according to `Ident.decodeResult`. Symbol names accept bare (`+`) or backticked (`` `+` ``) spelling. Spelling one name both ways, such as `+` and `` `+` ``, also returns `None`. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
+ * Returns `None` if any field name is not a valid identifier according to `Ident.decodeResult`. Symbol names accept bare (`+`) or backticked (`` `+` ``) spelling. Spelling one {@link Ident.name | name} two ways, such as `+` and `` `+` ``, also returns `None`. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
  *
  * @example <caption>Build a struct type and reject an invalid field name.</caption>
  * ```ts
@@ -191,8 +191,8 @@ export const struct = (
     Option.all,
     Option.filter(
       (members) =>
-        Array.dedupe(Array.map(members, Tuple.get(0))).length ===
-        members.length,
+        Array.dedupe(Array.map(members, ([name]) => Ident.name(name)))
+          .length === members.length,
     ),
     Option.map(asReadonlyUnsafe),
     Option.map((members) => ({
