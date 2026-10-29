@@ -7,7 +7,6 @@ import {
   currentTimeInstantTemporalAxes,
   generateEntityIdFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { computeDashboardItemDataActivity } from "./activities/compute-dashboard-item-data-activity.js";
 import { getAiAssistantAccountIdActivity } from "./activities/get-ai-assistant-account-id-activity.js";
@@ -23,6 +22,7 @@ import {
   createEntityTypeEmbeddings,
   createPropertyTypeEmbeddings,
 } from "./activities/shared/embeddings.js";
+import { isEntityExcludedFromEmbeddings } from "./shared/embedding-exclusions.js";
 
 import type {
   ActorEntityUuid,
@@ -178,11 +178,7 @@ export const createAiActivities = ({
 
     for (const entity of entities) {
       // Skip FlowRun entities due to the size of their property values
-      if (
-        entity.metadata.entityTypeIds.includes(
-          systemEntityTypes.flowRun.entityTypeId,
-        )
-      ) {
+      if (isEntityExcludedFromEmbeddings(entity.metadata.entityTypeIds)) {
         continue;
       }
 
