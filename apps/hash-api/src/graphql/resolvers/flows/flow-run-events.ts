@@ -19,7 +19,11 @@ export const flowRunEventsResolver: ResolverFn<
   FlowRunParent,
   Pick<
     GraphQLContext,
-    "authentication" | "dataSources" | "flowRunRecords" | "temporal"
+    | "authentication"
+    | "dataSources"
+    | "flowRunRecords"
+    | "runningFlowRunHistories"
+    | "temporal"
   >,
   FlowRunEventsArgs
 > = async (flowRun, { after, first }, context) => {
