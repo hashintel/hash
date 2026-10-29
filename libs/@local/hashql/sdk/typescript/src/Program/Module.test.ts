@@ -1,9 +1,9 @@
 /**
- * Runtime checks for module binding, alias identity and invalid export names.
+ * Runtime checks for module binding, alias identity, invalid export names and equality.
  *
  * @module
  */
-import { Result, pipe } from "effect";
+import { Equal, Hash, Result, pipe } from "effect";
 import { describe, expect, test } from "vitest";
 
 import * as JExpr from "../JExpr/index.js";
@@ -80,6 +80,17 @@ const divisor = integer(divisorValue);
 
 const compile = (expression: Expression.Expression.Any): string =>
   JExpr.compile(Result.getOrThrow(Expression.toJExpr(expression)));
+
+/** Parses trusted path fixtures. */
+const path = (source: string): JExpr.Path.Path =>
+  Result.getOrThrow(JExpr.Path.parse(source));
+
+/** Checks the equality/hash implication in both comparison directions. */
+const equivalent = (left: Equal.Equal, right: Equal.Equal): void => {
+  expect(Equal.equals(left, right)).toBe(true);
+  expect(Equal.equals(right, left)).toBe(true);
+  expect(Hash.hash(left)).toBe(Hash.hash(right));
+};
 
 describe("module_exports", () => {
   test("prototype_named_export", () => {
@@ -414,5 +425,112 @@ describe("type_application", () => {
     expect(Expression.toJExpr(Expression.input("values", extra))).toStrictEqual(
       TypeExpression.toType(extra),
     );
+  });
+});
+
+describe("module_protocols", () => {
+  test("equality_fields", () => {
+    expect.hasAssertions();
+    const child = Result.getOrThrow(Module.define("::child", {}));
+    const type = TypeExpression.reference<Type.PrimitiveInteger>(
+      path("::Integer"),
+    );
+    const source = Result.getOrThrow(
+      Module.define("::source", {
+        values: { count: Module.value<Type.PrimitiveInteger>() },
+      }),
+    );
+    const definition = {
+      modules: { child },
+      types: { Integer: type },
+      values: { count: source.values.count },
+    };
+    const first = Result.getOrThrow(Module.define("::same", definition));
+    const second = Result.getOrThrow(Module.define("::same", definition));
+    equivalent(first, second);
+    expect(first.pipe((module) => module.path)).toBe(first.path);
+    expect(Object.isFrozen(first)).toBe(true);
+    for (const other of [
+      Result.getOrThrow(Module.define("::other", definition)),
+      Result.getOrThrow(
+        Module.define("::same", { ...definition, modules: {} }),
+      ),
+      Result.getOrThrow(Module.define("::same", { ...definition, types: {} })),
+      Result.getOrThrow(Module.define("::same", { ...definition, values: {} })),
+      Result.getOrThrow(
+        Module.define("::same", {
+          ...definition,
+          types: {
+            Integer: TypeExpression.reference<Type.PrimitiveInteger>(
+              path("::Other"),
+            ),
+          },
+        }),
+      ),
+    ]) {
+      expect(Equal.equals(first, other)).toBe(false);
+    }
+    expect(first.modules.child).toBe(child);
+    expect(first.types.Integer).toBe(type);
+    expect(first.values.count).toBe(source.values.count);
+  });
+
+  test("enumerable_keys_and_member_equality", () => {
+    expect.hasAssertions();
+    const member = TypeExpression.reference<Type.PrimitiveInteger>(
+      path("::Integer"),
+    );
+    const hidden = Object.defineProperty({}, "Hidden", { value: member });
+    const hiddenModule = Result.getOrThrow(
+      Module.define("::same", { types: hidden }),
+    );
+    const emptyModule = Result.getOrThrow(
+      Module.define("::same", { types: {} }),
+    );
+    equivalent(hiddenModule, emptyModule);
+    const prototypeModule = Result.getOrThrow(
+      Module.define("::same", { types: { ["__proto__"]: member } }),
+    );
+    const visibleModule = Result.getOrThrow(
+      Module.define("::same", { types: { Hidden: member } }),
+    );
+    expect(Equal.equals(prototypeModule, visibleModule)).toBe(false);
+    expect(Object.hasOwn(prototypeModule.types, "__proto__")).toBe(true);
+    const fresh = TypeExpression.reference<Type.PrimitiveInteger>(
+      path("::Integer"),
+    );
+    const freshModule = Result.getOrThrow(
+      Module.define("::same", { types: { Hidden: fresh } }),
+    );
+    expect(Equal.equals(visibleModule, freshModule)).toBe(
+      Equal.equals(member, fresh),
+    );
+  });
+
+  test("nested_relocation_protocols", () => {
+    expect.hasAssertions();
+    const child = Result.getOrThrow(
+      Module.define("::child", {
+        types: { Item: Module.type<Type.PrimitiveInteger>() },
+      }),
+    );
+    const parent = Result.getOrThrow(
+      Module.define("::parent", { modules: { child } }),
+    );
+    const relocated = Result.getOrThrow(Module.relocate(parent, path("local")));
+    expect(relocated.pipe((module) => JExpr.Path.compile(module.path))).toBe(
+      "local",
+    );
+    expect(
+      relocated.modules.child.pipe((module) => JExpr.Path.compile(module.path)),
+    ).toBe("local::child");
+    expect(
+      [
+        relocated.modules.child,
+        relocated.modules.child.path,
+        relocated.modules.child.path.segments[0],
+      ].every(Equal.isEqual),
+    ).toBe(true);
+    expect(Equal.equals(parent, relocated)).toBe(false);
   });
 });

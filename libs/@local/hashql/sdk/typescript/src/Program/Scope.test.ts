@@ -115,4 +115,16 @@ describe("scope_merge", () => {
       before.values.count,
     );
   });
+
+  test("undefined_optional_replacement", () => {
+    expect.hasAssertions();
+    const values: {
+      readonly count?: ReturnType<typeof Expression.number> | undefined;
+    } = { count: undefined };
+    const merged = Scope.merge(before, { values });
+    expect(merged.values.count).toBe(before.values.count);
+    expect(
+      Object.keys(Scope.merge(Scope.empty, { values }).values),
+    ).toStrictEqual([]);
+  });
 });
