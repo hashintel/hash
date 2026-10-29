@@ -1,9 +1,9 @@
 /**
  * Typed declarations bound to absolute HashQL paths.
  *
- * A module record describes exports that the HashQL environment provides under one path. Defining it emits no syntax and creates nothing in HashQL. Its declarations emit references beneath that path for the HashQL compiler to resolve, and importing a module emits a `use` of its path.
+ * A module record describes exports that the HashQL environment provides under one path. Defining it emits no syntax and creates nothing in HashQL. Its declarations emit references beneath that path for the HashQL compiler to resolve.
  *
- * Modules keep type and value exports separate because a type and its constructor can share a name. Existing exports are aliases: selecting or regrouping one never changes its reference. Declarations supply trusted type information. The HashQL compiler checks the emitted query.
+ * Modules keep type and value exports separate because a type and its constructor can share a name. An existing export is an alias, a claim that HashQL also exports the item under this module's path. It keeps the reference it already emits until {@link relocate} moves the module. Declarations supply trusted type information. The HashQL compiler checks the emitted query.
  *
  * Expected construction failures, such as an invalid path or export name, arrive in a `Result`.
  *
@@ -135,7 +135,7 @@ export declare namespace Module {
 /**
  * Recognizes a module assembled by this SDK.
  *
- * The guard checks for the module marker property. A joined namespace name that includes a module also passes, while the record {@link root} returns does not.
+ * The guard checks for the module marker property. The record {@link root} returns does not pass.
  */
 // oxlint-disable-next-line typescript/no-restricted-types -- this guard narrows unchecked environment entries
 export const isModule = (value: unknown): value is Module.Any =>
@@ -145,7 +145,8 @@ const memberName = (
   name: string,
 ): Result.Result<JExpr.Ident.Ident, ProgramError.Construction> =>
   pipe(
-    JExpr.Ident.decodeResult(name),
+    name,
+    JExpr.Ident.decodeResult,
     Result.mapError((cause) =>
       ProgramError.Construction.invalidExportName(name, cause),
     ),
@@ -321,7 +322,7 @@ class ModuleImpl<
  *
  * Every enumerable own string key becomes an export, including `__proto__`. A non-enumerable key exports nothing. A key must be a HashQL identifier. Emitted paths quote an operator name such as `%`, as in `` ::core::math::`%` ``.
  *
- * Invalid paths, export names and generic arities return construction failures. A malformed path returns `InvalidModulePath`, a relative path `RelativeModulePath`, a key that is not an identifier `InvalidExportName` and an invalid generic arity `InvalidTypeArity`. Binding stops at the first failure, checking the module, type and value tables in that order.
+ * Invalid paths, export names and generic arities return a {@link ProgramError.Construction} failure. Its reason is `InvalidModulePath` for a malformed path, `RelativeModulePath` for a relative path, `InvalidExportName` for a key that is not an identifier and `InvalidTypeArity` for an invalid generic arity. Binding stops at the first failure, checking the module, type and value tables in that order.
  *
  * TypeScript keeps the namespaces apart: a value declaration cannot enter `types`, and a type declaration cannot enter `values`. It also rejects a symbol key, which cannot name an export. Each existing export must rebind to its own type. TypeScript rejects a handle extended through `Object.assign`, because rebinding would drop the added properties.
  *
@@ -378,7 +379,8 @@ export function define<
 > {
   return Result.gen(function* () {
     const path = yield* pipe(
-      JExpr.Path.decodeResult(name),
+      name,
+      JExpr.Path.decodeResult,
       Result.mapError((cause) =>
         ProgramError.Construction.invalidModulePath(name, cause),
       ),
@@ -395,10 +397,13 @@ export function define<
       modules = yield* copyModules(definition.modules);
     }
 
+    const types = yield* bind<T>(path, definition.types);
+    const values = yield* bind<V>(path, definition.values);
+
     return new ModuleImpl<M | Empty, T | Empty, V | Empty>(path, {
       modules,
-      types: yield* bind<T>(path, definition.types),
-      values: yield* bind<V>(path, definition.values),
+      types,
+      values,
     });
   });
 }
@@ -406,7 +411,7 @@ export function define<
 /**
  * Rebinds a module tree while preserving each export's declared type.
  *
- * Every export becomes a reference to its name under `path`, including aliases of exports from other modules. Child modules are rebound recursively beneath it. The path can be relative, as it is when an import binds a module under a local name. Each export keeps its descriptor and input requirements even though its syntax becomes a reference. The original module keeps its paths. The first export that cannot be rebound, such as a value whose construction failed, returns its failure. It accepts the module first or last.
+ * Every export becomes a reference to its name under `path`, including aliases of exports from other modules, because an alias claims that HashQL exports the item under the module's path. Child modules are rebound recursively beneath it. The path can be relative, such as a local name for the module. Each export keeps its descriptor and input requirements even though its syntax becomes a reference. The original module keeps its paths. The first export that cannot be rebound, such as a value whose construction failed, returns its failure. It accepts the module first or last.
  *
  * @example <caption>Rebind an alias and a child module.</caption>
  * ```ts

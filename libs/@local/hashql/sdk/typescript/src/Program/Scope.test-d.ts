@@ -105,10 +105,46 @@ describe("scope_merge_types", () => {
     const piped = pipe(before, Scope.merge(added));
     expectTypeOf(piped).toEqualTypeOf<typeof direct>();
     expectTypeOf(piped.values.count).toEqualTypeOf<
-      | typeof count
-      | Expression.Expression<Type.PrimitiveString, Inputs.Empty>
-      | undefined
+      typeof count | Expression.Expression<Type.PrimitiveString, Inputs.Empty>
     >();
     expectTypeOf(piped.values.other).toEqualTypeOf<typeof count | undefined>();
+  });
+
+  test("undefined_replacement", () => {
+    const count = Expression.integer(1);
+    const before = Scope.merge(Scope.empty, { values: { count } });
+    const replacement = Expression.literal("new");
+    const added: {
+      readonly values: {
+        readonly count: typeof replacement | undefined;
+        readonly other: typeof count | undefined;
+      };
+    } = { values: { count: undefined, other: undefined } };
+    const merged = Scope.merge(before, added);
+    expectTypeOf(merged.values.count).toEqualTypeOf<
+      typeof count | typeof replacement
+    >();
+    expectTypeOf(merged.values.other).toEqualTypeOf<typeof count | undefined>();
+  });
+
+  test("symbol_key", () => {
+    const hidden = Symbol("not a HashQL name");
+    const count = Expression.integer(1);
+    const math = Result.getOrThrow(Module.define("::math", {}));
+    expectTypeOf(
+      // @ts-expect-error A symbol key cannot name a value.
+      Scope.merge(Scope.empty, { values: { [hidden]: count } }),
+    );
+    expectTypeOf(
+      // @ts-expect-error A symbol key cannot name a module.
+      Scope.merge(Scope.empty, { modules: { [hidden]: math } }),
+    );
+    expectTypeOf(
+      pipe(
+        Scope.empty,
+        // @ts-expect-error A symbol key cannot name a type.
+        Scope.merge({ types: { [hidden]: Prelude.builtin.types.Integer } }),
+      ),
+    );
   });
 });

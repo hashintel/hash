@@ -276,7 +276,7 @@ describe("emitted_structural_constructors", () => {
   });
 });
 
-describe("emitted_module_imports", () => {
+describe("emitted_module_relocation", () => {
   test("failure_identity", () => {
     expect.hasAssertions();
     const invalid = Expression.number(Infinity);

@@ -81,7 +81,7 @@ class DeclarationImpl<E> extends Pipeable.Class implements Declaration<E> {
   }
 }
 
-/** Recognizes the private binding operation on a declaration. */
+/** Recognizes a declaration by its marker property, without checking its binding operation. */
 export const isDeclaration = <E>(
   entry: Declaration<E> | E,
 ): entry is Declaration<E> => Predicate.hasProperty(entry, TypeId);
@@ -119,7 +119,7 @@ export const type = <T extends Type.Any>(): Declaration<
 /**
  * Declares a named generic type with a type-level operation for its result.
  *
- * TypeScript requires `arity` to equal `F["arity"]`. Binding returns an `InvalidTypeArity` failure for an arity that is not a non-negative safe integer. The bound constructor emits applications of the export's path and checks the argument count of each call.
+ * TypeScript requires `arity` to equal `F["arity"]`. Binding returns a {@link ProgramError.Construction} failure with reason `InvalidTypeArity` for an arity that is not a non-negative safe integer. The bound constructor emits applications of the export's path and checks the argument count of each call.
  */
 export const genericType = <F extends Type.TypeConstructor>(
   arity: F["arity"],
