@@ -8,17 +8,14 @@ import type { LoggedInGraphQLContext } from "../../../context";
 import type { EntityId } from "@blockprotocol/type-system";
 
 /**
- * Loads a flow's definition from its `Flow Definition` entity, and checks that the user can run it.
+ * A flow's `Flow Definition` entity.
  *
- * @throws a GraphQL error if the definition doesn't exist or the user can't view it, if it's invalid (a bad request
- *   listing its problems), or if it's an AI flow and the user can't run AI flows.
+ * @throws a GraphQL not found error if it doesn't exist or the user can't view it.
  */
-export const getRunnableFlowDefinition = async (
-  graphQLContext: LoggedInGraphQLContext,
+export const getFlowDefinitionEntity = async (
+  { dataSources, authentication }: LoggedInGraphQLContext,
   flowDefinitionEntityId: EntityId,
 ) => {
-  const { dataSources, authentication, user } = graphQLContext;
-
   const flowDefinitionEntity = await getFlowDefinitionEntityById({
     flowDefinitionEntityId,
     graphApiClient: dataSources.graphApi,
@@ -31,6 +28,24 @@ export const getRunnableFlowDefinition = async (
     );
   }
 
+  return flowDefinitionEntity;
+};
+
+/**
+ * Loads a flow's definition from its `Flow Definition` entity, and checks that the user can run it.
+ *
+ * @throws a GraphQL error if the definition doesn't exist or the user can't view it, if it's invalid (a bad request
+ *   listing its problems), or if it's an AI flow and the user can't run AI flows.
+ */
+export const getRunnableFlowDefinition = async (
+  graphQLContext: LoggedInGraphQLContext,
+  flowDefinitionEntityId: EntityId,
+) => {
+  const flowDefinitionEntity = await getFlowDefinitionEntity(
+    graphQLContext,
+    flowDefinitionEntityId,
+  );
+
   let flowDefinition;
 
   try {
@@ -42,7 +57,10 @@ export const getRunnableFlowDefinition = async (
 
   const flowType = getFlowType(flowDefinition);
 
-  if (flowType === "ai" && !user.enabledFeatureFlags.includes("ai")) {
+  if (
+    flowType === "ai" &&
+    !graphQLContext.user.enabledFeatureFlags.includes("ai")
+  ) {
     throw GraphQLError.forbidden("AI flows are not enabled for this user");
   }
 

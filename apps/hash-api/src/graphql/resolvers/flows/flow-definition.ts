@@ -1,4 +1,3 @@
-import { getFlowDefinitionEntityById } from "@local/hash-backend-utils/flows/shared/get-flow-definition-entity-by-id";
 import { canConnect } from "@local/hash-isomorphic-utils/flows/can-connect";
 import { mapInputsPropertyToFlowInputValues } from "@local/hash-isomorphic-utils/flows/mappings";
 import {
@@ -16,6 +15,7 @@ import {
 import * as GraphQLError from "../../error";
 import { graphQLContextToImpureGraphContext } from "../util";
 import { pauseActiveFlowSchedule } from "./flow-schedule";
+import { getFlowDefinitionEntity } from "./shared/get-runnable-flow-definition";
 
 import type {
   Mutation,
@@ -25,7 +25,6 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
-import type { EntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   FlowDefinition,
@@ -34,10 +33,10 @@ import type {
 import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorphic-utils/system-types/flowdefinition";
 
 /**
- * Checks a definition given to save. Only one without the shape of a definition is refused: anything else is saved
- * with its problems, so that a flow can be saved before it's finished.
+ * Checks a definition to save. Anything with the shape of a definition is saved with its problems, so that a flow can
+ * be saved before it's finished.
  *
- * @throws a GraphQL bad request error if the definition doesn't have the shape of one, listing why.
+ * @throws a GraphQL bad request error, listing why, if the definition doesn't have the shape of one.
  */
 const checkDefinitionToSave = (definition: unknown) => {
   const { flowDefinition, diagnostics } = validateFlowDefinition(definition);
@@ -66,32 +65,8 @@ const toSaveResult = (
 });
 
 /**
- * A flow definition the user can view, which they can then try to change: the graph checks they may.
- *
- * @throws a GraphQL not found error if it doesn't exist or the user can't view it.
- */
-const getFlowDefinitionEntity = async (
-  graphQLContext: LoggedInGraphQLContext,
-  flowDefinitionEntityId: EntityId,
-) => {
-  const entity = await getFlowDefinitionEntityById({
-    flowDefinitionEntityId,
-    graphApiClient: graphQLContext.dataSources.graphApi,
-    userAuthentication: graphQLContext.authentication,
-  });
-
-  if (!entity) {
-    throw GraphQLError.notFound(
-      `No flow definition with id ${flowDefinitionEntityId} exists, or you can't view it`,
-    );
-  }
-
-  return entity;
-};
-
-/**
- * Why the values a trigger gives a flow's inputs wouldn't fill the inputs of a definition, checked with the rule that
- * connections in a definition follow, as each value can feed its input. Empty if they would.
+ * Why the values a trigger gives a flow's inputs wouldn't fill a definition's inputs, by the rule connections in a
+ * definition follow. Empty if they would.
  */
 const getFlowInputsProblems = ({
   flowDefinition,

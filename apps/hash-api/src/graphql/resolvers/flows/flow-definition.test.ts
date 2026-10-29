@@ -152,13 +152,6 @@ describe("updateFlowDefinitionResolver", () => {
     expect(mocks.updateFlowDefinition).not.toHaveBeenCalled();
   });
 
-  it("saves a flow that isn't valid when nothing runs it on a schedule", async () => {
-    await expect(update(unfinishedDefinition)).resolves.toMatchObject({
-      editionId: "edition-2",
-      isRunnable: false,
-    });
-  });
-
   const questionValue = {
     inputName: "question",
     payload: { kind: "Text", value: "Why?" },

@@ -222,9 +222,8 @@ export const pauseActiveFlowSchedule = async (
     note,
   }: { schedule: HashEntity<FlowSchedule>; note?: string },
 ) => {
-  const { temporal } = graphQLContext;
+  const { temporal, authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
-  const { authentication } = graphQLContext;
 
   const schedule = await pauseFlowScheduleEntity(context, authentication, {
     existingEntity: activeSchedule,

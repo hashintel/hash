@@ -1,4 +1,4 @@
-import { splitEntityId } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { mapFlowDefinitionToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -61,8 +61,6 @@ export const getActiveFlowSchedulesOfFlowDefinition: ImpureGraphFunction<
   { flowDefinitionEntityId: EntityId },
   Promise<HashEntity<FlowSchedule>[]>
 > = async (context, authentication, { flowDefinitionEntityId }) => {
-  const [webId, entityUuid] = splitEntityId(flowDefinitionEntityId);
-
   const { entities } = await queryEntities<FlowSchedule>(
     context,
     authentication,
@@ -87,17 +85,15 @@ export const getActiveFlowSchedulesOfFlowDefinition: ImpureGraphFunction<
               { parameter: "active" },
             ],
           },
-          /* A schedule's only outgoing link is the `Uses` link to the flow it runs. */
-          {
-            equal: [
-              { path: ["outgoingLinks", "rightEntity", "webId"] },
-              { parameter: webId },
-            ],
-          },
+          /* A schedule `Uses` the flow it runs. */
           {
             equal: [
               { path: ["outgoingLinks", "rightEntity", "uuid"] },
-              { parameter: entityUuid },
+              {
+                parameter: extractEntityUuidFromEntityId(
+                  flowDefinitionEntityId,
+                ),
+              },
             ],
           },
         ],
