@@ -77,7 +77,7 @@ describe("import_selection", () => {
     );
   });
 
-  test("one_alias_selects_all_namespaces", () => {
+  test("alias_all_namespaces", () => {
     expect.hasAssertions();
     const imported = Result.getOrThrow(
       Import.bind(source, { Item: "Local", other: "_" }),
@@ -98,7 +98,7 @@ describe("import_selection", () => {
     );
   });
 
-  test("joined_import_relocation_preserves_capabilities", () => {
+  test("joined_import_relocation", () => {
     expect.hasAssertions();
     const imported = Result.getOrThrow(Import.bind(source, { Item: "Local" }));
     const { Local } = Namespace.flatten(imported.scope);
@@ -116,7 +116,7 @@ describe("import_selection", () => {
     );
   });
 
-  test("wildcard_keeps_unusual_own_names", () => {
+  test("wildcard_unusual_names", () => {
     expect.hasAssertions();
     const wildcard = Result.getOrThrow(Import.bind(unusual, "*"));
     expect(Record.keys(wildcard.scope.values)).toStrictEqual([
@@ -131,7 +131,7 @@ describe("import_selection", () => {
     expect(Record.keys(listed.scope.values)).toStrictEqual(["hidden"]);
   });
 
-  test("selections_ignore_non_enumerable_module_entries", () => {
+  test("non_enumerable_module_entries", () => {
     expect.hasAssertions();
     // A structural module can supply tables without Module.define's enumerable snapshot.
     const module: typeof source = {
@@ -199,7 +199,7 @@ describe("import_selection", () => {
     }).toStrictEqual({ frozen: false, enumerable: false });
   });
 
-  test("inherited_selection_names_are_ignored", () => {
+  test("inherited_selection_names", () => {
     expect.hasAssertions();
     const selection = { other: "local" } as const;
     Object.setPrototypeOf(selection, { Item: "inherited" });
@@ -208,7 +208,7 @@ describe("import_selection", () => {
     expect(Record.keys(imported.scope.modules)).toStrictEqual([]);
   });
 
-  test("invalid_aliases_retain_schema_causes", () => {
+  test("invalid_alias_causes", () => {
     expect.hasAssertions();
     for (const alias of ["", "not an identifier", "a::b", "<T>"]) {
       const result = Import.bind(source, { Item: alias });
@@ -253,7 +253,7 @@ describe("import_selection", () => {
     expect(Record.keys(listed.scope.values)).toStrictEqual(["Item"]);
   });
 
-  test("class_instance_keeps_detached_wrap", () => {
+  test("detached_wrap", () => {
     expect.hasAssertions();
     const imported = Result.getOrThrow(Import.bind(source, { Item: "Local" }));
     const second = Result.getOrThrow(Import.bind(source, ["other"]));

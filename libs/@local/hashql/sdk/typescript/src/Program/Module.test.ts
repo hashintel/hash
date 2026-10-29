@@ -520,7 +520,7 @@ describe("module_protocols", () => {
     );
   });
 
-  test("namespace_views_forward_inherited_protocols", () => {
+  test("namespace_view_protocols", () => {
     expect.hasAssertions();
     const child = Result.getOrThrow(Module.define("::child", {}));
     const source = Result.getOrThrow(

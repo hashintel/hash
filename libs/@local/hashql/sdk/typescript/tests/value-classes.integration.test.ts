@@ -125,7 +125,7 @@ describe("emitted_import_with_value_classes", () => {
     expect(Object.isFrozen(imported)).toBe(true);
   });
 
-  test("imports_relocated_module_and_adapted_constructor", () => {
+  test("emitted_relocated_module_and_adapted_constructor", () => {
     expect.hasAssertions();
     const { Import, Namespace, Prelude, Expression, TypeExpression } = Program;
     const addend = 1n;
