@@ -1,46 +1,53 @@
-import { Pipeable } from "effect";
+import { Pipeable, Predicate } from "effect";
 
+import * as Referential from "../../internal/referential.js";
 import * as Ident from "../../JExpr/Ident.js";
 import * as JExpr from "../../JExpr/index.js";
 
-import type { Binding } from "./Binding.js";
+import type { Binding } from "../Binding.js";
+import type { TypeNode } from "../TAST/TypeNode.js";
 import type { Node } from "./Node.js";
-import type { ReferenceId, TypeSyntax } from "./Reference.js";
 
-export class Newtype<T extends Node>
+export class Newtype<T extends Node.Any>
   extends Pipeable.Class
-  implements Node.Of<readonly [T]>
+  implements
+    Node.Of<"Newtype", JExpr.Call.Call, readonly [TypeNode.Any], readonly [T]>
 {
-  readonly binding: Binding<TypeSyntax>;
-  /** The bindings of the type and of its constructor, which share the name. */
-  readonly ids: { readonly type: ReferenceId; readonly value: ReferenceId };
+  readonly _tag = "Newtype" as const;
+  readonly binding: Binding.Type;
+  readonly valueReference: Referential.ReferenceId<"value">;
   readonly child: T;
+  readonly [Referential.References]: readonly Referential.ReferenceId[];
 
   constructor(
-    binding: Binding<TypeSyntax>,
-    ids: { readonly type: ReferenceId; readonly value: ReferenceId },
+    binding: Binding.Type,
+    valueReference: Referential.ReferenceId<"value">,
     child: T,
   ) {
     super();
 
     this.binding = binding;
-    this.ids = ids;
+    this.valueReference = valueReference;
     this.child = child;
+    this[Referential.References] = [];
+  }
+
+  get types(): readonly [TypeNode.Any] {
+    return [this.binding.value];
   }
 
   get children(): readonly [T] {
     return [this.child];
   }
 
-  toExpr([body]: readonly [JExpr.Expression]): JExpr.Expression {
-    return JExpr.newtype(
-      Ident.compile(this.binding.name),
-      this.binding.value.syntax,
-      body,
-    );
+  toExpr(
+    [type]: readonly [JExpr.Type.Type],
+    [body]: readonly [JExpr.Expression],
+  ): JExpr.Call.Call {
+    return JExpr.newtype(Ident.compile(this.binding.name), type, body);
   }
 }
 
 /** Recognizes a `Newtype` node with its child typed as a `Node`, where `instanceof` alone gives `Newtype<any>`. */
-export const isNewtype = (node: Node): node is Newtype<Node> =>
-  node instanceof Newtype;
+export const isNewtype = (node: Node.Any): node is Newtype<Node.Any> =>
+  Predicate.isTagged(node, "Newtype");

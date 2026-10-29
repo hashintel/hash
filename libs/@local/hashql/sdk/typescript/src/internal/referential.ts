@@ -7,9 +7,9 @@ export type Universe = "value" | "type";
 export type Generation = number & Brand.Brand<"Generation">;
 const Generation = Brand.nominal<Generation>();
 
-export interface ReferenceId {
+export interface ReferenceId<U extends Universe = Universe> {
   readonly source: symbol;
-  readonly universe: Universe;
+  readonly universe: U;
   readonly ident: Ident.Ident;
   readonly generation: Generation;
 }

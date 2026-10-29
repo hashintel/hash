@@ -4,19 +4,31 @@ import * as JExpr from "../../JExpr/index.js";
 
 import type { Node } from "./Node.js";
 
-export class Struct extends Pipeable.Class implements Node.Of<readonly Node[]> {
-  /** The field names, in the order of `children`. */
-  readonly names: readonly string[];
-  readonly children: readonly Node[];
+type StructField = readonly [name: JExpr.Ident.Ident, value: Node.Any];
 
-  constructor(fields: readonly (readonly [name: string, value: Node])[]) {
+export class Struct
+  extends Pipeable.Class
+  implements Node.Of<"Struct", JExpr.Struct.Struct, readonly Node.Any[]>
+{
+  readonly _tag = "Struct" as const;
+  /** The field names, in the order of `children`. */
+  readonly names: readonly JExpr.Ident.Ident[];
+  readonly children: readonly Node.Any[];
+
+  constructor(fields: readonly StructField[]) {
     super();
 
-    this.names = Array.map(fields, ([name]) => name);
-    this.children = Array.map(fields, ([, value]) => value);
+    const [names, children] = Array.unzip(fields);
+
+    this.names = names;
+    this.children = children;
   }
 
-  toExpr(values: readonly JExpr.Expression[]): JExpr.Expression {
-    return JExpr.struct(Record.fromEntries(Array.zip(this.names, values)));
+  toExpr(values: readonly JExpr.Expression[]): JExpr.Struct.Struct {
+    return JExpr.struct(
+      Record.fromEntries(
+        Array.zip(Array.map(this.names, JExpr.Ident.compile), values),
+      ),
+    );
   }
 }

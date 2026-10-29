@@ -1,41 +1,48 @@
-import { Pipeable } from "effect";
+import { Pipeable, Predicate } from "effect";
 
+import * as Referential from "../../internal/referential.js";
 import * as Ident from "../../JExpr/Ident.js";
 import * as JExpr from "../../JExpr/index.js";
 
-import type { Binding } from "./Binding.js";
+import type { Binding } from "../Binding.js";
+import type { TypeNode } from "../TAST/TypeNode.js";
 import type { Node } from "./Node.js";
-import type { ReferenceId, TypeSyntax } from "./Reference.js";
 
-export class Type<T extends Node>
+export class Type<T extends Node.Any>
   extends Pipeable.Class
-  implements Node.Of<readonly [T]>
+  implements
+    Node.Of<"Type", JExpr.Call.Call, readonly [TypeNode.Any], readonly [T]>
 {
-  readonly binding: Binding<TypeSyntax>;
-  /** The binding the references to this type name came from. */
-  readonly id: ReferenceId;
-  readonly child: T;
+  readonly _tag = "Type" as const;
+  readonly binding: Binding.Type;
 
-  constructor(binding: Binding<TypeSyntax>, id: ReferenceId, child: T) {
+  readonly child: T;
+  readonly [Referential.References]: readonly Referential.ReferenceId[];
+
+  constructor(binding: Binding.Type, child: T) {
     super();
 
     this.binding = binding;
-    this.id = id;
     this.child = child;
+    this[Referential.References] = [];
+  }
+
+  get types(): readonly [TypeNode.Any] {
+    return [this.binding.value];
   }
 
   get children(): readonly [T] {
     return [this.child];
   }
 
-  toExpr([body]: readonly [JExpr.Expression]): JExpr.Expression {
-    return JExpr.type(
-      Ident.compile(this.binding.name),
-      this.binding.value.syntax,
-      body,
-    );
+  toExpr(
+    [type]: readonly [JExpr.Type.Type],
+    [body]: readonly [JExpr.Expression],
+  ): JExpr.Call.Call {
+    return JExpr.type(Ident.compile(this.binding.name), type, body);
   }
 }
 
 /** Recognizes a `Type` node with its child typed as a `Node`, where `instanceof` alone gives `Type<any>`. */
-export const isType = (node: Node): node is Type<Node> => node instanceof Type;
+export const isType = (node: Node.Any): node is Type<Node.Any> =>
+  Predicate.isTagged(node, "Type");

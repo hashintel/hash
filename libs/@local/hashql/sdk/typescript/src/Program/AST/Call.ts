@@ -7,19 +7,25 @@ import type { Node } from "./Node.js";
 
 export class Call
   extends Pipeable.Class
-  implements Node.Of<"Call", readonly [Node.Any, ...Node.Any[]]>
+  implements
+    Node.Of<
+      "Call",
+      JExpr.Call.Call,
+      readonly [],
+      readonly [Node.Any, ...Node.Any[]]
+    >
 {
   readonly _tag = "Call" as const;
   readonly callee: Node.Any;
   readonly arguments: readonly Node.Any[];
-  readonly [Referential.References]: readonly Referential.ReferenceId[];
+  readonly types: readonly [] = [];
+  readonly [Referential.References]: readonly Referential.ReferenceId[] = [];
 
   constructor(callee: Node.Any, arguments_: readonly Node.Any[]) {
     super();
 
     this.callee = callee;
     this.arguments = arguments_;
-    this[Referential.References] = [];
   }
 
   get children(): readonly [Node.Any, ...Node.Any[]] {
@@ -27,10 +33,10 @@ export class Call
   }
 
   // oxlint-disable-next-line eslint/class-methods-use-this -- `Node.Of` requires the method, and a call needs only its children's syntax
-  toExpr([callee, ...args]: readonly [
-    JExpr.Expression,
-    ...JExpr.Expression[],
-  ]): JExpr.Expression {
+  toExpr(
+    _types: readonly [],
+    [callee, ...args]: readonly [JExpr.Expression, ...JExpr.Expression[]],
+  ): JExpr.Call.Call {
     return JExpr.call(callee, ...args);
   }
 }

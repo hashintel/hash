@@ -7,19 +7,21 @@ import type { Node } from "./Node.js";
 /** A collection lookup by an index expression, which emits the `index` special form. */
 export class Subscript
   extends Pipeable.Class
-  implements Node.Of<readonly [Node, Node]>
+  implements
+    Node.Of<"Subscript", JExpr.Call.Call, readonly [Node.Any, Node.Any]>
 {
-  readonly value: Node;
-  readonly position: Node;
+  readonly _tag = "Subscript" as const;
+  readonly value: Node.Any;
+  readonly position: Node.Any;
 
-  constructor(value: Node, position: Node) {
+  constructor(value: Node.Any, position: Node.Any) {
     super();
 
     this.value = value;
     this.position = position;
   }
 
-  get children(): readonly [Node, Node] {
+  get children(): readonly [Node.Any, Node.Any] {
     return [this.value, this.position];
   }
 
@@ -27,7 +29,7 @@ export class Subscript
   toExpr([value, position]: readonly [
     JExpr.Expression,
     JExpr.Expression,
-  ]): JExpr.Expression {
+  ]): JExpr.Call.Call {
     return JExpr.index(value, position);
   }
 }

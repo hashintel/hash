@@ -2,29 +2,32 @@ import { Array, Pipeable } from "effect";
 
 import * as Referential from "../../internal/referential.js";
 import * as JExpr from "../../JExpr/index.js";
-import { References } from "./Reference.js";
 
+import type { TypeNode } from "../TAST/TypeNode.js";
 import type { Node } from "./Node.js";
 
 type DictEntry = readonly [key: Node.Any, value: Node.Any];
 
 export class Dict
   extends Pipeable.Class
-  implements Node.Of<"Dict", readonly Node.Any[]>
+  implements
+    Node.Of<
+      "Dict",
+      JExpr.Dict.Dict,
+      readonly [] | readonly [TypeNode.Any],
+      readonly Node.Any[]
+    >
 {
-  /** The annotation on the dictionary, such as `::kernel::type::Dict<String, Integer>`. */
-  readonly type: TypeSyntax;
+  readonly _tag = "Dict" as const;
+  readonly types: readonly [] | readonly [TypeNode.Any];
   readonly entries: readonly DictEntry[];
+  readonly [Referential.References]: readonly Referential.ReferenceId[] = [];
 
-  constructor(entries: readonly DictEntry[], type: TypeSyntax) {
+  constructor(entries: readonly DictEntry[], type?: TypeNode.Any) {
     super();
 
-    this.type = type;
+    this.types = type === undefined ? [] : [type];
     this.entries = entries;
-  }
-
-  get [Referential.References](): readonly Referential.ReferenceId[] {
-    return this.type.references;
   }
 
   /** Every key, then every value, so `toExpr` pairs them back up by position. */
@@ -35,8 +38,17 @@ export class Dict
     ];
   }
 
-  toExpr(syntax: readonly JExpr.Expression[]): JExpr.Expression {
-    const [keys, values] = Array.splitAt(syntax, this.entries.length);
-    return JExpr.typed(JExpr.dict(Array.zip(keys, values)), this.type.syntax);
+  toExpr(
+    [type]: readonly [JExpr.Type.Type?],
+    children: readonly JExpr.Expression[],
+  ): JExpr.Dict.Dict {
+    const [keys, values] = Array.splitAt(children, this.entries.length);
+
+    const dict = JExpr.dict(Array.zip(keys, values));
+    if (type === undefined) {
+      return dict;
+    }
+
+    return JExpr.typed(dict, type);
   }
 }

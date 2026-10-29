@@ -7,11 +7,12 @@ import type { Node } from "./Node.js";
 
 export class Path
   extends Pipeable.Class
-  implements Node.Of<"Path", readonly []>
+  implements Node.Of<"Path", string, readonly [], readonly []>
 {
-  readonly _tag: "Path" = "Path";
+  readonly _tag = "Path" as const;
   readonly path: JExpr.Path.Path;
   readonly children: readonly [];
+  readonly types: readonly [];
   readonly [Referential.References]: readonly Referential.ReferenceId[];
 
   constructor(reference: Referential.ReferenceId, path: JExpr.Path.Path) {
@@ -20,9 +21,10 @@ export class Path
     this[Referential.References] = [reference];
     this.path = path;
     this.children = [];
+    this.types = [];
   }
 
-  toExpr(_syntax: readonly []): JExpr.Expression {
+  toExpr(_types: readonly [], _children: readonly []): string {
     return JExpr.Path.compile(this.path);
   }
 }

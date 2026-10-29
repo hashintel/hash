@@ -1,5 +1,5 @@
 export * from "./Access.js";
-export * from "./Binding.js";
+export * from "../Binding.js";
 export * from "./Call.js";
 export * from "./Dict.js";
 export * from "./Expr.js";

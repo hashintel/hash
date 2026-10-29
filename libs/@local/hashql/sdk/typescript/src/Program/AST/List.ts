@@ -1,32 +1,48 @@
 import { Pipeable } from "effect";
 
+import * as Referential from "../../internal/referential.js";
 import * as JExpr from "../../JExpr/index.js";
-import { References } from "./Reference.js";
 
+import type { TypeNode } from "../TAST/TypeNode.js";
 import type { Node } from "./Node.js";
-import type { ReferenceId, TypeSyntax } from "./Reference.js";
 
-export class List extends Pipeable.Class implements Node.Of<readonly Node[]> {
+export class List
+  extends Pipeable.Class
+  implements
+    Node.Of<
+      "List",
+      JExpr.List.List,
+      readonly [] | readonly [TypeNode.Any],
+      readonly Node.Any[]
+    >
+{
+  readonly _tag = "List" as const;
+
   /** The annotation on the list, such as `::kernel::type::List<Integer>`. */
-  readonly type: TypeSyntax;
-  readonly members: readonly Node[];
+  readonly types: readonly [] | readonly [TypeNode.Any];
+  readonly members: readonly Node.Any[];
+  readonly [Referential.References]: readonly Referential.ReferenceId[] = [];
 
-  constructor(type: TypeSyntax, members: readonly Node[]) {
+  constructor(members: readonly Node.Any[], type?: TypeNode.Any) {
     super();
 
-    this.type = type;
+    this.types = type === undefined ? [] : [type];
     this.members = members;
   }
 
-  get [References](): readonly ReferenceId[] {
-    return this.type.references;
-  }
-
-  get children(): readonly Node[] {
+  get children(): readonly Node.Any[] {
     return this.members;
   }
 
-  toExpr(members: readonly JExpr.Expression[]): JExpr.Expression {
-    return JExpr.typed(JExpr.list(...members), this.type.syntax);
+  toExpr(
+    [type]: readonly [JExpr.Type.Type?],
+    members: readonly JExpr.Expression[],
+  ): JExpr.List.List {
+    const expr = JExpr.list(...members);
+    if (type === undefined) {
+      return expr;
+    }
+
+    return JExpr.typed(expr, type);
   }
 }

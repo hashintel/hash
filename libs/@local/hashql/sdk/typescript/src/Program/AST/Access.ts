@@ -7,18 +7,19 @@ import type { Node } from "./Node.js";
 
 export class Access
   extends Pipeable.Class
-  implements Node.Of<"Access", readonly [Node.Any]>
+  implements
+    Node.Of<"Access", JExpr.Call.Call, readonly [], readonly [Node.Any]>
 {
   readonly _tag = "Access" as const;
   readonly value: Node.Any;
   /** A field name, or a zero-based tuple position. */
   readonly field: string | number;
-  readonly [Referential.References]: readonly Referential.ReferenceId[];
+  readonly types: readonly [] = [];
+  readonly [Referential.References]: readonly Referential.ReferenceId[] = [];
 
   constructor(value: Node.Any, field: string | number) {
     super();
 
-    this[Referential.References] = [];
     this.value = value;
     this.field = field;
   }
@@ -27,7 +28,10 @@ export class Access
     return [this.value];
   }
 
-  toExpr([value]: readonly [JExpr.Expression]): JExpr.Expression {
+  toExpr(
+    _types: readonly [],
+    [value]: readonly [JExpr.Expression],
+  ): JExpr.Call.Call {
     return JExpr.access(value, this.field);
   }
 }

@@ -1,9 +1,10 @@
 import { Result, Schema, SchemaParser, pipe } from "effect";
 
-import * as Referential from "../../internal/referential.js";
 import * as JExpr from "../../JExpr/index.js";
 import * as ProgramError from "../ProgramError.js";
 
+import type * as Referential from "../../internal/referential.js";
+import type { TypeNode } from "../TAST/TypeNode.js";
 import type { Pipeable } from "effect";
 
 /**
@@ -11,27 +12,40 @@ import type { Pipeable } from "effect";
  *
  * A node describes one level of the syntax tree: its child nodes, and how their syntax combines into its own. {@link compile} walks the levels through an explicit stack, so serialization handles any nesting depth that fits in memory. Implement {@link Node.Of}, which ties the syntax `toExpr` takes to `children`.
  */
-export interface Node<Name extends string>
+export interface Node<Name extends string, Expr extends JExpr.Expression>
   extends Pipeable.Pipeable, Referential.Referential {
   readonly _tag: Name;
-  readonly children: readonly Node[];
-  readonly toExpr: (syntax: never) => JExpr.Expression;
+
+  readonly types: readonly TypeNode.Any[];
+  readonly children: readonly Node.Any[];
+  readonly toExpr: (types: never, children: never) => Expr;
 }
 
 export declare namespace Node {
-  export interface Any extends Node<string> {}
+  export type Expr<N> = N extends Node<infer _Name, infer Expr> ? Expr : never;
+  type ExprOf<N> = Expr<N>;
+
+  export interface Any extends Node<string, JExpr.Expression> {}
 
   /** A node whose `toExpr` takes one syntax per child, in the order of `children`. */
   export interface Of<
     Name extends string,
-    Children extends readonly Node.Any[],
-  > extends Node<Name> {
+    Expr extends JExpr.Expression,
+    Types extends readonly TypeNode.Any[],
+    Children extends readonly Any[],
+  > extends Node<Name, Expr> {
+    readonly types: Types;
     readonly children: Children;
 
     /** Combines the syntax of the children without executing the represented HashQL expression. */
-    readonly toExpr: (syntax: {
-      readonly [K in keyof Children]: JExpr.Expression;
-    }) => JExpr.Expression;
+    readonly toExpr: (
+      types: {
+        readonly [K in keyof Types]: TypeNode.Type<Types[K]>;
+      },
+      children: {
+        readonly [K in keyof Children]: ExprOf<Children[K]>;
+      },
+    ) => Expr;
   }
 }
 
@@ -86,8 +100,8 @@ const parser = SchemaParser.decodeResult(Schema.toType(JExpr.Schema));
  * A builder that assembles syntax from host values, such as a struct's field names or an input's name, validates its node here. Returning the node rather than the decoded syntax keeps the tree the builder made. A schema failure becomes a {@link ProgramError.Construction} with the `InvalidExpression` reason.
  */
 export const validate = (
-  node: Node,
-): Result.Result<Node, ProgramError.Construction> =>
+  node: Node.Any,
+): Result.Result<Node.Any, ProgramError.Construction> =>
   pipe(
     node,
     compile,
