@@ -29,7 +29,7 @@ export const GoalsList = () => {
         continue;
       }
 
-      const { webId, flowRunEntityId, startedAt, executedAt, closedAt } = run;
+      const { webId, flowRunEntityId, startedAt, closedAt } = run;
 
       let web: GoalSummary["web"] | undefined = webByWebId[webId];
 
@@ -66,7 +66,7 @@ export const GoalsList = () => {
 
       const goalRun = {
         flowRunEntityId,
-        startedAt: executedAt ?? startedAt,
+        startedAt,
         endedAt: closedAt ?? undefined,
         openInputRequests: run.openInputRequests.filter(
           ({ type }) => type === "human-input",

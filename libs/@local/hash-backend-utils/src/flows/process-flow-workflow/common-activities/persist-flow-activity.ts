@@ -6,6 +6,7 @@ import {
   mapOpenInputRequestsToEntityProperty,
 } from "@local/hash-isomorphic-utils/flows/mappings";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -13,6 +14,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getFlowRunEntityByWorkflowId } from "../../shared/get-flow-run-entity-by-workflow-id.js";
+import { mapFlowRunStatusToEntityProperties } from "../../shared/save-flow-run-status.js";
 
 import type {
   ActorEntityUuid,
@@ -44,6 +46,8 @@ export type PersistFlowActivityParams = {
    * entity is created.
    */
   flowTriggerEntityId?: EntityId;
+  /** When the run started. Only used, and required, when the run's entity is created. */
+  startedAt?: string;
   stepIds: string[];
   userAuthentication: { actorId: ActorEntityUuid };
   webId: WebId;
@@ -58,6 +62,7 @@ export const persistFlowActivity = async (
     flowRunEntityUuid,
     flowTriggerEntityId,
     graphApiClient,
+    startedAt,
     stepIds,
     userAuthentication,
     webId,
@@ -121,9 +126,9 @@ export const persistFlowActivity = async (
     } satisfies OriginProvenance,
   };
 
-  if (!flowDefinitionEntityId) {
+  if (!flowDefinitionEntityId || !startedAt) {
     throw new Error(
-      `The entity of run ${temporalWorkflowId} is created by the first persist, which must be given the Flow Definition entity it uses`,
+      `The entity of run ${temporalWorkflowId} is created by the first persist, which must be given the Flow Definition entity it uses and when the run started`,
     );
   }
 
@@ -157,6 +162,10 @@ export const persistFlowActivity = async (
         ...flowRunProperties,
         value: {
           ...flowRunProperties.value,
+          ...mapFlowRunStatusToEntityProperties({
+            status: FlowRunStatus.Running,
+            startedAt,
+          }),
           "https://hash.ai/@h/types/property-type/open-input-request/":
             mapOpenInputRequestsToEntityProperty([]),
         },

@@ -1,0 +1,110 @@
+{
+  "stepRuns": [
+    {
+      "stepId": "wrap~1",
+      "stepType": "takeFirstAction",
+      "startedAt": "2026-10-24T11:09:17.826Z",
+      "scheduledAt": "2026-10-24T11:09:17.824Z",
+      "closedAt": "2026-10-24T11:09:17.827Z",
+      "inputs": [
+        {
+          "inputName": "items",
+          "payload": {
+            "kind": "Number",
+            "value": [1]
+          }
+        },
+        {
+          "inputName": "count",
+          "payload": {
+            "kind": "Number",
+            "value": 1
+          }
+        }
+      ],
+      "logs": [],
+      "status": "COMPLETED",
+      "attempt": 1,
+      "outputs": [
+        {
+          "outputName": "items",
+          "payload": {
+            "kind": "Number",
+            "value": [1]
+          }
+        }
+      ]
+    },
+    {
+      "stepId": "wrap~0",
+      "stepType": "takeFirstAction",
+      "startedAt": "2026-10-24T11:09:17.826Z",
+      "scheduledAt": "2026-10-24T11:09:17.824Z",
+      "closedAt": "2026-10-24T11:09:17.827Z",
+      "inputs": [
+        {
+          "inputName": "items",
+          "payload": {
+            "kind": "Number",
+            "value": [3]
+          }
+        },
+        {
+          "inputName": "count",
+          "payload": {
+            "kind": "Number",
+            "value": 1
+          }
+        }
+      ],
+      "logs": [],
+      "status": "COMPLETED",
+      "attempt": 1,
+      "outputs": [
+        {
+          "outputName": "items",
+          "payload": {
+            "kind": "Number",
+            "value": [3]
+          }
+        }
+      ]
+    },
+    {
+      "stepId": "wrap~2",
+      "stepType": "takeFirstAction",
+      "startedAt": "2026-10-24T11:09:17.825Z",
+      "scheduledAt": "2026-10-24T11:09:17.824Z",
+      "closedAt": "2026-10-24T11:09:17.827Z",
+      "inputs": [
+        {
+          "inputName": "items",
+          "payload": {
+            "kind": "Number",
+            "value": [4]
+          }
+        },
+        {
+          "inputName": "count",
+          "payload": {
+            "kind": "Number",
+            "value": 1
+          }
+        }
+      ],
+      "logs": [],
+      "status": "COMPLETED",
+      "attempt": 1,
+      "outputs": [
+        {
+          "outputName": "items",
+          "payload": {
+            "kind": "Number",
+            "value": [4]
+          }
+        }
+      ]
+    }
+  ],
+  "inputRequests": []
+}

@@ -11,6 +11,7 @@ import type {
   FlowDefinition,
   FlowInputValues,
   LocalFlowRun,
+  Payload,
 } from "./types.js";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
@@ -114,6 +115,16 @@ export const mapFlowInputValuesToInputsProperty = (
     },
   })),
 });
+
+/** The values given to a flow's inputs, from the `Inputs` property of a flow run or trigger. */
+export const mapInputsPropertyToFlowInputValues = (
+  inputs: FlowRun["properties"]["https://hash.ai/@h/types/property-type/inputs/"],
+): FlowInputValues =>
+  Object.fromEntries(
+    (inputs as { inputName: string; payload: Payload }[]).map(
+      ({ inputName, payload }) => [inputName, payload],
+    ),
+  );
 
 export const mapFlowRunToEntityProperties = (
   flowRun: LocalFlowRun,

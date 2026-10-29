@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import {
@@ -6,19 +6,22 @@ import {
   isHashFlowDefinitionEntityId,
 } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
-import { getMinimalFlowRunsQuery } from "../../../../../graphql/queries/flow.queries";
+import { FlowRunStatus } from "../../../../../graphql/api-types.gen";
+import {
+  getFlowRunOutputsQuery,
+  getMinimalFlowRunsQuery,
+} from "../../../../../graphql/queries/flow.queries";
 import { queryGraphQlApi } from "../../../../../shared/query-graphql-api";
 import { useStorageSync } from "../../../../shared/use-storage-sync";
 import { useUserContext } from "../../shared/user-context";
 
 import type {
+  GetFlowRunOutputsQuery,
+  GetFlowRunOutputsQueryVariables,
   GetMinimalFlowRunsQuery,
   GetMinimalFlowRunsQueryVariables,
 } from "../../../../../graphql/api-types.gen";
-import type {
-  LocalStorage,
-  MinimalFlowRun,
-} from "../../../../../shared/storage";
+import type { MinimalFlowRun } from "../../../../../shared/storage";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import type {
   AutomaticInferenceInputName,
@@ -28,27 +31,59 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { PayloadKindValues } from "@local/hash-isomorphic-utils/flows/types";
 
-const mapFlowRunToMinimalFlowRun = ({
-  flowOutputs,
-  ...flowRun
-}: GetMinimalFlowRunsQuery["getFlowRuns"]["flowRuns"][number]): MinimalFlowRun => {
-  const persistedEntities = (flowOutputs ?? []).flatMap(
-    ({ outputName, payload }) => {
-      if (
-        outputName ===
-        ("persistedEntities" satisfies (typeof browserInferenceFlowOutput)["name"])
-      ) {
-        /**
-         * Runs from before the output became an array have a single object here instead, and show no entities.
-         */
-        return Array.isArray(payload.value)
-          ? (payload.value as PayloadKindValues[(typeof browserInferenceFlowOutput)["payloadKind"]][])
-          : [];
-      }
-      return [];
-    },
+const getPersistedEntitiesFromOutputs = (
+  outputs: GetFlowRunOutputsQuery["getFlowRunById"]["outputs"],
+) =>
+  (outputs ?? []).flatMap(({ outputName, payload }) => {
+    if (
+      outputName ===
+      ("persistedEntities" satisfies (typeof browserInferenceFlowOutput)["name"])
+    ) {
+      /**
+       * Runs from before the output became an array have a single object here instead, and show no entities.
+       */
+      return Array.isArray(payload.value)
+        ? (payload.value as PayloadKindValues[(typeof browserInferenceFlowOutput)["payloadKind"]][])
+        : [];
+    }
+    return [];
+  });
+
+/**
+ * The entities a run persisted, which only a completed run has. They don't change until it's reset and completes
+ * again, closing at another time, so they're read once each time it completes.
+ */
+const getPersistedEntities = async (
+  flowRun: GetMinimalFlowRunsQuery["getFlowRuns"]["flowRuns"][number],
+  previousFlowRuns: MinimalFlowRun[],
+) => {
+  if (flowRun.status !== FlowRunStatus.Completed) {
+    return [];
+  }
+
+  const previousFlowRun = previousFlowRuns.find(
+    ({ flowRunEntityId, status, closedAt }) =>
+      flowRunEntityId === flowRun.flowRunEntityId &&
+      status === FlowRunStatus.Completed &&
+      closedAt === flowRun.closedAt,
   );
 
+  if (previousFlowRun) {
+    return previousFlowRun.persistedEntities;
+  }
+
+  const { data } = await queryGraphQlApi<
+    GetFlowRunOutputsQuery,
+    GetFlowRunOutputsQueryVariables
+  >(getFlowRunOutputsQuery, { flowRunEntityId: flowRun.flowRunEntityId });
+
+  return getPersistedEntitiesFromOutputs(data.getFlowRunById.outputs);
+};
+
+const mapFlowRunToMinimalFlowRun = async (
+  flowRun: GetMinimalFlowRunsQuery["getFlowRuns"]["flowRuns"][number],
+  previousFlowRuns: MinimalFlowRun[],
+): Promise<MinimalFlowRun> => {
   const webPage = flowRun.flowInputs[
     "visitedWebPage" satisfies AutomaticInferenceInputName &
       ManualInferenceInputName
@@ -56,47 +91,40 @@ const mapFlowRunToMinimalFlowRun = ({
     ?.value as PayloadKindValues[AutomaticInferenceInputs["visitedWebPage"]["kind"]];
 
   return {
-    persistedEntities,
+    persistedEntities: await getPersistedEntities(flowRun, previousFlowRuns),
     webPage,
     ...flowRun,
   };
 };
 
-const getFlowRuns = async (): Promise<MinimalFlowRun[]> =>
-  queryGraphQlApi<GetMinimalFlowRunsQuery, GetMinimalFlowRunsQueryVariables>(
-    getMinimalFlowRunsQuery,
-  )
-    .then(({ data }) =>
-      data.getFlowRuns.flowRuns.sort((a, b) => {
-        if (!a.executedAt) {
-          return b.executedAt ? 1 : 0;
-        }
-        if (!b.executedAt) {
-          return -1;
-        }
-        return b.executedAt.localeCompare(a.executedAt);
-      }),
+const getFlowRuns = async (
+  previousFlowRuns: MinimalFlowRun[],
+): Promise<MinimalFlowRun[]> => {
+  const { data } = await queryGraphQlApi<
+    GetMinimalFlowRunsQuery,
+    GetMinimalFlowRunsQueryVariables
+  >(getMinimalFlowRunsQuery);
+
+  const flowRunsOfInterest = data.getFlowRuns.flowRuns
+    .filter(
+      ({ flowDefinitionEntityId }) =>
+        isHashFlowDefinitionEntityId(
+          flowDefinitionEntityId,
+          flowDefinitionIds.manualBrowserInference,
+        ) ||
+        isHashFlowDefinitionEntityId(
+          flowDefinitionEntityId,
+          flowDefinitionIds.automaticBrowserInference,
+        ),
     )
-    .then((unfilteredFlowRuns) => {
-      const flowRunsOfInterest: LocalStorage["flowRuns"] = [];
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
 
-      for (const flowRun of unfilteredFlowRuns) {
-        if (
-          isHashFlowDefinitionEntityId(
-            flowRun.flowDefinitionEntityId,
-            flowDefinitionIds.manualBrowserInference,
-          ) ||
-          isHashFlowDefinitionEntityId(
-            flowRun.flowDefinitionEntityId,
-            flowDefinitionIds.automaticBrowserInference,
-          )
-        ) {
-          flowRunsOfInterest.push(mapFlowRunToMinimalFlowRun(flowRun));
-        }
-      }
-
-      return flowRunsOfInterest;
-    });
+  return Promise.all(
+    flowRunsOfInterest.map((flowRun) =>
+      mapFlowRunToMinimalFlowRun(flowRun, previousFlowRuns),
+    ),
+  );
+};
 
 export const useFlowRuns = (): {
   flowRuns: MinimalFlowRun[];
@@ -104,6 +132,12 @@ export const useFlowRuns = (): {
   loading: boolean;
 } => {
   const [value, setValue, storageLoading] = useStorageSync("flowRuns", []);
+
+  /* The runs as last read, whose persisted entities a poll reuses. */
+  const flowRunsRef = useRef(value);
+  useEffect(() => {
+    flowRunsRef.current = value;
+  }, [value]);
 
   const [apiChecked, setApiChecked] = useState(false);
 
@@ -124,7 +158,7 @@ export const useFlowRuns = (): {
     }
 
     const pollInterval = setInterval(() => {
-      void getFlowRuns().then(setValue);
+      void getFlowRuns(flowRunsRef.current).then(setValue);
     }, 2_000);
 
     return () => clearInterval(pollInterval);
@@ -135,7 +169,7 @@ export const useFlowRuns = (): {
       return;
     }
 
-    void getFlowRuns().then((newValue) => {
+    void getFlowRuns(flowRunsRef.current).then((newValue) => {
       setValue(newValue);
       setApiChecked(true);
     });

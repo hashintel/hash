@@ -7,20 +7,23 @@ import * as Error from "../../error";
 import { getRecordOfFlowRun } from "./shared/get-record-of-flow-run";
 
 import type {
-  FlowRun,
   FlowRunEventsArgs,
   ResolverFn,
   ResolversTypes,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowRunParent } from "./shared/get-record-of-flow-run";
 
 export const flowRunEventsResolver: ResolverFn<
   ResolversTypes["FlowRunEventsPage"],
-  FlowRun | SparseFlowRun,
+  FlowRunParent,
   Pick<
     GraphQLContext,
-    "authentication" | "dataSources" | "flowRunRecords" | "temporal"
+    | "authentication"
+    | "dataSources"
+    | "flowRunRecords"
+    | "runningFlowRunHistories"
+    | "temporal"
   >,
   FlowRunEventsArgs
 > = async (flowRun, { after, first }, context) => {

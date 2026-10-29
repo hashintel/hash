@@ -203,7 +203,7 @@ export const useDashboardItemGenerations = ({
 
   const finalizeGeneration = useCallback(
     async (itemEntityId: EntityId, flowRun: FlowRunProgress) => {
-      const outputs = flowRun.flowOutputs;
+      const { outputs } = flowRun;
       const structuralQueryJson = getOutputValue<string>(
         outputs,
         "structuralQuery",

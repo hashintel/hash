@@ -13,9 +13,7 @@ export const getFlowRunsQuery = gql`
         webId
         status
         startedAt
-        executedAt
         closedAt
-        # For the goals list. Saved on a running run's Flow Run entity, so lists don't read the run's history.
         openInputRequests
       }
     }
@@ -32,11 +30,10 @@ export const getFlowRunById = gql`
       webId
       status
       startedAt
-      executedAt
       closedAt
       flowInputs
       dataSources
-      flowOutputs {
+      outputs {
         outputName
         payload
       }

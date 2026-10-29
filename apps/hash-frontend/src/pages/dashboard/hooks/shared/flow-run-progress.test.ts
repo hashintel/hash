@@ -34,7 +34,7 @@ const page = (
   getFlowRunById: {
     __typename: "FlowRun",
     status,
-    flowOutputs: null,
+    outputs: null,
     failure: null,
     events: {
       __typename: "FlowRunEventsPage",

@@ -20,10 +20,6 @@ export type FlowRunRecordHeader = {
   status: FlowRunStatus;
   /** When this run started. A run started by a reset starts when it was reset. */
   startedAt: string;
-  /** When the workflow's first run started, if this run was started by resetting an earlier one. */
-  firstRunStartedAt?: string;
-  /** When the run began executing, which is later than it started if it had a delay before executing. */
-  executedAt?: string;
   closedAt?: string;
   /** The data sources the run's AI steps can use, for an AI flow run. */
   dataSources?: FlowDataSources;

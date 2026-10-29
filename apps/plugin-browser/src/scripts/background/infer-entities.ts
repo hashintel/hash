@@ -388,7 +388,7 @@ export const inferEntities = async (
       flowDefinitionEntityId,
       flowRunEntityId: entityIdFromComponents(webId, requestUuid),
       closedAt: null,
-      executedAt: new Date().toISOString(),
+      startedAt: new Date().toISOString(),
       persistedEntities: [],
       webId,
       flowInputs: {},

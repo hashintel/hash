@@ -336,11 +336,11 @@ const { recordFlowRunActivity } = proxyActivities<
  * Records how the run ended, as the last thing it does: even when the run is cancelled. A run that couldn't be
  * recorded is recorded the next time it's read.
  */
-const recordFlowRun = async (ending: FlowRunEnding) => {
+const recordFlowRun = async (
+  params: Parameters<typeof recordFlowRunActivity>[0],
+) => {
   try {
-    await CancellationScope.nonCancellable(() =>
-      recordFlowRunActivity({ ending }),
-    );
+    await CancellationScope.nonCancellable(() => recordFlowRunActivity(params));
   } catch (error) {
     log(`Could not record how the run ended: ${stringifyError(error)}`);
   }
@@ -489,6 +489,7 @@ const processFlow = async (
     flowDefinitionEntityId: flowDefinitionResult.flowDefinitionEntityId,
     flowRunEntityUuid,
     flowTriggerEntityId,
+    startedAt: workflowInfo().startTime.toISOString(),
     stepIds: ["initialize-flow"],
     userAuthentication,
     webId,
@@ -977,7 +978,10 @@ export const processFlowWorkflow: typeof processFlow = async (params) => {
     const ending = getFailedRunEnding(runFailure);
 
     if (ending) {
-      await recordFlowRun(ending);
+      await recordFlowRun({
+        ending,
+        userAuthentication: params.userAuthentication,
+      });
     }
 
     throw runFailure;
@@ -986,9 +990,12 @@ export const processFlowWorkflow: typeof processFlow = async (params) => {
   const { outputs, stepErrors } = result.contents[0] ?? {};
 
   await recordFlowRun({
-    kind: "completed",
-    flowOutputs: outputs ?? [],
-    ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+    ending: {
+      kind: "completed",
+      flowOutputs: outputs ?? [],
+      ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+    },
+    userAuthentication: params.userAuthentication,
   });
 
   return result;

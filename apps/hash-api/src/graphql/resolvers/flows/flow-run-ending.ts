@@ -5,26 +5,27 @@ import { FlowRunStatus } from "../../api-types.gen";
 import { getRecordOfFlowRun } from "./shared/get-record-of-flow-run";
 
 import type {
-  FlowRun,
   FlowRunError,
   FlowRunOutput,
   FlowRunStepError,
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
-import type {
-  ResolvedPayload,
-  SparseFlowRun,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowRunParent } from "./shared/get-record-of-flow-run";
+import type { ResolvedPayload } from "@local/hash-isomorphic-utils/flows/types";
 
 type FlowRunEndingContext = Pick<
   GraphQLContext,
-  "authentication" | "dataSources" | "flowRunRecords" | "temporal"
+  | "authentication"
+  | "dataSources"
+  | "flowRunRecords"
+  | "runningFlowRunHistories"
+  | "temporal"
 >;
 
 type FlowRunEndingResolver<Result> = ResolverFn<
   Result | null,
-  FlowRun | SparseFlowRun,
+  FlowRunParent,
   FlowRunEndingContext,
   Record<string, never>
 >;
@@ -40,7 +41,7 @@ const endedStatuses: FlowRunStatus[] = [
 
 /** How a run ended, from its record. A run that hasn't ended has no ending to read, so its record isn't read. */
 const getFlowRunEnding = async (
-  flowRun: FlowRun | SparseFlowRun,
+  flowRun: FlowRunParent,
   context: FlowRunEndingContext,
 ) => {
   if (!endedStatuses.includes(flowRun.status)) {
@@ -53,18 +54,18 @@ const getFlowRunEnding = async (
   return runFinished ? { workflowId: header.workflowId, runFinished } : null;
 };
 
-export const flowRunFlowOutputsResolver: FlowRunEndingResolver<
+export const flowRunOutputsResolver: FlowRunEndingResolver<
   FlowRunOutput[]
 > = async (flowRun, _args, context) => {
   const ending = await getFlowRunEnding(flowRun, context);
-  const flowOutputs = ending?.runFinished.flowOutputs;
+  const outputs = ending?.runFinished.flowOutputs;
 
-  if (!ending || !flowOutputs) {
+  if (!ending || !outputs) {
     return null;
   }
 
   return Promise.all(
-    flowOutputs.map(async ({ outputName, payload }) => ({
+    outputs.map(async ({ outputName, payload }) => ({
       outputName,
       payload: {
         kind: payload.kind,

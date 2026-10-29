@@ -16,6 +16,7 @@ import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.ge
 
 import { getFlowRunRecordStorageKey } from "../file-storage.js";
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
+import { createRunningFlowRunHistoryCache } from "./run-events/running-flow-run-history-cache.js";
 import {
   getFlowRunRecord,
   getFlowRunRecordFromHistory,
@@ -51,7 +52,7 @@ const loadFixture = (fixtureName: string): FlowRunHistoryRecord => {
   };
 };
 
-/** A Temporal client whose workflow is described as `fixture` describes it, or isn't found. */
+/** A Temporal client whose workflow is described as `fixture` describes it when called, or isn't found. */
 const createTemporalClient = (fixture: FlowRunHistoryRecord | "notFound") => {
   const describeWorkflow = vi.fn(() =>
     fixture === "notFound"
@@ -66,6 +67,7 @@ const createTemporalClient = (fixture: FlowRunHistoryRecord | "notFound") => {
           closeTime: fixture.describe.closeTime
             ? new Date(fixture.describe.closeTime)
             : undefined,
+          historyLength: Number(fixture.history.at(-1)?.eventId ?? 0),
         }),
   );
 
@@ -76,26 +78,37 @@ const createTemporalClient = (fixture: FlowRunHistoryRecord | "notFound") => {
     }),
   );
 
-  /* A run started by a reset looks up when the workflow's first run started. */
-  const getHandle = (_workflowId: string, runId?: string) =>
-    fixture !== "notFound" && runId && runId !== fixture.describe.runId
-      ? {
-          describe: () =>
-            fixture.originalRunStartTime
-              ? Promise.resolve({
-                  startTime: new Date(fixture.originalRunStartTime),
-                })
-              : Promise.reject(new Error(`No run ${runId}`)),
-        }
-      : { describe: describeWorkflow };
+  /* Newest first, three events a page. */
+  const getWorkflowExecutionHistoryReverse = vi.fn(
+    ({ nextPageToken }: { nextPageToken?: Uint8Array }) => {
+      const newestFirst =
+        fixture === "notFound" ? [] : fixture.history.toReversed();
+      const start = nextPageToken
+        ? Number(Buffer.from(nextPageToken).toString())
+        : 0;
+      const end = start + 3;
+
+      return Promise.resolve({
+        history: { events: newestFirst.slice(start, end) },
+        nextPageToken:
+          end < newestFirst.length
+            ? Buffer.from(String(end))
+            : new Uint8Array(),
+      });
+    },
+  );
 
   return {
     temporalClient: {
-      workflow: { getHandle },
-      workflowService: { getWorkflowExecutionHistory },
+      workflow: { getHandle: () => ({ describe: describeWorkflow }) },
+      workflowService: {
+        getWorkflowExecutionHistory,
+        getWorkflowExecutionHistoryReverse,
+      },
     } as unknown as TemporalClient,
     describeWorkflow,
     getWorkflowExecutionHistory,
+    getWorkflowExecutionHistoryReverse,
   };
 };
 
@@ -145,6 +158,39 @@ describe("getFlowRunRecord", () => {
       getFlowRunRecordFromHistory(fixture, { workflowId }),
     );
     expect(readStoredRecord()).toBeUndefined();
+  });
+
+  it("reads the record a run wrote as it ended, before its workflow closes", async () => {
+    const fixture = loadFixture("succeeds");
+    const { temporalClient, getWorkflowExecutionHistory } =
+      createTemporalClient({
+        ...fixture,
+        describe: { ...fixture.describe, status: "RUNNING", closeTime: null },
+      });
+    const storedRecord = getFlowRunRecordFromHistory(fixture, { workflowId });
+    const { storageProvider } = createStorageProvider(storedRecord);
+
+    await expect(
+      getFlowRunRecord({ temporalClient, storageProvider, workflowId }),
+    ).resolves.toStrictEqual(storedRecord);
+    expect(getWorkflowExecutionHistory).not.toHaveBeenCalled();
+  });
+
+  it("reads a running run from Temporal when its stored record is from before it was reset", async () => {
+    const fixture = loadFixture("in-progress");
+    const { temporalClient } = createTemporalClient(fixture);
+    const recordFromBeforeReset = getFlowRunRecordFromHistory(
+      loadFixture("succeeds"),
+      { workflowId },
+    );
+    recordFromBeforeReset.header.runId = "run-before-reset";
+    const { storageProvider } = createStorageProvider(recordFromBeforeReset);
+
+    await expect(
+      getFlowRunRecord({ temporalClient, storageProvider, workflowId }),
+    ).resolves.toStrictEqual(
+      getFlowRunRecordFromHistory(fixture, { workflowId }),
+    );
   });
 
   it("reads a closed run from its stored record", async () => {
@@ -237,6 +283,15 @@ describe("getFlowRunRecord", () => {
     ).resolves.toStrictEqual(storedRecord);
   });
 
+  it("can't read a run Temporal no longer has without a stored record", async () => {
+    const { temporalClient } = createTemporalClient("notFound");
+    const { storageProvider } = createStorageProvider();
+
+    await expect(
+      getFlowRunRecord({ temporalClient, storageProvider, workflowId }),
+    ).rejects.toThrow("no longer in Temporal");
+  });
+
   it("reads each run once per cache", async () => {
     const fixture = loadFixture("in-progress");
     const { temporalClient, describeWorkflow } = createTemporalClient(fixture);
@@ -260,6 +315,122 @@ describe("getFlowRunRecord", () => {
 
     expect(second).toBe(first);
     expect(describeWorkflow).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("getFlowRunRecord with a cache of running runs' histories", () => {
+  /** The in-progress run without its last four events, and a way to read it through one cache. */
+  const setUp = () => {
+    const fullHistory = loadFixture("in-progress");
+    const fixture = {
+      ...fullHistory,
+      history: fullHistory.history.slice(0, -4),
+    };
+    const temporal = createTemporalClient(fixture);
+    const { storageProvider } = createStorageProvider();
+    const runningHistories = createRunningFlowRunHistoryCache();
+    const deleteHistory = vi.spyOn(runningHistories, "delete");
+
+    return {
+      ...temporal,
+      deleteHistory,
+      fixture,
+      storageProvider,
+      addLastEvents: () => {
+        fixture.history = fullHistory.history;
+      },
+      read: () =>
+        getFlowRunRecord({
+          temporalClient: temporal.temporalClient,
+          storageProvider,
+          workflowId,
+          runningHistories,
+        }),
+    };
+  };
+
+  it("reads only the events a run has added since it was last read", async () => {
+    const {
+      fixture,
+      addLastEvents,
+      read,
+      getWorkflowExecutionHistory,
+      getWorkflowExecutionHistoryReverse,
+    } = setUp();
+
+    await read();
+    await read();
+    expect(getWorkflowExecutionHistoryReverse).not.toHaveBeenCalled();
+
+    addLastEvents();
+    const record = await read();
+
+    expect(record).toStrictEqual(
+      getFlowRunRecordFromHistory(fixture, { workflowId }),
+    );
+    expect(getWorkflowExecutionHistory).toHaveBeenCalledTimes(1);
+    /* Three events a page: the four new ones, then the last one already read. */
+    expect(getWorkflowExecutionHistoryReverse).toHaveBeenCalledTimes(2);
+  });
+
+  it("reads a run's new events once for requests made at the same time", async () => {
+    const { fixture, addLastEvents, read, getWorkflowExecutionHistoryReverse } =
+      setUp();
+
+    await read();
+    addLastEvents();
+    const records = await Promise.all([read(), read(), read()]);
+
+    for (const record of records) {
+      expect(record).toStrictEqual(
+        getFlowRunRecordFromHistory(fixture, { workflowId }),
+      );
+    }
+    expect(getWorkflowExecutionHistoryReverse).toHaveBeenCalledTimes(2);
+  });
+
+  it("reads the whole history of a run that has been reset", async () => {
+    const { fixture, addLastEvents, read, getWorkflowExecutionHistory } =
+      setUp();
+
+    await read();
+    fixture.describe = { ...fixture.describe, runId: "run-after-reset" };
+    addLastEvents();
+    const record = await read();
+
+    expect(record).toStrictEqual(
+      getFlowRunRecordFromHistory(fixture, { workflowId }),
+    );
+    expect(getWorkflowExecutionHistory).toHaveBeenCalledTimes(2);
+  });
+
+  it("drops a run's history once it has closed", async () => {
+    const { deleteHistory, fixture, read } = setUp();
+
+    await read();
+    expect(deleteHistory).not.toHaveBeenCalled();
+
+    fixture.describe = {
+      ...fixture.describe,
+      status: "TERMINATED",
+      closeTime: new Date().toISOString(),
+    };
+    await read();
+
+    expect(deleteHistory).toHaveBeenCalledWith(workflowId);
+  });
+
+  it("drops a run's history once it has stored its ending, before it closes", async () => {
+    const { deleteHistory, read, storageProvider } = setUp();
+
+    const recordOfEndingRun = await read();
+    await storageProvider.uploadDirect({
+      key: getFlowRunRecordStorageKey(workflowId),
+      body: serializeFlowRunRecord(recordOfEndingRun),
+    } as Parameters<FileStorageProvider["uploadDirect"]>[0]);
+
+    expect(await read()).toStrictEqual(recordOfEndingRun);
+    expect(deleteHistory).toHaveBeenCalledWith(workflowId);
   });
 });
 

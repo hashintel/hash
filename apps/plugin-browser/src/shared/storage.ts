@@ -6,7 +6,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { setDisabledBadge, setEnabledBadge } from "./badge";
 import { updateEntity } from "./storage/update-entity";
 
-import type { FlowRun } from "../graphql/api-types.gen";
+import type { FlowRunSummary } from "../graphql/api-types.gen";
 import type { EntityTypeRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   Entity,
@@ -93,12 +93,12 @@ export type ExternalInputRequestById = {
 };
 
 export type MinimalFlowRun = Pick<
-  FlowRun,
+  FlowRunSummary,
   | "flowDefinitionEntityId"
   | "flowRunEntityId"
   | "webId"
   | "closedAt"
-  | "executedAt"
+  | "startedAt"
   | "status"
   | "flowInputs"
 > & { persistedEntities: PersistedEntityMetadata[]; webPage: WebPage };

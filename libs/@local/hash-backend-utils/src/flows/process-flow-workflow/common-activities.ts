@@ -47,7 +47,10 @@ export const createCommonFlowActivities = ({
     });
   },
   recordFlowRunActivity(params: RecordFlowRunActivityParams) {
-    return recordFlowRunActivity(params);
+    return recordFlowRunActivity({
+      graphApiClient,
+      ...params,
+    });
   },
   saveOpenInputRequestsActivity(params: SaveOpenInputRequestsParams) {
     return saveOpenInputRequests({

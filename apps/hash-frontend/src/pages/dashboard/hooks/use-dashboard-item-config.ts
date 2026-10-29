@@ -245,7 +245,7 @@ export const useDashboardItemConfig = ({
    */
   const updateEntityWithFlowOutputs = useCallback(
     async (flowRun: FlowRunProgress) => {
-      const outputs = flowRun.flowOutputs;
+      const { outputs } = flowRun;
 
       const structuralQueryJson = getOutputValue<string>(
         outputs,

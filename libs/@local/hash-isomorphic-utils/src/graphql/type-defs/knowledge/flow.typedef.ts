@@ -51,79 +51,16 @@ export const flowTypedef = gql`
     SKIPPED
   }
 
-  scalar ArbitraryJsonData
   scalar EntityUuid
   scalar ExternalInputRequest
-  scalar StepInput
   scalar FlowInputValues
-  scalar ResolvedStepRunOutput
   scalar ResolvedPayload
-  scalar StepProgressLog
   scalar FlowDataSources
   scalar ExternalInputResponseWithoutUser
   scalar ScheduleSpec
   scalar CreateFlowScheduleInput
   scalar UpdateFlowScheduleInput
   scalar FlowRunEvent
-
-  type StepRun {
-    """
-    id for the step
-    @todo do we also want nodeId to link it to the Step Definition, where there might be multiple steps per node definition
-          in the case of spawning multiple parallel executions of a particular action?
-    """
-    stepId: String!
-    """
-    The type of step, i.e a name for what action it is performing, e.g. Persist Entities
-    @todo do we need this? it can be derived from the step definition.
-    @todo is this actually stepName, and we want a separate stepType of Action, Trigger etc?
-    """
-    stepType: String!
-    """
-    When the step was LAST scheduled for execution - this may have happened previously if a previous execution failed.
-    See https://docs.temporal.io/activities#activity-execution for execution details
-    """
-    scheduledAt: String!
-    """
-    When execution of a step was LAST started - there may be earlier executions which failed.
-    Note that this event is not written to the history until execution completes (successfully or unsuccessfully)
-    """
-    startedAt: String
-    """
-    Starting at 1, the number of times execution of this step has been attempted.
-    """
-    attempt: Int!
-    """
-    When the step last execution attempt finished, either successfully or unsuccessfully.
-    Another execution may yet be scheduled – check retryState.
-    """
-    closedAt: String
-    """
-    If the last execution failed, what retry policy applies.
-    """
-    retryState: String
-    """
-    Details of the last failure, if any.
-    The step may still be running if it has been retried since the last failure.
-    """
-    lastFailure: ArbitraryJsonData
-    """
-    The status of the step
-    """
-    status: FlowStepStatus!
-    """
-    Logs from the step, reporting on progress as it executes
-    """
-    logs: [StepProgressLog!]!
-    """
-    Inputs to the step
-    """
-    inputs: [StepInput!]
-    """
-    Outputs of the step
-    """
-    outputs: [ResolvedStepRunOutput!]
-  }
 
   type FlowRunOutput {
     outputName: String!
@@ -158,6 +95,54 @@ export const flowTypedef = gql`
     error: FlowRunError!
   }
 
+  """
+  A run as its Flow Run entity describes it, for lists of runs.
+  """
+  type FlowRunSummary {
+    """
+    The entity id of the run's Flow Run entity.
+    """
+    flowRunEntityId: EntityId!
+    """
+    The id of the schedule that triggered this run, if any.
+    Only present for flow runs triggered by a FlowSchedule.
+    """
+    flowScheduleId: EntityUuid
+    """
+    The entity id of the Flow Definition entity this run is executing.
+    """
+    flowDefinitionEntityId: EntityId!
+    """
+    A user-facing name for the flow run to distinguish it from other runs of its kind,
+    which might include a key input or a summary of its key inputs.
+    """
+    name: String!
+    """
+    The web this flow run is associated with
+    """
+    webId: WebId!
+    status: FlowRunStatus!
+    """
+    When the run was triggered. Resetting the run doesn't change it.
+    """
+    startedAt: String!
+    """
+    When the run stopped
+    """
+    closedAt: String
+    """
+    The values given to the flow's inputs
+    """
+    flowInputs: FlowInputValues!
+    """
+    The run's requests for input that haven't been answered, latest first. Empty once the run has stopped.
+    """
+    openInputRequests: [ExternalInputRequest!]!
+  }
+
+  """
+  A run, with what its record says about how it went.
+  """
   type FlowRun {
     """
     The entity id of the run's Flow Run entity.
@@ -181,26 +166,15 @@ export const flowTypedef = gql`
     The web this flow run is associated with
     """
     webId: WebId!
-    """
-    Details of the run's status, inputs, outputs etc
-    """
     status: FlowRunStatus!
     """
-    When the run was triggered
+    When the run was triggered. Resetting the run doesn't change it.
     """
     startedAt: String!
-    """
-    When the run began executing (which may be after it was started if it has a delay before execution)
-    """
-    executedAt: String
     """
     When the run stopped
     """
     closedAt: String
-    """
-    The reason the run failed, if it did
-    """
-    failureMessage: String
     """
     The values given to the flow's inputs
     """
@@ -210,13 +184,9 @@ export const flowTypedef = gql`
     """
     dataSources: FlowDataSources
     """
-    Outputs of the flow run
+    The flow's outputs, once the run has completed.
     """
-    outputs: [ResolvedStepRunOutput!]
-    """
-    The flow's outputs, once the run has completed. To be renamed \`outputs\` once the old field is removed.
-    """
-    flowOutputs: [FlowRunOutput!]
+    outputs: [FlowRunOutput!]
     """
     Why the run failed, or the reason it was terminated with, once it has ended.
     """
@@ -230,17 +200,8 @@ export const flowTypedef = gql`
     """
     openInputRequests: [ExternalInputRequest!]!
     """
-    Any requests for external input made by steps within the Flow
-    """
-    inputRequests: [ExternalInputRequest!]!
-    """
-    The steps in the flow
-    """
-    steps: [StepRun!]!
-    """
     What happened in the run, in the order its history records it.
     Ask again with \`endCursor\` to follow a run, and handle \`restarted\` before appending.
-    Only available on a run fetched with \`getFlowRunById\`: \`getFlowRuns\` refuses it.
     """
     events(
       """
@@ -284,11 +245,9 @@ export const flowTypedef = gql`
     """
     The flow runs for the requested page
     """
-    flowRuns: [FlowRun!]!
+    flowRuns: [FlowRunSummary!]!
     """
     The total number of flow run entities matching the filters.
-    Note: this count comes from the graph query and may not reflect
-    Temporal-side filtering (e.g. by executionStatus).
     """
     totalCount: Int!
     """
