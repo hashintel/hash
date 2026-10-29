@@ -96,7 +96,11 @@ describe("compile", () => {
         next("value", ident),
         node,
       );
-      node = new AST.Import(new AST.Path(path), "*", [], node);
+      node = new AST.Import(
+        new AST.Path(path),
+        { syntax: "*", bindings: [] },
+        node,
+      );
     }
 
     const open = [

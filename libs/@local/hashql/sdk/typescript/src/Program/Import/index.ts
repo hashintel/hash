@@ -98,7 +98,7 @@ export declare namespace Selection {
 interface Alias {
   readonly alias: string;
   readonly ident: JExpr.Ident.Ident;
-  readonly bound: Referential.Bound;
+  readonly bound: Relocation.Bound;
 }
 
 /** Validated source-to-local names, the ids of every binding the import makes and the matching import syntax. */
@@ -163,32 +163,13 @@ const requests = (
   );
 };
 
-/**
- * Makes the ids of the bindings a local name gets, one in each universe whose table exports the source name.
- *
- * Each import makes its ids from its own source, so a handle names the import it came from.
- */
-const bindingsOf = (
-  module: Module.Module.Any,
-  name: string,
-  ident: JExpr.Ident.Ident,
-  next: Referential.ReferenceProducer,
-): Referential.Bound => ({
-  ...(Object.hasOwn(module.modules, name) && {
-    module: next("module", ident),
-  }),
-  ...(Object.hasOwn(module.types, name) && {
-    type: next("value", ident) as never,
-  }),
-  ...(Object.hasOwn(module.values, name) && { value: next("value", ident) }),
-});
-
 /** Validates aliases before any relocation and snapshots the emitted selection. */
 const plan = (
   module: Module.Module.Any,
   selection: Selection<Module.Module.Any>,
 ): Result.Result<Plan, ProgramError.Construction> =>
   Result.gen(function* () {
+    // Each import makes its ids from its own source, so a handle names the import it came from.
     const next = Referential.referenceProducer(Symbol("~hashql/Import"));
     const names: Record<string, Alias> = {};
     const bindings: Referential.ReferenceId[] = [];
@@ -196,7 +177,18 @@ const plan = (
     const aliases: [string, string][] = [];
     for (const { name, alias } of requests(module, selection)) {
       const ident = yield* importName(alias);
-      const bound = bindingsOf(module, name, ident, next);
+
+      // The import binds the local name in each universe whose table exports the source name.
+      const bound: Relocation.Bound = {
+        ...(Object.hasOwn(module.modules, name) && {
+          module: next("module", ident),
+        }),
+        ...(Object.hasOwn(module.types, name) && { type: next("type", ident) }),
+        ...(Object.hasOwn(module.values, name) && {
+          value: next("value", ident),
+        }),
+      };
+
       Object.defineProperty(names, name, {
         value: { alias: String(alias), ident, bound },
         enumerable: true,
@@ -232,6 +224,14 @@ export interface Rebindable<M extends Module.Module.Any> {
   readonly values: M["values"] & Rebindings<M["values"]>;
 }
 
+/** Rebinds a handle to its local name with the ids of that name's bindings. */
+const relocateTo = <E>(
+  source: Relocation.Relocatable<E>,
+  path: JExpr.Path.Path,
+  bound: Relocation.Bound,
+): Result.Result<E, ProgramError.Construction> =>
+  source[Relocation.Relocate](path, bound);
+
 /** Rebinds each value at its original E[K] type before asserting the renamed table. */
 const select = <E extends Record.ReadonlyRecord<string, Capability>, I>(
   entries: E & Rebindings<E>,
@@ -248,23 +248,22 @@ const select = <E extends Record.ReadonlyRecord<string, Capability>, I>(
       Partial<Bindings.Selected<E, I>>,
       ProgramError.Construction
     > =>
-      sources[name]
-        [Relocation.Relocate](
-          JExpr.Path.make({
-            rooted: false,
-            segments: [{ name: ident, arguments: [] }],
+      relocateTo(
+        sources[name],
+        JExpr.Path.make({
+          rooted: false,
+          segments: [{ name: ident, arguments: [] }],
+        }),
+        bound,
+      ).pipe(
+        Result.map((value) =>
+          Object.defineProperty(selected, alias, {
+            value,
+            enumerable: true,
+            configurable: true,
           }),
-          bound,
-        )
-        .pipe(
-          Result.map((value) =>
-            Object.defineProperty(selected, alias, {
-              value,
-              enumerable: true,
-              configurable: true,
-            }),
-          ),
-        );
+        ),
+      );
 
     for (const name of Record.keys(entries)) {
       const alias = Record.get(names, name);
@@ -311,15 +310,14 @@ class ImportImpl<M extends Module.Module.Any, I> implements Declaration<M, I> {
 
   constructor(
     module: M,
-    { bindings, syntax }: Pick<Plan, "bindings" | "syntax">,
+    imported: AST.Imported,
     scope: Declaration<M, I>["scope"],
   ) {
     // The module's path keeps the binding its first segment resolves to, when the module was itself imported.
     const path = new AST.Path(module.path, module[Referential.References][0]);
 
     this.scope = scope;
-    this.wrap = (child): AST.Node.Any =>
-      new AST.Import(path, syntax, bindings, child);
+    this.wrap = (child): AST.Node.Any => new AST.Import(path, imported, child);
     Object.freeze(this);
   }
 }

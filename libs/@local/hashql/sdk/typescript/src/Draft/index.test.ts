@@ -117,6 +117,25 @@ const rival = Result.getOrThrow(
   Module.define("::rival", { modules: { child } }),
 );
 
+/**
+ * Imports a newtype through a module that exports it in both tables, and shadows its value binding when `shadow` holds.
+ *
+ * Both tables hold one joined handle, whose type and value halves each keep the id of their own universe.
+ */
+const importedNominal = (shadow: boolean): Built =>
+  Draft.program({}, ($) => {
+    const Box = $.newtype("Box", BigInt);
+    const library = Result.getOrThrow(
+      Module.define("::library", { types: { Box }, values: { Box } }),
+    );
+    const imported = $.import(library, ["Box"]).Box;
+    if (shadow) {
+      $.let("Box", 1n);
+    }
+
+    return Structural.tuple([imported(2n), Structural.list(imported, [])]);
+  });
+
 describe("program", () => {
   test("ordered_declarations", () => {
     expect.hasAssertions();
@@ -717,12 +736,12 @@ describe("references", () => {
 
   test("imported_branch_escape", () => {
     expect.hasAssertions();
-    let escaped = (
+    let escaped: (
       value: bigint,
-    ): Program.Expression.Expression<
+    ) => Program.Expression.Expression<
       Type.PrimitiveInteger,
       Program.Inputs.Empty
-    > => Expression.integer(value);
+    > = Expression.integer;
     const result = Draft.program({}, ($) => {
       const conditional = $.if(true, {
         then: (branch) => {
@@ -737,23 +756,8 @@ describe("references", () => {
 
   test("imported_nominal", () => {
     expect.hasAssertions();
-    // The module's two tables share one joined handle, whose type and value halves each keep their own universe's id.
-    const program = (shadow: boolean) =>
-      Draft.program({}, ($) => {
-        const Box = $.newtype("Box", BigInt);
-        const library = Result.getOrThrow(
-          Module.define("::library", { types: { Box }, values: { Box } }),
-        );
-        const imported = $.import(library, ["Box"]).Box;
-        if (shadow) {
-          $.let("Box", 1n);
-        }
-
-        return Structural.tuple([imported(2n), Structural.list(imported, [])]);
-      });
-
-    expect(Result.isSuccess(program(false))).toBe(true);
-    expect(reason(program(true))).toStrictEqual(stale("Box"));
+    expect(Result.isSuccess(importedNominal(false))).toBe(true);
+    expect(reason(importedNominal(true))).toStrictEqual(stale("Box"));
   });
 
   test("imported_module", () => {

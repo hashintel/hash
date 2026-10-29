@@ -14,6 +14,7 @@ import { Equal, Hash, Pipeable, Predicate, Record, Result, pipe } from "effect";
 import * as Referential from "../internal/referential.js";
 import {
   Relocate,
+  head,
   relocate as relocateHandle,
 } from "../internal/relocation.js";
 import * as JExpr from "../JExpr/index.js";
@@ -241,7 +242,7 @@ const rebase = <
 >(
   path: JExpr.Path.Path,
   entries: E,
-  bound: Referential.Bound | undefined,
+  bound: Relocation.Bound | undefined,
 ): Result.Result<Readonly<E>, ProgramError.Construction> => {
   const sources: Rebindings<E> = entries;
   // A member's path continues the module's, so it resolves through the same first segment.
@@ -299,7 +300,7 @@ class ModuleImpl<
 
   [Relocate](
     next: JExpr.Path.Path,
-    bound?: Referential.Bound,
+    bound?: Relocation.Bound,
   ): Result.Result<ModuleImpl<M, T, V>, ProgramError.Construction> {
     return pipe(
       {
@@ -310,11 +311,7 @@ class ModuleImpl<
       Result.all,
       Result.map(
         (exports) =>
-          new ModuleImpl<M, T, V>(
-            next,
-            exports,
-            Referential.head(next, "module", bound),
-          ),
+          new ModuleImpl<M, T, V>(next, exports, head(next, "module", bound)),
       ),
     );
   }

@@ -20,14 +20,13 @@ import {
   pipe,
 } from "effect";
 
-import * as Referential from "../internal/referential.js";
-import { Relocate } from "../internal/relocation.js";
+import { Relocate, head } from "../internal/relocation.js";
 import * as JExpr from "../JExpr/index.js";
 import * as AST from "./AST/index.js";
 import * as ProgramError from "./ProgramError.js";
 import * as TAST from "./TAST/index.js";
 
-import type { Relocatable } from "../internal/relocation.js";
+import type { Bound, Relocatable } from "../internal/relocation.js";
 import type * as Type from "../Type.js";
 import type {
   Accessors,
@@ -297,15 +296,13 @@ const make = <T extends Type.Any, Inputs>(
       [Binding]: impl[Binding],
       [Relocate]: (
         path: JExpr.Path.Path,
-        bound?: Referential.Bound,
+        bound?: Bound,
       ): Result.Result<Expression<T, Inputs>, ProgramError.Construction> =>
         impl[Binding].pipe(
           Result.map(() =>
             make(
               new ExpressionImpl<T, Inputs>(
-                Result.succeed(
-                  new AST.Path(path, Referential.head(path, "value", bound)),
-                ),
+                Result.succeed(new AST.Path(path, head(path, "value", bound))),
               ),
             ),
           ),
@@ -470,7 +467,7 @@ export const adaptCallable: {
       [Binding]: self[Binding],
       [Relocate]: (
         path: JExpr.Path.Path,
-        bound?: Referential.Bound,
+        bound?: Bound,
       ): Result.Result<
         Expression.Adapted<T, I, C>,
         ProgramError.Construction

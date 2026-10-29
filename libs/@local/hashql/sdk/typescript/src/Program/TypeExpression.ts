@@ -12,15 +12,16 @@
 import { Array, Predicate, Result, identity, pipe } from "effect";
 import { dual } from "effect/Function";
 
-import * as Referential from "../internal/referential.js";
 import {
   Relocate,
+  head,
   relocate as relocateHandle,
 } from "../internal/relocation.js";
 import * as ProgramError from "./ProgramError.js";
 import * as TAST from "./TAST/index.js";
 
-import type { Relocatable } from "../internal/relocation.js";
+import type * as Referential from "../internal/referential.js";
+import type { Bound, Relocatable } from "../internal/relocation.js";
 import type * as JExpr from "../JExpr/index.js";
 import type * as Syntax from "../JExpr/Type/index.js";
 import type * as Type from "../Type.js";
@@ -131,7 +132,7 @@ export const fromNode = <T extends Type.Any>(
       Result.map(() =>
         fromNode<T>(
           Result.succeed(
-            new TAST.Reference(path, [], Referential.head(path, "type", bound)),
+            new TAST.Reference(path, [], head(path, "type", bound)),
           ),
         ),
       ),
@@ -180,7 +181,7 @@ export const reference = <T extends Type.Any>(
 const constructorAt = <F extends Type.TypeConstructor>(
   path: JExpr.Path.Path,
   arity: F["arity"],
-  reference: Referential.ReferenceId | undefined,
+  reference?: Referential.ReferenceId,
 ): Constructor<F> => {
   const instantiate = <const A extends readonly Type.Any[]>(
     ...args: Constructor.Arguments<A> & { readonly length: F["arity"] }
@@ -207,10 +208,8 @@ const constructorAt = <F extends Type.TypeConstructor>(
 
   return Object.assign(instantiate, {
     [ConstructorId]: { path, arity },
-    [Relocate]: (next: JExpr.Path.Path, bound?: Referential.Bound) =>
-      Result.succeed(
-        constructorAt<F>(next, arity, Referential.head(next, "type", bound)),
-      ),
+    [Relocate]: (next: JExpr.Path.Path, bound?: Bound) =>
+      Result.succeed(constructorAt<F>(next, arity, head(next, "type", bound))),
   });
 };
 
@@ -268,7 +267,7 @@ export const constructor = <F extends Type.TypeConstructor>(
     return Result.fail(ProgramError.Construction.invalidTypeArity(arity));
   }
 
-  return Result.succeed(constructorAt<F>(path, arity, undefined));
+  return Result.succeed(constructorAt<F>(path, arity));
 };
 
 /**
@@ -420,7 +419,7 @@ export const adaptConstructor: {
         [ConstructorId]: source[ConstructorId],
         [Relocate]: (
           path: JExpr.Path.Path,
-          bound?: Referential.Bound,
+          bound?: Bound,
         ): Result.Result<Adapted<C>, ProgramError.Construction> =>
           pipe(relocatable[Relocate](path, bound), Result.map(build)),
       });

@@ -6,6 +6,12 @@ import * as JExpr from "../../JExpr/index.js";
 import type { Node } from "./Node.js";
 import type { Path } from "./Path.js";
 
+/** What an import brings into its body: the names as J-Expr writes them, and the ids of the bindings they make. */
+export interface Imported {
+  readonly syntax: JExpr.Imports;
+  readonly bindings: readonly Referential.ReferenceId[];
+}
+
 export class Import<T extends Node.Any>
   extends Pipeable.Class
   implements
@@ -20,16 +26,11 @@ export class Import<T extends Node.Any>
   readonly types: readonly [] = [];
   readonly [Referential.References]: readonly Referential.ReferenceId[] = [];
 
-  constructor(
-    path: Path,
-    imports: JExpr.Imports,
-    bindings: readonly Referential.ReferenceId[],
-    child: T,
-  ) {
+  constructor(path: Path, { syntax, bindings }: Imported, child: T) {
     super();
 
     this.path = path;
-    this.imports = imports;
+    this.imports = syntax;
     this.bindings = bindings;
     this.child = child;
   }
