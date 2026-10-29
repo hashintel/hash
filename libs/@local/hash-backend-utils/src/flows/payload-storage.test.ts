@@ -490,6 +490,35 @@ describe("checking values against their kind's schema", () => {
     ).resolves.toEqual(entity(0));
   });
 
+  it("fails to resolve a concatenation with a part that isn't a stored array", async () => {
+    const { storageProvider } = createMemoryStorageProvider();
+
+    const [first, second] = await Promise.all([
+      storeEntities(storageProvider, "branch-0", [entity(0)]),
+      storeEntities(storageProvider, "branch-1", [entity(1)]),
+    ]);
+
+    /* Flattened with the other part, a single entity would pass as an item of the array. */
+    await storageProvider.uploadDirect({
+      key: second.storageKey,
+      body: JSON.stringify(entity(1)),
+      contentType: "application/json",
+    });
+
+    await expect(
+      resolvePayloadValue(
+        { storageProvider, workflowId },
+        "ProposedEntity",
+        appendCollectedValue(
+          appendCollectedValue(undefined, first),
+          second,
+        ) as ArrayStoredPayloadRef<"ProposedEntity">,
+      ),
+    ).rejects.toThrow(
+      "A concatenation has a part that is a stored value that isn't an array",
+    );
+  });
+
   it("says where an invalid item is in an array a flow wrapped it in", async () => {
     const { storageProvider } = createMemoryStorageProvider();
     const context = { storageProvider, workflowId };

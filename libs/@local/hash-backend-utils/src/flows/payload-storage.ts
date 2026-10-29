@@ -202,7 +202,14 @@ const retrieveStoredValue = async (
       ref.parts.map((part) => retrieveStoredValue(context, part)),
     );
 
-    return (parts as unknown[][]).flat();
+    /* Flattening would hide a part that isn't an array, by taking it as one item. */
+    if (!parts.every((part) => Array.isArray(part))) {
+      throw new Error(
+        "A concatenation has a part that is a stored value that isn't an array",
+      );
+    }
+
+    return parts.flat();
   }
 
   if ("of" in ref) {
