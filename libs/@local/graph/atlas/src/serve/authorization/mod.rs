@@ -47,7 +47,7 @@
 
 mod actor;
 pub(crate) mod authority;
-mod error;
+pub(crate) mod error;
 pub(crate) mod scope;
 pub(crate) mod token;
 

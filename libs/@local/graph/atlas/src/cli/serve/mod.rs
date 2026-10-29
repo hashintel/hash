@@ -205,7 +205,8 @@ impl ServeCommand {
                 .change_context(ServeError::Download)?;
         }
 
-        let authority = Authority::new(self.secret.as_secret(), visibility.hard)
+        let meter = opentelemetry::global::meter("hash-graph-atlas");
+        let authority = Authority::new(self.secret.as_secret(), visibility.hard, &meter)
             .change_context(ServeError::Authority)?;
         let feed = (!self.delta.no_delta).then(|| FeedOptions {
             task: self.delta.into(),
@@ -232,7 +233,6 @@ impl ServeCommand {
             None
         };
 
-        let meter = opentelemetry::global::meter("hash-graph-atlas");
         let limiters = RateLimiters::start(&rate_limit, &meter);
 
         let router = api::router(

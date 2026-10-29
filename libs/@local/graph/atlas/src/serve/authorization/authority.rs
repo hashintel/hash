@@ -4,21 +4,29 @@
 //! [`Scope`]. Verification authenticates the envelope before comparing its actor, generation and
 //! delta lifetime with the request. [`ScopeLease::current`] checks expiry.
 
-use core::{pin::pin, time::Duration};
+use core::{
+    pin::pin,
+    sync::atomic::{AtomicU64, Ordering},
+    time::Duration,
+};
 use std::time::SystemTime;
 
 use error_stack::{Report, ResultExt as _};
 use hash_secret::{
     Secret, SecretBuffer,
-    aes_gcm::{AeadPurpose, Aes256GcmKey, SealError, Sealed},
+    aes_gcm::{AeadPurpose, Aes256GcmKey, Sealed},
     hkdf::HkdfSha256Key,
     random::random_bytes,
+};
+use opentelemetry::{
+    KeyValue,
+    metrics::{Counter, Meter},
 };
 use type_system::principal::actor::ActorId;
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
 use super::{
-    error::{AuthorityError, AuthorityKeyError},
+    error::{AuthorityError, AuthorityKeyError, IssueError},
     scope::{Scope, ScopeLease},
     token::{EncryptedToken, MessageVersion, SCOPE_BYTES, Token, TokenHeader, UnixEpochSeconds},
 };
@@ -32,6 +40,9 @@ use crate::{
 /// This label must change when the envelope's interpretation changes. Distinct labels separate
 /// layout versions in key derivation.
 const LABEL: &[u8] = b"atlas.authorization.v3";
+
+/// The most tokens one key seals with random 96-bit nonces (SP 800-38D, section 8.3).
+const ISSUE_BUDGET: u64 = 1 << 32;
 
 /// The purpose of the key that seals a [`Scope`] into a token, bound to the token's clear header.
 pub(super) struct Scopes;
@@ -67,8 +78,8 @@ pub(crate) struct Issue {
 /// # Key and nonce requirements
 ///
 /// [`Self::new`] derives an AES-256-GCM key with HKDF-SHA-256 from a deployment secret and a random
-/// 64-bit salt. Each token gets a random 96-bit nonce, so one authority may issue at most `2^32`
-/// tokens (SP 800-38D, section 8.3). The authority does not count them.
+/// 64-bit salt. Each token gets a random 96-bit nonce, so one authority issues at most `2^32`
+/// tokens (SP 800-38D, section 8.3). [`Self::issue`] refuses every token beyond that.
 ///
 /// The derived key is not persisted. A new authority draws another salt, including after restart.
 /// Equal secret, salt and label derive equal keys, and a repeated salt can therefore reproduce an
@@ -77,6 +88,8 @@ pub(crate) struct Issue {
 pub(crate) struct Authority {
     key: Aes256GcmKey<Scopes>,
     expiration: Duration,
+    issued: AtomicU64,
+    tokens: Counter<u64>,
 }
 
 impl Authority {
@@ -84,6 +97,7 @@ impl Authority {
     ///
     /// Each construction salts `secret` with newly drawn random bytes. The timestamp recorded in
     /// each token starts its `expiration` window. A zero duration admits no lease as current.
+    /// `meter` counts tokens by outcome: issued, refused for an exhausted budget or failed to seal.
     ///
     /// # Errors
     ///
@@ -91,6 +105,7 @@ impl Authority {
     pub(crate) fn new<T>(
         secret: &Secret<T>,
         expiration: Duration,
+        meter: &Meter,
     ) -> Result<Self, Report<AuthorityKeyError>>
     where
         T: ?Sized + SecretBuffer<View = [u8]>,
@@ -104,7 +119,25 @@ impl Authority {
         Ok(Self {
             key: Aes256GcmKey::from_secret(&key),
             expiration,
+            issued: AtomicU64::new(0),
+            tokens: meter
+                .u64_counter("hash.atlas.authority.tokens")
+                .with_description("Authority tokens by issuance outcome")
+                .with_unit("{token}")
+                .build(),
         })
+    }
+
+    /// Leaves this authority `remaining` tokens to issue.
+    #[cfg(test)]
+    pub(crate) fn with_remaining(self, remaining: u64) -> Self {
+        let issued = ISSUE_BUDGET
+            .checked_sub(remaining)
+            .expect("should leave at most the whole budget");
+        Self {
+            issued: AtomicU64::new(issued),
+            ..self
+        }
     }
 
     /// Seals the supplied delivery decision over `epoch`.
@@ -120,7 +153,11 @@ impl Authority {
     ///
     /// # Errors
     ///
-    /// Returns [`SealError`] if sealing the scope fails.
+    /// - [`Exhausted`] if this authority has already issued `2^32` tokens
+    /// - [`Seal`] if sealing the scope fails
+    ///
+    /// [`Exhausted`]: IssueError::Exhausted
+    /// [`Seal`]: IssueError::Seal
     #[expect(
         clippy::min_ident_chars,
         reason = "`k` is the delivery-cut offset's name throughout the density contract"
@@ -130,7 +167,18 @@ impl Authority {
         epoch: &Epoch,
         now: SystemTime,
         Issue { actor, filter, k }: Issue,
-    ) -> Result<EncryptedToken, Report<SealError>> {
+    ) -> Result<EncryptedToken, Report<IssueError>> {
+        if self
+            .issued
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |issued| {
+                issued.checked_add(1).filter(|&next| next <= ISSUE_BUDGET)
+            })
+            .is_err()
+        {
+            self.tokens.add(1, &[KeyValue::new("outcome", "exhausted")]);
+            return Err(Report::new(IssueError::Exhausted));
+        }
+
         let scope = Scope {
             generation: epoch.generation(),
             delta: epoch.reference(),
@@ -148,7 +196,10 @@ impl Authority {
             .as_mut()
             .expose_mut()
             .copy_from_slice(scope.as_bytes());
-        let sealed = self.key.seal(&plaintext, &header)?;
+        let sealed = self.key.seal(&plaintext, &header);
+        let outcome = if sealed.is_ok() { "issued" } else { "failed" };
+        self.tokens.add(1, &[KeyValue::new("outcome", outcome)]);
+        let sealed = sealed.change_context(IssueError::Seal)?;
 
         let token = Token {
             header,

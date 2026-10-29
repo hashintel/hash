@@ -47,3 +47,23 @@ impl core::fmt::Display for AuthorityKeyError {
 }
 
 impl core::error::Error for AuthorityKeyError {}
+
+/// A failure to issue a token from an [`Authority`](super::authority::Authority).
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum IssueError {
+    /// The authority has sealed as many tokens as its key allows.
+    Exhausted,
+    /// Sealing the scope fails.
+    Seal,
+}
+
+impl core::fmt::Display for IssueError {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Exhausted => fmt.write_str("authority token budget is exhausted"),
+            Self::Seal => fmt.write_str("failed to seal the authority token"),
+        }
+    }
+}
+
+impl core::error::Error for IssueError {}

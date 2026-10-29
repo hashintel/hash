@@ -45,7 +45,10 @@ use crate::{
     math::nz,
     morton::Zoom,
     serve::{
-        authorization::authority::{Authority, Issue},
+        authorization::{
+            authority::{Authority, Issue},
+            error::IssueError,
+        },
         delta::DeltaReference,
         document::DocumentLimits,
         hydrate::{CachedTypeUrlResolver, GraphDatabaseClient},
@@ -72,8 +75,12 @@ const AUTH_SECRET: &[u8] = b"atlas-admission-test-authority-secret-material";
 
 /// Builds an authority over [`AUTH_SECRET`] whose tokens expire after `expiration`.
 fn authority(expiration: Duration) -> Authority {
-    Authority::new(&*Secret::<[u8]>::from_vec(AUTH_SECRET.to_vec()), expiration)
-        .expect("the authority key should derive")
+    Authority::new(
+        &*Secret::<[u8]>::from_vec(AUTH_SECRET.to_vec()),
+        expiration,
+        &opentelemetry::global::meter("hash-graph-atlas-test"),
+    )
+    .expect("the authority key should derive")
 }
 /// The token window used by cases that do not exercise expiry.
 const LONG_EXPIRATION: Duration = Duration::from_secs(3600);
@@ -934,6 +941,50 @@ async fn token_retained() {
 /// Checks `503 visibility-unavailable` for renewal against an empty registry.
 ///
 /// The request supplies a resolved actor and no token.
+/// Issuance stops once the authority has sealed its whole budget.
+#[tokio::test]
+async fn issue_budget() {
+    let (_files, mut manager) = boot("issue-budget", RETENTION);
+    let registry = Arc::clone(manager.registry());
+    let shutdown = CancellationToken::new();
+    let mut running = pin!(manager.run(shutdown.clone().cancelled_owned()));
+
+    let generation = advance(running.as_mut(), || {
+        registry
+            .observe(None)
+            .ok()
+            .map(|observation| observation.present().epoch().generation())
+    })
+    .await;
+    let observation = registry
+        .observe(Some(generation))
+        .expect("the generation should observe for token issuance");
+    let epoch = observation.requested().epoch();
+    let tokens = authority(LONG_EXPIRATION).with_remaining(1);
+    let issue = || Issue {
+        actor: user_actor(9),
+        filter: None,
+        k: Zoom::MIN,
+    };
+
+    tokens
+        .issue(epoch, SystemTime::now(), issue())
+        .expect("the last token of the budget should issue");
+    let error = tokens
+        .issue(epoch, SystemTime::now(), issue())
+        .expect_err("a token beyond the budget should be refused");
+    assert_eq!(
+        *error.current_context(),
+        IssueError::Exhausted,
+        "the refusal should name the exhausted budget"
+    );
+
+    shutdown.cancel();
+    timeout(BUDGET, running.as_mut())
+        .await
+        .expect("the cancelled run should finish within its budget");
+}
+
 #[tokio::test]
 async fn renewal_empty() {
     let (_scratch, root) = scratch_root("empty-registry");
