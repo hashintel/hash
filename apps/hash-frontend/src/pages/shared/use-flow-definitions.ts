@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { splitEntityId } from "@blockprotocol/type-system";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
-import { getFlowDefinitionFromEntity } from "@local/hash-isomorphic-utils/flows/mappings";
+import { validateFlowDefinitionEntity } from "@local/hash-isomorphic-utils/flows/mappings";
 import {
   currentTimeInstantTemporalAxes,
   generateTimeInstantTemporalAxes,
@@ -25,16 +25,15 @@ import type {
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorphic-utils/system-types/flowdefinition";
 
 /**
- * A flow definition loaded from the graph, with the entity id of the `Flow Definition` entity that holds it.
+ * A flow definition loaded from the graph, with the entity id of the `Flow Definition` entity that holds it. A flow
+ * can be saved before it's valid, so its `flowDefinition` is null until its `diagnostics` have no errors.
  */
 export type LoadedFlowDefinition = {
   flowDefinitionEntityId: EntityId;
-  flowDefinition: FlowDefinition;
-};
+} & ReturnType<typeof validateFlowDefinitionEntity>;
 
 const flowDefinitionsQueryVariables = (
   filter: Filter,
@@ -62,8 +61,7 @@ const flowDefinitionsQueryVariables = (
 });
 
 /**
- * The flow definitions the `Flow Definition` entities in a query's result hold. An entity whose definition is
- * invalid is left out, with an error logged.
+ * The flow definitions the `Flow Definition` entities in a query's result hold, whether or not they're valid.
  */
 const getFlowDefinitionsFromQueryResult = (
   data: QueryEntitySubgraphQuery | undefined,
@@ -76,22 +74,10 @@ const getFlowDefinitionsFromQueryResult = (
     EntityRootType<HashEntity<FlowDefinitionEntity>>
   >(data.queryEntitySubgraph.subgraph);
 
-  return getRoots(subgraph).flatMap((entity) => {
-    const flowDefinitionEntityId = entity.metadata.recordId.entityId;
-
-    try {
-      return {
-        flowDefinitionEntityId,
-        flowDefinition: getFlowDefinitionFromEntity(entity),
-      };
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(
-        `Flow definition ${flowDefinitionEntityId} is invalid, so isn't shown: ${(error as Error).message}`,
-      );
-      return [];
-    }
-  });
+  return getRoots(subgraph).map((entity) => ({
+    flowDefinitionEntityId: entity.metadata.recordId.entityId,
+    ...validateFlowDefinitionEntity(entity),
+  }));
 };
 
 /**

@@ -1,5 +1,9 @@
 import { simplifyProperties } from "../simplify-properties.js";
-import { assertValidFlowDefinition } from "./validate-flow-definition.js";
+import {
+  assertValidFlowDefinition,
+  type FlowDefinitionDiagnostic,
+  validateFlowDefinition,
+} from "./validate-flow-definition.js";
 
 import type {
   FlowDefinition as FlowDefinitionEntity,
@@ -90,6 +94,41 @@ export const getFlowDefinitionFromEntity = (
   entity: HashEntity<FlowDefinitionEntity>,
 ): FlowDefinition =>
   assertValidFlowDefinition(getUnvalidatedFlowDefinitionFromEntity(entity));
+
+/**
+ * What a `Flow Definition` entity holds, checked without requiring it to be valid: e.g. to list a flow that isn't
+ * finished yet, with its problems. Its name and description are the entity's own properties, so they are there either
+ * way, but its definition is only given when it has no errors, as only then can it be shown as a net or run.
+ */
+export const validateFlowDefinitionEntity = (
+  entity: HashEntity<FlowDefinitionEntity>,
+): {
+  name: string;
+  description: string;
+  /** The definition, if it has no errors. */
+  flowDefinition: FlowDefinition | null;
+  /** Every problem found, including warnings, which don't stop the flow running. */
+  diagnostics: FlowDefinitionDiagnostic[];
+} => {
+  const unvalidatedFlowDefinition =
+    getUnvalidatedFlowDefinitionFromEntity(entity);
+
+  const { flowDefinition, diagnostics } = validateFlowDefinition(
+    unvalidatedFlowDefinition,
+  );
+
+  const isValid =
+    flowDefinition !== null &&
+    !diagnostics.some(({ severity }) => severity === "error");
+
+  return {
+    name: unvalidatedFlowDefinition.name,
+    description: unvalidatedFlowDefinition.description,
+    /* Every action id was checked against the actions that exist, as `assertValidFlowDefinition` relies on too. */
+    flowDefinition: isValid ? (flowDefinition as FlowDefinition) : null,
+    diagnostics,
+  };
+};
 
 /**
  * The `Open Input Request` property of a flow run: the requests it has made that haven't been answered yet.
