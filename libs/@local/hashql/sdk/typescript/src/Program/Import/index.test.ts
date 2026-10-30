@@ -247,6 +247,12 @@ describe("import_selection", () => {
       _tag: "Failure",
       failure: { reason: { _tag: "DuplicateImportName", name: "`+`" } },
     });
+    expect(
+      Import.bind(source, { Item: "\u00E9", other: "e\u0301" }),
+    ).toMatchObject({
+      _tag: "Failure",
+      failure: { reason: { _tag: "DuplicateImportName", name: "e\u0301" } },
+    });
   });
 
   test("symbol_keys", () => {

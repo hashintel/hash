@@ -1,13 +1,14 @@
 /**
  * Syntax conversion shared by structural constructors.
  *
- * The public signatures retain semantic descriptors and input requirements. These operations lower their statically checked values to J-Expr while retaining construction failures.
+ * The public signatures retain semantic descriptors and input requirements. These operations lower their statically checked values to AST nodes while retaining construction failures.
  *
  * @module
  */
 import {
   Array,
   MutableHashSet,
+  Option,
   Predicate,
   Record,
   Result,
@@ -18,30 +19,29 @@ import {
 } from "effect";
 
 import * as JExpr from "../JExpr/index.js";
-import * as Syntax from "../JExpr/Type/index.js";
+import * as AST from "../Program/AST/index.js";
 import * as Expression from "../Program/Expression.js";
 import * as ProgramError from "../Program/ProgramError.js";
+import * as TAST from "../Program/TAST/index.js";
 import * as TypeExpression from "../Program/TypeExpression.js";
-import * as Overflow from "./overflow.js";
 import { Relocate } from "./relocation.js";
 
 import type * as Structural from "../Program/Structural.js";
 import type * as Type from "../Type.js";
 
-const primitiveSyntax = (
+const kernelType = (
   name: "Integer" | "Number" | "String" | "Boolean",
-): Syntax.Type =>
-  Syntax.Reference.make({
-    path: JExpr.Path.decodeResult(`::kernel::type::${name}`).pipe(
-      Result.getOrThrow,
-    ),
-  });
+): TAST.Reference =>
+  new TAST.Reference(
+    Result.getOrThrow(JExpr.Path.decodeResult(`::kernel::type::${name}`)),
+    [],
+  );
 
 const primitives = {
-  integer: primitiveSyntax("Integer"),
-  number: primitiveSyntax("Number"),
-  string: primitiveSyntax("String"),
-  boolean: primitiveSyntax("Boolean"),
+  integer: kernelType("Integer"),
+  number: kernelType("Number"),
+  string: kernelType("String"),
+  boolean: kernelType("Boolean"),
 };
 
 const collectionPaths = Record.map(
@@ -49,26 +49,24 @@ const collectionPaths = Record.map(
   (path) => pipe(path, JExpr.Path.decodeResult, Result.getOrThrow),
 );
 
-// Collection arguments come from definitions whose syntax nothing has checked. Validating the path here turns an invalid argument into a construction failure instead of a throw.
-const makePath = Overflow.makeResult(JExpr.Path.Schema);
-
 /**
  * Checks that no two fields share a name.
  *
- * Fields compare by decoded identifier, so `+` and `` `+` `` are one field. Comparing names reports the later spelling before the struct reaches syntax.
+ * Fields compare by {@link JExpr.Ident.name}, so `+` and `` `+` ``, or the precomposed `"\u00E9"` and the combining `"e\u0301"`, are one field. Comparing names reports the later spelling before the struct reaches syntax.
  */
 const distinct = <
   F extends { readonly key: string; readonly name: JExpr.Ident.Ident },
 >(
   fields: readonly F[],
 ): Result.Result<readonly F[], ProgramError.Construction> => {
-  const seen = MutableHashSet.empty<JExpr.Ident.Ident>();
+  const seen = MutableHashSet.empty<JExpr.Ident.Name>();
   for (const { key, name } of fields) {
-    if (MutableHashSet.has(seen, name)) {
+    const interned = JExpr.Ident.name(name);
+    if (MutableHashSet.has(seen, interned)) {
       return Result.fail(ProgramError.Construction.duplicateStructField(key));
     }
 
-    MutableHashSet.add(seen, name);
+    MutableHashSet.add(seen, interned);
   }
 
   return Result.succeed(fields);
@@ -79,15 +77,15 @@ const distinct = <
  *
  * The marker is a string key, so a parsed JSON record can carry it. Only a handle the SDK built also carries the relocation symbol. A marker record without that symbol takes the record branch, and its marker key fails there as a field name.
  */
-export const typeSyntax = (
+export const typeNode = (
   definition: Structural.Definition,
-): Result.Result<Syntax.Type, ProgramError.Construction> => {
+): Result.Result<TAST.TypeNode.Any, ProgramError.Construction> => {
   if (
     TypeExpression.isExport(definition) &&
     Predicate.hasProperty(definition, Relocate)
   ) {
-    if (Predicate.hasProperty(definition, "syntax")) {
-      return definition.syntax;
+    if (Predicate.hasProperty(definition, TAST.Node)) {
+      return definition[TAST.Node];
     }
 
     return Result.fail(
@@ -120,12 +118,9 @@ export const typeSyntax = (
   if (Array.isArray<Structural.Definition>(definition)) {
     return pipe(
       definition,
-      Array.map(typeSyntax),
+      Array.map(typeNode),
       Result.all,
-      Result.map((members) => ({
-        _tag: "Tuple",
-        members,
-      })),
+      Result.map((members) => new TAST.Tuple(members)),
     );
   }
 
@@ -142,41 +137,49 @@ export const typeSyntax = (
             ProgramError.Construction.invalidBindingName(key, cause),
           ),
         ),
-        member: typeSyntax(member),
+        type: typeNode(member),
       }),
     ),
     Result.all,
     Result.flatMap(distinct),
-    Result.map((fields) => ({
-      _tag: "Struct",
-      members: Array.map(fields, ({ name, member }) => [name, member] as const),
-    })),
+    Result.map(
+      (fields) =>
+        new TAST.Struct(Array.map(fields, ({ name, type }) => [name, type])),
+    ),
   );
 };
 
-/** Tests for an expression first, because a predicate is a plain object that carries the expression markers rather than fields. */
-export const valueSyntax = (
-  value: Structural.Value.Any,
-): Result.Result<JExpr.Expression, ProgramError.Construction> => {
-  if (
-    Expression.isExpression(value) ||
-    value === null ||
-    typeof value !== "object"
-  ) {
-    return Expression.toJExpr(value);
-  }
+/** Lowers an optional annotation, or nothing when the caller passes no `type`. */
+export const annotation = (
+  type: Structural.Definition | undefined,
+): Result.Result<TAST.TypeNode.Any | undefined, ProgramError.Construction> =>
+  pipe(
+    Result.transposeMapOption(Option.fromUndefinedOr(type), typeNode),
+    Result.map(Option.getOrUndefined),
+  );
 
-  if (Array.isArray<Structural.Value.Any>(value)) {
-    return pipe(
-      value,
-      Array.map(valueSyntax),
-      Result.all,
-      Result.map((members) => JExpr.tuple(...members)),
-    );
-  }
+/** Lowers a tuple's members, with the type that annotates it when there is one. */
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- lowers the members and the annotation of one tuple
+export const tupleNode = (
+  members: readonly Structural.Value.Any[],
+  type?: TAST.TypeNode.Any,
+): Result.Result<AST.Node.Any, ProgramError.Construction> =>
+  pipe(
+    members,
+    // oxlint-disable-next-line eslint/no-use-before-define -- a tuple's members and a value's tuple are mutually recursive
+    Array.map(valueNode),
+    Result.all,
+    Result.map((nodes) => new AST.Tuple(nodes, type)),
+  );
 
-  return pipe(
-    value,
+/** Lowers a struct's fields, with the type that annotates it when there is one. */
+// oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- lowers the fields and the annotation of one struct
+export const structNode = (
+  fields: Record.ReadonlyRecord<string, Structural.Value.Any>,
+  type?: TAST.TypeNode.Any,
+): Result.Result<AST.Node.Any, ProgramError.Construction> =>
+  pipe(
+    fields,
     Record.toEntries,
     Array.map(([key, member]) =>
       Result.all({
@@ -188,30 +191,45 @@ export const valueSyntax = (
             ProgramError.Construction.invalidExpression(cause),
           ),
         ),
-        syntax: valueSyntax(member),
+        // oxlint-disable-next-line eslint/no-use-before-define -- a struct's fields and a value's struct are mutually recursive
+        node: valueNode(member),
       }),
     ),
     Result.all,
     Result.flatMap(distinct),
     Result.map(
-      flow(
-        Array.map(({ key, syntax }) => [key, syntax] as const),
-        Record.fromEntries,
-        JExpr.struct,
-      ),
+      (fields) =>
+        new AST.Struct(
+          Array.map(fields, ({ name, node }) => [name, node]),
+          type,
+        ),
     ),
   );
+
+/** Tests for an expression first, because a predicate is a plain object that carries the expression markers rather than fields. */
+export const valueNode = (
+  value: Structural.Value.Any,
+): Result.Result<AST.Node.Any, ProgramError.Construction> => {
+  if (
+    Expression.isExpression(value) ||
+    value === null ||
+    typeof value !== "object"
+  ) {
+    return Expression.toNode(value);
+  }
+
+  if (Array.isArray<Structural.Value.Any>(value)) {
+    return tupleNode(value);
+  }
+
+  return structNode(value);
 };
 
-/** Validates assembled syntax before attaching its statically established descriptor and requirements. */
-export const fromSyntax = <T extends Type.Any, I>(
-  syntax: Result.Result<JExpr.Expression, ProgramError.Construction>,
+/** Validates an assembled node before attaching its statically established descriptor and requirements. */
+export const fromNode = <T extends Type.Any, I>(
+  node: Result.Result<AST.Node.Any, ProgramError.Construction>,
 ): Expression.Expression<T, I> =>
-  pipe(
-    syntax,
-    Result.flatMap(flow(Expression.fromJExpr, Expression.toNode)),
-    Expression.fromResult<T, I>,
-  );
+  pipe(node, Result.flatMap(AST.validate), Expression.fromResult<T, I>);
 
 /** Checks every element without hiding extra fields in a structural value. */
 export type ExactValues<
@@ -221,48 +239,25 @@ export type ExactValues<
   readonly [K in keyof V]: Structural.Value.Exact<T, V[K]>;
 };
 
-/** Converts checked members to syntax without reinterpreting their descriptors. */
-export const membersSyntax = (
+/** Converts checked members to nodes without reinterpreting their descriptors. */
+export const memberNodes = (
   members: readonly Structural.Value.Any[],
-): Result.Result<readonly JExpr.Expression[], ProgramError.Construction> =>
-  Result.all(Array.map(members, valueSyntax));
+): Result.Result<readonly AST.Node.Any[], ProgramError.Construction> =>
+  Result.all(Array.map(members, valueNode));
 
 /** Applies a fixed kernel collection type to successfully normalized arguments. */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructs a collection type from its name and arguments
 export const collectionType = (
   name: "List" | "Dict",
   definitions: readonly Structural.Definition[],
-): Result.Result<Syntax.Type, ProgramError.Construction> =>
+): Result.Result<TAST.TypeNode.Any, ProgramError.Construction> =>
   pipe(
     definitions,
-    Array.map(typeSyntax),
+    Array.map(typeNode),
     Result.all,
-    Result.flatMap((arguments_) => {
-      const path = collectionPaths[name];
-      return pipe(
-        makePath({
-          rooted: path.rooted,
-          segments: Array.modifyLastNonEmpty(path.segments, (segment) => ({
-            name: segment.name,
-            arguments: [
-              ...segment.arguments,
-              ...Array.map(arguments_, (bound) => ({
-                _tag: "GenericArgument" as const,
-                bound,
-              })),
-            ],
-          })),
-        }),
-        Result.mapBoth({
-          onFailure: (cause) =>
-            ProgramError.Construction.invalidExpression(cause),
-          onSuccess: (applied): Syntax.Type => ({
-            _tag: "Reference",
-            path: applied,
-          }),
-        }),
-      );
-    }),
+    Result.flatMap((arguments_) =>
+      TAST.apply(collectionPaths[name], arguments_),
+    ),
   );
 
 /** String-key records or explicit key/value pairs accepted by a dictionary. */
@@ -295,26 +290,28 @@ export type ExactEntries<
       : { readonly [P in keyof E]: Structural.Value.Exact<V, E[P]> }
     : never;
 
-interface ValueSyntaxMapping extends Struct.Lambda {
-  readonly "~lambda.out": ReturnType<typeof valueSyntax>;
+interface ValueNodeMapping extends Struct.Lambda {
+  readonly "~lambda.out": ReturnType<typeof valueNode>;
 }
 
-const valueSyntaxLambda = Struct.lambda<
-  typeof valueSyntax & ValueSyntaxMapping
->(valueSyntax);
+const valueNodeLambda = Struct.lambda<typeof valueNode & ValueNodeMapping>(
+  valueNode,
+);
 
 /** Normalizes record keys as literals and preserves explicit expression keys. */
-export const dictionarySyntax = (
+export const dictionaryEntries = (
   entries: DictionaryValues,
-): Result.Result<ReturnType<typeof JExpr.dict>, ProgramError.Construction> => {
+): Result.Result<
+  readonly (readonly [AST.Node.Any, AST.Node.Any])[],
+  ProgramError.Construction
+> => {
   if (!Array.isArray<DictionaryValues>(entries)) {
-    return dictionarySyntax(Record.toEntries(entries));
+    return dictionaryEntries(Record.toEntries(entries));
   }
 
   return pipe(
     entries,
-    Array.map(flow(Tuple.map(valueSyntaxLambda), Result.all)),
+    Array.map(flow(Tuple.map(valueNodeLambda), Result.all)),
     Result.all,
-    Result.map(JExpr.dict),
   );
 };

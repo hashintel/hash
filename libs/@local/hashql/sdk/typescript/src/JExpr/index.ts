@@ -20,6 +20,7 @@
  *
  * @module
  */
+
 import { dual } from "effect/Function";
 
 import { isReadonlyArray } from "../internal/array.js";
@@ -292,14 +293,26 @@ export { conditional as if };
 /**
  * Binds `value` to `name` within `body`.
  *
- * The builder emits `name` as given, and the HashQL compiler checks that it is an identifier. Use {@link asType | as} on `value` to give it an explicit type.
+ * The builder emits `name` as given, and the HashQL compiler checks that it is an identifier. To annotate the binding, pass `{ name, type }` with the type in constructor syntax, as {@link asType | as} takes it. That emits `let name: type = value in body`, and the HashQL compiler checks that the value is compatible with the annotation.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- constructor, not an operation on its first argument
 const binding = (
-  name: string,
+  name: string | { readonly name: string; readonly type: Type.Type },
   value: Expression,
   body: Expression,
-): Defs.CallType => ["::kernel::special_form::let", name, value, body];
+): Defs.CallType => {
+  if (typeof name === "string") {
+    return ["::kernel::special_form::let", name, value, body];
+  }
+
+  return [
+    "::kernel::special_form::let",
+    name.name,
+    Type.toExpression(name.type),
+    value,
+    body,
+  ];
+};
 
 export { binding as let };
 

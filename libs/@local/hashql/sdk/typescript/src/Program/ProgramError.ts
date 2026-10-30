@@ -51,6 +51,8 @@ export const Reason = Schema.TaggedUnion({
   UnspecializedTypeConstructor: {},
   /** An authoring body returned something other than an expression handle. */
   InvalidBodyResult: {},
+  /** A program uses a handle from a binding where its name means another binding: a later binding of the name shadows it, or the binding belongs to another program or to a branch that does not enclose the use. `name` is the name as HashQL spells it. */
+  StaleReference: { name: Schema.String },
 });
 
 /**
@@ -184,6 +186,13 @@ export class Construction extends Schema.TaggedError<Construction>()(
     });
   }
 
+  /** Retains the name of a handle that does not resolve to its own binding where the program uses it. */
+  static staleReference(name: string): Construction {
+    return Construction.make({
+      reason: Reason.make({ _tag: "StaleReference", name }),
+    });
+  }
+
   /** Retains a synchronous callback exception without replacing its original cause. */
   static callbackException(cause: Cause.UnknownError): Construction {
     return Construction.make({
@@ -228,6 +237,8 @@ export class Construction extends Schema.TaggedError<Construction>()(
         "A generic type must be specialized before use",
       InvalidBodyResult: () =>
         "An expression callback must return a HashQL expression",
+      StaleReference: ({ name }) =>
+        `${JSON.stringify(name)} does not refer to the binding this handle came from`,
     });
   }
 }
