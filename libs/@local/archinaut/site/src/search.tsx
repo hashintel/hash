@@ -51,11 +51,11 @@ const loadEngine = (): Promise<SearchEngine> => {
 
 const Excerpt = ({ hit }: { hit: Hit }) => (
   <p className="pnd-search-excerpt">
-    {hit.excerpt.map((part, position) =>
+    {hit.excerpt.map((part) =>
       part.matched ? (
-        <mark key={position}>{part.text}</mark>
+        <mark key={part.start}>{part.text}</mark>
       ) : (
-        <span key={position}>{part.text}</span>
+        <span key={part.start}>{part.text}</span>
       ),
     )}
   </p>

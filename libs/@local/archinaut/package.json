@@ -15,7 +15,7 @@
   "scripts": {
     "fix:eslint": "oxlint --fix --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --report-unused-disable-directives-severity=error .",
-    "lint:tsc": "tsc --noEmit",
+    "lint:tsc": "tsc --noEmit && tsc --noEmit -p site/tsconfig.json",
     "test:unit": "vitest --run src"
   },
   "dependencies": {
