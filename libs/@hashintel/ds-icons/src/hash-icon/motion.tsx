@@ -416,6 +416,7 @@ export const useIconEffects = ({
     control.addEventListener("pointerleave", pointerLeave);
     control.addEventListener("focus", focus, true);
     control.addEventListener("blur", blur, true);
+    if (focused) enter();
     return () => {
       cancelHoverInteraction.current();
       cancelInteraction.current();

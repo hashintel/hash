@@ -384,6 +384,43 @@ describe("HashIcon motion", () => {
     expect(animate).toHaveBeenCalledTimes(count * 2);
   });
 
+  it("starts hover playback when an icon mounts or changes inside an already-focused control", () => {
+    const Sample = ({
+      show,
+      filled = false,
+    }: {
+      show: boolean;
+      filled?: boolean;
+    }) => (
+      <label data-scope="checkbox">
+        <input type="checkbox" aria-label="Select" />
+        {show && (
+          <HashIcon
+            name="place"
+            variant={filled ? "filled" : "outline"}
+            hoverEffect="pulse"
+          />
+        )}
+      </label>
+    );
+    const { container, rerender } = render(<Sample show={false} />);
+    const input = screen.getByRole("checkbox");
+    act(() => input.focus());
+    rerender(<Sample show />);
+    const count = animate.mock.calls.length;
+    expect(count).toBeGreaterThan(0);
+    const label = container.querySelector("label")!;
+    fireEvent.pointerEnter(label);
+    fireEvent.pointerLeave(label);
+    expect(animate).toHaveBeenCalledTimes(count);
+    expect(cancel).not.toHaveBeenCalled();
+    rerender(<Sample show filled />);
+    expect(cancel).toHaveBeenCalledTimes(count);
+    expect(animate).toHaveBeenCalledTimes(count * 2);
+    act(() => input.blur());
+    expect(cancel).toHaveBeenCalledTimes(count * 2);
+  });
+
   it.each(["action", "pulse"] as const)(
     "protects explicit continuous %s playback without active from hover and focus",
     (effect) => {
