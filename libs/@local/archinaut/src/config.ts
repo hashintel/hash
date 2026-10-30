@@ -9,7 +9,7 @@ import { pathToFileURL } from "node:url";
 
 import { tsImport } from "tsx/esm/api";
 
-import type { ArchitecturePackageInput, LayerRule } from "./model";
+import type { ArchitecturePackageInput, Audience, LayerRule } from "./model";
 
 export interface ArchinautConfig {
   /** Absolute path of the file this config was loaded from. */
@@ -28,7 +28,24 @@ export interface ArchinautConfig {
   cacheDirectory: string;
   /** Base URL for source links in generated pages, including the git ref. */
   sourceUrlPrefix: string;
+  /** The domains layers may carry; an unknown `@tags` value is a warning. */
+  tags: { id: string; description: string }[];
+  /** Parties outside the codebase that take part in interfaces. */
+  externals: ExternalConfig[];
   site: SiteConfig;
+}
+
+export interface ExternalConfig {
+  /** `external:` plus kebab-case. */
+  id: string;
+  name: string;
+  summary: string;
+  tags: string[];
+  audience: Audience[];
+  participates: {
+    interface: string;
+    role: "provides" | "consumes" | "implements";
+  }[];
 }
 
 /** What the website shows about the instance; everything else comes from the bundle. */

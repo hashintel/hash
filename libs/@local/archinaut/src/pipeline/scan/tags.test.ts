@@ -312,3 +312,39 @@ value = "/** @layerRoot not-a-docstring */"
     ]);
   });
 });
+
+describe("interfaces, tags and audience", () => {
+  it("reads @interface with its @summary, and @participates", () => {
+    const { tags, diagnostics } = scanTags(`/**
+ * @interface iface:doc-handle PetrinautDocHandle via call
+ * @summary One interface through which the editor
+ * reads and writes a document.
+ * @participates iface:cli-json-lines as consumes
+ * @tags embedding protocols
+ * @audience integrator contributor
+ */`);
+    expect(diagnostics).toEqual([]);
+    expect(tags.interface).toEqual({
+      id: "iface:doc-handle",
+      name: "PetrinautDocHandle",
+      transport: "call",
+      line: 2,
+    });
+    expect(tags.summary?.value).toBe(
+      "One interface through which the editor reads and writes a document.",
+    );
+    expect(tags.participates).toEqual([
+      { interfaceId: "iface:cli-json-lines", role: "consumes", line: 5 },
+    ]);
+    expect(tags.tags?.value).toBe("embedding protocols");
+    expect(tags.audience?.value).toBe("integrator contributor");
+  });
+
+  it("reports a malformed @interface or @participates", () => {
+    const { diagnostics } = scanTags(`/**
+ * @interface doc-handle via call
+ * @participates iface:x as owns
+ */`);
+    expect(diagnostics.map((diagnostic) => diagnostic.line)).toEqual([2, 3]);
+  });
+});

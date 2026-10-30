@@ -1,8 +1,9 @@
 /**
  * The architecture model, version 3: the schema every consumer reads.
  *
- * Layers and edges keep their v2 shape; a layer now also lists the pages
- * and diagrams kept beside its code.
+ * Layers and edges keep their v2 shape. Interfaces, externals, tags and
+ * audiences are the v3 additions; this version declares them so consumers can
+ * rely on the fields, and fills them in later increments.
  */
 
 import { z } from "zod";
@@ -11,6 +12,9 @@ export const ARCHITECTURE_MODEL_VERSION = 3;
 
 const layerIdPattern =
   /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)*$/u;
+
+export const audienceSchema = z.enum(["user", "integrator", "contributor"]);
+export type Audience = z.infer<typeof audienceSchema>;
 
 export const packageSchema = z.object({
   name: z.string().min(1),
@@ -47,6 +51,8 @@ export const layerSchema = z.object({
   files: z.array(z.string().min(1)),
   fileCount: z.number().int().nonnegative(),
   lineCount: z.number().int().nonnegative(),
+  tags: z.array(z.string().min(1)),
+  audience: z.array(audienceSchema),
 });
 
 export type Layer = z.infer<typeof layerSchema>;
@@ -89,6 +95,46 @@ export const isImportEdge = (edge: Edge): edge is ImportEdge =>
 export const isDeclaredEdge = (edge: Edge): edge is DeclaredEdge =>
   edge.provenance === "declared";
 
+export const participantSchema = z.object({
+  /** A layer id or an external id. */
+  node: z.string().min(1),
+  role: z.enum(["defines", "provides", "consumes", "implements"]),
+  provenance: z.enum(["imports", "type-ref", "registration", "declared"]),
+  /** The file that proves it, or the note that declares it. */
+  evidence: z.string(),
+});
+
+export type Participant = z.infer<typeof participantSchema>;
+
+export const interfaceSchema = z.object({
+  id: z.string().regex(/^iface:[a-z0-9-]+$/u),
+  name: z.string().min(1),
+  summary: z.string(),
+  transport: z.string().min(1),
+  declaredIn: z.string().min(1),
+  definedBy: z.string().min(1),
+  participants: z.array(participantSchema),
+  tags: z.array(z.string().min(1)),
+  audience: z.array(audienceSchema),
+});
+
+export type InterfaceNode = z.infer<typeof interfaceSchema>;
+
+export const externalSchema = z.object({
+  id: z.string().regex(/^external:[a-z0-9-]+$/u),
+  name: z.string().min(1),
+  summary: z.string(),
+  tags: z.array(z.string().min(1)),
+  audience: z.array(audienceSchema),
+});
+
+export type ExternalNode = z.infer<typeof externalSchema>;
+
+export const tagSchema = z.object({
+  id: z.string().min(1),
+  description: z.string(),
+});
+
 export const ruleSchema = z.object({
   from: z.string().min(1),
   to: z.string().min(1),
@@ -102,6 +148,9 @@ export const architectureModelSchema = z.object({
   packages: z.array(packageSchema),
   layers: z.array(layerSchema),
   edges: z.array(edgeSchema),
+  interfaces: z.array(interfaceSchema),
+  externals: z.array(externalSchema),
+  tags: z.array(tagSchema),
   rules: z.array(ruleSchema),
 });
 

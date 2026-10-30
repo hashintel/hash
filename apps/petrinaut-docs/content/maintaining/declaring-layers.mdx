@@ -32,9 +32,10 @@ instead:
  */
 ```
 
-Use one mechanism or the other, never both on the same folder. Frontmatter
-takes `layer` and `role`; in a doc comment the tags are `@layerRoot`, `@role`
-and `@talksTo`. Anything else is either an error or ignored.
+Use one mechanism or the other, never both on the same folder. Beside `layer`
+and `role`, frontmatter takes `tags` and `audience`; in a doc comment the tags
+are `@layerRoot`, `@role`, `@tags`, `@audience`, `@talksTo`, `@interface`,
+`@summary` and `@participates`. Anything else is either an error or ignored.
 
 ## You do not need to annotate every file
 
@@ -138,6 +139,24 @@ graph:
 Add one only when the code already satisfies it — a rule is a statement of fact
 that CI keeps true, not an aspiration. Check first with a build; if there are
 existing violations, either fix them in the same change or leave the rule out.
+
+## Declaring an interface
+
+A file that defines an interface, a protocol or a contract says so in its doc
+comment, and the build works out who takes part in it from the references the
+symbol facts show:
+
+```ts
+/**
+ * @interface iface:doc-handle PetrinautDocHandle via call
+ * @summary The one interface through which the editor reads and writes a document.
+ */
+```
+
+Every layer referencing a symbol that file exports becomes a consumer. A
+layer whose role is different says so with `@participates iface:doc-handle as
+implements`; parties outside the codebase are listed as `externals` in the
+config. Each interface gets a generated page under Interfaces.
 
 ## Declaring a protocol edge
 

@@ -6,8 +6,12 @@
  * prose then becomes the layer's page. Files with no tags inherit from the
  * nearest declaring ancestor.
  *
- * `@layerRoot` and `@role` place a layer in the graph and label it;
- * `@talksTo` declares an edge no import produces.
+ * `@layerRoot` and `@role` place a layer in the graph and label it; `@tags`
+ * and `@audience` say what it is about and who reads it. `@talksTo` declares
+ * an edge no import produces. `@interface` marks the file that defines an
+ * interface, `@summary` describes it, and `@participates` declares a role in
+ * one; the references the facts show upgrade a declared participant to a
+ * proven one.
  *
  * Tags are recognised only at the start of a line inside a doc comment — a
  * JSDoc block in TypeScript, a triple-quoted docstring in Python — so a
@@ -37,6 +41,21 @@ export interface TalksToTag {
   line: number;
 }
 
+/** One `@interface` occurrence: this file defines the named interface. */
+export interface InterfaceTag {
+  id: string;
+  name: string;
+  transport: string;
+  line: number;
+}
+
+/** One `@participates` occurrence: this file's layer takes part in an interface. */
+export interface ParticipatesTag {
+  interfaceId: string;
+  role: "provides" | "consumes" | "implements";
+  line: number;
+}
+
 export interface ParsedTags {
   /**
    * `@layerRoot` — declares that this file's folder *and its descendants* form
@@ -52,6 +71,16 @@ export interface ParsedTags {
    * declaring file's own layer is the edge source. Repeatable.
    */
   talksTo: TalksToTag[];
+  /** `@tags a b` — domains the layer belongs to. */
+  tags: TagValue | null;
+  /** `@audience integrator contributor` — who the layer's docs are for. */
+  audience: TagValue | null;
+  /** `@interface <id> <Name> via <transport>` — this file defines an interface. */
+  interface: InterfaceTag | null;
+  /** `@summary` — one paragraph describing the interface. */
+  summary: TagValue | null;
+  /** `@participates <iface-id> as <role>` — repeatable. */
+  participates: ParticipatesTag[];
 }
 
 export interface TagDiagnostic {
@@ -68,14 +97,39 @@ const emptyTags = (): ParsedTags => ({
   layerRoot: null,
   role: null,
   talksTo: [],
+  tags: null,
+  audience: null,
+  interface: null,
+  summary: null,
+  participates: [],
 });
 
 /** Tags that may appear at most once per file. */
-const singularTags = ["layerRoot", "role"] as const;
+const singularTags = [
+  "layerRoot",
+  "role",
+  "tags",
+  "audience",
+  "summary",
+] as const;
 
 type SingularTag = (typeof singularTags)[number];
 
-const knownTagNames = new Set<string>([...singularTags, "talksTo"]);
+const knownTagNames = new Set<string>([
+  ...singularTags,
+  "talksTo",
+  "interface",
+  "participates",
+]);
+
+/** `<id> <Name> via <transport>`: the id is `iface:` plus kebab-case. */
+const interfacePattern = new RegExp(
+  "^(iface:[a-z0-9]+(?:-[a-z0-9]+)*)\\s+(\\S+)\\s+via\\s+(\\S.*)$",
+  "u",
+);
+
+const participatesPattern =
+  /^(iface:[a-z0-9]+(?:-[a-z0-9]+)*)\s+as\s+(provides|consumes|implements)$/u;
 
 /**
  * `<layer-id> via <protocol>`: the id grammar matches `layerSchema` in
@@ -171,7 +225,7 @@ const collectRawTags = (lines: { text: string; line: number }[]): RawTag[] => {
         tags.push(current);
       }
       current = { name: match[1] ?? "", text: match[2] ?? "", line };
-      if (current.name === "talksTo") {
+      if (["talksTo", "interface", "participates"].includes(current.name)) {
         tags.push(current);
         current = null;
       }
@@ -248,6 +302,45 @@ export const scanTags = (
 
       if (singularTags.includes(name as SingularTag)) {
         assignSingular(name as SingularTag, rawTag);
+        continue;
+      }
+
+      if (name === "interface") {
+        const parsed = interfacePattern.exec(rawTag.text);
+        if (parsed && tags.interface === null) {
+          tags.interface = {
+            id: parsed[1] ?? "",
+            name: parsed[2] ?? "",
+            transport: (parsed[3] ?? "").trim(),
+            line,
+          };
+        } else {
+          diagnostics.push({
+            line,
+            message:
+              tags.interface === null
+                ? "@interface expects `@interface iface:<id> <Name> via <transport>`, e.g. `@interface iface:doc-handle PetrinautDocHandle via call`"
+                : `duplicate @interface (already set on line ${tags.interface.line})`,
+          });
+        }
+        continue;
+      }
+
+      if (name === "participates") {
+        const parsed = participatesPattern.exec(rawTag.text);
+        if (parsed) {
+          tags.participates.push({
+            interfaceId: parsed[1] ?? "",
+            role: parsed[2] as ParticipatesTag["role"],
+            line,
+          });
+        } else {
+          diagnostics.push({
+            line,
+            message:
+              "@participates expects `@participates iface:<id> as provides|consumes|implements`",
+          });
+        }
         continue;
       }
 

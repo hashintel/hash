@@ -14,6 +14,7 @@
 import { load } from "js-yaml";
 import { z } from "zod";
 
+import { audienceSchema } from "../model";
 import { messageOf } from "./diagnostics";
 
 const frontmatterPattern = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/u;
@@ -32,6 +33,10 @@ export const layerDeclarationSchema = z
     layer: z.string().min(1),
     /** One-line responsibility statement. */
     role: z.string().min(1),
+    /** Domains the layer belongs to. */
+    tags: z.array(z.string().min(1)).optional(),
+    /** Who the layer's docs are written for; `contributor` when absent. */
+    audience: z.array(audienceSchema).optional(),
   })
   .strict();
 
@@ -97,7 +102,7 @@ export const parseFrontmatterRecord = (markdown: string): FrontmatterRecord => {
  * a `layer` key almost always means the declaration is half-written, so it is
  * reported rather than ignored.
  */
-const declarationOnlyKeys = new Set(["role"]);
+const declarationOnlyKeys = new Set(["role", "audience"]);
 
 export const parseFrontmatter = (markdown: string): FrontmatterResult => {
   const { record, body, errors } = parseFrontmatterRecord(markdown);

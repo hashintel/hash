@@ -25,6 +25,8 @@ const layer = (id: string, files: string[]): Layer => ({
   files,
   fileCount: files.length,
   lineCount: files.length * 10,
+  tags: [],
+  audience: ["contributor"],
 });
 
 const generatedPage = (options: {

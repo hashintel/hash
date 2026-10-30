@@ -1,6 +1,8 @@
 /**
  * @layerRoot core.handle
  * @role Stateful handle wrapping a document, emitting change events to subscribers
+ * @tags embedding
+ * @audience integrator contributor
  */
 
 export {
