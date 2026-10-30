@@ -8,8 +8,9 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { contains, hrefOf, type SidebarItem } from "../pages";
+import { hrefOf } from "../pages";
 import { CaretIcon } from "./icons";
+import { contains, type SidebarItem } from "./sidebar/items";
 
 const badgeVariant = {
   added: "success",

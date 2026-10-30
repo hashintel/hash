@@ -5,6 +5,8 @@
  * this module is the same logic for the running app.
  */
 
+import { readStored, writeStored } from "../shared/storage";
+
 export type Theme = "auto" | "dark" | "light";
 
 const storageKey = "starlight-theme";
@@ -14,13 +16,7 @@ const parseTheme = (value: unknown): Theme =>
 
 const listeners = new Set<() => void>();
 
-export const readTheme = (): Theme => {
-  try {
-    return parseTheme(localStorage.getItem(storageKey));
-  } catch {
-    return "auto";
-  }
-};
+export const readTheme = (): Theme => parseTheme(readStored(storageKey));
 
 const systemTheme = (): "dark" | "light" =>
   matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
@@ -31,11 +27,7 @@ export const applyTheme = (theme: Theme): void => {
 };
 
 export const setTheme = (theme: Theme): void => {
-  try {
-    localStorage.setItem(storageKey, theme === "auto" ? "" : theme);
-  } catch {
-    // Private browsing denies storage; the choice still holds this session.
-  }
+  writeStored(storageKey, theme === "auto" ? "" : theme);
   applyTheme(theme);
   for (const listener of listeners) {
     listener();

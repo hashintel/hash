@@ -6,14 +6,23 @@
 
 import { useRouter } from "@tanstack/react-router";
 import {
+  Suspense,
+  use,
   useEffect,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type RefObject,
 } from "react";
 
 import { hrefOf } from "./pages";
-import { createEngine, type Hit, type SearchEngine } from "./search/engine";
+import {
+  createEngine,
+  type Hit,
+  type HitGroup,
+  type SearchEngine,
+} from "./search/engine";
+import { nextActive } from "./search/next-active";
 import { MagnifierIcon } from "./shell/icons";
 
 import type { SearchIndex } from "../../src/bundle/search";
@@ -29,7 +38,8 @@ const indexUrl = new URL("./content/search.json", import.meta.url);
 
 let enginePromise: Promise<SearchEngine> | null = null;
 
-const engineOnce = (): Promise<SearchEngine> => {
+/** One promise for the module's lifetime, so `use()` settles once and reads synchronously after. */
+const loadEngine = (): Promise<SearchEngine> => {
   enginePromise ??= Promise.all([
     import("minisearch"),
     fetch(indexUrl).then((response) => response.json() as Promise<SearchIndex>),
@@ -52,14 +62,17 @@ const Excerpt = ({ hit }: { hit: Hit }) => (
 );
 
 const Results = ({
-  engine,
   query,
+  groups,
+  hits,
   active,
   onPick,
   onHover,
 }: {
-  engine: SearchEngine | null;
   query: string;
+  groups: HitGroup[];
+  /** The groups' hits flattened, in the order the arrow keys walk them. */
+  hits: Hit[];
   active: number;
   onPick: (hit: Hit) => void;
   onHover: (index: number) => void;
@@ -71,10 +84,6 @@ const Results = ({
       </p>
     );
   }
-  if (engine === null) {
-    return <p className="pnd-search-empty">Loading the index…</p>;
-  }
-  const groups = engine.search(query);
   if (groups.length === 0) {
     return (
       <p className="pnd-search-empty">
@@ -82,10 +91,7 @@ const Results = ({
       </p>
     );
   }
-  // Hits are numbered across groups, as the arrow keys move through them.
-  const indexOf = new Map(
-    groups.flatMap((group) => group.hits).map((hit, index) => [hit.id, index]),
-  );
+  const indexOf = new Map(hits.map((hit, index) => [hit.id, index]));
   return (
     <ol className="pnd-search-groups" role="listbox" id="pnd-search-results">
       {groups.map((group) => (
@@ -123,6 +129,118 @@ const Results = ({
   );
 };
 
+interface FieldProps {
+  query: string;
+  active: number;
+  hitCount: number;
+  inputRef: RefObject<HTMLInputElement | null>;
+  onQueryChange: (query: string) => void;
+  onKeyDown?: (event: ReactKeyboardEvent<HTMLInputElement>) => void;
+  onClose: () => void;
+}
+
+const Field = ({
+  query,
+  active,
+  hitCount,
+  inputRef,
+  onQueryChange,
+  onKeyDown,
+  onClose,
+}: FieldProps) => (
+  <div className="pnd-search-field">
+    <MagnifierIcon size="1.25em" />
+    <input
+      ref={inputRef}
+      type="search"
+      placeholder="Search the architecture…"
+      autoComplete="off"
+      autoFocus
+      spellCheck={false}
+      role="combobox"
+      aria-controls="pnd-search-results"
+      aria-expanded={hitCount > 0}
+      aria-activedescendant={
+        hitCount > 0 ? `pnd-search-hit-${active}` : undefined
+      }
+      value={query}
+      onChange={(event) => onQueryChange(event.target.value)}
+      onKeyDown={onKeyDown}
+    />
+    <button type="button" className="pnd-search-close" onClick={onClose}>
+      <kbd>Esc</kbd>
+    </button>
+  </div>
+);
+
+/** The field and the body while the engine loads: typing works, searching waits. */
+const Loading = (props: FieldProps) => (
+  <>
+    <Field {...props} />
+    <div className="pnd-search-body">
+      <p className="pnd-search-empty">Loading the index…</p>
+    </div>
+  </>
+);
+
+const Panel = ({
+  onPick,
+  onActiveChange,
+  ...field
+}: FieldProps & {
+  onPick: (hit: Hit) => void;
+  onActiveChange: (index: number) => void;
+}) => {
+  const engine = use(loadEngine());
+  const groups = engine.search(field.query);
+  const hits = groups.flatMap((group) => group.hits);
+
+  // Moving by key brings the hit into view, with its page's label when it
+  // is the first of its page; moving by pointer must not, or hovering near
+  // an edge would scroll the list under the pointer.
+  const moveTo = (index: number): void => {
+    onActiveChange(index);
+    const hit = document.getElementById(`pnd-search-hit-${index}`);
+    const target =
+      hit?.previousElementSibling === null
+        ? hit.closest(".pnd-search-group")
+        : hit;
+    target?.scrollIntoView({ block: "nearest" });
+  };
+
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>): void => {
+    const moved = nextActive(field.active, event.key, hits.length);
+    if (moved !== null) {
+      event.preventDefault();
+      moveTo(moved);
+      return;
+    }
+    if (event.key === "Enter") {
+      const hit = hits[field.active];
+      if (hit !== undefined) {
+        event.preventDefault();
+        onPick(hit);
+      }
+    }
+  };
+
+  return (
+    <>
+      <Field {...field} hitCount={hits.length} onKeyDown={onKeyDown} />
+      <div className="pnd-search-body">
+        <Results
+          query={field.query}
+          groups={groups}
+          hits={hits}
+          active={field.active}
+          onPick={onPick}
+          onHover={onActiveChange}
+        />
+      </div>
+    </>
+  );
+};
+
 export const Search = () => {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -130,7 +248,6 @@ export const Search = () => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
-  const [engine, setEngine] = useState<SearchEngine | null>(null);
 
   // The dialog element owns its own open state; this mirrors ours into it
   // and takes the element's close, from Esc, back.
@@ -164,60 +281,25 @@ export const Search = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  useEffect(() => {
-    if (!open || engine !== null) {
-      return undefined;
-    }
-    let cancelled = false;
-    void engineOnce().then((loaded) => {
-      if (!cancelled) {
-        setEngine(loaded);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, engine]);
-
-  const hits =
-    engine === null ? [] : engine.search(query).flatMap((group) => group.hits);
+  const close = (): void => setOpen(false);
 
   const pick = (hit: Hit): void => {
-    setOpen(false);
+    close();
     void router.navigate({
       href: `${hrefOf(hit.slug)}${hit.heading === null ? "" : `#${hit.heading.slug}`}`,
     });
   };
 
-  // Moving by key brings the hit into view, with its page's label when it
-  // is the first of its page; moving by pointer must not, or hovering near
-  // an edge would scroll the list under the pointer.
-  const moveTo = (index: number): void => {
-    setActive(index);
-    const hit = document.getElementById(`pnd-search-hit-${index}`);
-    const target =
-      hit?.previousElementSibling === null
-        ? hit.closest(".pnd-search-group")
-        : hit;
-    target?.scrollIntoView({ block: "nearest" });
-  };
-
-  const onInputKeyDown = (
-    event: ReactKeyboardEvent<HTMLInputElement>,
-  ): void => {
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      moveTo(Math.min(active + 1, Math.max(0, hits.length - 1)));
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      moveTo(Math.max(0, active - 1));
-    } else if (event.key === "Enter") {
-      const hit = hits[active];
-      if (hit !== undefined) {
-        event.preventDefault();
-        pick(hit);
-      }
-    }
+  const field: FieldProps = {
+    query,
+    active,
+    hitCount: 0,
+    inputRef,
+    onQueryChange: (next) => {
+      setQuery(next);
+      setActive(0);
+    },
+    onClose: close,
   };
 
   return (
@@ -243,51 +325,16 @@ export const Search = () => {
         aria-label="Search"
         onClick={(event) => {
           if (event.target === event.currentTarget) {
-            setOpen(false);
+            close();
           }
         }}
       >
         <div className="pnd-search-frame">
-          <div className="pnd-search-field">
-            <MagnifierIcon size="1.25em" />
-            <input
-              ref={inputRef}
-              type="search"
-              placeholder="Search the architecture…"
-              autoComplete="off"
-              spellCheck={false}
-              role="combobox"
-              aria-controls="pnd-search-results"
-              aria-expanded={hits.length > 0}
-              aria-activedescendant={
-                hits.length > 0 ? `pnd-search-hit-${active}` : undefined
-              }
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setActive(0);
-              }}
-              onKeyDown={onInputKeyDown}
-            />
-            <button
-              type="button"
-              className="pnd-search-close"
-              onClick={() => setOpen(false)}
-            >
-              <kbd>Esc</kbd>
-            </button>
-          </div>
-          <div className="pnd-search-body">
-            {open ? (
-              <Results
-                engine={engine}
-                query={query}
-                active={active}
-                onPick={pick}
-                onHover={setActive}
-              />
-            ) : null}
-          </div>
+          {open ? (
+            <Suspense fallback={<Loading {...field} />}>
+              <Panel {...field} onPick={pick} onActiveChange={setActive} />
+            </Suspense>
+          ) : null}
           <div className="pnd-search-footer">
             <span>
               <kbd>↑</kbd>
