@@ -288,7 +288,7 @@ impl EntityResource {
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The created entity", body = Entity),
-        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = Status),
 
         (status = 404, description = "Entity Type URL was not found"),
         (status = 500, description = "Store error occurred"),
@@ -329,7 +329,7 @@ where
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The created entities", body = [Entity]),
-        (status = 422, content_type = "text/plain", description = "Provided request body is invalid"),
+        (status = 400, content_type = "application/json", description = "Provided request body is invalid", body = Status),
 
         (status = 404, description = "Entity Type URL was not found"),
         (status = 500, description = "Store error occurred"),

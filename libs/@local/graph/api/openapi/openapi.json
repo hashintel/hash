@@ -1513,11 +1513,18 @@
               }
             }
           },
+          "400": {
+            "description": "Provided request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Entity Type URL was not found"
-          },
-          "422": {
-            "description": "Provided request body is invalid"
           },
           "500": {
             "description": "Store error occurred"
@@ -1622,11 +1629,18 @@
               }
             }
           },
+          "400": {
+            "description": "Provided request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Entity Type URL was not found"
-          },
-          "422": {
-            "description": "Provided request body is invalid"
           },
           "500": {
             "description": "Store error occurred"
