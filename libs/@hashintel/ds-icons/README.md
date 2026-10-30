@@ -26,6 +26,22 @@ The provider's `enabled` prop only sets the value `useHashIconPackEnabled` retur
 
 `hashIconPack` maps every `@hashintel/ds-components` icon name to an icon from this set. Pass it to that package's `IconProvider` to swap the design-system icons for these.
 
+## Outline and filled variants
+
+Use `variant="outline"` (the default) or `variant="filled"` on `HashIcon` or any
+named icon component. Filled artwork uses `currentColor`; interior marks such as
+keyholes, checkmarks, and dice pips are transparent cutouts, so they work on light,
+dark, and colored surfaces. Both styles retain the same hover and state behavior.
+
+Closed symbols have filled bodies, including modeling nodes, shapes, files,
+notifications, and status indicators. Open symbols such as arrows, equations,
+and text retain their line artwork in both variants. Do not rely on fill alone
+to communicate a selected state: pair it with an accessible state or text label.
+
+```tsx
+<HashIcon name="bell" variant="filled" aria-label="Notifications" />
+```
+
 ## Styles
 
 The icons style themselves with Panda CSS. The package ships no stylesheet. Instead, add its build info and preset to the Panda config of the application that renders the icons:

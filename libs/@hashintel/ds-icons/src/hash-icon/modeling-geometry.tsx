@@ -1,4 +1,5 @@
-import { projectCube } from "./shared/cube-projection";
+import { CubeGeometry } from "./cube-geometry";
+import { FilledShape } from "./filled-shape";
 
 import type { SVGProps } from "react";
 
@@ -31,19 +32,7 @@ export const modelingGeometry = {
     </>
   ),
   reset: rewindArc,
-  cube: (
-    <g data-icon-cube="" data-cube-angle="35">
-      {projectCube(35).map((edge) => (
-        <Trace
-          key={edge.index}
-          layer={`edge-${edge.index}`}
-          data-cube-edge={edge.index}
-          d={edge.path}
-          visibility={edge.visible ? "visible" : "hidden"}
-        />
-      ))}
-    </g>
-  ),
+  cube: <CubeGeometry />,
   differentialEquation: (
     <>
       <g data-icon-detail="derivative-top">
@@ -140,79 +129,102 @@ export const modelingGeometry = {
     </>
   ),
   variableRegister: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          <g data-icon-detail="variable-value">
+            <Trace layer="value" d="m7 8 6 8m0-8-6 8" />
+          </g>
+          <Trace layer="cursor" data-icon-detail="value-cursor" d="M17 8v8" />
+        </>
+      }
+    >
       <Trace
         layer="container"
         d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"
       />
-      <g data-icon-detail="variable-value">
-        <Trace layer="value" d="m7 8 6 8m0-8-6 8" />
-      </g>
-      <Trace layer="cursor" data-icon-detail="value-cursor" d="M17 8v8" />
-    </>
+    </FilledShape>
   ),
   tokenType: (
-    <>
-      <g data-icon-detail="token-top">
-        <Ring layer="first-token" cx="12" cy="6.75" r="3.25" />
-      </g>
-      <g data-icon-detail="token-left">
-        <Ring layer="second-token" cx="6.5" cy="16.5" r="3.25" />
-      </g>
-      <g data-icon-detail="token-right">
-        <Ring layer="third-token" cx="17.5" cy="16.5" r="3.25" />
-      </g>
-    </>
+    <FilledShape>
+      {" "}
+      <>
+        <g data-icon-detail="token-top">
+          <Ring layer="first-token" cx="12" cy="6.75" r="3.25" />
+        </g>
+        <g data-icon-detail="token-left">
+          <Ring layer="second-token" cx="6.5" cy="16.5" r="3.25" />
+        </g>
+        <g data-icon-detail="token-right">
+          <Ring layer="third-token" cx="17.5" cy="16.5" r="3.25" />
+        </g>
+      </>
+    </FilledShape>
   ),
   tokenTypeStack: (
-    <>
-      <g data-icon-detail="token-stack-top">
-        <Trace layer="top-token" d="M4 7a8 3 0 1 0 16 0a8 3 0 1 0-16 0Z" />
-      </g>
-      <Trace
-        layer="middle-token"
-        data-icon-detail="token-stack-middle"
-        d="M4 12c0 4 16 4 16 0"
-      />
-      <Trace layer="bottom-token" d="M4 17c0 4 16 4 16 0" />
-    </>
+    <FilledShape>
+      {" "}
+      <>
+        <g data-icon-detail="token-stack-top">
+          <Trace layer="top-token" d="M4 7a8 3 0 1 0 16 0a8 3 0 1 0-16 0Z" />
+        </g>
+        <Trace
+          fill="none"
+          layer="middle-token"
+          data-icon-detail="token-stack-middle"
+          d="M4 12c0 4 16 4 16 0"
+        />
+        <Trace fill="none" layer="bottom-token" d="M4 17c0 4 16 4 16 0" />
+      </>
+    </FilledShape>
   ),
   tokenTypeTag: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          <Ring layer="eyelet" cx="8" cy="8" r=".75" />
+          <g data-icon-detail="tag-token">
+            <Ring layer="token" cx="13.5" cy="13.5" r="2.5" />
+          </g>
+        </>
+      }
+    >
       <Trace layer="tag" d="M4 4h8l9 9-8 8-9-9Z" />
-      <Ring layer="eyelet" cx="8" cy="8" r=".75" />
-      <g data-icon-detail="tag-token">
-        <Ring layer="token" cx="13.5" cy="13.5" r="2.5" />
-      </g>
-    </>
+    </FilledShape>
   ),
   subnetNetwork: (
-    <>
-      <Trace
-        layer="boundary"
-        d="M7 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h2M17 3h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2"
-      />
-      <Trace
-        layer="connections"
-        data-icon-detail="subnet-link"
-        d="m8.6 9.2 3.4 2.8 3.4-2.8M12 12v4"
-      />
-      <g data-icon-detail="subnet-node">
-        <Ring layer="places" cx="7" cy="8" r="2" />
-        <Ring layer="places" cx="17" cy="8" r="2" />
-      </g>
-      <Trace layer="transition" d="M10 16h4v4h-4Z" />
-    </>
+    <FilledShape>
+      {" "}
+      <>
+        <Trace
+          fill="none"
+          layer="boundary"
+          d="M7 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h2M17 3h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2"
+        />
+        <Trace
+          fill="none"
+          layer="connections"
+          data-icon-detail="subnet-link"
+          d="m8.6 9.2 3.4 2.8 3.4-2.8M12 12v4"
+        />
+        <g data-icon-detail="subnet-node">
+          <Ring layer="places" cx="7" cy="8" r="2" />
+          <Ring layer="places" cx="17" cy="8" r="2" />
+        </g>
+        <Trace layer="transition" d="M10 16h4v4h-4Z" />
+      </>
+    </FilledShape>
   ),
   subnetLayers: (
     <>
       <Trace layer="back-module" d="M8 3h11a2 2 0 0 1 2 2v11" />
       <g data-icon-detail="module-front">
-        <Trace
-          layer="front-module"
-          d="M5 7h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"
-        />
-        <Trace layer="ports" d="M7 14h6M10 11v6" />
+        <FilledShape cutout={<Trace layer="ports" d="M7 14h6M10 11v6" />}>
+          <Trace
+            layer="front-module"
+            d="M5 7h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"
+          />
+        </FilledShape>
       </g>
     </>
   ),

@@ -15,7 +15,7 @@ const interactionStyle = css({
     animationTimingFunction: "[cubic-bezier(0.2, 0, 0.2, 1)]",
     animationIterationCount: "[var(--petricon-iterations, 1)]",
   },
-  '&[data-hint="sequence"] > g > g > *': {
+  '&[data-hint="sequence"] > g > g > :not(defs)': {
     transformOrigin: "[12px 12px]",
     animationDuration: "[var(--petricon-detail-duration)]",
     animationTimingFunction: "[ease-out]",
@@ -45,7 +45,7 @@ const interactionStyle = css({
       '&[data-hint="turn"]': { transform: "[rotate(12deg)]" },
       '&[data-hint="grow"]': { transform: "[scale(1.06)]" },
       '&[data-hint="shrink"]': { transform: "[scale(0.94)]" },
-      '&[data-hint="sequence"] > g > g > *': {
+      '&[data-hint="sequence"] > g > g > :not(defs)': {
         animationName: "[petriconSequence]",
       },
       "& [data-icon-detail=open-left]": { transform: "[translateX(-0.8px)]" },

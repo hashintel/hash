@@ -1,5 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 
+import { FilledShape } from "./filled-shape";
+
 const menuStyle = css({
   "--menu-open": "0",
   '&[data-open="true"], button[aria-expanded="true"] &': { "--menu-open": "1" },
@@ -142,7 +144,9 @@ export const MicrophoneGeometry = ({
 }) => (
   <g fill="none">
     <g style={{ opacity: muted ? 0.55 : 1, transition }}>
-      <rect x="8" y="3" width="8" height="12" rx="4" />
+      <FilledShape>
+        <rect x="8" y="3" width="8" height="12" rx="4" />
+      </FilledShape>
       <path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8" />
     </g>
     <path
