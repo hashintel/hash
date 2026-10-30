@@ -175,6 +175,31 @@ rest, with a plugin that reloads the pages when a re-rendered diagram lands,
 since the pages inline SVGs at compile time. The last good bundle keeps
 serving while an error stands.
 
+## The map
+
+The site carries the whole model as an interactive map, opened from the
+**Map** button in the header on every page and closed with the same button
+or `Esc`. It slides down under the header and the page moves below it, so
+the map and the page read together; a handle on its lower edge sets how
+much of the window it takes, remembered across visits. Every layer sits
+where the taxonomy puts it, in nested boxes; interfaces are chips at the
+centroid of their participants; edges are drawn by provenance, with
+imports as a faint texture until a node is hovered or selected. Opening
+the map from a layer's page selects that layer and brings its top-level
+box into view, so the reader sees where the page sits. A click selects a
+node and shows its card, with the page to open, the guides beneath it and
+what it talks to; a double-click or `Enter` opens the page below the map,
+which stays open, since it is how the reader moves on. `F` centres a node
+and its neighbourhood, drag pans, scroll pans, pinch or `⌘` scroll zooms,
+and the domain tags dim what is outside them without moving anything.
+
+The drawing is a canvas: the map's camera, its glide between layouts and
+its hover never pass through React, so the drawing repaints only while
+something moves and stays smooth whatever the model's size. The model
+reaches it through a Vite virtual module that keeps only what the map
+draws, loaded on first open as its own chunk, so a page costs nothing
+until the map is asked for. The map's state outlives closing it.
+
 ## Source links
 
 Generated pages link to the source they describe at the ref resolved from

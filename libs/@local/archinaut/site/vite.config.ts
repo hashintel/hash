@@ -20,6 +20,7 @@ import { defineConfig } from "vite";
 
 import { resolveDiffCompareContext } from "./src/diff-context.ts";
 import { rehypeInlineDiagrams } from "./src/plugins/inline-diagrams.mjs";
+import { mapData } from "./src/plugins/map-data.ts";
 import { reloadDiagrams } from "./src/plugins/reload-diagrams.mjs";
 import { remarkAsides } from "./src/plugins/remark-asides.mjs";
 
@@ -80,6 +81,7 @@ export default defineConfig(async () => ({
       diagramsDirectory: contentPath("diagrams/"),
       docsDirectory: contentPath("docs/"),
     }),
+    mapData(contentPath("architecture.json")),
   ],
   build: {
     // Lightning CSS folds animation longhands into a shorthand no browser

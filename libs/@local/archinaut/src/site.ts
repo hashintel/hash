@@ -83,6 +83,10 @@ export const syncSite = async (
     ],
     ["search.json", await readFile(join(bundleRoot, "search.json"), "utf8")],
     [
+      "architecture.json",
+      await readFile(join(bundleRoot, "architecture.json"), "utf8"),
+    ],
+    [
       "site.json",
       `${JSON.stringify({ title: config.site.title, description: config.site.description, url: config.site.url })}\n`,
     ],

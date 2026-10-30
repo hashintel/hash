@@ -1548,3 +1548,106 @@ mobile-starlight-toc summary {
 .pnd-search-footer kbd + kbd {
   margin-left: 0.125rem;
 }
+
+/* Map toggle ------------------------------------------------------------- */
+
+.pnd-header-tools {
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pnd-map-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+  background: var(--sl-color-black);
+  color: var(--sl-color-gray-2);
+  font-size: var(--sl-text-sm);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease;
+}
+
+.pnd-map-toggle:hover {
+  color: var(--sl-color-white);
+  border-color: var(--sl-color-gray-4);
+}
+
+.pnd-map-toggle[aria-pressed="true"] {
+  background: var(--sl-color-text);
+  color: var(--sl-color-bg);
+  border-color: var(--sl-color-text);
+}
+
+/* Map panel ------------------------------------------------------------- */
+
+/*
+ * The room under the header the map takes, animated as a registered custom
+ * property so the panel, the navigation rail and the page all move as one.
+ * Everything positioned against the header's height adds it.
+ */
+@property --pnd-map-height {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+:root {
+  --pnd-map-open-height: calc((100vh - var(--sl-nav-height)) / 2);
+  --pnd-map-height: 0px;
+  transition: --pnd-map-height 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:root:has(body[data-map-open]) {
+  --pnd-map-height: var(--pnd-map-open-height);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    transition: none;
+  }
+}
+
+:root[data-map-resizing] {
+  transition: none;
+  cursor: row-resize;
+  user-select: none;
+}
+
+html {
+  scroll-padding-top: calc(
+    1.5rem + var(--sl-nav-height) + var(--sl-mobile-toc-height) +
+      var(--pnd-map-height)
+  );
+}
+
+.sidebar-pane,
+:root[data-has-sidebar] .pnd-sidebar-resize {
+  inset-block-start: calc(var(--sl-nav-height) + var(--pnd-map-height));
+}
+
+.main-frame {
+  padding-top: calc(
+    var(--sl-nav-height) + var(--sl-mobile-toc-height) + var(--pnd-map-height)
+  );
+}
+
+@media (min-width: 72rem) {
+  .right-sidebar {
+    padding-top: calc(var(--sl-nav-height) + var(--pnd-map-height));
+  }
+}
+
+.pnd-mobile-toc {
+  top: calc(var(--sl-nav-height) + var(--pnd-map-height) - 1px);
+}
+
+.pnd-fade {
+  inset-block-start: calc(var(--sl-nav-height) + var(--pnd-map-height));
+}
