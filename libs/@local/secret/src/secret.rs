@@ -91,8 +91,8 @@ impl<T: ?Sized + SecretBuffer> Secret<T> {
 impl Secret<[u8]> {
     /// Allocates a secret of `len` zero bytes.
     ///
-    /// Write the contents through [`expose_mut`](Self::expose_mut) or
-    /// [`decode_hex`](Self::decode_hex).
+    /// Write the contents through [`expose_mut`](Self::expose_mut),
+    /// [`decode_hex`](Self::decode_hex) or [`fill_random`](Self::fill_random).
     ///
     /// # Examples
     ///
@@ -174,7 +174,8 @@ impl<const N: usize> Secret<[u8; N]> {
     /// A secret of `N` zero bytes.
     ///
     /// Pin it with [`Box::pin`] or [`pin!`](core::pin::pin), then write the contents through
-    /// [`expose_mut`](Self::expose_mut) or [`decode_hex`](Self::decode_hex).
+    /// [`expose_mut`](Self::expose_mut), [`decode_hex`](Self::decode_hex) or
+    /// [`fill_random`](Self::fill_random).
     ///
     /// # Examples
     ///

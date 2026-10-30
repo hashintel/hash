@@ -98,7 +98,7 @@ fn api_token() -> String {
             ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
             None,
         )
-        .expect("the random number generator should provide bytes")
+        .expect("the API token should be issued")
         .token
         .to_secret()
         .expose()

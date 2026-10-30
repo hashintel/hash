@@ -51,22 +51,28 @@ impl ApiTokenEncryptionKey {
 
     /// Encrypts `secret_hash` bound to `associated_data`, under a random nonce.
     ///
-    /// The process aborts if the random number generator fails.
-    #[must_use]
+    /// # Errors
+    ///
+    /// Returns [`ApiTokenEncryptionError`] if the cipher fails, such as when the random number
+    /// generator fails.
     pub fn encrypt(
         &self,
         secret_hash: ApiTokenSecretHash,
         associated_data: &AssociatedData,
-    ) -> ApiTokenEncryptedSecretHash {
+    ) -> Result<ApiTokenEncryptedSecretHash, Report<ApiTokenEncryptionError>> {
         let mut plaintext = pin!(Secret::<[u8; SECRET_HASH_LENGTH]>::zeroed());
         plaintext
             .as_mut()
             .expose_mut()
             .copy_from_slice(secret_hash.as_bytes());
 
-        ApiTokenEncryptedSecretHash::new(zerocopy::transmute!(
-            self.key.seal(&plaintext, associated_data)
-        ))
+        let sealed = self
+            .key
+            .seal(&plaintext, associated_data)
+            .change_context(ApiTokenEncryptionError)?;
+        Ok(ApiTokenEncryptedSecretHash::new(zerocopy::transmute!(
+            sealed
+        )))
     }
 
     /// Decrypts `encrypted_secret_hash` with the associated data it was encrypted with.
@@ -143,6 +149,11 @@ impl AsRef<[u8]> for AssociatedDataLayout {
         self.as_bytes()
     }
 }
+
+/// Why a secret hash could not be encrypted.
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("the secret hash could not be encrypted")]
+pub struct ApiTokenEncryptionError;
 
 /// Why an encrypted secret hash could not be decrypted.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -224,7 +235,9 @@ mod tests {
         let token = fixed_token();
         let key = fixed_key();
 
-        let encrypted = key.encrypt(token.secret_hash(), &fixed_associated_data(&token));
+        let encrypted = key
+            .encrypt(token.secret_hash(), &fixed_associated_data(&token))
+            .expect("the secret hash should encrypt");
 
         assert_eq!(
             key.decrypt(encrypted, &fixed_associated_data(&token))
@@ -239,8 +252,12 @@ mod tests {
         let token = fixed_token();
         let key = fixed_key();
 
-        let first = key.encrypt(token.secret_hash(), &fixed_associated_data(&token));
-        let second = key.encrypt(token.secret_hash(), &fixed_associated_data(&token));
+        let first = key
+            .encrypt(token.secret_hash(), &fixed_associated_data(&token))
+            .expect("the secret hash should encrypt");
+        let second = key
+            .encrypt(token.secret_hash(), &fixed_associated_data(&token))
+            .expect("the secret hash should encrypt");
 
         assert_ne!(
             first, second,

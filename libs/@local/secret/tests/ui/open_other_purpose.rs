@@ -29,6 +29,8 @@ fn main() {
     let sessions = Aes256GcmKey::<Sessions>::from_secret(&Secret::zeroed());
     let tokens = Aes256GcmKey::<Tokens>::from_secret(&Secret::zeroed());
 
-    let sealed = sessions.seal(&Secret::<[u8; 4]>::zeroed(), &());
+    let sealed = sessions
+        .seal(&Secret::<[u8; 4]>::zeroed(), &())
+        .expect("the plaintext should seal");
     let _ = tokens.open(&sealed, &(), pin!(Secret::<[u8; 4]>::zeroed()));
 }

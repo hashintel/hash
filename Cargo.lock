@@ -1645,7 +1645,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2f6c7dbe95a6ed67ad9f18e57daf93a2f034c524b99fd2b76d18fdfeb6660aa"
 dependencies = [
  "hybrid-array",
- "zeroize",
 ]
 
 [[package]]
@@ -4358,7 +4357,6 @@ dependencies = [
  "const-oid 0.10.2",
  "crypto-common 0.2.2",
  "ctutils",
- "zeroize",
 ]
 
 [[package]]
@@ -4518,13 +4516,13 @@ dependencies = [
  "error-stack",
  "futures-core",
  "futures-util",
+ "hash-secret",
  "opendata-common",
  "opendata-log",
  "proptest",
  "serde",
  "serde_core",
  "serde_json",
- "sha2 0.11.0",
  "simple-mermaid",
  "slatedb",
  "tempfile",
@@ -6635,7 +6633,6 @@ dependencies = [
 name = "hash-graph-authentication"
 version = "0.0.0"
 dependencies = [
- "aws-lc-rs",
  "axum",
  "cookie",
  "crc32fast",
@@ -6645,7 +6642,6 @@ dependencies = [
  "hash-graph-store",
  "hash-middleware",
  "hash-secret",
- "hmac 0.13.0",
  "http 1.4.2",
  "jsonwebtoken",
  "moka",
@@ -6655,7 +6651,6 @@ dependencies = [
  "rstest",
  "serde",
  "serde_json",
- "sha2 0.11.0",
  "simple-mermaid",
  "tokio",
  "tracing",
@@ -6794,7 +6789,6 @@ dependencies = [
  "include_dir",
  "include_dir_macros",
  "postgres-types",
- "sha2 0.11.0",
  "simple-mermaid",
  "time",
  "tokio",
@@ -6808,10 +6802,10 @@ version = "0.0.0"
 dependencies = [
  "convert_case 0.11.0",
  "derive_more",
+ "hash-secret",
  "proc-macro2",
  "quote",
  "regex",
- "sha2 0.11.0",
  "simple-mermaid",
  "syn 2.0.118",
  "walkdir",

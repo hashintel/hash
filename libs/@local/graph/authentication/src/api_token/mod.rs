@@ -26,21 +26,21 @@ mod provider;
 use core::{
     fmt::{self, Write as _},
     mem::offset_of,
-    pin::{Pin, pin},
+    pin::Pin,
     str::FromStr,
 };
 
-use aws_lc_rs::error::Unspecified;
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash, ApiTokenType, ApiTokenVersion};
-use hash_secret::Secret;
-use sha2::{Digest as _, Sha256};
+use hash_secret::{Secret, digest::Sha256Digest, random::random_bytes};
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
 
 pub use self::{
-    encryption::{ApiTokenDecryptionError, ApiTokenEncryptionKey, AssociatedData},
+    encryption::{
+        ApiTokenDecryptionError, ApiTokenEncryptionError, ApiTokenEncryptionKey, AssociatedData,
+    },
     issuer::{ApiTokenIssuer, IssuedApiToken},
     provider::{
         ApiTokenProvider, ApiTokenRejection, AuthenticateApiToken, StorePoolApiTokenAuthenticator,
@@ -59,7 +59,6 @@ const TOKEN_ID_LENGTH: usize = 22;
 const SECRET_LENGTH: usize = 43;
 const CHECKSUM_LENGTH: usize = 6;
 const TOKEN_LENGTH: usize = size_of::<TokenLayout>();
-const SECRET_POOL_LENGTH: usize = 64;
 const DISPLAYED_TOKEN_ID_LENGTH: usize = 4;
 
 /// The first token-ID digit in a token holds the leading digit of the token ID in its lowest three
@@ -142,7 +141,7 @@ pub enum ApiTokenParseError {
 
 /// Why no API token could be generated.
 #[derive(Debug, derive_more::Display, derive_more::Error)]
-#[display("the random number generator provided no bytes for the API token")]
+#[display("the API token could not be generated")]
 pub struct ApiTokenGenerationError;
 
 /// An API token, made of its type, environment, version, token ID and secret.
@@ -159,8 +158,7 @@ pub struct ApiToken {
 }
 
 impl ApiToken {
-    /// Generates a token of `token_type` for `environment`, with a random token ID and secret from
-    /// AWS-LC's random number generator.
+    /// Generates a token of `token_type` for `environment`, with a random token ID and secret.
     ///
     /// # Errors
     ///
@@ -169,15 +167,14 @@ impl ApiToken {
         token_type: ApiTokenType,
         environment: Environment,
     ) -> Result<Self, Report<ApiTokenGenerationError>> {
-        let mut token_id = [0_u8; 16];
-        fill_random(&mut token_id)?;
+        let token_id = random_bytes::<16>().change_context(ApiTokenGenerationError)?;
 
         Ok(Self {
             token_type,
             environment,
             version: ApiTokenVersion::V0,
             token_id: ApiTokenId::new(uuid::Builder::from_random_bytes(token_id).into_uuid()),
-            secret: draw_secret(fill_random)?,
+            secret: Secret::random_alphanumeric().change_context(ApiTokenGenerationError)?,
         })
     }
 
@@ -398,7 +395,7 @@ impl FromStr for HashedApiToken {
 
 /// The SHA-256 hash of `secret`.
 fn hash_secret(secret: &[u8]) -> ApiTokenSecretHash {
-    ApiTokenSecretHash::new(Sha256::digest(secret).into())
+    ApiTokenSecretHash::new(Sha256Digest::of(secret).to_bytes())
 }
 
 /// Writes the `Display` output of a token: the token up to the first
@@ -468,44 +465,6 @@ fn decode_token_id(
     Ok((version, ApiTokenId::new(Uuid::from_u128(token_id))))
 }
 
-/// Fills `bytes` from AWS-LC's random number generator.
-fn fill_random(bytes: &mut [u8]) -> Result<(), Report<ApiTokenGenerationError>> {
-    match aws_lc_rs::rand::fill(bytes) {
-        Ok(()) => Ok(()),
-        Err(Unspecified) => Err(Report::new(ApiTokenGenerationError)),
-    }
-}
-
-/// Draws a secret of [`SECRET_LENGTH`] Base62 digits from the random bytes `fill` writes.
-///
-/// A byte stands for the digit of its upper six bits, and for no digit if those are 62 or 63, so
-/// every digit is equally likely. The pool is refilled until the secret is complete.
-fn draw_secret<E>(
-    mut fill: impl FnMut(&mut [u8]) -> Result<(), E>,
-) -> Result<Pin<Box<Secret<[u8; SECRET_LENGTH]>>>, E> {
-    let mut secret = Box::pin(Secret::zeroed());
-    let mut pool = pin!(Secret::<[u8; SECRET_POOL_LENGTH]>::zeroed());
-    let mut filled = 0;
-    while filled < SECRET_LENGTH {
-        fill(pool.as_mut().expose_mut())?;
-        let digits = pool
-            .expose()
-            .iter()
-            .filter_map(|byte| base62_digit(byte >> 2));
-        for (slot, digit) in secret
-            .as_mut()
-            .expose_mut()
-            .iter_mut()
-            .skip(filled)
-            .zip(digits)
-        {
-            *slot = digit;
-            filled += 1;
-        }
-    }
-    Ok(secret)
-}
-
 /// The Base62 digit of `value`, or `None` for a value of 62 or more.
 const fn base62_digit(value: u8) -> Option<u8> {
     match value {
@@ -549,7 +508,7 @@ fn encode_base62<const WIDTH: usize>(value: u128) -> [u8; WIDTH] {
 
 #[cfg(test)]
 mod tests {
-    use core::{assert_matches, convert::Infallible};
+    use core::assert_matches;
 
     use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash};
     use hash_secret::Secret;
@@ -558,8 +517,8 @@ mod tests {
 
     use super::{
         ApiToken, ApiTokenHint, ApiTokenParseError, ApiTokenType, ApiTokenVersion, CHECKSUM_LENGTH,
-        Environment, HashedApiToken, PREFIX, SECRET_LENGTH, SECRET_POOL_LENGTH, TOKEN_ID_LENGTH,
-        TOKEN_LENGTH, decode_token_id, draw_secret, encode_base62, encode_token_id,
+        Environment, HashedApiToken, PREFIX, SECRET_LENGTH, TOKEN_ID_LENGTH, TOKEN_LENGTH,
+        decode_token_id, encode_base62, encode_token_id,
     };
 
     const FIXED_TOKEN_ID: u128 = 0x01234567_89AB_CDEF_0123_456789ABCDEF;
@@ -728,6 +687,24 @@ mod tests {
     }
 
     #[test]
+    fn generate_distinct() {
+        let first = ApiToken::generate(ApiTokenType::User, Environment::Production)
+            .expect("the random number generator should provide bytes");
+        let second = ApiToken::generate(ApiTokenType::User, Environment::Production)
+            .expect("the random number generator should provide bytes");
+
+        assert_ne!(
+            first.token_id, second.token_id,
+            "two tokens should have different token IDs"
+        );
+        assert_ne!(
+            first.secret.expose(),
+            second.secret.expose(),
+            "two tokens should have different secrets"
+        );
+    }
+
+    #[test]
     fn token_id_extremes() {
         for value in [0, u128::MAX] {
             let token_id = ApiTokenId::new(Uuid::from_u128(value));
@@ -738,56 +715,6 @@ mod tests {
                 "{value} should decode to itself"
             );
         }
-    }
-
-    #[test]
-    fn draw_secret_skips_non_digits() {
-        // The upper six bits of 0xF8 and 0xFC are 62 and 63, which stand for no digit. Those of
-        // 0xF4, 0x03 and 0x28 are 61, 0 and 10, the digits `z`, `0` and `A`.
-        let mut bytes = [0x28; SECRET_POOL_LENGTH];
-        bytes[..4].copy_from_slice(&[0xF8, 0xF4, 0xFC, 0x03]);
-
-        let secret = draw_secret(|pool| {
-            pool.copy_from_slice(&bytes);
-            Ok::<_, Infallible>(())
-        })
-        .expect("filling the pool should not fail");
-
-        assert_eq!(
-            secret.expose(),
-            format!("z0{}", "A".repeat(SECRET_LENGTH - 2)).as_bytes(),
-            "the secret should skip the bytes that stand for no digit"
-        );
-    }
-
-    #[test]
-    fn draw_secret_short_pool() {
-        // The first pool holds only two digits: 0x03 is `0`, and 0xFC stands for no digit. The
-        // second pool, all 0x28, completes the secret with `A`.
-        let mut first = [0xFC; SECRET_POOL_LENGTH];
-        first[..2].fill(0x03);
-        let mut pools = [first, [0x28; SECRET_POOL_LENGTH]].into_iter();
-
-        let secret = draw_secret(|pool| {
-            pool.copy_from_slice(&pools.next().expect("the secret should need two pools"));
-            Ok::<_, Infallible>(())
-        })
-        .expect("filling the pool should not fail");
-
-        assert_eq!(
-            secret.expose(),
-            format!("00{}", "A".repeat(SECRET_LENGTH - 2)).as_bytes(),
-            "the secret should continue in the next pool"
-        );
-    }
-
-    #[test]
-    fn draw_secret_failing_fill() {
-        assert_eq!(
-            draw_secret(|_| Err("the byte source failed")).map(|secret| secret.len()),
-            Err("the byte source failed"),
-            "the error of the byte source should end the draw"
-        );
     }
 
     #[test]

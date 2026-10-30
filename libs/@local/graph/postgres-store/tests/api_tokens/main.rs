@@ -932,9 +932,7 @@ impl AuthenticateApiToken for TransactionTokens<'_, '_> {
 
 /// Issues a token for `user_id`, records it, and returns its string.
 async fn record_issued(store: &mut Store<'_>, user_id: UserId) -> Result<String, Box<dyn Error>> {
-    let generated = issuer()
-        .issue(user_id, ApiTokenName::new("ci".to_owned())?, Some(LIFETIME))
-        .expect("the random number generator should provide bytes");
+    let generated = issuer().issue(user_id, ApiTokenName::new("ci".to_owned())?, Some(LIFETIME))?;
     store.create_api_token(generated.params).await?;
     Ok(generated.token.to_secret().expose().to_owned())
 }
@@ -990,7 +988,7 @@ async fn provider_wrong_secret() -> Result<(), Box<dyn Error>> {
     let other_secret = key().encrypt(
         ApiTokenSecretHash::new([1; 32]),
         &hashed.associated_data(ActorEntityUuid::from(user_id), web_id),
-    );
+    )?;
     store
         .as_client()
         .execute(
