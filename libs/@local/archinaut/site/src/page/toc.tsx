@@ -62,7 +62,7 @@ const List = ({
         <a
           href={`#${entry.slug}`}
           aria-current={entry.slug === active ? "true" : undefined}
-          style={{ "--depth": entry.depth - 2 } as never}
+          style={{ "--depth": entry.depth - 2 }}
         >
           <span>{entry.text}</span>
         </a>

@@ -14,7 +14,7 @@ import {
 } from "@tanstack/react-router";
 
 import { NotFound } from "./page/not-found";
-import { PageView } from "./page/page-view";
+import { IndexPageView, SplatPageView } from "./page/page-view";
 import { loadPage, slugOf } from "./pages";
 import { Shell } from "./shell/shell";
 
@@ -35,14 +35,14 @@ const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   loader: () => load("index"),
-  component: PageView,
+  component: IndexPageView,
 });
 
 const pageRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "$",
   loader: ({ params }) => load(slugOf(params._splat ?? "")),
-  component: PageView,
+  component: SplatPageView,
 });
 
 const routeTree = rootRoute.addChildren([indexRoute, pageRoute]);

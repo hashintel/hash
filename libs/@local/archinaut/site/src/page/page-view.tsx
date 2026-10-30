@@ -1,20 +1,21 @@
 /**
  * One page: its title, its compiled content, and "On this page" beside it
- * on wide viewports or above it on narrow ones.
+ * on wide viewports or above it on narrow ones. The index route and the
+ * splat route both render it, each from its own typed loader data.
  */
 
-import { useLoaderData } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import siteJson from "../content/site.json";
+import { PageFrame } from "./shared/page-frame";
 import { TableOfContents } from "./toc";
 
 import type { LoadedPage } from "../pages";
 
 const site = siteJson as { title: string };
 
-export const PageView = () => {
-  const { page, Content } = useLoaderData({ strict: false }) as LoadedPage;
+const PageView = ({ page, Content }: LoadedPage) => {
   useEffect(() => {
     document.title = `${page.title} | ${site.title}`;
   }, [page.title]);
@@ -25,22 +26,16 @@ export const PageView = () => {
           <TableOfContents key={page.slug} entries={page.headings} />
         </div>
       </aside>
-      <div className="main-pane">
-        <main>
-          <div className="content-panel">
-            <div className="sl-container">
-              <h1 id="_top">{page.title}</h1>
-            </div>
-          </div>
-          <div className="content-panel">
-            <div className="sl-container">
-              <div className="sl-markdown-content">
-                <Content />
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
+      <PageFrame title={page.title}>
+        <Content />
+      </PageFrame>
     </div>
   );
 };
+
+const indexRoute = getRouteApi("/");
+const splatRoute = getRouteApi("/$");
+
+export const IndexPageView = () => <PageView {...indexRoute.useLoaderData()} />;
+
+export const SplatPageView = () => <PageView {...splatRoute.useLoaderData()} />;

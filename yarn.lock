@@ -9159,7 +9159,6 @@ __metadata:
     remark-directive: "npm:4.0.0"
     remark-frontmatter: "npm:5.0.0"
     remark-gfm: "npm:4.0.1"
-    remark-mdx-frontmatter: "npm:6.0.0"
     tsx: "catalog:"
     typescript: "catalog:"
     typescript-7: "npm:typescript@7.1.0-dev.20261012.1"
@@ -26376,15 +26375,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"estree-util-value-to-estree@npm:^3.0.0":
-  version: 3.5.0
-  resolution: "estree-util-value-to-estree@npm:3.5.0"
-  dependencies:
-    "@types/estree": "npm:^1.0.0"
-  checksum: 10c0/05c8d4b3338598929122cbfd6b127b22de4600dda8178b789b0d139e5b296e57a2343e487d6e108d8c39b18550dae2af3a110093698684db810954f353e9099b
-  languageName: node
-  linkType: hard
-
 "estree-util-visit@npm:^2.0.0":
   version: 2.0.0
   resolution: "estree-util-visit@npm:2.0.0"
@@ -37446,20 +37436,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"remark-mdx-frontmatter@npm:6.0.0":
-  version: 6.0.0
-  resolution: "remark-mdx-frontmatter@npm:6.0.0"
-  dependencies:
-    "@types/mdast": "npm:^4.0.0"
-    estree-util-value-to-estree: "npm:^3.0.0"
-    smol-toml: "npm:^1.0.0"
-    unified: "npm:^11.0.0"
-    unist-util-mdx-define: "npm:^1.0.0"
-    yaml: "npm:^2.0.0"
-  checksum: 10c0/cc1c7bd18e5c0f2aecc6584096c030ee30c553614facd79db49e3aead39f51c8da159f4b0f907d5d4852846cadb444034cdf2b17795d9707cd21d79deb04795c
-  languageName: node
-  linkType: hard
-
 "remark-mdx@npm:^3.0.0, remark-mdx@npm:^3.1.1":
   version: 3.1.1
   resolution: "remark-mdx@npm:3.1.1"
@@ -38996,13 +38972,6 @@ __metadata:
   version: 4.2.0
   resolution: "smart-buffer@npm:4.2.0"
   checksum: 10c0/a16775323e1404dd43fabafe7460be13a471e021637bc7889468eb45ce6a6b207261f454e4e530a19500cc962c4cc5348583520843b363f4193cee5c00e1e539
-  languageName: node
-  linkType: hard
-
-"smol-toml@npm:^1.0.0":
-  version: 1.9.1
-  resolution: "smol-toml@npm:1.9.1"
-  checksum: 10c0/8acccf7bbc063f29405f58f5014ab39bf4eb9d7f0e000e5e3f140f7d4d6ead5696681a7c15260d1f2910213012c0af43b31a05bf94f704b0bdf39989fba08c02
   languageName: node
   linkType: hard
 
@@ -41232,21 +41201,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"unist-util-mdx-define@npm:^1.0.0":
-  version: 1.1.2
-  resolution: "unist-util-mdx-define@npm:1.1.2"
-  dependencies:
-    "@types/estree": "npm:^1.0.0"
-    "@types/hast": "npm:^3.0.0"
-    "@types/mdast": "npm:^4.0.0"
-    estree-util-is-identifier-name: "npm:^3.0.0"
-    estree-util-scope: "npm:^1.0.0"
-    estree-walker: "npm:^3.0.0"
-    vfile: "npm:^6.0.0"
-  checksum: 10c0/83a78b427ccba7cb14101da9842dc31170ce7133dead795fd5e6ac0b9222b813753b2374a7208b192eb8916effbcf9acbdd5ae63f20069a12133f6a74d92c3cf
-  languageName: node
-  linkType: hard
-
 "unist-util-position-from-estree@npm:^2.0.0":
   version: 2.0.0
   resolution: "unist-util-position-from-estree@npm:2.0.0"
@@ -42856,7 +42810,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yaml@npm:^2.0.0, yaml@npm:^2.3.1, yaml@npm:^2.9.0":
+"yaml@npm:^2.3.1, yaml@npm:^2.9.0":
   version: 2.9.1
   resolution: "yaml@npm:2.9.1"
   bin:

@@ -7,13 +7,7 @@
  * once and tear down together.
  */
 
-const remember = (key: string, value: string): void => {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // Private browsing denies storage; the control still works this session.
-  }
-};
+import { writeStored } from "../shared/storage";
 
 const clampWidth = (edge: number): number =>
   Math.round(Math.min(Math.max(edge, 224), 480));
@@ -51,7 +45,7 @@ export const installSidebarChrome = (): (() => void) => {
         delete root.dataset.pndSidebar;
       }
       toggle.setAttribute("aria-expanded", String(!collapse));
-      remember("pnd:sidebar", collapse ? "collapsed" : "expanded");
+      writeStored("pnd:sidebar", collapse ? "collapsed" : "expanded");
     });
   }
 
@@ -89,7 +83,7 @@ export const installSidebarChrome = (): (() => void) => {
           cancelAnimationFrame(frame);
           applyWidth(width);
           setResizing(false);
-          remember("pnd:sidebar-width", `${width}px`);
+          writeStored("pnd:sidebar-width", `${width}px`);
         },
         { once: true },
       );
@@ -109,7 +103,7 @@ export const installSidebarChrome = (): (() => void) => {
     const endKeyGesture = (): void => {
       setResizing(false);
       if (keyedWidth !== null) {
-        remember("pnd:sidebar-width", `${keyedWidth}px`);
+        writeStored("pnd:sidebar-width", `${keyedWidth}px`);
         keyedWidth = null;
       }
     };
