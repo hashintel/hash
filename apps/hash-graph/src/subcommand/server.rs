@@ -1041,14 +1041,14 @@ mod tests {
             params.encryption_key_id, key_id,
             "the token should record the configured key ID"
         );
-        assert_eq!(
+        assert!(
             ApiTokenEncryptionKey::new(key_id, &key())
-                .decrypt(
+                .matches(
                     params.encrypted_secret_hash,
                     &hashed.associated_data(ActorEntityUuid::from(user_id), WebId::from(user_id)),
+                    hashed.secret_hash(),
                 )
                 .expect("the configured key should decrypt the secret hash"),
-            hashed.secret_hash(),
             "the token should be encrypted with the configured key"
         );
     }

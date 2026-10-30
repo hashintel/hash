@@ -72,7 +72,7 @@ impl ApiTokenIssuer {
 
     /// Checks that `token` is the one `credential` records.
     ///
-    /// The secret hashes are compared in variable time.
+    /// The secret hashes are compared in constant time.
     ///
     /// # Errors
     ///
@@ -102,12 +102,16 @@ impl ApiTokenIssuer {
 
         let associated_data =
             token.associated_data(ActorEntityUuid::from(credential.user_id), credential.web_id);
-        let secret_hash = self
+        let matches = self
             .key
-            .decrypt(credential.encrypted_secret_hash, &associated_data)
+            .matches(
+                credential.encrypted_secret_hash,
+                &associated_data,
+                token.secret_hash(),
+            )
             .map_err(|_error| ApiTokenVerificationError::Undecryptable)?;
 
-        if secret_hash == token.secret_hash() {
+        if matches {
             Ok(())
         } else {
             Err(ApiTokenVerificationError::SecretMismatch)
@@ -128,8 +132,7 @@ mod tests {
 
     use hash_crypto::Secret;
     use hash_graph_store::api_token::{
-        ApiTokenCredential, ApiTokenEncryptionKeyId, ApiTokenName, ApiTokenSecretHash,
-        ApiTokenVerificationError,
+        ApiTokenCredential, ApiTokenEncryptionKeyId, ApiTokenName, ApiTokenVerificationError,
     };
     use rstest::rstest;
     use type_system::principal::{
@@ -190,14 +193,14 @@ mod tests {
             key_id(),
             "the parameters should name the issuer's key"
         );
-        assert_eq!(
+        assert!(
             key()
-                .decrypt(
+                .matches(
                     params.encrypted_secret_hash,
                     &hashed.associated_data(ActorEntityUuid::from(user_id), WebId::from(user_id)),
+                    hashed.secret_hash(),
                 )
                 .expect("the secret hash should decrypt for the user's row"),
-            hashed.secret_hash(),
             "the parameters should record the hash of the token's secret"
         );
     }
@@ -241,9 +244,10 @@ mod tests {
     fn verify_wrong_secret() {
         let issuer = issuer();
         let (token, mut credential) = issued(&issuer);
+        let (other, _) = issued(&issuer);
         credential.encrypted_secret_hash = key()
             .encrypt(
-                ApiTokenSecretHash::new([1; 32]),
+                other.secret_hash(),
                 &token
                     .associated_data(ActorEntityUuid::from(credential.user_id), credential.web_id),
             )
