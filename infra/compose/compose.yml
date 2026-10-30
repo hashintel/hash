@@ -769,8 +769,6 @@ services:
       HASH_GRAPH_SERVICE_SECRET: "${HASH_GRAPH_SERVICE_SECRET:-hash-svc-local-dev-secret}"
       HASH_GRAPH_ATLAS_HOST: "atlas"
       HASH_GRAPH_ATLAS_PORT: "4003"
-      HASH_PETRINAUT_OPT_HOST: "petrinaut-opt"
-      HASH_PETRINAUT_OPT_PORT: "4004"
       LOG_LEVEL: "${LOG_LEVEL:-info}"
 
       HASH_REDIS_HOST: "redis"

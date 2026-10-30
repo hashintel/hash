@@ -30,14 +30,12 @@ import {
 import {
   type HostNetMode,
   nextRequestId,
-  type PetrinautHostCapabilities,
   type RevisionSummary,
   type SavedSnapshot,
 } from "../../shared/messages";
 import { useIframeBridge } from "../../shared/use-iframe-bridge";
 import { type EmbedChrome, EmbedChromeContext } from "./embed-chrome-context";
 import { embedChromePlugin } from "./embed-chrome-plugin";
-import { HASHPetrinautOptimizationProvider } from "./hash-petrinaut-optimization-provider";
 
 const embedPlugins = [embedChromePlugin];
 
@@ -101,8 +99,6 @@ const computeIsDirty = (
 export const EmbedContent = () => {
   const [state, setState] = useState<EditorState | null>(null);
   const [revisions, setRevisions] = useState<RevisionSummary[]>([]);
-  const [hostCapabilities, setHostCapabilities] =
-    useState<PetrinautHostCapabilities | null>(null);
   const [pendingSaveRequestId, setPendingSaveRequestId] = useState<
     string | null
   >(null);
@@ -176,7 +172,6 @@ export const EmbedContent = () => {
     onSetReadonly: (readonly) => {
       setState((prev) => (prev ? { ...prev, readonly } : prev));
     },
-    onSetCapabilities: setHostCapabilities,
     onRevisionsList: (incoming) => {
       setRevisions(incoming);
     },
@@ -337,27 +332,23 @@ export const EmbedContent = () => {
 
   return (
     <Box sx={{ height: "100vh", overflow: "hidden" }}>
-      <HASHPetrinautOptimizationProvider
-        enabled={hostCapabilities?.optimization === true}
-      >
-        <EmbedChromeContext value={chrome}>
-          <ErrorTrackerContext value={embedErrorTracker}>
-            {/* The title is the breadcrumbs' final crumb, so the editor's
-                own title field stays hidden. */}
-            <Petrinaut
-              handle={state.handle}
-              createNewNet={noNetSwitchingError}
-              existingNets={[]}
-              hideNetManagementControls="all"
-              loadPetriNet={noNetSwitchingError}
-              plugins={embedPlugins}
-              readonly={state.readonly}
-              setTitle={handleSetTitle}
-              title={state.title}
-            />
-          </ErrorTrackerContext>
-        </EmbedChromeContext>
-      </HASHPetrinautOptimizationProvider>
+      <EmbedChromeContext value={chrome}>
+        <ErrorTrackerContext value={embedErrorTracker}>
+          {/* The title is the breadcrumbs' final crumb, so the editor's
+              own title field stays hidden. */}
+          <Petrinaut
+            handle={state.handle}
+            createNewNet={noNetSwitchingError}
+            existingNets={[]}
+            hideNetManagementControls="all"
+            loadPetriNet={noNetSwitchingError}
+            plugins={embedPlugins}
+            readonly={state.readonly}
+            setTitle={handleSetTitle}
+            title={state.title}
+          />
+        </ErrorTrackerContext>
+      </EmbedChromeContext>
     </Box>
   );
 };
