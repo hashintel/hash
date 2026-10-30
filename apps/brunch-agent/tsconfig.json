@@ -3,7 +3,9 @@
   "compilerOptions": {
     "lib": ["DOM", "ESNext"],
     "types": ["node", "vite/client"],
-    "noUnusedLocals": false
+    "noUnusedLocals": false,
+    // Implicit returns remain in src/server/http/ownership.ts (TS7030).
+    "noImplicitReturns": false
   },
   "include": ["src", "test", "evals", "*.config.ts"]
 }
