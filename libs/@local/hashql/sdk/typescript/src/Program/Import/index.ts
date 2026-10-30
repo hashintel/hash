@@ -8,6 +8,7 @@
 import {
   Array,
   Iterable,
+  MutableHashMap,
   Option,
   Record,
   Result,
@@ -45,7 +46,7 @@ export type * as Bindings from "./Bindings.js";
  *
  * Literal selections retain required exports. A widened array, an optional record entry or a union alias can leave a name absent, so its result entry is optional. The `"_"` alternative contributes the source name rather than a literal underscore key. Selection unions retain all possible names but require only names present in every alternative.
  *
- * One name selects the module, type and value exports that share it. Each imported export emits its local name. The import wraps the expression built in its scope in a `use` of the module's path. An alias that is not a HashQL identifier fails construction with a {@link ProgramError.Construction} whose reason is `InvalidImportName`. A symbol key in the record selects nothing.
+ * One name selects the module, type and value exports that share it. Each imported export emits its local name. The import wraps the expression built in its scope in a `use` of the module's path. An alias that is not a HashQL identifier fails construction with a {@link ProgramError.Construction} whose reason is `InvalidImportName`. HashQL binds a local name once, so two exports under one local name fail with `DuplicateImportName`. Names compare by decoded identifier, so `+` and `` `+` `` are one name. A symbol key in the record selects nothing.
  *
  * `"*"` emits a glob `use`. HashQL then binds every export it provides under the module's path, including names the record does not declare. TypeScript does not see such a name. Inside the import, it shadows an enclosing binding of the same name. A record that declares every export of its path gives both the same names.
  *
@@ -168,10 +169,20 @@ const plan = (
 ): Result.Result<Plan, ProgramError.Construction> =>
   Result.gen(function* () {
     const names: Record<string, Alias> = {};
+    // A name list may repeat a source name, which binds it once.
+    const sources = MutableHashMap.empty<JExpr.Ident.Ident, string>();
 
     const aliases: [string, string][] = [];
     for (const { name, alias } of requests(module, selection)) {
       const ident = yield* importName(alias);
+      const source = MutableHashMap.get(sources, ident);
+      if (Option.isSome(source) && source.value !== name) {
+        return yield* Result.fail(
+          ProgramError.Construction.duplicateImportName(String(alias)),
+        );
+      }
+
+      MutableHashMap.set(sources, ident, name);
       Object.defineProperty(names, name, {
         value: { alias: String(alias), ident },
         enumerable: true,
@@ -292,7 +303,7 @@ class ImportImpl<M extends Module.Module.Any, I> implements Declaration<M, I> {
  *
  * The import emits a `use` of the module's path. HashQL must therefore provide every selected export under that path, aliases included. A `"*"` selection also binds the exports the record does not declare, as {@link Selection} describes.
  *
- * Records must expose their declared entries as enumerable own string-keyed properties. Symbol keys and non-enumerable and inherited entries select nothing. Returns a construction failure for invalid aliases, or propagates a producer's relocation failure. Omitted alias entries select nothing. A present entry must contain a valid identifier or the `"_"` sentinel, not `undefined`. It returns frozen tables without a prototype, so a name the import does not bind reads as `undefined`. The HashQL compiler resolves the emitted import.
+ * Records must expose their declared entries as enumerable own string-keyed properties. Symbol keys and non-enumerable and inherited entries select nothing. Returns a construction failure for an invalid alias or one that two exports share, or propagates a producer's relocation failure. Omitted alias entries select nothing. A present entry must contain a valid identifier or the `"_"` sentinel, not `undefined`. It returns frozen tables without a prototype, so a name the import does not bind reads as `undefined`. The HashQL compiler resolves the emitted import.
  */
 // oxlint-disable-next-line effecttsgo/missing-pipeable-signature -- the module and selection construct a declaration
 export const bind = <

@@ -237,6 +237,18 @@ describe("import_selection", () => {
     );
   });
 
+  test("duplicate_alias", () => {
+    expect.hasAssertions();
+    expect(Import.bind(source, { Item: "other", other: "_" })).toMatchObject({
+      _tag: "Failure",
+      failure: { reason: { _tag: "DuplicateImportName", name: "other" } },
+    });
+    expect(Import.bind(source, { Item: "+", other: "`+`" })).toMatchObject({
+      _tag: "Failure",
+      failure: { reason: { _tag: "DuplicateImportName", name: "`+`" } },
+    });
+  });
+
   test("symbol_keys", () => {
     expect.hasAssertions();
     const symbol = Symbol("Item");

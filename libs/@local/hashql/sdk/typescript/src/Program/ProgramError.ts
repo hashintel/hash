@@ -21,6 +21,8 @@ export const Reason = Schema.TaggedUnion({
   DuplicateStructField: { name: Schema.String },
   /** An imported name or alias is not a valid HashQL identifier. */
   InvalidImportName: { name: Schema.String, cause: Issue },
+  /** An import binds two exports under one local name, such as `{ Item: "other", other: "_" }`. `name` is the later spelling. */
+  DuplicateImportName: { name: Schema.String },
   /** A query callback parameter name is not a valid HashQL identifier. */
   InvalidParameterName: { name: Schema.String, cause: Issue },
   /** A module export name is not a valid HashQL identifier. */
@@ -106,6 +108,13 @@ export class Construction extends Schema.TaggedError<Construction>()(
   ): Construction {
     return Construction.make({
       reason: Reason.make({ _tag: "InvalidImportName", name, cause }),
+    });
+  }
+
+  /** Retains the alias whose decoded identifier repeats an earlier alias of another export. */
+  static duplicateImportName(name: string): Construction {
+    return Construction.make({
+      reason: Reason.make({ _tag: "DuplicateImportName", name }),
     });
   }
 
@@ -196,6 +205,8 @@ export class Construction extends Schema.TaggedError<Construction>()(
         `Duplicate HashQL struct field: ${JSON.stringify(name)}`,
       InvalidImportName: ({ name }) =>
         `Invalid HashQL import name: ${JSON.stringify(name)}`,
+      DuplicateImportName: ({ name }) =>
+        `Duplicate HashQL import name: ${JSON.stringify(name)}`,
       InvalidParameterName: ({ name }) =>
         `Invalid HashQL parameter name: ${JSON.stringify(name)}`,
       InvalidExportName: ({ name }) =>
