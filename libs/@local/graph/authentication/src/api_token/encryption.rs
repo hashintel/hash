@@ -4,6 +4,7 @@ use error_stack::{Report, ResultExt as _};
 use hash_crypto::{
     Secret,
     aes_gcm::{AeadPurpose, Aes256GcmKey, Sealed},
+    digest::SHA256_OUTPUT_LEN,
 };
 use hash_graph_store::api_token::{
     ApiTokenEncryptedSecretHash, ApiTokenEncryptionKeyId, ApiTokenId,
@@ -15,9 +16,6 @@ use zerocopy::{Immutable, IntoBytes};
 use super::{
     ApiTokenSecretHash, ApiTokenType, ApiTokenVersion, ENVIRONMENT_LENGTH, Environment, TYPE_LENGTH,
 };
-
-/// The length in bytes of the secret hash of a token.
-const SECRET_HASH_LENGTH: usize = 32;
 
 /// The purpose of the keys that encrypt the secret hashes of API tokens.
 struct SecretHashes;
@@ -62,7 +60,7 @@ impl ApiTokenEncryptionKey {
         secret_hash: ApiTokenSecretHash,
         associated_data: &AssociatedData,
     ) -> Result<ApiTokenEncryptedSecretHash, Report<ApiTokenEncryptionError>> {
-        let mut plaintext = pin!(Secret::<[u8; SECRET_HASH_LENGTH]>::zeroed());
+        let mut plaintext = pin!(Secret::<[u8; SHA256_OUTPUT_LEN]>::zeroed());
         plaintext
             .as_mut()
             .expose_mut()
@@ -92,9 +90,9 @@ impl ApiTokenEncryptionKey {
         associated_data: &AssociatedData,
         secret_hash: ApiTokenSecretHash,
     ) -> Result<bool, Report<ApiTokenDecryptionError>> {
-        let sealed: Sealed<SecretHashes, SECRET_HASH_LENGTH> =
+        let sealed: Sealed<SecretHashes, SHA256_OUTPUT_LEN> =
             zerocopy::transmute!(*encrypted_secret_hash.as_bytes());
-        let mut plaintext = pin!(Secret::<[u8; SECRET_HASH_LENGTH]>::zeroed());
+        let mut plaintext = pin!(Secret::<[u8; SHA256_OUTPUT_LEN]>::zeroed());
         self.key
             .open(&sealed, associated_data, plaintext.as_mut())
             .change_context(ApiTokenDecryptionError)?;
