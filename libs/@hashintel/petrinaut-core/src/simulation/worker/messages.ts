@@ -1,6 +1,10 @@
 /**
  * Message types for communication between main thread and simulation worker.
  *
+ * @interface iface:simulation-worker-messages ToWorkerMessage via postMessage
+ * @summary The typed postMessage protocol between the host and the
+ * quick-simulation worker, with the ack contract that bounds memory.
+ *
  * @see ./README.md for detailed protocol documentation
  */
 

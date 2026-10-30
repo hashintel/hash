@@ -8,7 +8,12 @@ import { posix } from "node:path";
 
 import { isDeclaredEdge, isImportEdge } from "../../model";
 import { rewriteRelativeLinks } from "../page-links";
-import { assetPathFrom, layerSlug, relativeTo } from "../shared/page-paths";
+import {
+  assetPathFrom,
+  interfaceSlug,
+  layerSlug,
+  relativeTo,
+} from "../shared/page-paths";
 import {
   LAYER_FACTS_MODULE,
   LAYER_LINKS_MODULE,
@@ -233,6 +238,28 @@ export const buildLayerPage = (
             : { description: guide.description }),
         })),
         "Hand-written, not generated and not checked against the code.",
+      ),
+    );
+  }
+
+  const participations = model.interfaces.filter((node) =>
+    node.participants.some((participant) => participant.node === layer.id),
+  );
+  if (participations.length > 0) {
+    body.push(
+      ...linksCard(
+        "Interfaces",
+        participations.map((node) => {
+          const role =
+            node.participants.find(
+              (participant) => participant.node === layer.id,
+            )?.role ?? "";
+          return {
+            label: node.name,
+            href: relativeTo(slug, interfaceSlug(node.id)),
+            description: `${role} · ${node.transport}${node.summary === "" ? "" : ` · ${node.summary}`}`,
+          };
+        }),
       ),
     );
   }

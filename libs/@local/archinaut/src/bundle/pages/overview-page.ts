@@ -1,6 +1,6 @@
 /**
- * The architecture overview: every top-level layer and the overview
- * diagram, as the page a reader lands on first.
+ * The architecture overview: every top-level layer, the overview diagram,
+ * and the interfaces, as the page a reader lands on first.
  */
 
 import { assetPathFrom, layerSlug, relativeTo } from "../shared/page-paths";

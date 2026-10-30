@@ -93,6 +93,21 @@ export const checkEmptyLayers = (model: ArchitectureModel): Diagnostic[] => {
     );
 };
 
+/** A tag no registry entry describes is probably a typo, so it is reported. */
+export const checkTags = (model: ArchitectureModel): Diagnostic[] => {
+  const known = new Set(model.tags.map((tag) => tag.id));
+  return model.layers.flatMap((layer) =>
+    layer.tags
+      .filter((tag) => !known.has(tag))
+      .map((tag) =>
+        warning(
+          layer.declaredIn,
+          `tag \`${tag}\` is not in the config's tag registry`,
+        ),
+      ),
+  );
+};
+
 export const runChecks = (
   model: ArchitectureModel,
   rules: LayerRule[],
@@ -101,4 +116,5 @@ export const runChecks = (
   ...checkRuleTargets(model, rules),
   ...checkRules(model, rules),
   ...checkEmptyLayers(model),
+  ...checkTags(model),
 ];
