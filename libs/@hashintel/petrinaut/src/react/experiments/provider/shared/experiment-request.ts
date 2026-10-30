@@ -20,11 +20,7 @@ export type SweptScenarioCompiler = {
 export type ExperimentRequestOverride = Partial<
   Pick<
     ExperimentRequest,
-    | "parameterValues"
-    | "initialMarking"
-    | "seed"
-    | "runCount"
-    | "runPlan"
+    "parameterValues" | "initialMarking" | "seed" | "runCount" | "runPlan"
   >
 >;
 
