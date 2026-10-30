@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  omitInvalidEmptyFlowInputs,
   validateActionOutputs,
   validateFlowInputs,
 } from "./validate-payloads.js";
@@ -115,6 +116,45 @@ describe("validateFlowInputs", () => {
     ).toBe(
       `Flow input "entities" is invalid: A stored payload reference can only be created by a flow's own steps`,
     );
+  });
+});
+
+describe("omitInvalidEmptyFlowInputs", () => {
+  const omitEmpty = (flowInputs: Record<string, unknown>) =>
+    omitInvalidEmptyFlowInputs({
+      inputDefinitions: [
+        ...inputDefinitions,
+        { name: "limit", payloadKind: "Number", array: false, required: true },
+        {
+          name: "entityType",
+          payloadKind: "VersionedUrl",
+          array: false,
+          required: false,
+        },
+      ],
+      flowInputs: flowInputs as FlowInputValues,
+    });
+
+  it("leaves out an empty string that isn't valid for its input's kind", () => {
+    expect(
+      omitEmpty({
+        query: { kind: "Text", value: "a" },
+        limit: { kind: "Number", value: "" },
+        entityType: { kind: "VersionedUrl", value: "" },
+      }),
+    ).toEqual({ query: { kind: "Text", value: "a" } });
+  });
+
+  it("keeps an empty string that is valid, and anything it can't tell is blank", () => {
+    const flowInputs = {
+      query: { kind: "Text", value: "" },
+      urls: { kind: "Text", value: [""] },
+      limit: { kind: "Text", value: "" },
+      other: { kind: "Number", value: "" },
+      every: null,
+    };
+
+    expect(omitEmpty(flowInputs)).toEqual(flowInputs);
   });
 });
 

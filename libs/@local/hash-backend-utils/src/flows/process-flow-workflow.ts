@@ -18,7 +18,10 @@ import {
 import { getArrayPayloadItems } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 import { asPayload } from "@local/hash-isomorphic-utils/flows/types";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
-import { validateFlowInputs } from "@local/hash-isomorphic-utils/flows/validate-payloads";
+import {
+  omitInvalidEmptyFlowInputs,
+  validateFlowInputs,
+} from "@local/hash-isomorphic-utils/flows/validate-payloads";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
 
@@ -388,7 +391,6 @@ const processFlow = async (
     flowDefinitionEntityId,
     flowRunEntityUuid,
     flowRunName,
-    flowInputs,
     flowTriggerEntityId,
     userAuthentication,
     webId,
@@ -447,6 +449,12 @@ const processFlow = async (
       ],
     });
   }
+
+  /* A form, or a schedule saved from one, may give an input left blank as an empty string. */
+  const flowInputs = omitInvalidEmptyFlowInputs({
+    inputDefinitions: flowDefinition.inputs,
+    flowInputs: params.flowInputs,
+  });
 
   const invalidFlowInputMessage = validateFlowInputs({
     inputDefinitions: flowDefinition.inputs,

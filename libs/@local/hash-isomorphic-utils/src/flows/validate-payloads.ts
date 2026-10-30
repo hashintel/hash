@@ -15,6 +15,42 @@ const describeProblem = ({ path, message }: PayloadValueProblem) =>
   path ? ` at ${path}: ${message}` : `: ${message}`;
 
 /**
+ * Leaves out flow inputs given as an empty string that isn't a valid value of their kind, e.g. a number or a URL left
+ * blank in a form, so that they count as not given. An empty string that is valid, e.g. as Text, is kept.
+ */
+export const omitInvalidEmptyFlowInputs = ({
+  inputDefinitions,
+  flowInputs,
+}: {
+  inputDefinitions: readonly FlowInputDefinition[];
+  flowInputs: FlowInputValues;
+}): FlowInputValues =>
+  Object.fromEntries(
+    Object.entries(flowInputs).filter(([inputName, payload]) => {
+      const inputDefinition = inputDefinitions.find(
+        ({ name }) => name === inputName,
+      );
+
+      /* Given from outside the workflow, so a payload may not have the shape its type says. */
+      const { kind, value } =
+        (payload as { kind?: unknown; value?: unknown } | null) ?? {};
+
+      return !(
+        value === "" &&
+        inputDefinition &&
+        !inputDefinition.array &&
+        kind === inputDefinition.payloadKind &&
+        validatePayloadValue({
+          kind: inputDefinition.payloadKind,
+          array: false,
+          value,
+          allowStoredRefs: false,
+        })
+      );
+    }),
+  );
+
+/**
  * Checks the values given to a flow's inputs from outside it, e.g. by a user, a schedule or a trigger, against the
  * flow's input definitions. A stored payload reference is rejected, since only the flow's own steps create them.
  *
