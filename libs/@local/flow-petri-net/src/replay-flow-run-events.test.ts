@@ -33,14 +33,11 @@ type UnplacedEvent<Event = FlowRunEvent> = Event extends unknown
 
 /** Gives each event a position and a time a second after the one before. */
 const placed = (events: UnplacedEvent[]): FlowRunEvent[] =>
-  events.map(
-    (event, index) =>
-      ({
-        ...event,
-        position: `${index + 1}.0`,
-        occurredAt: new Date(index * 1000).toISOString(),
-      }) as FlowRunEvent,
-  );
+  events.map((event, index) => ({
+    ...event,
+    position: `${index + 1}.0`,
+    occurredAt: new Date(index * 1000).toISOString(),
+  }));
 
 const fileOutput: StepOutput[] = [
   { outputName: "fileEntity", payload: { kind: "Text", value: "a file" } },
