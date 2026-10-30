@@ -10,6 +10,8 @@
 
 import { Worker, parentPort, workerData } from "node:worker_threads";
 
+import { messageOf } from "./diagnostics";
+
 export interface WorkerClient<Request, Response> {
   call: (request: Request) => Promise<Response>;
   close: () => Promise<void>;
@@ -104,7 +106,7 @@ export const serveWorker = <Request, Response>(
       port.postMessage({
         id,
         ok: false,
-        error: cause instanceof Error ? cause.message : String(cause),
+        error: messageOf(cause),
       } satisfies Reply<Response>);
     }
   });

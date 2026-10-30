@@ -292,7 +292,7 @@ export const collectPythonImports = async (options: {
       }
     }
 
-    // One record per file pair, matching dependency-cruiser's counting.
+    // One record per file pair.
     for (const target of [...targets].sort((left, right) =>
       left.localeCompare(right),
     )) {

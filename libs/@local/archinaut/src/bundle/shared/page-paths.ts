@@ -11,14 +11,10 @@ export const layerSlug = (id: string): string =>
   `architecture/${id.replace(/\./gu, "/")}`;
 
 /**
- * Rewrites relative links in embedded README prose to absolute source URLs.
- *
- * A README's `[engine](./engine/README.md)` is correct where the README lives
- * and broken once the prose is embedded in a docs page served from somewhere
- * else entirely. Resolving against the README's own directory keeps those links
- * working wherever the bundle is mounted.
+ * Relative link from one bundle page to another, so the bundle works when
+ * mounted at any base path. Resolved against the slug: page links are
+ * followed in URL space, where slugs map to URLs without a trailing slash.
  */
-
 export const relativeTo = (fromSlug: string, toSlug: string): string => {
   const relative = posix.relative(posix.dirname(fromSlug), toSlug);
   return relative === "" ? "." : relative;

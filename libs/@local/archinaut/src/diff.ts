@@ -7,7 +7,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { symlink } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { emitBundle, type Bundle } from "./bundle";
@@ -31,12 +31,7 @@ import type { ArchitectureModel } from "./model";
 const packageRoot = fileURLToPath(new URL("..", import.meta.url));
 
 const baseCacheDir = (config: ArchinautConfig): string =>
-  join(
-    isAbsolute(config.cacheDirectory)
-      ? config.cacheDirectory
-      : join(config.root, config.cacheDirectory),
-    "base",
-  );
+  join(config.cacheDirectory, "base");
 
 /** Repo-relative directories whose content the generator reads. */
 const coveredPaths = (config: ArchinautConfig): string[] => [

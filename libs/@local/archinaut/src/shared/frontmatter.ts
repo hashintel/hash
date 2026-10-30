@@ -14,6 +14,8 @@
 import { load } from "js-yaml";
 import { z } from "zod";
 
+import { messageOf } from "./diagnostics";
+
 const frontmatterPattern = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/u;
 
 /**
@@ -76,9 +78,7 @@ export const parseFrontmatterRecord = (markdown: string): FrontmatterRecord => {
     return {
       record: null,
       body,
-      errors: [
-        `invalid YAML frontmatter: ${cause instanceof Error ? cause.message : String(cause)}`,
-      ],
+      errors: [`invalid YAML frontmatter: ${messageOf(cause)}`],
     };
   }
 

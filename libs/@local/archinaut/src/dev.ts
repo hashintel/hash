@@ -11,9 +11,9 @@ import { join, relative } from "node:path";
 import { createDevSession, type SessionBuild } from "./dev/session";
 import { packagesOf } from "./pipeline";
 import { sourceRootOf } from "./pipeline/shared/scope";
-import { countErrors } from "./shared/diagnostics";
+import { countErrors, messageOf } from "./shared/diagnostics";
 import { toPosix } from "./shared/paths";
-import { report, summarise } from "./shared/report";
+import { formatTimings, report, summarise } from "./shared/report";
 import { serveSite, syncSite, type SiteServer } from "./site";
 
 import type { ArchinautConfig } from "./config";
@@ -21,11 +21,9 @@ import type { ArchinautConfig } from "./config";
 const debounceMs = 100;
 
 const describe = (build: SessionBuild): string => {
-  const total = Object.values(build.timings).reduce((sum, ms) => sum + ms, 0);
-  const stages = Object.entries(build.timings)
-    .map(([stage, ms]) => `${stage} ${ms} ms`)
-    .join(" · ");
-  return `${total} ms (${stages}) · ${build.touched.join(", ")}`;
+  const { timings } = build.result.pipeline;
+  const total = Object.values(timings).reduce((sum, ms) => sum + ms, 0);
+  return `${total} ms (${formatTimings(timings)}) · ${build.touched.join(", ")}`;
 };
 
 export const serve = async (options: {
@@ -103,9 +101,7 @@ export const serve = async (options: {
       running = running
         .then(() => rebuild(batch))
         .catch((cause: unknown) => {
-          process.stderr.write(
-            `rebuild failed: ${cause instanceof Error ? cause.message : String(cause)}\n`,
-          );
+          process.stderr.write(`rebuild failed: ${messageOf(cause)}\n`);
         });
     }, debounceMs);
   };

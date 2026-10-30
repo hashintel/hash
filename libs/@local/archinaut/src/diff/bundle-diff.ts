@@ -10,6 +10,7 @@
  * something to point at.
  */
 
+import { bundlePages } from "../bundle";
 import { buildManifest } from "../bundle/outputs";
 import { assetPathFrom, frontmatter, layerSlug } from "../bundle/pages";
 import { DIFF_MARKER_MODULE } from "../bundle/shipped-components";
@@ -17,20 +18,14 @@ import { annotatePageBlocks, splitFrontmatter } from "./annotate";
 import { diffBlocks, splitBlocks } from "./blocks";
 import { normalizeGeneratedBlock } from "./normalize";
 
-import type { Bundle } from "../bundle";
+import type { Bundle, BundlePage } from "../bundle";
 import type { ArchitectureModel, Layer } from "../model";
 
 export type PageChange = "added" | "changed" | "removed";
 
 /** The slice of a page the diff needs, common to generated and authored. */
-export interface DiffPage {
-  slug: string;
-  title: string;
-  description: string;
-  order: number;
-  kind: "generated" | "authored";
-  contents: string;
-}
+/** A page as a diff side stores it: everything but where it lives in the bundle. */
+export type DiffPage = Omit<BundlePage, "path">;
 
 export interface DiffSide {
   pages: DiffPage[];
@@ -211,24 +206,7 @@ export const diffSideOfBundle = (
 ): DiffSide => ({
   layers: model.layers,
   sourceUrlPrefix,
-  pages: [
-    ...bundle.generated.map((page) => ({
-      slug: page.slug,
-      title: page.title,
-      description: page.description,
-      order: page.order,
-      kind: "generated" as const,
-      contents: page.contents,
-    })),
-    ...bundle.authored.map((page) => ({
-      slug: page.slug,
-      title: page.title,
-      description: page.description,
-      order: page.order,
-      kind: "authored" as const,
-      contents: page.contents,
-    })),
-  ],
+  pages: bundlePages(bundle).map(({ path: _path, ...page }) => page),
 });
 
 /**
@@ -273,8 +251,7 @@ export const applyBundleDiff = (
     authored,
     manifest: buildManifest({
       generator: head.bundle.manifest.generator,
-      generated,
-      authored,
+      pages: bundlePages({ generated, authored }),
       diff: { baseRef: info.baseRef, baseSha: info.baseSha, pages: statuses },
     }),
   };

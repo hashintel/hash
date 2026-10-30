@@ -1,10 +1,7 @@
 /**
- * What every stage reports, and how.
- *
- * One shape for extraction, graph building and the checks, so the CLI formats
- * them identically and no stage has to invent its own reporting. This lived in
- * `extract.ts`, which meant the graph builder could only return bare strings and
- * the caller had to guess a file to attribute them to.
+ * What every stage reports, and how: one shape for the scan, the facts, the
+ * model and the checks, so the CLI formats them identically and no stage has
+ * to invent its own reporting.
  */
 
 export interface Diagnostic {
@@ -31,3 +28,7 @@ export const warning = (
 
 export const countErrors = (diagnostics: Diagnostic[]): number =>
   diagnostics.filter((diagnostic) => diagnostic.severity === "error").length;
+
+/** The message of whatever was thrown. */
+export const messageOf = (cause: unknown): string =>
+  cause instanceof Error ? cause.message : String(cause);

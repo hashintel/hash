@@ -6,9 +6,10 @@
 
 import { join } from "node:path";
 
-import { error, type Diagnostic } from "../../shared/diagnostics";
+import { error, messageOf, type Diagnostic } from "../../shared/diagnostics";
 import { collectPythonImports } from "./python/imports";
 import { indexPythonPackage, scipPythonVersion } from "./python/scip";
+import { moduleSymbol } from "./shared/symbols";
 
 import type {
   FactsOptions,
@@ -36,13 +37,14 @@ const importDocuments = (
   const documents = new Map(
     files.map((file): [string, IndexedDocument] => [
       file,
-      { file, occurrences: [{ symbol: `${file}#`, definition: true }] },
+      { file, occurrences: [{ symbol: moduleSymbol(file), definition: true }] },
     ]),
   );
   for (const dependency of dependencies) {
-    documents
-      .get(dependency.from)
-      ?.occurrences.push({ symbol: `${dependency.to}#`, definition: false });
+    documents.get(dependency.from)?.occurrences.push({
+      symbol: moduleSymbol(dependency.to),
+      definition: false,
+    });
   }
   return [...documents.values()];
 };
@@ -80,7 +82,7 @@ export const openPythonSource = (options: FactsOptions): FactsSource => {
           diagnostics.push(
             error(
               `${pkg.path}/package.json`,
-              `indexing ${pkg.name} failed, so only its import statements count: ${cause instanceof Error ? cause.message : String(cause)}`,
+              `indexing ${pkg.name} failed, so only its import statements count: ${messageOf(cause)}`,
             ),
           );
           return [];
@@ -97,6 +99,7 @@ export const openPythonSource = (options: FactsOptions): FactsSource => {
   };
   return {
     index,
+    // scip-python indexes a package whole, so an update is a fresh index.
     update: (files) => index(files),
     close: () => Promise.resolve(),
   };

@@ -42,14 +42,6 @@ export const rewriteRelativeLinks = (
   );
 };
 
-/**
- * Relative link from one bundle page to another, so the bundle works when
- * mounted at any base path.
- *
- * Resolved against the *slug* — page links are followed in URL space by a
- * reader, and assume slugs map to URLs without a trailing slash.
- */
-
 const outsideCode = (
   contents: string,
   rewrite: (text: string) => string,
@@ -180,14 +172,10 @@ export const resolveDiagramImages = (
   return { contents: resolved, unresolved };
 };
 
-/** One row of the relations card, mirroring `LayerRelation` in the component. */
-
 /**
- * Resolves `.d2` references a page makes relative to its own source file, as
- * an image (`![alt](./flow.d2)`) or as a component (`import Flow from
- * "./flow.d2"`). Both become the rendered SVG in the bundle: the image stays
- * a plain Markdown image any host renders; the import becomes an SVG import,
- * which a host that turns SVG files into components, as Astro does, inlines.
+ * Resolves the `.d2` images a page references relative to its own source
+ * file, `![alt](./flow.d2)`, into the rendered SVG in the bundle: a plain
+ * Markdown image any host renders.
  * Without a renderer the image is dropped and the component renders nothing.
  */
 export const resolveLocalDiagrams = (

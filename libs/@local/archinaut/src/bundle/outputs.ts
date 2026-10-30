@@ -14,8 +14,7 @@ import {
 } from "../model";
 import { headingsOf, type PageHeading } from "./headings";
 
-import type { AuthoredPage } from "./content";
-import type { GeneratedPage } from "./pages";
+import type { BundlePage } from "./shared/bundle-page";
 
 export const BUNDLE_MANIFEST_VERSION = 1;
 
@@ -59,33 +58,23 @@ export interface BundleManifest {
 
 export const buildManifest = (options: {
   generator: string;
-  generated: GeneratedPage[];
-  authored: AuthoredPage[];
+  pages: BundlePage[];
   diff?: ManifestDiff;
 }): BundleManifest => {
-  const pages: ManifestPage[] = [
-    ...options.generated.map((page) => ({
+  const pages: ManifestPage[] = options.pages
+    .map((page) => ({
       path: page.path,
       slug: page.slug,
       title: page.title,
       description: page.description,
-      kind: "generated" as const,
+      kind: page.kind,
       order: page.order,
       headings: headingsOf(page.contents),
-    })),
-    ...options.authored.map((page) => ({
-      path: page.path,
-      slug: page.slug,
-      title: page.title,
-      description: page.description,
-      kind: "authored" as const,
-      order: page.order,
-      headings: headingsOf(page.contents),
-    })),
-  ].sort(
-    (left, right) =>
-      left.order - right.order || left.slug.localeCompare(right.slug),
-  );
+    }))
+    .sort(
+      (left, right) =>
+        left.order - right.order || left.slug.localeCompare(right.slug),
+    );
 
   return {
     manifestVersion: BUNDLE_MANIFEST_VERSION,

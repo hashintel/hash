@@ -24,7 +24,7 @@ export interface ArchinautConfig {
   contentDirectory: string;
   /** Where the bundle is written, repo-relative. */
   outputDirectory: string;
-  /** Where facts and rendered diagrams are cached, repo-relative. */
+  /** Where facts, rendered diagrams and diff bases are cached; absolute once loaded. */
   cacheDirectory: string;
   /** Base URL for source links in generated pages, including the git ref. */
   sourceUrlPrefix: string;
@@ -58,12 +58,13 @@ export const loadConfig = async (
   if (loaded.default === undefined) {
     throw new Error(`${configPath} must default-export defineConfig(...)`);
   }
+  const config = loaded.default;
+  // A CI whose persisted cache location differs sets the variable rather
+  // than the code guessing its layout.
   const override = process.env.ARCHINAUT_CACHE_DIR?.trim();
   return {
-    ...loaded.default,
+    ...config,
     configFile: resolve(configPath),
-    // A CI whose persisted cache location differs sets the variable rather
-    // than the code guessing its layout.
-    ...(override ? { cacheDirectory: override } : {}),
+    cacheDirectory: resolve(config.root, override || config.cacheDirectory),
   };
 };
