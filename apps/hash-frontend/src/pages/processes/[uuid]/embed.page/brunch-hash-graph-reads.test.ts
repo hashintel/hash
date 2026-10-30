@@ -36,12 +36,13 @@ const edgesTo = (depth: number) => [
   },
 ];
 
-test("a read with no filters asks for every visible, unarchived entity one link deep, without drafts", () => {
+test("a read with no filters asks for every visible, unarchived entity one link deep, without drafts, with its types resolved", () => {
   expect(hashEntityReadRequest({})).toMatchObject({
     filter: { all: [notArchived] },
     traversalPaths: edgesTo(1),
     includeDrafts: false,
     includePermissions: false,
+    includeEntityTypes: "resolved",
   });
 });
 
@@ -126,9 +127,32 @@ const entity = ({
 });
 
 const nameUrl = "https://hash.ai/@alice/types/property-type/name/";
+const supplierTypeId = "https://hash.ai/@alice/types/entity-type/supplier/v/1";
+const hasTypeId = "https://hash.ai/@h/types/entity-type/has/v/1";
 /** Alice's supplier, matched, and the link the traversal reached from it. */
 const response = {
   queryEntitySubgraph: {
+    closedMultiEntityTypes: {
+      [supplierTypeId]: {
+        schema: { allOf: [{ $id: supplierTypeId, title: "Supplier" }] },
+      },
+      [hasTypeId]: {
+        schema: { allOf: [{ $id: hasTypeId, title: "Has" }] },
+      },
+    },
+    definitions: {
+      dataTypes: {},
+      entityTypes: {},
+      propertyTypes: {
+        // Two versions of the one property: the later one is described.
+        [`${nameUrl}v/1`]: { title: "Old name" },
+        [`${nameUrl}v/2`]: { title: "Name", description: "What it's called." },
+        // A property no returned entity carries is left out.
+        "https://hash.ai/@alice/types/property-type/unused/v/1": {
+          title: "Unused",
+        },
+      },
+    },
     subgraph: {
       roots: [
         { baseId: "alice-web~supplier", revisionId: "2026-10-26T00:00:00Z" },
@@ -186,6 +210,13 @@ test("the read runs the request it built and returns each entity from its own ed
     expect.any(AbortSignal),
   );
   expect(output).toEqual({
+    propertyTypes: [
+      { baseUrl: nameUrl, title: "Name", description: "What it's called." },
+    ],
+    entityTypes: [
+      { entityTypeId: supplierTypeId, title: "Supplier" },
+      { entityTypeId: hasTypeId, title: "Has" },
+    ],
     entities: [
       {
         entityId: "alice-web~supplier",
@@ -230,6 +261,16 @@ test("a query that fails because the call was cancelled still rejects", async ()
     return Promise.reject(aborted);
   });
   await expect(runTool(tool, {}, controller.signal)).rejects.toBe(aborted);
+});
+
+test("the entities whose values the agent shows in full don't change what is read", async () => {
+  const query = vi.fn<QueryEntitySubgraph>(() => Promise.resolve(response));
+  const input = { entityIds: ["alice-web~supplier"] };
+  await run(query, { ...input, fullValuesFor: ["alice-web~supplier"] });
+  expect(query).toHaveBeenCalledWith(
+    hashEntityReadRequest(input),
+    expect.any(AbortSignal),
+  );
 });
 
 test("an input the agent's contract doesn't allow is refused before any query", async () => {

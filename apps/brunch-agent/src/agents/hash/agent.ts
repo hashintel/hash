@@ -20,6 +20,7 @@ import { createFlueClient } from "@flue/sdk";
 import {
   browserToolMutatesDocument,
   canonicalContent,
+  hashGraphReadToolNames,
   parsePetrinautUserMessageBody,
   readPetrinautSubmissionContext,
   type SdcpnInitialData,
@@ -85,6 +86,8 @@ export function HashAgent({ id }: AgentProps) {
     withVersionLoadNotes(
       createBrunchContextProjection({
         observe: (entries) => netViewTracker.observe(id, entries),
+        // The HASH graph reads are rendered as compact text for the model.
+        textResultToolNames: hashGraphReadToolNames,
       }),
     ),
   );

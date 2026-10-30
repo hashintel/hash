@@ -496,8 +496,9 @@ export const createBrunchSaveApprovalWidget = (
       <section className={containerStyle} aria-label="Approve saving the net">
         <strong>Save ‘{title}’ as a new version?</strong>
         <p className={css({ fontSize: "sm" })}>
-          This includes your own unsaved edits. Others who can see this net will
-          see it as the latest version.
+          It saves every unsaved edit in the editor, yours and the
+          assistant&apos;s. Others who can see this net will see it as the
+          latest version.
         </p>
         {lastSavedTime !== null && (
           <p className={css({ fontSize: "xs", color: "neutral.s90" })}>
