@@ -384,8 +384,7 @@ export const useIconEffects = ({
       focused = false;
       if (!pointerInside) leave();
     };
-    if (interactive && !effectKey && !hoverEffect)
-      control.addEventListener("click", play);
+    if (interactive && !effectKey) control.addEventListener("click", play);
     control.addEventListener("pointerenter", pointerEnter);
     control.addEventListener("pointerleave", pointerLeave);
     control.addEventListener("focus", focus);
