@@ -106,8 +106,8 @@ fn draft_source(api: &DatabaseApi<'_>) -> SourceProvenance {
     SourceProvenance {
         entity_id: Some(EntityId {
             web_id: WebId::new(api.account_id),
-            entity_uuid: EntityUuid::new(Uuid::new_v4()),
-            draft_id: Some(DraftId::new(Uuid::new_v4())),
+            entity_uuid: EntityUuid::new(Uuid::now_v7()),
+            draft_id: Some(DraftId::new(Uuid::now_v7())),
         }),
         ..webpage()
     }
