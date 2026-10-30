@@ -5,9 +5,7 @@
  * thread never waits on the compiler, so a server beside it keeps serving.
  */
 
-import { workerData } from "node:worker_threads";
-
-import { serveWorker } from "../../../shared/worker-channel";
+import { serveWorker, workerInput } from "../../../shared/worker-channel";
 import { createProgramHost } from "./program-host";
 import { createProgramWalker } from "./walk-program";
 
@@ -28,7 +26,7 @@ export interface TypeScriptResponse {
   walked: number;
 }
 
-const data = workerData as TypeScriptWorkerData;
+const data = workerInput<TypeScriptWorkerData>();
 const documents = new Map<string, IndexedDocument>();
 let host: ReturnType<typeof createProgramHost> | null = null;
 let walker: ReturnType<typeof createProgramWalker> | null = null;

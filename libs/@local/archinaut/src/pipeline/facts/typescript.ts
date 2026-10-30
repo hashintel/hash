@@ -41,7 +41,7 @@ export const openTypeScriptSource = (options: FactsOptions): FactsSource => {
     paths: workspacePaths(options.repoRoot, options.packages),
   };
   const worker = startWorker<TypeScriptRequest, TypeScriptResponse>(
-    new URL("./typescript/worker-entry.js", import.meta.url),
+    new URL("./typescript/worker.ts", import.meta.url),
     workerData,
   );
   const answer = async (request: TypeScriptRequest) => {

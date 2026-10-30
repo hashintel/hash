@@ -15,6 +15,6 @@
     "rootDir": "..",
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "vite.config.ts", "prerender.ts"],
+  "include": ["src", "vite.config.ts", "prerender.ts", "prerender"],
   "exclude": ["src/content", "dist"]
 }

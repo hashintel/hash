@@ -49,10 +49,9 @@ layer of its folder, found by the same scan that resolves source files, and
 the model lists it on the layer (`pages`, `diagrams`). The emitter renders
 the page beneath the layer's page, with the slug `<layer>/<file stem>` as the
 key `doc:` links use, and renders the diagram like any other. A page
-references a diagram relative to itself, as `![alt](./flow.d2)` or
-`import Flow from "./flow.d2"`; the emitter rewrites the former to a plain
-image and the latter to an SVG import, so the package needs no MDX or D2
-tooling and the bundle stays framework-neutral. Pages that belong to no
+references a diagram relative to itself, as `![alt](./flow.d2)`, and the
+emitter rewrites that to a plain image of the rendered SVG, so the package
+needs no MDX or D2 tooling and the bundle stays framework-neutral. Pages that belong to no
 layer, and diagrams several pages share, live under `contentDirectory`.
 
 Every node of a generated diagram carries its layer's role as a tooltip and

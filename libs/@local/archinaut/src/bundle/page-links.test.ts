@@ -23,27 +23,27 @@ describe("resolveLocalDiagrams", () => {
     expect(unresolved).toEqual([]);
   });
 
-  it("turns a component import into an SVG import, climbing out of the folder", () => {
+  it("climbs out of the folder to a diagram beside a sibling page", () => {
     const { contents } = resolveLocalDiagrams(
-      'import Lanes from "../shared/lanes.d2";\n\n<Lanes />',
+      "![Lanes](../shared/lanes.d2)",
       slug,
       source,
       diagrams,
     );
     expect(contents).toBe(
-      'import Lanes from "../../../../diagrams/layers/core/lanes.svg";\n\n<Lanes />',
+      "![Lanes](../../../../diagrams/layers/core/lanes.svg)",
     );
   });
 
-  it("drops the image and stubs the component when nothing renders SVGs", () => {
+  it("drops the image when nothing renders SVGs", () => {
     const { contents } = resolveLocalDiagrams(
-      'import Flow from "./flow.d2";\n\n![x](./flow.d2)\n',
+      "Before.\n\n![x](./flow.d2)\nAfter.",
       slug,
       source,
       diagrams,
       false,
     );
-    expect(contents).toBe("export const Flow = () => null;\n\n");
+    expect(contents).toBe("Before.\n\nAfter.");
   });
 
   it("reports a reference to a diagram the scan did not find", () => {
