@@ -7,7 +7,7 @@ then answers one request per line over stdio or a Unix socket.
 
 The full reference — transports, the protocol, run requests, and optimization
 studies — lives in the architecture docs'
-[usage manual](../../@local/petrinaut-arch-docs/content/cli/usage-manual.mdx)
+[usage manual](src/usage-manual.mdx)
 (browse it rendered with `turbo run dev --filter @apps/petrinaut-docs`).
 
 The [`@local/petrinaut-python`](../../@local/petrinaut-python/README.md)
