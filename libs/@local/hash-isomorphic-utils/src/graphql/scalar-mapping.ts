@@ -4,6 +4,11 @@ export const scalars = {
 
   Date: "string",
 
+  ApiTokenId: "@local/hash-graph-sdk/api-token#ApiTokenId",
+  ApiTokenResponse: "@local/hash-graph-sdk/api-token#ApiTokenResponse",
+  CreateApiTokenResponse:
+    "@local/hash-graph-sdk/api-token#CreateApiTokenResponse",
+
   JSONObject: "@blockprotocol/core#JsonObject",
   QueryOperationInput: "@blockprotocol/graph#QueryOperationInput",
 

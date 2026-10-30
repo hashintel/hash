@@ -1,5 +1,10 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
+import {
+  createApiTokenResolver,
+  myApiTokensResolver,
+  revokeApiTokenResolver,
+} from "./api-token";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { cancelFlow } from "./flows/cancel-flow";
@@ -202,6 +207,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     generatePlural: loggedInAndSignedUpMiddleware(generatePluralResolver),
     isGenerationAvailable: isGenerationAvailableResolver,
     validateEntity: loggedInAndSignedUpMiddleware(validateEntityResolver),
+
+    myApiTokens: loggedInAndSignedUpMiddleware(myApiTokensResolver),
   },
 
   Mutation: {
@@ -313,6 +320,10 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     syncLinearIntegrationWithWebs: loggedInAndSignedUpMiddleware(
       syncLinearIntegrationWithWebsMutation,
     ),
+
+    // API tokens
+    createApiToken: loggedInAndSignedUpMiddleware(createApiTokenResolver),
+    revokeApiToken: loggedInAndSignedUpMiddleware(revokeApiTokenResolver),
   },
 
   JSONObject: JSONObjectResolver,
