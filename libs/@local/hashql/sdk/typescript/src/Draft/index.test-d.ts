@@ -607,6 +607,26 @@ describe("query", () => {
     >();
   });
 
+  test("escaped_filter", () => {
+    graphProgram({ flag: Boolean }, ($, { flag }) => {
+      const filtered = $.query($.prelude().entities(1n))
+        .filter("vertex", (predicate) => {
+          predicate.let("hidden", flag);
+          return true;
+        })
+        .collect();
+      expectTypeOf(filtered).toEqualTypeOf<
+        Program.Expression.Expression<
+          Type.List<Vertex>,
+          { readonly flag: Type.PrimitiveBoolean }
+        >
+      >();
+      // @ts-expect-error the filter closure emits the predicate's binding of `flag`
+      graphProgram({}, () => filtered);
+      return filtered;
+    });
+  });
+
   test("unrestricted_context", () => {
     expectTypeOf(unrestrictedQuery);
   });

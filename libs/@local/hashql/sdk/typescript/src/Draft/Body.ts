@@ -113,14 +113,14 @@ export interface Query<
   V extends Type.Any,
   R,
 > extends Expression.Expression.Handle<Graph<V>, R> {
-  /** Keeps the vertices `predicate` accepts. The predicate receives a fresh restricted context and returns a Boolean whose input requirements fit the schema. Otherwise this is the `filter` of {@link Construction.Query | Context.Query}. */
+  /** Keeps the vertices `predicate` accepts. The predicate receives a fresh restricted context and returns a Boolean whose input requirements fit the schema. The result requires the whole schema, because the filter closure emits the predicate's declarations and no type records their inputs. Otherwise this is the `filter` of {@link Construction.Query | Context.Query}. */
   readonly filter: <const P extends Expression.Value<Type.PrimitiveBoolean>>(
     name: string,
     predicate: (
       $: Context<S, I>,
       vertex: Expression.Expression<V, Input.Empty>,
     ) => P & Accept<I, P>,
-  ) => Query<S, I, V, Input.Merge<R, Expression.Value.Inputs<P>>>;
+  ) => Query<S, I, V, I>;
 
   /** Ends the query as a list of its vertices. This is {@link @local/hashql!Program.Query.collect | Query.collect}. */
   readonly collect: () => Expression.Expression<Type.List<V>, R>;
