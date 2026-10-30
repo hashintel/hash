@@ -4,6 +4,7 @@ use alloc::sync::Arc;
 use core::pin::Pin;
 
 use axum::{Extension, Router};
+use hash_crypto::Secret;
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::store::postgres::PostgresClient;
@@ -11,7 +12,6 @@ use hash_graph_store::{
     api_token::ApiTokenStore, filter::protection::PropertyProtectionFilterConfig, pool::StorePool,
 };
 use hash_middleware::{authentication::AuthenticationMetrics, rate_limit::RateLimiters};
-use hash_secret::Secret;
 use hash_temporal_client::TemporalClient;
 use opentelemetry::metrics::Meter;
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};

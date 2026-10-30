@@ -32,7 +32,7 @@ const MAX_PLAINTEXT_LEN: u64 = (1 << 36) - 32;
 /// # Examples
 ///
 /// ```
-/// use hash_secret::aes_gcm::AeadPurpose;
+/// use hash_crypto::aes_gcm::AeadPurpose;
 ///
 /// struct Notes;
 ///
@@ -74,7 +74,7 @@ pub trait AeadPurpose {
 /// ```
 /// use core::pin::pin;
 ///
-/// use hash_secret::{
+/// use hash_crypto::{
 ///     Secret,
 ///     aes_gcm::{AeadPurpose, Aes256GcmKey},
 /// };
@@ -250,7 +250,7 @@ impl<const N: usize> SecretBuffer for CiphertextWithTag<N> {
 /// ```
 /// use core::pin::pin;
 ///
-/// use hash_secret::{
+/// use hash_crypto::{
 ///     Secret,
 ///     aes_gcm::{AeadPurpose, Aes256GcmKey, Sealed},
 /// };

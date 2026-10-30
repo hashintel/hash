@@ -126,11 +126,11 @@ pub struct IssuedApiToken {
 mod tests {
     use core::{assert_matches, pin::pin, time::Duration};
 
+    use hash_crypto::Secret;
     use hash_graph_store::api_token::{
         ApiTokenCredential, ApiTokenEncryptionKeyId, ApiTokenName, ApiTokenSecretHash,
         ApiTokenVerificationError,
     };
-    use hash_secret::Secret;
     use rstest::rstest;
     use type_system::principal::{
         actor::{ActorEntityUuid, UserId},

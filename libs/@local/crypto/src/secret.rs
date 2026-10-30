@@ -40,7 +40,7 @@ use crate::{
 /// ```
 /// use core::pin::pin;
 ///
-/// use hash_secret::Secret;
+/// use hash_crypto::Secret;
 ///
 /// let mut hex = "0123456789abcdef".repeat(4);
 /// let mut key = Box::pin(Secret::<[u8; 32]>::zeroed());
@@ -55,7 +55,7 @@ use crate::{
 ///
 /// let password = Secret::from_string("hunter2".to_owned());
 /// assert_eq!(&*password, "hunter2");
-/// # Ok::<(), error_stack::Report<hash_secret::HexError>>(())
+/// # Ok::<(), error_stack::Report<hash_crypto::HexError>>(())
 /// ```
 #[repr(transparent)]
 pub struct Secret<T: ?Sized + SecretBuffer> {
@@ -97,7 +97,7 @@ impl Secret<[u8]> {
     /// # Examples
     ///
     /// ```
-    /// use hash_secret::Secret;
+    /// use hash_crypto::Secret;
     ///
     /// let mut key = Secret::zeroed_slice(4);
     /// key.as_mut().expose_mut().copy_from_slice(b"KEY!");
@@ -122,12 +122,12 @@ impl Secret<[u8]> {
     /// # Examples
     ///
     /// ```
-    /// use hash_secret::Secret;
+    /// use hash_crypto::Secret;
     ///
     /// let key = Secret::<[u8]>::from_hex(String::from("deadbeef"))?;
     ///
     /// assert_eq!(&*key, b"\xDE\xAD\xBE\xEF".as_slice());
-    /// # Ok::<(), error_stack::Report<hash_secret::HexError>>(())
+    /// # Ok::<(), error_stack::Report<hash_crypto::HexError>>(())
     /// ```
     pub fn from_hex(hex: String) -> Result<Pin<Box<Self>>, Report<HexError>> {
         // `decode_hex` zeroes only the characters, this also zeroes the spare capacity.
@@ -145,7 +145,7 @@ impl Secret<[u8]> {
     /// # Examples
     ///
     /// ```
-    /// use hash_secret::Secret;
+    /// use hash_crypto::Secret;
     ///
     /// let key = Secret::from_vec(vec![0xDE, 0xAD, 0xBE, 0xEF]);
     ///
@@ -182,7 +182,7 @@ impl<const N: usize> Secret<[u8; N]> {
     /// ```
     /// use core::pin::pin;
     ///
-    /// use hash_secret::Secret;
+    /// use hash_crypto::Secret;
     ///
     /// let mut boxed = Box::pin(Secret::<[u8; 4]>::zeroed());
     /// boxed.as_mut().expose_mut().copy_from_slice(b"KEY!");
@@ -212,12 +212,12 @@ impl<const N: usize> Secret<[u8; N]> {
     /// # Examples
     ///
     /// ```
-    /// use hash_secret::Secret;
+    /// use hash_crypto::Secret;
     ///
     /// let key = Secret::<[u8; 4]>::from_hex(String::from("deadbeef"))?;
     ///
     /// assert_eq!(&*key, b"\xDE\xAD\xBE\xEF".as_slice());
-    /// # Ok::<(), error_stack::Report<hash_secret::HexError>>(())
+    /// # Ok::<(), error_stack::Report<hash_crypto::HexError>>(())
     /// ```
     pub fn from_hex(hex: String) -> Result<Pin<Box<Self>>, Report<HexError>> {
         // `decode_hex` zeroes only the characters, this also zeroes the spare capacity.
@@ -236,7 +236,7 @@ impl Secret<str> {
     /// # Examples
     ///
     /// ```
-    /// use hash_secret::Secret;
+    /// use hash_crypto::Secret;
     ///
     /// let password = Secret::from_string("hunter2".to_owned());
     ///
@@ -248,7 +248,7 @@ impl Secret<str> {
     /// ```
     /// use core::mem;
     ///
-    /// use hash_secret::Secret;
+    /// use hash_crypto::Secret;
     ///
     /// struct Config {
     ///     password: String,
@@ -278,7 +278,7 @@ impl<T: ?Sized + SecretBuffer> Secret<T> {
     /// # Examples
     ///
     /// ```
-    /// use hash_secret::Secret;
+    /// use hash_crypto::Secret;
     ///
     /// let password = Secret::from_string("hunter2".to_owned());
     ///
@@ -295,7 +295,7 @@ impl<T: ?Sized + SecretBuffer> Secret<T> {
     /// # Examples
     ///
     /// ```
-    /// use hash_secret::Secret;
+    /// use hash_crypto::Secret;
     ///
     /// let mut password = Secret::from_string("hunter2".to_owned());
     /// password.as_mut().expose_mut().make_ascii_uppercase();
@@ -345,7 +345,7 @@ impl<T: ?Sized + SecretBuffer> Secret<T> {
     /// use core::pin::{Pin, pin};
     /// use std::sync::Arc;
     ///
-    /// use hash_secret::Secret;
+    /// use hash_crypto::Secret;
     ///
     /// let mut key = pin!(Secret::<[u8; 4]>::zeroed());
     /// key.as_mut().decode_hex(&mut String::from("deadbeef"))?;
@@ -355,7 +355,7 @@ impl<T: ?Sized + SecretBuffer> Secret<T> {
     ///
     /// assert_eq!(&*clone, b"\xDE\xAD\xBE\xEF".as_slice());
     /// assert!(core::ptr::eq(shared.expose(), clone.expose()));
-    /// # Ok::<(), error_stack::Report<hash_secret::HexError>>(())
+    /// # Ok::<(), error_stack::Report<hash_crypto::HexError>>(())
     /// ```
     #[must_use]
     #[expect(unsafe_code, reason = "pins the new shared secret")]
@@ -392,7 +392,7 @@ impl<T: ?Sized + SecretBuffer<View = [u8]>> Secret<T> {
     /// # Examples
     ///
     /// ```
-    /// use hash_secret::{HexError, Secret};
+    /// use hash_crypto::{HexError, Secret};
     ///
     /// // A value read from a file or an environment variable often ends with a newline.
     /// let mut hex = String::from("deadbeef\n");
@@ -408,7 +408,7 @@ impl<T: ?Sized + SecretBuffer<View = [u8]>> Secret<T> {
     ///     .expect_err("four digits should not fill four bytes");
     /// assert_eq!(report.current_context(), &HexError::Length { expected: 8 });
     /// assert_eq!(&*key, [0; 4].as_slice());
-    /// # Ok::<(), error_stack::Report<hash_secret::HexError>>(())
+    /// # Ok::<(), error_stack::Report<hash_crypto::HexError>>(())
     /// ```
     pub fn decode_hex(self: Pin<&mut Self>, hex: &mut str) -> Result<(), Report<HexError>> {
         decode_hex_into(self.expose_mut(), hex)

@@ -13,7 +13,7 @@
 use core::{fmt, str::FromStr, time::Duration};
 use std::time::SystemTime;
 
-use hash_secret::aes_gcm::Sealed;
+use hash_crypto::aes_gcm::Sealed;
 use zerocopy::{LE, U64};
 
 use super::{authority::Scopes, scope::Scope};

@@ -2,7 +2,7 @@
 
 use core::{fmt, str::FromStr};
 
-use hash_secret::digest;
+use hash_crypto::digest;
 
 use super::{
     hex::{HexBytes, ParseHexError},

@@ -5,11 +5,11 @@ use core::{num::NonZero, ops::ControlFlow, time::Duration};
 
 use cookie::Cookie;
 use error_stack::{Report, ResultExt as _};
+use hash_crypto::hmac::{HmacPurpose, HmacSha256Key, HmacSha256Tag};
 use hash_middleware::authentication::{
     provider::{AuthenticationProvider, Caller},
     request::AuthenticationError,
 };
-use hash_secret::hmac::{HmacPurpose, HmacSha256Key, HmacSha256Tag};
 use http::{HeaderMap, header};
 use moka::future::Cache as MokaCache;
 use opentelemetry::{
@@ -427,13 +427,13 @@ mod tests {
     use std::collections::HashMap;
 
     use axum::{Json, Router, response::IntoResponse as _, routing::get};
+    use hash_crypto::Secret;
     use hash_middleware::authentication::{
         AuthenticationProblem, Challenge,
         provider::{AuthenticationProvider as _, expect_rejection},
         request::{ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind},
         service_secret::SERVICE_AUTH_SCHEME,
     };
-    use hash_secret::Secret;
     use http::{HeaderMap, HeaderValue, StatusCode};
     use opentelemetry::metrics::MeterProvider as _;
     use opentelemetry_sdk::metrics::{

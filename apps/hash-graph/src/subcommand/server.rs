@@ -15,6 +15,7 @@ use futures::{StreamExt as _, channel::mpsc};
 use harpc_codec::json::JsonCodec;
 use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
+use hash_crypto::Secret;
 use hash_graph_api::{
     rest::{
         self, PublicApiConfig,
@@ -42,7 +43,6 @@ use hash_graph_store::{
     pool::StorePool,
 };
 use hash_graph_type_fetcher::FetchingPool;
-use hash_secret::Secret;
 use hash_telemetry::Telemetry;
 use hash_temporal_client::{TemporalClient, TemporalClientConfig};
 use multiaddr::{Multiaddr, Protocol};
@@ -946,11 +946,11 @@ pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckE
 mod tests {
     use core::{num::NonZero, pin::Pin};
 
+    use hash_crypto::Secret;
     use hash_graph_api::rest::authentication::api_token::{
         ApiTokenEncryptionKey, Environment, HashedApiToken, IssuedApiToken,
     };
     use hash_graph_store::api_token::{ApiTokenEncryptionKeyId, ApiTokenName};
-    use hash_secret::Secret;
     use reqwest::Url;
     use rstest::rstest;
     use type_system::principal::{

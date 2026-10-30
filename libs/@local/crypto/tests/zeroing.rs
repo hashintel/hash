@@ -16,7 +16,7 @@ use std::{
     sync::{Mutex, MutexGuard, PoisonError},
 };
 
-use hash_secret::{
+use hash_crypto::{
     Secret, SecretBuffer,
     aes_gcm::{AeadPurpose, Aes256GcmKey},
 };

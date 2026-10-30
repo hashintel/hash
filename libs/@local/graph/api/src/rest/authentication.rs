@@ -8,6 +8,7 @@
 use alloc::sync::Arc;
 use core::pin::Pin;
 
+use hash_crypto::Secret;
 use hash_graph_authentication::{
     actor::StorePoolActorResolver,
     api_token::{ApiTokenIssuer, ApiTokenProvider, StorePoolApiTokenAuthenticator},
@@ -23,7 +24,6 @@ pub use hash_graph_authentication::{
 use hash_graph_authorization::policies::store::PrincipalStore;
 use hash_graph_store::{api_token::ApiTokenStore, pool::StorePool};
 pub use hash_middleware::authentication::{AuthenticatedActorId, AuthenticationMetrics};
-use hash_secret::Secret;
 
 /// Configuration for Cloudflare Access authentication.
 #[derive(Debug, Clone)]

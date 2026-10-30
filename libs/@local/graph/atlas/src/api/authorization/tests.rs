@@ -20,11 +20,11 @@ use axum::{
     routing::get,
 };
 use camino::Utf8PathBuf;
+use hash_crypto::Secret;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
 };
-use hash_secret::Secret;
 use tokio::time::timeout;
 use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;

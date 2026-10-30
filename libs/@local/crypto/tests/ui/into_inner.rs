@@ -1,6 +1,6 @@
 use core::pin::Pin;
 
-use hash_secret::Secret;
+use hash_crypto::Secret;
 
 fn main() {
     let secret = Box::pin(Secret::<[u8; 4]>::zeroed());

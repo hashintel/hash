@@ -47,7 +47,7 @@
 
 use core::{fmt, hash::Hasher as _, marker::PhantomData, pin::pin};
 
-use hash_secret::{Secret, SecretBuffer, hkdf::HkdfSha256Key};
+use hash_crypto::{Secret, SecretBuffer, hkdf::HkdfSha256Key};
 use hashql_core::id::Id;
 use siphasher::sip::SipHasher24;
 use zeroize::Zeroizing;
@@ -356,7 +356,7 @@ fn round(key: &[u8; 16], half: u32) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use hash_secret::Secret;
+    use hash_crypto::Secret;
     use hashql_core::id::{Id as _, newtype};
 
     use super::{EncodableId, EncodedRowId, RowCodec, RowDomain, WIRE_ROW_BOUND};

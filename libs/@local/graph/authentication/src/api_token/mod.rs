@@ -26,13 +26,13 @@ mod provider;
 use core::{
     fmt::{self, Write as _},
     mem::offset_of,
-    pin::Pin,
+    pin::{Pin, pin},
     str::FromStr,
 };
 
 use error_stack::{Report, ResultExt as _};
+use hash_crypto::{Secret, digest::Sha256Digest, random::random_bytes};
 use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash, ApiTokenType, ApiTokenVersion};
-use hash_secret::{Secret, digest::Sha256Digest, random::random_bytes};
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
@@ -288,7 +288,7 @@ impl From<&ApiToken> for HashedApiToken {
             environment: token.environment,
             version: token.version,
             token_id: token.token_id,
-            secret_hash: hash_secret(token.secret.expose()),
+            secret_hash: hash_secret(&token.secret),
         }
     }
 }
@@ -383,19 +383,22 @@ impl FromStr for HashedApiToken {
             return Err(ApiTokenParseError::Encoding);
         }
 
+        let mut secret = pin!(Secret::<[u8; SECRET_LENGTH]>::zeroed());
+        secret.as_mut().expose_mut().copy_from_slice(&token.secret);
+
         Ok(Self {
             token_type,
             environment,
             version,
             token_id,
-            secret_hash: hash_secret(&token.secret),
+            secret_hash: hash_secret(&secret),
         })
     }
 }
 
 /// The SHA-256 hash of `secret`.
-fn hash_secret(secret: &[u8]) -> ApiTokenSecretHash {
-    ApiTokenSecretHash::new(Sha256Digest::of(secret).to_bytes())
+fn hash_secret(secret: &Secret<[u8; SECRET_LENGTH]>) -> ApiTokenSecretHash {
+    ApiTokenSecretHash::new(Sha256Digest::of(secret.expose()).to_bytes())
 }
 
 /// Writes the `Display` output of a token: the token up to the first
@@ -510,8 +513,8 @@ fn encode_base62<const WIDTH: usize>(value: u128) -> [u8; WIDTH] {
 mod tests {
     use core::assert_matches;
 
+    use hash_crypto::Secret;
     use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash};
-    use hash_secret::Secret;
     use rstest::rstest;
     use uuid::Uuid;
 

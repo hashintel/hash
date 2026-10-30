@@ -1,5 +1,5 @@
 use error_stack::{Report, ResultExt as _};
-use hash_secret::digest::Sha256Digest;
+use hash_crypto::digest::Sha256Digest;
 use serde::{Deserialize, Serialize, Serializer};
 
 use super::DomainEvent;

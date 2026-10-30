@@ -12,7 +12,7 @@ use core::{
 use std::time::SystemTime;
 
 use error_stack::{Report, ResultExt as _};
-use hash_secret::{
+use hash_crypto::{
     Secret, SecretBuffer,
     aes_gcm::{AeadPurpose, Aes256GcmKey, Sealed},
     hkdf::HkdfSha256Key,

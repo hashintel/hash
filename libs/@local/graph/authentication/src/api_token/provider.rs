@@ -245,6 +245,7 @@ mod tests {
     };
 
     use error_stack::Report;
+    use hash_crypto::Secret;
     use hash_graph_store::api_token::{
         ApiTokenAuthenticationError, ApiTokenCredential, ApiTokenEncryptionKeyId, ApiTokenId,
         ApiTokenName, ApiTokenVerificationError,
@@ -253,7 +254,6 @@ mod tests {
         provider::{AuthenticationProvider, expect_rejection},
         request::{AuthenticationError, AuthenticationErrorKind},
     };
-    use hash_secret::Secret;
     use http::{HeaderMap, HeaderValue, header::AUTHORIZATION};
     use rstest::rstest;
     use type_system::principal::actor::{ActorId, UserId};

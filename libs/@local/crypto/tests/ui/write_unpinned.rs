@@ -1,4 +1,4 @@
-use hash_secret::Secret;
+use hash_crypto::Secret;
 
 fn main() {
     let mut secret = Secret::<[u8; 4]>::zeroed();

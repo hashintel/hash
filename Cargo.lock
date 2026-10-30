@@ -4516,7 +4516,7 @@ dependencies = [
  "error-stack",
  "futures-core",
  "futures-util",
- "hash-secret",
+ "hash-crypto",
  "opendata-common",
  "opendata-log",
  "proptest",
@@ -6429,6 +6429,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-crypto"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "base16ct",
+ "clap",
+ "clap_builder",
+ "derive_more",
+ "error-stack",
+ "rstest",
+ "simple-mermaid",
+ "trybuild",
+ "zerocopy",
+ "zeroize",
+]
+
+[[package]]
 name = "hash-graph"
 version = "0.0.0"
 dependencies = [
@@ -6440,6 +6457,7 @@ dependencies = [
  "harpc-codec",
  "harpc-server",
  "hash-codec",
+ "hash-crypto",
  "hash-graph-api",
  "hash-graph-atlas",
  "hash-graph-authorization",
@@ -6447,7 +6465,6 @@ dependencies = [
  "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-type-fetcher",
- "hash-secret",
  "hash-telemetry",
  "hash-temporal-client",
  "jsonwebtoken",
@@ -6493,6 +6510,7 @@ dependencies = [
  "harpc-tower",
  "harpc-types",
  "hash-codec",
+ "hash-crypto",
  "hash-graph-authentication",
  "hash-graph-authorization",
  "hash-graph-embeddings",
@@ -6503,7 +6521,6 @@ dependencies = [
  "hash-graph-types",
  "hash-graph-validation",
  "hash-middleware",
- "hash-secret",
  "hash-status",
  "hash-temporal-client",
  "hashql-ast",
@@ -6571,6 +6588,7 @@ dependencies = [
  "futures",
  "futures-sink",
  "hannoy",
+ "hash-crypto",
  "hash-graph-authorization",
  "hash-graph-embeddings",
  "hash-graph-postgres-store",
@@ -6578,7 +6596,6 @@ dependencies = [
  "hash-graph-temporal-versioning",
  "hash-graph-types",
  "hash-middleware",
- "hash-secret",
  "hash-temporal-client",
  "hashbrown 0.17.1",
  "hashql-core",
@@ -6635,10 +6652,10 @@ dependencies = [
  "crc32fast",
  "derive_more",
  "error-stack",
+ "hash-crypto",
  "hash-graph-authorization",
  "hash-graph-store",
  "hash-middleware",
- "hash-secret",
  "http 1.4.2",
  "jsonwebtoken",
  "moka",
@@ -6697,6 +6714,7 @@ dependencies = [
  "derive_more",
  "either",
  "error-stack",
+ "hash-crypto",
  "hash-graph-api",
  "hash-graph-authorization",
  "hash-graph-postgres-store",
@@ -6705,7 +6723,6 @@ dependencies = [
  "hash-graph-test-data",
  "hash-graph-type-fetcher",
  "hash-repo-chores",
- "hash-secret",
  "hash-telemetry",
  "itertools 0.14.0",
  "rand 0.10.1",
@@ -6730,8 +6747,8 @@ dependencies = [
  "darwin-kperf-criterion",
  "derive_more",
  "error-stack",
+ "hash-crypto",
  "hash-graph-types",
- "hash-secret",
  "rand 0.10.1",
  "rand_xoshiro 0.8.1",
  "rayon",
@@ -6750,13 +6767,13 @@ version = "0.0.0"
 dependencies = [
  "error-stack",
  "hash-codec",
+ "hash-crypto",
  "hash-graph-authorization",
  "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",
  "hash-graph-types",
- "hash-secret",
  "hash-status",
  "hash-telemetry",
  "pretty_assertions",
@@ -6780,8 +6797,8 @@ dependencies = [
  "derive_more",
  "error-stack",
  "futures",
+ "hash-crypto",
  "hash-graph-migrations-macros",
- "hash-secret",
  "hash-telemetry",
  "include_dir",
  "include_dir_macros",
@@ -6799,7 +6816,7 @@ version = "0.0.0"
 dependencies = [
  "convert_case 0.11.0",
  "derive_more",
- "hash-secret",
+ "hash-crypto",
  "proc-macro2",
  "quote",
  "regex",
@@ -6823,6 +6840,7 @@ dependencies = [
  "futures",
  "futures-sink",
  "hash-codec",
+ "hash-crypto",
  "hash-graph-authentication",
  "hash-graph-authorization",
  "hash-graph-embeddings",
@@ -6833,7 +6851,6 @@ dependencies = [
  "hash-graph-types",
  "hash-graph-validation",
  "hash-middleware",
- "hash-secret",
  "hash-status",
  "hash-telemetry",
  "hash-temporal-client",
@@ -7070,7 +7087,7 @@ dependencies = [
  "error-stack",
  "futures",
  "governor",
- "hash-secret",
+ "hash-crypto",
  "http 1.4.2",
  "opentelemetry",
  "opentelemetry-semantic-conventions",
@@ -7119,23 +7136,6 @@ dependencies = [
  "tokio",
  "tracing",
  "walkdir",
-]
-
-[[package]]
-name = "hash-secret"
-version = "0.0.0"
-dependencies = [
- "aws-lc-rs",
- "base16ct",
- "clap",
- "clap_builder",
- "derive_more",
- "error-stack",
- "rstest",
- "simple-mermaid",
- "trybuild",
- "zerocopy",
- "zeroize",
 ]
 
 [[package]]

@@ -16,7 +16,7 @@ use aws_lc_rs::digest;
 /// # Examples
 ///
 /// ```
-/// use hash_secret::digest::{Sha256, Sha256Digest};
+/// use hash_crypto::digest::{Sha256, Sha256Digest};
 ///
 /// let mut hash = Sha256::new();
 /// hash.update(b"ab");
@@ -65,7 +65,7 @@ impl fmt::Debug for Sha256 {
 /// # Examples
 ///
 /// ```
-/// use hash_secret::digest::Sha256Digest;
+/// use hash_crypto::digest::Sha256Digest;
 ///
 /// let digest = Sha256Digest::of(b"abc");
 ///

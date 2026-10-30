@@ -8,9 +8,9 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[durable-kernel]
-    class 0 root
-    1[<a href="../hash_secret/index.html">hash-secret</a>]
+    0[<a href="../hash_crypto/index.html">hash-crypto</a>]
+    1[durable-kernel]
+    class 1 root
     2[<a href="../error_stack/index.html">error-stack</a>]
-    0 --> 1
-    1 --> 2
+    0 --> 2
+    1 --> 0

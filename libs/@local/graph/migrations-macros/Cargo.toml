@@ -11,7 +11,7 @@ proc-macro = true
 
 [dependencies]
 # Workspace dependencies
-hash-secret = { workspace = true }
+hash-crypto = { workspace = true }
 
 # Third-party dependencies
 convert_case   = { workspace = true }

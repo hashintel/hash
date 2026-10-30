@@ -18,7 +18,7 @@ use axum::{
 };
 use error_stack::Report;
 use governor::Quota;
-use hash_secret::Secret;
+use hash_crypto::Secret;
 use http::{
     Request, StatusCode,
     header::{CONTENT_TYPE, RETRY_AFTER},

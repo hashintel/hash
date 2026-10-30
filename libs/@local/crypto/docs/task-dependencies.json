@@ -1,5 +1,5 @@
 {
-  "package": "hash-secret",
+  "package": "hash-crypto",
   "dependencies": [
     "error-stack"
   ],
