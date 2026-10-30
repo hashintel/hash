@@ -1,5 +1,4 @@
-import { checkActionOutputs } from "@local/hash-backend-utils/flows";
-import { signalStepAttempts } from "@local/hash-backend-utils/flows/signal-step-attempts";
+import { wrapFlowActionActivities } from "@local/hash-backend-utils/flows/wrap-flow-action-activities";
 
 import { createAviationActivities } from "./flow-activities/aviation-activities.js";
 import { createIntegrationActivities } from "./flow-activities/integration-activities.js";
@@ -11,9 +10,7 @@ import type { IntegrationFlowActionDefinitionId } from "@local/hash-isomorphic-u
 export const createFlowActivities: CreateFlowActivities<
   IntegrationFlowActionDefinitionId
 > = ({ graphApiClient }: { graphApiClient: GraphApi }) =>
-  signalStepAttempts(
-    checkActionOutputs<IntegrationFlowActionDefinitionId>({
-      ...createAviationActivities({ graphApiClient }),
-      ...createIntegrationActivities({ graphApiClient }),
-    }),
-  );
+  wrapFlowActionActivities<IntegrationFlowActionDefinitionId>({
+    ...createAviationActivities({ graphApiClient }),
+    ...createIntegrationActivities({ graphApiClient }),
+  });

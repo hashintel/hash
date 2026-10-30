@@ -1,5 +1,4 @@
-import { checkActionOutputs } from "@local/hash-backend-utils/flows";
-import { signalStepAttempts } from "@local/hash-backend-utils/flows/signal-step-attempts";
+import { wrapFlowActionActivities } from "@local/hash-backend-utils/flows/wrap-flow-action-activities";
 
 import { aggregateAction } from "./flow-activities/aggregate-action.js";
 import { analyzeEntityDataAction } from "./flow-activities/analyze-entity-data-action.js";
@@ -37,7 +36,7 @@ import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flow
 export const createFlowActionActivities: CreateFlowActivities<
   AiFlowActionDefinitionId
 > = ({ vaultClient }: { vaultClient: VaultClient }) =>
-  checkActionOutputs<AiFlowActionDefinitionId>({
+  wrapFlowActionActivities<AiFlowActionDefinitionId>({
     aggregateAction,
     analyzeEntityDataAction,
     generateStructuralQueryAction,
@@ -76,6 +75,6 @@ export const createFlowActivities = ({
 }: {
   vaultClient: VaultClient;
 }) => ({
-  ...signalStepAttempts(createFlowActionActivities({ vaultClient })),
+  ...createFlowActionActivities({ vaultClient }),
   generateFlowRunName,
 });
