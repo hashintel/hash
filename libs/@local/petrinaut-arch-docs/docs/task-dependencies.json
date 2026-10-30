@@ -3,7 +3,6 @@
   "dependencies": [
     "@apps/petrinaut-website",
     "@hashintel/petrinaut",
-    "@hashintel/petrinaut-cli",
     "@hashintel/petrinaut-core",
     "@local/tsconfig"
   ],
@@ -24,39 +23,31 @@
         "VERCEL_GIT_REPO_SLUG"
       ],
       "affectedBy": [
-        "petrinaut-optimization",
-        "petrinaut-optimizer-core",
-        "petrinaut-python"
+        "petrinaut-optimizer-core"
       ]
     },
     "fix:eslint": {
       "dependsOn": [
         "@apps/petrinaut-website#build",
         "@hashintel/petrinaut#build",
-        "@hashintel/petrinaut-cli#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build"
       ],
       "affectedBy": [
-        "petrinaut-optimization",
-        "petrinaut-optimizer-core",
-        "petrinaut-python"
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:arch-docs": {
       "dependsOn": [],
       "cache": false,
       "affectedBy": [
-        "petrinaut-optimization",
-        "petrinaut-optimizer-core",
-        "petrinaut-python"
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:eslint": {
       "dependsOn": [
         "@apps/petrinaut-website#build",
         "@hashintel/petrinaut#build",
-        "@hashintel/petrinaut-cli#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build"
       ],
@@ -64,22 +55,17 @@
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
-        "petrinaut-optimization",
-        "petrinaut-optimizer-core",
-        "petrinaut-python"
+        "petrinaut-optimizer-core"
       ]
     },
     "lint:tsc": {
       "dependsOn": [
         "@apps/petrinaut-website#build",
         "@hashintel/petrinaut#build",
-        "@hashintel/petrinaut-cli#build",
         "@hashintel/petrinaut-core#build"
       ],
       "affectedBy": [
-        "petrinaut-optimization",
-        "petrinaut-optimizer-core",
-        "petrinaut-python"
+        "petrinaut-optimizer-core"
       ]
     },
     "test:unit": {
@@ -88,9 +74,7 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
-        "petrinaut-optimization",
-        "petrinaut-optimizer-core",
-        "petrinaut-python"
+        "petrinaut-optimizer-core"
       ]
     }
   }

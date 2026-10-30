@@ -23,7 +23,7 @@ import type {
  * explicit per-run seed.
  *
  * This keeps runs reproducible while avoiding identical RNG streams across the
- * default run set. The CLI's optimization protocol reuses this derivation for
+ * default run set. `deriveOptimizationTrialSeeds` reuses this derivation for
  * a trial's non-first replicate seeds (its first replicate keeps the base
  * seed itself).
  */

@@ -86,13 +86,11 @@ unchanged in Node and inside workers.
 that owns state and a UI layer that renders it — and the dependency only goes one
 way, which is enforced rather than merely intended.
 
-`@hashintel/petrinaut-cli` is the headless JSON-lines CLI that scripts and the
-Python optimizer service drive; its [usage manual](doc:cli/usage-manual) covers
-the transports, the protocol, and optimization studies.
-
-`apps/petrinaut-opt` (the Python Optuna service) and `@local/petrinaut-python`
-(its CLI bindings) are covered too, with their layers and import edges derived
-the same way as the TypeScript ones.
+`@local/petrinaut-optimizer-core` is the Optuna study logic behind the editor's
+optimizer, in pure Python. The core's browser runtime loads it under Pyodide in
+a worker; the [browser runtime](doc:optimizer/browser-runtime) page covers how
+a study runs. Its layers and import edges are derived the same way as the
+TypeScript ones.
 
 `@apps/petrinaut-website` is the demo site and the host that embeds the editor.
 Its layers cover the routes, the example catalog, the plugins, and the Vercel

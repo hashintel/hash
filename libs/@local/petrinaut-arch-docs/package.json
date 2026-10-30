@@ -27,7 +27,6 @@
   "devDependencies": {
     "@apps/petrinaut-website": "workspace:*",
     "@hashintel/petrinaut": "workspace:*",
-    "@hashintel/petrinaut-cli": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",

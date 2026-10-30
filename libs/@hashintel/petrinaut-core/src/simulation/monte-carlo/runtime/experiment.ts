@@ -86,8 +86,8 @@ type CreateMonteCarloExperimentBaseConfig = {
    *
    * Defaults to **one**: the experiment is pure and never inspects the host,
    * so hardware detection belongs to whoever supplies `createWorker` — the
-   * editor passes `getDefaultMonteCarloShardCount()`, the CLI derives it from
-   * `os.availableParallelism()`. Runs are independent and seeds derive from
+   * editor passes `getDefaultMonteCarloShardCount()`. Runs are independent
+   * and seeds derive from
    * the global run index, so shard count changes only how fast an experiment
    * finishes, never what it reports. Only honoured for `createWorker`
    * experiments — a caller-supplied `transport` is a single channel and always

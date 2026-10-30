@@ -124,8 +124,8 @@ Two scenario fields are **derived on save** rather than stored as more
 state: `useAdHocScenarioAuthoring` runs `synthesizeAdHocScenario` and
 writes the result's `scenarioParameters` (one per exposed Variable,
 snake_case-named, defaulting to its expression's constant value) and
-`parameterOverrides` onto the scenario. Downstream consumers — experiments,
-optimization manifests, the CLI's `metadata` — read those derived fields;
+`parameterOverrides` onto the scenario. Downstream consumers, experiments and
+optimization manifests, read those derived fields;
 `content` stays the single editable source, and the edit drawer loads it
 back into the form verbatim. The other two variants reach the same form
 through `adHocStateFromScenario` (`scenario-to-ad-hoc-state.ts`): a

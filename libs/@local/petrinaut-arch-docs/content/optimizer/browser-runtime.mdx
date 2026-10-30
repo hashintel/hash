@@ -8,11 +8,11 @@ attachTo: core.optimization.browser
 Terms on this page: a **study** is one capability run, identified by its
 `runId`; a **step** in the UI is a **trial** in Optuna and in the contract; a
 **replicate** is one seeded simulation run of a trial; a **segment** is the
-trials between a run start or extension and a terminal event. A source
-evaluated in the tab is **connected**; the optimizer service is **remote**.
-The editor starts a study during experiment creation or later from the
-results' **Parameters → Optimize** action. Every study evaluates through
-its parameter sweep, and only a connected source can start one.
+trials between a run start or extension and a terminal event. The source is
+**connected**: it runs in the tab and evaluates trials through the host's
+compute. The editor starts a study during experiment creation or later from
+the results' **Parameters → Optimize** action. Every study evaluates through
+its parameter sweep.
 
 An optimization needs an Optuna study that suggests parameter values and a
 simulator that scores them. The browser has both: Optuna runs under Pyodide,
@@ -20,18 +20,19 @@ and the editor's experiments backend simulates. This layer is the adapter
 between them. `createBrowserOptimization()` returns a
 `PetrinautConnectedOptimization`, a source the
 [optimizations provider](layer:react.optimizations) `connect`s with a channel
-to obtain a `PetrinautConnectedOptimizationCapability`: the
-`PetrinautOptimization` a remote service offers, plus `extendOptimizationRun`
-and `releaseOptimizationRun` for the study the worker keeps between segments.
+to obtain a `PetrinautConnectedOptimizationCapability`. The capability
+creates, attaches to and cancels runs, and adds `extendOptimizationRun` and
+`releaseOptimizationRun` for the study the worker keeps between segments.
 The channel is the [sweep evaluator](layer:react.optimizations.sweep-evaluator),
-the one `PetrinautOptimizationChannel` left. The event schema
-([the contract](layer:core.optimization)) is the same for both variants.
+the editor's only `PetrinautOptimizationChannel`.
+[The contract](layer:core.optimization) defines the manifest and event
+schemas.
 
 The provider reads the host source from `PetrinautOptimizationContext` and
-connects it when the first study starts. A connected source makes optimizer
-controls available in creation and results. Removing or replacing the host
-source disposes the connection and cancels its runs. A remote capability
-does not offer these controls, and the provider refuses to start a study on it.
+connects it when the first study starts. A source makes optimizer controls
+available in creation and results; without one, the controls are hidden.
+Removing or replacing the host source disposes the connection and cancels its
+runs.
 
 ![One trial through the browser runtime](@diagrams/browser-optimization-loop.svg)
 
@@ -50,8 +51,8 @@ does not offer these controls, and the provider refuses to start a study on it.
    capability. Steps run one at a time; the compute backend is the
    experiment's own.
 2. **Capability → worker.** The capability parses the manifest
-   (`parseOptimizationManifest`), describes the study with the
-   `describeOptimization` the CLI uses, derives the trial seeds once
+   (`parseOptimizationManifest`), describes the study with
+   `describeOptimization`, derives the trial seeds once
    (`deriveOptimizationTrialSeeds(seed, seedsPerTrial)`; every trial runs
    the same seeds, as common random numbers), allocates a run id, appends
    `started { requestedTrials }` to the run's event log and queues
@@ -172,22 +173,20 @@ run, drops every study and terminates the worker.
   numbers, frames and progress streamed on a 100 ms throttle, and the
   indicator metrics a state constraint adds to every request.
 
-## Parity with the service
+## Seeds, sampler and lifetime
 
-Both drivers derive per-trial seeds with `deriveOptimizationTrialSeeds`, and
-the sampler runs the same Optuna version with the same seed and the same
-number of start-up trials: `create_study` in
+The sampler is seeded with the manifest's seed: `create_study` in
 [optimizer-core](layer:optimizer-core) sets the TPE sampler's
 `n_startup_trials` to `tpe_startup_trials(trials)`, a third of the requested
 trials, at least 2 and at most Optuna's default of 10. After its start-up
 trials the TPE sampler conditions each proposal on the objectives it was
-told, so a study proposes the same parameter values as the CLI step for step
-while the objective values match. The objective values themselves come from
-the sweep: a trial's replicates are the sweep's runs at the snapped point,
-seeded by the experiment's seed and each run's position (common random
-numbers across every point), not the trial seeds
+told, so two studies with the same seed propose the same parameter values
+step for step while the objective values match. The objective values
+themselves come from the sweep: a trial's replicates are the sweep's runs at
+the snapped point, seeded by the experiment's seed and each run's position
+(common random numbers across every point), not the trial seeds
 `deriveOptimizationTrialSeeds` derives, so a sweep study's values are the
-sweep's, comparable across its own steps rather than with a CLI run. The
+sweep's, comparable across its own steps. The
 study runs on the backend the experiment chose at creation; the Create
 Experiment drawer's GPU gate carries one `min`-aggregated spec per drafted
 state constraint, as the sweep's requests carry their indicators, so a sweep
@@ -196,7 +195,6 @@ run-time gate would give rather than falling back after the switch was
 flipped.
 `test_runtime_lock.py` in optimizer-core fails when the Optuna pin in
 `runtime-lock.json` differs from the version the package's own lockfile
-installs; the service resolves the same version range (`optuna>=4.9,<5`) in
-its own lockfile. The study lives in the tab: closing the page ends it, and
+installs. The study lives in the tab: closing the page ends it, and
 because a connected run is kept in memory only, the next load shows no record
 for it.

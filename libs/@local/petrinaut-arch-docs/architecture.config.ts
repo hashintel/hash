@@ -50,24 +50,10 @@ export const config: ArchitectureConfig = {
       language: "typescript",
     },
     {
-      name: "@hashintel/petrinaut-cli",
-      path: "libs/@hashintel/petrinaut-cli",
-      description:
-        "JSON-lines CLI serving one compiled model per process: run requests and optimization studies over stdio or a Unix socket. No HTTP, no React.",
-      language: "typescript",
-    },
-    {
-      name: "petrinaut-python",
-      path: "libs/@local/petrinaut-python",
-      description:
-        "Python bindings for the CLI's JSON-lines protocol: sessions, run requests, optimization studies. POSIX-only; pydantic validates protocol responses.",
-      language: "python",
-    },
-    {
       name: "petrinaut-optimizer-core",
       path: "libs/@local/petrinaut-optimizer-core/python",
       description:
-        "Optuna study construction, suggestion and ask/tell loop shared by the optimizer service and the browser worker. Pure Python; runs under CPython and Pyodide.",
+        "Optuna study construction, suggestion and ask/tell loop for the in-browser optimizer, loaded into Pyodide by the browser worker. Pure Python; its tests run under CPython.",
       language: "python",
     },
     {
@@ -81,13 +67,6 @@ export const config: ArchitectureConfig = {
       // `scripts` directory and root `*.config.ts` files are excluded by the
       // shared ignore rules, so this buys `api/` without the build tooling.
       sourceDirectory: ".",
-    },
-    {
-      name: "petrinaut-optimization",
-      path: "apps/petrinaut-opt",
-      description:
-        "Python optimizer service: detached Optuna studies over the CLI, replayable SSE event streams, admission control.",
-      language: "python",
     },
   ],
 
@@ -127,33 +106,10 @@ export const config: ArchitectureConfig = {
         "the worksheet keyboard flow is generic: it must never know the form state it navigates",
     },
     {
-      from: "core",
-      to: "cli",
-      reason:
-        "the engine must not depend on its packaging: the CLI is one consumer of the core, never the reverse",
-    },
-    {
       from: "react.experiments",
       to: "react.optimizations",
       reason:
         "the experiments backend evaluates trials through the channel and never learns who asked",
-    },
-    {
-      from: "cli",
-      to: "core.optimization.browser",
-      reason:
-        "the CLI is driven by the service across the subprocess boundary, never by Pyodide",
-    },
-    {
-      from: "optimizer-core",
-      to: "optimizer",
-      reason: "the study library runs under Pyodide and cannot see the service",
-    },
-    {
-      from: "optimizer-core",
-      to: "python-bindings",
-      reason:
-        "the core runs under Pyodide, where the bindings' subprocesses do not exist",
     },
   ],
 

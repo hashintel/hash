@@ -24,8 +24,8 @@ Two invariants keep shard count out of the results, with one exception:
   sampling every run's frozen state.
 
 The runtime does not know what a shard runs on. Hosts supply a worker factory
-— a Web Worker in the editor, `worker_threads` in the CLI, the in-process
-worker in tests — and the shard count is the host's decision too.
+— a Web Worker in the editor, the in-process worker in tests — and the shard
+count is the host's decision too.
 
 `experiment-stores.ts` holds the store and event plumbing shared by every
 experiment backend: the WebGPU backend presents the identical

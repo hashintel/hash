@@ -13,9 +13,8 @@ import type { SDCPN } from "../types/sdcpn";
  * batch size, selling price, expedited-shipping fraction, and marketing spend)
  * plus a market `demand_multiplier` feed a single `Profit` metric that nets
  * revenue against fulfilment, holding, backlog, stockout, and policy costs.
- * That makes this the example used to demonstrate parameter optimization (see
- * the Petrinaut CLI `supply-chain-profit-*` manifests); scenario defaults
- * are deliberately near — but not at — the profit optimum.
+ * That makes this the example used to demonstrate parameter optimization;
+ * scenario defaults are deliberately near — but not at — the profit optimum.
  *
  * Ships with four scenarios: baseline demand and a demand surge, each in a
  * variant that starts with stock on hand and one that starts empty.

@@ -1,7 +1,7 @@
 [project]
 name            = "petrinaut-optimizer-core"
 version         = "0.1.0"
-description     = "Optuna study construction, suggestion and ask/tell loop for the Petrinaut optimizer service, written to load under Pyodide"
+description     = "Optuna study construction, suggestion and ask/tell loop for the Petrinaut in-browser optimizer, loaded under Pyodide"
 readme          = "README.md"
 requires-python = "<3.15,>=3.14"
 license         = "MIT or Apache-2.0"

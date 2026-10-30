@@ -2,8 +2,8 @@
  * The Monte Carlo worker protocol, detached from any thread host.
  *
  * The protocol logic lives here so every host runs the same code: the editor's
- * Web Worker entry wraps `self`, the CLI's `worker_threads` entry wraps
- * `parentPort`, and the in-process worker wraps a plain callback pair. What a
+ * Web Worker entry wraps `self`, and the in-process worker wraps a plain
+ * callback pair. What a
  * host must supply is only a {@link WorkerThreadRuntime}: post a message,
  * receive messages, and yield between compute batches.
  */
