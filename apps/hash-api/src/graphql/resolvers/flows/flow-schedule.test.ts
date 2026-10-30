@@ -129,34 +129,15 @@ describe("resumeFlowScheduleResolver", () => {
         steps: [],
         outputs: [],
       },
-      flowDefinitionEntity: { metadata: { archived: false } },
     });
 
     await expect(resume()).rejects.toMatchObject({
       message: expect.stringContaining(
-        '- it gives no value for the required input "topic"',
+        '- Flow input "topic" is required, but wasn\'t given',
       ),
       extensions: { code: "BAD_REQUEST" },
     });
     expect(mocks.resumeFlowSchedule).not.toHaveBeenCalled();
     expect(mocks.unpauseSchedule).not.toHaveBeenCalled();
-  });
-
-  it("refuses to resume a schedule whose flow has been archived", async () => {
-    mocks.getRunnableFlowDefinition.mockResolvedValue({
-      flowDefinition: {
-        name: "Report",
-        description: "",
-        inputs: [],
-        steps: [],
-        outputs: [],
-      },
-      flowDefinitionEntity: { metadata: { archived: true } },
-    });
-
-    await expect(resume()).rejects.toMatchObject({
-      extensions: { code: "BAD_REQUEST" },
-    });
-    expect(mocks.resumeFlowSchedule).not.toHaveBeenCalled();
   });
 });

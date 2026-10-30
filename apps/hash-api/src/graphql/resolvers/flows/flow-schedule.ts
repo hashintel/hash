@@ -349,17 +349,10 @@ export const resumeFlowScheduleResolver: ResolverFn<
     existingSchedule,
   );
 
-  const { flowDefinition, flowDefinitionEntity } =
-    await getRunnableFlowDefinition(
-      graphQLContext,
-      params.flowDefinitionEntityId,
-    );
-
-  if (flowDefinitionEntity.metadata.archived) {
-    throw GraphQLError.badRequest(
-      "This schedule can't be resumed, because its flow has been archived",
-    );
-  }
+  const { flowDefinition } = await getRunnableFlowDefinition(
+    graphQLContext,
+    params.flowDefinitionEntityId,
+  );
 
   const problems = getFlowScheduleProblems({
     flowDefinition,

@@ -34,8 +34,8 @@ export const getFlowDefinitionEntity = async (
 /**
  * Loads a flow's definition from its `Flow Definition` entity, and checks that the user can run it.
  *
- * @throws a GraphQL error if the definition doesn't exist or the user can't view it, if it's invalid (a bad request
- *   listing its problems), or if it's an AI flow and the user can't run AI flows.
+ * @throws a GraphQL error if the definition doesn't exist or the user can't view it, if it's been archived or is
+ *   invalid (a bad request, listing its problems if invalid), or if it's an AI flow and the user can't run AI flows.
  */
 export const getRunnableFlowDefinition = async (
   graphQLContext: LoggedInGraphQLContext,
@@ -45,6 +45,12 @@ export const getRunnableFlowDefinition = async (
     graphQLContext,
     flowDefinitionEntityId,
   );
+
+  if (flowDefinitionEntity.metadata.archived) {
+    throw GraphQLError.badRequest(
+      "This flow has been archived, so it can't be run",
+    );
+  }
 
   let flowDefinition;
 

@@ -1,6 +1,7 @@
 import {
   addStepIdsToDiagnostics,
   formatFlowDefinitionDiagnostics,
+  getValidFlowDefinition,
   validateFlowDefinition,
 } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -41,7 +42,8 @@ import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorp
  * @throws a GraphQL bad request error, listing why, if the definition doesn't have the shape of one.
  */
 const checkDefinitionToSave = (definition: unknown) => {
-  const { flowDefinition, diagnostics } = validateFlowDefinition(definition);
+  const validation = validateFlowDefinition(definition);
+  const { flowDefinition, diagnostics } = validation;
 
   if (!flowDefinition) {
     throw GraphQLError.badRequest(
@@ -52,7 +54,7 @@ const checkDefinitionToSave = (definition: unknown) => {
   return {
     flowDefinition,
     diagnostics: addStepIdsToDiagnostics(flowDefinition, diagnostics),
-    isRunnable: !diagnostics.some(({ severity }) => severity === "error"),
+    isRunnable: getValidFlowDefinition(validation) !== null,
   };
 };
 

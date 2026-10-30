@@ -191,7 +191,7 @@ describe("updateFlowDefinitionResolver", () => {
   it.each([
     ["the flow wouldn't be valid", unfinishedDefinition, [questionValue]],
     [
-      'its value for input "topic": A Number value cannot feed an input that accepts Text',
+      'Flow input "topic" must be of kind Text, but is of kind Number',
       {
         ...validDefinition,
         inputs: [question, { ...question, name: "topic", required: false }],
@@ -202,7 +202,7 @@ describe("updateFlowDefinitionResolver", () => {
       ],
     ],
     [
-      'it gives no value for the required input "topic"',
+      'Flow input "topic" is required, but wasn\'t given',
       {
         ...validDefinition,
         inputs: [question, { ...question, name: "topic" }],
@@ -210,7 +210,7 @@ describe("updateFlowDefinitionResolver", () => {
       [questionValue],
     ],
     [
-      'it gives a value for "topic", which isn\'t an input',
+      "Flow input \"topic\" isn't one of the flow's inputs",
       validDefinition,
       [
         questionValue,

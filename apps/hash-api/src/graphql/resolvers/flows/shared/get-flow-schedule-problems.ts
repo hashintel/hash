@@ -1,7 +1,10 @@
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import { canConnect } from "@local/hash-isomorphic-utils/flows/can-connect";
 import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
 import { mapInputsPropertyToFlowInputValues } from "@local/hash-isomorphic-utils/flows/mappings";
+import {
+  omitInvalidEmptyFlowInputs,
+  validateFlowInputs,
+} from "@local/hash-isomorphic-utils/flows/validate-payloads";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
 import * as GraphQLError from "../../../error";
@@ -9,10 +12,7 @@ import * as GraphQLError from "../../../error";
 import type { LoggedInGraphQLContext } from "../../../context";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
-import type {
-  FlowDefinition,
-  FlowInputValues,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/flowschedule";
 
 /**
@@ -43,67 +43,13 @@ export const getScheduledFlowRun = async (
   }
 };
 
-/**
- * Why the values a trigger gives a flow's inputs wouldn't fill a definition's inputs, by the rule connections in a
- * definition follow. Empty if they would.
- */
-const getFlowInputsProblems = ({
-  flowDefinition,
-  flowInputs,
-}: {
-  flowDefinition: FlowDefinition<string>;
-  flowInputs: FlowInputValues;
-}): string[] => {
-  const problems: string[] = [];
-
-  for (const input of flowDefinition.inputs) {
-    const payload = flowInputs[input.name];
-
-    if (!payload) {
-      if (input.required) {
-        problems.push(
-          `it gives no value for the required input "${input.name}"`,
-        );
-      }
-      continue;
-    }
-
-    const check = canConnect({
-      source: {
-        payloadKind: payload.kind,
-        array: Array.isArray(payload.value),
-        required: true,
-      },
-      target: {
-        oneOfPayloadKinds: [input.payloadKind],
-        array: input.array,
-        required: input.required,
-      },
-    });
-
-    if (!check.ok) {
-      problems.push(`its value for input "${input.name}": ${check.message}`);
-    }
-  }
-
-  for (const inputName of Object.keys(flowInputs)) {
-    if (!flowDefinition.inputs.some(({ name }) => name === inputName)) {
-      problems.push(
-        `it gives a value for "${inputName}", which isn't an input`,
-      );
-    }
-  }
-
-  return problems;
-};
-
 const describeFlowType = (flowType: string) =>
   flowType === "ai" ? "an AI flow" : `an ${flowType} flow`;
 
 /**
- * Why a schedule couldn't start runs of a valid definition: the values it gives the flow's inputs wouldn't fill them,
- * or the definition is another type of flow than the one the schedule was set up to run, whose runs go to another
- * task queue and need other arguments (e.g. data sources for an AI flow). Empty if it could.
+ * Why a schedule couldn't start runs of a valid definition: the values it gives the flow's inputs would fail the check
+ * a run makes when it starts, or the definition is another type of flow than the one the schedule was set up to run,
+ * whose runs go to another task queue and need other arguments (e.g. data sources for an AI flow). Empty if it could.
  */
 export const getFlowScheduleProblems = ({
   flowDefinition,
@@ -116,10 +62,15 @@ export const getFlowScheduleProblems = ({
 }): string[] => {
   const { inputs } = simplifyProperties(schedule.properties);
 
-  const problems = getFlowInputsProblems({
-    flowDefinition,
-    flowInputs: inputs ? mapInputsPropertyToFlowInputValues(inputs) : {},
+  const inputsProblem = validateFlowInputs({
+    inputDefinitions: flowDefinition.inputs,
+    flowInputs: omitInvalidEmptyFlowInputs({
+      inputDefinitions: flowDefinition.inputs,
+      flowInputs: inputs ? mapInputsPropertyToFlowInputValues(inputs) : {},
+    }),
   });
+
+  const problems = inputsProblem ? [inputsProblem] : [];
 
   const flowType = getFlowType(flowDefinition);
 
