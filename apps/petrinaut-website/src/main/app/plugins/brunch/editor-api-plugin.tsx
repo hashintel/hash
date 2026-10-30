@@ -18,8 +18,14 @@ import {
 } from "@hashintel/petrinaut/ui/plugin";
 
 import { AiAssistantPanel } from "./chat/ai-assistant-panel";
+import { AiVoiceModeIcon } from "./chat/ai-voice-mode-button";
 
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
+
+/** How the empty-net prompt starts the chat, which consumes it once. */
+type PromptStart =
+  | { readonly mode: "text"; readonly text: string }
+  | { readonly mode: "voice" };
 
 const brunchAccess = {
   document: "write",
@@ -103,8 +109,9 @@ const BrunchAssistantContent = ({
  * Brunch's cards.
  */
 const useBrunchPlugin: PluginHook<typeof BrunchPlugin> = (api) => {
-  // The empty-net prompt's text, which the chat consumes once.
-  const [promptText, setPromptText] = useState<string | null>(null);
+  const voiceAvailable =
+    use(BrunchAssistantContext)?.assistant?.renderVoiceMode !== undefined;
+  const [start, setStart] = useState<PromptStart | null>(null);
 
   return {
     provides: api,
@@ -115,18 +122,24 @@ const useBrunchPlugin: PluginHook<typeof BrunchPlugin> = (api) => {
             <AiAssistantPanel
               aiAssistant={assistant}
               api={api}
-              initialMessage={promptText}
-              onInitialMessageConsumed={() => setPromptText(null)}
-              // Text from the prompt selects text, as the built-in chat's did,
-              // so it never reaches a Voice mode left from an earlier session.
-              initialInteractionMode={promptText === null ? null : "text"}
-              onInitialInteractionModeConsumed={() => setPromptText(null)}
+              initialMessage={start?.mode === "text" ? start.text : null}
+              onInitialMessageConsumed={() => setStart(null)}
+              // The prompt picks the chat's mode, so its text never reaches a
+              // Voice mode left from an earlier session.
+              initialInteractionMode={start?.mode ?? null}
+              onInitialInteractionModeConsumed={() => setStart(null)}
             />
           )}
         </BrunchAssistantContent>
       ),
-      // The prompt offers text only; Voice starts from the chat's composer.
-      onPrompt: setPromptText,
+      onPrompt: (text) => setStart({ mode: "text", text }),
+      ...(voiceAvailable && {
+        startAction: {
+          label: "Start voice mode",
+          icon: <AiVoiceModeIcon size={20} />,
+          run: () => setStart({ mode: "voice" }),
+        },
+      }),
     },
   };
 };

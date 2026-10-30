@@ -30,7 +30,9 @@ export const voiceSessionStatusLabel = (
 export const voiceSessionActionLabels = {
   audioControls: "Audio controls",
   audioOptions: "Audio options",
+  collapse: "Hide conversation",
   end: "End voice mode",
+  expand: "Show conversation",
   interruptionBySpeaking: "Allow interruptions",
   mute: "Mute microphone",
   muteSpeaker: "Mute speaker",
@@ -45,4 +47,11 @@ export const voiceSessionActionLabels = {
   takeTurn: "Your turn",
   unmute: "Unmute microphone",
   unmuteSpeaker: "Unmute speaker",
+} as const;
+
+export const voiceSetupLabels = {
+  collapse: "Collapse voice setup",
+  expand: "Expand voice setup",
+  region: "Voice setup",
+  status: "Voice setup",
 } as const;
