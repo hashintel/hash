@@ -93,7 +93,17 @@ describe.concurrent("JsonDecoder", () => {
         Effect.flip,
       );
 
-      cx.expect(error.toString()).toMatch(/Expected a valid JSON string/);
+      cx.expect(error).toMatchObject({
+        _tag: "DecodingError",
+        cause: {
+          _tag: "InvalidJsonError",
+          cause: {
+            message: cx.expect.stringMatching(
+              /Unterminated string in JSON at position 13/,
+            ),
+          },
+        },
+      });
     }).pipe(Effect.provide(JsonDecoder.layer)),
   );
 });

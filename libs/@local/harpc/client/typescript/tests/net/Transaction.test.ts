@@ -94,12 +94,11 @@ describe.concurrent("Transaction", () => {
   it.effect("multi-packet response", (cx) =>
     Effect.gen(function* () {
       const { queue, transaction } = yield* makeTransaction();
+      const first = yield* makeBegin("first ", false);
+      const second = yield* makeFrame("second ", false);
+      const third = yield* makeFrame("third", true);
 
-      yield* Queue.offerAll(queue, [
-        yield* makeBegin("first ", false),
-        yield* makeFrame("second ", false),
-        yield* makeFrame("third", true),
-      ]);
+      yield* Queue.offerAll(queue, [first, second, third]);
       yield* Queue.end(queue);
 
       const text = yield* readText(transaction);
@@ -111,8 +110,9 @@ describe.concurrent("Transaction", () => {
   it.effect("lagged", (cx) =>
     Effect.gen(function* () {
       const { queue, transaction } = yield* makeTransaction();
+      const begin = yield* makeBegin("partial", false);
 
-      yield* Queue.offer(queue, yield* makeBegin("partial", false));
+      yield* Queue.offer(queue, begin);
       yield* Queue.fail(
         queue,
         new Transaction.TransactionLaggedError({ id: requestId }),

@@ -90,5 +90,10 @@ export const registerDestructor: {
   Deferred.completeWith(self.drop, destructor),
 );
 
+/**
+ * Reads the transaction's response.
+ *
+ * The body fails with {@link Response.NetworkError} when the server answers with an error code. It fails with {@link TransactionLaggedError} when the connection dropped the transaction because its response buffer stayed full, and with {@link ConnectionClosedError} when the connection stopped reading before the response was complete. An error writing the request fails its transaction with that error, and an error reading the connection fails every open transaction with it.
+ */
 export const read = (transaction: Transaction) =>
   Response.decode(Stream.fromQueue((transaction as TransactionImpl).read));
