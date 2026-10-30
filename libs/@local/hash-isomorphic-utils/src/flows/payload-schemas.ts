@@ -12,7 +12,15 @@ import {
 } from "./types.js";
 
 import type { ConditionNode } from "./filter-condition.js";
-import type { EntityQuery, PayloadKind, PayloadKindValues } from "./types.js";
+import type {
+  EntityQuery,
+  PayloadKind,
+  PayloadKindValues,
+  StoredConcatRef,
+  StoredItemRef,
+  StoredObjectRef,
+  StoredPayloadRef,
+} from "./types.js";
 import type {
   BaseUrl,
   EntityId,
@@ -62,10 +70,16 @@ const entityOperationSchema = z.enum([
   "already-exists-as-proposed",
 ]);
 
+/**
+ * The id a proposed entity is known by until it's persisted. An AI action makes it an entity id, but an integration
+ * may use any unique string, e.g. the aviation actions use a flight's primary key, `flight-BA123-2026-10-28`.
+ */
+const localEntityIdSchema = typed<EntityId>(z.string());
+
 const localOrExistingEntityIdSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("proposed-entity"),
-    localId: entityIdSchema,
+    localId: localEntityIdSchema,
   }),
   z.object({
     kind: z.literal("existing-entity"),
@@ -80,7 +94,7 @@ const proposedEntityShape = {
   }),
   provenance: graphObject<ProvidedEntityEditionProvenance>(),
   propertyMetadata: graphObject<PropertyObjectMetadata>(),
-  localEntityId: entityIdSchema,
+  localEntityId: localEntityIdSchema,
   entityTypeIds: typed<[VersionedUrl, ...VersionedUrl[]]>(
     z.array(versionedUrlSchema).min(1),
   ),
@@ -297,71 +311,20 @@ export const formatPayloadPath = (path: readonly PropertyKey[]): string =>
 /** The first thing wrong with a payload value: where it is, as a path into the value (`""` for the value itself), and what's wrong. */
 export type PayloadValueProblem = { path: string; message: string };
 
+/** A problem as the end of a sentence about the value it's in, e.g. ` at [1].name: Expected a string`. */
+export const describePayloadValueProblem = ({
+  path,
+  message,
+}: PayloadValueProblem) => (path ? ` at ${path}: ${message}` : `: ${message}`);
+
 const englishErrorMap = z.locales.en().localeError;
 
-const storableKinds: readonly PayloadKind[] = [
-  ...storedPayloadKinds,
-  ...storedArrayPayloadKinds,
-];
-
-const checkStoredRef = ({
-  kind,
-  array,
-  ref,
-  path,
-}: {
-  kind: PayloadKind;
-  array: boolean;
-  ref: { kind: unknown; array: unknown };
-  path: PropertyKey[];
-}): PayloadValueProblem | undefined => {
-  const problem = (message: string) => ({
-    path: formatPayloadPath(path),
-    message,
-  });
-
-  if (!storableKinds.includes(kind)) {
-    return problem(
-      `${kind} values are never stored, so can't be a stored payload reference`,
-    );
-  }
-  if (ref.kind !== kind) {
-    return problem(
-      `Expected a stored ${kind} reference, but it is of kind ${String(ref.kind)}`,
-    );
-  }
-  if (ref.array !== array) {
-    return problem(
-      array
-        ? "Expected a reference to a stored array, but it is to a single value"
-        : "Expected a reference to a single stored value, but it is to an array",
-    );
-  }
-  return undefined;
-};
-
-const checkItem = ({
-  kind,
-  item,
-  allowStoredRefs,
-  path,
-}: {
-  kind: PayloadKind;
-  item: unknown;
-  allowStoredRefs: boolean;
-  path: PropertyKey[];
-}): PayloadValueProblem | undefined => {
-  if (isStoredPayloadRef(item)) {
-    return allowStoredRefs
-      ? checkStoredRef({ kind, array: false, ref: item, path })
-      : {
-          path: formatPayloadPath(path),
-          message:
-            "A stored payload reference can only be created by a flow's own steps",
-        };
-  }
-
-  const result = payloadKindSchemas[kind].safeParse(item, {
+const firstProblem = (
+  schema: z.ZodType,
+  value: unknown,
+  path: PropertyKey[],
+): PayloadValueProblem | undefined => {
+  const result = schema.safeParse(value, {
     /*
      * zod sets its English messages as a side effect of being imported, which bundlers drop (it declares no side
      * effects), e.g. in Temporal's workflow bundle, leaving only "Invalid input".
@@ -378,12 +341,170 @@ const checkItem = ({
     : undefined;
 };
 
+const storableKinds = [
+  ...storedPayloadKinds,
+  ...storedArrayPayloadKinds,
+] as const;
+
+/** A number of items, or an item's position among them. */
+const itemCountSchema = z.int().nonnegative();
+
+const storedRefShape = {
+  __stored: z.literal(true),
+  kind: z.enum(storableKinds),
+};
+
+/**
+ * Strict, as it's also a concatenation's part and an item's array, which aren't picked by shape: storage would resolve
+ * one with a `parts` or `of` field as that shape, ignoring its storage key.
+ */
+const storedArrayObjectRefSchema = z.strictObject({
+  ...storedRefShape,
+  storageKey: z.string(),
+  array: z.literal(true),
+  length: itemCountSchema,
+});
+
+/**
+ * The schema of each shape of stored payload reference (see `StoredPayloadRef`). Each shape has a field no other has,
+ * which `getStoredRefShape` picks it by, so that a problem is reported against the reference's own shape.
+ *
+ * A new shape, e.g. for a selection of a stored array's items, is added here and to `getStoredRefShape`.
+ */
+const storedRefSchemas = {
+  object: z.discriminatedUnion("array", [
+    z.object({
+      ...storedRefShape,
+      storageKey: z.string(),
+      array: z.literal(false),
+    }),
+    storedArrayObjectRefSchema,
+  ]),
+  item: z
+    .object({
+      ...storedRefShape,
+      array: z.literal(false),
+      of: storedArrayObjectRefSchema,
+      index: itemCountSchema,
+    })
+    .refine(({ kind, of }) => of.kind === kind, {
+      path: ["of", "kind"],
+      message: "Expected the array an item is in to be of the item's kind",
+    })
+    .refine(({ index, of }) => index < of.length, {
+      path: ["index"],
+      message: "Expected an index within the array's length",
+    }),
+  concat: z
+    .object({
+      ...storedRefShape,
+      array: z.literal(true),
+      parts: z.array(storedArrayObjectRefSchema),
+      length: itemCountSchema,
+    })
+    .superRefine(({ kind, parts, length }, context) => {
+      const partIndex = parts.findIndex((part) => part.kind !== kind);
+
+      if (partIndex !== -1) {
+        context.addIssue({
+          code: "custom",
+          path: ["parts", partIndex, "kind"],
+          message: "Expected each part to be of the concatenation's kind",
+        });
+      }
+
+      const totalLength = parts.reduce((total, part) => total + part.length, 0);
+
+      if (length !== totalLength) {
+        context.addIssue({
+          code: "custom",
+          path: ["length"],
+          message: `Expected the total of its parts' lengths, ${totalLength}`,
+        });
+      }
+    }),
+} satisfies {
+  object: z.ZodType<StoredObjectRef>;
+  item: z.ZodType<StoredItemRef>;
+  concat: z.ZodType<StoredConcatRef>;
+};
+
+const getStoredRefShape = (ref: object): keyof typeof storedRefSchemas =>
+  "parts" in ref ? "concat" : "of" in ref ? "item" : "object";
+
+/**
+ * Checks a stored payload reference against the kind and arity it's expected to have, and its shape against its
+ * schema: e.g. that an array's `length` is a non-negative safe integer, and that a concatenation's is the total of its
+ * parts'. The value it refers to isn't checked, since that would mean fetching it.
+ *
+ * @returns the first problem found, with its path into the reference, or `undefined` if the reference is valid.
+ */
+export const validateStoredPayloadRef = ({
+  kind,
+  array,
+  ref,
+  path = [],
+}: {
+  kind: PayloadKind;
+  array: boolean;
+  ref: StoredPayloadRef;
+  path?: PropertyKey[];
+}): PayloadValueProblem | undefined => {
+  const problem = (message: string) => ({
+    path: formatPayloadPath(path),
+    message,
+  });
+
+  if (!(storableKinds as readonly PayloadKind[]).includes(kind)) {
+    return problem(
+      `${kind} values are never stored, so can't be a stored payload reference`,
+    );
+  }
+  if (ref.kind !== kind) {
+    return problem(
+      `Expected a stored ${kind} reference, but it is of kind ${String(ref.kind)}`,
+    );
+  }
+  if (ref.array !== array) {
+    return problem(
+      array
+        ? "Expected a reference to a stored array, but it is to a single value"
+        : "Expected a reference to a single stored value, but it is to an array",
+    );
+  }
+  return firstProblem(storedRefSchemas[getStoredRefShape(ref)], ref, path);
+};
+
+const checkItem = ({
+  kind,
+  item,
+  allowStoredRefs,
+  path,
+}: {
+  kind: PayloadKind;
+  item: unknown;
+  allowStoredRefs: boolean;
+  path: PropertyKey[];
+}): PayloadValueProblem | undefined => {
+  if (isStoredPayloadRef(item)) {
+    return allowStoredRefs
+      ? validateStoredPayloadRef({ kind, array: false, ref: item, path })
+      : {
+          path: formatPayloadPath(path),
+          message:
+            "A stored payload reference can only be created by a flow's own steps",
+        };
+  }
+
+  return firstProblem(payloadKindSchemas[kind], item, path);
+};
+
 /**
  * Checks a value against a payload kind, and whether it's an array. Only checks: it never changes the value.
  *
  * With `allowStoredRefs`, a value of a stored kind may also be a stored reference, as an action's output or an input
- * resolved from one is. Only the reference's kind and whether it's to an array are checked, since checking the value
- * would mean fetching it. An inline value of a stored kind is checked in full either way.
+ * resolved from one is. The reference is checked (see `validateStoredPayloadRef`), but not the value it refers to,
+ * since that would mean fetching it. An inline value of a stored kind is checked in full either way.
  *
  * @returns the first problem found, or `undefined` if the value is valid.
  */
@@ -404,7 +525,7 @@ export const validatePayloadValue = ({
 
   if (isStoredPayloadRef(value)) {
     return allowStoredRefs
-      ? checkStoredRef({ kind, array: true, ref: value, path: [] })
+      ? validateStoredPayloadRef({ kind, array: true, ref: value })
       : checkItem({ kind, item: value, allowStoredRefs, path: [] });
   }
 

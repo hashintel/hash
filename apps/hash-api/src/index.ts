@@ -39,6 +39,7 @@ import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import {
   getHashClientTypeFromRequest,
+  getUserAgentFromRequest,
   hashClientHeaderKey,
 } from "@local/hash-isomorphic-utils/http-requests";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
@@ -755,7 +756,7 @@ const main = async () => {
       actorType: "user",
       origin: {
         type: getHashClientTypeFromRequest(req) ?? "api",
-        userAgent: req.headers["user-agent"],
+        userAgent: getUserAgentFromRequest(req),
       },
     };
 

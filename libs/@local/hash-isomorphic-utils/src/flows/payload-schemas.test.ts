@@ -11,6 +11,7 @@ import type {
   PayloadKind,
   PayloadKindValues,
   ProposedEntity,
+  StoredConcatRef,
   StoredItemRef,
   StoredObjectRef,
 } from "./types.js";
@@ -137,7 +138,7 @@ describe("payloadKindSchemas", () => {
     [
       "FailedEntityProposal",
       {
-        proposedEntity: { ...proposedEntity, localEntityId: "x" },
+        proposedEntity: { ...proposedEntity, localEntityId: 1 },
         message: "",
       },
       "proposedEntity.localEntityId",
@@ -212,6 +213,24 @@ describe("payloadKindSchemas", () => {
         allowStoredRefs: false,
       }),
     ).toEqual({ path, message: expect.any(String) as string });
+  });
+
+  it("accepts a local id that isn't an entity id, as an integration gives proposed entities", () => {
+    expect(
+      validatePayloadValue({
+        kind: "ProposedEntity",
+        array: false,
+        value: {
+          ...proposedEntity,
+          localEntityId: "flight-BA123-2026-10-28",
+          sourceEntityId: {
+            kind: "proposed-entity",
+            localId: "airport-EGLL",
+          },
+        },
+        allowStoredRefs: false,
+      }),
+    ).toBe(undefined);
   });
 
   it("accepts fields a kind doesn't define, as the web search API's position", () => {
@@ -444,6 +463,158 @@ describe("validatePayloadValue", () => {
       path: "",
       message:
         "Text values are never stored, so can't be a stored payload reference",
+    });
+  });
+
+  describe("stored references' shapes", () => {
+    const secondArray: StoredObjectRef<"ProposedEntity", true> = {
+      ...storedArray,
+      storageKey: "flows/run/outputs/step-2",
+      length: 2,
+    };
+
+    const storedConcat: StoredConcatRef<"ProposedEntity"> = {
+      __stored: true,
+      kind: "ProposedEntity",
+      array: true,
+      parts: [storedArray, secondArray],
+      length: 5,
+    };
+
+    const problemWith = (array: boolean, ref: unknown) =>
+      validatePayloadValue({
+        kind: "ProposedEntity",
+        array,
+        value: ref,
+        allowStoredRefs: true,
+      });
+
+    it("accepts each shape, including an empty array and the last item of one", () => {
+      for (const [array, ref] of [
+        [false, { ...storedArray, array: false, length: undefined }],
+        [true, storedArray],
+        [true, { ...storedArray, length: 0 }],
+        [false, storedItem],
+        [false, { ...storedItem, index: 2 }],
+        [true, storedConcat],
+        [true, { ...storedConcat, parts: [], length: 0 }],
+      ] as const) {
+        expect(problemWith(array, ref)).toBe(undefined);
+      }
+    });
+
+    it.each([-1, 0.5, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 53])(
+      "rejects a length or index of %d",
+      (count) => {
+        for (const [array, ref, path] of [
+          [true, { ...storedArray, length: count }, "length"],
+          [false, { ...storedItem, index: count }, "index"],
+          [
+            false,
+            { ...storedItem, of: { ...storedArray, length: count } },
+            "of.length",
+          ],
+          [true, { ...storedConcat, length: count }, "length"],
+          [
+            true,
+            {
+              ...storedConcat,
+              parts: [storedArray, { ...secondArray, length: count }],
+            },
+            "parts[1].length",
+          ],
+        ] as const) {
+          expect(problemWith(array, ref)).toEqual({
+            path,
+            message: expect.any(String) as string,
+          });
+        }
+      },
+    );
+
+    it("rejects a reference missing a field its shape needs", () => {
+      const { storageKey: _storageKey, ...arrayWithoutKey } = storedArray;
+      const { length: _arrayLength, ...arrayWithoutLength } = storedArray;
+      const { of: _of, ...itemWithoutArray } = storedItem;
+      const { index: _index, ...itemWithoutIndex } = storedItem;
+      const { length: _concatLength, ...concatWithoutLength } = storedConcat;
+
+      for (const [array, ref, path] of [
+        [true, arrayWithoutKey, "storageKey"],
+        [true, arrayWithoutLength, "length"],
+        [false, itemWithoutArray, "storageKey"],
+        [false, itemWithoutIndex, "index"],
+        [true, concatWithoutLength, "length"],
+      ] as const) {
+        expect(problemWith(array, ref)).toEqual({
+          path,
+          message: expect.stringContaining("received undefined") as string,
+        });
+      }
+    });
+
+    it("rejects a concatenation whose length isn't its parts' total, or with a part that isn't a stored array", () => {
+      expect(problemWith(true, { ...storedConcat, length: 4 })).toEqual({
+        path: "length",
+        message: "Expected the total of its parts' lengths, 5",
+      });
+
+      for (const [part, path] of [
+        [storedConcat, "parts[1].storageKey"],
+        [{ ...secondArray, array: false }, "parts[1].array"],
+        [null, "parts[1]"],
+        /* Storage would resolve this part as a concatenation of nothing, dropping its item. */
+        [{ ...secondArray, parts: [] }, "parts[1]"],
+      ] as const) {
+        expect(
+          problemWith(true, { ...storedConcat, parts: [storedArray, part] }),
+        ).toEqual({ path, message: expect.any(String) as string });
+      }
+
+      expect(
+        problemWith(true, {
+          ...storedConcat,
+          parts: [storedArray, { ...secondArray, kind: "EntityId" }],
+        }),
+      ).toEqual({
+        path: "parts[1].kind",
+        message: "Expected each part to be of the concatenation's kind",
+      });
+    });
+
+    it("rejects an item whose array isn't a stored array of its kind, or that is past the array's end", () => {
+      for (const [of, path] of [
+        [{ ...storedArray, array: false }, "of.array"],
+        [storedConcat, "of.storageKey"],
+        [storedItem, "of.storageKey"],
+        [{ ...storedArray, of: storedArray }, "of"],
+      ] as const) {
+        expect(problemWith(false, { ...storedItem, of })).toEqual({
+          path,
+          message: expect.any(String) as string,
+        });
+      }
+
+      expect(
+        problemWith(false, {
+          ...storedItem,
+          of: { ...storedArray, kind: "EntityId" },
+        }),
+      ).toEqual({
+        path: "of.kind",
+        message: "Expected the array an item is in to be of the item's kind",
+      });
+
+      expect(problemWith(false, { ...storedItem, index: 3 })).toEqual({
+        path: "index",
+        message: "Expected an index within the array's length",
+      });
+    });
+
+    it("reports a problem inside an item reference held in an inline array with the item's index", () => {
+      expect(
+        problemWith(true, [proposedEntity, { ...storedItem, index: -1 }]),
+      ).toEqual({ path: "[1].index", message: expect.any(String) as string });
     });
   });
 });

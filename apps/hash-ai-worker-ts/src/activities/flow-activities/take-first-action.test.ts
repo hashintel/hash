@@ -6,12 +6,12 @@ import {
 } from "@local/hash-backend-utils/flows/payload-storage";
 import { StatusCode } from "@local/status";
 
+import { createProposedEntity } from "../../shared/testing-utilities/create-proposed-entity.js";
 import { takeFirstAction } from "./take-first-action.js";
 
 import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type {
   Payload,
-  ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -54,9 +54,11 @@ const run = (items: Payload, count: number) =>
     ] satisfies StepInput[],
   });
 
-const entities = ["A", "B", "C"].map(
-  (summary, index) =>
-    ({ summary, localEntityId: `entity-${index}` }) as ProposedEntity,
+const entities = ["A", "B", "C"].map((summary, index) =>
+  createProposedEntity({
+    summary,
+    localEntityId: `entity-${index}`,
+  }),
 );
 
 const storedEntities = async (): Promise<Payload> => ({

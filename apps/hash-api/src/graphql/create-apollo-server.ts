@@ -17,6 +17,7 @@ import { createRunningFlowRunHistoryCache } from "@local/hash-backend-utils/flow
 import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
 import {
   getHashClientTypeFromRequest,
+  getUserAgentFromRequest,
   hashClientHeaderKey,
 } from "@local/hash-isomorphic-utils/http-requests";
 
@@ -241,7 +242,7 @@ export const createApolloServer = async ({
         actorType: "user",
         origin: {
           type: getHashClientTypeFromRequest(req) ?? "api",
-          userAgent: req.headers["user-agent"],
+          userAgent: getUserAgentFromRequest(req),
         },
       },
       user: req.user,

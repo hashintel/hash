@@ -266,7 +266,7 @@ export const Topbar = ({
         <Box mr={1}>
           {readonly ? (
             <Typography sx={typographySx} variant="smallTextParagraphs">
-              {selectedFlowDefinition?.flowDefinition.name}
+              {selectedFlowDefinition?.name}
             </Typography>
           ) : (
             <Select
@@ -288,7 +288,7 @@ export const Topbar = ({
                   key={flow.flowDefinitionEntityId}
                   value={flow.flowDefinitionEntityId}
                 >
-                  {flow.flowDefinition.name}
+                  {flow.name}
                 </MenuItem>
               ))}
             </Select>

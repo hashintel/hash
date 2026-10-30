@@ -1,3 +1,7 @@
+import {
+  describePayloadValueProblem,
+  validateStoredPayloadRef,
+} from "./payload-schemas.js";
 import { isStoredPayloadRef } from "./types.js";
 
 import type {
@@ -15,21 +19,37 @@ import type {
 /**
  * A reference to each item of a stored array, in order. An item of a concatenation points at the part that holds
  * it, with its index within that part.
+ *
+ * @throws if the reference isn't a valid reference to a stored array (see `validateStoredPayloadRef`), e.g. its
+ *   `length` isn't a non-negative safe integer, before making any item references from it.
  */
 export const getStoredItemRefs = <K extends StorablePayloadKind>(
   ref: ArrayStoredPayloadRef<K>,
 ): StoredItemRef<K>[] => {
-  if ("parts" in ref) {
-    return ref.parts.flatMap((part) => getStoredItemRefs(part));
+  const problem = validateStoredPayloadRef({
+    kind: ref.kind,
+    array: true,
+    ref,
+  });
+
+  if (problem) {
+    throw new Error(
+      `Invalid reference to a stored array${describePayloadValueProblem(problem)}`,
+    );
   }
 
-  return Array.from({ length: ref.length }, (_, index): StoredItemRef<K> => ({
-    __stored: true,
-    kind: ref.kind,
-    array: false,
-    of: ref,
-    index,
-  }));
+  return ("parts" in ref ? ref.parts : [ref]).flatMap((storedArray) =>
+    Array.from(
+      { length: storedArray.length },
+      (_, index): StoredItemRef<K> => ({
+        __stored: true,
+        kind: ref.kind,
+        array: false,
+        of: storedArray,
+        index,
+      }),
+    ),
+  );
 };
 
 /**

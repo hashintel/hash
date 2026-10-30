@@ -10,8 +10,8 @@ import type { EntityId } from "@blockprotocol/type-system";
 /**
  * Loads a flow's definition from its `Flow Definition` entity, and checks that the user can run it.
  *
- * @throws a GraphQL error if the definition doesn't exist or the user can't view it, if it's invalid, or if it's
- *   an AI flow and the user can't run AI flows.
+ * @throws a GraphQL error if the definition doesn't exist or the user can't view it, if it's invalid (a bad request
+ *   listing its problems), or if it's an AI flow and the user can't run AI flows.
  */
 export const getRunnableFlowDefinition = async (
   graphQLContext: LoggedInGraphQLContext,
@@ -36,10 +36,8 @@ export const getRunnableFlowDefinition = async (
   try {
     flowDefinition = getFlowDefinitionFromEntity(flowDefinitionEntity);
   } catch (error) {
-    /* The definition is stored data, so an invalid one is a fault here, not in the request. */
-    throw GraphQLError.internal(
-      `Flow definition ${flowDefinitionEntityId} is invalid: ${(error as Error).message}`,
-    );
+    /* A flow can be saved before it's valid, so this is for the user to fix. The message lists every problem. */
+    throw GraphQLError.badRequest((error as Error).message);
   }
 
   const flowType = getFlowType(flowDefinition);

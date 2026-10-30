@@ -5,10 +5,8 @@ import { z } from "zod";
 import {
   aiCommandActionInputSchemas,
   createExperimentToolName,
-  createPetrinautAiWritableCallbacks,
   getLatestNetDefinitionToolName,
-  normalizePetrinautAiToolInput,
-  petrinautAiCapabilityGuidance,
+  petrinautAiCapabilitySections,
   petrinautAiToolInputSchemas,
   petrinautAiTools,
   petrinautDocNames,
@@ -56,9 +54,9 @@ describe("Petrinaut AI core exports", () => {
     }
   });
 
-  test("capability guidance and catalogue cover the canonical capability classes", () => {
+  test("capability sections and catalogue cover the canonical capability classes", () => {
     const capabilityReference = [
-      petrinautAiCapabilityGuidance,
+      ...Object.values(petrinautAiCapabilitySections),
       ...Object.entries(petrinautAiTools).map(
         ([name, tool]) => `${name}: ${tool.description}`,
       ),
@@ -103,9 +101,9 @@ describe("Petrinaut AI core exports", () => {
     }
   });
 
-  test("capability guidance includes the canonical Petrinaut document index", () => {
+  test("capability introduction includes the canonical Petrinaut document index", () => {
     for (const docName of petrinautDocNames) {
-      expect(petrinautAiCapabilityGuidance).toContain(
+      expect(petrinautAiCapabilitySections.introduction).toContain(
         `- \`${docName}\` — ${petrinautDocSummaries[docName]}`,
       );
     }
@@ -129,17 +127,6 @@ describe("Petrinaut AI core exports", () => {
       expect(petrinautAiTools).toHaveProperty(name);
     }
     expect(petrinautAiTools).toHaveProperty("applyAutoLayout");
-  });
-
-  test("normalizes an addArc weight serialized as text", () => {
-    expect(
-      normalizePetrinautAiToolInput("addArc", {
-        transitionId: "transition",
-        arcDirection: "input",
-        weight: "1",
-        type: "standard",
-      }),
-    ).toMatchObject({ weight: 1 });
   });
 
   test("latest net definition tool documents extension settings", () => {
@@ -200,9 +187,9 @@ describe("Petrinaut AI core exports", () => {
 
   test("converts invented entity ids so references and arc ids resolve", () => {
     const instance = createInstance();
-    const callbacks = createPetrinautAiWritableCallbacks(instance);
+    const { mutations } = instance;
 
-    callbacks.addPlace({
+    mutations.addPlace({
       id: "place__queue",
       name: "Queue",
       colorId: null,
@@ -211,7 +198,7 @@ describe("Petrinaut AI core exports", () => {
       x: 0,
       y: 0,
     });
-    callbacks.addTransition({
+    mutations.addTransition({
       id: "transition__serve",
       name: "Serve",
       inputArcs: [],
@@ -222,7 +209,7 @@ describe("Petrinaut AI core exports", () => {
       x: 0,
       y: 0,
     });
-    callbacks.addArc({
+    mutations.addArc({
       transitionId: "transition__serve",
       arcDirection: "input",
       placeId: "place__queue",
@@ -235,7 +222,7 @@ describe("Petrinaut AI core exports", () => {
       toPetrinautId("place__queue"),
     );
 
-    callbacks.deleteItemsByIds({
+    mutations.deleteItemsByIds({
       items: [
         {
           type: "arc",
@@ -250,11 +237,11 @@ describe("Petrinaut AI core exports", () => {
     expect(instance.definition.get().transitions[0]?.inputArcs).toEqual([]);
   });
 
-  test("callback map applies tool inputs to a Petrinaut instance", () => {
+  test("mutations apply tool inputs to a Petrinaut instance", () => {
     const instance = createInstance();
-    const callbacks = createPetrinautAiWritableCallbacks(instance);
+    const { mutations } = instance;
 
-    callbacks.addPlace({
+    mutations.addPlace({
       id: "place-1",
       name: "Queue",
       colorId: null,
@@ -263,7 +250,7 @@ describe("Petrinaut AI core exports", () => {
       x: 0,
       y: 0,
     });
-    callbacks.updatePlace({
+    mutations.updatePlace({
       placeId: "place-1",
       update: { name: "UpdatedQueue" },
     });
@@ -271,12 +258,11 @@ describe("Petrinaut AI core exports", () => {
     expect(instance.definition.get().places[0]!.name).toBe("UpdatedQueue");
   });
 
-  test("callback map validates tool inputs before applying them", () => {
+  test("mutations validate tool inputs before applying them", () => {
     const instance = createInstance();
-    const callbacks = createPetrinautAiWritableCallbacks(instance);
 
     expect(() =>
-      callbacks.addPlace({
+      instance.mutations.addPlace({
         id: "",
         name: "Queue",
         colorId: null,
@@ -288,14 +274,5 @@ describe("Petrinaut AI core exports", () => {
     ).toThrow();
 
     expect(instance.definition.get().places).toEqual([]);
-  });
-
-  test("AI writable callbacks include applyAutoLayout from commands", async () => {
-    const instance = createInstance();
-    const callbacks = createPetrinautAiWritableCallbacks(instance);
-
-    expect(typeof callbacks.applyAutoLayout).toBe("function");
-    const result = await callbacks.applyAutoLayout();
-    expect(result.commitCount).toBe(0);
   });
 });

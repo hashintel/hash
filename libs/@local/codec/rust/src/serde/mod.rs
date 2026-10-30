@@ -34,11 +34,46 @@ const FORMAT: Iso8601<CONFIG> = Iso8601::<CONFIG>;
 
 // The macro above creates a private macro so we re-export it here publicly.
 pub mod time {
+    use ::time::OffsetDateTime;
+    use serde::Deserializer;
+
     pub use super::time_format::*;
 
     pub mod option {
         pub use super::super::time_format::option::*;
     }
+
+    /// Reads an optional point in time that may be left out but not set to `null`.
+    ///
+    /// The counterpart of [`non_null`] for a field serialized with [`option`].
+    ///
+    /// [`non_null`]: super::non_null
+    ///
+    /// # Errors
+    ///
+    /// - If the value is `null` or not a point in time.
+    pub fn non_null<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Option<OffsetDateTime>, D::Error> {
+        deserialize(deserializer).map(Some)
+    }
+}
+
+/// Reads an optional field that may be left out but not set to `null`.
+///
+/// Used with `#[serde(default, deserialize_with = "…")]` on an `Option`. A missing field stays
+/// `None`. Any value the input gives, `null` and an empty query parameter value included, is read
+/// as `T` and rejected unless `T` accepts it.
+///
+/// # Errors
+///
+/// - If the value cannot be read as `T`.
+pub fn non_null<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::Deserialize<'de>,
+{
+    T::deserialize(deserializer).map(Some)
 }
 
 pub mod regex {

@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use type_system::{
     knowledge::entity::EntityId,
     ontology::{BaseUrl, VersionedUrl},
+    provenance::validation::ProvenanceViolation,
 };
 
 #[derive(Debug)]
@@ -66,6 +67,12 @@ pub enum EntityCreationError {
     },
     #[display("the entity types of an entity define the property `{property_type}` differently")]
     IncompatibleEntityTypes { property_type: BaseUrl },
+    #[display("the provenance of the entities breaks a rule")]
+    InvalidProvenance {
+        /// Each broken rule, with the index of its entity in the request, in the order of the
+        /// entities.
+        violations: Vec<(usize, ProvenanceViolation)>,
+    },
     #[display("the entities do not match their entity types")]
     InvalidEntities,
     #[display("store operation failed")]
