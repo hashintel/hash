@@ -19,16 +19,6 @@ import { getToolName, isToolUIPart, readUIMessageStream } from "ai";
 import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { loadBuiltBrunchApplication } from "@apps/brunch-agent/testing/load-built-application";
-import { createBrunchFlueAdapter } from "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-flue-adapter";
-import {
-  BrunchPanelConversationTracker,
-  createBrunchPanelTransport,
-} from "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-panel-transport";
-import {
-  BrunchAssistantContext,
-  brunchPlugin,
-} from "@apps/petrinaut-website/src/main/app/plugins/brunch/editor-api-plugin";
-import { resolveBrunchToolPresentation } from "@apps/petrinaut-website/src/main/app/plugins/brunch/tools/brunch-tool-presentation";
 import {
   InProcessLspWorker,
   NoopResizeObserver,
@@ -38,11 +28,23 @@ import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent";
+import {
+  createBrunchFlueAdapter,
+  BrunchPanelConversationTracker,
+  createBrunchPanelTransport,
+} from "@hashintel/brunch-agent/client";
+import {
+  BrunchAssistantContext,
+  brunchPlugin,
+  resolveBrunchToolPresentation,
+} from "@hashintel/brunch-agent/ui";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
-import type { PetrinautAiMessage } from "@apps/petrinaut-website/src/main/app/plugins/brunch/chat/ai-assistant-panel";
-import type { PetrinautAiAssistant } from "@apps/petrinaut-website/src/main/app/plugins/brunch/chat/petrinaut";
+import type {
+  PetrinautAiMessage,
+  PetrinautAiAssistant,
+} from "@hashintel/brunch-agent/ui";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =

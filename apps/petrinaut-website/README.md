@@ -72,7 +72,7 @@ A Brunch-focused deployment or test launch may set `VITE_PETRINAUT_DEFAULT_ASSIS
 
 With the stock assistant selected, **User settings → Plugins** lists **Petrinaut AI**, the `website.petrinaut-ai` plugin in `src/main/app/plugins/petrinaut-ai/plugin.tsx`, which renders the chat in the assistant panel.
 
-While Brunch is the assistant, **User settings → Plugins** lists **Brunch**, the `website.brunch` plugin in `src/main/app/plugins/brunch/editor-api-plugin.tsx`. It has no switch: Brunch's cards read the open net, its experiments and the editor's navigation through its `api`, and without it they show a notice instead and report the failure. It leaves the list with the Brunch assistant.
+While Brunch is the assistant, **User settings → Plugins** lists **Brunch**, the `website.brunch` plugin in `libs/@hashintel/brunch-agent/src/ui/editor-api-plugin.tsx`. It has no switch: Brunch's cards read the open net, its experiments and the editor's navigation through its `api`, and without it they show a notice instead and report the failure. It leaves the list with the Brunch assistant.
 
 Voice is available only when Brunch is selected, the browser-local Voice preference is enabled, and the existing server capability check reports Voice available. Enabling the preference does not start microphone capture or a provider session.
 
