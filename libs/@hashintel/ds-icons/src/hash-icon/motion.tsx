@@ -273,6 +273,9 @@ export const useIconEffects = ({
   const cancelHoverInteraction = useRef<() => void>(() => {});
   const explicitPlayback = useRef(false);
   const cubeActionInProgress = useRef(false);
+  // Pointer events are not replayed when the listeners below are re-attached,
+  // so hover state has to outlive the effect that reads it.
+  const pointerInside = useRef(false);
   const effectKey = (
     typeof effect === "string" ? [effect] : (effect ?? [])
   ).join(",");
@@ -323,7 +326,6 @@ export const useIconEffects = ({
       );
       cubeActionInProgress.current = Boolean(cube);
     };
-    let pointerInside = false;
     let focused = control.contains(document.activeElement);
     const enter = () => {
       if (
@@ -386,7 +388,7 @@ export const useIconEffects = ({
       );
     };
     const pointerEnter = () => {
-      pointerInside = true;
+      pointerInside.current = true;
       if (!focused) enter();
     };
     const focus = (event: FocusEvent) => {
@@ -396,10 +398,10 @@ export const useIconEffects = ({
       )
         return;
       focused = true;
-      if (!pointerInside) enter();
+      if (!pointerInside.current) enter();
     };
     const pointerLeave = () => {
-      pointerInside = false;
+      pointerInside.current = false;
       if (!focused) leave();
     };
     const blur = (event: FocusEvent) => {
@@ -409,14 +411,14 @@ export const useIconEffects = ({
       )
         return;
       focused = false;
-      if (!pointerInside) leave();
+      if (!pointerInside.current) leave();
     };
     if (interactive && !effectKey) control.addEventListener("click", play);
     control.addEventListener("pointerenter", pointerEnter);
     control.addEventListener("pointerleave", pointerLeave);
     control.addEventListener("focus", focus, true);
     control.addEventListener("blur", blur, true);
-    if (focused) enter();
+    if (focused || pointerInside.current) enter();
     return () => {
       cancelHoverInteraction.current();
       cancelInteraction.current();
