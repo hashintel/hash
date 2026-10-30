@@ -60,13 +60,21 @@ export interface FactsOptions {
   cacheDirectory: string;
 }
 
+interface FactsProvider {
+  /** What, besides the files, decides the facts; part of the cache key. */
+  salt: (options: FactsOptions) => string;
+  open: (options: FactsOptions) => FactsSource;
+}
+
+const providers: Record<Language, FactsProvider> = {
+  typescript: { salt: typeScriptSalt, open: openTypeScriptSource },
+  python: { salt: pythonSalt, open: openPythonSource },
+};
+
 export const openFactsSource = (
   language: Language,
   options: FactsOptions,
-): FactsSource =>
-  language === "typescript"
-    ? openTypeScriptSource(options)
-    : openPythonSource(options);
+): FactsSource => providers[language].open(options);
 
 /** The covered files of every package in `language`. */
 export const filesInLanguage = (
@@ -83,9 +91,6 @@ export const filesInLanguage = (
 export const languagesOf = (packages: ArchitecturePackage[]): Language[] => [
   ...new Set(packages.map((pkg) => pkg.language)),
 ];
-
-const saltFor = (language: Language, options: FactsOptions): string =>
-  language === "typescript" ? typeScriptSalt(options) : pythonSalt();
 
 export interface CollectedFacts {
   facts: SymbolFacts;
@@ -116,7 +121,7 @@ export const collectFacts = async (
       const key = await factsCacheKey({
         repoRoot: options.repoRoot,
         files,
-        salt: saltFor(language, options),
+        salt: providers[language].salt(options),
       });
       const cached = await readFactsCache(
         options.cacheDirectory,
@@ -156,8 +161,6 @@ export const collectFacts = async (
   return collected;
 };
 
-/** Where facts are cached for a config, absolute. */
-export const factsCacheDirectory = (
-  repoRoot: string,
-  cacheDirectory: string,
-): string => join(repoRoot, cacheDirectory, "facts");
+/** Where facts are cached, under the config's cache directory. */
+export const factsCacheDirectory = (cacheDirectory: string): string =>
+  join(cacheDirectory, "facts");

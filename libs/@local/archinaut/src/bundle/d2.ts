@@ -5,7 +5,9 @@
 
 import { execFile, spawnSync } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
+import { promisify } from "node:util";
 
+import { messageOf } from "../shared/diagnostics";
 import { themeableColours } from "./shared/palette";
 
 const probeD2 = (repoRoot: string): D2 | null => {
@@ -44,38 +46,27 @@ export const findD2 = (repoRoot: string): D2 | null => {
   return found;
 };
 
+const run = promisify(execFile);
+
 /** Runs a command to completion; a non-zero exit or a spawn failure is an error string. */
-const execute = (
+const execute = async (
   executable: string,
   args: string[],
   cwd: string,
-): Promise<{ ok: true } | { ok: false; error: string }> =>
-  new Promise((resolve) => {
-    execFile(
-      executable,
-      args,
-      { cwd, encoding: "utf8" },
-      (error, stdout, stderr) => {
-        if (error === null) {
-          resolve({ ok: true });
-        } else {
-          resolve({
-            ok: false,
-            error: stderr || stdout || error.message,
-          });
-        }
-      },
-    );
-  });
+): Promise<{ ok: true } | { ok: false; error: string }> => {
+  try {
+    await run(executable, args, { cwd, encoding: "utf8" });
+    return { ok: true };
+  } catch (cause) {
+    const output = cause as { stdout?: string; stderr?: string };
+    return {
+      ok: false,
+      error:
+        [output.stderr, output.stdout].find((text) => text) ?? messageOf(cause),
+    };
+  }
+};
 
-/**
- * Renders a `.d2` file to SVG.
- *
- * `d2` is provided by mise, matching how the previous script invoked it. When it
- * is unavailable the caller is told rather than the build failing outright: the
- * `.d2` sources are the diffable artefact, and a missing renderer should not
- * block regenerating the model and pages.
- */
 /**
  * `d2`'s own palette, as it writes it into every SVG: seven neutrals and the
  * blues it draws connections and links with. Restated here so the appended
@@ -101,22 +92,6 @@ const rendererPalette: Record<string, string> = {
 };
 
 /**
- * Restates every colour in a rendered SVG as a custom property, so a host can
- * retheme the diagram without the generator knowing anything about that host's
- * themes.
- *
- * Appended as a stylesheet rather than rewritten into the markup, for two
- * reasons. `var()` is not reliably honoured inside SVG presentation attributes,
- * where the layer colours land, but is honoured in a declaration that overrides
- * them, because any rule beats a presentation attribute. And `d2`'s own colours
- * arrive as classes under a per-diagram `.d2-<hash>` scope, so matching that
- * scope and coming later in the document is what wins the cascade without
- * inventing specificity.
- *
- * Every property carries the original colour as its fallback, so a host that
- * defines nothing renders exactly what `d2` drew.
- */
-/**
  * Rewrites a rendered diagram so a host page can recolour it.
  *
  * `d2` writes its palette straight into the markup, so a drawing carries one
@@ -125,6 +100,10 @@ const rendererPalette: Record<string, string> = {
  * renderer puts on the drawing: a host that defines none of them gets exactly
  * what `d2` drew, and one that defines them can follow its own light and dark
  * themes. Markup carrying no such class is returned untouched.
+ *
+ * Appended as a stylesheet rather than rewritten into the markup: `var()` is
+ * not reliably honoured inside SVG presentation attributes, where the layer
+ * colours land, but a later rule under the same scope overrides them.
  */
 export const withThemeableColours = (markup: string): string => {
   const scope = /class="(d2-\d+)/u.exec(markup)?.[1];
@@ -162,10 +141,10 @@ export const withoutBadges = (markup: string): string =>
 /**
  * Renders a `.d2` file to SVG.
  *
- * `d2` is provided by mise, matching how the previous script invoked it. When it
- * is unavailable the caller is told rather than the build failing outright: the
- * `.d2` sources are the diffable artefact, and a missing renderer should not
- * block regenerating the model and pages.
+ * `d2` comes from PATH or from mise. When it is unavailable the caller is told
+ * rather than the build failing outright: the `.d2` sources are the diffable
+ * artefact, and a missing renderer should not block regenerating the model
+ * and pages.
  *
  * Rendered with the same face the docs are set in. This is not decoration: `d2`
  * measures every label with the font it renders with and sizes the boxes from

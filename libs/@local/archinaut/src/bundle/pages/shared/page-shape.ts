@@ -49,5 +49,3 @@ export const frontmatter = (
 
 export const sourceLink = (sourceUrlPrefix: string, file: string): string =>
   `${sourceUrlPrefix}${file}`;
-
-/** The slug a layer's generated page occupies. */

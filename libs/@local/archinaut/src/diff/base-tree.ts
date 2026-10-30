@@ -12,9 +12,9 @@
  *    the covered directories, which keeps the transfer to the trees plus the
  *    blobs the generator actually scans.
  *
- * Either way the extracted tree needs no `node_modules` and no install step:
- * dependency-cruiser resolves workspace imports through aliases derived from
- * each package's `exports` map.
+ * Either way the tree is read with the head's installed dependencies linked
+ * in, so the providers resolve workspace imports exactly as they do for the
+ * head; `diff.ts` does the linking.
  *
  * Everything here can fail in a legitimate environment — no network, a
  * repository that is not public — so callers treat a throw as "build without
@@ -256,10 +256,10 @@ export const materializeBaseTree = async (options: {
   }
 
   // Canonicalised because macOS puts the temp directory behind a symlink
-  // (`/var` → `/private/var`): dependency-cruiser realpaths what it resolves,
-  // and against a symlinked root every resolved file appears to escape the
-  // tree, which silently drops every TypeScript edge from the base model.
-  const root = await realpath(await mkdtemp(join(tmpdir(), "arch-docs-base-")));
+  // (`/var` → `/private/var`): a provider that realpaths what it resolves
+  // would otherwise see every file escape the tree, which silently drops
+  // every edge from the base model.
+  const root = await realpath(await mkdtemp(join(tmpdir(), "archinaut-base-")));
 
   try {
     const localSha = localShaOf(options.repoRoot, options.ref);

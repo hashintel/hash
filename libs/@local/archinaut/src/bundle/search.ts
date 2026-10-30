@@ -7,6 +7,8 @@
 
 import { sectionsOf } from "./headings";
 
+import type { BundlePage } from "./shared/bundle-page";
+
 export const SEARCH_INDEX_VERSION = 1;
 
 export interface SearchDocument {
@@ -58,15 +60,7 @@ export const plainTextOf = (lines: string[]): string =>
     .replace(/\s+/gu, " ")
     .trim();
 
-export const buildSearchIndex = (
-  pages: {
-    slug: string;
-    title: string;
-    description: string;
-    kind: "generated" | "authored";
-    contents: string;
-  }[],
-): SearchIndex => ({
+export const buildSearchIndex = (pages: BundlePage[]): SearchIndex => ({
   version: SEARCH_INDEX_VERSION,
   documents: pages.flatMap((page) =>
     sectionsOf(page.contents.replace(frontmatterPattern, "")).flatMap(

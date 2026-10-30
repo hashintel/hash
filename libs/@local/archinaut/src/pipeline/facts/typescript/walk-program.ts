@@ -20,15 +20,37 @@ import {
 } from "typescript-7/ast";
 import { SymbolFlags, type Symbol as ApiSymbol } from "typescript-7/sync";
 
-import {
-  isRepositorySource,
-  moduleSymbol,
-  occurrenceRecorder,
-} from "./facts-shape";
+import { moduleSymbol } from "../shared/symbols";
 import { createIdentifierFilter } from "./walk-program/identifier-filter";
 
-import type { IndexedDocument } from "../../facts";
+import type { IndexedDocument, SymbolOccurrence } from "../../facts";
 import type { ProgramHost } from "./program-host";
+
+/** Inside the repository and not an installed dependency. */
+const isRepositorySource = (file: string): boolean =>
+  !file.startsWith("..") &&
+  !file.startsWith("node_modules/") &&
+  !file.includes("/node_modules/");
+
+interface OccurrenceRecorder {
+  (symbol: string, definition: boolean): void;
+  occurrences: SymbolOccurrence[];
+}
+
+/** Collects a file's occurrences, each symbol and role once. */
+const occurrenceRecorder = (): OccurrenceRecorder => {
+  const seen = new Set<string>();
+  const occurrences: SymbolOccurrence[] = [];
+  const record = ((symbol: string, definition: boolean): void => {
+    const key = `${symbol}|${definition}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      occurrences.push({ symbol, definition });
+    }
+  }) as OccurrenceRecorder;
+  record.occurrences = occurrences;
+  return record;
+};
 
 /** Whether `node` is the name of the declaration it belongs to. */
 const namesDeclaration = (node: Node): boolean =>

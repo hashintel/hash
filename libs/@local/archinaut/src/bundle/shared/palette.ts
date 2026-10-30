@@ -9,14 +9,7 @@
 
 export const rootSegment = (id: string): string => id.split(".")[0] ?? id;
 
-/**
- * Fill and stroke per layer family, in one place because two things read it:
- * the `classes` block below, which is what `d2` renders with, and the
- * stylesheet appended to every rendered SVG, which restates each colour as a
- * custom property so a host can retheme the diagram. Split across two
- * declarations they would drift, and the drift would only show in dark mode.
- */
-
+/** Fill and stroke per layer family. */
 export const layerPalette: Record<string, { fill: string; stroke: string }> = {
   core: { fill: "#dcecff", stroke: "#3676b8" },
   react: { fill: "#e8e0ff", stroke: "#7051b5" },

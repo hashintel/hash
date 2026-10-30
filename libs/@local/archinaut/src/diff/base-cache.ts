@@ -4,8 +4,8 @@
  * building the base tree entirely.
  *
  * Entries are keyed — in the file name — by a hash of everything that shapes
- * the generator's output (its sources, config, cruiser tsconfig, and pinned
- * dependencies) followed by the base commit. The generator hash leads so a
+ * the generator's output (its sources, the config file, and whether diagrams
+ * render) followed by the base commit. The generator hash leads so a
  * generator change misses cleanly, and so builds running different generator
  * versions against one base coexist instead of overwriting a shared slot.
  * Nothing in the key names the commit being built: any later commit reuses

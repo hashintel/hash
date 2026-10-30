@@ -36,6 +36,21 @@ export interface PipelineOptions {
   sources?: Map<Language, FactsSource>;
 }
 
+/** Wall time per stage, lapped as each one ends. */
+export const stopwatch = () => {
+  const timings: Record<string, number> = {};
+  let last = performance.now();
+  return {
+    timings,
+    lap: (stage: string): void => {
+      const now = performance.now();
+      timings[stage] = Math.round((timings[stage] ?? 0) + now - last);
+      last = now;
+    },
+  };
+};
+export type Stopwatch = ReturnType<typeof stopwatch>;
+
 export interface PipelineResult {
   model: ArchitectureModel;
   diagnostics: Diagnostic[];
@@ -121,31 +136,25 @@ export const runPipeline = async (
   config: ArchinautConfig,
   options: PipelineOptions = {},
 ): Promise<PipelineResult> => {
-  const timings: Record<string, number> = {};
-  const timed = async <T>(
-    stage: string,
-    work: () => Promise<T> | T,
-  ): Promise<T> => {
-    const started = performance.now();
-    const result = await work();
-    timings[stage] = Math.round(performance.now() - started);
-    return result;
-  };
-
+  const clock = stopwatch();
   const packages = packagesOf(config);
-  const scan = await timed("scan", () => scanConfig(config, packages));
-  const collected = await timed("facts", () =>
-    collectFacts({
-      repoRoot: config.root,
-      packages,
-      cacheDirectory: factsCacheDirectory(config.root, config.cacheDirectory),
-      files: [...scan.fileLayers.keys()],
-      sources: options.sources,
-    }),
-  );
-  const assembled = await timed("model", () =>
-    assembleModel({ config, packages, scan, facts: collected.facts }),
-  );
+  const scan = await scanConfig(config, packages);
+  clock.lap("scan");
+  const collected = await collectFacts({
+    repoRoot: config.root,
+    packages,
+    cacheDirectory: factsCacheDirectory(config.cacheDirectory),
+    files: [...scan.fileLayers.keys()],
+    sources: options.sources,
+  });
+  clock.lap("facts");
+  const assembled = assembleModel({
+    config,
+    packages,
+    scan,
+    facts: collected.facts,
+  });
+  clock.lap("model");
   return {
     model: assembled.model,
     diagnostics: [
@@ -153,7 +162,7 @@ export const runPipeline = async (
       ...collected.diagnostics,
       ...assembled.diagnostics,
     ],
-    timings,
+    timings: clock.timings,
     reindexed: collected.fresh,
   };
 };

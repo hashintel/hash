@@ -8,6 +8,8 @@ import {
   collectAuthoredContent,
   collectColocatedContent,
   type AuthoredComponent,
+  type AuthoredContentResult,
+  type AuthoredDiagram,
   type AuthoredPage,
 } from "./bundle/content";
 import {
@@ -28,10 +30,13 @@ import {
 } from "./bundle/page-links";
 import { buildPages, layerSlug, type GeneratedPage } from "./bundle/pages";
 import { buildSearchIndex, type SearchIndex } from "./bundle/search";
+import { bundlePages } from "./bundle/shared/bundle-page";
 import { readShippedComponents } from "./bundle/shipped-components";
 import { error, type Diagnostic } from "./shared/diagnostics";
 
 import type { ArchitectureModel } from "./model";
+
+export { bundlePages, type BundlePage } from "./bundle/shared/bundle-page";
 
 export const GENERATOR_NAME = "@local/archinaut";
 
@@ -56,65 +61,61 @@ export interface Bundle {
   diagnostics: Diagnostic[];
 }
 
-export const emitBundle = async (options: {
-  model: ArchitectureModel;
-  repoRoot: string;
-  contentDirectory: string;
-  sourceUrlPrefix: string;
-  /** Whether SVGs will exist; when false, pages omit diagram images. */
-  includeDiagrams: boolean;
-}): Promise<Bundle> => {
-  const { model } = options;
-  const diagnostics: Diagnostic[] = [];
-  const fromContent = await collectAuthoredContent({
-    repoRoot: options.repoRoot,
-    contentDirectory: options.contentDirectory,
-  });
-  const fromCode = await collectColocatedContent({
-    repoRoot: options.repoRoot,
-    layers: model.layers,
-  });
-  const authoredResult = {
-    pages: [...fromContent.pages, ...fromCode.pages],
-    components: fromContent.components,
-    diagrams: [...fromContent.diagrams, ...fromCode.diagrams],
-    errors: [...fromContent.errors, ...fromCode.errors],
-  };
-  for (const failure of authoredResult.errors) {
-    diagnostics.push(error(failure.file, failure.message));
-  }
+interface GeneratedDiagrams {
+  /** Diagram name → D2 source. */
+  sources: Map<string, string>;
+  overview: string;
+  /** Layer id → the name of its neighbourhood diagram. */
+  neighbourhood: Map<string, string>;
+  /** Layer id → the name of its sub-layer diagram, for layers that have any. */
+  subtree: Map<string, string>;
+}
 
-  const diagramSources = new Map<string, string>();
-  diagramSources.set(
+/** The overview, one neighbourhood per layer, one drill-down per parent layer. */
+const generatedDiagrams = (model: ArchitectureModel): GeneratedDiagrams => {
+  const { layers, edges } = model;
+  const sources = new Map<string, string>();
+  const neighbourhood = new Map<string, string>();
+  const subtree = new Map<string, string>();
+  sources.set(
     OVERVIEW_DIAGRAM,
-    buildOverviewDiagram(model.layers, model.edges, GENERATOR_NAME),
+    buildOverviewDiagram(layers, edges, GENERATOR_NAME),
   );
-  for (const layer of model.layers) {
-    diagramSources.set(
-      `${NEIGHBOURHOOD_PREFIX}/${layer.id}`,
-      buildNeighbourhoodDiagram(
-        layer.id,
-        model.layers,
-        model.edges,
-        GENERATOR_NAME,
-      ),
+  for (const layer of layers) {
+    const name = `${NEIGHBOURHOOD_PREFIX}/${layer.id}`;
+    neighbourhood.set(layer.id, name);
+    sources.set(
+      name,
+      buildNeighbourhoodDiagram(layer.id, layers, edges, GENERATOR_NAME),
     );
   }
-  const parentLayerIds = model.layers
-    .filter((layer) => model.layers.some((other) => other.parent === layer.id))
-    .map((layer) => layer.id);
-  for (const parentId of parentLayerIds) {
-    diagramSources.set(
-      `${SUBTREE_PREFIX}/${parentId}`,
-      buildSubtreeDiagram(parentId, model.layers, model.edges, GENERATOR_NAME),
-    );
+  for (const layer of layers) {
+    if (layers.some((other) => other.parent === layer.id)) {
+      const name = `${SUBTREE_PREFIX}/${layer.id}`;
+      subtree.set(layer.id, name);
+      sources.set(
+        name,
+        buildSubtreeDiagram(layer.id, layers, edges, GENERATOR_NAME),
+      );
+    }
   }
-  // Authored diagrams render through the same pipeline, so a name collision
-  // would silently overwrite a generated one.
-  const authoredDiagramNames = new Set<string>();
-  const diagramsBySource = new Map<string, string>();
-  for (const diagram of authoredResult.diagrams) {
-    if (diagramSources.has(diagram.name)) {
+  return { sources, overview: OVERVIEW_DIAGRAM, neighbourhood, subtree };
+};
+
+/**
+ * Adds the authored diagrams to the generated ones. They render through the
+ * same pipeline, so a name collision would silently overwrite a generated
+ * diagram; such a diagram is reported and left out.
+ */
+const addAuthoredDiagrams = (
+  diagrams: AuthoredDiagram[],
+  sources: Map<string, string>,
+  diagnostics: Diagnostic[],
+): { names: Set<string>; bySource: Map<string, string> } => {
+  const names = new Set<string>();
+  const bySource = new Map<string, string>();
+  for (const diagram of diagrams) {
+    if (sources.has(diagram.name)) {
       diagnostics.push(
         error(
           diagram.sourceFile,
@@ -123,51 +124,161 @@ export const emitBundle = async (options: {
       );
       continue;
     }
-    diagramSources.set(diagram.name, diagram.source);
-    authoredDiagramNames.add(diagram.name);
-    diagramsBySource.set(diagram.sourceFile, diagram.name);
+    sources.set(diagram.name, diagram.source);
+    names.add(diagram.name);
+    bySource.set(diagram.sourceFile, diagram.name);
   }
+  return { names, bySource };
+};
 
+interface Guide {
+  slug: string;
+  title: string;
+  description: string;
+}
+
+/**
+ * Where each authored page lands: a page attached to a layer moves beneath
+ * that layer's page, so its final slug is only known here, and the layer's
+ * page lists it as a guide.
+ */
+const placeAuthoredPages = (
+  pages: AuthoredPage[],
+  model: ArchitectureModel,
+  diagnostics: Diagnostic[],
+): { slugs: Map<string, string>; guidesByLayer: Map<string, Guide[]> } => {
   const declaredLayerIds = new Set(model.layers.map((layer) => layer.id));
-  const layerSlugsById = new Map(
-    model.layers.map((layer) => [layer.id, layerSlug(layer.id)]),
-  );
-
-  // An attached page moves beneath its layer's page, so its final slug is only
-  // known here; links and imports are resolved against it afterwards.
-  const authoredSlugs = new Map<string, string>();
-  const guidesByLayer = new Map<
-    string,
-    { slug: string; title: string; description: string }[]
-  >();
-  for (const page of authoredResult.pages) {
-    const attached =
-      page.attachTo !== null && declaredLayerIds.has(page.attachTo);
-    if (page.attachTo !== null && !attached) {
+  const slugs = new Map<string, string>();
+  const guidesByLayer = new Map<string, Guide[]>();
+  for (const page of pages) {
+    if (page.attachTo === null) {
+      slugs.set(page.slug, page.slug);
+      continue;
+    }
+    if (!declaredLayerIds.has(page.attachTo)) {
       diagnostics.push(
         error(
           page.sourceFile,
           `attachTo \`${page.attachTo}\` is not a declared layer`,
         ),
       );
-    }
-    if (!attached || page.attachTo === null) {
-      authoredSlugs.set(page.slug, page.slug);
+      slugs.set(page.slug, page.slug);
       continue;
     }
     const slug = `${layerSlug(page.attachTo)}/${page.slug.slice(page.slug.lastIndexOf("/") + 1)}`;
-    authoredSlugs.set(page.slug, slug);
+    slugs.set(page.slug, slug);
     guidesByLayer.set(page.attachTo, [
       ...(guidesByLayer.get(page.attachTo) ?? []),
       { slug, title: page.title, description: page.description },
     ]);
   }
+  return { slugs, guidesByLayer };
+};
 
-  const shippedComponents = await readShippedComponents();
+/** What link resolution needs to know about the rest of the bundle. */
+interface LinkContext {
+  layerSlugs: Map<string, string>;
+  docSlugs: Map<string, string>;
+  componentNames: Set<string>;
+  authoredDiagramNames: Set<string>;
+  /** Repo-relative `.d2` source file → the bundle's diagram name. */
+  diagramsBySource: Map<string, string>;
+  includeDiagrams: boolean;
+}
+
+/** A page's links, component imports and diagram references, resolved against its final slug. */
+const resolvePageLinks = (
+  page: AuthoredPage,
+  slug: string,
+  context: LinkContext,
+): { contents: string; unresolved: string[] } => {
+  const linked = resolveAuthoredLinks(page.contents, slug, {
+    layerSlugs: context.layerSlugs,
+    docSlugs: context.docSlugs,
+  });
+  const imported = resolveComponentImports(
+    linked.contents,
+    slug,
+    context.componentNames,
+  );
+  const illustrated = resolveDiagramImages(
+    imported.contents,
+    slug,
+    context.authoredDiagramNames,
+    context.includeDiagrams,
+  );
+  const local = resolveLocalDiagrams(
+    illustrated.contents,
+    slug,
+    page.sourceFile,
+    context.diagramsBySource,
+    context.includeDiagrams,
+  );
+  return {
+    contents: local.contents,
+    unresolved: [
+      ...linked.unresolved,
+      ...imported.unresolved,
+      ...illustrated.unresolved,
+      ...local.unresolved,
+    ],
+  };
+};
+
+/** Hand-written content from the content directory and from beside the code, as one. */
+const collectContent = async (options: {
+  repoRoot: string;
+  contentDirectory: string;
+  model: ArchitectureModel;
+}): Promise<AuthoredContentResult> => {
+  const [fromContent, fromCode] = await Promise.all([
+    collectAuthoredContent({
+      repoRoot: options.repoRoot,
+      contentDirectory: options.contentDirectory,
+    }),
+    collectColocatedContent({
+      repoRoot: options.repoRoot,
+      layers: options.model.layers,
+    }),
+  ]);
+  return {
+    pages: [...fromContent.pages, ...fromCode.pages],
+    components: fromContent.components,
+    diagrams: [...fromContent.diagrams, ...fromCode.diagrams],
+    errors: [...fromContent.errors, ...fromCode.errors],
+  };
+};
+
+export const emitBundle = async (options: {
+  model: ArchitectureModel;
+  repoRoot: string;
+  contentDirectory: string;
+  sourceUrlPrefix: string;
+  /** Whether SVGs will exist; when false, pages omit diagram images. */
+  includeDiagrams: boolean;
+}): Promise<Bundle> => {
+  const { model, includeDiagrams } = options;
+  const diagnostics: Diagnostic[] = [];
+  const [content, shippedComponents] = await Promise.all([
+    collectContent(options),
+    readShippedComponents(),
+  ]);
+  for (const failure of content.errors) {
+    diagnostics.push(error(failure.file, failure.message));
+  }
+
+  const diagrams = generatedDiagrams(model);
+  const authoredDiagrams = addAuthoredDiagrams(
+    content.diagrams,
+    diagrams.sources,
+    diagnostics,
+  );
+  const placed = placeAuthoredPages(content.pages, model, diagnostics);
+
   const shippedPaths = new Set(
     shippedComponents.map((component) => component.path),
   );
-  for (const component of authoredResult.components) {
+  for (const component of content.components) {
     if (shippedPaths.has(component.path)) {
       diagnostics.push(
         error(
@@ -177,40 +288,23 @@ export const emitBundle = async (options: {
       );
     }
   }
-  const componentNames = new Set(
-    authoredResult.components.map((component) => component.name),
-  );
 
-  const authored = authoredResult.pages.map((page): AuthoredPage => {
-    const slug = authoredSlugs.get(page.slug) ?? page.slug;
-    const linked = resolveAuthoredLinks(page.contents, slug, {
-      layerSlugs: layerSlugsById,
-      docSlugs: authoredSlugs,
-    });
-    const imported = resolveComponentImports(
-      linked.contents,
-      slug,
-      componentNames,
-    );
-    const illustrated = resolveDiagramImages(
-      imported.contents,
-      slug,
-      authoredDiagramNames,
-      options.includeDiagrams,
-    );
-    const local = resolveLocalDiagrams(
-      illustrated.contents,
-      slug,
-      page.sourceFile,
-      diagramsBySource,
-      options.includeDiagrams,
-    );
-    for (const target of [
-      ...linked.unresolved,
-      ...imported.unresolved,
-      ...illustrated.unresolved,
-      ...local.unresolved,
-    ]) {
+  const context: LinkContext = {
+    layerSlugs: new Map(
+      model.layers.map((layer) => [layer.id, layerSlug(layer.id)]),
+    ),
+    docSlugs: placed.slugs,
+    componentNames: new Set(
+      content.components.map((component) => component.name),
+    ),
+    authoredDiagramNames: authoredDiagrams.names,
+    diagramsBySource: authoredDiagrams.bySource,
+    includeDiagrams,
+  };
+  const authored = content.pages.map((page): AuthoredPage => {
+    const slug = placed.slugs.get(page.slug) ?? page.slug;
+    const resolved = resolvePageLinks(page, slug, context);
+    for (const target of resolved.unresolved) {
       diagnostics.push(
         error(page.sourceFile, `link target \`${target}\` does not resolve`),
       );
@@ -219,25 +313,16 @@ export const emitBundle = async (options: {
       ...page,
       slug,
       path: `pages/${slug}.mdx`,
-      contents: local.contents,
+      contents: resolved.contents,
     };
   });
 
   const generated = buildPages(model, {
     sourceUrlPrefix: options.sourceUrlPrefix,
-    overviewDiagram: options.includeDiagrams ? OVERVIEW_DIAGRAM : null,
-    neighbourhoodDiagrams: options.includeDiagrams
-      ? new Map(
-          model.layers.map((layer) => [
-            layer.id,
-            `${NEIGHBOURHOOD_PREFIX}/${layer.id}`,
-          ]),
-        )
-      : new Map(),
-    subtreeDiagrams: options.includeDiagrams
-      ? new Map(parentLayerIds.map((id) => [id, `${SUBTREE_PREFIX}/${id}`]))
-      : new Map(),
-    guidesByLayer,
+    overviewDiagram: includeDiagrams ? diagrams.overview : null,
+    neighbourhoodDiagrams: includeDiagrams ? diagrams.neighbourhood : new Map(),
+    subtreeDiagrams: includeDiagrams ? diagrams.subtree : new Map(),
+    guidesByLayer: placed.guidesByLayer,
   });
 
   const occupiedSlugs = new Set(generated.map((page) => page.slug));
@@ -254,17 +339,15 @@ export const emitBundle = async (options: {
     occupiedSlugs.add(page.slug);
   }
 
+  const pages = bundlePages({ generated, authored });
   return {
-    manifest: buildManifest({ generator: GENERATOR_NAME, generated, authored }),
+    manifest: buildManifest({ generator: GENERATOR_NAME, pages }),
     generated,
     authored,
-    components: [...authoredResult.components, ...shippedComponents],
-    diagramSources,
+    components: [...content.components, ...shippedComponents],
+    diagramSources: diagrams.sources,
     singleFile: buildSingleFileArchitecture(model),
-    search: buildSearchIndex([
-      ...generated.map((page) => ({ ...page, kind: "generated" as const })),
-      ...authored.map((page) => ({ ...page, kind: "authored" as const })),
-    ]),
+    search: buildSearchIndex(pages),
     diagnostics,
   };
 };

@@ -6,6 +6,7 @@
  */
 
 import { serveWorker, workerInput } from "../../../shared/worker-channel";
+import { moduleSymbol } from "../shared/symbols";
 import { createProgramHost } from "./program-host";
 import { createProgramWalker } from "./walk-program";
 
@@ -22,8 +23,6 @@ export type TypeScriptRequest =
 
 export interface TypeScriptResponse {
   documents: IndexedDocument[];
-  /** How many files were walked to answer. */
-  walked: number;
 }
 
 const data = workerInput<TypeScriptWorkerData>();
@@ -33,7 +32,7 @@ let walker: ReturnType<typeof createProgramWalker> | null = null;
 
 /** Files holding a reference to a symbol one of `changed` defines. */
 const dependentsOf = (changed: string[]): string[] => {
-  const prefixes = changed.map((file) => `${file}#`);
+  const prefixes = changed.map(moduleSymbol);
   return [...documents.values()]
     .filter(
       (document) =>
@@ -45,9 +44,8 @@ const dependentsOf = (changed: string[]): string[] => {
     .map((document) => document.file);
 };
 
-const respond = (walked: number): TypeScriptResponse => ({
+const respond = (): TypeScriptResponse => ({
   documents: [...documents.values()],
-  walked,
 });
 
 serveWorker<TypeScriptRequest, TypeScriptResponse>((request) => {
@@ -63,7 +61,7 @@ serveWorker<TypeScriptRequest, TypeScriptResponse>((request) => {
     for (const file of request.files) {
       documents.set(file, walker.walk(file));
     }
-    return respond(request.files.length);
+    return respond();
   }
   const present = new Set(request.files);
   for (const file of documents.keys()) {
@@ -80,5 +78,5 @@ serveWorker<TypeScriptRequest, TypeScriptResponse>((request) => {
   for (const file of stale) {
     documents.set(file, walker.walk(file));
   }
-  return respond(stale.length);
+  return respond();
 });

@@ -11,7 +11,9 @@ import {
   assembleModel,
   packagesOf,
   scanConfig,
+  stopwatch,
   type PipelineResult,
+  type Stopwatch,
 } from "../pipeline";
 import {
   collectFacts,
@@ -24,16 +26,14 @@ import {
   type Language,
 } from "../pipeline/facts";
 import { sourceExtensionsFor, sourceRootOf } from "../pipeline/shared/scope";
+import { messageOf, type Diagnostic } from "../shared/diagnostics";
 
 import type { ArchinautConfig } from "../config";
 import type { ArchitecturePackage } from "../model";
 import type { ScanResult } from "../pipeline/scan";
-import type { Diagnostic } from "../shared/diagnostics";
 
 export interface SessionBuild {
   result: BuildResult;
-  /** Wall time per stage, in milliseconds. */
-  timings: Record<string, number>;
   /** What the rebuild touched, for the log line. */
   touched: string[];
 }
@@ -53,19 +53,6 @@ const mergeScans = (scans: ScanResult[]): ScanResult => ({
   diagnostics: scans.flatMap((scan) => scan.diagnostics),
 });
 
-const stopwatch = () => {
-  const timings: Record<string, number> = {};
-  let last = performance.now();
-  return {
-    timings,
-    lap: (stage: string): void => {
-      const now = performance.now();
-      timings[stage] = Math.round((timings[stage] ?? 0) + now - last);
-      last = now;
-    },
-  };
-};
-
 export const createDevSession = (
   config: ArchinautConfig,
   options: { log: (line: string) => void },
@@ -74,7 +61,7 @@ export const createDevSession = (
   const factsOptions = {
     repoRoot: config.root,
     packages,
-    cacheDirectory: factsCacheDirectory(config.root, config.cacheDirectory),
+    cacheDirectory: factsCacheDirectory(config.cacheDirectory),
   };
   const scans = new Map<string, ScanResult>();
   const facts = new Map<Language, IndexedDocument[]>();
@@ -125,16 +112,15 @@ export const createDevSession = (
         `${language} facts ready in ${Math.round(performance.now() - started)} ms; edits now rebuild incrementally`,
       );
     }).catch((cause: unknown) => {
-      options.log(
-        `${language} facts source failed: ${cause instanceof Error ? cause.message : String(cause)}`,
-      );
+      options.log(`${language} facts source failed: ${messageOf(cause)}`);
     });
   };
 
   const finish = async (
-    clock: ReturnType<typeof stopwatch>,
+    clock: Stopwatch,
     touched: string[],
     extraDiagnostics: Diagnostic[],
+    reindexed: Language[],
   ): Promise<SessionBuild> => {
     const scan = mergeScans([...scans.values()]);
     const assembled = assembleModel({
@@ -151,12 +137,12 @@ export const createDevSession = (
         ...extraDiagnostics,
         ...assembled.diagnostics,
       ],
-      timings: {},
-      reindexed: [],
+      timings: clock.timings,
+      reindexed,
     };
     const result = await writeBuild(config, pipeline, { write: true });
     clock.lap("write");
-    return { result, timings: clock.timings, touched };
+    return { result, touched };
   };
 
   return {
@@ -186,6 +172,7 @@ export const createDevSession = (
           ? ["facts from cache"]
           : collected.fresh.map((language) => `${language} indexed`),
         collected.diagnostics,
+        collected.fresh,
       );
     },
 
@@ -241,6 +228,7 @@ export const createDevSession = (
           ? ["content"]
           : [...touched.map((pkg) => pkg.name), ...notes],
         diagnostics,
+        [],
       );
     },
 

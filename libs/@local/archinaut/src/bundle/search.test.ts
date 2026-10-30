@@ -4,7 +4,9 @@ import { headingsOf } from "./headings";
 import { buildSearchIndex, plainTextOf } from "./search";
 
 const page = {
+  path: "pages/architecture/core/handle.mdx",
   slug: "architecture/core/handle",
+  order: 0,
   title: "handle",
   description: "The document handle.",
   kind: "generated" as const,

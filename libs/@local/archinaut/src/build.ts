@@ -7,18 +7,32 @@
 import { join } from "node:path";
 
 import { bundleFiles, emitBundle, type Bundle } from "./bundle";
-import { findD2 } from "./bundle/d2";
+import { findD2, type D2 } from "./bundle/d2";
 import { renderDiagrams } from "./bundle/render-diagrams";
 import { diffAgainstBase, seedBaseCache } from "./diff";
+import { runPipeline, type PipelineResult } from "./pipeline";
 import {
-  runPipeline,
-  type PipelineOptions,
-  type PipelineResult,
-} from "./pipeline";
-import { countErrors, warning, type Diagnostic } from "./shared/diagnostics";
+  countErrors,
+  messageOf,
+  warning,
+  type Diagnostic,
+} from "./shared/diagnostics";
 import { syncDirectory } from "./shared/sync-directory";
 
 import type { ArchinautConfig } from "./config";
+import type { ArchitectureModel } from "./model";
+
+/** What a diff build compared against, and what it found. */
+export interface DiffSummary {
+  baseRef: string;
+  baseSha: string;
+  fromCache: boolean;
+  /** The remote URL the base tree came from, when the local clone could not supply it. */
+  fetchedFrom: string | null;
+  added: number;
+  changed: number;
+  removed: number;
+}
 
 export interface BuildResult {
   pipeline: PipelineResult;
@@ -31,13 +45,100 @@ export interface BuildResult {
   diagramsRendered: number;
   /** Where the bundle lives, absolute. */
   bundleRoot: string;
+  /** Null when the build compared against nothing. */
+  diff: DiffSummary | null;
 }
 
-export interface BuildOptions extends PipelineOptions {
+export interface BuildOptions {
   write: boolean;
   /** A git ref to mark changes against; null builds a plain bundle. */
   diffBase?: string | null;
 }
+
+/**
+ * The bundle with changes against `ref` marked. The diff decorates a build
+ * and never gates it: when the base cannot be resolved or built, the plain
+ * bundle is kept with a warning.
+ */
+const decorateWithDiff = async (options: {
+  config: ArchinautConfig;
+  model: ArchitectureModel;
+  bundle: Bundle;
+  ref: string;
+  includeDiagrams: boolean;
+}): Promise<{
+  bundle: Bundle;
+  diff: DiffSummary | null;
+  diagnostics: Diagnostic[];
+}> => {
+  try {
+    const diff = await diffAgainstBase(options);
+    const statuses = Object.values(diff.bundle.manifest.diff?.pages ?? {});
+    const count = (status: string): number =>
+      statuses.filter((each) => each === status).length;
+    return {
+      bundle: diff.bundle,
+      diff: {
+        baseRef: options.ref,
+        baseSha: diff.baseSha,
+        fromCache: diff.fromCache,
+        fetchedFrom: diff.fetchedFrom,
+        added: count("added"),
+        changed: count("changed"),
+        removed: count("removed"),
+      },
+      diagnostics: [],
+    };
+  } catch (cause) {
+    return {
+      bundle: options.bundle,
+      diff: null,
+      diagnostics: [
+        warning(
+          "archinaut.config.ts",
+          `building without change highlighting: could not compare against \`${options.ref}\` (${messageOf(cause)})`,
+        ),
+      ],
+    };
+  }
+};
+
+/** Brings the bundle directory up to date and renders the diagrams that changed. */
+const writeBundleFiles = async (options: {
+  config: ArchinautConfig;
+  bundleRoot: string;
+  files: Map<string, string>;
+  d2: D2 | null;
+}): Promise<{
+  written: string[];
+  removed: string[];
+  diagramsRendered: number;
+  diagnostics: Diagnostic[];
+}> => {
+  const { config, bundleRoot, files, d2 } = options;
+  const summary = await syncDirectory(bundleRoot, files, {
+    // Rendered SVGs sit beside their sources and are not in `files`.
+    keep: (path) => path.endsWith(".svg"),
+  });
+  if (d2 === null) {
+    return { ...summary, diagramsRendered: 0, diagnostics: [] };
+  }
+  const rendering = await renderDiagrams({
+    d2,
+    repoRoot: config.root,
+    bundleRoot,
+    cacheDirectory: join(config.cacheDirectory, "diagrams"),
+    names: [...files.keys()]
+      .filter((path) => path.startsWith("diagrams/") && path.endsWith(".d2"))
+      .map((path) => path.slice("diagrams/".length, -".d2".length)),
+  });
+  return {
+    written: [...summary.written, ...rendering.written],
+    removed: summary.removed,
+    diagramsRendered: rendering.rendered,
+    diagnostics: rendering.diagnostics,
+  };
+};
 
 /** Emits and, when asked, writes the bundle for an already-built model. */
 export const writeBuild = async (
@@ -47,8 +148,6 @@ export const writeBuild = async (
 ): Promise<BuildResult> => {
   const bundleRoot = join(config.root, config.outputDirectory);
   const d2 = options.write ? findD2(config.root) : null;
-  const cacheDirectory = join(config.root, config.cacheDirectory);
-
   const bundle = await emitBundle({
     model: pipeline.model,
     repoRoot: config.root,
@@ -57,88 +156,57 @@ export const writeBuild = async (
     includeDiagrams: d2 !== null,
   });
   const diagnostics = [...pipeline.diagnostics, ...bundle.diagnostics];
-
+  const unwritten: BuildResult = {
+    pipeline,
+    bundle,
+    diagnostics,
+    written: [],
+    removed: [],
+    diagramsRendered: 0,
+    bundleRoot,
+    diff: null,
+  };
   if (!options.write || countErrors(diagnostics) > 0) {
-    return {
-      pipeline,
-      bundle,
-      diagnostics,
-      written: [],
-      removed: [],
-      diagramsRendered: 0,
-      bundleRoot,
-    };
+    return unwritten;
   }
 
-  // Applied only to a bundle that passed the checks, and never gating it: when
-  // the base cannot be resolved or built, the plain bundle is written with a
-  // warning.
-  let output = bundle;
   const diffBase = options.diffBase ?? null;
-  if (diffBase !== null) {
-    try {
-      const diff = await diffAgainstBase({
-        config,
-        model: pipeline.model,
-        bundle,
-        ref: diffBase,
-        includeDiagrams: d2 !== null,
-      });
-      output = diff.bundle;
-      const changes = Object.values(diff.bundle.manifest.diff?.pages ?? {});
-      process.stdout.write(
-        `changes vs ${diffBase} (${diff.baseSha.slice(0, 10)}${diff.fromCache ? ", base from cache" : ""}${diff.fetchedFrom === null ? "" : `, fetched from ${diff.fetchedFrom}`}): ${changes.filter((status) => status === "added").length} added · ${changes.filter((status) => status === "changed").length} changed · ${changes.filter((status) => status === "removed").length} removed\n`,
-      );
-    } catch (cause) {
-      diagnostics.push(
-        warning(
-          "archinaut.config.ts",
-          `building without change highlighting: could not compare against \`${diffBase}\` (${cause instanceof Error ? cause.message : String(cause)})`,
-        ),
-      );
-    }
-  }
-  // A clean build's own side is a future base; seeded before the diff's base
-  // was read, this could evict the entry the diff was about to use.
+  const decorated =
+    diffBase === null
+      ? { bundle, diff: null, diagnostics: [] }
+      : await decorateWithDiff({
+          config,
+          model: pipeline.model,
+          bundle,
+          ref: diffBase,
+          includeDiagrams: d2 !== null,
+        });
+  // A clean build's own side is a future base; seeded after the diff read
+  // its base, since seeding first could evict the entry the diff was about
+  // to use.
   seedBaseCache({
     config,
     model: pipeline.model,
     bundle,
     includeDiagrams: d2 !== null,
   });
-
-  const files = bundleFiles(pipeline.model, output);
-  const summary = await syncDirectory(bundleRoot, files, {
-    // Rendered SVGs sit beside their sources and are not in `files`.
-    keep: (path) => path.endsWith(".svg"),
-  });
-
-  let diagramsRendered = 0;
-  const written = [...summary.written];
-  if (d2 !== null) {
-    const names = [...files.keys()]
-      .filter((path) => path.startsWith("diagrams/") && path.endsWith(".d2"))
-      .map((path) => path.slice("diagrams/".length, -".d2".length));
-    const rendering = await renderDiagrams({
-      d2,
-      repoRoot: config.root,
-      bundleRoot,
-      cacheDirectory: join(cacheDirectory, "diagrams"),
-      names,
-    });
-    diagnostics.push(...rendering.diagnostics);
-    diagramsRendered = rendering.rendered;
-    written.push(...rendering.written);
-  }
-
-  return {
-    pipeline,
-    bundle,
-    diagnostics,
-    written,
-    removed: summary.removed,
-    diagramsRendered,
+  const output = await writeBundleFiles({
+    config,
     bundleRoot,
+    files: bundleFiles(pipeline.model, decorated.bundle),
+    d2,
+  });
+  return {
+    ...unwritten,
+    diagnostics: [
+      ...diagnostics,
+      ...decorated.diagnostics,
+      ...output.diagnostics,
+    ],
+    written: output.written,
+    removed: output.removed,
+    diagramsRendered: output.diagramsRendered,
+    diff: decorated.diff,
   };
 };
 
@@ -146,4 +214,4 @@ export const buildArchitecture = async (
   config: ArchinautConfig,
   options: BuildOptions,
 ): Promise<BuildResult> =>
-  writeBuild(config, await runPipeline(config, options), options);
+  writeBuild(config, await runPipeline(config), options);
