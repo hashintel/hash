@@ -20,12 +20,14 @@
     "fix:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts --fix",
     "lint:oxlint": "oxlint --disable-nested-config -c oxlint.config.ts",
     "lint:tsc": "tsc --noEmit",
+    "test:integration": "vitest run --project integration",
     "test:unit": "vitest run --project unit --typecheck"
   },
   "dependencies": {
     "effect": "4.0.3"
   },
   "devDependencies": {
+    "@effect/platform-node": "4.0.3",
     "@effect/vitest": "4.0.3",
     "@local/oxlint": "workspace:*",
     "@local/tsconfig": "workspace:*",

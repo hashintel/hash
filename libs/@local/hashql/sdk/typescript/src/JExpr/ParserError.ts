@@ -39,3 +39,6 @@ export type InvalidBaseUrl = Ident.InvalidBaseUrl;
 
 /** The input nests deeper than the call stack lets the parser follow. Its offset is 0, because the parser cannot tell where the stack ran out. */
 export type NestingTooDeep = TypeGrammar.NestingTooDeep;
+
+/** A struct type names the same field twice. Its offset is the end of the struct. */
+export type DuplicateStructField = TypeGrammar.DuplicateStructField;

@@ -1,6 +1,8 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 import type { ViteUserConfig } from "vitest/config";
+
+const integration = "**/*.integration.test.{ts,tsx}";
 
 const config: ViteUserConfig = defineConfig({
   test: {
@@ -9,7 +11,15 @@ const config: ViteUserConfig = defineConfig({
         extends: true,
         test: {
           name: "unit",
+          exclude: [...configDefaults.exclude, integration],
           typecheck: { enabled: true },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "integration",
+          include: [integration],
         },
       },
     ],
