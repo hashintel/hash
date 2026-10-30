@@ -164,15 +164,23 @@ user chooses it and clean up when they choose another.
 
 Inside `content`, `AssistantPanelTitle` fills the title bar and
 `useAssistantPanel()` reads whether the panel is open and closes it.
+`setCompact(true)` shrinks the panel to a dock in the canvas's corner, such
+as during a voice session. The dock has no title bar, so the content shows its
+own controls there, including a way to close; `setCompact(false)` restores the
+panel's placement and size.
 
 The title bar's parts render inside `content`, so they read the chat's state:
-the Clear button below shows only once there are messages.
+the Clear button below shows only once there are messages. The title's
+`onClose` runs when the user presses Close, before the panel closes, such as to
+pause a voice session.
 
 The empty-net prompt shows while the assistant returns `onPrompt`. The editor
 opens the panel and calls it with the message the user sends, so the
 conversation lives in the hook, where `onPrompt` can reach it. When the panel
 opens, the content's element marked `data-autofocus`, such as the composer's
-`<textarea data-autofocus />`, takes focus; without one, the panel does.
+`<textarea data-autofocus />`, takes focus; without one, the panel does. A
+`startAction`, such as a Voice start, shows in place of Send while the
+prompt's input is empty: the editor opens the panel, then calls its `run`.
 
 ```tsx
 // `Chat` and `useChat` come from `@ai-sdk/react`, `UIMessage` from `ai`.

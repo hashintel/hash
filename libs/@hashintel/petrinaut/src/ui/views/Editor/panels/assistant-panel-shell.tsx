@@ -1,4 +1,12 @@
-import { type ReactNode, use, useEffect, useState } from "react";
+import {
+  type ReactNode,
+  use,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { Button, Icon, Menu } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -58,6 +66,15 @@ const shellStyle = cva({
         maxWidth: "[calc(100% - 24px)]",
       },
     },
+    compact: {
+      true: {
+        top: "[auto]",
+        bottom: "[12px]",
+        right: "[12px]",
+        height: "auto",
+        maxWidth: "[calc(100% - 24px)]",
+      },
+    },
     open: {
       false: {
         transform: "[translateX(100%)]",
@@ -71,12 +88,15 @@ const shellStyle = cva({
   },
 });
 
-const resizeAnchorStyle = css({
-  position: "absolute",
-  top: "[0]",
-  bottom: "[0]",
-  left: "[0]",
-  width: "[0]",
+const resizeAnchorStyle = cva({
+  base: {
+    position: "absolute",
+    top: "[0]",
+    bottom: "[0]",
+    left: "[0]",
+    width: "[0]",
+  },
+  variants: { compact: { true: { display: "none" } } },
 });
 
 const cardStyle = cva({
@@ -104,20 +124,27 @@ const cardStyle = cva({
           "[0 0 0 1px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.12), 0 12px 32px -12px rgba(0,0,0,0.16)]",
       },
     },
+    // A dock's content may overflow it, for a popover above.
+    compact: {
+      true: { overflow: "visible" },
+    },
   },
 });
 
-const headerStyle = css({
-  position: "relative",
-  userSelect: "none",
-  display: "flex",
-  alignItems: "center",
-  gap: "1",
-  height: "[40px]",
-  paddingLeft: "3",
-  paddingRight: "2",
-  borderBottom: "[1px solid {colors.neutral.bd.subtle}]",
-  flexShrink: 0,
+const headerStyle = cva({
+  base: {
+    position: "relative",
+    userSelect: "none",
+    display: "flex",
+    alignItems: "center",
+    gap: "1",
+    height: "[40px]",
+    paddingLeft: "3",
+    paddingRight: "2",
+    borderBottom: "[1px solid {colors.neutral.bd.subtle}]",
+    flexShrink: 0,
+  },
+  variants: { compact: { true: { display: "none" } } },
 });
 
 // Covers the whole title bar, so a floating panel drags from any spot the
@@ -235,7 +262,8 @@ const AssistantSwitcher = () => {
  * the canvas, its docked or floating placement, resizing, and a title bar with
  * the assistant icon, the dock toggle and Close. The content fills the rest,
  * and the title bar through `AssistantPanelTitle`; it reads `panel` with
- * `useAssistantPanel`.
+ * `useAssistantPanel`. Compact, the panel is a dock in the canvas's corner
+ * without its title bar, and the canvas's controls clear its height.
  */
 export const PluginAssistantPanel = ({
   panel,
@@ -251,10 +279,11 @@ export const PluginAssistantPanel = ({
     aiAssistantPlacement,
     aiAssistantWidth,
     isPanelAnimating,
+    setAiAssistantDockHeight,
     setAiAssistantPlacement,
     setAiAssistantWidth,
   } = use(EditorContext);
-  const { isOpen, close } = panel;
+  const { isOpen, close, compact } = panel;
 
   const isFloating = aiAssistantPlacement === "floating";
   const HeaderLabel = isFloating ? "button" : "div";
@@ -279,34 +308,69 @@ export const PluginAssistantPanel = ({
   const [actionsElement, setActionsElement] = useState<HTMLElement | null>(
     null,
   );
+  // What the content's title runs when the user presses Close, set from its
+  // effect; Close reads it, so it never re-renders the panel.
+  const closeHandlerRef = useRef<(() => void) | undefined>(undefined);
+  const [setCloseHandler] = useState(
+    () => (handler: (() => void) | undefined) => {
+      closeHandlerRef.current = handler;
+    },
+  );
+
+  // The canvas's controls clear the dock's height, measured as it changes.
+  const reportDockHeight = useEffectEvent((height: number | null) =>
+    setAiAssistantDockHeight(height),
+  );
+  useLayoutEffect(() => {
+    const panelElement = panelRef.current;
+    if (!isOpen || !compact || panelElement === null) {
+      return;
+    }
+    const measure = () =>
+      reportDockHeight(panelElement.getBoundingClientRect().height);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(panelElement);
+
+    return () => {
+      observer.disconnect();
+      reportDockHeight(null);
+    };
+  }, [compact, isOpen, panelRef]);
 
   // Opening the panel moves focus to the content's element marked
-  // `data-autofocus`, or else to the panel, unless focus is already inside.
+  // `data-autofocus`, or else to the panel. An expanded panel that already
+  // holds focus keeps it; a dock focuses itself.
   useEffect(() => {
     const panelElement = panelRef.current;
     if (
       !isOpen ||
       panelElement === null ||
-      panelElement.contains(document.activeElement)
+      (!compact && panelElement.contains(document.activeElement))
     ) {
       return;
     }
-    const target =
-      panelElement.querySelector<HTMLElement>("[data-autofocus]") ??
-      panelElement;
+    const target = compact
+      ? panelElement
+      : (panelElement.querySelector<HTMLElement>("[data-autofocus]") ??
+        panelElement);
     target.focus({ preventScroll: true });
-  }, [focusRequest, isOpen, panelRef]);
+  }, [compact, focusRequest, isOpen, panelRef]);
 
   return (
     <AssistantPanelContext value={panel}>
       <AssistantTitleBarContext
-        value={{ title: titleElement, actions: actionsElement }}
+        value={{
+          title: titleElement,
+          actions: actionsElement,
+          setCloseHandler,
+        }}
       >
         <div
           aria-hidden="true"
           className={dockSpaceStyle}
           data-animating={animating}
-          style={{ width: isOpen && !isFloating ? panelWidth : 0 }}
+          style={{ width: isOpen && !isFloating && !compact ? panelWidth : 0 }}
         />
         <aside
           ref={panelRef}
@@ -314,21 +378,26 @@ export const PluginAssistantPanel = ({
           aria-label="AI assistant"
           tabIndex={-1}
           inert={!isOpen}
-          className={shellStyle({ open: isOpen, floating: isFloating })}
+          className={shellStyle({
+            compact,
+            open: isOpen,
+            floating: isFloating && !compact,
+          })}
           data-placement={aiAssistantPlacement}
+          data-compact={compact}
           data-animating={animating}
           style={{
             width: panelWidth,
-            ...(isFloating ? floatingPositionStyle : {}),
+            ...(isFloating && !compact ? floatingPositionStyle : {}),
           }}
         >
-          {isFloating ? (
+          {isFloating && !compact ? (
             <FloatingResizeHandles
               label="AI assistant"
               getHandleProps={getResizeHandleProps}
             />
           ) : (
-            <div className={resizeAnchorStyle}>
+            <div className={resizeAnchorStyle({ compact })}>
               <ResizeHandle
                 edge="left"
                 appearance="hidden"
@@ -341,10 +410,10 @@ export const PluginAssistantPanel = ({
             </div>
           )}
           <div
-            className={cardStyle({ floating: isFloating })}
+            className={cardStyle({ floating: isFloating || compact, compact })}
             data-animating={animating}
           >
-            <div className={headerStyle}>
+            <div className={headerStyle({ compact })}>
               <HeaderLabel
                 type={isFloating ? "button" : undefined}
                 className={headerLabelStyle}
@@ -381,7 +450,10 @@ export const PluginAssistantPanel = ({
                 variant="ghost"
                 className={buttonStyle}
                 aria-label="Close AI assistant"
-                onClick={close}
+                onClick={() => {
+                  closeHandlerRef.current?.();
+                  close();
+                }}
                 prefix={<ExperimentalIcon name="close" size={14} />}
                 tooltip="Close AI assistant"
               />

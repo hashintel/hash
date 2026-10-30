@@ -137,6 +137,35 @@ describe("plugin editor", () => {
     expect(instance.definition.get().scenarios).toHaveLength(1);
   });
 
+  it("reports why each edit would be refused, as the edits do, and wakes a subscriber only when that changes", () => {
+    renderPlugins([documentPlugin], <Probe />);
+    const { refusals } = documentOf();
+    expect(refusals.get()).toMatchObject({
+      addPlace: null,
+      addScenario: null,
+      applyAutoLayout: null,
+      setTitle: { kind: "no-title-setter" },
+    });
+    const listener = vi.fn();
+    refusals.subscribe(listener);
+
+    act(() => probe.setGlobalMode?.("simulate"));
+    expect(listener).toHaveBeenCalledOnce();
+    expect(refusals.get()).toMatchObject({
+      addPlace: { kind: "simulate-mode" },
+      addScenario: null,
+      applyAutoLayout: { kind: "simulate-mode" },
+    });
+    expect(documentOf().edit.addPlace(place)).toEqual({
+      applied: false,
+      reason: refusals.get().addPlace,
+    });
+
+    act(() => probe.setGlobalMode?.("edit"));
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(refusals.get().addPlace).toBeNull();
+  });
+
   it("refuses a title without a host setter, or while the editor is read-only", () => {
     renderPlugins([documentPlugin], <Probe />);
     expect(documentOf().setTitle("Renamed")).toEqual({

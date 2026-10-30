@@ -5,6 +5,8 @@ import type { AssistantPanel } from "@hashintel/petrinaut/ui/plugin";
 const TestPanelContext = createContext<AssistantPanel>({
   isOpen: true,
   close: () => {},
+  compact: false,
+  setCompact: () => {},
 });
 
 /**
@@ -24,7 +26,9 @@ export const TestAssistantPanel = ({
   close?: () => void;
   children: ReactNode;
 }) => (
-  <TestPanelContext value={{ isOpen, close }}>
+  <TestPanelContext
+    value={{ isOpen, close, compact: false, setCompact: () => {} }}
+  >
     <aside
       aria-hidden={!isOpen ? true : undefined}
       aria-label="AI assistant"

@@ -4,7 +4,7 @@
  * content fills.
  */
 
-import { createContext, type ReactNode, use } from "react";
+import { createContext, type ReactNode, use, useEffect } from "react";
 import { createPortal } from "react-dom";
 
 import { UserSettingsContext } from "../../react/state/user-settings-context";
@@ -18,6 +18,15 @@ import {
 export interface AssistantPanel {
   readonly isOpen: boolean;
   readonly close: () => void;
+  /**
+   * `true` while the panel is a compact dock in the canvas's corner, e.g.
+   * during a voice session. The dock takes no width beside the canvas, hides
+   * the title bar and fits the content, which may overflow it for a popover;
+   * the canvas's controls keep clear of it.
+   */
+  readonly compact: boolean;
+  /** Shrinks the panel to the dock, or restores its placement and size. */
+  readonly setCompact: (compact: boolean) => void;
 }
 
 export const AssistantPanelContext = createContext<AssistantPanel | null>(null);
@@ -33,10 +42,11 @@ export const useAssistantPanel = (): AssistantPanel => {
   return panel;
 };
 
-/** The title bar elements `AssistantPanelTitle` renders into. */
+/** The title bar elements `AssistantPanelTitle` renders into, and where it sets what Close runs first. */
 interface AssistantTitleBar {
   readonly title: HTMLElement | null;
   readonly actions: HTMLElement | null;
+  readonly setCloseHandler: (handler: (() => void) | undefined) => void;
 }
 
 export const AssistantTitleBarContext = createContext<AssistantTitleBar | null>(
@@ -46,18 +56,30 @@ export const AssistantTitleBarContext = createContext<AssistantTitleBar | null>(
 /**
  * Fills the assistant panel's title bar from the panel's content: `children`
  * after the assistant icon, such as a title or tabs, and `actions` between the
- * dock toggle and the Close button. A floating panel drags from the title's
+ * dock toggle and the Close button. `onClose` runs when the user presses
+ * Close, before the panel closes. A floating panel drags from the title's
  * text and containers; buttons, links, form fields and other focusable
  * controls take their own clicks.
  */
 export const AssistantPanelTitle = ({
   children,
   actions,
+  onClose,
 }: {
   children?: ReactNode;
   actions?: ReactNode;
+  onClose?: () => void;
 }) => {
   const titleBar = use(AssistantTitleBarContext);
+  const setCloseHandler = titleBar?.setCloseHandler;
+  useEffect(() => {
+    if (setCloseHandler === undefined || onClose === undefined) {
+      return;
+    }
+    setCloseHandler(onClose);
+
+    return () => setCloseHandler(undefined);
+  }, [onClose, setCloseHandler]);
 
   return (
     <>
