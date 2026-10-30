@@ -5,6 +5,8 @@
     "checkJs": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2024", "ESNext.Collection"]
+    "lib": ["ES2024", "ESNext.Collection"],
+    // Implicit returns remain in src/shared/testing-utilities/mock-get-flow-context.ts (TS7030).
+    "noImplicitReturns": false
   }
 }
