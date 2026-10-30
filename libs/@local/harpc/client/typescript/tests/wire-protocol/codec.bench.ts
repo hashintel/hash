@@ -1,9 +1,9 @@
 import { Either, FastCheck, pipe } from "effect";
 import { describe, test } from "vitest";
 
-import { MutableBuffer, MutableBytes } from "../../src/binary/index.js";
-import { Request } from "../../src/wire-protocol/models/request/index.js";
-import { Response } from "../../src/wire-protocol/models/response/index.js";
+import { MutableBuffer, MutableBytes } from "@local/harpc-client/binary";
+import { Request } from "@local/harpc-client/wire-protocol/models/request";
+import { Response } from "@local/harpc-client/wire-protocol/models/response";
 
 // using the same seed ensures that the same request is generated
 const request = FastCheck.sample(Request.arbitrary(FastCheck), {
@@ -46,7 +46,7 @@ describe("request", () => {
     await bench("decode", () => {
       const buffer = MutableBuffer.makeRead(MutableBytes.from(requestEncoded));
 
-      Request.decode(buffer);
+      Request.decode(buffer).pipe(Either.getOrThrow);
     }).run();
   });
 });
@@ -63,7 +63,7 @@ describe("response", () => {
     await bench("decode", () => {
       const buffer = MutableBuffer.makeRead(MutableBytes.from(responseEncoded));
 
-      Response.decode(buffer);
+      Response.decode(buffer).pipe(Either.getOrThrow);
     }).run();
   });
 });

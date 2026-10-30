@@ -71,12 +71,12 @@ beforeAll(async () => {
     result?.type === "return" ? result.value : undefined;
 });
 
-test("app registration admits the Anthropic, OpenAI and OpenRouter providers", () => {
+test("registered providers", () => {
   const ids = registeredProviders.map((provider) => provider.id).sort();
   expect(ids).toEqual(["anthropic", "openai", "openrouter"]);
 });
 
-test("app registration admits native OpenRouter with GPT-6.1 Sol and its API-key auth", async () => {
+test("native OpenRouter provider", async () => {
   const native = nativeOpenRouterProvider;
   expect(native).toBeDefined();
   const provider = registeredProviders.find(
@@ -114,7 +114,8 @@ const drain = async (stream: ReturnType<Provider["streamSimple"]>) => {
   return stream.result();
 };
 
-test("app registration scopes admission to the Petrinaut agent's execution, isolating concurrent agents and delegated tasks", async () => {
+// Admission applies to the Petrinaut agent's own execution, so a concurrent unrelated agent and a task it delegates are not held by it.
+test("admission scope", async () => {
   const registration = instrumentations.find(
     (instrumentation) =>
       instrumentation.key === Symbol.for("brunch.buffered-tool-admission"),

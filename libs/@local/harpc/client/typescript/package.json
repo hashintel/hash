@@ -16,6 +16,7 @@
     }
   },
   "scripts": {
+    "bench": "yarn build && vitest bench --run --reporter=verbose --experimental.viteModuleRunner=false",
     "build": "rimraf dist && tsc --build tsconfig.build.json",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
