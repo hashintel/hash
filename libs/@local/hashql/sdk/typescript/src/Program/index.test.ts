@@ -1,6 +1,7 @@
 import { Result, pipe } from "effect";
 import { describe, expect, test } from "vitest";
 
+import * as Referential from "../internal/referential.js";
 import * as JExpr from "../JExpr/index.js";
 import * as AST from "./AST/index.js";
 import * as Program from "./index.js";
@@ -37,5 +38,27 @@ describe("compile", () => {
     expect(compileTrusted(JExpr.tuple(unknown)).reason._tag).toBe(
       "InvalidExpression",
     );
+  });
+
+  test("stale_reference", () => {
+    expect.hasAssertions();
+    const ident = Result.getOrThrow(JExpr.Ident.decodeResult("x"));
+    // The handle's binding of `x` belongs to another program.
+    const reference = Referential.referenceProducer(Symbol("stale_reference"))(
+      "value",
+      ident,
+    );
+    const failure = pipe(
+      new AST.Path(Result.getOrThrow(JExpr.Path.decodeResult("x")), reference),
+      Program.Expression.fromNode<Type.Unknown, Program.Inputs.Empty>,
+      Program.program,
+      Program.compile,
+      Result.flip,
+      Result.getOrThrow,
+    );
+    expect(failure.reason).toStrictEqual({
+      _tag: "StaleReference",
+      name: "x",
+    });
   });
 });
