@@ -98,6 +98,12 @@ export const researchEntitiesAction: FlowActionActivity<
             },
             {
               equal: [
+                { path: ["editionProvenance", "origin", "type"] },
+                { parameter: "flow" },
+              ],
+            },
+            {
+              equal: [
                 {
                   path: ["editionProvenance", "origin", "id"],
                 },
