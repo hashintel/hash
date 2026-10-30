@@ -4,8 +4,12 @@ import {
   getFlowRunEntityById,
   getFlowRuns,
 } from "@local/hash-backend-utils/flows";
+import {
+  automaticBrowserInferenceFlow,
+  manualBrowserInferenceFlow,
+} from "@local/hash-isomorphic-utils/flows/definitions/browser-plugin-flow-definitions";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
-import { assertNoStoredPayloadRefsInFlowInputs } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
+import { validateFlowInputs } from "@local/hash-isomorphic-utils/flows/validate-payloads";
 
 import { getUserAndSession } from "../auth/create-auth-handlers";
 import { FlowRunStatus } from "../graphql/api-types.gen";
@@ -47,10 +51,19 @@ const inferEntitiesMessageHandler = async ({
 
       const { webId: _webId, ...flowInputs } = message.payload;
 
-      try {
-        assertNoStoredPayloadRefsInFlowInputs(flowInputs);
-      } catch (error) {
-        socket.send((error as Error).message);
+      /* The code that seeds the flow the request starts, which a test keeps equal to its seeded definition. */
+      const { flowDefinition } =
+        message.type === "manual-inference-request"
+          ? manualBrowserInferenceFlow
+          : automaticBrowserInferenceFlow;
+
+      const invalidFlowInputMessage = validateFlowInputs({
+        inputDefinitions: flowDefinition.inputs,
+        flowInputs,
+      });
+
+      if (invalidFlowInputMessage) {
+        socket.send(invalidFlowInputMessage);
         return;
       }
 
