@@ -10,6 +10,8 @@ import type { SearchDocument } from "../../../src/bundle/search";
 import type MiniSearch from "minisearch";
 
 export interface ExcerptPart {
+  /** Where the part starts in the excerpt, its identity in a list. */
+  start: number;
   text: string;
   matched: boolean;
 }
@@ -43,7 +45,9 @@ const escapeRegExp = (text: string): string =>
 /** The text around the first matched term, the matches marked. */
 export const excerptOf = (text: string, terms: string[]): ExcerptPart[] => {
   if (terms.length === 0 || text === "") {
-    return [{ text: text.slice(0, 2 * excerptRadius), matched: false }];
+    return [
+      { start: 0, text: text.slice(0, 2 * excerptRadius), matched: false },
+    ];
   }
   const pattern = new RegExp(
     `\\b(${terms.map(escapeRegExp).join("|")})`,
@@ -59,13 +63,17 @@ export const excerptOf = (text: string, terms: string[]): ExcerptPart[] => {
   pattern.lastIndex = 0;
   for (const match of window.matchAll(pattern)) {
     if (match.index > cursor) {
-      parts.push({ text: window.slice(cursor, match.index), matched: false });
+      parts.push({
+        start: cursor,
+        text: window.slice(cursor, match.index),
+        matched: false,
+      });
     }
-    parts.push({ text: match[0], matched: true });
+    parts.push({ start: match.index, text: match[0], matched: true });
     cursor = match.index + match[0].length;
   }
   if (cursor < window.length) {
-    parts.push({ text: window.slice(cursor), matched: false });
+    parts.push({ start: cursor, text: window.slice(cursor), matched: false });
   }
   return parts;
 };

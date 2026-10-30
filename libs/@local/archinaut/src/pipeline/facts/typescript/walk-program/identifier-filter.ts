@@ -98,7 +98,7 @@ const isMemberName = (identifier: Identifier): boolean => {
 };
 
 /** The space a use is resolved in, or null when it is not lexical. */
-const useSpace = (identifier: Identifier): Space | null => {
+const spaceOf = (identifier: Identifier): Space | null => {
   const { parent } = identifier;
   if (isTypeQueryNode(parent) || isTypePredicateNode(parent)) {
     return "values";
@@ -153,7 +153,7 @@ export const createIdentifierFilter = (): IdentifierFilter => {
         // A scope's own name belongs to the scope around it.
         return !bound(identifier.text, ["values", "types"], identifier.parent);
       }
-      const space = useSpace(identifier);
+      const space = spaceOf(identifier);
       return space === null || !bound(identifier.text, [space], null);
     },
   };
