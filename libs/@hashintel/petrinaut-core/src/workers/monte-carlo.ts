@@ -10,8 +10,6 @@ export type {
   MonteCarloMetricFramesMessage,
   MonteCarloProgressMessage,
   MonteCarloReadyMessage,
-  MonteCarloRunResultEntry,
-  MonteCarloRunResultsMessage,
   MonteCarloStartMessage,
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,

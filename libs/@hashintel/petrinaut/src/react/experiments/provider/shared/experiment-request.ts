@@ -24,7 +24,6 @@ export type ExperimentRequestOverride = Partial<
     | "initialMarking"
     | "seed"
     | "runCount"
-    | "runs"
     | "runPlan"
   >
 >;

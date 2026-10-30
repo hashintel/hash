@@ -15,4 +15,4 @@ hosts.editor -> experiment: createWorker
 hosts.inprocess -> experiment: createWorker
 experiment -> transport: per shard
 transport -> attach: "init(runs slice) / start / cancel"
-attach -> transport: "progress / metricFrames /\nrunResults / complete"
+attach -> transport: "progress / metricFrames /\ncomplete"

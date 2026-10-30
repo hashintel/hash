@@ -60,9 +60,7 @@ metric merge — is shared:
 ![How each host provides and talks to its workers](@diagrams/worker-factory.svg)
 
 An experiment may override each run's parameter values or initial marking
-(`runs`), and each run's final metric values come back per run (`runResults`)
-alongside the aggregated frames. That is the run axis the frames deliberately
-give up.
+(`runs`); its metric frames aggregate across runs.
 
 ## Workers are leased, not consumed
 

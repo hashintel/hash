@@ -31,42 +31,11 @@ const backend = createWorkerPoolExperimentBackend({
 });
 
 describe("createWorkerPoolExperimentBackend", () => {
-  it("accepts a request whose per-run overrides take one form", async () => {
-    const asRuns = await backend.assess(
-      request({
-        runs: [
-          { parameterValues: { rate: "1" } },
-          { parameterValues: { rate: "2" } },
-        ],
-      }),
-    );
-    const asPlan = await backend.assess(
+  it("accepts a request with a run plan", async () => {
+    const assessment = await backend.assess(
       request({ runPlan: { ids: ["rate"], values: Float64Array.of(1, 2) } }),
     );
 
-    expect(asRuns.eligible).toBe(true);
-    expect(asPlan.eligible).toBe(true);
-  });
-
-  it("refuses a request carrying both runs and a run plan", async () => {
-    const assessment = await backend.assess(
-      request({
-        runs: [
-          { parameterValues: { rate: "1" } },
-          { parameterValues: { rate: "2" } },
-        ],
-        runPlan: { ids: ["rate"], values: Float64Array.of(1, 2) },
-      }),
-    );
-
-    expect(assessment.eligible).toBe(false);
-    if (!assessment.eligible) {
-      expect(assessment.blockers).toEqual([
-        expect.objectContaining({
-          code: "conflicting-run-overrides",
-          origin: "configuration",
-        }),
-      ]);
-    }
+    expect(assessment.eligible).toBe(true);
   });
 });

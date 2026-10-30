@@ -74,9 +74,8 @@ function assess(
 ): ExperimentAssessment {
   // Per-run parameter values (a sweep over a range) are supported: each
   // run's draws are uploaded to a per-run buffer the shader reads instead of
-  // a baked literal. Shapes the buffer cannot express — per-run markings,
-  // mismatched override sets, non-numeric or f32-overflowing values — are
-  // refused at instantiation by `deriveRunParameters`.
+  // a baked literal. Draws the f32 buffer cannot carry are refused at
+  // instantiation by `deriveRunParameters`.
   if (request.hirArtifacts === undefined) {
     const blockers: ExperimentBlockers = [
       {
@@ -110,7 +109,6 @@ function assess(
         maxTime: request.maxTime,
         runCount: request.runCount,
         metricSpecs: request.metricSpecs,
-        ...(request.runs === undefined ? {} : { runs: request.runs }),
         ...(request.runPlan === undefined ? {} : { runPlan: request.runPlan }),
         ...(options.odeMethod === undefined
           ? {}
