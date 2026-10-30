@@ -11,8 +11,8 @@ import {
   Stream,
 } from "effect";
 
-import { Transaction } from "../../src/net/index.js";
-import { ResponseKind } from "../../src/types/index.js";
+import { Response as NetResponse, Transaction } from "../../src/net/index.js";
+import { ErrorCode, ResponseKind } from "../../src/types/index.js";
 import {
   Payload,
   Protocol,
@@ -124,6 +124,33 @@ describe.concurrent("Transaction", () => {
       cx.expect(
         Exit.isFailure(exit) && Cause.squash(exit.cause),
       ).toBeInstanceOf(Transaction.TransactionLaggedError);
+    }),
+  );
+
+  it.effect("error response", (cx) =>
+    Effect.gen(function* () {
+      const { queue, transaction } = yield* makeTransaction();
+      const payload = yield* Payload.make(new TextEncoder().encode("boom"));
+      const response = Response.make(
+        makeHeader(true),
+        ResponseBody.make(
+          Result.succeed(
+            ResponseBegin.make(
+              ResponseKind.err(ErrorCode.makeUnchecked(1)),
+              payload,
+            ),
+          ),
+        ),
+      );
+
+      yield* Queue.offer(queue, response);
+      yield* Queue.end(queue);
+
+      const exit = yield* Effect.exit(readText(transaction));
+
+      cx.expect(
+        Exit.isFailure(exit) && Cause.squash(exit.cause),
+      ).toBeInstanceOf(NetResponse.NetworkError);
     }),
   );
 });
