@@ -1,16 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createFlowScheduleResolver } from "./flow-schedule";
+import {
+  createFlowScheduleResolver,
+  resumeFlowScheduleResolver,
+} from "./flow-schedule";
 
 import type { FlowInputDefinition } from "@local/hash-isomorphic-utils/flows/types";
 
 const mocks = vi.hoisted(() => ({
   createFlowSchedule: vi.fn(),
   createSchedule: vi.fn(),
+  describeSchedule: vi.fn(),
+  getFlowScheduleById: vi.fn(),
+  getRunnableFlowDefinition: vi.fn(),
+  resumeFlowSchedule: vi.fn(),
+  unpauseSchedule: vi.fn(),
 }));
 
 vi.mock("../../../graph/knowledge/system-types/flow-schedule", () => ({
   createFlowSchedule: mocks.createFlowSchedule,
+  getFlowScheduleById: mocks.getFlowScheduleById,
+  resumeFlowSchedule: mocks.resumeFlowSchedule,
 }));
 
 vi.mock("../util", () => ({
@@ -29,17 +39,32 @@ const inputs: FlowInputDefinition[] = [
 ];
 
 vi.mock("./shared/get-runnable-flow-definition", () => ({
-  getRunnableFlowDefinition: () => ({
-    flowDefinition: { inputs },
-    flowType: "integration",
-  }),
+  getRunnableFlowDefinition: mocks.getRunnableFlowDefinition,
 }));
 
+const webId = "00000000-0000-0000-0000-000000000001";
+
 const graphQLContext = {
-  authentication: { actorId: "00000000-0000-0000-0000-000000000001" },
-  temporal: { schedule: { create: mocks.createSchedule } },
-  user: { accountId: "00000000-0000-0000-0000-000000000001" },
+  authentication: { actorId: webId },
+  temporal: {
+    schedule: {
+      create: mocks.createSchedule,
+      getHandle: () => ({
+        describe: mocks.describeSchedule,
+        unpause: mocks.unpauseSchedule,
+      }),
+    },
+  },
+  user: { accountId: webId },
 };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.getRunnableFlowDefinition.mockResolvedValue({
+    flowDefinition: { inputs },
+    flowType: "integration",
+  });
+});
 
 const createSchedule = (flowInputs: Record<string, unknown>) =>
   createFlowScheduleResolver(
@@ -125,4 +150,55 @@ describe("createFlowScheduleResolver", () => {
       expect(mocks.createSchedule).not.toHaveBeenCalled();
     },
   );
+});
+
+describe("resumeFlowScheduleResolver", () => {
+  const scheduleEntityId = `${webId}~00000000-0000-0000-0000-000000000003`;
+
+  const resume = () =>
+    resumeFlowScheduleResolver(
+      {},
+      { scheduleEntityId } as never,
+      graphQLContext as never,
+      {} as never,
+    );
+
+  beforeEach(() => {
+    mocks.getFlowScheduleById.mockResolvedValue({
+      metadata: { recordId: { entityId: scheduleEntityId } },
+      properties: {
+        "https://hash.ai/@h/types/property-type/schedule-status/": "paused",
+        "https://hash.ai/@h/types/property-type/inputs/": [],
+      },
+    });
+    mocks.describeSchedule.mockResolvedValue({
+      action: {
+        taskQueue: "integration",
+        args: [{ flowDefinitionEntityId: `${webId}~flow` }],
+      },
+    });
+  });
+
+  it("refuses to resume a schedule whose flow no longer takes the inputs it gives, without resuming it", async () => {
+    mocks.getRunnableFlowDefinition.mockResolvedValue({
+      flowDefinition: {
+        name: "Report",
+        description: "",
+        inputs: [
+          { name: "topic", payloadKind: "Text", array: false, required: true },
+        ],
+        steps: [],
+        outputs: [],
+      },
+    });
+
+    await expect(resume()).rejects.toMatchObject({
+      message: expect.stringContaining(
+        '- Flow input "topic" is required, but wasn\'t given',
+      ),
+      extensions: { code: "BAD_REQUEST" },
+    });
+    expect(mocks.resumeFlowSchedule).not.toHaveBeenCalled();
+    expect(mocks.unpauseSchedule).not.toHaveBeenCalled();
+  });
 });

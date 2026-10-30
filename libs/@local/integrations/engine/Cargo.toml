@@ -25,7 +25,7 @@ serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
 tokio          = { workspace = true, features = ["sync"] }
 tracing        = { workspace = true, features = ["attributes"] }
-uuid           = { workspace = true, features = ["v5"] }
+uuid           = { workspace = true, features = ["v4", "v5"] }
 
 [dev-dependencies]
 opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }

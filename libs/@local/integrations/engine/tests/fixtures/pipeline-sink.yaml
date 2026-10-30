@@ -1,0 +1,6 @@
+- id: sink
+  sink:
+    entityType: https://example.com/entity/v/1
+    entityId: ID
+    properties:
+      https://example.com/property/v/1: NAME

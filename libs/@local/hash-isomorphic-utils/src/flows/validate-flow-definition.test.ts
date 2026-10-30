@@ -4,6 +4,7 @@ import { ftseInvestorsFlow } from "./definitions/ftse-investors-flow-definition.
 import { goalFlow } from "./definitions/goal-flow-definitions.js";
 import { linkEndsMessage, noEntityChangesMessage } from "./entity-steps.js";
 import {
+  addStepIdsToDiagnostics,
   type FlowDefinitionDiagnostic,
   validateFlowDefinition,
 } from "./validate-flow-definition.js";
@@ -1356,6 +1357,51 @@ describe("validateFlowDefinition", () => {
           },
         ]);
       },
+    );
+  });
+});
+
+describe("addStepIdsToDiagnostics", () => {
+  it("gives each problem the id of the innermost step it's in, and none to a problem outside every step", () => {
+    const flowDefinition = {
+      ...baseDefinition,
+      inputs: [
+        ...baseDefinition.inputs,
+        { ...baseDefinition.inputs[0], name: "unused" },
+      ],
+      steps: [
+        answerStep("first"),
+        {
+          kind: "for-each",
+          stepId: "each",
+          description: "",
+          over: { kind: "flow-input", inputName: "question" },
+          collect: {
+            stepId: "inner",
+            outputName: "explanation",
+            as: "explanations",
+          },
+          steps: [
+            answerStep("inner", {
+              question: { kind: "flow-input", inputName: "missing" },
+            }),
+          ],
+        },
+      ],
+    };
+
+    const { diagnostics } = validateFlowDefinition(flowDefinition);
+
+    expect(
+      addStepIdsToDiagnostics(flowDefinition, diagnostics).map(
+        ({ code, stepId }) => ({ code, stepId }),
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        { code: "overNotArray", stepId: "each" },
+        { code: "unknownFlowInput", stepId: "inner" },
+        { code: "unusedFlowInput", stepId: undefined },
+      ]),
     );
   });
 });

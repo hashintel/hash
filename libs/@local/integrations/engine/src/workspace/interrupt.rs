@@ -57,6 +57,11 @@ impl Interrupt {
         RequestId(self.next_request.fetch_add(1, Ordering::Relaxed))
     }
 
+    /// Returns whether the caller cancelled the active request.
+    pub(super) fn is_interrupted(&self) -> bool {
+        self.running().interrupted
+    }
+
     /// Records that the workspace thread starts `request`.
     pub(super) fn start(&self, request: RequestId) {
         let mut running = self.running();
