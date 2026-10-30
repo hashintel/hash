@@ -69,9 +69,9 @@ const queryReturns = (
 
 const renderEntityTypeChildren = (
   mocks: MockedResponse[],
-  entityTypeBaseUrl: BaseUrl | null = animalBaseUrl,
+  entityTypeId: VersionedUrl | null = animalTypeId,
 ) =>
-  renderHook(() => useEntityTypeChildren(entityTypeBaseUrl), {
+  renderHook(() => useEntityTypeChildren(entityTypeId), {
     wrapper: ({ children }: { children: ReactNode }) => (
       <MockedProvider mocks={mocks} addTypename={false}>
         {children}
@@ -90,7 +90,7 @@ describe("useEntityTypeChildren", () => {
     });
   });
 
-  it("asks only for the latest version of each type that directly extends Animal", async () => {
+  it("asks for every version of the types that directly extend Animal v1", async () => {
     const variableMatcher = vi.fn().mockReturnValue(true);
 
     renderEntityTypeChildren([{ ...queryReturns([]), variableMatcher }]);
@@ -99,16 +99,11 @@ describe("useEntityTypeChildren", () => {
       expect(variableMatcher).toHaveBeenCalledWith({
         request: {
           filter: {
-            all: [
+            equal: [
               {
-                equal: [
-                  {
-                    path: ["inheritsFrom(inheritanceDepth=0)", "*", "baseUrl"],
-                  },
-                  { parameter: animalBaseUrl },
-                ],
+                path: ["inheritsFrom(inheritanceDepth=0)", "*", "versionedUrl"],
               },
-              { equal: [{ path: ["version"] }, { parameter: "latest" }] },
+              { parameter: animalTypeId },
             ],
           },
           temporalAxes: currentTimeInstantTemporalAxes,
@@ -129,13 +124,13 @@ describe("useEntityTypeChildren", () => {
     });
   });
 
-  it("lists each type once", async () => {
-    const { result } = renderEntityTypeChildren([queryReturns([dog, dogV2])]);
+  it("shows each type once, at its newest version that extends Animal v1", async () => {
+    const { result } = renderEntityTypeChildren([queryReturns([dogV2, dog])]);
 
     await waitFor(() => {
-      expect(
-        result.current.children?.map((child) => child.schema.title),
-      ).toEqual(["Dog"]);
+      expect(result.current.children?.map((child) => child.schema.$id)).toEqual(
+        [dogV2.schema.$id],
+      );
     });
   });
 
@@ -149,7 +144,7 @@ describe("useEntityTypeChildren", () => {
     });
   });
 
-  it("sends no query without a base URL", async () => {
+  it("sends no query without a type", async () => {
     const variableMatcher = vi.fn().mockReturnValue(true);
 
     renderEntityTypeChildren(

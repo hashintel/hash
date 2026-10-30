@@ -26,7 +26,7 @@ export const EntityTypeChildren = ({
   const hidden = !entityTypeBaseUrl || isTypeArchived(entityType);
 
   const { children, error } = useEntityTypeChildren(
-    hidden ? null : entityTypeBaseUrl,
+    hidden ? null : entityType.schema.$id,
   );
 
   if (hidden) {
