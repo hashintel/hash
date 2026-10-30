@@ -50,6 +50,15 @@ jobs:
           UNIT_BENCH_PACKAGES=$(.github/scripts/affected-packages.sh bench:unit)
           INTEGRATION_BENCH_PACKAGES=$(.github/scripts/affected-packages.sh bench:integration)
 
+          # Only a Rust crate's benches write the Criterion results that the
+          # analysis and upload steps read. The base run exists to give Criterion
+          # a baseline, so any other package runs its head benches alone.
+          CRATES=$(jq --raw-output '.include[].path' <<< "$UNIT_BENCH_PACKAGES" \
+            | while read -r path; do if [[ -f "$path/Cargo.toml" ]]; then echo "$path"; fi; done \
+            | jq --raw-input --slurp --compact-output 'split("\n") | map(select(length > 0))')
+          UNIT_BENCH_PACKAGES=$(jq --compact-output --argjson crates "$CRATES" \
+            '.include |= map(. + { criterion: (.path | IN($crates[])) })' <<< "$UNIT_BENCH_PACKAGES")
+
           echo "unit=$UNIT_BENCH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
           echo "integration=$INTEGRATION_BENCH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
@@ -94,17 +103,17 @@ jobs:
         run: echo "$MATRIX"
 
       - name: Checkout base branch
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && matrix.criterion
         uses: actions/checkout@v6.0.2
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Clean up disk
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && matrix.criterion
         uses: $/.github/actions/clean-up-disk
 
       - name: Install tools
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && matrix.criterion
         uses: $/.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -113,7 +122,7 @@ jobs:
           aws_lc_profile: release
 
       - name: Prune repository
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && matrix.criterion
         uses: $/.github/actions/prune-repository
         with:
           scope: |
@@ -121,11 +130,11 @@ jobs:
             hash-repo-chores
 
       - name: Warm up repository
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && matrix.criterion
         uses: $/.github/actions/warm-up-repo
 
       - name: Run base benches
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && matrix.criterion
         run: turbo run bench:unit --filter "${{ matrix.name }}"
 
       - name: Checkout head branch
@@ -165,7 +174,7 @@ jobs:
         run: turbo run bench:unit --filter "${{ matrix.name }}"
 
       - name: Analyze benchmarks
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && matrix.criterion
         run: |
           TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.name }}" | sed 's|@||g' | sed 's|/|.|g')
           echo "TRIMMED_PACKAGE_NAME=$TRIMMED_PACKAGE_NAME" >> "$GITHUB_ENV"
@@ -177,7 +186,7 @@ jobs:
 
       - name: Authenticate Vault
         id: secrets
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event.pull_request.head.repo.full_name == github.repository && matrix.criterion
         uses: hashicorp/vault-action@v3.4.0
         with:
           url: ${{ env.VAULT_ADDR }}
@@ -189,11 +198,11 @@ jobs:
             aws/creds/dev-deploy security_token | AWS_SESSION_TOKEN;
 
       - name: Upload benchmark results
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event.pull_request.head.repo.full_name == github.repository && matrix.criterion
         run: turbo run upload-benchmarks --env-mode=loose -- --artifacts-path "$(pwd)/${{ matrix.path }}/out" --enforce-flame-graph
 
       - name: Upload benchmark summary
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && matrix.criterion
         uses: actions/upload-artifact@v4.6.2
         with:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_${{ github.job }}
