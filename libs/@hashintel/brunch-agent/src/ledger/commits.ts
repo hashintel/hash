@@ -1,9 +1,14 @@
 import * as v from "valibot";
 
-import { brunchTools } from "../constants";
+import { brunchSignals, brunchTools } from "../constants";
 import { petrinautUserMessageText } from "../petrinaut/contextual-user-message";
 import { vLedgerAppend, type LedgerAppend } from "./append";
-import { owedObligations, projectLedger } from "./projection/project-ledger";
+import { parseLedgerComments, type LedgerComment } from "./comments";
+import {
+  openComments,
+  owedObligations,
+  projectLedger,
+} from "./projection/project-ledger";
 import { questionStatuses, type Origin } from "./shared/epistemics";
 
 import type {
@@ -21,7 +26,7 @@ export type LedgerHistoryMessage = Pick<
   FlueConversationMessage,
   "id" | "role"
 > &
-  Partial<Pick<FlueConversationMessage, "purpose">> & {
+  Partial<Pick<FlueConversationMessage, "purpose" | "signal">> & {
     readonly parts: readonly unknown[];
   };
 
@@ -54,38 +59,75 @@ interface LedgerCall {
 
 const isSettled = (part: ToolPart) => part.state.startsWith("output-");
 
-const isUserMessage = (message: LedgerHistoryMessage) =>
-  message.role === "user" && (message.purpose ?? "user") === "user";
-
 const textPartSchema = v.object({ type: v.literal("text"), text: v.string() });
+
+const messageText = (message: LedgerHistoryMessage): string =>
+  message.parts
+    .flatMap((part) => {
+      const parsed = v.safeParse(textPartSchema, part);
+      return parsed.success ? [parsed.output.text] : [];
+    })
+    .join(" ");
 
 const turnExcerptLength = 240;
 
-/** The opening of a user message's text, enough to recognise the turn by. */
-const turnExcerpt = (message: LedgerHistoryMessage): string => {
-  const text = petrinautUserMessageText(
-    message.parts
-      .flatMap((part) => {
-        const parsed = v.safeParse(textPartSchema, part);
-        return parsed.success ? [parsed.output.text] : [];
-      })
-      .join(" "),
-  )
-    .replace(/\s+/g, " ")
-    .trim();
+/** The opening of the user's words, enough to recognise the turn by. */
+const turnExcerpt = (words: string): string => {
+  const text = words.replace(/\s+/g, " ").trim();
   const characters = Array.from(text);
   return characters.length > turnExcerptLength
     ? `${characters.slice(0, turnExcerptLength - 1).join("")}…`
     : text;
 };
 
-/** Every `ledger_commit` call in canonical order, whatever its state. */
-const ledgerCalls = (history: LedgerHistory): LedgerCall[] => {
+/** A message the user opens a turn with: their words, or comments on the Ledger. */
+interface TurnOpening {
+  readonly turn: Turn;
+  readonly comments: readonly LedgerComment[];
+}
+
+const turnOpening = (
+  message: LedgerHistoryMessage,
+): TurnOpening | undefined => {
+  if (message.role === "user" && (message.purpose ?? "user") === "user")
+    return {
+      turn: {
+        id: message.id,
+        // A turn sent with host context is stored as a contextual envelope.
+        excerpt: turnExcerpt(petrinautUserMessageText(messageText(message))),
+      },
+      comments: [],
+    };
+  if (
+    message.role !== "system" ||
+    message.signal?.tagName !== brunchSignals.ledgerComments
+  )
+    return undefined;
+  const comments = parseLedgerComments(messageText(message));
+  if (comments === undefined) return undefined;
+  return {
+    turn: {
+      id: message.id,
+      excerpt: turnExcerpt(comments.map(({ text }) => text).join(" ")),
+    },
+    comments,
+  };
+};
+
+type LedgerEvent =
+  | ({ readonly kind: "comments" } & TurnOpening)
+  | ({ readonly kind: "call" } & LedgerCall);
+
+/** Comment turns and `ledger_commit` calls in canonical order, whatever the calls' state. */
+const ledgerEvents = (history: LedgerHistory): LedgerEvent[] => {
   let turn: Turn | undefined;
-  return history.messages.flatMap((message) => {
-    if (isUserMessage(message)) {
-      turn = { id: message.id, excerpt: turnExcerpt(message) };
-      return [];
+  return history.messages.flatMap((message): LedgerEvent[] => {
+    const opening = turnOpening(message);
+    if (opening !== undefined) {
+      turn = opening.turn;
+      return opening.comments.length > 0
+        ? [{ kind: "comments", ...opening }]
+        : [];
     }
     if (message.role !== "assistant") return [];
     const parts = message.parts.flatMap((candidate) => {
@@ -95,21 +137,27 @@ const ledgerCalls = (history: LedgerHistory): LedgerCall[] => {
         ? [parsed.output]
         : [];
     });
-    return parts.map((part, index): LedgerCall => {
+    return parts.map((part, index): LedgerEvent => {
       const followsUnsettledCall = parts
         .slice(0, index)
         .some((earlier) => !isSettled(earlier));
       return turn === undefined
-        ? { part, followsUnsettledCall }
-        : { part, followsUnsettledCall, turn };
+        ? { kind: "call", part, followsUnsettledCall }
+        : { kind: "call", part, followsUnsettledCall, turn };
     });
   });
 };
+
+const ledgerCalls = (history: LedgerHistory): LedgerCall[] =>
+  ledgerEvents(history).flatMap((event) =>
+    event.kind === "call" ? [event] : [],
+  );
 
 export const ledgerAppendRefusalCodes = [
   "unknown-address",
   "concurrent-commit",
   "claim-without-entity",
+  "ambiguous-comment",
 ] as const;
 
 export const ledgerAppendOutputSchema = v.variant("status", [
@@ -119,12 +167,16 @@ export const ledgerAppendOutputSchema = v.variant("status", [
     revision: v.number(),
     /** System-assigned record IDs, aligned with the submitted entries queue. */
     ids: v.array(v.string()),
-    /** USER messages so far, through the one this commit follows. */
+    /** USER turns so far, comment turns included, through the one this commit follows. */
     exchanges: v.optional(v.number()),
     /** Current open and conflicted claims after this commit. */
     openQuestions: v.optional(v.number()),
     /** Obligations no reflection has discharged yet; absent when none are owed. */
     owed: v.optional(v.array(v.object({ id: v.string(), text: v.string() }))),
+    /** The USER's comments no entry has resolved yet; absent when none are open. */
+    openComments: v.optional(
+      v.array(v.object({ id: v.string(), text: v.string() })),
+    ),
     /** Consequences of this commit the model should weigh; absent when there are none. */
     notes: v.optional(v.array(v.string())),
   }),
@@ -162,6 +214,7 @@ const emptyState = (): LedgerState => ({
   claims: [],
   reflections: [],
   obligations: [],
+  comments: [],
 });
 
 const highestAddress = (records: readonly { address: string }[]) =>
@@ -312,6 +365,14 @@ const deriveBatch = (
     refusal: { code: "unknown-address", message },
   });
 
+  const sentComments = new Set(state.comments.map(({ id }) => id));
+  const resolvers = new Map<string, string>();
+  for (const { entry, address } of addressed)
+    for (const id of entry[1].resolves ?? []) {
+      if (!sentComments.has(id)) return refusal(`Unknown comment ${id}.`);
+      if (!resolvers.has(id)) resolvers.set(id, address);
+    }
+
   const entityUpdates = new Map<string, EntityRecord>();
   const newEntities: EntityRecord[] = [];
   const newClaims: ClaimRecord[] = [];
@@ -429,6 +490,12 @@ const deriveBatch = (
       claims: [...state.claims, ...newClaims],
       reflections: [...state.reflections, ...newReflections],
       obligations: [...state.obligations, ...newObligations],
+      comments: state.comments.map((comment) => {
+        const resolvedBy = resolvers.get(comment.id);
+        return comment.resolvedBy === undefined && resolvedBy !== undefined
+          ? { ...comment, resolvedBy }
+          : comment;
+      }),
     },
   };
 };
@@ -449,7 +516,21 @@ const foldWithReservations = (
   let reserved = noReservedAddresses;
   const commits: AcceptedCommit[] = [];
   const rejected: string[] = [];
-  for (const call of ledgerCalls(history)) {
+  for (const event of ledgerEvents(history)) {
+    if (event.kind === "comments") {
+      state = {
+        ...state,
+        comments: [
+          ...state.comments,
+          ...event.comments.map((comment) => ({
+            ...comment,
+            turn: event.turn.id,
+          })),
+        ],
+      };
+      continue;
+    }
+    const call = event;
     if (call.part.toolCallId === before) break;
     if (call.part.state !== "output-available") continue;
     const output = v.safeParse(ledgerAppendOutputSchema, call.part.output);
@@ -544,6 +625,21 @@ export const prepareAppend = (call: {
       message: unshownClaim,
       revision,
     };
+  // Refuse ambiguous references in new proposals without invalidating commits
+  // already recorded by an older browser that issued colliding numeric IDs.
+  const commentCounts = new Map<string, number>();
+  for (const { id } of state.comments)
+    commentCounts.set(id, (commentCounts.get(id) ?? 0) + 1);
+  for (const [, entry] of call.entries)
+    for (const id of entry.resolves ?? [])
+      if ((commentCounts.get(id) ?? 0) > 1)
+        return {
+          status: "refused",
+          applied: false,
+          code: "ambiguous-comment",
+          message: `Comment ${id} identifies more than one correction and cannot be resolved unambiguously. Ask the USER to resend those corrections as new comments.`,
+          revision,
+        };
   const derived = deriveBatch(state, call.entries, own.turn, reserved);
   if ("refusal" in derived)
     return {
@@ -557,6 +653,10 @@ export const prepareAppend = (call: {
     id: address,
     text,
   }));
+  const stillOpen = openComments(derived.state).map(({ id, text }) => ({
+    id,
+    text,
+  }));
   const notes = accountDisplacements(derived.state, derived.ids);
   return {
     status: "recorded",
@@ -566,6 +666,7 @@ export const prepareAppend = (call: {
     exchanges: exchangesThrough(call.history, own.turn?.id),
     openQuestions: projectLedger(derived.state).questions.length,
     ...(owed.length > 0 ? { owed } : {}),
+    ...(stillOpen.length > 0 ? { openComments: stillOpen } : {}),
     ...(notes.length > 0 ? { notes } : {}),
   };
 };
@@ -576,7 +677,9 @@ const exchangesThrough = (
 ): number => {
   if (messageId === undefined) return 0;
   const end = history.messages.findIndex(({ id }) => id === messageId);
-  return history.messages.slice(0, end + 1).filter(isUserMessage).length;
+  return history.messages
+    .slice(0, end + 1)
+    .filter((message) => turnOpening(message) !== undefined).length;
 };
 
 const accountOrigins: ReadonlySet<Origin> = new Set(["stated", "evidenced"]);

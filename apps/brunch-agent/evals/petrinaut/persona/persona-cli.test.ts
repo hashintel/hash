@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 
 import {
+  formatPersonaResult,
   personaCommandFromArguments,
   splitPersonaArguments,
 } from "./persona-cli.ts";
@@ -19,6 +20,19 @@ test("a message that begins with a dash is text, not an option", async () => {
     type: "prompt",
     message: "-5 degrees is too cold",
   });
+});
+
+test("open takes no text and prints the opening it sent with Brunch's reply", async () => {
+  const command = await personaCommandFromArguments(["open"]);
+  expect(command).toEqual({ type: "open" });
+  expect(
+    formatPersonaResult(command, [
+      { type: "response", command: "open", success: true },
+      { type: "turn_start", message: "Hello." },
+      { type: "assistant_message", text: "Tell me more." },
+      { type: "turn_settled", outcome: "replied", submissionIds: ["sub_1"] },
+    ]),
+  ).toBe("You: Hello.\n\nBrunch: Tell me more.");
 });
 
 test("the CLI's own flags stay options on either side of the command", () => {

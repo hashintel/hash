@@ -1,3 +1,4 @@
+import { Chat } from "@ai-sdk/react";
 import { FetchError, FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
@@ -17,7 +18,54 @@ import {
 } from "./brunch-panel-transport";
 import { canonicalPetrinautClientToolNames } from "./tools/brunch-client-tools";
 
+import type { PetrinautAiComposerSubmitText } from "./chat/ai-assistant-composer-control";
+import type { PetrinautAiMessage } from "./chat/ai-assistant-panel";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
+
+// The same await-and-return contract as the panel, using the installed SDK.
+const submitThroughChat =
+  (chat: Chat<PetrinautAiMessage>): PetrinautAiComposerSubmitText =>
+  async ({ id, text }) => {
+    if (id === undefined) throw new Error("Expected a delivery identity");
+    await chat.sendMessage({
+      id,
+      role: "user",
+      parts: [{ type: "text", text }],
+    });
+    return { kind: "message", messageId: id };
+  };
+
+test("host submission rejects a refused admission even though SDK sendMessage fulfills", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(403, "Refused");
+  });
+  const tracker = new BrunchPanelConversationTracker();
+  const chat = new Chat<PetrinautAiMessage>({
+    transport: createBrunchPanelTransport(
+      Promise.resolve({ send } as unknown as FlueClient),
+      tracker,
+    ),
+  });
+  const submitText = submitThroughChat(chat);
+  await expect(submitText({ id: "raw", text: "Comments" })).resolves.toEqual({
+    kind: "message",
+    messageId: "raw",
+  });
+  expect(chat.error).toMatchObject({
+    failure: { kind: "rejected", status: 403 },
+  });
+  await expect(
+    tracker.submitTextWithAdmission(submitText, {
+      id: "host",
+      text: "Comments",
+      target: "message",
+      preserveDraft: true,
+    }),
+  ).rejects.toMatchObject({
+    name: "FlueChatAdmissionError",
+    failure: { kind: "rejected", status: 403 },
+  });
+});
 
 test("captures words before waiting for the client and retains them for the same admission identity", async () => {
   let words = ["RelayDesk"];
@@ -480,3 +528,120 @@ test("publishes a typed admission failure for the exact panel input", async () =
   );
   expect(send).toHaveBeenCalledOnce();
 });
+
+test("host admission settles before response failure and an admitted identity never sends again", async () => {
+  const admission = {
+    submissionId: "host-submission",
+    uid: "uid",
+    offset: "offset",
+    streamUrl: "http://brunch.test/stream",
+  };
+  const response = Promise.withResolvers<void>();
+  const send = vi.fn<FlueClient["send"]>(async () => admission);
+  const wait = vi.fn<FlueClient["wait"]>(() => response.promise);
+  const tracker = new BrunchPanelConversationTracker();
+  const chat = new Chat<PetrinautAiMessage>({
+    transport: createBrunchPanelTransport(
+      Promise.resolve({ send, wait } as unknown as FlueClient),
+      tracker,
+    ),
+  });
+  const submitText = vi.fn(submitThroughChat(chat));
+  const input = { id: "host-message", text: "Results", preserveDraft: true };
+  await expect(
+    tracker.submitTextWithAdmission(submitText, input),
+  ).resolves.toEqual({ kind: "message", messageId: "host-message" });
+  expect(submitText).toHaveBeenCalledWith({ ...input, target: "message" });
+  response.reject(new Error("Response failed"));
+  await vi.waitFor(() => expect(chat.error?.message).toBe("Response failed"));
+  await expect(
+    tracker.submitTextWithAdmission(submitText, input),
+  ).resolves.toEqual({ kind: "message", messageId: "host-message" });
+  expect(send).toHaveBeenCalledOnce();
+  expect(submitText).toHaveBeenCalledOnce();
+});
+
+test("an unrelated message or conversation cannot settle a host send", async () => {
+  const ownAdmission = Promise.withResolvers<AgentSendResult>();
+  const send = vi.fn<FlueClient["send"]>(() => ownAdmission.promise);
+  const wait = vi.fn<FlueClient["wait"]>(async () => {});
+  const tracker = new BrunchPanelConversationTracker();
+  const chat = new Chat<PetrinautAiMessage>({
+    transport: createBrunchPanelTransport(
+      Promise.resolve({ send, wait } as unknown as FlueClient),
+      tracker,
+    ),
+  });
+  const settled = vi.fn();
+  const submission = tracker
+    .submitTextWithAdmission(submitThroughChat(chat), {
+      id: "host",
+      text: "Results",
+    })
+    .then(settled);
+  await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+  const admission = {
+    submissionId: "other",
+    uid: "uid",
+    offset: "offset",
+    streamUrl: "http://brunch.test/stream",
+  };
+  tracker.recordAdmission({
+    kind: "user",
+    messageId: "wrong-message",
+    admission,
+  });
+  new BrunchPanelConversationTracker().recordAdmission({
+    kind: "user",
+    messageId: "host",
+    admission,
+  });
+  await Promise.resolve();
+  expect(settled).not.toHaveBeenCalled();
+  ownAdmission.resolve({ ...admission, submissionId: "own" });
+  await submission;
+  expect(settled).toHaveBeenCalledWith({ kind: "message", messageId: "host" });
+});
+
+test.each(["fulfilled", "rejected"] as const)(
+  "a raw %s send without admission terminates and releases both listeners",
+  async (outcome) => {
+    const tracker = new BrunchPanelConversationTracker();
+    const releases: ReturnType<typeof vi.fn>[] = [];
+    // Observe the public unsubscribe contract without replacing either registry.
+    const subscribeAdmission = tracker.subscribeToAdmission.bind(tracker);
+    const subscribeFailure = tracker.subscribeToAdmissionFailure.bind(tracker);
+    vi.spyOn(tracker, "subscribeToAdmission").mockImplementation(
+      (target, listener) => {
+        const release = vi.fn(subscribeAdmission(target, listener));
+        releases.push(release);
+        return release;
+      },
+    );
+    vi.spyOn(tracker, "subscribeToAdmissionFailure").mockImplementation(
+      (target, listener) => {
+        const release = vi.fn(subscribeFailure(target, listener));
+        releases.push(release);
+        return release;
+      },
+    );
+    const failure = new Error("Panel is busy");
+    const submitText: PetrinautAiComposerSubmitText = async ({ id }) => {
+      if (outcome === "rejected") throw failure;
+      return { kind: "message", messageId: id ?? "missing" };
+    };
+    const submission = tracker.submitTextWithAdmission(submitText, {
+      text: "Result",
+    });
+    if (outcome === "fulfilled") {
+      await expect(submission).rejects.toMatchObject({
+        name: "FlueChatAdmissionError",
+        failure: { kind: "ambiguous" },
+      });
+    } else {
+      await expect(submission).rejects.toBe(failure);
+    }
+    expect(releases).toHaveLength(2);
+    for (const release of releases) expect(release).toHaveBeenCalledOnce();
+  },
+);

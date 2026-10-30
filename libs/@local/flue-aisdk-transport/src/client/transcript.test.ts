@@ -174,6 +174,40 @@ test("keeps Flue data parts on the AI SDK message", () => {
   ]);
 });
 
+test("shows the user's signals of host-named tags as their turns, and hides other signals", () => {
+  const signal = (id: string, tagName: string) => ({
+    id,
+    role: "system" as const,
+    purpose: "dispatch" as const,
+    display: "diagnostic" as const,
+    signal: { tagName },
+    parts: [
+      { type: "text" as const, text: `body of ${id}`, state: "done" as const },
+    ],
+  });
+  const snapshot: FlueConversationSnapshot = {
+    v: 1,
+    conversationId: "conversation-1",
+    offset: "0",
+    messages: [signal("note-1", "host.note"), signal("stale-1", "host.stale")],
+    settlements: [],
+  };
+
+  expect(
+    snapshotToUiMessages(snapshot, {
+      ...projectionOptions,
+      userSignalTags: new Set(["host.note"]),
+    }),
+  ).toEqual([
+    {
+      id: "note-1",
+      role: "user",
+      parts: [{ type: "text", text: "body of note-1", state: "done" }],
+      metadata: undefined,
+    },
+  ]);
+});
+
 test("keeps a rehydrated server tool provider-executed while it still runs", () => {
   const snapshot: FlueConversationSnapshot = {
     ...snapshotWithPendingClientTool,

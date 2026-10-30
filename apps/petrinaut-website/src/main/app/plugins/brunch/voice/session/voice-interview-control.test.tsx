@@ -28,6 +28,7 @@ import {
 } from "./voice-interview-control";
 import { VoiceTurnController } from "./voice-turn-controller";
 
+import type { BrunchPanelAdmissionTarget } from "../../brunch-panel-transport";
 import type {
   PetrinautAiVoiceModeContext,
   PetrinautAiVoiceModeSessionControls,
@@ -236,10 +237,7 @@ describe("voice interview control", () => {
     const unsubscribe = vi.fn();
     const subscribeToAdmission = vi.fn(
       (
-        _target: {
-          readonly kind: "user";
-          readonly messageId: string;
-        },
+        _target: BrunchPanelAdmissionTarget,
         listener: (submissionId: AgentSendResult["submissionId"]) => void,
       ) => {
         notifyAdmission = listener;
