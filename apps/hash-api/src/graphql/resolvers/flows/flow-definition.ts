@@ -1,5 +1,3 @@
-import { canConnect } from "@local/hash-isomorphic-utils/flows/can-connect";
-import { mapInputsPropertyToFlowInputValues } from "@local/hash-isomorphic-utils/flows/mappings";
 import {
   addStepIdsToDiagnostics,
   formatFlowDefinitionDiagnostics,
@@ -7,6 +5,7 @@ import {
 } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 
+import { checkEntityPermission } from "../../../graph/knowledge/primitive/entity";
 import {
   createFlowDefinition as createFlowDefinitionEntity,
   getActiveFlowSchedulesOfFlowDefinition,
@@ -14,7 +13,14 @@ import {
 } from "../../../graph/knowledge/system-types/flow-definition";
 import * as GraphQLError from "../../error";
 import { graphQLContextToImpureGraphContext } from "../util";
-import { pauseActiveFlowSchedule } from "./flow-schedule";
+import {
+  pauseActiveFlowSchedule,
+  resumePausedFlowSchedule,
+} from "./flow-schedule";
+import {
+  getFlowScheduleProblems,
+  getScheduledFlowRun,
+} from "./shared/get-flow-schedule-problems";
 import { getFlowDefinitionEntity } from "./shared/get-runnable-flow-definition";
 
 import type {
@@ -26,10 +32,6 @@ import type {
 } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type {
-  FlowDefinition,
-  FlowInputValues,
-} from "@local/hash-isomorphic-utils/flows/types";
 import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorphic-utils/system-types/flowdefinition";
 
 /**
@@ -63,60 +65,6 @@ const toSaveResult = (
   diagnostics: checked.diagnostics,
   isRunnable: checked.isRunnable,
 });
-
-/**
- * Why the values a trigger gives a flow's inputs wouldn't fill a definition's inputs, by the rule connections in a
- * definition follow. Empty if they would.
- */
-const getFlowInputsProblems = ({
-  flowDefinition,
-  flowInputs,
-}: {
-  flowDefinition: FlowDefinition<string>;
-  flowInputs: FlowInputValues;
-}): string[] => {
-  const problems: string[] = [];
-
-  for (const input of flowDefinition.inputs) {
-    const payload = flowInputs[input.name];
-
-    if (!payload) {
-      if (input.required) {
-        problems.push(
-          `it gives no value for the required input "${input.name}"`,
-        );
-      }
-      continue;
-    }
-
-    const check = canConnect({
-      source: {
-        payloadKind: payload.kind,
-        array: Array.isArray(payload.value),
-        required: true,
-      },
-      target: {
-        oneOfPayloadKinds: [input.payloadKind],
-        array: input.array,
-        required: input.required,
-      },
-    });
-
-    if (!check.ok) {
-      problems.push(`its value for input "${input.name}": ${check.message}`);
-    }
-  }
-
-  for (const inputName of Object.keys(flowInputs)) {
-    if (!flowDefinition.inputs.some(({ name }) => name === inputName)) {
-      problems.push(
-        `it gives a value for "${inputName}", which isn't an input`,
-      );
-    }
-  }
-
-  return problems;
-};
 
 export const createFlowDefinitionResolver: ResolverFn<
   Promise<Mutation["createFlowDefinition"]>,
@@ -176,18 +124,25 @@ export const updateFlowDefinitionResolver: ResolverFn<
     { flowDefinitionEntityId },
   );
 
-  const scheduleProblems = activeSchedules.flatMap((schedule) => {
-    const { name, inputs } = simplifyProperties(schedule.properties);
+  const scheduleProblems = (
+    await Promise.all(
+      activeSchedules.map(async (schedule) => {
+        const { name } = simplifyProperties(schedule.properties);
 
-    const problems = checked.isRunnable
-      ? getFlowInputsProblems({
-          flowDefinition: checked.flowDefinition,
-          flowInputs: inputs ? mapInputsPropertyToFlowInputValues(inputs) : {},
-        })
-      : ["the flow wouldn't be valid"];
+        const problems = checked.isRunnable
+          ? getFlowScheduleProblems({
+              flowDefinition: checked.flowDefinition,
+              schedule,
+              scheduledFlowType: (
+                await getScheduledFlowRun(graphQLContext, schedule)
+              ).taskQueue,
+            })
+          : ["the flow wouldn't be valid"];
 
-    return problems.map((problem) => `- schedule "${name}": ${problem}`);
-  });
+        return problems.map((problem) => `- schedule "${name}": ${problem}`);
+      }),
+    )
+  ).flat();
 
   if (scheduleProblems.length > 0) {
     throw GraphQLError.badRequest(
@@ -222,6 +177,17 @@ export const archiveFlowDefinitionResolver: ResolverFn<
     return true;
   }
 
+  const canArchive = await checkEntityPermission(context, authentication, {
+    entityId: flowDefinitionEntityId,
+    permission: "archiveEntity",
+  });
+
+  if (!canArchive) {
+    throw GraphQLError.forbidden(
+      "You don't have permission to archive this flow",
+    );
+  }
+
   const activeSchedules = await getActiveFlowSchedulesOfFlowDefinition(
     context,
     authentication,
@@ -229,7 +195,7 @@ export const archiveFlowDefinitionResolver: ResolverFn<
   );
 
   /* Paused rather than archived, so that they can be resumed if the flow is restored. */
-  await Promise.all(
+  const pauses = await Promise.allSettled(
     activeSchedules.map((schedule) =>
       pauseActiveFlowSchedule(graphQLContext, {
         schedule,
@@ -238,7 +204,32 @@ export const archiveFlowDefinitionResolver: ResolverFn<
     ),
   );
 
-  await entity.archive(context.graphApi, authentication, context.provenance);
+  const pausedSchedules = pauses.flatMap((pause) =>
+    pause.status === "fulfilled" ? [pause.value] : [],
+  );
+
+  /* Leaves the flow's schedules as they were if it isn't archived. */
+  const failAndResumePausedSchedules = async (error: unknown) => {
+    await Promise.allSettled(
+      pausedSchedules.map((schedule) =>
+        resumePausedFlowSchedule(graphQLContext, { schedule }),
+      ),
+    );
+
+    throw error;
+  };
+
+  const failedPause = pauses.find((pause) => pause.status === "rejected");
+
+  if (failedPause) {
+    return failAndResumePausedSchedules(failedPause.reason);
+  }
+
+  try {
+    await entity.archive(context.graphApi, authentication, context.provenance);
+  } catch (error) {
+    return failAndResumePausedSchedules(error);
+  }
 
   return true;
 };

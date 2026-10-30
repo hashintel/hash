@@ -8,11 +8,18 @@ import {
 
 const mocks = vi.hoisted(() => ({
   archive: vi.fn(),
+  checkEntityPermission: vi.fn(),
   createFlowDefinition: vi.fn(),
+  describeSchedule: vi.fn(),
   getActiveFlowSchedulesOfFlowDefinition: vi.fn(),
   getFlowDefinitionEntityById: vi.fn(),
   pauseActiveFlowSchedule: vi.fn(),
+  resumePausedFlowSchedule: vi.fn(),
   updateFlowDefinition: vi.fn(),
+}));
+
+vi.mock("../../../graph/knowledge/primitive/entity", () => ({
+  checkEntityPermission: mocks.checkEntityPermission,
 }));
 
 vi.mock("../../../graph/knowledge/system-types/flow-definition", () => ({
@@ -29,6 +36,7 @@ vi.mock(
 
 vi.mock("./flow-schedule", () => ({
   pauseActiveFlowSchedule: mocks.pauseActiveFlowSchedule,
+  resumePausedFlowSchedule: mocks.resumePausedFlowSchedule,
 }));
 
 vi.mock("../util", () => ({
@@ -41,6 +49,9 @@ const flowDefinitionEntityId = `${webId}~00000000-0000-0000-0000-000000000002`;
 const graphQLContext = {
   authentication: { actorId: webId },
   dataSources: { graphApi: {} },
+  temporal: {
+    schedule: { getHandle: () => ({ describe: mocks.describeSchedule }) },
+  },
 };
 
 const question = {
@@ -77,13 +88,25 @@ const savedEntity = (editionId: string, archived = false) => ({
   archive: mocks.archive,
 });
 
-const activeSchedule = (inputs: unknown[]) => ({
+const activeSchedule = (inputs: unknown[], name = "Nightly") => ({
+  metadata: {
+    recordId: {
+      entityId: `${webId}~00000000-0000-0000-0000-000000000003`,
+    },
+  },
   properties: {
-    "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-      "Nightly",
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": name,
     "https://hash.ai/@h/types/property-type/inputs/": inputs,
   },
 });
+
+const archive = () =>
+  archiveFlowDefinitionResolver(
+    {},
+    { flowDefinitionEntityId } as never,
+    graphQLContext as never,
+    {} as never,
+  );
 
 const update = (definition: unknown, expectedEditionId = "edition-1") =>
   updateFlowDefinitionResolver(
@@ -98,6 +121,14 @@ beforeEach(() => {
   mocks.getFlowDefinitionEntityById.mockResolvedValue(savedEntity("edition-1"));
   mocks.getActiveFlowSchedulesOfFlowDefinition.mockResolvedValue([]);
   mocks.updateFlowDefinition.mockResolvedValue(savedEntity("edition-2"));
+  mocks.describeSchedule.mockResolvedValue({
+    action: { taskQueue: "ai", args: [{}] },
+  });
+  mocks.checkEntityPermission.mockResolvedValue(true);
+  mocks.pauseActiveFlowSchedule.mockImplementation(
+    (_context: unknown, { schedule }: { schedule: unknown }) =>
+      Promise.resolve(schedule),
+  );
 });
 
 describe("createFlowDefinitionResolver", () => {
@@ -201,6 +232,23 @@ describe("updateFlowDefinitionResolver", () => {
     },
   );
 
+  it("refuses a change to a flow with an active schedule set up to run another type of flow", async () => {
+    mocks.getActiveFlowSchedulesOfFlowDefinition.mockResolvedValue([
+      activeSchedule([questionValue]),
+    ]);
+    mocks.describeSchedule.mockResolvedValue({
+      action: { taskQueue: "integration", args: [{}] },
+    });
+
+    await expect(update(validDefinition)).rejects.toMatchObject({
+      message: expect.stringContaining(
+        '- schedule "Nightly": it was set up to run an integration flow, not an AI flow',
+      ),
+      extensions: { code: "BAD_REQUEST" },
+    });
+    expect(mocks.updateFlowDefinition).not.toHaveBeenCalled();
+  });
+
   it("saves a change to a flow with an active schedule that still fills its inputs", async () => {
     mocks.getActiveFlowSchedulesOfFlowDefinition.mockResolvedValue([
       activeSchedule([questionValue]),
@@ -220,12 +268,7 @@ describe("archiveFlowDefinitionResolver", () => {
     const schedule = activeSchedule([]);
     mocks.getActiveFlowSchedulesOfFlowDefinition.mockResolvedValue([schedule]);
 
-    await archiveFlowDefinitionResolver(
-      {},
-      { flowDefinitionEntityId } as never,
-      graphQLContext as never,
-      {} as never,
-    );
+    await archive();
 
     expect(mocks.pauseActiveFlowSchedule).toHaveBeenCalledWith(
       graphQLContext,
@@ -235,5 +278,53 @@ describe("archiveFlowDefinitionResolver", () => {
     expect(
       mocks.pauseActiveFlowSchedule.mock.invocationCallOrder[0],
     ).toBeLessThan(mocks.archive.mock.invocationCallOrder[0]!);
+    expect(mocks.resumePausedFlowSchedule).not.toHaveBeenCalled();
+  });
+
+  it("refuses to archive a flow the user can't archive, before pausing its schedules", async () => {
+    mocks.checkEntityPermission.mockResolvedValue(false);
+    mocks.getActiveFlowSchedulesOfFlowDefinition.mockResolvedValue([
+      activeSchedule([]),
+    ]);
+
+    await expect(archive()).rejects.toMatchObject({
+      extensions: { code: "FORBIDDEN" },
+    });
+    expect(mocks.pauseActiveFlowSchedule).not.toHaveBeenCalled();
+    expect(mocks.archive).not.toHaveBeenCalled();
+  });
+
+  it("resumes the schedules it paused if archiving the flow fails", async () => {
+    const schedule = activeSchedule([]);
+    mocks.getActiveFlowSchedulesOfFlowDefinition.mockResolvedValue([schedule]);
+    mocks.archive.mockRejectedValueOnce(new Error("Graph unavailable"));
+
+    await expect(archive()).rejects.toThrow("Graph unavailable");
+    expect(mocks.resumePausedFlowSchedule).toHaveBeenCalledWith(
+      graphQLContext,
+      { schedule },
+    );
+  });
+
+  it("resumes the schedules it paused, and doesn't archive the flow, if pausing another fails", async () => {
+    const paused = activeSchedule([], "Nightly");
+    const failed = activeSchedule([], "Weekly");
+    mocks.getActiveFlowSchedulesOfFlowDefinition.mockResolvedValue([
+      paused,
+      failed,
+    ]);
+    mocks.pauseActiveFlowSchedule.mockImplementation(
+      (_context: unknown, { schedule }: { schedule: unknown }) =>
+        schedule === failed
+          ? Promise.reject(new Error("Temporal unavailable"))
+          : Promise.resolve(schedule),
+    );
+
+    await expect(archive()).rejects.toThrow("Temporal unavailable");
+    expect(mocks.archive).not.toHaveBeenCalled();
+    expect(mocks.resumePausedFlowSchedule).toHaveBeenCalledExactlyOnceWith(
+      graphQLContext,
+      { schedule: paused },
+    );
   });
 });
