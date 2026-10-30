@@ -20,15 +20,15 @@ in well under a second.
 ## Reading without a server
 
 ```bash
-yarn workspace @local/petrinaut-arch-docs doc:architecture
+yarn workspace @apps/petrinaut-docs doc:architecture
 ```
 
-Then open `libs/@local/petrinaut-arch-docs/bundle/architecture.md` for the whole model in one file, or `bundle/diagrams/` for the rendered SVGs.
+Then open `apps/petrinaut-docs/bundle/architecture.md` for the whole model in one file, or `bundle/diagrams/` for the rendered SVGs.
 
 ## Checking annotations
 
 ```bash
-yarn workspace @local/petrinaut-arch-docs lint:arch-docs
+yarn workspace @apps/petrinaut-docs lint:arch-docs
 ```
 
 Around two seconds, and it needs no `d2`, because it builds the model and reports on it without rendering anything. This is the fastest way to find out whether a declaration you just wrote is valid.
@@ -55,4 +55,4 @@ nothing.
 
 The pages under [Architecture](../architecture) are generated. Editing them does nothing, since the next build overwrites the lot. Change the `@layerRoot` and `@role` annotations in the source instead, or the frontmatter of the folder README that declares the layer. See [Declaring layers](doc:maintaining/declaring-layers).
 
-Pages like this one are hand-written and live in `libs/@local/petrinaut-arch-docs/content/`. They are optional: the generator produces a complete bundle with that directory absent.
+Pages like this one are hand-written and live in `apps/petrinaut-docs/content/`. They are optional: the generator produces a complete bundle with that directory absent.

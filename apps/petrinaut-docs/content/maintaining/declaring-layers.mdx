@@ -55,7 +55,7 @@ inbound links, and every descendant id has to move with it.
 ## Adding a new package
 
 Add it to `packages` in
-[`architecture.config.ts`](https://github.com/hashintel/hash/blob/main/libs/@local/petrinaut-arch-docs/architecture.config.ts),
+[`architecture.config.ts`](https://github.com/hashintel/hash/blob/main/apps/petrinaut-docs/archinaut.config.ts),
 declare a root layer in its source, and rebuild. Build configuration outside the
 package's source directory is deliberately excluded — it configures the build, it
 is not part of the design.
@@ -65,7 +65,7 @@ is not part of the design.
 Run the check before pushing:
 
 ```bash
-yarn workspace @local/petrinaut-arch-docs lint:arch-docs
+yarn workspace @apps/petrinaut-docs lint:arch-docs
 ```
 
 It fails when a source file no layer covers appears, when a layer id implies an
@@ -77,7 +77,7 @@ regenerate before pushing. Only the annotations are versioned. To read the docs
 locally:
 
 ```bash
-yarn workspace @local/petrinaut-arch-docs doc:architecture
+yarn workspace @apps/petrinaut-docs doc:architecture
 ```
 
 ## Adding a hand-written guide
@@ -103,7 +103,7 @@ named by its layer and file stem. A target that does not resolve fails the
 check.
 
 Pages about the documentation itself, like this one, belong to no layer and
-stay under `libs/@local/petrinaut-arch-docs/content/`, where the slug is the
+stay under `apps/petrinaut-docs/content/`, where the slug is the
 path.
 
 ## Adding a hand-written diagram

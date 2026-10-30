@@ -1,46 +1,73 @@
 {
   "package": "@apps/petrinaut-docs",
   "dependencies": [
-    "@local/petrinaut-arch-docs",
+    "@apps/petrinaut-website",
+    "@hashintel/petrinaut",
+    "@hashintel/petrinaut-core",
+    "@local/archinaut",
     "@local/tsconfig"
   ],
   "tasks": {
     "build": {
-      "dependsOn": [
-        "sync:bundle"
-      ],
+      "dependsOn": [],
       "cache": false,
+      "env": [
+        "ARCHINAUT_CACHE_DIR",
+        "ARCHINAUT_DIFF_BASE",
+        "ARCHINAUT_SOURCE_REF",
+        "GITHUB_HEAD_REF",
+        "GITHUB_REF_NAME",
+        "GITHUB_SHA",
+        "VERCEL_GIT_COMMIT_REF",
+        "VERCEL_GIT_COMMIT_SHA",
+        "VERCEL_GIT_PULL_REQUEST_ID",
+        "VERCEL_GIT_REPO_OWNER",
+        "VERCEL_GIT_REPO_SLUG"
+      ],
       "affectedBy": [
         "petrinaut-optimizer-core"
       ]
     },
     "dev": {
-      "dependsOn": [
-        "sync:bundle"
-      ],
+      "dependsOn": [],
       "cache": false,
       "persistent": true,
       "env": [
         "PORT"
+      ]
+    },
+    "doc:architecture": {
+      "dependsOn": [],
+      "cache": false,
+      "env": [
+        "ARCHINAUT_CACHE_DIR",
+        "ARCHINAUT_DIFF_BASE",
+        "ARCHINAUT_SOURCE_REF",
+        "GITHUB_HEAD_REF",
+        "GITHUB_REF_NAME",
+        "GITHUB_SHA",
+        "VERCEL_GIT_COMMIT_REF",
+        "VERCEL_GIT_COMMIT_SHA",
+        "VERCEL_GIT_REPO_OWNER",
+        "VERCEL_GIT_REPO_SLUG"
       ],
+      "affectedBy": [
+        "petrinaut-optimizer-core"
+      ]
+    },
+    "lint:arch-docs": {
+      "dependsOn": [],
+      "cache": false,
       "affectedBy": [
         "petrinaut-optimizer-core"
       ]
     },
     "lint:tsc": {
       "dependsOn": [
-        "sync:bundle"
+        "@apps/petrinaut-website#build",
+        "@hashintel/petrinaut#build",
+        "@hashintel/petrinaut-core#build"
       ],
-      "cache": false,
-      "affectedBy": [
-        "petrinaut-optimizer-core"
-      ]
-    },
-    "sync:bundle": {
-      "dependsOn": [
-        "@local/petrinaut-arch-docs#doc:architecture"
-      ],
-      "cache": false,
       "affectedBy": [
         "petrinaut-optimizer-core"
       ]

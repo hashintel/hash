@@ -1,12 +1,17 @@
 {
   "extends": ["//"],
   "tasks": {
-    // `archinaut build` reads the annotations in the packages the config
-    // covers; `^manifest` carries their sources into the hash. Not cached: with
+    // The covered Python workspaces are not dependencies in `package.json`, so
+    // their sources reach the hash through these edges.
+    "manifest": {
+      "dependsOn": ["^manifest", "petrinaut-optimizer-core#manifest"]
+    },
+    // `archinaut` reads the annotations in the packages the config covers;
+    // `manifest` carries their sources into the hash. Not cached: with
     // ARCHINAUT_DIFF_BASE the build annotates the difference to a git ref whose
     // content the hash cannot see.
     "build": {
-      "dependsOn": ["^manifest"],
+      "dependsOn": ["manifest"],
       "cache": false,
       "outputs": ["dist/**"],
       "env": [
@@ -22,6 +27,27 @@
         "GITHUB_HEAD_REF",
         "GITHUB_REF_NAME"
       ]
+    },
+    "doc:architecture": {
+      "dependsOn": ["manifest"],
+      "cache": false,
+      "outputs": ["bundle/**"],
+      "env": [
+        "ARCHINAUT_SOURCE_REF",
+        "ARCHINAUT_DIFF_BASE",
+        "ARCHINAUT_CACHE_DIR",
+        "VERCEL_GIT_COMMIT_SHA",
+        "GITHUB_SHA",
+        "VERCEL_GIT_COMMIT_REF",
+        "GITHUB_HEAD_REF",
+        "GITHUB_REF_NAME",
+        "VERCEL_GIT_REPO_OWNER",
+        "VERCEL_GIT_REPO_SLUG"
+      ]
+    },
+    "lint:arch-docs": {
+      "dependsOn": ["manifest"],
+      "cache": false
     },
     "dev": {
       "cache": false,

@@ -32,4 +32,4 @@ their compiled evaluators.
 Known cost: the histogram accumulator's `add` copies its state per sample
 (`new Map(state)`), and the copy grows with run count. The measured impact and
 the intended fix are recorded in
-[Simulation performance](../../../../../../@local/petrinaut-arch-docs/content/simulation/performance.mdx).
+[Simulation performance](../../performance.mdx).

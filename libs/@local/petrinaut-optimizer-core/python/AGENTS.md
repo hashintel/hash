@@ -11,4 +11,4 @@ Shipping conventions for the Petrinaut packages are in `libs/@hashintel/petrinau
 
 ## Architecture docs
 
-Architecture is declared next to the code it describes, via `@layerRoot` / `@role` in the package docstring of `src/petrinaut_optimizer_core/__init__.py`. Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`.
+Architecture is declared next to the code it describes, via `@layerRoot` / `@role` in the package docstring of `src/petrinaut_optimizer_core/__init__.py`. Verify with `yarn workspace @apps/petrinaut-docs lint:arch-docs`.

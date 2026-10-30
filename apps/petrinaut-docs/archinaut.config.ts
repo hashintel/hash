@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig, resolveSourceUrlPrefix } from "@local/archinaut";
 
 export default defineConfig({
-  root: fileURLToPath(new URL("../../../", import.meta.url)),
+  root: fileURLToPath(new URL("../../", import.meta.url)),
   packages: [
     {
       name: "@hashintel/petrinaut-core",
@@ -116,8 +116,8 @@ export default defineConfig({
    * hash.dev are both just consumers of it. It therefore lives with the
    * generator that owns its schema, not inside either renderer.
    */
-  contentDirectory: "libs/@local/petrinaut-arch-docs/content",
-  outputDirectory: "libs/@local/petrinaut-arch-docs/bundle",
+  contentDirectory: "apps/petrinaut-docs/content",
+  outputDirectory: "apps/petrinaut-docs/bundle",
   cacheDirectory: "node_modules/.cache/archinaut",
   sourceUrlPrefix: resolveSourceUrlPrefix(process.env),
   site: {
@@ -125,7 +125,7 @@ export default defineConfig({
     description:
       "How the Petrinaut packages fit together — generated from annotations in the source.",
     url: "https://docs.petrinaut.org",
-    logo: "libs/@local/petrinaut-arch-docs/assets/petrinaut-helmet.png",
-    favicon: "libs/@local/petrinaut-arch-docs/assets/favicon.ico",
+    logo: "apps/petrinaut-docs/assets/petrinaut-helmet.png",
+    favicon: "apps/petrinaut-docs/assets/favicon.ico",
   },
 });

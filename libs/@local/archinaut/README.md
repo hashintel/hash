@@ -16,8 +16,8 @@ file `--config` names.
 
 A config file default-exports `defineConfig({...})`: the packages to cover,
 the layer-crossing rules, where content, output and cache live, and the
-site's title, URL, logo and favicon. `libs/@local/petrinaut-arch-docs` is the
-first instance.
+site's title, URL, logo and favicon. `apps/petrinaut-docs` is the first
+instance.
 
 ## The pipeline
 

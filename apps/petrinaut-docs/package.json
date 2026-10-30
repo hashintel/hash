@@ -2,16 +2,25 @@
   "name": "@apps/petrinaut-docs",
   "version": "0.0.0-private",
   "private": true,
-  "description": "Builds and serves the Petrinaut architecture docs with archinaut; the Vercel project for docs.petrinaut.org",
+  "description": "The Petrinaut architecture docs: the archinaut config, the hand-written pages, the site's identity, and the Vercel project for docs.petrinaut.org",
   "license": "(MIT OR Apache-2.0)",
   "type": "module",
   "scripts": {
-    "build": "archinaut build --config ../../libs/@local/petrinaut-arch-docs/archinaut.config.ts --out dist",
-    "dev": "archinaut dev --config ../../libs/@local/petrinaut-arch-docs/archinaut.config.ts --port ${PORT:-4322}"
+    "build": "archinaut build --out dist",
+    "dev": "archinaut dev --port ${PORT:-4322}",
+    "doc:architecture": "archinaut bundle",
+    "lint:arch-docs": "archinaut check",
+    "lint:tsc": "tsc --noEmit"
   },
   "devDependencies": {
+    "@apps/petrinaut-website": "workspace:*",
+    "@hashintel/petrinaut": "workspace:*",
+    "@hashintel/petrinaut-core": "workspace:*",
     "@local/archinaut": "workspace:*",
-    "@local/petrinaut-arch-docs": "workspace:*"
+    "@local/tsconfig": "workspace:*",
+    "@tsconfig/bases": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
   },
   "engines": {
     "node": "22.x"
