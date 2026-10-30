@@ -724,11 +724,15 @@ const getStepIdOnPath = (
   let value = input;
 
   for (const [index, segment] of path.entries()) {
-    if (typeof value !== "object" || value === null) {
+    if (
+      typeof value !== "object" ||
+      value === null ||
+      !Object.hasOwn(value, segment)
+    ) {
       break;
     }
 
-    value = (value as Record<string | number, unknown>)[segment];
+    value = Reflect.get(value, segment) as unknown;
 
     if (
       path[index - 1] === "steps" &&
