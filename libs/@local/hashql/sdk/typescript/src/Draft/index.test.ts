@@ -1270,6 +1270,40 @@ describe("import", () => {
     expect(Result.isFailure(result)).toBe(true);
   });
 
+  test("caught_branch_import", () => {
+    expect.hasAssertions();
+    const kept = Draft.program({}, ($) =>
+      $.if(true, {
+        then: (branch) => {
+          try {
+            branch.import(declarations, { Whole: "bad name" });
+          } catch {
+            /* The branch's collector retains this construction failure. */
+          }
+          return 1n;
+        },
+      }),
+    );
+    expect(kept).toMatchObject({
+      _tag: "Failure",
+      failure: { reason: { _tag: "InvalidImportName", name: "bad name" } },
+    });
+    const discarded = Draft.program({}, ($) => {
+      $.if(true, {
+        then: (branch) => {
+          try {
+            branch.import(declarations, { Whole: "bad name" });
+          } catch {
+            /* The failure belongs to the conditional, which the program discards. */
+          }
+          return 1n;
+        },
+      });
+      return $.literal(true);
+    });
+    expect(Result.isSuccess(discarded)).toBe(true);
+  });
+
   test("host_exception", () => {
     expect.hasAssertions();
     const error = new Error("host callback");
