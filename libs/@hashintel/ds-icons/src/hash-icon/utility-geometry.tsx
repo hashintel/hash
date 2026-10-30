@@ -123,7 +123,8 @@ export const utilityGeometry = {
   ),
   diagramSubtask: (
     <FilledShape>
-      <path d="M4 3v13h6M4 7h6M10 4h11v6H10ZM10 13h11v6H10Z" />
+      <path fill="none" d="M4 3v13h6M4 7h6" />
+      <path d="M10 4h11v6H10ZM10 13h11v6H10Z" />
     </FilledShape>
   ),
   diamondExclamation: (
@@ -208,7 +209,8 @@ export const utilityGeometry = {
   ),
   listTree: (
     <FilledShape>
-      <path d="M4 3v15h5M4 8h5M9 5h12v6H9ZM9 15h12v6H9Z" />
+      <path fill="none" d="M4 3v15h5M4 8h5" />
+      <path d="M9 5h12v6H9ZM9 15h12v6H9Z" />
     </FilledShape>
   ),
   magic: (

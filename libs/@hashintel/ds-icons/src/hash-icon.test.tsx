@@ -30,6 +30,10 @@ import {
   getHashIconEffects,
   useHashIconPackEnabled,
 } from "./hash-icon";
+import {
+  projectCube,
+  projectCubeFaces,
+} from "./hash-icon/shared/cube-projection";
 
 afterEach(cleanup);
 
@@ -166,7 +170,9 @@ describe("HashIcon motion", () => {
 
   beforeEach(() => {
     reducedMotion = false;
-    animate.mockClear();
+    animate
+      .mockReset()
+      .mockImplementation(() => ({ cancel }) as unknown as Animation);
     cancel.mockClear();
     mediaListeners.clear();
     Object.defineProperty(Element.prototype, "animate", {
@@ -326,6 +332,165 @@ describe("HashIcon motion", () => {
     expect(cancel).toHaveBeenCalledTimes(count);
     fireEvent.focus(screen.getByRole("button"));
     expect(animate).toHaveBeenCalledTimes(count);
+  });
+
+  it("keeps click actions available when a hover effect is configured", () => {
+    render(
+      <button type="button">
+        <HashIcon name="personRunning" hoverEffect="bounce" />
+      </button>,
+    );
+    const button = screen.getByRole("button");
+    fireEvent.pointerEnter(button);
+    const hoverCount = animate.mock.calls.length;
+    fireEvent.click(button);
+    expect(cancel).toHaveBeenCalledTimes(hoverCount);
+    expect(
+      animate.mock.calls
+        .slice(hoverCount)
+        .some(([frames]) =>
+          frames.some(
+            (frame) => frame.transform === "translateY(-4px) scaleY(1.04)",
+          ),
+        ),
+    ).toBe(true);
+    fireEvent.pointerLeave(button);
+    expect(cancel).toHaveBeenCalledTimes(hoverCount);
+  });
+
+  it("keeps checkbox hover playback running while its input has focus", () => {
+    const { container, unmount } = render(
+      <label data-scope="checkbox">
+        <input type="checkbox" aria-label="Select" />
+        <HashIcon name="place" hoverEffect="pulse" />
+      </label>,
+    );
+    const input = screen.getByRole("checkbox");
+    const label = container.querySelector("label")!;
+    fireEvent.focus(input);
+    const count = animate.mock.calls.length;
+    expect(count).toBeGreaterThan(0);
+    fireEvent.pointerEnter(label);
+    fireEvent.pointerLeave(label);
+    expect(animate).toHaveBeenCalledTimes(count);
+    expect(cancel).not.toHaveBeenCalled();
+    fireEvent.blur(input);
+    expect(cancel).toHaveBeenCalledTimes(count);
+    fireEvent.focus(input);
+    expect(animate).toHaveBeenCalledTimes(count * 2);
+    unmount();
+    expect(cancel).toHaveBeenCalledTimes(count * 2);
+    fireEvent.focus(input);
+    expect(animate).toHaveBeenCalledTimes(count * 2);
+  });
+
+  it.each(["action", "pulse"] as const)(
+    "protects explicit continuous %s playback without active from hover and focus",
+    (effect) => {
+      const Sample = ({ trigger }: { trigger?: number }) => (
+        <button type="button">
+          <HashIcon
+            name="clockRotateLeft"
+            effect={effect}
+            trigger={trigger}
+            animationMode="continuous"
+          />
+        </button>
+      );
+      const { rerender, unmount } = render(<Sample />);
+      const button = screen.getByRole("button");
+      const exerciseHover = () => {
+        const count = animate.mock.calls.length;
+        expect(count).toBeGreaterThan(0);
+        cancel.mockClear();
+        fireEvent.pointerEnter(button);
+        fireEvent.focus(button);
+        fireEvent.pointerLeave(button);
+        fireEvent.blur(button);
+        expect(animate).toHaveBeenCalledTimes(count);
+        expect(cancel).not.toHaveBeenCalled();
+      };
+      exerciseHover();
+      rerender(<Sample trigger={0} />);
+      exerciseHover();
+      rerender(<Sample trigger={1} />);
+      exerciseHover();
+      unmount();
+      expect(cancel.mock.calls.length).toBeGreaterThan(0);
+    },
+  );
+
+  it("allows hover playback again after all explicit one-time effects finish", async () => {
+    const completions: (() => void)[] = [];
+    animate.mockImplementation(
+      () =>
+        ({
+          cancel,
+          finished: new Promise<void>((resolve) => completions.push(resolve)),
+        }) as unknown as Animation,
+    );
+    render(
+      <button type="button">
+        <HashIcon name="clockRotateLeft" effect={["action", "pulse"]} />
+      </button>,
+    );
+    const button = screen.getByRole("button");
+    const count = animate.mock.calls.length;
+    fireEvent.pointerEnter(button);
+    fireEvent.pointerLeave(button);
+    expect(animate).toHaveBeenCalledTimes(count);
+    expect(cancel).not.toHaveBeenCalled();
+    await act(async () =>
+      completions.slice(0, -1).forEach((finish) => finish()),
+    );
+    fireEvent.pointerEnter(button);
+    fireEvent.pointerLeave(button);
+    expect(animate).toHaveBeenCalledTimes(count);
+    await act(async () => completions.at(-1)?.());
+    fireEvent.pointerEnter(button);
+    expect(animate.mock.calls.length).toBeGreaterThan(count);
+  });
+
+  it("keeps cube faces and edges aligned when changing variants after hover", () => {
+    let frame: FrameRequestCallback = () => {};
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      frame = callback;
+      return 1;
+    });
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    const Sample = ({ filled }: { filled: boolean }) => (
+      <button type="button">
+        <HashIcon name="cube" variant={filled ? "filled" : "outline"} />
+      </button>
+    );
+    const { container, rerender } = render(<Sample filled={false} />);
+    fireEvent.pointerEnter(screen.getByRole("button"));
+    act(() => {
+      frame(0);
+      frame(240);
+    });
+    expect(
+      container
+        .querySelector("[data-icon-cube]")
+        ?.getAttribute("data-cube-angle"),
+    ).toBe("55");
+    rerender(<Sample filled />);
+    const cube = container.querySelector("[data-icon-cube]")!;
+    const angle = Number(cube.getAttribute("data-cube-angle"));
+    for (const face of projectCubeFaces(angle)) {
+      expect(
+        cube
+          .querySelector(`[data-cube-face="${face.index}"]`)
+          ?.getAttribute("d"),
+      ).toBe(face.path);
+    }
+    for (const edge of projectCube(angle)) {
+      expect(
+        cube
+          .querySelector(`[data-cube-edge="${edge.index}"]`)
+          ?.getAttribute("d"),
+      ).toBe(edge.path);
+    }
   });
 
   it("stops continuous authored hover actions when the pointer leaves", () => {
@@ -850,7 +1015,7 @@ describe("HashIcon motion", () => {
     { exit: "blur", triggered: true },
   ] as const)(
     "finishes a cube turn after $exit with triggered=$triggered",
-    ({ exit, triggered }) => {
+    async ({ exit, triggered }) => {
       const frames = new Map<number, FrameRequestCallback>();
       let frameId = 0;
       vi.stubGlobal(
@@ -892,7 +1057,7 @@ describe("HashIcon motion", () => {
       fireEvent[enter](button);
       fireEvent[exit](button);
       expect(frames.size).toBe(1);
-      tick(1100);
+      await act(async () => tick(1100));
       expect(Number(cube?.getAttribute("data-cube-angle"))).toBeCloseTo(
         startingAngle + 90,
       );

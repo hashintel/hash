@@ -23,6 +23,29 @@ const symbolsWithCutouts: HashIconName[] = [
 ];
 
 describe("filled icon artwork", () => {
+  it.each(["listTree", "diagramSubtask"] as const)(
+    "fills only closed nodes in %s and leaves its connectors unfilled",
+    (name) => {
+      const { container } = render(<HashIcon name={name} variant="filled" />);
+      const paths = Array.from(container.querySelectorAll("path"));
+      const connectors = paths.filter(
+        (path) => !path.getAttribute("d")?.endsWith("Z"),
+      );
+      expect(connectors.length).toBeGreaterThan(0);
+      for (const connector of connectors) {
+        expect(connector.getAttribute("fill")).toBe("none");
+      }
+      const nodes = paths.filter((path) =>
+        path.getAttribute("d")?.endsWith("Z"),
+      );
+      expect(nodes.length).toBeGreaterThan(0);
+      for (const node of nodes) {
+        expect(node.closest('g[fill="currentColor"]')).not.toBeNull();
+        expect(node.getAttribute("d")).not.toMatch(/M4 /);
+      }
+    },
+  );
+
   it("keeps interior details transparent and each mask local to its icon", () => {
     const Icons = ({ filled }: { filled: boolean }) => (
       <>

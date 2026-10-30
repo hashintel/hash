@@ -114,8 +114,7 @@ const playIconEffects = ({
   drawProgress,
   animationMode,
   cancelPrevious,
-  onActionStart,
-  onActionComplete,
+  onComplete,
 }: {
   root: SVGGElement;
   effectKey: string;
@@ -125,11 +124,15 @@ const playIconEffects = ({
   drawProgress?: number;
   animationMode: HashIconAnimationMode;
   cancelPrevious: () => void;
-  onActionStart?: (cancel: () => void) => void;
-  onActionComplete?: () => void;
+  onComplete?: () => void;
 }) => {
   const animations: Animation[] = [];
+  const completions: Promise<unknown>[] = [];
   let cancelAction = () => {};
+  let finishAction = () => {};
+  const actionFinished = new Promise<void>((resolve) => {
+    finishAction = resolve;
+  });
   const totalDuration = resolveIconDuration(duration);
   const effects = hashIconEffects.filter((candidate) =>
     effectKey.split(",").includes(candidate),
@@ -142,9 +145,9 @@ const playIconEffects = ({
         totalDuration,
         animationMode === "continuous",
         cancelPrevious,
-        onActionComplete,
+        finishAction,
       );
-      onActionStart?.(cancelAction);
+      completions.push(actionFinished);
       continue;
     }
     if (currentEffect === "draw" && drawProgress !== undefined) continue;
@@ -223,6 +226,17 @@ const playIconEffects = ({
     });
   }
   let cancelled = false;
+  if (animationMode === "once" && onComplete) {
+    void Promise.all([
+      ...completions,
+      ...animations.map((animation) => animation.finished),
+    ]).then(
+      () => {
+        if (!cancelled) onComplete();
+      },
+      () => {},
+    );
+  }
   return () => {
     if (cancelled) return;
     cancelled = true;
@@ -257,6 +271,7 @@ export const useIconEffects = ({
   const previousTrigger = useRef(trigger);
   const cancelInteraction = useRef<() => void>(() => {});
   const cancelHoverInteraction = useRef<() => void>(() => {});
+  const explicitPlayback = useRef(false);
   const cubeActionInProgress = useRef(false);
   const effectKey = (
     typeof effect === "string" ? [effect] : (effect ?? [])
@@ -290,11 +305,12 @@ export const useIconEffects = ({
 
   useEffect(() => {
     const root = ref.current;
-    const control = root?.closest(iconControlSelector);
+    const control = root?.closest<HTMLElement>(iconControlSelector);
     if (!root || !control || !allowed) return;
     const cube = root.querySelector("[data-icon-cube]");
     const play = () => {
       if (isIconControlDisabled(control)) return;
+      cancelHoverInteraction.current();
       cancelInteraction.current = playIconAction(
         root,
         name,
@@ -308,10 +324,10 @@ export const useIconEffects = ({
       cubeActionInProgress.current = Boolean(cube);
     };
     let pointerInside = false;
-    let focused = false;
+    let focused = control.contains(document.activeElement);
     const enter = () => {
       if (
-        (active === true && Boolean(effectKey)) ||
+        explicitPlayback.current ||
         (!hoverEnabled && !hoverEffect) ||
         cubeActionInProgress.current ||
         isIconControlDisabled(control)
@@ -348,6 +364,7 @@ export const useIconEffects = ({
         );
     };
     const leave = () => {
+      if (explicitPlayback.current) return;
       if (hoverEffect) {
         cancelHoverInteraction.current();
         return;
@@ -372,7 +389,12 @@ export const useIconEffects = ({
       pointerInside = true;
       if (!focused) enter();
     };
-    const focus = () => {
+    const focus = (event: FocusEvent) => {
+      if (
+        event.relatedTarget instanceof Node &&
+        control.contains(event.relatedTarget)
+      )
+        return;
       focused = true;
       if (!pointerInside) enter();
     };
@@ -380,16 +402,20 @@ export const useIconEffects = ({
       pointerInside = false;
       if (!focused) leave();
     };
-    const blur = () => {
+    const blur = (event: FocusEvent) => {
+      if (
+        event.relatedTarget instanceof Node &&
+        control.contains(event.relatedTarget)
+      )
+        return;
       focused = false;
       if (!pointerInside) leave();
     };
-    if (interactive && !effectKey && !hoverEffect)
-      control.addEventListener("click", play);
+    if (interactive && !effectKey) control.addEventListener("click", play);
     control.addEventListener("pointerenter", pointerEnter);
     control.addEventListener("pointerleave", pointerLeave);
-    control.addEventListener("focus", focus);
-    control.addEventListener("blur", blur);
+    control.addEventListener("focus", focus, true);
+    control.addEventListener("blur", blur, true);
     return () => {
       cancelHoverInteraction.current();
       cancelInteraction.current();
@@ -398,17 +424,17 @@ export const useIconEffects = ({
       control.removeEventListener("click", play);
       control.removeEventListener("pointerenter", pointerEnter);
       control.removeEventListener("pointerleave", pointerLeave);
-      control.removeEventListener("focus", focus);
-      control.removeEventListener("blur", blur);
+      control.removeEventListener("focus", focus, true);
+      control.removeEventListener("blur", blur, true);
     };
   }, [
     allowed,
-    active,
     hoverEnabled,
     hoverEffect,
     animationMode,
     interactive,
     effectKey,
+    identity,
     name,
     duration,
     choreography,
@@ -430,6 +456,8 @@ export const useIconEffects = ({
 
     if (!effectKey) return;
     cancelHoverInteraction.current();
+    cancelInteraction.current();
+    explicitPlayback.current = true;
     const cancelEffects = playIconEffects({
       root,
       effectKey,
@@ -439,20 +467,13 @@ export const useIconEffects = ({
       drawProgress,
       animationMode,
       cancelPrevious: cancelInteraction.current,
-      onActionStart: (cancelAction) => {
-        cubeActionInProgress.current = Boolean(
-          root.querySelector("[data-icon-cube]"),
-        );
-        cancelInteraction.current = cancelAction;
-      },
-      onActionComplete: () => {
-        cubeActionInProgress.current = false;
+      onComplete: () => {
+        explicitPlayback.current = false;
       },
     });
     return () => {
       cancelEffects();
-      if (effectKey.split(",").includes("action"))
-        cubeActionInProgress.current = false;
+      explicitPlayback.current = false;
     };
   }, [
     effectKey,
