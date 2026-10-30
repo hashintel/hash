@@ -478,7 +478,7 @@ export const evaluate = <
       scope,
       Referential.referenceProducer(Symbol("~hashql/Draft")),
     ).build(($) => {
-      // SAFETY: the restricted view runs these same operations. It narrows what `let` and `if` accept, and its `if` reports the whole schema as requirements, which TypeScript cannot relate to the requirements the shared `if` computes.
+      // SAFETY: the restricted view runs these same operations. It narrows what `let`, `if` and `query` accept, and its `if` and `filter` report the whole schema as requirements, which TypeScript cannot relate to the requirements the shared operations compute.
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the restricted view is a type-level policy over the unrestricted context
       const expression = body($ as Body.Context<S, Body.Requirements<I>>);
       if (Expression.isExpression(expression)) {

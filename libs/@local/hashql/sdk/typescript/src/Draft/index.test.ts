@@ -1467,6 +1467,38 @@ describe("query", () => {
     ]);
   });
 
+  test("caught_predicate_import", () => {
+    expect.hasAssertions();
+    const kept = Draft.withPrelude(graph).program({}, ($) =>
+      $.query($.prelude().entities(1n))
+        .filter("vertex", (predicate) => {
+          try {
+            predicate.import(declarations, { Whole: "bad name" });
+          } catch {
+            /* The predicate's collector retains this construction failure. */
+          }
+          return true;
+        })
+        .collect(),
+    );
+    expect(kept).toMatchObject({
+      _tag: "Failure",
+      failure: { reason: { _tag: "InvalidImportName", name: "bad name" } },
+    });
+    const discarded = Draft.withPrelude(graph).program({}, ($) => {
+      $.query($.prelude().entities(1n)).filter("vertex", (predicate) => {
+        try {
+          predicate.import(declarations, { Whole: "bad name" });
+        } catch {
+          /* The failure belongs to the query, which the program discards. */
+        }
+        return true;
+      });
+      return $.literal(true);
+    });
+    expect(Result.isSuccess(discarded)).toBe(true);
+  });
+
   test("invalid_parameter_name", () => {
     expect.hasAssertions();
     let calls = 0;
