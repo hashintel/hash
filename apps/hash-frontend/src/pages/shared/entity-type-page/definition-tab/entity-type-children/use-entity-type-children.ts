@@ -1,6 +1,10 @@
 import { useQuery } from "@apollo/client";
 import { useMemo } from "react";
 
+import {
+  compareOntologyTypeVersions,
+  extractBaseUrl,
+} from "@blockprotocol/type-system";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
 import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
@@ -9,26 +13,27 @@ import type {
   QueryEntityTypesQuery,
   QueryEntityTypesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
-import type { BaseUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 
-export const useEntityTypeChildren = (entityTypeBaseUrl: BaseUrl | null) => {
+export const useEntityTypeChildren = (entityTypeId: VersionedUrl | null) => {
   const { data, error } = useQuery<
     QueryEntityTypesQuery,
     QueryEntityTypesQueryVariables
   >(queryEntityTypesQuery, {
     fetchPolicy: "cache-and-network",
-    skip: !entityTypeBaseUrl,
+    skip: !entityTypeId,
     variables: {
       request: {
         filter: {
-          all: [
+          equal: [
             {
-              equal: [
-                { path: ["inheritsFrom(inheritanceDepth=0)", "*", "baseUrl"] },
-                { parameter: entityTypeBaseUrl },
-              ],
+              path: ["inheritsFrom(inheritanceDepth=0)", "*", "versionedUrl"],
             },
-            { equal: [{ path: ["version"] }, { parameter: "latest" }] },
+            { parameter: entityTypeId },
           ],
         },
         temporalAxes: currentTimeInstantTemporalAxes,
@@ -37,23 +42,30 @@ export const useEntityTypeChildren = (entityTypeBaseUrl: BaseUrl | null) => {
   });
 
   const children = useMemo(() => {
-    if (!data || !entityTypeBaseUrl) {
+    if (!data || !entityTypeId) {
       return undefined;
     }
 
-    // The Graph does not deduplicate the rows this filter matches.
-    const childrenByBaseUrl = new Map(
-      data.queryEntityTypes.entityTypes.map((entityType) => [
-        entityType.metadata.recordId.baseUrl,
-        entityType,
-      ]),
-    );
-    childrenByBaseUrl.delete(entityTypeBaseUrl);
+    // The filter matches every version of a child that extends this version.
+    const newestByBaseUrl = new Map<BaseUrl, EntityTypeWithMetadata>();
+    for (const entityType of data.queryEntityTypes.entityTypes) {
+      const { baseUrl, version } = entityType.metadata.recordId;
+      const newest = newestByBaseUrl.get(baseUrl);
 
-    return [...childrenByBaseUrl.values()].sort((left, right) =>
+      if (
+        !newest ||
+        compareOntologyTypeVersions(version, newest.metadata.recordId.version) >
+          0
+      ) {
+        newestByBaseUrl.set(baseUrl, entityType);
+      }
+    }
+    newestByBaseUrl.delete(extractBaseUrl(entityTypeId));
+
+    return [...newestByBaseUrl.values()].sort((left, right) =>
       left.schema.title.localeCompare(right.schema.title),
     );
-  }, [data, entityTypeBaseUrl]);
+  }, [data, entityTypeId]);
 
   return { children, error };
 };
