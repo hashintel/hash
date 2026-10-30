@@ -109,20 +109,15 @@ path.
 ## Adding a hand-written diagram
 
 Put a D2 file beside the page that uses it and reference it relative to the
-page, as an image or as a component:
+page, as an image:
 
 ```mdx
 ![One experiment through the GPU](./gpu-experiment-pipeline.d2)
-
-import Pipeline from "./gpu-experiment-pipeline.d2";
-
-<Pipeline />
 ```
 
 The build renders the file to SVG next to the generated diagrams and rewrites
-the reference: the image form stays a plain Markdown image that any host
-renders, and the import becomes an SVG import that the site inlines as a
-themeable component. A diagram several pages share, or one used by a page
+the reference to a plain Markdown image that any host renders; the site
+inlines it as a themeable diagram. A diagram several pages share, or one used by a page
 under `content/`, lives in `content/diagrams/` and is referenced as
 `@diagrams/<name>.svg`. A reference that does not resolve, or a name that
 collides with a generated diagram, fails the check.

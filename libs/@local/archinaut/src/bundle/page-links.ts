@@ -213,29 +213,16 @@ export const resolveLocalDiagrams = (
     assetPathFrom(fromSlug, `diagrams/${name}.svg`);
 
   const resolved = outsideCode(contents, (text) =>
-    text
-      .replace(
-        /!\[([^\]]*)\]\((\.{1,2}\/[^)\s]+?\.d2)\)(\n?)/gu,
-        (match, alt: string, target: string, newline: string) => {
-          const name = nameOf(target);
-          if (name === null) {
-            return match;
-          }
-          return emit ? `![${alt}](${asset(name)})${newline}` : "";
-        },
-      )
-      .replace(
-        /^import\s+(\w+)\s+from\s+"(\.{1,2}\/[^"]+?\.d2)";?$/gmu,
-        (match, binding: string, target: string) => {
-          const name = nameOf(target);
-          if (name === null) {
-            return match;
-          }
-          return emit
-            ? `import ${binding} from "${asset(name)}";`
-            : `export const ${binding} = () => null;`;
-        },
-      ),
+    text.replace(
+      /!\[([^\]]*)\]\((\.{1,2}\/[^)\s]+?\.d2)\)(\n?)/gu,
+      (match, alt: string, target: string, newline: string) => {
+        const name = nameOf(target);
+        if (name === null) {
+          return match;
+        }
+        return emit ? `![${alt}](${asset(name)})${newline}` : "";
+      },
+    ),
   );
   return { contents: resolved, unresolved };
 };

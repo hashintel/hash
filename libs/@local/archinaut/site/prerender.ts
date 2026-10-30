@@ -10,18 +10,20 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { availableParallelism } from "node:os";
 import { dirname, join } from "node:path";
-import { Worker } from "node:worker_threads";
+
+import { startWorker } from "../src/shared/worker-channel";
 
 import type { BundleManifest } from "../src/bundle/outputs";
 
-/** What the server entry renders for one URL; mirrors `src/entry-server.tsx`. */
-interface RenderedPage {
+/**
+ * What the server entry renders for one URL; mirrors `src/entry-server.tsx`,
+ * which the Vite build owns and this Node-side file cannot import.
+ */
+export interface RenderedPage {
   html: string;
   title: string;
   description: string;
 }
-
-type Reply = { id: number; page: RenderedPage } | { id: number; error: string };
 
 const escape = (text: string): string =>
   text
@@ -33,41 +35,6 @@ const escape = (text: string): string =>
 /** The file a URL path is served from, under `cleanUrls` without a trailing slash. */
 const fileFor = (path: string): string =>
   path === "/" ? "index.html" : `${path.replace(/^\//u, "")}.html`;
-
-/** A worker that renders paths on request, one at a time. */
-const startRenderer = (serverEntry: string) => {
-  const worker = new Worker(
-    new URL("./prerender/render-worker.js", import.meta.url),
-    { workerData: { serverEntry } },
-  );
-  const pending = new Map<
-    number,
-    { resolve: (page: RenderedPage) => void; reject: (error: Error) => void }
-  >();
-  let nextId = 0;
-  worker.on("message", (reply: Reply) => {
-    const waiting = pending.get(reply.id);
-    pending.delete(reply.id);
-    if (waiting === undefined) {
-      return;
-    }
-    if ("page" in reply) {
-      waiting.resolve(reply.page);
-    } else {
-      waiting.reject(new Error(reply.error));
-    }
-  });
-  return {
-    render: (path: string) =>
-      new Promise<RenderedPage>((resolve, reject) => {
-        const id = nextId;
-        nextId += 1;
-        pending.set(id, { resolve, reject });
-        worker.postMessage({ id, path });
-      }),
-    close: () => worker.terminate(),
-  };
-};
 
 export const prerender = async (options: {
   /** Absolute; holds the client build, with `index.html` as the template. */
@@ -87,10 +54,11 @@ export const prerender = async (options: {
     "/404",
   ];
   const writePage = async (path: string, page: RenderedPage): Promise<void> => {
+    // Function replacements, so a `$` sequence in a page stays literal.
     const html = template
-      .replace("<!--page-title-->", escape(page.title))
-      .replace("<!--page-description-->", escape(page.description))
-      .replace("<!--app-html-->", page.html);
+      .replace("<!--page-title-->", () => escape(page.title))
+      .replace("<!--page-description-->", () => escape(page.description))
+      .replace("<!--app-html-->", () => page.html);
     const target = join(options.clientDirectory, fileFor(path));
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, html);
@@ -98,7 +66,11 @@ export const prerender = async (options: {
 
   const renderers = Array.from(
     { length: Math.min(availableParallelism(), paths.length) },
-    () => startRenderer(options.serverEntry),
+    () =>
+      startWorker<string, RenderedPage>(
+        new URL("./prerender/render-worker.ts", import.meta.url),
+        { serverEntry: options.serverEntry },
+      ),
   );
   let next = 0;
   try {
@@ -108,7 +80,7 @@ export const prerender = async (options: {
           const path = paths[next];
           next += 1;
           if (path !== undefined) {
-            await writePage(path, await renderer.render(path));
+            await writePage(path, await renderer.call(path));
           }
         }
       }),

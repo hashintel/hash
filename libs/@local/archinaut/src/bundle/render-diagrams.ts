@@ -41,7 +41,7 @@ const inParallel = async <T>(
 };
 
 const cacheKey = (source: Buffer, version: string): string =>
-  createHash("sha1").update(`${version}\n`).update(source).digest("hex");
+  createHash("sha256").update(`${version}\n`).update(source).digest("hex");
 
 const readable = (path: string): Promise<void> =>
   // d2 writes 0600, which leaves the SVG unreadable to a server running as

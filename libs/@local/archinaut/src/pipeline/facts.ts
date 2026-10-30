@@ -13,13 +13,13 @@
 
 import { join } from "node:path";
 
+import { countErrors, type Diagnostic } from "../shared/diagnostics";
 import { factsCacheKey, readFactsCache, writeFactsCache } from "./facts/cache";
 import { openPythonSource, pythonSalt } from "./facts/python";
 import { openTypeScriptSource, typeScriptSalt } from "./facts/typescript";
 import { sourceRootOf } from "./shared/scope";
 
 import type { ArchitecturePackage } from "../model";
-import type { Diagnostic } from "../shared/diagnostics";
 
 export type Language = ArchitecturePackage["language"];
 
@@ -134,12 +134,15 @@ export const collectFacts = async (
         collected.facts.documents.push(...result.documents);
         collected.diagnostics.push(...result.diagnostics);
         collected.fresh.push(language);
-        await writeFactsCache(
-          options.cacheDirectory,
-          language,
-          key,
-          result.documents,
-        );
+        // Facts a failed indexer left incomplete are not worth finding again.
+        if (countErrors(result.diagnostics) === 0) {
+          await writeFactsCache(
+            options.cacheDirectory,
+            language,
+            key,
+            result.documents,
+          );
+        }
       } finally {
         if (kept === undefined) {
           await source.close();

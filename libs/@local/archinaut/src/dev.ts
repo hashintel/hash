@@ -111,11 +111,12 @@ export const serve = async (options: {
   };
   for (const root of roots) {
     watch(root, { recursive: true }, (_event, file) => {
-      if (
-        file !== null &&
-        !file.split("/").some((segment) => ignored.has(segment))
-      ) {
-        schedule(toPosix(relative(config.root, join(root, file))));
+      if (file === null) {
+        return;
+      }
+      const changedFile = toPosix(relative(config.root, join(root, file)));
+      if (!changedFile.split("/").some((segment) => ignored.has(segment))) {
+        schedule(changedFile);
       }
     });
   }

@@ -23,7 +23,7 @@ export const factsCacheKey = async (options: {
   const contents = await Promise.all(
     files.map((file) => readFile(join(options.repoRoot, file))),
   );
-  const hash = createHash("sha1").update(`${options.salt}\n`);
+  const hash = createHash("sha256").update(`${options.salt}\n`);
   files.forEach((file, index) => {
     hash.update(`${file}:${contents[index]?.length ?? 0}\n`);
     hash.update(contents[index] ?? "");
