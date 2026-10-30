@@ -250,6 +250,14 @@ export const descriptions = {
     "A downward arrow beside A and Z for alphabetical order from A to Z. It shifts downward on hover.",
   sortUpAlphabetical:
     "An upward arrow beside Z and A for alphabetical order from Z to A. It shifts upward on hover.",
+  sortDownShapes:
+    "A downward arrow beside a circle above a pyramid for sorting by shape or object type. It shifts downward on hover.",
+  sortUpShapes:
+    "An upward arrow beside a pyramid above a circle for reversing shape or object-type order. It shifts upward on hover.",
+  sortDownSize:
+    "A downward arrow beside four progressively shorter lines for sorting from largest to smallest. It shifts downward on hover.",
+  sortUpSize:
+    "An upward arrow beside four progressively longer lines for sorting from smallest to largest. It shifts upward on hover.",
   squareCheck:
     "A checkmark inside a square for a checked item or selection. Its parts lift briefly in sequence on hover.",
   star: "A five-pointed star for a favorite or rating. It tilts slightly on hover.",

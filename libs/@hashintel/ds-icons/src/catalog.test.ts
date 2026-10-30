@@ -59,6 +59,22 @@ describe("icon catalog metadata", () => {
     expect(entries.get(name)?.related).toContain(related);
   });
 
+  it.each([
+    ["sortDown", "sortUp"],
+    ["sortDownAlphabetical", "sortUpAlphabetical"],
+    ["sortDownNumeric", "sortUpNumeric"],
+    ["sortDownShapes", "sortUpShapes"],
+    ["sortDownSize", "sortUpSize"],
+  ] as const)(
+    "groups %s and %s under Editing with a related counterpart",
+    (down, up) => {
+      expect(entries.get(down)?.category).toBe("Editing");
+      expect(entries.get(up)?.category).toBe("Editing");
+      expect(entries.get(down)?.related).toContain(up);
+      expect(entries.get(up)?.related).toContain(down);
+    },
+  );
+
   it("keeps study alternatives related without treating an entire category as related", () => {
     for (const { names } of hashIconStudies) {
       for (const name of names) {

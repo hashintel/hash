@@ -1,4 +1,5 @@
 const calendarFrame = <path d="M4 5h16v16H4ZM4 10h16M8 3v4m8-4v4" />;
+const sortPyramid = <path d="M4 0 0 7 4 8 8 7ZM4 0v8" />;
 
 export const utilityGeometry = {
   arrowTrendUp: <path d="m3 17 6-6 4 4 8-10m-6 0h6v6" />,
@@ -173,10 +174,10 @@ export const utilityGeometry = {
   ),
   ruler: <path d="m3 16 13-13 5 5L8 21Zm5-5 2 2m1-5 2 2m1-5 2 2M5 14l2 2" />,
   sortDown: <path d="M5 3v18m-3-3 3 3 3-3M11 5h10M11 10h7M11 15h4" />,
+  sortUp: <path d="M5 21V3m-3 3 3-3 3 3M11 5h4M11 10h7M11 15h10" />,
   sortDownNumeric: (
     <path d="M5 3v18m-3-3 3 3 3-3M13.5 5l2-2v6M17.5 16.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0c0 3-1 4.5-3.5 4.5" />
   ),
-  sortUp: <path d="M5 21V3m-3 3 3-3 3 3M11 5h4M11 10h7M11 15h10" />,
   sortUpNumeric: (
     <path d="M5 21V3m-3 3 3-3 3 3M17.5 6.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0c0 3-1 4.5-3.5 4.5M13.5 16l2-2v7" />
   ),
@@ -186,6 +187,24 @@ export const utilityGeometry = {
   sortUpAlphabetical: (
     <path d="M5 21V3m-3 3 3-3 3 3m3-2h8l-8 7h8m-8 10 4-7 4 7m-6-2h4" />
   ),
+  sortDownShapes: (
+    <>
+      <path d="M5 3v18m-3-3 3 3 3-3" />
+      <circle cx="16" cy="6" r="3" />
+      <g transform="translate(12 13)">{sortPyramid}</g>
+    </>
+  ),
+  sortUpShapes: (
+    <>
+      <path d="M5 21V3m-3 3 3-3 3 3" />
+      <g transform="translate(12 3)">{sortPyramid}</g>
+      <circle cx="16" cy="18" r="3" />
+    </>
+  ),
+  sortDownSize: (
+    <path d="M5 3v18m-3-3 3 3 3-3M11 4h10M11 9h7M11 14h4M11 19h1" />
+  ),
+  sortUpSize: <path d="M5 21V3m-3 3 3-3 3 3M11 4h1M11 9h4M11 14h7M11 19h10" />,
   squareCheck: (
     <>
       <rect x="3" y="3" width="18" height="18" rx="2" />

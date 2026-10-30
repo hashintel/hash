@@ -543,9 +543,13 @@ export const RulerIcon = createIcon("ruler");
 export const SortDownIcon = createIcon("sortDown");
 export const SortDownAlphabeticalIcon = createIcon("sortDownAlphabetical");
 export const SortDownNumericIcon = createIcon("sortDownNumeric");
+export const SortDownShapesIcon = createIcon("sortDownShapes");
+export const SortDownSizeIcon = createIcon("sortDownSize");
 export const SortUpIcon = createIcon("sortUp");
 export const SortUpAlphabeticalIcon = createIcon("sortUpAlphabetical");
 export const SortUpNumericIcon = createIcon("sortUpNumeric");
+export const SortUpShapesIcon = createIcon("sortUpShapes");
+export const SortUpSizeIcon = createIcon("sortUpSize");
 export const SquareCheckIcon = createIcon("squareCheck");
 export const StarIcon = createIcon("star");
 export const ThoughtBubbleIcon = createIcon("thoughtBubble");
@@ -589,9 +593,13 @@ export const hashIconPack = {
   sortDown: SortDownIcon,
   sortDownAlphabetical: SortDownAlphabeticalIcon,
   sortDownNumeric: SortDownNumericIcon,
+  sortDownShapes: SortDownShapesIcon,
+  sortDownSize: SortDownSizeIcon,
   sortUp: SortUpIcon,
   sortUpAlphabetical: SortUpAlphabeticalIcon,
   sortUpNumeric: SortUpNumericIcon,
+  sortUpShapes: SortUpShapesIcon,
+  sortUpSize: SortUpSizeIcon,
   squareCheck: SquareCheckIcon,
   star: StarIcon,
   thoughtBubble: ThoughtBubbleIcon,

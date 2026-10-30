@@ -126,3 +126,23 @@ a category.
 `motion` is the existing motion hint, not a prose description. `hashIconStudies`
 still groups design alternatives and describes the group as a whole; its `motion`
 text should not be used as an individual icon's description.
+
+## Sorting icons
+
+The Editing category includes these paired sort indicators. Each pair reverses
+both the arrow direction and the order of the symbols or lines. Use an accessible
+label that names the actual order; arrow direction alone is ambiguous.
+
+| Family              | Down variant                              | Up variant                               |
+| ------------------- | ----------------------------------------- | ---------------------------------------- |
+| General             | `sortDown`: three shortening lines        | `sortUp`: three lengthening lines        |
+| Alphabetical        | `sortDownAlphabetical`: A above Z         | `sortUpAlphabetical`: Z above A          |
+| Numeric             | `sortDownNumeric`: 1 above 9              | `sortUpNumeric`: 9 above 1               |
+| Shape / object type | `sortDownShapes`: circle above pyramid    | `sortUpShapes`: pyramid above circle     |
+| Size                | `sortDownSize`: four lines, largest first | `sortUpSize`: four lines, smallest first |
+
+Every name also has a named component, such as `SortDownShapesIcon` or
+`SortUpSizeIcon`, and an entry in `hashIconPack`. The existing general,
+alphabetical, and numeric exports remain available. Related-icon metadata links
+each opposite and alternative sort family. Sort icons use the same one-time
+hover feedback as the rest of the set; continuous effects remain opt-in.
