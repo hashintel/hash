@@ -31,8 +31,8 @@ use hash_graph_store::{
     api_token::{
         ApiTokenAuthenticationError, ApiTokenCredential, ApiTokenEncryptedSecretHash,
         ApiTokenEncryptionKeyId, ApiTokenId, ApiTokenMetadata, ApiTokenName,
-        ApiTokenRevocationError, ApiTokenSecretHash, ApiTokenStore as _, ApiTokenType,
-        ApiTokenVerificationError, ApiTokenVersion, CreateApiTokenParams,
+        ApiTokenRevocationError, ApiTokenStore as _, ApiTokenType, ApiTokenVerificationError,
+        ApiTokenVersion, CreateApiTokenParams,
     },
     email_subscription::{EmailSubscriptionError, EmailSubscriptionProvider},
     identity_provider::{IdentityDeletion, IdentityProvider, IdentityProviderError},
@@ -985,8 +985,13 @@ async fn provider_wrong_secret() -> Result<(), Box<dyn Error>> {
     let (user_id, web_id) = user_with_web(&mut store).await?;
     let token = record_issued(&mut store, user_id).await?;
     let hashed: HashedApiToken = token.parse()?;
+    let other = HashedApiToken::from(
+        issuer()
+            .issue(user_id, ApiTokenName::new("other".to_owned())?, None)?
+            .token,
+    );
     let other_secret = key().encrypt(
-        ApiTokenSecretHash::new([1; 32]),
+        other.secret_hash(),
         &hashed.associated_data(ActorEntityUuid::from(user_id), web_id),
     )?;
     store

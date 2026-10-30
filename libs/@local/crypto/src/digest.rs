@@ -4,6 +4,9 @@ use core::fmt;
 
 use aws_lc_rs::digest;
 
+/// The length in bytes of a SHA-256 digest.
+pub const SHA256_OUTPUT_LEN: usize = digest::SHA256_OUTPUT_LEN;
+
 /// A SHA-256 hash that takes its input in pieces.
 ///
 /// The digest depends only on the concatenated input, not on how it was split: `"ab"` then `"c"`
@@ -72,7 +75,7 @@ impl fmt::Debug for Sha256 {
 /// assert_eq!(digest.to_bytes()[..4], [0xBA, 0x78, 0x16, 0xBF]);
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Sha256Digest([u8; digest::SHA256_OUTPUT_LEN]);
+pub struct Sha256Digest([u8; SHA256_OUTPUT_LEN]);
 
 impl Sha256Digest {
     /// The digest of `data`.
@@ -84,14 +87,14 @@ impl Sha256Digest {
     }
 
     fn copy_from(digest: &digest::Digest) -> Self {
-        let mut bytes = [0; digest::SHA256_OUTPUT_LEN];
+        let mut bytes = [0; SHA256_OUTPUT_LEN];
         bytes.copy_from_slice(digest.as_ref());
         Self(bytes)
     }
 
     /// The bytes of the digest.
     #[must_use]
-    pub const fn to_bytes(self) -> [u8; digest::SHA256_OUTPUT_LEN] {
+    pub const fn to_bytes(self) -> [u8; SHA256_OUTPUT_LEN] {
         self.0
     }
 }

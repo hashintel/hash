@@ -32,7 +32,7 @@ use core::{
 
 use error_stack::{Report, ResultExt as _};
 use hash_crypto::{Secret, digest::Sha256Digest, random::random_bytes};
-use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash, ApiTokenType, ApiTokenVersion};
+use hash_graph_store::api_token::{ApiTokenId, ApiTokenType, ApiTokenVersion};
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
@@ -224,6 +224,24 @@ impl fmt::Display for ApiToken {
     }
 }
 
+/// The SHA-256 hash of an API token's secret.
+///
+/// Only hashing a secret creates one. `Debug` leaves out the hash.
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub struct ApiTokenSecretHash(Sha256Digest);
+
+impl ApiTokenSecretHash {
+    fn of(secret: &Secret<[u8; SECRET_LENGTH]>) -> Self {
+        Self(Sha256Digest::of(secret.expose()))
+    }
+}
+
+impl fmt::Debug for ApiTokenSecretHash {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("ApiTokenSecretHash(..)")
+    }
+}
+
 /// An API token with the SHA-256 hash of its secret in place of the secret.
 ///
 /// `Display` shows the token as [`ApiToken`] does.
@@ -288,7 +306,7 @@ impl From<&ApiToken> for HashedApiToken {
             environment: token.environment,
             version: token.version,
             token_id: token.token_id,
-            secret_hash: hash_secret(&token.secret),
+            secret_hash: ApiTokenSecretHash::of(&token.secret),
         }
     }
 }
@@ -391,14 +409,9 @@ impl FromStr for HashedApiToken {
             environment,
             version,
             token_id,
-            secret_hash: hash_secret(&secret),
+            secret_hash: ApiTokenSecretHash::of(&secret),
         })
     }
-}
-
-/// The SHA-256 hash of `secret`.
-fn hash_secret(secret: &Secret<[u8; SECRET_LENGTH]>) -> ApiTokenSecretHash {
-    ApiTokenSecretHash::new(Sha256Digest::of(secret.expose()).to_bytes())
 }
 
 /// Writes the `Display` output of a token: the token up to the first
@@ -514,14 +527,14 @@ mod tests {
     use core::assert_matches;
 
     use hash_crypto::Secret;
-    use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash};
+    use hash_graph_store::api_token::ApiTokenId;
     use rstest::rstest;
     use uuid::Uuid;
 
     use super::{
-        ApiToken, ApiTokenHint, ApiTokenParseError, ApiTokenType, ApiTokenVersion, CHECKSUM_LENGTH,
-        Environment, HashedApiToken, PREFIX, SECRET_LENGTH, TOKEN_ID_LENGTH, TOKEN_LENGTH,
-        decode_token_id, encode_base62, encode_token_id,
+        ApiToken, ApiTokenHint, ApiTokenParseError, ApiTokenSecretHash, ApiTokenType,
+        ApiTokenVersion, CHECKSUM_LENGTH, Environment, HashedApiToken, PREFIX, SECRET_LENGTH,
+        TOKEN_ID_LENGTH, TOKEN_LENGTH, decode_token_id, encode_base62, encode_token_id,
     };
 
     const FIXED_TOKEN_ID: u128 = 0x01234567_89AB_CDEF_0123_456789ABCDEF;
@@ -607,12 +620,12 @@ mod tests {
             "the hashed token should keep the type, environment, version and token ID"
         );
         assert_eq!(
-            hashed.secret_hash(),
-            ApiTokenSecretHash::new([
+            hashed.secret_hash().0.to_bytes(),
+            [
                 0x71, 0xD8, 0x4B, 0x18, 0x59, 0xBA, 0xD1, 0x1A, 0xBC, 0xB3, 0xDF, 0xD9, 0x35, 0x3C,
                 0x8D, 0x18, 0x73, 0xAA, 0xFD, 0x88, 0x3F, 0xFA, 0xF6, 0xF2, 0xC9, 0xDF, 0x7C, 0xBC,
                 0xFC, 0x3E, 0x18, 0x50,
-            ]),
+            ],
             "the hash should be the SHA-256 of the secret"
         );
     }

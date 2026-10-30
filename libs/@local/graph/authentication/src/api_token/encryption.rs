@@ -4,18 +4,18 @@ use error_stack::{Report, ResultExt as _};
 use hash_crypto::{
     Secret,
     aes_gcm::{AeadPurpose, Aes256GcmKey, Sealed},
+    digest::SHA256_OUTPUT_LEN,
 };
 use hash_graph_store::api_token::{
-    ApiTokenEncryptedSecretHash, ApiTokenEncryptionKeyId, ApiTokenId, ApiTokenSecretHash,
+    ApiTokenEncryptedSecretHash, ApiTokenEncryptionKeyId, ApiTokenId,
 };
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 use zerocopy::{Immutable, IntoBytes};
 
-use super::{ApiTokenType, ApiTokenVersion, ENVIRONMENT_LENGTH, Environment, TYPE_LENGTH};
-
-/// The length in bytes of the secret hash of a token.
-const SECRET_HASH_LENGTH: usize = 32;
+use super::{
+    ApiTokenSecretHash, ApiTokenType, ApiTokenVersion, ENVIRONMENT_LENGTH, Environment, TYPE_LENGTH,
+};
 
 /// The purpose of the keys that encrypt the secret hashes of API tokens.
 struct SecretHashes;
@@ -60,11 +60,11 @@ impl ApiTokenEncryptionKey {
         secret_hash: ApiTokenSecretHash,
         associated_data: &AssociatedData,
     ) -> Result<ApiTokenEncryptedSecretHash, Report<ApiTokenEncryptionError>> {
-        let mut plaintext = pin!(Secret::<[u8; SECRET_HASH_LENGTH]>::zeroed());
+        let mut plaintext = pin!(Secret::<[u8; SHA256_OUTPUT_LEN]>::zeroed());
         plaintext
             .as_mut()
             .expose_mut()
-            .copy_from_slice(secret_hash.as_bytes());
+            .copy_from_slice(&secret_hash.0.to_bytes());
 
         let sealed = self
             .key
@@ -75,27 +75,29 @@ impl ApiTokenEncryptionKey {
         )))
     }
 
-    /// Decrypts `encrypted_secret_hash` with the associated data it was encrypted with.
+    /// Whether `encrypted_secret_hash` decrypts to `secret_hash` with the associated data it was
+    /// encrypted with.
+    ///
+    /// The secret hashes are compared in constant time.
     ///
     /// # Errors
     ///
     /// Returns [`ApiTokenDecryptionError`] if `encrypted_secret_hash` was not encrypted with this
     /// key for `associated_data`.
-    pub fn decrypt(
+    pub fn matches(
         &self,
         encrypted_secret_hash: ApiTokenEncryptedSecretHash,
         associated_data: &AssociatedData,
-    ) -> Result<ApiTokenSecretHash, Report<ApiTokenDecryptionError>> {
-        let sealed: Sealed<SecretHashes, SECRET_HASH_LENGTH> =
+        secret_hash: ApiTokenSecretHash,
+    ) -> Result<bool, Report<ApiTokenDecryptionError>> {
+        let sealed: Sealed<SecretHashes, SHA256_OUTPUT_LEN> =
             zerocopy::transmute!(*encrypted_secret_hash.as_bytes());
-        let mut plaintext = pin!(Secret::<[u8; SECRET_HASH_LENGTH]>::zeroed());
+        let mut plaintext = pin!(Secret::<[u8; SHA256_OUTPUT_LEN]>::zeroed());
         self.key
             .open(&sealed, associated_data, plaintext.as_mut())
             .change_context(ApiTokenDecryptionError)?;
 
-        let mut secret_hash = [0; SECRET_HASH_LENGTH];
-        secret_hash.copy_from_slice(plaintext.expose());
-        Ok(ApiTokenSecretHash::new(secret_hash))
+        Ok(*plaintext == secret_hash.0.to_bytes()[..])
     }
 }
 
@@ -215,18 +217,18 @@ mod tests {
     }
 
     #[test]
-    fn decrypt_fixed_token() {
+    fn matches_fixed_token() {
         let token = fixed_token();
 
-        assert_eq!(
+        assert!(
             fixed_key()
-                .decrypt(
+                .matches(
                     ApiTokenEncryptedSecretHash::new(FIXED_ENCRYPTED_SECRET_HASH),
-                    &fixed_associated_data(&token)
+                    &fixed_associated_data(&token),
+                    token.secret_hash(),
                 )
                 .expect("the pinned value should decrypt"),
-            token.secret_hash(),
-            "decrypting should yield the SHA-256 of the secret"
+            "the pinned value should decrypt to the SHA-256 of the secret"
         );
     }
 
@@ -239,11 +241,14 @@ mod tests {
             .encrypt(token.secret_hash(), &fixed_associated_data(&token))
             .expect("the secret hash should encrypt");
 
-        assert_eq!(
-            key.decrypt(encrypted, &fixed_associated_data(&token))
-                .expect("the encrypted secret hash should decrypt"),
-            token.secret_hash(),
-            "decrypting should yield the secret hash that was encrypted"
+        assert!(
+            key.matches(
+                encrypted,
+                &fixed_associated_data(&token),
+                token.secret_hash()
+            )
+            .expect("the encrypted secret hash should decrypt"),
+            "the encrypted secret hash should decrypt to the secret hash that was encrypted"
         );
     }
 
@@ -275,13 +280,14 @@ mod tests {
         web_id: WebId::new(Uuid::from(data.actor_id)),
         ..data
     })]
-    fn decrypt_other_associated_data(#[case] change: fn(AssociatedData) -> AssociatedData) {
+    fn matches_other_associated_data(#[case] change: fn(AssociatedData) -> AssociatedData) {
         let token = fixed_token();
 
         let report = fixed_key()
-            .decrypt(
+            .matches(
                 ApiTokenEncryptedSecretHash::new(FIXED_ENCRYPTED_SECRET_HASH),
                 &change(fixed_associated_data(&token)),
+                token.secret_hash(),
             )
             .expect_err("the pinned value should not decrypt with other associated data");
         assert_matches!(
