@@ -79,6 +79,26 @@ export class BrunchPanelConversationTracker {
       );
     });
   }
+
+  /**
+   * Whether a turn this tracker sent is still running: a submission between
+   * `send()` and its admission, or an admitted submission `snapshot` shows no
+   * settlement for. Without a snapshot only the first counts. Another tab's
+   * turn on the same conversation never does.
+   */
+  public hasUnsettledTurn(
+    snapshot: FlueConversationState | undefined,
+  ): boolean {
+    if (this.#inFlightSubmissions.size !== 0) return true;
+    if (snapshot === undefined) return false;
+    return [...this.#admittedSubmissionIds].some(
+      (submissionId) =>
+        !snapshot.settlements.some(
+          (entry) => entry.submissionId === submissionId,
+        ),
+    );
+  }
+
   readonly #admissionFailureSubscriptions = new Set<{
     readonly listener: (error: FlueChatAdmissionError) => void;
     readonly target: BrunchPanelAdmissionTarget;

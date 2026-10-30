@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
   browserToolMutatesDocument,
@@ -25,6 +25,7 @@ import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveToolWidgetProps,
 } from "../chat/ai-interactive-tool";
+import { LocalToolCallAuthorityContext } from "../chat/local-tool-call-authority";
 import {
   WithBrunchEditorApi,
   type BrunchEditorApi,
@@ -311,11 +312,20 @@ export const BrunchDraftExperimentWidget = ({
     state === "awaiting",
   );
 
+  const deliveredHere = use(LocalToolCallAuthorityContext);
+
   // A freshly streamed call prepares once against the live model and reports
   // back so Brunch's turn can continue. Run and Dismiss come after and are
-  // not reported through the tool result.
+  // not reported through the tool result. Only the panel whose stream
+  // delivered the call claims it; another panel shows it as pending until
+  // the history settles it.
   useEffect(() => {
-    if (state !== "awaiting" || preparedOnceRef.current) return;
+    if (
+      state !== "awaiting" ||
+      preparedOnceRef.current ||
+      !deliveredHere(toolCallId)
+    )
+      return;
     preparedOnceRef.current = true;
     const initialDefinition = handle.doc();
     if (!initialDefinition) {
@@ -414,6 +424,7 @@ export const BrunchDraftExperimentWidget = ({
     editorDrafts,
     state,
     claimAndSubmit,
+    deliveredHere,
     toolCallId,
   ]);
 
