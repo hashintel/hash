@@ -4,8 +4,10 @@ import {
   Deferred,
   Duration,
   Effect,
+  Exit,
   Function,
   MutableHashMap,
+  MutableRef,
   Option,
   pipe,
   Queue,
@@ -99,16 +101,21 @@ export interface Connection {
 interface TransactionContext {
   queue: Queue.Enqueue<
     WireResponse.Response,
-    Transaction.TransactionLaggedError | Cause.Done
+    Transaction.TransactionError | Cause.Done
   >;
   drop: Effect.Effect<void>;
-  dropLagged: Effect.Effect<void>;
+  fail: (error: Transaction.TransactionError) => Effect.Effect<void>;
 }
 
 interface ConnectionImpl extends Connection {
   readonly transactions: MutableHashMap.MutableHashMap<
     RequestId.RequestId,
     TransactionContext
+  >;
+
+  /** How the read task ended, once it has. */
+  readonly closed: MutableRef.MutableRef<
+    Option.Option<Exit.Exit<void, Transaction.TransactionError>>
   >;
 
   readonly duplex: ConnectionDuplex;
@@ -118,7 +125,7 @@ interface ConnectionImpl extends Connection {
 
 const ConnectionProto: Omit<
   ConnectionImpl,
-  "transactions" | "duplex" | "config"
+  "transactions" | "closed" | "duplex" | "config"
 > = {
   [TypeId]: TypeId,
 };
@@ -150,7 +157,9 @@ const makeSink = (connection: ConnectionImpl) =>
         yield* Effect.logWarning(
           "transaction has lagged behind too far, dropping it",
         ).pipe(Effect.annotateLogs({ lagTimeout }));
-        yield* transaction.value.dropLagged;
+        yield* transaction.value.fail(
+          new Transaction.TransactionLaggedError({ id }),
+        );
 
         return;
       }
@@ -195,11 +204,56 @@ const wrapDrop = Effect.fn("wrapDrop")(function* (
   }
 });
 
+const closeError = (
+  exit: Exit.Exit<void, Transaction.TransactionError>,
+  id: RequestId.RequestId,
+) =>
+  Option.getOrElse(
+    Exit.findErrorOption(exit),
+    (): Transaction.TransactionError =>
+      new Transaction.ConnectionClosedError({ id }),
+  );
+
+const closeTransactions = Effect.fn("closeTransactions")(function* (
+  connection: ConnectionImpl,
+  exit: Exit.Exit<void, Transaction.TransactionError>,
+) {
+  MutableRef.set(connection.closed, Option.some(exit));
+
+  for (const [id, transaction] of connection.transactions) {
+    yield* transaction.fail(closeError(exit, id));
+  }
+});
+
 const task = Effect.fn("task")(function* (connection: ConnectionImpl) {
   const sink = makeSink(connection);
 
-  // We don't need to monitor if the connection itself closes as that simply means that our stream would end.
-  yield* Stream.run(connection.duplex.read, sink);
+  // Once the read stream ends no response can arrive, so a transaction still waiting for one would wait forever.
+  yield* pipe(
+    Stream.run(connection.duplex.read, sink),
+    Effect.onExit((exit) => closeTransactions(connection, exit)),
+  );
+});
+
+/** @internal */
+export const makeFromDuplex = Effect.fn("makeFromDuplex")(function* (
+  duplex: ConnectionDuplex,
+  config: ConnectionConfig,
+) {
+  const self: ConnectionImpl = createProto(ConnectionProto, {
+    transactions: MutableHashMap.empty<
+      RequestId.RequestId,
+      TransactionContext
+    >(),
+    closed: MutableRef.make(Option.none()),
+    duplex,
+    config,
+  });
+
+  // TODO: we might want to observe the task, for that we would need to have a partial connection that we then patch
+  yield* Effect.forkChild(task(self));
+
+  return self;
 });
 
 /** @internal */
@@ -271,19 +325,7 @@ export const makeUnchecked = Effect.fn("makeUnchecked")(function* (
 
   const duplex = { read: readStream, write: writeSink } as ConnectionDuplex;
 
-  const self: ConnectionImpl = createProto(ConnectionProto, {
-    transactions: MutableHashMap.empty<
-      RequestId.RequestId,
-      TransactionContext
-    >(),
-    duplex,
-    config,
-  });
-
-  // TODO: we might want to observe the task, for that we would need to have a partial connection that we then patch
-  yield* Effect.forkChild(task(self));
-
-  return self;
+  return yield* makeFromDuplex(duplex, config);
 });
 
 // these bounds are stricter than required, as we have no way to inform the remote about a failure in the underlying stream,
@@ -306,26 +348,29 @@ export const send = Function.dual<
     // eslint-disable-next-line @typescript-eslint/no-invalid-void-type -- it's indeed correct here
     const deferredDrop = yield* Deferred.make<void>();
     const drop = wrapDrop(impl, request.id, deferredDrop, Queue.end);
-    const dropLagged = wrapDrop(
-      impl,
-      request.id,
-      deferredDrop,
-      (transactionQueue) =>
-        Queue.fail(
-          transactionQueue,
-          new Transaction.TransactionLaggedError({ id: request.id }),
-        ),
-    );
+    const fail = (error: Transaction.TransactionError) =>
+      wrapDrop(impl, request.id, deferredDrop, (transactionQueue) =>
+        Queue.fail(transactionQueue, error),
+      );
 
     const queue = yield* Queue.bounded<
       WireResponse.Response,
-      Transaction.TransactionLaggedError | Cause.Done
+      Transaction.TransactionError | Cause.Done
     >(impl.config.responseBufferSize ?? 16);
+
+    const closed = MutableRef.get(impl.closed);
+
+    if (Option.isSome(closed)) {
+      // the read task has ended, so no response can arrive
+      yield* Queue.fail(queue, closeError(closed.value, request.id));
+
+      return Transaction.makeUnchecked(request.id, queue, deferredDrop);
+    }
 
     const transactionContext: TransactionContext = {
       queue,
       drop,
-      dropLagged,
+      fail,
     };
 
     MutableHashMap.set(impl.transactions, request.id, transactionContext);
@@ -336,6 +381,7 @@ export const send = Function.dual<
         Request.encode(),
         Stream.run(impl.duplex.write),
         Effect.scoped,
+        Effect.catch(fail),
       ),
     );
 

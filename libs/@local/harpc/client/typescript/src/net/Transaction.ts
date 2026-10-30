@@ -11,8 +11,13 @@ import {
 import { createProto } from "../utils.js";
 import * as Response from "./Response.js";
 
-import type { RequestId } from "../wire-protocol/models/request/index.js";
+import type {
+  RequestId,
+  Request as WireRequest,
+} from "../wire-protocol/models/request/index.js";
 import type { Response as WireResponse } from "../wire-protocol/models/response/index.js";
+import type { IncompleteResponseError } from "../wire-protocol/stream/ResponseFromBytesStream.js";
+import type * as Transport from "./Transport.js";
 
 const TypeId: unique symbol = Symbol("@local/harpc-client/net/Transaction");
 
@@ -28,6 +33,24 @@ export class TransactionLaggedError extends Data.TaggedError(
   }
 }
 
+export class ConnectionClosedError extends Data.TaggedError(
+  "ConnectionClosedError",
+)<{
+  id: RequestId.RequestId;
+}> {
+  get message() {
+    return `Transaction ${this.id.value} was dropped because its connection closed before its response was complete`;
+  }
+}
+
+export type TransactionError =
+  | TransactionLaggedError
+  | ConnectionClosedError
+  | Transport.TransportError
+  | WireRequest.EncodeError
+  | WireResponse.DecodeError
+  | IncompleteResponseError;
+
 export interface Transaction {
   readonly [TypeId]: TypeId;
 
@@ -37,7 +60,7 @@ export interface Transaction {
 interface TransactionImpl extends Transaction {
   readonly read: Queue.Dequeue<
     WireResponse.Response,
-    TransactionLaggedError | Cause.Done
+    TransactionError | Cause.Done
   >;
 
   readonly drop: Deferred.Deferred<void>;
@@ -52,7 +75,7 @@ export const makeUnchecked = (
   id: RequestId.RequestId,
   readQueue: Queue.Dequeue<
     WireResponse.Response,
-    TransactionLaggedError | Cause.Done
+    TransactionError | Cause.Done
   >,
   drop: Deferred.Deferred<void>,
 ): Transaction => createProto(TransactionProto, { id, read: readQueue, drop });
