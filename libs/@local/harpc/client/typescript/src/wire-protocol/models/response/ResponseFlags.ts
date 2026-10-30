@@ -1,7 +1,5 @@
 import {
-  type FastCheck,
-  type Effect,
-  Either,
+  Arbitrary,
   Equal,
   Hash,
   HashSet,
@@ -9,6 +7,8 @@ import {
   pipe,
   Pipeable,
   Predicate,
+  Result,
+  Schema,
 } from "effect";
 
 import { MutableBuffer } from "../../../binary/index.js";
@@ -43,11 +43,7 @@ const ResponseFlagsProto: Omit<ResponseFlags, "flags"> = {
   },
 
   [Hash.symbol](this: ResponseFlags) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.flags)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.flags)));
   },
 
   toString(this: ResponseFlags) {
@@ -102,29 +98,29 @@ export const repr = (flags: ResponseFlags) => {
   return value;
 };
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, flags: ResponseFlags) =>
   MutableBuffer.putU8(buffer, repr(flags)),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     const value = yield* MutableBuffer.getU8(buffer);
 
-    const flags = HashSet.empty<Flag>().pipe(HashSet.beginMutation);
+    const flags: Flag[] = [];
 
     if ((value & 0b1000_0000) === 0b1000_0000) {
-      HashSet.add(flags, "beginOfResponse");
+      flags.push("beginOfResponse");
     }
 
     if ((value & 0b0000_0001) === 0b0000_0001) {
-      HashSet.add(flags, "endOfResponse");
+      flags.push("endOfResponse");
     }
 
-    return make(flags.pipe(HashSet.endMutation));
+    return make(HashSet.fromIterable(flags));
   }),
 );
 
@@ -137,9 +133,6 @@ export const isBeginOfResponse = (flags: ResponseFlags) =>
 export const isEndOfResponse = (flags: ResponseFlags) =>
   HashSet.has(flags.flags, "endOfResponse");
 
-export const arbitrary = (fc: typeof FastCheck) => {
-  return fc
-    .uniqueArray(fc.constantFrom<Flag>("beginOfResponse", "endOfResponse"))
-    .map(HashSet.fromIterable)
-    .map(make);
-};
+export const arbitrary = Arbitrary.schema(
+  Schema.Array(Schema.Literals(["beginOfResponse", "endOfResponse"])),
+).pipe(Arbitrary.map((flags) => make(HashSet.fromIterable<Flag>(flags))));

@@ -94,14 +94,16 @@ const make = (options: Options) =>
       ignoreBOM: true,
     });
 
-    const schemaJson = Schema.parseJson(schema);
-    const decodeJson = Schema.decode(schemaJson);
+    // parsing before the schema keeps the parser's `SyntaxError` as the failure's cause
+    const decodeValue = Schema.decodeUnknownEffect(schema);
+    const decodeJson = (text: string) =>
+      Effect.flatMap(parseJson<unknown>(text), decodeValue);
 
     let fragment = "";
 
     return pipe(
       input,
-      Stream.mapConcatEffect((buffer) =>
+      Stream.mapEffect((buffer) =>
         Effect.gen(function* () {
           const [nextFragment, items] = yield* processArrayBuffer(
             buffer,
@@ -116,6 +118,7 @@ const make = (options: Options) =>
           return items;
         }),
       ),
+      Stream.flattenIterable,
     );
   });
 

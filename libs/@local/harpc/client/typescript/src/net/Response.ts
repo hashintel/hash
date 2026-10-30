@@ -76,7 +76,7 @@ const flattenResponseStream = <E, R>(
     Stream.takeUntil((response) =>
       ResponseFlags.isEndOfResponse(response.header.flags),
     ),
-    Stream.mapConcat((response) => {
+    Stream.map((response) => {
       const output: ResponseSegment[] = [];
 
       const begin = ResponseBody.getBegin(response.body);
@@ -97,6 +97,7 @@ const flattenResponseStream = <E, R>(
 
       return output;
     }),
+    Stream.flattenIterable,
   );
 
 const processResponseStream = <E, R>(
@@ -106,7 +107,7 @@ const processResponseStream = <E, R>(
 
   return pipe(
     stream,
-    Stream.mapConcatEffect((segment) => {
+    Stream.mapEffect((segment) => {
       return ResponseSegment.$match(segment, {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         ControlFlow: ({ code }) => {
@@ -135,6 +136,18 @@ const processResponseStream = <E, R>(
         },
       });
     }),
+    Stream.flattenIterable,
+    Stream.concat(
+      Stream.fromIterableEffect(
+        Effect.suspend(() =>
+          // no later control segment follows the last error, so it is emitted once the stream ends
+          Option.match(partialError, {
+            onNone: () => Effect.succeed([]),
+            onSome: Effect.fail,
+          }),
+        ),
+      ),
+    ),
   );
 };
 

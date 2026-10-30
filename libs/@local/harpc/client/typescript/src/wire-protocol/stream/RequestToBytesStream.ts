@@ -12,7 +12,7 @@ export const make = <E, R>(
       Effect.gen(function* () {
         const buffer = MutableBuffer.makeWrite();
 
-        yield* Request.encode(buffer, request);
+        yield* Effect.fromResult(Request.encode(buffer, request));
 
         return MutableBuffer.take(buffer);
       }),

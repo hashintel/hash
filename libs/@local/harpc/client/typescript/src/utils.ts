@@ -1,4 +1,4 @@
-import { Function, Hash, Record, Tuple } from "effect";
+import { Function, Hash, Record } from "effect";
 
 import type { MutableBuffer } from "./binary/index.js";
 
@@ -36,7 +36,7 @@ export const createProto = <
     Record.union(
       readablePropertyDescriptors,
       writeablePropertyDescriptors,
-      Function.untupled(Tuple.getFirst),
+      Function.identity,
     ),
   ) as T & Readonly<ReadableProperties> & WriteableProperties;
 };

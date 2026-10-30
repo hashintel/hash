@@ -1,14 +1,13 @@
 import {
-  type FastCheck,
+  Arbitrary,
   Data,
-  type Effect,
-  Either,
   Equal,
   Hash,
   Inspectable,
   pipe,
   Pipeable,
   Predicate,
+  Result,
 } from "effect";
 
 import { MutableBuffer } from "../../binary/index.js";
@@ -46,11 +45,7 @@ const ProtocolProto: Omit<Protocol, "version"> = {
   },
 
   [Hash.symbol](this: Protocol) {
-    return pipe(
-      Hash.hash(this[TypeId]),
-      Hash.combine(Hash.hash(this.version)),
-      Hash.cached(this),
-    );
+    return pipe(Hash.hash(this[TypeId]), Hash.combine(Hash.hash(this.version)));
   },
 
   toString(this: Protocol) {
@@ -81,24 +76,24 @@ const MAGIC = new Uint8Array([
   0x68 /* h */, 0x61 /* a */, 0x72 /* r */, 0x70 /* p */, 0x63 /* c */,
 ]);
 
-export type EncodeError = Effect.Effect.Error<ReturnType<typeof encode>>;
+export type EncodeError = Result.Result.Failure<ReturnType<typeof encode>>;
 
 export const encode = implEncode((buffer, protocol: Protocol) =>
   pipe(
     buffer,
     MutableBuffer.putSlice(MAGIC),
-    Either.andThen(ProtocolVersion.encode(protocol.version)),
+    Result.andThen(ProtocolVersion.encode(protocol.version)),
   ),
 );
 
-export type DecodeError = Effect.Effect.Error<ReturnType<typeof decode>>;
+export type DecodeError = Result.Result.Failure<ReturnType<typeof decode>>;
 
 export const decode = implDecode((buffer) =>
-  Either.gen(function* () {
+  Result.gen(function* () {
     const magic = yield* MutableBuffer.getSlice(buffer, 5);
 
     if (magic.some((byte, index) => byte !== MAGIC[index])) {
-      yield* Either.left(new InvalidMagicError({ received: magic }));
+      yield* Result.fail(new InvalidMagicError({ received: magic }));
     }
 
     const version = yield* ProtocolVersion.decode(buffer);
@@ -110,8 +105,4 @@ export const decode = implDecode((buffer) =>
 export const isProtocol = (value: unknown): value is Protocol =>
   Predicate.hasProperty(value, TypeId);
 
-export const arbitrary = (fc: typeof FastCheck) => {
-  const version = ProtocolVersion.arbitrary(fc);
-
-  return version.map(make);
-};
+export const arbitrary = ProtocolVersion.arbitrary.pipe(Arbitrary.map(make));
