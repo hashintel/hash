@@ -239,8 +239,9 @@ const statusChip = (status: Status | "running") =>
       Failed
     </Chip>
   ) : status === "running" ? (
-    <Chip size="sm" color="yellow">
-      Done with errors
+    // Some items failed: the DS FlowRun chip calls this Error; the detail under it says how many (Aakarsh, 30 Oct).
+    <Chip size="sm" color="red">
+      Error
     </Chip>
   ) : (
     <Chip size="sm">Not reached</Chip>
