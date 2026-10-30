@@ -710,28 +710,41 @@ export const validateFlowDefinition = (
 };
 
 /**
+ * The definition a validation checked, typed as one whose actions all exist, if it has no errors, or `null`. Warnings
+ * don't stop a flow running.
+ */
+export const getValidFlowDefinition = ({
+  flowDefinition,
+  diagnostics,
+}: ReturnType<typeof validateFlowDefinition>): FlowDefinition | null =>
+  flowDefinition !== null &&
+  !diagnostics.some(({ severity }) => severity === "error")
+    ? /* Every action id was checked against `actionDefinitions`. */
+      (flowDefinition as FlowDefinition)
+    : null;
+
+/**
  * Validates a flow definition, returning it typed as one whose actions all exist.
  *
  * @throws if the definition has validation errors, listing them all.
  */
 export const assertValidFlowDefinition = (input: unknown): FlowDefinition => {
-  const { flowDefinition, diagnostics } = validateFlowDefinition(input);
+  const validation = validateFlowDefinition(input);
+  const flowDefinition = getValidFlowDefinition(validation);
 
-  const errors = diagnostics.filter(({ severity }) => severity === "error");
-
-  if (flowDefinition === null || errors.length > 0) {
+  if (!flowDefinition) {
     const name =
       typeof input === "object" && input !== null && "name" in input
         ? String(input.name)
         : "(unnamed)";
 
     throw new Error(
-      `Flow definition "${name}" is invalid:\n${errors
+      `Flow definition "${name}" is invalid:\n${validation.diagnostics
+        .filter(({ severity }) => severity === "error")
         .map(({ path, message }) => `- ${path.join(".")}: ${message}`)
         .join("\n")}`,
     );
   }
 
-  /* Every action id was checked against `actionDefinitions` above. */
-  return flowDefinition as FlowDefinition;
+  return flowDefinition;
 };

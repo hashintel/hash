@@ -2,6 +2,7 @@ import { simplifyProperties } from "../simplify-properties.js";
 import {
   assertValidFlowDefinition,
   type FlowDefinitionDiagnostic,
+  getValidFlowDefinition,
   validateFlowDefinition,
 } from "./validate-flow-definition.js";
 
@@ -112,20 +113,13 @@ export const validateFlowDefinitionEntity = (
   const unvalidatedFlowDefinition =
     getUnvalidatedFlowDefinitionFromEntity(entity);
 
-  const { flowDefinition, diagnostics } = validateFlowDefinition(
-    unvalidatedFlowDefinition,
-  );
-
-  const isValid =
-    flowDefinition !== null &&
-    !diagnostics.some(({ severity }) => severity === "error");
+  const validation = validateFlowDefinition(unvalidatedFlowDefinition);
 
   return {
     name: unvalidatedFlowDefinition.name,
     description: unvalidatedFlowDefinition.description,
-    /* Every action id was checked against the actions that exist, as in `assertValidFlowDefinition`. */
-    flowDefinition: isValid ? (flowDefinition as FlowDefinition) : null,
-    diagnostics,
+    flowDefinition: getValidFlowDefinition(validation),
+    diagnostics: validation.diagnostics,
   };
 };
 
