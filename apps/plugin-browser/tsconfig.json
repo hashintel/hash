@@ -2,8 +2,9 @@
   "extends": ["@tsconfig/bases/recommended", "@local/tsconfig/policy.json"],
   "compilerOptions": {
     "jsx": "react-jsx",
-    "lib": ["dom", "esnext"],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "module": "ESNext",
+    "noEmit": false,
     "rootDir": "../..",
     "target": "ES2021"
   },

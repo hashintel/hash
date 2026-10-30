@@ -66,6 +66,7 @@ export const getEntityTypesReferencedByEntityType = (
     revisionId = entityTypeId.revisionId;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive: type is narrowed beforehand to make sure that indexing results in the right type
   const outwardEdges = (subgraph.edges as OntologyRootedEdges)[baseUrl]?.[
     revisionId
   ];

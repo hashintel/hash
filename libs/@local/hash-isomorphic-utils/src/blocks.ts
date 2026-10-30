@@ -1,5 +1,5 @@
 import type { BlockMetadata, BlockVariant } from "@blockprotocol/core";
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityType } from "@blockprotocol/type-system";
 
 export interface HashBlockMeta extends BlockMetadata {
   componentId: string;
@@ -126,7 +126,7 @@ const transformBlockConfig = ({
     schema: deriveAbsoluteUrl({
       baseUrl,
       path: metadata.schema,
-    }) as VersionedUrl,
+    }),
     source: deriveAbsoluteUrl({ baseUrl, path: metadata.source }),
   };
 };

@@ -33,11 +33,7 @@ import {
 
 import type { ImpureGraphContext } from "../../../../context-types";
 import type { BeforeUpdateEntityHookCallback } from "../update-entity-hooks";
-import type {
-  ActorEntityUuid,
-  BaseUrl,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, BaseUrl } from "@blockprotocol/type-system";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 
 /**
@@ -255,7 +251,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       await updateWebShortname(
         context.graphApi,
         { actorId: systemAccountId },
-        { webId: user.accountId as WebId, shortname: updatedShortname },
+        { webId: user.accountId, shortname: updatedShortname },
       );
     }
   };

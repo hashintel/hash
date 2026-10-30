@@ -1,7 +1,5 @@
-import typescriptEslint from "@typescript-eslint/eslint-plugin";
-import reactHooks from "eslint-plugin-react-hooks";
-
 import { createBase, disableRules } from "@local/eslint/deprecated";
+import { reactHooks, typescriptEslint } from "@local/eslint/plugins";
 
 const disableTypeCheckedRules =
   typescriptEslint.configs["disable-type-checked"]?.rules ?? {};

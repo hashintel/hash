@@ -71,12 +71,12 @@
   "dependencies": {
     "@blockprotocol/core": "0.1.5",
     "@blockprotocol/type-system": "workspace:^",
+    "@typescript/typescript6": "catalog:",
     "ajv": "8.18.0",
     "ajv-formats": "3.0.1",
     "dequal": "2.0.3",
     "json-schema-to-typescript": "15.0.4",
-    "lit": "2.8.0",
-    "typescript": "catalog:"
+    "lit": "2.8.0"
   },
   "devDependencies": {
     "@apidevtools/json-schema-ref-parser": "15.1.3",

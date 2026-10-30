@@ -32,8 +32,11 @@ export const omitInvalidEmptyFlowInputs = ({
       );
 
       /* Given from outside the workflow, so a payload may not have the shape its type says. */
-      const { kind, value } =
-        (payload as { kind?: unknown; value?: unknown } | null) ?? {};
+      const uncheckedPayload = payload as {
+        kind?: unknown;
+        value?: unknown;
+      } | null;
+      const { kind, value } = uncheckedPayload ?? {};
 
       return !(
         value === "" &&

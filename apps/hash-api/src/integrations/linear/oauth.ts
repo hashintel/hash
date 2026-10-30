@@ -25,7 +25,6 @@ import type {
   EntityId,
   EntityUuid,
   UserId,
-  WebId,
 } from "@blockprotocol/type-system";
 import type { LinearIntegrationPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import type { RequestHandler } from "express";
@@ -246,7 +245,7 @@ export const oAuthLinearCallback: RequestHandler<
       authentication,
       {
         entityTypeIds: [systemEntityTypes.linearIntegration.entityTypeId],
-        webId: userAccountId as WebId,
+        webId: userAccountId,
         entityUuid,
         properties: linearIntegrationProperties,
       },

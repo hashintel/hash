@@ -172,6 +172,7 @@ const edgesEquals = (
   }
 
   return edges.every(({ source, edges: outwardEdges }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- false positive: type is narrowed beforehand to make sure that indexing results in the right type
     const subgraphEdge = (subgraph.edges as KnowledgeGraphRootedEdges)[
       source.metadata.recordId.entityId
     ]![source.metadata.temporalVersioning.decisionTime.start.limit]!;

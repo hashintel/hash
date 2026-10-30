@@ -138,7 +138,7 @@ export class ComponentView implements NodeView {
         this.editorView.state.tr.setMeta(suggesterPluginKey, {
           type: "suggestedBlock",
           payload: { position: null },
-        } as SuggesterAction),
+        } satisfies SuggesterAction),
       );
     }
 
