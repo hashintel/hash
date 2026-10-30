@@ -3,7 +3,10 @@
   "compilerOptions": {
     "checkJs": true,
     "target": "ES2021",
-    "types": ["gapi", "google.accounts", "google.picker"]
+    "types": ["gapi", "google.accounts", "google.picker"],
+    // Implicit returns remain across src, and in the @hashintel/design-system and
+    // @hashintel/type-editor sources this program checks (TS7030).
+    "noImplicitReturns": false
   },
   "include": [
     "next-env.d.ts",

@@ -4,7 +4,10 @@
     "lib": ["DOM", "ESNext"],
     // Parameter properties remain in src/ui/monaco/code-editor-activity.test.tsx and in
     // @local/petrinaut-optimizer-client, whose source this program checks (TS1294).
-    "erasableSyntaxOnly": false
+    "erasableSyntaxOnly": false,
+    // Implicit returns remain in src/ui/views/Editor/panels/ai-assistant-panel.tsx and its
+    // tool-summaries.ts (TS7030).
+    "noImplicitReturns": false
   },
   "include": ["src", ".storybook/**/*"]
 }

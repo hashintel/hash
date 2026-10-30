@@ -4,7 +4,10 @@
     "checkJs": true,
     "lib": ["dom", "ES2024"],
     "module": "NodeNext",
-    "types": ["node"]
+    "types": ["node"],
+    // Implicit returns remain in src/codegen/parameters.ts and
+    // src/stdlib/subgraph/element/entity.ts (TS7030).
+    "noImplicitReturns": false
   },
   "include": ["src", "eslint.config.js"]
 }
