@@ -189,7 +189,8 @@ export const addLookupStep = (
     (parentId
       ? ((
           findStep(document, parentId)?.step as
-            { steps?: { stepId: string }[] } | undefined
+            | { steps?: { stepId: string }[] }
+            | undefined
         )?.steps ?? [])
       : document.steps
     ).map((step) => step.stepId),
@@ -283,10 +284,16 @@ const toMenuItems = (groups: SourceGroup[]): Array<ItemOrGroup<MenuItem>> =>
     })),
   }));
 
-/** The DS Menu at the width the mocks give a source menu: 240 to 380 px. */
+/**
+ * The DS Menu at its own width: 208 px (DS `_menuContent`), growing with long rows up to 380 px. Was 240 px from our
+ * mocks, which left empty space right of the types (Aakarsh, 30 Oct).
+ */
 const sourceMenuWidthStyle = css({
-  minWidth: "[240px]",
+  "&[class]": { minWidth: "[208px]" },
   maxWidth: "[380px]",
+  // DS DIFF: rows end 20 px from the edge, not the DS 12 px, so types and chevrons on the right can breathe
+  // (Aakarsh, 30 Oct). Raise at the DS crit before it ships.
+  "& [role=menuitem]": { paddingRight: "[16px !important]" },
   // A row with no icon takes no icon slot, so its text lines up with the group title (Figma J3 · C1).
   // ...unless the group has a ticked row: then every row keeps the tick's column, as the DS Menu draws it.
   "& [role=group]:not(:has([data-selected])) [role=menuitem] > span[aria-hidden=true]:empty":
@@ -373,20 +380,36 @@ const typeLabelStyle = css({
   color: "neutral.fg.subtle",
 });
 
+/** About how many characters of type names fit right of a property name before the row gets wide. */
+const TYPE_LABEL_CHARS = 24;
+
 /**
- * A property's data type on the right of its row (DS menu secondary label). Several types read "Email +1", and the
- * hover lists them all (Figma 637:23544 A; 23 Oct: a property may take several types).
+ * A property's data types on the right of its row (DS menu secondary label). As many types as fit are listed; the
+ * rest become "+N", and the hover lists them all (Figma 637:23544 A; Aakarsh, 30 Oct: fit what you can, then +N).
  */
-const TypeLabel = ({ types }: { types: string[] }) =>
-  types.length > 1 ? (
-    <Tooltip content={types.join(", ")}>
-      <span className={typeLabelStyle}>
-        {types[0]} +{types.length - 1}
-      </span>
-    </Tooltip>
-  ) : (
-    <span className={typeLabelStyle}>{types[0]}</span>
+const TypeLabel = ({ types }: { types: string[] }) => {
+  let shown = 1;
+  while (
+    shown < types.length &&
+    types.slice(0, shown + 1).join(", ").length +
+      (shown + 1 < types.length ? ` +${types.length - shown - 1}`.length : 0) <=
+      TYPE_LABEL_CHARS
+  ) {
+    shown += 1;
+  }
+  const rest = types.length - shown;
+  const label = (
+    <span className={typeLabelStyle}>
+      {types.slice(0, shown).join(", ")}
+      {rest > 0 ? ` +${rest}` : ""}
+    </span>
   );
+  return rest > 0 ? (
+    <Tooltip content={types.join(", ")}>{label}</Tooltip>
+  ) : (
+    label
+  );
+};
 
 export type TypedChoice = {
   label: string;
@@ -529,11 +552,19 @@ export const SourceMenu = ({
   const current =
     found?.step.kind === "action" ? found.step.inputs[input.name] : undefined;
   const currentProperty = current ? itemPropertyOf(current) : undefined;
+  // MOCK: the engine has no data types yet, so a URL field is known by its label.
+  const wantedDataType = input.label === "URL" ? "URL" : undefined;
   const fittingProperties =
     listsOnly || !loopId || !itemType || input.array
       ? []
       : itemType.properties
           .filter((property) => kinds.includes(property.payloadKind))
+          // A field that takes one data type lists only properties of that type (Figma 637:23544 C; Dei, 23 Oct).
+          .filter(
+            (property) =>
+              !wantedDataType ||
+              (property.dataTypes ?? []).includes(wantedDataType),
+          )
           .filter(
             (property) => !text || property.title.toLowerCase().includes(text),
           );
@@ -541,15 +572,16 @@ export const SourceMenu = ({
   const typesOf = (property: (typeof fittingProperties)[number]) =>
     property.dataTypes ?? [kindLabel(property.payloadKind, false)];
   const showTypes =
-    new Set(fittingProperties.map((property) => typesOf(property).join())).size > 1;
+    new Set(fittingProperties.map((property) => typesOf(property).join()))
+      .size > 1;
   const propertyItems = fittingProperties.map((property) => ({
-            id: `item-property:${property.baseUrl}`,
-            text: property.title,
-            hint: `${itemName(document, loopId!)} › ${property.title} · ${typesOf(property).join(", ")}`,
-            suffix: showTypes ? <TypeLabel types={typesOf(property)} /> : undefined,
-            selected: currentProperty?.baseUrl === property.baseUrl,
-            onPick: () => onPick(itemPropertySource(property.baseUrl)),
-          }));
+    id: `item-property:${property.baseUrl}`,
+    text: property.title,
+    hint: `${itemName(document, loopId!)} › ${property.title} · ${typesOf(property).join(", ")}`,
+    suffix: showTypes ? <TypeLabel types={typesOf(property)} /> : undefined,
+    selected: currentProperty?.baseUrl === property.baseUrl,
+    onPick: () => onPick(itemPropertySource(property.baseUrl)),
+  }));
   const searching = text !== "";
   const earlier = optionItems("Earlier steps");
   const thisItem = optionItems("This item");
