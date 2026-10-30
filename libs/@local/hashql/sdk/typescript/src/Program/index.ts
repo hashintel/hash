@@ -73,6 +73,9 @@ export const compile = <T extends Type.Any, Inputs>(
     ),
   );
 
+export * as Module from "./Module.js";
+export * as Scope from "./Scope.js";
+export * as Prelude from "./Prelude.js";
 export * as Expression from "./Expression.js";
 export type * as Inputs from "./Inputs.js";
 export * as Operators from "./Operators.js";
