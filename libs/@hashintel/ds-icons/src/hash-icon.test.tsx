@@ -170,6 +170,15 @@ describe("HashIcon motion", () => {
 
   beforeEach(() => {
     reducedMotion = false;
+    const matches = Object.getOwnPropertyDescriptor(
+      Element.prototype,
+      "matches",
+    )?.value as Element["matches"];
+    vi.spyOn(Element.prototype, "matches").mockImplementation(
+      function matchesWithoutHover(this: Element, selector: string) {
+        return selector === ":hover" ? false : matches.call(this, selector);
+      },
+    );
     animate
       .mockReset()
       .mockImplementation(() => ({ cancel }) as unknown as Animation);
@@ -192,6 +201,7 @@ describe("HashIcon motion", () => {
 
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     if (originalAnimate) {
       Object.defineProperty(Element.prototype, "animate", originalAnimate);
@@ -420,6 +430,49 @@ describe("HashIcon motion", () => {
     act(() => input.blur());
     expect(cancel).toHaveBeenCalledTimes(count * 2);
   });
+
+  it.each([false, true])(
+    "retains pointer hover across mounting and variant changes with focus=%s",
+    (focused) => {
+      const Sample = ({
+        show,
+        filled = false,
+      }: {
+        show: boolean;
+        filled?: boolean;
+      }) => (
+        <label data-scope="checkbox">
+          <input type="checkbox" aria-label="Select" />
+          {show && (
+            <HashIcon
+              name="place"
+              variant={filled ? "filled" : "outline"}
+              hoverEffect="pulse"
+              animationMode="continuous"
+            />
+          )}
+        </label>
+      );
+      const { container, rerender } = render(<Sample show={false} />);
+      const input = screen.getByRole("checkbox");
+      const label = container.querySelector("label")!;
+      const matches = vi.spyOn(label, "matches").mockReturnValue(true);
+      if (focused) act(() => input.focus());
+      rerender(<Sample show />);
+      const count = animate.mock.calls.length;
+      expect(count).toBeGreaterThan(0);
+      fireEvent.pointerEnter(label);
+      expect(animate).toHaveBeenCalledTimes(count);
+      rerender(<Sample show filled />);
+      expect(cancel).toHaveBeenCalledTimes(count);
+      expect(animate).toHaveBeenCalledTimes(count * 2);
+      act(() => input.blur());
+      expect(cancel).toHaveBeenCalledTimes(count);
+      fireEvent.pointerLeave(label);
+      expect(cancel).toHaveBeenCalledTimes(count * 2);
+      matches.mockRestore();
+    },
+  );
 
   it.each(["action", "pulse"] as const)(
     "protects explicit continuous %s playback without active from hover and focus",

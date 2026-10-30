@@ -323,7 +323,7 @@ export const useIconEffects = ({
       );
       cubeActionInProgress.current = Boolean(cube);
     };
-    let pointerInside = false;
+    let pointerInside = control.matches(":hover");
     let focused = control.contains(document.activeElement);
     const enter = () => {
       if (
@@ -386,8 +386,9 @@ export const useIconEffects = ({
       );
     };
     const pointerEnter = () => {
+      const wasActive = pointerInside || focused;
       pointerInside = true;
-      if (!focused) enter();
+      if (!wasActive) enter();
     };
     const focus = (event: FocusEvent) => {
       if (
@@ -395,8 +396,9 @@ export const useIconEffects = ({
         control.contains(event.relatedTarget)
       )
         return;
+      const wasActive = pointerInside || focused;
       focused = true;
-      if (!pointerInside) enter();
+      if (!wasActive) enter();
     };
     const pointerLeave = () => {
       pointerInside = false;
@@ -416,7 +418,7 @@ export const useIconEffects = ({
     control.addEventListener("pointerleave", pointerLeave);
     control.addEventListener("focus", focus, true);
     control.addEventListener("blur", blur, true);
-    if (focused) enter();
+    if (pointerInside || focused) enter();
     return () => {
       cancelHoverInteraction.current();
       cancelInteraction.current();
