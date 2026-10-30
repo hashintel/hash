@@ -6562,7 +6562,6 @@ dependencies = [
  "bytecheck",
  "bytes",
  "camino",
- "chacha20poly1305",
  "clap",
  "codspeed-criterion-compat",
  "darwin-kperf-criterion",
@@ -6584,7 +6583,6 @@ dependencies = [
  "hashbrown 0.17.1",
  "hashql-core",
  "heed",
- "hkdf 0.13.0",
  "insta",
  "kiddo",
  "memchr",
@@ -6607,7 +6605,6 @@ dependencies = [
  "schemars 1.2.2",
  "serde",
  "serde_json",
- "sha2 0.11.0",
  "simple-mermaid",
  "siphasher",
  "smallvec 2.0.0-alpha.12",
@@ -7623,15 +7620,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b5f8eb2ad728638ea2c7d47a21db23b7b58a72ed6a38256b8a1849f15fbbdf7"
 dependencies = [
  "hmac 0.12.1",
-]
-
-[[package]]
-name = "hkdf"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4aaa26c720c68b866f2c96ef5c1264b3e6f473fe5d4ce61cd44bbe913e553018"
-dependencies = [
- "hmac 0.13.0",
 ]
 
 [[package]]
@@ -8967,7 +8955,7 @@ source = "git+https://github.com/libp2p/rust-libp2p?rev=86b2122c8ffdd636d0c939b0
 dependencies = [
  "bs58",
  "ed25519-dalek",
- "hkdf 0.12.4",
+ "hkdf",
  "multihash",
  "quick-protobuf",
  "rand 0.8.6",
