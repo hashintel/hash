@@ -4,7 +4,9 @@
     "jsx": "preserve",
     "lib": ["dom", "ESNext"],
     "module": "ESNext",
-    "noEmit": true
+    "noEmit": true,
+    // Implicit returns remain in src/data-type-selector.tsx and src/e-chart.tsx (TS7030).
+    "noImplicitReturns": false
   },
   "include": ["assets.d.ts", "theme-override.d.ts", "./src/"]
 }

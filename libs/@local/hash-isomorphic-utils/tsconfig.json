@@ -13,6 +13,8 @@
      *   but we have some functions which reference DOM APIs – these should be moved out
      */
     "lib": ["dom", "ES2024"],
-    "module": "NodeNext"
+    "module": "NodeNext",
+    // Implicit returns remain in src/generate-entity-label.ts (TS7030).
+    "noImplicitReturns": false
   }
 }
