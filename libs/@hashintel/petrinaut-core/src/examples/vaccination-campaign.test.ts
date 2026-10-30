@@ -72,9 +72,6 @@ const meanTotalCost = async (levers: Levers): Promise<number> => {
     dt: 0.1,
     maxTime: 60,
     runCount,
-    runs: Array.from({ length: runCount }, (_, index) => ({
-      seed: 1000 + index,
-    })),
     metricSpecs: [
       {
         kind: "expression",

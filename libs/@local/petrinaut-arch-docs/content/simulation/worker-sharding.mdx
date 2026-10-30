@@ -59,9 +59,10 @@ metric merge — is shared:
 
 ![How each host provides and talks to its workers](@diagrams/worker-factory.svg)
 
-An experiment may pin every run's seed explicitly (`runs`), and each run's
-final metric values come back per run (`runResults`) alongside the aggregated
-frames. That is the run axis the frames deliberately give up.
+An experiment may override each run's parameter values or initial marking
+(`runs`), and each run's final metric values come back per run (`runResults`)
+alongside the aggregated frames. That is the run axis the frames deliberately
+give up.
 
 ## Workers are leased, not consumed
 

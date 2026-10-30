@@ -33,7 +33,12 @@ const backend = createWorkerPoolExperimentBackend({
 describe("createWorkerPoolExperimentBackend", () => {
   it("accepts a request whose per-run overrides take one form", async () => {
     const asRuns = await backend.assess(
-      request({ runs: [{ seed: 1 }, { seed: 2 }] }),
+      request({
+        runs: [
+          { parameterValues: { rate: "1" } },
+          { parameterValues: { rate: "2" } },
+        ],
+      }),
     );
     const asPlan = await backend.assess(
       request({ runPlan: { ids: ["rate"], values: Float64Array.of(1, 2) } }),
@@ -46,7 +51,10 @@ describe("createWorkerPoolExperimentBackend", () => {
   it("refuses a request carrying both runs and a run plan", async () => {
     const assessment = await backend.assess(
       request({
-        runs: [{ seed: 1 }, { seed: 2 }],
+        runs: [
+          { parameterValues: { rate: "1" } },
+          { parameterValues: { rate: "2" } },
+        ],
         runPlan: { ids: ["rate"], values: Float64Array.of(1, 2) },
       }),
     );

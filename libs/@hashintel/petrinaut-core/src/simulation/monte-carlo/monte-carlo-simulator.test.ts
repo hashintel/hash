@@ -176,8 +176,8 @@ describe("MonteCarloSimulator", () => {
       runCount: 2,
       initialMarking: { source: 1 },
       runs: [
-        { seed: 10, initialMarking: { source: 1 } },
-        { seed: 20, initialMarking: { source: 2 } },
+        { initialMarking: { source: 1 } },
+        { initialMarking: { source: 2 } },
       ],
       dt: 1,
       maxTime: 20,
@@ -195,7 +195,6 @@ describe("MonteCarloSimulator", () => {
 
     expect(firstRun.status).toBe("complete");
     expect(firstRun.completionReason).toBe("deadlock");
-    expect(firstRun.seed).toBe(10);
     expect(firstRun.placeTokenCounts).toMatchObject({
       source: 0,
       product: 1,
@@ -207,7 +206,7 @@ describe("MonteCarloSimulator", () => {
 
     expect(secondRun.status).toBe("complete");
     expect(secondRun.completionReason).toBe("deadlock");
-    expect(secondRun.seed).toBe(20);
+    expect(secondRun.seed).not.toBe(firstRun.seed);
     expect(secondRun.placeTokenCounts).toMatchObject({
       source: 0,
       product: 2,
@@ -253,7 +252,7 @@ describe("MonteCarloSimulator", () => {
       sdcpn: sourceNet,
       runCount: 1,
       initialMarking: {},
-      runs: [{ seed: 7, initialMarking: {} }],
+      runs: [{ initialMarking: {} }],
       dt,
       maxTime: frames * dt,
       initialTokenByteCapacity: 0,
@@ -385,8 +384,8 @@ describe("MonteCarloSimulator", () => {
       runCount: 2,
       initialMarking: { source: 1 },
       runs: [
-        { seed: 10, initialMarking: { source: 1 } },
-        { seed: 20, initialMarking: { source: 2 } },
+        { initialMarking: { source: 1 } },
+        { initialMarking: { source: 2 } },
       ],
       dt: 1,
       maxTime: 20,
@@ -428,8 +427,8 @@ describe("MonteCarloSimulator", () => {
       runCount: 2,
       initialMarking: { source: 1 },
       runs: [
-        { seed: 10, initialMarking: { source: 1 } },
-        { seed: 20, initialMarking: { source: 2 } },
+        { initialMarking: { source: 1 } },
+        { initialMarking: { source: 2 } },
       ],
       dt: 1,
       maxTime: 20,

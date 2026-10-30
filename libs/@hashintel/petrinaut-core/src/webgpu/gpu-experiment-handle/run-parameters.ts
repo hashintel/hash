@@ -42,11 +42,11 @@ const drawsFromRuns = (
   // run's draws.
   const idSet = new Set<string>();
   for (const run of runs) {
-    if (run.seed !== undefined || run.initialMarking !== undefined) {
+    if (run.initialMarking !== undefined) {
       return {
         ok: false,
         reason:
-          "The GPU backend cannot run per-run seed or initial-marking overrides; only per-run parameter values are supported.",
+          "The GPU backend cannot run per-run initial-marking overrides; only per-run parameter values are supported.",
       };
     }
     for (const id of Object.keys(run.parameterValues ?? {})) {

@@ -103,8 +103,12 @@ describe("deriveRunParameters", () => {
 
   it("refuses per-run shapes the buffer cannot express", () => {
     expect(
-      deriveRunParameters([{ seed: 1 }, { seed: 2 }], undefined, 2),
-    ).toMatchObject({ ok: false, reason: /per-run seed/ });
+      deriveRunParameters(
+        [{ initialMarking: {} }, { initialMarking: {} }],
+        undefined,
+        2,
+      ),
+    ).toMatchObject({ ok: false, reason: /per-run initial-marking/ });
     expect(
       deriveRunParameters(
         [{ parameterValues: { a: "1" } }, { parameterValues: { b: "1" } }],

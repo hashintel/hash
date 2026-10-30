@@ -210,18 +210,22 @@ describe("createMonteCarloExperiment run results", () => {
       maxTime: 10,
       runCount: 5,
       shardCount: 2,
-      runs: [10, 11, 12, 13, 14].map((seed) => ({ seed })),
+      runs: [10, 11, 12, 13, 14].map((value) => ({
+        parameterValues: { marker: String(value) },
+      })),
     });
     await flushMicrotasks();
 
     expect(
       mocks.map((mock) => {
         const init = mock.sent.find((message) => message.type === "init");
-        return init?.type === "init" ? init.runs?.map((run) => run.seed) : null;
+        return init?.type === "init"
+          ? init.runs?.map((run) => run.parameterValues?.marker)
+          : null;
       }),
     ).toStrictEqual([
-      [10, 11, 12],
-      [13, 14],
+      ["10", "11", "12"],
+      ["13", "14"],
     ]);
   });
 
@@ -238,7 +242,7 @@ describe("createMonteCarloExperiment run results", () => {
         dt: 1,
         maxTime: 10,
         runCount: 3,
-        runs: [{ seed: 1 }],
+        runs: [{}],
       }),
     ).rejects.toThrow("3 runs");
   });
@@ -253,7 +257,7 @@ describe("createMonteCarloExperiment run results", () => {
         dt: 1,
         maxTime: 10,
         runCount: 3,
-        runs: [{ seed: 1 }],
+        runs: [{}],
         metricSpecs: [],
       }),
     ).rejects.toThrow("3 runs");
@@ -303,7 +307,6 @@ describe("createMonteCarloExperiment run results", () => {
       maxTime: 2,
       runCount: 3,
       shardCount: 2,
-      runs: [{ seed: 7 }, { seed: 8 }, { seed: 9 }],
       metricSpecs: [
         {
           kind: "expression",
