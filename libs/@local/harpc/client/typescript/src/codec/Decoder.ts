@@ -18,7 +18,7 @@ export class DecodingError extends Data.TaggedError("DecodingError")<{
   cause: unknown;
 }> {
   get message() {
-    return "Failed to encode value";
+    return "Failed to decode value";
   }
 }
 

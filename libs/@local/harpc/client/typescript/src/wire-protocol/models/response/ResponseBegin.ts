@@ -83,7 +83,7 @@ export const encode = implEncode((buffer, begin: ResponseBegin) =>
   pipe(
     buffer,
     MutableBuffer.advance(17),
-    Result.andThen(ResponseKind.encode(buffer, begin.kind)),
+    Result.andThen(ResponseKind.encode(begin.kind)),
     Result.andThen(Payload.encode(begin.payload)),
   ),
 );

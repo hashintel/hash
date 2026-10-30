@@ -58,8 +58,9 @@ interface ConnectionDuplex {
 
 export interface ConnectionConfig {
   /**
-   * The maximum duration to wait for a response before considering the transaction lagged.
-   * If a response is not received within this timeout, the transaction will be dropped.
+   * The maximum duration to wait for space in a transaction's response buffer before considering the transaction lagged.
+   *
+   * The connection delivers the responses of all its transactions one at a time, so while it waits, every other transaction waits too. Once the timeout expires, the connection drops the transaction, and reading it fails with {@link Transaction.TransactionLaggedError}.
    *
    * @defaultValue 200ms
    */

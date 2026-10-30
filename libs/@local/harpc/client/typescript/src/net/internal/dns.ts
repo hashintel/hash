@@ -1,7 +1,7 @@
 import dns from "node:dns/promises";
 import { isIPv4, isIPv6 } from "node:net";
 
-import { Array, Cause, Data, Duration, Effect } from "effect";
+import { Array, Cause, Data, Duration, Effect, Function, Result } from "effect";
 
 import type { NonEmptyReadonlyArray } from "effect/Array";
 
@@ -128,14 +128,11 @@ export const resolve = Effect.fn("resolve")(function* (
 
   yield* Effect.forkChild(logEnvironment(hostname));
 
-  const results = yield* Effect.forEach(
+  const [satisfying, excluded] = yield* Effect.partition(
     resolvers,
-    (resolver) => Effect.result(resolver),
+    Function.identity,
     { concurrency: "unbounded" },
   );
-
-  const satisfying = Array.getSuccesses(results);
-  const excluded = Array.getFailures(results);
 
   if (satisfying.length === 0) {
     // means that excluded is non empty
@@ -162,8 +159,9 @@ export const lookup = Effect.fn("lookup")(function* (
   yield* Effect.forkChild(logEnvironment(hostname));
 
   // partition into A and AAAA records
-  const satisfying = records.filter((record) => record.family === 4);
-  const excluded = records.filter((record) => record.family !== 4);
+  const [satisfying, excluded] = Array.partition(records, (record) =>
+    record.family === 4 ? Result.succeed(record) : Result.fail(record),
+  );
 
   // we cannot determine the TTL of lookup records, therefore we set it to infinity
   // `getaddrinfo` (the underlying call used by dns.lookup) does not return TTLs

@@ -10,6 +10,7 @@ import {
   Sink,
   Stream,
 } from "effect";
+import { TestClock } from "effect/testing";
 
 import {
   Connection,
@@ -43,6 +44,7 @@ import type { RequestId } from "../../src/wire-protocol/models/request/index.js"
 
 const makeConnection = Effect.fn("makeConnection")(function* (
   write: Sink.Sink<void, unknown, never, Transport.TransportError>,
+  config: Connection.ConnectionConfig = {},
 ) {
   const responses = yield* Queue.unbounded<
     Response.Response,
@@ -51,7 +53,7 @@ const makeConnection = Effect.fn("makeConnection")(function* (
 
   const connection = yield* Connection.makeFromDuplex(
     { read: Stream.fromQueue(responses), write },
-    {},
+    config,
   );
 
   return { connection, responses };
@@ -97,12 +99,14 @@ describe.concurrent("Connection", () => {
   it.effect("read end", (cx) =>
     Effect.gen(function* () {
       const { connection, responses } = yield* makeConnection(Sink.drain);
-      const request = yield* makeRequest();
+      const firstRequest = yield* makeRequest();
+      const secondRequest = yield* makeRequest();
+      const partial = yield* makePartialResponse(firstRequest.id);
 
-      const first = yield* Connection.send(connection, request);
-      const second = yield* Connection.send(connection, yield* makeRequest());
+      const first = yield* Connection.send(connection, firstRequest);
+      const second = yield* Connection.send(connection, secondRequest);
 
-      yield* Queue.offer(responses, yield* makePartialResponse(request.id));
+      yield* Queue.offer(responses, partial);
       yield* Queue.end(responses);
 
       cx.expect(yield* readError(first)).toBeInstanceOf(
@@ -118,11 +122,12 @@ describe.concurrent("Connection", () => {
     Effect.gen(function* () {
       const { connection, responses } = yield* makeConnection(Sink.drain);
       const request = yield* makeRequest();
+      const partial = yield* makePartialResponse(request.id);
       const error = new Transport.TransportError({ cause: "reset" });
 
       const transaction = yield* Connection.send(connection, request);
 
-      yield* Queue.offer(responses, yield* makePartialResponse(request.id));
+      yield* Queue.offer(responses, partial);
       yield* Queue.fail(responses, error);
 
       cx.expect(yield* readError(transaction)).toBe(error);
@@ -133,11 +138,9 @@ describe.concurrent("Connection", () => {
     Effect.gen(function* () {
       const error = new Transport.TransportError({ cause: "closed" });
       const { connection } = yield* makeConnection(Sink.fail(error));
+      const request = yield* makeRequest();
 
-      const transaction = yield* Connection.send(
-        connection,
-        yield* makeRequest(),
-      );
+      const transaction = yield* Connection.send(connection, request);
 
       cx.expect(yield* readError(transaction)).toBe(error);
     }).pipe(Effect.provide(RequestIdProducer.layer)),
@@ -146,18 +149,41 @@ describe.concurrent("Connection", () => {
   it.effect("send after read end", (cx) =>
     Effect.gen(function* () {
       const { connection, responses } = yield* makeConnection(Sink.drain);
+      const firstRequest = yield* makeRequest();
+      const secondRequest = yield* makeRequest();
 
-      const first = yield* Connection.send(connection, yield* makeRequest());
+      const first = yield* Connection.send(connection, firstRequest);
 
       yield* Queue.end(responses);
       yield* readError(first);
       // the read task is still failing open transactions, let it finish
       yield* Effect.yieldNow;
 
-      const second = yield* Connection.send(connection, yield* makeRequest());
+      const second = yield* Connection.send(connection, secondRequest);
 
       cx.expect(yield* readError(second)).toBeInstanceOf(
         Transaction.ConnectionClosedError,
+      );
+    }).pipe(Effect.provide(RequestIdProducer.layer)),
+  );
+
+  it.effect("lagged", (cx) =>
+    Effect.gen(function* () {
+      const { connection, responses } = yield* makeConnection(Sink.drain, {
+        responseBufferSize: 1,
+      });
+      const request = yield* makeRequest();
+      const first = yield* makePartialResponse(request.id);
+      const second = yield* makePartialResponse(request.id);
+
+      const transaction = yield* Connection.send(connection, request);
+
+      // the first response fills the buffer, so the connection waits to deliver the second
+      yield* Queue.offerAll(responses, [first, second]);
+      yield* TestClock.adjust("200 millis");
+
+      cx.expect(yield* readError(transaction)).toBeInstanceOf(
+        Transaction.TransactionLaggedError,
       );
     }).pipe(Effect.provide(RequestIdProducer.layer)),
   );

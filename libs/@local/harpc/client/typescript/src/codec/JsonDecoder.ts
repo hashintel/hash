@@ -94,8 +94,10 @@ const make = (options: Options) =>
       ignoreBOM: true,
     });
 
-    const schemaJson = Schema.fromJsonString(schema);
-    const decodeJson = Schema.decodeEffect(schemaJson);
+    // parsing before the schema keeps the parser's `SyntaxError` as the failure's cause
+    const decodeValue = Schema.decodeUnknownEffect(schema);
+    const decodeJson = (text: string) =>
+      Effect.flatMap(parseJson<unknown>(text), decodeValue);
 
     let fragment = "";
 
