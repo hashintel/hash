@@ -258,9 +258,9 @@ export const useIconEffects = ({
   const cancelInteraction = useRef<() => void>(() => {});
   const cancelHoverInteraction = useRef<() => void>(() => {});
   const cubeActionInProgress = useRef(false);
-  const effectKey = (typeof effect === "string" ? [effect] : effect ?? []).join(
-    ",",
-  );
+  const effectKey = (
+    typeof effect === "string" ? [effect] : (effect ?? [])
+  ).join(",");
   const hoverEnabled =
     authoredHover &&
     !(active === true && effectKey.split(",").includes("action"));
