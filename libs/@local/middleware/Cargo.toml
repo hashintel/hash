@@ -46,7 +46,7 @@ opentelemetry_sdk  = { workspace = true, features = ["metrics", "testing"] }
 tokio              = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
 tower              = { workspace = true, features = ["util"] }
 tracing-subscriber = { workspace = true, features = ["registry"] }
-uuid               = { workspace = true, features = ["v4"] }
+uuid               = { workspace = true, features = ["std", "v7"] }
 
 [features]
 aide       = ["dep:aide", "problematic/aide"]

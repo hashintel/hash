@@ -97,7 +97,7 @@ rstest                    = { workspace = true }
 tokio                     = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
 tokio-postgres            = { workspace = true }
 tower                     = { workspace = true, features = ["util"] }
-uuid                      = { workspace = true, features = ["v4"] }
+uuid                      = { workspace = true, features = ["std", "v7"] }
 
 [features]
 clap                 = ["dep:clap", "hash-middleware/clap"]

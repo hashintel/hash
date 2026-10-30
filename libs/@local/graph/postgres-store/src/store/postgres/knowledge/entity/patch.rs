@@ -51,7 +51,10 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use super::{LockedEntityEdition, provenance::SqlEntityEditionProvenance, provenance_violations};
+use super::{
+    EntityEditionInsert, LockedEntityEdition, provenance::SqlEntityEditionProvenance,
+    provenance_violations,
+};
 use crate::store::{
     AsClient, InTransaction, PostgresStore, error::EntityDoesNotExist, validation::StoreProvider,
 };
@@ -531,17 +534,18 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
             draft_transition,
         } = changes;
         let entity_id = entity.metadata.record_id.entity_id;
-        let edition_id = self
-            .insert_entity_edition(
-                entity.metadata.archived,
-                &entity.metadata.entity_type_ids,
-                &entity.properties,
-                entity.metadata.confidence,
-                &provenance,
-                &property_metadata,
-            )
-            .await
-            .change_context(UpdateError)?;
+        let edition_id = EntityEditionId::new(Uuid::now_v7());
+        self.insert_entity_edition(EntityEditionInsert {
+            edition_id,
+            archived: entity.metadata.archived,
+            entity_type_ids: &entity.metadata.entity_type_ids,
+            properties: &entity.properties,
+            property_metadata: &property_metadata,
+            confidence: entity.metadata.confidence,
+            provenance: &provenance,
+        })
+        .await
+        .change_context(UpdateError)?;
         let (entity_id, temporal_versioning) = match draft_transition {
             DraftTransition::Update => (
                 entity_id,
@@ -591,7 +595,7 @@ impl<C: AsClient> PostgresStore<C, InTransaction> {
         transaction_time: Timestamp<TransactionTime>,
         decision_time: Timestamp<DecisionTime>,
     ) -> Result<(EntityId, EntityTemporalMetadata), Report<UpdateError>> {
-        let draft_id = DraftId::new(Uuid::new_v4());
+        let draft_id = DraftId::new(Uuid::now_v7());
         self.as_client()
             .query(
                 "INSERT INTO entity_drafts (web_id, entity_uuid, draft_id) VALUES ($1, $2, $3);",

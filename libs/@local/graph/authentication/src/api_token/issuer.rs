@@ -214,7 +214,7 @@ mod tests {
     fn issued(issuer: &ApiTokenIssuer) -> (HashedApiToken, ApiTokenCredential) {
         let IssuedApiToken { token, params } = issuer
             .issue(
-                UserId::new(Uuid::new_v4()),
+                UserId::new(Uuid::now_v7()),
                 ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
                 None,
             )
@@ -268,7 +268,7 @@ mod tests {
     fn verify_unknown_key() {
         let issuer = issuer();
         let (token, mut credential) = issued(&issuer);
-        credential.encryption_key_id = ApiTokenEncryptionKeyId::new(Uuid::new_v4());
+        credential.encryption_key_id = ApiTokenEncryptionKeyId::new(Uuid::now_v7());
 
         let error = issuer
             .verify(&token, &credential)
@@ -284,10 +284,10 @@ mod tests {
 
     #[rstest]
     #[case::user(|credential: &mut ApiTokenCredential| {
-        credential.user_id = UserId::new(Uuid::new_v4());
+        credential.user_id = UserId::new(Uuid::now_v7());
     })]
     #[case::web(|credential: &mut ApiTokenCredential| {
-        credential.web_id = WebId::new(Uuid::new_v4());
+        credential.web_id = WebId::new(Uuid::now_v7());
     })]
     fn verify_moved_row(#[case] move_row: fn(&mut ApiTokenCredential)) {
         let issuer = issuer();

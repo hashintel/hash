@@ -43,7 +43,7 @@ jsonwebtoken      = { workspace = true, features = ["use_pem"] }
 opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
 rstest            = { workspace = true }
 tokio             = { workspace = true, features = ["macros", "rt-multi-thread"] }
-uuid              = { workspace = true, features = ["v4"] }
+uuid              = { workspace = true, features = ["std", "v7"] }
 
 [features]
 test-utils = []

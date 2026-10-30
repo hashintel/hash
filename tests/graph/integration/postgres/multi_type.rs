@@ -338,7 +338,7 @@ async fn invalid_entities_batch() {
     let mut api = seed(&mut database).await;
 
     let web_id = WebId::new(api.account_id);
-    let valid_entity_uuid = EntityUuid::new(Uuid::new_v4());
+    let valid_entity_uuid = EntityUuid::new(Uuid::now_v7());
     let mut valid = entity_params(web_id, HashSet::from([person_entity_type_id()]), alice());
     valid.entity_uuid = Some(valid_entity_uuid);
     let invalid = entity_params(

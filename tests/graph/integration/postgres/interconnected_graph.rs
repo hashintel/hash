@@ -51,7 +51,7 @@ async fn insert() {
 
     let web_id = WebId::new(api.account_id);
 
-    let alice_id = EntityUuid::new(Uuid::new_v4());
+    let alice_id = EntityUuid::new(Uuid::now_v7());
     let alice_entity = CreateEntityParams {
         web_id,
         entity_uuid: Some(alice_id),
@@ -77,7 +77,7 @@ async fn insert() {
         read_only: false,
     };
 
-    let bob_id = EntityUuid::new(Uuid::new_v4());
+    let bob_id = EntityUuid::new(Uuid::now_v7());
     let bob_entity = CreateEntityParams {
         web_id,
         entity_uuid: Some(bob_id),

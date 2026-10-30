@@ -245,7 +245,7 @@ where
             .iter()
             .map(|policy| {
                 let policy = policy.borrow();
-                let policy_id = PolicyId::new(Uuid::new_v4());
+                let policy_id = PolicyId::new(Uuid::now_v7());
                 let (principal_id, actor_type) = policy
                     .principal
                     .as_ref()
@@ -942,7 +942,7 @@ where
             .await
             .change_context(WebCreationError::BuildPolicyComponents)?;
 
-        let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::new_v4));
+        let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::now_v7));
 
         match policy_components
             .build_policy_set([ActionName::CreateWeb])
@@ -995,7 +995,7 @@ where
             .await
             .change_context(WebCreationError::MachineCreationError)?;
 
-        let admin_role_id = Uuid::new_v4();
+        let admin_role_id = Uuid::now_v7();
         let admin_role = transaction
             .create_role(
                 Some(admin_role_id),
@@ -1012,7 +1012,7 @@ where
                 .change_context(WebCreationError::RoleAssignmentError)?;
         }
 
-        let member_role_id = Uuid::new_v4();
+        let member_role_id = Uuid::now_v7();
         let member_role = transaction
             .create_role(
                 Some(member_role_id),
