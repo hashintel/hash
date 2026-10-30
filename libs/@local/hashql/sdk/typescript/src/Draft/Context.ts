@@ -106,7 +106,7 @@ export interface Context<S extends Scope.Scope.Any>
    *
    * Omitting `selection` imports every export. Given a name array, `import` selects those exports. Given an alias record, it imports each listed export under a new name, where `"_"` keeps the export's own name. The returned record joins same-named exports as `prelude()` does and refers to them by their local names. It leaves `prelude()` and `modules()` unchanged.
    *
-   * Unlike the other declarations, a failed import interrupts the callback, because it cannot supply the handles it promises. An invalid alias stops the callback with an `InvalidImportName` failure. The program returns the failure even if the callback catches the interruption.
+   * Unlike the other declarations, a failed import interrupts the callback, because it cannot supply the handles it promises. An invalid alias stops the callback with an `InvalidImportName` failure. The failure stays with the callback's result even if the callback catches the interruption: the program for a program callback, and the conditional for a branch.
    */
   readonly import: {
     <M extends Module.Module.Any>(

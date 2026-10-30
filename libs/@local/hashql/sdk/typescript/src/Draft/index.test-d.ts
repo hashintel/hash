@@ -334,6 +334,42 @@ describe("construction", () => {
     ).toEqualTypeOf<Result.Result<Next, Program.ProgramError.Construction>>();
   });
 
+  test("escaped_conditional", () => {
+    Draft.program({ count: BigInt }, ($, { count }) => {
+      const both = $.if(true, {
+        then: (branch) => {
+          branch.let("unused", count);
+          return 1n;
+        },
+        else: () => 2n,
+      });
+      const thenOnly = $.if(true, {
+        then: (branch) => {
+          branch.let("unused", count);
+          return 1n;
+        },
+      });
+      expectTypeOf(both).toEqualTypeOf<
+        Program.Expression.Expression<
+          Type.PrimitiveInteger,
+          { readonly count: Type.PrimitiveInteger }
+        >
+      >();
+      expectTypeOf(thenOnly).toEqualTypeOf<
+        Program.Expression.Expression<
+          Context.Option<Type.PrimitiveInteger>,
+          { readonly count: Type.PrimitiveInteger }
+        >
+      >();
+      // @ts-expect-error the conditional emits the branch's binding of `count`
+      Draft.program({}, () => both);
+      // @ts-expect-error the then-only conditional emits it too
+      Draft.program({}, () => thenOnly);
+      Draft.program({ count: BigInt }, () => thenOnly);
+      return both;
+    });
+  });
+
   test("then_only", () => {
     Draft.program({ flag: Boolean }, ($, { flag }) => {
       const maybe = $.if(flag, { then: () => 1n });
