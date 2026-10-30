@@ -11,6 +11,7 @@ import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import { maxEntitiesPerStep } from "@local/hash-isomorphic-utils/flows/limits";
 import { StatusCode } from "@local/status";
 
+import { createProposedEntity } from "../../shared/testing-utilities/create-proposed-entity.js";
 import { filterListAction } from "./filter-list-action.js";
 
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
@@ -19,7 +20,6 @@ import type { QueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
 import type {
   Payload,
-  ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -86,9 +86,11 @@ const outputValues = async (result: Awaited<ReturnType<typeof run>>) =>
 
 describe("filterListAction", () => {
   it("splits a stored list into stored matching and non-matching lists", async () => {
-    const entities = ["A", "B", "A", "C"].map(
-      (summary, index) =>
-        ({ summary, localEntityId: `entity-${index}` }) as ProposedEntity,
+    const entities = ["A", "B", "A", "C"].map((summary, index) =>
+      createProposedEntity({
+        summary,
+        localEntityId: `entity-${index}`,
+      }),
     );
 
     const result = await run(

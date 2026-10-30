@@ -663,7 +663,21 @@ const processFlow = async (
        * The items to run the nested steps for. A stored array is iterated using its length alone, giving each
        * branch a reference to its item, which the activities it runs resolve.
        */
-      const items = getArrayPayloadItems(over.value);
+      let items: unknown[];
+
+      try {
+        items = getArrayPayloadItems(over.value);
+      } catch (error) {
+        processStepErrors[currentStepId] = {
+          code: StatusCode.Internal,
+          message: `Step ${currentStepId} can't iterate over its array: ${(error as Error).message}`,
+        };
+
+        /* A step with an array to iterate over is ready, so it would be processed again on every pass. */
+        processedStepIds.push(currentStep.stepId);
+
+        return;
+      }
 
       const newSteps = items.flatMap((itemValue, index) => {
         const item = { kind: over.kind, value: itemValue } as Payload;

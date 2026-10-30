@@ -294,6 +294,8 @@ export type StoredItemRef<
 
 /**
  * Several stored arrays concatenated, e.g. the arrays collected from each branch of a for-each step.
+ *
+ * Its parts are stored objects, never concatenations: concatenating a concatenation takes its parts.
  */
 export type StoredConcatRef<
   Kind extends StorablePayloadKind = StorablePayloadKind,
@@ -301,7 +303,7 @@ export type StoredConcatRef<
   __stored: true;
   kind: Kind;
   array: true;
-  parts: StoredArrayRef<Kind>[];
+  parts: StoredObjectRef<Kind, true>[];
   length: number;
 };
 
@@ -318,9 +320,6 @@ export type SingularStoredPayloadRef<
 export type ArrayStoredPayloadRef<
   Kind extends StorablePayloadKind = StorablePayloadKind,
 > = StoredObjectRef<Kind, true> | StoredConcatRef<Kind>;
-
-type StoredArrayRef<Kind extends StorablePayloadKind> =
-  ArrayStoredPayloadRef<Kind>;
 
 /**
  * A reference to a payload that has been stored in S3, used to avoid passing large payloads through Temporal.

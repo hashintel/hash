@@ -1,7 +1,9 @@
 import { actionDefinitions } from "./action-definitions.js";
-import { validatePayloadValue } from "./payload-schemas.js";
+import {
+  describePayloadValueProblem,
+  validatePayloadValue,
+} from "./payload-schemas.js";
 
-import type { PayloadValueProblem } from "./payload-schemas.js";
 import type {
   FlowActionDefinitionId,
   FlowInputDefinition,
@@ -10,9 +12,6 @@ import type {
   StepInput,
   StepOutput,
 } from "./types.js";
-
-const describeProblem = ({ path, message }: PayloadValueProblem) =>
-  path ? ` at ${path}: ${message}` : `: ${message}`;
 
 /**
  * Leaves out flow inputs given as an empty string that isn't a valid value of their kind, e.g. a number or a URL left
@@ -101,7 +100,7 @@ export const validateFlowInputs = ({
     });
 
     if (problem) {
-      return `Flow input "${name}" is invalid${describeProblem(problem)}`;
+      return `Flow input "${name}" is invalid${describePayloadValueProblem(problem)}`;
     }
   }
 
@@ -113,7 +112,7 @@ export const validateFlowInputs = ({
  * kind it declares (or, for a derived kind, the kind given to its kind source), and holds a valid value of it, and
  * every required output is returned.
  *
- * A value of a stored kind may be a stored reference, of which only the kind and whether it's to an array are checked.
+ * A value of a stored kind may be a stored reference, which is checked without fetching the value it refers to.
  *
  * @returns what's wrong with the first invalid output, naming it, or `undefined` if every output is valid.
  */
@@ -158,7 +157,7 @@ export const validateActionOutputs = ({
     });
 
     if (problem) {
-      return `Action ${actionDefinitionId} returned an invalid output "${outputName}"${describeProblem(problem)}`;
+      return `Action ${actionDefinitionId} returned an invalid output "${outputName}"${describePayloadValueProblem(problem)}`;
     }
   }
 

@@ -9,6 +9,7 @@ import {
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { StatusCode } from "@local/status";
 
+import { createProposedEntity } from "../../shared/testing-utilities/create-proposed-entity.js";
 import { orderByAction } from "./order-by-action.js";
 
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
@@ -17,7 +18,6 @@ import type { QueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import type { SortKey } from "@local/hash-isomorphic-utils/flows/sort-key";
 import type {
   Payload,
-  ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -84,9 +84,11 @@ const byScore: SortKey = {
 
 describe("orderByAction", () => {
   it("sorts a stored list into a stored list", async () => {
-    const entities = ["B", "C", "A"].map(
-      (summary, index) =>
-        ({ summary, localEntityId: `entity-${index}` }) as ProposedEntity,
+    const entities = ["B", "C", "A"].map((summary, index) =>
+      createProposedEntity({
+        summary,
+        localEntityId: `entity-${index}`,
+      }),
     );
 
     const result = await run(

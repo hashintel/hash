@@ -1,3 +1,9 @@
+import { ApplicationFailure } from "@temporalio/common";
+
+import {
+  describePayloadValueProblem,
+  validatePayloadValue,
+} from "@local/hash-isomorphic-utils/flows/payload-schemas";
 import {
   isStoredPayloadRef,
   storedArrayPayloadKinds,
@@ -39,6 +45,12 @@ export const getStorageProvider = (): FileStorageProvider => {
   return _storageProvider;
 };
 
+/**
+ * The type of the failure thrown for a payload value that isn't valid of its kind. An action that computed an invalid
+ * value is rejected without a retry, as an invalid output is.
+ */
+const invalidPayloadValueFailureType = "InvalidPayloadValue";
+
 export type StorePayloadParams<
   Kind extends StorablePayloadKind,
   IsArray extends boolean,
@@ -59,6 +71,9 @@ export type StorePayloadParams<
  * workflows can iterate over it without fetching it.
  *
  * Used to avoid passing large payloads through Temporal activities.
+ *
+ * @throws a non-retryable failure, with the path of the invalid value, if the value isn't a valid value of its kind
+ *   (see `validatePayloadValue`). Nothing is written.
  */
 export const storePayload = async <
   Kind extends StorablePayloadKind,
@@ -81,6 +96,20 @@ export const storePayload = async <
     kind,
     value,
   } = params;
+
+  const problem = validatePayloadValue({
+    kind,
+    array: Array.isArray(value),
+    value,
+    allowStoredRefs: false,
+  });
+
+  if (problem) {
+    throw ApplicationFailure.nonRetryable(
+      `Can't store output "${outputName}", which is invalid${describePayloadValueProblem(problem)}`,
+      invalidPayloadValueFailureType,
+    );
+  }
 
   const storageKey = getFlowOutputStorageKey({
     workflowId,
@@ -173,7 +202,14 @@ const retrieveStoredValue = async (
       ref.parts.map((part) => retrieveStoredValue(context, part)),
     );
 
-    return (parts as unknown[][]).flat();
+    /* Flattening would hide a part that isn't an array, by taking it as one item. */
+    if (!parts.every((part) => Array.isArray(part))) {
+      throw new Error(
+        "A concatenation has a part that is a stored value that isn't an array",
+      );
+    }
+
+    return parts.flat();
   }
 
   if ("of" in ref) {
@@ -222,19 +258,6 @@ type ResolvedValue<Kind extends PayloadKind, Value> = Value extends
   | readonly unknown[]
   ? PayloadKindValues[Kind][]
   : PayloadKindValues[Kind];
-
-/**
- * Retrieve a payload from S3 using a stored reference: a stored object, one item of a stored array, or a
- * concatenation of stored arrays.
- */
-export const retrievePayload = async <
-  Kind extends StorablePayloadKind,
-  StoredRef extends StoredPayloadRef<Kind>,
->(
-  context: ResolvePayloadContext,
-  ref: StoredRef,
-): Promise<ResolvedValue<Kind, StoredRef>> =>
-  retrieveStoredValue(context, ref) as Promise<ResolvedValue<Kind, StoredRef>>;
 
 /**
  * Resolve a payload value to the actual value, retrieving anything stored: a stored reference, or the item
