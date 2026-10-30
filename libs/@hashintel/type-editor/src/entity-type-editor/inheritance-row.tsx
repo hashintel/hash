@@ -167,9 +167,6 @@ export const InheritanceRow = ({
       setValue("allOf", proposedParentIds, {
         shouldDirty: true,
       });
-      if (becomesLinkType && links.length > 0) {
-        setValue("links", [], { shouldDirty: true });
-      }
       setSelectorVisibility(false);
     };
 
