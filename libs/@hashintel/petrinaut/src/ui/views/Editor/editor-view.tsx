@@ -209,8 +209,8 @@ const EditorViewContent = ({
     bottomPanelHeight,
   } = use(EditorContext);
   const actualMode = use(ActualModeContext);
-  const assistant = useEditorAssistant();
 
+  const assistant = useEditorAssistant();
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
   const [aiAssistantFocusRequest, setAiAssistantFocusRequest] = useState(0);
 
@@ -493,10 +493,6 @@ const EditorViewContent = ({
     },
   ];
 
-  // The prompt's other way to start: the plugin assistant's action. Pressing
-  // it opens the panel first.
-  const promptStartAction = assistant.startAction;
-
   // The empty-net prompt hands its message to the plugin assistant's
   // `onPrompt`.
   const showEmptyAiHero =
@@ -578,16 +574,17 @@ const EditorViewContent = ({
                         isBottomPanelOpen ? bottomPanelHeight : 0
                       }
                       onDismiss={() => setIsAiCtaDismissed(true)}
-                      onSubmit={(message) => {
+                      onSubmit={(text) => {
                         setAiAssistantOpen(true);
-                        assistant.onPrompt?.(message);
+                        assistant.onPrompt?.(text);
                       }}
                       startAction={
-                        promptStartAction && {
-                          ...promptStartAction,
+                        assistant.startAction && {
+                          ...assistant.startAction,
+                          // Pressing it opens the panel first.
                           run: () => {
                             setAiAssistantOpen(true);
-                            promptStartAction.run();
+                            assistant.startAction?.run();
                           },
                         }
                       }
@@ -633,13 +630,11 @@ const EditorViewContent = ({
           </Activity>
           <SimulationCreationDrawer />
         </SimulationWorkspace>
-        {assistant.plugin && (
-          <EditorAssistantPanel
-            plugin={assistant.plugin}
-            petriNetId={petriNetId}
-            focusRequest={aiAssistantFocusRequest}
-          />
-        )}
+        <EditorAssistantPanel
+          plugin={assistant.plugin}
+          petriNetId={petriNetId}
+          focusRequest={aiAssistantFocusRequest}
+        />
       </Stack>
     </ExperimentalIconProvider>
   );
