@@ -50,6 +50,8 @@ const mergeScans = (scans: ScanResult[]): ScanResult => ({
     .sort((left, right) => left.id.localeCompare(right.id)),
   fileLayers: new Map(scans.flatMap((scan) => [...scan.fileLayers])),
   talksTo: scans.flatMap((scan) => scan.talksTo),
+  interfaces: scans.flatMap((scan) => scan.interfaces),
+  participations: scans.flatMap((scan) => scan.participations),
   diagnostics: scans.flatMap((scan) => scan.diagnostics),
 });
 

@@ -1,3 +1,9 @@
+/**
+ * @interface iface:doc-handle PetrinautDocHandle via call
+ * @summary The one interface through which the editor reads and writes a
+ * document. The host owns storage and synchronisation; the editor owns editing.
+ */
+
 import type { PetrinautHandleCapabilities } from "../extensions";
 import type { ReadableStore } from "../store";
 import type { SDCPN } from "../types/sdcpn";

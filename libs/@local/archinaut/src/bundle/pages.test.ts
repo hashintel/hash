@@ -201,6 +201,8 @@ const testLayer = (id: string): Layer => ({
   files: [`src/${id}/index.ts`],
   fileCount: 1,
   lineCount: 1,
+  tags: [],
+  audience: ["contributor"],
 });
 
 const buildTestPages = (model: ArchitectureModel) =>
@@ -216,6 +218,9 @@ describe("buildPages layer facts card", () => {
     version: ARCHITECTURE_MODEL_VERSION,
     packages: [],
     layers: [testLayer("core"), testLayer("core.simulation")],
+    interfaces: [],
+    externals: [],
+    tags: [],
     edges: [],
     rules: [],
   };
@@ -268,6 +273,9 @@ describe("buildPages layer relations card", () => {
     version: ARCHITECTURE_MODEL_VERSION,
     packages: [],
     layers: [testLayer("bindings"), testLayer("cli"), testLayer("store")],
+    interfaces: [],
+    externals: [],
+    tags: [],
     edges: [
       {
         from: "bindings",
