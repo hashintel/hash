@@ -13,8 +13,11 @@ export const Schema: typeof Defs.Float = Defs.Float;
  * `value` uses JSON number syntax, such as `"1.0"` or `"1e3"`. Keeping the text preserves the distinction between an integer and an integral float.
  */
 export interface Float extends Defs.FloatType {}
-/** The schema-encoded representation of {@link Float}. */
-export interface Encoded extends Defs.FloatEncoded {}
+
+export declare namespace Float {
+  /** The schema-encoded representation of {@link Float}. */
+  export interface Encoded extends Defs.FloatEncoded {}
+}
 
 /** Input accepted by {@link make} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];

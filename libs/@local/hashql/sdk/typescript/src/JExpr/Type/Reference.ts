@@ -18,7 +18,10 @@ export const Schema: typeof Defs.Reference = Defs.Reference;
  * `JExpr.type` and `JExpr.newtype` also accept a reference as a declaration name. There its generic list declares parameters: a bare name such as `T` is an unbounded parameter and `T: Integer` a bounded one.
  */
 export interface Reference extends Defs.ReferenceType {}
-export interface Encoded extends Defs.ReferenceEncoded {}
+
+export declare namespace Reference {
+  export interface Encoded extends Defs.ReferenceEncoded {}
+}
 
 type MakeIn = (typeof Schema)["~type.make.in"];
 

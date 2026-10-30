@@ -12,10 +12,12 @@
 import { Array, Predicate, Result, identity, pipe } from "effect";
 import { dual } from "effect/Function";
 
+import * as Overflow from "../internal/overflow.js";
 import {
   Relocate,
   relocate as relocateHandle,
 } from "../internal/relocation.js";
+import * as Path from "../JExpr/Path.js";
 import * as ProgramError from "./ProgramError.js";
 
 import type { Relocatable } from "../internal/relocation.js";
@@ -26,8 +28,16 @@ import type { Types } from "effect";
 
 export type { Relocatable } from "../internal/relocation.js";
 
-const TypeId: unique symbol = Symbol("~hashql/TypeExpression");
-const ConstructorId: unique symbol = Symbol("~hashql/TypeConstructor");
+/** The string key that marks a type expression, which {@link isTypeExpression} and {@link isExport} check. */
+export type TypeId = "~hashql/TypeExpression";
+const TypeId: TypeId = "~hashql/TypeExpression";
+
+/** The string key that marks a generic type constructor, which {@link isConstructor} and {@link isExport} check. */
+export type ConstructorId = "~hashql/TypeConstructor";
+const ConstructorId: ConstructorId = "~hashql/TypeConstructor";
+
+// Applied arguments come from caller syntax that nothing has checked. Validating the path here keeps an invalid argument inside the type expression instead of throwing.
+const makePath = Overflow.makeResult(Path.Schema);
 
 /** Type syntax or its construction failure, annotated with its semantic type. */
 export interface TypeExpression<T extends Type.Any> extends TypeExpression.Any {
@@ -50,7 +60,7 @@ export declare namespace TypeExpression {
  *
  * The argument tuple carries semantic types, and `Arguments` maps each position to its handle. TypeScript infers the tuple from ordinary calls. A generic caller can also supply it explicitly without extracting and re-inferring types from already-normalized handles.
  *
- * A call emits a reference to the constructor's path with one generic argument per supplied type. The result's descriptor is `Type.Apply<F, A>`. TypeScript rejects a call with the wrong number of arguments. At runtime, such a call returns a type expression holding a `TypeArgumentCountMismatch` failure. An argument's construction failure becomes the result's failure.
+ * A call emits a reference to the constructor's path with one generic argument per supplied type. The result's descriptor is `Type.TypeLambda.Apply<F, A>`. TypeScript rejects a call with the wrong number of arguments. At runtime, such a call returns a type expression holding a `TypeArgumentCountMismatch` failure. An argument's construction failure becomes the result's failure.
  */
 export interface Constructor<F extends Type.TypeConstructor>
   extends Constructor.Any {
@@ -58,7 +68,7 @@ export interface Constructor<F extends Type.TypeConstructor>
 
   <const A extends readonly Type.Any[]>(
     ...args: Constructor.Arguments<A> & { readonly length: F["arity"] }
-  ): TypeExpression<Type.Apply<F, A>>;
+  ): TypeExpression<Type.TypeLambda.Apply<F, A>>;
 }
 
 export declare namespace Constructor {
@@ -88,6 +98,11 @@ export type Export = TypeExpression.Any | Constructor.Any;
 export const isExport = (value: unknown): value is Export =>
   Predicate.hasProperty(value, TypeId) ||
   Predicate.hasProperty(value, ConstructorId);
+
+/** Recognizes concrete type expressions by their marker property, without checking the stored syntax or the semantic descriptor. */
+// oxlint-disable-next-line typescript/no-restricted-types -- the guard accepts unchecked host values
+export const isTypeExpression = (value: unknown): value is TypeExpression.Any =>
+  Predicate.hasProperty(value, TypeId);
 
 /** Recognizes generic type constructors by their marker property, including combined namespace handles. */
 // oxlint-disable-next-line typescript/no-restricted-types -- the guard accepts unchecked host values
@@ -192,12 +207,12 @@ export const constructor = <F extends Type.TypeConstructor>(
 
   const instantiate = <const A extends readonly Type.Any[]>(
     ...args: Constructor.Arguments<A> & { readonly length: F["arity"] }
-  ): TypeExpression<Type.Apply<F, A>> => {
+  ): TypeExpression<Type.TypeLambda.Apply<F, A>> => {
     if (args.length !== arity) {
       return pipe(
         ProgramError.Construction.typeArgumentCount(arity, args.length),
         Result.fail,
-        fromResult<Type.Apply<F, A>>,
+        fromResult<Type.TypeLambda.Apply<F, A>>,
       );
     }
 
@@ -206,26 +221,32 @@ export const constructor = <F extends Type.TypeConstructor>(
       args as readonly TypeExpression.Any[],
       Array.map(toType),
       Result.all,
-      Result.map((args): Syntax.Type => ({
-        _tag: "Reference",
-        path: {
-          rooted: path.rooted,
-          segments: Array.modifyLastNonEmpty(
-            path.segments,
-            (segment): JExpr.Path.Segment => ({
+      Result.flatMap((args) =>
+        pipe(
+          makePath({
+            rooted: path.rooted,
+            segments: Array.modifyLastNonEmpty(path.segments, (segment) => ({
               name: segment.name,
               arguments: [
                 ...segment.arguments,
-                ...args.map((bound): JExpr.Path.SegmentArgument => ({
-                  _tag: "GenericArgument",
+                ...Array.map(args, (bound) => ({
+                  _tag: "GenericArgument" as const,
                   bound,
                 })),
               ],
+            })),
+          }),
+          Result.mapBoth({
+            onFailure: (cause) =>
+              ProgramError.Construction.invalidExpression(cause),
+            onSuccess: (applied): Syntax.Type => ({
+              _tag: "Reference",
+              path: applied,
             }),
-          ),
-        },
-      })),
-      fromResult<Type.Apply<F, A>>,
+          }),
+        ),
+      ),
+      fromResult<Type.TypeLambda.Apply<F, A>>,
     );
   };
 

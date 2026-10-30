@@ -197,10 +197,10 @@ describe("input_requirements", () => {
   test("required_and_default", () => {
     const required = Expression.input("count", integer);
     const optional = Expression.input("limit", integer, Expression.integer(10));
-    expectTypeOf<Expression.Inputs<typeof required>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof required>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
     }>();
-    expectTypeOf<Expression.Inputs<typeof optional>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof optional>>().toEqualTypeOf<{
       readonly limit?: Type.PrimitiveInteger;
     }>();
     // @ts-expect-error A closed-expression annotation cannot discard a required input.
@@ -217,11 +217,11 @@ describe("input_requirements", () => {
     const value = Expression.input("count", integer, optionalDefault);
     // oxlint-disable-next-line unicorn/no-useless-undefined -- checks an explicitly absent host default
     const omitted = Expression.input("count", integer, undefined);
-    expectTypeOf<Expression.Inputs<typeof value>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof value>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
       readonly fallback: Type.PrimitiveInteger;
     }>();
-    expectTypeOf<Expression.Inputs<typeof omitted>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof omitted>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
     }>();
   });
@@ -229,7 +229,7 @@ describe("input_requirements", () => {
   test("default_dependencies", () => {
     const fallback = Expression.input("fallback", integer);
     const value = Expression.input("count", integer, fallback);
-    expectTypeOf<Expression.Inputs<typeof value>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof value>>().toEqualTypeOf<{
       readonly count?: Type.PrimitiveInteger;
       readonly fallback: Type.PrimitiveInteger;
     }>();
@@ -243,11 +243,11 @@ describe("input_requirements", () => {
     );
     const required = Expression.input("enabled", boolean);
     const both = Operators.and(optional, required);
-    expectTypeOf<Expression.Inputs<typeof both>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof both>>().toEqualTypeOf<{
       readonly enabled: Type.PrimitiveBoolean;
     }>();
     const defaults = Operators.or(optional, optional);
-    expectTypeOf<Expression.Inputs<typeof defaults>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof defaults>>().toEqualTypeOf<{
       readonly enabled?: Type.PrimitiveBoolean;
     }>();
   });
@@ -260,7 +260,7 @@ describe("input_requirements", () => {
       then: count,
       else: text,
     });
-    expectTypeOf<Expression.Inputs<typeof value>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof value>>().toEqualTypeOf<{
       readonly shared: Type.Never;
     }>();
   });
@@ -275,7 +275,7 @@ describe("operation_requirements", () => {
       Operators.and(Operators.eq(left, right), Operators.isTrue(enabled)),
       Operators.isFalse(enabled),
     );
-    expectTypeOf<Expression.Inputs<typeof predicate>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof predicate>>().toEqualTypeOf<{
       readonly left: Type.PrimitiveInteger;
       readonly right: Type.PrimitiveInteger;
       readonly enabled: Type.PrimitiveBoolean;
@@ -290,10 +290,10 @@ describe("operation_requirements", () => {
     const position = Expression.input("position", integer);
     const projected = rows.$project("values");
     const selected = rows.values.$index(position);
-    expectTypeOf<Expression.Inputs<typeof projected>>().toEqualTypeOf<
-      Expression.Inputs<typeof rows>
+    expectTypeOf<Expression.Value.Inputs<typeof projected>>().toEqualTypeOf<
+      Expression.Value.Inputs<typeof rows>
     >();
-    expectTypeOf<Expression.Inputs<typeof selected>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof selected>>().toEqualTypeOf<{
       readonly rows: Type.Struct<{
         readonly values: Type.List<Type.PrimitiveString>;
       }>;
@@ -308,7 +308,7 @@ describe("operation_requirements", () => {
       { readonly receiver: Type.PrimitiveBoolean }
     >("callee");
     const result = callee(count);
-    expectTypeOf<Expression.Inputs<typeof result>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof result>>().toEqualTypeOf<{
       readonly receiver: Type.PrimitiveBoolean;
       readonly count: Type.PrimitiveInteger;
     }>();
@@ -317,8 +317,8 @@ describe("operation_requirements", () => {
       Inputs.Empty
     >("same");
     const identity = generic(count);
-    expectTypeOf<Expression.Inputs<typeof identity>>().toEqualTypeOf<
-      Expression.Inputs<typeof count>
+    expectTypeOf<Expression.Value.Inputs<typeof identity>>().toEqualTypeOf<
+      Expression.Value.Inputs<typeof count>
     >();
     // @ts-expect-error Input accumulation must not widen the call's parameter types.
     callee(Expression.input("wrong", boolean));
@@ -328,6 +328,45 @@ describe("operation_requirements", () => {
 });
 
 describe("snippet_requirements", () => {
+  test("metadata_views", () => {
+    const count = Expression.input("count", integer);
+    expectTypeOf<
+      Expression.Value.Type<typeof count>
+    >().toEqualTypeOf<Type.PrimitiveInteger>();
+    expectTypeOf<
+      Expression.Value.Inputs<{ readonly unrelated: string }>
+    >().toEqualTypeOf<Inputs.Erased>();
+    expectTypeOf<typeof count>().toExtend<
+      Expression.Expression.Handle<
+        Type.PrimitiveInteger,
+        { readonly count: Type.PrimitiveInteger }
+      >
+    >();
+    expectTypeOf<
+      Expression.Expression.Adapted<
+        Type.PrimitiveInteger,
+        { readonly count: Type.PrimitiveInteger },
+        () => typeof count
+      >
+    >().returns.toEqualTypeOf<typeof count>();
+    expectTypeOf<
+      Expression.Value.Inputs<
+        Expression.Expression.Adapted<
+          Type.PrimitiveInteger,
+          { readonly count: Type.PrimitiveInteger },
+          () => typeof count
+        >
+      >
+    >().toEqualTypeOf<{ readonly count: Type.PrimitiveInteger }>();
+  });
+
+  test("structural_root", () => {
+    expectTypeOf<
+      Program.Program.Inputs<{ readonly root: { readonly unrelated: string } }>
+    >().toEqualTypeOf<Inputs.Erased>();
+    expectTypeOf<Program.Program.Inputs<number>>().toBeNever();
+  });
+
   test("reusable_snippet", () => {
     const count = Expression.input("count", integer);
     const snippet = Operators.ne(count, Expression.integer(0));
@@ -336,10 +375,10 @@ describe("snippet_requirements", () => {
       Expression.input("enabled", boolean),
     );
     const program = Program.program(combined);
-    expectTypeOf<Expression.Inputs<typeof snippet>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof snippet>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
     }>();
-    expectTypeOf<Program.Inputs<typeof program>>().toEqualTypeOf<{
+    expectTypeOf<Program.Program.Inputs<typeof program>>().toEqualTypeOf<{
       readonly count: Type.PrimitiveInteger;
       readonly enabled: Type.PrimitiveBoolean;
     }>();
@@ -350,8 +389,8 @@ describe("builder_requirements", () => {
   test("assumption_preservation", () => {
     const source = Expression.input("source", integer);
     const assumed = Expression.assume<Type.PrimitiveString>()(source);
-    expectTypeOf<Expression.Inputs<typeof assumed>>().toEqualTypeOf<
-      Expression.Inputs<typeof source>
+    expectTypeOf<Expression.Value.Inputs<typeof assumed>>().toEqualTypeOf<
+      Expression.Value.Inputs<typeof source>
     >();
   });
 });

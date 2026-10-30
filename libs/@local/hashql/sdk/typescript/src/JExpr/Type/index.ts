@@ -3,7 +3,7 @@
  *
  * A {@link Type} describes type syntax. Use {@link reference} for a named type and {@link struct}, {@link tuple}, {@link union} or {@link intersection} to compose types. The syntax has two J-Expr spellings. {@link compile} writes annotation text for a `#type` field, and {@link toExpression} writes the constructor syntax that `as`, `input`, `fn`, `type` and `newtype` emit.
  *
- * {@link reference} and {@link struct} return an {@link Option.Option}: an invalid name produces `None`. The other builders accept their members without checks. Name resolution and type checking belong to the HashQL compiler.
+ * {@link reference} and {@link struct} return an {@link Option.Option}: an invalid name produces `None`, and so does an invalid generic argument passed to {@link reference}. The other builders accept their members without checks. Name resolution and type checking belong to the HashQL compiler.
  *
  * @module
  */
@@ -33,7 +33,7 @@ export * as Union from "./Union.js";
 /**
  * Schema for validating and encoding {@link Type} values.
  *
- * Use {@link make} to construct a value or {@link compile} to render type syntax. Schema encoding produces the tagged object representation described by {@link Encoded}.
+ * Use {@link make} to construct a value or {@link compile} to render type syntax. Schema encoding produces the tagged object representation described by {@link Type.Encoded}.
  */
 export const Schema: typeof Defs.Type = Defs.Type;
 
@@ -44,12 +44,14 @@ export const Schema: typeof Defs.Type = Defs.Type;
  */
 export type Type = Defs.Type;
 
-/**
- * The schema-encoded form of a {@link Type}, which writes each path and member name as source text.
- *
- * A reference's path becomes text such as `"::core::List<Integer>"`, and a struct member name becomes text such as `` "`+`" ``. Path arguments use type syntax, which omits single-member union and intersection wrappers. Other type nodes keep their tagged objects. {@link Schema} encodes and decodes this form, and neither form is J-Expr. Use {@link compile} or {@link toExpression} for J-Expr.
- */
-export type Encoded = Defs.TypeEncoded;
+export declare namespace Type {
+  /**
+   * The schema-encoded form of a {@link Type}, which writes each path and member name as source text.
+   *
+   * A reference's path becomes text such as `"::core::List<Integer>"`, and a struct member name becomes text such as `` "`+`" ``. Path arguments use type syntax, which omits single-member union and intersection wrappers. Other type nodes keep their tagged objects. {@link Schema} encodes and decodes this form, and neither form is J-Expr. Use {@link compile} or {@link toExpression} for J-Expr.
+   */
+  export type Encoded = Defs.TypeEncoded;
+}
 
 /** Constructor input accepted by {@link Schema} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];
@@ -223,10 +225,10 @@ export const tuple = (...members: readonly Type[]): Defs.TupleType => ({
 /** Creates the `_` placeholder for compiler-inferred type syntax. */
 export const infer = (): Defs.InferType => ({ _tag: "Infer" });
 
-/** Converts builder generics into the argument model used by a path segment. */
+/** Converts builder generics into the argument fields of a path segment, which the enclosing path validates. */
 const segmentArgument = (
   generic: Type | Defs.GenericType,
-): Path.SegmentArgument => {
+): (typeof Path.SegmentArgument)["~type.make.in"] => {
   if (generic._tag === "GenericArgument") {
     return generic;
   }
@@ -258,7 +260,7 @@ const segmentArgument = (
 /**
  * Refers to a named type with optional generic arguments or bounds.
  *
- * `path` accepts the SDK syntax documented by {@link Path.parse}, including per-segment generic lists. Returns `None` if parsing fails. Additional generic arguments append to the last segment's existing arguments. This checks supported path syntax, not full language validity. The HashQL compiler normalizes and resolves names and checks types.
+ * `path` accepts the SDK syntax documented by {@link Path.parse}, including per-segment generic lists. Returns `None` if parsing fails or a generic argument has an invalid name or type. Additional generic arguments append to the last segment's existing arguments. This checks supported path syntax, not full language validity. The HashQL compiler normalizes and resolves names and checks types.
  *
  * A plain {@link Type} supplies a positional argument. A `GenericBound` with a bound supplies a named constraint. Without a bound it supplies a reference to its name. Generic order follows the argument list.
  *
@@ -288,22 +290,16 @@ export const reference = (
   pipe(
     Path.parse(path),
     Result.getSuccess,
-    Option.map((parsed) => ({
-      _tag: "Reference",
-      path: {
+    Option.flatMap((parsed) =>
+      Path.makeOption({
         rooted: parsed.rooted,
-        segments: Array.map(parsed.segments, (segment, index) => {
-          if (index !== parsed.segments.length - 1) {
-            return segment;
-          }
-
-          return {
-            name: segment.name,
-            arguments: [...segment.arguments, ...generics.map(segmentArgument)],
-          };
-        }),
-      },
-    })),
+        segments: Array.modifyLastNonEmpty(parsed.segments, (segment) => ({
+          name: segment.name,
+          arguments: [...segment.arguments, ...generics.map(segmentArgument)],
+        })),
+      }),
+    ),
+    Option.map((validated) => ({ _tag: "Reference", path: validated })),
   );
 
 const unionMembers = (type: Type): NonEmptyReadonlyArray<Type> => {

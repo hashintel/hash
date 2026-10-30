@@ -23,6 +23,7 @@ import type {
   ExpectedScalar,
   InsufficientLength,
   ParserError,
+  Reason,
 } from "./parser-error.js";
 import type { Parser } from "./parser.js";
 import type { HashSet } from "effect";
@@ -40,6 +41,25 @@ const number = (text: string): Result.Result<number, NotNumber> =>
   );
 
 describe("parser_types", () => {
+  test("namespace_views", () => {
+    expectTypeOf<Parser.State<number>>().toEqualTypeOf<{
+      readonly input: string;
+      readonly output: number;
+    }>();
+    expectTypeOf<Parser.Sample<number>>().toEqualTypeOf<{
+      readonly source: string;
+      readonly output: number;
+    }>();
+    expectTypeOf<Parser.Return<number, ExpectedLiteral>>().toEqualTypeOf<
+      Result.Result<Parser.State<number>, ParserError<ExpectedLiteral>>
+    >();
+    expectTypeOf<Parser.Append<string, ExpectedLiteral>>().toEqualTypeOf<
+      <T, R extends Reason>(
+        self: Parser<T, R>,
+      ) => Parser<readonly [T, string], R | ExpectedLiteral>
+    >();
+  });
+
   test("generic_builder", () => {
     const builder = flow(nextChar, nextChar);
     expectTypeOf(builder(make("seed"))).toEqualTypeOf<

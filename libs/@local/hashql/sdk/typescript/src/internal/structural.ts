@@ -22,6 +22,8 @@ import * as Syntax from "../JExpr/Type/index.js";
 import * as Expression from "../Program/Expression.js";
 import * as ProgramError from "../Program/ProgramError.js";
 import * as TypeExpression from "../Program/TypeExpression.js";
+import * as Overflow from "./overflow.js";
+import { Relocate } from "./relocation.js";
 
 import type * as Structural from "../Program/Structural.js";
 import type * as Type from "../Type.js";
@@ -47,6 +49,9 @@ const collectionPaths = Record.map(
   (path) => pipe(path, JExpr.Path.decodeResult, Result.getOrThrow),
 );
 
+// Collection arguments come from definitions whose syntax nothing has checked. Validating the path here turns an invalid argument into a construction failure instead of a throw.
+const makePath = Overflow.makeResult(JExpr.Path.Schema);
+
 /**
  * Checks that no two fields share a name.
  *
@@ -69,11 +74,18 @@ const distinct = <
   return Result.succeed(fields);
 };
 
-/** Tests the type marker first, because a type expression is a plain object and a type constructor is a function. */
+/**
+ * Tests the type marker first, because a type expression is a plain object and a type constructor is a function.
+ *
+ * The marker is a string key, so a parsed JSON record can carry it. Only a handle the SDK built also carries the relocation symbol. A marker record without that symbol takes the record branch, and its marker key fails there as a field name.
+ */
 export const typeSyntax = (
   definition: Structural.Definition,
 ): Result.Result<Syntax.Type, ProgramError.Construction> => {
-  if (TypeExpression.isExport(definition)) {
+  if (
+    TypeExpression.isExport(definition) &&
+    Predicate.hasProperty(definition, Relocate)
+  ) {
     if (Predicate.hasProperty(definition, "syntax")) {
       return definition.syntax;
     }
@@ -173,12 +185,7 @@ export const valueSyntax = (
           key,
           JExpr.Ident.decodeResult,
           Result.mapError((cause) =>
-            ProgramError.Construction.make({
-              reason: ProgramError.Reason.make({
-                _tag: "InvalidExpression",
-                cause,
-              }),
-            }),
+            ProgramError.Construction.invalidExpression(cause),
           ),
         ),
         syntax: valueSyntax(member),
@@ -211,7 +218,7 @@ export type ExactValues<
   T extends Type.Any,
   V extends readonly Structural.Value.Any[],
 > = {
-  readonly [K in keyof V]: Structural.Exact<T, V[K]>;
+  readonly [K in keyof V]: Structural.Value.Exact<T, V[K]>;
 };
 
 /** Converts checked members to syntax without reinterpreting their descriptors. */
@@ -230,30 +237,31 @@ export const collectionType = (
     definitions,
     Array.map(typeSyntax),
     Result.all,
-    Result.map((arguments_): Syntax.Type => {
+    Result.flatMap((arguments_) => {
       const path = collectionPaths[name];
-      return {
-        _tag: "Reference",
-        path: {
+      return pipe(
+        makePath({
           rooted: path.rooted,
-          segments: Array.modifyLastNonEmpty(
-            path.segments,
-            (segment): JExpr.Path.Segment => ({
-              name: segment.name,
-              arguments: [
-                ...segment.arguments,
-                ...Array.map(
-                  arguments_,
-                  (bound): JExpr.Path.SegmentArgument => ({
-                    _tag: "GenericArgument",
-                    bound,
-                  }),
-                ),
-              ],
-            }),
-          ),
-        },
-      };
+          segments: Array.modifyLastNonEmpty(path.segments, (segment) => ({
+            name: segment.name,
+            arguments: [
+              ...segment.arguments,
+              ...Array.map(arguments_, (bound) => ({
+                _tag: "GenericArgument" as const,
+                bound,
+              })),
+            ],
+          })),
+        }),
+        Result.mapBoth({
+          onFailure: (cause) =>
+            ProgramError.Construction.invalidExpression(cause),
+          onSuccess: (applied): Syntax.Type => ({
+            _tag: "Reference",
+            path: applied,
+          }),
+        }),
+      );
     }),
   );
 
@@ -271,7 +279,7 @@ type ExactEntry<
   infer Key extends Structural.Value.Any,
   infer Member extends Structural.Value.Any,
 ]
-  ? readonly [Structural.Exact<K, Key>, Structural.Exact<V, Member>]
+  ? readonly [Structural.Value.Exact<K, Key>, Structural.Value.Exact<V, Member>]
   : never;
 
 /** Preserves exact structural descriptors for both dictionary keys and values. */
@@ -282,9 +290,9 @@ export type ExactEntries<
 > = E extends readonly (readonly [Structural.Value.Any, Structural.Value.Any])[]
   ? { readonly [P in keyof E]: ExactEntry<K, V, E[P]> }
   : E extends Record.ReadonlyRecord<string, Structural.Value.Any>
-    ? Structural.Exact<K, string> extends never
+    ? Structural.Value.Exact<K, string> extends never
       ? never
-      : { readonly [P in keyof E]: Structural.Exact<V, E[P]> }
+      : { readonly [P in keyof E]: Structural.Value.Exact<V, E[P]> }
     : never;
 
 interface ValueSyntaxMapping extends Struct.Lambda {

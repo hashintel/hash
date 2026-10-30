@@ -92,7 +92,7 @@ describe("operator_types", () => {
       Operators.and(Operators.eq(count, 2n), enabled),
       false,
     );
-    expectTypeOf<Expression.Inputs<typeof result>>().toEqualTypeOf<{
+    expectTypeOf<Expression.Value.Inputs<typeof result>>().toEqualTypeOf<{
       readonly count?: Type.PrimitiveInteger;
       readonly enabled: Type.PrimitiveBoolean;
     }>();

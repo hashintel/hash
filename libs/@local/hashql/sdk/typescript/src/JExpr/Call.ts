@@ -12,8 +12,11 @@ export const Schema: typeof Defs.Call = Defs.Call;
  * The array contains at least the function expression. A function with no arguments is a one-element array.
  */
 export type Call = Defs.CallType;
-/** The schema-encoded representation of {@link Call}. */
-export type Encoded = Defs.CallEncoded;
+
+export declare namespace Call {
+  /** The schema-encoded representation of {@link Call}. */
+  export type Encoded = Defs.CallEncoded;
+}
 
 /** Input accepted by {@link make} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];

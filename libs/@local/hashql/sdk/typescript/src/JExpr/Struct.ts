@@ -12,8 +12,11 @@ export const Schema: typeof Defs.Struct = Defs.Struct;
  * Each field contains an expression. The schema checks the field names as well as their values.
  */
 export interface Struct extends Defs.StructType {}
-/** The schema-encoded representation of `Struct`. */
-export interface Encoded extends Defs.StructEncoded {}
+
+export declare namespace Struct {
+  /** The schema-encoded representation of `Struct`. */
+  export interface Encoded extends Defs.StructEncoded {}
+}
 
 /** Input accepted by {@link make} before validation. */
 type MakeIn = (typeof Schema)["~type.make.in"];

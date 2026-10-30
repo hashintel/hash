@@ -9,48 +9,71 @@ import { SchemaParser } from "effect";
 
 import * as Overflow from "../internal/overflow.js";
 import { compilePath } from "../internal/type-compile.js";
-import { completePath, parsePath } from "../internal/type-parser.js";
 import * as Type from "./Type/schema.js";
 
-import type * as Parser from "../internal/parser.js";
+import type { Parser } from "../internal/parser.js";
 import type * as Ident from "./Ident.js";
 import type * as ParserError from "./ParserError.js";
 import type {
   Schema as $Schema,
   Arbitrary,
   Effect,
+  Equal,
   Option,
+  Pipeable,
   Result,
   SchemaIssue,
 } from "effect";
 import type { ParseOptions } from "effect/SchemaAST";
 
+/** A positional type argument, such as `T` in `List<T>`. */
+export interface GenericArgument extends Equal.Equal, Pipeable.Pipeable {
+  readonly _tag: "GenericArgument";
+  readonly bound: Type.Type;
+}
+
+/** A named constraint with its bound, such as `U: Bound` in `Item<U: Bound>`. */
+export interface GenericConstraint extends Equal.Equal, Pipeable.Pipeable {
+  readonly _tag: "GenericConstraint";
+  readonly name: Ident.Ident;
+  readonly bound: Type.Type;
+}
+
 /** A positional type argument or a named constraint with a required bound. */
-export type SegmentArgument =
-  | { readonly _tag: "GenericArgument"; readonly bound: Type.Type }
-  | {
-      readonly _tag: "GenericConstraint";
-      readonly name: Ident.Ident;
-      readonly bound: Type.Type;
-    };
+export type SegmentArgument = GenericArgument | GenericConstraint;
 
 /** One path name and the generic entries attached to that name. */
-export interface Segment {
+export interface Segment extends Equal.Equal, Pipeable.Pipeable {
   readonly name: Ident.Ident;
   readonly arguments: readonly SegmentArgument[];
 }
 
-/** A nonempty sequence of segments. `rooted` records a leading `::`. */
-export interface Path {
+/**
+ * A nonempty sequence of segments. `rooted` records a leading `::`.
+ *
+ * Equality and hashing use rootedness and ordered segments, including names, argument kinds and nested type syntax. Equality compares structure rather than compiled text, and it does not resolve names. A single-member union compiles like its member but compares unequal to it, so `Equal.equals(path, parse(compile(path)))` can be false.
+ *
+ * Construction validates and copies ordinary field records. It reuses an existing class instance instead of copying it, and it does not freeze the result. Do not mutate a path or its nested syntax after comparing or hashing it, because Effect caches those results.
+ */
+export interface Path extends Equal.Equal, Pipeable.Pipeable {
   readonly rooted: boolean;
   readonly segments: readonly [Segment, ...Segment[]];
 }
 
-/** Validates a segment argument with decoded names and types. */
+/** Constructs a positional path argument from decoded type syntax. */
+export const GenericArgument = Type.PathGenericArgument;
+/** Constructs a named path constraint from a decoded name and type. */
+export const GenericConstraint = Type.PathGenericConstraint;
+
+/** Decodes a field record into a {@link GenericArgument} or {@link GenericConstraint} instance, and encodes the instance back into a field record. */
 export const SegmentArgument: typeof Type.PathArgument = Type.PathArgument;
-/** Validates a decoded path segment. An empty argument array omits angle brackets. */
+/** Decodes a field record into a {@link Segment} instance, and encodes the instance back into a field record. An empty argument array omits angle brackets. */
 export const Segment: typeof Type.PathSegment = Type.PathSegment;
-/** Validates path objects, including the recursive types in every argument. */
+/**
+ * Decodes field records into a {@link Path} and its segment and argument instances, validating every name and nested type.
+ *
+ * Encoding returns plain field records, which do not compare equal to the path they came from.
+ */
 export const SchemaFromSelf: typeof Type.PathFromSelf = Type.PathFromSelf;
 
 /** Writes canonical path text without validating the supplied object. */
@@ -62,13 +85,17 @@ export const compile: (path: Path) => string = compilePath;
  * A syntax failure decodes to an `Encoding` issue. Its inner `InvalidValue` issue keeps the parser error in `annotations.parserError`, beside a message naming the UTF-16 offset. Use {@link parse} to inspect the typed reason union. Argument types encode as text, so a single-member union or intersection decodes as its member.
  */
 export const Schema: typeof Type.PathSchema = Type.PathSchema;
-/** Source text representing a path. */
-export type Encoded = typeof Schema.Encoded;
+export declare namespace Path {
+  /** Source text representing a path. */
+  export type Encoded = typeof Schema.Encoded;
+}
 /** Constructor input for a decoded path, not source syntax. */
 type MakeIn = (typeof Schema)["~type.make.in"];
 
 /**
- * Validates a decoded path, requiring at least one segment.
+ * Validates a decoded path and constructs its segments and arguments as instances with Effect's `Equal`, `Hash` and `Pipeable` interfaces.
+ *
+ * A path needs at least one segment. The constructor accepts ordinary field records, and an existing instance keeps its identity. The schema construction options apply to nested values too.
  *
  * @throws {Error} If a name, argument type or path structure fails validation. The error's `cause` is a {@link SchemaIssue.Issue}.
  */
@@ -109,14 +136,14 @@ export const makeOption: (
 export const parse: (
   input: string,
 ) => Result.Result<Path, ParserError.ParserError<ParserError.TypeReason>> =
-  parsePath;
+  Type.pathGrammar.parsePath;
 
 /** Source text accepted by the path grammar, paired with the path it parses to. */
 export type Sample = Parser.Sample<Path>;
 
 /** Generates supported path source and its parsed value. Depth bounds generation, not the parser's call stack. */
 export const arbitrary: () => Arbitrary.Arbitrary<Sample> =
-  completePath.arbitrary;
+  Type.pathGrammar.completePath.arbitrary;
 
 /**
  * Decodes path source through the schema, retaining syntax details in the returned issue.

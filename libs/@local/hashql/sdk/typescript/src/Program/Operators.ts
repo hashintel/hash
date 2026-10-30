@@ -19,8 +19,8 @@ import type * as ProgramError from "./ProgramError.js";
 
 type BooleanValue = Expression.Value<Type.PrimitiveBoolean>;
 type Requirements<L, R> = Inputs.Merge<
-  Expression.Inputs<L>,
-  Expression.Inputs<R>
+  Expression.Value.Inputs<L>,
+  Expression.Value.Inputs<R>
 >;
 
 /**
@@ -35,11 +35,11 @@ export interface Predicate<I> extends Expression.Expression<
   /** Combines this predicate with another Boolean operand, retaining both sets of inputs. */
   readonly and: <const R extends BooleanValue>(
     other: R,
-  ) => Predicate<Inputs.Merge<I, Expression.Inputs<R>>>;
+  ) => Predicate<Inputs.Merge<I, Expression.Value.Inputs<R>>>;
   /** Constructs a disjunction without short-circuiting host-side operand construction. */
   readonly or: <const R extends BooleanValue>(
     other: R,
-  ) => Predicate<Inputs.Merge<I, Expression.Inputs<R>>>;
+  ) => Predicate<Inputs.Merge<I, Expression.Value.Inputs<R>>>;
   /** Negates the represented predicate without changing its input requirements. */
   readonly not: () => Predicate<I>;
   /** Compares this predicate with `true` through `::core::cmp::eq`. */
@@ -78,11 +78,11 @@ const predicate = <I>(
     $indexUnsafe: expression.$indexUnsafe,
     and: <const R extends BooleanValue>(
       other: R,
-    ): Predicate<Inputs.Merge<I, Expression.Inputs<R>>> =>
+    ): Predicate<Inputs.Merge<I, Expression.Value.Inputs<R>>> =>
       call("::core::bool::and", [expression, other]),
     or: <const R extends BooleanValue>(
       other: R,
-    ): Predicate<Inputs.Merge<I, Expression.Inputs<R>>> =>
+    ): Predicate<Inputs.Merge<I, Expression.Value.Inputs<R>>> =>
       call("::core::bool::or", [expression, other]),
     not: (): Predicate<I> => call("::core::bool::not", [expression]),
     isTrue: (): Predicate<I> => call("::core::cmp::eq", [expression, true]),
@@ -100,7 +100,7 @@ interface Comparison {
     right: R,
   ): <
     const L extends Expression.Value<
-      ExpressionType.Normalize<Expression.TypeOf<R>>
+      ExpressionType.Normalize<Expression.Value.Type<R>>
     >,
   >(
     left: L,
@@ -108,7 +108,7 @@ interface Comparison {
   <
     const L extends Expression.Value.Any,
     const R extends Expression.Value<
-      ExpressionType.Normalize<Expression.TypeOf<L>>
+      ExpressionType.Normalize<Expression.Value.Type<L>>
     >,
   >(
     left: L,
@@ -122,7 +122,7 @@ const comparison = (path: string): Comparison =>
     <
       const L extends Expression.Value.Any,
       const R extends Expression.Value<
-        ExpressionType.Normalize<Expression.TypeOf<L>>
+        ExpressionType.Normalize<Expression.Value.Type<L>>
       >,
     >(
       left: L,
@@ -187,22 +187,23 @@ export const or: BooleanCombination = combination("::core::bool::or");
 /** Constructs Boolean negation while retaining the operand's inputs and construction failures. */
 export const not = <const E extends BooleanValue>(
   expression: E,
-): Predicate<Expression.Inputs<E>> => call("::core::bool::not", [expression]);
+): Predicate<Expression.Value.Inputs<E>> =>
+  call("::core::bool::not", [expression]);
 
 /** Constructs an equality comparison with true, returning a chainable {@link Predicate}. */
 export const isTrue = <const E extends BooleanValue>(
   expression: E,
-): Predicate<Expression.Inputs<E>> =>
+): Predicate<Expression.Value.Inputs<E>> =>
   call("::core::cmp::eq", [expression, true]);
 
 /** Constructs an equality comparison with false, returning a chainable {@link Predicate}. */
 export const isFalse = <const E extends BooleanValue>(
   expression: E,
-): Predicate<Expression.Inputs<E>> =>
+): Predicate<Expression.Value.Inputs<E>> =>
   call("::core::cmp::eq", [expression, false]);
 
 type Optional<E extends Expression.Value.Any> =
-  ExpressionType.Normalize<Expression.TypeOf<E>> extends Type.Union<infer M>
+  ExpressionType.Normalize<Expression.Value.Type<E>> extends Type.Union<infer M>
     ? Extract<
         M[number],
         Type.Opaque<"::core::option::None", Type.Any>
@@ -218,7 +219,7 @@ type Optional<E extends Expression.Value.Any> =
  */
 export const isNone = <const E extends Expression.Value.Any>(
   expression: E & Optional<E>,
-): Predicate<Expression.Inputs<E>> =>
+): Predicate<Expression.Value.Inputs<E>> =>
   pipe(
     expression,
     Expression.toJExpr,
@@ -232,7 +233,7 @@ export const isNone = <const E extends Expression.Value.Any>(
           ),
         ),
     ),
-    predicate<Expression.Inputs<E>>,
+    predicate<Expression.Value.Inputs<E>>,
   );
 
 /** The same constructors are available on authoring contexts and as standalone functions. */
