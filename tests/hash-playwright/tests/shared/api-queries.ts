@@ -3,6 +3,10 @@ import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
+import {
+  createEntityTypeMutation,
+  updateEntityTypeMutation,
+} from "../graphql/queries/entity-type.queries";
 import { createEntityMutation } from "../graphql/queries/entity.queries";
 import { requestFileUploadMutation } from "../graphql/queries/file.queries";
 import { meQuery } from "../graphql/queries/user.queries";
@@ -10,19 +14,26 @@ import { meQuery } from "../graphql/queries/user.queries";
 import type {
   CreateEntityMutation,
   CreateEntityMutationVariables,
+  CreateEntityTypeMutation,
+  CreateEntityTypeMutationVariables,
   LinkedEntityDefinition,
   MeQuery,
   MeQueryVariables,
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
+  UpdateEntityTypeMutation,
+  UpdateEntityTypeMutationVariables,
 } from "../graphql/api-types.gen";
 import type { EntityRootType } from "@blockprotocol/graph";
 import type {
   Entity,
+  EntityTypeWithMetadata,
   LinkData,
   TypeIdsAndPropertiesForEntity,
+  VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
+import type { ConstructEntityTypeParams } from "@local/hash-graph-sdk/ontology";
 import type {
   File,
   User,
@@ -111,6 +122,44 @@ export const createEntity = async <T extends TypeIdsAndPropertiesForEntity>(
     }
     return new HashEntity<T>(data.createEntity);
   });
+};
+
+/** Creates an entity type in the web of the user making the request. */
+export const createEntityType = async (
+  requestContext: APIRequestContext,
+  entityType: ConstructEntityTypeParams,
+): Promise<EntityTypeWithMetadata> => {
+  const { data } = await callGraphQlApi<
+    CreateEntityTypeMutation,
+    CreateEntityTypeMutationVariables
+  >(requestContext, {
+    query: createEntityTypeMutation,
+    variables: { entityType },
+  });
+  if (!data) {
+    throw new Error("createEntityType returned no data");
+  }
+  return data.createEntityType;
+};
+
+export const updateEntityType = async (
+  requestContext: APIRequestContext,
+  params: {
+    entityTypeId: VersionedUrl;
+    updatedEntityType: ConstructEntityTypeParams;
+  },
+): Promise<EntityTypeWithMetadata> => {
+  const { data } = await callGraphQlApi<
+    UpdateEntityTypeMutation,
+    UpdateEntityTypeMutationVariables
+  >(requestContext, {
+    query: updateEntityTypeMutation,
+    variables: params,
+  });
+  if (!data) {
+    throw new Error("updateEntityType returned no data");
+  }
+  return data.updateEntityType;
 };
 
 /**
