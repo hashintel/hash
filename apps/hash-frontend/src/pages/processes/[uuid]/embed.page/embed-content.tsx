@@ -1,5 +1,5 @@
 /**
- * Petrinaut's stylesheet. Within this embed document its Panda-generated
+ * Petrinaut's stylesheet. Within HASH's pages its Panda-generated
  * atomic utilities are intentionally shadowed by `ds-components-styles.gen.css`
  * (imported in `_app.page.tsx`), which compiles Petrinaut's shipped Panda
  * build info through the app's single Panda pipeline at a strictly higher
@@ -18,7 +18,6 @@ import {
   type ErrorTracker,
   ErrorTrackerContext,
   isSDCPNEqual,
-  Petrinaut,
   type PetrinautDocHandle,
   type SDCPN,
 } from "@hashintel/petrinaut";
@@ -36,10 +35,8 @@ import {
 } from "../../shared/messages";
 import { useIframeBridge } from "../../shared/use-iframe-bridge";
 import { type EmbedChrome, EmbedChromeContext } from "./embed-chrome-context";
-import { embedChromePlugin } from "./embed-chrome-plugin";
+import { EmbedPetrinaut } from "./embed-petrinaut";
 import { HASHPetrinautOptimizationProvider } from "./hash-petrinaut-optimization-provider";
-
-const embedPlugins = [embedChromePlugin];
 
 /**
  * Errors Petrinaut catches itself, such as a failing plugin's, never reach the
@@ -47,13 +44,6 @@ const embedPlugins = [embedChromePlugin];
  */
 const embedErrorTracker: ErrorTracker = {
   captureException: reportIframePetrinautError,
-};
-
-const noNetSwitchingError = () => {
-  throw new Error(
-    "Net switching from inside the Petrinaut iframe is not supported; " +
-      "the host (process-editor) drives all net loads via the bridge.",
-  );
 };
 
 type EditorState = {
@@ -92,7 +82,7 @@ const computeIsDirty = (
 };
 
 /**
- * Petrinaut embed content — runs inside a sandboxed null-origin iframe.
+ * Petrinaut embed content — rendered in the process page by the host.
  *
  * Owns the doc handle, title, panels, simulation/Monte-Carlo workers,
  * Monaco, and dirty tracking. The host (`process-editor.tsx`) only handles
@@ -121,7 +111,16 @@ export const EmbedContent = () => {
    */
   const titleRef = useRef<string>("");
   titleRef.current = state?.title ?? "";
+  const readTitle = useCallback(() => titleRef.current, []);
 
+  /**
+   * Every `init` and `load` creates a new handle, even when the content is
+   * unchanged (a revision of the same net), and with no `id`, so each gets a
+   * fresh one. A new handle starts a new editor, which remounts Petrinaut's
+   * assistant panel: runs started against the previous handle abort, and
+   * Brunch stops the turn that editor sent. An assistant action is never
+   * carried into an editor that didn't send it.
+   */
   const bridge = useIframeBridge({
     onInit: (payload) => {
       const handle = createJsonDocHandle({
@@ -146,7 +145,7 @@ export const EmbedContent = () => {
       setIframeErrorReporterMode(payload.mode);
       /**
        * Reset any in-flight save state. A re-init means the host has
-       * decided to throw away whatever the iframe was doing (e.g. user
+       * decided to throw away whatever the editor was doing (e.g. user
        * navigated to a different net via URL while a save was pending).
        */
       setPendingSaveRequestId(null);
@@ -193,12 +192,9 @@ export const EmbedContent = () => {
       }
       setPendingSaveRequestId(null);
       if (payload.result.ok) {
-        const {
-          savedSnapshot,
-          mode,
-          revisions: updatedRevisions,
-        } = payload.result;
-        setRevisions(updatedRevisions);
+        // The revision list comes only from `revisionsList`, which the host
+        // sends again once its history refetch includes this save.
+        const { savedSnapshot, mode } = payload.result;
         setState((prev) =>
           prev
             ? {
@@ -313,11 +309,11 @@ export const EmbedContent = () => {
 
   if (!state) {
     /**
-     * Host is expected to send `init` immediately after the iframe's
+     * Host is expected to send `init` immediately after the editor's
      * `ready`. A blank box is fine for that brief window — anything more
      * elaborate (spinner, etc.) tends to flash visibly on every load.
      */
-    return <Box sx={{ height: "100vh" }} />;
+    return <Box sx={{ height: "100%" }} />;
   }
 
   const chrome: EmbedChrome = {
@@ -336,21 +332,18 @@ export const EmbedContent = () => {
   };
 
   return (
-    <Box sx={{ height: "100vh", overflow: "hidden" }}>
+    <Box sx={{ height: "100%", overflow: "hidden" }}>
       <HASHPetrinautOptimizationProvider
         enabled={hostCapabilities?.optimization === true}
       >
         <EmbedChromeContext value={chrome}>
           <ErrorTrackerContext value={embedErrorTracker}>
-            {/* The title is the breadcrumbs' final crumb, so the editor's
-                own title field stays hidden. */}
-            <Petrinaut
+            <EmbedPetrinaut
               handle={state.handle}
-              createNewNet={noNetSwitchingError}
-              existingNets={[]}
-              hideNetManagementControls="all"
-              loadPetriNet={noNetSwitchingError}
-              plugins={embedPlugins}
+              savedEntityId={
+                state.mode.kind === "saved" ? state.mode.entityId : null
+              }
+              readTitle={readTitle}
               readonly={state.readonly}
               setTitle={handleSetTitle}
               title={state.title}

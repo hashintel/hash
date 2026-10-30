@@ -37,6 +37,7 @@ import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import {
   getHashClientTypeFromRequest,
   hashClientHeaderKey,
@@ -64,6 +65,10 @@ import {
 import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
+import {
+  getBrunchAgentOrigin,
+  setupBrunchAgentProxy,
+} from "./brunch-agent/setup-brunch-agent-proxy";
 import { createEmailTransporter } from "./email/create-email-transporter";
 import { setupFlowRunRecordHandler } from "./flows/setup-flow-run-record-handler";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
@@ -803,6 +808,12 @@ const main = async () => {
   setupPetrinautOptimizerHandler(app, {
     logger,
     origin: getPetrinautOptimizerOrigin(),
+  });
+
+  setupBrunchAgentProxy(app, {
+    logger,
+    origin: getBrunchAgentOrigin(),
+    publicOrigin: apiOrigin,
   });
 
   setupTelemetryHandler(app);

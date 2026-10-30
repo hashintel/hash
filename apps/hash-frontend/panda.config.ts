@@ -58,7 +58,8 @@ export default defineConfig({
 
   /**
    * Styles used inside ds-components itself, plus Petrinaut's shipped style
-   * usage and that of the ds-icons set it renders, plus this app's own
+   * usage and that of the ds-icons set it renders, plus Brunch's assistant
+   * panel that the process editor mounts in Petrinaut, plus this app's own
    * sources that author Panda `css()` calls against the ds-components preset
    * tokens: the supply-chain tool and its route pages, and the tiled network
    * graph.
@@ -74,6 +75,10 @@ export default defineConfig({
     ),
     resolvePandaBuildInfoPath(
       "@hashintel/ds-icons/panda.buildinfo.json",
+      require.resolve,
+    ),
+    resolvePandaBuildInfoPath(
+      "@hashintel/brunch-agent/panda.buildinfo.json",
       require.resolve,
     ),
     "./src/pages/supply-chain/**/*.{ts,tsx}",

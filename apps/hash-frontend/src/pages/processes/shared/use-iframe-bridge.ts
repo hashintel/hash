@@ -33,12 +33,14 @@ type IframeBridge = {
 };
 
 /**
- * Iframe-side companion to {@link useHostBridge}.
+ * Editor-side companion to {@link useHostBridge}. The editor renders in the
+ * host's page, so both sides post to this window.
  *
  * - Posts a `ready` message exactly once on mount so the host can push `init`.
  * - Listens for messages on `window` and dispatches them to the matching
- *   handler. Messages from any source other than `window.parent` are
- *   dropped, so an unrelated cross-frame postMessage can't drive the bridge.
+ *   handler. Messages from any source other than this window are dropped, so
+ *   an iframe's postMessage can't drive the bridge. Host and editor message
+ *   kinds are disjoint, so the editor ignores its own messages.
  *
  * Like the host hook, handlers are stored in a ref so the listener doesn't
  * need to re-attach when handler identities change.
@@ -51,7 +53,7 @@ export const useIframeBridge = (
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (event.source !== window.parent) {
+      if (event.source !== window) {
         return;
       }
       const data = event.data as unknown;
@@ -84,23 +86,16 @@ export const useIframeBridge = (
 
     window.addEventListener("message", onMessage);
 
-    /**
-     * Target origin is "*" because the host's origin is not reliably
-     * readable from a null-origin sandboxed iframe (`window.parent.origin`
-     * is cross-origin, `document.location.origin` returns "null"). The
-     * message is delivered to the parent window only; an unrelated tab
-     * cannot intercept it.
-     */
-    window.parent.postMessage(
+    window.postMessage(
       { kind: "ready" } satisfies IframeToHostMessage,
-      "*",
+      window.location.origin,
     );
 
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
   const send = useCallback<IframeBridge["send"]>((message) => {
-    window.parent.postMessage(message, "*");
+    window.postMessage(message, window.location.origin);
   }, []);
 
   return useMemo<IframeBridge>(() => ({ send }), [send]);

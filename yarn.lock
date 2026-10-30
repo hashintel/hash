@@ -656,6 +656,7 @@ __metadata:
     "@graphql-codegen/typescript": "npm:6.1.2"
     "@graphql-codegen/typescript-operations": "npm:6.1.10"
     "@hashintel/block-design-system": "workspace:*"
+    "@hashintel/brunch-agent": "workspace:*"
     "@hashintel/design-system": "workspace:*"
     "@hashintel/ds-components": "workspace:*"
     "@hashintel/ds-helpers": "workspace:*"
