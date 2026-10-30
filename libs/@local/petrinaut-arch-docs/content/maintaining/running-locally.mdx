@@ -15,8 +15,7 @@ the tool on the last bundle, reads the annotations, writes `bundle/`, copies
 what differs into the site, and rebuilds on every change to a covered package
 or to `content/`. A source edit walks only the files it touched and their
 dependents, through a compiler kept warm in a worker; a content edit rebuilds
-in well under a second. Add `--analysis syntactic` for the cheaper analysis
-that follows imports without a type checker.
+in well under a second.
 
 ## Reading without a server
 

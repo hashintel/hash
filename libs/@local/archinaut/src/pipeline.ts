@@ -22,7 +22,6 @@ import {
 import {
   collectFacts,
   factsCacheDirectory,
-  type Analysis,
   type FactsSource,
   type Language,
   type SymbolFacts,
@@ -33,7 +32,6 @@ import { countErrors, error, type Diagnostic } from "./shared/diagnostics";
 import type { ArchinautConfig } from "./config";
 
 export interface PipelineOptions {
-  analysis: Analysis;
   /** Facts sources the caller keeps open, by language. */
   sources?: Map<Language, FactsSource>;
 }
@@ -121,7 +119,7 @@ export const assembleModel = (options: {
 
 export const runPipeline = async (
   config: ArchinautConfig,
-  options: PipelineOptions,
+  options: PipelineOptions = {},
 ): Promise<PipelineResult> => {
   const timings: Record<string, number> = {};
   const timed = async <T>(
@@ -140,7 +138,6 @@ export const runPipeline = async (
     collectFacts({
       repoRoot: config.root,
       packages,
-      analysis: options.analysis,
       cacheDirectory: factsCacheDirectory(config.root, config.cacheDirectory),
       files: [...scan.fileLayers.keys()],
       sources: options.sources,

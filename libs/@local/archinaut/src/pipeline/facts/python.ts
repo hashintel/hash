@@ -1,8 +1,7 @@
 /**
- * Python facts: the import-statement scan, which every analysis runs, plus
- * scip-python's symbol-level index under `program` analysis. The scan is the
- * safety net for the modules scip-python leaves unresolved, so the union is
- * the edge set; it alone is the syntactic answer.
+ * Python facts: scip-python's symbol-level index, plus the import-statement
+ * scan as the safety net for the modules scip-python leaves unresolved. The
+ * union is the edge set.
  */
 
 import { join } from "node:path";
@@ -22,12 +21,11 @@ import type {
 const scannerVersion = 1;
 
 /** What, besides the files, decides Python facts. */
-export const pythonSalt = (options: FactsOptions): string =>
+export const pythonSalt = (): string =>
   JSON.stringify({
     provider: "python",
     version: scipPythonVersion,
     scanner: scannerVersion,
-    analysis: options.analysis,
   });
 
 /** Every file as a module, each importing file referencing its targets. */
@@ -72,29 +70,30 @@ export const openPythonSource = (options: FactsOptions): FactsSource => {
       files,
     });
     diagnostics.push(...imports.diagnostics);
-    const sides = [importDocuments(files, imports.dependencies)];
-    if (options.analysis === "program") {
-      sides.push(
-        ...(await Promise.all(
-          packages.map((pkg) =>
-            indexPythonPackage({
-              repoRoot: options.repoRoot,
-              pkg,
-              outputDirectory: join(options.cacheDirectory, "scip"),
-            }).catch((cause: unknown) => {
-              diagnostics.push(
-                error(
-                  `${pkg.path}/package.json`,
-                  `indexing ${pkg.name} failed, so only its import statements count: ${cause instanceof Error ? cause.message : String(cause)}`,
-                ),
-              );
-              return [];
-            }),
-          ),
-        )),
-      );
-    }
-    return { documents: merge(sides), diagnostics };
+    const indexed = await Promise.all(
+      packages.map((pkg) =>
+        indexPythonPackage({
+          repoRoot: options.repoRoot,
+          pkg,
+          outputDirectory: join(options.cacheDirectory, "scip"),
+        }).catch((cause: unknown) => {
+          diagnostics.push(
+            error(
+              `${pkg.path}/package.json`,
+              `indexing ${pkg.name} failed, so only its import statements count: ${cause instanceof Error ? cause.message : String(cause)}`,
+            ),
+          );
+          return [];
+        }),
+      ),
+    );
+    return {
+      documents: merge([
+        importDocuments(files, imports.dependencies),
+        ...indexed,
+      ]),
+      diagnostics,
+    };
   };
   return {
     index,

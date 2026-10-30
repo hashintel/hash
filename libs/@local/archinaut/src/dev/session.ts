@@ -19,7 +19,6 @@ import {
   filesInLanguage,
   languagesOf,
   openFactsSource,
-  type Analysis,
   type FactsSource,
   type IndexedDocument,
   type Language,
@@ -69,13 +68,12 @@ const stopwatch = () => {
 
 export const createDevSession = (
   config: ArchinautConfig,
-  options: { analysis: Analysis; log: (line: string) => void },
+  options: { log: (line: string) => void },
 ): DevSession => {
   const packages = packagesOf(config);
   const factsOptions = {
     repoRoot: config.root,
     packages,
-    analysis: options.analysis,
     cacheDirectory: factsCacheDirectory(config.root, config.cacheDirectory),
   };
   const scans = new Map<string, ScanResult>();
@@ -156,10 +154,7 @@ export const createDevSession = (
       timings: {},
       reindexed: [],
     };
-    const result = await writeBuild(config, pipeline, {
-      write: true,
-      analysis: options.analysis,
-    });
+    const result = await writeBuild(config, pipeline, { write: true });
     clock.lap("write");
     return { result, timings: clock.timings, touched };
   };

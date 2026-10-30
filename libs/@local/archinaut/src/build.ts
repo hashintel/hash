@@ -83,7 +83,6 @@ export const writeBuild = async (
         bundle,
         ref: diffBase,
         includeDiagrams: d2 !== null,
-        analysis: options.analysis,
       });
       output = diff.bundle;
       const changes = Object.values(diff.bundle.manifest.diff?.pages ?? {});

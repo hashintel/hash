@@ -17,7 +17,6 @@ import { report, summarise } from "./shared/report";
 import { serveSite, syncSite, type SiteServer } from "./site";
 
 import type { ArchinautConfig } from "./config";
-import type { Analysis } from "./pipeline/facts";
 
 const debounceMs = 100;
 
@@ -32,14 +31,13 @@ const describe = (build: SessionBuild): string => {
 export const serve = async (options: {
   config: ArchinautConfig;
   port: number;
-  analysis: Analysis;
 }): Promise<void> => {
   const { config, port } = options;
   const log = (line: string): void => {
     process.stdout.write(`${line}\n`);
   };
   const bundleRoot = join(config.root, config.outputDirectory);
-  const session = createDevSession(config, { analysis: options.analysis, log });
+  const session = createDevSession(config, { log });
 
   const start = async (): Promise<SiteServer> => {
     const server = await serveSite({ config, bundleRoot, port });
