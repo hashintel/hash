@@ -137,6 +137,17 @@ const processResponseStream = <E, R>(
       });
     }),
     Stream.flattenIterable,
+    Stream.concat(
+      Stream.fromIterableEffect(
+        Effect.suspend(() =>
+          // no later control segment follows the last error, so it is emitted once the stream ends
+          Option.match(partialError, {
+            onNone: () => Effect.succeed([]),
+            onSome: Effect.fail,
+          }),
+        ),
+      ),
+    ),
   );
 };
 
