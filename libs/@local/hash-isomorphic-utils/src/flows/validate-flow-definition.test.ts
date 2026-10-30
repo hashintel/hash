@@ -199,6 +199,44 @@ describe("validateFlowDefinition", () => {
     ]);
   });
 
+  it("rejects a constant that isn't a valid value of its kind, with the path to the problem", () => {
+    const { diagnostics } = validateFlowDefinition({
+      ...baseDefinition,
+      steps: [
+        {
+          kind: "action",
+          stepId: "first",
+          actionDefinitionId: "takeFirst",
+          description: "",
+          inputs: {
+            items: {
+              kind: "constant",
+              payload: {
+                kind: "Duration",
+                value: [
+                  { amount: 1, unit: "days" },
+                  { amount: 1, unit: "years" },
+                ],
+              },
+            },
+            count: { kind: "constant", payload: { kind: "Number", value: 1 } },
+          },
+        },
+      ],
+    });
+
+    expect(diagnostics.filter(({ severity }) => severity === "error")).toEqual([
+      {
+        severity: "error",
+        code: "invalidConstant",
+        message: expect.stringMatching(
+          /^A Duration constant is invalid at \[1\]\.unit: /,
+        ) as string,
+        path: ["steps", 0, "inputs", "items", "payload", "value"],
+      },
+    ]);
+  });
+
   it("accepts steps in any order", () => {
     expect(
       diagnosticsOf({
@@ -855,12 +893,19 @@ describe("validateFlowDefinition", () => {
       expect(errorsOf(properties)).toEqual([]);
     });
 
-    it.each([
+    it.each<{
+      name: string;
+      value: unknown;
+      message: string;
+      constantMessage?: string;
+    }>([
       {
         name: "properties without metadata",
         value: { [nameUrl]: "Ada" },
         message:
           "Properties must be an object whose value is keyed by property type base URL.",
+        constantMessage:
+          "A PropertyObjectWithMetadata constant is invalid at value: Invalid input: expected record, received undefined",
       },
       {
         name: "a property type versioned URL rather than a base URL",
@@ -885,8 +930,18 @@ describe("validateFlowDefinition", () => {
         },
         message: `Property ${emailUrl} must give the data type ID of each of its values.`,
       },
-    ])("rejects $name", ({ value, message }) => {
+    ])("rejects $name", ({ value, message, constantMessage }) => {
       expect(errorsOf(constant(value))).toEqual([
+        ...(constantMessage
+          ? [
+              {
+                severity: "error",
+                code: "invalidConstant",
+                message: constantMessage,
+                path: ["steps", 0, "inputs", "properties", "payload", "value"],
+              },
+            ]
+          : []),
         {
           severity: "error",
           code: "invalidInput",
@@ -1074,7 +1129,12 @@ describe("validateFlowDefinition", () => {
       ]);
     });
 
-    it.each([
+    it.each<{
+      name: string;
+      value: unknown;
+      message: string;
+      constantMessage?: string;
+    }>([
       {
         name: "no patches, without types",
         value: [],
@@ -1084,6 +1144,8 @@ describe("validateFlowDefinition", () => {
         name: "an op the graph doesn't have",
         value: [{ op: "move", path: [nameUrl] }],
         message: "Property patch 1 must have an op of add, remove, replace.",
+        constantMessage:
+          "A PropertyPatch constant is invalid at [0].op: Invalid discriminator value. Expected 'add' | 'replace' | 'remove'",
       },
       {
         name: "a path of a property type versioned URL",
@@ -1122,8 +1184,25 @@ describe("validateFlowDefinition", () => {
         ],
         message: `Property ${nameUrl} must give the data type ID of each of its values.`,
       },
-    ])("rejects $name", ({ value, message }) => {
+    ])("rejects $name", ({ value, message, constantMessage }) => {
       expect(errorsOf(constant(value))).toEqual([
+        ...(constantMessage
+          ? [
+              {
+                severity: "error",
+                code: "invalidConstant",
+                message: constantMessage,
+                path: [
+                  "steps",
+                  0,
+                  "inputs",
+                  "propertyPatches",
+                  "payload",
+                  "value",
+                ],
+              },
+            ]
+          : []),
         {
           severity: "error",
           code: "invalidInput",

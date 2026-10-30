@@ -219,24 +219,6 @@ export type KindWithTrait<Trait extends "fields" | "entity"> = {
     : never;
 }[PayloadKind];
 
-const primitiveJsonTypes = {
-  text: "string",
-  number: "number",
-  date: "string",
-  datetime: "string",
-  boolean: "boolean",
-} as const satisfies Record<PayloadPrimitive, string>;
-
-export type PayloadJsonType =
-  | (typeof primitiveJsonTypes)[PayloadPrimitive]
-  | "object";
-
-/** How a value of a payload kind is represented in JSON, for checking constants. */
-export const getPayloadKindJsonType = (kind: PayloadKind): PayloadJsonType => {
-  const { primitive } = payloadKindTraits[kind];
-  return primitive === null ? "object" : primitiveJsonTypes[primitive];
-};
-
 /**
  * Every payload kind, for an action input that accepts any of them (e.g. the items of a `filter` action).
  *
