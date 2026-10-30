@@ -9296,6 +9296,7 @@ __metadata:
     eslint: "npm:9.39.4"
     rimraf: "npm:6.1.3"
     typescript: "catalog:"
+    vite: "catalog:"
     vitest: "catalog:"
   languageName: unknown
   linkType: soft
