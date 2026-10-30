@@ -46,8 +46,8 @@ export const getStorageProvider = (): FileStorageProvider => {
 };
 
 /**
- * The type of the failure thrown for a payload value that isn't valid of its kind. Retrying can't change a stored
- * value, and an action that computed an invalid value is rejected without a retry, as an invalid output is.
+ * The type of the failure thrown for a payload value that isn't valid of its kind. An action that computed an invalid
+ * value is rejected without a retry, as an invalid output is.
  */
 const invalidPayloadValueFailureType = "InvalidPayloadValue";
 
@@ -251,25 +251,6 @@ const retrieveStoredValue = async (
 };
 
 /**
- * @throws a non-retryable failure, with the path of the invalid value, if a value retrieved from storage isn't valid
- *   of its kind (see `validatePayloadValue`).
- */
-const checkRetrievedValue = (params: {
-  kind: PayloadKind;
-  array: boolean;
-  value: unknown;
-}) => {
-  const problem = validatePayloadValue({ ...params, allowStoredRefs: false });
-
-  if (problem) {
-    throw ApplicationFailure.nonRetryable(
-      `The stored ${params.kind} value is invalid${describePayloadValueProblem(problem)}`,
-      invalidPayloadValueFailureType,
-    );
-  }
-};
-
-/**
  * The value a stored reference or payload value resolves to.
  */
 type ResolvedValue<Kind extends PayloadKind, Value> = Value extends
@@ -279,96 +260,34 @@ type ResolvedValue<Kind extends PayloadKind, Value> = Value extends
   : PayloadKindValues[Kind];
 
 /**
- * Retrieve a payload from S3 using a stored reference: a stored object, one item of a stored array, or a
- * concatenation of stored arrays. The value is checked against the reference's kind, as `resolvePayloadValue` checks.
- */
-export const retrievePayload = async <
-  Kind extends StorablePayloadKind,
-  StoredRef extends StoredPayloadRef<Kind>,
->(
-  context: ResolvePayloadContext,
-  ref: StoredRef,
-): Promise<ResolvedValue<Kind, StoredRef>> => {
-  const value = await retrieveStoredValue(context, ref);
-
-  checkRetrievedValue({ kind: ref.kind, array: ref.array, value });
-
-  return value as ResolvedValue<Kind, StoredRef>;
-};
-
-/**
- * The value a payload value resolves to: a stored reference retrieved, or the item references in an array retrieved
- * (e.g. one a flow wrapped from a singular item of a stored array). Inline values are returned as they are.
- */
-const resolveStoredValues = (
-  context: ResolvePayloadContext,
-  value: unknown,
-): Promise<unknown> =>
-  isStoredPayloadRef(value)
-    ? retrieveStoredValue(context, value)
-    : Array.isArray(value)
-      ? Promise.all(
-          value.map((item: unknown) =>
-            isStoredPayloadRef(item)
-              ? retrieveStoredValue(context, item)
-              : item,
-          ),
-        )
-      : Promise.resolve(value);
-
-/**
- * Resolve a payload value for an action to use, retrieving anything stored: a stored reference, or the item
- * references in an array (e.g. one a flow wrapped from a singular item of a stored array). Inline values are
- * returned as they are.
+ * Resolve a payload value to the actual value, retrieving anything stored: a stored reference, or the item
+ * references in an array (e.g. one a flow wrapped from a singular item of a stored array).
+ * Inline values are returned as they are.
  *
- * A value with anything retrieved is checked against `kind`'s schema (see `validatePayloadValue`), with the cost of a
- * pass over it, like parsing it. A wholly inline value isn't: it was checked when the flow was given it, or when the
- * action that returned it did.
- *
- * @throws a non-retryable failure, with the path of the invalid value, if a retrieved value isn't valid of `kind`.
+ * @param _kind - The payload kind, used for type inference at call sites
  */
 export const resolvePayloadValue = async <
   Kind extends PayloadKind,
   Value extends PayloadValue<Kind, boolean>,
 >(
   context: ResolvePayloadContext,
-  kind: Kind,
+  _kind: Kind,
   value: Value,
 ): Promise<ResolvedValue<Kind, Value>> => {
-  if (
-    !isStoredPayloadRef(value) &&
-    !(Array.isArray(value) && value.some(isStoredPayloadRef))
-  ) {
-    return value as ResolvedValue<Kind, Value>;
-  }
-
-  const resolved = await resolveStoredValues(context, value);
-
-  checkRetrievedValue({
-    kind,
-    array: isStoredPayloadRef(value) ? value.array : true,
-    value: resolved,
-  });
+  const resolved = isStoredPayloadRef(value)
+    ? await retrieveStoredValue(context, value)
+    : Array.isArray(value)
+      ? await Promise.all(
+          (value as unknown[]).map((item) =>
+            isStoredPayloadRef(item)
+              ? retrieveStoredValue(context, item)
+              : item,
+          ),
+        )
+      : value;
 
   return resolved as ResolvedValue<Kind, Value>;
 };
-
-/**
- * Resolve a payload value to show it, e.g. in a run's events or outputs, as `resolvePayloadValue` does but without
- * checking the value against its kind's schema. Values stored before the schemas existed, or before a schema was
- * tightened, are shown as they are.
- *
- * @param _kind - The payload kind, used for type inference at call sites
- */
-export const resolvePayloadValueToShow = async <
-  Kind extends PayloadKind,
-  Value extends PayloadValue<Kind, boolean>,
->(
-  context: ResolvePayloadContext,
-  _kind: Kind,
-  value: Value,
-): Promise<ResolvedValue<Kind, Value>> =>
-  (await resolveStoredValues(context, value)) as ResolvedValue<Kind, Value>;
 
 /**
  * Resolves an input payload of any kind, downloading it if it's stored, and returns its value with its kind.

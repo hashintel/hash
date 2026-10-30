@@ -10,8 +10,6 @@ import {
 import {
   resolveInputPayload,
   resolvePayloadValue,
-  resolvePayloadValueToShow,
-  retrievePayload,
   prepareOutputPayload,
   storePayload,
 } from "./payload-storage.js";
@@ -425,70 +423,6 @@ describe("stored arrays", () => {
 
     expect(getDownloadCount()).toBe(0);
   });
-});
-
-describe("checking values against their kind's schema", () => {
-  it("refuses to store an invalid value, saying where it's invalid, without a retry", async () => {
-    const { storageProvider, getObjectCount } = createMemoryStorageProvider();
-
-    const storing = storeEntities(storageProvider, "persist", [
-      entity(0),
-      { ...entity(1), entityTypeIds: [] } as unknown as ProposedEntity,
-    ]);
-
-    await expect(storing).rejects.toThrow(
-      'Can\'t store output "proposedEntities", which is invalid at [1].entityTypeIds: ',
-    );
-    await expect(storing).rejects.toMatchObject({ nonRetryable: true });
-    expect(getObjectCount()).toBe(0);
-  });
-
-  /** A stored array whose second item is invalid, as a value stored before its kind had a schema could be. */
-  const storeInvalidEntities = async (storageProvider: FileStorageProvider) => {
-    const ref = await storeEntities(storageProvider, "persist", [
-      entity(0),
-      entity(1),
-    ]);
-
-    await storageProvider.uploadDirect({
-      key: ref.storageKey,
-      body: JSON.stringify([entity(0), { ...entity(1), properties: [] }]),
-      contentType: "application/json",
-    });
-
-    return ref;
-  };
-
-  it("fails to resolve an invalid stored value for an action, saying where it's invalid", async () => {
-    const { storageProvider } = createMemoryStorageProvider();
-    const context = { storageProvider, workflowId };
-
-    const ref = await storeInvalidEntities(storageProvider);
-    const [firstItem, secondItem] = getArrayPayloadItems(
-      ref,
-    ) as StoredItemRef<"ProposedEntity">[];
-
-    const resolving = resolvePayloadValue(context, "ProposedEntity", ref);
-
-    await expect(resolving).rejects.toThrow(
-      "The stored ProposedEntity value is invalid at [1].properties: ",
-    );
-    await expect(resolving).rejects.toMatchObject({ nonRetryable: true });
-    await expect(retrievePayload(context, ref)).rejects.toThrow(
-      "The stored ProposedEntity value is invalid at [1].properties: ",
-    );
-
-    await expect(
-      resolvePayloadValue(context, "ProposedEntity", secondItem!),
-    ).rejects.toThrow(
-      "The stored ProposedEntity value is invalid at properties: ",
-    );
-
-    /* Only what the action reads is checked, so an item of the array that is valid resolves. */
-    await expect(
-      resolvePayloadValue(context, "ProposedEntity", firstItem!),
-    ).resolves.toEqual(entity(0));
-  });
 
   it("fails to resolve a concatenation with a part that isn't a stored array", async () => {
     const { storageProvider } = createMemoryStorageProvider();
@@ -518,53 +452,22 @@ describe("checking values against their kind's schema", () => {
       "A concatenation has a part that is a stored value that isn't an array",
     );
   });
+});
 
-  it("says where an invalid item is in an array a flow wrapped it in", async () => {
-    const { storageProvider } = createMemoryStorageProvider();
-    const context = { storageProvider, workflowId };
+describe("checking values against their kind's schema", () => {
+  it("refuses to store an invalid value, saying where it's invalid, without a retry", async () => {
+    const { storageProvider, getObjectCount } = createMemoryStorageProvider();
 
-    const ref = await storePayload({
-      storageProvider,
-      workflowId,
-      runId: `run-${Math.random()}`,
-      stepId: "persist",
-      outputName: "persistedEntities",
-      kind: "PersistedEntityMetadata",
-      value: [{ entityId: entityId(0), operation: "create" }],
-    });
+    const storing = storeEntities(storageProvider, "persist", [
+      entity(0),
+      { ...entity(1), entityTypeIds: [] } as unknown as ProposedEntity,
+    ]);
 
-    await storageProvider.uploadDirect({
-      key: ref.storageKey,
-      body: JSON.stringify([{ entityId: "web~entity", operation: "create" }]),
-      contentType: "application/json",
-    });
-
-    const [item] = getArrayPayloadItems(
-      ref,
-    ) as StoredItemRef<"PersistedEntityMetadata">[];
-
-    await expect(
-      resolveInputPayload(context, {
-        kind: "PersistedEntityMetadata",
-        value: [item!],
-      }),
-    ).rejects.toThrow(
-      "The stored PersistedEntityMetadata value is invalid at [0].entityId: Expected an entity id",
+    await expect(storing).rejects.toThrow(
+      'Can\'t store output "proposedEntities", which is invalid at [1].entityTypeIds: ',
     );
-  });
-
-  it("resolves an invalid stored value to show it, as it was stored", async () => {
-    const { storageProvider } = createMemoryStorageProvider();
-
-    const ref = await storeInvalidEntities(storageProvider);
-
-    await expect(
-      resolvePayloadValueToShow(
-        { storageProvider, workflowId },
-        "ProposedEntity",
-        ref,
-      ),
-    ).resolves.toEqual([entity(0), { ...entity(1), properties: [] }]);
+    await expect(storing).rejects.toMatchObject({ nonRetryable: true });
+    expect(getObjectCount()).toBe(0);
   });
 });
 

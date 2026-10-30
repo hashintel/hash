@@ -1,4 +1,4 @@
-import { resolvePayloadValueToShow } from "@local/hash-backend-utils/flows/payload-storage";
+import { resolvePayloadValue } from "@local/hash-backend-utils/flows/payload-storage";
 import { findRunFinishedEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 
 import { FlowRunStatus } from "../../api-types.gen";
@@ -69,7 +69,7 @@ export const flowRunOutputsResolver: FlowRunEndingResolver<
       outputName,
       payload: {
         kind: payload.kind,
-        value: await resolvePayloadValueToShow(
+        value: await resolvePayloadValue(
           {
             storageProvider: context.dataSources.uploadProvider,
             workflowId: ending.workflowId,
