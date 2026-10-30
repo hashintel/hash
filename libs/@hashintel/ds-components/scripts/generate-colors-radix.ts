@@ -407,72 +407,68 @@ function writeColorFile(palette: ColorPalette): void {
 }
 
 /**
- * Generate static tokens for black and white (non-semantic).
+ * Generate black and white as mode-relative pole tokens: they invert in dark
+ * mode (white ↔ black), matching the neutral scale's s00/a125 endpoints, so
+ * "white" always means "the surface pole" and "black" "the ink pole".
  * Scales use a00-a120 with half-steps (a05, a15, ..., a115) interpolated in OKLCH.
+ * Truly static shadows/scrims must use literal rgba values instead.
  */
 function generateStaticColorTokens(): string {
-  const blackAlphas = [
-    0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95,
-  ];
-  const whiteAlphas = [
+  const alphas = [
     0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95,
   ];
 
-  function buildStaticLines(
-    r: number,
-    g: number,
-    b: number,
-    alphas: number[],
-  ): string {
-    const lines: string[] = [];
+  function buildAlphaScale(r: number, g: number, b: number): string[] {
+    const values: string[] = [];
     for (let i = 0; i < alphas.length; i++) {
-      const key = `a${String(i * 10).padStart(2, "0")}`;
       const a = alphas[i]!;
-      if (a === 0) {
-        lines.push(`  ${key}: { value: "rgba(${r}, ${g}, ${b}, 0)" },`);
-      } else {
-        lines.push(`  ${key}: { value: "rgba(${r}, ${g}, ${b}, ${a})" },`);
-      }
+      values.push(`rgba(${r}, ${g}, ${b}, ${a})`);
 
       if (i < alphas.length - 1) {
-        const halfKey = `a${String(i * 10 + 5).padStart(2, "0")}`;
         const currentVal = `rgba(${r}, ${g}, ${b}, ${a})`;
         const nextVal = `rgba(${r}, ${g}, ${b}, ${alphas[i + 1]})`;
-        const mid = interpolateColorRgba(
-          a === 0 ? "transparent" : currentVal,
-          nextVal,
+        values.push(
+          interpolateColorRgba(a === 0 ? "transparent" : currentVal, nextVal),
         );
-        lines.push(`  ${halfKey}: { value: "${mid}" },`);
       }
     }
 
     // a125: extrapolate from a115 → a120 delta
     const lastIdx = alphas.length - 1;
-    const prevIdx = lastIdx - 1;
-    const a115Val = `rgba(${r}, ${g}, ${b}, ${alphas[prevIdx]})`;
-    const a115Mid = interpolateColorRgba(
-      a115Val,
-      `rgba(${r}, ${g}, ${b}, ${alphas[lastIdx]})`,
-    );
+    const a115Val = `rgba(${r}, ${g}, ${b}, ${alphas[lastIdx - 1]})`;
     const a120Val = `rgba(${r}, ${g}, ${b}, ${alphas[lastIdx]})`;
-    const extrapolated = extrapolateColorRgba(a115Mid, a120Val);
-    lines.push(`  a125: { value: "${extrapolated}" },`);
+    const a115Mid = interpolateColorRgba(a115Val, a120Val);
+    values.push(extrapolateColorRgba(a115Mid, a120Val));
 
+    return values;
+  }
+
+  function buildSemanticLines(light: string[], dark: string[]): string {
+    const lines: string[] = [];
+    for (let i = 0; i < light.length; i++) {
+      const key = `a${String(i * 5).padStart(2, "0")}`;
+      lines.push(
+        `  ${key}: { value: { _light: "${light[i]}", _dark: "${dark[i]}" } },`,
+      );
+    }
     return lines.join("\n");
   }
 
-  const blackLines = buildStaticLines(0, 0, 0, blackAlphas);
-  const whiteLines = buildStaticLines(255, 255, 255, whiteAlphas);
+  const blackScale = buildAlphaScale(0, 0, 0);
+  const whiteScale = buildAlphaScale(255, 255, 255);
 
-  return `import { defineTokens } from "@pandacss/dev";
+  const blackLines = buildSemanticLines(blackScale, whiteScale);
+  const whiteLines = buildSemanticLines(whiteScale, blackScale);
 
-const black = defineTokens.colors({
-  DEFAULT: { value: "#000000" },
+  return `import { defineSemanticTokens } from "@pandacss/dev";
+
+const black = defineSemanticTokens.colors({
+  DEFAULT: { value: { _light: "#000000", _dark: "#ffffff" } },
 ${blackLines}
 });
 
-const white = defineTokens.colors({
-  DEFAULT: { value: "#ffffff" },
+const white = defineSemanticTokens.colors({
+  DEFAULT: { value: { _light: "#ffffff", _dark: "#000000" } },
 ${whiteLines}
 });
 
@@ -503,7 +499,7 @@ export const palettes = {
   ${colorExports},
 };
 
-/** Static color tokens (black, white with alpha scales). */
+/** Black/white pole tokens (invert in dark mode) with alpha scales. */
 export { staticColors };
 
 /** Re-export individual palettes for direct import. */

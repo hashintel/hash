@@ -228,15 +228,18 @@ export const styles = sva({
       css: {
         root: {
           "--banner-solid": "var(--colors-yellow-s100)",
-          "--banner-text-color": "var(--colors-black)",
-          "--banner-dismiss-hover-color": "var(--colors-black)",
-          "--banner-dismiss-hover-bg": "var(--colors-black-a10)",
+          // The yellow fill stays bright in dark mode, so the ink must stay
+          // dark in both modes: yellow's onSolid resolves dark either way,
+          // and the dismiss-hover haze is a static dark alpha.
+          "--banner-text-color": "var(--colors-yellow-fg-on-solid)",
+          "--banner-dismiss-hover-color": "var(--colors-yellow-fg-on-solid)",
+          "--banner-dismiss-hover-bg": "[rgba(0, 0, 0, 0.05)]",
           "& [data-banner-actions] .banner-action-button": {
             backgroundColor: "white",
-            color: "var(--banner-text-color)",
+            color: "fg.max",
             "&:not([aria-disabled=true]):hover": {
-              backgroundColor: "[color-mix(in srgb, black 6%, white)]",
-              color: "var(--banner-text-color)",
+              backgroundColor: "neutral.s30",
+              color: "fg.max",
             },
           },
         },

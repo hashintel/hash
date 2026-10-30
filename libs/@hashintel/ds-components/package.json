@@ -74,7 +74,7 @@
     "codegen:tokens": "tsx scripts/generate-tokens.ts",
     "dev": "yarn dev:storybook",
     "dev:lib": "tsup --config tsup.config.ts --watch",
-    "dev:storybook": "storybook dev -p \"${PORT:-61000}\" --ci --no-version-updates",
+    "dev:storybook": "NODE_OPTIONS=--dns-result-order=ipv4first storybook dev -p \"${PORT:-61000}\" --ci --no-version-updates",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:eslint": "eslint --cache --fix .",
     "fix:format": "oxfmt --write",
