@@ -6,17 +6,17 @@
  * @module
  */
 // oxlint-disable import/max-dependencies -- the collector composes every construction module
-import { Cause, Data, Option, Result, pipe } from "effect";
+import { Cause, Data, Option, Pipeable, Result, pipe } from "effect";
 
 import * as Referential from "../internal/referential.js";
 import * as StructuralSyntax from "../internal/structural.js";
-import * as JExpr from "../JExpr/index.js";
 import * as AST from "../Program/AST/index.js";
 import * as Expression from "../Program/Expression.js";
 import * as Import from "../Program/Import/index.js";
 import * as Namespace from "../Program/Namespace.js";
 import * as Operators from "../Program/Operators.js";
 import * as ProgramError from "../Program/ProgramError.js";
+import * as Query from "../Program/Query.js";
 import * as TAST from "../Program/TAST/index.js";
 import * as TypeExpression from "../Program/TypeExpression.js";
 
@@ -35,10 +35,6 @@ interface NominalBinding {
   readonly binding: AST.Binding.Type;
   readonly valueReference: Referential.ReferenceId<"value">;
 }
-
-/** The one-segment path that spells a binding's name. */
-const bare = (name: JExpr.Ident.Ident): JExpr.Path.Path =>
-  JExpr.Path.make({ rooted: false, segments: [{ name, arguments: [] }] });
 
 /** Adds structural argument normalization without losing the nominal identity on relocation. */
 const nominalValue = <N extends string, T extends Type.Any>(
@@ -82,7 +78,8 @@ const nominal = <N extends string, T extends Type.Any>(
   const type = pipe(
     nominalBinding,
     Result.map(
-      ({ binding }) => new TAST.Reference(bare(binding.name), [], binding.id),
+      ({ binding }) =>
+        new TAST.Reference(Referential.bare(binding.name), [], binding.id),
     ),
     TypeExpression.fromNode<Type.Opaque<N, T>>,
   );
@@ -91,7 +88,7 @@ const nominal = <N extends string, T extends Type.Any>(
     nominalBinding,
     Result.map(
       ({ binding, valueReference }) =>
-        new AST.Path(bare(binding.name), valueReference),
+        new AST.Path(Referential.bare(binding.name), valueReference),
     ),
     Expression.fromResult<
       Type.Function<readonly [T], Type.Opaque<N, T>>,
@@ -105,6 +102,20 @@ const nominal = <N extends string, T extends Type.Any>(
     TypeExpression.TypeExpression<Type.Opaque<N, T>>
   >(value, type);
 };
+
+/** `Context.Query` with its vertex type and requirements erased, which `Context.Queries` restores. */
+interface ErasedQuery<
+  S extends Scope.Scope.Any,
+> extends Expression.Expression.Handle<Query.Graph<Type.Any>, Inputs.Empty> {
+  readonly filter: (
+    name: string,
+    predicate: (
+      $: Context.Context<S>,
+      vertex: Expression.Expression<Type.Any, Inputs.Empty>,
+    ) => Expression.Value<Type.PrimitiveBoolean>,
+  ) => ErasedQuery<S>;
+  readonly collect: () => Expression.Expression.Any;
+}
 
 /** Stops a callback when an import cannot supply its promised handles. */
 const ConstructionFailure = Data.TaggedError("DraftConstructionFailure")<{
@@ -130,6 +141,7 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
   readonly isTrue = Operators.isTrue;
   readonly isFalse = Operators.isFalse;
   readonly isNone = Operators.isNone;
+  readonly query: Context.Queries<S>;
 
   constructor(
     scope: S & Namespace.Rebindable<S>,
@@ -139,8 +151,11 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     this.#next = next;
     this.#prelude = Namespace.flatten<S>(scope);
     this.#modules = Namespace.modules<S>(scope);
+    this.query = Object.assign(this.#start.bind(this), {
+      entities: this.#entities.bind(this),
+    });
 
-    // make sure that destructuring `$` works as expected by binding `this` to each method
+    // Binding each method to this context keeps it working after a caller destructures `$`.
     this.prelude = this.prelude.bind(this);
     this.modules = this.modules.bind(this);
     this.import = this.import.bind(this);
@@ -242,7 +257,10 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
 
     return pipe(
       declaration,
-      Result.map(({ binding }) => new AST.Path(bare(binding.name), binding.id)),
+      Result.map(
+        ({ binding }) =>
+          new AST.Path(Referential.bare(binding.name), binding.id),
+      ),
       Expression.fromResult<Type.Any, Inputs.Empty>,
     );
   }
@@ -271,7 +289,9 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
 
     return pipe(
       binding,
-      Result.map(({ id, name }) => new TAST.Reference(bare(name), [], id)),
+      Result.map(
+        ({ id, name }) => new TAST.Reference(Referential.bare(name), [], id),
+      ),
       TypeExpression.fromNode<Structural.Definition.Type<D>>,
     );
   }
@@ -352,6 +372,50 @@ class ContextImpl<S extends Scope.Scope.Any> implements Context.Context<S> {
     );
   }
 
+  #start<const G extends Expression.Expression.Any>(
+    graph: G & Query.Graph.Check<G>,
+  ): Context.Query<S, Query.Graph.Vertex<G>, Expression.Value.Inputs<G>>;
+  #start(graph: Expression.Expression.Any): Expression.Expression.Any {
+    return this.#query(graph);
+  }
+
+  #entities<const A extends Expression.Value<Query.QueryTemporalAxes>>(
+    axis: A,
+  ): Context.Query<S, Query.Entity, Expression.Value.Inputs<A>>;
+  #entities(
+    axis: Expression.Value<Query.QueryTemporalAxes>,
+  ): Expression.Expression.Any {
+    return this.#query(Query.entities(axis));
+  }
+
+  /** Adds `filter` and `collect` to a graph expression. The vertex type stays erased here, and `Context.Queries` restores it. */
+  #query(graph: Expression.Expression.Any): ErasedQuery<S> {
+    const scope = this.#scope;
+    const next = this.#next;
+    const expression = pipe(
+      graph,
+      Expression.toNode,
+      Expression.fromResult<Query.Graph<Type.Any>, Inputs.Empty>,
+    );
+
+    return {
+      ...expression,
+      ...Pipeable.Prototype,
+      filter: (name, predicate) =>
+        this.#query(
+          Query.filter(expression, name, (vertex) =>
+            pipe(
+              new ContextImpl<S>(scope, next).build(($) =>
+                predicate($, vertex),
+              ),
+              Expression.fromResult<Type.PrimitiveBoolean, Inputs.Empty>,
+            ),
+          ),
+        ),
+      collect: () => Query.collect(expression),
+    };
+  }
+
   build(
     body: ($: Context.Context<S>) => Expression.Value.Any,
   ): Result.Result<AST.Node.Any, ProgramError.Construction> {
@@ -414,7 +478,7 @@ export const evaluate = <
       scope,
       Referential.referenceProducer(Symbol("~hashql/Draft")),
     ).build(($) => {
-      // SAFETY: the restricted view runs these same operations. It narrows what `let` and `if` accept, and its `if` reports the whole schema as requirements, which TypeScript cannot relate to the requirements the shared `if` computes.
+      // SAFETY: the restricted view runs these same operations. It narrows what `let`, `if` and `query` accept, and its `if` and `filter` report the whole schema as requirements, which TypeScript cannot relate to the requirements the shared operations compute.
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the restricted view is a type-level policy over the unrestricted context
       const expression = body($ as Body.Context<S, Body.Requirements<I>>);
       if (Expression.isExpression(expression)) {
