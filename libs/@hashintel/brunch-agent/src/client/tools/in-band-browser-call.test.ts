@@ -1,6 +1,10 @@
 import { afterEach, expect, test, vi } from "vitest";
 
-import { canonicalContent } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  canonicalContent,
+  hashGraphReadToolNames,
+} from "@hashintel/brunch-agent";
 
 import { createInBandBrowserCalls } from "./in-band-browser-call";
 
@@ -276,4 +280,83 @@ test("a change whose expected revision the document has left is reported stale a
   expect(prepareInput).not.toHaveBeenCalled();
   await issued.fail("unstarted");
   expect(posted).toEqual([expect.objectContaining({ disposition: "stale" })]);
+});
+
+const hashRead = {
+  toolName: brunchTools.queryHashEntities,
+  input: { entityTypes: ["Supplier"], traversalDepth: 1 },
+};
+const stubHashReadFetch = () => {
+  const posted: { url: string; body: unknown }[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async (url, init) => {
+      if (init?.method === "POST") {
+        posted.push({
+          url: typeof url === "string" ? url : "",
+          body: typeof init.body === "string" ? JSON.parse(init.body) : null,
+        });
+        return new Response(null, { status: 200 });
+      }
+      return Response.json({
+        capability: "capability",
+        binding: canonicalContent(binding),
+        ...hashRead,
+      });
+    }),
+  );
+  return posted;
+};
+
+test("HASH's graph reads run in band beside the net tools, and the draft still runs through its card", () => {
+  const calls = createCalls();
+  expect(hashGraphReadToolNames.size).toBe(3);
+  for (const name of hashGraphReadToolNames) expect(calls.has(name)).toBe(true);
+  expect(calls.has("readNetOutline")).toBe(true);
+  expect(calls.has(brunchTools.draftPetrinautExperiment)).toBe(false);
+  expect(calls.has("unmounted_tool")).toBe(false);
+});
+
+test("HASH's entity read is claimed for the input the server issued and settles with the page's result", async () => {
+  const posted = stubHashReadFetch();
+  const output = { entities: [] };
+
+  await createCalls().run(
+    {
+      toolCallId: "read",
+      ...hashRead,
+      signal: new AbortController().signal,
+    },
+    async (issuedInput) => {
+      expect(issuedInput).toEqual(hashRead.input);
+      return output;
+    },
+  );
+
+  expect(posted.map(({ url }) => url)).toEqual([
+    "http://brunch.local/agents/petrinaut/instance/browser-calls/read",
+  ]);
+  expect(posted[0]?.body).toMatchObject({
+    toolName: brunchTools.queryHashEntities,
+    canonicalInput: hashRead.input,
+    output,
+  });
+});
+
+test("a HASH entity read whose host tool throws is reported failed", async () => {
+  const posted = stubHashReadFetch();
+  const failure = new Error("GraphQL error");
+
+  await expect(
+    createCalls().run(
+      { toolCallId: "read", ...hashRead, signal: new AbortController().signal },
+      async () => {
+        throw failure;
+      },
+    ),
+  ).rejects.toBe(failure);
+  expect(posted.map(({ url }) => url)).toEqual([
+    "http://brunch.local/agents/petrinaut/instance/browser-calls/read/fail",
+  ]);
+  expect(posted[0]?.body).toMatchObject({ disposition: "failed" });
 });

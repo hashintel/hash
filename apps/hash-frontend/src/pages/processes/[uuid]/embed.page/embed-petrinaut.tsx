@@ -13,14 +13,15 @@ import {
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { useAuthInfo } from "../../../shared/auth-info-context";
+import { useBrunchHashHostTools } from "./brunch-hash-graph-reads";
 import { embedChromePlugin } from "./embed-chrome-plugin";
 
 import type { EntityId, UserId } from "@blockprotocol/type-system";
 
 const embedPlugins = [embedChromePlugin];
 
-/** Brunch's Petrinaut agent, reached through hash-api's Brunch route. */
-const brunchChatEndpoint = `${apiOrigin}/api/brunch/agents/petrinaut`;
+/** Brunch's HASH agent, reached through hash-api's Brunch route. */
+const brunchChatEndpoint = `${apiOrigin}/api/brunch/agents/hash`;
 
 /** Returns `{ ownerKey }` for the signed-in account. */
 const brunchIdentityEndpoint = `${apiOrigin}/api/brunch/identity`;
@@ -122,6 +123,7 @@ export const EmbedPetrinaut = ({
   title: string;
 }) => {
   const ownerKey = useBrunchOwnerKey();
+  const hostTools = useBrunchHashHostTools();
 
   const editor = useMemo(() => ({ handle, readTitle }), [handle, readTitle]);
   const openDocument = useMemo<BrunchOpenDocument | null>(
@@ -141,6 +143,8 @@ export const EmbedPetrinaut = ({
     interviewBudget: brunchInterviewBudget,
     words: brunchWords,
     plugins: embedPlugins,
+    // Reads of the HASH graph, run here as the signed-in user.
+    hostTools,
   });
 
   return (

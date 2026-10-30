@@ -4,6 +4,7 @@ import {
   browserNetToolNames,
   brunchRoutes,
   canonicalContent,
+  hashGraphReadToolNames,
 } from "@hashintel/brunch-agent";
 
 import type { FlueClient } from "@flue/sdk";
@@ -196,7 +197,10 @@ export const createInBandBrowserCalls = (input: {
     };
   };
   return {
-    has: (toolName: string) => browserNetToolNames.has(toolName),
+    // The draft runs through its own card; HASH's graph reads run here as
+    // host tools beside the net tools.
+    has: (toolName: string) =>
+      browserNetToolNames.has(toolName) || hashGraphReadToolNames.has(toolName),
     claim,
     /**
      * Claim at this call's turn, run it under a renewed lease, then settle it.

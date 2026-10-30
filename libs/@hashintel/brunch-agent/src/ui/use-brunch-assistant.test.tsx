@@ -571,9 +571,54 @@ test("mounts document-bound Brunch with canonical overrides and the complete sta
       "readNetOutline",
       "readNetStructure",
       brunchTools.draftPetrinautExperiment,
+      brunchTools.queryHashEntities,
+      brunchTools.queryHashEntityTypes,
+      brunchTools.queryHashWebs,
     ].toSorted(),
   );
   expect(aiAssistant.inBandBrowserTools?.has("readNetOutline")).toBe(true);
+});
+
+test("a host's own tools run beside Brunch's while a document is bound", async () => {
+  flueClientMock.current = {
+    history: async () => ({
+      conversation: {
+        conversationId: ordinaryConstructionConversationIdFrom(netOneId),
+        settlements: [],
+        messages: [],
+      },
+      offset: "offset-0",
+    }),
+    observe: () => ({
+      close: vi.fn(),
+      getSnapshot: () => ({ phase: "absent" }),
+      refresh: vi.fn(),
+      subscribe: () => () => undefined,
+    }),
+  };
+  const hashRead = {
+    toolName: brunchTools.queryHashEntities,
+    inputSchema: { parse: (value: unknown) => value },
+    outputSchema: { parse: (value: unknown) => value },
+    execute: async () => ({ entities: [] }),
+  };
+
+  const rendered = renderAssistant({ hostTools: [hashRead] });
+  await waitFor(() => expect(rendered.assistant()).toBeDefined());
+  const aiAssistant = rendered.assistant();
+
+  expect(aiAssistant.automaticTools?.at(-1)).toBe(hashRead);
+  expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
+    expect.arrayContaining(["getLatestNetDefinition", "readNetOutline"]),
+  );
+  expect(
+    aiAssistant.inBandBrowserTools?.has(brunchTools.queryHashEntities),
+  ).toBe(true);
+
+  rendered.rerender({ ...rendered.input, openDocument: null });
+  expect(rendered.result.current.assistant?.automaticTools ?? []).not.toContain(
+    hashRead,
+  );
 });
 
 test("an absent replay baseline stays immutable when admission refresh publishes its live calls", async () => {
