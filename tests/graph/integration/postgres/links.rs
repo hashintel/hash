@@ -1,10 +1,13 @@
 use alloc::borrow::Cow;
-use std::collections::HashSet;
+use core::{assert_matches, str::FromStr as _};
+use std::collections::{HashMap, HashSet};
 
 use hash_graph_store::{
     entity::{
         CreateEntityParams, EntityQueryPath, EntityQuerySorting, EntityStore as _,
-        PatchEntityParams, QueryEntitiesParams, SummarizeEntitiesParams,
+        EntityValidationReport, EntityValidationType, LinkedEntityError, PatchEntityParams,
+        QueryEntitiesParams, SummarizeEntitiesParams, ValidateEntityComponents,
+        ValidateEntityParams,
     },
     entity_type::EntityTypeQueryPath,
     filter::{Filter, FilterExpression, Parameter},
@@ -16,7 +19,7 @@ use hash_graph_store::{
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::{
     knowledge::{
-        entity::{Link, LinkEndpoint, provenance::ProvidedEntityEditionProvenance},
+        entity::{EntityId, Link, LinkEndpoint, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::id::{BaseUrl, OntologyTypeMajorVersion, OntologyTypeVersion, VersionedUrl},
@@ -24,7 +27,7 @@ use type_system::{
     provenance::{OriginProvenance, OriginType},
 };
 
-use crate::DatabaseTestWrapper;
+use crate::{DatabaseApi, DatabaseTestWrapper};
 
 #[tokio::test]
 #[expect(clippy::too_many_lines)]
@@ -794,4 +797,178 @@ async fn remove_link() {
         .expect("summarize_entities should include `count` when `include_count` is true")
         > 0;
     assert!(!has_link);
+}
+
+fn person_type_id() -> VersionedUrl {
+    VersionedUrl::from_str("https://blockprotocol.org/@alice/types/entity-type/person/v/1")
+        .expect("should be a valid entity type ID")
+}
+
+fn friend_of_type_id() -> VersionedUrl {
+    VersionedUrl::from_str("https://blockprotocol.org/@alice/types/entity-type/friend-of/v/1")
+        .expect("should be a valid entity type ID")
+}
+
+fn link_data(source: EntityId, target: EntityId) -> Link {
+    Link::Directed {
+        source: LinkEndpoint {
+            entity_id: source,
+            confidence: None,
+            provenance: PropertyProvenance::default(),
+        },
+        target: LinkEndpoint {
+            entity_id: target,
+            confidence: None,
+            provenance: PropertyProvenance::default(),
+        },
+    }
+}
+
+fn entity_params(
+    api: &DatabaseApi<'_>,
+    entity_type_id: VersionedUrl,
+    properties: PropertyObject,
+    link_data: Option<Link>,
+) -> CreateEntityParams {
+    CreateEntityParams {
+        web_id: WebId::new(api.account_id),
+        entity_uuid: None,
+        decision_time: None,
+        entity_type_ids: HashSet::from([entity_type_id]),
+        properties: PropertyObjectWithMetadata::from_parts(properties, None)
+            .expect("should create a property object with metadata"),
+        link_data,
+        draft: false,
+        policies: Vec::new(),
+        confidence: None,
+        provenance: ProvidedEntityEditionProvenance {
+            actor_type: ActorType::User,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
+        read_only: false,
+    }
+}
+
+/// Alice, Bob, and a link from Alice to Bob.
+async fn seed_friends(database: &mut DatabaseTestWrapper) -> (DatabaseApi<'_>, [EntityId; 3]) {
+    let mut api = database
+        .seed(
+            [
+                data_type::VALUE_V1,
+                data_type::TEXT_V1,
+                data_type::NUMBER_V1,
+            ],
+            [
+                property_type::NAME_V1,
+                property_type::AGE_V1,
+                property_type::FAVORITE_SONG_V1,
+                property_type::FAVORITE_FILM_V1,
+                property_type::HOBBY_V1,
+                property_type::INTERESTS_V1,
+            ],
+            [
+                entity_type::LINK_V1,
+                entity_type::link::FRIEND_OF_V1,
+                entity_type::link::ACQUAINTANCE_OF_V1,
+                entity_type::PERSON_V1,
+            ],
+        )
+        .await
+        .expect("should seed the database");
+
+    let mut create = async |entity_type_id, properties, link_data| {
+        let params = entity_params(&api, entity_type_id, properties, link_data);
+        api.create_entity(api.account_id, params)
+            .await
+            .expect("should create the entity")
+            .metadata
+            .record_id
+            .entity_id
+    };
+    let alice = create(
+        person_type_id(),
+        serde_json::from_str(entity::PERSON_ALICE_V1).expect("should parse Alice"),
+        None,
+    )
+    .await;
+    let bob = create(
+        person_type_id(),
+        serde_json::from_str(entity::PERSON_BOB_V1).expect("should parse Bob"),
+        None,
+    )
+    .await;
+    let link = create(
+        friend_of_type_id(),
+        PropertyObject::empty(),
+        Some(link_data(alice, bob)),
+    )
+    .await;
+
+    (api, [alice, bob, link])
+}
+
+/// The validation report of a friend-of link with `link_data`.
+async fn validate_friend_of(
+    api: &DatabaseApi<'_>,
+    link_data: Link,
+) -> HashMap<usize, EntityValidationReport> {
+    api.validate_entities(
+        api.account_id,
+        vec![ValidateEntityParams {
+            entity_types: EntityValidationType::Id(Cow::Owned(HashSet::from(
+                [friend_of_type_id()],
+            ))),
+            properties: Cow::Owned(
+                PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
+                    .expect("should create a property object with metadata"),
+            ),
+            link_data: Some(Cow::Owned(link_data)),
+            components: ValidateEntityComponents::full(),
+        }],
+    )
+    .await
+    .expect("should validate the link")
+}
+
+#[tokio::test]
+async fn link_to_link_left() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let (api, [alice, _, link]) = seed_friends(&mut database).await;
+
+    let reports = validate_friend_of(&api, link_data(link, alice)).await;
+
+    assert_matches!(
+        reports
+            .get(&0)
+            .and_then(|report| report.link.link_data_validation.left_entity.as_ref()),
+        Some(LinkedEntityError::Link(_)),
+        "should reject a link whose left entity is a link"
+    );
+}
+
+#[tokio::test]
+async fn link_to_link_create() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let (mut api, [alice, _, link]) = seed_friends(&mut database).await;
+
+    let params = entity_params(
+        &api,
+        friend_of_type_id(),
+        PropertyObject::empty(),
+        Some(link_data(alice, link)),
+    );
+    let error = api
+        .create_entity(api.account_id, params)
+        .await
+        .expect_err("should not create a link to a link");
+
+    assert_matches!(
+        error
+            .downcast_ref::<HashMap<usize, EntityValidationReport>>()
+            .and_then(|reports| reports.get(&0))
+            .and_then(|report| report.link.link_data_validation.right_entity.as_ref()),
+        Some(LinkedEntityError::Link(_)),
+        "should report the link the new link points to"
+    );
 }

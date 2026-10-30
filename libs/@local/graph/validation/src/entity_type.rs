@@ -8,8 +8,8 @@ use error_stack::{
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_store::entity::{
     EntityRetrieval, EntityTypeRetrieval, LinkDataStateError, LinkDataValidationReport, LinkError,
-    LinkTargetError, LinkValidationReport, LinkedEntityError, MissingLinkData,
-    PropertyMetadataValidationReport, UnexpectedEntityType, UnexpectedLinkData,
+    LinkTargetError, LinkValidationReport, LinkedEntityError, LinkedEntityIsLinkError,
+    MissingLinkData, PropertyMetadataValidationReport, UnexpectedEntityType, UnexpectedLinkData,
     ValidateEntityComponents,
 };
 use hash_graph_types::{
@@ -151,7 +151,8 @@ where
     }
 }
 
-async fn read_entity_type<P>(
+/// Reads the entity type of an entity a link points to, which must not be a link itself.
+async fn read_linked_entity_type<P>(
     entity_id: EntityId,
     provider: &P,
 ) -> Result<ClosedMultiEntityType, LinkedEntityError>
@@ -177,8 +178,14 @@ where
         .await
         .map_err(LinkedEntityError::EntityTypeRetrieval)?;
 
-    ClosedMultiEntityType::from_multi_type_closed_schema(entity_types)
-        .map_err(LinkedEntityError::ResolveClosedEntityType)
+    let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(entity_types)
+        .map_err(LinkedEntityError::ResolveClosedEntityType)?;
+    if entity_type.is_link() {
+        return Err(LinkedEntityError::Link(Report::new(
+            LinkedEntityIsLinkError { entity_id },
+        )));
+    }
+    Ok(entity_type)
 }
 
 impl<P> Validate<ClosedMultiEntityType, P> for Link
@@ -199,13 +206,13 @@ where
         let Self::Directed { source, target } = self;
         let mut validation_report = LinkDataValidationReport::default();
 
-        let source_entity_type = read_entity_type(source.entity_id, context)
+        let source_entity_type = read_linked_entity_type(source.entity_id, context)
             .await
             .map_err(|link_data_error| {
                 validation_report.left_entity = Some(link_data_error);
             })
             .ok();
-        let target_entity_type = read_entity_type(target.entity_id, context)
+        let target_entity_type = read_linked_entity_type(target.entity_id, context)
             .await
             .map_err(|link_data_error| {
                 validation_report.right_entity = Some(link_data_error);
