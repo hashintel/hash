@@ -1,0 +1,25 @@
+diff --git a/lib/parser.d.ts b/lib/parser.d.ts
+index 6effca17c40ad3723769690d1269a8a5fc86e8b0..6037f70e26232e5b61371fc04dcec5addda46af3 100644
+--- a/lib/parser.d.ts
++++ b/lib/parser.d.ts
+@@ -1,5 +1,5 @@
+-import * as ts from 'typescript';
+-import { SymbolDisplayPart } from 'typescript';
++import * as ts from '@typescript/typescript6';
++import { SymbolDisplayPart } from '@typescript/typescript6';
+ export interface StringIndexedObject<T> {
+     [key: string]: T;
+ }
+diff --git a/lib/parser.js b/lib/parser.js
+index e98cd6494df9f6f8ad2d09d6641ae2898ca8dd8a..8a73c1e28027afb7def5ef72b05785ae03555d6c 100644
+--- a/lib/parser.js
++++ b/lib/parser.js
+@@ -23,7 +23,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.getDefaultExportForFile = exports.Parser = exports.withCompilerOptions = exports.withCustomConfig = exports.withDefaultConfig = exports.parse = exports.defaultOptions = exports.defaultParserOpts = void 0;
+ var fs = require("fs");
+ var path = require("path");
+-var ts = require("typescript");
++var ts = require("@typescript/typescript6");
+ var buildFilter_1 = require("./buildFilter");
+ var trimFileName_1 = require("./trimFileName");
+ exports.defaultParserOpts = {};

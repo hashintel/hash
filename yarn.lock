@@ -8766,7 +8766,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@joshwooding/vite-plugin-react-docgen-typescript@npm:^0.7.0":
+"@joshwooding/vite-plugin-react-docgen-typescript@npm:0.7.0":
   version: 0.7.0
   resolution: "@joshwooding/vite-plugin-react-docgen-typescript@npm:0.7.0"
   dependencies:
@@ -8779,6 +8779,22 @@ __metadata:
     typescript:
       optional: true
   checksum: 10c0/6d1a353e4dd0d9d641beafcf8d5c36805ad7f916ae07b817642033bc85c388f819f92dc94db192117dedfaa5d981ac5ef72911315e3e4bf2fe9e23d8956618e6
+  languageName: node
+  linkType: hard
+
+"@joshwooding/vite-plugin-react-docgen-typescript@patch:@joshwooding/vite-plugin-react-docgen-typescript@npm%3A0.7.0#~/.yarn/patches/@joshwooding-vite-plugin-react-docgen-typescript-npm-0.7.0-d43736dfc5.patch":
+  version: 0.7.0
+  resolution: "@joshwooding/vite-plugin-react-docgen-typescript@patch:@joshwooding/vite-plugin-react-docgen-typescript@npm%3A0.7.0#~/.yarn/patches/@joshwooding-vite-plugin-react-docgen-typescript-npm-0.7.0-d43736dfc5.patch::version=0.7.0&hash=230148"
+  dependencies:
+    glob: "npm:^13.0.1"
+    react-docgen-typescript: "npm:^2.2.2"
+  peerDependencies:
+    typescript: ">= 4.3.x"
+    vite: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
+  peerDependenciesMeta:
+    typescript:
+      optional: true
+  checksum: 10c0/ba7809ef7d869ec74bb9eee037dd355031345193654b7768c8be5b3b81cc8c60ebec2eeb4b99dd8a52e4706f4eda8aa1ba888273ad8e083bd715c275757b74a4
   languageName: node
   linkType: hard
 
@@ -37754,12 +37770,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-docgen-typescript@npm:^2.2.2":
+"react-docgen-typescript@npm:2.2.2":
   version: 2.2.2
   resolution: "react-docgen-typescript@npm:2.2.2"
   peerDependencies:
     typescript: ">= 4.3.x"
   checksum: 10c0/d31a061a21b5d4b67d4af7bc742541fd9e16254bd32861cd29c52565bc2175f40421a3550d52b6a6b0d0478e7cc408558eb0060a0bdd2957b02cfceeb0ee1e88
+  languageName: node
+  linkType: hard
+
+"react-docgen-typescript@patch:react-docgen-typescript@npm%3A2.2.2#~/.yarn/patches/react-docgen-typescript-npm-2.2.2-afb9698a32.patch":
+  version: 2.2.2
+  resolution: "react-docgen-typescript@patch:react-docgen-typescript@npm%3A2.2.2#~/.yarn/patches/react-docgen-typescript-npm-2.2.2-afb9698a32.patch::version=2.2.2&hash=af777a"
+  peerDependencies:
+    typescript: ">= 4.3.x"
+  checksum: 10c0/0039a71d04de55bbe27649ede6c6c63c962618868e595002389777ad9ccf0303ee64bd2e6e597a23944f8abdb0693478df227060391f182a4cfdea9065e12d76
   languageName: node
   linkType: hard
 
