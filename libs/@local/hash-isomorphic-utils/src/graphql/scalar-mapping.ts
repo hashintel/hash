@@ -74,6 +74,7 @@ export const scalars = {
 
   Entity: "@local/hash-graph-sdk/entity#SerializedEntity",
   EntityRecordId: "@blockprotocol/type-system#EntityRecordId",
+  EntityEditionId: "@blockprotocol/type-system#EntityEditionId",
   EntityMetadata: "@blockprotocol/type-system#EntityMetadata",
   EntityValidationReport:
     "@local/hash-graph-sdk/validation#EntityValidationReport",
@@ -162,6 +163,8 @@ export const scalars = {
   ExternalInputResponseWithoutUser:
     "@local/hash-isomorphic-utils/flows/types#ExternalInputResponseWithoutUser",
   FlowRunEvent: "@local/hash-isomorphic-utils/flows/run-events#FlowRunEvent",
+  FlowDefinitionDiagnostic:
+    "@local/hash-isomorphic-utils/flows/validate-flow-definition#FlowDefinitionDiagnosticWithStepId",
   FlowInputValues: "@local/hash-isomorphic-utils/flows/types#FlowInputValues",
   ResolvedPayload: "@local/hash-isomorphic-utils/flows/types#ResolvedPayload",
 

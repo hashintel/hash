@@ -8,6 +8,11 @@ import {
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { cancelFlow } from "./flows/cancel-flow";
+import {
+  archiveFlowDefinitionResolver,
+  createFlowDefinitionResolver,
+  updateFlowDefinitionResolver,
+} from "./flows/flow-definition";
 import { flowRunDataSourcesResolver } from "./flows/flow-run-data-sources";
 import {
   flowRunFailureResolver,
@@ -300,6 +305,16 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     startFlow: loggedInAndSignedUpMiddleware(startFlow),
     submitExternalInputResponse: loggedInAndSignedUpMiddleware(
       submitExternalInputResponse,
+    ),
+
+    createFlowDefinition: loggedInAndSignedUpMiddleware(
+      createFlowDefinitionResolver,
+    ),
+    updateFlowDefinition: loggedInAndSignedUpMiddleware(
+      updateFlowDefinitionResolver,
+    ),
+    archiveFlowDefinition: loggedInAndSignedUpMiddleware(
+      archiveFlowDefinitionResolver,
     ),
 
     createFlowSchedule: loggedInAndSignedUpMiddleware(

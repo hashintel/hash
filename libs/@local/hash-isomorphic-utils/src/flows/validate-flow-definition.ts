@@ -713,6 +713,72 @@ export const getValidFlowDefinition = ({
     : null;
 
 /**
+ * The id of the innermost step a path into a definition goes through, if it goes through one with an id: e.g. the
+ * id of the first step of the third step for `["steps", 2, "steps", 0, "inputs", "question"]`.
+ */
+const getStepIdOnPath = (
+  input: unknown,
+  path: FlowDefinitionDiagnostic["path"],
+): string | undefined => {
+  let stepId: string | undefined;
+  let value = input;
+
+  for (const [index, segment] of path.entries()) {
+    if (
+      typeof value !== "object" ||
+      value === null ||
+      !Object.hasOwn(value, segment)
+    ) {
+      break;
+    }
+
+    value = Reflect.get(value, segment) as unknown;
+
+    if (
+      path[index - 1] === "steps" &&
+      typeof segment === "number" &&
+      typeof value === "object" &&
+      value !== null &&
+      "stepId" in value &&
+      typeof value.stepId === "string"
+    ) {
+      stepId = value.stepId;
+    }
+  }
+
+  return stepId;
+};
+
+export type FlowDefinitionDiagnosticWithStepId = FlowDefinitionDiagnostic & {
+  /** The id of the innermost step the problem is in, if it's in one. */
+  stepId?: string;
+};
+
+/**
+ * Gives each problem found in a definition the id of the step it's in, if it's in one: e.g. for a UI to show it on
+ * the step, as a step keeps its id when steps are moved, but the paths of the problems found in it shift.
+ */
+export const addStepIdsToDiagnostics = (
+  input: unknown,
+  diagnostics: FlowDefinitionDiagnostic[],
+): FlowDefinitionDiagnosticWithStepId[] =>
+  diagnostics.map((diagnostic) => {
+    const stepId = getStepIdOnPath(input, diagnostic.path);
+
+    return stepId === undefined ? diagnostic : { ...diagnostic, stepId };
+  });
+
+/**
+ * A list of problems for a message, one per line with where each is.
+ */
+export const formatFlowDefinitionDiagnostics = (
+  diagnostics: FlowDefinitionDiagnostic[],
+) =>
+  diagnostics
+    .map(({ path, message }) => `- ${path.join(".")}: ${message}`)
+    .join("\n");
+
+/**
  * Validates a flow definition, returning it typed as one whose actions all exist.
  *
  * @throws if the definition has validation errors, listing them all.
@@ -728,10 +794,9 @@ export const assertValidFlowDefinition = (input: unknown): FlowDefinition => {
         : "(unnamed)";
 
     throw new Error(
-      `Flow definition "${name}" is invalid:\n${validation.diagnostics
-        .filter(({ severity }) => severity === "error")
-        .map(({ path, message }) => `- ${path.join(".")}: ${message}`)
-        .join("\n")}`,
+      `Flow definition "${name}" is invalid:\n${formatFlowDefinitionDiagnostics(
+        validation.diagnostics.filter(({ severity }) => severity === "error"),
+      )}`,
     );
   }
 

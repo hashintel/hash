@@ -32,10 +32,10 @@ const toObjectArrayProperty = (values: object[]) => ({
 
 /**
  * The properties of the `Flow Definition` entity that holds a flow definition. Typed against the generated entity
- * type, so that the two can't drift apart.
+ * type, so that the two can't drift apart. The definition needn't be valid: a flow can be saved before it's finished.
  */
 export const mapFlowDefinitionToEntityProperties = (
-  flowDefinition: FlowDefinition,
+  flowDefinition: FlowDefinition<string>,
 ): FlowDefinitionPropertiesWithMetadata => ({
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": {
