@@ -23,7 +23,7 @@ const typescriptVersion = (
   require("typescript-7/package.json") as { version: string }
 ).version;
 
-/** Bumped whenever the walkers' output changes for the same input. */
+/** Bumped whenever the walker's output changes for the same input. */
 const walkerVersion = 3;
 
 /** What, besides the files, decides TypeScript facts. */
@@ -32,7 +32,6 @@ export const typeScriptSalt = (options: FactsOptions): string =>
     provider: "typescript",
     version: typescriptVersion,
     walker: walkerVersion,
-    analysis: options.analysis,
     paths: workspacePaths(options.repoRoot, options.packages),
   });
 
@@ -40,7 +39,6 @@ export const openTypeScriptSource = (options: FactsOptions): FactsSource => {
   const workerData: TypeScriptWorkerData = {
     repoRoot: options.repoRoot,
     paths: workspacePaths(options.repoRoot, options.packages),
-    analysis: options.analysis,
   };
   const worker = startWorker<TypeScriptRequest, TypeScriptResponse>(
     new URL("./typescript/worker-entry.js", import.meta.url),

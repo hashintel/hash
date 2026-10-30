@@ -2,11 +2,9 @@
  * Symbol facts: for every covered file, the symbols it defines and the
  * symbols it references, each named by its defining file. The model reads
  * nothing else from the code, so a provider is anything that can produce
- * this shape for a language, and the analysis depth is a choice:
- *
- * - `program` asks a type checker, so a reference through inference, such as
- *   a property of a type another file declares, counts.
- * - `syntactic` follows imports and re-export chains only, with no checker.
+ * this shape for a language. Each provider asks the language's own tooling,
+ * so a reference through inference, such as a property of a type another
+ * file declares, counts.
  *
  * A source holds a provider's state for a language so a dev session can ask
  * for an update after an edit; a one-shot build opens one, indexes, and
@@ -24,7 +22,6 @@ import type { ArchitecturePackage } from "../model";
 import type { Diagnostic } from "../shared/diagnostics";
 
 export type Language = ArchitecturePackage["language"];
-export type Analysis = "program" | "syntactic";
 
 export interface SymbolOccurrence {
   /** `<repo-relative file>#<name>`; `<file>#` is the module itself. */
@@ -59,7 +56,6 @@ export interface FactsSource {
 export interface FactsOptions {
   repoRoot: string;
   packages: ArchitecturePackage[];
-  analysis: Analysis;
   /** Absolute. */
   cacheDirectory: string;
 }
@@ -89,7 +85,7 @@ export const languagesOf = (packages: ArchitecturePackage[]): Language[] => [
 ];
 
 const saltFor = (language: Language, options: FactsOptions): string =>
-  language === "typescript" ? typeScriptSalt(options) : pythonSalt(options);
+  language === "typescript" ? typeScriptSalt(options) : pythonSalt();
 
 export interface CollectedFacts {
   facts: SymbolFacts;
@@ -122,8 +118,11 @@ export const collectFacts = async (
         files,
         salt: saltFor(language, options),
       });
-      const entry = `${language}-${options.analysis}`;
-      const cached = await readFactsCache(options.cacheDirectory, entry, key);
+      const cached = await readFactsCache(
+        options.cacheDirectory,
+        language,
+        key,
+      );
       if (cached !== null) {
         collected.facts.documents.push(...cached);
         return;
@@ -137,7 +136,7 @@ export const collectFacts = async (
         collected.fresh.push(language);
         await writeFactsCache(
           options.cacheDirectory,
-          entry,
+          language,
           key,
           result.documents,
         );

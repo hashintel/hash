@@ -1,5 +1,5 @@
 /**
- * Facts cached on disk, one entry per language and analysis, keyed by the
+ * Facts cached on disk, one entry per language, keyed by the
  * content of the covered files and whatever else decides the result. An
  * entry is read while its key holds, so an edit undone finds it again, and
  * writing a new entry removes the old one of the same name.

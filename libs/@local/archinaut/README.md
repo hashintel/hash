@@ -12,8 +12,7 @@ archinaut dev --port 4322         # serve the website, rebuild on change
 ```
 
 Every command reads `archinaut.config.ts` from the working directory, or the
-file `--config` names, and takes `--analysis program` (the default) or
-`--analysis syntactic`; see [Two analyses](#two-analyses).
+file `--config` names.
 
 A config file default-exports `defineConfig({...})`: the packages to cover,
 the layer-crossing rules, where content, output and cache live, and the
@@ -33,8 +32,8 @@ Four stages over plain data, in `src/pipeline.ts`:
    model reads from the code, so a provider is anything that produces that
    shape for a language; `src/pipeline/facts.ts` holds the shape and chooses
    the provider. Facts are cached under `cacheDirectory/facts`, one entry per
-   language and analysis, keyed by the content of the covered files, so an
-   edit undone finds its entry again.
+   language, keyed by the content of the covered files, so an edit undone
+   finds its entry again.
 3. `model` turns symbol references into file dependencies, aggregates them to
    layer edges, and adds the declared edges.
 4. `check` fails the build on an undeclared ancestor, a violated rule, a rule
@@ -82,39 +81,24 @@ scip-python leaves unresolved; the union is the edge set. The index is read
 straight from the protobuf wire format by `scip-decode.ts`, so no generated
 bindings are needed.
 
-## Two analyses
+## The providers
 
-`program` asks the type checker about every identifier that can resolve
-outside its file, so a reference the checker infers counts: a property read
-off a value whose type another file declares, with no import of that file.
-A name bound below the module scope, by a parameter, a local declaration or
-a type parameter, is skipped, since no other file can reference it; member
-names are always asked. `syntactic` follows imports and
-`export ... from` chains, including `export *`, to the declaring file, with no
-checker; a namespace import counts as a reference to the module, and a member
-read off it as a reference to that export.
+One provider per language, each asking the language's own tooling, so a
+reference the tooling infers counts as structural coupling.
 
-Measured on the Petrinaut instance, 971 TypeScript files and 86 layers:
+The TypeScript provider asks the type checker about every identifier that
+can resolve outside its file: a property read off a value whose type another
+file declares counts as a reference to that file, with no import between the
+two. A name bound below the module scope, by a parameter, a local declaration
+or a type parameter, is skipped, since no other file can reference it; member
+names are always asked. On the Petrinaut instance, 971 TypeScript files, a
+UI view reading `.kind` off a simulation frame it received as a prop draws
+`ui.views → core.simulation` this way; the cold facts stage takes about 5 s
+and a warm one, from the cache, well under 0.1 s.
 
-|                                  | `program` | `syntactic` |
-| -------------------------------- | --------- | ----------- |
-| cold facts stage                 | 4.8 s     | 0.7 s       |
-| warm facts stage, from the cache | 0.05 s    | 0.03 s      |
-| import edges                     | 653       | 624         |
-| file dependencies behind them    | 2746      | 2527        |
-| edges only this analysis finds   | 32        | 3           |
-
-The 32 edges only `program` finds are inferred property references: a UI view
-reading `.kind` off a simulation frame it received as a prop, with the frame
-type declared in `core.simulation`, draws `ui.views → core.simulation` without
-any import between the two. The 3 edges only `syntactic` finds are namespace
-imports of a barrel used for nothing but types the checker resolves elsewhere.
-Neither analysis changes the layers, the declared edges, or the rule outcomes
-on this instance.
-
-`program` is the default because the extra edges are real structural
-coupling. `syntactic` is for a CI that wants the cheap answer, or a repository
-the native compiler cannot build a program for.
+The Python provider runs scip-python for the symbol-level index and an
+import-statement scan beside it, as the safety net for the modules scip-python
+leaves unresolved; the union is the edge set.
 
 ## The bundle
 

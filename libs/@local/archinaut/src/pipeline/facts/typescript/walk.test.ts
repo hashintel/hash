@@ -4,7 +4,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createProgramHost, type ProgramHost } from "./program-host";
 import { createProgramWalker } from "./walk-program";
-import { createSyntacticWalker } from "./walk-syntactic";
 
 import type { IndexedDocument } from "../../facts";
 
@@ -30,30 +29,20 @@ const definitions = (document: IndexedDocument | undefined): string[] =>
 
 let host: ProgramHost;
 let program: Map<string, IndexedDocument>;
-let syntactic: Map<string, IndexedDocument>;
 
 beforeAll(() => {
   host = createProgramHost({ repoRoot, paths: {}, files });
-  const programWalker = createProgramWalker(host);
-  program = new Map(files.map((file) => [file, programWalker.walk(file)]));
-  const syntacticWalker = createSyntacticWalker(host);
-  syntactic = new Map(
-    syntacticWalker
-      .documents(files)
-      .map((document) => [document.file, document]),
-  );
+  const walker = createProgramWalker(host);
+  program = new Map(files.map((file) => [file, walker.walk(file)]));
 });
 
 afterAll(() => {
   host.dispose();
 });
 
-describe.each([
-  ["program", () => program],
-  ["syntactic", () => syntactic],
-])("%s analysis", (_name, documents) => {
+describe("the program walker", () => {
   it("names imported symbols by their declaring file, through re-exports and aliases", () => {
-    expect(references(documents().get("src/ui/view.ts"))).toEqual(
+    expect(references(program.get("src/ui/view.ts"))).toEqual(
       expect.arrayContaining([
         "src/core/index.ts#",
         "src/core/index.ts#coreVersion",
@@ -66,7 +55,7 @@ describe.each([
   });
 
   it("defines a file's own exports and the module itself", () => {
-    expect(definitions(documents().get("src/ui/view.ts"))).toEqual(
+    expect(definitions(program.get("src/ui/view.ts"))).toEqual(
       expect.arrayContaining([
         "src/ui/view.ts#",
         "src/ui/view.ts#label",
@@ -74,7 +63,7 @@ describe.each([
         "src/ui/view.ts#render",
       ]),
     );
-    expect(definitions(documents().get("src/core/types.ts"))).toEqual(
+    expect(definitions(program.get("src/core/types.ts"))).toEqual(
       expect.arrayContaining([
         "src/core/types.ts#",
         "src/core/types.ts#Token",
@@ -85,32 +74,22 @@ describe.each([
   });
 
   it("makes a barrel reference what it re-exports by name, not what it forwards with a star", () => {
-    expect(references(documents().get("src/core/index.ts"))).toEqual([
+    expect(references(program.get("src/core/index.ts"))).toEqual([
       "src/core/types.ts#describe",
     ]);
   });
 });
 
-describe("the two analyses differ on inference", () => {
-  it("program sees a property read off a type the file never imports", () => {
-    expect(references(program.get("src/ui/consumer.ts"))).toContain(
+describe("the program walker follows inference", () => {
+  it("sees a property read off a type the file never imports", () => {
+    expect(references(program.get("src/ui/consumer.ts"))).toEqual([
       "src/core/types.ts#kind",
-    );
-    expect(references(syntactic.get("src/ui/view.ts"))).toEqual([
-      "src/core/index.ts#",
-      "src/core/index.ts#coreVersion",
-      "src/core/types.ts#",
-      "src/core/types.ts#Token",
-      "src/core/types.ts#describe",
-      "src/core/types.ts#hidden",
-    ]);
-    expect(references(syntactic.get("src/ui/consumer.ts"))).toEqual([
       "src/ui/view.ts#label",
       "src/ui/view.ts#render",
     ]);
   });
 
-  it("program also records member names, which syntactic leaves out", () => {
+  it("records member names as definitions", () => {
     expect(definitions(program.get("src/ui/consumer.ts"))).toEqual([
       "src/ui/consumer.ts#",
       "src/ui/consumer.ts#id",
@@ -119,15 +98,10 @@ describe("the two analyses differ on inference", () => {
       "src/ui/consumer.ts#shown",
       "src/ui/consumer.ts#text",
     ]);
-    expect(definitions(syntactic.get("src/ui/consumer.ts"))).toEqual([
-      "src/ui/consumer.ts#",
-      "src/ui/consumer.ts#kindOf",
-      "src/ui/consumer.ts#shown",
-    ]);
   });
 });
 
-describe("program analysis skips what cannot leave the file", () => {
+describe("the program walker skips what cannot leave the file", () => {
   it("leaves out names bound below the module scope and labels", () => {
     const document = program.get("src/ui/shadow.ts");
     expect(definitions(document)).toEqual([

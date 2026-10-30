@@ -27,7 +27,6 @@ import { countErrors } from "./shared/diagnostics";
 
 import type { ArchinautConfig } from "./config";
 import type { ArchitectureModel } from "./model";
-import type { Analysis } from "./pipeline/facts";
 
 const packageRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -99,7 +98,6 @@ export const diffAgainstBase = async (options: {
   bundle: Bundle;
   ref: string;
   includeDiagrams: boolean;
-  analysis: Analysis;
 }): Promise<DiffResult> => {
   const { config, ref, includeDiagrams } = options;
   const cacheDir = baseCacheDir(config);
@@ -146,9 +144,7 @@ export const diffAgainstBase = async (options: {
         existsSync(join(tree.root, pkg.path)),
       ),
     };
-    const pipeline = await runPipeline(baseConfig, {
-      analysis: options.analysis,
-    });
+    const pipeline = await runPipeline(baseConfig);
     if (countErrors(pipeline.diagnostics) > 0) {
       throw new Error(
         `the base tree at ${ref} does not build: ${pipeline.diagnostics[0]?.message ?? "unknown error"}`,
