@@ -48,7 +48,7 @@ export type * as Bindings from "./Bindings.js";
  *
  * Literal selections retain required exports. A widened array, an optional record entry or a union alias can leave a name absent, so its result entry is optional. The `"_"` alternative contributes the source name rather than a literal underscore key. Selection unions retain all possible names but require only names present in every alternative.
  *
- * One name selects the module, type and value exports that share it. Each imported export emits its local name. The import wraps the expression built in its scope in a `use` of the module's path. An alias that is not a HashQL identifier fails construction with a {@link ProgramError.Construction} whose reason is `InvalidImportName`. HashQL binds a local name once, so two exports under one local name fail with `DuplicateImportName`. Names compare by decoded identifier, so `+` and `` `+` `` are one name. A symbol key in the record selects nothing.
+ * One name selects the module, type and value exports that share it. Each imported export emits its local name. The import wraps the expression built in its scope in a `use` of the module's path. An alias that is not a HashQL identifier fails construction with a {@link ProgramError.Construction} whose reason is `InvalidImportName`. HashQL binds a local name once, so two exports under one local name fail with `DuplicateImportName`. Names compare by {@link JExpr.Ident.name}, so `+` and `` `+` ``, or the precomposed `"\u00E9"` and the combining `"e\u0301"`, are one name. A symbol key in the record selects nothing.
  *
  * `"*"` emits a glob `use`. HashQL then binds every export it provides under the module's path, including names the record does not declare. A selected name likewise binds the module, type and value that HashQL exports under it, including a table the record does not declare. TypeScript does not see such a binding. Inside the import, it shadows an enclosing binding of the same name. A record that declares every export of its path gives both the same bindings.
  *
@@ -177,19 +177,20 @@ const plan = (
     const names: Record<string, Alias> = {};
     const bindings: Referential.ReferenceId[] = [];
     // A name list may repeat a source name, which binds it once.
-    const sources = MutableHashMap.empty<JExpr.Ident.Ident, string>();
+    const sources = MutableHashMap.empty<JExpr.Ident.Name, string>();
 
     const aliases: [string, string][] = [];
     for (const { name, alias } of requests(module, selection)) {
       const ident = yield* importName(alias);
-      const source = MutableHashMap.get(sources, ident);
+      const local = JExpr.Ident.name(ident);
+      const source = MutableHashMap.get(sources, local);
       if (Option.isSome(source) && source.value !== name) {
         return yield* Result.fail(
           ProgramError.Construction.duplicateImportName(String(alias)),
         );
       }
 
-      MutableHashMap.set(sources, ident, name);
+      MutableHashMap.set(sources, local, name);
 
       // The import binds the local name in each universe whose table exports the source name.
       const bound: Relocation.Bound = {
