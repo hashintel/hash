@@ -416,6 +416,8 @@ export const useIconEffects = ({
     control.addEventListener("pointerleave", pointerLeave);
     control.addEventListener("focus", focus, true);
     control.addEventListener("blur", blur, true);
+    // A control focused before this effect ran never emits a focus event here.
+    if (focused) enter();
     return () => {
       cancelHoverInteraction.current();
       cancelInteraction.current();
