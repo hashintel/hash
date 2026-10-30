@@ -9,3 +9,5 @@ Add explicit 'one-time' and 'continuous' animation modes per icon (excluding loa
 Add new icons: the existing 'numerical' sort icons are joined by new ones for type (shape), size, alphabetical, or general/other sorting.
 
 Add filled artwork for closed symbols across modeling, files, notifications, status, and other controls. Keep interior details transparent on any background and preserve hover, drawing, and state transitions in both variants.
+
+Give Arrows Left Right complete arrowheads in both directions.

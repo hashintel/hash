@@ -14,7 +14,7 @@ export const additionalGeometry = {
   arrowLeft: <path d="M20 12H4m6-6-6 6 6 6" />,
   arrowRight: <path d="M4 12h16m-6-6 6 6-6 6" />,
   arrowUpRight: <path d="M5 19 19 5H8m11 0v11" />,
-  arrowsLeftRight: <path d="M4 8h16l-4-4M20 16H4l4 4" />,
+  arrowsLeftRight: <path d="M4 8h16m-4-4 4 4-4 4M20 16H4m4-4-4 4 4 4" />,
   trash: (
     <FilledShape
       cutout={
