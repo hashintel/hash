@@ -60,14 +60,15 @@ export const projectEdges = (index: GraphIndex): ProjectedEdge[] => {
 };
 
 const withAncestors = (members: Set<string>): Set<string> => {
-  for (const id of [...members]) {
+  const closure = new Set(members);
+  for (const id of members) {
     if (!id.includes(":")) {
       for (const ancestor of ancestorIds(id)) {
-        members.add(ancestor);
+        closure.add(ancestor);
       }
     }
   }
-  return members;
+  return closure;
 };
 
 /** Nodes carrying any of the tags, plus the ancestors that frame them. Null means no filter. */

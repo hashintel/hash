@@ -138,6 +138,8 @@ export const Navigator = ({
       <div
         ref={rootRef}
         className="nav-app"
+        role="application"
+        aria-label="Architecture map"
         tabIndex={-1}
         onKeyDown={onKeyDown}
       >
