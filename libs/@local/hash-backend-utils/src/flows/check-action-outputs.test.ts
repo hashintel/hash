@@ -81,13 +81,13 @@ describe("checkActionOutputs", () => {
     const received: unknown[] = [];
 
     const { filterListAction } = checkActionOutputs<"filterList">({
-      filterListAction: ((params: unknown) => {
+      filterListAction: (params: unknown) => {
         received.push(params);
         return Promise.resolve({
           code: StatusCode.InvalidArgument,
           contents: [],
         });
-      }) as FlowActionActivity,
+      },
     });
 
     await filterListAction({ inputs, extra: true } as { inputs: StepInput[] });

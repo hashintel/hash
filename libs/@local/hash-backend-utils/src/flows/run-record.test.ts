@@ -536,7 +536,7 @@ describe("getFlowRunRecord with a cache of running runs' histories", () => {
     await storageProvider.uploadDirect({
       key: getFlowRunRecordStorageKey(workflowId),
       body: serializeFlowRunRecord(recordOfEndingRun),
-    } as Parameters<FileStorageProvider["uploadDirect"]>[0]);
+    });
 
     expect(await read()).toStrictEqual(recordOfEndingRun);
     expect(deleteHistory).toHaveBeenCalledWith(workflowId);
