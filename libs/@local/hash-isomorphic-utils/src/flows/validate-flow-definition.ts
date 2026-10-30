@@ -9,7 +9,6 @@ import {
   type ActionDefinitions,
   createStepShapeResolver,
 } from "./step-shapes.js";
-import { getPayloadKindJsonType } from "./types.js";
 
 import type {
   ActionDefinition,
@@ -17,7 +16,6 @@ import type {
   FlowActionDefinitionId,
   FlowDefinition,
   ForEachStepDefinition,
-  PayloadJsonType,
   PayloadKind,
   StepDefinition,
   StepInputSource,
@@ -116,14 +114,6 @@ const findCycles = (dependencies: Map<string, Set<string>>): string[][] => {
 
   return cycles;
 };
-
-const isOfJsonType = {
-  string: (value: unknown) => typeof value === "string",
-  number: (value: unknown) => typeof value === "number",
-  boolean: (value: unknown) => typeof value === "boolean",
-  object: (value: unknown) =>
-    typeof value === "object" && value !== null && !Array.isArray(value),
-} satisfies Record<PayloadJsonType, unknown>;
 
 /**
  * Checks a flow definition from any source, reporting every problem found rather than stopping at the first,
@@ -430,24 +420,6 @@ export const validateFlowDefinition = (
 
       case "constant": {
         const { kind, value } = source.payload;
-        const expectedJsonType = getPayloadKindJsonType(kind);
-
-        const values: unknown[] = Array.isArray(value) ? value : [value];
-
-        const isValid = values.every(isOfJsonType[expectedJsonType]);
-
-        if (!isValid) {
-          report(
-            "invalidConstant",
-            `A ${kind} constant must be ${
-              expectedJsonType === "object"
-                ? "an object"
-                : `a ${expectedJsonType}`
-            }, or an array of them`,
-            [...path, "payload", "value"],
-          );
-          return null;
-        }
 
         const problem = validatePayloadValue({
           kind,
