@@ -1223,9 +1223,10 @@ describe("import", () => {
       ($) =>
         $.import(source, { first: "selected", second: "selected" }).selected,
     );
-    expect(text(result)).toBe(
-      '["::kernel::special_form::use","::aliases",{"#struct":{"first":"selected","second":"selected"}},"selected"]',
-    );
+    expect(result).toMatchObject({
+      _tag: "Failure",
+      failure: { reason: { _tag: "DuplicateImportName", name: "selected" } },
+    });
   });
 
   test("symbol_selection", () => {
