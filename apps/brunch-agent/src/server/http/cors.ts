@@ -7,7 +7,7 @@ import type { MiddlewareHandler } from "hono";
 const AGENT_CORS_METHODS = ["GET", "POST", "OPTIONS"];
 const AGENT_CORS_REQUEST_HEADERS = [
   "Content-Type",
-  brunchHeaders.principal,
+  brunchHeaders.ownerKey,
   brunchHeaders.conversation,
 ];
 // No upstream package exports this complete set, so keep the browser-response list local.

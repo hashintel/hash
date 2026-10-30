@@ -66,7 +66,7 @@ const stopSignals = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
 for (const signal of stopSignals) process.once(signal, interrupt);
 try {
   const identity = {
-    principalKey: "probe",
+    ownerKey: "probe",
     conversationId: `probe-${randomUUID()}`,
   };
   const client = createFlueClient({

@@ -42,7 +42,7 @@ export const BROWSER_CALL_STALE_MESSAGE =
 /** The callback crosses the same single-owner HTTP process that is running the Flue tool. */
 export const createInBandBrowserCalls = (input: {
   readonly client: Promise<FlueClient>;
-  readonly principalKey: string;
+  readonly ownerKey: string;
   readonly binding: ProcessAgentBinding;
   readonly metadataFor: (
     toolCallId: string,
@@ -62,7 +62,7 @@ export const createInBandBrowserCalls = (input: {
     const url = `${client.url}/${brunchRoutes.browserCalls}/${encodeURIComponent(call.toolCallId)}`;
     const boundClaimUrl = `${url}?binding=${encodeURIComponent(canonicalContent(input.binding))}`;
     const headers = agentOwnershipHeaders({
-      principalKey: input.principalKey,
+      ownerKey: input.ownerKey,
       conversationId: input.binding.conversationId,
     });
     const claimSignal = AbortSignal.any([
