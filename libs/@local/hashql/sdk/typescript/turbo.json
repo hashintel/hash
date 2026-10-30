@@ -7,11 +7,17 @@
       "outputs": ["dist/**"]
     },
     "test:integration": {
-      "dependsOn": ["^build", "hashql-syntax-jexpr#build:parse:debug"],
+      "dependsOn": ["build", "^build", "hashql-syntax-jexpr#build:parse:debug"],
       "inputs": ["$TURBO_DEFAULT$"]
     },
     "test:unit": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["build", "^build"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["build"]
+    },
+    "lint:oxlint": {
+      "dependsOn": ["@local/oxlint#build", "build"]
     }
   }
 }
