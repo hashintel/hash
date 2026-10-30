@@ -44,3 +44,31 @@ export default defineConfig({
 ```
 
 The preset defines the keyframes the icon animations use.
+
+## Catalog metadata
+
+`hashIconCatalog` lists each canonical icon with a label, category, description,
+related-icon names, motion hint, and optional study name.
+
+```ts
+import { hashIconCatalog } from "@hashintel/ds-icons";
+
+const place = hashIconCatalog.find(({ name }) => name === "place");
+// place.description explains the place symbol and its default hover behavior.
+// place.related includes "addPlace" and "transition".
+```
+
+Use `description` for an individual icon's shape, purpose, and default interaction.
+Hover descriptions assume motion is enabled and the icon is inside a supported
+interactive control or preview. Explicit animation effects and state props may
+change that behavior. This descriptive text does not replace an accessible label
+for the action a control performs.
+
+`related` contains curated canonical names in catalog order. Relationships are
+reciprocal and contain no aliases, duplicates, or self-links. An empty array means
+no relationship has been curated; icons are not related solely because they share
+a category.
+
+`motion` is the existing motion hint, not a prose description. `hashIconStudies`
+still groups design alternatives and describes the group as a whole; its `motion`
+text should not be used as an individual icon's description.
