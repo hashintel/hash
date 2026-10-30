@@ -9,6 +9,7 @@ use core::{error::Error, fmt::Write as _, num::NonZero};
 use aide::transform::TransformOperation;
 use axum::extract::State;
 use error_stack::{Report, ResultExt as _};
+use hash_codec::serde::non_null;
 use hash_graph_store::{
     entity::{EntityQueryPath, EntityStore as _, QueryEntitiesParams},
     filter::{Filter, FilterExpression, Parameter},
@@ -37,7 +38,7 @@ use crate::rest::{
     ApiState,
     credentials::Actor,
     extract::{Json, NextPage, Page, Query},
-    public::{Credentials, present::present},
+    public::Credentials,
     routing::{self, Route},
 };
 
@@ -48,7 +49,7 @@ struct QueryEntitiesRequest {
     /// The condition the entities meet.
     #[serde(
         default,
-        deserialize_with = "present",
+        deserialize_with = "non_null",
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(
@@ -66,12 +67,12 @@ struct QueryEntitiesRequest {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct QueryEntitiesParameters {
     /// The page to return, as the previous page's `Link` header names it. Defaults to the first.
-    #[serde(default, deserialize_with = "present")]
+    #[serde(default, deserialize_with = "non_null")]
     cursor: Option<Cursor>,
     /// The size of the page; the server's maximum is the default and caps larger values.
     #[serde(
         default,
-        deserialize_with = "present",
+        deserialize_with = "non_null",
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "NonZero<usize>")]

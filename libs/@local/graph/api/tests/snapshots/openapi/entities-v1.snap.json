@@ -656,6 +656,15 @@
                 }
               },
               "about:blank (5)": {
+                "summary": "Unprocessable Content: The provenance of one or more entities breaks a rule.",
+                "value": {
+                  "detail": "The provenance breaks a rule: entities[0]: `sources` in the provenance of the edition lists 256 entries, but at most 255 are allowed.",
+                  "status": 422,
+                  "title": "Unprocessable Content",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (6)": {
                 "summary": "Unprocessable Content: One or more entities do not match their entity types, or link to an entity that does not exist.",
                 "value": {
                   "detail": "One or more entities do not match their entity types, or link to an entity that does not exist.",
@@ -785,13 +794,37 @@
                       ]
                     }
                   ],
+                  "title": "Unprocessable Content: The provenance of one or more entities breaks a rule."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 422
+                        },
+                        "title": {
+                          "const": "Unprocessable Content"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
                   "title": "Unprocessable Content: One or more entities do not match their entity types, or link to an entity that does not exist."
                 }
               ]
             }
           }
         },
-        "description": "- Unprocessable Content: The request body does not match the schema of the operation.\n- Unprocessable Content: One or more entity types do not exist.\n- Unprocessable Content: One or more entity types are archived.\n- Unprocessable Content: The entity types of an entity define a property differently.\n- Unprocessable Content: One or more entities do not match their entity types, or link to an entity that does not exist.",
+        "description": "- Unprocessable Content: The request body does not match the schema of the operation.\n- Unprocessable Content: One or more entity types do not exist.\n- Unprocessable Content: One or more entity types are archived.\n- Unprocessable Content: The entity types of an entity define a property differently.\n- Unprocessable Content: The provenance of one or more entities breaks a rule.\n- Unprocessable Content: One or more entities do not match their entity types, or link to an entity that does not exist.",
         "headers": {
           "Cache-Control": {
             "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -959,11 +992,6 @@
       "Cursor": {
         "description": "An opaque position in a query's result.",
         "minLength": 1,
-        "type": "string"
-      },
-      "DateTime": {
-        "description": "A point in time, with its offset from UTC.",
-        "format": "date-time",
         "type": "string"
       },
       "Entity": {
@@ -1363,12 +1391,12 @@
             "type": "string"
           },
           "semanticVersion": {
-            "description": "The version of the application in the format of Semantic Versioning 2.0.",
-            "examples": [
-              "1.2.3"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SemVer"
+              }
             ],
-            "maxLength": 255,
-            "type": "string"
+            "description": "The version of the application in Semantic Versioning 2.0, at most 255 characters."
           },
           "version": {
             "description": "The version of the application, in any format.",
@@ -1395,14 +1423,110 @@
             "items": {
               "$ref": "#/components/schemas/Source"
             },
-            "maxItems": 127,
+            "maxItems": 255,
             "type": "array"
           }
         },
         "type": "object"
       },
       "Origin": {
-        "description": "How an edition reached HASH.",
+        "description": "How an edition reached HASH. More types may follow.",
+        "oneOf": [
+          {
+            "properties": {
+              "type": {
+                "const": "web-app",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "mobile-app",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "browser-extension",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "api",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "stepIds": {
+                "description": "The IDs of the flow steps that wrote the edition.",
+                "items": {
+                  "maxLength": 255,
+                  "type": "string"
+                },
+                "maxItems": 255,
+                "type": "array",
+                "uniqueItems": true
+              },
+              "type": {
+                "const": "flow",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "migration",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "type": {
+                "const": "external",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          }
+        ],
         "properties": {
           "id": {
             "description": "What sent the edition: for `external` the name it gave, for `flow` the flow run's ID.",
@@ -1416,43 +1540,12 @@
             ],
             "description": "The version of what sent the edition in the format of Semantic Versioning 2.0."
           },
-          "stepIds": {
-            "description": "For `flow`, the IDs of the flow steps that wrote the edition.",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/OriginType"
-              }
-            ],
-            "description": "What sent the edition. HASH sets it."
-          },
           "version": {
             "description": "The version of what sent the edition, in any format.",
             "type": "string"
           }
         },
-        "required": [
-          "type"
-        ],
         "type": "object"
-      },
-      "OriginType": {
-        "description": "How an edition reached HASH; `external` means through the public API. More may follow.",
-        "enum": [
-          "web-app",
-          "mobile-app",
-          "browser-extension",
-          "api",
-          "flow",
-          "migration",
-          "external"
-        ],
-        "type": "string"
       },
       "ProblemDetails": {
         "properties": {
@@ -1585,20 +1678,17 @@
       },
       "PropertyProvenance": {
         "additionalProperties": false,
-        "description": "Where a property comes from: a value, a list, or properties keyed by base URL.",
+        "description": "Where a property, or one end of a link, comes from.",
         "properties": {
           "sources": {
-            "description": "The material the property was produced from.",
+            "description": "The material it was produced from.",
             "items": {
               "$ref": "#/components/schemas/Source"
             },
-            "maxItems": 127,
+            "maxItems": 255,
             "type": "array"
           }
         },
-        "required": [
-          "sources"
-        ],
         "type": "object"
       },
       "PropertyValue": {
@@ -1654,7 +1744,6 @@
             "items": {
               "$ref": "#/components/schemas/Source"
             },
-            "maxItems": 127,
             "type": "array"
           }
         },
@@ -1712,36 +1801,26 @@
             "type": "array"
           },
           "entityId": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EntityId"
-              }
+            "description": "The entity in HASH that stands for the material: its web ID and UUID, joined by `~`. A request may not name a draft.",
+            "examples": [
+              "8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d"
             ],
-            "description": "The entity in HASH that stands for the material."
+            "type": "string"
           },
           "firstPublished": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DateTime"
-              }
-            ],
-            "description": "When the material was first published."
+            "description": "When the material was first published.",
+            "format": "date-time",
+            "type": "string"
           },
           "lastUpdated": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DateTime"
-              }
-            ],
-            "description": "When the material was last changed."
+            "description": "When the material was last changed.",
+            "format": "date-time",
+            "type": "string"
           },
           "loadedAt": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DateTime"
-              }
-            ],
-            "description": "When the material was retrieved."
+            "description": "When the material was retrieved.",
+            "format": "date-time",
+            "type": "string"
           },
           "location": {
             "allOf": [

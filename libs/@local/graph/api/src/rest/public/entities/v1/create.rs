@@ -1,11 +1,12 @@
 //! `POST /`: create entities.
 
 use alloc::{borrow::Cow, collections::BTreeSet};
-use core::error::Error;
+use core::{error::Error, fmt};
 
 use aide::transform::TransformOperation;
 use axum::extract::State;
 use error_stack::{Report, ResultExt as _};
+use hash_codec::serde::non_null;
 use hash_graph_store::{
     entity::{CreateEntityParams, EntityStore as _},
     error::EntityCreationError,
@@ -22,7 +23,13 @@ use type_system::{
         property::{PropertyObject, PropertyObjectWithMetadata},
     },
     ontology::VersionedUrl,
-    principal::{actor::ActorId, actor_group::WebId},
+    principal::{
+        actor::{ActorId, ActorType},
+        actor_group::WebId,
+    },
+    provenance::validation::{
+        MAX_SOURCES, ProvenanceField, ProvenanceOwner, ProvenanceRule, ProvenanceViolation,
+    },
 };
 
 use super::{
@@ -35,7 +42,7 @@ use crate::rest::{
     ApiState,
     credentials::Actor,
     extract::Json,
-    public::{Credentials, present::present},
+    public::Credentials,
     routing::{self, Route},
 };
 
@@ -85,7 +92,7 @@ struct NewEntityFields {
     /// The entities it connects, for an entity of a link type.
     #[serde(
         default,
-        deserialize_with = "present",
+        deserialize_with = "non_null",
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "Link")]
@@ -93,7 +100,7 @@ struct NewEntityFields {
     /// Where the entity's data comes from, and which application sends it.
     #[serde(
         default,
-        deserialize_with = "present",
+        deserialize_with = "non_null",
         skip_serializing_if = "Option::is_none"
     )]
     #[schemars(with = "NewProvenance")]
@@ -132,6 +139,25 @@ struct NewEntity {
     properties_with_metadata: PropertyObjectWithMetadata,
     link: Option<Link>,
     provenance: NewProvenance,
+}
+
+impl NewEntity {
+    /// The parameters the store creates the entity from.
+    fn into_params(self, actor_type: ActorType, user_agent: Option<String>) -> CreateEntityParams {
+        CreateEntityParams {
+            web_id: self.web_id,
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: self.entity_type_ids.0.into_iter().collect(),
+            properties: self.properties_with_metadata,
+            confidence: None,
+            link_data: self.link.map(knowledge::entity::Link::from),
+            draft: false,
+            policies: Vec::new(),
+            provenance: self.provenance.into_stored(actor_type, user_agent),
+            read_only: false,
+        }
+    }
 }
 
 impl TryFrom<NewEntityFields> for NewEntity {
@@ -265,6 +291,58 @@ impl ProblemVariant for InvalidEntities {
     }
 }
 
+/// The most broken rules the detail of [`InvalidProvenance`] lists.
+const LISTED_VIOLATIONS: usize = 10;
+
+/// The provenance of one or more entities breaks a rule.
+#[derive(Serialize, JsonSchema)]
+struct InvalidProvenance {
+    #[serde(skip)]
+    violations: Vec<(usize, ProvenanceViolation)>,
+}
+
+impl fmt::Display for InvalidProvenance {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("The provenance breaks a rule:")?;
+        for (position, (index, violation)) in
+            self.violations.iter().take(LISTED_VIOLATIONS).enumerate()
+        {
+            let separator = if position == 0 { " " } else { "; " };
+            write!(fmt, "{separator}entities[{index}]: {violation}")?;
+        }
+        if let Some(unlisted) = self.violations.len().checked_sub(LISTED_VIOLATIONS)
+            && unlisted > 0
+        {
+            write!(fmt, "; and {unlisted} more")?;
+        }
+        fmt.write_str(".")
+    }
+}
+
+impl ProblemVariant for InvalidProvenance {
+    const TYPE: ProblemType = ProblemType {
+        type_uri: Cow::Borrowed("about:blank"),
+        title: Cow::Borrowed("Unprocessable Content"),
+        status: StatusCode::UNPROCESSABLE_ENTITY,
+    };
+
+    fn example() -> Option<Self> {
+        Some(Self {
+            violations: vec![(
+                0,
+                ProvenanceViolation {
+                    owner: ProvenanceOwner::Edition,
+                    field: ProvenanceField::Sources,
+                    rule: ProvenanceRule::TooManyEntries {
+                        count: MAX_SOURCES + 1,
+                        max: MAX_SOURCES,
+                    },
+                },
+            )],
+        })
+    }
+}
+
 /// The ways [`create_entities`] refuses a request its extractors accept.
 struct CreateEntitiesProblem;
 
@@ -274,6 +352,7 @@ impl Problem for CreateEntitiesProblem {
         Variant::of::<UnknownEntityTypes>(),
         Variant::of::<ArchivedEntityTypes>(),
         Variant::of::<IncompatibleEntityTypes>(),
+        Variant::of::<InvalidProvenance>(),
         Variant::of::<InvalidEntities>(),
         Variant::of::<ServiceUnavailable>(),
         Variant::of::<InternalServerError>(),
@@ -289,6 +368,11 @@ impl Expose<CreateEntitiesProblem> for Report<EntityCreationError> {
             EntityCreationError::ArchivedEntityTypes { .. } => Answer::new(ArchivedEntityTypes),
             EntityCreationError::IncompatibleEntityTypes { .. } => {
                 Answer::new(IncompatibleEntityTypes)
+            }
+            EntityCreationError::InvalidProvenance { violations } => {
+                Answer::new(InvalidProvenance {
+                    violations: violations.clone(),
+                })
             }
             EntityCreationError::InvalidEntities => Answer::new(InvalidEntities),
             EntityCreationError::Store => Answer::new(InternalServerError),
@@ -330,21 +414,7 @@ where
     let user_agent = provenance::user_agent(&headers);
     let params = entities
         .into_iter()
-        .map(|entity| CreateEntityParams {
-            web_id: entity.web_id,
-            entity_uuid: None,
-            decision_time: None,
-            entity_type_ids: entity.entity_type_ids.0.into_iter().collect(),
-            properties: entity.properties_with_metadata,
-            confidence: None,
-            link_data: entity.link.map(knowledge::entity::Link::from),
-            draft: false,
-            policies: Vec::new(),
-            provenance: entity
-                .provenance
-                .into_stored(actor_id.actor_type(), user_agent.clone()),
-            read_only: false,
-        })
+        .map(|entity| entity.into_params(actor_id.actor_type(), user_agent.clone()))
         .collect::<Vec<_>>();
 
     let mut store = state
@@ -386,9 +456,18 @@ where
 mod tests {
     use core::assert_matches;
 
+    use error_stack::Report;
+    use hash_graph_store::error::EntityCreationError;
+    use problematic::Expose as _;
     use serde_json::json;
+    use type_system::provenance::validation::{
+        MAX_SHORT_TEXT_LENGTH, ProvenanceField, ProvenanceOwner, ProvenanceRule,
+        ProvenanceViolation, SourceField,
+    };
 
-    use super::{CreateEntitiesRequest, NewEntities, NewEntity, new_entity_example};
+    use super::{
+        CreateEntitiesRequest, InvalidProvenance, NewEntities, NewEntity, new_entity_example,
+    };
 
     const WEB: &str = "8d86c8c3-d66d-43d1-859b-676c3bcaeadc";
     const PERSON: &str = "https://example.com/@alice/types/entity-type/person/v/1";
@@ -399,6 +478,68 @@ mod tests {
 
     fn parse(request: serde_json::Value) -> Result<CreateEntitiesRequest, serde_json::Error> {
         serde_json::from_value(request)
+    }
+
+    #[test]
+    fn provenance_detail() {
+        let error = Report::new(EntityCreationError::InvalidProvenance {
+            violations: vec![(
+                1,
+                ProvenanceViolation {
+                    owner: ProvenanceOwner::Edition,
+                    field: ProvenanceField::Source {
+                        index: 0,
+                        field: SourceField::LocationUri,
+                    },
+                    rule: ProvenanceRule::UriScheme {
+                        scheme: "ftp".to_owned(),
+                    },
+                },
+            )],
+        });
+
+        let details = serde_json::to_value(error.expose().details())
+            .expect("the problem details should serialize");
+        assert_eq!(details["status"], 422, "the answer should be 422");
+        assert_eq!(
+            details["detail"],
+            "The provenance breaks a rule: entities[1]: `sources[0].location.uri` in the \
+             provenance of the edition has the scheme `ftp`, but only `http` and `https` are \
+             allowed.",
+            "the detail should name the entity, the field and the rule"
+        );
+    }
+
+    #[test]
+    fn provenance_detail_cut() {
+        let violations = (0..12)
+            .map(|author| {
+                (
+                    0,
+                    ProvenanceViolation {
+                        owner: ProvenanceOwner::Edition,
+                        field: ProvenanceField::Source {
+                            index: 0,
+                            field: SourceField::Author(author),
+                        },
+                        rule: ProvenanceRule::TooLong {
+                            length: 256,
+                            max: MAX_SHORT_TEXT_LENGTH,
+                        },
+                    },
+                )
+            })
+            .collect();
+        let detail = InvalidProvenance { violations }.to_string();
+        assert_eq!(
+            detail.matches("entities[0]: ").count(),
+            10,
+            "the detail should list the first ten violations"
+        );
+        assert!(
+            detail.ends_with("are allowed; and 2 more."),
+            "the detail should count the violations it leaves out, but was: {detail}"
+        );
     }
 
     #[test]

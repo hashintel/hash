@@ -785,6 +785,8 @@ pub trait EntityStore {
     ///   type it inherits from
     /// - [`CreationForbidden`] if the actor may not create one of the entities
     /// - [`IncompatibleEntityTypes`] if the entity types of an entity define a property differently
+    /// - [`InvalidProvenance`] if the provenance of an entity, its properties or its link breaks a
+    ///   rule
     /// - [`InvalidEntities`] if an entity does not match its entity types
     /// - [`Store`] if the store cannot create the entities, including when an entity type from
     ///   another domain cannot be fetched
@@ -794,6 +796,7 @@ pub trait EntityStore {
     /// [`InstantiationForbidden`]: EntityCreationError::InstantiationForbidden
     /// [`CreationForbidden`]: EntityCreationError::CreationForbidden
     /// [`IncompatibleEntityTypes`]: EntityCreationError::IncompatibleEntityTypes
+    /// [`InvalidProvenance`]: EntityCreationError::InvalidProvenance
     /// [`InvalidEntities`]: EntityCreationError::InvalidEntities
     /// [`Store`]: EntityCreationError::Store
     fn create_entities(
