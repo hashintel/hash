@@ -1,4 +1,7 @@
-import { validateFlowInputs } from "@local/hash-isomorphic-utils/flows/validate-payloads";
+import {
+  omitInvalidEmptyFlowInputs,
+  validateFlowInputs,
+} from "@local/hash-isomorphic-utils/flows/validate-payloads";
 
 import * as GraphQLError from "../../../error";
 
@@ -22,7 +25,11 @@ export const assertClientFlowInputs = ({
 }) => {
   const invalidFlowInputMessage = validateFlowInputs({
     inputDefinitions: flowDefinition.inputs,
-    flowInputs,
+    /* As the run does, so that an input left blank in a form counts as not given. */
+    flowInputs: omitInvalidEmptyFlowInputs({
+      inputDefinitions: flowDefinition.inputs,
+      flowInputs,
+    }),
   });
 
   if (invalidFlowInputMessage) {

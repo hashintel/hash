@@ -31,6 +31,12 @@ describe("assertClientFlowInputs", () => {
     expect(assertInputs({ query })).not.toThrow();
   });
 
+  it("accepts an optional input left blank, as the run does", () => {
+    expect(
+      assertInputs({ query, every: { kind: "Duration", value: "" } }),
+    ).not.toThrow();
+  });
+
   it.each([
     {
       problem: "an input the flow doesn't define",
