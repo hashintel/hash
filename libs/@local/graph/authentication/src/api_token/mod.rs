@@ -26,7 +26,7 @@ mod provider;
 use core::{
     fmt::{self, Write as _},
     mem::offset_of,
-    pin::Pin,
+    pin::{Pin, pin},
     str::FromStr,
 };
 
@@ -288,7 +288,7 @@ impl From<&ApiToken> for HashedApiToken {
             environment: token.environment,
             version: token.version,
             token_id: token.token_id,
-            secret_hash: hash_secret(token.secret.expose()),
+            secret_hash: hash_secret(&token.secret),
         }
     }
 }
@@ -383,19 +383,22 @@ impl FromStr for HashedApiToken {
             return Err(ApiTokenParseError::Encoding);
         }
 
+        let mut secret = pin!(Secret::<[u8; SECRET_LENGTH]>::zeroed());
+        secret.as_mut().expose_mut().copy_from_slice(&token.secret);
+
         Ok(Self {
             token_type,
             environment,
             version,
             token_id,
-            secret_hash: hash_secret(&token.secret),
+            secret_hash: hash_secret(&secret),
         })
     }
 }
 
 /// The SHA-256 hash of `secret`.
-fn hash_secret(secret: &[u8]) -> ApiTokenSecretHash {
-    ApiTokenSecretHash::new(Sha256Digest::of(secret).to_bytes())
+fn hash_secret(secret: &Secret<[u8; SECRET_LENGTH]>) -> ApiTokenSecretHash {
+    ApiTokenSecretHash::new(Sha256Digest::of(secret.expose()).to_bytes())
 }
 
 /// Writes the `Display` output of a token: the token up to the first
