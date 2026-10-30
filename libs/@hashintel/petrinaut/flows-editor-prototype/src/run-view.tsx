@@ -1,7 +1,7 @@
 /**
  * The run view's side panel: the same sections as the editor, read-only, for one run (Figma 639:23409; 26 Oct sync).
  *
- * - The header has a status chip; a Status line comes first. Each input shows the value it got; each output shows
+ * - The status shows once, in a Status field with its chip, as in Attio's run sidebar. Each input shows the value it got; each output shows
  *   the value it gave. Where a value came from shows on hover, not always (Dei, T26).
  * - Simple values (an id, a count, a date) stay inline. A list of entities links out to a table in a drawer
  *   (Ciarán, T26: "anything that's an entity, we already have tables").
@@ -29,7 +29,13 @@ import { css } from "@hashintel/ds-helpers/css";
 import { getCatalogEntry } from "./catalog";
 import { type DraftStep, findStep, stepLabel } from "./document";
 import { useEditor } from "./editor-context";
-import { HeaderTitle, panelHeaderStyle, PropertyRow, Section, typeLineStyle } from "./ui";
+import {
+  HeaderTitle,
+  panelHeaderStyle,
+  PropertyRow,
+  Section,
+  typeLineStyle,
+} from "./ui";
 
 /* ----------------------------------------------------------------------------------------------------------------
  * MOCK run data
@@ -118,7 +124,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
   const status = statusIn(stepId, item);
   const notReached: StepRun = {
     status,
-    line: "Not reached: the item stopped at Fetch certificate",
+    line: "The item stopped at Fetch certificate",
     inputs: [],
     outputs: [],
   };
@@ -126,7 +132,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
     case "readName":
       return {
         status,
-        line: "Done 09:00:02 · 0.1 s",
+        line: "09:00:02 · 0.1 s",
         inputs: [
           { label: "Entity", value: item.name, from: "supplier" },
           { label: "Property", value: "Name" },
@@ -136,7 +142,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
     case "readEmail":
       return {
         status,
-        line: "Done 09:00:02 · 0.1 s",
+        line: "09:00:02 · 0.1 s",
         inputs: [
           { label: "Entity", value: item.name, from: "supplier" },
           { label: "Property", value: "Contact email" },
@@ -146,7 +152,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
     case "readCertificateLink":
       return {
         status,
-        line: "Done 09:00:02 · 0.1 s",
+        line: "09:00:02 · 0.1 s",
         inputs: [
           { label: "Entity", value: item.name, from: "supplier" },
           { label: "Property", value: "Certificate link" },
@@ -157,7 +163,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
       return status === "failed"
         ? {
             status,
-            line: "Failed 09:00:41 after 3 tries · the item stopped here",
+            line: "09:00:41 after 3 tries · the item stopped here",
             inputs: [
               {
                 label: "URL",
@@ -174,7 +180,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
           }
         : {
             status,
-            line: "Done 09:00:04 · 1.4 s",
+            line: "09:00:04 · 1.4 s",
             inputs: [
               {
                 label: "URL",
@@ -192,7 +198,11 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
             status,
             line: "Sent 09:00:05 · 0.8 s",
             inputs: [
-              { label: "To", value: item.email, from: "Read contact email › Value" },
+              {
+                label: "To",
+                value: item.email,
+                from: "Read contact email › Value",
+              },
               { label: "From", value: "quality@acme.example" },
               { label: "Subject", value: `Monthly review: ${item.name}` },
             ],
@@ -206,7 +216,7 @@ const runOf = (stepId: string, item: Item): StepRun | null => {
         ? notReached
         : {
             status,
-            line: "Done 09:00:06 · 0.2 s",
+            line: "09:00:06 · 0.2 s",
             inputs: [{ label: "Entity", value: item.name, from: "supplier" }],
             outputs: [{ label: "Entity", value: item.name }],
           };
@@ -278,28 +288,41 @@ const valueStyle = css({
 
 const mutedStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
 
-const runStripStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "0.5",
-  padding: "2.5",
-  borderRadius: "lg",
-  backgroundColor: "neutral.bgSolid.subtle",
-  textStyle: "xs",
-  color: "neutral.fg.muted",
-});
+const runStripStyle = css({ textStyle: "xs", color: "neutral.fg.subtle" });
 
-/** The run's facts, on every panel: which run, when, what started it, how it ended. */
+/** The run's facts: which run, when, what started it. One quiet line; how it ended is the status. */
 const RunStrip = () => (
   <div className={runStripStyle}>
-    <span className={css({ fontWeight: "semibold", color: "neutral.fg.heading" })}>
-      {mockRun.title} · {mockRun.started}
-    </span>
-    <span>
-      {mockRun.by} · {items.length - failedCount} of {items.length} suppliers done,{" "}
-      {failedCount} failed
-    </span>
+    {mockRun.title} · {mockRun.started} · {mockRun.by}
   </div>
+);
+
+/**
+ * The step's status, said once (Aakarsh, 30 Oct: it was said three times). As in Attio's run sidebar: a Status field
+ * with the chip, the detail under it, then the run's facts (research/attio-run-view, Figma R8 665:16).
+ */
+const StatusSection = ({
+  status,
+  children,
+}: {
+  status: Status | "running";
+  children: React.ReactNode;
+}) => (
+  <Section title="Status">
+    <span
+      className={css({
+        gridColumn: "1 / -1",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: "1.5",
+      })}
+    >
+      {statusChip(status)}
+      {children}
+      <RunStrip />
+    </span>
+  </Section>
 );
 
 const Value = ({ row }: { row: RunRow }) =>
@@ -312,22 +335,17 @@ const Value = ({ row }: { row: RunRow }) =>
     <span className={valueStyle}>{row.value}</span>
   );
 
-const Header = ({
-  step,
-  status,
-}: {
-  step: DraftStep;
-  status: Status | "running";
-}) => {
+const Header = ({ step }: { step: DraftStep }) => {
   const entry =
-    step.kind === "action" ? getCatalogEntry(step.actionDefinitionId) : undefined;
+    step.kind === "action"
+      ? getCatalogEntry(step.actionDefinitionId)
+      : undefined;
   return (
     <div className={panelHeaderStyle}>
       <HeaderTitle icon={(entry?.icon ?? "rotate") as IconName}>
         <span className={typeLineStyle}>
           {step.kind === "for-each" ? "For each" : (entry?.title ?? "Step")}
         </span>
-        {statusChip(status)}
       </HeaderTitle>
       <span className={mutedStyle}>{stepLabel(step)}</span>
     </div>
@@ -337,9 +355,17 @@ const Header = ({
 /** A table of the entities a step found, in a drawer (Ciarán: reuse the entity tables). */
 const EntitiesDrawer = ({ onClose }: { onClose: () => void }) => (
   <Drawer onClose={onClose}>
-    <Drawer.Header title={`Find active suppliers · ${items.length} suppliers`} />
+    <Drawer.Header
+      title={`Find active suppliers · ${items.length} suppliers`}
+    />
     <Drawer.Body>
-      <table className={css({ width: "[100%]", textStyle: "sm", borderCollapse: "collapse" })}>
+      <table
+        className={css({
+          width: "[100%]",
+          textStyle: "sm",
+          borderCollapse: "collapse",
+        })}
+      >
         <thead>
           <tr>
             {["Name", "Contact email", "Status"].map((head) => (
@@ -440,7 +466,11 @@ const itemRowStyle = css({
   },
 });
 
-const ForEachRun = ({ step }: { step: Extract<DraftStep, { kind: "for-each" }> }) => {
+const ForEachRun = ({
+  step,
+}: {
+  step: Extract<DraftStep, { kind: "for-each" }>;
+}) => {
   const { ui, setUi } = useEditor();
   const [failedOnly, setFailedOnly] = useState(false);
   const picked = ui.runItem ?? 0;
@@ -450,15 +480,13 @@ const ForEachRun = ({ step }: { step: Extract<DraftStep, { kind: "for-each" }> }
     .filter(({ candidate }) => !failedOnly || candidate.failed);
   return (
     <>
-      <Header step={step} status="running" />
-      <RunStrip />
-      <Section title="Status">
-        <span className={css({ gridColumn: "1 / -1" })}>
-          <span className={valueStyle}>
-            {items.length - failedCount} of {items.length} done · {failedCount} failed
-          </span>
+      <Header step={step} />
+      <StatusSection status="running">
+        <span className={valueStyle}>
+          {items.length - failedCount} of {items.length} done · {failedCount}{" "}
+          failed
         </span>
-      </Section>
+      </StatusSection>
       <Section
         title={`Items · ${items.length}`}
         action={
@@ -483,7 +511,9 @@ const ForEachRun = ({ step }: { step: Extract<DraftStep, { kind: "for-each" }> }
               aria-selected={index === picked}
               className={itemRowStyle}
               data-picked={index === picked || undefined}
-              onClick={() => setUi((current) => ({ ...current, runItem: index }))}
+              onClick={() =>
+                setUi((current) => ({ ...current, runItem: index }))
+              }
             >
               <ItemMark failed={candidate.failed} />
               <span className={css({ flex: "1" })}>{candidate.name}</span>
@@ -505,7 +535,12 @@ const ForEachRun = ({ step }: { step: Extract<DraftStep, { kind: "for-each" }> }
                 }
               >
                 {run?.status === "notReached" ? (
-                  <span className={css({ color: "neutral.fg.subtle", display: "inline-flex" })}>
+                  <span
+                    className={css({
+                      color: "neutral.fg.subtle",
+                      display: "inline-flex",
+                    })}
+                  >
                     <Icon name="circle" size="xs" />
                   </span>
                 ) : (
@@ -513,7 +548,9 @@ const ForEachRun = ({ step }: { step: Extract<DraftStep, { kind: "for-each" }> }
                 )}
                 <span className={css({ flex: "1" })}>{stepLabel(inner)}</span>
                 {run?.status === "failed" ? (
-                  <span className={css({ textStyle: "xs", color: "red.fg.link" })}>
+                  <span
+                    className={css({ textStyle: "xs", color: "red.fg.link" })}
+                  >
                     404 after 3 tries
                   </span>
                 ) : run?.status === "notReached" ? (
@@ -535,13 +572,10 @@ const ActionRun = ({ step, inLoop }: { step: DraftStep; inLoop: boolean }) => {
     // Outside the loop the prototype's run has one step: Find active suppliers.
     return (
       <>
-        <Header step={step} status="done" />
-        <RunStrip />
-        <Section title="Status">
-          <span className={css({ gridColumn: "1 / -1" })}>
-            <span className={valueStyle}>Done 1 Nov 09:00 · 1.2 s</span>
-          </span>
-        </Section>
+        <Header step={step} />
+        <StatusSection status="done">
+          <span className={valueStyle}>09:00:01 · 1.2 s</span>
+        </StatusSection>
         <Section title="Inputs">
           <PropertyRow label="Entity type">
             <span className={valueStyle}>Supplier</span>
@@ -552,9 +586,19 @@ const ActionRun = ({ step, inLoop }: { step: DraftStep; inLoop: boolean }) => {
         </Section>
         <Section title="Outputs">
           <PropertyRow label="Entities">
-            <span className={css({ display: "flex", alignItems: "center", gap: "2" })}>
+            <span
+              className={css({
+                display: "flex",
+                alignItems: "center",
+                gap: "2",
+              })}
+            >
               <span className={valueStyle}>{items.length} suppliers</span>
-              <Button size="xs" variant="subtle" onClick={() => setDrawer(true)}>
+              <Button
+                size="xs"
+                variant="subtle"
+                onClick={() => setDrawer(true)}
+              >
                 View
               </Button>
             </span>
@@ -571,16 +615,19 @@ const ActionRun = ({ step, inLoop }: { step: DraftStep; inLoop: boolean }) => {
   }
   return (
     <>
-      <Header step={step} status={run.status} />
-      <RunStrip />
+      <Header step={step} />
       <ItemSwitcher />
-      <Section title="Status">
-        <span className={css({ gridColumn: "1 / -1" })}>
-          <span className={run.status === "failed" ? css({ textStyle: "sm", color: "red.fg.link" }) : valueStyle}>
-            {run.line}
-          </span>
+      <StatusSection status={run.status}>
+        <span
+          className={
+            run.status === "failed"
+              ? css({ textStyle: "sm", color: "red.fg.link" })
+              : valueStyle
+          }
+        >
+          {run.line}
         </span>
-      </Section>
+      </StatusSection>
       {run.inputs.length > 0 ? (
         <Section title="Inputs">
           {run.inputs.map((row) => (
@@ -608,7 +655,9 @@ const ActionRun = ({ step, inLoop }: { step: DraftStep; inLoop: boolean }) => {
                 className={css({
                   textStyle: "xs",
                   fontFamily: "mono",
-                  color: line.includes("404") ? "red.fg.link" : "neutral.fg.muted",
+                  color: line.includes("404")
+                    ? "red.fg.link"
+                    : "neutral.fg.muted",
                 })}
               >
                 {line}
