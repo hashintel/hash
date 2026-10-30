@@ -1,0 +1,165 @@
+---
+title: Declaring layers
+description: How to declare a layer, refine one, and what CI holds you to.
+sidebar_order: 1
+---
+
+The generated pages come from annotations in the Petrinaut source. This page is
+the short version of how to change them; the full reference lives in
+[`libs/@local/archinaut/README.md`](https://github.com/hashintel/hash/blob/main/libs/@local/archinaut/README.md).
+
+## Declaring a layer
+
+Add frontmatter to the folder's `README.md`:
+
+```yaml
+---
+layer: core.simulation.monte-carlo
+role: Runs many simulations with bounded frame memory
+---
+```
+
+The prose below the frontmatter becomes the layer's page body, so an existing
+folder README needs only the frontmatter added.
+
+For a folder with a barrel entry file and no README, annotate the entry file
+instead:
+
+```ts
+/**
+ * @layerRoot core.simulation.monte-carlo
+ * @role Runs many simulations with bounded frame memory
+ */
+```
+
+Use one mechanism or the other, never both on the same folder. Frontmatter
+takes `layer` and `role`; in a doc comment the tags are `@layerRoot`, `@role`
+and `@talksTo`. Anything else is either an error or ignored.
+
+## You do not need to annotate every file
+
+A file with no annotation belongs to the nearest ancestor folder that declares a
+layer. Thirty-seven declarations cover four hundred and thirteen files. Declare a layer where
+the architecture genuinely changes — a new boundary, a different responsibility —
+not on every directory that exists.
+
+## Moving or renaming a folder
+
+Nothing to update, provided the folder keeps its declaration with it. That is the
+main practical gain over the old path-matching script, where a move silently
+re-bucketed files into a fallback group.
+
+Renaming a _layer id_ is a real change: it moves the layer's page and invalidates
+inbound links, and every descendant id has to move with it.
+
+## Adding a new package
+
+Add it to `packages` in
+[`architecture.config.ts`](https://github.com/hashintel/hash/blob/main/apps/petrinaut-docs/archinaut.config.ts),
+declare a root layer in its source, and rebuild. Build configuration outside the
+package's source directory is deliberately excluded — it configures the build, it
+is not part of the design.
+
+## What CI will hold you to
+
+Run the check before pushing:
+
+```bash
+yarn workspace @apps/petrinaut-docs lint:arch-docs
+```
+
+It fails when a source file no layer covers appears, when a layer id implies an
+ancestor nothing declares, when a dependency violates a declared rule, and when
+the import graph reaches a source file no layer claims.
+
+The bundle itself is build output and is git-ignored, so there is nothing to
+regenerate before pushing. Only the annotations are versioned. To read the docs
+locally:
+
+```bash
+yarn workspace @apps/petrinaut-docs doc:architecture
+```
+
+## Adding a hand-written guide
+
+A guide about a layer lives beside that layer's code, as an `.mdx` file in
+the folder that declares the layer or any folder beneath it. The build finds
+it through the same walk that resolves source files to layers, places it
+beneath the layer's page, and links it from there under "Guides". Nothing in
+the package compiles it: the CLI reads it, resolves its links, and ships it in
+the bundle.
+
+```text
+libs/@hashintel/petrinaut-core/src/simulation/
+  README.md          # declares core.simulation
+  memory-model.mdx   # a guide, rendered beneath core.simulation
+```
+
+Frontmatter carries `title`, `description` and `sidebar_order`; the layer
+comes from the location, so an `attachTo` key is an error. Link to other
+pages by name rather than by path: `[text](layer:core.simulation.engine)` for
+a generated page, `[text](doc:core.simulation/memory-model)` for a guide,
+named by its layer and file stem. A target that does not resolve fails the
+check.
+
+Pages about the documentation itself, like this one, belong to no layer and
+stay under `apps/petrinaut-docs/content/`, where the slug is the
+path.
+
+## Adding a hand-written diagram
+
+Put a D2 file beside the page that uses it and reference it relative to the
+page, as an image:
+
+```mdx
+![One experiment through the GPU](./gpu-experiment-pipeline.d2)
+```
+
+The build renders the file to SVG next to the generated diagrams and rewrites
+the reference to a plain Markdown image that any host renders; the site
+inlines it as a themeable diagram. A diagram several pages share, or one used by a page
+under `content/`, lives in `content/diagrams/` and is referenced as
+`@diagrams/<name>.svg`. A reference that does not resolve, or a name that
+collides with a generated diagram, fails the check.
+
+## Declaring a rule
+
+Rules live in `architecture.config.ts` and are checked against the real import
+graph:
+
+```ts
+{
+  from: "react",
+  to: "ui",
+  reason: "state providers must not depend on the components that render them",
+}
+```
+
+Add one only when the code already satisfies it — a rule is a statement of fact
+that CI keeps true, not an aspiration. Check first with a build; if there are
+existing violations, either fix them in the same change or leave the rule out.
+
+## Declaring a protocol edge
+
+Some dependencies cross no import. The Python bindings spawn the CLI and speak
+JSON lines to it over stdio, so the import graph cannot see the pair. Declare
+such an edge with `@talksTo` in the same doc comment or docstring the scanner
+already reads:
+
+```python
+"""One Petrinaut CLI process, spoken to over JSON lines on stdio.
+
+@talksTo cli via JSON lines over stdio (spawned subprocess)
+"""
+```
+
+The edge starts at the declaring file's own layer. The word before `via` is the
+target layer id; the text after `via` is required and becomes the edge label.
+The tag is repeatable, one target per tag. Declared edges are drawn dashed in
+the diagrams, and the relations card on a layer page shows them with a dashed
+protocol label, separate from the edges aggregated from imports.
+
+The check fails when the target is not a declared layer. It also fails when the
+pair is already derived from imports; the import edge is the record in that
+case, so remove the declaration. A declared edge is held to the layer rules
+too, so declaring a boundary cannot express a dependency the rules forbid.

@@ -346,8 +346,11 @@ url = "https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-app
 url_api = "https://api.github.com/repos/typst/typst/releases/assets/480300018"
 
 [[tools."ubi:terrastruct/d2"]]
-version = "0.7.1"
+version = "0.9.0"
 backend = "ubi:terrastruct/d2"
+
+[tools."ubi:terrastruct/d2"."platforms.macos-arm64-d2"]
+checksum = "blake3:f2105f786f3125f6f6f91681e2020ae0ebacd5885a1c0898329b5a45b6563ea9"
 
 [[tools.uv]]
 version = "0.13.4"

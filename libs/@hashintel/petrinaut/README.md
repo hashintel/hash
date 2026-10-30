@@ -28,7 +28,7 @@ export function App() {
 For host applications that own their Petri net data, implement a
 `PetrinautDocHandle` adapter and pass it to `<Petrinaut />`. The integration
 guide lives in the architecture docs:
-[Embedding in a host application](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/handle/host-integration.mdx).
+[Embedding in a host application](https://github.com/hashintel/hash/blob/main/libs/%40hashintel/petrinaut-core/src/handle/host-integration.mdx).
 
 ### `PetrinautProps`
 
@@ -108,7 +108,7 @@ unmounts. Outside React, `createCommandRegistry()` and
 `combineCommandRegistries()` from `@hashintel/petrinaut-core` create and merge
 registries. The guide, with a reference palette, lives in the architecture
 docs:
-[Commands and the palette](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/commands/usage-manual.mdx).
+[Commands and the palette](https://github.com/hashintel/hash/blob/main/libs/%40hashintel/petrinaut-core/src/command-registry/usage-manual.mdx).
 
 ## Plugins
 
@@ -146,7 +146,7 @@ export const counterPlugin = CounterPlugin(useCounterPlugin);
 
 User settings lists the plugins and lets the user switch each one off. The
 guide lives in the architecture docs:
-[Plugins](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/plugins/overview.mdx).
+[Plugins](https://github.com/hashintel/hash/blob/main/libs/%40hashintel/petrinaut/src/ui/plugins/overview.mdx).
 
 ## Petricon
 
@@ -359,7 +359,7 @@ optimizer, so it does not require the Python service or Docker.
 
 Deprecated with the built-in chat: a plugin that declares `assistant` renders
 its own chat, with its own tools, in the assistant panel. The architecture
-docs' [Writing a plugin](../../@local/petrinaut-arch-docs/content/plugins/writing-a-plugin.mdx)
+docs' [Writing a plugin](src/ui/plugins/writing-a-plugin.mdx)
 page shows how.
 
 Hosts can render their own dynamic AI tools inline in Petrinaut's chat panel.

@@ -79,7 +79,7 @@ fails when it drifts. A response outside the schema raises
 The manifest itself stays opaque to Python: the CLI owns scenario compilation,
 fixed-value injection, simulation, and metric evaluation. The manifest
 contract, protocol, and seeded-runs semantics are documented in the
-[CLI usage manual](../petrinaut-arch-docs/content/cli/usage-manual.mdx).
+[CLI usage manual](src/petrinaut/usage-manual.mdx).
 
 ## Constraints
 

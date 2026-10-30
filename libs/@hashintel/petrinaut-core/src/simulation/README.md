@@ -8,9 +8,8 @@ role: Executes SDCPN nets — stepping, frames, workers and batch statistics
 Headless SDCPN simulation runtime.
 
 > Deep-dive documentation (memory layouts, the frame format, worker protocol,
-> Monte Carlo) lives in the architecture docs. They are added by #9205 under
-> `libs/@local/petrinaut-arch-docs/content/simulation/`, and #9206 adds a site
-> that renders them.
+> Monte Carlo) lives in the `.mdx` guides beside the code in this folder,
+> rendered in the architecture docs.
 
 ## Overview
 
