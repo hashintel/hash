@@ -307,6 +307,7 @@ const TestProviders = ({
     setShowCompilationOutput: () => {},
     setCanvasViewport: () => {},
     setPluginEnabled: () => {},
+    setAssistantPluginId: () => {},
     updateSubViewSection: () => {},
   };
 

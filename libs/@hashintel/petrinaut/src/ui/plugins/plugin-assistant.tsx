@@ -1,13 +1,18 @@
 /**
- * The AI assistant a plugin provides: which running plugin provides it, the
- * panel state its content reads, and the title bar its content fills.
+ * The AI assistant a plugin provides: which running plugin's assistant the
+ * editor shows, the panel state its content reads, and the title bar its
+ * content fills.
  */
 
 import { createContext, type ReactNode, use } from "react";
 import { createPortal } from "react-dom";
 
+import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { PluginBoundary } from "./plugin-boundary";
-import { useRunningPluginsSelector } from "./plugins-provider";
+import {
+  type RunningPlugin,
+  useRunningPluginsSelector,
+} from "./plugins-provider";
 
 /** The assistant panel's state, as its content reads it. */
 export interface AssistantPanel {
@@ -62,14 +67,55 @@ export const AssistantPanelTitle = ({
   );
 };
 
-/** The first running plugin that provides the assistant, or `undefined`. */
-export const usePluginAssistant = () =>
-  useRunningPluginsSelector((running) =>
-    running.find(
-      ({ manifest, contributions }) =>
-        manifest.assistant === true && contributions.assistant !== undefined,
-    ),
+/**
+ * The assistant the editor shows among `assistants`: the one the user chose
+ * while it is there, else the first.
+ */
+const pickAssistant = (
+  assistants: readonly RunningPlugin[],
+  chosenId: string | null,
+): RunningPlugin | undefined =>
+  assistants.find(({ manifest }) => manifest.id === chosenId) ?? assistants[0];
+
+const providesAssistant = ({ manifest, contributions }: RunningPlugin) =>
+  manifest.assistant === true && contributions.assistant !== undefined;
+
+/** Whether two lists hold the same plugins in the same order. */
+const samePlugins = (
+  previous: readonly RunningPlugin[],
+  next: readonly RunningPlugin[],
+) =>
+  previous.length === next.length &&
+  previous.every(({ manifest }, index) => manifest === next[index]?.manifest);
+
+/** The running plugin whose assistant the editor shows, or `undefined`. */
+export const usePluginAssistant = () => {
+  const { assistantPluginId } = use(UserSettingsContext);
+
+  return useRunningPluginsSelector((running) =>
+    pickAssistant(running.filter(providesAssistant), assistantPluginId),
   );
+};
+
+/**
+ * The running plugins that provide an assistant, the one the editor shows,
+ * and the user's choice between them.
+ */
+export const useAssistantChoice = () => {
+  const { assistantPluginId, setAssistantPluginId } = use(UserSettingsContext);
+  // Compared by plugin, so an assistant republishing its contributions, as a
+  // streaming chat does, re-renders none of the choice's readers.
+  const assistants = useRunningPluginsSelector(
+    (running) => running.filter(providesAssistant),
+    samePlugins,
+  );
+
+  return {
+    assistants: assistants.map(({ manifest }) => manifest),
+    shownId: pickAssistant(assistants, assistantPluginId)?.manifest.id,
+    choose: setAssistantPluginId,
+  };
+};
 
 /** A plugin's assistant content behind that plugin's error boundary. */
 export const PluginAssistantContent = ({

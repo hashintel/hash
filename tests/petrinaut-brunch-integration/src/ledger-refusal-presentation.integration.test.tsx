@@ -24,6 +24,7 @@ import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "@apps/petrinaut-website/src/main/app/plugins/brunch/brunch-panel-transport";
+import { fixedBrunchAssistant } from "@apps/petrinaut-website/src/main/app/plugins/brunch/chat/testing/fixed-brunch-assistant";
 import {
   BrunchAssistantContext,
   brunchPlugin,
@@ -93,7 +94,7 @@ const renderAssistant = (messages: readonly PetrinautAiMessage[]) => {
     },
   };
   render(
-    <BrunchAssistantContext value={assistant}>
+    <BrunchAssistantContext value={fixedBrunchAssistant(assistant)}>
       <Petrinaut
         handle={createJsonDocHandle({
           initial: { places: [], transitions: [] },

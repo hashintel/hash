@@ -1,13 +1,18 @@
 import { use } from "react";
 
+import { useCommand } from "../../../../react/commands/command-registry";
 import { EditorContext } from "../../../../react/state/editor-context";
 import {
   PluginAssistantContent,
+  useAssistantChoice,
   usePluginAssistant,
 } from "../../../plugins/plugin-assistant";
 import { PluginAssistantPanel } from "../panels/assistant-panel-shell";
 
-/** The editor's AI assistant: the first running plugin that provides one. */
+/**
+ * The editor's AI assistant: the chosen running plugin's, else the first
+ * running one's.
+ */
 export const useEditorAssistant = () => {
   const plugin = usePluginAssistant();
 
@@ -48,4 +53,44 @@ export const EditorAssistantPanel = ({
       </PluginAssistantContent>
     </PluginAssistantPanel>
   );
+};
+
+const UseAssistantCommand = ({
+  id,
+  name,
+  shown,
+  choose,
+}: {
+  id: string;
+  name: string;
+  shown: boolean;
+  choose: (pluginId: string) => void;
+}) => {
+  useCommand(
+    {
+      id: `petrinaut.ai-assistant.use.${id}`,
+      label: `Use ${name} as the AI assistant`,
+      category: "Editor",
+      keywords: ["assistant", "ai", "chat", "switch"],
+      run: () => choose(id),
+    },
+    { when: !shown },
+  );
+
+  return null;
+};
+
+/** A palette command for each assistant the editor does not show, which shows it. */
+export const AssistantCommands = () => {
+  const { assistants, shownId, choose } = useAssistantChoice();
+
+  return assistants.map(({ id, name }) => (
+    <UseAssistantCommand
+      key={id}
+      id={id}
+      name={name}
+      shown={id === shownId}
+      choose={choose}
+    />
+  ));
 };

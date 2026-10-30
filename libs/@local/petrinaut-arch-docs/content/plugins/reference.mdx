@@ -181,7 +181,7 @@ type EditRefusal = ReadOnlyReason | { kind: "no-title-setter" };
 | `buttons`        | Declared     | Per key: `{ icon, onClick?, command?, className?, ref? }`. `onClick` runs before `command`, one of the plugin's command keys. A button has at least one of `onClick`, `command` and `ref`. |
 | `topBarItems`    | Declared     | Per key: a `ReactNode`.                                                                                                                                                                    |
 | `readOnlyAction` | Declared     | `{ run }`: what the read-only notice's button does. The notice shows the action of the first running plugin that declares one, and closes when the button is clicked.                      |
-| `assistant`      | Declared     | `{ content, onPrompt? }`: `content` fills the panel behind the plugin's error boundary, and `onPrompt(text)` takes the empty-net prompt's message. The first running plugin's shows.       |
+| `assistant`      | Declared     | `{ content, onPrompt? }`: `content` fills the panel behind the plugin's error boundary, and `onPrompt(text)` takes the empty-net prompt's message. The user's choice shows, or the first.  |
 | `provides`       | Declared     | The service type `T` of `pluginService<T>()`.                                                                                                                                              |
 
 Every declared key is required and every undeclared one is a type error.

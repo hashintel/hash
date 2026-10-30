@@ -20,11 +20,15 @@ Each plugin here is written against the [plugin API](doc:plugins/overview).
 ## The list the editor receives
 
 The demo shell passes `demoPlugins` from `plugins/demo-plugins.ts` to
-`<Petrinaut plugins>`, with `petrinautAiPlugin` added while Brunch's assistant
-is not ready. With Brunch selected, `useBrunchAssistant` adds `website.brunch`
-and the shell hands Brunch's chat to that plugin through
-`BrunchAssistantContext`. `/ai-experiments` passes the scripted assistant
-defined beside its route in `ai-experiments-demo/`.
+`<Petrinaut plugins>`, with `petrinautAiPlugin` and, when
+`VITE_BRUNCH_CHAT_ENDPOINT` is set, `website.brunch`. The assistant saved under
+`petrinaut-website:assistant` goes first, so the editor shows it until the user
+chooses another. Brunch's panel content, which the editor mounts only while it
+shows Brunch, tells the shell through `BrunchAssistantContext` which document
+it shows Brunch on. The shell runs Brunch's session from `useBrunchAssistant`
+only while that document is the open net's, and hands it back through the same
+context. `/ai-experiments` passes the scripted assistant defined beside its
+route in `ai-experiments-demo/`.
 
 `/examples/$slug` and `/share` pass `[localCopyPlugin]` alone, through
 `ReadonlyDocumentPage` in `src/examples/readonly-document-page.tsx`; the embed
@@ -35,9 +39,7 @@ contributes **Make a local copy** as a top-bar item and as its
 says what it saves and where the copy opens. It imports the local net storage
 from `local-storage-demo/`.
 
-The shell provides the command registry and registers its own commands in it.
-The editor reuses that registry, so the palette lists the editor's commands and
-the demo's.
+The shell provides the command registry, and the editor reuses it.
 
 ## Folder layout
 

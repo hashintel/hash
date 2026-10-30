@@ -153,8 +153,14 @@ Declare `assistant: true` and return `assistant: { content }`. The editor
 renders `content` in its assistant panel, below the title bar, behind the
 plugin's error boundary, and opens the panel from the bottom bar button and
 the toggle shortcut. The panel's frame, placement, resizing, dock toggle and
-Close button stay the editor's. The editor shows the first running plugin that
-provides an assistant. Without one, the editor shows none of its entry points.
+Close button stay the editor's. When several running plugins provide an
+assistant, the user chooses one from the title bar's menu beside the
+assistant icon, Settings › General or the command palette, and the editor
+shows the first until they do. Without an assistant, the editor shows none of
+its entry points.
+
+Only the shown assistant's `content` mounts, so its effects start when the
+user chooses it and clean up when they choose another.
 
 Inside `content`, `AssistantPanelTitle` fills the title bar and
 `useAssistantPanel()` reads whether the panel is open and closes it.

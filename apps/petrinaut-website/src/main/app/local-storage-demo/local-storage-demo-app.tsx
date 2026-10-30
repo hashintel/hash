@@ -5,15 +5,15 @@
 
 import { useMemo, useState } from "react";
 
-import {
-  CommandRegistryProvider,
-  useCommand,
-} from "@hashintel/petrinaut/react";
+import { CommandRegistryProvider } from "@hashintel/petrinaut/react";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { useSharedSearchNavigation } from "../../../examples/use-shared-search-navigation";
 import { StatusPage } from "../../../shared/status-page";
-import { BrunchAssistantContext } from "../plugins/brunch/editor-api-plugin";
+import {
+  BrunchAssistantContext,
+  brunchPlugin,
+} from "../plugins/brunch/editor-api-plugin";
 import {
   brunchPreviewConfig,
   useBrunchAssistant,
@@ -21,11 +21,7 @@ import {
 import { demoPlugins } from "../plugins/demo-plugins";
 import { petrinautAiPlugin } from "../plugins/petrinaut-ai/plugin";
 import { AssistantLabsSettings } from "./assistant-labs-settings";
-import {
-  isBrunchSelected,
-  type AssistantSelection,
-  useAssistantSelection,
-} from "./assistant-selection";
+import { readAssistantSelection } from "./assistant-selection";
 import { useActiveHandle } from "./documents/use-active-handle";
 import { useDocumentController } from "./documents/use-document-controller";
 import { useInterviewBudgetPreference } from "./interview-budget-preference";
@@ -37,29 +33,17 @@ import type { SharedExampleSearch } from "../../../examples/example-search";
 import type { MinimalNetMetadata, SDCPN } from "@hashintel/petrinaut-core";
 
 /**
- * The demo's own palette commands, registered beside Petrinaut's.
- * Brunch and Stock are selected through the product UI.
+ * The editor's plugins, with Petrinaut AI and, once configured, Brunch.
+ * Petrinaut shows the first assistant until the user chooses one, so the
+ * saved or default selection goes first.
  */
-const DemoCommands = ({
-  brunchSelected,
-  selectAssistant,
-}: {
-  brunchSelected: boolean;
-  selectAssistant: (selection: "brunch" | "stock") => void;
-}) => {
-  useCommand(
-    {
-      id: "demo.assistant.switch",
-      label: brunchSelected
-        ? "Use the stock Petrinaut assistant"
-        : "Use Brunch",
-      category: "Demo",
-      keywords: ["assistant", "brunch", "stock", "ai"],
-      run: () => selectAssistant(brunchSelected ? "stock" : "brunch"),
-    },
-    { when: brunchPreviewConfig.isBrunchConfigured },
-  );
-  return null;
+const editorPlugins = (brunchFirst: boolean) => {
+  if (!brunchPreviewConfig.isBrunchConfigured) {
+    return [...demoPlugins, petrinautAiPlugin];
+  }
+  return brunchFirst
+    ? [...demoPlugins, brunchPlugin, petrinautAiPlugin]
+    : [...demoPlugins, petrinautAiPlugin, brunchPlugin];
 };
 
 /**
@@ -87,11 +71,6 @@ export const LocalStorageDemoApp = ({
   search: SharedExampleSearch;
 }) => {
   const {
-    ready: assistantSelectionReady,
-    selection: assistantSelection,
-    setSelection: setAssistantSelection,
-  } = useAssistantSelection();
-  const {
     enabled: voiceEnabled,
     ready: voicePreferenceReady,
     setEnabled: setVoiceEnabled,
@@ -113,15 +92,15 @@ export const LocalStorageDemoApp = ({
     ready: wordsPreferenceReady,
     setEnabled: setWordsEnabled,
   } = useWordsPreference();
-  const brunchSelected =
-    assistantSelectionReady &&
-    isBrunchSelected(
-      brunchPreviewConfig.isBrunchConfigured,
-      assistantSelection,
-    );
-  const selectAssistant = (selection: AssistantSelection) => {
-    setAssistantSelection(selection);
-    if (selection === "brunch") setVoiceEnabled(true);
+  const [brunchFirst] = useState(() => readAssistantSelection() === "brunch");
+  const plugins = editorPlugins(brunchFirst);
+  // Brunch's panel content marks the document it shows Brunch on while the
+  // editor mounts it.
+  const [brunchShownOn, setBrunchShownOn] = useState<string | null>(null);
+  const showBrunch = (documentId: string) => {
+    setBrunchShownOn(documentId);
+    return () =>
+      setBrunchShownOn((shownOn) => (shownOn === documentId ? null : shownOn));
   };
   /**
    * History is left to the library's default on purpose. That default already
@@ -145,6 +124,10 @@ export const LocalStorageDemoApp = ({
   const currentNetId = currentDocument?.documentId ?? null;
 
   const { activeHandle, unsavedChangeMessage } = useActiveHandle(repository);
+  // Brunch connects only while the editor shows it on the open net's handle.
+  const brunchShown =
+    activeHandle?.document.documentId === currentNetId &&
+    activeHandle.handle.id === brunchShownOn;
 
   const existingNets: MinimalNetMetadata[] = repository.records
     .map((document) => ({
@@ -213,7 +196,7 @@ export const LocalStorageDemoApp = ({
     [currentNetId, brunchEditor],
   );
   const brunch = useBrunchAssistant({
-    selected: brunchSelected,
+    selected: brunchShown,
     openDocument: brunchOpenDocument,
     voice: {
       enabled: voicePreferenceReady && voiceEnabled && realtimePreferenceReady,
@@ -225,13 +208,7 @@ export const LocalStorageDemoApp = ({
       setLevel: setInterviewBudgetLevel,
     },
     words: { enabled: wordsPreferenceReady && wordsEnabled },
-    plugins: demoPlugins,
   });
-  // Petrinaut AI is the assistant until Brunch's is ready.
-  const plugins =
-    brunch.assistant === null
-      ? [...brunch.plugins, petrinautAiPlugin]
-      : brunch.plugins;
 
   if (repository.status.state === "ready" && currentDocument === null) {
     return (
@@ -262,7 +239,9 @@ export const LocalStorageDemoApp = ({
       {notice !== null ? <UnsavedChangeNotice message={notice} /> : null}
       <CommandRegistryProvider>
         {/* Brunch's plugin renders its chat from this, inside the editor. */}
-        <BrunchAssistantContext value={brunch.assistant}>
+        <BrunchAssistantContext
+          value={{ assistant: brunch.assistant, show: showBrunch }}
+        >
           <Petrinaut
             handle={activeHandle.handle}
             existingNets={existingNets}
@@ -273,11 +252,9 @@ export const LocalStorageDemoApp = ({
             readonly={false}
             setTitle={setTitle}
             slots={{
-              settingsLabs: (
+              settingsLabs: brunchPreviewConfig.isBrunchConfigured ? (
                 <AssistantLabsSettings
-                  assistantReady={assistantSelectionReady}
-                  brunchConfigured={brunchPreviewConfig.isBrunchConfigured}
-                  brunchSelected={brunchSelected}
+                  brunchActive={brunchShown}
                   interviewBudgetEnabled={interviewBudgetEnabled}
                   interviewBudgetPreferenceReady={
                     interviewBudgetPreferenceReady
@@ -285,25 +262,20 @@ export const LocalStorageDemoApp = ({
                   openAIVoiceConfig={brunch.openAIVoiceConfig}
                   realtimeEnabled={realtimeEnabled}
                   realtimePreferenceReady={realtimePreferenceReady}
-                  selectAssistant={selectAssistant}
                   setInterviewBudgetEnabled={setInterviewBudgetEnabled}
                   setRealtimeEnabled={setRealtimeEnabled}
                   setVoiceEnabled={setVoiceEnabled}
-                  voiceEnabled={brunchSelected && voiceEnabled}
+                  voiceEnabled={brunchShown && voiceEnabled}
                   voicePreferenceReady={voicePreferenceReady}
                   wordsEnabled={wordsEnabled}
                   wordsPreferenceReady={wordsPreferenceReady}
                   setWordsEnabled={setWordsEnabled}
                 />
-              ),
+              ) : undefined,
             }}
             title={currentDocument.title}
           />
         </BrunchAssistantContext>
-        <DemoCommands
-          brunchSelected={brunchSelected}
-          selectAssistant={selectAssistant}
-        />
       </CommandRegistryProvider>
     </div>
   );

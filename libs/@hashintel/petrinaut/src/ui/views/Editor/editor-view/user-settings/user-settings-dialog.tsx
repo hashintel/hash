@@ -13,6 +13,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { useAssistantChoice } from "../../../../plugins/plugin-assistant";
 import { PluginSettingsRows } from "../../../../plugins/plugin-settings-rows";
 import { FocusControls } from "../../../../worksheet/focus-controls";
 import { focusLands } from "../../../../worksheet/focus-flow";
@@ -321,6 +322,38 @@ const SettingToggle = ({
 
 const pluginRowComponents = { Group: SettingsGroup, Row: SettingRow };
 
+const selectStyle = css({ width: "[156px]", maxWidth: "[100%]" });
+
+/** Which plugin's assistant the editor shows, once several provide one. */
+const AssistantGroup = () => {
+  const { assistants, shownId, choose } = useAssistantChoice();
+
+  return assistants.length > 1 && shownId !== undefined ? (
+    <SettingsGroup title="AI assistant">
+      <SettingRow
+        label="Assistant"
+        description="Choose which assistant answers in the AI assistant panel."
+        wideControl
+      >
+        {(aria) => (
+          <Select
+            {...aria}
+            size="sm"
+            className={selectStyle}
+            required
+            value={shownId}
+            onChange={choose}
+            items={assistants.map(({ id, name }) => ({
+              value: id,
+              text: name,
+            }))}
+          />
+        )}
+      </SettingRow>
+    </SettingsGroup>
+  ) : null;
+};
+
 const SettingsTabs = () => {
   const elementRef = useRef<HTMLDivElement>(null);
   const member = useFocusMember(() =>
@@ -484,6 +517,7 @@ export const UserSettingsDialog = ({
                           onChange={settings.setKeepPanelsMounted}
                         />
                       </SettingsGroup>
+                      <AssistantGroup />
                       <PluginSettingsRows
                         section="general"
                         components={pluginRowComponents}
@@ -527,10 +561,7 @@ export const UserSettingsDialog = ({
                               <Select
                                 {...aria}
                                 size="sm"
-                                className={css({
-                                  width: "[156px]",
-                                  maxWidth: "[100%]",
-                                })}
+                                className={selectStyle}
                                 required
                                 value={settings.arcRendering}
                                 onChange={settings.setArcRendering}

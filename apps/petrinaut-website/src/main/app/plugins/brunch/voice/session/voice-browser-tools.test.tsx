@@ -14,6 +14,7 @@ import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "../../brunch-panel-transport";
+import { fixedBrunchAssistant } from "../../chat/testing/fixed-brunch-assistant";
 import { brunchPlugin, BrunchAssistantContext } from "../../editor-api-plugin";
 import { selectCanonicalSpeech } from "../live/canonical-speech";
 import { RealtimeBrunchBridge } from "../realtime/realtime-brunch-bridge";
@@ -221,7 +222,7 @@ test.each([
     // Brunch's chat, through its plugin, as the demo shell bridges it.
     render(
       <BrunchAssistantContext
-        value={{
+        value={fixedBrunchAssistant({
           automaticTools: [],
           conversationId: "test",
           requestStop: async () => {
@@ -238,7 +239,7 @@ test.each([
           renderVoiceMode: (current) => (
             <VoiceObserver current={current} onUpdate={updateVoice} />
           ),
-        }}
+        })}
       >
         <Petrinaut
           handle={handle}

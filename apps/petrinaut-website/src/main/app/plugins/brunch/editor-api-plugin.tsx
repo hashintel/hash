@@ -1,4 +1,11 @@
-import { createContext, use, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  use,
+  useEffect,
+  useLayoutEffect,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import { ErrorTrackerContext } from "@hashintel/petrinaut/react";
@@ -24,12 +31,25 @@ const brunchAccess = {
 export type BrunchEditorApi = AccessApi<typeof brunchAccess>;
 
 /**
- * Brunch's assistant, from the host that assembles it outside the editor to
- * the plugin that renders it inside. The host provides it above `<Petrinaut>`
- * and adds `brunchPlugin` to the editor's plugins only while it is set.
+ * Brunch's assistant, between the host that assembles it outside the editor
+ * and the plugin that renders it inside. The host provides it above
+ * `<Petrinaut>`. The plugin's content calls `show` while the editor shows
+ * Brunch's assistant on a document, and the host assembles `assistant` for
+ * that document only.
  */
-export const BrunchAssistantContext =
-  createContext<PetrinautAiAssistant | null>(null);
+export interface BrunchAssistantHost {
+  /** Brunch's assistant, or `null` until the host binds its conversation. */
+  readonly assistant: PetrinautAiAssistant | null;
+  /**
+   * Marks Brunch's assistant as shown on the document with `documentId`, and
+   * returns the call that unmarks it.
+   */
+  readonly show: (documentId: string) => () => void;
+}
+
+export const BrunchAssistantContext = createContext<BrunchAssistantHost | null>(
+  null,
+);
 
 const BrunchPlugin = definePetrinautPlugin({
   id: "website.brunch",
@@ -37,41 +57,73 @@ const BrunchPlugin = definePetrinautPlugin({
   description:
     "Brunch's assistant: its chat, Ledger and Voice, with the open net, its experiments and the editor's navigation.",
   author: "HASH",
-  // Brunch's chat and cards can't work without it, so the user cannot switch it off.
-  required: true,
   access: brunchAccess,
   assistant: true,
   provides: pluginService<BrunchEditorApi>(),
 });
+
+const connectingStyle = css({
+  margin: "auto",
+  color: "neutral.s90",
+  fontSize: "sm",
+});
+
+/**
+ * Brunch's panel content. The editor mounts it only while it shows Brunch's
+ * assistant, so it marks Brunch as shown on `documentId` for the host, which
+ * connects Brunch only then, and renders `children` once the host has bound
+ * the conversation.
+ */
+const BrunchAssistantContent = ({
+  documentId,
+  children,
+}: {
+  documentId: string;
+  children: (assistant: PetrinautAiAssistant) => ReactNode;
+}) => {
+  const host = use(BrunchAssistantContext);
+  const show = host?.show;
+  // Before paint, so the host's assistant replaces this frame unseen.
+  useLayoutEffect(() => show?.(documentId), [show, documentId]);
+
+  if (host === null) {
+    throw new Error("BrunchAssistantContext has no provider above <Petrinaut>");
+  }
+  return host.assistant === null ? (
+    <p className={connectingStyle} role="status">
+      Connecting to Brunch…
+    </p>
+  ) : (
+    children(host.assistant)
+  );
+};
 
 /**
  * Renders Brunch's chat as the editor's assistant, and hands its `api` to
  * Brunch's cards.
  */
 const useBrunchPlugin: PluginHook<typeof BrunchPlugin> = (api) => {
-  const assistant = use(BrunchAssistantContext);
   // The empty-net prompt's text, which the chat consumes once.
   const [promptText, setPromptText] = useState<string | null>(null);
-  if (assistant === null) {
-    throw new Error(
-      "The Brunch plugin runs only while its host provides BrunchAssistantContext.",
-    );
-  }
 
   return {
     provides: api,
     assistant: {
       content: (
-        <AiAssistantPanel
-          aiAssistant={assistant}
-          api={api}
-          initialMessage={promptText}
-          onInitialMessageConsumed={() => setPromptText(null)}
-          // Text from the prompt selects text, as the built-in chat's did,
-          // so it never reaches a Voice mode left from an earlier session.
-          initialInteractionMode={promptText === null ? null : "text"}
-          onInitialInteractionModeConsumed={() => setPromptText(null)}
-        />
+        <BrunchAssistantContent documentId={api.document.id}>
+          {(assistant) => (
+            <AiAssistantPanel
+              aiAssistant={assistant}
+              api={api}
+              initialMessage={promptText}
+              onInitialMessageConsumed={() => setPromptText(null)}
+              // Text from the prompt selects text, as the built-in chat's did,
+              // so it never reaches a Voice mode left from an earlier session.
+              initialInteractionMode={promptText === null ? null : "text"}
+              onInitialInteractionModeConsumed={() => setPromptText(null)}
+            />
+          )}
+        </BrunchAssistantContent>
       ),
       // The prompt offers text only; Voice starts from the chat's composer.
       onPrompt: setPromptText,
@@ -79,7 +131,7 @@ const useBrunchPlugin: PluginHook<typeof BrunchPlugin> = (api) => {
   };
 };
 
-/** Runs while Brunch is the assistant: its chat fills the assistant panel. */
+/** Brunch's assistant: its chat fills the assistant panel while the editor shows it. */
 export const brunchPlugin = BrunchPlugin(useBrunchPlugin);
 
 const missingPluginStyle = css({

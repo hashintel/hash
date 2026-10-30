@@ -64,6 +64,12 @@ export type UserSettings = {
   showCompilationOutput: boolean;
   /** Plugins the user switched off in the Plugins section, by id. */
   disabledPluginIds: readonly string[];
+  /**
+   * The plugin whose assistant the user chose, by id. While it is not
+   * running, the editor shows the assistant of the first running plugin that
+   * provides one.
+   */
+  assistantPluginId: string | null;
   subViewPanels: SubViewPanelsSettings;
   /** Where each document's canvas was last left, keyed by document id. */
   canvasViewports: Record<string, SavedCanvasViewport>;
@@ -91,6 +97,7 @@ export type UserSettingsActions = {
   setEnableNetComponents: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
   setPluginEnabled: (pluginId: string, enabled: boolean) => void;
+  setAssistantPluginId: (pluginId: string) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -123,6 +130,7 @@ export const defaultUserSettings: UserSettings = {
   enableNetComponents: false,
   showCompilationOutput: false,
   disabledPluginIds: [],
+  assistantPluginId: null,
   subViewPanels: {},
   canvasViewports: {},
 };
@@ -154,6 +162,7 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setEnableNetComponents: () => {},
   setShowCompilationOutput: () => {},
   setPluginEnabled: () => {},
+  setAssistantPluginId: () => {},
   updateSubViewSection: () => {},
   setCanvasViewport: () => {},
 };
