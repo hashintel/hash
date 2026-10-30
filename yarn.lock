@@ -7584,6 +7584,7 @@ __metadata:
     "@types/node": "catalog:"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
+    "@typescript/typescript6": "catalog:"
     "@vitejs/plugin-react": "npm:6.1.1"
     "@vitest/browser-playwright": "npm:4.1.11"
     "@zag-js/dom-query": "npm:1.43.0"

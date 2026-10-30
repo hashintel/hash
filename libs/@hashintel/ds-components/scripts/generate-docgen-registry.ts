@@ -8,8 +8,8 @@
 import { globSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import ts from "@typescript/typescript6";
 import { withCompilerOptions } from "react-docgen-typescript";
-import ts from "typescript";
 
 import { docgenParserOptions } from "../docs/docgen-options";
 
