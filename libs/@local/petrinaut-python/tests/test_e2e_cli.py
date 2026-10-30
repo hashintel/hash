@@ -1,12 +1,10 @@
 """End-to-end tests against the real built CLI bundle.
 
 These spawn `node dist/cli.js`, so they need the CLI built and `node` on the
-path. `turbo run test:unit --filter @local/petrinaut-python` builds the bundle
+path. `turbo run test --filter=petrinaut-python` builds the bundle
 through the workspace dependency; plain `uv run pytest` skips these tests when
 the bundle or `node` is missing.
 """
-
-from __future__ import annotations
 
 import json
 import math
@@ -35,7 +33,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_runs_the_sir_model_end_to_end() -> None:
+def test_cli_sir_model() -> None:
     request = {
         "parameters": {"infection_rate": 1.5, "recovery_rate": 0.8},
         "initialState": {
@@ -55,20 +53,31 @@ def test_runs_the_sir_model_end_to_end() -> None:
         assert session.healthz() == {"ok": True}
 
         metadata = session.metadata()
-        metric_names = {metric["name"] for metric in metadata["metrics"]}
+        metrics = metadata["metrics"]
+        assert isinstance(metrics, list)
+        metric_names: set[str] = set()
+        for metric in metrics:
+            assert isinstance(metric, dict)
+            name = metric["name"]
+            assert isinstance(name, str)
+            metric_names.add(name)
         assert "Infected Fraction" in metric_names
 
         result = session.run(request)
         assert result["status"] == "complete"
         assert result["seed"] == 4242
-        assert 0 <= result["metrics"]["Infected Fraction"] <= 1
+        result_metrics = result["metrics"]
+        assert isinstance(result_metrics, dict)
+        infected_fraction = result_metrics["Infected Fraction"]
+        assert isinstance(infected_fraction, (int, float))
+        assert 0 <= infected_fraction <= 1
 
         # The same seed reproduces the same trajectory.
         repeat = session.run(request)
         assert repeat["metrics"] == result["metrics"]
 
 
-def test_evaluates_an_optimization_manifest_end_to_end() -> None:
+def test_cli_manifest() -> None:
     with OptimizationSession(
         manifest_path=SUPPLY_CHAIN_OPTIMIZATION,
         command=(str(NODE), str(CLI_BUNDLE)),
@@ -76,29 +85,25 @@ def test_evaluates_an_optimization_manifest_end_to_end() -> None:
         description = session.describe()
         assert description.direction.value == "maximize"
 
-        parameters = {
-            parameter.identifier: parameter for parameter in description.parameters
-        }
+        parameters = {parameter.identifier: parameter for parameter in description.parameters}
         production_rate = parameters["production_rate"]
         assert isinstance(production_rate, OptimizationFloatParameter)
         assert production_rate.minimum == 20
         assert production_rate.maximum == 250
         assert isinstance(parameters["reorder_threshold"], OptimizationIntParameter)
 
-        result = session.evaluate(
-            {
-                "production_rate": 100,
-                "reorder_threshold": 120,
-                "batch_size": 180,
-                "selling_price": 34,
-                "expedite_fraction": 0.25,
-                "marketing_spend": 40,
-            }
-        )
+        result = session.evaluate({
+            "production_rate": 100,
+            "reorder_threshold": 120,
+            "batch_size": 180,
+            "selling_price": 34,
+            "expedite_fraction": 0.25,
+            "marketing_spend": 40,
+        })
         assert math.isfinite(result.objective)
 
 
-def test_runs_a_seeded_optimization_study_end_to_end() -> None:
+def test_cli_seeded_study() -> None:
     """Evaluates one trial as two sequential seeded runs on the real CLI."""
     legacy_model = json.loads(SIR_MODEL.read_text())
     definition = {key: value for key, value in legacy_model.items() if key != "title"}
@@ -138,7 +143,7 @@ def test_runs_a_seeded_optimization_study_end_to_end() -> None:
     }
     with OptimizationSession(manifest, command=(str(NODE), str(CLI_BUNDLE))) as session:
         description = session.describe()
-        assert description.study.seedsPerTrial == 2
+        assert description.study.seeds_per_trial == 2
         assert session._transport.request_timeout_seconds == 480
 
         result = session.evaluate({"infected_ratio": 0.1})

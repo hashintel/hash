@@ -11,24 +11,22 @@ POSIX only, via the transport: process groups and descriptor polling.
 @talksTo cli via JSON lines over stdio (spawned subprocess)
 """
 
-from __future__ import annotations
-
 import os
-import subprocess
+import subprocess  # ruff: ignore[suspicious-subprocess-import]
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, TypeVar, cast
+from typing import Self, Unpack
+
+from pydantic import JsonValue
 
 from ._transport import (
     BOOTSTRAP_TIMEOUT_SECONDS,
     PROTOCOL_READ_TIMEOUT_SECONDS,
     CliTransport,
+    Process,
+    SessionOptions,
     encode_bootstrap_line,
 )
 from .errors import PetrinautProtocolError
-
-# The self type for ``__enter__``: a subclass used as a context manager keeps
-# its own type. ``typing.Self`` needs Python 3.11, and this package runs on 3.10.
-_SessionT = TypeVar("_SessionT", bound="PetrinautSession")
 
 
 class PetrinautSession:
@@ -63,7 +61,7 @@ class PetrinautSession:
         bootstrap_line: str | None = None,
         source_label: str = "model",
         command: Sequence[str] = ("petrinaut",),
-        popen_factory: Callable[..., Any] = subprocess.Popen,
+        popen_factory: Callable[..., Process] = subprocess.Popen,
         bootstrap_timeout_seconds: float = BOOTSTRAP_TIMEOUT_SECONDS,
         request_timeout_seconds: float = PROTOCOL_READ_TIMEOUT_SECONDS,
     ) -> None:
@@ -89,7 +87,7 @@ class PetrinautSession:
     # session; a staticmethod makes no such promise.
     @staticmethod
     def from_model_file(
-        path: str | os.PathLike[str], **options: Any
+        path: str | os.PathLike[str], **options: Unpack[SessionOptions]
     ) -> PetrinautSession:
         """Serve a model file (``petrinaut serve --model <path> --stdio``).
 
@@ -102,7 +100,9 @@ class PetrinautSession:
         )
 
     @staticmethod
-    def from_model(model: Mapping[str, Any], **options: Any) -> PetrinautSession:
+    def from_model(
+        model: Mapping[str, object], **options: Unpack[SessionOptions]
+    ) -> PetrinautSession:
         """Serve a model object sent as the first stdin line (``--model-stdin``)."""
         return PetrinautSession(
             serve_arguments=("--model-stdin", "--stdio"),
@@ -110,7 +110,7 @@ class PetrinautSession:
             **options,
         )
 
-    def __enter__(self: _SessionT) -> _SessionT:
+    def __enter__(self) -> Self:
         self.start()
         return self
 
@@ -130,7 +130,7 @@ class PetrinautSession:
         """
         self._transport.close(graceful=graceful)
 
-    def request(self, method: str, params: Mapping[str, Any] | None = None) -> Any:
+    def request(self, method: str, params: Mapping[str, object] | None = None) -> JsonValue:
         """Send one protocol request and return its ``result``.
 
         Raises :class:`PetrinautRunError` when the CLI answers with an error
@@ -142,24 +142,24 @@ class PetrinautSession:
         """
         return self._transport.exchange(method, params)
 
-    def healthz(self) -> dict[str, Any]:
+    def healthz(self) -> dict[str, JsonValue]:
         """Liveness check; returns ``{"ok": True}``."""
         return self._request_object("healthz")
 
-    def metadata(self) -> dict[str, Any]:
-        """The compiled model's parameters, places, and metrics."""
+    def metadata(self) -> dict[str, JsonValue]:
+        """Return the compiled model's parameters, places, and metrics."""
         return self._request_object("metadata")
 
-    def run(self, params: Mapping[str, Any]) -> dict[str, Any]:
+    def run(self, params: Mapping[str, object]) -> dict[str, JsonValue]:
         """Run one simulation; ``params`` is the CLI's run config."""
         return self._request_object("run", params)
 
     def _request_object(
-        self, method: str, params: Mapping[str, Any] | None = None
-    ) -> dict[str, Any]:
+        self, method: str, params: Mapping[str, object] | None = None
+    ) -> dict[str, JsonValue]:
         result = self._transport.exchange(method, params)
         if not isinstance(result, dict):
             self.close(graceful=False)
             raise PetrinautProtocolError(f"{method} returned a non-object result")
-        # `json.loads` produced this, so the keys are strings.
-        return cast("dict[str, Any]", result)
+
+        return result

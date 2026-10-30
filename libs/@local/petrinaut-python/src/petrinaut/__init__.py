@@ -18,7 +18,7 @@ here, as a boolean, a signed margin, or a pydantic validator.
 
 from .constraint import (
     Constraint,
-    ConstraintViolation,
+    ConstraintViolationError,
     ParameterConstraint,
     StateConstraint,
     parse_constraint,
@@ -45,7 +45,7 @@ from .symbolic import NotSymbolicError, SymbolicConstraint
 
 __all__ = [
     "Constraint",
-    "ConstraintViolation",
+    "ConstraintViolationError",
     "HirEvaluationError",
     "NotSymbolicError",
     "OptimizationBooleanParameter",

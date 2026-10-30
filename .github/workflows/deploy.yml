@@ -159,7 +159,7 @@ jobs:
               ecs:        []
             },
             {
-              package:    "@apps/petrinaut-opt",
+              package:    "petrinaut-optimization",
               service:    "petrinaut-opt",
               push:       ["ecr", "ghcr"],
               dockerfile: "apps/petrinaut-opt/docker/Dockerfile",

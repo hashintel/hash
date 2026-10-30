@@ -21,7 +21,7 @@ type PersonAvatar = {
   placeholder: AvatarProps["placeholder"];
 };
 
-const sampleImage = "https://avatars.githubusercontent.com/u/1846056?v=4";
+const sampleImage = "https://avatars.githubusercontent.com/u/2991143?v=4";
 
 const meta = {
   title: "Components/AvatarGroup",
@@ -41,9 +41,9 @@ type Story = StoryObj<AvatarGroupProps>;
 const people: PersonAvatar[] = [
   {
     shape: "circle",
-    alt: "Christian Busch",
+    alt: "Chris Feijoo",
     src: sampleImage,
-    placeholder: { initials: "CB" },
+    placeholder: { initials: "CF" },
   },
   { shape: "circle", alt: "Ada Lovelace", placeholder: { initials: "AL" } },
   { shape: "circle", alt: "Grace Hopper", placeholder: { initials: "GH" } },

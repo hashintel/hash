@@ -40,7 +40,14 @@ jobs:
         run: |
           # The steps gate on the per-task keys — the tasks are independent and
           # can differ in what they consider affected.
-          PACKAGES=$(.github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy lint:ruff lint:types)
+          set -o pipefail
+          PACKAGES=$(
+            .github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy lint:ruff format:ruff check:ty lint:tach lint:deptry |
+            jq --compact-output '
+              .include |= map(select(.name != "hash-python"))
+              | .name = [.include[].name]
+            '
+          )
 
           echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
@@ -107,14 +114,17 @@ jobs:
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
 
-          # The codegen step is also the drift check for committed generated
-          # files; those are excluded from the codegen task's own inputs, so a
-          # hand-edit never marks the task affected.
-          HAS_CODEGEN=$(jq -e '.scripts.codegen' "${{ matrix.path }}/package.json" > /dev/null 2>&1 && echo 'true' || echo 'false')
+          # Generated files can change without affecting codegen. The drift check needs command discovery rather than affected-task selection.
+          set -o pipefail
+          HAS_CODEGEN=$(turbo run codegen --filter "${{ matrix.name }}" --dry=json | jq --arg package "${{ matrix.name }}" 'any(.tasks[]; .package == $package and .task == "codegen" and .command != "<NONEXISTENT>")')
           echo "has-codegen=$HAS_CODEGEN" | tee -a "$GITHUB_OUTPUT"
 
       - name: Warm up repository
         uses: $/.github/actions/warm-up-repo
+
+      - name: Install Python workspace for Python lint
+        if: matrix['lint:ruff'] != null || matrix['format:ruff'] != null || matrix['check:ty'] != null || matrix['lint:tach'] != null || matrix['lint:deptry'] != null
+        run: uv sync --locked --all-packages
 
       - name: Show disk usage
         run: df -h
@@ -146,9 +156,17 @@ jobs:
         if: always() && matrix['lint:ruff'] != null
         run: turbo run lint:ruff --filter "${{ matrix.name }}"
 
-      - name: Run basedpyright
-        if: always() && matrix['lint:types'] != null
-        run: turbo run lint:types --filter "${{ matrix.name }}"
+      - name: Check Ruff formatting
+        if: always() && matrix['format:ruff'] != null
+        run: turbo run format:ruff --filter "${{ matrix.name }}" -- --check
+
+      - name: Run ty
+        if: always() && matrix['check:ty'] != null
+        run: turbo run check:ty --filter "${{ matrix.name }}"
+
+      - name: Run Python dependency and architecture checks
+        if: always() && (matrix['lint:tach'] != null || matrix['lint:deptry'] != null)
+        run: turbo run lint:tach lint:deptry --continue=always --filter "${{ matrix.name }}"
 
       - name: Run rustfmt
         if: always() && steps.lints.outputs.has-rust == 'true'
@@ -251,6 +269,9 @@ jobs:
       - name: Warm up repository
         uses: $/.github/actions/warm-up-repo
 
+      - name: Install Python for task resolution
+        run: uv python install --no-bin
+
       - name: Validate Dependency Diagrams
         if: ${{ success() || failure() }}
         run: |
@@ -329,14 +350,14 @@ jobs:
         run: |
           yarn lint:skill
 
-      - name: Run yarn lint:taplo
+      - name: Run yarn lint:tombi
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:taplo; then
+          if ! yarn lint:tombi; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running "yarn fix:taplo" locally to apply autofixes.'
+            echo 'Try running "yarn fix:tombi" locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi

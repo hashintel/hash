@@ -65,6 +65,7 @@ import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { createEmailTransporter } from "./email/create-email-transporter";
+import { setupFlowRunRecordHandler } from "./flows/setup-flow-run-record-handler";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
@@ -795,6 +796,8 @@ const main = async () => {
 
   setupFileDownloadProxyHandler(app, keyv);
 
+  setupFlowRunRecordHandler(app);
+
   setupAnalysisHandler(app, keyv);
 
   setupPetrinautOptimizerHandler(app, {
@@ -959,7 +962,6 @@ const main = async () => {
     context: machineActorContext,
     httpServer,
     logger,
-    storageProvider: uploadProvider,
     temporalClient,
   });
 

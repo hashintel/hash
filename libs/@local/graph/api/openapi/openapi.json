@@ -2862,6 +2862,9 @@
           "400": {
             "description": "Query compilation or validation error"
           },
+          "401": {
+            "description": "Missing or invalid authentication credentials"
+          },
           "500": {
             "description": "Internal compiler or database error"
           }
@@ -7082,6 +7085,24 @@
                 ]
               }
             }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "error"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "link"
+                ]
+              }
+            }
           }
         ],
         "discriminator": {
@@ -8014,6 +8035,45 @@
                 "type": "string",
                 "enum": [
                   "migration"
+                ]
+              },
+              "userAgent": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string",
+                "description": "The origin version, in whatever format the origin natively\nprovides."
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "apiKeyPublicId": {
+                "type": "string"
+              },
+              "deviceId": {
+                "type": "string"
+              },
+              "environment": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "semanticVersion": {
+                "type": "string"
+              },
+              "sessionId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "external"
                 ]
               },
               "userAgent": {

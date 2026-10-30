@@ -12,6 +12,7 @@ use aide::{
     util::iter_operations_mut,
 };
 use axum::{Router, response::Response};
+use hash_crypto::Secret;
 use hash_middleware::{
     authentication::{
         AuthenticationLayer, AuthenticationMetrics, Bootstrap, Challenge,
@@ -21,7 +22,6 @@ use hash_middleware::{
     rate_limit::{CallerLimitLayer, IpGateLayer, RateLimiters},
     response::{problem_response, status_problem},
 };
-use hash_secret::Secret;
 use http::{HeaderValue, Method, StatusCode, Uri, header::CACHE_CONTROL};
 use indexmap::IndexMap;
 use problematic::{ProblemDetails, ProblemVariant as _};

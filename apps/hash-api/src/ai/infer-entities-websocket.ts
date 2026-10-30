@@ -14,7 +14,6 @@ import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-in
 
 import type { GraphApi, ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
-import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type {
   ExternalInputWebsocketRequestMessage,
@@ -30,12 +29,10 @@ const inferEntitiesMessageHandler = async ({
   graphApiClient,
   temporalClient,
   message,
-  storageProvider,
   user,
 }: {
   graphApiClient: GraphApi;
   socket: WebSocket;
-  storageProvider: FileStorageProvider;
   temporalClient: Client;
   message: InferenceWebsocketClientMessage;
   user: User;
@@ -61,7 +58,6 @@ const inferEntitiesMessageHandler = async ({
         graphApiClient,
         temporalClient,
         message,
-        storageProvider,
         user,
       });
       return;
@@ -79,21 +75,19 @@ const inferEntitiesMessageHandler = async ({
         authentication: { actorId: user.accountId },
         filters: { executionStatus: FlowRunStatus.Running },
         graphApiClient,
-        includeDetails: true,
-        storageProvider,
-        temporalClient,
       });
 
-      for (const flowRun of openFlowRuns.flowRuns) {
-        for (const inputRequest of flowRun.inputRequests) {
-          if (!inputRequest.resolvedAt) {
-            const requestMessage: ExternalInputWebsocketRequestMessage = {
-              flowRunEntityId: flowRun.flowRunEntityId,
-              payload: inputRequest,
-              type: "external-input-request",
-            };
-            socket.send(JSON.stringify(requestMessage));
-          }
+      for (const {
+        flowRunEntityId,
+        openInputRequests,
+      } of openFlowRuns.flowRuns) {
+        for (const inputRequest of openInputRequests) {
+          const requestMessage: ExternalInputWebsocketRequestMessage = {
+            flowRunEntityId,
+            payload: inputRequest,
+            type: "external-input-request",
+          };
+          socket.send(JSON.stringify(requestMessage));
         }
       }
       return;
@@ -186,13 +180,11 @@ export const openInferEntitiesWebSocket = ({
   context,
   httpServer,
   logger,
-  storageProvider,
   temporalClient,
 }: {
   context: ImpureGraphContext;
   httpServer: http.Server;
   logger: Logger;
-  storageProvider: FileStorageProvider;
   temporalClient: Client;
 }) => {
   const wss = new WebSocketServer({
@@ -324,7 +316,6 @@ export const openInferEntitiesWebSocket = ({
           void inferEntitiesMessageHandler({
             graphApiClient: context.graphApi,
             socket,
-            storageProvider,
             temporalClient,
             message: parsedMessage,
             user,

@@ -5,6 +5,7 @@ use criterion::{BatchSize, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use either::Either;
 use error_stack::Report;
+use hash_crypto::Secret;
 use hash_graph_api::rest::legacy::{
     ApiConfig,
     entity::query::{QueryEntitiesRequest, QueryEntitySubgraphRequest},
@@ -19,7 +20,6 @@ use hash_graph_postgres_store::{
 use hash_graph_store::{
     entity::EntityStore, pool::StorePool as _, subgraph::edges::SubgraphTraversalParams,
 };
-use hash_secret::Secret;
 use itertools::{Itertools as _, iproduct};
 use serde::{Deserialize as _, Serialize as _};
 use serde_json::Value as JsonValue;

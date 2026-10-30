@@ -405,6 +405,7 @@ impl LocateResolver for GraphDatabaseClient {
 mod tests {
     use alloc::sync::Arc;
 
+    use hash_crypto::Secret;
     use hash_graph_postgres_store::store::{
         DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
         PostgresStoreSettings,
@@ -412,7 +413,6 @@ mod tests {
     use hash_graph_store::filter::{
         Filter, FilterExpression, Parameter, protection::PropertyProtectionFilterConfig,
     };
-    use hash_secret::Secret;
     use hashql_core::id::IdSlice;
     use tokio::runtime::Handle;
     use tokio_postgres::NoTls;

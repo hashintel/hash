@@ -45,7 +45,7 @@ name              = "codegen"
 required-features = ["codegen", "numeric"]
 
 [features]
-bytes = [
+bytes    = [
     "dep:bytes",
     "dep:serde_core",
     "dep:serde",
@@ -54,11 +54,11 @@ bytes = [
     "dep:tokio-util",
     "dep:error-stack",
 ]
-codegen = ["dep:specta"]
-harpc = ["dep:bytes", "dep:harpc-wire-protocol", "dep:tokio-util", "dep:error-stack"]
-numeric = ["dep:dashu-base", "dep:dashu-float", "dep:derive_more"]
+codegen  = ["dep:specta"]
+harpc    = ["dep:bytes", "dep:harpc-wire-protocol", "dep:tokio-util", "dep:error-stack"]
+numeric  = ["dep:dashu-base", "dep:dashu-float", "dep:derive_more"]
 postgres = ["dep:bytes", "dep:postgres-types"]
-serde = [
+serde    = [
     "dep:serde_core",
     "dep:serde",
     "dep:time",
@@ -66,7 +66,7 @@ serde = [
     "dep:uuid",
     "dep:derive_more",
 ]
-utoipa = ["dep:utoipa"]
+utoipa   = ["dep:utoipa"]
 
 [lints]
 workspace = true

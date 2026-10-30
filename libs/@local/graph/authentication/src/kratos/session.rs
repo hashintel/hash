@@ -5,11 +5,11 @@ use core::{num::NonZero, ops::ControlFlow, time::Duration};
 
 use cookie::Cookie;
 use error_stack::{Report, ResultExt as _};
+use hash_crypto::hmac::{HmacPurpose, HmacSha256Key, HmacSha256Tag};
 use hash_middleware::authentication::{
     provider::{AuthenticationProvider, Caller},
     request::AuthenticationError,
 };
-use hmac::{Hmac, KeyInit as _, Mac as _};
 use http::{HeaderMap, header};
 use moka::future::Cache as MokaCache;
 use opentelemetry::{
@@ -18,7 +18,6 @@ use opentelemetry::{
 };
 use reqwest::{Client, Url, redirect};
 use serde::Deserialize;
-use sha2::Sha256;
 use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
 
 use super::{MetadataPublic, provider_response, read_response_body};
@@ -42,16 +41,30 @@ enum SessionCredential<'h> {
     Cookie(SessionCookie<'h>),
 }
 
-/// The cache key of a session credential: HMAC-SHA-256 over its form byte and value, under a
+/// The purpose of the key that turns session credentials into cache keys.
+struct SessionCredentials;
+
+impl HmacPurpose for SessionCredentials {
+    type Message = str;
+
+    fn message(message: &str) -> impl AsRef<[u8]> {
+        message
+    }
+}
+
+/// The cache key of a session credential: its form and the HMAC-SHA-256 tag of its value, under a
 /// key drawn once per cache.
 ///
-/// Two properties carry the cache. Collision resistance makes the digest the credential's
-/// identity — not injectivity, which a cookie's state space already exceeds the digest for.
-/// The key keeps a digest from being enumerated back to its credential, whatever the
-/// credential's entropy, so the cache holds no session secrets. Without [`Debug`], so a digest
+/// Two properties carry the cache. Collision resistance makes the tag the credential's
+/// identity — not injectivity, which a cookie's state space already exceeds the tag for.
+/// The key keeps a tag from being enumerated back to its credential, whatever the
+/// credential's entropy, so the cache holds no session secrets. Without [`Debug`], so a tag
 /// cannot reach logs.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-struct SessionCacheKey([u8; 32]);
+enum SessionCacheKey {
+    Token(HmacSha256Tag<SessionCredentials>),
+    Cookie(HmacSha256Tag<SessionCredentials>),
+}
 
 /// Extracts a session credential from request headers.
 ///
@@ -166,7 +179,7 @@ impl CacheOutcome {
 /// The verified-session cache and the instrument its lookups are counted on.
 struct SessionCache {
     verified: Arc<MokaCache<SessionCacheKey, UserId>>,
-    key: [u8; 32],
+    key: HmacSha256Key<SessionCredentials>,
     lookups: Counter<u64>,
 }
 
@@ -193,14 +206,10 @@ impl SessionCache {
             })
             .build();
 
-        let mut key = [0; 32];
-        aws_lc_rs::rand::fill(&mut key).unwrap_or_else(|error| {
-            unreachable!("the random generator should fill the session cache key: {error}")
-        });
-
         Self {
             verified,
-            key,
+            key: HmacSha256Key::random()
+                .expect("the random number generator should provide the session cache key"),
             lookups: meter
                 .u64_counter("hash.authentication.session_cache.lookups")
                 .with_description("Session-cache lookups by outcome")
@@ -211,18 +220,17 @@ impl SessionCache {
 
     /// Derives the cache key of a credential.
     ///
-    /// The leading byte separates the token and cookie forms: the same byte string is a
-    /// different credential in a header than in a cookie.
+    /// The variant separates the token and cookie forms: the same string is a different
+    /// credential in a header than in a cookie.
     fn key(&self, credential: &SessionCredential<'_>) -> SessionCacheKey {
-        let (form, value) = match credential {
-            SessionCredential::Token(SessionToken(token)) => (0_u8, *token),
-            SessionCredential::Cookie(SessionCookie(value)) => (1_u8, *value),
-        };
-        let mut mac = Hmac::<Sha256>::new_from_slice(&self.key)
-            .expect("HMAC should accept a key of any length");
-        mac.update(&[form]);
-        mac.update(value.as_bytes());
-        SessionCacheKey(mac.finalize().into_bytes().into())
+        match credential {
+            SessionCredential::Token(SessionToken(token)) => {
+                SessionCacheKey::Token(self.key.sign(token))
+            }
+            SessionCredential::Cookie(SessionCookie(value)) => {
+                SessionCacheKey::Cookie(self.key.sign(value))
+            }
+        }
     }
 
     /// Resolves the key from the cache, verifying and caching on a miss.
@@ -419,13 +427,13 @@ mod tests {
     use std::collections::HashMap;
 
     use axum::{Json, Router, response::IntoResponse as _, routing::get};
+    use hash_crypto::Secret;
     use hash_middleware::authentication::{
         AuthenticationProblem, Challenge,
         provider::{AuthenticationProvider as _, expect_rejection},
         request::{ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind},
         service_secret::SERVICE_AUTH_SCHEME,
     };
-    use hash_secret::Secret;
     use http::{HeaderMap, HeaderValue, StatusCode};
     use opentelemetry::metrics::MeterProvider as _;
     use opentelemetry_sdk::metrics::{

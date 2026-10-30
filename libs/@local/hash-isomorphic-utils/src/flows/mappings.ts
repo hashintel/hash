@@ -6,7 +6,13 @@ import type {
   FlowDefinitionPropertiesWithMetadata,
 } from "../system-types/flowdefinition.js";
 import type { FlowRun } from "../system-types/flowrun.js";
-import type { FlowDefinition, FlowInputValues, LocalFlowRun } from "./types.js";
+import type {
+  ExternalInputRequest,
+  FlowDefinition,
+  FlowInputValues,
+  LocalFlowRun,
+  Payload,
+} from "./types.js";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 const toObjectArrayProperty = (values: object[]) => ({
@@ -86,6 +92,15 @@ export const getFlowDefinitionFromEntity = (
   assertValidFlowDefinition(getUnvalidatedFlowDefinitionFromEntity(entity));
 
 /**
+ * The `Open Input Request` property of a flow run: the requests it has made that haven't been answered yet.
+ */
+export const mapOpenInputRequestsToEntityProperty = (
+  openInputRequests: ExternalInputRequest[],
+): NonNullable<
+  FlowRun["propertiesWithMetadata"]["value"]["https://hash.ai/@h/types/property-type/open-input-request/"]
+> => toObjectArrayProperty(openInputRequests);
+
+/**
  * The `Inputs` property of a flow run or trigger: one `{ inputName, payload }` object per input given a value,
  * like the `Outputs` property.
  */
@@ -100,6 +115,16 @@ export const mapFlowInputValuesToInputsProperty = (
     },
   })),
 });
+
+/** The values given to a flow's inputs, from the `Inputs` property of a flow run or trigger. */
+export const mapInputsPropertyToFlowInputValues = (
+  inputs: FlowRun["properties"]["https://hash.ai/@h/types/property-type/inputs/"],
+): FlowInputValues =>
+  Object.fromEntries(
+    (inputs as { inputName: string; payload: Payload }[]).map(
+      ({ inputName, payload }) => [inputName, payload],
+    ),
+  );
 
 export const mapFlowRunToEntityProperties = (
   flowRun: LocalFlowRun,
@@ -134,14 +159,5 @@ export const mapFlowRunToEntityProperties = (
           },
         }
       : {}),
-    "https://hash.ai/@h/types/property-type/step/": {
-      value: flowRun.steps.map((step) => ({
-        value: step,
-        metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-        },
-      })),
-    },
   },
 });

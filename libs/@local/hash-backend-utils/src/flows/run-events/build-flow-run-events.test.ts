@@ -4,6 +4,7 @@ import proto from "@temporalio/proto";
 import { describe, expect, it } from "vitest";
 
 import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { StatusCode } from "@local/status";
 
 import { buildFlowRunEvents } from "./build-flow-run-events.js";
 
@@ -147,12 +148,12 @@ const noProposedEntities = {
   value: [],
 } as unknown as Payload;
 
-const researchSucceeded = (position: string): ExpectedEvent => [
+const researchSucceeded = (position: string, attempt = 1): ExpectedEvent => [
   position,
   {
     kind: "attemptSucceeded",
     stepRun: research,
-    attempt: 1,
+    attempt,
     outputs: [
       { outputName: "proposedEntities", payload: noProposedEntities },
       {
@@ -193,30 +194,70 @@ const planLog = (
 const missingFirstTwoMessage =
   "Error processing output definition 'firstTwo': step 'firstTwo' did not produce its required output 'items'";
 
+const firstTwoStarted: ExpectedEvent = [
+  "35.0",
+  {
+    kind: "stepStarted",
+    stepRun: stepRun("firstTwo"),
+    stepType: "takeFirst",
+    inputs: firstTwoInputs,
+  },
+];
+
+const attemptStarted = (
+  position: string,
+  run: FlowRunEventStepRun,
+  attempt: number,
+): ExpectedEvent => [
+  position,
+  { kind: "attemptStarted", stepRun: run, attempt },
+];
+
+const attemptRetried = (
+  position: string,
+  run: FlowRunEventStepRun,
+  attempt: number,
+  message: string,
+): ExpectedEvent => [
+  position,
+  {
+    kind: "attemptFailed",
+    stepRun: run,
+    attempt,
+    error: { message },
+    retrying: true,
+  },
+];
+
 const inProgressEvents: ExpectedEvent[] = [
   runStartedWithPrompt,
   researchStarted("35.0"),
+  attemptStarted("36.0", research, 1),
+  attemptRetried("40.0", research, 1, "Flaky failure on attempt 1"),
+  attemptStarted("44.0", research, 2),
   [
-    "36.0",
+    "48.0",
     {
       kind: "progressLogged",
       stepRun: research,
-      loggedInAttempt: 1,
-      log: planLog("CreatedPlan", "Search the web", "2026-10-21T13:36:21.332Z"),
+      loggedInAttempt: 2,
+      log: planLog("CreatedPlan", "Search the web", "2026-10-27T10:52:03.974Z"),
     },
   ],
 ];
 
+const checkpointId = "23022ee1-7f04-4a6d-9588-771bf4157d7a";
+
 const checkpointLog: ExpectedEvent = [
-  "36.0",
+  "40.0",
   {
     kind: "progressLogged",
     stepRun: research,
     log: {
       type: "ResearchActionCheckpoint",
-      checkpointId: "aeb17efb-7dec-4d65-a57d-a20772bb3d8d",
-      eventId: 38,
-      recordedAt: "2026-10-21T13:36:25.252Z",
+      checkpointId,
+      eventId: 42,
+      recordedAt: "2026-10-24T11:10:54.468Z",
       stepId: "research",
     },
   },
@@ -226,21 +267,10 @@ describe("buildFlowRunEvents", () => {
   it("builds a run that succeeds", () => {
     expectEvents("succeeds", [
       runStartedWithNumbers,
+      firstTwoStarted,
+      attemptStarted("36.0", stepRun("firstTwo"), 1),
       [
-        "35.0",
-        {
-          kind: "stepStarted",
-          stepRun: stepRun("firstTwo"),
-          stepType: "takeFirst",
-          inputs: firstTwoInputs,
-        },
-      ],
-      [
-        "36.0",
-        { kind: "attemptStarted", stepRun: stepRun("firstTwo"), attempt: 1 },
-      ],
-      [
-        "37.0",
+        "41.0",
         {
           kind: "attemptSucceeded",
           stepRun: stepRun("firstTwo"),
@@ -249,7 +279,7 @@ describe("buildFlowRunEvents", () => {
         },
       ],
       [
-        "47.0",
+        "51.0",
         {
           kind: "stepStarted",
           stepRun: stepRun("count"),
@@ -263,12 +293,9 @@ describe("buildFlowRunEvents", () => {
           ],
         },
       ],
+      attemptStarted("52.0", stepRun("count"), 1),
       [
-        "48.0",
-        { kind: "attemptStarted", stepRun: stepRun("count"), attempt: 1 },
-      ],
-      [
-        "49.0",
+        "57.0",
         {
           kind: "attemptSucceeded",
           stepRun: stepRun("count"),
@@ -277,7 +304,7 @@ describe("buildFlowRunEvents", () => {
         },
       ],
       [
-        "70.0",
+        "78.0",
         {
           kind: "runFinished",
           status: FlowRunStatus.Completed,
@@ -294,11 +321,11 @@ describe("buildFlowRunEvents", () => {
   it("keeps the message of a successful step's status", () => {
     const { history } = loadFixture("succeeds");
     const [result] =
-      history.find((event) => event.eventId?.toString() === "37")
+      history.find((event) => event.eventId?.toString() === "41")
         ?.activityTaskCompletedEventAttributes?.result?.payloads ?? [];
 
     if (!result?.data) {
-      throw new Error("No result on history event 37 in succeeds");
+      throw new Error("No result on history event 41 in succeeds");
     }
 
     /* The stub actions give no message, where real ones do. */
@@ -310,22 +337,54 @@ describe("buildFlowRunEvents", () => {
     );
 
     expect(
-      buildFlowRunEvents(history).find(({ position }) => position === "37.0"),
+      buildFlowRunEvents(history).find(({ position }) => position === "41.0"),
     ).toMatchObject({ kind: "attemptSucceeded", message: "Kept 2 of 3 items" });
   });
 
-  it("reports the attempts before a retried step's last as hidden, with the last one's error", () => {
+  it("reports each attempt of a retried step, with its error", () => {
     expectEvents("retried-then-succeeds", [
       runStartedWithNumbers,
+      firstTwoStarted,
+      attemptStarted("36.0", stepRun("firstTwo"), 1),
+      attemptRetried(
+        "40.0",
+        stepRun("firstTwo"),
+        1,
+        "Flaky failure on attempt 1",
+      ),
+      attemptStarted("44.0", stepRun("firstTwo"), 2),
+      attemptRetried(
+        "48.0",
+        stepRun("firstTwo"),
+        2,
+        "Flaky failure on attempt 2",
+      ),
+      attemptStarted("52.0", stepRun("firstTwo"), 3),
       [
-        "35.0",
+        "57.0",
         {
-          kind: "stepStarted",
+          kind: "attemptSucceeded",
           stepRun: stepRun("firstTwo"),
-          stepType: "takeFirst",
-          inputs: firstTwoInputs,
+          attempt: 3,
+          outputs: [{ outputName: "items", payload: numbers([3, 1]) }],
         },
       ],
+      [
+        "84.0",
+        {
+          kind: "runFinished",
+          status: FlowRunStatus.Completed,
+          flowOutputs: [{ outputName: "firstTwo", payload: numbers([3, 1]) }],
+          stepErrors: [],
+        },
+      ],
+    ]);
+  });
+
+  it("reports the attempts whose signals didn't arrive as hidden, with the last one's error", () => {
+    expectEvents("retried-with-signals-lost", [
+      runStartedWithNumbers,
+      firstTwoStarted,
       [
         "36.0",
         {
@@ -359,32 +418,174 @@ describe("buildFlowRunEvents", () => {
     ]);
   });
 
-  it("gives a step up when every attempt fails", () => {
-    expectEvents("gives-up", [
-      runStartedWithNumbers,
-      [
-        "35.0",
-        {
-          kind: "stepStarted",
-          stepRun: stepRun("firstTwo"),
-          stepType: "takeFirst",
-          inputs: firstTwoInputs,
+  describe("when some attempt signals didn't arrive", () => {
+    /** The history of `retried-then-succeeds` without these attempt signals. */
+    const withoutSignals = (
+      lost: [
+        signalName: "stepAttemptStarted" | "stepAttemptFailed",
+        attempt: number,
+      ][],
+    ) =>
+      loadFixture("retried-then-succeeds").history.filter((event) => {
+        const signal = event.workflowExecutionSignaledEventAttributes;
+        const data = signal?.input?.payloads?.[0]?.data;
+
+        if (!signal?.signalName || !data) {
+          return true;
+        }
+
+        const { attempt } = JSON.parse(Buffer.from(data).toString()) as {
+          attempt?: number;
+        };
+
+        return !lost.some(
+          ([signalName, lostAttempt]) =>
+            signalName === signal.signalName && lostAttempt === attempt,
+        );
+      });
+
+    /** What the events say about each attempt. */
+    const attemptEventsOf = (history: IHistoryEvent[]) =>
+      buildFlowRunEvents(history).flatMap(
+        (event): Record<string, unknown>[] => {
+          switch (event.kind) {
+            case "attemptStarted":
+              return [
+                {
+                  kind: event.kind,
+                  attempt: event.attempt,
+                  ...(event.hiddenAttempts
+                    ? { hiddenAttempts: event.hiddenAttempts }
+                    : {}),
+                },
+              ];
+            case "attemptFailed":
+              return [
+                {
+                  kind: event.kind,
+                  attempt: event.attempt,
+                  error: event.error.message,
+                },
+              ];
+            case "attemptSucceeded":
+              return [{ kind: event.kind, attempt: event.attempt }];
+            default:
+              return [];
+          }
         },
-      ],
-      [
-        "36.0",
+      );
+
+    it("reports the attempts before a signalled start as hidden", () => {
+      expect(
+        attemptEventsOf(
+          withoutSignals([
+            ["stepAttemptStarted", 1],
+            ["stepAttemptFailed", 1],
+            ["stepAttemptStarted", 2],
+            ["stepAttemptFailed", 2],
+          ]),
+        ),
+      ).toStrictEqual([
         {
           kind: "attemptStarted",
-          stepRun: stepRun("firstTwo"),
           attempt: 3,
           hiddenAttempts: {
             count: 2,
-            lastError: { message: "Failure on attempt 2" },
+            lastError: { message: "Flaky failure on attempt 2" },
           },
         },
-      ],
+        { kind: "attemptSucceeded", attempt: 3 },
+      ]);
+    });
+
+    it("reports an attempt between signalled ones as hidden", () => {
+      expect(
+        attemptEventsOf(
+          withoutSignals([
+            ["stepAttemptStarted", 2],
+            ["stepAttemptFailed", 2],
+          ]),
+        ),
+      ).toStrictEqual([
+        { kind: "attemptStarted", attempt: 1 },
+        {
+          kind: "attemptFailed",
+          attempt: 1,
+          error: "Flaky failure on attempt 1",
+        },
+        {
+          kind: "attemptStarted",
+          attempt: 3,
+          hiddenAttempts: {
+            count: 1,
+            lastError: { message: "Flaky failure on attempt 2" },
+          },
+        },
+        { kind: "attemptSucceeded", attempt: 3 },
+      ]);
+    });
+
+    it("fails an attempt whose failure signal didn't arrive with the error the next attempt's start carries", () => {
+      expect(
+        attemptEventsOf(withoutSignals([["stepAttemptFailed", 1]])),
+      ).toStrictEqual([
+        { kind: "attemptStarted", attempt: 1 },
+        {
+          kind: "attemptFailed",
+          attempt: 1,
+          error: "Flaky failure on attempt 1",
+        },
+        { kind: "attemptStarted", attempt: 2 },
+        {
+          kind: "attemptFailed",
+          attempt: 2,
+          error: "Flaky failure on attempt 2",
+        },
+        { kind: "attemptStarted", attempt: 3 },
+        { kind: "attemptSucceeded", attempt: 3 },
+      ]);
+    });
+
+    it("reports each hidden attempt once, when Temporal records the start of a later attempt", () => {
+      expect(
+        attemptEventsOf(
+          withoutSignals([
+            ["stepAttemptStarted", 1],
+            ["stepAttemptFailed", 1],
+            ["stepAttemptStarted", 3],
+          ]),
+        ),
+      ).toStrictEqual([
+        {
+          kind: "attemptStarted",
+          attempt: 2,
+          hiddenAttempts: {
+            count: 1,
+            lastError: { message: "Flaky failure on attempt 1" },
+          },
+        },
+        {
+          kind: "attemptFailed",
+          attempt: 2,
+          error: "Flaky failure on attempt 2",
+        },
+        { kind: "attemptStarted", attempt: 3 },
+        { kind: "attemptSucceeded", attempt: 3 },
+      ]);
+    });
+  });
+
+  it("gives a step up when every attempt fails, with the last attempt's failure once, from the history", () => {
+    expectEvents("gives-up", [
+      runStartedWithNumbers,
+      firstTwoStarted,
+      attemptStarted("36.0", stepRun("firstTwo"), 1),
+      attemptRetried("40.0", stepRun("firstTwo"), 1, "Failure on attempt 1"),
+      attemptStarted("44.0", stepRun("firstTwo"), 2),
+      attemptRetried("48.0", stepRun("firstTwo"), 2, "Failure on attempt 2"),
+      attemptStarted("52.0", stepRun("firstTwo"), 3),
       [
-        "37.0",
+        "57.0",
         {
           kind: "attemptFailed",
           stepRun: stepRun("firstTwo"),
@@ -394,7 +595,7 @@ describe("buildFlowRunEvents", () => {
         },
       ],
       [
-        "37.1",
+        "57.1",
         {
           kind: "stepGaveUp",
           stepRun: stepRun("firstTwo"),
@@ -403,11 +604,14 @@ describe("buildFlowRunEvents", () => {
         },
       ],
       [
-        "52.0",
+        "78.0",
         {
           kind: "runFinished",
           status: FlowRunStatus.Failed,
-          failure: { message: missingFirstTwoMessage },
+          failure: {
+            message: missingFirstTwoMessage,
+            code: StatusCode.NotFound,
+          },
           stepErrors: [
             {
               stepRun: stepRun("firstTwo"),
@@ -415,6 +619,7 @@ describe("buildFlowRunEvents", () => {
                 message: expect.stringContaining(
                   "Action takeFirst failed with status code INTERNAL: Error executing action takeFirst",
                 ) as string,
+                code: StatusCode.Internal,
               },
             },
           ],
@@ -435,29 +640,30 @@ describe("buildFlowRunEvents", () => {
       expect(
         buildFlowRunEvents(
           withLastAttemptTimedOut(history, RetryState[retryState]),
-        ).find(({ position }) => position === "37.1"),
+        ).find(({ position }) => position === "57.1"),
       ).toMatchObject({ kind: "stepGaveUp", attempt: 3, reason });
     },
   );
 
+  it("fails an attempt that ended without throwing with Temporal's reason, when the next one starts", () => {
+    expectEvents("attempt-timed-out", [
+      runStartedWithPrompt,
+      researchStarted("35.0"),
+      attemptStarted("36.0", research, 1),
+      attemptRetried("40.0", research, 1, "activity Heartbeat timeout"),
+      attemptStarted("40.1", research, 2),
+      researchSucceeded("45.0", 2),
+      researchRunCompleted("72.0"),
+    ]);
+  });
+
   it("gives a step up when its action completes with an error status", () => {
     expectEvents("error-status", [
       runStartedWithNumbers,
+      firstTwoStarted,
+      attemptStarted("36.0", stepRun("firstTwo"), 1),
       [
-        "35.0",
-        {
-          kind: "stepStarted",
-          stepRun: stepRun("firstTwo"),
-          stepType: "takeFirst",
-          inputs: firstTwoInputs,
-        },
-      ],
-      [
-        "36.0",
-        { kind: "attemptStarted", stepRun: stepRun("firstTwo"), attempt: 1 },
-      ],
-      [
-        "37.0",
+        "41.0",
         {
           kind: "attemptFailed",
           stepRun: stepRun("firstTwo"),
@@ -467,7 +673,7 @@ describe("buildFlowRunEvents", () => {
         },
       ],
       [
-        "37.1",
+        "41.1",
         {
           kind: "stepGaveUp",
           stepRun: stepRun("firstTwo"),
@@ -476,17 +682,21 @@ describe("buildFlowRunEvents", () => {
         },
       ],
       [
-        "52.0",
+        "56.0",
         {
           kind: "runFinished",
           status: FlowRunStatus.Failed,
-          failure: { message: missingFirstTwoMessage },
+          failure: {
+            message: missingFirstTwoMessage,
+            code: StatusCode.NotFound,
+          },
           stepErrors: [
             {
               stepRun: stepRun("firstTwo"),
               error: {
                 message:
                   "Action takeFirst failed with status code INVALID_ARGUMENT: The count must be a whole number",
+                code: StatusCode.Internal,
               },
             },
           ],
@@ -506,6 +716,7 @@ describe("buildFlowRunEvents", () => {
           failure: {
             message:
               "Definition for inputName 'limit' in step firstTwo not found in action definition takeFirst",
+            code: StatusCode.FailedPrecondition,
           },
         },
       ],
@@ -513,7 +724,7 @@ describe("buildFlowRunEvents", () => {
   });
 
   it("reports skipped steps when they were skipped, from the memo", () => {
-    const skippedAt = "2026-10-21T13:36:04.312Z";
+    const skippedAt = "2026-10-24T11:09:15.295Z";
 
     expectEvents("skipped", [
       ["1.0", { kind: "runStarted", flowInputs: { number: number(8) } }],
@@ -545,12 +756,9 @@ describe("buildFlowRunEvents", () => {
           ],
         },
       ],
+      attemptStarted("36.0", stepRun("check"), 1),
       [
-        "36.0",
-        { kind: "attemptStarted", stepRun: stepRun("check"), attempt: 1 },
-      ],
-      [
-        "37.0",
+        "41.0",
         {
           kind: "attemptSucceeded",
           stepRun: stepRun("check"),
@@ -559,7 +767,7 @@ describe("buildFlowRunEvents", () => {
         },
       ],
       [
-        "47.0",
+        "51.0",
         {
           kind: "stepSkipped",
           stepRun: stepRun("keep"),
@@ -568,7 +776,7 @@ describe("buildFlowRunEvents", () => {
         skippedAt,
       ],
       [
-        "47.1",
+        "51.1",
         {
           kind: "stepSkipped",
           stepRun: stepRun("countKept"),
@@ -577,7 +785,7 @@ describe("buildFlowRunEvents", () => {
         skippedAt,
       ],
       [
-        "59.0",
+        "63.0",
         {
           kind: "runFinished",
           status: FlowRunStatus.Completed,
@@ -603,25 +811,18 @@ describe("buildFlowRunEvents", () => {
         },
       ] satisfies ExpectedEvent;
 
-    const wrapAttempt = (
-      startedPosition: string,
-      succeededPosition: string,
+    const wrapSucceeded = (
+      position: string,
       item: number,
       value: number,
-    ): ExpectedEvent[] => [
-      [
-        startedPosition,
-        { kind: "attemptStarted", stepRun: stepRun("wrap", item), attempt: 1 },
-      ],
-      [
-        succeededPosition,
-        {
-          kind: "attemptSucceeded",
-          stepRun: stepRun("wrap", item),
-          attempt: 1,
-          outputs: [{ outputName: "items", payload: numbers([value]) }],
-        },
-      ],
+    ): ExpectedEvent => [
+      position,
+      {
+        kind: "attemptSucceeded",
+        stepRun: stepRun("wrap", item),
+        attempt: 1,
+        outputs: [{ outputName: "items", payload: numbers([value]) }],
+      },
     ];
 
     expectEvents("for-each", [
@@ -633,16 +834,19 @@ describe("buildFlowRunEvents", () => {
           stepRun: stepRun("eachNumber"),
           itemCount: 3,
         },
-        "2026-10-22T16:36:33.718Z",
+        "2026-10-24T11:09:17.816Z",
       ],
       wrapStarted("42.0", 0, 3),
       wrapStarted("43.0", 1, 1),
       wrapStarted("44.0", 2, 4),
-      ...wrapAttempt("45.0", "46.0", 0, 3),
-      ...wrapAttempt("48.0", "49.0", 2, 4),
-      ...wrapAttempt("50.0", "51.0", 1, 1),
+      attemptStarted("45.0", stepRun("wrap", 2), 1),
+      attemptStarted("47.0", stepRun("wrap", 0), 1),
+      attemptStarted("48.0", stepRun("wrap", 1), 1),
+      wrapSucceeded("54.0", 2, 4),
+      wrapSucceeded("55.0", 0, 3),
+      wrapSucceeded("56.0", 1, 1),
       [
-        "71.0",
+        "77.0",
         {
           kind: "runFinished",
           status: FlowRunStatus.Completed,
@@ -665,7 +869,7 @@ describe("buildFlowRunEvents", () => {
           stepRun: stepRun("eachNumber"),
           itemCount: 0,
         },
-        "2026-10-22T16:36:36.430Z",
+        "2026-10-24T11:09:20.343Z",
       ],
       [
         "53.0",
@@ -680,13 +884,14 @@ describe("buildFlowRunEvents", () => {
   });
 
   it("reports an input request and its answer, with the step that asked", () => {
-    const requestId = "3a160602-bf37-476d-86ce-93fe79cef08e";
+    const requestId = "a420afc6-cc65-418e-8053-d093a23f54da";
 
     expectEvents("input-request", [
       runStartedWithPrompt,
       researchStarted("35.0"),
+      attemptStarted("36.0", research, 1),
       [
-        "36.0",
+        "40.0",
         {
           kind: "inputRequested",
           stepRun: research,
@@ -699,7 +904,7 @@ describe("buildFlowRunEvents", () => {
         },
       ],
       [
-        "40.0",
+        "41.0",
         {
           kind: "inputResolved",
           requestStepRun: research,
@@ -713,9 +918,8 @@ describe("buildFlowRunEvents", () => {
           },
         },
       ],
-      ["44.0", { kind: "attemptStarted", stepRun: research, attempt: 1 }],
-      researchSucceeded("45.0"),
-      researchRunCompleted("66.0"),
+      researchSucceeded("54.0"),
+      researchRunCompleted("81.0"),
     ]);
   });
 
@@ -723,8 +927,9 @@ describe("buildFlowRunEvents", () => {
     expectEvents("progress-logs", [
       runStartedWithPrompt,
       researchStarted("35.0"),
+      attemptStarted("36.0", research, 1),
       [
-        "36.0",
+        "40.0",
         {
           kind: "progressLogged",
           stepRun: research,
@@ -732,12 +937,12 @@ describe("buildFlowRunEvents", () => {
           log: planLog(
             "CreatedPlan",
             "Search the web",
-            "2026-10-21T13:36:14.661Z",
+            "2026-10-24T11:09:25.451Z",
           ),
         },
       ],
       [
-        "36.1",
+        "40.1",
         {
           kind: "progressLogged",
           stepRun: research,
@@ -745,12 +950,12 @@ describe("buildFlowRunEvents", () => {
           log: planLog(
             "UpdatedPlan",
             "Search the web, then read",
-            "2026-10-21T13:36:14.661Z",
+            "2026-10-24T11:09:25.451Z",
           ),
         },
       ],
       [
-        "40.0",
+        "44.0",
         {
           kind: "progressLogged",
           stepRun: research,
@@ -758,37 +963,35 @@ describe("buildFlowRunEvents", () => {
           log: planLog(
             "UpdatedPlan",
             "Read what was found",
-            "2026-10-21T13:36:15.666Z",
+            "2026-10-24T11:09:26.453Z",
           ),
         },
       ],
-      ["44.0", { kind: "attemptStarted", stepRun: research, attempt: 1 }],
-      researchSucceeded("45.0"),
-      researchRunCompleted("66.0"),
+      researchSucceeded("49.0"),
+      researchRunCompleted("70.0"),
     ]);
   });
 
-  it("reports a run cancelled while a step runs, with the step's attempt started after its cancellation was requested", () => {
+  it("reports a run cancelled while a step runs", () => {
     expectEvents("cancelled", [
       runStartedWithPrompt,
       researchStarted("35.0"),
-      ["40.0", { kind: "attemptCancellationRequested", stepRun: research }],
-      ["41.0", { kind: "attemptStarted", stepRun: research, attempt: 1 }],
-      ["42.0", { kind: "attemptCancelled", stepRun: research }],
-      ["46.0", { kind: "runFinished", status: FlowRunStatus.Cancelled }],
+      attemptStarted("36.0", research, 1),
+      ["44.0", { kind: "attemptCancellationRequested", stepRun: research }],
+      ["46.0", { kind: "attemptCancelled", stepRun: research }],
+      ["50.0", { kind: "runFinished", status: FlowRunStatus.Cancelled }],
     ]);
   });
 
-  it("builds a running run's events, with only the start of the step that runs", () => {
+  it("builds a running run's events, up to the attempt that runs", () => {
     expectEvents("in-progress", inProgressEvents);
   });
 
   it("builds the same events for a running run once it has finished, and more after them", () => {
     expectEvents("in-progress-finished", [
       ...inProgressEvents,
-      ["40.0", { kind: "attemptStarted", stepRun: research, attempt: 1 }],
-      researchSucceeded("41.0"),
-      researchRunCompleted("62.0"),
+      researchSucceeded("53.0", 2),
+      researchRunCompleted("80.0"),
     ]);
   });
 
@@ -796,9 +999,10 @@ describe("buildFlowRunEvents", () => {
     expectEvents("reset-base-run", [
       runStartedWithPrompt,
       researchStarted("35.0"),
+      attemptStarted("36.0", research, 1),
       checkpointLog,
       [
-        "40.0",
+        "44.0",
         {
           kind: "progressLogged",
           stepRun: research,
@@ -806,16 +1010,16 @@ describe("buildFlowRunEvents", () => {
           log: planLog(
             "CreatedPlan",
             "Search the web",
-            "2026-10-21T13:36:26.261Z",
+            "2026-10-24T11:10:55.480Z",
           ),
         },
       ],
       [
-        "44.0",
+        "48.0",
         {
           kind: "runFinished",
           status: FlowRunStatus.Terminated,
-          failure: { message: "aeb17efb-7dec-4d65-a57d-a20772bb3d8d" },
+          failure: { message: checkpointId },
         },
       ],
     ]);
@@ -825,14 +1029,15 @@ describe("buildFlowRunEvents", () => {
     expectEvents("reset", [
       runStartedWithPrompt,
       researchStarted("35.0"),
+      attemptStarted("36.0", research, 1),
       checkpointLog,
       [
-        "39.0",
+        "43.0",
         { kind: "runReset", fromRunId: loadFixture("reset-base-run").runId },
       ],
-      ["43.0", { kind: "attemptStarted", stepRun: research, attempt: 1 }],
-      researchSucceeded("44.0"),
-      researchRunCompleted("65.0"),
+      attemptStarted("47.0", research, 1),
+      researchSucceeded("49.0"),
+      researchRunCompleted("70.0"),
     ]);
   });
 });

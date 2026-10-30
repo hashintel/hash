@@ -26,7 +26,7 @@ import { typecheckHir } from "./typecheck";
 
 import type { HirAnalysis } from "./analyze";
 import type { HirDiagnostic, HirFunction, Span } from "./hir";
-import type { HirSurfaceContext } from "./surface-context";
+import type { HirFunctionContext } from "./surface-context";
 import type { HirTypecheckResult } from "./typecheck";
 
 export type HirLintResult = {
@@ -81,7 +81,7 @@ function collectMathRandomSpans(fn: HirFunction): Span[] {
 
 function canEmitBufferProgram(
   fn: HirFunction,
-  context: HirSurfaceContext,
+  context: HirFunctionContext,
 ): boolean {
   switch (context.surface) {
     case "dynamics":
@@ -109,7 +109,7 @@ function canEmitBufferProgram(
  */
 export function lintHirUserCode(
   code: string,
-  context: HirSurfaceContext,
+  context: HirFunctionContext,
   options: HirLintOptions = {},
 ): HirLintResult {
   const subsetSeverity = options.subsetSeverity ?? "error";

@@ -1,0 +1,532 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+import { noop } from "../../util/noop";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "../Button/button";
+import { EllipsisMenu } from "./ellipsis-menu";
+import { Menu, MenuItemDoc, MenuItemGroupDoc } from "./menu";
+
+<Meta title="Docs/Menu" />
+
+export const meta = {
+  title: "Menu",
+  description:
+    "Opens a floating list of actions or options from a trigger element.",
+  alternativeNames: ["DropdownMenu", "ActionMenu", "OverflowMenu"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Menu/menu.tsx",
+    stories: "https://tokens.hash.design/?path=/story/components-menu--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/",
+    ark: "https://ark-ui.com/docs/components/menu",
+  },
+  related: ["RightClickMenu", "Select", "Popover", "Button"],
+};
+
+# Menu
+
+Opens a floating list of actions or options from a trigger element.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Menu
+    trigger={
+      <Button variant="subtle" iconName="chevronDown" iconPosition="right">
+        Entity actions
+      </Button>
+    }
+    items={[
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
+      { text: "View history", onClick: noop },
+      {
+        text: "Delete entity",
+        icon: "trash",
+        tone: "error",
+        onClick: noop,
+      },
+    ]}
+  />
+  <EllipsisMenu
+    items={[
+      { text: "Rename view", onClick: noop },
+      { text: "Duplicate view", onClick: noop },
+      { text: "Delete view", tone: "error", onClick: noop },
+    ]}
+  />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Button, Menu } from "@hashintel/ds-components";
+
+export const EntityActionsMenu = () => (
+  <Menu
+    trigger={
+      <Button variant="subtle" iconName="chevronDown" iconPosition="right">
+        Entity actions
+      </Button>
+    }
+    items={[
+      { text: "Edit entity", onClick: () => {} },
+      { text: "Duplicate entity", onClick: () => {} },
+    ]}
+  />
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Menu to collect secondary actions on an object — edit, duplicate, archive — behind one trigger, where showing them all as buttons would crowd the view.",
+    "Use EllipsisMenu for per-row actions in tables, cards, and list rows — it is the standard overflow trigger.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use Menu to choose a value in a form — use Select, which keeps the chosen value visible in the field.",
+    "Don't hide one action behind a menu — show them as Buttons; the extra click buys nothing.",
+    "Don't assemble panels or forms out of custom rows — put free-form interactive content in a Popover.",
+  ]}
+/>
+
+## Anatomy
+
+Menu is composed of the following parts:
+
+- `trigger` — the element that opens the menu and anchors it: any element
+  accepting `aria-expanded`, usually a Button.
+- `items` — the menu's content: action (`onClick`), link (`href`), and submenu
+  (`subItems`) items, mixed freely with labelled groups and custom rows.
+- `header` and `footer` — pinned above and below the items, outside the
+  scrollable area, for context or persistent actions.
+
+```tsx
+<Menu
+  trigger={<Button>Entity actions</Button>} // opens and anchors the menu
+  header={<strong>Alice Chen</strong>} // pinned above the items
+  items={[
+    { text: "Rename", onClick: rename }, // an action
+    { text: "View history", href: historyUrl }, // a link
+    {
+      text: "Move to workspace", // a submenu
+      subItems: [{ text: "Acme Corp", onClick: moveEntity }],
+    },
+    {
+      id: "danger",
+      label: "Danger", // a labelled group — dividers draw between groups
+      items: [{ text: "Delete entity", tone: "error", onClick: confirmDelete }],
+    },
+  ]}
+  footer={<Button variant="link">View all actions</Button>} // pinned below
+/>
+```
+
+## Examples
+
+### Basic
+
+Every item takes `text` plus exactly one of `onClick`, `href`, or `subItems`.
+A plain-string `text` doubles as the item's `id`.
+
+<Stage>
+  <Menu
+    trigger={
+      <Button variant="subtle" iconName="chevronDown" iconPosition="right">
+        Entity actions
+      </Button>
+    }
+    items={[
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
+      { text: "Copy entity ID", onClick: noop },
+    ]}
+  />
+</Stage>
+
+### Icons and descriptions
+
+`icon` reinforces the label, `description` adds one line of secondary text,
+and `suffix` renders trailing content such as a count. Don't overuse icons in menus —
+icons should differentiate important menu items, not decorate every row.
+
+<Stage>
+  <Menu
+    trigger={
+      <Button variant="subtle" iconName="chevronDown" iconPosition="right">
+        Flow actions
+      </Button>
+    }
+    items={[
+      {
+        text: "Run flow",
+        icon: "play",
+        description: "Uses the last saved inputs",
+        onClick: noop,
+      },
+      {
+        text: "Schedule run",
+        description: "Repeat on a cron schedule",
+        onClick: noop,
+      },
+      {
+        text: "View run history",
+        suffix: <span>24</span>,
+        onClick: noop,
+      },
+    ]}
+  />
+</Stage>
+
+### Grouped items
+
+A group is `{ id, label, items }`; groups draw their own separators and an
+uppercase label. Group related actions once a menu passes roughly six items.
+
+<Stage>
+  <Menu
+    trigger={
+      <Button variant="subtle" iconName="chevronDown" iconPosition="right">
+        Type actions
+      </Button>
+    }
+    items={[
+      {
+        id: "view",
+        label: "View",
+        items: [
+          { text: "Open entity type", onClick: noop },
+          { text: "View dependents", onClick: noop },
+        ],
+      },
+      {
+        id: "manage",
+        label: "Manage",
+        items: [
+          { text: "Create new version", onClick: noop },
+          { text: "Duplicate type", onClick: noop },
+        ],
+      },
+    ]}
+  />
+</Stage>
+
+### Disabled and loading items
+
+Disabled and loading items stay visible but can't be activated, and arrow
+keys skip them. `loading` adds a spinner — use it while an item's
+availability is still being determined.
+
+<Stage>
+  <Menu
+    trigger={
+      <Button variant="subtle" iconName="download">
+        Export
+      </Button>
+    }
+    items={[
+      { text: "Export as CSV", onClick: noop },
+      { text: "Export as JSON", onClick: noop },
+      { text: "Export with history", disabled: true, onClick: noop },
+      { text: "Checking snapshot size", loading: true, onClick: noop },
+    ]}
+  />
+</Stage>
+
+### Destructive items
+
+Set `tone="error"` on destructive actions, and place them last in a group of
+their own so they can't be hit by overshooting an adjacent item.
+
+<Stage>
+  <Menu
+    trigger={
+      <Button variant="subtle" iconName="chevronDown" iconPosition="right">
+        Entity actions
+      </Button>
+    }
+    items={[
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
+      {
+        text: "Delete entity",
+        icon: "trash",
+        tone: "error",
+        onClick: noop,
+      },
+    ]}
+  />
+</Stage>
+
+### Link items
+
+Items with `href` render real anchors, so they support open-in-new-tab and
+middle-click. Add `target="_blank"` for external destinations.
+
+<Stage>
+  <Menu
+    trigger={
+      <Button variant="subtle" iconName="chevronDown" iconPosition="right">
+        Resources
+      </Button>
+    }
+    items={[
+      { text: "Entity type schema", href: "#" },
+      { text: "Property definitions", href: "#" },
+      {
+        text: "HASH docs",
+        icon: "externalLink",
+        href: "https://hash.ai/docs",
+        target: "_blank",
+      },
+    ]}
+  />
+</Stage>
+
+### Submenus
+
+Items with `subItems` open a nested menu to the side and show a chevron. Avoid 
+more than one level of nesting — deeper trees are hard to traverse with some input
+devices.
+
+<Stage>
+  <Menu
+    trigger={
+      <Button variant="subtle" iconName="chevronDown" iconPosition="right">
+        Entity actions
+      </Button>
+    }
+    items={[
+      { text: "Edit entity", onClick: noop },
+      {
+        text: "Export as",
+        subItems: [
+          { text: "CSV", onClick: noop },
+          { text: "JSON", onClick: noop },
+        ],
+      },
+    ]}
+  />
+</Stage>
+
+### Header and footer
+
+`header` and `footer` pin above and below the items, outside the scrollable
+area. They come undecorated — add your own divider if the design needs one.
+Set `swapHeaderFooterOnFlip` to keep the header on the edge nearest the
+trigger when the menu opens upward.
+
+<Stage>
+  <Menu
+    swapHeaderFooterOnFlip
+    trigger={
+      <Button variant="subtle" iconName="chevronDown" iconPosition="right">
+        Recent runs
+      </Button>
+    }
+    header={<strong>Research flow</strong>}
+    footer={
+      <Button size="xs" variant="link" href="#">
+        View all runs
+      </Button>
+    }
+    items={[
+      { text: "Run #128 — succeeded", onClick: noop },
+      { text: "Run #127 — succeeded", onClick: noop },
+      { text: "Run #126 — failed", onClick: noop },
+    ]}
+  />
+</Stage>
+
+### Custom rows
+
+An entry of `{ custom }` renders arbitrary content on its own row. Arrow keys
+will skip it — but focusable children inside it stay reachable with Tab.
+
+<Stage>
+  <Menu
+    trigger={
+      <Button variant="subtle" iconName="chevronDown" iconPosition="right">
+        Workspace
+      </Button>
+    }
+    items={[
+      {
+        custom: (
+          <span>
+            <strong>Acme Corp</strong> — 3 of 5 seats used
+          </span>
+        ),
+      },
+      { text: "Invite teammate", onClick: noop },
+      { text: "Workspace settings", onClick: noop },
+    ]}
+  />
+</Stage>
+
+### Placement
+
+`position` sets the preferred side and alignment relative to the trigger,
+defaulting to `bottom-start`. It is a preferred position, and another placement is
+automatically chosen when the menu won't fit.
+
+<Stage>
+  <Menu
+    position="bottom-start"
+    trigger={<Button variant="subtle">bottom-start</Button>}
+    items={[
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
+    ]}
+  />
+  <Menu
+    position="bottom-end"
+    trigger={<Button variant="subtle">bottom-end</Button>}
+    items={[
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
+    ]}
+  />
+  <Menu
+    position="top-start"
+    trigger={<Button variant="subtle">top-start</Button>}
+    items={[
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
+    ]}
+  />
+</Stage>
+
+### EllipsisMenu
+
+EllipsisMenu is Menu with a ready-made icon-button trigger — the standard
+overflow affordance for table rows and cards.
+
+<Stage>
+  <EllipsisMenu
+    items={[
+      { text: "Edit entity", onClick: noop },
+      { text: "Duplicate entity", onClick: noop },
+      { text: "Delete entity", tone: "error", onClick: noop },
+    ]}
+  />
+  <EllipsisMenu
+    iconName="bell"
+    variant="solid"
+    size="xs"
+    items={[
+      { text: "Mute notifications", onClick: noop },
+      { text: "Notification settings", onClick: noop },
+    ]}
+  />
+  <EllipsisMenu disabled items={[{ text: "Edit entity", onClick: noop }]} />
+</Stage>
+
+## Behavior
+
+- The menu's content mounts renders in a portal above the page, preventing most z-index + overflow issues.
+- While open, the trigger carries `aria-expanded` and a Button trigger also
+  shows its pressed visual.
+- Selecting an item closes the menu unless that item sets `keepOpenOnSelect`.
+- With an empty `items` array, Menu renders just the trigger with no menu
+  behind it; EllipsisMenu disables its trigger instead.
+- Arrow keys wrap from the last item to the first (and back) on discrete
+  presses, but a held key stops at the boundary instead of cycling.
+
+## Content
+
+- Label the trigger with the scope of the actions — "Entity actions", not
+  "Menu" or "Options".
+- Write item labels verb-first, 1–3 words, sentence case: "Edit entity",
+  "Duplicate", "Copy entity ID". No punctuation.
+- Name the object when the menu mixes targets — "Delete property" beats
+  "Delete" when nearby items act on the entity. But do not name the object
+  when there are no mixed targets as the label then becomes redundant
+- Keep `description` to one short clause of consequence or context, not a
+  restatement of the label.
+- Group labels should be 1–2 word nouns: "View", "Manage".
+- Order items by expected frequency of use, and destructive actions last.
+
+## Accessibility
+
+Menu implements the
+[WAI-ARIA menu button pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/).
+
+### What Menu provides
+
+- The trigger is wired with `aria-haspopup` and `aria-expanded`; closing the
+  menu returns focus to it.
+- Disabled and loading items are exposed as disabled and skipped by arrow-key
+  navigation.
+- Item `icon`s are `aria-hidden`
+
+### What you must do
+
+- Make every label carry its full meaning without the icon — icons are not
+  announced to screen readers.
+- Provide an explicit `id` when `text` is JSX; the id is also what `onClick`
+  and `onKeyDown` report.
+
+### Keyboard
+
+| Key                     | Action                                                                                                                                                                                                                                 |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Tab` / `Shift+Tab`     | When the menu has a focusable `header`, `footer`, or custom row, moves between those rows and the item list. Past either edge the menu closes — `Tab` hands focus to the element after the trigger, `Shift+Tab` to the trigger itself. |
+
+## API reference
+
+### Menu
+
+<PropsTable of={Menu} defaults={{ position: '"bottom-start"' }} />
+
+### MenuItem
+
+The shape of `items` and `subItems` entries. Each takes `text` plus exactly
+one of `onClick`, `href`, or `subItems` — or a lone `custom` node for a
+presentational row.
+
+<PropsTable of={MenuItemDoc} defaults={{ selectedStyle: '"highlight"' }} />
+
+### MenuItemGroup
+
+A labelled group of items, usable wherever items are: `{ id, label, items }`.
+
+<PropsTable of={MenuItemGroupDoc} />
+
+### EllipsisMenu
+
+Accepts every Menu prop except `trigger`, plus the trigger-styling props
+below.
+
+<PropsTable
+  of={EllipsisMenu}
+  defaults={{
+    iconName: '"ellipsis"',
+    variant: '"subtle"',
+    position: '"bottom-end"',
+  }}
+/>

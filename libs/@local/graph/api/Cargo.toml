@@ -22,7 +22,7 @@ hash-graph-postgres-store = { workspace = true, public = true, features = ["utoi
 hash-graph-type-fetcher   = { workspace = true, public = true }
 hash-graph-types          = { workspace = true, public = true, features = ["utoipa"] }
 hash-middleware           = { workspace = true, public = true, features = ["aide"] }
-hash-secret               = { workspace = true, public = true }
+hash-crypto               = { workspace = true, public = true }
 hash-status               = { workspace = true, public = true }
 hash-temporal-client      = { workspace = true, public = true }
 
@@ -75,7 +75,8 @@ mime                 = { workspace = true }
 percent-encoding     = { workspace = true, features = ["alloc"] }
 reqwest              = { workspace = true }
 scalar_api_reference = { workspace = true }
-schemars             = { workspace = true, features = ["uuid1"] }
+schemars             = { workspace = true, features = ["semver1", "uuid1"] }
+semver               = { workspace = true, features = ["serde"] }
 sentry               = { workspace = true }
 serde                = { workspace = true, features = ['derive'] }
 serde_json           = { workspace = true, features = ["raw_value"] }
@@ -84,6 +85,7 @@ time                 = { workspace = true }
 tokio                = { workspace = true, features = ["rt", "time"] }
 tokio-util           = { workspace = true, features = ["codec", "io"] }
 tower                = { workspace = true }
+url                  = { workspace = true }
 utoipa               = { workspace = true }
 uuid                 = { workspace = true }
 

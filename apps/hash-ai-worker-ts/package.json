@@ -94,8 +94,8 @@
     "openai-chat-tokens": "0.2.8",
     "papaparse": "5.5.3",
     "pdf2json": "3.2.0",
-    "puppeteer-core": "25.8.0",
-    "sanitize-html": "2.17.7",
+    "puppeteer-core": "25.14.0",
+    "sanitize-html": "2.18.1",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "uuid": "14.0.0"

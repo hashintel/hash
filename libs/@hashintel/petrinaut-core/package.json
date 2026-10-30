@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/petrinaut-core",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Headless Petrinaut core APIs",
   "license": "(MIT OR Apache-2.0)",
   "repository": {
@@ -58,6 +58,10 @@
       "types": "./dist/hir-runtime.d.ts",
       "import": "./dist/hir-runtime.js"
     },
+    "./view-hir": {
+      "types": "./dist/view-hir.d.ts",
+      "import": "./dist/view-hir.js"
+    },
     "./optimization": {
       "types": "./dist/optimization.d.ts",
       "import": "./dist/optimization.js"
@@ -112,6 +116,7 @@
     "@tsconfig/bases": "catalog:",
     "@types/js-yaml": "^4",
     "@types/node": "catalog:",
+    "@types/react": "19.2.14",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "@typescript/typescript6": "catalog:",
     "@webgpu/types": "0.1.71",

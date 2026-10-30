@@ -9,7 +9,7 @@ version.workspace = true
 [dependencies]
 # Public workspace dependencies
 error-stack = { workspace = true, public = true }
-hash-secret = { workspace = true, public = true }
+hash-crypto = { workspace = true, public = true }
 problematic = { workspace = true, public = true, features = ["axum"] }
 type-system = { workspace = true, public = true }
 

@@ -21,6 +21,13 @@ pub struct EntityTypeRetrieval {
     pub entity_type_url: VersionedUrl,
 }
 
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("The entity `{entity_id}` is a link, and links to links are not supported yet")]
+#[must_use]
+pub struct LinkedEntityIsLinkError {
+    pub entity_id: EntityId,
+}
+
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "type", content = "error", rename_all = "camelCase")]
@@ -32,6 +39,7 @@ pub enum LinkedEntityError {
         Report<[EntityTypeRetrieval]>,
     ),
     ResolveClosedEntityType(Report<ResolveClosedEntityTypeError>),
+    Link(Report<LinkedEntityIsLinkError>),
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]

@@ -4,10 +4,116 @@
       "BadRequest": {
         "content": {
           "application/problem+json": {
+            "examples": {
+              "about:blank": {
+                "summary": "Bad Request: The request body is not valid JSON.",
+                "value": {
+                  "detail": "Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (2)": {
+                "summary": "Bad Request: The request body could not be read to its end.",
+                "value": {
+                  "detail": "Failed to buffer the request body: error reading a body from connection",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                }
+              }
+            },
+            "schema": {
+              "anyOf": [
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Bad Request: The request body is not valid JSON."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Bad Request: The request body could not be read to its end."
+                }
+              ]
+            }
+          }
+        },
+        "description": "- Bad Request: The request body is not valid JSON.\n- Bad Request: The request body could not be read to its end.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
+      },
+      "Forbidden": {
+        "content": {
+          "application/problem+json": {
             "example": {
-              "detail": "Invalid URL: Cannot parse `limit` with value `many` to a `u8`",
-              "status": 400,
-              "title": "Bad Request",
+              "detail": "The caller may not create the entities.",
+              "status": 403,
+              "title": "Forbidden",
               "type": "about:blank"
             },
             "schema": {
@@ -18,10 +124,10 @@
                 {
                   "properties": {
                     "status": {
-                      "const": 400
+                      "const": 403
                     },
                     "title": {
-                      "const": "Bad Request"
+                      "const": "Forbidden"
                     },
                     "type": {
                       "const": "about:blank"
@@ -32,11 +138,11 @@
                   ]
                 }
               ],
-              "title": "Bad Request"
+              "title": "Forbidden"
             }
           }
         },
-        "description": "A path parameter does not match its documented schema.",
+        "description": "The caller may not create an entity or instantiate an entity type or a type it inherits from.",
         "headers": {
           "Cache-Control": {
             "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -165,6 +271,70 @@
           }
         },
         "description": "The entity does not exist, is archived, or the caller may not view it.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
+      },
+      "PayloadTooLarge": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "detail": "Failed to buffer the request body: length limit exceeded",
+              "status": 413,
+              "title": "Content Too Large",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 413
+                    },
+                    "title": {
+                      "const": "Content Too Large"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Content Too Large"
+            }
+          }
+        },
+        "description": "The request body is larger than the operation accepts.",
         "headers": {
           "Cache-Control": {
             "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
@@ -444,25 +614,515 @@
             "style": "simple"
           }
         }
+      },
+      "UnprocessableEntity": {
+        "content": {
+          "application/problem+json": {
+            "examples": {
+              "about:blank": {
+                "summary": "Unprocessable Content: The request body does not match the schema of the operation.",
+                "value": {
+                  "detail": "Failed to deserialize the JSON body into the target type: invalid type: string \"many\", expected u8 at line 1 column 6",
+                  "status": 422,
+                  "title": "Unprocessable Content",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (2)": {
+                "summary": "Unprocessable Content: One or more entity types do not exist.",
+                "value": {
+                  "detail": "One or more entity types do not exist.",
+                  "status": 422,
+                  "title": "Unprocessable Content",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (3)": {
+                "summary": "Unprocessable Content: One or more entity types are archived.",
+                "value": {
+                  "detail": "One or more entity types are archived.",
+                  "status": 422,
+                  "title": "Unprocessable Content",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (4)": {
+                "summary": "Unprocessable Content: The entity types of an entity define a property differently.",
+                "value": {
+                  "detail": "The entity types of an entity define a property differently.",
+                  "status": 422,
+                  "title": "Unprocessable Content",
+                  "type": "about:blank"
+                }
+              },
+              "about:blank (5)": {
+                "summary": "Unprocessable Content: One or more entities do not match their entity types, or link to an entity that does not exist.",
+                "value": {
+                  "detail": "One or more entities do not match their entity types, or link to an entity that does not exist.",
+                  "status": 422,
+                  "title": "Unprocessable Content",
+                  "type": "about:blank"
+                }
+              }
+            },
+            "schema": {
+              "anyOf": [
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 422
+                        },
+                        "title": {
+                          "const": "Unprocessable Content"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Unprocessable Content: The request body does not match the schema of the operation."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 422
+                        },
+                        "title": {
+                          "const": "Unprocessable Content"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Unprocessable Content: One or more entity types do not exist."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 422
+                        },
+                        "title": {
+                          "const": "Unprocessable Content"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Unprocessable Content: One or more entity types are archived."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 422
+                        },
+                        "title": {
+                          "const": "Unprocessable Content"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Unprocessable Content: The entity types of an entity define a property differently."
+                },
+                {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 422
+                        },
+                        "title": {
+                          "const": "Unprocessable Content"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Unprocessable Content: One or more entities do not match their entity types, or link to an entity that does not exist."
+                }
+              ]
+            }
+          }
+        },
+        "description": "- Unprocessable Content: The request body does not match the schema of the operation.\n- Unprocessable Content: One or more entity types do not exist.\n- Unprocessable Content: One or more entity types are archived.\n- Unprocessable Content: The entity types of an entity define a property differently.\n- Unprocessable Content: One or more entities do not match their entity types, or link to an entity that does not exist.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
+      },
+      "UnsupportedMediaType": {
+        "content": {
+          "application/problem+json": {
+            "example": {
+              "detail": "Expected request with `Content-Type: application/json`",
+              "status": 415,
+              "title": "Unsupported Media Type",
+              "type": "about:blank"
+            },
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                {
+                  "properties": {
+                    "status": {
+                      "const": 415
+                    },
+                    "title": {
+                      "const": "Unsupported Media Type"
+                    },
+                    "type": {
+                      "const": "about:blank"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ],
+              "title": "Unsupported Media Type"
+            }
+          }
+        },
+        "description": "The request's `Content-Type` is missing or neither `application/json` nor `application/*+json`.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+            "example": "private, no-store",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit": {
+            "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+            "example": "\"actor\";r=499",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          "RateLimit-Policy": {
+            "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+            "example": "\"actor\";q=500;w=50",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        }
       }
     },
     "schemas": {
+      "ActorType": {
+        "description": "Whether a user, a machine or an AI acted.",
+        "enum": [
+          "user",
+          "machine",
+          "ai"
+        ],
+        "type": "string"
+      },
+      "BaseUrl": {
+        "description": "The base URL of a SemType ontology type (the $id of the schema without the versioned suffix). It must end with a trailing slash.",
+        "format": "uri",
+        "maxLength": 2048,
+        "pattern": "/$",
+        "title": "Base URL",
+        "type": "string"
+      },
+      "BaseUrlSetMatch": {
+        "description": "The value a set has to contain, with `has`.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "The set contains the value.",
+            "properties": {
+              "has": {
+                "$ref": "#/components/schemas/BaseUrl"
+              }
+            },
+            "required": [
+              "has"
+            ],
+            "title": "Has",
+            "type": "object"
+          }
+        ]
+      },
+      "CreateEntitiesRequest": {
+        "additionalProperties": false,
+        "description": "The entities to create.",
+        "properties": {
+          "entities": {
+            "description": "The entities to create, in one transaction, at least one.",
+            "items": {
+              "$ref": "#/components/schemas/NewEntity"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "entities"
+        ],
+        "type": "object"
+      },
+      "CreateEntitiesResponse": {
+        "description": "The created entities.",
+        "properties": {
+          "entities": {
+            "description": "The created entities, in the order of the request.",
+            "items": {
+              "$ref": "#/components/schemas/Entity"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "entities"
+        ],
+        "type": "object"
+      },
+      "Cursor": {
+        "description": "An opaque position in a query's result.",
+        "minLength": 1,
+        "type": "string"
+      },
+      "DateTime": {
+        "description": "A point in time, with its offset from UTC.",
+        "format": "date-time",
+        "type": "string"
+      },
       "Entity": {
         "description": "An entity the caller may view.",
+        "examples": [
+          {
+            "metadata": {
+              "entityId": "8d86c8c3-d66d-43d1-859b-676c3bcaeadc~be2c5b2f-e3e1-4f26-a0c4-0f8b5e9c4a1d",
+              "entityTypeIds": [
+                "https://hash.ai/@h/types/entity-type/user/v/1"
+              ],
+              "provenance": {
+                "actorType": "user",
+                "origin": {
+                  "type": "external"
+                }
+              }
+            },
+            "properties": {
+              "https://hash.ai/@h/types/property-type/preferred-name/": "Alice",
+              "https://hash.ai/@h/types/property-type/shortname/": "alice"
+            },
+            "propertyMetadata": {
+              "https://hash.ai/@h/types/property-type/preferred-name/": {
+                "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+              },
+              "https://hash.ai/@h/types/property-type/shortname/": {
+                "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+              }
+            }
+          }
+        ],
         "properties": {
+          "link": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              }
+            ],
+            "description": "The entities it connects, if the entity is a link."
+          },
           "metadata": {
             "allOf": [
               {
                 "$ref": "#/components/schemas/EntityMetadata"
               }
             ],
-            "description": "What identifies and classifies the entity."
+            "description": "What identifies and classifies the entity, and where its data comes from."
+          },
+          "properties": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyObject"
+              }
+            ],
+            "description": "The entity's properties, keyed by the base URL of their property type."
+          },
+          "propertyMetadata": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyObjectMetadata"
+              }
+            ],
+            "description": "The data types of the values in `properties`, and where they come from."
           }
         },
         "required": [
-          "metadata"
+          "metadata",
+          "properties",
+          "propertyMetadata"
         ],
         "type": "object"
+      },
+      "EntityFilter": {
+        "description": "A condition an entity has to meet, named by its only key.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "Entities in the web, or in one of the webs.",
+            "properties": {
+              "webId": {
+                "$ref": "#/components/schemas/WebIdMatch"
+              }
+            },
+            "required": [
+              "webId"
+            ],
+            "title": "Web ID",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Entities of the versioned entity type, or of a type that inherits from it.",
+            "properties": {
+              "entityTypeIds": {
+                "$ref": "#/components/schemas/VersionedUrlSetMatch"
+              }
+            },
+            "required": [
+              "entityTypeIds"
+            ],
+            "title": "Entity type IDs",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Entities of any version of the entity type, or of a type that inherits from one.",
+            "properties": {
+              "entityTypeBaseIds": {
+                "$ref": "#/components/schemas/BaseUrlSetMatch"
+              }
+            },
+            "required": [
+              "entityTypeBaseIds"
+            ],
+            "title": "Entity type base IDs",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Entities that meet every condition.",
+            "properties": {
+              "and": {
+                "description": "The conditions, at least one.",
+                "items": {
+                  "$ref": "#/components/schemas/EntityFilter"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "required": [
+              "and"
+            ],
+            "title": "And",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "Entities that meet at least one condition.",
+            "properties": {
+              "or": {
+                "description": "The conditions, at least one.",
+                "items": {
+                  "$ref": "#/components/schemas/EntityFilter"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "required": [
+              "or"
+            ],
+            "title": "Or",
+            "type": "object"
+          }
+        ]
       },
       "EntityId": {
         "description": "An entity's web ID and UUID, joined by `~`.",
@@ -472,7 +1132,7 @@
         "type": "string"
       },
       "EntityMetadata": {
-        "description": "What identifies and classifies an entity.",
+        "description": "What identifies and classifies an entity, and where its data comes from.",
         "properties": {
           "entityId": {
             "allOf": [
@@ -489,13 +1149,310 @@
             },
             "type": "array",
             "uniqueItems": true
+          },
+          "provenance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Provenance"
+              }
+            ],
+            "description": "Where the data of the entity's current edition comes from, and how it reached HASH."
           }
         },
         "required": [
           "entityId",
-          "entityTypeIds"
+          "entityTypeIds",
+          "provenance"
         ],
         "type": "object"
+      },
+      "EntityRef": {
+        "additionalProperties": false,
+        "description": "An entity a link connects.",
+        "properties": {
+          "entityId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityId"
+              }
+            ],
+            "description": "The ID of the entity."
+          }
+        },
+        "required": [
+          "entityId"
+        ],
+        "type": "object"
+      },
+      "Link": {
+        "description": "The entities a link entity connects. More kinds may follow.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "A link that points from `source` to `target`.",
+            "properties": {
+              "kind": {
+                "const": "directed",
+                "type": "string"
+              },
+              "source": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EntityRef"
+                  }
+                ],
+                "description": "The entity the link points from."
+              },
+              "target": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/EntityRef"
+                  }
+                ],
+                "description": "The entity the link points to."
+              }
+            },
+            "required": [
+              "kind",
+              "source",
+              "target"
+            ],
+            "title": "Directed",
+            "type": "object"
+          }
+        ]
+      },
+      "Location": {
+        "additionalProperties": false,
+        "description": "Where the material came from.",
+        "properties": {
+          "description": {
+            "description": "A description of the place for a reader.",
+            "maxLength": 4095,
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the place.",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "uri": {
+            "description": "The `http` or `https` URI the material was retrieved from.",
+            "format": "uri",
+            "maxLength": 4095,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "NestedPropertyObjectMetadata": {
+        "additionalProperties": false,
+        "description": "The metadata of a property that holds properties keyed by base URL.",
+        "properties": {
+          "properties": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyObjectMetadata"
+              }
+            ],
+            "description": "The metadata of the properties, keyed by the base URL of their property type."
+          },
+          "provenance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyProvenance"
+              }
+            ],
+            "description": "Where the properties as a whole come from."
+          }
+        },
+        "required": [
+          "properties"
+        ],
+        "type": "object"
+      },
+      "NewEntity": {
+        "additionalProperties": false,
+        "description": "An entity to create.",
+        "examples": [
+          {
+            "entityTypeIds": [
+              "https://hash.ai/@h/types/entity-type/user/v/1"
+            ],
+            "properties": {
+              "https://hash.ai/@h/types/property-type/preferred-name/": "Alice",
+              "https://hash.ai/@h/types/property-type/shortname/": "alice"
+            },
+            "propertyMetadata": {
+              "https://hash.ai/@h/types/property-type/preferred-name/": {
+                "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+              },
+              "https://hash.ai/@h/types/property-type/shortname/": {
+                "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+              }
+            },
+            "webId": "8d86c8c3-d66d-43d1-859b-676c3bcaeadc"
+          }
+        ],
+        "properties": {
+          "entityTypeIds": {
+            "description": "The entity types the entity is an instance of, at least one.",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            },
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "link": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              }
+            ],
+            "description": "The entities it connects, for an entity of a link type."
+          },
+          "properties": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyObject"
+              }
+            ],
+            "description": "The entity's properties, keyed by the base URL of their property type."
+          },
+          "propertyMetadata": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyObjectMetadata"
+              }
+            ],
+            "description": "The data type of every value in `properties`, and where the value comes from."
+          },
+          "provenance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NewProvenance"
+              }
+            ],
+            "description": "Where the entity's data comes from, and which application sends it."
+          },
+          "webId": {
+            "description": "The web to create the entity in.",
+            "examples": [
+              "8d86c8c3-d66d-43d1-859b-676c3bcaeadc"
+            ],
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "webId",
+          "entityTypeIds",
+          "properties",
+          "propertyMetadata"
+        ],
+        "type": "object"
+      },
+      "NewOrigin": {
+        "additionalProperties": false,
+        "description": "The application that sends an entity, as it names itself.",
+        "properties": {
+          "id": {
+            "description": "The name of the application.",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "semanticVersion": {
+            "description": "The version of the application in the format of Semantic Versioning 2.0.",
+            "examples": [
+              "1.2.3"
+            ],
+            "maxLength": 255,
+            "type": "string"
+          },
+          "version": {
+            "description": "The version of the application, in any format.",
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "NewProvenance": {
+        "additionalProperties": false,
+        "description": "Where the data of an entity comes from, and which application sends it.",
+        "properties": {
+          "origin": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NewOrigin"
+              }
+            ],
+            "description": "The application that sends the entity, as it names itself. HASH stores it unconfirmed."
+          },
+          "sources": {
+            "description": "The material the entity was produced from.",
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "maxItems": 127,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "Origin": {
+        "description": "How an edition reached HASH.",
+        "properties": {
+          "id": {
+            "description": "What sent the edition: for `external` the name it gave, for `flow` the flow run's ID.",
+            "type": "string"
+          },
+          "semanticVersion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SemVer"
+              }
+            ],
+            "description": "The version of what sent the edition in the format of Semantic Versioning 2.0."
+          },
+          "stepIds": {
+            "description": "For `flow`, the IDs of the flow steps that wrote the edition.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OriginType"
+              }
+            ],
+            "description": "What sent the edition. HASH sets it."
+          },
+          "version": {
+            "description": "The version of what sent the edition, in any format.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "OriginType": {
+        "description": "How an edition reached HASH; `external` means through the public API. More may follow.",
+        "enum": [
+          "web-app",
+          "mobile-app",
+          "browser-extension",
+          "api",
+          "flow",
+          "migration",
+          "external"
+        ],
+        "type": "string"
       },
       "ProblemDetails": {
         "properties": {
@@ -530,6 +1487,293 @@
         "title": "Problem Details",
         "type": "object"
       },
+      "Property": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PropertyArray"
+          },
+          {
+            "$ref": "#/components/schemas/PropertyObject"
+          },
+          {
+            "$ref": "#/components/schemas/PropertyValue"
+          }
+        ],
+        "description": "A list of properties, properties keyed by the base URL of their property type, or a value of a data type."
+      },
+      "PropertyArray": {
+        "description": "A list of properties.",
+        "items": {
+          "$ref": "#/components/schemas/Property"
+        },
+        "type": "array"
+      },
+      "PropertyArrayMetadata": {
+        "additionalProperties": false,
+        "description": "The metadata of a property that holds a list of properties.",
+        "properties": {
+          "items": {
+            "description": "The metadata of the properties in the list, one entry per property in the same order.",
+            "items": {
+              "$ref": "#/components/schemas/PropertyMetadata"
+            },
+            "type": "array"
+          },
+          "provenance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyProvenance"
+              }
+            ],
+            "description": "Where the list as a whole comes from."
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "PropertyMetadata": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PropertyValueMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/PropertyArrayMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/NestedPropertyObjectMetadata"
+          }
+        ],
+        "description": "The metadata of a property, with exactly one of `dataTypeId`, `items` and `properties`."
+      },
+      "PropertyObject": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/Property"
+        },
+        "description": "Properties keyed by the base URL of their property type.",
+        "examples": [
+          {
+            "https://hash.ai/@h/types/property-type/preferred-name/": "Alice",
+            "https://hash.ai/@h/types/property-type/shortname/": "alice"
+          }
+        ],
+        "propertyNames": {
+          "$ref": "#/components/schemas/BaseUrl"
+        },
+        "type": "object"
+      },
+      "PropertyObjectMetadata": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/PropertyMetadata"
+        },
+        "description": "The metadata of properties, keyed by the base URL of their property type.",
+        "examples": [
+          {
+            "https://hash.ai/@h/types/property-type/preferred-name/": {
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+            },
+            "https://hash.ai/@h/types/property-type/shortname/": {
+              "dataTypeId": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+            }
+          }
+        ],
+        "propertyNames": {
+          "$ref": "#/components/schemas/BaseUrl"
+        },
+        "type": "object"
+      },
+      "PropertyProvenance": {
+        "additionalProperties": false,
+        "description": "Where a property comes from: a value, a list, or properties keyed by base URL.",
+        "properties": {
+          "sources": {
+            "description": "The material the property was produced from.",
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "maxItems": 127,
+            "type": "array"
+          }
+        },
+        "required": [
+          "sources"
+        ],
+        "type": "object"
+      },
+      "PropertyValue": {
+        "description": "A value of a data type: `null`, a boolean, a string, a number, an array or an object."
+      },
+      "PropertyValueMetadata": {
+        "additionalProperties": false,
+        "description": "The metadata of a property that holds a value.",
+        "properties": {
+          "dataTypeId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ],
+            "description": "The data type of the value."
+          },
+          "provenance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PropertyProvenance"
+              }
+            ],
+            "description": "Where the value comes from."
+          }
+        },
+        "required": [
+          "dataTypeId"
+        ],
+        "type": "object"
+      },
+      "Provenance": {
+        "description": "Where the data of an entity edition comes from, and how it reached HASH.",
+        "properties": {
+          "actorType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActorType"
+              }
+            ],
+            "description": "The kind of actor that wrote the edition."
+          },
+          "origin": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Origin"
+              }
+            ],
+            "description": "How the edition reached HASH."
+          },
+          "sources": {
+            "description": "The material the edition was produced from.",
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "maxItems": 127,
+            "type": "array"
+          }
+        },
+        "required": [
+          "actorType",
+          "origin"
+        ],
+        "type": "object"
+      },
+      "QueryEntitiesRequest": {
+        "additionalProperties": false,
+        "description": "The query.",
+        "properties": {
+          "filter": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityFilter"
+              }
+            ],
+            "description": "The condition the entities meet, with at most 100 `eq`, `in` and `has` in all."
+          }
+        },
+        "type": "object"
+      },
+      "QueryEntitiesResponse": {
+        "description": "A page of the entities the query matches.",
+        "properties": {
+          "entities": {
+            "description": "The entities on this page.",
+            "items": {
+              "$ref": "#/components/schemas/Entity"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "entities"
+        ],
+        "type": "object"
+      },
+      "SemVer": {
+        "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+        "type": "string"
+      },
+      "Source": {
+        "additionalProperties": false,
+        "description": "Material that data was produced from.",
+        "properties": {
+          "authors": {
+            "description": "The people or organizations that wrote the material.",
+            "items": {
+              "maxLength": 255,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "entityId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EntityId"
+              }
+            ],
+            "description": "The entity in HASH that stands for the material."
+          },
+          "firstPublished": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DateTime"
+              }
+            ],
+            "description": "When the material was first published."
+          },
+          "lastUpdated": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DateTime"
+              }
+            ],
+            "description": "When the material was last changed."
+          },
+          "loadedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DateTime"
+              }
+            ],
+            "description": "When the material was retrieved."
+          },
+          "location": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Location"
+              }
+            ],
+            "description": "Where the material came from."
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SourceType"
+              }
+            ],
+            "description": "The kind of material."
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "SourceType": {
+        "description": "The kind of material that data was produced from.",
+        "enum": [
+          "webpage",
+          "document",
+          "integration"
+        ],
+        "type": "string"
+      },
       "VersionedUrl": {
         "description": "The versioned URL of a SemType ontology type (the $id of the schema). It must be of the form `${baseUrl}v/${version}`, where `version` is a major version number.",
         "examples": [
@@ -539,6 +1783,74 @@
         "maxLength": 2048,
         "title": "Versioned URL",
         "type": "string"
+      },
+      "VersionedUrlSetMatch": {
+        "description": "The value a set has to contain, with `has`.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "The set contains the value.",
+            "properties": {
+              "has": {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            },
+            "required": [
+              "has"
+            ],
+            "title": "Has",
+            "type": "object"
+          }
+        ]
+      },
+      "WebIdMatch": {
+        "description": "The value to equal with `eq`, or the values to equal one of with `in`.",
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "description": "The field equals the value.",
+            "properties": {
+              "eq": {
+                "description": "The UUID of a web.",
+                "examples": [
+                  "8d86c8c3-d66d-43d1-859b-676c3bcaeadc"
+                ],
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "eq"
+            ],
+            "title": "Equal",
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "description": "The field equals one of the values.",
+            "properties": {
+              "in": {
+                "description": "The values, at least one.",
+                "items": {
+                  "description": "The UUID of a web.",
+                  "examples": [
+                    "8d86c8c3-d66d-43d1-859b-676c3bcaeadc"
+                  ],
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "required": [
+              "in"
+            ],
+            "title": "In",
+            "type": "object"
+          }
+        ]
       }
     },
     "securitySchemes": {
@@ -556,9 +1868,459 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/entities/v1": {
+      "post": {
+        "description": "Creates the entities in one transaction: either all of them are created or none. Returns them in the order of the request.",
+        "operationId": "createEntities",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEntitiesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateEntitiesResponse"
+                }
+              }
+            },
+            "description": "The created entities.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit": {
+                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "example": "\"actor\";r=499",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit-Policy": {
+                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "example": "\"actor\";q=500;w=50",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ],
+        "summary": "Create entities",
+        "tags": [
+          "Entity"
+        ]
+      }
+    },
+    "/entities/v1/query": {
+      "post": {
+        "description": "Returns the current edition of each entity the caller may view that is not archived and meets `filter`, if given, a page at a time, in a stable order. The `Link` header names the next page.",
+        "operationId": "queryEntities",
+        "parameters": [
+          {
+            "description": "The page to return, as the previous page's `Link` header names it. Defaults to the first.",
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "$ref": "#/components/schemas/Cursor",
+              "description": "The page to return, as the previous page's `Link` header names it. Defaults to the first."
+            },
+            "style": "form"
+          },
+          {
+            "description": "The size of the page; the server's maximum is the default and caps larger values.",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "description": "The size of the page; the server's maximum is the default and caps larger values.",
+              "format": "uint",
+              "minimum": 1,
+              "type": "integer"
+            },
+            "style": "form"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryEntitiesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryEntitiesResponse"
+                }
+              }
+            },
+            "description": "A page of the entities the query matches.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "Link": {
+                "description": "Names the next page as `<URI>; rel=\"next\"` (RFC 8288). The URI is relative and resolves against the URL of this request. Repeat the request there, with the same body if it has one. The last page has no `Link` header.",
+                "example": "<?cursor=...>; rel=\"next\"",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit": {
+                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "example": "\"actor\";r=499",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit-Policy": {
+                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "example": "\"actor\";q=500;w=50",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "examples": {
+                  "about:blank": {
+                    "summary": "Bad Request: A required query parameter is missing, or one does not match its documented schema.",
+                    "value": {
+                      "detail": "Failed to deserialize query string: limit: invalid digit found in string",
+                      "status": 400,
+                      "title": "Bad Request",
+                      "type": "about:blank"
+                    }
+                  },
+                  "about:blank (2)": {
+                    "summary": "Bad Request: The request body is not valid JSON.",
+                    "value": {
+                      "detail": "Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1",
+                      "status": 400,
+                      "title": "Bad Request",
+                      "type": "about:blank"
+                    }
+                  },
+                  "about:blank (3)": {
+                    "summary": "Bad Request: The request body could not be read to its end.",
+                    "value": {
+                      "detail": "Failed to buffer the request body: error reading a body from connection",
+                      "status": 400,
+                      "title": "Bad Request",
+                      "type": "about:blank"
+                    }
+                  }
+                },
+                "schema": {
+                  "anyOf": [
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 400
+                            },
+                            "title": {
+                              "const": "Bad Request"
+                            },
+                            "type": {
+                              "const": "about:blank"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ],
+                      "title": "Bad Request: A required query parameter is missing, or one does not match its documented schema."
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 400
+                            },
+                            "title": {
+                              "const": "Bad Request"
+                            },
+                            "type": {
+                              "const": "about:blank"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ],
+                      "title": "Bad Request: The request body is not valid JSON."
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 400
+                            },
+                            "title": {
+                              "const": "Bad Request"
+                            },
+                            "type": {
+                              "const": "about:blank"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ],
+                      "title": "Bad Request: The request body could not be read to its end."
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "- Bad Request: A required query parameter is missing, or one does not match its documented schema.\n- Bad Request: The request body is not valid JSON.\n- Bad Request: The request body could not be read to its end.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit": {
+                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "example": "\"actor\";r=499",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit-Policy": {
+                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "example": "\"actor\";q=500;w=50",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "examples": {
+                  "about:blank": {
+                    "summary": "Unprocessable Content: The request body does not match the schema of the operation.",
+                    "value": {
+                      "detail": "Failed to deserialize the JSON body into the target type: invalid type: string \"many\", expected u8 at line 1 column 6",
+                      "status": 422,
+                      "title": "Unprocessable Content",
+                      "type": "about:blank"
+                    }
+                  },
+                  "about:blank (2)": {
+                    "summary": "Unprocessable Content: The filter has an empty `in`, `and` or `or`, or names more values or conditions than allowed.",
+                    "value": {
+                      "detail": "The filter is invalid: the filter names 101 conditions in `eq`, `in` and `has`, but at most 100 are allowed.",
+                      "status": 422,
+                      "title": "Unprocessable Content",
+                      "type": "about:blank"
+                    }
+                  }
+                },
+                "schema": {
+                  "anyOf": [
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 422
+                            },
+                            "title": {
+                              "const": "Unprocessable Content"
+                            },
+                            "type": {
+                              "const": "about:blank"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ],
+                      "title": "Unprocessable Content: The request body does not match the schema of the operation."
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ProblemDetails"
+                        },
+                        {
+                          "properties": {
+                            "status": {
+                              "const": 422
+                            },
+                            "title": {
+                              "const": "Unprocessable Content"
+                            },
+                            "type": {
+                              "const": "about:blank"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      ],
+                      "title": "Unprocessable Content: The filter has an empty `in`, `and` or `or`, or names more values or conditions than allowed."
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "- Unprocessable Content: The request body does not match the schema of the operation.\n- Unprocessable Content: The filter has an empty `in`, `and` or `or`, or names more values or conditions than allowed.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit": {
+                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "example": "\"actor\";r=499",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit-Policy": {
+                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "example": "\"actor\";q=500;w=50",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "security": [
+          {
+            "apiToken": []
+          }
+        ],
+        "summary": "Query entities",
+        "tags": [
+          "Entity"
+        ]
+      }
+    },
     "/entities/v1/{entityId}": {
       "get": {
-        "description": "Returns the entity's ID and the entity types of its current edition.",
+        "description": "Returns the entity's ID, the entity types, the provenance, and the properties with the data types and provenance of their values, of its current edition. `propertyMetadata` leaves out a value without a stored data type, and a list that contains one.",
         "operationId": "getEntity",
         "parameters": [
           {
@@ -612,7 +2374,68 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "content": {
+              "application/problem+json": {
+                "example": {
+                  "detail": "Invalid URL: Cannot parse `limit` with value `many` to a `u8`",
+                  "status": 400,
+                  "title": "Bad Request",
+                  "type": "about:blank"
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ProblemDetails"
+                    },
+                    {
+                      "properties": {
+                        "status": {
+                          "const": 400
+                        },
+                        "title": {
+                          "const": "Bad Request"
+                        },
+                        "type": {
+                          "const": "about:blank"
+                        }
+                      },
+                      "required": [
+                        "type"
+                      ]
+                    }
+                  ],
+                  "title": "Bad Request"
+                }
+              }
+            },
+            "description": "A path parameter does not match its documented schema.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`: the response depends on the caller, so no cache stores it.",
+                "example": "private, no-store",
+                "required": true,
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit": {
+                "description": "The requests each budget in `RateLimit-Policy` has left after this request, as its `r`. A crossed budget reports `r=0`.",
+                "example": "\"actor\";r=499",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              },
+              "RateLimit-Policy": {
+                "description": "The budgets the request was checked against, one item each, as draft-ietf-httpapi-ratelimit-headers-11 defines them. `q` is the burst a budget admits at once, and `w` the whole seconds an exhausted budget takes to refill, so `q` requests per `w` seconds stay within its sustained rate.",
+                "example": "\"actor\";q=500;w=50",
+                "schema": {
+                  "type": "string"
+                },
+                "style": "simple"
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"

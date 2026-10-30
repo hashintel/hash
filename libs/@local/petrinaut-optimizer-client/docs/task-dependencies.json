@@ -1,7 +1,6 @@
 {
   "package": "@local/petrinaut-optimizer-client",
   "dependencies": [
-    "@apps/petrinaut-opt",
     "@hashintel/petrinaut-core",
     "@local/tsconfig"
   ],
@@ -10,15 +9,33 @@
       "dependsOn": [
         "@hashintel/petrinaut-core#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "codegen": {
-      "dependsOn": []
+      "dependsOn": [],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
+      ]
     },
     "lint:tsc": {
       "dependsOn": [
         "@hashintel/petrinaut-core#build",
         "codegen"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "test:unit": {
@@ -28,6 +45,12 @@
       ],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "@hashintel/petrinaut-cli",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     }
   }

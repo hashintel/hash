@@ -55,7 +55,7 @@ use type_system::{
     knowledge::{
         Confidence, Entity, Property,
         entity::{
-            EntityMetadata, LinkData,
+            EntityMetadata, Link,
             id::{EntityEditionId, EntityId, EntityRecordId, EntityUuid},
             metadata::{EntityTemporalMetadata, EntityTypeIdDiff},
             provenance::{
@@ -189,7 +189,7 @@ use crate::rest::legacy::{
             EntityRecordId,
             EntityTemporalMetadata,
             EntityQueryToken,
-            LinkData,
+            Link,
             EntityValidationReport,
             LinkedEntityError,
             LinkDataValidationReport,

@@ -159,6 +159,10 @@ export const InheritanceRow = ({
       return;
     }
 
+    const becomesLinkType =
+      !directParentEntityTypeIds.some((id) => linkTypes[id]) &&
+      !!linkTypes[parent.$id];
+
     const setNewParents = () => {
       setValue("allOf", proposedParentIds, {
         shouldDirty: true,
@@ -166,11 +170,14 @@ export const InheritanceRow = ({
       setSelectorVisibility(false);
     };
 
-    if (proposedParentIds.length === 1 && linkTypes[proposedParentIds[0]!]) {
+    if (becomesLinkType) {
       setModalData({
         callback: setNewParents,
-        calloutMessage:
-          "You are adding a link type as a parent, which will make future versions of this type a link type.",
+        calloutMessage: `You are adding a link type as a parent, which will make future versions of this type a link type.${
+          links.length > 0
+            ? " The links defined on this type will be removed."
+            : ""
+        }`,
         confirmButtonText: "Add this link type as a parent",
         header: (
           <>

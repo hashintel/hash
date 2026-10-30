@@ -13,10 +13,10 @@ use std::{
 };
 
 use convert_case::{Case, Casing as _};
+use hash_crypto::digest::Sha256;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use regex::Regex;
-use sha2::{Digest, Sha256};
 use syn::{LitStr, parse_macro_input};
 use walkdir::{DirEntry, WalkDir};
 
@@ -33,7 +33,7 @@ struct MigrationFile {
     digest: [u8; 32],
 }
 
-fn hash_file(path: impl AsRef<Path>, digest: &mut impl Digest) -> io::Result<usize> {
+fn hash_file(path: impl AsRef<Path>, digest: &mut Sha256) -> io::Result<usize> {
     let path = path.as_ref();
     let content = fs::read(path)?;
     digest.update(path.to_string_lossy().as_bytes());
@@ -41,7 +41,7 @@ fn hash_file(path: impl AsRef<Path>, digest: &mut impl Digest) -> io::Result<usi
     Ok(content.len())
 }
 
-fn hash_directory(path: impl AsRef<Path>, digest: &mut impl Digest) -> io::Result<usize> {
+fn hash_directory(path: impl AsRef<Path>, digest: &mut Sha256) -> io::Result<usize> {
     WalkDir::new(path)
         .sort_by_file_name()
         .into_iter()
@@ -141,7 +141,7 @@ fn read_migration_file(path: impl AsRef<Path>) -> Result<MigrationFile, ReadMigr
                     .as_str()
                     .to_owned(),
                 size,
-                digest: digest.finalize().into(),
+                digest: digest.finalize().to_bytes(),
             })
         } else {
             Err(ReadMigrationFileError::InvalidFileName(
@@ -168,7 +168,7 @@ fn read_migration_file(path: impl AsRef<Path>) -> Result<MigrationFile, ReadMigr
                 .as_str()
                 .to_owned(),
             size,
-            digest: digest.finalize().into(),
+            digest: digest.finalize().to_bytes(),
         })
     } else {
         Err(ReadMigrationFileError::InvalidFileName(

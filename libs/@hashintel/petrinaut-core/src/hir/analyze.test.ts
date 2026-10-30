@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { analyzeHir, foldHir } from "./analyze";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 
-import type { HirFunction, HirSurfaceKind } from "./hir";
+import type { HirFunction, HirFunctionSurfaceKind } from "./hir";
 
-function lower(code: string, surface: HirSurfaceKind): HirFunction {
+function lower(code: string, surface: HirFunctionSurfaceKind): HirFunction {
   const result = lowerTypeScriptToHir(code, surface);
   if (!result.ok) {
     throw new Error(result.diagnostics[0]?.message);

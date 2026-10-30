@@ -1,0 +1,14 @@
+# Petrinaut optimizer core
+
+Pure-Python Optuna study logic for the optimizer service, written to load under Pyodide (the browser runtime is FE-1582).
+
+- Every module here must load under Pyodide as well as CPython: no threads, no asyncio loop ownership, no subprocesses, no file or network access, no pydantic, no OpenTelemetry, and no `pyodide` import (JavaScript values are unwrapped by duck-typing `to_py`).
+- Follow the workspace's Python version requirement. `runtime-lock.json` pins the browser runtime version.
+- Run tests with `uv run pytest tests` from this directory. `uv run ty check src` checks the production sources.
+- When bumping Optuna, update `runtime-lock.json` too; the lock test fails otherwise.
+
+Shipping conventions for the Petrinaut packages are in `libs/@hashintel/petrinaut/AGENTS.md`.
+
+## Architecture docs
+
+Architecture is declared next to the code it describes, via `@layerRoot` / `@role` in the package docstring of `src/petrinaut_optimizer_core/__init__.py`. Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`.

@@ -1,0 +1,255 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Avatar } from "./avatar";
+
+<Meta title="Docs/Avatar" />
+
+export const meta = {
+  title: "Avatar",
+  description:
+    "Identifies a person, organization, or workspace with an image, initials, or an icon.",
+  alternativeNames: ["ProfilePicture", "UserAvatar"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Avatar/avatar.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-avatar--default",
+  },
+  referenceLinks: {
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img",
+  },
+  related: ["AvatarGroup", "Icon", "Tooltip"],
+};
+
+# Avatar
+
+Identifies a person, organization, or workspace with an image, initials, or an icon.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Avatar
+    alt="Chris Feijoo"
+    src="https://avatars.githubusercontent.com/u/2991143?v=4"
+    placeholder={{ initials: "CF" }}
+  />
+  <Avatar alt="Maya Iyer" placeholder={{ initials: "MI" }} />
+  <Avatar alt="Unassigned" placeholder={{ icon: "user" }} />
+  <Avatar
+    alt="HASH"
+    shape="square"
+    tone="brand"
+    placeholder={{ initials: "H" }}
+  />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Avatar } from "@hashintel/ds-components";
+
+export const TeammateAvatar = () => (
+  <Avatar
+    alt="Chris Feijoo"
+    src="https://avatars.githubusercontent.com/u/2991143?v=4"
+    placeholder={{ initials: "CF" }}
+  />
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Avatar to show who something belongs to: a comment's author, an entity's last editor, the members of a web.",
+    <Fragment key="0">
+      Use <code>shape="square"</code> for non-person subjects — organizations,
+      webs, services — and the default circle for people.
+    </Fragment>,
+    <Fragment key="1">
+      Use <code>onClick</code> or <code>href</code> when pressing the avatar
+      opens the profile or workspace it names.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    <Fragment key="0">
+      Don't use Avatar for content or decorative imagery — use a plain{" "}
+      <code>{"<img>"}</code>; an Avatar always announces itself as an image
+      named by <code>alt</code>.
+    </Fragment>,
+    'Don\'t overlap avatars by hand to show a set of people — use AvatarGroup, which handles stacking, hover, and the "+N" overflow badge.',
+    "Don't use Avatar as a tile for pictograms that don't identify anyone — use Icon.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+`alt` names the subject and becomes the accessible name; `placeholder` is required because it shows while the image loads and whenever `src` is missing or fails.
+
+<Stage>
+  <Avatar
+    alt="Chris Feijoo"
+    src="https://avatars.githubusercontent.com/u/2991143?v=4"
+    placeholder={{ initials: "CF" }}
+  />
+  <Avatar alt="Maya Iyer" placeholder={{ initials: "MI" }} />
+</Stage>
+
+### Placeholders
+
+Pick the placeholder that best identifies the subject: `initials` for anyone with a name, `icon` where there is no particular person, and `custom` for an arbitrary node such as an emoji. Initials are capped at two characters and uppercased.
+
+<Stage>
+  <Avatar alt="Chris Feijoo" placeholder={{ initials: "CF" }} />
+  <Avatar alt="Deactivated user" placeholder={{ icon: "user" }} />
+  <Avatar alt="Biology lab web" placeholder={{ custom: "🧪" }} />
+</Stage>
+
+### Image fallback
+
+A failed image falls back to the placeholder — there is no broken-image state. Assigning a new `src` retries, even for a URL that failed before.
+
+<Stage>
+  <Avatar
+    alt="Chris Feijoo"
+    src="https://avatars.githubusercontent.com/u/2991143?v=4"
+    placeholder={{ initials: "CF" }}
+  />
+  <Avatar
+    alt="Chris Feijoo"
+    src="data:image/png;base64,thisisnotavalidpngpayload"
+    placeholder={{ initials: "CF" }}
+  />
+</Stage>
+
+### Sizes
+
+Five fixed sizes run from `xxs` to `lg`; `md` is the default. Use `xxs`–`sm` in dense chrome such as table rows and comment threads, and `lg` for profile headers.
+
+<Stage>
+  <Avatar size="xxs" alt="Chris Feijoo" placeholder={{ initials: "CF" }} />
+  <Avatar size="xs" alt="Chris Feijoo" placeholder={{ initials: "CF" }} />
+  <Avatar size="sm" alt="Chris Feijoo" placeholder={{ initials: "CF" }} />
+  <Avatar size="md" alt="Chris Feijoo" placeholder={{ initials: "CF" }} />
+  <Avatar size="lg" alt="Chris Feijoo" placeholder={{ initials: "CF" }} />
+</Stage>
+
+### Custom size
+
+`size="custom"` hands the scale to a `--avatar-size` you set via `className` — the box, border width, corner radius, and placeholder type all derive from that one variable.
+
+```tsx
+import { css } from "@hashintel/ds-helpers/css";
+
+import { Avatar } from "@hashintel/ds-components";
+
+const profileHeroSize = css({ "--avatar-size": "96px" });
+
+export const ProfileHero = () => (
+  <Avatar
+    size="custom"
+    className={profileHeroSize}
+    alt="Chris Feijoo"
+    placeholder={{ initials: "CF" }}
+  />
+);
+```
+
+### Shapes
+
+Use `circle` (the default) for people and `square` for everything else — organizations, webs, services. The square's corner radius scales with the avatar's size.
+
+<Stage>
+  <Avatar
+    shape="circle"
+    alt="Chris Feijoo"
+    placeholder={{ initials: "CF" }}
+  />
+  <Avatar shape="square" alt="HASH" placeholder={{ initials: "H" }} />
+</Stage>
+
+### Tones
+
+Tone only styles the placeholder — once an image loads, every tone shows the same neutral fill and border.
+
+<Stage>
+  <Avatar
+    tone="neutral"
+    alt="Chris Feijoo"
+    placeholder={{ initials: "CF" }}
+  />
+  <Avatar tone="brand" alt="Chris Feijoo" placeholder={{ initials: "CF" }} />
+</Stage>
+
+### With tooltip
+
+Wrap the avatar in a Tooltip to reveal the name on hover and focus when no visible label sits beside it. The tooltip also makes a static avatar keyboard-focusable, so the name isn't hover-only.
+
+```tsx
+import { Avatar, Tooltip } from "@hashintel/ds-components";
+
+export const AssigneeAvatar = () => (
+  <Tooltip content="Chris Feijoo">
+    <Avatar size="sm" alt="Chris Feijoo" placeholder={{ initials: "CF" }} />
+  </Tooltip>
+);
+```
+
+## Behavior
+
+- The image loads hidden behind the placeholder and only appears once complete — there is never an empty box, and already-cached images show immediately.
+- Images draw on a white backing, so transparent logos don't pick up the tone fill; they can't be dragged and send no referrer.
+- Initials longer than two characters are truncated, and all initials render uppercase.
+
+## Content
+
+- Write `alt` as the subject's name as it appears elsewhere in the product: "Chris Feijoo", "HASH". Append state only when the avatar shows it: "Chris Feijoo (online)".
+- Give people two initials (first and last name) and organizations or webs their first letter.
+
+## Accessibility
+
+### What Avatar provides
+
+- A static avatar renders `role="img"` named by `alt`; the inner image is decorative (empty `alt`), so screen readers announce the name exactly once.
+- With `onClick` or `href` it renders a native `<button>` or `<a>`, also named by `alt`, with a visible focus ring.
+
+### What you must do
+
+- `alt` is the entire accessible name — make it identify the subject, and, for interactive avatars, where pressing leads.
+- Keep a meaningful `alt` on interactive avatars even when the name is shown beside them — the adjacent text isn't associated with the button or link. For a non-interactive avatar that's redundant with an adjacent name, pass `aria-hidden` instead of emptying `alt`.
+
+## API reference
+
+<PropsTable
+  of={Avatar}
+  defaults={{
+    shape: '"circle"',
+    size: '"md"',
+    tone: '"neutral"',
+  }}
+/>

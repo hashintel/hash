@@ -63,6 +63,7 @@ export {
   type HirDiagnosticSeverity,
   type HirExpr,
   type HirFunction,
+  type HirFunctionSurfaceKind,
   type HirNodeId,
   type HirSurfaceKind,
   type HirType,
@@ -75,8 +76,10 @@ export {
 } from "./hir/lint";
 export {
   interpretHir,
+  interpretHirExpr,
   HirInterpretError,
   type HirInterpretBindings,
+  type HirInterpretOptions,
   type HirValue,
 } from "./hir/interpret";
 export {
@@ -121,7 +124,9 @@ export {
   buildMetricContext,
   buildScenarioCodeContext,
   buildScenarioExpressionContext,
+  buildVisualizerContext,
   type HirDynamicsContext,
+  type HirFunctionContext,
   type HirKernelContext,
   type HirLambdaContext,
   type HirMetricContext,
@@ -134,5 +139,11 @@ export {
   type HirScenarioPlaceInfo,
   type HirSurfaceContext,
   type HirTokenElementInfo,
+  type HirVisualizerContext,
 } from "./hir/surface-context";
-export { typecheckHir, type HirTypecheckResult } from "./hir/typecheck";
+export {
+  createHirExpressionChecker,
+  typecheckHir,
+  type HirExpressionChecker,
+  type HirTypecheckResult,
+} from "./hir/typecheck";

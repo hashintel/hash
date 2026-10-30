@@ -1,0 +1,876 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment, useRef, useState } from "react";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { OverlayDemo } from "../../../docs/blocks/overlay-demo";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "../Button/button";
+import { Dialog } from "./dialog";
+
+<Meta title="Docs/Dialog" />
+
+export const meta = {
+  title: "Dialog",
+  description:
+    "A modal window that interrupts the page for a focused task or decision.",
+  alternativeNames: ["Modal", "ModalDialog", "AlertDialog"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Dialog/dialog.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-dialog--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/",
+    ark: "https://ark-ui.com/docs/components/dialog",
+  },
+  related: ["Drawer", "Popover"],
+};
+
+# Dialog
+
+A modal window that interrupts the page for a focused task or decision.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+export const heroDialogCode = `import { Button, Dialog } from "@hashintel/ds-components";
+
+export const EditWorkspaceDialog = ({ onClose }: { onClose: () => void }) => (
+  <Dialog size="md" onClose={onClose}>
+    <Dialog.Header
+      title="Edit workspace"
+      iconName="gear"
+      description="Update the name and members of this workspace."
+    />
+    <Dialog.Body>
+      <p>Workspace name, description and members form.</p>
+    </Dialog.Body>
+    <Dialog.Footer
+      actions={
+        <>
+          <Button variant="subtle" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button tone="brand" onClick={onClose}>
+            Save changes
+          </Button>
+        </>
+      }
+    />
+  </Dialog>
+);`;
+
+export const HeroDemo = () => (
+  <OverlayDemo triggerLabel="Edit workspace">
+    {({ close }) => (
+      <Dialog size="md" onClose={close}>
+        <Dialog.Header
+          title="Edit workspace"
+          iconName="gear"
+          description="Update the name and members of this workspace."
+        />
+        <Dialog.Body>
+          <p>Workspace name, description and members form.</p>
+        </Dialog.Body>
+        <Dialog.Footer
+          actions={
+            <>
+              <Button variant="subtle" onClick={close}>
+                Cancel
+              </Button>
+              <Button tone="brand" onClick={close}>
+                Save changes
+              </Button>
+            </>
+          }
+        />
+      </Dialog>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={heroDialogCode}>
+  <HeroDemo />
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Dialog } from "@hashintel/ds-components";
+
+export const InviteTeammateButton = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button tone="brand" onClick={() => setOpen(true)}>
+        Invite teammate
+      </Button>
+      {open ? (
+        <Dialog size="sm" onClose={() => setOpen(false)}>
+          <Dialog.Header title="Invite teammate" />
+          <Dialog.Body>
+            <p>Enter the email address of the person to invite.</p>
+          </Dialog.Body>
+        </Dialog>
+      ) : null}
+    </>
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Dialog for a short, focused task the user must finish or abandon before returning to the page — editing settings, inviting a teammate.",
+    "Use Dialog to confirm destructive or irreversible actions, such as deleting an entity type.",
+    <Fragment key="0">
+      Use <code>size="fullScreen"</code> for immersive tasks that need the whole
+      viewport, such as mapping the columns of an import.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use Dialog for supporting content the user consults alongside the page — use Drawer, which keeps the page visible.",
+    "Don't use Dialog for lightweight content anchored to the control that opened it — use Popover, or Menu for a list of actions.",
+    "Don't put long or recurring workflows in a dialog — give them a page of their own, so they are linkable and survive a refresh.",
+    "Don't use Dialog for status the user didn't just request — use Banner.",
+  ]}
+/>
+
+## Anatomy
+
+```tsx
+<Dialog onClose={onClose}>
+  <Dialog.Header
+    title="Title"
+    description="One line of context"
+    iconName="gear"
+    actions={headerActions}
+  />
+  <Dialog.Body>Content</Dialog.Body>
+  <Dialog.Footer actions={primaryActions} secondaryActions={startActions} />
+</Dialog>
+```
+
+`Dialog.Body` is required; `Dialog.Header` and `Dialog.Footer` are optional, and the types enforce the header–body–footer order. A close button renders automatically — inside the header, or alone when there is no header — unless `shouldCloseOn="none"`.
+
+## Examples
+
+### Basic
+
+There is no `open` prop: render the dialog to open it, and remove it when `onClose` fires. `onClose` is called when the user dismisses it with Escape, the close button, or a click on the backdrop.
+
+export const basicDialogCode = `import { useState } from "react";
+
+import { Button, Dialog } from "@hashintel/ds-components";
+
+export const EditEntityTypeButton = () => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Edit entity type</Button>
+      {open ? (
+        <Dialog onClose={() => setOpen(false)}>
+          <Dialog.Header
+            title="Edit entity type"
+            description="Rename the type or update its description."
+          />
+          <Dialog.Body>
+            <p>Entity type form fields.</p>
+          </Dialog.Body>
+        </Dialog>
+      ) : null}
+    </>
+  );
+};`;
+
+export const BasicDemo = () => (
+  <OverlayDemo triggerLabel="Edit entity type">
+    {({ close }) => (
+      <Dialog onClose={close}>
+        <Dialog.Header
+          title="Edit entity type"
+          description="Rename the type or update its description."
+        />
+        <Dialog.Body>
+          <p>Entity type form fields.</p>
+        </Dialog.Body>
+      </Dialog>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={basicDialogCode}>
+  <BasicDemo />
+</Stage>
+
+### Loading
+
+Set `loading` while content loads or a request runs: a spinner overlay covers the body, the dialog announces busy, and body scrolling locks. The overlay covers only the body — disable or set `loading` on footer actions yourself.
+
+export const loadingDialogCode = `import { Button, Dialog } from "@hashintel/ds-components";
+
+export const SyncMappingsDialog = ({
+  loading,
+  onClose,
+}: {
+  loading: boolean;
+  onClose: () => void;
+}) => (
+  <Dialog loading={loading} onClose={onClose}>
+    <Dialog.Header title="Sync property mappings" />
+    <Dialog.Body>
+      <p>Mapping table loads here.</p>
+    </Dialog.Body>
+    <Dialog.Footer
+      actions={
+        <Button tone="brand" disabled={loading} onClick={onClose}>
+          Apply mappings
+        </Button>
+      }
+    />
+  </Dialog>
+);`;
+
+export const LoadingDemo = () => (
+  <OverlayDemo triggerLabel="Sync property mappings">
+    {({ close }) => (
+      <Dialog loading onClose={close}>
+        <Dialog.Header title="Sync property mappings" />
+        <Dialog.Body>
+          <p>Mapping table loads here.</p>
+        </Dialog.Body>
+        <Dialog.Footer
+          actions={
+            <Button tone="brand" disabled onClick={close}>
+              Apply mappings
+            </Button>
+          }
+        />
+      </Dialog>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={loadingDialogCode}>
+  <LoadingDemo />
+</Stage>
+
+### Sizes
+
+Six presets cap the width: `xs` for confirmations, `sm` for single-field tasks, `md` (the default) for most forms, `lg` and `xl` for data-heavy content, and `fullScreen` for tasks that need the whole viewport.
+
+export const sizesDialogCode = `import { Dialog } from "@hashintel/ds-components";
+
+export const CompareRunsDialog = ({ onClose }: { onClose: () => void }) => (
+  <Dialog size="lg" onClose={onClose}>
+    <Dialog.Header
+      title="Compare flow runs"
+      description="Outputs of run #41 and run #42 side by side."
+    />
+    <Dialog.Body>
+      <p>Run comparison table.</p>
+    </Dialog.Body>
+  </Dialog>
+);`;
+
+export const dialogSizeNotes = {
+  xs: "Confirmations fit the narrowest preset.",
+  sm: "Single-field tasks fit a small dialog.",
+  md: "Most forms fit the default size.",
+  lg: "Data-heavy content gets more room.",
+  xl: "The widest preset.",
+};
+
+export const SizesDemo = () => (
+  <OverlayDemo triggers={["xs", "sm", "md", "lg", "xl"]}>
+    {({ close, trigger }) => (
+      <Dialog size={trigger} onClose={close}>
+        <Dialog.Header title="Edit workspace" />
+        <Dialog.Body>
+          <p>{dialogSizeNotes[trigger]}</p>
+        </Dialog.Body>
+      </Dialog>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={sizesDialogCode}>
+  <SizesDemo />
+</Stage>
+
+### Variants
+
+`partitionedFooter` (the default) seats the footer on the dialog frame, below the rounded content card, so actions read as separate from the content. `plain` keeps header, body and footer on one continuous panel.
+
+export const variantsDialogCode = `import { Button, Dialog } from "@hashintel/ds-components";
+
+export const ReviewFlowRunDialog = ({ onClose }: { onClose: () => void }) => (
+  <Dialog variant="plain" onClose={onClose}>
+    <Dialog.Header title="Review flow run" />
+    <Dialog.Body>
+      <p>Run summary and step output.</p>
+    </Dialog.Body>
+    <Dialog.Footer
+      actions={
+        <Button variant="subtle" onClick={onClose}>
+          Done
+        </Button>
+      }
+    />
+  </Dialog>
+);`;
+
+export const VariantsDemo = () => (
+  <OverlayDemo triggers={["partitionedFooter", "plain"]}>
+    {({ close, trigger }) => (
+      <Dialog variant={trigger} onClose={close}>
+        <Dialog.Header title="Review flow run" />
+        <Dialog.Body>
+          <p>Run summary and step output.</p>
+        </Dialog.Body>
+        <Dialog.Footer
+          actions={
+            <Button variant="subtle" onClick={close}>
+              Done
+            </Button>
+          }
+        />
+      </Dialog>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={variantsDialogCode}>
+  <VariantsDemo />
+</Stage>
+
+### Header
+
+`title` labels the dialog, `description` adds one line of context, `iconName` marks the task, and `actions` places supporting buttons beside the close button. Give header actions `autoFocus="never"` so initial focus skips the chrome and lands on the task.
+
+export const headerDialogCode = `import { Button, Dialog } from "@hashintel/ds-components";
+
+export const WorkspaceSettingsDialog = ({
+  onClose,
+}: {
+  onClose: () => void;
+}) => (
+  <Dialog onClose={onClose}>
+    <Dialog.Header
+      title="Workspace settings"
+      iconName="gear"
+      description="Changes apply to every member of the workspace."
+      actions={
+        <Button
+          variant="ghost"
+          size="sm"
+          iconName="externalLink"
+          tooltip="Open docs"
+          autoFocus="never"
+        />
+      }
+    />
+    <Dialog.Body>
+      <p>Settings form.</p>
+    </Dialog.Body>
+  </Dialog>
+);`;
+
+export const HeaderDemo = () => (
+  <OverlayDemo triggerLabel="Workspace settings">
+    {({ close }) => (
+      <Dialog onClose={close}>
+        <Dialog.Header
+          title="Workspace settings"
+          iconName="gear"
+          description="Changes apply to every member of the workspace."
+          actions={
+            <Button
+              variant="ghost"
+              size="sm"
+              iconName="externalLink"
+              tooltip="Open docs"
+              autoFocus="never"
+            />
+          }
+        />
+        <Dialog.Body>
+          <p>Settings form.</p>
+        </Dialog.Body>
+      </Dialog>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={headerDialogCode}>
+  <HeaderDemo />
+</Stage>
+
+### Footer actions
+
+`actions` renders right-aligned with the primary action last; `secondaryActions` sits apart on the left — reserve it for destructive or rarely used actions so they can't be pressed by reflex.
+
+export const footerActionsDialogCode = `import { Button, Dialog } from "@hashintel/ds-components";
+
+export const UpdatePropertyTypeDialog = ({
+  onClose,
+}: {
+  onClose: () => void;
+}) => (
+  <Dialog onClose={onClose}>
+    <Dialog.Header title="Update property type" />
+    <Dialog.Body>
+      <p>Expected values and constraints form.</p>
+    </Dialog.Body>
+    <Dialog.Footer
+      actions={
+        <>
+          <Button variant="subtle" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button tone="brand" onClick={onClose}>
+            Save changes
+          </Button>
+        </>
+      }
+      secondaryActions={
+        <Button variant="subtle" tone="error" onClick={onClose}>
+          Delete type
+        </Button>
+      }
+    />
+  </Dialog>
+);`;
+
+export const FooterActionsDemo = () => (
+  <OverlayDemo triggerLabel="Update property type">
+    {({ close }) => (
+      <Dialog onClose={close}>
+        <Dialog.Header title="Update property type" />
+        <Dialog.Body>
+          <p>Expected values and constraints form.</p>
+        </Dialog.Body>
+        <Dialog.Footer
+          actions={
+            <>
+              <Button variant="subtle" onClick={close}>
+                Cancel
+              </Button>
+              <Button tone="brand" onClick={close}>
+                Save changes
+              </Button>
+            </>
+          }
+          secondaryActions={
+            <Button variant="subtle" tone="error" onClick={close}>
+              Delete type
+            </Button>
+          }
+        />
+      </Dialog>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={footerActionsDialogCode}>
+  <FooterActionsDemo />
+</Stage>
+
+### Confirming a destructive action
+
+Use an `xs` dialog whose body spells out what is affected, with an error-tone primary action that names what it deletes — never "OK" or "Yes".
+
+export const confirmDeleteDialogCode = `import { Button, Dialog } from "@hashintel/ds-components";
+
+export const DeletePropertyDialog = ({
+  onClose,
+  onDelete,
+}: {
+  onClose: () => void;
+  onDelete: () => void;
+}) => (
+  <Dialog size="xs" onClose={onClose}>
+    <Dialog.Header title="Delete property" />
+    <Dialog.Body>
+      <p>
+        The property "Deployment date" will be removed from 3 entity types. This
+        cannot be undone.
+      </p>
+    </Dialog.Body>
+    <Dialog.Footer
+      actions={
+        <>
+          <Button variant="subtle" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button tone="error" onClick={onDelete}>
+            Delete property
+          </Button>
+        </>
+      }
+    />
+  </Dialog>
+);`;
+
+export const ConfirmingADestructiveActionDemo = () => (
+  <OverlayDemo triggerLabel="Delete property">
+    {({ close }) => (
+      <Dialog size="xs" onClose={close}>
+        <Dialog.Header title="Delete property" />
+        <Dialog.Body>
+          <p>
+            The property "Deployment date" will be removed from 3 entity types.
+            This cannot be undone.
+          </p>
+        </Dialog.Body>
+        <Dialog.Footer
+          actions={
+            <>
+              <Button variant="subtle" onClick={close}>
+                Cancel
+              </Button>
+              <Button tone="error" onClick={close}>
+                Delete property
+              </Button>
+            </>
+          }
+        />
+      </Dialog>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={confirmDeleteDialogCode}>
+  <ConfirmingADestructiveActionDemo />
+</Stage>
+
+### Custom header and footer
+
+Pass children to `Dialog.Header` or `Dialog.Footer` instead of the structured props for full control of a region. The close button still renders beside a custom header.
+
+export const customRegionsDialogCode = `import { Button, Dialog } from "@hashintel/ds-components";
+
+export const FlowRunDialog = ({ onClose }: { onClose: () => void }) => (
+  <Dialog onClose={onClose}>
+    <Dialog.Header>
+      <div>
+        <strong>Flow run #482</strong> — completed in 3m 12s
+      </div>
+    </Dialog.Header>
+    <Dialog.Body>
+      <p>Step-by-step run output.</p>
+    </Dialog.Body>
+    <Dialog.Footer>
+      <span>All changes are saved automatically.</span>
+      <Button variant="subtle" onClick={onClose}>
+        Done
+      </Button>
+    </Dialog.Footer>
+  </Dialog>
+);`;
+
+export const CustomHeaderAndFooterDemo = () => (
+  <OverlayDemo triggerLabel="Inspect run">
+    {({ close }) => (
+      <Dialog onClose={close}>
+        <Dialog.Header>
+          <div>
+            <strong>Flow run #482</strong> — completed in 3m 12s
+          </div>
+        </Dialog.Header>
+        <Dialog.Body>
+          <p>Step-by-step run output.</p>
+        </Dialog.Body>
+        <Dialog.Footer>
+          <span>All changes are saved automatically.</span>
+          <Button variant="subtle" onClick={close}>
+            Done
+          </Button>
+        </Dialog.Footer>
+      </Dialog>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={customRegionsDialogCode}>
+  <CustomHeaderAndFooterDemo />
+</Stage>
+
+### Body without padding
+
+Set `withPadding={false}` when the body content manages its own layout edge-to-edge — tables, lists, or full-bleed imagery.
+
+export const noPaddingDialogCode = `import { Dialog } from "@hashintel/ds-components";
+
+export const EntityHistoryDialog = ({ onClose }: { onClose: () => void }) => (
+  <Dialog size="lg" onClose={onClose}>
+    <Dialog.Header title="Entity history" />
+    <Dialog.Body withPadding={false}>
+      <table>{/* full-bleed revision table */}</table>
+    </Dialog.Body>
+  </Dialog>
+);`;
+
+export const BodyWithoutPaddingDemo = () => (
+  <OverlayDemo triggerLabel="Entity history">
+    {({ close }) => (
+      <Dialog size="lg" onClose={close}>
+        <Dialog.Header title="Entity history" />
+        <Dialog.Body withPadding={false}>
+          <table>
+            <tbody>
+              <tr>
+                <td>v3</td>
+                <td>Description updated</td>
+              </tr>
+              <tr>
+                <td>v2</td>
+                <td>Deployment date property added</td>
+              </tr>
+              <tr>
+                <td>v1</td>
+                <td>Entity created</td>
+              </tr>
+            </tbody>
+          </table>
+        </Dialog.Body>
+      </Dialog>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={noPaddingDialogCode}>
+  <BodyWithoutPaddingDemo />
+</Stage>
+
+### Controlling dismissal
+
+`shouldCloseOn` sets the light-dismiss affordances. `closeButtonAndOverlay` (the default) closes on the close button, Escape keypress, and backdrop clicks; `closeButton` drops backdrop clicks — use it when a stray click would discard work; `none` is the most restrictive and removes the close button and Escape too, so one of your own actions must close the dialog — use it when you require a user response.
+
+export const dismissalDialogCode = `import { Button, Dialog } from "@hashintel/ds-components";
+
+export const CreateEntityDialog = ({ onClose }: { onClose: () => void }) => (
+  <Dialog shouldCloseOn="closeButton" onClose={onClose}>
+    <Dialog.Header
+      title="Create entity"
+      description="Unsaved values are lost when the dialog closes."
+    />
+    <Dialog.Body>
+      <p>New entity form.</p>
+    </Dialog.Body>
+    <Dialog.Footer
+      actions={
+        <Button tone="brand" onClick={onClose}>
+          Create entity
+        </Button>
+      }
+    />
+  </Dialog>
+);`;
+
+export const ControllingDismissalDemo = () => (
+  <OverlayDemo triggerLabel="Create entity">
+    {({ close }) => (
+      <Dialog shouldCloseOn="closeButton" onClose={close}>
+        <Dialog.Header
+          title="Create entity"
+          description="Unsaved values are lost when the dialog closes."
+        />
+        <Dialog.Body>
+          <p>New entity form.</p>
+        </Dialog.Body>
+        <Dialog.Footer
+          actions={
+            <Button tone="brand" onClick={close}>
+              Create entity
+            </Button>
+          }
+        />
+      </Dialog>
+    )}
+  </OverlayDemo>
+);
+
+<Stage code={dismissalDialogCode}>
+  <ControllingDismissalDemo />
+</Stage>
+
+### Initial and return focus
+
+By default, focus moves to the first focusable element that hasn't opted out via `autoFocus="never"`, and returns to the trigger on close. Point `initialFocusRef` at the element the task starts with — the Cancel button for destructive confirmations — and `returnFocusRef` wherever focus should land if the trigger is gone.
+
+export const initialFocusDialogCode = `import { useRef, useState } from "react";
+
+import { Button, Dialog } from "@hashintel/ds-components";
+
+export const ArchiveFlowButton = () => {
+  const [open, setOpen] = useState(false);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>Archive flow</Button>
+      {open ? (
+        <Dialog
+          size="xs"
+          initialFocusRef={cancelRef}
+          onClose={() => setOpen(false)}
+        >
+          <Dialog.Header title="Archive flow" />
+          <Dialog.Body>
+            <p>Scheduled runs stop while the flow is archived.</p>
+          </Dialog.Body>
+          <Dialog.Footer
+            actions={
+              <>
+                <Button
+                  ref={cancelRef}
+                  variant="subtle"
+                  onClick={() => setOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button tone="error" onClick={() => setOpen(false)}>
+                  Archive flow
+                </Button>
+              </>
+            }
+          />
+        </Dialog>
+      ) : null}
+    </>
+  );
+};`;
+
+export const ArchiveFlowDemo = ({ close }) => {
+  const cancelRef = useRef(null);
+
+  return (
+    <Dialog size="xs" initialFocusRef={cancelRef} onClose={close}>
+      <Dialog.Header title="Archive flow" />
+      <Dialog.Body>
+        <p>Scheduled runs stop while the flow is archived.</p>
+      </Dialog.Body>
+      <Dialog.Footer
+        actions={
+          <>
+            <Button ref={cancelRef} variant="subtle" onClick={close}>
+              Cancel
+            </Button>
+            <Button tone="error" onClick={close}>
+              Archive flow
+            </Button>
+          </>
+        }
+      />
+    </Dialog>
+  );
+};
+
+export const InitialAndReturnFocusDemo = () => (
+  <OverlayDemo triggerLabel="Archive flow">
+    {({ close }) => <ArchiveFlowDemo close={close} />}
+  </OverlayDemo>
+);
+
+<Stage code={initialFocusDialogCode}>
+  <InitialAndReturnFocusDemo />
+</Stage>
+
+## Behavior
+
+- While a dialog is open the page behind it can't scroll. The header and footer stay pinned, and scroll applies just to the dialog body.
+- Mounting a second dialog while one is open stacks it. Try to keep stacks no more than two deep — deeper nesting disorients users.
+
+## Content
+
+- Write titles verb-first, 1–4 words, sentence case: "Edit workspace", "Delete entity type". No terminal punctuation.
+- Match the primary action's label to the title's verb — "Delete property" under a "Delete property" title, never "OK" or "Yes".
+- "Cancel" is the established dismiss label; prefer it to "Close" whenever the dialog edits anything.
+- Keep the header description to one sentence of context or consequence: "Scheduled runs stop while the flow is archived."
+- For destructive actions, state what is affected and how many things in the body — "removed from 3 entity types".
+
+## Accessibility
+
+Dialog implements the [WAI-ARIA modal dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/).
+
+### What Dialog provides
+
+- Renders `role="dialog"` with focus trapped inside; while open, the rest of the page is hidden from assistive technology and page scroll is locked.
+- Wires the header's `title` and `description` to `aria-labelledby` and `aria-describedby` automatically.
+- Moves focus on open to `initialFocusRef`, else the first element with `autoFocus`, else the first focusable element not marked `autoFocus="never"` (the built-in close button opts out). On close, focus returns to the trigger, or to `returnFocusRef` when set.
+- Labels the built-in close button "Close dialog", and `loading` sets `aria-busy` with a polite live region over the body.
+
+### What you must do
+
+- Give every dialog with a header a `title`; when it has none, pass `aria-label` naming the task.
+- With `shouldCloseOn="none"`, Escape is disabled — a deviation from the APG pattern — so always render a visible, enabled action that closes the dialog.
+- Give header `actions` buttons `autoFocus="never"` so initial focus starts on the task, not the chrome.
+
+## API reference
+
+### Dialog
+
+<PropsTable
+  of={Dialog}
+  defaults={{
+    size: '"md"',
+    variant: '"partitionedFooter"',
+    shouldCloseOn: '"closeButtonAndOverlay"',
+  }}
+/>
+
+### Dialog.Header
+
+<PropsTable of={Dialog.Header} />
+
+### Dialog.Body
+
+<PropsTable of={Dialog.Body} defaults={{ withPadding: "true" }} />
+
+### Dialog.Footer
+
+<PropsTable of={Dialog.Footer} />
+
+## Styling
+
+The `size` presets only cap `max-width`; for a bespoke width, override it via `className`.
+
+```tsx
+import { css } from "@hashintel/ds-helpers/css";
+
+import { Dialog } from "@hashintel/ds-components";
+
+export const NarrowDialog = ({ onClose }: { onClose: () => void }) => (
+  <Dialog className={css({ maxWidth: "[480px]" })} onClose={onClose}>
+    <Dialog.Body>
+      <p>Content at a custom width.</p>
+    </Dialog.Body>
+  </Dialog>
+);
+```

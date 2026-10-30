@@ -45,11 +45,10 @@
 //! The label returned by [`EncodableId::label`] identifies the row type. Node rows, the only type
 //! exposed to external callers, use `atlas.wire.node.v1`.
 
-use core::{fmt, hash::Hasher as _, marker::PhantomData};
+use core::{fmt, hash::Hasher as _, marker::PhantomData, pin::pin};
 
+use hash_crypto::{Secret, SecretBuffer, hkdf::HkdfSha256Key};
 use hashql_core::id::Id;
-use hkdf::Hkdf;
-use sha2::Sha256;
 use siphasher::sip::SipHasher24;
 use zeroize::Zeroizing;
 
@@ -257,17 +256,22 @@ where
     ///
     /// The generation identity salts the extraction and [`EncodableId::label`] separates row
     /// domains under one generation. Equal arguments derive equal codecs.
-    pub(crate) fn derive(secret: &[u8], generation: GenerationId) -> Self
+    pub(crate) fn derive<T>(secret: &Secret<T>, generation: GenerationId) -> Self
     where
         I: EncodableId,
+        T: ?Sized + SecretBuffer<View = [u8]>,
     {
         let salt = generation.digest().to_bytes();
         let label = I::label();
 
+        let mut expanded = pin!(Secret::<[u8; ROUNDS * 16]>::zeroed());
+        HkdfSha256Key::extract(&salt, secret)
+            .expand(label, expanded.as_mut())
+            .expect("HKDF-SHA-256 should expand the round keys");
         let mut keys = Zeroizing::new([[0_u8; 16]; ROUNDS]);
-        Hkdf::<Sha256>::new(Some(&salt), secret)
-            .expand(label, (*keys).as_flattened_mut())
-            .expect("128 octets stay within HKDF-SHA256's expansion bound");
+        (*keys)
+            .as_flattened_mut()
+            .copy_from_slice(expanded.expose());
 
         Self {
             keys,
@@ -352,6 +356,7 @@ fn round(key: &[u8; 16], half: u32) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use hash_crypto::Secret;
     use hashql_core::id::{Id as _, newtype};
 
     use super::{EncodableId, EncodedRowId, RowCodec, RowDomain, WIRE_ROW_BOUND};
@@ -414,7 +419,10 @@ mod tests {
 
     /// Derives the node codec of [`SECRET`] under the generation seeded by `seed`.
     fn codec(seed: &[u8]) -> RowCodec<NodeRowId> {
-        RowCodec::derive(SECRET, generation(seed))
+        RowCodec::derive(
+            &*Secret::<[u8]>::from_vec(SECRET.to_vec()),
+            generation(seed),
+        )
     }
 
     #[test]
@@ -485,7 +493,10 @@ mod tests {
 
     #[test]
     fn decode_narrow_id() {
-        let codec = RowCodec::<SmallRowId>::derive(SECRET, generation(GENERATION_SEEDS[0]));
+        let codec = RowCodec::<SmallRowId>::derive(
+            &*Secret::<[u8]>::from_vec(SECRET.to_vec()),
+            generation(GENERATION_SEEDS[0]),
+        );
         let domain = RowDomain(SmallRowId::MAX);
         for value in 0..3 {
             let row = SmallRowId::new(value);

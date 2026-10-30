@@ -17,7 +17,6 @@ use aide::{
 };
 use axum::{Extension, Router};
 use hash_graph_postgres_store::store::PostgresStorePool;
-use rand::rngs::SysRng;
 
 use self::openapi::OpenApiDocument;
 use crate::serve::{
@@ -127,30 +126,15 @@ fn credential_schemes() -> [(&'static str, SecurityScheme); 2] {
 ///
 /// It carries the request registry, the resolved limits, and the store-backed capabilities they
 /// call against.
-struct AppState<R> {
+#[derive(Clone)]
+struct AppState {
     registry: Arc<UniverseRegistry>,
     limits: DocumentLimits,
     visibility: VisibilityLimits,
-    tokens: Arc<Authority<R>>,
+    tokens: Arc<Authority>,
     scopes: Arc<ScopeResolver>,
     remote: Arc<GraphDatabaseClient>,
     type_urls: Arc<CachedTypeUrlResolver<Arc<GraphDatabaseClient>>>,
-}
-
-impl<R> Clone for AppState<R> {
-    /// Clones shared state without requiring `R: Clone`.
-    fn clone(&self) -> Self {
-        // a derived impl would require that bound even though `R` lives behind an `Arc`
-        Self {
-            registry: Arc::clone(&self.registry),
-            limits: self.limits,
-            visibility: self.visibility,
-            tokens: Arc::clone(&self.tokens),
-            scopes: Arc::clone(&self.scopes),
-            remote: Arc::clone(&self.remote),
-            type_urls: Arc::clone(&self.type_urls),
-        }
-    }
 }
 
 /// Builds routes over the manager's request registry and one shared visibility cache.
@@ -161,7 +145,7 @@ impl<R> Clone for AppState<R> {
 /// static OpenAPI route document cannot serialize.
 pub(crate) fn router(
     registry: Arc<UniverseRegistry>,
-    tokens: Arc<Authority<SysRng>>,
+    tokens: Arc<Authority>,
     limits: DocumentLimits,
     pool: Arc<PostgresStorePool>,
     visibility: VisibilityLimits,

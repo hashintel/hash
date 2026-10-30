@@ -22,7 +22,6 @@ export type AvatarGroupMoreProps = Omit<
 > & {
   /** Content shown inside the overflow badge (e.g. "+99"). */
   children: React.ReactNode;
-  /** Badge shape; defaults to a circle. */
   shape?: "circle" | "square";
 };
 
@@ -32,7 +31,8 @@ export type AvatarGroupMoreProps = Omit<
  * content. Accepts the same styling props as an Avatar (except `src` and
  * `placeholder`), and inherits the group's `size`/`tone` when unset.
  */
-const More = ({
+// Exported so react-docgen-typescript documents it for the docs prop table.
+export const More = ({
   children,
   shape = "circle",
   ...rest
@@ -49,22 +49,21 @@ More.displayName = "AvatarGroup.More";
 
 export type AvatarGroupProps = {
   className?: string;
-  /** Avatar elements to render, in order. `size`/`tone` set on the group
-   * cascade to any child that doesn't set its own. Include an
-   * `<AvatarGroup.More>` to customise the overflow badge. */
+  /** Avatar elements to render, in order. */
   children: React.ReactNode;
   /** Cap the number of avatars shown; the remainder collapse into a "+N" badge. */
   max?: number;
-  /** Size of the collection the avatars are drawn from, used for the "+N" count
-   * (defaults to the number of avatar children). */
+  /** Size of the collection the avatars are drawn from, used for the "+N"
+   * count. Omit to use the number of avatar children. */
   total?: number;
-  /** Stack so the last avatar sits on top instead of the first (flips which
-   * edge overlaps its neighbour). */
+  /** Whether the last avatar sits on top of the stack instead of the first,
+   * so each avatar overlaps the one before it. */
   lastOnTop?: boolean;
-  /** How tightly avatars overlap. `md` (default) is the standard overlap; `sm`
-   * packs them closer together. */
+  /** How tightly avatars overlap. */
   spacing?: "sm" | "md";
+  /** Applies a size to all avatar children unless explicitly overridden */
   size?: AvatarSize;
+  /** Applies a tone to all avatar children unless explicitly overridden */
   tone?: AvatarTone;
 };
 
@@ -345,5 +344,7 @@ const AvatarGroupRoot = ({
     </AvatarGroupContext.Provider>
   );
 };
+
+AvatarGroupRoot.displayName = "AvatarGroup";
 
 export const AvatarGroup = Object.assign(AvatarGroupRoot, { More });

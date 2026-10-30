@@ -1,5 +1,25 @@
 # @hashintel/ds-components
 
+## 0.5.1
+
+### Patch Changes
+
+- Export rehype-markdown-class for mdx doc consumers ([@alex-e-leon](https://github.com/alex-e-leon), [#10265](https://github.com/hashintel/hash/pull/10265))
+
+## 0.5.0
+
+### Minor Changes
+
+- Clear optional single `Select` and `Combobox` values with the clear button instead of an empty first option. A single select that is not `required` is always clearable. A `required` one can opt in with `clearable`, which lets `onChange` receive `null`. The `Select` clear button now sits beside the dropdown arrow at a size per select size, drawn with the same stroke width as the arrow. ([@aacarcrash](https://github.com/aacarcrash), [#9982](https://github.com/hashintel/hash/pull/9982))
+
+### Patch Changes
+
+- Add a `circleClose` icon ([@alex-e-leon](https://github.com/alex-e-leon), [#10162](https://github.com/hashintel/hash/pull/10162))
+
+- Give the `HelpTooltip` trigger an accessible name: it is now exposed as `role="img"` named "Information", overridable via a new `aria-label` prop. `Tooltip` accepts `aria-label` and `role` for icon-only triggers whose wrapper is the focusable element. ([@alex-e-leon](https://github.com/alex-e-leon), [#10205](https://github.com/hashintel/hash/pull/10205))
+
+- Publish mdx docs for components ([@alex-e-leon](https://github.com/alex-e-leon))
+
 ## 0.4.0
 
 ### Minor Changes

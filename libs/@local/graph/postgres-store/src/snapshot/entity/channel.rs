@@ -11,7 +11,7 @@ use futures::{
 };
 use hash_graph_store::subgraph::edges::{EdgeDirection, EntityTraversalEdgeKind};
 use type_system::{
-    knowledge::{Entity, property::metadata::PropertyProvenance},
+    knowledge::{Entity, entity::Link, property::metadata::PropertyProvenance},
     ontology::{InheritanceDepth, entity_type::EntityTypeUuid},
 };
 
@@ -144,15 +144,16 @@ impl Sink<Entity> for EntitySender {
             .change_context(SnapshotRestoreError::Read)
             .attach("could not send entity temporal metadata")?;
 
-        if let Some(link_data) = entity.link_data {
+        if let Some(link) = entity.link_data {
+            let Link::Directed { source, target } = link;
             self.entity_edge
                 .start_send_unpin(EntityEdgeRow {
                     source_web_id: entity.metadata.record_id.entity_id.web_id,
                     source_entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
-                    target_web_id: link_data.left_entity_id.web_id,
-                    target_entity_uuid: link_data.left_entity_id.entity_uuid,
-                    confidence: link_data.left_entity_confidence,
-                    provenance: link_data.left_entity_provenance,
+                    target_web_id: source.entity_id.web_id,
+                    target_entity_uuid: source.entity_id.entity_uuid,
+                    confidence: source.confidence,
+                    provenance: source.provenance,
                     kind: EntityTraversalEdgeKind::HasLeftEntity,
                     direction: EdgeDirection::Outgoing,
                 })
@@ -160,8 +161,8 @@ impl Sink<Entity> for EntitySender {
                 .attach("could not send outgoing entity edge for left link")?;
             self.entity_edge
                 .start_send_unpin(EntityEdgeRow {
-                    source_web_id: link_data.left_entity_id.web_id,
-                    source_entity_uuid: link_data.left_entity_id.entity_uuid,
+                    source_web_id: source.entity_id.web_id,
+                    source_entity_uuid: source.entity_id.entity_uuid,
                     target_web_id: entity.metadata.record_id.entity_id.web_id,
                     target_entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
                     confidence: None,
@@ -176,10 +177,10 @@ impl Sink<Entity> for EntitySender {
                 .start_send_unpin(EntityEdgeRow {
                     source_web_id: entity.metadata.record_id.entity_id.web_id,
                     source_entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
-                    target_web_id: link_data.right_entity_id.web_id,
-                    target_entity_uuid: link_data.right_entity_id.entity_uuid,
-                    confidence: link_data.right_entity_confidence,
-                    provenance: link_data.right_entity_provenance,
+                    target_web_id: target.entity_id.web_id,
+                    target_entity_uuid: target.entity_id.entity_uuid,
+                    confidence: target.confidence,
+                    provenance: target.provenance,
                     kind: EntityTraversalEdgeKind::HasRightEntity,
                     direction: EdgeDirection::Outgoing,
                 })
@@ -187,8 +188,8 @@ impl Sink<Entity> for EntitySender {
                 .attach("could not send outgoing entity edge for right link")?;
             self.entity_edge
                 .start_send_unpin(EntityEdgeRow {
-                    source_web_id: link_data.right_entity_id.web_id,
-                    source_entity_uuid: link_data.right_entity_id.entity_uuid,
+                    source_web_id: target.entity_id.web_id,
+                    source_entity_uuid: target.entity_id.entity_uuid,
                     target_web_id: entity.metadata.record_id.entity_id.web_id,
                     target_entity_uuid: entity.metadata.record_id.entity_id.entity_uuid,
                     confidence: None,

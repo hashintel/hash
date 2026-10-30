@@ -6,22 +6,25 @@ import {
   normalizeStructuralQuery,
 } from "@local/hash-isomorphic-utils/dashboard-types";
 import { flowDefinitionIds } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
-import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { FlowRunStatus } from "../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
 import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
 import { useGenerateHashFlowDefinitionEntityId } from "../../shared/use-hash-flows";
+import {
+  getOutputValue,
+  getStepProgress,
+  queryFlowRunProgress,
+} from "./shared/flow-run-progress";
 
 import type {
-  GetFlowRunByIdQuery,
-  GetFlowRunByIdQueryVariables,
   StartFlowMutation,
   StartFlowMutationVariables,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
+import type { FlowRunProgress } from "./shared/flow-run-progress";
 import type { JsonValue } from "@blockprotocol/core";
 import type {
   EntityId,
@@ -33,10 +36,6 @@ import type {
   ChartType,
   StructuralQueryDefinition,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import type {
-  FlowRunWithoutEvents,
-  StepOutput,
-} from "@local/hash-isomorphic-utils/flows/types";
 
 export type ConfigStep = "goal" | "query" | "analysis" | "chart" | "complete";
 
@@ -117,23 +116,6 @@ type UseDashboardItemConfigParams = {
     flowRunEntityId: EntityId;
   }) => void;
   onComplete?: () => void;
-};
-
-/**
- * Extract typed output values from flow outputs
- */
-const getOutputValue = <T>(
-  outputs: StepOutput[] | undefined | null,
-  name: string,
-): T | null => {
-  if (!outputs) {
-    return null;
-  }
-  const output = outputs.find((op) => op.outputName === name);
-  if (!output) {
-    return null;
-  }
-  return output.payload.value as T;
 };
 
 /**
@@ -262,19 +244,8 @@ export const useDashboardItemConfig = ({
    * Update the dashboard item entity with the flow outputs.
    */
   const updateEntityWithFlowOutputs = useCallback(
-    async (flowRun: FlowRunWithoutEvents) => {
-      /**
-       * The flow run's `outputs` field is a list of Status objects wrapping
-       * the actual step outputs (see `StepRunOutput`) — unwrap to the flat
-       * list of named outputs.
-       */
-      const outputs = (
-        flowRun.outputs as
-          | { contents: { outputs?: StepOutput[] }[] }[]
-          | undefined
-      )?.flatMap((status) =>
-        status.contents.flatMap((content) => content.outputs ?? []),
-      );
+    async (flowRun: FlowRunProgress) => {
+      const { outputs } = flowRun;
 
       const structuralQueryJson = getOutputValue<string>(
         outputs,
@@ -403,34 +374,27 @@ export const useDashboardItemConfig = ({
   const pollFlowForCompletion = useCallback(
     async (flowRunEntityId: EntityId) => {
       try {
-        const { data } = await apolloClient.query<
-          GetFlowRunByIdQuery,
-          GetFlowRunByIdQueryVariables
-        >({
-          query: getFlowRunById,
-          variables: { flowRunEntityId },
-          fetchPolicy: "network-only",
-        });
+        const flowRun = await queryFlowRunProgress(
+          apolloClient,
+          flowRunEntityId,
+        );
 
         if (generationFinalizingRef.current || generationSettledRef.current) {
           return;
         }
 
-        const flowRun = data.getFlowRunById;
-
         // Update step based on flow progress
-        const steps = flowRun.steps;
-        const step1 = steps.find((st) => st.stepId === "1");
-        const step2 = steps.find((st) => st.stepId === "2");
-        const step3 = steps.find((st) => st.stepId === "3");
+        const step1 = getStepProgress(flowRun.events, "1");
+        const step2 = getStepProgress(flowRun.events, "2");
+        const step3 = getStepProgress(flowRun.events, "3");
 
         setState((prev) => {
           let newStep: ConfigStep = prev.step;
-          if (step3?.closedAt) {
+          if (step3.closedAt) {
             newStep = "chart";
-          } else if (step2?.closedAt) {
+          } else if (step2.closedAt) {
             newStep = "analysis";
-          } else if (step1?.closedAt) {
+          } else if (step1.closedAt) {
             newStep = "query";
           }
           return { ...prev, step: newStep };
@@ -488,7 +452,7 @@ export const useDashboardItemConfig = ({
             stopPolling();
             setState((prev) => ({
               ...prev,
-              error: flowRun.failureMessage ?? "Flow configuration failed",
+              error: flowRun.failure?.message ?? "Flow configuration failed",
               isLoading: false,
             }));
             onComplete?.();

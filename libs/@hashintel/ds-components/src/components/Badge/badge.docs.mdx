@@ -1,0 +1,303 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "../Button/button";
+import { Icon } from "../Icon/icon";
+import { Badge } from "./badge";
+import { BaseBadge } from "./base-badge";
+
+<Meta title="Docs/Badge" />
+
+export const meta = {
+  title: "Badge",
+  description:
+    "Anchors a count, label, or status dot to the corner of another element.",
+  alternativeNames: ["Indicator", "NotificationBadge", "CounterBadge"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Badge/badge.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-badge--default",
+  },
+  related: ["Chip", "Avatar", "Banner", "Icon"],
+};
+
+# Badge
+
+Anchors a count, label, or status dot to the corner of another element.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Badge content={12} color="red">
+    <Button variant="subtle" iconName="bell" tooltip="Notifications" />
+  </Badge>
+  <Badge content="New" color="purple">
+    <Button variant="subtle">Flows</Button>
+  </Badge>
+  <Badge color="green" alignTo="circle" position="bottom-right">
+    <Button shape="round" variant="subtle" iconName="user" tooltip="Profile" />
+  </Badge>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Badge, Button } from "@hashintel/ds-components";
+
+export const NotificationsBell = () => (
+  <Badge content={3} color="red">
+    <Button variant="subtle" iconName="bell" tooltip="Notifications" />
+  </Badge>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Badge to count new or unseen items on an icon, button, or navigation item — unread notifications, pending drafts, flagged entities.",
+    <Fragment key="0">
+      Use a dot (omit <code>content</code>) when "something changed" matters
+      more than how many — presence on an avatar, unseen activity on a tab.
+    </Fragment>,
+    <Fragment key="1">
+      Use <code>hide</code> to clear the badge once its items have been seen,
+      keeping the anchor in place.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use Badge for standalone labels, statuses, or tags that aren't attached to another element — use Chip.",
+    "Don't use Badge for page or section-level messages — use Banner.",
+    "Don't make the badge the click target — it ignores pointer events; put the action on the anchor.",
+    "Avoid badging several sibling items at once — competing badges cancel each other's urgency.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+Wrap the anchor as `children` and pass the badge's own content as `content`. The default badge is grey, round, and overhangs the top-right corner.
+
+<Stage>
+  <Badge content={3}>
+    <Button variant="subtle">Inbox</Button>
+  </Badge>
+</Stage>
+
+### Dot
+
+Omit `content` to collapse the badge to a small solid dot — for "something changed" when the count doesn't matter. Dots are always round, no matter what `shape` is set to.
+
+<Stage>
+  <Badge color="green">
+    <Button variant="subtle" iconName="bell" tooltip="Notifications" />
+  </Badge>
+  <Badge color="red">
+    <Button variant="subtle">Alerts</Button>
+  </Badge>
+</Stage>
+
+### Capping counts
+
+Numeric content above `max` (default 99) renders as `{max}+`, so stale counts stay honest and short. Strings pass through untouched.
+
+<Stage>
+  <Badge content={99} color="blue">
+    <Button variant="subtle">Drafts</Button>
+  </Badge>
+  <Badge content={100} color="blue">
+    <Button variant="subtle">Drafts</Button>
+  </Badge>
+  <Badge content={2400} max={999} color="blue">
+    <Button variant="subtle">Drafts</Button>
+  </Badge>
+</Stage>
+
+### Text and icon content
+
+`content` takes any React node — a short word, an icon, or both. Prefer counts; reserve words for genuinely new things ("New"), and keep them to one word.
+
+<Stage>
+  <Badge content="New" color="purple">
+    <Button variant="subtle">Flows</Button>
+  </Badge>
+  <Badge content={<Icon name="check" size="xxs" />} color="green">
+    <Button variant="subtle">Sync</Button>
+  </Badge>
+</Stage>
+
+### Colors
+
+Give each color one meaning per surface — `red` for needs-attention counts, `green` for presence — and keep it consistent.
+
+<Stage>
+  <Badge content={3} color="grey">
+    <Button variant="subtle">grey</Button>
+  </Badge>
+  <Badge content={3} color="red">
+    <Button variant="subtle">red</Button>
+  </Badge>
+  <Badge content={3} color="blue">
+    <Button variant="subtle">blue</Button>
+  </Badge>
+  <Badge content={3} color="green">
+    <Button variant="subtle">green</Button>
+  </Badge>
+  <Badge content={3} color="orange">
+    <Button variant="subtle">orange</Button>
+  </Badge>
+  <Badge content={3} color="yellow">
+    <Button variant="subtle">yellow</Button>
+  </Badge>
+  <Badge content={3} color="purple">
+    <Button variant="subtle">purple</Button>
+  </Badge>
+  <Badge content={3} color="pink">
+    <Button variant="subtle">pink</Button>
+  </Badge>
+</Stage>
+
+### Shape
+
+The pill is `round` by default; `square` gives it a small corner radius that sits better against rectangular anchors like tiles and thumbnails.
+
+<Stage>
+  <Badge content={5} shape="round" color="blue">
+    <Button variant="subtle">round</Button>
+  </Badge>
+  <Badge content={5} shape="square" color="blue">
+    <Button variant="subtle">square</Button>
+  </Badge>
+</Stage>
+
+### Position
+
+`position` picks the corner the badge overhangs: `top-left`, `top-right` (default), `bottom-left`, `bottom-right`.
+
+<Stage>
+  <Badge content={2} color="red" position="top-left">
+    <Button variant="subtle" iconName="bell" tooltip="Notifications" />
+  </Badge>
+  <Badge content={2} color="red" position="top-right">
+    <Button variant="subtle" iconName="bell" tooltip="Notifications" />
+  </Badge>
+  <Badge content={2} color="red" position="bottom-left">
+    <Button variant="subtle" iconName="bell" tooltip="Notifications" />
+  </Badge>
+  <Badge content={2} color="red" position="bottom-right">
+    <Button variant="subtle" iconName="bell" tooltip="Notifications" />
+  </Badge>
+</Stage>
+
+### Circular anchors
+
+A circular anchor's bounding-box corner is empty, so a corner badge floats off the shape (left). Set `alignTo="circle"` to pull it onto the circle's edge (right).
+
+<Stage>
+  <Badge content={4} color="red">
+    <Button
+      shape="round"
+      variant="subtle"
+      iconName="user"
+      tooltip="Assignees"
+    />
+  </Badge>
+  <Badge content={4} color="red" alignTo="circle">
+    <Button
+      shape="round"
+      variant="subtle"
+      iconName="user"
+      tooltip="Assignees"
+    />
+  </Badge>
+</Stage>
+
+## Behavior
+
+- The badge is centered on its corner, but its inner edge never crosses the anchor's midline — long content like "Processing" grows away from the anchor, not across it.
+- The badge ignores pointer events; hovers and clicks land on the anchor beneath it.
+
+## Content
+
+- Keep badge text to a count or one short word — "3", "99+", "New". Longer strings overhang the anchor by at least half their width.
+- Cap counts with `max` rather than showing exact large numbers — "99+" reads faster and stays truthful as counts drift.
+- Clear the badge (`hide`) once the user has seen what it announces — a badge that never clears stops meaning anything.
+
+## Accessibility
+
+Badge renders no ARIA of its own, so its meaning must live on the anchor.
+
+### What Badge provides
+
+- Plain inline `<span>`s: the pill's text sits in the accessibility tree directly after the anchor, so a screen reader hears "Inbox", then "3".
+- Dot badges render no text at all — they are invisible to assistive technology.
+
+### What you must do
+
+- Fold the badge's meaning into the anchor's accessible name — `aria-label="Notifications, 3 unread"` on the anchor explains what a bare "3" can't.
+- Never convey state through a dot or its color alone — mirror it in the accessible name ("Alex Leon (online)"), for screen readers and color-blind users.
+
+## Styling
+
+For a fully custom overlay, use `BaseBadge` which positions arbitrary `content` on a corner of `children` and leaves its appearance to you.
+
+```tsx
+import { Avatar, BaseBadge, LoadingSpinner } from "@hashintel/ds-components";
+
+export const SyncingIntegration = () => (
+  <BaseBadge
+    content={<LoadingSpinner size="xxs" />}
+    position="bottom-right"
+    alignTo="circle"
+  >
+    <Avatar alt="GitHub integration (syncing)" placeholder={{ icon: "plug" }} />
+  </BaseBadge>
+);
+```
+
+## API reference
+
+### Badge
+
+<PropsTable
+  of={Badge}
+  defaults={{
+    shape: '"round"',
+    color: '"grey"',
+    position: '"top-right"',
+    max: "99",
+  }}
+/>
+
+### BaseBadge
+
+<PropsTable
+  of={BaseBadge}
+  defaults={{
+    position: '"top-right"',
+  }}
+/>

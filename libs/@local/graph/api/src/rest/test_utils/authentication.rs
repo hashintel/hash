@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use aide::openapi::{Info, ReferenceOr, SecurityScheme};
 use axum::{Router, body::Body};
 use error_stack::Report;
+use hash_crypto::Secret;
 use hash_graph_authentication::{
     actor::tests::FixedActorResolver,
     api_token::{
@@ -27,7 +28,6 @@ use hash_middleware::{
     },
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters},
 };
-use hash_secret::Secret;
 use http::{
     HeaderMap, Request, StatusCode,
     header::{CONTENT_TYPE, WWW_AUTHENTICATE},
@@ -98,7 +98,7 @@ fn api_token() -> String {
             ApiTokenName::new("ci".to_owned()).expect("the name should be valid"),
             None,
         )
-        .expect("the random number generator should provide bytes")
+        .expect("the API token should be issued")
         .token
         .to_secret()
         .expose()

@@ -1,13 +1,10 @@
 {
   "package": "@local/petrinaut-arch-docs",
   "dependencies": [
-    "@apps/petrinaut-opt",
     "@apps/petrinaut-website",
     "@hashintel/petrinaut",
     "@hashintel/petrinaut-cli",
     "@hashintel/petrinaut-core",
-    "@local/petrinaut-optimizer-core",
-    "@local/petrinaut-python",
     "@local/tsconfig"
   ],
   "tasks": {
@@ -25,6 +22,11 @@
         "VERCEL_GIT_COMMIT_SHA",
         "VERCEL_GIT_REPO_OWNER",
         "VERCEL_GIT_REPO_SLUG"
+      ],
+      "affectedBy": [
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "fix:eslint": {
@@ -34,11 +36,21 @@
         "@hashintel/petrinaut-cli#build",
         "@hashintel/petrinaut-core#build",
         "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "lint:arch-docs": {
       "dependsOn": [],
-      "cache": false
+      "cache": false,
+      "affectedBy": [
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
+      ]
     },
     "lint:eslint": {
       "dependsOn": [
@@ -50,6 +62,11 @@
       ],
       "env": [
         "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "lint:tsc": {
@@ -58,12 +75,22 @@
         "@hashintel/petrinaut#build",
         "@hashintel/petrinaut-cli#build",
         "@hashintel/petrinaut-core#build"
+      ],
+      "affectedBy": [
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     },
     "test:unit": {
       "dependsOn": [],
       "env": [
         "TEST_COVERAGE"
+      ],
+      "affectedBy": [
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python"
       ]
     }
   }

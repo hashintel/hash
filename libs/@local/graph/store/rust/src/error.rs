@@ -1,4 +1,10 @@
 use core::{error::Error, fmt, num::NonZero};
+use std::collections::HashSet;
+
+use type_system::{
+    knowledge::entity::EntityId,
+    ontology::{BaseUrl, VersionedUrl},
+};
 
 #[derive(Debug)]
 #[must_use]
@@ -35,6 +41,38 @@ impl fmt::Display for UpdateError {
 }
 
 impl Error for UpdateError {}
+
+#[derive(Debug, derive_more::Display)]
+#[display("Could not create the entities: {_variant}")]
+#[must_use]
+pub enum EntityCreationError {
+    #[display("the actor may not instantiate the entity types `{}`",
+        entity_type_ids.iter().map(VersionedUrl::to_string).collect::<Vec<_>>().join(", "))]
+    InstantiationForbidden {
+        entity_type_ids: HashSet<VersionedUrl>,
+    },
+    #[display("the actor may not create the entities `{}`",
+        entity_ids.iter().map(EntityId::to_string).collect::<Vec<_>>().join(", "))]
+    CreationForbidden { entity_ids: Vec<EntityId> },
+    #[display("the entity types `{}` do not exist or the actor may not view them",
+        entity_type_ids.iter().map(VersionedUrl::to_string).collect::<Vec<_>>().join(", "))]
+    UnknownEntityTypes {
+        entity_type_ids: HashSet<VersionedUrl>,
+    },
+    #[display("the entity types `{}` are archived",
+        entity_type_ids.iter().map(VersionedUrl::to_string).collect::<Vec<_>>().join(", "))]
+    ArchivedEntityTypes {
+        entity_type_ids: HashSet<VersionedUrl>,
+    },
+    #[display("the entity types of an entity define the property `{property_type}` differently")]
+    IncompatibleEntityTypes { property_type: BaseUrl },
+    #[display("the entities do not match their entity types")]
+    InvalidEntities,
+    #[display("store operation failed")]
+    Store,
+}
+
+impl Error for EntityCreationError {}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not delete from the store: {_variant}")]

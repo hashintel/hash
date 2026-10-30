@@ -24,7 +24,6 @@
     "eventsource-parser": "3.0.8"
   },
   "devDependencies": {
-    "@apps/petrinaut-opt": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@tsconfig/bases": "catalog:",
     "orval": "8.38.0",

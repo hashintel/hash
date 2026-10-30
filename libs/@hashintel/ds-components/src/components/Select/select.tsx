@@ -46,10 +46,25 @@ import type {
 import type { IconName } from "../Icon/icon";
 
 export type SelectItem<TValue extends string = string> = {
+  /** Identifies the option; reported to `onChange` when selected */
   value: TValue;
-  text: string; // Visible label
+  /** The option's visible label — shown in the trigger while selected, and matched by search and typeahead */
+  text: string;
+  /** Prevents selecting the option */
   disabled?: boolean;
 };
+
+// Docs-only markers: render nothing, exist so react-docgen can surface the
+// `items` entry shapes in the docs prop tables.
+export const SelectItemDoc = (_props: SelectItem): null => null;
+export const SelectGroupDoc = (_props: {
+  /** Identifies the group */
+  id: string;
+  /** Rendered as an uppercase label above the group's options; an empty string draws a plain divider */
+  label: React.ReactNode;
+  /** The group's options; groups don't nest */
+  items: SelectItem[];
+}): null => null;
 
 export type MultiSelectItem<TValue extends string = string> =
   SelectItem<TValue> & {
@@ -63,29 +78,28 @@ export type MultiSelectItem<TValue extends string = string> =
     // `Item` fields they map onto, matching MultiComboboxItem.
   } & Pick<Item, "selectedStyle" | "selectedTone">;
 
+export const MultiSelectItemDoc = (_props: MultiSelectItem): null => null;
+
 type SelectBaseProps<TValue extends string> = {
-  /** An optional placeholder shown when no value is selected */
   placeholder?: string;
-  /** Disable editing of the input. Unlike disabled this strips the input styles and displays the value as text */
+  /** Whether editing is disabled. Unlike `disabled`, strips the input styles and renders the value as plain text. */
   readonly?: boolean;
-  /** Whether the input is in a loading state */
+  /** Whether a loading spinner is shown inside the input. */
   loading?: boolean;
-  /** subtle inputs have no border and display similarly to inline text; naked inputs strip all input chrome — no border, padding, hover or focus styles — and inherit the surrounding text styles regardless of `size` (which still sizes the dropdown list). The host is responsible for any focus affordance around a naked select. */
+  /** The input's visual style: `subtle` removes the border so it reads as inline text; `naked` strips all input chrome and inherits the surrounding text styles (`size` then only affects the dropdown). */
   variant?: "default" | "subtle" | "naked";
-  /** set the alignment of the text in the input */
+  /** The alignment of the text inside the input. */
   align?: "left" | "center" | "right";
   /** A set of standard widths to choose for the input. You can also set the width with css when aligning with other inputs is not required. */
   width?: FormInputWidth;
   /** Hide the dropdown arrow */
   hideArrow?: boolean;
-  /** Optional element or button to include at the beginning of an input */
+  /** Element rendered at the start of the input. */
   prefix?: Prefix;
-  /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
+  /** Whether this input renders as connected to the input on its left. Set the matching prop on both inputs; `subtle` and `readonly` inputs are never connected. */
   connectToLeftInput?: boolean;
-  /** Show the input as connected to another input. To connect 2 inputs, both connectToLeftInput and connectToRightInput should be enabled on both connected inputs. subtle inputs + readonly inputs will not be connected */
+  /** Whether this input renders as connected to the input on its right. Set the matching prop on both inputs; `subtle` and `readonly` inputs are never connected. */
   connectToRightInput?: boolean;
-  /** Set to allow the input to be cleared. `true` clears by calling `onChange` with `null` (or `[]` for a multi select); pass `{ onClear }` to control clearing yourself. `false` disables clearing while still reserving the clear button's space. */
-  clearable?: boolean | { onClear: () => void };
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
   tabIndex?: number;
@@ -115,7 +129,7 @@ type SelectSearchable = {
 };
 
 type SelectSingleProps<TValue extends string> = {
-  /** Set to allow selecting multiple values */
+  /** Whether multiple values can be selected. */
   multiple?: false;
   maxItems?: never;
   overflow?: never;
@@ -126,32 +140,48 @@ type SelectSingleProps<TValue extends string> = {
         hideCount?: never;
         hideSelectAllToggle?: never;
       });
+  /** The options to pick from */
   items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>;
-  /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
+  /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. */
   renderSelectedItem?: (value: TValue) => React.ReactNode;
   renderSelectedAll?: never;
 } & (
   | {
       required: true;
+      /** Whether a required select can be cleared, showing the clear button. */
+      clearable?: false;
+      /** The current selection, `null`/`undefined` while empty */
       value: NoInfer<TValue>;
       onChange: (value: NoInfer<TValue>) => void;
     }
   | {
-      required?: false;
+      required: true;
+      /** Whether a required select can be cleared, showing the clear button. */
+      clearable: true;
+      /** The current selection, `null`/`undefined` while empty */
       value: NoInfer<TValue> | null | undefined;
-      /** Called with the selected value — `null` when the selection is cleared. `value` stays wider (`undefined` allowed in) for consumers holding optional data. */
+      onChange: (value: NoInfer<TValue> | null) => void;
+    }
+  | {
+      required?: false;
+      clearable?: never;
+      /** The current selection, `null`/`undefined` while empty */
+      value: NoInfer<TValue> | null | undefined;
+      /** Called with the selected value — `null` when the selection is cleared. */
       onChange: (value: NoInfer<TValue> | null) => void;
     }
 );
 
 type SelectMultipleProps<TValue extends string> = {
-  /** Set to allow selecting multiple values. The dropdown stays open while toggling items with clicks, Space or Enter. Items indicate selection with a checkbox unless they set their own `selectedStyle`. Closing the dropdown with Escape reverts the selection to what it was when the dropdown opened (`onChange` fires with the reverted values). */
+  /** Whether multiple values can be selected. */
   multiple: true;
   /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
   maxItems?: number;
-  /** How the selected values render in the trigger when no `renderSelectedAll` is given: a row that scrolls horizontally (the default), truncates with a "+X" badge, or summarises the names (falling back to "X of Y" once they no longer fit). */
+  /** Whether a required select can be cleared, showing the clear button. */
+  clearable?: boolean | { onClear: () => void };
+  /** How the selected values render in the trigger when no `renderSelectedAll` is given: a row that scrolls horizontally, truncates with a "+X" badge, or summarises the names (falling back to "X of Y" once they no longer fit). */
   overflow?: "scroll" | "truncate" | "summary";
-  /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. A searchable multi select also renders a selection summary (an "x of y" selected count and a "Select all" / "Clear all" toggle, both spanning every option regardless of the active search filter) beneath the options — hide its parts with `hideCount` / `hideSelectAllToggle`. */
+  /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. */
   searchable?:
     | boolean
     | (SelectSearchable & {
@@ -161,15 +191,17 @@ type SelectMultipleProps<TValue extends string> = {
         hideCount?: boolean;
         /** Hide the "Select all" / "Clear all" toggle in the selection
          * summary. It is also hidden when `maxItems` puts selecting every
-         * option out of reach. */
+         * enabled option out of reach. */
         hideSelectAllToggle?: boolean;
       });
+  /** The options to pick from */
   items: ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>;
-  /** Custom renderer for each selected value in the trigger's row. Defaults to `renderItem` (or the item's `text`); values render comma-separated with the `overflow` behaviour. A plain-string result also supplies the `summary` overflow's text for that value. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected items is clamped to the default height of select so that it correctly aligns. */
+  /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. */
   renderSelectedItem?: (value: TValue) => React.ReactNode;
   /** Custom renderer for the trigger's entire selection, replacing the per-value row and with it the `overflow` behaviour (and `renderSelectedItem`). */
   renderSelectedAll?: (values: TValue[]) => React.ReactNode;
   required?: boolean;
+  /** The current selection, `null`/`undefined` while empty */
   value: ReadonlyArray<NoInfer<TValue>>;
   onChange: (value: Array<NoInfer<TValue>>) => void;
 };
@@ -405,11 +437,15 @@ export const Select = <TValue extends string>({
   const selectRef = useRef<HTMLDivElement>(null);
   const fieldIdFromContext = useFieldId();
   const inputId = htmlForId ?? fieldIdFromContext ?? undefined;
-  // Per-instance sentinel for the "clear" row — guaranteed not to collide
+  // Per-instance id for the search-empty row — guaranteed not to collide
   // with any consumer-supplied item value.
   const noneValue = useId();
 
-  const showClear = clearable !== undefined && !disabled;
+  const canClear = multiple
+    ? !!clearable
+    : required !== true || clearable === true;
+  const showClear =
+    (multiple ? clearable !== undefined : canClear) && !disabled;
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
 
@@ -662,8 +698,7 @@ export const Select = <TValue extends string>({
   );
 
   // Every option's value, disabled options included — the total behind the
-  // selection summary and the `summary` overflow row, and the value set that
-  // "Select all" selects.
+  // selection summary and the `summary` overflow row.
   const optionValues = useMemo<TValue[]>(() => {
     const values: TValue[] = [];
     for (const entry of effectiveItems) {
@@ -677,6 +712,28 @@ export const Select = <TValue extends string>({
     }
     return values;
   }, [effectiveItems]);
+
+  // The value set "Select all" sets: the current selection plus every enabled
+  // option. Disabled options are skipped, and nothing already selected (e.g.
+  // a disabled orphan) is dropped.
+  const selectAllValues = useMemo<TValue[]>(() => {
+    const values = new Set<TValue>(selectedValues);
+    const addEnabled = (it: MultiSelectItem<TValue>) => {
+      if (!it.disabled) {
+        values.add(it.value);
+      }
+    };
+    for (const entry of effectiveItems) {
+      if ("items" in entry) {
+        for (const it of entry.items) {
+          addEnabled(it);
+        }
+      } else {
+        addEnabled(entry);
+      }
+    }
+    return [...values];
+  }, [effectiveItems, selectedValues]);
 
   const overflowMode =
     multiple && !renderSelectedAll ? (overflow ?? "scroll") : undefined;
@@ -723,7 +780,6 @@ export const Select = <TValue extends string>({
     return renderSingle(selectedValue);
   };
 
-  const isOptional = required !== true && !multiple;
   const atMaxItems =
     !!multiple && maxItems !== undefined && selectedValues.length >= maxItems;
   // At maxItems only the currently-selected values stay enabled, so they can be deselected
@@ -763,14 +819,12 @@ export const Select = <TValue extends string>({
     [onChange],
   );
 
-  // The selection summary of a searchable multi select. Its counts and its
-  // "Select all" span the whole option set — disabled options included, so
-  // "Select all" always reaches "X of X" — not the current search filter.
+  // The selection summary of a searchable multi select. Its counts span the
+  // whole option set — not the current search filter — and its "Select all"
+  // selects every enabled option, leaving disabled options as they are.
   const selectAll = useCallback(() => {
-    (onChange as (value: TValue[]) => void)([
-      ...new Set([...selectedValues, ...optionValues]),
-    ]);
-  }, [onChange, selectedValues, optionValues]);
+    (onChange as (value: TValue[]) => void)([...selectAllValues]);
+  }, [onChange, selectAllValues]);
   const clearAll = useCallback(() => {
     (onChange as (value: TValue[]) => void)([]);
   }, [onChange]);
@@ -791,7 +845,7 @@ export const Select = <TValue extends string>({
   const hideSummaryCount = !!searchableOptions?.hideCount || !!loading;
   const hideSummaryToggle =
     !!searchableOptions?.hideSelectAllToggle ||
-    (maxItems !== undefined && maxItems < optionValues.length);
+    (maxItems !== undefined && maxItems < selectAllValues.length);
 
   const selectionSummary =
     showSearch && multiple && !(hideSummaryCount && hideSummaryToggle) ? (
@@ -800,6 +854,9 @@ export const Select = <TValue extends string>({
         hideSelectAllToggle={hideSummaryToggle}
         selectedCount={selectedValues.length}
         totalCount={optionValues.length}
+        allSelected={
+          hasSelection && selectAllValues.length === selectedValues.length
+        }
         onSelectAll={selectAll}
         onClearAll={clearAll}
       />
@@ -817,15 +874,6 @@ export const Select = <TValue extends string>({
       },
     );
     const searching = searchTerms.length > 0;
-    if (isOptional && !searching && mapped.length > 0) {
-      const noneItem: Item = {
-        id: noneValue,
-        text: "\u200B",
-        subItems: undefined,
-        onClick: () => {},
-      };
-      mapped.unshift(noneItem);
-    }
     if (showSearch && mapped.length === 0) {
       return [
         {
@@ -841,7 +889,6 @@ export const Select = <TValue extends string>({
     return mapped;
   }, [
     visibleItems,
-    isOptional,
     resolvedRenderItem,
     noneValue,
     multiple,
@@ -867,14 +914,11 @@ export const Select = <TValue extends string>({
       itemToValue: (item) => getItemId(item),
       itemToString: (item) => {
         const id = getItemId(item);
-        if (id === noneValue) {
-          return "";
-        }
         return valueToText.get(id) ?? id;
       },
       isItemDisabled: (item) => !!item.disabled,
     });
-  }, [menuItems, effectiveItems, noneValue]);
+  }, [menuItems, effectiveItems]);
 
   const classes = selectRecipe({
     variant,
@@ -901,7 +945,7 @@ export const Select = <TValue extends string>({
         !!renderSelectedAll ||
         overflowMode !== undefined) &&
       (connectsLeft || connectsRight),
-    willClear: showClear && !!clearable && !hasSelection,
+    willClear: showClear && canClear && !hasSelection,
   });
 
   if (readonly) {
@@ -934,10 +978,6 @@ export const Select = <TValue extends string>({
           return;
         }
         const next = nextValue[0];
-        if (next === noneValue) {
-          (onChange as (value: null) => void)(null);
-          return;
-        }
         if (next !== undefined) {
           (onChange as (value: TValue) => void)(next as TValue);
         }
@@ -1057,15 +1097,23 @@ export const Select = <TValue extends string>({
               }}
               className={cx(
                 classes.clear,
-                (!clearable || !hasSelection) && classes.hideClear,
+                (!canClear || !hasSelection) && classes.hideClear,
               )}
               aria-label="Clear input"
             >
-              <Icon
-                name="close"
-                size={iconSizeMap[size]}
+              {/* Stroked rather than the close icon so its weight follows the arrow's */}
+              <svg
+                viewBox="0 0 10 10"
+                aria-hidden="true"
                 className={classes.clearIcon}
-              />
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  d="M0 0L10 10M10 0L0 10"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
             </button>
           )}
         </div>
@@ -1110,3 +1158,6 @@ export const Select = <TValue extends string>({
     </ArkSelect.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+Select.displayName = "Select";

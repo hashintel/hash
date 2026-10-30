@@ -491,7 +491,35 @@ export {
   evaluateParameterConstraints,
   type ParameterConstraintResult,
 } from "./constraint/margin";
-export type { HirInterpretBindings } from "./hir/interpret";
+export {
+  HirInterpretError,
+  interpretHir,
+  type HirInterpretBindings,
+  type HirValue,
+} from "./hir/interpret";
+// The view HIR a visualizer lowers to, and what its renderer may draw. The
+// lowering stays in the worker (`requestVisualizerHir`, see ./view-hir);
+// interpretation and rendering happen here, in the editor, through the
+// modules of ./view-hir that carry no compiler.
+export {
+  buildVisualizerContext,
+  type HirVisualizerContext,
+} from "./hir/surface-context";
+export type { VisualizerHir } from "./view-hir/visualizer";
+export type { ViewHir, ViewNode } from "./view-hir/view-hir";
+export { VIEW_FRAGMENT_TAG } from "./view-hir/view-hir";
+export {
+  interpretViewHir,
+  ViewElementValue,
+  type ViewProps,
+  type ViewValue,
+} from "./view-hir/interpret-view";
+export {
+  isSafeViewValue,
+  VIEW_ELEMENT_ATTRIBUTES,
+  VIEW_ELEMENT_TAGS,
+  VIEW_STYLE_PROPERTIES,
+} from "./view-hir/view-elements";
 // Type-only: lowering itself stays in ./hir (worker/Node).
 export type {
   ConstraintSource,

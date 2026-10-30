@@ -5,6 +5,7 @@ use core::{
 };
 
 use axum::{Router, body::Body, extract::ConnectInfo, response::Response, routing::get};
+use hash_crypto::Secret;
 use hash_middleware::{
     authentication::{
         AuthenticatedActorId, AuthenticationMetrics, provider::StaticAuthenticationProvider,
@@ -12,7 +13,6 @@ use hash_middleware::{
     problem::{InternalServerError, ServiceUnavailable},
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters},
 };
-use hash_secret::Secret;
 use http::{
     HeaderValue, Method, Request, StatusCode,
     header::{ALLOW, AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, WWW_AUTHENTICATE},

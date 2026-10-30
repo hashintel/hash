@@ -64,6 +64,7 @@
         "SHOW_WORKER_COST"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -76,6 +77,9 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     },
@@ -83,6 +87,7 @@
       "dependsOn": [],
       "cache": false,
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "darwin-kperf",
         "darwin-kperf-codegen",
         "darwin-kperf-criterion",
@@ -100,6 +105,7 @@
         "harpc-wire-protocol",
         "hash-codec",
         "hash-codegen",
+        "hash-crypto",
         "hash-graph-api",
         "hash-graph-authentication",
         "hash-graph-authorization",
@@ -112,7 +118,6 @@
         "hash-graph-types",
         "hash-graph-validation",
         "hash-middleware",
-        "hash-secret",
         "hash-status",
         "hash-telemetry",
         "hash-temporal-client",
@@ -124,6 +129,9 @@
         "hashql-macros",
         "hashql-mir",
         "hashql-syntax-jexpr",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python",
         "problematic",
         "type-system"
       ]
@@ -136,6 +144,7 @@
         "@local/hash-isomorphic-utils#build"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -148,6 +157,9 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     },
@@ -172,6 +184,7 @@
       "cache": false,
       "persistent": true,
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -184,6 +197,9 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     },
@@ -206,6 +222,7 @@
         "codegen"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -218,6 +235,9 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     },
@@ -243,6 +263,7 @@
         "CHECK_TEMPORARILY_DISABLED_RULES"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -255,6 +276,9 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     },
@@ -277,6 +301,7 @@
         "codegen"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -289,6 +314,9 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     },
@@ -301,6 +329,7 @@
       "persistent": true,
       "affectedBy": [
         "@apps/hash-api",
+        "@hashintel/petrinaut-cli",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -313,6 +342,9 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     },
@@ -329,6 +361,7 @@
       "persistent": true,
       "affectedBy": [
         "@apps/hash-api",
+        "@hashintel/petrinaut-cli",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -341,6 +374,9 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     },
@@ -370,6 +406,7 @@
         "TEST_COVERAGE"
       ],
       "affectedBy": [
+        "@hashintel/petrinaut-cli",
         "error-stack",
         "error-stack-macros",
         "harpc-types",
@@ -382,6 +419,9 @@
         "hash-graph-temporal-versioning",
         "hash-graph-types",
         "hash-temporal-client",
+        "petrinaut-optimization",
+        "petrinaut-optimizer-core",
+        "petrinaut-python",
         "type-system"
       ]
     }

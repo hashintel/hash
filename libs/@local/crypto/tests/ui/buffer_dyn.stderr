@@ -1,0 +1,11 @@
+error: trait cannot be implemented outside `hash_crypto`
+  --> tests/ui/buffer_dyn.rs:11:1
+   |
+11 | impl SecretBuffer for dyn Leak {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: trait restricted here
+  --> src/buffer.rs
+   |
+   | pub impl(crate) trait SecretBuffer:
+   |     ^^^^^^^^^^^

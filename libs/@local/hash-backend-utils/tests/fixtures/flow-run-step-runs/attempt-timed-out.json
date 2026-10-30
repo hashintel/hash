@@ -1,0 +1,40 @@
+{
+  "stepRuns": [
+    {
+      "stepId": "research",
+      "stepType": "researchEntitiesAction",
+      "startedAt": "2026-10-27T10:51:40.841Z",
+      "scheduledAt": "2026-10-27T10:51:29.825Z",
+      "closedAt": "2026-10-27T10:51:40.844Z",
+      "inputs": [
+        {
+          "inputName": "prompt",
+          "payload": {
+            "kind": "Text",
+            "value": "Who makes HASH?"
+          }
+        }
+      ],
+      "logs": [],
+      "status": "COMPLETED",
+      "attempt": 2,
+      "outputs": [
+        {
+          "outputName": "proposedEntities",
+          "payload": {
+            "kind": "ProposedEntity",
+            "value": []
+          }
+        },
+        {
+          "outputName": "highlightedEntities",
+          "payload": {
+            "kind": "EntityId",
+            "value": []
+          }
+        }
+      ]
+    }
+  ],
+  "inputRequests": []
+}

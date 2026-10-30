@@ -1,3 +1,4 @@
+import { Box, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 
 import { entityIdFromComponents } from "@blockprotocol/type-system";
@@ -16,10 +17,22 @@ import type { NextPageWithLayout } from "../../../../shared/layout";
 import type { EntityUuid } from "@blockprotocol/type-system";
 
 const WorkerFlowDefinitionResolver = () => {
-  const { selectedFlowRun } = useFlowRunsContext();
+  const { selectedFlowRun, selectedFlowRunEventsFailure } =
+    useFlowRunsContext();
 
   if (!selectedFlowRun) {
-    return <FlowRunVisualizerSkeleton />;
+    return selectedFlowRunEventsFailure ? (
+      <Box px={3} py={2}>
+        <Typography
+          variant="smallTextParagraphs"
+          sx={({ palette }) => ({ color: palette.red[80] })}
+        >
+          Couldn't load this run's events: {selectedFlowRunEventsFailure}
+        </Typography>
+      </Box>
+    ) : (
+      <FlowRunVisualizerSkeleton />
+    );
   }
 
   return (

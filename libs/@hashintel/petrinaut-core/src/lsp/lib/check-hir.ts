@@ -9,6 +9,7 @@
 import ts from "@typescript/typescript6";
 
 import { lintHirUserCode } from "../../hir";
+import { lowerVisualizerToHir } from "../../view-hir";
 
 import type { HirDiagnostic, HirSurfaceContext } from "../../hir";
 
@@ -92,6 +93,17 @@ export const HIR_DIAGNOSTIC_CODES: Record<string, number> = {
   "hir:range-outside-scenario": 99079,
   "hir:scenario-outside-scenario": 99080,
   "hir:mixed-equality": 99081,
+  "hir:typescript-syntax": 99082,
+  "hir:visualizer-return": 99083,
+  "hir:unknown-element": 99084,
+  "hir:unknown-element-attribute": 99085,
+  "hir:unsafe-value": 99086,
+  "hir:unknown-style-property": 99087,
+  "hir:slice-arity": 99088,
+  "hir:filter-callback": 99089,
+  "hir:to-fixed-arity": 99090,
+  "hir:element-attribute-value": 99091,
+  "hir:element-child": 99092,
 };
 
 const FALLBACK_CODE = 99000;
@@ -134,10 +146,20 @@ export function getHirDiagnosticsForItem(
   code: string,
   context: HirSurfaceContext,
 ): ts.Diagnostic[] {
-  // An empty lambda intentionally uses the runtime default (Infinity/true).
-  // Every other surface requires a program and must report its lowering error.
-  if (code.trim() === "" && context.surface === "lambda") {
+  // An empty lambda intentionally uses the runtime default (Infinity/true),
+  // and an empty visualizer draws nothing. Every other surface requires a
+  // program and must report its lowering error.
+  if (
+    code.trim() === "" &&
+    (context.surface === "lambda" || context.surface === "visualizer")
+  ) {
     return [];
+  }
+  // A visualizer lowers to the view HIR, whose lowering and checks refuse
+  // what the renderer cannot draw.
+  if (context.surface === "visualizer") {
+    const result = lowerVisualizerToHir(code, context);
+    return result.ok ? [] : result.diagnostics.map(toTsDiagnostic);
   }
   // Out-of-subset code is an error: the HIR pipeline is the only compiler,
   // so such code cannot simulate.

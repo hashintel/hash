@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ftseInvestorsFlow } from "./definitions/ftse-investors-flow-definition.js";
 import { goalFlow } from "./definitions/goal-flow-definitions.js";
+import { linkEndsMessage, noEntityChangesMessage } from "./entity-steps.js";
 import {
   type FlowDefinitionDiagnostic,
   validateFlowDefinition,
@@ -147,11 +148,6 @@ describe("validateFlowDefinition", () => {
       },
       {
         severity: "error",
-        code: "mixedWorkers",
-        path: ["steps", 1, "actionDefinitionId"],
-      },
-      {
-        severity: "error",
         code: "missingInput",
         path: ["steps", 1, "inputs"],
       },
@@ -199,6 +195,44 @@ describe("validateFlowDefinition", () => {
         code: "incompatibleConnection",
         message: "A FormattedText value cannot feed an input that accepts Text",
         path: ["steps", 1, "inputs", "question"],
+      },
+    ]);
+  });
+
+  it("rejects a constant that isn't a valid value of its kind, with the path to the problem", () => {
+    const { diagnostics } = validateFlowDefinition({
+      ...baseDefinition,
+      steps: [
+        {
+          kind: "action",
+          stepId: "first",
+          actionDefinitionId: "takeFirst",
+          description: "",
+          inputs: {
+            items: {
+              kind: "constant",
+              payload: {
+                kind: "Duration",
+                value: [
+                  { amount: 1, unit: "days" },
+                  { amount: 1, unit: "years" },
+                ],
+              },
+            },
+            count: { kind: "constant", payload: { kind: "Number", value: 1 } },
+          },
+        },
+      ],
+    });
+
+    expect(diagnostics.filter(({ severity }) => severity === "error")).toEqual([
+      {
+        severity: "error",
+        code: "invalidConstant",
+        message: expect.stringMatching(
+          /^A Duration constant is invalid at \[1\]\.unit: /,
+        ) as string,
+        path: ["steps", 0, "inputs", "items", "payload", "value"],
       },
     ]);
   });
@@ -789,6 +823,391 @@ describe("validateFlowDefinition", () => {
           code: "invalidInput",
           message,
           path: ["steps", 0, "inputs", "sortBy"],
+        },
+      ]);
+    });
+  });
+
+  describe("properties of createEntity steps", () => {
+    const nameUrl = "https://example.com/types/property-type/name/";
+    const emailUrl = "https://example.com/types/property-type/email/";
+    const text = { dataTypeId: "https://example.com/types/data-type/text/v/1" };
+
+    const errorsOf = (properties: unknown) =>
+      validateFlowDefinition({
+        ...baseDefinition,
+        inputs: [
+          {
+            name: "properties",
+            payloadKind: "PropertyObjectWithMetadata",
+            array: false,
+            required: true,
+          },
+        ],
+        steps: [
+          {
+            kind: "action",
+            stepId: "create",
+            actionDefinitionId: "createEntity",
+            description: "",
+            inputs: {
+              entityTypeIds: {
+                kind: "constant",
+                payload: {
+                  kind: "VersionedUrl",
+                  value: ["https://example.com/types/entity-type/person/v/1"],
+                },
+              },
+              properties,
+            },
+          },
+        ],
+      }).diagnostics.filter(({ severity }) => severity === "error");
+
+    const constant = (value: unknown) => ({
+      kind: "constant",
+      payload: { kind: "PropertyObjectWithMetadata", value },
+    });
+
+    it.each([
+      {
+        name: "a constant with a data type ID for each value, including in a list",
+        properties: constant({
+          value: {
+            [nameUrl]: { value: "Ada", metadata: text },
+            [emailUrl]: {
+              value: [{ value: "ada@example.com", metadata: text }],
+            },
+          },
+        }),
+      },
+      {
+        name: "a constant with no properties",
+        properties: constant({ value: {} }),
+      },
+      {
+        name: "a flow input, which is checked when the step runs",
+        properties: { kind: "flow-input", inputName: "properties" },
+      },
+    ])("accepts $name", ({ properties }) => {
+      expect(errorsOf(properties)).toEqual([]);
+    });
+
+    it.each<{
+      name: string;
+      value: unknown;
+      message: string;
+      constantMessage?: string;
+    }>([
+      {
+        name: "properties without metadata",
+        value: { [nameUrl]: "Ada" },
+        message:
+          "Properties must be an object whose value is keyed by property type base URL.",
+        constantMessage:
+          "A PropertyObjectWithMetadata constant is invalid at value: Invalid input: expected record, received undefined",
+      },
+      {
+        name: "a property type versioned URL rather than a base URL",
+        value: {
+          value: { [`${nameUrl}v/1`]: { value: "Ada", metadata: text } },
+        },
+        message: `"${nameUrl}v/1" is not a property type base URL.`,
+      },
+      {
+        name: "a value without a data type ID",
+        value: {
+          value: {
+            [nameUrl]: { value: "Ada", metadata: { dataTypeId: null } },
+          },
+        },
+        message: `Property ${nameUrl} must give the data type ID of each of its values.`,
+      },
+      {
+        name: "an item of a list without a data type ID",
+        value: {
+          value: { [emailUrl]: { value: [{ value: "ada@example.com" }] } },
+        },
+        message: `Property ${emailUrl} must give the data type ID of each of its values.`,
+      },
+    ])("rejects $name", ({ value, message, constantMessage }) => {
+      expect(errorsOf(constant(value))).toEqual([
+        ...(constantMessage
+          ? [
+              {
+                severity: "error",
+                code: "invalidConstant",
+                message: constantMessage,
+                path: ["steps", 0, "inputs", "properties", "payload", "value"],
+              },
+            ]
+          : []),
+        {
+          severity: "error",
+          code: "invalidInput",
+          message,
+          path: ["steps", 0, "inputs", "properties"],
+        },
+      ]);
+    });
+  });
+
+  describe("link ends of createEntity steps", () => {
+    const errorsOf = (linkInputs: Record<string, unknown>) =>
+      validateFlowDefinition({
+        ...baseDefinition,
+        inputs: [
+          {
+            name: "company",
+            payloadKind: "EntityId",
+            array: false,
+            required: true,
+          },
+          {
+            name: "person",
+            payloadKind: "EntityId",
+            array: false,
+            required: true,
+          },
+        ],
+        steps: [
+          {
+            kind: "action",
+            stepId: "create",
+            actionDefinitionId: "createEntity",
+            description: "",
+            inputs: {
+              entityTypeIds: {
+                kind: "constant",
+                payload: {
+                  kind: "VersionedUrl",
+                  value: [
+                    "https://example.com/types/entity-type/works-for/v/1",
+                  ],
+                },
+              },
+              properties: {
+                kind: "constant",
+                payload: {
+                  kind: "PropertyObjectWithMetadata",
+                  value: { value: {} },
+                },
+              },
+              ...linkInputs,
+            },
+          },
+        ],
+      }).diagnostics.filter(({ severity }) => severity === "error");
+
+    const person = { kind: "flow-input", inputName: "person" };
+    const company = { kind: "flow-input", inputName: "company" };
+
+    it("accepts both ends", () => {
+      expect(
+        errorsOf({ leftEntityId: person, rightEntityId: company }),
+      ).toEqual([]);
+    });
+
+    it.each([
+      {
+        name: "the entity a link links from without the one it links to",
+        linkInputs: { leftEntityId: person },
+        missing: "rightEntityId",
+      },
+      {
+        name: "the entity a link links to without the one it links from",
+        linkInputs: { rightEntityId: company },
+        missing: "leftEntityId",
+      },
+    ])("rejects $name", ({ linkInputs, missing }) => {
+      expect(errorsOf(linkInputs)).toEqual([
+        {
+          severity: "error",
+          code: "invalidInput",
+          message: linkEndsMessage,
+          path: ["steps", 0, "inputs", missing],
+        },
+      ]);
+    });
+  });
+
+  describe("property patches of updateEntity steps", () => {
+    const nameUrl = "https://example.com/types/property-type/name/";
+    const emailUrl = "https://example.com/types/property-type/email/";
+    const text = { dataTypeId: "https://example.com/types/data-type/text/v/1" };
+
+    const errorsOf = (
+      propertyPatches: unknown,
+      otherInputs: Record<string, unknown> = {},
+    ) =>
+      validateFlowDefinition({
+        ...baseDefinition,
+        inputs: [
+          {
+            name: "person",
+            payloadKind: "EntityId",
+            array: false,
+            required: true,
+          },
+          {
+            name: "patches",
+            payloadKind: "PropertyPatch",
+            array: true,
+            required: true,
+          },
+          {
+            name: "types",
+            payloadKind: "VersionedUrl",
+            array: true,
+            required: true,
+          },
+        ],
+        steps: [
+          {
+            kind: "action",
+            stepId: "update",
+            actionDefinitionId: "updateEntity",
+            description: "",
+            inputs: {
+              entityId: { kind: "flow-input", inputName: "person" },
+              ...(propertyPatches === undefined ? {} : { propertyPatches }),
+              ...otherInputs,
+            },
+          },
+        ],
+      }).diagnostics.filter(({ severity }) => severity === "error");
+
+    const types = { kind: "flow-input", inputName: "types" };
+
+    const constant = (value: unknown) => ({
+      kind: "constant",
+      payload: { kind: "PropertyPatch", value },
+    });
+
+    it.each([
+      {
+        name: "constant patches that add, replace and remove whole properties",
+        propertyPatches: constant([
+          {
+            op: "add",
+            path: [nameUrl],
+            property: { value: "Ada", metadata: text },
+          },
+          {
+            op: "replace",
+            path: [emailUrl],
+            property: { value: [{ value: "ada@example.com", metadata: text }] },
+          },
+          {
+            op: "remove",
+            path: ["https://example.com/types/property-type/age/"],
+          },
+        ]),
+      },
+      {
+        name: "a flow input, which is checked when the step runs",
+        propertyPatches: { kind: "flow-input", inputName: "patches" },
+      },
+      {
+        name: "types with no patches",
+        propertyPatches: constant([]),
+        otherInputs: { entityTypeIds: types },
+      },
+    ])("accepts $name", ({ propertyPatches, otherInputs }) => {
+      expect(errorsOf(propertyPatches, otherInputs)).toEqual([]);
+    });
+
+    it("rejects types without patches, so that the step is skipped when connected patches are missing", () => {
+      expect(errorsOf(undefined, { entityTypeIds: types })).toEqual([
+        {
+          severity: "error",
+          code: "missingInput",
+          message:
+            'Required input "propertyPatches" of action "updateEntity" is not connected',
+          path: ["steps", 0, "inputs"],
+        },
+      ]);
+    });
+
+    it.each<{
+      name: string;
+      value: unknown;
+      message: string;
+      constantMessage?: string;
+    }>([
+      {
+        name: "no patches, without types",
+        value: [],
+        message: noEntityChangesMessage,
+      },
+      {
+        name: "an op the graph doesn't have",
+        value: [{ op: "move", path: [nameUrl] }],
+        message: "Property patch 1 must have an op of add, remove, replace.",
+        constantMessage:
+          "A PropertyPatch constant is invalid at [0].op: Invalid discriminator value. Expected 'add' | 'replace' | 'remove'",
+      },
+      {
+        name: "a path of a property type versioned URL",
+        value: [{ op: "remove", path: [`${nameUrl}v/1`] }],
+        message:
+          "Property patch 1 must have a path of a property type base URL.",
+      },
+      {
+        name: "a path inside a property's value",
+        value: [
+          { op: "remove", path: [nameUrl] },
+          { op: "remove", path: [emailUrl, 0] },
+        ],
+        message: `Property patch 2 changes part of property ${emailUrl}, which isn't supported yet: give its whole value.`,
+      },
+      {
+        name: "two patches to the same property, which fail if applied again",
+        value: [
+          {
+            op: "replace",
+            path: [nameUrl],
+            property: { value: "Ada", metadata: text },
+          },
+          { op: "remove", path: [nameUrl] },
+        ],
+        message: `Property patch 2 changes property ${nameUrl} again: give one patch per property.`,
+      },
+      {
+        name: "a value without a data type ID",
+        value: [
+          {
+            op: "add",
+            path: [nameUrl],
+            property: { value: "Ada", metadata: { dataTypeId: null } },
+          },
+        ],
+        message: `Property ${nameUrl} must give the data type ID of each of its values.`,
+      },
+    ])("rejects $name", ({ value, message, constantMessage }) => {
+      expect(errorsOf(constant(value))).toEqual([
+        ...(constantMessage
+          ? [
+              {
+                severity: "error",
+                code: "invalidConstant",
+                message: constantMessage,
+                path: [
+                  "steps",
+                  0,
+                  "inputs",
+                  "propertyPatches",
+                  "payload",
+                  "value",
+                ],
+              },
+            ]
+          : []),
+        {
+          severity: "error",
+          code: "invalidInput",
+          message,
+          path: ["steps", 0, "inputs", "propertyPatches"],
         },
       ]);
     });

@@ -47,7 +47,7 @@ impl<I> Encoding<I> {
         u32::try_from(rows.saturating_sub(1)).change_context(WorldError::TooManyRows { rows })?;
         let rows = usize::try_from(rows).change_context(WorldError::TooManyRows { rows })?;
 
-        let codec = RowCodec::derive(secret.expose(), generation.id());
+        let codec = RowCodec::derive(secret.as_secret(), generation.id());
         let lookup = IdVec::from_fn(rows, |id| codec.encode(id));
 
         Ok(Self { codec, lookup })
@@ -133,7 +133,7 @@ mod tests {
             generation: fixture.generation(),
             secret: &secret,
         };
-        let codec = RowCodec::<NodeRowId>::derive(secret.expose(), options.generation.id());
+        let codec = RowCodec::<NodeRowId>::derive(secret.as_secret(), options.generation.id());
 
         for rows in [0, 1, NODES] {
             let domain = RowDomain::new(NodeRowId::new(rows));
