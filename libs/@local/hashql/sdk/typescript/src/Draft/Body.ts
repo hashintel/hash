@@ -145,7 +145,7 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
   /**
    * Constructs a HashQL conditional from a Boolean condition and a record of branch callbacks.
    *
-   * The condition and every branch must fit the schema, and the result combines their input requirements. HashQL decides the condition when the query runs, so construction always builds every branch. The callbacks run immediately, `then` first, whatever the condition's value. Each receives a fresh restricted context, and the `if` of `Context.Context` describes where its declarations belong. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
+   * The condition and every branch must fit the schema. The result requires the whole schema, because the conditional emits each branch's declarations and no branch's type records their inputs. HashQL decides the condition when the query runs, so construction always builds every branch. The callbacks run immediately, `then` first, whatever the condition's value. Each receives a fresh restricted context, and the `if` of `Context.Context` describes where its declarations belong. An exception thrown by a callback becomes a `CallbackException` failure on the returned expression and does not interrupt the enclosing callback.
    *
    * @example <caption>Construct both branches, one with a branch-local binding.</caption>
    * ```ts
@@ -199,14 +199,20 @@ export interface Context<S extends Scope.Scope.Any, I> extends Omit<
         readonly then: ($: Context<S, I>) => T & Accept<I, T>;
         readonly else: ($: Context<S, I>) => E & Accept<I, E>;
       },
-    ): Construction.Conditional<C, T, E>;
+    ): Expression.Expression<
+      Expression.Conditional<
+        Expression.Value.Type<T>,
+        Expression.Value.Type<E>
+      >,
+      I
+    >;
     <
       const C extends Expression.Value<Type.PrimitiveBoolean>,
       const T extends Expression.Value.Any,
     >(
       condition: C & Accept<I, C>,
       branches: { readonly then: ($: Context<S, I>) => T & Accept<I, T> },
-    ): Construction.Optional<C, T>;
+    ): Expression.Expression<Construction.Option<Expression.Value.Type<T>>, I>;
   };
 }
 
