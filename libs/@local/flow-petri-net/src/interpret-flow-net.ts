@@ -71,12 +71,20 @@ import type {
 export type FlowNetStepRun = { stepId: string; itemPath: number[] };
 
 /**
- * Where a token is: a place of the root net, or a place inside a step's instance of its action's subnet. Every
- * instance of a subnet shares its places' ids, so a place inside one is only identified with its instance.
+ * Where a place or transition is, as ids from the root net down, with the root implied: `[placeId]` in the root net,
+ * `[componentInstanceId, placeId]` inside a step's instance. Not to be confused with a token's `itemPath`.
  */
-export type FlowNetPosition =
-  | { kind: "place"; placeId: string }
-  | { kind: "instancePlace"; componentInstanceId: string; placeId: string };
+export type FlowNetPath = readonly [string, ...string[]];
+
+/** A key for a path in maps and sets. Petrinaut ids are lowercase UUIDs, so `/` can't appear in one. */
+export const flowNetPathKey = (path: FlowNetPath) => path.join("/");
+
+export const isSameFlowNetPath = (path: FlowNetPath, otherPath: FlowNetPath) =>
+  path.length === otherPath.length &&
+  path.every((id, index) => otherPath[index] === id);
+
+/** For messages only. */
+export const formatFlowNetPath = (path: FlowNetPath) => path.join(".");
 
 /** Where the value a token refers to comes from. Tokens carry references to values, never the values themselves. */
 export type FlowNetValueRef =
@@ -113,14 +121,12 @@ export type FlowNetToken = {
 );
 
 export type FlowNetPlacedToken = {
-  position: FlowNetPosition;
+  path: FlowNetPath;
   token: FlowNetToken;
 };
 
 export type FlowNetFiring = {
-  transitionId: string;
-  /** The instance a transition of an action's subnet fired in. */
-  componentInstanceId?: string;
+  transitionPath: FlowNetPath;
   role: TransitionRole;
   /** The step run the transition fired for: a `forEach` step's own run for its iterating and collecting. */
   stepRun: FlowNetStepRun;
@@ -223,34 +229,19 @@ export type FlowNetRun = {
   fire: (firing: FlowNetHeldFiring) => FlowNetFiring[];
 };
 
-const isPrefixOf = (prefix: number[], path: number[]) =>
-  prefix.length <= path.length &&
-  prefix.every((index, position) => path[position] === index);
+const isPrefixOf = (prefix: number[], itemPath: number[]) =>
+  prefix.length <= itemPath.length &&
+  prefix.every((index, depth) => itemPath[depth] === index);
 
-const isSamePath = (path: number[], otherPath: number[]) =>
-  path.length === otherPath.length && isPrefixOf(path, otherPath);
+const isSameItemPath = (itemPath: number[], otherItemPath: number[]) =>
+  itemPath.length === otherItemPath.length &&
+  isPrefixOf(itemPath, otherItemPath);
 
-const positionKey = (position: FlowNetPosition) =>
-  position.kind === "place"
-    ? `place:${position.placeId}`
-    : `instancePlace:${position.componentInstanceId}:${position.placeId}`;
-
-const placePosition = (placeId: string): FlowNetPosition => ({
-  kind: "place",
-  placeId,
-});
-
-const instancePlacePosition = (
-  componentInstanceId: string,
-  placeId: string,
-): FlowNetPosition => ({ kind: "instancePlace", componentInstanceId, placeId });
-
-/** The position an endpoint of an arc of the root net points at. */
-const rootPosition = (endpoint: ArcEndpoint): FlowNetPosition =>
+/** The path an endpoint of an arc of the root net points at. */
+const rootPath = (endpoint: ArcEndpoint): FlowNetPath =>
   endpoint.kind === "place"
-    ? placePosition(endpoint.placeId)
-    : instancePlacePosition(endpoint.componentInstanceId, endpoint.portPlaceId);
-
+    ? [endpoint.placeId]
+    : [endpoint.componentInstanceId, endpoint.portPlaceId];
 const placeIdOf = (key: string) => toPetrinautId(key);
 
 /** The step an action's subnet runs for, in one of its instances. */
@@ -260,6 +251,14 @@ type InstanceScope = {
   actionDefinition: ActionDefinition<FlowActionDefinitionId>;
   subnet: IndexedSubnet;
 };
+
+const pathIn = (scope: InstanceScope | null, id: string): FlowNetPath =>
+  scope ? [scope.instance.id, id] : [id];
+
+const instancePlaceName = (scope: InstanceScope, path: FlowNetPath) =>
+  path.length === 2
+    ? scope.subnet.subnet.places.find(({ id }) => id === path[1])?.name
+    : undefined;
 
 type IndexedSubnet = {
   subnet: Subnet;
@@ -273,7 +272,7 @@ type IndexedSubnet = {
 /** A token an input arc of a firing takes or reads. */
 type Binding = {
   arc: InputArc;
-  position: FlowNetPosition;
+  path: FlowNetPath;
   token: FlowNetToken;
 };
 
@@ -456,32 +455,32 @@ export const startFlowNetRun = (
    * The marking.
    */
 
-  const tokensByPosition = new Map<
+  const tokensByPath = new Map<
     string,
-    { position: FlowNetPosition; tokens: FlowNetToken[] }
+    { path: FlowNetPath; tokens: FlowNetToken[] }
   >();
 
-  const tokensAt = (position: FlowNetPosition): readonly FlowNetToken[] =>
-    tokensByPosition.get(positionKey(position))?.tokens ?? [];
+  const tokensAt = (path: FlowNetPath): readonly FlowNetToken[] =>
+    tokensByPath.get(flowNetPathKey(path))?.tokens ?? [];
 
-  const addToken = ({ position, token }: FlowNetPlacedToken) => {
-    const key = positionKey(position);
-    const entry = tokensByPosition.get(key);
+  const addToken = ({ path, token }: FlowNetPlacedToken) => {
+    const key = flowNetPathKey(path);
+    const entry = tokensByPath.get(key);
 
     if (entry) {
       entry.tokens.push(token);
     } else {
-      tokensByPosition.set(key, { position, tokens: [token] });
+      tokensByPath.set(key, { path, tokens: [token] });
     }
   };
 
-  const removeToken = ({ position, token }: FlowNetPlacedToken) => {
-    const tokens = tokensByPosition.get(positionKey(position))?.tokens;
+  const removeToken = ({ path, token }: FlowNetPlacedToken) => {
+    const tokens = tokensByPath.get(flowNetPathKey(path))?.tokens;
     const index = tokens?.indexOf(token) ?? -1;
 
     if (!tokens || index === -1) {
       throw new FlowNetInterpreterError(
-        `There is no such token at ${positionKey(position)} to take`,
+        `There is no such token at ${formatFlowNetPath(path)} to take`,
       );
     }
 
@@ -493,9 +492,12 @@ export const startFlowNetRun = (
    */
 
   /** Where an endpoint of a transition's arc points, in the root net or inside an instance. */
-  const positionOf = (endpoint: ArcEndpoint, scope: InstanceScope | null) => {
+  const pathOf = (
+    endpoint: ArcEndpoint,
+    scope: InstanceScope | null,
+  ): FlowNetPath => {
     if (!scope) {
-      return rootPosition(endpoint);
+      return rootPath(endpoint);
     }
 
     if (endpoint.kind !== "place") {
@@ -504,11 +506,11 @@ export const startFlowNetRun = (
       );
     }
 
-    return instancePlacePosition(scope.instance.id, endpoint.placeId);
+    return pathIn(scope, endpoint.placeId);
   };
 
   /**
-   * The tokens a transition would take and read, with `anchor` as the token at `anchorPosition`. Every other input
+   * The tokens a transition would take and read, with `anchor` as the token at `anchorPath`. Every other input
    * takes a token of the same item or of an enclosing one (`accepts` can say otherwise), and `guard` can refuse a
    * binding. Read arcs from one place can read the same token, but a token taken through a standard arc is bound to
    * that arc alone.
@@ -516,7 +518,7 @@ export const startFlowNetRun = (
   const bind = ({
     transition,
     scope,
-    anchorPosition,
+    anchorPath,
     anchorAccepts = () => true,
     accepts = (anchor, candidate) =>
       isPrefixOf(candidate.itemPath, anchor.itemPath),
@@ -524,34 +526,34 @@ export const startFlowNetRun = (
   }: {
     transition: Transition;
     scope: InstanceScope | null;
-    anchorPosition: FlowNetPosition;
+    anchorPath: FlowNetPath;
     anchorAccepts?: (anchor: FlowNetToken) => boolean;
     accepts?: (anchor: FlowNetToken, candidate: FlowNetToken) => boolean;
     guard?: (bindings: Binding[]) => boolean;
   }): Binding[] | null => {
     const arcs = transition.inputArcs.map((arc) => ({
       arc,
-      position: positionOf(getArcEndpoint(arc), scope),
+      path: pathOf(getArcEndpoint(arc), scope),
     }));
 
-    const anchorArc = arcs.find(
-      ({ position }) => positionKey(position) === positionKey(anchorPosition),
+    const anchorArc = arcs.find(({ path }) =>
+      isSameFlowNetPath(path, anchorPath),
     );
 
     if (!anchorArc) {
       throw new FlowNetInterpreterError(
-        `Transition "${transition.name}" takes nothing from ${positionKey(anchorPosition)}`,
+        `Transition "${transition.name}" takes nothing from ${formatFlowNetPath(anchorPath)}`,
       );
     }
 
-    for (const anchor of tokensAt(anchorPosition)) {
+    for (const anchor of tokensAt(anchorPath)) {
       if (!anchorAccepts(anchor)) {
         continue;
       }
 
       const bindings: Binding[] = [];
 
-      for (const { arc, position } of arcs) {
+      for (const { arc, path } of arcs) {
         if (arc.type === "inhibitor") {
           throw new FlowNetInterpreterError(
             `Transition "${transition.name}" has an inhibitor arc`,
@@ -561,7 +563,7 @@ export const startFlowNetRun = (
         const token =
           arc === anchorArc.arc
             ? anchor
-            : tokensAt(position).find(
+            : tokensAt(path).find(
                 (candidate) =>
                   accepts(anchor, candidate) &&
                   !bindings.some(
@@ -576,7 +578,7 @@ export const startFlowNetRun = (
           break;
         }
 
-        bindings.push({ arc, position, token });
+        bindings.push({ arc, path, token });
       }
 
       if (bindings.length === arcs.length && guard(bindings)) {
@@ -601,16 +603,16 @@ export const startFlowNetRun = (
     scope: InstanceScope | null;
     stepRun: FlowNetStepRun;
     bindings: Binding[];
-    /** The token each output arc puts in the position it points at. */
-    produce: (position: FlowNetPosition) => FlowNetToken;
+    /** The token each output arc puts in the place it points at. */
+    produce: (path: FlowNetPath) => FlowNetToken;
   }): FlowNetFiring => {
     const consumed = bindings
       .filter(({ arc }) => arc.type === "standard")
-      .map(({ position, token }) => ({ position, token }));
+      .map(({ path, token }) => ({ path, token }));
 
     const read = bindings
       .filter(({ arc }) => arc.type === "read")
-      .map(({ position, token }) => ({ position, token }));
+      .map(({ path, token }) => ({ path, token }));
 
     for (const placedToken of consumed) {
       removeToken(placedToken);
@@ -618,9 +620,9 @@ export const startFlowNetRun = (
 
     /* Each token is an object of its own: bindings tell tokens apart by identity. */
     const produced = transition.outputArcs.map((arc) => {
-      const position = positionOf(getArcEndpoint(arc), scope);
+      const path = pathOf(getArcEndpoint(arc), scope);
 
-      return { position, token: { ...produce(position) } };
+      return { path, token: { ...produce(path) } };
     });
 
     for (const placedToken of produced) {
@@ -628,8 +630,7 @@ export const startFlowNetRun = (
     }
 
     const firing: FlowNetFiring = {
-      transitionId: transition.id,
-      ...(scope ? { componentInstanceId: scope.instance.id } : {}),
+      transitionPath: pathIn(scope, transition.id),
       role: roleOf(transition),
       stepRun,
       consumed,
@@ -642,22 +643,25 @@ export const startFlowNetRun = (
     return firing;
   };
 
-  const pendingPosition = (stepId: string) =>
-    placePosition(placeIdOf(generatePendingPlaceKey(stepId)));
+  const pendingPath = (stepId: string): FlowNetPath => [
+    placeIdOf(generatePendingPlaceKey(stepId)),
+  ];
 
-  const iteratorPosition = (forEachStepId: string) =>
-    placePosition(placeIdOf(generateIteratorPlaceKey(forEachStepId)));
+  const iteratorPath = (forEachStepId: string): FlowNetPath => [
+    placeIdOf(generateIteratorPlaceKey(forEachStepId)),
+  ];
 
-  const accumulatorPosition = (forEachStepId: string) =>
-    placePosition(placeIdOf(generateAccumulatorPlaceKey(forEachStepId)));
+  const accumulatorPath = (forEachStepId: string): FlowNetPath => [
+    placeIdOf(generateAccumulatorPlaceKey(forEachStepId)),
+  ];
 
-  const pendingPositionKeys = new Set(
+  const pendingPathKeys = new Set(
     [...rootTransitionsByStep.keys()].map((stepId) =>
-      positionKey(pendingPosition(stepId)),
+      flowNetPathKey(pendingPath(stepId)),
     ),
   );
 
-  const onlyInputPosition = (transition: Transition) => {
+  const onlyInputPath = (transition: Transition) => {
     const [arc, ...otherArcs] = transition.inputArcs;
 
     if (!arc || otherArcs.length > 0) {
@@ -666,18 +670,15 @@ export const startFlowNetRun = (
       );
     }
 
-    return rootPosition(getArcEndpoint(arc));
+    return rootPath(getArcEndpoint(arc));
   };
-
-  const isAt = (position: FlowNetPosition, otherPosition: FlowNetPosition) =>
-    positionKey(position) === positionKey(otherPosition);
 
   /** The token a `startStep` puts in each input port of its step's instance. */
   const startStepToken = (
     metadata: Extract<TransitionMetadata, { role: "startStep" }>,
     itemPath: number[],
     bindings: Binding[],
-    position: FlowNetPosition,
+    portPath: FlowNetPath,
   ): FlowNetToken => {
     const scope = scopeOfStep(metadata.stepId);
 
@@ -685,11 +686,7 @@ export const startFlowNetRun = (
       return { kind: "signal", itemPath };
     }
 
-    const port =
-      position.kind === "instancePlace"
-        ? scope.subnet.subnet.places.find(({ id }) => id === position.placeId)
-        : undefined;
-    const inputName = port?.name;
+    const inputName = instancePlaceName(scope, portPath);
     const source = inputName ? metadata.inputSources[inputName] : undefined;
 
     if (!inputName || !source) {
@@ -700,8 +697,8 @@ export const startFlowNetRun = (
 
     switch (source.kind) {
       case "value": {
-        const binding = bindings.find(({ position: boundPosition }) =>
-          isAt(boundPosition, rootPosition(source.from)),
+        const binding = bindings.find(({ path }) =>
+          isSameFlowNetPath(path, rootPath(source.from)),
         );
 
         if (binding?.token.kind !== "value") {
@@ -751,8 +748,8 @@ export const startFlowNetRun = (
           ({ name, required }) => name === inputName && required,
         ) &&
         bindings.some(
-          ({ position, token }) =>
-            isAt(position, rootPosition(source.from)) &&
+          ({ path, token }) =>
+            isSameFlowNetPath(path, rootPath(source.from)) &&
             token.kind === "value" &&
             !token.present,
         ),
@@ -799,10 +796,10 @@ export const startFlowNetRun = (
         const bindings = bind({
           transition,
           scope: null,
-          anchorPosition: pendingPosition(metadata.stepId),
+          anchorPath: pendingPath(metadata.stepId),
           anchorAccepts: (anchor) =>
             fired?.role !== "startStep" ||
-            isSamePath(anchor.itemPath, fired.stepRun.itemPath),
+            isSameItemPath(anchor.itemPath, fired.stepRun.itemPath),
           guard: (candidate) => !hasMissingSkipInput(metadata, candidate),
         });
 
@@ -810,8 +807,8 @@ export const startFlowNetRun = (
           return null;
         }
 
-        const { itemPath } = bindings.find(({ position }) =>
-          isAt(position, pendingPosition(metadata.stepId)),
+        const { itemPath } = bindings.find(({ path }) =>
+          isSameFlowNetPath(path, pendingPath(metadata.stepId)),
         )!.token;
 
         return fire({
@@ -819,8 +816,8 @@ export const startFlowNetRun = (
           scope: null,
           stepRun: { stepId: metadata.stepId, itemPath },
           bindings,
-          produce: (position) =>
-            startStepToken(metadata, itemPath, bindings, position),
+          produce: (portPath) =>
+            startStepToken(metadata, itemPath, bindings, portPath),
         });
       }
       case "startForEach": {
@@ -835,10 +832,10 @@ export const startFlowNetRun = (
         const bindings = bind({
           transition,
           scope: null,
-          anchorPosition: pendingPosition(metadata.stepId),
+          anchorPath: pendingPath(metadata.stepId),
           anchorAccepts: (anchor) =>
             fired?.role !== "startForEach" ||
-            isSamePath(anchor.itemPath, fired.stepRun.itemPath),
+            isSameItemPath(anchor.itemPath, fired.stepRun.itemPath),
           guard: (candidate) => !hasMissingArray(candidate),
         });
 
@@ -846,8 +843,8 @@ export const startFlowNetRun = (
           return null;
         }
 
-        const { itemPath } = bindings.find(({ position }) =>
-          isAt(position, pendingPosition(metadata.stepId)),
+        const { itemPath } = bindings.find(({ path }) =>
+          isSameFlowNetPath(path, pendingPath(metadata.stepId)),
         )!.token;
 
         return fire({
@@ -863,7 +860,7 @@ export const startFlowNetRun = (
         const bindings = bind({
           transition,
           scope: null,
-          anchorPosition: onlyInputPosition(transition),
+          anchorPath: onlyInputPath(transition),
         });
 
         if (!bindings) {
@@ -893,7 +890,7 @@ export const startFlowNetRun = (
         const bindings = bind({
           transition,
           scope: null,
-          anchorPosition: iteratorPosition(metadata.stepId),
+          anchorPath: iteratorPath(metadata.stepId),
           anchorAccepts: (anchor) =>
             anchor.kind === "iterator" &&
             (isStartItem
@@ -918,7 +915,7 @@ export const startFlowNetRun = (
           scope: null,
           stepRun: { stepId: metadata.stepId, itemPath },
           bindings,
-          produce: (position): FlowNetToken => {
+          produce: (path): FlowNetToken => {
             if (!isStartItem) {
               return {
                 kind: "accumulator",
@@ -930,11 +927,11 @@ export const startFlowNetRun = (
 
             const itemItemPath = [...itemPath, next];
 
-            if (isAt(position, iteratorPosition(metadata.stepId))) {
+            if (isSameFlowNetPath(path, iteratorPath(metadata.stepId))) {
               return { ...iterator, next: next + 1 };
             }
 
-            if (pendingPositionKeys.has(positionKey(position))) {
+            if (pendingPathKeys.has(flowNetPathKey(path))) {
               return { kind: "pending", itemPath: itemItemPath };
             }
 
@@ -955,7 +952,7 @@ export const startFlowNetRun = (
         const bindings = bind({
           transition,
           scope: null,
-          anchorPosition: accumulatorPosition(metadata.stepId),
+          anchorPath: accumulatorPath(metadata.stepId),
           anchorAccepts: (anchor) =>
             anchor.kind === "accumulator" && anchor.done < anchor.expected,
           accepts: (anchor, candidate) =>
@@ -967,8 +964,8 @@ export const startFlowNetRun = (
           return null;
         }
 
-        const accumulator = bindings.find(({ position }) =>
-          isAt(position, accumulatorPosition(metadata.stepId)),
+        const accumulator = bindings.find(({ path }) =>
+          isSameFlowNetPath(path, accumulatorPath(metadata.stepId)),
         )!.token;
 
         if (accumulator.kind !== "accumulator") {
@@ -987,7 +984,7 @@ export const startFlowNetRun = (
         const bindings = bind({
           transition,
           scope: null,
-          anchorPosition: accumulatorPosition(metadata.stepId),
+          anchorPath: accumulatorPath(metadata.stepId),
           anchorAccepts: (anchor) =>
             anchor.kind === "accumulator" && anchor.done === anchor.expected,
         });
@@ -1054,9 +1051,9 @@ export const startFlowNetRun = (
     const bindings = bind({
       transition,
       scope,
-      anchorPosition: instancePlacePosition(scope.instance.id, firstPortId),
+      anchorPath: pathIn(scope, firstPortId),
       accepts: (anchor, candidate) =>
-        isSamePath(anchor.itemPath, candidate.itemPath),
+        isSameItemPath(anchor.itemPath, candidate.itemPath),
     });
 
     if (!bindings) {
@@ -1121,15 +1118,12 @@ export const startFlowNetRun = (
     placeOf: (subnet: IndexedSubnet) => string,
   ) => {
     const scope = scopeOfStep(stepRun.stepId);
-    const position = instancePlacePosition(
-      scope.instance.id,
-      placeOf(scope.subnet),
-    );
-    const token = tokensAt(position).find(({ itemPath }) =>
-      isSamePath(itemPath, stepRun.itemPath),
+    const path = pathIn(scope, placeOf(scope.subnet));
+    const token = tokensAt(path).find(({ itemPath }) =>
+      isSameItemPath(itemPath, stepRun.itemPath),
     );
 
-    return token?.kind === "attempt" ? { scope, position, token } : null;
+    return token?.kind === "attempt" ? { scope, path, token } : null;
   };
 
   const inProgressToken = (stepRun: FlowNetStepRun) =>
@@ -1148,7 +1142,7 @@ export const startFlowNetRun = (
     scope: InstanceScope;
     role: TransitionRole;
     from: FlowNetPlacedToken;
-    produce: (position: FlowNetPosition) => FlowNetToken;
+    produce: (path: FlowNetPath) => FlowNetToken;
   }) => {
     const transition = subnetTransition(scope, role);
     const [arc, ...otherArcs] = transition.inputArcs;
@@ -1156,7 +1150,7 @@ export const startFlowNetRun = (
     if (
       !arc ||
       otherArcs.length > 0 ||
-      !isAt(positionOf(getArcEndpoint(arc), scope), from.position)
+      !isSameFlowNetPath(pathOf(getArcEndpoint(arc), scope), from.path)
     ) {
       throw new FlowNetInterpreterError(
         `Step "${scope.stepId}"'s ${role} transition doesn't take the attempt's token`,
@@ -1210,17 +1204,17 @@ export const startFlowNetRun = (
         return firing;
       }
       case "failAttempt": {
-        const { scope, position, token } = attemptToEnd(stepRun);
+        const { scope, path, token } = attemptToEnd(stepRun);
 
         return fireAttemptTransition({
           scope,
           role: "failAttempt",
-          from: { position, token },
+          from: { path, token },
           produce: () => token,
         });
       }
       case "succeedAttempt": {
-        const { scope, position, token } = attemptToEnd(stepRun);
+        const { scope, path, token } = attemptToEnd(stepRun);
         const { itemPath } = token;
         const { outputs } = scope.actionDefinition;
         const { outputNames } = held;
@@ -1228,18 +1222,13 @@ export const startFlowNetRun = (
         return fireAttemptTransition({
           scope,
           role: "succeedAttempt",
-          from: { position, token },
-          produce: (outputPosition): FlowNetToken => {
+          from: { path, token },
+          produce: (outputPath): FlowNetToken => {
             if (outputs.length === 0) {
               return { kind: "signal", itemPath };
             }
 
-            const outputName =
-              outputPosition.kind === "instancePlace"
-                ? scope.subnet.subnet.places.find(
-                    ({ id }) => id === outputPosition.placeId,
-                  )?.name
-                : undefined;
+            const outputName = instancePlaceName(scope, outputPath);
 
             if (!outputName) {
               throw new FlowNetInterpreterError(
@@ -1273,12 +1262,12 @@ export const startFlowNetRun = (
           );
         }
 
-        const { scope, position, token } = failed;
+        const { scope, path, token } = failed;
 
         return fireAttemptTransition({
           scope,
           role: held.role,
-          from: { position, token },
+          from: { path, token },
           produce: () => ({
             ...token,
             attempts:
@@ -1311,15 +1300,15 @@ export const startFlowNetRun = (
 
     const { role, stepId } = transitionMetadata;
 
-    return tokensAt(pendingPosition(stepId))
+    return tokensAt(pendingPath(stepId))
       .filter(
         (pending) =>
           (forItemPath === undefined ||
-            isSamePath(pending.itemPath, forItemPath)) &&
+            isSameItemPath(pending.itemPath, forItemPath)) &&
           bind({
             transition,
             scope: null,
-            anchorPosition: pendingPosition(stepId),
+            anchorPath: pendingPath(stepId),
             anchorAccepts: (anchor) => anchor === pending,
             guard: (candidate) =>
               transitionMetadata.role === "startForEach"
@@ -1339,7 +1328,7 @@ export const startFlowNetRun = (
   const initialMarking: FlowNetPlacedToken[] = [
     ...Object.entries(flowInputs).flatMap(([inputName, endpoints]) =>
       endpoints.map((endpoint): FlowNetPlacedToken => ({
-        position: rootPosition(endpoint),
+        path: rootPath(endpoint),
         token: givenFlowInputs.has(inputName)
           ? {
               kind: "value",
@@ -1351,7 +1340,7 @@ export const startFlowNetRun = (
       })),
     ),
     ...pendingAtStart.map((endpoint): FlowNetPlacedToken => ({
-      position: rootPosition(endpoint),
+      path: rootPath(endpoint),
       token: { kind: "pending", itemPath: [] },
     })),
   ];
@@ -1366,8 +1355,8 @@ export const startFlowNetRun = (
     initialMarking,
     firings,
     marking: () =>
-      [...tokensByPosition.values()].flatMap(({ position, tokens }) =>
-        tokens.map((token) => ({ position, token })),
+      [...tokensByPath.values()].flatMap(({ path, tokens }) =>
+        tokens.map((token) => ({ path, token })),
       ),
     held: () => {
       const held: FlowNetHeldTransition[] = [];
@@ -1377,9 +1366,7 @@ export const startFlowNetRun = (
           [scope.subnet.inProgressPlaceId, ["succeedAttempt", "failAttempt"]],
           [scope.subnet.failedPlaceId, ["retryAttempt", "giveUp"]],
         ] as const) {
-          for (const token of tokensAt(
-            instancePlacePosition(scope.instance.id, placeId),
-          )) {
+          for (const token of tokensAt(pathIn(scope, placeId))) {
             if (token.kind === "attempt") {
               const stepRun = {
                 stepId: scope.stepId,
@@ -1428,8 +1415,8 @@ export const startFlowNetRun = (
         ? (inProgressToken(stepRun)?.token.attempts ?? null)
         : null,
     isPending: (stepRun) =>
-      tokensAt(pendingPosition(stepRun.stepId)).some(({ itemPath }) =>
-        isSamePath(itemPath, stepRun.itemPath),
+      tokensAt(pendingPath(stepRun.stepId)).some(({ itemPath }) =>
+        isSameItemPath(itemPath, stepRun.itemPath),
       ),
     attemptInputs: (firing) => {
       if (firing.role !== "startAttempt") {
@@ -1445,15 +1432,10 @@ export const startFlowNetRun = (
         return { stepRun: firing.stepRun, inputs: {} };
       }
 
-      const { subnet } = scope.subnet;
-
       const inputs: FlowNetAttemptInputs["inputs"] = {};
 
-      for (const { position, token } of firing.consumed) {
-        const inputName =
-          position.kind === "instancePlace"
-            ? subnet.places.find(({ id }) => id === position.placeId)?.name
-            : undefined;
+      for (const { path, token } of firing.consumed) {
+        const inputName = instancePlaceName(scope, path);
 
         if (!inputName || token.kind !== "value") {
           throw new FlowNetInterpreterError(
