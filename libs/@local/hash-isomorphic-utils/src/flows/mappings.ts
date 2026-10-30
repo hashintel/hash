@@ -1,5 +1,10 @@
 import { simplifyProperties } from "../simplify-properties.js";
-import { assertValidFlowDefinition } from "./validate-flow-definition.js";
+import {
+  assertValidFlowDefinition,
+  type FlowDefinitionDiagnostic,
+  getValidFlowDefinition,
+  validateFlowDefinition,
+} from "./validate-flow-definition.js";
 
 import type {
   FlowDefinition as FlowDefinitionEntity,
@@ -90,6 +95,33 @@ export const getFlowDefinitionFromEntity = (
   entity: HashEntity<FlowDefinitionEntity>,
 ): FlowDefinition =>
   assertValidFlowDefinition(getUnvalidatedFlowDefinitionFromEntity(entity));
+
+/**
+ * What a `Flow Definition` entity holds, without requiring it to be valid: e.g. to list a flow that isn't finished
+ * yet, with its problems. The definition is only given when it has no errors, so that only a valid one is compiled or
+ * run.
+ */
+export const validateFlowDefinitionEntity = (
+  entity: HashEntity<FlowDefinitionEntity>,
+): {
+  name: string;
+  description: string;
+  flowDefinition: FlowDefinition | null;
+  /** Every problem found, including warnings, which don't stop the flow running. */
+  diagnostics: FlowDefinitionDiagnostic[];
+} => {
+  const unvalidatedFlowDefinition =
+    getUnvalidatedFlowDefinitionFromEntity(entity);
+
+  const validation = validateFlowDefinition(unvalidatedFlowDefinition);
+
+  return {
+    name: unvalidatedFlowDefinition.name,
+    description: unvalidatedFlowDefinition.description,
+    flowDefinition: getValidFlowDefinition(validation),
+    diagnostics: validation.diagnostics,
+  };
+};
 
 /**
  * The `Open Input Request` property of a flow run: the requests it has made that haven't been answered yet.
