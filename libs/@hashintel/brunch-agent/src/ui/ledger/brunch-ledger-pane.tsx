@@ -18,6 +18,7 @@ import { selectedLedgerAddresses } from "./brunch-ledger-comment-anchor";
 import { shortQuote } from "./brunch-ledger-comment-messages";
 import { BrunchLedgerDocument } from "./brunch-ledger-document";
 import { foldBrunchLedgerHistory } from "./brunch-ledger-history";
+import { reflectionsNotInNet } from "./brunch-ledger-open-net";
 import {
   traceCanvasSelection,
   tracedAddresses,
@@ -27,7 +28,7 @@ import type {
   PendingComments,
   PendingCommentsState,
 } from "./brunch-ledger-comments";
-import type { SelectionItem } from "@hashintel/petrinaut-core";
+import type { SDCPN, SelectionItem } from "@hashintel/petrinaut-core";
 
 const noticeStyle = css({
   color: "neutral.s90",
@@ -204,13 +205,15 @@ const commentTargetOf = (
  * The Ledger compiled from conversation history, read as a document. With a
  * canvas selection, it shows why the selection is modelled as it is and marks
  * the records behind it. With `comments`, the user can select text and comment
- * on the records it touches.
+ * on the records it touches. With `openVersion`, it marks reflections on
+ * elements that net lacks as not in this version.
  */
 export const BrunchLedgerPane = ({
   messages,
   selection = [],
   onSelectNetElements,
   comments,
+  openVersion,
 }: {
   messages: readonly LedgerHistoryMessage[];
   /** The editor's selection, when the pane sits beside a canvas. */
@@ -218,6 +221,8 @@ export const BrunchLedgerPane = ({
   onSelectNetElements?: (items: SelectionItem[]) => void;
   /** The editor's pending comments, which the composer sends to Brunch. */
   comments?: PendingComments;
+  /** The open net, once the host has loaded another saved version of it. */
+  openVersion?: SDCPN;
 }) => {
   const id = useId();
   const paneRef = useRef<HTMLElement>(null);
@@ -232,6 +237,8 @@ export const BrunchLedgerPane = ({
   const { ledger } = foldBrunchLedgerHistory(messages);
   const trace = ledger && traceCanvasSelection(ledger, selection);
   const projection = ledger && projectLedger(ledger);
+  const notInThisVersion =
+    ledger && openVersion && reflectionsNotInNet(ledger, openVersion);
 
   useEffect(() => {
     if (!comments) return;
@@ -298,6 +305,7 @@ export const BrunchLedgerPane = ({
               options={{
                 traced: tracedAddresses(trace),
                 showReflections,
+                ...(notInThisVersion ? { notInThisVersion } : {}),
                 ...(onSelectNetElements ? { onSelectNetElements } : {}),
                 comments: {
                   pending: pending.comments,

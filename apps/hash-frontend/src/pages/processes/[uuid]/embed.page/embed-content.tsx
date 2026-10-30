@@ -38,6 +38,12 @@ import { type EmbedChrome, EmbedChromeContext } from "./embed-chrome-context";
 import { EmbedPetrinaut } from "./embed-petrinaut";
 import { HASHPetrinautOptimizationProvider } from "./hash-petrinaut-optimization-provider";
 
+import type { HashSaveOutcome, SaveNetForAgent } from "./brunch-hash-save";
+import type {
+  BrunchDocumentSaveState,
+  VersionLoad,
+} from "@hashintel/brunch-agent/ui";
+
 /**
  * Errors Petrinaut catches itself, such as a failing plugin's, never reach the
  * app's error boundary, so they go to the host's Sentry from here.
@@ -81,6 +87,11 @@ const computeIsDirty = (
   );
 };
 
+const abortReasonOf = (signal: AbortSignal): Error =>
+  signal.reason instanceof Error
+    ? signal.reason
+    : new Error("The agent's save was aborted.");
+
 /**
  * Petrinaut embed content — rendered in the process page by the host.
  *
@@ -97,6 +108,13 @@ export const EmbedContent = () => {
     string | null
   >(null);
   const [isDirty, setIsDirty] = useState(false);
+  /**
+   * The latest load of another saved version of the open net, which the open
+   * net builds on, until a fresh open or another net. Saves leave it as it
+   * is: they build on the loaded version. Each load gets a fresh id, so Brunch
+   * tells its agent about each load once, however many turns carry it.
+   */
+  const [versionLoad, setVersionLoad] = useState<VersionLoad | undefined>();
 
   /**
    * Latest saved snapshot kept in a ref so the per-handle `subscribe`
@@ -112,6 +130,21 @@ export const EmbedContent = () => {
   const titleRef = useRef<string>("");
   titleRef.current = state?.title ?? "";
   const readTitle = useCallback(() => titleRef.current, []);
+
+  /** The agent's saves waiting for the `saveResult` of the save each started, by request id. */
+  const agentSavesRef = useRef(
+    new Map<string, (outcome: HashSaveOutcome) => void>(),
+  );
+  /**
+   * An agent's save whose `saveResult` succeeded, settled once its snapshot
+   * commits, so its dirty state is the one the editor then shows.
+   */
+  const savedForAgentRef = useRef<{
+    snapshot: SavedSnapshot;
+    decisionTime: string | null;
+    title: string;
+    settle: (outcome: HashSaveOutcome) => void;
+  } | null>(null);
 
   /**
    * Every `init` and `load` creates a new handle, even when the content is
@@ -149,8 +182,23 @@ export const EmbedContent = () => {
        * navigated to a different net via URL while a save was pending).
        */
       setPendingSaveRequestId(null);
+      savedForAgentRef.current = null;
+      setVersionLoad(undefined);
     },
     onLoad: (payload) => {
+      const loadedTime = payload.savedSnapshot?.decisionTime ?? null;
+      const sameNet =
+        payload.mode.kind === "saved" &&
+        state?.mode.kind === "saved" &&
+        payload.mode.entityId === state.mode.entityId;
+      if (!sameNet) {
+        setVersionLoad(undefined);
+      } else if (
+        loadedTime !== null &&
+        loadedTime !== (state.savedSnapshot?.decisionTime ?? null)
+      ) {
+        setVersionLoad({ id: nextRequestId(), decisionTime: loadedTime });
+      }
       const handle = createJsonDocHandle({ initial: payload.definition });
       const savedSnapshot = withPetrinautIds(payload.savedSnapshot);
       setState({
@@ -171,6 +219,7 @@ export const EmbedContent = () => {
       );
       setIframeErrorReporterMode(payload.mode);
       setPendingSaveRequestId(null);
+      savedForAgentRef.current = null;
     },
     onSetReadonly: (readonly) => {
       setState((prev) => (prev ? { ...prev, readonly } : prev));
@@ -191,20 +240,33 @@ export const EmbedContent = () => {
         return;
       }
       setPendingSaveRequestId(null);
+      const settleAgentSave = agentSavesRef.current.get(payload.requestId);
+      agentSavesRef.current.delete(payload.requestId);
       if (payload.result.ok) {
         // The revision list comes only from `revisionsList`, which the host
         // sends again once its history refetch includes this save.
         const { savedSnapshot, mode } = payload.result;
+        const nextSnapshot = withPetrinautIds(savedSnapshot);
+        if (settleAgentSave) {
+          savedForAgentRef.current = {
+            snapshot: nextSnapshot,
+            decisionTime: savedSnapshot.decisionTime,
+            title: savedSnapshot.title,
+            settle: settleAgentSave,
+          };
+        }
         setState((prev) =>
           prev
             ? {
                 ...prev,
                 mode,
-                savedSnapshot: withPetrinautIds(savedSnapshot),
+                savedSnapshot: nextSnapshot,
               }
             : prev,
         );
         setIframeErrorReporterMode(mode);
+      } else {
+        settleAgentSave?.({ saved: false, error: payload.result.error });
       }
     },
   });
@@ -255,6 +317,16 @@ export const EmbedContent = () => {
     if (currentDoc) {
       const dirty = computeIsDirty(currentDoc, currentTitle, savedSnapshot);
       setIsDirty((prev) => (prev === dirty ? prev : dirty));
+      const savedForAgent = savedForAgentRef.current;
+      if (savedForAgent?.snapshot === savedSnapshot) {
+        savedForAgentRef.current = null;
+        savedForAgent.settle({
+          saved: true,
+          decisionTime: savedForAgent.decisionTime,
+          title: savedForAgent.title,
+          stillDirty: dirty,
+        });
+      }
     }
   }, [currentTitle, handle, savedSnapshot]);
 
@@ -273,13 +345,14 @@ export const EmbedContent = () => {
     setState((prev) => (prev ? { ...prev, title } : prev));
   }, []);
 
-  const handleSaveClick = useCallback(() => {
+  /** Sends the open net to the host to save; returns its request id, or `null` when it sent none. */
+  const handleSaveClick = useCallback((): string | null => {
     if (!state || pendingSaveRequestId) {
-      return;
+      return null;
     }
     const definition = state.handle.doc();
     if (!definition) {
-      return;
+      return null;
     }
     const requestId = nextRequestId();
     setPendingSaveRequestId(requestId);
@@ -289,7 +362,75 @@ export const EmbedContent = () => {
       definition,
       title: state.title,
     });
+    return requestId;
   }, [bridge, pendingSaveRequestId, state]);
+
+  /** What the agent's save reads when it runs, which may be after this render. */
+  const agentSaveSourceRef = useRef({
+    state,
+    pendingSaveRequestId,
+    handleSaveClick,
+  });
+  agentSaveSourceRef.current = { state, pendingSaveRequestId, handleSaveClick };
+
+  const readAgentSaveState = useCallback(
+    (documentId: string): BrunchDocumentSaveState => {
+      const { state: current, pendingSaveRequestId: pending } =
+        agentSaveSourceRef.current;
+      const refusal =
+        current?.mode.kind !== "saved"
+          ? "The net is an unsaved draft, which the user creates with the editor's Create."
+          : documentId !== current.mode.entityId
+            ? "That isn't the net open in the editor."
+            : current.readonly
+              ? "The user can't edit this net, so they can't save it."
+              : pending !== null
+                ? "A save of this net is already in progress."
+                : null;
+      return {
+        title: current?.title ?? "",
+        lastSavedTime: current?.savedSnapshot?.decisionTime ?? null,
+        refusal,
+      };
+    },
+    [],
+  );
+
+  /**
+   * The Save button's save, for the agent once the user has approved it: it
+   * settles with that save's `saveResult`. A `load` or `init` before then
+   * leaves it waiting until the remounted assistant aborts it.
+   */
+  const saveNetForAgent = useCallback<SaveNetForAgent>(
+    (documentId, signal) => {
+      if (signal.aborted) {
+        return Promise.reject(abortReasonOf(signal));
+      }
+      const { refusal } = readAgentSaveState(documentId);
+      if (refusal !== null) {
+        return Promise.resolve<HashSaveOutcome>({
+          applied: false,
+          reason: refusal,
+        });
+      }
+      const requestId = agentSaveSourceRef.current.handleSaveClick();
+      if (requestId === null) {
+        return Promise.reject(new Error("The editor did not start the save."));
+      }
+      return new Promise<HashSaveOutcome>((resolve, reject) => {
+        const onAbort = () => {
+          agentSavesRef.current.delete(requestId);
+          reject(abortReasonOf(signal));
+        };
+        signal.addEventListener("abort", onAbort, { once: true });
+        agentSavesRef.current.set(requestId, (outcome) => {
+          signal.removeEventListener("abort", onAbort);
+          resolve(outcome);
+        });
+      });
+    },
+    [readAgentSaveState],
+  );
 
   const handleNavigateBack = useCallback(() => {
     bridge.send({ kind: "requestNavigateBack" });
@@ -344,6 +485,9 @@ export const EmbedContent = () => {
                 state.mode.kind === "saved" ? state.mode.entityId : null
               }
               readTitle={readTitle}
+              readSaveState={readAgentSaveState}
+              saveNetForAgent={saveNetForAgent}
+              versionLoad={versionLoad}
               readonly={state.readonly}
               setTitle={handleSetTitle}
               title={state.title}

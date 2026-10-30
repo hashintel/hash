@@ -37,6 +37,31 @@ test("round trips an allowance and words, and sends nothing without either", () 
   expect(petrinautSubmissionContext({})).toBeUndefined();
 });
 
+test("round trips a version load on its own, and reads an invalid one as none", () => {
+  const versionLoad = {
+    id: "load-1",
+    decisionTime: "2026-10-27T10:00:00.000Z",
+  };
+  expect(
+    readPetrinautSubmissionContext(
+      submitted(petrinautSubmissionContext({ versionLoad })),
+    ),
+  ).toEqual({ versionLoad, words: [] });
+  expect(
+    readPetrinautSubmissionContext(
+      parsePetrinautUserMessageBody(
+        petrinautContextualUserMessageBody({
+          userText: "Hi",
+          diagnosticsContext: "",
+          submissionContext: {
+            versionLoad: { id: "load-1", decisionTime: "yesterday-ish" },
+          },
+        }),
+      ),
+    ),
+  ).toEqual({ words: [] });
+});
+
 test("reads an ordinary message, an invalid allowance and invalid words as Off and empty", () => {
   expect(
     readPetrinautSubmissionContext(parsePetrinautUserMessageBody("Hi")),

@@ -24,6 +24,7 @@ import {
 import { OpenAIRealtimeSession } from "../client/voice/realtime/openai-realtime-session";
 import { createTestEditorApi } from "./chat/testing/create-test-editor-api";
 import { InterviewBudgetControl } from "./interview-budget/interview-budget-control";
+import { documentRevisionOf } from "./tools/shared/document-revision";
 import { useBrunchAssistant } from "./use-brunch-assistant";
 
 import type { createBrunchFlueAdapter } from "../client/brunch-flue-adapter";
@@ -32,6 +33,7 @@ import type {
   createBrunchPanelTransport,
 } from "../client/brunch-panel-transport";
 import type { PetrinautAiAssistant } from "./chat/petrinaut";
+import type { BrunchMutationApprovalCoordinator } from "./tools/brunch-mutation-approval";
 import type { BrunchOpenDocument } from "./use-brunch-assistant";
 import type { AgentConversationObservationSnapshot } from "@flue/sdk";
 
@@ -485,6 +487,169 @@ test("a destructive edit waiting for approval settles when the conversation is r
   }
 });
 
+/** The bound browser's side of one agent save: its claim, and what it posts back. */
+const stubSaveCall = (expectedRevision: string) => {
+  const posted: { readonly path: string; readonly body: unknown }[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(async (url, init) => {
+      const target = new URL(url instanceof Request ? url.url : url);
+      if (!target.pathname.includes("/browser-calls/save-1"))
+        return new Response(null, { status: 404 });
+      if (init?.method === "POST") {
+        posted.push({
+          path: target.pathname,
+          body:
+            typeof init.body === "string" ? JSON.parse(init.body) : init.body,
+        });
+        return new Response(null, { status: 200 });
+      }
+      return Response.json({
+        capability: "capability",
+        binding: target.searchParams.get("binding"),
+        toolName: brunchTools.saveHashNet,
+        input: { documentId: netOneId },
+        expectedRevision,
+      });
+    }),
+  );
+  return posted;
+};
+
+const handEdit = (handle: PetrinautDocHandle) =>
+  act(() =>
+    handle.change((draft) => {
+      draft.places.push({
+        id: "hand-place",
+        name: "Hand place",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 0,
+        y: 0,
+      });
+    }),
+  );
+
+/** A bound assistant whose host can save, waiting on an issued save's card. */
+const renderSaveAwaitingCard = async (
+  expectedRevisionOf: (handle: PetrinautDocHandle) => string,
+  execute: (issuedInput: unknown) => Promise<unknown>,
+) => {
+  flueClientMock.current = {
+    url: "http://brunch.local/agents/hash/instance",
+    observe: () => ({
+      close: vi.fn(),
+      getSnapshot: () => ({
+        conversation: {
+          conversationId: "save-conversation",
+          settlements: [],
+          messages: [],
+        },
+        offset: "save-offset",
+        phase: "live",
+        error: undefined,
+      }),
+      refresh: vi.fn(),
+      subscribe: () => () => undefined,
+    }),
+  };
+  const document = openDocument();
+  const handle = document.editor?.handle;
+  if (handle === undefined) throw new Error("Missing document handle");
+  const posted = stubSaveCall(expectedRevisionOf(handle));
+  const rendered = renderAssistant({
+    openDocument: document,
+    readSaveState: () => ({
+      title: "Net",
+      lastSavedTime: null,
+      refusal: null,
+    }),
+  });
+  await waitFor(() =>
+    expect(rendered.assistant().inBandBrowserTools).toBeDefined(),
+  );
+  // The history baseline is in, so an allowed call may start.
+  await waitFor(() =>
+    expect(() =>
+      executeAutomaticTool(
+        rendered.assistant(),
+        "getLatestNetDefinition",
+        "history-probe",
+        {},
+      ),
+    ).not.toThrow(),
+  );
+  const run = rendered.assistant().inBandBrowserTools?.run(
+    {
+      toolCallId: "save-1",
+      toolName: brunchTools.saveHashNet,
+      input: { documentId: netOneId },
+      signal: new AbortController().signal,
+    },
+    execute,
+  );
+  const coordinator = () =>
+    mutationApprovalCoordinators.at(-1) as BrunchMutationApprovalCoordinator;
+  await waitFor(() => expect(coordinator().hasPending("save-1")).toBe(true));
+  return { handle, posted, run, coordinator };
+};
+
+test("a save allowed after a hand edit of the net is refused as stale and never runs", async () => {
+  try {
+    const execute = vi.fn(async () => ({ saved: true }));
+    const { handle, posted, run, coordinator } = await renderSaveAwaitingCard(
+      (current) => documentRevisionOf(current.doc() ?? emptyDefinition),
+      execute,
+    );
+    handEdit(handle);
+    coordinator().resolve("save-1", "allow");
+
+    await expect(run).rejects.toThrow(
+      "The document changed by other means after the agent's last view of the net; the call was not started.",
+    );
+    expect(execute).not.toHaveBeenCalled();
+    expect(posted.map(({ path }) => path)).toEqual([
+      expect.stringMatching(/\/browser-calls\/save-1\/fail$/u),
+    ]);
+    expect(posted[0]?.body).toMatchObject({ disposition: "stale" });
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test("a hand edit while an allowed save is pending is not credited to the agent", async () => {
+  try {
+    const saved = {
+      saved: true,
+      decisionTime: "2026-10-24T01:00:00.000Z",
+      title: "Net",
+      stillDirty: true,
+    };
+    let editDuringSave = () => {};
+    const { handle, posted, run, coordinator } = await renderSaveAwaitingCard(
+      (current) => documentRevisionOf(current.doc() ?? emptyDefinition),
+      async () => {
+        editDuringSave();
+        return saved;
+      },
+    );
+    editDuringSave = () => handEdit(handle);
+    coordinator().resolve("save-1", "allow");
+
+    await run;
+    expect(handle.doc()?.places).toHaveLength(1);
+    expect(posted.map(({ path }) => path)).toEqual([
+      expect.stringMatching(/\/browser-calls\/save-1$/u),
+    ]);
+    expect(posted[0]?.body).toMatchObject({ output: saved });
+    // No revision edge or read-back: the edit isn't presented as the save's.
+    expect(posted[0]?.body).not.toHaveProperty("metadata");
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
 test("mounts document-bound Brunch with canonical overrides and the complete static catalogue", async () => {
   flueClientMock.current = {
     history: async () => ({
@@ -574,9 +739,14 @@ test("mounts document-bound Brunch with canonical overrides and the complete sta
       brunchTools.queryHashEntities,
       brunchTools.queryHashEntityTypes,
       brunchTools.queryHashWebs,
+      brunchTools.saveHashNet,
     ].toSorted(),
   );
   expect(aiAssistant.inBandBrowserTools?.has("readNetOutline")).toBe(true);
+  // A host that can't save offers no save card.
+  expect(
+    aiAssistant.interactiveTools?.map(({ toolName }) => toolName),
+  ).not.toContain(brunchTools.saveHashNet);
 });
 
 test("a host's own tools run beside Brunch's while a document is bound", async () => {

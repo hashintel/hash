@@ -3,7 +3,9 @@ import { use, useEffect, useMemo, useState } from "react";
 import {
   BrunchAssistantContext,
   type BrunchOpenDocument,
+  type ReadBrunchDocumentSaveState,
   useBrunchAssistant,
+  type VersionLoad,
 } from "@hashintel/brunch-agent/ui";
 import {
   ErrorTrackerContext,
@@ -14,6 +16,7 @@ import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 
 import { useAuthInfo } from "../../../shared/auth-info-context";
 import { useBrunchHashHostTools } from "./brunch-hash-graph-reads";
+import { createHashSaveTool, type SaveNetForAgent } from "./brunch-hash-save";
 import { embedChromePlugin } from "./embed-chrome-plugin";
 
 import type { EntityId, UserId } from "@blockprotocol/type-system";
@@ -109,6 +112,9 @@ export const EmbedPetrinaut = ({
   handle,
   savedEntityId,
   readTitle,
+  readSaveState,
+  saveNetForAgent,
+  versionLoad,
   readonly,
   setTitle,
   title,
@@ -118,12 +124,22 @@ export const EmbedPetrinaut = ({
   savedEntityId: EntityId | null;
   /** The editor's current title, read when Brunch's tools need it. */
   readTitle: () => string;
+  /** What the editor's Save would do now, read for the agent's save card. Stable. */
+  readSaveState: ReadBrunchDocumentSaveState;
+  /** Runs the editor's Save for the agent. Stable. */
+  saveNetForAgent: SaveNetForAgent;
+  /** The latest load of another saved version of the open net, while the open net builds on it. */
+  versionLoad: VersionLoad | undefined;
   readonly: boolean;
   setTitle: (title: string) => void;
   title: string;
 }) => {
   const ownerKey = useBrunchOwnerKey();
-  const hostTools = useBrunchHashHostTools();
+  const graphReads = useBrunchHashHostTools();
+  const hostTools = useMemo(
+    () => [...graphReads, createHashSaveTool(saveNetForAgent)],
+    [graphReads, saveNetForAgent],
+  );
 
   const editor = useMemo(() => ({ handle, readTitle }), [handle, readTitle]);
   const openDocument = useMemo<BrunchOpenDocument | null>(
@@ -143,8 +159,13 @@ export const EmbedPetrinaut = ({
     interviewBudget: brunchInterviewBudget,
     words: brunchWords,
     plugins: embedPlugins,
-    // Reads of the HASH graph, run here as the signed-in user.
+    // Reads of the HASH graph, run here as the signed-in user, and the
+    // agent's save, run through the editor's Save once the user approves it.
     hostTools,
+    readSaveState,
+    // Brunch tells its agent about a load once, on the next turn, and the
+    // Ledger marks reflections on elements the loaded version lacks.
+    ...(versionLoad === undefined ? {} : { versionLoad }),
   });
 
   return (

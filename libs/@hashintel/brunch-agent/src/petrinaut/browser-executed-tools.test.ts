@@ -19,27 +19,30 @@ describe("browser-executed tools", () => {
     ]);
   });
 
-  test("are the canonical tools, the net readers, the draft and HASH's graph reads", () => {
+  test("are the canonical tools, the net readers, the draft, HASH's graph reads and HASH's save", () => {
     expect([...browserExecutedToolNames].sort()).toEqual(
       [
         ...Object.keys(petrinautAiTools),
         ...Object.values(netReaderToolNames),
         brunchTools.draftPetrinautExperiment,
         ...hashGraphReadToolNames,
+        brunchTools.saveHashNet,
       ].sort(),
     );
   });
 
-  test("the net tools leave out only the draft and HASH's graph reads", () => {
+  test("the net tools leave out only the draft, HASH's graph reads and HASH's save", () => {
     expect([...browserNetToolNames]).toEqual(
       [...browserExecutedToolNames].filter(
         (name) =>
           name !== brunchTools.draftPetrinautExperiment &&
+          name !== brunchTools.saveHashNet &&
           !hashGraphReadToolNames.has(name),
       ),
     );
     for (const name of hashGraphReadToolNames)
       expect(browserNetToolNames.has(name)).toBe(false);
+    expect(browserNetToolNames.has(brunchTools.saveHashNet)).toBe(false);
     expect(browserNetToolNames.has("toString")).toBe(false);
   });
 
@@ -47,6 +50,7 @@ describe("browser-executed tools", () => {
     [brunchTools.queryHashEntities, { entityTypes: ["Supplier"] }],
     [brunchTools.queryHashEntityTypes, { webIds: ["alice-web"] }],
     [brunchTools.queryHashWebs, {}],
+    [brunchTools.saveHashNet, { documentId: "web~net" }],
   ])("compare %s input as the server issued it", (name, issued) => {
     expect(browserExecutedToolInputSchemas[name]?.parse(issued)).toBe(issued);
   });
