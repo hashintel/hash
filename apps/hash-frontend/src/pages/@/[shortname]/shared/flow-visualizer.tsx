@@ -581,7 +581,7 @@ export const FlowVisualizer = () => {
     throw new Error("Is this possible?");
   }
 
-  const flowDefinitionStateKey = `${selectedFlow.name} ?? "loading`;
+  const flowDefinitionStateKey = selectedFlow.flowDefinitionEntityId;
   const flowRunStateKey = `${flowDefinitionStateKey}-${
     selectedFlowRun?.flowRunEntityId ?? "definition"
   }`;
