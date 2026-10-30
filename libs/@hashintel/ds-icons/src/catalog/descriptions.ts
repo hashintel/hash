@@ -230,7 +230,7 @@ export const descriptions = {
   oneHundred:
     "An underlined 100 for a complete score or percentage. Its parts lift briefly in sequence on hover.",
   personRunning:
-    "A running person for activity or execution. Its limbs cycle and its body bobs on hover; the action animation adds a jump.",
+    "A running person for activity or execution. Its limbs and body complete one running cycle on hover by default; the action animation adds a jump. Continuous animation is opt-in.",
   plug: "An electrical plug for a connection or integration. Its pins shift downward on hover.",
   print:
     "A printer with an emerging sheet for printing. The lower sheet advances downward on hover.",

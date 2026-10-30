@@ -26,7 +26,7 @@ const simulationStyle = css({
 const waveStyle = css({
   animationName: "[none]",
   animationTimingFunction: "[cubic-bezier(0.4, 0, 0.2, 1)]",
-  animationIterationCount: "[1]",
+  animationIterationCount: "[var(--petricon-iterations, 1)]",
 });
 
 type SimulationGeometryProps = {
@@ -87,6 +87,13 @@ export const FlaskGeometry = ({
         data-wave={waveEnabled}
         fill="none"
         onAnimationStart={(event) => {
+          if (event.animationName === "petrinautIconLiquidWave") {
+            event.currentTarget
+              .querySelectorAll<SVGAnimateElement>("animate")
+              .forEach((animation) => animation.beginElement());
+          }
+        }}
+        onAnimationIteration={(event) => {
           if (event.animationName === "petrinautIconLiquidWave") {
             event.currentTarget
               .querySelectorAll<SVGAnimateElement>("animate")

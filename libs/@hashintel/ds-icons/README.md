@@ -45,6 +45,60 @@ export default defineConfig({
 
 The preset defines the keyframes the icon animations use.
 
+## One-time and continuous animations
+
+Prefer one-time animations for hover feedback and completed actions. They acknowledge
+an interaction without competing with the rest of the interface. The default hover
+behavior plays once or settles into a hover pose; Person Running completes one gait
+cycle instead of running indefinitely.
+
+Use `animationMode="once"` (the default) or `animationMode="continuous"` to choose
+whether an effect repeats. Reserve continuous motion for an ongoing process, such
+as loading or playback, and stop it when that process ends. `HashIconProvider`
+can set the mode for a subtree; individual icons can override it.
+
+```tsx
+// Either mode can run on hover or keyboard focus of the enclosing control.
+<button type="button">
+  <HashIcon name="personRunning" hoverEffect="bounce" animationMode="once" />
+  Run simulation
+</button>;
+
+<button type="button">
+  <HashIcon
+    name="personRunning"
+    hoverEffect="bounce"
+    animationMode="continuous"
+  />
+  Preview running
+</button>;
+
+// An explicit effect can also follow application state.
+<HashIcon
+  name="loading"
+  effect="rotate"
+  animationMode="continuous"
+  active={isLoading}
+/>;
+```
+
+`hoverEffect` accepts `action`, `bounce`, `pulse`, `rotate`, or `draw` (check
+`getHashIconEffects(name)` for supported effects). It replaces the default hover
+hint and plays only while the enclosing control is hovered or keyboard-focused.
+Leaving both states cancels the effect; re-entering plays it again. With no
+`hoverEffect`, `animationMode` also controls repetition of the icon's authored
+hover keyframes. Static hover poses and application-state transitions do not loop.
+
+Use `effect` with a changing `trigger` for a one-time response to an application
+event. Use `active={false}` to stop an explicit effect. For compatibility,
+`active={true}` without an explicit or inherited mode still repeats; prefer naming
+the mode in new code. `LoadingIcon` explicitly defaults to continuous rotation.
+
+Both modes respect `prefers-reduced-motion` and `motion="none"`. Hover effects
+also honor `hover="none"` and disabled controls. Keep essential status information
+in text or accessible labels;
+never communicate it through animation alone.
+
 ## Catalog metadata
 
 `hashIconCatalog` lists each canonical icon with a label, category, description,

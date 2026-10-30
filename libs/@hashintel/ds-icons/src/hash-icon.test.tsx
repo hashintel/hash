@@ -24,6 +24,7 @@ import {
   hashIconNames,
   hashIconPack,
   PlaceIcon,
+  LoadingIcon,
   AddPlaceIcon,
   AddTransitionIcon,
   getHashIconEffects,
@@ -191,6 +192,198 @@ describe("HashIcon motion", () => {
     } else {
       Reflect.deleteProperty(Element.prototype, "animate");
     }
+  });
+
+  it("plays explicit effects once by default, with repetition independent of active", () => {
+    const { rerender } = render(
+      <HashIcon name="personRunning" effect="bounce" />,
+    );
+    expect(animate.mock.calls.length).toBeGreaterThan(0);
+    expect(
+      animate.mock.calls.every(([, options]) => options.iterations === 1),
+    ).toBe(true);
+    animate.mockClear();
+    rerender(
+      <HashIcon
+        name="personRunning"
+        effect="bounce"
+        active
+        animationMode="once"
+      />,
+    );
+    expect(animate.mock.calls.length).toBeGreaterThan(0);
+    expect(
+      animate.mock.calls.every(([, options]) => options.iterations === 1),
+    ).toBe(true);
+    animate.mockClear();
+    rerender(
+      <HashIcon
+        name="personRunning"
+        effect="bounce"
+        animationMode="continuous"
+      />,
+    );
+    expect(
+      animate.mock.calls.every(
+        ([, options]) => options.iterations === Infinity,
+      ),
+    ).toBe(true);
+  });
+
+  it("defaults the runner gait to one cycle and allows provider and local overrides", () => {
+    const { container, rerender } = render(<HashIcon name="personRunning" />);
+    expect(
+      container
+        .querySelector("svg")
+        ?.style.getPropertyValue("--petricon-iterations"),
+    ).toBe("1");
+    rerender(
+      <HashIconProvider animationMode="continuous">
+        <HashIcon name="personRunning" />
+      </HashIconProvider>,
+    );
+    expect(
+      container
+        .querySelector("svg")
+        ?.style.getPropertyValue("--petricon-iterations"),
+    ).toBe("infinite");
+    rerender(
+      <HashIconProvider animationMode="continuous">
+        <HashIcon name="personRunning" animationMode="once" />
+      </HashIconProvider>,
+    );
+    expect(
+      container
+        .querySelector("svg")
+        ?.style.getPropertyValue("--petricon-iterations"),
+    ).toBe("1");
+  });
+
+  it.each(["once", "continuous"] as const)(
+    "plays %s hover effects on pointer entry or keyboard focus and stops on exit",
+    (animationMode) => {
+      const { unmount } = render(
+        <button type="button">
+          <HashIcon
+            name="personRunning"
+            hoverEffect="bounce"
+            animationMode={animationMode}
+          />
+        </button>,
+      );
+      const button = screen.getByRole("button");
+      expect(animate).not.toHaveBeenCalled();
+      fireEvent.pointerEnter(button);
+      const count = animate.mock.calls.length;
+      expect(count).toBeGreaterThan(0);
+      expect(
+        animate.mock.calls.every(
+          ([, options]) =>
+            options.iterations ===
+            (animationMode === "continuous" ? Infinity : 1),
+        ),
+      ).toBe(true);
+      fireEvent.focus(button);
+      expect(animate).toHaveBeenCalledTimes(count);
+      fireEvent.pointerLeave(button);
+      expect(cancel).not.toHaveBeenCalled();
+      fireEvent.blur(button);
+      expect(cancel).toHaveBeenCalledTimes(count);
+      fireEvent.focus(button);
+      expect(animate).toHaveBeenCalledTimes(count * 2);
+      unmount();
+      expect(cancel).toHaveBeenCalledTimes(count * 2);
+    },
+  );
+
+  it("does not play hover effects on disabled controls, hover opt-out, or reduced motion", () => {
+    const { rerender } = render(
+      <button type="button" disabled>
+        <HashIcon name="place" hoverEffect="pulse" animationMode="continuous" />
+      </button>,
+    );
+    fireEvent.pointerEnter(screen.getByRole("button"));
+    expect(animate).not.toHaveBeenCalled();
+    rerender(
+      <button type="button">
+        <HashIcon name="place" hoverEffect="pulse" hover="none" />
+      </button>,
+    );
+    fireEvent.pointerEnter(screen.getByRole("button"));
+    expect(animate).not.toHaveBeenCalled();
+    rerender(
+      <button type="button">
+        <HashIcon name="place" hoverEffect="pulse" animationMode="continuous" />
+      </button>,
+    );
+    fireEvent.pointerEnter(screen.getByRole("button"));
+    expect(animate.mock.calls.length).toBeGreaterThan(0);
+    const count = animate.mock.calls.length;
+    act(() => {
+      reducedMotion = true;
+      mediaListeners.forEach((listener) => listener());
+    });
+    expect(cancel).toHaveBeenCalledTimes(count);
+    fireEvent.focus(screen.getByRole("button"));
+    expect(animate).toHaveBeenCalledTimes(count);
+  });
+
+  it("stops continuous authored hover actions when the pointer leaves", () => {
+    render(
+      <button type="button">
+        <HashIcon name="clockRotateLeft" animationMode="continuous" />
+      </button>,
+    );
+    fireEvent.pointerEnter(screen.getByRole("button"));
+    const count = animate.mock.calls.length;
+    expect(count).toBeGreaterThan(0);
+    expect(
+      animate.mock.calls.every(
+        ([, options]) => options.iterations === Infinity,
+      ),
+    ).toBe(true);
+    fireEvent.pointerLeave(screen.getByRole("button"));
+    expect(cancel).toHaveBeenCalledTimes(count);
+  });
+
+  it("hands a hover effect over to explicit playback without overlapping loops", () => {
+    const Sample = ({ active }: { active?: boolean }) => (
+      <button type="button">
+        <HashIcon
+          name="place"
+          effect="pulse"
+          hoverEffect="pulse"
+          trigger={0}
+          active={active}
+          animationMode="continuous"
+        />
+      </button>
+    );
+    const { rerender } = render(<Sample />);
+    fireEvent.pointerEnter(screen.getByRole("button"));
+    const count = animate.mock.calls.length;
+    expect(count).toBeGreaterThan(0);
+    rerender(<Sample active />);
+    expect(cancel).toHaveBeenCalledTimes(count);
+    expect(animate).toHaveBeenCalledTimes(count * 2);
+    fireEvent.focus(screen.getByRole("button"));
+    expect(animate).toHaveBeenCalledTimes(count * 2);
+    rerender(<Sample active={false} />);
+    expect(cancel).toHaveBeenCalledTimes(count * 2);
+  });
+
+  it("keeps LoadingIcon continuous even under a one-time provider", () => {
+    render(
+      <HashIconProvider animationMode="once">
+        <LoadingIcon />
+      </HashIconProvider>,
+    );
+    expect(animate.mock.calls.length).toBeGreaterThan(0);
+    expect(
+      animate.mock.calls.every(
+        ([, options]) => options.iterations === Infinity,
+      ),
+    ).toBe(true);
   });
 
   it("replays only when its trigger changes and cancels interrupted effects", () => {

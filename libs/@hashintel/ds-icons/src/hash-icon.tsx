@@ -29,6 +29,7 @@ import { utilityGeometry } from "./hash-icon/utility-geometry";
 
 import type { HashIconBadgeVisibility } from "./hash-icon/add-node-geometry";
 import type {
+  HashIconAnimationMode,
   HashIconMotion,
   HashIconTransition,
   IconMotionProps,
@@ -42,6 +43,7 @@ export { hashIconEffects } from "./hash-icon/motion";
 export type { HashIconStatus } from "./hash-icon/state-geometry";
 export type { HashIconBadgeVisibility } from "./hash-icon/add-node-geometry";
 export type {
+  HashIconAnimationMode,
   HashIconEffect,
   HashIconMotion,
   HashIconTransition,
@@ -56,6 +58,7 @@ export type HashIconDefaults = {
   weight?: number;
   color?: string;
   motion?: HashIconMotion;
+  animationMode?: HashIconAnimationMode;
   duration?: number;
 };
 
@@ -194,6 +197,8 @@ export const HashIcon = ({
   variant = "outline",
   strokeWidth,
   effect,
+  hoverEffect,
+  animationMode,
   trigger,
   active,
   duration,
@@ -219,12 +224,17 @@ export const HashIcon = ({
   const resolvedDuration = resolveIconDuration(
     duration ?? defaults.duration ?? 600,
   );
+  const resolvedAnimationMode =
+    animationMode ?? defaults.animationMode ?? (active ? "continuous" : "once");
   const drawing =
     drawProgress !== undefined ||
     (typeof effect === "string" ? effect === "draw" : effect?.includes("draw"));
   const hoverAllowed = motionAllowed && hover === "auto" && !drawing;
+  const defaultHoverAllowed = hoverAllowed && !hoverEffect;
   const motionRef = useIconEffects({
     effect,
+    hoverEffect: hoverAllowed ? hoverEffect : undefined,
+    animationMode: resolvedAnimationMode,
     trigger,
     active,
     duration: resolvedDuration,
@@ -233,7 +243,7 @@ export const HashIcon = ({
     identity: `${name}:${variant}`,
     name,
     interactive: interaction === "auto" && !drawing,
-    authoredHover: hoverAllowed && name in modelingGeometry,
+    authoredHover: defaultHoverAllowed && name in modelingGeometry,
     drawProgress,
   });
   const isAddIcon = name === "addPlace" || name === "addTransition";
@@ -271,14 +281,19 @@ export const HashIcon = ({
       aria-hidden={labelled ? undefined : true}
       focusable="false"
       {...props}
-      style={{
-        ...(name === "diagnostics" ? { transition: resolvedTransition } : {}),
-        ...(name === "personRunning" ? { overflow: "visible" } : {}),
-        ...props.style,
-      }}
+      style={
+        {
+          "--petricon-iterations":
+            resolvedAnimationMode === "continuous" ? "infinite" : "1",
+          ...(name === "diagnostics" ? { transition: resolvedTransition } : {}),
+          ...(name === "personRunning" ? { overflow: "visible" } : {}),
+          ...props.style,
+        } as React.CSSProperties
+      }
       data-icon-pack="petrinaut-experimental"
       data-petricon=""
       data-icon={name}
+      data-icon-animation-mode={resolvedAnimationMode}
       data-icon-status={name === "diagnostics" ? status : undefined}
     >
       <g ref={motionRef} data-icon-motion={motionAllowed ? "auto" : "none"}>
@@ -294,7 +309,7 @@ export const HashIcon = ({
           <SidebarGeometry
             collapsed={collapsed}
             filled={variant === "filled"}
-            motionAllowed={motionAllowed && hover === "auto"}
+            motionAllowed={defaultHoverAllowed}
             transition={resolvedTransition}
           />
         ) : name === "settings" ? (
@@ -302,7 +317,7 @@ export const HashIcon = ({
         ) : name === "flask" ? (
           <FlaskGeometry
             selected={selected}
-            hover={motionAllowed && hover === "auto"}
+            hover={defaultHoverAllowed}
             filled={variant === "filled"}
             transition={simulationTransition}
             waveDuration={Math.min(resolvedDuration, 480)}
@@ -310,14 +325,14 @@ export const HashIcon = ({
         ) : name === "layer" ? (
           <LayerGeometry
             selected={selected}
-            hover={motionAllowed && hover === "auto"}
+            hover={defaultHoverAllowed}
             filled={variant === "filled"}
             transition={simulationTransition}
           />
         ) : name === "shapes" ? (
           <ShapesGeometry
             selected={selected}
-            hover={motionAllowed && hover === "auto"}
+            hover={defaultHoverAllowed}
             strokeWidth={resolvedStrokeWidth}
             transition={getIconTransition(
               motionAllowed,
@@ -329,7 +344,7 @@ export const HashIcon = ({
           <IconMotionLayer name="whole">
             <IconInteraction
               name={name}
-              enabled={hoverAllowed && !(name in modelingGeometry)}
+              enabled={defaultHoverAllowed && !(name in modelingGeometry)}
               duration={Math.min(resolvedDuration, 480)}
               transition={getIconTransition(
                 motionAllowed,
@@ -486,6 +501,7 @@ export const LoadingIcon = (props: HashIconComponentProps) => (
   <HashIcon
     name="loading"
     effect="rotate"
+    animationMode="continuous"
     active
     duration={1100}
     hover="none"
