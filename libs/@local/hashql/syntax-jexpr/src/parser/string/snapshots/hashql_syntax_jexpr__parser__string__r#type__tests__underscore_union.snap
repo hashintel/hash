@@ -1,0 +1,16 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Underscore-prefixed type name beside inference
+expression: _0 | _
+info:
+  kind: Ok
+---
+Type#4294967040@5
+  TypeKind (Union)
+    UnionType#4294967040@5
+      Type#4294967040@3
+        TypeKind (Path)
+          Path#4294967040@3 (rooted: false)
+            PathSegment#4294967040@2 (name: _0)
+      Type#4294967040@4
+        TypeKind (Infer)

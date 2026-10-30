@@ -1,0 +1,17 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+assertion_line: 438
+description: Qualified type path as the first tuple field
+expression: "(Foo::Bar,)"
+info:
+  kind: Ok
+---
+Type#4294967040@7
+  TypeKind (Tuple)
+    TupleType#4294967040@7
+      TupleField#4294967040@6
+        Type#4294967040@6
+          TypeKind (Path)
+            Path#4294967040@6 (rooted: false)
+              PathSegment#4294967040@3 (name: Foo)
+              PathSegment#4294967040@5 (name: Bar)

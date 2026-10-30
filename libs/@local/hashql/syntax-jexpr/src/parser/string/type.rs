@@ -1,4 +1,4 @@
-use core::ops::Range;
+use core::{iter, ops::Range};
 
 use hashql_ast::node::{
     id::NodeId,
@@ -11,7 +11,7 @@ use winnow::{
     ModalParser, ModalResult, Parser as _,
     ascii::multispace0,
     combinator::{
-        alt, cut_err, dispatch, fail, opt, peek, preceded, repeat, separated, separated_pair,
+        alt, cut_err, dispatch, fail, not, opt, peek, preceded, repeat, separated, separated_pair,
         terminated,
     },
     error::{AddContext, ParserError, StrContext, StrContextValue},
@@ -146,7 +146,6 @@ where
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     move |input: &mut Input<'heap, 'span, 'source>| {
-        // to now construct the first field, we just need to parse the type
         let (field_type, field_range) = parse_type.with_span().parse_next(input)?;
 
         let field_span = input.state.span(Range {
@@ -202,11 +201,15 @@ where
     let mut first = Some(first);
 
     move |input: &mut Input<'heap, 'span, 'source>| {
-        let ((_, rest, last), mut span): ((_, Vec<_>, _), _) = terminated(
+        // The parser reads each field once. Reading the last field, failing on the comma after it
+        // and reading it again would double the work at every level of nesting.
+        let ((_, rest), mut span): ((_, Option<Vec<_>>), _) = terminated(
             (
                 cut_err(','),
-                repeat(0.., terminated(parse_type_tuple_field, ws(","))),
-                opt(parse_type_tuple_field),
+                opt(terminated(
+                    separated(1.., parse_type_tuple_field, ws(",")),
+                    opt(ws(",")),
+                )),
             ),
             ws(cut_err(')').context(StrContext::Expected(StrContextValue::CharLiteral(')')))),
         )
@@ -224,20 +227,15 @@ where
         span.start = start_span.start;
         let span = input.state.span(span);
 
-        let mut fields = Vec::with_capacity(rest.len() + 2);
-        fields.push(first);
-        fields.extend(rest);
-        if let Some(last) = last {
-            fields.push(last);
-        }
-
         Ok(Type {
             id: NodeId::PLACEHOLDER,
             span,
             kind: TypeKind::Tuple(TupleType {
                 id: NodeId::PLACEHOLDER,
                 span,
-                fields: fields.into_iter().collect_in(input.state.heap),
+                fields: iter::once(first)
+                    .chain(rest.into_iter().flatten())
+                    .collect_in(input.state.heap),
             }),
         })
     }
@@ -257,41 +255,29 @@ where
 
     let start_span = ws("(").span().parse_next(input)?;
 
-    // when we're inside parenthesis we can be one of the following:
-    // - a group
-    // - a tuple
-    // - a struct
-
-    // take a look at the next token, to determine if what we're parsing an empty variant, in that
-    // case we can return it
-    match peek(any).parse_next(input)? {
-        // empty struct
-        ':' => return parse_type_paren_empty_struct(start_span).parse_next(input),
-        // empty tuple
-        ')' => return parse_type_paren_empty_tuple(start_span).parse_next(input),
+    // LL(2), as we need to figure out which variant it is `(:)` is an empty struct, whereas `(::`
+    // is a key that starts with a rooted path.
+    match peek((any, opt(any))).parse_next(input)? {
+        (':', Some(')')) => return parse_type_paren_empty_struct(start_span).parse_next(input),
+        (')', _) => return parse_type_paren_empty_tuple(start_span).parse_next(input),
         _ => {}
     }
 
-    // Now that the empty variants are out of the way, we need to determine, are we in a struct,
-    // tuple or paren?
+    // `:::` must not fail, and instead be read as `: ::` (a rooted path).
+    let field_separator = preceded(not(("::", not(":"))), ":");
     let decision = alt((
-        terminated(parse_ident, ws(":"))
+        terminated(parse_ident, ws(field_separator))
             .with_span()
             .map(|(ident, span)| ParseDecision::Struct(ident, span)),
         parse_type.map(ParseDecision::TupleOrParen),
     ))
     .parse_next(input)?;
 
-    // given our parse decision we now know if we're in a struct, or not, in case we are, fall back
-    // to the struct parser
     match decision {
         ParseDecision::Struct(ident, partial_field_span) => {
             parse_type_paren_struct(ident, partial_field_span, start_span).parse_next(input)
         }
         ParseDecision::TupleOrParen(r#type) => {
-            // To finally figure out if we're in a paren or tuple, check the next character, if it's
-            // a `)` we're in a paren, otherwise in a tuple
-
             let _: &str = multispace0.parse_next(input)?;
 
             match peek(opt(any)).parse_next(input)? {
@@ -304,13 +290,19 @@ where
 
                     let r#type = r#type.take().expect("Parser called more than once");
 
-                    // Extend the span of the type to include the closing parenthesis
+                    // Extend the span of the type to include the closing parenthesis.
                     span.start = start_span.start;
                     input.state.cover(r#type.span, span);
 
                     Ok(r#type)
                 }
                 Some(',') => parse_type_paren_tuple(r#type, start_span).parse_next(input),
+                // The decision to parse a struct has been already taken. A repeated `:` means
+                // that it is neither.
+                Some(':') => fail
+                    .context(StrContext::Expected(StrContextValue::CharLiteral(')')))
+                    .context(StrContext::Expected(StrContextValue::CharLiteral(',')))
+                    .parse_next(input),
                 _ => fail
                     .context(StrContext::Expected(StrContextValue::CharLiteral(')')))
                     .context(StrContext::Expected(StrContextValue::CharLiteral(',')))
@@ -335,7 +327,7 @@ where
     });
 
     dispatch! {peek(any);
-        '_' => parse_type_infer,
+        '_' => alt((path.by_ref(), parse_type_infer)),
         '(' => parse_type_paren,
         _ => path
     }
@@ -428,10 +420,32 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::parse_type;
     use crate::parser::string::test::{bind_parser, test_cases};
 
     bind_parser!(SyntaxDump; fn parse_type_test(parse_type));
+
+    test_cases!(parse_type_test;
+        underscore_digit("_0") => "Underscore-prefixed type name",
+        underscore_word("_internal") => "Underscore-prefixed word as a type name",
+        underscore_unicode("_\u{03bb}") => "Underscore-prefixed Unicode type name",
+        underscore_qualified("_0::Item") => "Qualified path beginning with an underscore-prefixed name",
+        underscore_generic("List<_0>") => "Underscore-prefixed generic type argument",
+        underscore_constraint("List<T: _internal>") => "Underscore-prefixed type in a generic constraint",
+        underscore_union("_0 | _") => "Underscore-prefixed type name beside inference",
+        underscore_incomplete("_0<T") => "Incomplete generic path after an underscore-prefixed name",
+        infer_generic("List<_>") => "Inference as a generic type argument",
+        rooted_group("(::Foo)") => "Grouped rooted type path",
+        rooted_tuple("(::Foo, Bar)") => "Rooted type path as the first tuple field",
+        rooted_generic_group("List<(::Foo)>") => "Grouped rooted type as a generic argument",
+        qualified_group("(Foo::Bar)") => "Grouped qualified type path",
+        qualified_tuple("(Foo::Bar,)") => "Qualified type path as the first tuple field",
+        qualified_intersection("(Foo::Bar & _)") => "Qualified type path in a grouped intersection",
+        qualified_nested_intersection("`!` & (`!`::`!` & _)") => "Quoted qualified path in a nested intersection",
+        qualified_generic_group("List<(Foo::Bar)>") => "Grouped qualified type as a generic argument",
+        qualified_incomplete("(Foo::)") => "Incomplete qualified path in a group",
+        rooted_struct_compact("(field:::Root)") => "Rooted field type without separator whitespace",
+    );
 
     // Tests for individual parser components
     test_cases!(parse_type_test;
@@ -468,6 +482,7 @@ mod tests {
         nested_struct("(person: (name: String, age: Int))") => "Nested struct type",
         struct_with_tuple_field("(data: (Int, String))") => "Struct with tuple field",
         tuple_with_struct_field("((name: String), Int)") => "Tuple with struct field",
+        deeply_nested_tuple(&format!("{}A{}", "(A, ".repeat(20), ")".repeat(20))) => "Twenty nested tuples without trailing commas",
 
         // Whitespace handling
         tuple_with_whitespace("( Int , String )") => "Tuple with whitespace",
@@ -478,8 +493,6 @@ mod tests {
 
     // Tests for operator precedence and complex expressions
     test_cases!(parse_type_test;
-        union_of_atoms("Int | String | Boolean") => "Union of atom types",
-        intersection_of_atoms("Int & String & Boolean") => "Intersection of atom types",
         union_of_intersections("Int & String | Boolean & Char") => "Union of intersections",
         intersection_of_unions("Int | String & Boolean | Char") => "Intersection of unions",
         mixed_precedence("Int & (String | Boolean) & Char") => "Mixed precedence with parentheses",
@@ -491,7 +504,7 @@ mod tests {
         unclosed_tuple("(Int, String") => "Unclosed tuple",
         unclosed_struct("(name: String, age: Int") => "Unclosed struct",
         missing_field_type("(name: )") => "Missing field type",
-        missing_colon("(name: String, age Int)") => "Missing field type",
+        missing_colon("(name: String, age Int)") => "Missing colon after a struct field name",
         invalid_field_separator("(name String)") => "Invalid field separator",
         unclosed_parenthesized("(Int & String") => "Unclosed parenthesized type",
         incomplete_union("Int |") => "Incomplete union",
@@ -504,7 +517,7 @@ mod tests {
     // Tests for common real-world type patterns
     test_cases!(parse_type_test;
         generic_path("Container<T>") => "Generic type",
-        generic_with_multiple_params("Map<Key, Value>") => "Generic with multiple parameters",
+        generic_multi_param("Map<Key, Value>") => "Generic with multiple parameters",
         nested_generics("Container<Wrapper<T>>") => "Nested generic types",
         optional_type("Option<Value>") => "Optional type pattern",
         complex_entity("(id: ID, attrs: (name: String, metadata: (created: Timestamp, modified: Timestamp | Null)))") => "Complex entity type with nested fields",

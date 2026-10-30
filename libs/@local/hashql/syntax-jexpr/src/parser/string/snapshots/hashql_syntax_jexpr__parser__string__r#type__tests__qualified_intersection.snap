@@ -1,0 +1,18 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+assertion_line: 438
+description: Qualified type path in a grouped intersection
+expression: "(Foo::Bar & _)"
+info:
+  kind: Ok
+---
+Type#4294967040@8
+  TypeKind (Intersection)
+    IntersectionType#4294967040@8
+      Type#4294967040@6
+        TypeKind (Path)
+          Path#4294967040@6 (rooted: false)
+            PathSegment#4294967040@3 (name: Foo)
+            PathSegment#4294967040@5 (name: Bar)
+      Type#4294967040@7
+        TypeKind (Infer)

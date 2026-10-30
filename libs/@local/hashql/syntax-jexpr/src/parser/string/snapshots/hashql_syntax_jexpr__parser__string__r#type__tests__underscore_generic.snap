@@ -1,0 +1,17 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Underscore-prefixed generic type argument
+expression: List<_0>
+info:
+  kind: Ok
+---
+Type#4294967040@8
+  TypeKind (Path)
+    Path#4294967040@8 (rooted: false)
+      PathSegment#4294967040@7 (name: List)
+        PathSegmentArgument (GenericArgument)
+          GenericArgument#4294967040@6
+            Type#4294967040@5
+              TypeKind (Path)
+                Path#4294967040@5 (rooted: false)
+                  PathSegment#4294967040@4 (name: _0)

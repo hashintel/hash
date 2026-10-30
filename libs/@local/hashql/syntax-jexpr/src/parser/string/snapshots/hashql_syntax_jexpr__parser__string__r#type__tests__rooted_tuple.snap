@@ -1,0 +1,20 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
+description: Rooted type path as the first tuple field
+expression: "(::Foo, Bar)"
+info:
+  kind: Ok
+---
+Type#4294967040@8
+  TypeKind (Tuple)
+    TupleType#4294967040@8
+      TupleField#4294967040@3
+        Type#4294967040@3
+          TypeKind (Path)
+            Path#4294967040@3 (rooted: true)
+              PathSegment#4294967040@2 (name: Foo)
+      TupleField#4294967040@7
+        Type#4294967040@6
+          TypeKind (Path)
+            Path#4294967040@6 (rooted: false)
+              PathSegment#4294967040@5 (name: Bar)
