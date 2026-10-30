@@ -21,7 +21,7 @@ const MAX_OUTPUT_LEN: usize = 255 * 32;
 /// ```
 /// use core::pin::pin;
 ///
-/// use hash_secret::{Secret, hkdf::HkdfSha256Key};
+/// use hash_crypto::{Secret, hkdf::HkdfSha256Key};
 ///
 /// let server_secret = Secret::<[u8]>::from_hex("ab".repeat(32))?;
 /// let key = HkdfSha256Key::extract(b"generation 7", &server_secret);

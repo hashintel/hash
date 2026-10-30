@@ -23,7 +23,7 @@ use std::io::Write as _;
 #[cfg(test)]
 use camino::Utf8Path;
 use camino::Utf8PathBuf;
-use hash_secret::Secret;
+use hash_crypto::Secret;
 use hashql_core::id::{IdSlice, IdVec};
 use smallvec::SmallVec;
 use type_system::ontology::id::VersionedUrl;

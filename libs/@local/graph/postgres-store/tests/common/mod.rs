@@ -1,3 +1,4 @@
+use hash_crypto::Secret;
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
@@ -6,7 +7,6 @@ use hash_graph_postgres_store::{
     },
 };
 use hash_graph_store::pool::StorePool;
-use hash_secret::Secret;
 use hash_telemetry::logging::env_filter;
 use tokio_postgres::NoTls;
 

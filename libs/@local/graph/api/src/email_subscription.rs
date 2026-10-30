@@ -2,8 +2,8 @@ use alloc::sync::Arc;
 use core::pin::Pin;
 
 use error_stack::{Report, ResultExt as _};
+use hash_crypto::Secret;
 use hash_graph_store::email_subscription::{EmailSubscriptionError, EmailSubscriptionProvider};
-use hash_secret::Secret;
 use md5::{Digest as _, Md5};
 use reqwest::Client;
 

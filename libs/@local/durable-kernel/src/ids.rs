@@ -5,7 +5,7 @@
 
 use core::{ascii::Char, fmt, marker::PhantomData, str::FromStr};
 
-use hash_secret::digest::Sha256;
+use hash_crypto::digest::Sha256;
 use serde::{Serialize, de};
 
 pub const SHA256_HEX_BYTES: usize = 64;

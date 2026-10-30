@@ -2,7 +2,7 @@
 
 use core::{clone::CloneToUninit, pin::Pin};
 
-use hash_secret::{Secret, SecretBuffer};
+use hash_crypto::{Secret, SecretBuffer};
 
 trait Leak: CloneToUninit + AsRef<[u8]> + AsMut<[u8]> {}
 

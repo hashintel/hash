@@ -12,12 +12,12 @@ use axum::{
     body::{Body, to_bytes},
     response::Response,
 };
+use hash_crypto::Secret;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
 };
 use hash_middleware::authentication::Challenge;
-use hash_secret::Secret;
 use http::Request;
 use serde_json::Value;
 use tokio_postgres::NoTls;

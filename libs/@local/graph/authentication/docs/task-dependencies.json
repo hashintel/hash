@@ -2,10 +2,10 @@
   "package": "hash-graph-authentication",
   "dependencies": [
     "error-stack",
+    "hash-crypto",
     "hash-graph-authorization",
     "hash-graph-store",
     "hash-middleware",
-    "hash-secret",
     "type-system"
   ],
   "tasks": {

@@ -6,7 +6,7 @@ use core::pin::Pin;
 
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand, ValueHint};
-use hash_secret::Secret;
+use hash_crypto::Secret;
 
 #[cfg(feature = "cli")]
 use super::EmbedderArgs;

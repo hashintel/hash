@@ -18,6 +18,7 @@ use core::{assert_matches, error::Error, ops::ControlFlow, pin::pin, time::Durat
 
 use error_stack::Report;
 use futures::lock::Mutex;
+use hash_crypto::Secret;
 use hash_graph_authentication::api_token::{
     ApiTokenEncryptionKey, ApiTokenIssuer, ApiTokenProvider, AuthenticateApiToken, Environment,
     HashedApiToken,
@@ -42,7 +43,6 @@ use hash_middleware::authentication::{
     provider::AuthenticationProvider,
     request::{AuthenticationError, AuthenticationErrorKind},
 };
-use hash_secret::Secret;
 use http::{HeaderMap, HeaderValue, header::AUTHORIZATION};
 use pretty_assertions::assert_eq;
 use time::OffsetDateTime;

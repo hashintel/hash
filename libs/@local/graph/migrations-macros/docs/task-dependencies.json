@@ -1,7 +1,7 @@
 {
   "package": "hash-graph-migrations-macros",
   "dependencies": [
-    "hash-secret"
+    "hash-crypto"
   ],
   "tasks": {
     "doc:dependency-diagram": {

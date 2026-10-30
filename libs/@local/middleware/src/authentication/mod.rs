@@ -47,7 +47,7 @@ use axum::{
 };
 use error_stack::Report;
 use futures::{TryFutureExt as _, future::Either};
-use hash_secret::Secret;
+use hash_crypto::Secret;
 use opentelemetry::{
     KeyValue,
     metrics::{Counter, Meter},
@@ -306,7 +306,7 @@ fn service_secret_rejection(
 /// # use axum::{Router, routing::get};
 /// use hash_middleware::authentication::{AuthenticationMetrics, ServiceSecretLayer};
 ///
-/// # use hash_secret::Secret;
+/// # use hash_crypto::Secret;
 /// # let meter = opentelemetry::global::meter("doc");
 /// let router: Router = Router::new()
 ///     .route("/snapshot", get(async || "gated"))
@@ -692,7 +692,7 @@ mod tests {
 
     use axum::{Router, body::Body, response::IntoResponse as _, routing::get};
     use error_stack::Report;
-    use hash_secret::Secret;
+    use hash_crypto::Secret;
     use http::{
         HeaderMap, Request, StatusCode,
         header::{CONTENT_TYPE, WWW_AUTHENTICATE},

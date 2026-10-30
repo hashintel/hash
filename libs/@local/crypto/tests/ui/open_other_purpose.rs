@@ -1,6 +1,6 @@
 use core::pin::pin;
 
-use hash_secret::{
+use hash_crypto::{
     Secret,
     aes_gcm::{AeadPurpose, Aes256GcmKey},
 };

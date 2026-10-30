@@ -1,12 +1,12 @@
 use core::pin::pin;
 
 use error_stack::{Report, ResultExt as _};
-use hash_graph_store::api_token::{
-    ApiTokenEncryptedSecretHash, ApiTokenEncryptionKeyId, ApiTokenId, ApiTokenSecretHash,
-};
-use hash_secret::{
+use hash_crypto::{
     Secret,
     aes_gcm::{AeadPurpose, Aes256GcmKey, Sealed},
+};
+use hash_graph_store::api_token::{
+    ApiTokenEncryptedSecretHash, ApiTokenEncryptionKeyId, ApiTokenId, ApiTokenSecretHash,
 };
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
@@ -164,10 +164,10 @@ pub struct ApiTokenDecryptionError;
 mod tests {
     use core::{assert_matches, pin::pin};
 
+    use hash_crypto::Secret;
     use hash_graph_store::api_token::{
         ApiTokenEncryptedSecretHash, ApiTokenEncryptionKeyId, ApiTokenId,
     };
-    use hash_secret::Secret;
     use rstest::rstest;
     use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
     use uuid::Uuid;

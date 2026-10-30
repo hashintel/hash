@@ -38,10 +38,10 @@ fn fill(bytes: &mut [u8]) -> Result<(), Report<RandomError>> {
 /// # Examples
 ///
 /// ```
-/// use hash_secret::random::random_bytes;
+/// use hash_crypto::random::random_bytes;
 ///
 /// let token_id = random_bytes::<16>()?;
-/// # Ok::<(), error_stack::Report<hash_secret::random::RandomError>>(())
+/// # Ok::<(), error_stack::Report<hash_crypto::random::RandomError>>(())
 /// ```
 pub fn random_bytes<const N: usize>() -> Result<[u8; N], Report<RandomError>> {
     let mut bytes = [0; N];
@@ -61,11 +61,11 @@ impl<T: ?Sized + SecretBuffer<View = [u8]>> Secret<T> {
     /// ```
     /// use core::pin::pin;
     ///
-    /// use hash_secret::Secret;
+    /// use hash_crypto::Secret;
     ///
     /// let mut key = pin!(Secret::<[u8; 32]>::zeroed());
     /// key.as_mut().fill_random()?;
-    /// # Ok::<(), error_stack::Report<hash_secret::random::RandomError>>(())
+    /// # Ok::<(), error_stack::Report<hash_crypto::random::RandomError>>(())
     /// ```
     pub fn fill_random(self: Pin<&mut Self>) -> Result<(), Report<RandomError>> {
         fill(self.expose_mut())
@@ -85,12 +85,12 @@ impl<const N: usize> Secret<[u8; N]> {
     /// # Examples
     ///
     /// ```
-    /// use hash_secret::Secret;
+    /// use hash_crypto::Secret;
     ///
     /// let secret = Secret::<[u8; 43]>::random_alphanumeric()?;
     ///
     /// assert!(secret.expose().iter().all(u8::is_ascii_alphanumeric));
-    /// # Ok::<(), error_stack::Report<hash_secret::random::RandomError>>(())
+    /// # Ok::<(), error_stack::Report<hash_crypto::random::RandomError>>(())
     /// ```
     pub fn random_alphanumeric() -> Result<Pin<Box<Self>>, Report<RandomError>> {
         let mut secret = Box::pin(Self::zeroed());

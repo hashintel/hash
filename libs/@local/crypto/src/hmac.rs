@@ -24,7 +24,7 @@ const TAG_LEN: usize = 32;
 /// # Examples
 ///
 /// ```
-/// use hash_secret::hmac::HmacPurpose;
+/// use hash_crypto::hmac::HmacPurpose;
 ///
 /// struct Cursors;
 ///
@@ -55,7 +55,7 @@ pub trait HmacPurpose {
 /// # Examples
 ///
 /// ```
-/// use hash_secret::hmac::{HmacPurpose, HmacSha256Key};
+/// use hash_crypto::hmac::{HmacPurpose, HmacSha256Key};
 ///
 /// struct Cursors;
 ///
@@ -72,7 +72,7 @@ pub trait HmacPurpose {
 ///
 /// assert!(key.sign(b"page 2") == tag);
 /// assert!(key.sign(b"page 3") != tag);
-/// # Ok::<(), error_stack::Report<hash_secret::random::RandomError>>(())
+/// # Ok::<(), error_stack::Report<hash_crypto::random::RandomError>>(())
 /// ```
 pub struct HmacSha256Key<P> {
     // `hmac::Key` holds the HMAC state inline, and a move leaves an uncleared copy behind.

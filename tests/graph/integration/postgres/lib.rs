@@ -28,6 +28,7 @@ mod transaction;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
+use hash_crypto::Secret;
 use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
 use hash_graph_postgres_store::{
     Environment, load_env,
@@ -78,7 +79,6 @@ use hash_graph_store::{
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_secret::Secret;
 use hash_telemetry::logging::env_filter;
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{

@@ -13,7 +13,7 @@ use std::{
 };
 
 use convert_case::{Case, Casing as _};
-use hash_secret::digest::Sha256;
+use hash_crypto::digest::Sha256;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use regex::Regex;

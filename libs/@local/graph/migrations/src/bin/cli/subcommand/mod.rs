@@ -4,7 +4,7 @@ mod run;
 use core::{error::Error, pin::Pin};
 
 use error_stack::Report;
-use hash_secret::Secret;
+use hash_crypto::Secret;
 use tokio_postgres::{Client, Config, Connection, NoTls, Socket, tls::NoTlsStream};
 
 use self::{completions::CompletionsCommand, run::RunCommand};

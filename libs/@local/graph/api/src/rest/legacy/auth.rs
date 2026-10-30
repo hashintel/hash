@@ -22,13 +22,13 @@ mod tests {
     use std::collections::HashMap;
 
     use axum::{Router, body::Body, routing::get};
+    use hash_crypto::Secret;
     use hash_graph_authentication::{
         actor::tests::FixedActorResolver, delegation::ServiceDelegationProvider,
     };
     use hash_middleware::authentication::{
         AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, Bootstrap, Challenge,
     };
-    use hash_secret::Secret;
     use http::{Request, StatusCode, header::CONTENT_TYPE};
     use serde_json::{Value, json};
     use tower::ServiceExt as _;

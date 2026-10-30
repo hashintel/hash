@@ -2,12 +2,12 @@ use alloc::sync::{Arc, Weak};
 use core::{assert_matches, future, time::Duration};
 
 use arc_swap::Guard;
+use hash_crypto::Secret;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
 };
 use hash_graph_temporal_versioning::Timestamp;
-use hash_secret::Secret;
 use hashql_core::id::Id as _;
 use rand::{SeedableRng as _, rngs::StdRng};
 use tokio::sync::oneshot;

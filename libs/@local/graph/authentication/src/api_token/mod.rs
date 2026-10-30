@@ -31,8 +31,8 @@ use core::{
 };
 
 use error_stack::{Report, ResultExt as _};
+use hash_crypto::{Secret, digest::Sha256Digest, random::random_bytes};
 use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash, ApiTokenType, ApiTokenVersion};
-use hash_secret::{Secret, digest::Sha256Digest, random::random_bytes};
 use type_system::principal::{actor::ActorEntityUuid, actor_group::WebId};
 use uuid::Uuid;
 use zerocopy::{Immutable, IntoBytes, KnownLayout, TryFromBytes};
@@ -510,8 +510,8 @@ fn encode_base62<const WIDTH: usize>(value: u128) -> [u8; WIDTH] {
 mod tests {
     use core::assert_matches;
 
+    use hash_crypto::Secret;
     use hash_graph_store::api_token::{ApiTokenId, ApiTokenSecretHash};
-    use hash_secret::Secret;
     use rstest::rstest;
     use uuid::Uuid;
 

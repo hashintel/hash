@@ -7,7 +7,7 @@ use zeroize::Zeroize;
 /// # Examples
 ///
 /// ```
-/// use hash_secret::{Secret, SecretBuffer};
+/// use hash_crypto::{Secret, SecretBuffer};
 ///
 /// fn key_bytes<T: ?Sized + SecretBuffer>(secret: &Secret<T>) -> &[u8] {
 ///     secret.expose().as_ref()
@@ -18,7 +18,7 @@ use zeroize::Zeroize;
 ///
 /// assert_eq!(key_bytes(&password), b"hunter2");
 /// assert_eq!(key_bytes(&key), b"\xDE\xAD");
-/// # Ok::<(), error_stack::Report<hash_secret::HexError>>(())
+/// # Ok::<(), error_stack::Report<hash_crypto::HexError>>(())
 /// ```
 pub impl(crate) trait SecretBuffer:
     AsRef<Self::View> + AsMut<Self::View> + Zeroize + CloneToUninit

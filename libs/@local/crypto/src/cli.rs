@@ -41,7 +41,7 @@ impl TypedValueParser for TextValueParser {
 /// use core::pin::Pin;
 ///
 /// use clap::Parser;
-/// use hash_secret::Secret;
+/// use hash_crypto::Secret;
 ///
 /// #[derive(Parser)]
 /// struct Args {
@@ -98,7 +98,7 @@ impl<const N: usize> TypedValueParser for HexValueParser<N> {
 /// use core::pin::Pin;
 ///
 /// use clap::Parser;
-/// use hash_secret::Secret;
+/// use hash_crypto::Secret;
 ///
 /// #[derive(Debug, Parser)]
 /// struct Args {
@@ -160,7 +160,7 @@ impl TypedValueParser for HexSliceValueParser {
 /// use core::pin::Pin;
 ///
 /// use clap::Parser;
-/// use hash_secret::Secret;
+/// use hash_crypto::Secret;
 ///
 /// #[derive(Parser)]
 /// struct Args {
