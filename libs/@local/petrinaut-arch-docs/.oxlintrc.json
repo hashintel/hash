@@ -31,5 +31,5 @@
     "@typescript-eslint/no-unsafe-function-type": "error",
     "unicorn/filename-case": "error"
   },
-  "ignorePatterns": ["bundle/**", "content/**", ".turbo/**"]
+  "ignorePatterns": ["bundle/**", "content/**", ".turbo/**", "spikes/**"]
 }
