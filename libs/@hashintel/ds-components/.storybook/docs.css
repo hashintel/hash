@@ -6,8 +6,15 @@
    opting the whole page out of addon-docs' built-in typography at once.
    These rules then style the markdown back in */
 
+/* addon-docs paints its page wrapper with the static Storybook light theme;
+   let the token surface drive it so docs pages follow the light/dark class */
+.sbdocs.sbdocs-wrapper {
+  background: var(--colors-neutral-s00, #ffffff);
+}
+
 .hash-docs-root {
   font-family: var(--global-font-body, var(--font-fallback));
+  color: var(--colors-fg-body);
 }
 
 .hash-md:is(h1, h2, h3, h4, h5, h6) {
