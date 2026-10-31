@@ -156,7 +156,7 @@
     "vite-plugin-svgr": "5.2.0",
     "vitest": "catalog:",
     "vitest-browser-react": "^2.0.2",
-    "zod": "4.4.3"
+    "zod": "4.6.7"
   },
   "peerDependencies": {
     "@ark-ui/react": "^5.38.1",
