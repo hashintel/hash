@@ -8,7 +8,15 @@ import {
   SDCPNContext,
   type SDCPNContextValue,
 } from "../../react/state/sdcpn-context";
+import {
+  defaultUserSettingsContextValue,
+  UserSettingsContext,
+} from "../../react/state/user-settings-context";
 import { CodeEditor } from "./code-editor";
+import {
+  codeEditorThemes,
+  defaultCodeEditorThemeId,
+} from "./code-editor-themes";
 import { MonacoProvider } from "./provider";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
@@ -359,4 +367,64 @@ const WithLspExample = () => {
 export const WithLsp: Story = {
   name: "Multi-line (with LSP)",
   render: () => <WithLspExample />,
+};
+
+// -- Theme stories ------------------------------------------------------------
+
+const THEME_SAMPLE = `/** Fires once the pool is warm enough. */
+const rate = (temperature: number) => {
+  if (temperature < 0x20) return 0;
+  const label = \`warm \${temperature.toFixed(1)}\`;
+  return /warm/.test(label) ? parameters.rate * 1.5e-2 : null;
+};`;
+
+const ThemesExample = () => {
+  const [codeEditorTheme, setCodeEditorTheme] = useState(
+    defaultCodeEditorThemeId,
+  );
+  const [value, setValue] = useState(THEME_SAMPLE);
+
+  return (
+    <UserSettingsContext
+      value={{
+        ...defaultUserSettingsContextValue,
+        codeEditorTheme,
+        setCodeEditorTheme,
+      }}
+    >
+      <Frame>
+        <label className={labelStyle}>
+          Theme{" "}
+          <select
+            value={codeEditorTheme}
+            onChange={(event) => setCodeEditorTheme(event.target.value)}
+          >
+            {codeEditorThemes.map((theme) => (
+              <option key={theme.id} value={theme.id}>
+                {theme.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <CodeEditor
+          language="typescript"
+          value={value}
+          onChange={(next) => setValue(next ?? "")}
+          height={180}
+        />
+        <div>
+          <CodeEditor
+            singleLine
+            value="Math.round(parameters.rate * 100)"
+            placeholder="number or expression"
+          />
+        </div>
+      </Frame>
+    </UserSettingsContext>
+  );
+};
+
+/** Every theme file in `code-editor-themes/`, switched live. */
+export const Themes: Story = {
+  render: () => <ThemesExample />,
 };

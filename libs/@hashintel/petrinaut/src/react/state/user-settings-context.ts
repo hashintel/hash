@@ -62,6 +62,8 @@ export type UserSettings = {
    * only useful when you are debugging why something did not compile.
    */
   showCompilationOutput: boolean;
+  /** The colour theme of the code editors, by theme file name. */
+  codeEditorTheme: string;
   /** Plugins the user switched off in the Plugins section, by id. */
   disabledPluginIds: readonly string[];
   subViewPanels: SubViewPanelsSettings;
@@ -90,6 +92,7 @@ export type UserSettingsActions = {
   setPartialSelection: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
+  setCodeEditorTheme: (value: string) => void;
   setPluginEnabled: (pluginId: string, enabled: boolean) => void;
   updateSubViewSection: (
     containerName: string,
@@ -122,6 +125,7 @@ export const defaultUserSettings: UserSettings = {
   partialSelection: true,
   enableNetComponents: false,
   showCompilationOutput: false,
+  codeEditorTheme: "petrinaut-light",
   disabledPluginIds: [],
   subViewPanels: {},
   canvasViewports: {},
@@ -153,6 +157,7 @@ export const defaultUserSettingsContextValue: UserSettingsContextValue = {
   setPartialSelection: () => {},
   setEnableNetComponents: () => {},
   setShowCompilationOutput: () => {},
+  setCodeEditorTheme: () => {},
   setPluginEnabled: () => {},
   updateSubViewSection: () => {},
   setCanvasViewport: () => {},

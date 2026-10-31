@@ -14,7 +14,7 @@ Changes apply immediately and are saved as your preferences across nets. On host
 
 | Section      | Settings                                                             |
 | ------------ | -------------------------------------------------------------------- |
-| **General**  | Animations and panel loading.                                        |
+| **General**  | Animations, panel loading, and the code editor theme.                |
 | **Viewport** | Minimap, compact nodes, arc rendering, grid snapping, and selection. |
 | **Plugins**  | The host's plugins: switch each on or off and see what it adds.      |
 | **Labs**     | Experimental modeling views, code layouts, and developer tools.      |
@@ -35,6 +35,10 @@ Canvas hover rings and the fading of nodes, arcs, and minimap shapes also follow
 ### Keep panels mounted
 
 When enabled, hidden panels remain loaded in the background. Switching between panels is faster, but uses more memory. When disabled, panels are unmounted when hidden and re-created when opened.
+
+### Code editor theme
+
+Choose the colours of every [code editor](code-editor.md) in Petrinaut. **Petrinaut Light** is the default. **Kay Day** and **Kay Night** are the light and dark faces of the Kay palette: slate text, indigo keywords, cyan strings and sky-blue types. The change applies to open editors immediately and is saved with your other preferences.
 
 ## Viewport
 

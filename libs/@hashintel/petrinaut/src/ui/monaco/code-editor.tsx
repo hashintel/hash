@@ -10,7 +10,9 @@ import {
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { CODE_FONT_FAMILY } from "../constants/ui";
+import { resolveCodeEditorThemeId } from "./code-editor-themes";
 import { MonacoContext } from "./context";
 
 import type { EditorProps, Monaco } from "@monaco-editor/react";
@@ -212,6 +214,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   ...props
 }) => {
   const { Editor } = use(use(MonacoContext));
+  const { codeEditorTheme } = use(UserSettingsContext);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   // While the editor has focus its model is the source of truth: the wrapper
   // must not echo the (possibly one-keystroke-stale) controlled value back
@@ -397,7 +400,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
         <div className={placeholderStyle}>{placeholder}</div>
       )}
       <Editor
-        theme="petrinaut-light"
+        theme={resolveCodeEditorThemeId(codeEditorTheme)}
         height={singleLine ? SINGLE_LINE_TOTAL_HEIGHT : "100%"}
         options={editorOptions}
         onMount={(editorInstance, monacoInstance) =>
