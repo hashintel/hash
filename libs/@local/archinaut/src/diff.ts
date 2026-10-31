@@ -134,6 +134,9 @@ export const diffAgainstBase = async (options: {
     const baseConfig: ArchinautConfig = {
       ...config,
       root: tree.root,
+      // The facts cache keeps one entry per language, so the base tree gets
+      // its own cache root or its entry evicts the head's.
+      cacheDirectory: cacheDir,
       // A package added since the base ref has no directory to scan there.
       packages: config.packages.filter((pkg) =>
         existsSync(join(tree.root, pkg.path)),
