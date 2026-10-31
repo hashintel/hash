@@ -26,6 +26,7 @@ import {
   type Language,
   type SymbolFacts,
 } from "./pipeline/facts";
+import { buildInterfaces } from "./pipeline/interfaces";
 import { scanDeclarations, type ScanResult } from "./pipeline/scan";
 import { countErrors, error, type Diagnostic } from "./shared/diagnostics";
 
@@ -99,6 +100,15 @@ export const assembleModel = (options: {
     importEdges,
   });
   diagnostics.push(...declared.diagnostics);
+  const interfaces = buildInterfaces({
+    declarations: scan.interfaces,
+    participations: scan.participations,
+    externals: config.externals,
+    facts,
+    fileLayers: scan.fileLayers,
+  });
+  diagnostics.push(...interfaces.diagnostics);
+
   const model = {
     version: ARCHITECTURE_MODEL_VERSION,
     packages,
@@ -107,6 +117,11 @@ export const assembleModel = (options: {
       (left, right) =>
         left.from.localeCompare(right.from) || left.to.localeCompare(right.to),
     ),
+    interfaces: interfaces.interfaces,
+    externals: config.externals.map(
+      ({ participates: _participates, ...external }) => external,
+    ),
+    tags: config.tags,
     rules: config.rules,
   } satisfies ArchitectureModel;
 

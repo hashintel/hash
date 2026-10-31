@@ -120,6 +120,21 @@ export const buildSingleFileArchitecture = (
     }
   }
 
+  if (model.interfaces.length > 0) {
+    lines.push("", "## Interfaces", "");
+    for (const node of model.interfaces) {
+      lines.push(
+        `### ${node.name} (\`${node.id}\`)`,
+        "",
+        ...(node.summary === "" ? [] : [node.summary, ""]),
+        `- Transport: \`${node.transport}\``,
+        `- Defined by: \`${node.definedBy}\` in \`${node.declaredIn}\``,
+        `- Participants: ${node.participants.map((participant) => `\`${participant.node}\` ${participant.role} (${participant.provenance})`).join(", ")}`,
+        "",
+      );
+    }
+  }
+
   lines.push("", "## Layers", "");
 
   for (const layer of model.layers) {
@@ -131,6 +146,8 @@ export const buildSingleFileArchitecture = (
       `- Package: \`${layer.package}\``,
       `- Declared in: \`${layer.declaredIn}\``,
       `- Size: ${layer.fileCount} files, ${layer.lineCount} lines`,
+      ...(layer.tags.length === 0 ? [] : [`- Tags: ${layer.tags.join(", ")}`]),
+      `- Audience: ${layer.audience.join(", ")}`,
     );
 
     const outgoing = model.edges.filter((edge) => edge.from === layer.id);

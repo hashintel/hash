@@ -14,6 +14,8 @@ here, as a boolean, a signed margin, or a pydantic validator.
 
 @layerRoot python-bindings
 @role Python sessions owning one CLI process each, translating protocol frames into methods and exceptions
+@tags protocols optimization
+@audience integrator contributor
 """
 
 from .constraint import (

@@ -1,6 +1,9 @@
 /**
  * @layerRoot website.local-storage-demo
  * @role Editable demo shell: nets in local storage, one live document handle
+ * @tags embedding
+ * @audience integrator contributor
+ * @participates iface:doc-handle as implements
  */
 
 import { useMemo, useState } from "react";

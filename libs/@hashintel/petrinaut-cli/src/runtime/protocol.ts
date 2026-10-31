@@ -1,3 +1,9 @@
+/**
+ * @interface iface:cli-json-lines ServerRunRequest via stdio-jsonl
+ * @summary One request per line over stdio or a Unix socket: run requests
+ * and optimization studies against one compiled model per process.
+ */
+
 import {
   keyMetricsByRequestedSelector,
   parseServerRunRequest,

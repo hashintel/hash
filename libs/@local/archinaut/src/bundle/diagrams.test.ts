@@ -26,6 +26,8 @@ const layer = (id: string, name = id): Layer => ({
   files: [`src/${id}/index.ts`],
   fileCount: 1,
   lineCount: 1,
+  tags: [],
+  audience: ["contributor"],
 });
 
 const edge = (from: string, to: string, count = 1): Edge => ({
