@@ -17,7 +17,11 @@ import { nextRandom } from "./seeded-rng";
 import { createTokenRegionViews } from "./token-layout";
 
 import type { ID } from "../../types/sdcpn";
-import type { EngineFrame, SimulationInstance } from "./types";
+import type {
+  EngineFrame,
+  EngineFrameSnapshot,
+  SimulationInstance,
+} from "./types";
 
 type PlaceID = ID;
 
@@ -45,6 +49,14 @@ export function computePossibleTransition(
    * written into the frame; see `executeTransitions`.
    */
   pendingOutputCounts: Uint32Array | null = null,
+  /**
+   * `frame` materialized. A caller evaluating many transitions against one
+   * frame passes it so the frame is read once, not once per transition.
+   */
+  snapshot: EngineFrameSnapshot = materializeEngineFrame(
+    simulation.frameLayout,
+    frame,
+  ),
 ): {
   firing: null | {
     remove: Record<PlaceID, Set<number> | number>;
@@ -52,7 +64,6 @@ export function computePossibleTransition(
   };
   newRngState: number;
 } {
-  const snapshot = materializeEngineFrame(simulation.frameLayout, frame);
   const transitionState = snapshot.transitions[transitionId];
   if (!transitionState) {
     throw new Error(`Transition with ID ${transitionId} not found.`);
