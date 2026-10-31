@@ -1,5 +1,15 @@
 # @hashintel/petrinaut
 
+## 0.0.24
+
+### Patch Changes
+
+- `PetrinautOptimizationContext` accepts only a connected in-browser optimizer. ([@kube](https://github.com/kube), [#10287](https://github.com/hashintel/hash/pull/10287))
+
+- Removes the `aiAssistant` prop and the built-in AI chat with its `PetrinautAi*` exports: the AI assistant comes from a plugin. ([@kube](https://github.com/kube), [#10267](https://github.com/hashintel/hash/pull/10267))
+- Updated dependencies:
+  - @hashintel/petrinaut-core@0.0.7
+
 ## 0.0.23
 
 ### Patch Changes
