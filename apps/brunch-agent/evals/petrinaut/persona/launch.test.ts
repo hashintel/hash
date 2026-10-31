@@ -123,7 +123,7 @@ test.each([false, true])(
   async (legacy) => {
     const run = await mkdtemp(join(tmpdir(), "TEST-persona-resume-"));
     const identity = {
-      principalKey: "TEST-principal",
+      ownerKey: "TEST-owner",
       conversationId: "TEST-conversation",
     };
     const config = {
@@ -247,7 +247,7 @@ test("root launch command resolves a caller-relative case before checking intera
 test("resume requires the bridge log that Pi-era runs lack", async () => {
   const run = await mkdtemp(join(tmpdir(), "TEST-persona-legacy-"));
   const identity = {
-    principalKey: "TEST-principal",
+    ownerKey: "TEST-owner",
     conversationId: "TEST-conversation",
   };
   const panelOrigin = "http://127.0.0.1:4926";

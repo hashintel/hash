@@ -16,7 +16,7 @@ const required = (name: string): string => {
 };
 
 const baseUrl = required(brunchEnv.smokeBaseUrl).replace(/\/$/u, "");
-const principal = required(brunchEnv.smokePrincipal);
+const ownerKey = required(brunchEnv.smokeOwnerKey);
 const mode = process.env[brunchEnv.smokeMode] ?? "turn";
 const conversationId =
   mode === "history"
@@ -25,7 +25,7 @@ const conversationId =
 const requestId = process.env[brunchEnv.smokeRequestId]?.trim() || randomUUID();
 const headers = new Headers({
   "content-type": "application/json",
-  [brunchHeaders.principal]: principal,
+  [brunchHeaders.ownerKey]: ownerKey,
   "x-request-id": requestId,
 });
 // A streamed turn legitimately takes tens of seconds; a hung server must still fail the smoke.

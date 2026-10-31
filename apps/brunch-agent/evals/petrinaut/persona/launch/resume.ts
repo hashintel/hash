@@ -55,7 +55,7 @@ const runSchema = v.pipe(
 );
 const sessionSchema = v.object({
   url: text,
-  principalKey: text,
+  ownerKey: text,
   conversationId: text,
   uid: text,
   initialData: v.nonOptional(sdcpnInitialDataSchema),
@@ -101,7 +101,7 @@ export const openRetainedPersonaBrowser = async (
   await page.goto(checkUrl);
   await page.unroute(checkUrl);
   const saved = await page.evaluate(() => ({
-    principal: localStorage.getItem("brunch-principal-v1"),
+    ownerKey: localStorage.getItem("brunch-principal-v1"),
     documents: JSON.parse(
       localStorage.getItem("petrinaut-sdcpn") ?? "{}",
     ) as unknown,
@@ -110,9 +110,9 @@ export const openRetainedPersonaBrowser = async (
   assert(data);
   const binding = data.binding;
   assert.equal(
-    saved.principal,
-    session.principalKey,
-    "Original browser principal is missing or changed",
+    saved.ownerKey,
+    session.ownerKey,
+    "Original browser owner key is missing or changed",
   );
   const documents = v.parse(v.record(v.string(), v.unknown()), saved.documents);
   const stored = documents[binding.documentId];

@@ -2,22 +2,22 @@ import { brunchHeaders } from "./constants";
 
 export interface ConversationIdentity {
   readonly conversationId: string;
-  readonly principalKey: string;
+  readonly ownerKey: string;
 }
 
 export const identityPayload = ({
-  principalKey,
+  ownerKey,
   conversationId,
 }: ConversationIdentity): Uint8Array => {
   const encoder = new TextEncoder();
-  const principalBytes = encoder.encode(principalKey);
+  const ownerKeyBytes = encoder.encode(ownerKey);
   const conversationBytes = encoder.encode(conversationId);
   const payload = new Uint8Array(
-    principalBytes.length + 1 + conversationBytes.length,
+    ownerKeyBytes.length + 1 + conversationBytes.length,
   );
-  payload.set(principalBytes, 0);
-  payload[principalBytes.length] = 0;
-  payload.set(conversationBytes, principalBytes.length + 1);
+  payload.set(ownerKeyBytes, 0);
+  payload[ownerKeyBytes.length] = 0;
+  payload.set(conversationBytes, ownerKeyBytes.length + 1);
   return payload;
 };
 
@@ -42,6 +42,6 @@ export const flueConversationIdWeb = async (
 export const agentOwnershipHeaders = (
   identity: ConversationIdentity,
 ): Record<string, string> => ({
-  [brunchHeaders.principal]: identity.principalKey,
+  [brunchHeaders.ownerKey]: identity.ownerKey,
   [brunchHeaders.conversation]: identity.conversationId,
 });

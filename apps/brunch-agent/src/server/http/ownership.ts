@@ -8,11 +8,11 @@ import type { MiddlewareHandler } from "hono";
 export const agentOwnershipGuard =
   (mountPrefix: string, _agentName: string): MiddlewareHandler =>
   async (context, next) => {
-    const principalKey = context.req.header(brunchHeaders.principal)?.trim();
+    const ownerKey = context.req.header(brunchHeaders.ownerKey)?.trim();
     const conversationId = context.req
       .header(brunchHeaders.conversation)
       ?.trim();
-    if (!principalKey || !conversationId)
+    if (!ownerKey || !conversationId)
       return context.json({ error: "unauthorized" }, 401);
     const instanceId = context.req.path
       .slice(mountPrefix.length)
@@ -20,7 +20,7 @@ export const agentOwnershipGuard =
       .find((segment) => segment.length > 0);
     if (
       !instanceId ||
-      !ownsFlueInstance({ principalKey, conversationId }, instanceId)
+      !ownsFlueInstance({ ownerKey, conversationId }, instanceId)
     )
       return context.json({ error: "forbidden" }, 403);
     if (

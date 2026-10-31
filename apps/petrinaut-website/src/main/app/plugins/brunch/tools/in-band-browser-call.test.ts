@@ -45,7 +45,7 @@ test("an unknown mutation record is submitted without failing the call", async (
     client: Promise.resolve({
       url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
-    principalKey: "principal",
+    ownerKey: "owner",
     binding,
     // Classification doubt is diagnostic evidence, not a reason to refuse the result.
     metadataFor: () =>
@@ -96,7 +96,7 @@ test("the binding matches the issued call whatever its key order", async () => {
     client: Promise.resolve({
       url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
-    principalKey: "principal",
+    ownerKey: "owner",
     binding: reordered,
     metadataFor: () => undefined,
     prepareInput: () => {},
@@ -155,7 +155,7 @@ const createCalls = (
     client: Promise.resolve({
       url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
-    principalKey: "principal",
+    ownerKey: "owner",
     binding,
     metadataFor: () => undefined,
     prepareInput,
@@ -255,7 +255,7 @@ test("a change whose expected revision the document has left is reported stale a
     client: Promise.resolve({
       url: "http://brunch.local/agents/petrinaut/instance",
     } as FlueClient),
-    principalKey: "principal",
+    ownerKey: "owner",
     binding,
     metadataFor: () => undefined,
     prepareInput,

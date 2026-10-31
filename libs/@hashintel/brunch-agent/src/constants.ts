@@ -47,7 +47,7 @@ export const brunchSignals = {
 /** Request headers that carry conversation identity. */
 export const brunchHeaders = {
   conversation: "x-brunch-conversation",
-  principal: "x-brunch-principal",
+  ownerKey: "x-brunch-principal",
 } as const;
 
 /** Server routes and route segments. */
@@ -94,7 +94,7 @@ export const brunchEnv = {
   smokeConversationId: "BRUNCH_SMOKE_CONVERSATION_ID",
   smokeExpectedText: "BRUNCH_SMOKE_EXPECTED_TEXT",
   smokeMode: "BRUNCH_SMOKE_MODE",
-  smokePrincipal: "BRUNCH_SMOKE_PRINCIPAL",
+  smokeOwnerKey: "BRUNCH_SMOKE_PRINCIPAL",
   smokePrompt: "BRUNCH_SMOKE_PROMPT",
   smokeRequestId: "BRUNCH_SMOKE_REQUEST_ID",
   stepAAccounting: "BRUNCH_STEP_A_ACCOUNTING",
@@ -106,8 +106,8 @@ export const brunchEnv = {
   viteChatEndpoint: "VITE_BRUNCH_CHAT_ENDPOINT",
 } as const;
 
-/** Principal for the stock Flue UI at `/`. Not a second ownership rule. */
-export const localUiPrincipal = "local";
+/** Owner key for the stock Flue UI at `/`. Not a second ownership rule. */
+export const localUiOwnerKey = "local";
 
 /** Prefix of the conversation ID the Petrinaut website derives from a net ID. */
 export const previewConversationIdPrefix = "petrinaut-preview:";
