@@ -26,6 +26,7 @@ import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
+import { createRunningFlowRunHistoryCache } from "@local/hash-backend-utils/flows/run-events/running-flow-run-history-cache";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import {
@@ -82,6 +83,7 @@ const graphQLContextForUser = (user: User): LoggedInGraphQLContext => ({
   provenance: { ...graphContext.provenance, actorType: "user" },
   temporal: graphContext.temporalClient,
   flowRunRecords: new Map(),
+  runningFlowRunHistories: createRunningFlowRunHistoryCache(),
 });
 
 const shortname = generateRandomShortname("userTest");

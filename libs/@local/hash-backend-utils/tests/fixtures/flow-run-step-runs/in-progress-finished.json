@@ -1,0 +1,51 @@
+{
+  "stepRuns": [
+    {
+      "stepId": "research",
+      "stepType": "researchEntitiesAction",
+      "startedAt": "2026-10-27T10:52:03.972Z",
+      "scheduledAt": "2026-10-27T10:52:02.959Z",
+      "closedAt": "2026-10-27T10:52:05.219Z",
+      "inputs": [
+        {
+          "inputName": "prompt",
+          "payload": {
+            "kind": "Text",
+            "value": "Who makes HASH?"
+          }
+        }
+      ],
+      "logs": [
+        {
+          "type": "CreatedPlan",
+          "plan": "Search the web",
+          "stepId": "research",
+          "recordedAt": "2026-10-27T10:52:03.974Z",
+          "workerType": "Coordinator",
+          "workerInstanceId": "coordinator",
+          "parentInstanceId": null,
+          "toolCallId": null
+        }
+      ],
+      "status": "COMPLETED",
+      "attempt": 2,
+      "outputs": [
+        {
+          "outputName": "proposedEntities",
+          "payload": {
+            "kind": "ProposedEntity",
+            "value": []
+          }
+        },
+        {
+          "outputName": "highlightedEntities",
+          "payload": {
+            "kind": "EntityId",
+            "value": []
+          }
+        }
+      ]
+    }
+  ],
+  "inputRequests": []
+}

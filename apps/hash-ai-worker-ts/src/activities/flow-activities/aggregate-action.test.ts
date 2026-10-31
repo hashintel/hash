@@ -4,6 +4,7 @@ import { storePayload } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { StatusCode } from "@local/status";
 
+import { createProposedEntity } from "../../shared/testing-utilities/create-proposed-entity.js";
 import { aggregateAction } from "./aggregate-action.js";
 
 import type { BaseUrl, EntityId } from "@blockprotocol/type-system";
@@ -12,7 +13,6 @@ import type { QueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import type { Aggregation } from "@local/hash-isomorphic-utils/flows/aggregation";
 import type {
   Payload,
-  ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -70,13 +70,11 @@ const storedEntities = async (scores: number[]): Promise<Payload> => ({
     stepId: "propose",
     outputName: "proposedEntities",
     kind: "ProposedEntity",
-    value: scores.map(
-      (score, index) =>
-        ({
-          localEntityId: `entity-${index}`,
-          properties: { [scoreUrl]: score },
-          entityTypeIds: [],
-        }) as unknown as ProposedEntity,
+    value: scores.map((score, index) =>
+      createProposedEntity({
+        localEntityId: `entity-${index}`,
+        properties: { [scoreUrl]: score },
+      }),
     ),
   }),
 });

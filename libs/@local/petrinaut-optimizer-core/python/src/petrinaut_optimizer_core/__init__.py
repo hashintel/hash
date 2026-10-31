@@ -1,13 +1,14 @@
 """Optuna study logic for Petrinaut optimization.
 
-Pure Python over Optuna: parse an `optimization.describe` result, build the
-seeded study, map parameters onto Optuna suggestions, and drive an ask/tell
-loop whose trials the caller evaluates. No threads, no event-loop ownership,
-no file or network access, so the modules run under CPython in the FastAPI
-service and are written to load under Pyodide.
+Pure Python over Optuna: parse the study description `describeOptimization`
+in `@hashintel/petrinaut-core` produces, build the seeded study, map
+parameters onto Optuna suggestions, and drive an ask/tell loop whose trials
+the caller evaluates. No threads, no event-loop ownership, no file or network
+access, so the modules load under Pyodide in the browser optimizer's worker
+and run under CPython in the package's tests.
 
 @layerRoot optimizer-core
-@role Optuna study construction, suggestion and ask/tell loop for the optimizer service, written to load under Pyodide
+@role Optuna study construction, suggestion and ask/tell loop for the in-browser optimizer, loaded under Pyodide
 """
 
 from .ask_tell import run_study

@@ -18,7 +18,7 @@ use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use pretty_assertions::assert_eq;
 use type_system::{
     knowledge::{
-        entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        entity::{Link, LinkEndpoint, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::{
@@ -179,13 +179,17 @@ async fn link_rows_carry_their_endpoints() {
             entity_type_ids: HashSet::from([friend_of_type.clone()]),
             properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
                 .expect("the property object should build"),
-            link_data: Some(LinkData {
-                left_entity_id: alice_id,
-                right_entity_id: bob_id,
-                left_entity_confidence: None,
-                left_entity_provenance: PropertyProvenance::default(),
-                right_entity_confidence: None,
-                right_entity_provenance: PropertyProvenance::default(),
+            link_data: Some(Link::Directed {
+                source: LinkEndpoint {
+                    entity_id: alice_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
+                target: LinkEndpoint {
+                    entity_id: bob_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
             }),
             draft: false,
             policies: Vec::new(),
@@ -997,13 +1001,17 @@ async fn link_endpoints_hide_entities_the_actor_cannot_view() {
             entity_type_ids: HashSet::from([friend_of_type]),
             properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
                 .expect("the property object should build"),
-            link_data: Some(LinkData {
-                left_entity_id: alice_id,
-                right_entity_id: hidden_id,
-                left_entity_confidence: None,
-                left_entity_provenance: PropertyProvenance::default(),
-                right_entity_confidence: None,
-                right_entity_provenance: PropertyProvenance::default(),
+            link_data: Some(Link::Directed {
+                source: LinkEndpoint {
+                    entity_id: alice_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
+                target: LinkEndpoint {
+                    entity_id: hidden_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
             }),
             draft: false,
             policies: Vec::new(),

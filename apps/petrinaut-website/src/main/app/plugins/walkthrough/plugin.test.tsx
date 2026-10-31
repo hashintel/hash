@@ -2,11 +2,10 @@
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
+import { definePetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
+
 import { renderEditorWith } from "../_shared/testing/render-editor-with";
 import { walkthroughPlugin } from "./plugin";
-
-import type { PetrinautAiAssistant } from "@hashintel/petrinaut/ui";
-import type { UIMessageChunk } from "ai";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
@@ -19,19 +18,11 @@ afterEach(() => {
   localStorage.clear();
 });
 
-const aiAssistant: PetrinautAiAssistant = {
-  transport: {
-    reconnectToStream: () => Promise.resolve(null),
-    sendMessages: () =>
-      Promise.resolve(
-        new ReadableStream<UIMessageChunk>({
-          start(controller) {
-            controller.close();
-          },
-        }),
-      ),
-  },
-};
+/** An assistant with an empty panel that takes prompts, so the editor offers the empty-net prompt. */
+const assistantPlugin = definePetrinautPlugin(
+  { id: "test.assistant", name: "Assistant", assistant: true },
+  { assistant: { content: null, onPrompt: () => {} } },
+);
 
 test("the guide opens with the editor and, once skipped, stays closed the next time", async () => {
   renderEditorWith([walkthroughPlugin]);
@@ -64,7 +55,7 @@ test("switching the setting back on opens the guide only the next time the edito
 
 test("the open guide holds back the empty-net assistant prompt", async () => {
   const name = "Describe the process you want to create";
-  renderEditorWith([walkthroughPlugin], { aiAssistant });
+  renderEditorWith([walkthroughPlugin, assistantPlugin]);
 
   const skip = await screen.findByRole("button", { name: "Skip tour" });
   // The modal guide hides the rest of the page from the accessibility tree.

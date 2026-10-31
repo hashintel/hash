@@ -265,7 +265,7 @@ export const scanTags = (
           diagnostics.push({
             line,
             message:
-              "@talksTo expects `@talksTo <layer-id> via <protocol>`, e.g. `@talksTo cli via JSON lines over stdio`",
+              "@talksTo expects `@talksTo <layer-id> via <protocol>`, e.g. `@talksTo optimizer-core via Python sources written into Pyodide's filesystem`",
           });
         }
         continue;

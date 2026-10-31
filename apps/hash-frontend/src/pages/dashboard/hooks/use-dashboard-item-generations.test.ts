@@ -6,28 +6,47 @@ import {
   getDashboardItemGenerationPhase,
 } from "./use-dashboard-item-generations";
 
-import type { FlowRun } from "../../../graphql/api-types.gen";
+import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
+import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
 
-const flowRunWithSteps = (steps: FlowRun["steps"]) => ({ steps }) as FlowRun;
+const stepStarted = (stepId: string, occurredAt: string): FlowRunEvent => ({
+  kind: "stepStarted",
+  position: `${occurredAt}.0`,
+  occurredAt,
+  stepRun: { stepId, itemPath: [] },
+  stepType: "generateStructuralQuery",
+  inputs: [],
+});
+
+const attemptSucceeded = (
+  stepId: string,
+  occurredAt: string,
+  outputs: StepOutput[] = [],
+): FlowRunEvent => ({
+  kind: "attemptSucceeded",
+  position: `${occurredAt}.0`,
+  occurredAt,
+  stepRun: { stepId, itemPath: [] },
+  attempt: 1,
+  outputs,
+});
 
 describe("dashboard item generation progress", () => {
   it("maps flow step transitions to dashboard-specific phases", () => {
-    expect(getDashboardItemGenerationPhase(flowRunWithSteps([]))).toBe(
-      "building-query",
-    );
+    expect(getDashboardItemGenerationPhase([])).toBe("building-query");
     expect(
-      getDashboardItemGenerationPhase(
-        flowRunWithSteps([
-          { stepId: "1", closedAt: "2026-07-16T10:00:00.000Z" },
-        ] as FlowRun["steps"]),
-      ),
+      getDashboardItemGenerationPhase([
+        stepStarted("1", "2026-07-16T10:00"),
+        attemptSucceeded("1", "2026-07-16T10:01"),
+      ]),
     ).toBe("analyzing-data");
     expect(
-      getDashboardItemGenerationPhase(
-        flowRunWithSteps([
-          { stepId: "2", closedAt: "2026-07-16T10:01:00.000Z" },
-        ] as FlowRun["steps"]),
-      ),
+      getDashboardItemGenerationPhase([
+        stepStarted("1", "2026-07-16T10:00"),
+        attemptSucceeded("1", "2026-07-16T10:01"),
+        stepStarted("2", "2026-07-16T10:02"),
+        attemptSucceeded("2", "2026-07-16T10:03"),
+      ]),
     ).toBe("creating-chart-configuration");
   });
 
@@ -41,35 +60,23 @@ describe("dashboard item generation progress", () => {
   });
 
   it("exposes completed step outputs before the flow finishes", () => {
-    const flowRun = flowRunWithSteps([
-      {
-        stepId: "1",
-        outputs: [
-          {
-            contents: [
-              {
-                outputs: [
-                  {
-                    outputName: "structuralQuery",
-                    payload: {
-                      kind: "Text",
-                      value: JSON.stringify({
-                        filter: { all: [] },
-                        traversalPaths: [],
-                      }),
-                    },
-                  },
-                ],
-              },
-            ],
+    const events = [
+      stepStarted("1", "2026-07-16T10:00"),
+      attemptSucceeded("1", "2026-07-16T10:01", [
+        {
+          outputName: "structuralQuery",
+          payload: {
+            kind: "Text",
+            value: JSON.stringify({ filter: { all: [] }, traversalPaths: [] }),
           },
-        ],
-      },
-    ] as FlowRun["steps"]);
+        },
+      ]),
+      stepStarted("2", "2026-07-16T10:02"),
+    ];
 
-    expect(getDashboardItemGenerationOutputs(flowRun)).toMatchObject({
+    expect(getDashboardItemGenerationOutputs(events)).toMatchObject({
       structuralQuery: { filter: { all: [] }, traversalPaths: [] },
     });
-    expect(getDashboardItemGenerationPhase(flowRun)).toBe("analyzing-data");
+    expect(getDashboardItemGenerationPhase(events)).toBe("analyzing-data");
   });
 });

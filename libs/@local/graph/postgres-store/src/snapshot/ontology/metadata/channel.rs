@@ -9,10 +9,14 @@ use futures::{
     channel::mpsc::{self, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use type_system::ontology::{
-    OntologyTemporalMetadata,
-    id::{OntologyTypeRecordId, OntologyTypeUuid},
-    provenance::{OntologyOwnership, OntologyProvenance},
+use type_system::{
+    Validator as _,
+    ontology::{
+        OntologyTemporalMetadata,
+        id::{OntologyTypeRecordId, OntologyTypeUuid},
+        provenance::{OntologyOwnership, OntologyProvenance},
+    },
+    provenance::validation::ProvenanceValidator,
 };
 
 use crate::{
@@ -63,6 +67,10 @@ impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
         mut self: Pin<&mut Self>,
         metadata: OntologyTypeMetadata,
     ) -> Result<(), Self::Error> {
+        let provenance = ProvenanceValidator
+            .validate(metadata.provenance.edition)
+            .change_context(SnapshotRestoreError::Validation)
+            .attach_with(|| metadata.record_id.clone())?;
         match metadata.ownership {
             OntologyOwnership::Local { web_id } => {
                 self.owned_metadata
@@ -97,7 +105,7 @@ impl Sink<OntologyTypeMetadata> for OntologyTypeMetadataSender {
             .start_send(OntologyTemporalMetadataRow {
                 ontology_id: metadata.ontology_id,
                 transaction_time: metadata.temporal_versioning.transaction_time,
-                provenance: metadata.provenance.edition,
+                provenance,
             })
             .change_context(SnapshotRestoreError::Read)
             .attach("could not send temporal metadata")?;

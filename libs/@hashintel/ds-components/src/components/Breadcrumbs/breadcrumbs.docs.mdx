@@ -1,0 +1,415 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "../Button/button";
+import { BreadCrumbs } from "./breadcrumbs";
+import { BreadcrumbSubItemDoc } from "./breadcrumbs-item";
+
+<Meta title="Docs/Breadcrumbs" />
+
+export const meta = {
+  title: "Breadcrumbs",
+  description:
+    "Shows the current page's place in the hierarchy, with a link back to each level.",
+  alternativeNames: ["Breadcrumb", "BreadcrumbTrail"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Breadcrumbs/breadcrumbs.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-breadcrumbs--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/",
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/nav",
+  },
+  related: ["Menu", "Tooltip", "Icon", "Button"],
+};
+
+# Breadcrumbs
+
+Shows the current page's place in the hierarchy, with a link back to each level.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <BreadCrumbs>
+    <BreadCrumbs.Item href="#workspace" iconName="grid">
+      Acme
+    </BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#types" iconName="cubes">
+      Entity types
+    </BreadCrumbs.Item>
+    <BreadCrumbs.Item
+      iconName="cube"
+      subItems={[
+        { children: "Organization", href: "#organization" },
+        { children: "Document", href: "#document" },
+      ]}
+    >
+      Person
+    </BreadCrumbs.Item>
+    <BreadCrumbs.Item>Properties</BreadCrumbs.Item>
+  </BreadCrumbs>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { BreadCrumbs } from "@hashintel/ds-components";
+
+export const EntityTrail = () => (
+  <BreadCrumbs>
+    <BreadCrumbs.Item href="/workspace">Acme</BreadCrumbs.Item>
+    <BreadCrumbs.Item href="/workspace/entities">Entities</BreadCrumbs.Item>
+    <BreadCrumbs.Item>Quarterly report</BreadCrumbs.Item>
+  </BreadCrumbs>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Breadcrumbs on pages nested three or more levels deep, so users can see where they are and step back up.",
+    "Use it as secondary navigation under the page header — it supplements the sidebar or main nav, never replaces it.",
+    "Use it when users land mid-hierarchy from search, notifications, or shared links and need to orient themselves.",
+    <Fragment key="0">
+      Use <code>subItems</code> to let users jump across to a level's siblings
+      without going up first.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    <Fragment key="0">
+      Don't use breadcrumbs for flat, one- or two-level structures — a single
+      back link (Button <code>variant="link"</code>) carries the same
+      information with less chrome.
+    </Fragment>,
+    "Don't show progress through a multi-step flow — breadcrumbs name places, not steps; use a progress indicator.",
+    "Don't reconstruct the user's browsing history — crumbs reflect where a page lives, not how the user got there; the browser's Back button covers history.",
+  ]}
+/>
+
+## Anatomy
+
+```tsx
+<BreadCrumbs>
+  <BreadCrumbs.Item href="/workspace">Acme</BreadCrumbs.Item>
+  <BreadCrumbs.Item subItems={siblingTypes}>Entity types</BreadCrumbs.Item>
+  <BreadCrumbs.Item>Current page</BreadCrumbs.Item>
+</BreadCrumbs>
+```
+
+## Examples
+
+### Basic
+
+Each crumb links to its level with `href`. The last crumb is the current
+page — leave it plain (no `href`, `onClick`, or `subItems`) and it renders as
+text with `aria-current="page"`.
+
+<Stage>
+  <BreadCrumbs>
+    <BreadCrumbs.Item href="#workspace">Acme</BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#types">Entity types</BreadCrumbs.Item>
+    <BreadCrumbs.Item>Person</BreadCrumbs.Item>
+  </BreadCrumbs>
+</Stage>
+
+### Action crumbs
+
+Use `onClick` when navigation goes through a router, or when a crumb performs
+an action — here the current crumb opens a rename prompt. `href`, `onClick`,
+and `subItems` are mutually exclusive: a crumb is exactly one of link, button,
+menu, or plain text.
+
+```tsx
+import { BreadCrumbs } from "@hashintel/ds-components";
+
+export const FlowRunTrail = ({
+  openFlows,
+  openFlow,
+  renameRun,
+}: {
+  openFlows: () => void;
+  openFlow: () => void;
+  renameRun: () => void;
+}) => (
+  <BreadCrumbs>
+    <BreadCrumbs.Item onClick={openFlows}>Flows</BreadCrumbs.Item>
+    <BreadCrumbs.Item onClick={openFlow}>Email triage</BreadCrumbs.Item>
+    <BreadCrumbs.Item onClick={renameRun}>Run #42</BreadCrumbs.Item>
+  </BreadCrumbs>
+);
+```
+
+### Dropdown crumbs
+
+`subItems` turns a crumb into a menu of related destinations — typically the
+siblings of that level. Sub-items can nest, and they keep working when the
+crumb collapses: it becomes a submenu inside the ellipsis menu.
+
+<Stage>
+  <BreadCrumbs aria-label="Breadcrumb (dropdown)">
+    <BreadCrumbs.Item href="#workspace">Acme</BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#types">Entity types</BreadCrumbs.Item>
+    <BreadCrumbs.Item
+      subItems={[
+        { children: "Organization", href: "#organization" },
+        { children: "Document", href: "#document" },
+        { children: "Email", href: "#email" },
+      ]}
+    >
+      Person
+    </BreadCrumbs.Item>
+    <BreadCrumbs.Item>Properties</BreadCrumbs.Item>
+  </BreadCrumbs>
+</Stage>
+
+### Sizes
+
+`md` is the default. Match the trail to the chrome around it — `xxs`–`sm` for
+dense headers and panels, `lg` for spacious page titles.
+
+<Stage>
+  <BreadCrumbs size="xxs" aria-label="Breadcrumb (xxs)">
+    <BreadCrumbs.Item href="#workspace">Acme</BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#types">Entity types</BreadCrumbs.Item>
+    <BreadCrumbs.Item>xxs</BreadCrumbs.Item>
+  </BreadCrumbs>
+  <BreadCrumbs size="xs" aria-label="Breadcrumb (xs)">
+    <BreadCrumbs.Item href="#workspace">Acme</BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#types">Entity types</BreadCrumbs.Item>
+    <BreadCrumbs.Item>xs</BreadCrumbs.Item>
+  </BreadCrumbs>
+  <BreadCrumbs size="sm" aria-label="Breadcrumb (sm)">
+    <BreadCrumbs.Item href="#workspace">Acme</BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#types">Entity types</BreadCrumbs.Item>
+    <BreadCrumbs.Item>sm</BreadCrumbs.Item>
+  </BreadCrumbs>
+  <BreadCrumbs size="md" aria-label="Breadcrumb (md)">
+    <BreadCrumbs.Item href="#workspace">Acme</BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#types">Entity types</BreadCrumbs.Item>
+    <BreadCrumbs.Item>md</BreadCrumbs.Item>
+  </BreadCrumbs>
+  <BreadCrumbs size="lg" aria-label="Breadcrumb (lg)">
+    <BreadCrumbs.Item href="#workspace">Acme</BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#types">Entity types</BreadCrumbs.Item>
+    <BreadCrumbs.Item>lg</BreadCrumbs.Item>
+  </BreadCrumbs>
+</Stage>
+
+### With icons
+
+`iconName` puts an icon before the label. Use icons consistently — every crumb
+or none — so an icon doesn't read as emphasis.
+
+<Stage>
+  <BreadCrumbs aria-label="Breadcrumb (icons)">
+    <BreadCrumbs.Item href="#home" iconName="grid">
+      Home
+    </BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#workspace" iconName="cubes">
+      Acme
+    </BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#graph" iconName="diagramProject">
+      Knowledge graph
+    </BreadCrumbs.Item>
+    <BreadCrumbs.Item iconName="file">Quarterly report</BreadCrumbs.Item>
+  </BreadCrumbs>
+</Stage>
+
+### Tooltips
+
+Set `tooltip` for extra context on hover, and `tooltipOptions` to adjust
+position or delays. Truncated crumbs already get an automatic tooltip with the full
+label, so reserve tooltips for additional context — see [Truncation](#truncation).
+
+<Stage>
+  <BreadCrumbs aria-label="Breadcrumb (tooltips)">
+    <BreadCrumbs.Item href="#workspace" tooltip="Open the Acme workspace">
+      Acme
+    </BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#flows" tooltip="All flows in this workspace">
+      Flows
+    </BreadCrumbs.Item>
+    <BreadCrumbs.Item>Email triage</BreadCrumbs.Item>
+  </BreadCrumbs>
+</Stage>
+
+### Responsive collapse
+
+When the container gets too narrow, middle crumbs collapse — front to back —
+into a single ellipsis menu, with no props needed. Drag the handle to watch
+crumbs move in and out of the menu.
+
+<Stage>
+  <div
+    style={{
+      width: 400,
+      minWidth: 80,
+      maxWidth: "100%",
+      resize: "horizontal",
+      overflow: "auto",
+      padding: 12,
+      border: "1px dashed #ccc",
+      borderRadius: 6,
+    }}
+  >
+    <BreadCrumbs aria-label="Breadcrumb (resizable)">
+      <BreadCrumbs.Item href="#workspace">Acme</BreadCrumbs.Item>
+      <BreadCrumbs.Item href="#graph">Knowledge graph</BreadCrumbs.Item>
+      <BreadCrumbs.Item href="#types">Entity types</BreadCrumbs.Item>
+      <BreadCrumbs.Item href="#person">Person</BreadCrumbs.Item>
+      <BreadCrumbs.Item href="#properties">Properties</BreadCrumbs.Item>
+      <BreadCrumbs.Item>Email address</BreadCrumbs.Item>
+    </BreadCrumbs>
+  </div>
+</Stage>
+
+### Limiting visible crumbs
+
+`maxItems` caps how many crumbs stay visible regardless of width — the rest
+collapse into the ellipsis menu. Use it on deep hierarchies where even a wide
+trail would bury the ends.
+
+<Stage>
+  <BreadCrumbs maxItems={3} aria-label="Breadcrumb (maxItems)">
+    <BreadCrumbs.Item href="#workspace">Acme</BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#types">Entity types</BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#person">Person</BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#properties">Properties</BreadCrumbs.Item>
+    <BreadCrumbs.Item>Email address</BreadCrumbs.Item>
+  </BreadCrumbs>
+</Stage>
+
+### Pinned crumbs
+
+`noCollapse` keeps a crumb visible in place — it never joins the ellipsis
+menu, under width pressure or a `maxItems` cap. The last crumb
+never collapses, and the first crumb is the last item to collapse
+so reserve it for when an intermediate crumb (or the root crumb) is critical
+for navigation.
+
+<Stage>
+  <div style={{ width: 360, maxWidth: "100%" }}>
+    <BreadCrumbs aria-label="Breadcrumb (pinned)">
+      <BreadCrumbs.Item href="#workspace">Acme</BreadCrumbs.Item>
+      <BreadCrumbs.Item href="#flows" noCollapse>
+        Flows
+      </BreadCrumbs.Item>
+      <BreadCrumbs.Item href="#flow">Email triage flow</BreadCrumbs.Item>
+      <BreadCrumbs.Item href="#runs">Run history</BreadCrumbs.Item>
+      <BreadCrumbs.Item>Run #42</BreadCrumbs.Item>
+    </BreadCrumbs>
+  </div>
+</Stage>
+
+### Collapsed labels
+
+`collapsedChildren` swaps a crumb's label while it sits in the ellipsis menu —
+use it where the in-trail label is too terse out of context. Open the
+ellipsis: "Projects" lists as "All projects".
+
+<Stage>
+  <BreadCrumbs maxItems={2} aria-label="Breadcrumb (collapsed labels)">
+    <BreadCrumbs.Item href="#workspace">Acme</BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#projects" collapsedChildren="All projects">
+      Projects
+    </BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#design-system">Design system</BreadCrumbs.Item>
+    <BreadCrumbs.Item>Components</BreadCrumbs.Item>
+  </BreadCrumbs>
+</Stage>
+
+### Truncation
+
+`maxWidth` caps a crumb's width; longer labels already truncate with an ellipsis and
+gain a tooltip showing the full text, but you may want to set a max width for user-generated
+crumb names in order to prioritize truncation on those crumbs over others.
+
+<Stage>
+  <BreadCrumbs aria-label="Breadcrumb (truncation)">
+    <BreadCrumbs.Item href="#workspace">Acme</BreadCrumbs.Item>
+    <BreadCrumbs.Item href="#graph" maxWidth={160}>
+      Strategic partnerships knowledge graph
+    </BreadCrumbs.Item>
+    <BreadCrumbs.Item>Overview</BreadCrumbs.Item>
+  </BreadCrumbs>
+</Stage>
+
+## Behavior
+
+- The current page never collapses; other crumbs collapse into a menu from right
+  to left where necessary to fit the available space. The first crumb stays visible as long as
+  possible; in very tight spaces it joins the menu too. Only when nothing else fits does
+  the current page truncate.
+- A crumb whose label is visually truncated gains a tooltip showing the full
+  label, unless an explicit `tooltip` is set.
+
+## Content
+
+- Label each crumb with the destination page's exact title — users match the
+  trail against pages they know. Nouns, 1–3 words, sentence case.
+- Don't add punctuation or slashes to labels; the trail renders its own
+  separators.
+- Don't hand-abbreviate long user-generated names such as entity titles — cap
+  them with `maxWidth` and let the automatic tooltip carry the full name.
+
+## Accessibility
+
+Breadcrumbs implements the
+[WAI-ARIA breadcrumb pattern](https://www.w3.org/WAI/ARIA/apg/patterns/breadcrumb/).
+
+### What you must do
+
+- Give each `<Breadcrumbs>` a unique `aria-label` when a page renders more than one —
+  duplicate "Breadcrumb" landmarks are indistinguishable to screen-reader
+  users.
+- Set a crumb's `aria-label` only when its visible children aren't a sufficient
+  name, such as icon-only.
+
+## API reference
+
+### BreadCrumbs
+
+<PropsTable
+  of={BreadCrumbs}
+  defaults={{
+    size: '"md"',
+    ellipsisLabel: '"Show collapsed"',
+    "aria-label": '"Breadcrumb"',
+  }}
+/>
+
+### BreadCrumbs.Item
+
+<PropsTable of={BreadCrumbs.Item} />
+
+### BreadcrumbSubItem
+
+The shape of a crumb's `subItems` entries, shown in its dropdown. Each takes
+`children` plus at most one of `href` or `onClick`.
+
+<PropsTable of={BreadcrumbSubItemDoc} />

@@ -257,12 +257,6 @@ Two design points worth keeping in mind when touching this:
   contributing samples to later frames, where an unsharded run keeps sampling
   their frozen state.
 
-The CLI shards the same way through the shared experiment backend, over
-`node:worker_threads`, defaulting to one worker per core minus one. Note the
-memory constraint recorded for the optimisation path — a 1 GB ECS task against
-multiple Node CLIs each capped at 768 MB — so shard count there must be bounded
-by memory, not just cores.
-
 Still open: concurrent experiments do not share a pool (three 8-way
 experiments spawn 24 workers and compete for cores — memory degrades
 gracefully because sharding splits runs rather than duplicating them); metric
@@ -595,12 +589,10 @@ ship its own `libm` subset. The reproducibility decision below softens this:
 the module need not be bit-identical to V8's `Math.*`, only internally
 deterministic.
 
-On the server, the elegant option is one HIR→WASM backend, two hosts: the
-browser runs the module on its engine, `petrinaut-cli` runs the same module
-under Wasmtime, which compiles it natively. One emitter, one set of semantics,
-one place to verify. A Rust engine with Cranelift JIT of the HIR would have a
-faster ceiling but adds a second codegen backend to keep semantically in sync
-— avoid until there is evidence it is needed. Remember `SharedArrayBuffer` is
+One HIR→WASM emitter gives one set of semantics and one place to verify. A
+native Rust engine with Cranelift JIT of the HIR would have a faster ceiling
+but adds a second codegen backend to keep semantically in sync, so avoid it
+until there is evidence it is needed. Remember `SharedArrayBuffer` is
 unavailable in the browser (no cross-origin isolation), so WASM threading is
 not an option there; sharding stays at the worker level.
 

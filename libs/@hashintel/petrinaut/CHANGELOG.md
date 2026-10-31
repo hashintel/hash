@@ -1,5 +1,32 @@
 # @hashintel/petrinaut
 
+## 0.0.23
+
+### Patch Changes
+
+- Updated dependencies:
+  - @hashintel/ds-components@0.5.1
+
+## 0.0.22
+
+### Patch Changes
+
+- Add `renderComposerStatus` for host-owned status above the composer or expanded Voice dock, without changing the collapsed dock's height. Pass the current `inputMode` to composer controls and keep composer controls available in the live Voice dock. With `presentation: "brunch"`, system messages display as visible notes in Chat and Voice, `renderSystemMessage` renders their content, and composer controls sit at the leading edge of the composer and Voice dock, separate from submission and session actions. ([@lunelson](https://github.com/lunelson), [#10053](https://github.com/hashintel/hash/pull/10053))
+
+- Plugins can provide the AI assistant panel's content and title bar, and the `aiAssistant` prop with its built-in chat is deprecated. ([@kube](https://github.com/kube), [#10103](https://github.com/hashintel/hash/pull/10103))
+
+- Fix the code editor's web worker failing to load in apps that bundle Petrinaut with Vite. Petrinaut now emits the worker's URL in a form the app's bundler recognises, so the bundler copies the worker into the app's build. ([@kube](https://github.com/kube), [#10081](https://github.com/hashintel/hash/pull/10081))
+
+- `PetrinautPreview` takes an `actualMode` prop to show an execution from outside Petrinaut, as the editor's Actual mode does: it opens on the latest frame, with a timeline to scrub back through it. ([@kostandinang](https://github.com/kostandinang), [#10157](https://github.com/hashintel/hash/pull/10157))
+
+- The Visualizer editor checks JavaScript with JSX as you type, lists errors in the Diagnostics tab without blocking a run, and draws the picture by interpreting the code safely, so nothing from a net runs as JavaScript. ([@kube](https://github.com/kube), [#10189](https://github.com/hashintel/hash/pull/10189))
+
+- Add optional assistant header controls with an input-mode restriction for voice-only controls, preserving Chat and Ledger state. ([@lunelson](https://github.com/lunelson), [#10054](https://github.com/hashintel/hash/pull/10054))
+- Updated dependencies:
+  - @hashintel/petrinaut-core@0.0.6
+  - @hashintel/ds-components@0.5.0
+  - @hashintel/ds-icons@0.0.3
+
 ## 0.0.21
 
 ### Patch Changes

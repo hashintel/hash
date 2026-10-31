@@ -2,8 +2,8 @@
   "package": "hash-graph-migrations",
   "dependencies": [
     "error-stack",
+    "hash-crypto",
     "hash-graph-migrations-macros",
-    "hash-secret",
     "hash-telemetry"
   ],
   "tasks": {

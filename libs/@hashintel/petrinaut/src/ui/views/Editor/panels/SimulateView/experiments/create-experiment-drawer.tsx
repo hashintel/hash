@@ -24,7 +24,6 @@ import {
   isWebGpuAvailable,
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
-import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 
 import {
   axisDisplayName,
@@ -925,8 +924,7 @@ export const CreateExperimentDrawer = ({
     types: extensions.colors ? petriNetDefinition.types : [],
   };
   const adHocSweeping = effectiveSelectedScenarioId === NO_SCENARIO_VALUE;
-  const optimizerConnected =
-    optimizationSource !== null && isConnectedOptimization(optimizationSource);
+  const optimizerConnected = optimizationSource !== null;
 
   /**
    * The sweep the current interval inputs define. `error` carries the first

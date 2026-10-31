@@ -230,6 +230,11 @@ pub enum ContextCreationError {
     BuildEntityTypeContext {
         entity_type_ids: HashSet<VersionedUrl>,
     },
+    #[display("Entity types with IDs `{}` do not exist",
+        entity_type_ids.iter().map(VersionedUrl::to_string).collect::<Vec<_>>().join(", "))]
+    EntityTypesNotFound {
+        entity_type_ids: HashSet<VersionedUrl>,
+    },
     #[display("Could not build property type context for property types with IDs `{}`",
         property_type_ids.iter().map(VersionedUrl::to_string).collect::<Vec<_>>().join(", "))]
     BuildPropertyTypeContext {

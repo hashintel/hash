@@ -7,7 +7,7 @@
 use core::{num::NonZero, pin::Pin, time::Duration};
 
 use clap::builder::TypedValueParser as _;
-use hash_secret::Secret;
+use hash_crypto::Secret;
 
 use super::ServeCommand;
 use crate::{

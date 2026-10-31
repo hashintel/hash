@@ -5,6 +5,7 @@ export const styles = sva({
   base: {
     root: {
       display: "inline-flex",
+      verticalAlign: "middle",
       width: "[fit-content]",
       gap: "[6px]",
       cursor: "pointer",

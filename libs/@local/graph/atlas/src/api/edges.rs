@@ -108,8 +108,8 @@ pub(super) struct EdgesRequest {
 /// where a delivered edge has no captured display payload, where hydration fails, or where the
 /// assembly worker panics. Encoding itself reports nothing, since the edges document declares an
 /// uninhabited error type.
-pub(super) async fn handler<R>(
-    State(state): State<AppState<R>>,
+pub(super) async fn handler(
+    State(state): State<AppState>,
     visibility: Visibility,
     Body(request): Body<EdgesRequest>,
 ) -> Result<Response, ProblemResponse<'static>> {

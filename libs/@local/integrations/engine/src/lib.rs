@@ -15,11 +15,24 @@
 
 extern crate alloc;
 
+mod byte_size;
+mod entity_id;
+mod pipeline;
+mod progress;
 mod sql;
 mod variant_name;
 mod workspace;
 
-pub use self::workspace::{
-    CloseError, DataErrorType, OpenError, QueryErrorType, Rows, Setting, StatementError, Workspace,
-    WorkspaceConfig,
+pub use self::{
+    byte_size::ByteSize,
+    entity_id::derive_entity_id,
+    pipeline::{
+        AssertionFailure, PreparationError, PreparedLink, PreparedPipeline, PreparedSink,
+        TableAssertions,
+    },
+    progress::{Progress, ProgressSnapshot},
+    workspace::{
+        CloseError, DataErrorType, DiskUsageError, OpenError, QueryErrorType, Rows, Setting,
+        SnapshotError, StatementError, Workspace, WorkspaceConfig,
+    },
 };

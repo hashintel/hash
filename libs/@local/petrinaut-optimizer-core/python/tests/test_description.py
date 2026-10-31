@@ -1,8 +1,3 @@
-from __future__ import annotations
-
-import json
-from typing import Any
-
 import pytest
 
 from petrinaut_optimizer_core import (
@@ -13,9 +8,11 @@ from petrinaut_optimizer_core import (
     parse_description,
 )
 
+from ._support import OptimizationDescription
 
-def test_parses_the_describe_result_into_plain_dataclasses(
-    optimization_description: dict[str, Any],
+
+def test_description_fields(
+    optimization_description: OptimizationDescription,
 ) -> None:
     description = parse_description(optimization_description)
 
@@ -27,16 +24,6 @@ def test_parses_the_describe_result_into_plain_dataclasses(
         FloatParameter("rate", minimum=0.1, maximum=2.0, log=True),
         IntParameter("count", minimum=2, maximum=8, step=2, log=False),
         BooleanParameter("enabled"),
-    )
-
-
-def test_accepts_the_result_after_a_json_round_trip(
-    optimization_description: dict[str, Any],
-) -> None:
-    round_tripped = json.loads(json.dumps(optimization_description))
-
-    assert parse_description(round_tripped) == parse_description(
-        optimization_description
     )
 
 
@@ -65,10 +52,6 @@ def test_accepts_the_result_after_a_json_round_trip(
         (
             {"study": {"trials": 1, "sampler": "random", "seed": -1}},
             "study.seed must be a non-negative integer",
-        ),
-        (
-            {"study": {"trials": 1.5, "sampler": "random", "seed": 1}},
-            "study.trials must be an integer",
         ),
         (
             {
@@ -141,35 +124,56 @@ def test_accepts_the_result_after_a_json_round_trip(
             "count.step must be 1 for log scale",
         ),
         (
-            {
-                "parameters": [
-                    {
-                        "identifier": "count",
-                        "type": "int",
-                        "default": 1,
-                        "minimum": 1.5,
-                        "maximum": 10,
-                        "step": 1,
-                        "scale": "linear",
-                    }
-                ]
-            },
-            "count.minimum must be an integer",
-        ),
-        (
             {"parameters": [{"identifier": "rate", "type": "string"}]},
             "unsupported optimization parameter type: 'string'",
         ),
-        ({"parameters": {"rate": {}}}, "parameters must be an array"),
-        ({"study": None}, "study must be an object"),
     ],
 )
-def test_rejects_descriptions_that_break_a_rule(
-    optimization_description: dict[str, Any],
-    change: dict[str, Any],
+def test_description_invalid(
+    optimization_description: OptimizationDescription,
+    change: dict[str, object],
     message: str,
 ) -> None:
-    optimization_description.update(change)
+    changed_description: dict[str, object] = dict(optimization_description)
+    changed_description.update(change)
 
     with pytest.raises(ValueError, match=message):
-        parse_description(optimization_description)
+        parse_description(changed_description)
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        ({"direction": 1}, "unsupported optimization direction"),
+        ({"study": None}, "study must be an object"),
+        ({"study": {"trials": 1.5}}, "study.trials must be an integer"),
+        ({"study": {"seed": True}}, "study.seed must be an integer"),
+        ({"parameters": {}}, "parameters must be an array"),
+        (
+            {"parameters": [{"identifier": 1, "type": "boolean"}]},
+            "identifier must be a string",
+        ),
+        (
+            {"parameters": [{"identifier": "rate", "type": None}]},
+            "unsupported optimization parameter type",
+        ),
+        (
+            {"parameters": [{"identifier": "rate", "type": "float", "minimum": True}]},
+            "rate.minimum must be a number",
+        ),
+    ],
+)
+def test_description_field_types(
+    optimization_description: OptimizationDescription,
+    change: dict[str, object],
+    message: str,
+) -> None:
+    changed_description: dict[str, object] = dict(optimization_description)
+    study_change = change.get("study")
+    if isinstance(study_change, dict):
+        changed_description["study"] = {**optimization_description["study"], **study_change}
+        change = {key: value for key, value in change.items() if key != "study"}
+    changed_description.update(change)
+
+    with pytest.raises(TypeError, match=message):
+        parse_description(changed_description)

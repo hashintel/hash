@@ -4,6 +4,7 @@
 
 use alloc::sync::Arc;
 use core::{
+    fmt::Write as _,
     future::{Future, poll_fn},
     pin::{Pin, pin},
     task::Poll,
@@ -19,14 +20,10 @@ use axum::{
     routing::get,
 };
 use camino::Utf8PathBuf;
+use hash_crypto::Secret;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
-};
-use hash_secret::Secret;
-use rand::{
-    SeedableRng as _, TryCryptoRng,
-    rngs::{StdRng, SysRng},
 };
 use tokio::time::timeout;
 use tokio_postgres::NoTls;
@@ -48,7 +45,10 @@ use crate::{
     math::nz,
     morton::Zoom,
     serve::{
-        authorization::authority::{Authority, Issue},
+        authorization::{
+            authority::{Authority, Issue},
+            error::IssueError,
+        },
         delta::DeltaReference,
         document::DocumentLimits,
         hydrate::{CachedTypeUrlResolver, GraphDatabaseClient},
@@ -72,6 +72,16 @@ const POLL_INTERVAL: Duration = Duration::from_millis(5);
 const RETENTION: Duration = Duration::from_secs(30);
 /// The fixed sealing secret shared by every token issued in this module.
 const AUTH_SECRET: &[u8] = b"atlas-admission-test-authority-secret-material";
+
+/// Builds an authority over [`AUTH_SECRET`] whose tokens expire after `expiration`.
+fn authority(expiration: Duration) -> Authority {
+    Authority::new(
+        &*Secret::<[u8]>::from_vec(AUTH_SECRET.to_vec()),
+        expiration,
+        &opentelemetry::global::meter("hash-graph-atlas-test"),
+    )
+    .expect("the authority key should derive")
+}
 /// The token window used by cases that do not exercise expiry.
 const LONG_EXPIRATION: Duration = Duration::from_secs(3600);
 
@@ -223,7 +233,7 @@ fn scratch_root(name: &str) -> (ScratchDirectory, GenerationRoot) {
 /// # Panics
 ///
 /// Panics outside a Tokio runtime or if pool construction fails.
-fn test_state<R>(registry: Arc<UniverseRegistry>, tokens: Arc<Authority<R>>) -> AppState<R> {
+fn test_state(registry: Arc<UniverseRegistry>, tokens: Arc<Authority>) -> AppState {
     let visibility = VisibilityLimits {
         bytes: 1_000_000,
         soft: Duration::from_secs(1),
@@ -256,10 +266,10 @@ fn user_actor(id: u128) -> ActorId {
 ///
 /// # Panics
 ///
-/// Panics if generation observation or nonce generation fails.
+/// Panics if generation observation or sealing fails.
 #[track_caller]
 fn issue_token(
-    tokens: &Authority<impl TryCryptoRng>,
+    tokens: &Authority,
     registry: &UniverseRegistry,
     generation: GenerationId,
     actor: ActorId,
@@ -358,7 +368,7 @@ async fn renewal_probe(
 }
 
 /// Builds fixture routes for admission and renewal probes.
-fn router(state: AppState<impl Send + 'static>) -> Router {
+fn router(state: AppState) -> Router {
     Router::new()
         .route("/admission/{generation}/{variant}", get(admission_probe))
         .route("/renewal/{generation}", get(renewal_probe))
@@ -554,6 +564,63 @@ async fn actor_token_routes(
     );
 }
 
+/// Checks that a token's clear issue time is authenticated.
+///
+/// An issue time one second earlier keeps the token current, so only authentication refuses it.
+///
+/// # Panics
+///
+/// Panics if `token` is not hexadecimal or admission differs from this expectation.
+#[expect(
+    clippy::little_endian_bytes,
+    reason = "the token stores its issue time as little-endian bytes"
+)]
+async fn earlier_issue_time_routes(
+    app: &Router,
+    generation_hex: &str,
+    actor: ActorId,
+    token: &str,
+) {
+    let mut bytes = token
+        .as_bytes()
+        .chunks(2)
+        .map(|digits| {
+            u8::from_str_radix(
+                core::str::from_utf8(digits).expect("the token should be ASCII"),
+                16,
+            )
+            .expect("the token should be hexadecimal")
+        })
+        .collect::<Vec<_>>();
+    // The issue time follows the one-byte version as eight little-endian bytes.
+    let issued_at = bytes
+        .get_mut(1..9)
+        .expect("the token should hold an issue time");
+    let earlier = u64::from_le_bytes(
+        <[u8; 8]>::try_from(&*issued_at).expect("the issue time should be eight bytes"),
+    )
+    .checked_sub(1)
+    .expect("the issue time should be after the epoch");
+    issued_at.copy_from_slice(&earlier.to_le_bytes());
+    let mut tampered = String::with_capacity(token.len());
+    for byte in bytes {
+        write!(tampered, "{byte:02x}").expect("writing to a string should not fail");
+    }
+
+    let (status, document) = call(
+        app,
+        request("admission", generation_hex, actor, Some(&tampered)),
+    )
+    .await;
+    assert_problem(
+        status,
+        &document,
+        StatusCode::UNAUTHORIZED,
+        "unauthorized",
+        "a token with a changed issue time must refuse",
+    );
+}
+
 /// Checks generation-path rejection on admission and renewal routes.
 ///
 /// Malformed generations answer `400 invalid-generation`. Well-formed but unknown generations
@@ -604,10 +671,7 @@ async fn expired_token_routes(
     generation_hex: &str,
     actor: ActorId,
 ) {
-    let expiring_tokens = Arc::new(
-        Authority::new(AUTH_SECRET, Duration::ZERO, StdRng::seed_from_u64(3))
-            .expect("the rng should draw a salt"),
-    );
+    let expiring_tokens = Arc::new(authority(Duration::ZERO));
     let expiring_state = test_state(Arc::clone(&registry), Arc::clone(&expiring_tokens));
     let expiring_app = router(expiring_state);
     let filter = FilterDigest::of(b"single-generation-expired-filter");
@@ -669,10 +733,7 @@ async fn token_lifecycle() {
     .await;
     let generation_hex = generation.to_string();
 
-    let tokens = Arc::new(
-        Authority::new(AUTH_SECRET, LONG_EXPIRATION, StdRng::seed_from_u64(1))
-            .expect("the rng should draw a salt"),
-    );
+    let tokens = Arc::new(authority(LONG_EXPIRATION));
     let state = test_state(Arc::clone(&registry), Arc::clone(&tokens));
     let app = router(state);
 
@@ -692,6 +753,7 @@ async fn token_lifecycle() {
         &token,
     )
     .await;
+    earlier_issue_time_routes(&app, &generation_hex, actor, &token).await;
 
     generation_rejections(&app, actor, &token).await;
 
@@ -804,9 +866,7 @@ async fn token_retained() {
     })
     .await;
 
-    let tokens = Arc::new(
-        Authority::new(AUTH_SECRET, LONG_EXPIRATION, SysRng).expect("the rng should draw a salt"),
-    );
+    let tokens = Arc::new(authority(LONG_EXPIRATION));
     let state = test_state(Arc::clone(&registry), Arc::clone(&tokens));
     let routes = super::super::router(
         Arc::clone(&registry),
@@ -881,6 +941,50 @@ async fn token_retained() {
 /// Checks `503 visibility-unavailable` for renewal against an empty registry.
 ///
 /// The request supplies a resolved actor and no token.
+/// Issuance stops once the authority has sealed its whole budget.
+#[tokio::test]
+async fn issue_budget() {
+    let (_files, mut manager) = boot("issue-budget", RETENTION);
+    let registry = Arc::clone(manager.registry());
+    let shutdown = CancellationToken::new();
+    let mut running = pin!(manager.run(shutdown.clone().cancelled_owned()));
+
+    let generation = advance(running.as_mut(), || {
+        registry
+            .observe(None)
+            .ok()
+            .map(|observation| observation.present().epoch().generation())
+    })
+    .await;
+    let observation = registry
+        .observe(Some(generation))
+        .expect("the generation should observe for token issuance");
+    let epoch = observation.requested().epoch();
+    let tokens = authority(LONG_EXPIRATION).with_remaining(1);
+    let issue = || Issue {
+        actor: user_actor(9),
+        filter: None,
+        k: Zoom::MIN,
+    };
+
+    tokens
+        .issue(epoch, SystemTime::now(), issue())
+        .expect("the last token of the budget should issue");
+    let error = tokens
+        .issue(epoch, SystemTime::now(), issue())
+        .expect_err("a token beyond the budget should be refused");
+    assert_eq!(
+        *error.current_context(),
+        IssueError::Exhausted,
+        "the refusal should name the exhausted budget"
+    );
+
+    shutdown.cancel();
+    timeout(BUDGET, running.as_mut())
+        .await
+        .expect("the cancelled run should finish within its budget");
+}
+
 #[tokio::test]
 async fn renewal_empty() {
     let (_scratch, root) = scratch_root("empty-registry");
@@ -900,10 +1004,7 @@ async fn renewal_empty() {
     )
     .expect("a non-zero polling interval should construct a manager");
     let registry = Arc::clone(manager.registry());
-    let tokens = Arc::new(
-        Authority::new(AUTH_SECRET, LONG_EXPIRATION, StdRng::seed_from_u64(6))
-            .expect("the rng should draw a salt"),
-    );
+    let tokens = Arc::new(authority(LONG_EXPIRATION));
     let state = test_state(registry, tokens);
     let app = router(state);
 

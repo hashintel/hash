@@ -48,9 +48,6 @@ const layerPalette: Record<string, { fill: string; stroke: string }> = {
   react: { fill: "#e8e0ff", stroke: "#7051b5" },
   ui: { fill: "#e2f4e8", stroke: "#3d8055" },
   petrinaut: { fill: "#fdeedc", stroke: "#b5762f" },
-  cli: { fill: "#fbe3e8", stroke: "#ad3a5b" },
-  "python-bindings": { fill: "#fff4d6", stroke: "#a3801f" },
-  optimizer: { fill: "#e0f2f1", stroke: "#2b7a72" },
   website: { fill: "#eef3d9", stroke: "#6f8f2f" },
   other: { fill: "#f2f2f2", stroke: "#777777" },
   elided: { fill: "#ffffff", stroke: "#aaaaaa" },
@@ -86,16 +83,7 @@ const styleClasses = [
   `}`,
 ].join("\n");
 
-const knownRoots = [
-  "core",
-  "react",
-  "ui",
-  "petrinaut",
-  "cli",
-  "python-bindings",
-  "optimizer",
-  "website",
-];
+const knownRoots = ["core", "react", "ui", "petrinaut", "website"];
 
 const classFor = (id: string): string => {
   const root = rootSegment(id);

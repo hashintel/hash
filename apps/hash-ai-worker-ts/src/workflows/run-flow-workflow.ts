@@ -33,7 +33,7 @@ const generateFlowRunName = (params: {
 export const runFlowWorkflow = async (
   params: RunAiFlowWorkflowParams,
 ): Promise<RunFlowWorkflowResponse> => {
-  setQueryAndSignalHandlers();
+  setQueryAndSignalHandlers({ userAuthentication: params.userAuthentication });
 
   return await processFlowWorkflow({
     ...params,

@@ -1,6 +1,6 @@
 /**
  * @layerRoot core.optimization
- * @role The optimization contract shared by the CLI, the service client and the browser runtime: manifest and event schemas, capability, channel and connected-source types, study description and seed derivation
+ * @role The optimization contract of the in-browser optimizer: manifest and event schemas, channel and connected-source types, study description and seed derivation
  */
 import { z } from "zod";
 
@@ -492,23 +492,10 @@ export const parseOptimizationManifest = (
   return parsed.data;
 };
 
-/** The application optimization request is the immutable CLI manifest. */
+/** An optimization request is its immutable manifest. */
 export const petrinautOptimizationInputSchema =
   petrinautOptimizationManifestSchema;
 
-export const petrinautOptimizationEvaluateParamsSchema = z
-  .strictObject({
-    parameterValues: z.record(z.string(), optimizationScalarSchema),
-  })
-  .meta({
-    description: "Values suggested for every and only optimized parameter.",
-  });
-
-/**
- * The protocol's response shapes are schemas rather than plain types, so the
- * CLI can publish them as JSON Schema and other languages can generate
- * matching types from the one definition.
- */
 export const petrinautOptimizationDescribeParameterSchema = z
   .discriminatedUnion("type", [
     z.strictObject({
@@ -556,34 +543,17 @@ export const petrinautOptimizationDescribeResultSchema = z
       })
       .meta({
         description:
-          "Study settings with the execution seed. `seedsPerTrial` is reported once the CLI runs seeded replicates; absent means 1.",
+          "Study settings with the execution seed. Absent `seedsPerTrial` means 1.",
       }),
     parameters: z.array(petrinautOptimizationDescribeParameterSchema),
     constraints: constraintListSchema.optional().meta({
       description:
-        "The manifest's constraints, passed through verbatim so protocol clients (the Python binding) can evaluate their HIR. Absent means unconstrained.",
+        "The manifest's constraints, passed through verbatim. Absent means unconstrained.",
     }),
   })
   .meta({
     description:
-      "The `optimization.describe` result: direction, study settings, the parameters that are not fixed, and the study's constraints.",
-  });
-
-export const petrinautOptimizationReplicateSchema = z
-  .strictObject({
-    seed: z.number().int(),
-    objective: z.number(),
-  })
-  .meta({ description: "One seeded run's objective within a trial." });
-
-export const petrinautOptimizationEvaluateResultSchema = z
-  .strictObject({
-    objective: z.number(),
-    replicates: z.array(petrinautOptimizationReplicateSchema).optional(),
-  })
-  .meta({
-    description:
-      "The `optimization.evaluate` result. `objective` is the mean of the per-seed objectives (identical to the sole run's objective when the trial runs one seed); `replicates` reports the per-seed values whenever a trial runs more than one.",
+      "The study description: direction, study settings, the parameters that are not fixed, and the study's constraints.",
   });
 
 export type PetrinautOptimizationDescribeParameter = z.infer<
@@ -591,12 +561,6 @@ export type PetrinautOptimizationDescribeParameter = z.infer<
 >;
 export type PetrinautOptimizationDescribeResult = z.infer<
   typeof petrinautOptimizationDescribeResultSchema
->;
-export type PetrinautOptimizationEvaluateParams = z.infer<
-  typeof petrinautOptimizationEvaluateParamsSchema
->;
-export type PetrinautOptimizationEvaluateResult = z.infer<
-  typeof petrinautOptimizationEvaluateResultSchema
 >;
 
 const optimizationBestSchema = z
@@ -608,11 +572,9 @@ const optimizationBestSchema = z
   .meta({ description: "The best completed trial so far." });
 
 /**
- * Server-authoritative, strictly increasing sequence number attached to each
- * event of a detached optimization run. A client resuming a run asks for the
- * events with `seq` greater than the last one it applied, and skips any
- * replayed event at or below that cursor. Optional so streams from hosts that
- * predate detached runs keep validating.
+ * Strictly increasing sequence number of each event in a run's log. An
+ * attachment asks for the events with `seq` greater than the last one it
+ * applied, and skips any replayed event at or below that cursor.
  */
 const optimizationEventSeqSchema = z.number().int().nonnegative().optional();
 
@@ -682,7 +644,7 @@ export const petrinautOptimizationTrialEventSchema = z
  * Whether the study behind the run stays available to `extendOptimizationRun`
  * after this terminal event. A connected capability sets it on every terminal
  * event: `false` for a segment that never reached the worker or a run that
- * failed. A remote service keeps no study and omits it.
+ * failed.
  */
 const optimizationResumableSchema = z.boolean().optional();
 
@@ -703,11 +665,9 @@ export const petrinautOptimizationCompleteEventSchema = z
 
 /**
  * The `code` of the terminal error event that reports a cancellation rather
- * than a failure. A detached run is cancelled out-of-band — an explicit
- * `DELETE`, orphan reaping, or optimizer shutdown — and the stream has no
- * event type of its own for that, so it arrives as a non-retryable error.
- * Consumers presenting run outcomes should treat this code as "cancelled",
- * not "failed".
+ * than a failure. The stream has no event type of its own for a
+ * cancellation, so it arrives as a non-retryable error. Consumers presenting
+ * run outcomes should treat this code as "cancelled", not "failed".
  */
 export const PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE =
   "optimization_cancelled";
@@ -798,41 +758,6 @@ export type PetrinautOptimizationImportances = z.infer<
 >;
 
 /**
- * Host-provided optimization capability for Petrinaut: the self-contained
- * variant, backed by a remote service that owns its simulations. The
- * in-tab variant is {@link PetrinautConnectedOptimization}.
- *
- * A run is detached from any one connection: it is created by id, its event
- * stream can be (re-)attached with a `seq` cursor, and it is cancelled
- * explicitly — which lets the UI survive connection drops and page reloads.
- */
-export type PetrinautOptimization = {
-  /** Start a detached run and resolve its server-issued run id. */
-  createOptimizationRun(
-    input: PetrinautOptimizationInput,
-    options?: { signal?: AbortSignalLike },
-  ): Promise<{ runId: string }>;
-  /**
-   * Stream a detached run's events, replaying those with `seq` greater than
-   * `cursor` (0 replays everything) before tailing live events. The stream
-   * ends after a terminal `complete` or `error` event. `onAttached` fires once
-   * the attachment is accepted (the response headers arrived OK), which may
-   * be long before the first event on a quiet run — UIs use it to report an
-   * honest connection state while reconnecting.
-   */
-  attachOptimizationRun(
-    runId: string,
-    options?: {
-      cursor?: number;
-      signal?: AbortSignalLike;
-      onAttached?: () => void;
-    },
-  ): AsyncIterable<PetrinautOptimizationEvent>;
-  /** Idempotently stop a detached run server-side. */
-  cancelOptimizationRun(runId: string): Promise<void>;
-};
-
-/**
  * One trial's computation, as the optimizer hands it to whoever runs
  * simulations for it.
  *
@@ -857,7 +782,7 @@ export type PetrinautOptimizationTrialRequest = {
   readonly scenarioParameterValues: Readonly<Record<string, number>>;
   /**
    * The seeds the trial's simulations run with. The same sequence for every
-   * trial (common random numbers), derived as the CLI derives them.
+   * trial (common random numbers), from `deriveOptimizationTrialSeeds`.
    */
   readonly seeds: readonly number[];
   /** Aborted when the run is cancelled; the host should stop the trial's runs. */
@@ -896,7 +821,7 @@ export type PetrinautOptimizationChannel = {
 
 export const PETRINAUT_OPTIMIZATION_MAX_PARALLELISM = 4;
 
-/** Options of a run on a connected capability; the remote one takes `signal` only. */
+/** Options of a run. */
 export type PetrinautConnectedRunOptions = {
   /**
    * Creation rejects with an `AbortError` when this is already aborted; a
@@ -917,14 +842,28 @@ export type PetrinautConnectedRunOptions = {
  * cancelled stays in memory until it is released, so more trials can be run
  * on it with the sampler's history intact.
  */
-export type PetrinautConnectedOptimizationCapability = Omit<
-  PetrinautOptimization,
-  "createOptimizationRun"
-> & {
+export type PetrinautConnectedOptimizationCapability = {
+  /** Start a run and resolve its run id. */
   createOptimizationRun(
     input: PetrinautOptimizationInput,
     options?: PetrinautConnectedRunOptions,
   ): Promise<{ runId: string }>;
+  /**
+   * Stream a run's events, replaying those with `seq` greater than `cursor`
+   * (0 replays everything) before tailing live events. The stream ends after
+   * a terminal `complete` or `error` event. `onAttached` fires once the
+   * attachment is accepted.
+   */
+  attachOptimizationRun(
+    runId: string,
+    options?: {
+      cursor?: number;
+      signal?: AbortSignalLike;
+      onAttached?: () => void;
+    },
+  ): AsyncIterable<PetrinautOptimizationEvent>;
+  /** Idempotently stop a run. */
+  cancelOptimizationRun(runId: string): Promise<void>;
   /**
    * Run `trials` more on a run that completed or was cancelled. Its event
    * stream gains a `started` event carrying the cumulative `requestedTrials`,
@@ -943,7 +882,7 @@ export type PetrinautConnectedOptimizationCapability = Omit<
 /**
  * An optimization capability that runs where the host runs, in the tab, and
  * needs the host's compute: connect it to a channel to obtain the
- * capability. The self-contained variant is {@link PetrinautOptimization}.
+ * capability.
  */
 export type PetrinautConnectedOptimization = {
   readonly kind: "connected";
@@ -952,16 +891,6 @@ export type PetrinautConnectedOptimization = {
     channel: PetrinautOptimizationChannel,
   ): PetrinautConnectedOptimizationCapability;
 };
-
-/** What a host supplies: a remote capability, or one to connect locally. */
-export type PetrinautOptimizationSource =
-  | PetrinautOptimization
-  | PetrinautConnectedOptimization;
-
-export const isConnectedOptimization = (
-  source: PetrinautOptimizationSource,
-): source is PetrinautConnectedOptimization =>
-  (source as Partial<PetrinautConnectedOptimization>).kind === "connected";
 
 export {
   deriveOptimizationTrialSeeds,

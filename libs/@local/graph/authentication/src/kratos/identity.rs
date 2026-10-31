@@ -145,7 +145,7 @@ mod tests {
 
     /// Builds the wire format of a Kratos admin identity.
     fn identity_json(actor_id: Option<ActorEntityUuid>, addresses: JsonValue) -> JsonValue {
-        let mut identity = json!({ "id": Uuid::new_v4() });
+        let mut identity = json!({ "id": Uuid::now_v7() });
         identity["verifiable_addresses"] = addresses;
         if let Some(actor_id) = actor_id {
             identity["metadata_public"] = json!({ "graph_actor_id": actor_id });

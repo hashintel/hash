@@ -5,7 +5,6 @@ import { deriveRunParameters } from "./run-parameters";
 describe("deriveRunParameters", () => {
   it("packs a run plan into an f32 buffer as-is", () => {
     const result = deriveRunParameters(
-      undefined,
       { ids: ["a", "b"], values: Float64Array.from([1, 2, 3, 4]) },
       2,
     );
@@ -16,33 +15,13 @@ describe("deriveRunParameters", () => {
     expect([...result.runParameters.values!]).toEqual([1, 2, 3, 4]);
   });
 
-  it("lays per-run records out run-major over the sorted override set", () => {
-    const result = deriveRunParameters(
-      [
-        { parameterValues: { b: "2", a: "1" } },
-        { parameterValues: { a: "3", b: "4" } },
-      ],
-      undefined,
-      2,
-    );
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.runParameters.ids).toEqual(["a", "b"]);
-    expect([...result.runParameters.values!]).toEqual([1, 2, 3, 4]);
-  });
-
   it("carries no buffer when nothing varies per run", () => {
-    expect(deriveRunParameters(undefined, undefined, 3)).toEqual({
+    expect(deriveRunParameters(undefined, 3)).toEqual({
       ok: true,
       runParameters: { ids: [] },
     });
     expect(
-      deriveRunParameters(
-        [{}, {}],
-        { ids: [], values: new Float64Array(0) },
-        2,
-      ),
+      deriveRunParameters({ ids: [], values: new Float64Array(0) }, 2),
     ).toEqual({
       ok: true,
       runParameters: { ids: [] },
@@ -51,7 +30,6 @@ describe("deriveRunParameters", () => {
 
   it("refuses a plan whose value count does not match the runs", () => {
     const result = deriveRunParameters(
-      undefined,
       { ids: ["a"], values: Float64Array.from([1, 2, 3]) },
       2,
     );
@@ -63,33 +41,21 @@ describe("deriveRunParameters", () => {
     });
   });
 
-  it("refuses non-finite values from either form, naming the raw value", () => {
-    const fromPlan = deriveRunParameters(
-      undefined,
+  it("refuses a non-finite value, naming it", () => {
+    const result = deriveRunParameters(
       { ids: ["a"], values: Float64Array.from([1, Number.NaN]) },
       2,
     );
-    const fromRuns = deriveRunParameters(
-      [{ parameterValues: { a: "1" } }, { parameterValues: { a: "abc" } }],
-      undefined,
-      2,
-    );
 
-    expect(fromPlan).toEqual({
+    expect(result).toEqual({
       ok: false,
       reason:
         "Per-run value `NaN` for `a` is not a finite number, which is all the GPU's f32 buffer can carry.",
-    });
-    expect(fromRuns).toEqual({
-      ok: false,
-      reason:
-        "Per-run value `abc` for `a` is not a finite number, which is all the GPU's f32 buffer can carry.",
     });
   });
 
   it("refuses a value that narrows to an infinity in f32", () => {
     const result = deriveRunParameters(
-      undefined,
       { ids: ["a"], values: Float64Array.from([1, 1e300]) },
       2,
     );
@@ -99,21 +65,5 @@ describe("deriveRunParameters", () => {
       reason:
         "Per-run value `1e+300` for `a` overflows f32, the widest float WGSL has.",
     });
-  });
-
-  it("refuses per-run shapes the buffer cannot express", () => {
-    expect(
-      deriveRunParameters([{ seed: 1 }, { seed: 2 }], undefined, 2),
-    ).toMatchObject({ ok: false, reason: /per-run seed/ });
-    expect(
-      deriveRunParameters(
-        [{ parameterValues: { a: "1" } }, { parameterValues: { b: "1" } }],
-        undefined,
-        2,
-      ),
-    ).toMatchObject({ ok: false, reason: /same parameters/ });
-    expect(
-      deriveRunParameters([{ parameterValues: { a: "1" } }], undefined, 2),
-    ).toMatchObject({ ok: false, reason: /declares 2 runs but supplies 1/ });
   });
 });

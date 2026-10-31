@@ -1,12 +1,8 @@
-from __future__ import annotations
-
-from typing import Any
-
 import pytest
 
 
 @pytest.fixture
-def optimization_description() -> dict[str, Any]:
+def optimization_description() -> dict[str, object]:
     return {
         "direction": "maximize",
         "study": {"trials": 3, "sampler": "random", "seed": 42},
@@ -35,7 +31,3 @@ def optimization_description() -> dict[str, Any]:
             },
         ],
     }
-
-
-def objective_of_values(values: dict[str, Any]) -> float:
-    return float(values["rate"] + values["count"] + int(values["enabled"]))

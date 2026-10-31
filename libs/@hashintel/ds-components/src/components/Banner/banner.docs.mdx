@@ -1,0 +1,425 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { noop } from "../../util/noop";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Avatar } from "../Avatar/avatar";
+import { Banner } from "./banner";
+
+<Meta title="Docs/Banner" />
+
+export const meta = {
+  title: "Banner",
+  description:
+    "Highlights a page or section-level status and the actions that resolve it.",
+  alternativeNames: [
+    "Alert",
+    "Callout",
+    "InlineNotification",
+    "SectionMessage",
+  ],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Banner/banner.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-banner--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/alert/",
+  },
+  related: ["Chip", "Badge", "Dialog"],
+};
+
+export const Column = ({ children }) => (
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      gap: 16,
+      width: "100%",
+      maxWidth: 680,
+    }}
+  >
+    {children}
+  </div>
+);
+
+# Banner
+
+Highlights a page or section-level status and the actions that resolve it.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Column data-harness>
+    <Banner tone="brand" dismissible={{ onDismiss: noop }}>
+      <Banner.Title>A new entity editor is available</Banner.Title>
+      <Banner.Description>
+        {"Turn it on for this workspace from Settings → Labs."}
+      </Banner.Description>
+    </Banner>
+    <Banner tone="warning">
+      <Banner.Title>Workspace permissions are changing</Banner.Title>
+      <Banner.Description>
+        {"Members inherited from parent teams must be re-added by 1 November."}
+      </Banner.Description>
+      <Banner.Actions>
+        <Banner.ActionButton>Review changes</Banner.ActionButton>
+      </Banner.Actions>
+    </Banner>
+    <Banner tone="error" variant="solid">
+      <Banner.Description>
+        {"Sync with the graph failed — recent edits aren't saved."}
+      </Banner.Description>
+      <Banner.Actions>
+        <Banner.ActionButton>Retry</Banner.ActionButton>
+      </Banner.Actions>
+    </Banner>
+  </Column>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Banner } from "@hashintel/ds-components";
+
+export const PermissionsChangeBanner = () => (
+  <Banner tone="warning">
+    <Banner.Title>Workspace permissions are changing</Banner.Title>
+    <Banner.Description>
+      Members inherited from parent teams must be re-added by 1 November.
+    </Banner.Description>
+  </Banner>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Banner for a page or section-level condition the user didn't just cause — a permissions change, a failed sync, an expiring trial.",
+    "Place the banner at the top of the page or section it describes, so the status reads before the content it affects.",
+    <Fragment key="0">
+      Use <code>Banner.Actions</code> when the user can resolve the condition in
+      place — review, retry, approve.
+    </Fragment>,
+    "Show one banner per view — when several conditions apply, keep the most severe and fold the rest into its description.",
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't confirm an action the user just took — show the result inline, next to the control that triggered it.",
+    "Don't use banners for field-level validation — use Form's field errors under the input.",
+    "Don't use a banner for a decision that must block the flow — use Dialog.",
+  ]}
+/>
+
+## Anatomy
+
+```tsx
+<Banner tone="neutral">
+  <Banner.Title>Title</Banner.Title>
+  <Banner.Description>Description</Banner.Description>
+  <Banner.Actions>
+    <Banner.ActionButton>Action</Banner.ActionButton>
+  </Banner.Actions>
+</Banner>
+```
+
+## Examples
+
+### Basic
+
+<Stage>
+  <Column data-harness>
+    <Banner tone="neutral" variant="soft">
+      <Banner.Title>Scheduled maintenance on Saturday</Banner.Title>
+      <Banner.Description>
+        {
+          "HASH will be read-only from 02:00 to 04:00 UTC while the graph is upgraded."
+        }
+      </Banner.Description>
+    </Banner>
+  </Column>
+</Stage>
+
+### Description only
+
+Most banners don't need a title — a lone `Banner.Description` keeps a short
+status to a single line.
+
+<Stage>
+  <Column data-harness>
+    <Banner tone="brand">
+      <Banner.Description>
+        {"This flow is shared with everyone in the workspace."}
+      </Banner.Description>
+    </Banner>
+  </Column>
+</Stage>
+
+### Tones
+
+`tone` sets the palette and the default icon: `neutral` for routine context,
+`brand` for product messages, `success` to confirm, `warning` to forewarn, and
+`error` for failures that need attention now.
+
+<Stage>
+  <Column data-harness>
+    <Banner tone="neutral">
+      <Banner.Description>
+        {"Neutral — routine context that needs no action."}
+      </Banner.Description>
+    </Banner>
+    <Banner tone="brand">
+      <Banner.Description>
+        {"Brand — product announcements and feature promotion."}
+      </Banner.Description>
+    </Banner>
+    <Banner tone="success">
+      <Banner.Description>
+        {"Success — a background task completed as expected."}
+      </Banner.Description>
+    </Banner>
+    <Banner tone="warning">
+      <Banner.Description>
+        {"Warning — something needs attention before it becomes a problem."}
+      </Banner.Description>
+    </Banner>
+    <Banner tone="error">
+      <Banner.Description>
+        {"Error — something failed and needs fixing now."}
+      </Banner.Description>
+    </Banner>
+  </Column>
+</Stage>
+
+### Variants
+
+`soft` (the default) tints the surface for messages in the page flow.
+`outline` sits flat on opaque surfaces such as cards and dialogs. `solid` is a
+saturated fill — reserve it for the most prominent page-level messages.
+
+<Stage>
+  <Column data-harness>
+    <Banner tone="brand" variant="soft">
+      <Banner.Description>
+        {"Soft — the tinted default for messages in the page flow."}
+      </Banner.Description>
+    </Banner>
+    <Banner tone="brand" variant="outline">
+      <Banner.Description>
+        {"Outline — flat on opaque surfaces such as cards and dialogs."}
+      </Banner.Description>
+    </Banner>
+    <Banner tone="brand" variant="solid">
+      <Banner.Description>
+        {"Solid — a saturated fill for the most prominent messages."}
+      </Banner.Description>
+    </Banner>
+  </Column>
+</Stage>
+
+### With actions
+
+Wrap `Banner.ActionButton`s in `Banner.Actions` so users can resolve the
+condition in place — prefer one or two. Action buttons default to a compact
+secondary treatment, and the `solid` variant restyles them to read on the
+fill; pass an explicit `variant` to opt out.
+
+<Stage>
+  <Column data-harness>
+    <Banner tone="warning">
+      <Banner.Title>Workspace permissions are changing</Banner.Title>
+      <Banner.Description>
+        {"Members inherited from parent teams must be re-added by 1 November."}
+      </Banner.Description>
+      <Banner.Actions>
+        <Banner.ActionButton>Review changes</Banner.ActionButton>
+        <Banner.ActionButton>Snooze</Banner.ActionButton>
+      </Banner.Actions>
+    </Banner>
+    <Banner tone="error" variant="solid">
+      <Banner.Description>
+        {"Sync with the graph failed — recent edits aren't saved."}
+      </Banner.Description>
+      <Banner.Actions>
+        <Banner.ActionButton>Retry</Banner.ActionButton>
+      </Banner.Actions>
+    </Banner>
+  </Column>
+</Stage>
+
+### Dismissible
+
+Pass `dismissible` with an `onDismiss` callback to render a trailing dismiss
+button. Dismissing doesn't automatically remove the banner — you must handle it via the callback. Make
+banners dismissible unless they carry critical information or a required
+action.
+
+<Stage>
+  <Column data-harness>
+    <Banner tone="brand" dismissible={{ onDismiss: noop }}>
+      <Banner.Description>
+        {"Tip: drag a property onto the canvas to add it to the entity type."}
+      </Banner.Description>
+    </Banner>
+  </Column>
+</Stage>
+
+```tsx
+import { useState } from "react";
+
+import { Banner } from "@hashintel/ds-components";
+
+export const EditorTipBanner = () => {
+  const [dismissed, setDismissed] = useState(false);
+
+  if (dismissed) {
+    return null;
+  }
+
+  return (
+    <Banner tone="brand" dismissible={{ onDismiss: () => setDismissed(true) }}>
+      <Banner.Description>
+        {"Tip: drag a property onto the canvas to add it to the entity type."}
+      </Banner.Description>
+    </Banner>
+  );
+};
+```
+
+### Leading icon
+
+`icon` defaults to `true`, the tone's own icon — keep it unless a more
+specific glyph adds meaning. Pass `{ iconName }` for a named design-system
+icon, or `false` for none. Pass `icon={{ custom }}` to lead with any node
+
+<Stage>
+  <Column data-harness>
+    <Banner tone="brand" icon>
+      <Banner.Description>
+        {"A new entity editor is available for this workspace."}
+      </Banner.Description>
+    </Banner>
+    <Banner tone="brand" icon={{ iconName: "sparkles" }}>
+      <Banner.Description>
+        {"HASH AI suggested 3 property mappings for this flow."}
+      </Banner.Description>
+    </Banner>
+    <Banner tone="brand" icon={false}>
+      <Banner.Description>
+        {"This workspace is on the free plan."}
+      </Banner.Description>
+    </Banner>
+  </Column>
+</Stage>
+
+### Custom children
+
+Children that aren't `Banner.Actions` render in the message column, so custom
+markup can replace or sit alongside the built-in parts. Custom content doesn't
+pick up the tone's text color — set your own.
+
+<Stage>
+  <Column data-harness>
+    <Banner tone="brand" icon={false}>
+      <div style={{ fontWeight: 500 }}>
+        3 of 5 import steps complete — mapping properties for Person entities.
+      </div>
+      <Banner.Actions>
+        <Banner.ActionButton>View import</Banner.ActionButton>
+      </Banner.Actions>
+    </Banner>
+  </Column>
+</Stage>
+
+## Behavior
+
+- When the banner runs narrow, the actions wrap beneath the message instead of
+  squeezing it into a narrow column.
+
+## Content
+
+- Lead the title with what happened, as a short sentence: "Workspace
+  permissions are changing". Use sentence case and no trailing period.
+- Keep descriptions to 1–2 sentences: what happened, then what to do about it.
+- For `warning` and `error` banners, always say how to resolve the condition.
+- Write action labels verb-first, 1–3 words: "Review changes", "Retry sync".
+- Don't write severity into the copy ("Error:", "Warning!") — the tone's icon
+  and color already carry it.
+
+## Accessibility
+
+A banner that announces an urgent problem should implement the
+[WAI-ARIA alert pattern](https://www.w3.org/WAI/ARIA/apg/patterns/alert/).
+
+### What Banner provides
+
+- `Banner.Title` renders a real heading — `h2` by default, but this can be adjusted with `as`.
+- No ARIA role is set by default — a banner rendered with the page needs none.
+
+### What you must do
+
+- Set `role="status"` on banners inserted after load so screen readers
+  announce them politely; reserve `role="alert"` for urgent failures — it
+  interrupts whatever is being read.
+- Choose the `Banner.Title` heading level with `as` so it slots into the
+  page's heading outline.
+
+## API reference
+
+### Banner
+
+<PropsTable
+  of={Banner}
+  defaults={{
+    icon: "true",
+    variant: '"soft"',
+  }}
+/>
+
+### Banner.Title
+
+<PropsTable of={Banner.Title} defaults={{ as: '"h2"' }} />
+
+### Banner.Description
+
+<PropsTable of={Banner.Description} defaults={{ as: '"p"' }} />
+
+### Banner.Actions
+
+<PropsTable of={Banner.Actions} />
+
+### Banner.ActionButton
+
+<PropsTable
+  of={Banner.ActionButton}
+  defaults={{
+    variant: '"subtle"',
+    size: '"xs"',
+    tone: '"neutral"',
+    shape: '"default"',
+    iconPosition: '"left"',
+    type: '"button"',
+  }}
+/>

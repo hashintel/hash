@@ -1,5 +1,11 @@
 # @hashintel/ds-icons
 
+## 0.0.3
+
+### Patch Changes
+
+- Add a `circleClose` icon ([@alex-e-leon](https://github.com/alex-e-leon), [#10162](https://github.com/hashintel/hash/pull/10162))
+
 ## 0.0.2
 
 ### Patch Changes

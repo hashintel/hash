@@ -175,7 +175,7 @@ const startRun = async (context: ReturnType<typeof setUp>) => {
 };
 
 describe("createBrowserOptimization", () => {
-  it("initialises the worker lazily with the runtime config and the Python sources", async () => {
+  it("worker_lazy_initialization", async () => {
     const context = setUp();
     expect(context.workers).toHaveLength(0);
 
@@ -196,11 +196,12 @@ describe("createBrowserOptimization", () => {
       "petrinaut_optimizer_core/ask_tell.py",
       "petrinaut_optimizer_core/importance.py",
       "petrinaut_optimizer_core/pyodide_entry.py",
+      "petrinaut_optimizer_core/reports.py",
     ]);
     expect(context.worker.sentOfType("start")).toHaveLength(0);
   });
 
-  it("streams started, trial and complete events with dense sequence numbers", async () => {
+  it("event_dense_sequence", async () => {
     const context = setUp();
     const runId = await startRun(context);
     const events = collectEvents(

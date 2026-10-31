@@ -47,14 +47,14 @@ HIR checks and emitters.
 
 ## What compiles where
 
-| Surface           | Authored as                                              | Executed in                                                           |
-| ----------------- | -------------------------------------------------------- | --------------------------------------------------------------------- |
-| Transition lambda | function body (or legacy module, `Lambda(fn)`)           | Worker, per enablement check                                          |
-| Transition kernel | function body (or legacy module, `TransitionKernel(fn)`) | Worker, per firing                                                    |
-| Dynamics          | function body (or legacy module, `Dynamics(fn)`)         | Worker, per step per place                                            |
-| Metric            | plain function body                                      | Main thread (timeline) and MC worker (experiments)                    |
-| Scenario          | per-place expressions, or one code-mode body             | HIR interpreter: main thread before a run, CLI per optimization trial |
-| Place visualizer  | module, `Visualization(fn)` returning JSX                | Main thread, at render                                                |
+| Surface           | Authored as                                              | Executed in                                        |
+| ----------------- | -------------------------------------------------------- | -------------------------------------------------- |
+| Transition lambda | function body (or legacy module, `Lambda(fn)`)           | Worker, per enablement check                       |
+| Transition kernel | function body (or legacy module, `TransitionKernel(fn)`) | Worker, per firing                                 |
+| Dynamics          | function body (or legacy module, `Dynamics(fn)`)         | Worker, per step per place                         |
+| Metric            | plain function body                                      | Main thread (timeline) and MC worker (experiments) |
+| Scenario          | per-place expressions, or one code-mode body             | HIR interpreter, on the main thread before a run   |
+| Place visualizer  | module, `Visualization(fn)` returning JSX                | Main thread, at render                             |
 
 Lambda, kernel, and dynamics code is classified per piece of code
 (`hir/user-code-form.ts`): any top-level `export` marks the legacy module

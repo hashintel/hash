@@ -7,16 +7,10 @@ import { use, useCallback, useEffect, useRef, useState } from "react";
 import {
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   petrinautOptimizationInputSchema,
-  type PetrinautOptimization,
   type PetrinautOptimizationDirection,
   type PetrinautOptimizationEvent,
   type PetrinautOptimizationInput,
 } from "@hashintel/petrinaut-core";
-import {
-  isConnectedOptimization,
-  type PetrinautConnectedOptimization,
-  type PetrinautConnectedOptimizationCapability,
-} from "@hashintel/petrinaut-core/optimization";
 
 import { ExperimentsActionsContext } from "../experiments/context";
 import { errorMessage } from "../experiments/shared/error-message";
@@ -37,6 +31,10 @@ import {
   type SweepTrialEvaluator,
 } from "./provider/create-sweep-trial-evaluator";
 
+import type {
+  PetrinautConnectedOptimization,
+  PetrinautConnectedOptimizationCapability,
+} from "@hashintel/petrinaut-core/optimization";
 import type { PropsWithChildren } from "react";
 
 const isAbortError = (error: unknown): boolean =>
@@ -112,11 +110,7 @@ const connectOptimizationSource = (
 export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
   const source = use(PetrinautOptimizationContext);
   const optimizationUnavailableReason =
-    source === null
-      ? "Optimization is unavailable"
-      : isConnectedOptimization(source)
-        ? null
-        : "A sweep can only be optimized in the browser";
+    source === null ? "Optimization is unavailable" : null;
   const experimentsActionsRef = useLatest(use(ExperimentsActionsContext));
   const connectionRef = useRef<OptimizationConnection | null>(null);
   const abortControllersRef = useRef(new Map<string, AbortController>());
@@ -314,7 +308,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       runId: string;
       /** The objective's direction, which decides the best step among the trials. */
       direction: PetrinautOptimizationDirection;
-      capability: PetrinautOptimization;
+      capability: PetrinautConnectedOptimizationCapability;
       abortController: AbortController;
     }): Promise<void> => {
       const { signal } = abortController;
@@ -373,15 +367,14 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
   };
 
   /**
-   * The connection behind a connected source, made on first use and kept
-   * while the source stays the same. Connecting happens on demand rather
-   * than in render so a source never connects twice; the cleanup effect
-   * tears the connection down, with the studies made through it, when the
-   * source changes or the provider unmounts. Null for a remote source,
-   * whose runs no sweep can evaluate.
+   * The connection behind the source, made on first use and kept while the
+   * source stays the same. Connecting happens on demand rather than in render
+   * so a source never connects twice; the cleanup effect tears the
+   * connection down, with the studies made through it, when the source
+   * changes or the provider unmounts. Null without a source.
    */
   const resolveConnection = (): OptimizationConnection | null => {
-    if (source === null || !isConnectedOptimization(source)) {
+    if (source === null) {
       return null;
     }
     const current = connectionRef.current;
@@ -396,12 +389,9 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
 
   const createOptimization: OptimizationsContextValue["createOptimization"] =
     async (rawInput, { sweep }) => {
-      if (source === null) {
-        throw new Error("Optimization is unavailable");
-      }
       const connection = resolveConnection();
       if (connection === null) {
-        throw new Error("A sweep can only be optimized in the browser");
+        throw new Error("Optimization is unavailable");
       }
       const { capability } = connection;
       const input = petrinautOptimizationInputSchema.parse(rawInput);

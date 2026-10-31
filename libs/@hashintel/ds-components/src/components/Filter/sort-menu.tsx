@@ -30,6 +30,10 @@ import {
 import type { Position } from "../Tooltip/tooltip";
 import type { DistributedOmit } from "type-fest";
 
+// Docs-only marker: renders nothing, exists so react-docgen can surface the
+// `items` entry shape in the docs prop tables.
+export const SorterDoc = (_props: Sorter<string>): null => null;
+
 export const SortMenu = <SortKey extends string = string>({
   items = [],
   value,
@@ -348,3 +352,5 @@ export const SortMenu = <SortKey extends string = string>({
     />
   );
 };
+
+SortMenu.displayName = "SortMenu";

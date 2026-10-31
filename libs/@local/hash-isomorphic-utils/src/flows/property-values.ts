@@ -91,10 +91,6 @@ export const validatePropertyPatches = (
     return "Property patches must be a list.";
   }
 
-  if (patches.length === 0) {
-    return "Give at least one property patch.";
-  }
-
   const patchedBaseUrls = new Set<BaseUrl>();
 
   for (const [index, patch] of patches.entries()) {

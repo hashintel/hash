@@ -1,19 +1,38 @@
-import { assertNoStoredPayloadRefsInFlowInputs } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
+import {
+  omitInvalidEmptyFlowInputs,
+  validateFlowInputs,
+} from "@local/hash-isomorphic-utils/flows/validate-payloads";
 
 import * as GraphQLError from "../../../error";
 
-import type { FlowInputValues } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FlowDefinition,
+  FlowInputValues,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 /**
- * Checks flow inputs given by the client.
+ * Checks flow inputs given by the client against the inputs of the flow they're for, so that a request with invalid
+ * inputs fails when it's made, rather than when its run starts.
  *
- * @throws a GraphQL bad request error if an input holds a stored payload reference, which only a flow's own steps
- *   can create.
+ * @throws a GraphQL bad request error naming the first invalid input, and where in its value the problem is.
  */
-export const assertClientFlowInputs = (flowInputs: FlowInputValues) => {
-  try {
-    assertNoStoredPayloadRefsInFlowInputs(flowInputs);
-  } catch (error) {
-    throw GraphQLError.badRequest((error as Error).message);
+export const assertClientFlowInputs = ({
+  flowDefinition,
+  flowInputs,
+}: {
+  flowDefinition: Pick<FlowDefinition, "inputs">;
+  flowInputs: FlowInputValues;
+}) => {
+  const invalidFlowInputMessage = validateFlowInputs({
+    inputDefinitions: flowDefinition.inputs,
+    /* As the run does, so that an input left blank in a form counts as not given. */
+    flowInputs: omitInvalidEmptyFlowInputs({
+      inputDefinitions: flowDefinition.inputs,
+      flowInputs,
+    }),
+  });
+
+  if (invalidFlowInputMessage) {
+    throw GraphQLError.badRequest(invalidFlowInputMessage);
   }
 };

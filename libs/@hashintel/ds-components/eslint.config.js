@@ -49,6 +49,15 @@ export default [
     },
   },
   {
+    // Doc blocks ship compiled into dist/docs, but tsup bundles their
+    // devDependency imports (react-markdown, prism-react-renderer, …) into
+    // those chunks, so like stories they may import devDependencies.
+    files: ["docs/**/*.ts{x,}"],
+    rules: {
+      "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
+    },
+  },
+  {
     // Running type-aware lint rules on story files forces ESLint's project
     // service into a slow default-project fallback per file *and*
     // type-instantiates the very heavy generated `styled-system` types for
@@ -81,6 +90,8 @@ export default [
       curly: "off",
       "dot-notation": "off",
       "id-length": "off",
+      // ts.SymbolFlags checks are bitmask tests by design.
+      "no-bitwise": "off",
       "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
       "simple-import-sort/imports": "off",
       "unicorn/import-style": "off",

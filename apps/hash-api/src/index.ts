@@ -39,6 +39,7 @@ import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
 import { isUserHashInstanceAdmin } from "@local/hash-graph-sdk/principal/hash-instance-admins";
 import {
   getHashClientTypeFromRequest,
+  getUserAgentFromRequest,
   hashClientHeaderKey,
 } from "@local/hash-isomorphic-utils/http-requests";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
@@ -65,6 +66,7 @@ import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { createEmailTransporter } from "./email/create-email-transporter";
+import { setupFlowRunRecordHandler } from "./flows/setup-flow-run-record-handler";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
@@ -90,10 +92,6 @@ import {
   port,
 } from "./lib/env-config";
 import { logger } from "./logger";
-import {
-  getPetrinautOptimizerOrigin,
-  setupPetrinautOptimizerHandler,
-} from "./petrinaut-optimizer/setup-petrinaut-optimizer-handler";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
   setupFileDownloadProxyHandler,
@@ -754,7 +752,7 @@ const main = async () => {
       actorType: "user",
       origin: {
         type: getHashClientTypeFromRequest(req) ?? "api",
-        userAgent: req.headers["user-agent"],
+        userAgent: getUserAgentFromRequest(req),
       },
     };
 
@@ -795,12 +793,9 @@ const main = async () => {
 
   setupFileDownloadProxyHandler(app, keyv);
 
-  setupAnalysisHandler(app, keyv);
+  setupFlowRunRecordHandler(app);
 
-  setupPetrinautOptimizerHandler(app, {
-    logger,
-    origin: getPetrinautOptimizerOrigin(),
-  });
+  setupAnalysisHandler(app, keyv);
 
   setupTelemetryHandler(app);
   shutdown.addCleanup("Rudderstack Telemetry", async () => telemetry.flush());
@@ -959,7 +954,6 @@ const main = async () => {
     context: machineActorContext,
     httpServer,
     logger,
-    storageProvider: uploadProvider,
     temporalClient,
   });
 

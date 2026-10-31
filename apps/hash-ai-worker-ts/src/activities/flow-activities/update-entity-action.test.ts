@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { storePayload } from "@local/hash-backend-utils/flows/payload-storage";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
+import { noEntityChangesMessage } from "@local/hash-isomorphic-utils/flows/entity-steps";
 import { StatusCode } from "@local/status";
 
 import { updateEntityAction } from "./update-entity-action.js";
@@ -58,7 +59,10 @@ vi.mock("@local/hash-graph-sdk/entity", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   queryEntities: vi.fn(),
 }));
-
+const personType =
+  "https://example.com/types/entity-type/person/v/1" as VersionedUrl;
+const employeeType =
+  "https://example.com/types/entity-type/employee/v/1" as VersionedUrl;
 const nameUrl = "https://example.com/types/property-type/name/" as BaseUrl;
 const emailUrl = "https://example.com/types/property-type/email/" as BaseUrl;
 const text = {
@@ -90,6 +94,7 @@ const mockEntity = (entityId: EntityId | null, { canEdit = true } = {}) =>
 const run = (params: {
   entityId: PayloadValue<"EntityId", false>;
   propertyPatches: PayloadValue<"PropertyPatch", true>;
+  entityTypeIds?: string[];
 }) =>
   updateEntityAction({
     inputs: [
@@ -101,6 +106,17 @@ const run = (params: {
         inputName: "propertyPatches",
         payload: { kind: "PropertyPatch", value: params.propertyPatches },
       },
+      ...(params.entityTypeIds === undefined
+        ? []
+        : [
+            {
+              inputName: "entityTypeIds",
+              payload: {
+                kind: "VersionedUrl" as const,
+                value: params.entityTypeIds as VersionedUrl[],
+              },
+            },
+          ]),
     ] satisfies StepInput[],
   });
 
@@ -174,10 +190,14 @@ describe("updateEntityAction", () => {
     expect(query?.filter).toMatchObject({
       all: expect.arrayContaining([
         {
-          equal: [
-            { path: ["draftId"] },
-            { parameter: "00000000-0000-4000-8000-0000000000ff" },
-          ],
+          all: expect.arrayContaining([
+            {
+              equal: [
+                { path: ["draftId"] },
+                { parameter: "00000000-0000-4000-8000-0000000000ff" },
+              ],
+            },
+          ]) as unknown[],
         },
       ]) as unknown[],
     });
@@ -185,6 +205,51 @@ describe("updateEntityAction", () => {
       expect.anything(),
       expect.anything(),
       expect.objectContaining({ draft: true }),
+    );
+  });
+
+  it("changes the entity's types alone", async () => {
+    mockEntity(entityIdOf(1));
+
+    expect(
+      await run({
+        entityId: entityIdOf(1),
+        propertyPatches: [],
+        entityTypeIds: [personType, employeeType],
+      }),
+    ).toEqual(updated(entityIdOf(1)));
+
+    expect(patch).toHaveBeenCalledWith(
+      {},
+      { actorId: "bot" },
+      {
+        propertyPatches: [],
+        entityTypeIds: [personType, employeeType],
+        draft: false,
+        provenance: {
+          actorType: "machine",
+          origin: { type: "flow", id: "flow", stepIds: ["update"] },
+        },
+      },
+    );
+  });
+
+  it("changes the entity's types and properties together", async () => {
+    mockEntity(entityIdOf(1));
+
+    await run({
+      entityId: entityIdOf(1),
+      propertyPatches: [setName],
+      entityTypeIds: [employeeType],
+    });
+
+    expect(patch).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({
+        propertyPatches: [setName],
+        entityTypeIds: [employeeType],
+      }),
     );
   });
 
@@ -231,10 +296,25 @@ describe("updateEntityAction", () => {
         "Entity 00000000-0000-4000-8000-0000000000aa~00000000-0000-4000-8000-000000000001 isn't in the web the flow runs in, so it can't be updated.",
     },
     {
-      name: "no patches",
+      name: "an empty list of patches without types",
       entityId: entityIdOf(1),
       propertyPatches: [],
-      message: "Give at least one property patch.",
+      message: noEntityChangesMessage,
+    },
+    {
+      name: "an empty list of types",
+      entityId: entityIdOf(1),
+      propertyPatches: [],
+      entityTypeIds: [],
+      message: "Give at least one entity type ID.",
+    },
+    {
+      name: "a type that isn't a versioned URL",
+      entityId: entityIdOf(1),
+      propertyPatches: [],
+      entityTypeIds: ["https://example.com/types/entity-type/person/"],
+      message:
+        '"https://example.com/types/entity-type/person/" is not an entity type ID.',
     },
     {
       name: "a patch inside a property's value",
@@ -267,11 +347,12 @@ describe("updateEntityAction", () => {
     name: string;
     entityId: EntityId;
     propertyPatches: PropertyPatchOperation[];
+    entityTypeIds?: string[];
     message: string;
   }[])(
     "fails for $name, without reading or updating the entity",
-    async ({ entityId, propertyPatches, message }) => {
-      expect(await run({ entityId, propertyPatches })).toEqual({
+    async ({ message, ...params }) => {
+      expect(await run(params)).toEqual({
         code: StatusCode.InvalidArgument,
         message,
         contents: [],

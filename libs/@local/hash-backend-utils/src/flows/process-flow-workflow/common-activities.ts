@@ -1,4 +1,8 @@
 import {
+  saveOpenInputRequests,
+  type SaveOpenInputRequestsParams,
+} from "../shared/save-open-input-requests.js";
+import {
   getFlowDefinitionActivity,
   type GetFlowDefinitionActivityParams,
 } from "./common-activities/get-flow-definition-activity.js";
@@ -43,6 +47,15 @@ export const createCommonFlowActivities = ({
     });
   },
   recordFlowRunActivity(params: RecordFlowRunActivityParams) {
-    return recordFlowRunActivity(params);
+    return recordFlowRunActivity({
+      graphApiClient,
+      ...params,
+    });
+  },
+  saveOpenInputRequestsActivity(params: SaveOpenInputRequestsParams) {
+    return saveOpenInputRequests({
+      graphApiClient,
+      ...params,
+    });
   },
 });

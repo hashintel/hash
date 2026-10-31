@@ -4,7 +4,7 @@ use core::{error::Error, fmt, pin::Pin};
 use std::io;
 
 use clap::Args;
-use hash_secret::Secret;
+use hash_crypto::Secret;
 use tokio_postgres::{Client, Config, NoTls, config::Host};
 
 /// The store connection flags, mirroring the graph binary's `HASH_GRAPH_PG_*` environment.

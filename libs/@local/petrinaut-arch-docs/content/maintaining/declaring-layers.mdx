@@ -108,7 +108,7 @@ Put a D2 file in `content/diagrams/` and reference it from an authored page as
 an image:
 
 ```mdx
-![One request through the CLI](@diagrams/cli-request-flow.svg)
+![One trial through the browser runtime](@diagrams/browser-optimization-loop.svg)
 ```
 
 The build renders it to SVG next to the generated diagrams and rewrites the
@@ -134,16 +134,15 @@ existing violations, either fix them in the same change or leave the rule out.
 
 ## Declaring a protocol edge
 
-Some dependencies cross no import. The Python bindings spawn the CLI and speak
-JSON lines to it over stdio, so the import graph cannot see the pair. Declare
-such an edge with `@talksTo` in the same doc comment or docstring the scanner
-already reads:
+Some dependencies cross no import. The browser optimizer's worker writes the
+optimizer-core Python sources into Pyodide's filesystem and imports them there,
+so the import graph cannot see the pair. Declare such an edge with `@talksTo`
+in the same doc comment or docstring the scanner already reads:
 
-```python
-"""One Petrinaut CLI process, spoken to over JSON lines on stdio.
-
-@talksTo cli via JSON lines over stdio (spawned subprocess)
-"""
+```ts
+/**
+ * @talksTo optimizer-core via Python sources written into Pyodide's filesystem
+ */
 ```
 
 The edge starts at the declaring file's own layer. The word before `via` is the

@@ -43,7 +43,7 @@ protoc                          = "35.1"
 # See https://linear.app/hash/issue/SRE-878
 "cargo:cargo-insta"                     = { version = "1.47.2", install_env = { RUSTUP_TOOLCHAIN = "stable" } }
 just                                    = "1.51.0"
-markdownlint-cli2                       = "0.22.1"
+markdownlint-cli2                       = "0.24.0"
 "npm:@napi-rs/cli"                      = "3.7.0"
 "npm:@redocly/cli"                      = "2.31.5"
 # TODO(SRE-871): Remove the `@yarnpkg/libzip@3.2.2` exclusion once an attested libzip release > 3.2.2

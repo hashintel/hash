@@ -9,7 +9,7 @@ authors.workspace = true
 [dependencies]
 # Public workspace dependencies
 hash-graph-types = { workspace = true, public = true }
-hash-secret      = { workspace = true, public = true }
+hash-crypto      = { workspace = true, public = true }
 
 # Public third-party dependencies
 

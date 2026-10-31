@@ -46,6 +46,12 @@ export const ClaimsOutput = memo(({ proposedEntities }: ClaimsTableProps) => {
             },
             {
               equal: [
+                { path: ["editionProvenance", "origin", "type"] },
+                { parameter: "flow" },
+              ],
+            },
+            {
+              equal: [
                 {
                   path: ["editionProvenance", "origin", "id"],
                 },

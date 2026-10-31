@@ -16,6 +16,7 @@ import {
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { acceptOrgInvitationResolver } from "@apps/hash-api/src/graphql/resolvers/knowledge/org/accept-org-invitation";
 import { inviteUserToOrgResolver } from "@apps/hash-api/src/graphql/resolvers/knowledge/org/invite-user-to-org";
+import { createRunningFlowRunHistoryCache } from "@local/hash-backend-utils/flows/run-events/running-flow-run-history-cache";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { addActorGroupAdministrator } from "@local/hash-graph-sdk/principal/actor-group";
 
@@ -58,6 +59,7 @@ const graphQLContextForUser = (user: User): LoggedInGraphQLContext => ({
   provenance: { ...graphContext.provenance, actorType: "user" },
   temporal: graphContext.temporalClient,
   flowRunRecords: new Map(),
+  runningFlowRunHistories: createRunningFlowRunHistoryCache(),
 });
 
 describe("org invitation with a mixed-case signup email", () => {

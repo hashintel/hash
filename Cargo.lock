@@ -1645,7 +1645,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2f6c7dbe95a6ed67ad9f18e57daf93a2f034c524b99fd2b76d18fdfeb6660aa"
 dependencies = [
  "hybrid-array",
- "zeroize",
 ]
 
 [[package]]
@@ -4358,7 +4357,6 @@ dependencies = [
  "const-oid 0.10.2",
  "crypto-common 0.2.2",
  "ctutils",
- "zeroize",
 ]
 
 [[package]]
@@ -4518,13 +4516,13 @@ dependencies = [
  "error-stack",
  "futures-core",
  "futures-util",
+ "hash-crypto",
  "opendata-common",
  "opendata-log",
  "proptest",
  "serde",
  "serde_core",
  "serde_json",
- "sha2 0.11.0",
  "simple-mermaid",
  "slatedb",
  "tempfile",
@@ -6431,6 +6429,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-crypto"
+version = "0.0.0"
+dependencies = [
+ "aws-lc-rs",
+ "base16ct",
+ "clap",
+ "clap_builder",
+ "derive_more",
+ "error-stack",
+ "rstest",
+ "simple-mermaid",
+ "trybuild",
+ "zerocopy",
+ "zeroize",
+]
+
+[[package]]
 name = "hash-graph"
 version = "0.0.0"
 dependencies = [
@@ -6442,6 +6457,7 @@ dependencies = [
  "harpc-codec",
  "harpc-server",
  "hash-codec",
+ "hash-crypto",
  "hash-graph-api",
  "hash-graph-atlas",
  "hash-graph-authorization",
@@ -6449,7 +6465,6 @@ dependencies = [
  "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-type-fetcher",
- "hash-secret",
  "hash-telemetry",
  "hash-temporal-client",
  "jsonwebtoken",
@@ -6495,6 +6510,7 @@ dependencies = [
  "harpc-tower",
  "harpc-types",
  "hash-codec",
+ "hash-crypto",
  "hash-graph-authentication",
  "hash-graph-authorization",
  "hash-graph-embeddings",
@@ -6505,7 +6521,6 @@ dependencies = [
  "hash-graph-types",
  "hash-graph-validation",
  "hash-middleware",
- "hash-secret",
  "hash-status",
  "hash-temporal-client",
  "hashql-ast",
@@ -6530,6 +6545,7 @@ dependencies = [
  "rstest",
  "scalar_api_reference",
  "schemars 1.2.2",
+ "semver",
  "sentry",
  "serde",
  "serde_json",
@@ -6542,6 +6558,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "type-system",
+ "url",
  "utoipa",
  "uuid",
 ]
@@ -6562,7 +6579,6 @@ dependencies = [
  "bytecheck",
  "bytes",
  "camino",
- "chacha20poly1305",
  "clap",
  "codspeed-criterion-compat",
  "darwin-kperf-criterion",
@@ -6572,6 +6588,7 @@ dependencies = [
  "futures",
  "futures-sink",
  "hannoy",
+ "hash-crypto",
  "hash-graph-authorization",
  "hash-graph-embeddings",
  "hash-graph-postgres-store",
@@ -6579,12 +6596,10 @@ dependencies = [
  "hash-graph-temporal-versioning",
  "hash-graph-types",
  "hash-middleware",
- "hash-secret",
  "hash-temporal-client",
  "hashbrown 0.17.1",
  "hashql-core",
  "heed",
- "hkdf 0.13.0",
  "insta",
  "kiddo",
  "memchr",
@@ -6607,7 +6622,6 @@ dependencies = [
  "schemars 1.2.2",
  "serde",
  "serde_json",
- "sha2 0.11.0",
  "simple-mermaid",
  "siphasher",
  "smallvec 2.0.0-alpha.12",
@@ -6633,17 +6647,15 @@ dependencies = [
 name = "hash-graph-authentication"
 version = "0.0.0"
 dependencies = [
- "aws-lc-rs",
  "axum",
  "cookie",
  "crc32fast",
  "derive_more",
  "error-stack",
+ "hash-crypto",
  "hash-graph-authorization",
  "hash-graph-store",
  "hash-middleware",
- "hash-secret",
- "hmac 0.13.0",
  "http 1.4.2",
  "jsonwebtoken",
  "moka",
@@ -6653,7 +6665,6 @@ dependencies = [
  "rstest",
  "serde",
  "serde_json",
- "sha2 0.11.0",
  "simple-mermaid",
  "tokio",
  "tracing",
@@ -6703,6 +6714,7 @@ dependencies = [
  "derive_more",
  "either",
  "error-stack",
+ "hash-crypto",
  "hash-graph-api",
  "hash-graph-authorization",
  "hash-graph-postgres-store",
@@ -6711,7 +6723,6 @@ dependencies = [
  "hash-graph-test-data",
  "hash-graph-type-fetcher",
  "hash-repo-chores",
- "hash-secret",
  "hash-telemetry",
  "itertools 0.14.0",
  "rand 0.10.1",
@@ -6736,8 +6747,8 @@ dependencies = [
  "darwin-kperf-criterion",
  "derive_more",
  "error-stack",
+ "hash-crypto",
  "hash-graph-types",
- "hash-secret",
  "rand 0.10.1",
  "rand_xoshiro 0.8.1",
  "rayon",
@@ -6756,13 +6767,13 @@ version = "0.0.0"
 dependencies = [
  "error-stack",
  "hash-codec",
+ "hash-crypto",
  "hash-graph-authorization",
  "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",
  "hash-graph-types",
- "hash-secret",
  "hash-status",
  "hash-telemetry",
  "pretty_assertions",
@@ -6786,13 +6797,12 @@ dependencies = [
  "derive_more",
  "error-stack",
  "futures",
+ "hash-crypto",
  "hash-graph-migrations-macros",
- "hash-secret",
  "hash-telemetry",
  "include_dir",
  "include_dir_macros",
  "postgres-types",
- "sha2 0.11.0",
  "simple-mermaid",
  "time",
  "tokio",
@@ -6806,10 +6816,10 @@ version = "0.0.0"
 dependencies = [
  "convert_case 0.11.0",
  "derive_more",
+ "hash-crypto",
  "proc-macro2",
  "quote",
  "regex",
- "sha2 0.11.0",
  "simple-mermaid",
  "syn 2.0.118",
  "walkdir",
@@ -6830,6 +6840,7 @@ dependencies = [
  "futures",
  "futures-sink",
  "hash-codec",
+ "hash-crypto",
  "hash-graph-authentication",
  "hash-graph-authorization",
  "hash-graph-embeddings",
@@ -6840,7 +6851,6 @@ dependencies = [
  "hash-graph-types",
  "hash-graph-validation",
  "hash-middleware",
- "hash-secret",
  "hash-status",
  "hash-telemetry",
  "hash-temporal-client",
@@ -7050,13 +7060,19 @@ dependencies = [
  "derive_more",
  "duckdb",
  "error-stack",
+ "hash-integrations-definition",
+ "opentelemetry",
+ "opentelemetry_sdk",
  "pretty_assertions",
  "proptest",
+ "serde",
  "serde_json",
  "simple-mermaid",
  "tempfile",
  "tokio",
  "tracing",
+ "type-system",
+ "uuid",
 ]
 
 [[package]]
@@ -7071,7 +7087,7 @@ dependencies = [
  "error-stack",
  "futures",
  "governor",
- "hash-secret",
+ "hash-crypto",
  "http 1.4.2",
  "opentelemetry",
  "opentelemetry-semantic-conventions",
@@ -7120,22 +7136,6 @@ dependencies = [
  "tokio",
  "tracing",
  "walkdir",
-]
-
-[[package]]
-name = "hash-secret"
-version = "0.0.0"
-dependencies = [
- "aws-lc-rs",
- "base16ct",
- "clap",
- "clap_builder",
- "derive_more",
- "error-stack",
- "rstest",
- "simple-mermaid",
- "trybuild",
- "zeroize",
 ]
 
 [[package]]
@@ -7620,15 +7620,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7b5f8eb2ad728638ea2c7d47a21db23b7b58a72ed6a38256b8a1849f15fbbdf7"
 dependencies = [
  "hmac 0.12.1",
-]
-
-[[package]]
-name = "hkdf"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4aaa26c720c68b866f2c96ef5c1264b3e6f473fe5d4ce61cd44bbe913e553018"
-dependencies = [
- "hmac 0.13.0",
 ]
 
 [[package]]
@@ -8964,7 +8955,7 @@ source = "git+https://github.com/libp2p/rust-libp2p?rev=86b2122c8ffdd636d0c939b0
 dependencies = [
  "bs58",
  "ed25519-dalek",
- "hkdf 0.12.4",
+ "hkdf",
  "multihash",
  "quick-protobuf",
  "rand 0.8.6",
@@ -13472,9 +13463,9 @@ dependencies = [
 
 [[package]]
 name = "scalar_api_reference"
-version = "0.2.2"
+version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d67c85edd56c41f364603eff688a330f01dee99bdfc84c005d3bc3d0721d6b2"
+checksum = "9c62b7de171e54b082e5a7865858b8d08cfa227dba5762efa255b81371d27dc1"
 dependencies = [
  "rust-embed",
  "serde",
@@ -13531,6 +13522,7 @@ dependencies = [
  "indexmap 2.14.0",
  "ref-cast",
  "schemars_derive",
+ "semver",
  "serde",
  "serde_json",
  "uuid",

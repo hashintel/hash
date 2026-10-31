@@ -133,8 +133,8 @@ export interface PythonModuleIndex {
 /**
  * Maps every covered Python file to its importable dotted name. The import
  * root is the package root when the source directory is itself a package
- * (petrinaut-opt imports `src.utils`), the source root otherwise
- * (petrinaut-python imports `petrinaut.session`).
+ * (an app importing `src.utils`), the source root otherwise
+ * (petrinaut-optimizer-core imports `petrinaut_optimizer_core.study`).
  *
  * The index is one namespace across every covered package. Two packages
  * producing the same dotted name (two apps whose `src/` is itself a package

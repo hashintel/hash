@@ -4,6 +4,7 @@ import proto from "@temporalio/proto";
 import { describe, expect, it } from "vitest";
 
 import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
+import { StatusCode } from "@local/status";
 
 import { buildFlowRunEvents } from "./build-flow-run-events.js";
 
@@ -607,7 +608,10 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "runFinished",
           status: FlowRunStatus.Failed,
-          failure: { message: missingFirstTwoMessage },
+          failure: {
+            message: missingFirstTwoMessage,
+            code: StatusCode.NotFound,
+          },
           stepErrors: [
             {
               stepRun: stepRun("firstTwo"),
@@ -615,6 +619,7 @@ describe("buildFlowRunEvents", () => {
                 message: expect.stringContaining(
                   "Action takeFirst failed with status code INTERNAL: Error executing action takeFirst",
                 ) as string,
+                code: StatusCode.Internal,
               },
             },
           ],
@@ -681,13 +686,17 @@ describe("buildFlowRunEvents", () => {
         {
           kind: "runFinished",
           status: FlowRunStatus.Failed,
-          failure: { message: missingFirstTwoMessage },
+          failure: {
+            message: missingFirstTwoMessage,
+            code: StatusCode.NotFound,
+          },
           stepErrors: [
             {
               stepRun: stepRun("firstTwo"),
               error: {
                 message:
                   "Action takeFirst failed with status code INVALID_ARGUMENT: The count must be a whole number",
+                code: StatusCode.Internal,
               },
             },
           ],
@@ -707,6 +716,7 @@ describe("buildFlowRunEvents", () => {
           failure: {
             message:
               "Definition for inputName 'limit' in step firstTwo not found in action definition takeFirst",
+            code: StatusCode.FailedPrecondition,
           },
         },
       ],
@@ -874,7 +884,7 @@ describe("buildFlowRunEvents", () => {
   });
 
   it("reports an input request and its answer, with the step that asked", () => {
-    const requestId = "dc9c970f-1f27-4a53-ac62-8f4f0f46a525";
+    const requestId = "a420afc6-cc65-418e-8053-d093a23f54da";
 
     expectEvents("input-request", [
       runStartedWithPrompt,
@@ -908,8 +918,8 @@ describe("buildFlowRunEvents", () => {
           },
         },
       ],
-      researchSucceeded("46.0"),
-      researchRunCompleted("67.0"),
+      researchSucceeded("54.0"),
+      researchRunCompleted("81.0"),
     ]);
   });
 

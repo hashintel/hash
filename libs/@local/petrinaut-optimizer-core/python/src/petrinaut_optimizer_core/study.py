@@ -1,28 +1,20 @@
 """Optuna study construction and value suggestion."""
 
-from __future__ import annotations
-
 from collections.abc import Sequence
-from typing import Any, TypeAlias
+from typing import assert_never
 
 import optuna
-from optuna.samplers import BaseSampler, RandomSampler, TPESampler
+from optuna.samplers import RandomSampler, TPESampler
 from optuna.trial import BaseTrial
 
 from .description import (
     FloatParameter,
     IntParameter,
     Parameter,
-    SamplerName,
     StudyDescription,
 )
 
-Scalar: TypeAlias = int | float | bool
-
-SAMPLERS: dict[SamplerName, type[BaseSampler]] = {
-    "tpe": TPESampler,
-    "random": RandomSampler,
-}
+type Scalar = int | float | bool
 
 # Optuna's own default; larger studies keep it.
 OPTUNA_TPE_STARTUP_TRIALS = 10
@@ -40,10 +32,8 @@ def tpe_startup_trials(trials: int) -> int:
     return max(2, min(OPTUNA_TPE_STARTUP_TRIALS, trials // 3))
 
 
-def create_study(
-    description: StudyDescription, *, constant_liar: bool = False
-) -> optuna.Study:
-    """An in-memory study whose sampler is seeded with the description's seed.
+def create_study(description: StudyDescription, *, constant_liar: bool = False) -> optuna.Study:
+    """Create an in-memory study whose sampler is seeded with the description's seed.
 
     A TPE sampler draws `tpe_startup_trials(description.trials)` trials at
     random before modelling. With `constant_liar`, it counts trials still
@@ -53,11 +43,19 @@ def create_study(
     receives the seed alone.
     """
     optuna.logging.set_verbosity(optuna.logging.WARNING)
-    sampler_options: dict[str, Any] = {"seed": description.seed}
-    if description.sampler == "tpe":
-        sampler_options["n_startup_trials"] = tpe_startup_trials(description.trials)
-        sampler_options["constant_liar"] = constant_liar
-    sampler = SAMPLERS[description.sampler](**sampler_options)
+
+    match description.sampler:
+        case "tpe":
+            sampler = TPESampler(
+                seed=description.seed,
+                n_startup_trials=tpe_startup_trials(description.trials),
+                constant_liar=constant_liar,
+            )
+        case "random":
+            sampler = RandomSampler(seed=description.seed)
+        case sampler:
+            assert_never(sampler)
+
     return optuna.create_study(direction=description.direction, sampler=sampler)
 
 

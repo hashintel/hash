@@ -48,7 +48,7 @@ export interface AuthoredComponent {
 
 /** A hand-written D2 diagram, rendered to SVG alongside the generated ones. */
 export interface AuthoredDiagram {
-  /** Name pages reference, e.g. `cli-request-flow` for `@diagrams/cli-request-flow.svg`. */
+  /** Name pages reference, e.g. `worker-factory` for `@diagrams/worker-factory.svg`. */
   name: string;
   source: string;
   /** Repo-relative source file, for error messages. */
