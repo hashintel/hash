@@ -12,7 +12,10 @@ import { applyDynamics, computeNextFrame } from "./engine/compute-next-frame";
 import { computePossibleTransition } from "./engine/compute-possible-transition";
 import { readTokenRecord } from "./engine/token-layout";
 import { createHirMetricEvaluator } from "./frames/hir-metric";
-import { readEngineFrame } from "./frames/internal-frame";
+import {
+  materializeEngineFrame,
+  readEngineFrame,
+} from "./frames/internal-frame";
 
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirArtifacts } from "../hir-runtime";
@@ -545,6 +548,10 @@ function createControlledRun(args: {
   const liveLevers = () => {
     const stepping = { ...simulation, dt: frameDt() };
     const frameAfterDynamics = applyDynamics(stepping, simulation.frames[0]!);
+    const snapshot = materializeEngineFrame(
+      stepping.frameLayout,
+      frameAfterDynamics,
+    );
     return levers.flatMap((lever) => {
       const until = resumeAt.get(lever.id);
       if (
@@ -562,8 +569,9 @@ function createControlledRun(args: {
             stepping,
             transitionId,
             simulation.rngState,
-            null,
             true,
+            null,
+            snapshot,
           ).firing !== null,
       );
       return fireable.length > 0 ? [{ lever, fireable }] : [];

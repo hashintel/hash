@@ -45,15 +45,14 @@ export function applyDynamics(
   simulation: SimulationInstance,
   currentFrame: EngineFrame,
 ): EngineFrame {
-  const currentSnapshot = materializeEngineFrame(
-    simulation.frameLayout,
-    currentFrame,
-  );
-
   let frameAfterDynamics = currentFrame;
 
   // Only apply dynamics if there are places with differential equations
   if (simulation.differentialEquationFns.size > 0) {
+    const currentSnapshot = materializeEngineFrame(
+      simulation.frameLayout,
+      currentFrame,
+    );
     const newBuffer = new Uint8Array(currentSnapshot.buffer);
 
     for (const [
