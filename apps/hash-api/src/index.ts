@@ -92,10 +92,6 @@ import {
   port,
 } from "./lib/env-config";
 import { logger } from "./logger";
-import {
-  getPetrinautOptimizerOrigin,
-  setupPetrinautOptimizerHandler,
-} from "./petrinaut-optimizer/setup-petrinaut-optimizer-handler";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
   setupFileDownloadProxyHandler,
@@ -800,11 +796,6 @@ const main = async () => {
   setupFlowRunRecordHandler(app);
 
   setupAnalysisHandler(app, keyv);
-
-  setupPetrinautOptimizerHandler(app, {
-    logger,
-    origin: getPetrinautOptimizerOrigin(),
-  });
 
   setupTelemetryHandler(app);
   shutdown.addCleanup("Rudderstack Telemetry", async () => telemetry.flush());

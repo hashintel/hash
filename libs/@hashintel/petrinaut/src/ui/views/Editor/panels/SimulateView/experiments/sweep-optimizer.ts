@@ -8,8 +8,6 @@
  */
 import { use } from "react";
 
-import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
-
 import { EXPERIMENT_RUN_LADDER } from "../../../../../../react/experiments/parameter-grid";
 import { buildSweepOptimizationInput } from "../../../../../../react/experiments/sweep-optimization";
 import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
@@ -189,7 +187,6 @@ export const useSweepOptimizer = (
     ) ?? null;
   const canStart =
     source !== null &&
-    isConnectedOptimization(source) &&
     experiment.sweep !== null &&
     experiment.scenario !== null &&
     experiment.parameterAxes.length > 0 &&

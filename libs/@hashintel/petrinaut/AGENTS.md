@@ -68,14 +68,14 @@ The architecture is declared **next to the code it describes** — never in a ce
 
 - `@layerRoot <id>` plus `@role <one line>` in a doc comment on a folder's primary file declares a layer. Prefer this — it needs no new file.
 - A folder's `README.md` frontmatter (`layer` and `role`) does the same, and the prose below becomes that layer's page. Use it when the folder has real prose to carry, or when no single file is the obvious host.
-- `@talksTo <layer-id> via <protocol>` in any scanned doc comment or docstring declares an edge no import produces, such as a spawned subprocess or a postMessage channel. The declaring file's own layer is the edge source; the build fails on an unknown target or on a pair the imports already prove.
+- `@talksTo <layer-id> via <protocol>` in any scanned doc comment or docstring declares an edge no import produces, such as Python sources loaded into Pyodide or a postMessage channel. The declaring file's own layer is the edge source; the build fails on an unknown target or on a pair the imports already prove.
 - Files with no annotation inherit from the nearest declaring ancestor. Do not annotate every file.
 
 Any other tag is ignored. In a declaring README's frontmatter, `layer` and `role` are the only keys and anything else fails the build.
 
 The generated docs are **build output and are not committed**. Only the annotations are versioned.
 
-When you change structure in `petrinaut-core`, `petrinaut`, or `petrinaut-cli`, you MUST add a declaration if you introduce a folder that is a new architectural unit — a new boundary or a distinct responsibility, not only a new directory.
+When you change structure in `petrinaut-core` or `petrinaut`, you MUST add a declaration if you introduce a folder that is a new architectural unit — a new boundary or a distinct responsibility, not only a new directory.
 
 Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`. To read the docs, `turbo run doc:architecture --filter @local/petrinaut-arch-docs` writes the bundle to `libs/@local/petrinaut-arch-docs/bundle/` (git-ignored). Full reference: `libs/@local/petrinaut-arch-docs/README.md`. Browse with `turbo run dev --filter @apps/petrinaut-docs`.
 
@@ -83,7 +83,7 @@ Hand-written MDX in `libs/@local/petrinaut-arch-docs/content/` is optional. Give
 
 ## Shipping conventions
 
-These apply to changes in `petrinaut`, `petrinaut-core`, and `petrinaut-cli`.
+These apply to changes in `petrinaut` and `petrinaut-core`.
 
 - Changesets: `@hashintel/petrinaut` and `@hashintel/petrinaut-core` always get a `patch` bump, never `minor`, whatever the change. Write one changeset per affected package, each describing only that package's consumer-facing changes; pure refactors get none. `@local/*` and `@apps/*` packages never publish.
 - Review fixes and scope additions land as dedicated commits on an open PR.

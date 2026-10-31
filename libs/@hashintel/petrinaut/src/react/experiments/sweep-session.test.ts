@@ -81,8 +81,6 @@ function makeFakeBatch(request: {
   let progress: MonteCarloWorkerProgress | null = null;
   let cancelled = false;
   let started = false;
-  let runResults = new Map<number, Readonly<Record<string, number>>>();
-  let runResultsListeners: (() => void)[] = [];
 
   const handle: MonteCarloExperiment = {
     status: { get: () => "Running", subscribe: () => () => {} },
@@ -108,18 +106,6 @@ function makeFakeBatch(request: {
         };
       },
     },
-    runResults: {
-      get: () => runResults,
-      subscribe: (listener) => {
-        const notify = () => listener(runResults);
-        runResultsListeners.push(notify);
-        return () => {
-          runResultsListeners = runResultsListeners.filter(
-            (entry) => entry !== notify,
-          );
-        };
-      },
-    },
     events: {
       subscribe: (listener) => {
         eventListeners.push(listener);
@@ -140,12 +126,6 @@ function makeFakeBatch(request: {
   return {
     request,
     handle,
-    setRunResults(next: ReadonlyMap<number, Readonly<Record<string, number>>>) {
-      runResults = new Map(next);
-      for (const notify of runResultsListeners) {
-        notify();
-      }
-    },
     get cancelled() {
       return cancelled;
     },

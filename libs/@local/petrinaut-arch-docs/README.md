@@ -80,15 +80,15 @@ declared — `core.simulation.monte-carlo` requires `core.simulation` and `core`
 
 ### Declaring a protocol edge
 
-Some dependencies cross no import: the Python bindings spawn the CLI and speak
-JSON lines to it over stdio. `@talksTo` records such an edge, in the same doc
-comment or docstring the scanner already reads:
+Some dependencies cross no import: the browser optimizer's worker writes the
+optimizer-core Python sources into Pyodide's filesystem and imports them there.
+`@talksTo` records such an edge, in the same doc comment or docstring the
+scanner already reads:
 
-```python
-"""One Petrinaut CLI process, spoken to over JSON lines on stdio.
-
-@talksTo cli via JSON lines over stdio (spawned subprocess)
-"""
+```ts
+/**
+ * @talksTo optimizer-core via Python sources written into Pyodide's filesystem
+ */
 ```
 
 The declaring file's own layer is the edge source, the id before `via` is the
@@ -408,7 +408,7 @@ bundle's `diagrams/` directory, next to the generated ones, and authored pages
 embed them as images:
 
 ```mdx
-![One request through the CLI](@diagrams/cli-request-flow.svg)
+![One trial through the browser runtime](@diagrams/browser-optimization-loop.svg)
 ```
 
 An unknown name, or a name colliding with a generated diagram, fails the

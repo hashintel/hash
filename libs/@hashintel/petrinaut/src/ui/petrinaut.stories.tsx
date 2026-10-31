@@ -2,18 +2,13 @@ import { useMemo, useState, useEffect } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import {
-  sirModel,
-  supplyChainProfit,
-} from "@hashintel/petrinaut-core/examples";
-import { createServicePetrinautOptimization } from "@local/petrinaut-optimizer-client";
+import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
   createJsonDocHandle,
   type PetrinautHandleCapabilities,
   type SDCPN,
 } from "../main";
-import { PetrinautOptimizationContext } from "../react/optimization-context";
 import { useStoreSelector } from "../react/use-store";
 import { Petrinaut } from "../ui/petrinaut";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
@@ -299,63 +294,6 @@ export const Default: Story = {
       <PetrinautStoryProvider />
     </div>
   ),
-};
-
-/**
- * Whether the host serves a real Petrinaut Optimizer behind the Storybook
- * dev proxy; the dev task's `--with-optimizer-service` flag sets it.
- */
-const realOptimizerEnabled =
-  (import.meta as { env?: Record<string, string | undefined> }).env?.[
-    "VITE_PETRINAUT_OPT_PROVIDER"
-  ] === "service";
-
-const realOptimizerGuidanceStyle = css({
-  padding: "6",
-  fontSize: "sm",
-  color: "neutral.s100",
-  maxWidth: "[60ch]",
-});
-
-/**
- * The full editor with the real optimizer service as its optimization
- * capability, built from source. The editor starts studies only on a
- * connected (in-browser) source, so this story exercises the host wiring
- * around the local Petrinaut Optimizer container, not a study.
- */
-/**
- * One capability for the story's lifetime: a fresh identity per render
- * restarts the provider's re-attach effect against a live study.
- */
-const realOptimizer = realOptimizerEnabled
-  ? createServicePetrinautOptimization({
-      endpoint: () => new URL("/api/petrinaut-opt/", location.href),
-    })
-  : null;
-
-export const WithRealOptimizer: Story = {
-  render: () =>
-    realOptimizer ? (
-      <PetrinautOptimizationContext value={realOptimizer}>
-        <div style={{ height: "100vh", width: "100vw" }}>
-          <PetrinautStoryProvider
-            initialTitle={supplyChainProfit.title}
-            initialDefinition={supplyChainProfit.petriNetDefinition}
-          />
-        </div>
-      </PetrinautOptimizationContext>
-    ) : (
-      <div className={realOptimizerGuidanceStyle}>
-        This story talks to a real Petrinaut Optimizer and is inactive: start
-        Storybook with{" "}
-        <code>
-          turbo run dev --filter @hashintel/petrinaut --
-          --with-optimizer-service
-        </code>{" "}
-        from the repository root, which starts the optimizer container and sets{" "}
-        <code>VITE_PETRINAUT_OPT_PROVIDER=service</code>.
-      </div>
-    ),
 };
 
 export const Readonly: Story = {

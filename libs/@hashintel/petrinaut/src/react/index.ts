@@ -75,9 +75,7 @@ export type {
   PetrinautConnectedOptimization,
   PetrinautConnectedOptimizationCapability,
   PetrinautConnectedRunOptions,
-  PetrinautOptimization,
   PetrinautOptimizationChannel,
-  PetrinautOptimizationSource,
 } from "./optimization-context";
 export {
   isOptimizationActive,

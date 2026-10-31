@@ -1,7 +1,7 @@
-"""The parsed form of an `optimization.describe` result.
+"""The parsed form of a study description.
 
-The result arrives as JSON, from the CLI through the Python bindings or from
-the TypeScript describe helper. Parsing turns it into plain dataclasses and
+The description arrives as JSON from `describeOptimization` in
+`@hashintel/petrinaut-core`. Parsing turns it into plain dataclasses and
 checks the cross-field rules no schema expresses: bound ordering, log-scale
 domains, duplicate identifiers, and the study limits.
 """
@@ -66,28 +66,28 @@ def _choice(value: object, choices: tuple[str, ...], message: str) -> str:
 
 def _mapping(value: object, name: str) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
-        raise TypeError(f"optimization.describe {name} must be an object")
+        raise TypeError(f"study description {name} must be an object")
 
     return cast("Mapping[str, object]", value)
 
 
 def _string(value: object, name: str) -> str:
     if not isinstance(value, str):
-        raise TypeError(f"optimization.describe {name} must be a string")
+        raise TypeError(f"study description {name} must be a string")
 
     return value
 
 
 def _integer(value: object, name: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
-        raise TypeError(f"optimization.describe {name} must be an integer")
+        raise TypeError(f"study description {name} must be an integer")
 
     return value
 
 
 def _number(value: object, name: str) -> float:
     if isinstance(value, bool) or not isinstance(value, int | float):
-        raise TypeError(f"optimization.describe {name} must be a number")
+        raise TypeError(f"study description {name} must be a number")
 
     return float(value)
 
@@ -165,16 +165,16 @@ def parse_description(raw: Mapping[str, object]) -> StudyDescription:
     )
     trials = _integer(study.get("trials"), "study.trials")
     if trials < 1:
-        raise ValueError("optimization.describe study.trials must be at least 1")
+        raise ValueError("study description study.trials must be at least 1")
     if trials > MAX_STUDY_TRIALS:
-        raise ValueError(f"optimization.describe study.trials must not exceed {MAX_STUDY_TRIALS}")
+        raise ValueError(f"study description study.trials must not exceed {MAX_STUDY_TRIALS}")
     seed = _integer(study.get("seed"), "study.seed")
     if seed < 0:
-        raise ValueError("optimization.describe study.seed must be a non-negative integer")
+        raise ValueError("study description study.seed must be a non-negative integer")
 
     raw_parameters = raw.get("parameters")
     if not isinstance(raw_parameters, list):
-        raise TypeError("optimization.describe parameters must be an array")
+        raise TypeError("study description parameters must be an array")
     parameters: list[Parameter] = []
     identifiers: set[str] = set()
     for index, item in enumerate(cast("list[object]", raw_parameters)):

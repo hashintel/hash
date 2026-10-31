@@ -18,9 +18,7 @@ export type {
   PetrinautConnectedOptimization,
   PetrinautConnectedOptimizationCapability,
   PetrinautConnectedRunOptions,
-  PetrinautOptimization,
   PetrinautOptimizationChannel,
-  PetrinautOptimizationSource,
 } from "./react/optimization-context";
 export { PetrinautOptimizationContext } from "./react/optimization-context";
 

@@ -46,10 +46,8 @@ Per-run parameter values travel as `ExperimentRequest.runPlan` — one
 run-major `Float64Array` plus the overridden names, uniform by construction.
 The WebGPU backend converts it straight into its per-run buffer, the CPU
 backend expands it into the engine's per-run configs at the worker-pool
-boundary, and range and point batches walk the same backend selection. The
-record form (`ExperimentRequest.runs`) remains for what a numeric plan
-cannot carry — per-run seeds, markings, non-numeric values — and a batch
-whose translation meets one falls back to it. Scenario compilation needs one
+boundary, and range and point batches walk the same backend selection.
+Scenario compilation needs one
 value per parameter, so an initial state derived from a ranged parameter
 holds at the range midpoint while runtime reads vary per run.
 
