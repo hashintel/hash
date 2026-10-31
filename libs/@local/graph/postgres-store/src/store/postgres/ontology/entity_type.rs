@@ -5,8 +5,8 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
-    Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
-    action::ActionName,
+    Authorized, MergePolicies, PolicyComponents, PolicyComponentsBuilder, PolicySet, Request,
+    RequestContext, ResourceId, action::ActionName,
 };
 use hash_graph_store::{
     entity::ClosedMultiEntityTypeMap,
@@ -963,6 +963,76 @@ where
     }
 }
 
+/// Adds the stored parents of `entity_types` to the policy context, together with their ancestors.
+///
+/// Parents among `entity_types` are skipped, as they are not stored yet.
+fn add_stored_parent_entity_types<'a, S>(
+    policy_components_builder: &mut PolicyComponentsBuilder<'a, S>,
+    entity_types: &'a [(EntityTypeUuid, Arc<EntityType>)],
+) {
+    let pending_entity_type_ids = entity_types
+        .iter()
+        .map(|(_, entity_type)| &entity_type.id)
+        .collect::<HashSet<_>>();
+
+    policy_components_builder.add_entity_type_ids(
+        entity_types
+            .iter()
+            .flat_map(|(_, entity_type)| &entity_type.all_of)
+            .map(|parent| &parent.url)
+            .filter(|parent_id| !pending_entity_type_ids.contains(parent_id)),
+    );
+}
+
+/// Fails if the actor may not instantiate every entity type that `entity_type` inherits from,
+/// directly or transitively.
+///
+/// The policy context has to contain all of these ancestors.
+fn ensure_ancestors_are_instantiable<C>(
+    policy_set: &PolicySet,
+    policy_components: &PolicyComponents,
+    entity_type: &ClosedEntityType,
+    context: C,
+) -> Result<(), Report<C>>
+where
+    C: core::error::Error + Send + Sync + 'static,
+{
+    let mut forbidden_ancestors = Vec::new();
+    for ancestor in entity_type
+        .all_of
+        .iter()
+        .filter(|ancestor| ancestor.id != entity_type.id)
+    {
+        let authorized = policy_set.evaluate(
+            &Request {
+                actor: policy_components.actor_id(),
+                action: ActionName::Instantiate,
+                resource: &ResourceId::EntityType(Cow::Borrowed((&ancestor.id).into())),
+                context: RequestContext::default(),
+            },
+            policy_components.context(),
+        );
+        match authorized {
+            Ok(Authorized::Always) => {}
+            Ok(Authorized::Never) => forbidden_ancestors.push(ancestor.id.to_string()),
+            Err(error) => return Err(error.change_context(context)),
+        }
+    }
+
+    if forbidden_ancestors.is_empty() {
+        return Ok(());
+    }
+
+    Err(Report::new(context)
+        .attach_opaque(StatusCode::PermissionDenied)
+        .attach(format!(
+            "The actor does not have permission to instantiate `{}`, which the entity type `{}` \
+             inherits from",
+            forbidden_ancestors.join("`, `"),
+            entity_type.id
+        )))
+}
+
 impl<C, S> EntityTypeStore for PostgresStore<C, S>
 where
     C: AsClient,
@@ -1032,13 +1102,18 @@ where
             }
         }
 
+        add_stored_parent_entity_types(&mut policy_components_builder, &inserted_entity_types);
+
         let policy_components = policy_components_builder
-            .with_actions([ActionName::CreateEntityType], MergePolicies::No)
+            .with_actions(
+                [ActionName::CreateEntityType, ActionName::Instantiate],
+                MergePolicies::No,
+            )
             .await
             .change_context(InsertionError)?;
 
         let policy_set = policy_components
-            .build_policy_set([ActionName::CreateEntityType])
+            .build_policy_set([ActionName::CreateEntityType, ActionName::Instantiate])
             .change_context(InsertionError)?;
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
@@ -1138,6 +1213,21 @@ where
                 Ok((closed_schema, closed_metadata))
             })
             .collect::<Result<Vec<_>, Report<_>>>()?;
+
+        // Remote types are copies of definitions owned elsewhere, so their inheritance is not
+        // chosen by the actor.
+        for ((closed_schema, _), metadata) in
+            closed_schemas.iter().zip(&inserted_entity_type_metadata)
+        {
+            if matches!(metadata.ownership, OntologyOwnership::Local { .. }) {
+                ensure_ancestors_are_instantiable(
+                    &policy_set,
+                    &policy_components,
+                    closed_schema,
+                    InsertionError,
+                )?;
+            }
+        }
 
         let entity_type_validator = EntityTypeValidator;
         for ((entity_type_id, entity_type), (closed_schema, _resolve_data)) in
@@ -1720,6 +1810,8 @@ where
 
         let mut old_entity_type_ids = Vec::new();
 
+        let mut policy_components_builder = PolicyComponents::builder(&transaction, Some(actor_id));
+
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
@@ -1754,6 +1846,7 @@ where
             let (_ontology_id, web_id, temporal_versioning) = transaction
                 .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
                 .await?;
+            policy_components_builder.add_entity_type(&parameters.schema.id, Some(web_id));
 
             entity_type_reference_ids.extend(
                 parameters
@@ -1770,14 +1863,19 @@ where
             });
         }
 
-        let policy_components = PolicyComponents::builder(&transaction, Some(actor_id))
-            .with_entity_type_ids(&old_entity_type_ids)
-            .with_actions([ActionName::UpdateEntityType], MergePolicies::No)
+        policy_components_builder.add_entity_type_ids(&old_entity_type_ids);
+        add_stored_parent_entity_types(&mut policy_components_builder, &inserted_entity_types);
+
+        let policy_components = policy_components_builder
+            .with_actions(
+                [ActionName::UpdateEntityType, ActionName::Instantiate],
+                MergePolicies::No,
+            )
             .await
             .change_context(UpdateError)?;
 
         let policy_set = policy_components
-            .build_policy_set([ActionName::UpdateEntityType])
+            .build_policy_set([ActionName::UpdateEntityType, ActionName::Instantiate])
             .change_context(UpdateError)?;
 
         for entity_type_id in &old_entity_type_ids {
@@ -1877,6 +1975,15 @@ where
                 Ok((closed_schema, closed_metadata))
             })
             .collect::<Result<Vec<_>, Report<_>>>()?;
+
+        for (closed_schema, _) in &closed_schemas {
+            ensure_ancestors_are_instantiable(
+                &policy_set,
+                &policy_components,
+                closed_schema,
+                UpdateError,
+            )?;
+        }
 
         let entity_type_validator = EntityTypeValidator;
         for ((entity_type_id, entity_type), (closed_schema, _resolve_data)) in

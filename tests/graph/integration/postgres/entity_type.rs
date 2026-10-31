@@ -1,5 +1,6 @@
-use core::assert_matches;
+use core::{assert_matches, fmt::Debug};
 
+use error_stack::Report;
 use hash_graph_postgres_store::store::error::LinkToLinkConstraint;
 use hash_graph_store::{
     entity_type::{
@@ -11,6 +12,7 @@ use hash_graph_store::{
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_test_data::{data_type, entity_type, property_type};
+use hash_status::StatusCode;
 use serde_json::json;
 use type_system::{
     ontology::{
@@ -18,7 +20,10 @@ use type_system::{
         entity_type::EntityType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    principal::{actor::ActorType, actor_group::WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorId, ActorType},
+        actor_group::WebId,
+    },
     provenance::{OriginProvenance, OriginType},
 };
 
@@ -250,12 +255,244 @@ async fn update() {
     assert_eq!(page_et_v2.id, returned_page_et_v2.schema.id);
 }
 
+/// The seeded policies do not allow users to instantiate this type.
+const ACTOR_V1: &str = "https://hash.ai/@h/types/entity-type/actor/v/1";
+
+fn entity_type_schema(id: &str, parents: &[&str]) -> EntityType {
+    serde_json::from_value(json!({
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+        "kind": "entityType",
+        "$id": id,
+        "type": "object",
+        "title": id,
+        "description": "An entity type used to test inheritance permissions",
+        "allOf": parents
+            .iter()
+            .map(|parent| json!({ "$ref": parent }))
+            .collect::<Vec<_>>(),
+        "properties": {},
+    }))
+    .expect("should be a valid entity type")
+}
+
+fn api_provenance(actor: ActorId) -> ProvidedOntologyEditionProvenance {
+    ProvidedOntologyEditionProvenance {
+        actor_type: actor.actor_type(),
+        origin: OriginProvenance::from_empty_type(OriginType::Api),
+        sources: Vec::new(),
+    }
+}
+
 fn provenance() -> ProvidedOntologyEditionProvenance {
     ProvidedOntologyEditionProvenance {
         actor_type: ActorType::User,
         origin: OriginProvenance::from_empty_type(OriginType::Api),
         sources: Vec::new(),
     }
+}
+
+fn create_params(schema: EntityType, web_id: WebId, actor: ActorId) -> CreateEntityTypeParams {
+    CreateEntityTypeParams {
+        schema,
+        ownership: OntologyOwnership::Local { web_id },
+        conflict_behavior: ConflictBehavior::Fail,
+        provenance: api_provenance(actor),
+    }
+}
+
+fn assert_instantiation_denied<T: Debug, C>(result: Result<T, Report<C>>, ancestor: &str) {
+    let error = result.expect_err("extending a type the actor cannot instantiate should fail");
+    assert_eq!(
+        error.request_ref::<StatusCode>().next(),
+        Some(&StatusCode::PermissionDenied),
+        "the error should carry a `PermissionDenied` status",
+    );
+    assert!(
+        format!("{error:?}").contains(ancestor),
+        "the error should name `{ancestor}`: {error:?}",
+    );
+}
+
+async fn seed_with_actor_type(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+    let mut api = database
+        .seed([], [], [])
+        .await
+        .expect("should be able to seed the database");
+    let user = api.account_id;
+    api.create_entity_type(
+        user,
+        create_params(entity_type_schema(ACTOR_V1, &[]), WebId::new(user), user),
+    )
+    .await
+    .expect("users should be able to create a type they cannot instantiate");
+    api
+}
+
+#[tokio::test]
+async fn create_parent_not_instantiable() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_actor_type(&mut database).await;
+    let user = api.account_id;
+
+    let result = api
+        .create_entity_type(
+            user,
+            create_params(
+                entity_type_schema(
+                    "https://example.com/@alice/types/entity-type/child/v/1",
+                    &[ACTOR_V1],
+                ),
+                WebId::new(user),
+                user,
+            ),
+        )
+        .await;
+
+    assert_instantiation_denied(result, ACTOR_V1);
+}
+
+/// Machines may instantiate [`ACTOR_V1`], so they may create this type extending it.
+const AGENT_V1: &str = "https://example.com/@alice/types/entity-type/agent/v/1";
+
+async fn create_agent_type(api: &mut DatabaseApi<'_>, web_id: WebId) {
+    let machine = ActorId::from(api.create_machine("test-machine").await);
+    api.assign_web_administrator(ActorEntityUuid::from(machine), web_id)
+        .await;
+    api.create_entity_type(
+        machine,
+        create_params(entity_type_schema(AGENT_V1, &[ACTOR_V1]), web_id, machine),
+    )
+    .await
+    .expect("machines should be able to extend a type they can instantiate");
+}
+
+#[tokio::test]
+async fn create_grandparent_not_instantiable() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_actor_type(&mut database).await;
+    let user = api.account_id;
+    let web_id = WebId::new(user);
+    create_agent_type(&mut api, web_id).await;
+
+    let result = api
+        .create_entity_type(
+            user,
+            create_params(
+                entity_type_schema(
+                    "https://example.com/@alice/types/entity-type/child/v/1",
+                    &[AGENT_V1],
+                ),
+                web_id,
+                user,
+            ),
+        )
+        .await;
+
+    assert_instantiation_denied(result, ACTOR_V1);
+}
+
+#[tokio::test]
+async fn create_parent_not_instantiable_same_batch() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = database
+        .seed([], [], [])
+        .await
+        .expect("should be able to seed the database");
+    let user = api.account_id;
+    let web_id = WebId::new(user);
+
+    let result = api
+        .create_entity_types(
+            user,
+            [
+                create_params(entity_type_schema(ACTOR_V1, &[]), web_id, user),
+                create_params(
+                    entity_type_schema(
+                        "https://example.com/@alice/types/entity-type/child/v/1",
+                        &[ACTOR_V1],
+                    ),
+                    web_id,
+                    user,
+                ),
+            ],
+        )
+        .await;
+
+    assert_instantiation_denied(result, ACTOR_V1);
+}
+
+#[tokio::test]
+async fn update_parent_not_instantiable() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_actor_type(&mut database).await;
+    let user = api.account_id;
+
+    api.create_entity_type(
+        user,
+        create_params(
+            entity_type_schema(
+                "https://example.com/@alice/types/entity-type/child/v/1",
+                &[],
+            ),
+            WebId::new(user),
+            user,
+        ),
+    )
+    .await
+    .expect("should be able to create an entity type without parents");
+
+    let result = api
+        .update_entity_type(
+            user,
+            UpdateEntityTypesParams {
+                schema: entity_type_schema(
+                    "https://example.com/@alice/types/entity-type/child/v/2",
+                    &[ACTOR_V1],
+                ),
+                provenance: api_provenance(user),
+            },
+        )
+        .await;
+
+    assert_instantiation_denied(result, ACTOR_V1);
+}
+
+#[tokio::test]
+async fn update_grandparent_not_instantiable() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_actor_type(&mut database).await;
+    let user = api.account_id;
+    let web_id = WebId::new(user);
+    create_agent_type(&mut api, web_id).await;
+
+    api.create_entity_type(
+        user,
+        create_params(
+            entity_type_schema(
+                "https://example.com/@alice/types/entity-type/child/v/1",
+                &[],
+            ),
+            web_id,
+            user,
+        ),
+    )
+    .await
+    .expect("should be able to create an entity type without parents");
+
+    let result = api
+        .update_entity_type(
+            user,
+            UpdateEntityTypesParams {
+                schema: entity_type_schema(
+                    "https://example.com/@alice/types/entity-type/child/v/2",
+                    &[AGENT_V1],
+                ),
+                provenance: api_provenance(user),
+            },
+        )
+        .await;
+
+    assert_instantiation_denied(result, ACTOR_V1);
 }
 
 fn befriending_type_id(version: u32) -> VersionedUrl {
