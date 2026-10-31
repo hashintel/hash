@@ -1,4 +1,7 @@
-const documentFrame = <path d="M6 3h8l4 4v14H6Z M14 3v5h4" />;
+import { FilledShape } from "./filled-shape";
+
+const documentFrame = <path d="M6 3h8l4 4v14H6Z" />;
+const documentFold = <path d="M14 3v5h4" />;
 const clockFace = <circle cx="12" cy="12" r="8" />;
 const eyeFrame = <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />;
 
@@ -11,19 +14,35 @@ export const additionalGeometry = {
   arrowLeft: <path d="M20 12H4m6-6-6 6 6 6" />,
   arrowRight: <path d="M4 12h16m-6-6 6 6-6 6" />,
   arrowUpRight: <path d="M5 19 19 5H8m11 0v11" />,
-  arrowsLeftRight: <path d="M4 8h16l-4-4M20 16H4l4 4" />,
+  arrowsLeftRight: <path d="M4 8h16m-4-4 4 4-4 4M20 16H4m4-4-4 4 4 4" />,
   trash: (
-    <>
-      <path d="m5 7 1 14h12l1-14M9 10v7m6-7v7" />
-      <path data-icon-detail="lid" d="M3 6h18M9 6V3h6v3" />
-    </>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path d="M9 10v7m6-7v7" />{" "}
+        </>
+      }
+    >
+      <path d="m5 7 1 14h12l1-14" />
+      <path fill="none" data-icon-detail="lid" d="M3 6h18M9 6V3h6v3" />
+    </FilledShape>
   ),
   pencil: (
-    <path d="m4 15 11-11a2.1 2.1 0 0 1 3 0l2 2a2.1 2.1 0 0 1 0 3L9 20l-6 1Z M13 6l5 5M4 15l5 5" />
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path d="M13 6l5 5M4 15l5 5" />{" "}
+        </>
+      }
+    >
+      <path d="m4 15 11-11a2.1 2.1 0 0 1 3 0l2 2a2.1 2.1 0 0 1 0 3L9 20l-6 1Z" />
+    </FilledShape>
   ),
   copy: (
-    <>
-      <path d="M7 16H3V3h13v4" />
+    <FilledShape>
+      <path fill="none" d="M7 16H3V3h13v4" />
       <rect
         data-icon-detail="sheet"
         x="8"
@@ -32,7 +51,7 @@ export const additionalGeometry = {
         height="13"
         rx="1.5"
       />
-    </>
+    </FilledShape>
   ),
   download: (
     <>
@@ -61,46 +80,88 @@ export const additionalGeometry = {
     </g>
   ),
   circleEllipsis: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path d="M7 12h.01M12 12h.01M17 12h.01" strokeWidth="3" />{" "}
+        </>
+      }
+    >
       <circle cx="12" cy="12" r="9" />
-      <path d="M7 12h.01M12 12h.01M17 12h.01" strokeWidth="3" />
-    </>
+    </FilledShape>
   ),
   collapse: (
     <path d="m3 3 6 6M4 9h5V4m12-1-6 6m5 0h-5V4M3 21l6-6m-5 0h5v5m12 1-6-6m5 0h-5v5" />
   ),
   lockOpen: (
-    <>
-      <path data-icon-detail="shackle" d="M8 11V7a4 4 0 0 1 8 0" />
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path d="M12 15v2" />{" "}
+        </>
+      }
+    >
+      <path fill="none" data-icon-detail="shackle" d="M8 11V7a4 4 0 0 1 8 0" />
       <rect x="5" y="11" width="14" height="10" rx="2" />
-      <path d="M12 15v2" />
-    </>
+    </FilledShape>
   ),
   lockClosed: (
-    <>
-      <path data-icon-detail="shackle" d="M8 11V7a4 4 0 0 1 8 0v4" />
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path d="M12 15v2" />{" "}
+        </>
+      }
+    >
+      <path
+        fill="none"
+        data-icon-detail="shackle"
+        d="M8 11V7a4 4 0 0 1 8 0v4"
+      />
       <rect x="5" y="11" width="14" height="10" rx="2" />
-      <path d="M12 15v2" />
-    </>
+    </FilledShape>
   ),
   eye: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <circle data-icon-detail="pupil" cx="12" cy="12" r="2.5" />{" "}
+        </>
+      }
+    >
       {eyeFrame}
-      <circle data-icon-detail="pupil" cx="12" cy="12" r="2.5" />
-    </>
+    </FilledShape>
   ),
   eyeSlash: (
     <>
-      {eyeFrame}
-      <circle data-icon-detail="pupil" cx="12" cy="12" r="2.5" />
-      <path d="m3 3 18 18" />
+      <FilledShape
+        cutout={
+          <>
+            <circle data-icon-detail="pupil" cx="12" cy="12" r="2.5" />
+            <path d="m3 3 18 18" />
+          </>
+        }
+      >
+        {eyeFrame}
+      </FilledShape>
+      <path d="m3 3 3 3m12 12 3 3" />
     </>
   ),
   clock: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path data-icon-detail="clock-hand" d="M12 7v5l3 2" />{" "}
+        </>
+      }
+    >
       {clockFace}
-      <path data-icon-detail="clock-hand" d="M12 7v5l3 2" />
-    </>
+    </FilledShape>
   ),
   clockRotateLeft: (
     <>
@@ -131,7 +192,11 @@ export const additionalGeometry = {
       <path data-icon-detail="line-chart" d="m6 15 4-5 4 3 6-8" />
     </>
   ),
-  filter: <path d="M3 4h18l-7 8v7l-4 2v-9Z" />,
+  filter: (
+    <FilledShape>
+      <path d="M3 4h18l-7 8v7l-4 2v-9Z" />
+    </FilledShape>
+  ),
   bracketsCurly: (
     <>
       <path
@@ -145,7 +210,11 @@ export const additionalGeometry = {
     </>
   ),
   lambda: <path d="M5 4h3l9 16h3M12 11 6 20" />,
-  lightning: <path d="m14 2-11 12h8l-1 8 11-12h-8Z" />,
+  lightning: (
+    <FilledShape>
+      <path d="m14 2-11 12h8l-1 8 11-12h-8Z" />
+    </FilledShape>
+  ),
   code: (
     <>
       <path data-icon-detail="open-left" d="m8 6-6 6 6 6" />
@@ -155,26 +224,43 @@ export const additionalGeometry = {
   ),
   cube: <path d="m12 2 9 5v10l-9 5-9-5V7Z M3 7l9 5 9-5M12 12v10" />,
   diagramNested: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path d="M7 7v10h10V7ZM7 12h10" />{" "}
+        </>
+      }
+    >
       <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M7 7v10h10V7ZM7 12h10" />
-    </>
+    </FilledShape>
   ),
   diagramProject: (
-    <>
-      <rect x="3" y="3" width="6" height="6" rx="1" />
-      <rect x="15" y="3" width="6" height="6" rx="1" />
-      <rect x="9" y="15" width="6" height="6" rx="1" />
-      <path d="M9 6h6M6 9v3h6v3" />
-    </>
+    <FilledShape>
+      <>
+        <rect x="3" y="3" width="6" height="6" rx="1" />
+        <rect x="15" y="3" width="6" height="6" rx="1" />
+        <rect x="9" y="15" width="6" height="6" rx="1" />
+        <path fill="none" d="M9 6h6M6 9v3h6v3" />
+      </>
+    </FilledShape>
   ),
   shapes: null,
-  file: documentFrame,
+  file: (
+    <FilledShape cutout={<> {documentFold} </>}>{documentFrame}</FilledShape>
+  ),
   fileLines: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          {documentFold}
+          <path data-icon-detail="lines" d="M9 12h6m-6 4h6" />{" "}
+        </>
+      }
+    >
       {documentFrame}
-      <path data-icon-detail="lines" d="M9 12h6m-6 4h6" />
-    </>
+    </FilledShape>
   ),
   list: (
     <>
@@ -183,25 +269,39 @@ export const additionalGeometry = {
     </>
   ),
   table: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path d="M3 9h18M3 15h18M9 3v18" />{" "}
+        </>
+      }
+    >
       <rect x="3" y="3" width="18" height="18" rx="1.5" />
-      <path d="M3 9h18M3 15h18M9 3v18" />
-    </>
+    </FilledShape>
   ),
   grid: (
-    <>
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <rect x="14" y="14" width="7" height="7" rx="1" />
-    </>
+    <FilledShape>
+      <>
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </>
+    </FilledShape>
   ),
   bullseye: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <circle data-icon-detail="target" cx="12" cy="12" r="5" />{" "}
+        </>
+      }
+    >
       <circle cx="12" cy="12" r="9" />
-      <circle data-icon-detail="target" cx="12" cy="12" r="5" />
       <circle cx="12" cy="12" r="1" fill="currentColor" />
-    </>
+    </FilledShape>
   ),
   scribble: (
     <>
@@ -210,65 +310,107 @@ export const additionalGeometry = {
     </>
   ),
   sparkles: (
-    <>
-      <path
-        data-icon-detail="sparkle"
-        d="m10 3 2.5 6.5L18 12l-5.5 2.5L10 21l-2.5-6.5L2 12l5.5-2.5Z"
-      />
-      <path d="m19 3 .75 2.25L22 6l-2.25.75L19 9l-.75-2.25L16 6l2.25-.75Z" />
-    </>
+    <FilledShape>
+      <>
+        <path
+          data-icon-detail="sparkle"
+          d="m10 3 2.5 6.5L18 12l-5.5 2.5L10 21l-2.5-6.5L2 12l5.5-2.5Z"
+        />
+        <path d="m19 3 .75 2.25L22 6l-2.25.75L19 9l-.75-2.25L16 6l2.25-.75Z" />
+      </>
+    </FilledShape>
   ),
   info: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path d="M12 11v6m0-10h.01" />{" "}
+        </>
+      }
+    >
       <circle cx="12" cy="12" r="9" />
-      <path d="M12 11v6m0-10h.01" />
-    </>
+    </FilledShape>
   ),
   error: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path d="M12 7v6m0 4h.01" />{" "}
+        </>
+      }
+    >
       <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v6m0 4h.01" />
-    </>
+    </FilledShape>
   ),
   warning: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path d="M12 9v5m0 3h.01" />{" "}
+        </>
+      }
+    >
       <path d="M12 3 2 21h20Z" />
-      <path d="M12 9v5m0 3h.01" />
-    </>
+    </FilledShape>
   ),
   circleCheck: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path d="m7 12 3 3 7-7" />{" "}
+        </>
+      }
+    >
       <circle cx="12" cy="12" r="9" />
-      <path d="m7 12 3 3 7-7" />
-    </>
+    </FilledShape>
   ),
   circleClose: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path d="m8.5 8.5 7 7m0-7-7 7" />{" "}
+        </>
+      }
+    >
       <circle cx="12" cy="12" r="9" />
-      <path d="m8.5 8.5 7 7m0-7-7 7" />
-    </>
+    </FilledShape>
   ),
   terminal: (
-    <>
+    <FilledShape
+      cutout={
+        <>
+          {" "}
+          <path data-icon-detail="right" d="m6 8 4 4-4 4" />
+          <path d="M13 16h5" />{" "}
+        </>
+      }
+    >
       <rect x="3" y="4" width="18" height="16" rx="2" />
-      <path data-icon-detail="right" d="m6 8 4 4-4 4" />
-      <path d="M13 16h5" />
-    </>
+    </FilledShape>
   ),
   text: <path d="M3 5h18M7 5v14m-3 0h6m6-7h5m-5-3v8c0 2 1 2 3 2" />,
   user: (
-    <>
-      <circle data-icon-detail="filament" cx="12" cy="7" r="4" />
-      <path d="M4 21v-2a8 8 0 0 1 16 0v2" />
-    </>
+    <FilledShape>
+      <>
+        <circle data-icon-detail="filament" cx="12" cy="7" r="4" />
+        <path d="M4 21v-2a8 8 0 0 1 16 0v2" />
+      </>
+    </FilledShape>
   ),
   voice: (
     <path data-icon-detail="wave" d="M3 10v4m4-8v12m5-15v18m5-14v10m4-7v4" />
   ),
   transcription: <path data-icon-detail="lines" d="M4 6h16M4 12h16M4 18h10" />,
   assistant: (
-    <g data-icon-detail="sparkle">
-      <path d="m12 2 4 4-4 4-4-4Zm6 6 4 4-4 4-4-4Zm-6 6 4 4-4 4-4-4ZM6 8l4 4-4 4-4-4Z" />
-    </g>
+    <FilledShape>
+      <g data-icon-detail="sparkle">
+        <path d="m12 2 4 4-4 4-4-4Zm6 6 4 4-4 4-4-4Zm-6 6 4 4-4 4-4-4ZM6 8l4 4-4 4-4-4Z" />
+      </g>
+    </FilledShape>
   ),
 } as const;
