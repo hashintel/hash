@@ -284,4 +284,5 @@ export const supportDeskLedger: LedgerState = {
       turn: "msg-05",
     },
   ],
+  comments: [],
 };

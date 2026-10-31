@@ -1,3 +1,5 @@
+import { generateId } from "ai";
+
 import { petrinautSubmissionContext } from "@hashintel/brunch-agent";
 import { petrinautDiagnosticsContextMessageId } from "@hashintel/petrinaut-core";
 import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
@@ -10,7 +12,10 @@ import { canonicalBrunchFlueAdapter } from "./brunch-flue-adapter";
 import { brunchSubmittedUserMessage } from "./brunch-panel-transport/submitted-user-message";
 
 import type { BrunchFlueAdapter } from "./brunch-flue-adapter";
-import type { PetrinautAiInputMode } from "./chat/ai-assistant-composer-control";
+import type {
+  PetrinautAiComposerSubmitText,
+  PetrinautAiInputMode,
+} from "./chat/ai-assistant-composer-control";
 import type { PetrinautAiChatTransport } from "./chat/petrinaut";
 import type {
   AgentSendResult,
@@ -124,6 +129,53 @@ export class BrunchPanelConversationTracker {
         this.#admissionSubscriptions.delete(subscription);
         subscription.listener(admission);
       }
+    }
+  }
+
+  /**
+   * Host-owned message sends settle on admission, not AI SDK fulfillment (which
+   * also follows swallowed transport errors). The caller must retain the same
+   * id and payload when retrying an unconfirmed delivery.
+   */
+  public async submitTextWithAdmission(
+    submitText: PetrinautAiComposerSubmitText,
+    input: Parameters<PetrinautAiComposerSubmitText>[0],
+  ): Promise<{ kind: "message"; messageId: string }> {
+    const messageId = input.id ?? generateId();
+    const result = { kind: "message" as const, messageId };
+    if (this.submissionForInput(messageId) !== undefined) return result;
+
+    const target = { kind: "user" as const, messageId };
+    let unsubscribe = () => {};
+    let unsubscribeFailure = () => {};
+    const admission = new Promise<typeof result>((resolve, reject) => {
+      unsubscribe = this.subscribeToAdmission(target, () => resolve(result));
+      unsubscribeFailure = this.subscribeToAdmissionFailure(target, reject);
+    });
+    try {
+      return await Promise.race([
+        admission,
+        Promise.resolve()
+          .then(() =>
+            submitText({ ...input, id: messageId, target: "message" }),
+          )
+          .then(
+            () => {
+              if (this.submissionForInput(messageId) !== undefined)
+                return result;
+              throw new FlueChatAdmissionError({ kind: "ambiguous" });
+            },
+            (error: unknown) => {
+              // An admitted turn stays delivered even if its response fails.
+              if (this.submissionForInput(messageId) !== undefined)
+                return result;
+              throw error;
+            },
+          ),
+      ]);
+    } finally {
+      unsubscribe();
+      unsubscribeFailure();
     }
   }
 

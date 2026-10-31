@@ -103,7 +103,9 @@ test("a reflection's net elements become the editor's selection, which the Ledge
     },
     additionalTab: {
       label: "Ledger",
-      content: <BrunchLedgerTab messages={messages} />,
+      content: (
+        <BrunchLedgerTab conversationId="conversation" messages={messages} />
+      ),
     },
   };
   render(

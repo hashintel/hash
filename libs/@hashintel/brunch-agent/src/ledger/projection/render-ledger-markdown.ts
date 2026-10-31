@@ -89,6 +89,17 @@ export const renderLedgerMarkdown = (projection: LedgerProjection): string => {
       ),
     );
   }
+  if (projection.openComments.length > 0) {
+    blocks.push(h2("Open comments"));
+    blocks.push(
+      ul(
+        projection.openComments.map(
+          ({ id, text, records }) =>
+            `${text} \u2014 on ${records.map((address) => code(address)).join(", ")}${tag(id)}`,
+        ),
+      ),
+    );
+  }
   if (projection.excluded.length > 0) {
     blocks.push(h2("Excluded from the model"));
     blocks.push(

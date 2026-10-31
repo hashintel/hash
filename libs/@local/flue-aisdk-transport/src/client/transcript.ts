@@ -146,6 +146,20 @@ export const snapshotToUiMessages = <Metadata>(
   const messages: UiHistoryMessage<Metadata>[] = [];
   const outcomes = outcomesBySubmission(snapshot.settlements ?? []);
   for (const message of snapshot.messages) {
+    const tagName = message.signal?.tagName;
+    if (
+      message.role === "system" &&
+      tagName !== undefined &&
+      options.userSignalTags?.has(tagName) === true
+    ) {
+      messages.push({
+        id: message.id,
+        role: "user",
+        parts: partsFrom(message, options),
+        metadata: undefined,
+      });
+      continue;
+    }
     if (message.display !== "visible") continue;
     if (message.purpose !== "user" && message.purpose !== "assistant") continue;
     if (message.role !== "user" && message.role !== "assistant") continue;
