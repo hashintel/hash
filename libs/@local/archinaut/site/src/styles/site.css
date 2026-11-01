@@ -1,10 +1,13 @@
 /*
- * Everything the site is styled by, in cascade order: Starlight's layers,
- * which carry the tokens, reset, content and component styles the pages
- * were written against; the layout the shell reproduces; the code block
- * theme; and `chrome.css`, the instance's own look, unlayered so it wins.
+ * Everything the site is styled by, in cascade order: KaTeX's own sheet,
+ * unlayered and first so everything below can adjust it; Starlight's
+ * layers, which carry the tokens, reset, content and component styles the
+ * pages were written against; the layout the shell reproduces; the code
+ * block theme; the formula sizing; and `chrome.css`, the instance's own
+ * look, unlayered so it wins.
  */
 
+@import "katex/dist/katex.min.css";
 @import "./starlight/layers.css";
 @import "./starlight/props.css";
 @import "./starlight/reset.css";
@@ -14,6 +17,7 @@
 @import "./starlight/anchor-links.css";
 @import "./layout.css";
 @import "./code.css";
+@import "./math.css";
 @import "./chrome.css";
 
 :root {

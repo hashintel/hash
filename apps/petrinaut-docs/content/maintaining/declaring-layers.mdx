@@ -122,6 +122,36 @@ under `content/`, lives in `content/diagrams/` and is referenced as
 `@diagrams/<name>.svg`. A reference that does not resolve, or a name that
 collides with a generated diagram, fails the check.
 
+## Writing mathematics
+
+Write a formula in TeX between `$` signs, inline or as a block of its own:
+
+```mdx
+The bound is $\prod_i \binom{n_i}{w_i}$ over the coloured input arcs.
+
+$$
+\mathit{bins} = \min\bigl(1024,\ \lfloor (16384 - 8\,\mathit{metricCount}) / (4\,\mathit{metricCount}) \rfloor\bigr)
+$$
+```
+
+KaTeX renders the formula when the page compiles, so the site ships it as
+HTML and MathML and loads no renderer in the browser. The bundle keeps the
+TeX as written, and the search index reads a formula as the names it
+mentions, so a search for `bins` finds the block above. KaTeX accepts the
+common subset of LaTeX; [its table of supported
+functions](https://katex.org/docs/supported.html) says which commands render.
+A formula it cannot parse fails the site build with the file, the line and
+the parse error. `lint:arch-docs` does not compile pages, so build the site
+before pushing a page with formulas:
+
+```bash
+yarn workspace @apps/petrinaut-docs build
+```
+
+Set a name longer than one letter in `\mathit{}`, as in `\mathit{bins}`,
+so it reads as one word rather than a product of letters. A dollar sign in
+prose is written `\$`.
+
 ## Declaring a rule
 
 Rules live in `architecture.config.ts` and are checked against the real import

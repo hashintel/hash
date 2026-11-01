@@ -1,0 +1,12 @@
+/*
+ * Formulas, rendered by KaTeX when a page compiles. KaTeX's own sheet sets
+ * the fonts and the layout; this keeps a display formula wider than the
+ * column scrollable instead of overflowing it. Unlayered, like the sheet
+ * it adjusts, so it wins over it by order.
+ */
+
+.sl-markdown-content .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}

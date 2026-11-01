@@ -8,7 +8,7 @@ The GPU backend holds every run's state in one storage buffer — per-place
 counts, per-transition firing counts, an RNG word, a status, and one slot per
 token of each typed place's declared capacity. State is therefore linear in
 the run count, and it is the capacity term that dominates: a typed place
-stores `capacity × wordsPerToken` words per run whether the tokens exist or
+stores $\mathit{capacity} \times \mathit{wordsPerToken}$ words per run whether the tokens exist or
 not.
 
 ## The problem
@@ -17,7 +17,7 @@ The state buffer was sized for the whole experiment, and an experiment that
 exceeded the device's buffer ceiling — the smaller of
 `maxStorageBufferBindingSize` and `maxBufferSize` — was refused. The same
 refusal hit the dispatch width: one invocation per run, at most
-`maxComputeWorkgroupsPerDimension × 256` invocations per dispatch.
+$\mathit{maxComputeWorkgroupsPerDimension} \times 256$ invocations per dispatch.
 
 Both limits coupled run count to token capacity. At the WebGPU default limits
 (128 MiB per binding), a net with 4 KB of per-run state capped out near 33k
@@ -32,7 +32,7 @@ arrived as a message rather than a result.
 buffer ceiling divided by the per-run state size, and no wider than one
 dispatch — and the experiment loops over tiles of that size. Only two shapes
 remain unschedulable: a single run larger than the buffer ceiling, and a
-histogram (frames × bins × metrics, independent of run count) that exceeds it.
+histogram ($\mathit{frames} \times \mathit{bins} \times \mathit{metrics}$, independent of run count) that exceeds it.
 
 ![One experiment as sequential tiles](./gpu-run-tiling.d2)
 
