@@ -50,6 +50,33 @@ so the two mechanisms compose. The two differ only in what the canvas shows,
 a place of the net that the user can mark, watch and measure, against a port
 reachable through its instance alone. Nothing forbids using both on one port.
 
+## The fused net in notation
+
+Write a net as $N = (P, T, F)$ with places $P$, transitions $T$ and arcs
+$F \subseteq (P \times T) \cup (T \times P)$, a weight $W(a) \geq 1$ on each
+arc $a \in F$ and a marking $M(p)$ on each place $p \in P$. Flattening scopes
+the net and its instances into one such net whose places are pairwise
+distinct, so the fusions become a set $\mathcal{F}$ of subsets of $P$, each
+with at least two members. Let $\approx$ be the smallest equivalence relation
+on $P$ with $p \approx q$ whenever $p$ and $q$ lie in a common fusion set,
+and $[p]$ the class of $p$. The net that runs is the quotient
+
+$$
+N /\!\approx \;=\; (P/\!\approx,\ T,\ F'), \qquad
+F' = \{\, ([p], t) : (p, t) \in F \,\} \cup \{\, (t, [p]) : (t, p) \in F \,\},
+$$
+
+where, per arc kind, the weights of arcs that land on one class add:
+$W'([p], t) = \sum_{q \in [p]} W(q, t)$ with $W(q, t) = 0$ when
+$(q, t) \notin F$, and the same for arcs out of $t$. A class with an anchor
+takes the anchor's marking, since ports carry none; a class of ports alone
+starts empty. Its capacity and equation come from the member that declares
+them. Two fusions that share a member lie in one class, which is why fusions
+merge on contact, and the anchor rule reads: a class holds at most one place
+that is not a port. The quotient is defined only when the members of a class
+agree on token type, capacity and equation, which is what the checks below
+hold them to.
+
 ## Ports and their directions
 
 A port is a place of a component marked `isPort`. A port may also declare a
