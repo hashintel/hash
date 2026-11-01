@@ -17,7 +17,7 @@ message-passing shards over independent runs need no shared memory.
 Two properties carry it, and both are easy to break:
 
 **Seeds derive from the run's global index.** `runIndexOffset + localIndex`, so
-run _i_ gets the same seed whichever worker owns it. Seeding from the position
+run $i$ gets the same seed whichever worker owns it. Seeding from the position
 _within_ a shard would silently correlate runs that must be independent.
 
 **Frames merge through a monoid.** `frameValue` on a scalar metric frame is
