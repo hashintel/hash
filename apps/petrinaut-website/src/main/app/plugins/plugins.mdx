@@ -1,0 +1,69 @@
+---
+title: The demo site's plugins
+description: The plugins the demo website passes to the Petrinaut editor, how the list is assembled, how a plugin folder is laid out, and how to test a plugin.
+sidebar_order: 10
+---
+
+Each plugin here is written against the [plugin API](doc:ui.plugins/overview).
+
+## The plugins
+
+| Folder             | Plugin id                 | Contributes                                                                                                            |
+| ------------------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `command-palette/` | `website.command-palette` | The ⌘K palette over the editor's commands, as a `root`, and a top-bar button that toggles it.                          |
+| `petrinaut-ai/`    | `website.petrinaut-ai`    | The stock AI assistant: `AssistantChat` in the assistant panel, with each document's transcript saved in this browser. |
+| `sentry-feedback/` | `website.sentry-feedback` | A button under the viewport controls that opens Sentry's feedback form.                                                |
+| `share/`           | `website.share`           | **Share** in the top bar: a dropdown with a `/share` snapshot link of the net, Copy, and a file download.              |
+| `walkthrough/`     | `website.walkthrough`     | The welcome guide as a `root` marked `overlay` while open, and its "Show welcome guide" row.                           |
+
+## The list the editor receives
+
+The demo shell passes `demoPlugins` from `plugins/demo-plugins.ts` to
+`<Petrinaut plugins>`, with `petrinautAiPlugin` added while Brunch's assistant
+is not ready. With Brunch selected, `useBrunchAssistant` adds `website.brunch`
+and the shell hands Brunch's chat to that plugin through
+`BrunchAssistantContext`. `/ai-experiments` passes the scripted assistant
+defined beside its route in `ai-experiments-demo/`.
+
+`/examples/$slug` and `/share` pass `[localCopyPlugin]` alone, through
+`ReadonlyDocumentPage` in `src/examples/readonly-document-page.tsx`; the embed
+passes none. `website.local-copy`, in `src/examples/local-copy-plugin.tsx`,
+contributes **Make a local copy** as a top-bar item and as its
+`readOnlyAction`;
+[Router integration](doc:website.routes/router-integration#which-routes-speak-the-contract)
+says what it saves and where the copy opens. It imports the local net storage
+from `local-storage-demo/`.
+
+The shell provides the command registry and registers its own commands in it.
+The editor reuses that registry, so the palette lists the editor's commands and
+the demo's.
+
+## Folder layout
+
+One folder per plugin, named after it:
+
+- `plugin.tsx` holds the plugin and stays short: the manifest, then the
+  contributions or a short hook.
+- `plugin/` holds what only the plugin uses. A long hook goes in
+  `plugin/use-<name>-plugin.tsx`.
+- `server/` holds code an `api/` route imports.
+
+`_shared/` holds code two plugins share. A folder without `plugin.tsx` holds
+code the demo shell wires in itself.
+
+`petrinaut-ai/chat/` is the chat Petrinaut AI renders as its
+`assistant.content`, and `/ai-experiments` renders it too. `AssistantChat`
+takes the plugin's `api`, a transport and the stored transcript. It edits the
+net, runs experiments and reads diagnostics through `api`.
+
+## Testing a plugin
+
+`_shared/testing/` holds what plugin tests are built on.
+`renderEditorWith(plugin, props?)` renders a real `<Petrinaut>` on an empty
+net with that plugin. The test file runs in jsdom and calls
+`installPetrinautDomShims()` from `vi.hoisted`, because Petrinaut's modules
+read those globals while they load. To start a plugin with stored settings,
+seed its [settings key](doc:ui.plugins/runtime#settings-storage) in
+`localStorage`. Petrinaut AI's chat tests take an `api` from
+`createTestPluginApi(instance)` and stand in for the assistant panel with
+`TestAssistantPanel`, both in `petrinaut-ai/testing/`.

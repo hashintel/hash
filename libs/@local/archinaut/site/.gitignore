@@ -1,0 +1,6 @@
+# Written by `archinaut` from the bundle and the instance config before every
+# dev or build run; nothing under here is authored.
+src/content/
+public/
+dist/
+.astro/

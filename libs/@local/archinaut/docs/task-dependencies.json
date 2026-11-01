@@ -1,0 +1,36 @@
+{
+  "package": "@local/archinaut",
+  "dependencies": [
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "fix:eslint": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ],
+      "affectedBy": [
+        "@local/eslint"
+      ]
+    },
+    "lint:eslint": {
+      "dependsOn": [
+        "@local/eslint#build"
+      ],
+      "env": [
+        "CHECK_TEMPORARILY_DISABLED_RULES"
+      ],
+      "affectedBy": [
+        "@local/eslint"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": []
+    },
+    "test:unit": {
+      "dependsOn": [],
+      "env": [
+        "TEST_COVERAGE"
+      ]
+    }
+  }
+}

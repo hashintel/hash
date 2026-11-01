@@ -62,7 +62,7 @@ If a change ships without doc updates, call that out in your summary so the user
 
 ## Architecture docs
 
-The architecture docs describe the shape of the code. They are generated from annotations in the source by `@local/petrinaut-arch-docs`, and building the bundle fails when they drift.
+The architecture docs describe the shape of the code. They are generated from annotations in the source by `archinaut`, configured in `apps/petrinaut-docs`, and building the bundle fails when they drift.
 
 The architecture is declared **next to the code it describes** — never in a central mapping file. Three tags, and that is the whole vocabulary:
 
@@ -77,9 +77,9 @@ The generated docs are **build output and are not committed**. Only the annotati
 
 When you change structure in `petrinaut-core` or `petrinaut`, you MUST add a declaration if you introduce a folder that is a new architectural unit — a new boundary or a distinct responsibility, not only a new directory.
 
-Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`. To read the docs, `turbo run doc:architecture --filter @local/petrinaut-arch-docs` writes the bundle to `libs/@local/petrinaut-arch-docs/bundle/` (git-ignored). Full reference: `libs/@local/petrinaut-arch-docs/README.md`. Browse with `turbo run dev --filter @apps/petrinaut-docs`.
+Verify with `yarn workspace @apps/petrinaut-docs lint:arch-docs`. To read the docs, `turbo run doc:architecture --filter @apps/petrinaut-docs` writes the bundle to `apps/petrinaut-docs/bundle/` (git-ignored). Full reference: `libs/@local/archinaut/README.md`. Browse with `turbo run dev --filter @apps/petrinaut-docs`.
 
-Hand-written MDX in `libs/@local/petrinaut-arch-docs/content/` is optional. Give such a page `attachTo: <layer id>` in its frontmatter. Link with `[text](layer:core.simulation.engine)` or `[text](doc:simulation/memory-model)`; relative paths break when a page's `attachTo` changes, and unresolved targets fail CI.
+Hand-written MDX in `apps/petrinaut-docs/content/` is optional. Give such a page `attachTo: <layer id>` in its frontmatter. Link with `[text](layer:core.simulation.engine)` or `[text](doc:simulation/memory-model)`; relative paths break when a page's `attachTo` changes, and unresolved targets fail CI.
 
 ## Shipping conventions
 
@@ -88,6 +88,6 @@ These apply to changes in `petrinaut` and `petrinaut-core`.
 - Changesets: `@hashintel/petrinaut` and `@hashintel/petrinaut-core` always get a `patch` bump, never `minor`, whatever the change. Write one changeset per affected package, each describing only that package's consumer-facing changes; pure refactors get none. `@local/*` and `@apps/*` packages never publish.
 - Review fixes and scope additions land as dedicated commits on an open PR.
 - Never commit `mise.lock` changes or generated arch-docs output. Stage explicit paths, not `git add -A`.
-- Diagrams in Petrinaut documentation are D2, in `libs/@local/petrinaut-arch-docs/content/diagrams/`. Design and performance write-ups live in that package's `content/` tree, not in loose package `.md` files. A documented flaw that needs a refactor gets a `:::danger` aside and a Linear ticket.
+- Diagrams in Petrinaut documentation are D2, in `apps/petrinaut-docs/content/diagrams/`. Design and performance write-ups live in that package's `content/` tree, not in loose package `.md` files. A documented flaw that needs a refactor gets a `:::danger` aside and a Linear ticket.
 - READMEs and docs state what a package does. No people, no meeting history, no volatile counts, no infrastructure or access-control detail.
 - CI: Bench-CI is non-blocking. The playwright `types-page.spec.ts` check is flaky; rerun it once before diagnosing the diff. The "Vercel – petrinaut-docs" check can fail for Vercel-side reasons while the Actions build of the same docs passes; compare both before blaming the change.
