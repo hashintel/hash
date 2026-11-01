@@ -32,13 +32,55 @@ export interface SearchIndex {
 const frontmatterPattern = /^---\n[\s\S]*?\n---\n?/u;
 
 /**
+ * A TeX span reduced to the names and numbers it mentions: commands,
+ * braces and the characters that only shape the formula go, so a search
+ * for `bins` finds the formula that sizes them.
+ */
+const texToWords = (tex: string): string =>
+  tex.replace(/\\[a-zA-Z]+|\\.|[{}^_&]/gu, " ");
+
+/**
+ * The lines with their mathematics reduced to words: a `$$` fence goes,
+ * the lines between two and every `$…$` span are reduced by `texToWords`.
+ * Fenced code is left alone, since a `$` there is code.
+ */
+const reduceMath = (lines: string[]): string[] => {
+  const result: string[] = [];
+  let inFence = false;
+  let inMath = false;
+  for (const line of lines) {
+    if (/^\s*(```|~~~)/u.test(line)) {
+      inFence = !inFence;
+    }
+    if (inFence) {
+      result.push(line);
+      continue;
+    }
+    if (/^\s*\$\$\s*$/u.test(line)) {
+      inMath = !inMath;
+      continue;
+    }
+    result.push(
+      inMath
+        ? texToWords(line)
+        : line
+            .replace(/\$\$([^$]+)\$\$/gu, (_match, tex: string) =>
+              texToWords(tex),
+            )
+            .replace(/\$([^$]+)\$/gu, (_match, tex: string) => texToWords(tex)),
+    );
+  }
+  return result;
+};
+
+/**
  * An MDX section's lines as the text a reader sees: no ESM, no JSX, no
- * fences, no aside markers, no page title, and markdown reduced to its
- * text. Tags are removed after the lines are joined, since a component
- * with its props on several lines is one tag.
+ * fences, no aside markers, no page title, markdown reduced to its text
+ * and mathematics to its words. Tags are removed after the lines are
+ * joined, since a component with its props on several lines is one tag.
  */
 export const plainTextOf = (lines: string[]): string =>
-  lines
+  reduceMath(lines)
     .filter((line) => !/^\s*(import|export)\s/u.test(line))
     .filter((line) => !/^\s*(```|~~~)/u.test(line))
     .filter((line) => !/^\s*:::/u.test(line))
