@@ -9151,13 +9151,12 @@ __metadata:
     github-slugger: "npm:2.0.0"
     hast-util-from-html: "npm:2.0.3"
     js-yaml: "npm:4.3.2"
-    katex: "npm:0.16.47"
+    katex: "npm:0.19.1"
     minisearch: "npm:7.2.0"
     oxc-transform-react: "npm:0.152.0"
     oxlint: "npm:1.86.0"
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
-    rehype-katex: "npm:7.0.1"
     rehype-slug: "npm:6.0.0"
     remark-directive: "npm:4.0.0"
     remark-frontmatter: "npm:5.0.0"
@@ -23066,7 +23065,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"commander@npm:15.0.0":
+"commander@npm:15.0.0, commander@npm:^15.0.0":
   version: 15.0.0
   resolution: "commander@npm:15.0.0"
   checksum: 10c0/539229c171914ea1ccd45ee5f10d924289a12a684ea3a7a44147abe54003c35ed6de9ae4ad198d88c29fdf403dca0428451a388234e6dc01b6faa978fb207206
@@ -28292,30 +28291,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hast-util-from-dom@npm:^5.0.0":
-  version: 5.0.1
-  resolution: "hast-util-from-dom@npm:5.0.1"
-  dependencies:
-    "@types/hast": "npm:^3.0.0"
-    hastscript: "npm:^9.0.0"
-    web-namespaces: "npm:^2.0.0"
-  checksum: 10c0/9a90381e048107a093a3da758bb17b67aaf5322e222f02497f841c4990abf94aa177d38d5b9bf61ad07b3601d0409f34f5b556d89578cc189230c6b994d2af77
-  languageName: node
-  linkType: hard
-
-"hast-util-from-html-isomorphic@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "hast-util-from-html-isomorphic@npm:2.0.0"
-  dependencies:
-    "@types/hast": "npm:^3.0.0"
-    hast-util-from-dom: "npm:^5.0.0"
-    hast-util-from-html: "npm:^2.0.0"
-    unist-util-remove-position: "npm:^5.0.0"
-  checksum: 10c0/fc68d9245e794483a802d5c85a9f6c25959e00db78cc796411efc965134f3206f9cc9fa38134572ea781ad74663e801f1f83202007b208e27a770855566a62b6
-  languageName: node
-  linkType: hard
-
-"hast-util-from-html@npm:2.0.3, hast-util-from-html@npm:^2.0.0":
+"hast-util-from-html@npm:2.0.3":
   version: 2.0.3
   resolution: "hast-util-from-html@npm:2.0.3"
   dependencies:
@@ -28435,15 +28411,6 @@ __metadata:
   dependencies:
     "@types/hast": "npm:^3.0.0"
   checksum: 10c0/b5fa1912a6ba6131affae52a0f4394406c4c0d23c2b0307f1d69988f1030c7bb830289303e67c5ad8f674f5f23a454c1dcd492c39e45a22c1f46d3c9bce5bd0c
-  languageName: node
-  linkType: hard
-
-"hast-util-to-text@npm:^4.0.0":
-  version: 4.0.3
-  resolution: "hast-util-to-text@npm:4.0.3"
-  dependencies:
-    "@types/hast": "npm:^3.0.0"
-  checksum: 10c0/fc103730968fd27be34e52fec3bbd7824ba9f01b0389e2174632c5c35923d0f5669d8d6c4d2908ac510210c40a823ec4d6591202a33d0901f465a648738a5757
   languageName: node
   linkType: hard
 
@@ -30855,7 +30822,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"katex@npm:0.16.47, katex@npm:^0.16.0":
+"katex@npm:0.19.1":
+  version: 0.19.1
+  resolution: "katex@npm:0.19.1"
+  dependencies:
+    commander: "npm:^15.0.0"
+  bin:
+    katex: cli.js
+  checksum: 10c0/20ceeefe75b852acfb1739aa1fe64322acee332cdd7ccefb6e952285c27201ccfb92c65afb38d555d53a41756fba77b7cd60462f8cfce7323a3902ef2e57ad91
+  languageName: node
+  linkType: hard
+
+"katex@npm:^0.16.0":
   version: 0.16.47
   resolution: "katex@npm:0.16.47"
   dependencies:
@@ -37444,21 +37422,6 @@ __metadata:
     react:
       optional: true
   checksum: 10c0/3d838bfee84ec06c976f21027936f3b0fdb7660ab8a2d4d3f19c65e0daa78a268aa81352311352b8576b89a074714b36ae6cd5bdadb6e975eca079f2b342de73
-  languageName: node
-  linkType: hard
-
-"rehype-katex@npm:7.0.1":
-  version: 7.0.1
-  resolution: "rehype-katex@npm:7.0.1"
-  dependencies:
-    "@types/hast": "npm:^3.0.0"
-    "@types/katex": "npm:^0.16.0"
-    hast-util-from-html-isomorphic: "npm:^2.0.0"
-    hast-util-to-text: "npm:^4.0.0"
-    katex: "npm:^0.16.0"
-    unist-util-visit-parents: "npm:^6.0.0"
-    vfile: "npm:^6.0.0"
-  checksum: 10c0/73c770319536128b75055d904d06951789d00a0552c11724c0dac2e244dcb21041630552d118a11cc42233fdcd1bfee525e78a0020fde635bd916cceb281dfb1
   languageName: node
   linkType: hard
 
