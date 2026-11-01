@@ -28,7 +28,7 @@ import type {
   PetrinautNavigationState,
   PetrinautSettingsSection,
 } from "../../../../react/navigation";
-import type { PetrinautOptimizationSource } from "../../../../react/optimization-context";
+import type { PetrinautConnectedOptimization } from "../../../../react/optimization-context";
 import type { ReactNode } from "react";
 
 beforeEach(() => {
@@ -55,7 +55,7 @@ afterEach(() => {
 
 const renderSettings = (
   initialState: Partial<PetrinautNavigationState> = {},
-  optimization: PetrinautOptimizationSource | null = null,
+  optimization: PetrinautConnectedOptimization | null = null,
   settingsLabs?: ReactNode,
 ) => {
   const registry = createCommandRegistry();

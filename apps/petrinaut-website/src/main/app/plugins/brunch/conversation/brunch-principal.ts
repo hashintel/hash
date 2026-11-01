@@ -1,9 +1,6 @@
 const principalStorageKey = "brunch-principal-v1";
 
-interface PrincipalStorage {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-}
+type PrincipalStorage = Pick<Storage, "getItem" | "setItem">;
 
 export const getOrCreateBrunchPrincipal = (
   storage: PrincipalStorage = window.localStorage,

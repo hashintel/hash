@@ -49,11 +49,7 @@ import type {
   Scenario,
   SDCPN,
 } from "@hashintel/petrinaut-core";
-import type {
-  PetrinautConnectedOptimization,
-  PetrinautOptimization,
-  PetrinautOptimizationSource,
-} from "@hashintel/petrinaut-core/optimization";
+import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 import type { ConstraintSessionParams } from "@hashintel/petrinaut-core/workers/lsp";
 import type { ReactNode } from "react";
 
@@ -203,6 +199,9 @@ function makeLanguageClient(): LanguageClientContextValue {
     updateMetricSession: vi.fn(),
     killMetricSession: vi.fn(),
     requestFormatExpression: vi.fn(() => Promise.resolve(null)),
+    requestVisualizerHir: vi.fn(() =>
+      Promise.resolve({ ok: false as const, diagnostics: [] }),
+    ),
     initializeAdHocSession: vi.fn(),
     updateAdHocSession: vi.fn(),
     killAdHocSession: vi.fn(),
@@ -277,7 +276,7 @@ const TestProviders = ({
   createOptimization?: OptimizationsContextValue["createOptimization"];
   languageClient?: LanguageClientContextValue;
   /** The host's optimizer. */
-  optimizationSource?: PetrinautOptimizationSource | null;
+  optimizationSource?: PetrinautConnectedOptimization | null;
 }) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const settings: UserSettingsContextValue = {
@@ -398,15 +397,6 @@ const connectedSource: PetrinautConnectedOptimization = {
   connect: () => {
     throw new Error("The test's optimizer is never connected");
   },
-};
-
-/** A remote capability: studies run elsewhere, so nothing here can evaluate a sweep. */
-const remoteSource: PetrinautOptimization = {
-  createOptimizationRun: () => Promise.resolve({ runId: "run-test" }),
-  async *attachOptimizationRun() {
-    yield { type: "started", requestedTrials: 1, seq: 1 };
-  },
-  cancelOptimizationRun: () => Promise.resolve(),
 };
 
 /** The SIR net with one saved scenario exposing nothing, so the run form has no rows. */
@@ -561,19 +551,6 @@ describe("CreateExperimentDrawer parameter sweeps", () => {
     ).toBeNull();
   });
 
-  it("reads Sweep on the toggle for a remote-only optimizer, which cannot drive a sweep", async () => {
-    render(
-      <TestProviders
-        sdcpnContextValue={sweptContextValue}
-        optimizationSource={remoteSource}
-      />,
-    );
-
-    expect(
-      await screen.findByRole("button", { name: "Sweep transmission_rate" }),
-    ).toBeInstanceOf(HTMLElement);
-  });
-
   it("keeps Sweep on the toggle when the in-browser optimizer is available", async () => {
     render(
       <TestProviders
@@ -649,19 +626,6 @@ describe("CreateExperimentDrawer ad-hoc sweeps", () => {
     expect(
       await screen.findByText(/Rate swept over its interval/),
     ).toBeTruthy();
-  });
-
-  it("reads Sweep on the ad-hoc form's toggle for a remote-only optimizer", async () => {
-    render(
-      <TestProviders
-        sdcpnContextValue={adHocContextValue}
-        optimizationSource={remoteSource}
-      />,
-    );
-
-    expect(await screen.findByLabelText("Sweep Rate")).toBeInstanceOf(
-      HTMLElement,
-    );
   });
 
   it("keeps Sweep on the ad-hoc toggle when the in-browser optimizer is available", async () => {
@@ -851,18 +815,6 @@ describe("CreateExperimentDrawer constraints", () => {
     await waitFor(() => {
       expect(screen.queryByText("Constraints")).toBeNull();
     });
-  });
-
-  it("offers no Constraints section for a remote-only optimizer, which cannot evaluate a sweep", async () => {
-    render(
-      <TestProviders
-        sdcpnContextValue={sweptContextValue}
-        optimizationSource={remoteSource}
-      />,
-    );
-    flipInterval("transmission_rate", "Sweep");
-    expect(await screen.findByText("Create sweep")).toBeTruthy();
-    expect(screen.queryByText("Constraints")).toBeNull();
   });
 
   it("offers no Constraints section for an ad-hoc sweep, whose generated names are not authorable", async () => {
@@ -1440,21 +1392,8 @@ describe("CreateExperimentDrawer objective", () => {
     expect(footerButton("Run")).toBeTruthy();
   });
 
-  it("offers no objective controls under the Sweep word, with or without a remote optimizer", async () => {
-    const { unmount } = render(
-      <TestProviders sdcpnContextValue={sweptContextValue} />,
-    );
-    flipInterval("transmission_rate", "Sweep");
-    expect(await findFooterButton("Create sweep")).toBeTruthy();
-    expect(screen.queryByText("Metrics & objective")).toBeNull();
-    unmount();
-
-    render(
-      <TestProviders
-        sdcpnContextValue={sweptContextValue}
-        optimizationSource={remoteSource}
-      />,
-    );
+  it("offers no objective controls under the Sweep word without an optimizer", async () => {
+    render(<TestProviders sdcpnContextValue={sweptContextValue} />);
     flipInterval("transmission_rate", "Sweep");
     expect(await findFooterButton("Create sweep")).toBeTruthy();
     expect(screen.queryByText("Metrics & objective")).toBeNull();
@@ -1680,9 +1619,7 @@ describe("CreateExperimentDrawer objective", () => {
       removeExperiment,
       setSelectedExperimentId,
       createOptimization: () =>
-        Promise.reject(
-          new Error("A sweep can only be optimized in the browser"),
-        ),
+        Promise.reject(new Error("Optimization is unavailable")),
     });
     fireEvent.click(screen.getByRole("button", { name: /Add metric/ }));
     fireEvent.change(screen.getByDisplayValue("Experiment"), {
@@ -1691,9 +1628,7 @@ describe("CreateExperimentDrawer objective", () => {
     fireEvent.change(stepsInput(), { target: { value: "12" } });
 
     fireEvent.click(footerButton("Optimize"));
-    expect(
-      await screen.findByText("A sweep can only be optimized in the browser"),
-    ).toBeTruthy();
+    expect(await screen.findByText("Optimization is unavailable")).toBeTruthy();
 
     expect(createExperiment).toHaveBeenCalledOnce();
     expect(removeExperiment).toHaveBeenCalledWith("experiment-orphan");

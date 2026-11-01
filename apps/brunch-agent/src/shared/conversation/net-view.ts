@@ -6,16 +6,17 @@
  */
 
 import {
+  browserExecutedToolNames,
   browserToolMutatesDocument,
   isNetObservationTool,
   parseClientToolResultMetadata,
 } from "@hashintel/brunch-agent";
 
-import { inBandBrowserToolNames } from "../tool-catalogue.ts";
+import type { NetStructure } from "@hashintel/brunch-agent";
 
 /** Whether a settled result of this tool can show the model the net. */
 export const mayShowNet = (toolName: string): boolean =>
-  inBandBrowserToolNames.has(toolName) &&
+  browserExecutedToolNames.has(toolName) &&
   (isNetObservationTool(toolName) || browserToolMutatesDocument(toolName));
 
 export type NetResultView =
@@ -29,7 +30,7 @@ export type NetResultView =
       /** The revision the change produced. */
       readonly revision: string;
       /** The net's structure after the change. */
-      readonly readBack: object;
+      readonly readBack: NetStructure;
     };
 
 /**

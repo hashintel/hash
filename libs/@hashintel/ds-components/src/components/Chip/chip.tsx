@@ -15,14 +15,30 @@ import type { ExclusifyUnion, RequireAllOrNone } from "type-fest";
  * `aria-label` is required so the resulting button has an accessible name.
  */
 type PrefixOrSuffix = (
-  | { iconName: IconName }
-  | { dot: "filled" | "partiallyFilled" | "empty" }
-  | { loading: boolean }
-  | { children: React.ReactNode }
+  | {
+      /** Name of icon to display */
+      iconName: IconName;
+    }
+  | {
+      /** A status dot in the chip's text color. */
+      dot: "filled" | "partiallyFilled" | "empty";
+    }
+  | {
+      /** A spinner sized to the chip; `false` keeps the slot empty. */
+      loading: boolean;
+    }
+  | {
+      /** Arbitrary slot content, instead of a named icon, dot, or spinner. */
+      children: React.ReactNode;
+    }
 ) & {
   variant?: "straight" | "badge" | "angle" | "naked";
   "aria-label"?: string;
 } & RequireAllOrNone<{ onClick: () => void; "aria-label": string }>;
+
+// Docs-only marker: renders nothing, exists so react-docgen can surface the
+// `prefix`/`suffix` slot object's props in the docs prop table.
+export const ChipAffixSlot = (_props: PrefixOrSuffix): null => null;
 
 export type ChipColor =
   | "grey"
@@ -250,3 +266,6 @@ export const Chip = ({
     </div>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+Chip.displayName = "Chip";

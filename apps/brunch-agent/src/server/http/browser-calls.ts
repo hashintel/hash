@@ -2,27 +2,20 @@ import { Hono, type Context } from "hono";
 import * as v from "valibot";
 
 import {
+  browserCallFailureBodySchema,
+  browserCallLeaseBodySchema,
+  browserCallResultBodySchema,
+  brunchRoutes,
+} from "@hashintel/brunch-agent";
+
+import {
   claimBrowserCall,
   failBrowserCall,
   renewBrowserCall,
   settleBrowserCall,
 } from "../../shared/conversation/browser-call-rendezvous.ts";
 
-const leaseBody = v.object({ capability: v.string(), binding: v.string() });
-const outcomeEntries = {
-  ...leaseBody.entries,
-  toolName: v.string(),
-  canonicalInput: v.unknown(),
-};
-const resultBody = v.object({
-  ...outcomeEntries,
-  output: v.unknown(),
-  metadata: v.optional(v.unknown()),
-});
-const failureBody = v.object({
-  ...outcomeEntries,
-  disposition: v.picklist(["unstarted", "stale", "failed"]),
-});
+const callRoute = `/:id/${brunchRoutes.browserCalls}/:callId` as const;
 
 const readBody = async <Schema extends v.GenericSchema>(
   context: Context,
@@ -37,7 +30,7 @@ const readBody = async <Schema extends v.GenericSchema>(
 export const createBrowserCallRouter = (): Hono => {
   const router = new Hono();
 
-  router.get("/:id/browser-calls/:callId", (context) => {
+  router.get(callRoute, (context) => {
     context.header("Cache-Control", "no-store");
     const binding = context.req.query("binding");
     if (binding === undefined)
@@ -49,8 +42,8 @@ export const createBrowserCallRouter = (): Hono => {
       : context.json({ error: "not-issued" }, 404);
   });
 
-  router.post("/:id/browser-calls/:callId/lease", async (context) => {
-    const body = await readBody(context, leaseBody);
+  router.post(`${callRoute}/lease`, async (context) => {
+    const body = await readBody(context, browserCallLeaseBodySchema);
     if (!body) return context.json({ error: "invalid-result" }, 400);
     const { id, callId } = context.req.param();
     return renewBrowserCall({ instanceId: id, toolCallId: callId, ...body })
@@ -58,8 +51,8 @@ export const createBrowserCallRouter = (): Hono => {
       : context.json({ error: "not-issued" }, 409);
   });
 
-  router.post("/:id/browser-calls/:callId", async (context) => {
-    const body = await readBody(context, resultBody);
+  router.post(callRoute, async (context) => {
+    const body = await readBody(context, browserCallResultBodySchema);
     if (!body) return context.json({ error: "invalid-result" }, 400);
     const { id, callId } = context.req.param();
     return settleBrowserCall({
@@ -71,8 +64,8 @@ export const createBrowserCallRouter = (): Hono => {
       : context.json({ error: "not-issued" }, 409);
   });
 
-  router.post("/:id/browser-calls/:callId/fail", async (context) => {
-    const body = await readBody(context, failureBody);
+  router.post(`${callRoute}/fail`, async (context) => {
+    const body = await readBody(context, browserCallFailureBodySchema);
     if (!body) return context.json({ error: "invalid-result" }, 400);
     const { id, callId } = context.req.param();
     return failBrowserCall({ instanceId: id, toolCallId: callId, ...body })

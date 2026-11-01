@@ -34,8 +34,9 @@ import {
 } from "@blockprotocol/type-system";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import { getFlowRunFromTemporalWorkflowId } from "@local/hash-backend-utils/flows/get-flow-run-details";
 import { getStorageProvider } from "@local/hash-backend-utils/flows/payload-storage";
+import { resolveStoredPayloadsInEvents } from "@local/hash-backend-utils/flows/run-events";
+import { getFlowRunRecord } from "@local/hash-backend-utils/flows/run-record";
 import { getFlowDefinitionEntityById } from "@local/hash-backend-utils/flows/shared/get-flow-definition-entity-by-id";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
@@ -50,6 +51,8 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
 import { mapFlowDefinitionToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
+import { findRunFinishedEvent } from "@local/hash-isomorphic-utils/flows/run-events";
+import { getStepRunsFromEvents } from "@local/hash-isomorphic-utils/flows/step-runs";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { assertValidFlowDefinition } from "@local/hash-isomorphic-utils/flows/validate-flow-definition";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -63,10 +66,10 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { StatusCode } from "@local/status";
 
 import type { FlowScenario, ScenarioRun, SeedEntity } from "./scenario.js";
 import type {
+  EntityId,
   EntityUuid,
   ProvidedEntityEditionProvenance,
   UserId,
@@ -74,18 +77,28 @@ import type {
 } from "@blockprotocol/type-system";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { GraphApi } from "@local/hash-graph-client";
+import type { FlowRunEventError } from "@local/hash-isomorphic-utils/flows/run-events";
+import type { FlowRunStepRunState } from "@local/hash-isomorphic-utils/flows/step-runs";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
   FlowDefinition,
   FlowDefinitionWithId,
   FlowInputValues,
   ResolvedPayload,
+  ResolvedStepOutput,
   StepDefinition,
+  StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorphic-utils/system-types/flowdefinition";
 
-type FlowRun = Awaited<ReturnType<typeof getFlowRunFromTemporalWorkflowId>>;
-type StepRun = FlowRun["steps"][number];
+type FlowRun = {
+  flowRunEntityId: EntityId;
+  status: FlowRunStatus;
+  failure?: FlowRunEventError;
+  steps: FlowRunStepRunState[];
+  flowOutputs?: StepOutput[];
+};
+type StepRun = FlowRunStepRunState;
 type ExpectationResult = { label: string; failure?: string };
 
 const scriptDirectory = import.meta.dirname;
@@ -487,26 +500,17 @@ const startRun = async ({
   return workflowId;
 };
 
-/** The payload of each output from the last attempt, by output name. */
-const getOutputs = (outputs: StepRun["outputs"]) =>
+/** The payload of each output, by output name. The run's stored payloads are resolved in its events. */
+const getOutputs = (outputs: StepOutput[] | undefined) =>
   new Map(
-    (outputs?.at(-1)?.contents[0]?.outputs ?? []).map(
-      ({ outputName, payload }) => [outputName, payload],
-    ),
+    ((outputs ?? []) as ResolvedStepOutput[]).map(({ outputName, payload }) => [
+      outputName,
+      payload,
+    ]),
   );
 
-const getStepError = (step: StepRun | undefined) => {
-  const lastAttempt = step?.outputs?.at(-1);
-  if (
-    lastAttempt &&
-    lastAttempt.code !== StatusCode.Ok &&
-    lastAttempt.message
-  ) {
-    return lastAttempt.message;
-  }
-
-  return (step?.lastFailure as { message?: string } | undefined)?.message;
-};
+const getStepError = (step: StepRun | undefined) =>
+  step?.errorStatus?.message ?? step?.lastFailure?.message;
 
 const checkStatus = (
   label: string,
@@ -596,7 +600,7 @@ const checkExpectations = (
     "flow",
     expect.status ?? "COMPLETED",
     flowRun.status,
-    flowRun.failureMessage ?? undefined,
+    flowRun.failure?.message,
   ),
   ...Object.entries(expect.steps ?? {}).flatMap(([stepId, expectation]) => {
     const step = flowRun.steps.find((run) => run.stepId === stepId);
@@ -625,7 +629,7 @@ const checkExpectations = (
   ...checkOutputs(
     (outputName) => `flow output \`${outputName}\``,
     expect.outputs,
-    getOutputs(flowRun.outputs),
+    getOutputs(flowRun.flowOutputs),
   ),
 ];
 
@@ -731,7 +735,7 @@ const renderReport = (
         `#### Run ${index + 1} of ${scenario.runs.length}: ${run.flow.flowDefinition.name}`,
         "",
         `**\`${extractEntityUuidFromEntityId(flowRun.flowRunEntityId)}\`: ${flowRun.status}**${
-          flowRun.failureMessage ? ` (${flowRun.failureMessage})` : ""
+          flowRun.failure ? ` (${flowRun.failure.message})` : ""
         }`,
         "",
         ...(runError ? [`No step failed: ${runError}`, ""] : []),
@@ -908,18 +912,27 @@ const main = async () => {
     }
     const workflowError = await workflowErrorWhenClosed;
 
-    const flowRun = await getFlowRunFromTemporalWorkflowId({
-      flowDefinitionEntityId: entityIdFromComponents(
-        userId as WebId,
-        flowDefinitionId,
-      ),
-      flowRunEntityId: entityIdFromComponents(userId as WebId, workflowId),
-      name: flowDefinition.name,
+    const storageProvider = getStorageProvider();
+    const { header, events: recordEvents } = await getFlowRunRecord({
       temporalClient: client,
-      temporalWorkflowId: workflowId,
-      webId: userId as WebId,
-      storageProvider: getStorageProvider(),
+      storageProvider,
+      workflowId,
     });
+    const events = await resolveStoredPayloadsInEvents(recordEvents, {
+      storageProvider,
+      workflowId,
+    });
+    const runFinished = findRunFinishedEvent(events);
+
+    const flowRun: FlowRun = {
+      flowRunEntityId: entityIdFromComponents(userId as WebId, workflowId),
+      status: header.status,
+      ...(runFinished?.failure ? { failure: runFinished.failure } : {}),
+      steps: getStepRunsFromEvents(events, header),
+      ...(runFinished?.flowOutputs
+        ? { flowOutputs: runFinished.flowOutputs }
+        : {}),
+    };
 
     const results = checkExpectations(run, flowRun);
     runResults.push({

@@ -1513,11 +1513,18 @@
               }
             }
           },
+          "400": {
+            "description": "Provided request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Entity Type URL was not found"
-          },
-          "422": {
-            "description": "Provided request body is invalid"
           },
           "500": {
             "description": "Store error occurred"
@@ -1622,11 +1629,18 @@
               }
             }
           },
+          "400": {
+            "description": "Provided request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Entity Type URL was not found"
-          },
-          "422": {
-            "description": "Provided request body is invalid"
           },
           "500": {
             "description": "Store error occurred"
@@ -2861,6 +2875,9 @@
           },
           "400": {
             "description": "Query compilation or validation error"
+          },
+          "401": {
+            "description": "Missing or invalid authentication credentials"
           },
           "500": {
             "description": "Internal compiler or database error"
@@ -7082,6 +7099,24 @@
                 ]
               }
             }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "error"
+            ],
+            "properties": {
+              "error": {
+                "$ref": "#/components/schemas/Report"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "link"
+                ]
+              }
+            }
           }
         ],
         "discriminator": {
@@ -7187,20 +7222,20 @@
       },
       "Location": {
         "type": "object",
-        "description": "A location where the source material can be found.",
+        "description": "Where the material came from.",
         "properties": {
           "description": {
             "type": "string",
-            "description": "Encapsulates a message intended to be read by the end user."
+            "description": "A description of the place for a reader."
           },
           "name": {
             "type": "string",
-            "description": "A string containing the name of the location."
+            "description": "The name of the place."
           },
           "uri": {
             "type": "string",
             "format": "uri",
-            "description": "A string containing a valid relative or absolute URI."
+            "description": "The URI the material was retrieved from."
           }
         },
         "additionalProperties": false
@@ -7260,6 +7295,13 @@
           },
           "properties": {
             "$ref": "#/components/schemas/PropertyMetadataValidationReport"
+          },
+          "provenance": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProvenanceViolation"
+            },
+            "description": "The rules the provenance of the entity, its properties or its link breaks."
           }
         }
       },
@@ -8024,6 +8066,45 @@
                 "description": "The origin version, in whatever format the origin natively\nprovides."
               }
             }
+          },
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "apiKeyPublicId": {
+                "type": "string"
+              },
+              "deviceId": {
+                "type": "string"
+              },
+              "environment": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "semanticVersion": {
+                "type": "string"
+              },
+              "sessionId": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "external"
+                ]
+              },
+              "userAgent": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string",
+                "description": "The origin version, in whatever format the origin natively\nprovides."
+              }
+            }
           }
         ]
       },
@@ -8533,12 +8614,14 @@
       },
       "PropertyProvenance": {
         "type": "object",
+        "description": "Where a property, or one end of a link, comes from.",
         "properties": {
           "sources": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SourceProvenance"
-            }
+            },
+            "description": "The material it was produced from."
           }
         },
         "additionalProperties": false
@@ -8839,6 +8922,210 @@
           }
         ],
         "description": "Property data combined with its corresponding metadata.\n\n[`PropertyWithMetadata`] pairs each property with its metadata, maintaining the same\nhierarchical structure. This unified representation enables operations that need to\nmodify both properties and their metadata consistently, such as patching operations.\n\nThe structure mirrors the [`Property`] enum, with specialized types for arrays, objects,\nand values that maintain metadata at each level of the hierarchy."
+      },
+      "ProvenanceOwner": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "edition"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "The provenance of the property at `path`. An empty path stands for the entity's\nproperties as a whole.",
+            "required": [
+              "path",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "property"
+                ]
+              },
+              "path": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PropertyPathElement"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "linkSource"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "linkTarget"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "Whose provenance breaks a rule. `linkSource` and `linkTarget` stand for the provenance of the\nlink's connection to its left and right entity.",
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "ProvenanceRule": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "The list has more entries than allowed.",
+            "required": [
+              "count",
+              "max",
+              "kind"
+            ],
+            "properties": {
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "tooManyEntries"
+                ]
+              },
+              "max": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "The text has more characters than allowed.",
+            "required": [
+              "length",
+              "max",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "tooLong"
+                ]
+              },
+              "length": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "The URI has a scheme other than `http` or `https`.",
+            "required": [
+              "scheme",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "uriScheme"
+                ]
+              },
+              "scheme": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "The point in time falls outside the years 0 to 9999.",
+            "required": [
+              "year",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "yearOutOfRange"
+                ]
+              },
+              "year": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "draftEntity"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "The rule a field breaks.",
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "ProvenanceViolation": {
+        "type": "object",
+        "description": "A rule that provenance breaks, and where.",
+        "required": [
+          "owner",
+          "field",
+          "rule"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "The path of the field within that provenance, such as `sources[3].location.uri`."
+          },
+          "owner": {
+            "$ref": "#/components/schemas/ProvenanceOwner"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/ProvenanceRule"
+          }
+        }
       },
       "ProvidedEntityEditionProvenance": {
         "type": "object",
@@ -9941,7 +10228,7 @@
       },
       "SourceProvenance": {
         "type": "object",
-        "description": "The source material used in producing a value.",
+        "description": "Material that data was produced from.",
         "required": [
           "type"
         ],
@@ -9951,7 +10238,7 @@
             "items": {
               "type": "string"
             },
-            "description": "The people or organizations that authored the material."
+            "description": "The people or organizations that wrote the material."
           },
           "entityId": {
             "allOf": [

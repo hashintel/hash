@@ -14,16 +14,17 @@ import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
 } from "../../brunch-panel-transport";
+import { brunchPlugin, BrunchAssistantContext } from "../../editor-api-plugin";
 import { selectCanonicalSpeech } from "../live/canonical-speech";
 import { RealtimeBrunchBridge } from "../realtime/realtime-brunch-bridge";
 import { submitVoiceInputWithAdmission } from "./voice-interview-control";
 
+import type { PetrinautAiVoiceModeContext } from "../../chat/ai-assistant-composer-control";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "../realtime/openai-realtime-session";
 import type { RealtimeBrunchBridgeEvent } from "../realtime/realtime-brunch-bridge";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
 import type { LspWorkerFactory } from "@hashintel/petrinaut-core";
-import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
@@ -217,11 +218,10 @@ test.each([
         differentialEquations: [],
       },
     });
+    // Brunch's chat, through its plugin, as the demo shell bridges it.
     render(
-      <Petrinaut
-        handle={handle}
-        lspWorkerFactory={cleanDiagnosticsWorker}
-        aiAssistant={{
+      <BrunchAssistantContext
+        value={{
           automaticTools: [],
           conversationId: "test",
           requestStop: async () => {
@@ -239,7 +239,13 @@ test.each([
             <VoiceObserver current={current} onUpdate={updateVoice} />
           ),
         }}
-      />,
+      >
+        <Petrinaut
+          handle={handle}
+          lspWorkerFactory={cleanDiagnosticsWorker}
+          plugins={[brunchPlugin]}
+        />
+      </BrunchAssistantContext>,
     );
     await waitFor(() => expect(context).toBeDefined());
     await act(async () => {

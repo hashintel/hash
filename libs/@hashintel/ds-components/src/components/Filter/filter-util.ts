@@ -12,19 +12,29 @@ import type { CSSProperties } from "react";
 
 export type InputSeparator = string | { iconName: IconName };
 
-type TextInput = {
+export type TextInput = {
+  /** Discriminant: a free-text value input */
   type: "string";
+  /** Placeholder shown while the input is empty */
   placeholder?: string;
+  /** Minimum value length forwarded to the native input */
   min?: number;
+  /** Maximum value length forwarded to the native input */
   max?: number;
+  /** Regex the value must match, as native `pattern` validation */
   pattern?: string;
 };
 
-type NumberInput = {
+export type NumberInput = {
+  /** Discriminant: a numeric value input — `"int"` rejects decimal input, `"number"`/`"float"` accept it */
   type: "number" | "int" | "float";
+  /** Placeholder shown while the input is empty */
   placeholder?: string;
+  /** Smallest accepted value */
   min?: number;
+  /** Largest accepted value */
   max?: number;
+  /** Granularity the value snaps to */
   step?: number;
 };
 
@@ -34,13 +44,20 @@ type SelectInputItems<Item> =
   | (() => Promise<ReadonlyArray<ItemOrGroup<Item>>>);
 
 export type SingleSelectInput<TValue extends string = string> = {
+  /** Discriminant: pick one value from a dropdown */
   type: "select";
+  /** The options, provided upfront or lazily via an async loader */
   items: SelectInputItems<SelectItem<TValue>>;
+  /** Custom renderer for options in the dropdown. Defaults to the option's `text`. */
   renderItem?: (value: TValue) => React.ReactNode;
+  /** Custom renderer for the selected value in the chip. Defaults to `renderItem`. */
   renderSelectedItem?: (value: TValue) => React.ReactNode;
+  /** Rendered in the dropdown when there are no options at all */
   emptyState?: React.ReactNode;
+  /** Chip segment text while no value is selected */
   placeholder?: string;
   multiple?: false;
+  /** Adds a search field to the dropdown; pass `{ onSearch }` to filter externally */
   searchable?:
     | boolean
     | {
@@ -49,16 +66,26 @@ export type SingleSelectInput<TValue extends string = string> = {
 };
 
 export type MultiSelectInput<TValue extends string = string> = {
+  /** Discriminant: pick several values from a dropdown */
   type: "select";
+  /** The options, provided upfront or lazily via an async loader */
   items: SelectInputItems<MultiSelectItem<TValue>>;
+  /** Custom renderer for options in the dropdown. Defaults to the option's `text`. */
   renderItem?: (value: TValue) => React.ReactNode;
+  /** Custom renderer for each selected value in the chip. Defaults to `renderItem`. */
   renderSelectedItem?: (value: TValue) => React.ReactNode;
+  /** Custom renderer replacing the whole selected-values row in the chip */
   renderSelectedAll?: (values: TValue[]) => React.ReactNode;
+  /** Rendered in the dropdown when there are no options at all */
   emptyState?: React.ReactNode;
+  /** Chip segment text while no value is selected */
   placeholder?: string;
   multiple: true;
+  /** The maximum number of values that can be selected */
   maxItems?: number;
+  /** How the selected values render in the chip when they outgrow it */
   overflow?: Extract<SelectProps, { multiple: true }>["overflow"];
+  /** Adds a search field to the dropdown; the options object can filter externally and hide the count or the select-all toggle */
   searchable?:
     | boolean
     | {
@@ -149,14 +176,24 @@ export type LooseSelectConfig = SingleSelectInput | MultiSelectInput;
 type LooseInputConfig = LooseFieldConfig | LooseSelectConfig;
 
 export type LooseOperator = {
+  /** Identifies the operator in `value`, `onChange`, and `onInput` */
   key: string;
+  /**
+   * Plain-text name of the operator: the default rendering everywhere, and
+   * always what dropdown typeahead matches and the value inputs' aria-labels
+   * read.
+   */
   label: string;
+  /** Custom content for the operator's dropdown row. Defaults to `label`. */
   renderItem?: React.ReactNode;
+  /** Custom content for the chip's operator segment once this operator is selected. Defaults to `renderItem`, or `label` if neither is provided. */
   renderSelectedItem?: React.ReactNode;
+  /** The operator's value input(s): one input config, a tuple of configs optionally separated by static text or icon segments, or `null` for no input */
   input:
     | LooseInputConfig
     | ReadonlyArray<LooseInputConfig | InputSeparator>
     | null;
+  /** Called with this operator's committed value — `null` when its inputs are cleared */
   onChange?: (value: unknown) => void;
 };
 

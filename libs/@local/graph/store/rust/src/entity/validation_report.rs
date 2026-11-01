@@ -5,6 +5,7 @@ use hash_graph_types::knowledge::property::visitor::ObjectPropertyValidationRepo
 use type_system::{
     knowledge::entity::EntityId,
     ontology::{BaseUrl, VersionedUrl, entity_type::schema::ResolveClosedEntityTypeError},
+    provenance::validation::ProvenanceViolation,
 };
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -21,6 +22,13 @@ pub struct EntityTypeRetrieval {
     pub entity_type_url: VersionedUrl,
 }
 
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("The entity `{entity_id}` is a link, and links to links are not supported yet")]
+#[must_use]
+pub struct LinkedEntityIsLinkError {
+    pub entity_id: EntityId,
+}
+
 #[derive(Debug, serde::Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "type", content = "error", rename_all = "camelCase")]
@@ -32,6 +40,7 @@ pub enum LinkedEntityError {
         Report<[EntityTypeRetrieval]>,
     ),
     ResolveClosedEntityType(Report<ResolveClosedEntityTypeError>),
+    Link(Report<LinkedEntityIsLinkError>),
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -166,12 +175,15 @@ pub struct MetadataValidationReport {
     pub entity_types: Option<EntityTypesError>,
     #[serde(skip_serializing_if = "PropertyMetadataValidationReport::is_valid")]
     pub properties: PropertyMetadataValidationReport,
+    /// The rules the provenance of the entity, its properties or its link breaks.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub provenance: Vec<ProvenanceViolation>,
 }
 
 impl MetadataValidationReport {
     #[must_use]
     pub const fn is_valid(&self) -> bool {
-        self.entity_types.is_none() && self.properties.is_valid()
+        self.entity_types.is_none() && self.properties.is_valid() && self.provenance.is_empty()
     }
 }
 
@@ -192,5 +204,42 @@ impl EntityValidationReport {
     #[must_use]
     pub fn is_valid(&self) -> bool {
         self.properties.is_empty() && self.link.is_valid() && self.metadata.is_valid()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use type_system::provenance::validation::{
+        ProvenanceField, ProvenanceOwner, ProvenanceRule, ProvenanceViolation,
+    };
+
+    use super::EntityValidationReport;
+
+    #[test]
+    fn report_provenance() {
+        let mut report = EntityValidationReport::default();
+        report.metadata.provenance.push(ProvenanceViolation {
+            owner: ProvenanceOwner::Edition,
+            field: ProvenanceField::Sources,
+            rule: ProvenanceRule::TooManyEntries {
+                count: 256,
+                max: 255,
+            },
+        });
+
+        assert!(
+            !report.is_valid(),
+            "a report with a provenance violation should not be valid"
+        );
+        assert_eq!(
+            serde_json::to_value(&report).expect("should serialize the report"),
+            json!({ "metadata": { "provenance": [{
+                "owner": { "kind": "edition" },
+                "field": "sources",
+                "rule": { "kind": "tooManyEntries", "count": 256, "max": 255 },
+            }] } }),
+            "the violation should be written into the metadata of the report"
+        );
     }
 }

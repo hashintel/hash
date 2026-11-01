@@ -1,0 +1,26 @@
+/*
+ * Everything the site is styled by, in cascade order: Starlight's layers,
+ * which carry the tokens, reset, content and component styles the pages
+ * were written against; the layout the shell reproduces; the code block
+ * theme; and `chrome.css`, the instance's own look, unlayered so it wins.
+ */
+
+@import "./starlight/layers.css";
+@import "./starlight/props.css";
+@import "./starlight/reset.css";
+@import "./starlight/asides.css";
+@import "./starlight/util.css";
+@import "./starlight/markdown.css";
+@import "./starlight/anchor-links.css";
+@import "./layout.css";
+@import "./code.css";
+@import "./chrome.css";
+
+:root {
+  --pnd-font-sans:
+    "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --pnd-font-mono:
+    "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas,
+    monospace;
+}

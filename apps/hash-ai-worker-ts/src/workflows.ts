@@ -8,8 +8,8 @@ import {
 
 import { splitEntityId } from "@blockprotocol/type-system";
 import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { entityTypeBaseUrlsExcludedFromEmbeddings } from "./shared/embedding-exclusions.js";
 import { runFlowWorkflow } from "./workflows/run-flow-workflow.js";
 
 import type {
@@ -363,12 +363,12 @@ export const updateEntityEmbeddings = async (
   const filter: Filter = {
     all: [
       params.filter,
-      {
+      ...entityTypeBaseUrlsExcludedFromEmbeddings.map((entityTypeBaseUrl) => ({
         notEqual: [
-          { path: ["type", "versionedUrl"] },
-          { parameter: systemEntityTypes.flowRun.entityTypeId },
+          { path: ["type", "baseUrl"] },
+          { parameter: entityTypeBaseUrl },
         ],
-      },
+      })),
       { notEqual: [{ path: ["properties"] }, { parameter: {} }] },
     ],
   };

@@ -21,7 +21,7 @@ export const vOrigin = v.pipe(
     v.pipe(v.literal("stated"), v.description("The USER said it.")),
   ]),
   v.description(
-    "Where the entry's content came from, independently of whether the USER has agreed to it.",
+    "Where the entry's content came from, independently of whether the USER has agreed to it. Omit for stated.",
   ),
 );
 
@@ -53,9 +53,41 @@ export const vStatus = v.pipe(
     ),
   ]),
   v.description(
-    "Whether the USER has agreed to this entry. Each entry's status is independent.",
+    "Whether the USER has agreed to this entry. Each entry's status is independent. Omit for confirmed only when the origin is stated; give it for every other origin.",
   ),
 );
 
 export type Origin = v.InferOutput<typeof vOrigin>;
 export type Status = v.InferOutput<typeof vStatus>;
+
+/** Statuses the map lists as questions, which need no entity to be shown. */
+export const questionStatuses: ReadonlySet<Status> = new Set([
+  "open",
+  "conflicted",
+] satisfies Status[]);
+
+/**
+ * Origin and status fields with the common case left implicit: origin
+ * defaults to `stated`, and only a stated entry may leave its status to
+ * default to `confirmed`. Pair with {@link resolveStatus} on the object.
+ */
+export const epistemicFields = {
+  origin: v.optional(vOrigin, "stated"),
+  status: v.optional(vStatus),
+};
+
+/** Fills a stated entry's missing status with `confirmed`; refuses any other entry without one. */
+export const resolveStatus = <
+  Entry extends { readonly origin: Origin; readonly status?: Status },
+>() =>
+  v.rawTransform<Entry, Omit<Entry, "status"> & { readonly status: Status }>(
+    ({ dataset, addIssue, NEVER }) => {
+      const { status, ...entry } = dataset.value;
+      if (status !== undefined) return { ...entry, status };
+      if (entry.origin === "stated") return { ...entry, status: "confirmed" };
+      addIssue({
+        message: `Give a status for an entry whose origin is ${entry.origin}; only a stated entry defaults to confirmed.`,
+      });
+      return NEVER;
+    },
+  );

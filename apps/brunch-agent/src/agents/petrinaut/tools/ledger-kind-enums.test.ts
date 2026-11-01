@@ -246,6 +246,16 @@ test("entity routes split creation from full update of an addressed entity", asy
       ],
     }).success,
   ).toBe(false);
+  // The payload replaces every field, so a default must not overwrite how
+  // the entity stood: an update restates origin and status.
+  const { origin: _origin, ...withoutOrigin } = update;
+  const { status: _status, ...withoutStatus } = update;
+  for (const payload of [withoutOrigin, withoutStatus])
+    expect(
+      v.safeParse(vLedgerAppend, {
+        entries: [["entity/update/e1", payload]],
+      }).success,
+    ).toBe(false);
   for (const route of ["entity/update", "entity/update/c1", "entity/update/$0"])
     expect(
       v.safeParse(vLedgerAppend, { entries: [[route, update]] }).success,
@@ -535,6 +545,59 @@ test("a claim that only renders under an entity is refused without one", async (
     });
 });
 
+test("only a recorded commit that sets endTurn ends the turn", async () => {
+  const terminates = async (entries: unknown, endTurn?: boolean) => {
+    const batch = toBatch(entries);
+    const history: LedgerHistory = {
+      messages: [
+        { id: "turn-1", role: "user", parts: [] },
+        {
+          id: "response-1",
+          role: "assistant",
+          parts: [commitPart("commit-1", batch)],
+        },
+      ],
+    };
+    const tool = createLedgerCommitTool(async () => history);
+    const result = await tool.run({
+      data: v.parse(tool.input, {
+        entries: batch,
+        ...(endTurn === undefined ? {} : { endTurn }),
+      }),
+      toolCallId: "commit-1",
+      log: log(),
+      step,
+    });
+    return result.terminate;
+  };
+  const entity = [
+    [
+      "entity/create",
+      {
+        name: "Dryer",
+        kind: "resource",
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+  ];
+  const unanchored = [
+    [
+      "claim/create",
+      {
+        text: "Drying is slow.",
+        entities: [],
+        origin: "stated",
+        status: "confirmed",
+      },
+    ],
+  ];
+  expect(await terminates(entity, true)).toBe(true);
+  expect(await terminates(entity)).toBe(false);
+  expect(await terminates(entity, false)).toBe(false);
+  expect(await terminates(unanchored, true)).toBe(false);
+});
+
 test("an entity update keeps the turn the entity was created in", () => {
   const { state } = foldCommits(
     settledHistory([
@@ -574,7 +637,7 @@ test("an entity update keeps the turn the entity was created in", () => {
   ]);
 });
 
-test("ledger_compile renders the committed state as the agent-skin map", async () => {
+test("ledger_compile renders the committed state as the Markdown map", async () => {
   const history = settledHistory([
     toBatch([
       [
@@ -674,6 +737,36 @@ test("a claim's source does not imply the person's agreement", () => {
     status: "tentative",
   };
   expect(v.parse(vClaim, claim)).toEqual(claim);
+});
+
+test("only an entry stated without a status defaults to confirmed", () => {
+  const claim = {
+    text: "Press 2 idles when its hopper is empty.",
+    entities: ["e2"],
+  };
+  expect(v.parse(vClaim, claim)).toEqual({
+    ...claim,
+    origin: "stated",
+    status: "confirmed",
+  });
+  expect(v.parse(vClaim, { ...claim, status: "tentative" })).toEqual({
+    ...claim,
+    origin: "stated",
+    status: "tentative",
+  });
+  const inferred = v.safeParse(vClaim, { ...claim, origin: "inferred" });
+  expect(inferred.success).toBe(false);
+  expect(inferred.issues?.[0]?.message).toMatch(/origin is inferred/);
+  expect(v.parse(vEntity, { name: "Press 2", kind: "resource" })).toMatchObject(
+    { origin: "stated", status: "confirmed" },
+  );
+  expect(
+    v.safeParse(vEntity, {
+      name: "Press 2",
+      kind: "resource",
+      origin: "assumed",
+    }).success,
+  ).toBe(false);
 });
 
 test("claim and reflection requests exclude system-owned metadata", () => {
@@ -968,7 +1061,6 @@ test("an obligation stays owed until a reflection discharges it", async () => {
   expect(
     renderLedgerMarkdown(
       projectLedger(foldCommits(settledHistory([owing])).state),
-      "agent",
     ),
   ).toContain(
     "## Checks still owed\n\n- A run at the current settings reproduces the 2 July overflow. \u2014 The 2 July overflow `o1`",
@@ -1008,7 +1100,6 @@ test("an obligation stays owed until a reflection discharges it", async () => {
   expect(
     renderLedgerMarkdown(
       projectLedger(foldCommits(settledHistory([owing, discharging])).state),
-      "agent",
     ),
   ).not.toContain("Checks still owed");
 });
@@ -1057,10 +1148,10 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
                 {
                   properties: {
                     kind: anyOf(vEntityKind),
-                    origin: anyOf(vOrigin),
+                    origin: { ...anyOf(vOrigin), default: "stated" },
                     status: anyOf(vStatus),
                   },
-                  required: ["name", "kind", "origin", "status"],
+                  required: ["name", "kind"],
                 },
               ],
             },
@@ -1089,10 +1180,10 @@ test("Flue's tool schema carries entity kind, origin and status descriptions", (
                         ],
                       },
                     },
-                    origin: anyOf(vOrigin),
+                    origin: { ...anyOf(vOrigin), default: "stated" },
                     status: anyOf(vStatus),
                   },
-                  required: ["text", "entities", "origin", "status"],
+                  required: ["text", "entities"],
                 },
               ],
             },
@@ -1158,7 +1249,7 @@ describe.skipIf(!live).concurrent("kind enums with a live model", () => {
     const ledger =
       prior.length === 0
         ? "There are no existing entities or claims, so use only create routes."
-        : `The ledger already holds the records below; reference them by their IDs and use create routes for new records.\n\n${renderLedgerMarkdown(projectLedger(foldCommits(settledHistory(prior)).state), "agent")}\n\n`;
+        : `The ledger already holds the records below; reference them by their IDs and use create routes for new records.\n\n${renderLedgerMarkdown(projectLedger(foldCommits(settledHistory(prior)).state))}\n\n`;
     const models = createModels();
     models.setProvider(anthropicProvider());
     models.setProvider(openaiProviderWithAddedModels());

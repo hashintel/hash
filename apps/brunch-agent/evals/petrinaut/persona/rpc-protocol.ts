@@ -55,7 +55,7 @@ export const personaRecordSchema = v.union([
   personaResponseSchema,
   personaEventSchema,
 ]);
-export type PersonaRecord = PersonaResponse | PersonaEvent;
+export type PersonaRecord = v.InferOutput<typeof personaRecordSchema>;
 
 export type PersonaTranscriptEntry = {
   readonly speaker: "user" | "brunch";

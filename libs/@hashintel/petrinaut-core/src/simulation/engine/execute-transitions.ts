@@ -186,6 +186,9 @@ export function executeTransitions(
 
   // Start with the current frame and update it as transitions fire
   let currentFrame = frame;
+  // `currentFrame` materialized once and shared by every transition evaluated
+  // against it; rebuilt only when a firing replaces the frame.
+  let currentSnapshot: EngineFrameSnapshot | null = null;
 
   // Track current RNG state
   let currentRngState = rngState;
@@ -193,12 +196,17 @@ export function executeTransitions(
   // Iterate through all transitions in the frame
   for (const transitionId of simulation.frameLayout.transitionIds) {
     // Compute if this transition can fire based on the current state
+    currentSnapshot ??= materializeEngineFrame(
+      simulation.frameLayout,
+      currentFrame,
+    );
     const { firing, newRngState } = computePossibleTransition(
       currentFrame,
       simulation,
       transitionId,
       currentRngState,
       pendingOutputCounts,
+      currentSnapshot,
     );
 
     // Every evaluation's randomness is consumed, fired or not — reusing the
@@ -219,6 +227,8 @@ export function executeTransitions(
         tokensToRemove,
         simulation.frameLayout,
       );
+      // Reset the snapshot to null, since firing requires it be rebuilt.
+      currentSnapshot = null;
 
       // Accumulate tokens to add
       for (const [placeId, tokenValues] of Object.entries(firing.add)) {

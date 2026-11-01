@@ -1,6 +1,7 @@
-import type { NetElementAddress } from "../construction/reflections";
-import type { EntityKind } from "../elicitation/entities";
-import type { Origin, Status } from "../shared/epistemics";
+import type { Obligation } from "../construction/obligations";
+import type { Reflection } from "../construction/reflections";
+import type { Claim } from "../elicitation/claims";
+import type { Entity } from "../elicitation/entities";
 
 /** A conversation turn anchor: the preceding user message's ID and excerpt. */
 export interface Turn {
@@ -8,42 +9,36 @@ export interface Turn {
   excerpt: string;
 }
 
-export interface EntityRecord {
+/** What the system adds to a committed payload: its address and turn anchor. */
+interface RecordAnchor {
   address: string;
-  name: string;
-  kind: EntityKind;
-  origin: Origin;
-  status: Status;
   turn: string;
 }
 
-export interface ClaimRecord {
-  address: string;
-  text: string;
-  entities: string[];
-  origin: Origin;
-  status: Status;
-  supersedes?: string[];
-  turn: string;
-}
+export type EntityRecord = Entity & RecordAnchor;
 
-export interface ReflectionRecord {
-  address: string;
-  text: string;
-  netElements?: NetElementAddress[];
-  claims?: string[];
-  entities?: string[];
-  discharges?: string[];
-  turn: string;
-}
+/** References resolve from `$n`/ID references to the addresses they name. */
+export type ClaimRecord = Omit<Claim, "entities" | "supersedes"> &
+  RecordAnchor & {
+    entities: string[];
+    supersedes?: string[];
+  };
 
-export interface ObligationRecord {
-  address: string;
-  text: string;
-  claims?: string[];
-  entities?: string[];
-  turn: string;
-}
+export type ReflectionRecord = Omit<
+  Reflection,
+  "claims" | "entities" | "discharges"
+> &
+  RecordAnchor & {
+    claims?: string[];
+    entities?: string[];
+    discharges?: string[];
+  };
+
+export type ObligationRecord = Omit<Obligation, "claims" | "entities"> &
+  RecordAnchor & {
+    claims?: string[];
+    entities?: string[];
+  };
 
 /**
  * Committed Ledger records as the system holds them after commits: payloads

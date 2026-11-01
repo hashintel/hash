@@ -45,13 +45,12 @@ import type {
 import type { VirtualizedTableSort } from "../shared/virtualized-table/header/sort";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 
 type FieldId =
   | "web"
   | "type"
   | "name"
-  | "executedAt"
+  | "startedAt"
   | "closedAt"
   | "status"
   | "cost";
@@ -78,7 +77,7 @@ const createColumns: (
     width: "auto",
   },
   {
-    id: "executedAt",
+    id: "startedAt",
     label: "Started At",
     sortable: true,
     width: 170,
@@ -112,7 +111,7 @@ type WorkerSummary = Subtype<
   {
     flowRunEntityId: EntityId;
     flowScheduleId: EntityUuid | null;
-    executedAt: string | null;
+    startedAt: string;
     closedAt: string | null;
     type: "flow" | "goal";
     web: {
@@ -135,7 +134,7 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
     flowScheduleId,
     type,
     name,
-    executedAt,
+    startedAt,
     closedAt,
     status,
     cost,
@@ -200,9 +199,7 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
         <Typography
           sx={{ fontSize: 13, color: ({ palette }) => palette.gray[70] }}
         >
-          {executedAt
-            ? format(new Date(executedAt), "yyyy-MM-dd HH:mm a")
-            : "Pending..."}
+          {format(new Date(startedAt), "yyyy-MM-dd HH:mm a")}
         </Typography>
       </MuiTableCell>
       <MuiTableCell sx={flowTableCellSx}>
@@ -321,8 +318,7 @@ export const FlowRunTable = ({
           ? "goal"
           : "flow";
 
-        const { webId, flowRunEntityId, executedAt, closedAt, status } =
-          flowRun;
+        const { webId, flowRunEntityId, startedAt, closedAt, status } = flowRun;
 
         let web: WorkerSummary["web"] | undefined = webByWebId[webId];
 
@@ -360,7 +356,7 @@ export const FlowRunTable = ({
         const cost = usageByFlowRun[flowRunEntityId]?.total ?? null;
 
         // Extract flowScheduleId if present (for scheduled runs)
-        const flowScheduleId = (flowRun as FlowRun).flowScheduleId ?? null;
+        const flowScheduleId = flowRun.flowScheduleId ?? null;
 
         return {
           id: flowRunEntityId,
@@ -371,7 +367,7 @@ export const FlowRunTable = ({
             type,
             name: flowRun.name,
             closedAt: closedAt ?? null,
-            executedAt: executedAt ?? null,
+            startedAt,
             status: flowRunStatusToStatusText(status),
             cost,
             usageAvailable,

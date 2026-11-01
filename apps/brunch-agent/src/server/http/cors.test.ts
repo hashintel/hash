@@ -2,15 +2,13 @@ import { Hono } from "hono";
 import { describe, expect, test } from "vitest";
 
 import {
+  agentOwnershipHeaders,
   brunchEnv,
   brunchHeaders,
   brunchRoutes,
 } from "@hashintel/brunch-agent";
 
-import {
-  agentOwnershipHeaders,
-  flueConversationIdFrom,
-} from "../../shared/conversation/identity.ts";
+import { flueConversationId } from "../../shared/conversation/identity.ts";
 import { createAgentCors, parseCorsAllowedOrigins } from "./cors.ts";
 import { agentOwnershipGuard } from "./ownership.ts";
 
@@ -102,7 +100,7 @@ const identity = {
   principalKey: "principal-cors",
   conversationId: "conversation-cors",
 };
-const instanceId = flueConversationIdFrom(identity);
+const instanceId = flueConversationId(identity);
 const conversationUrl = `http://brunch.test${mount}/${instanceId}`;
 
 const wildcardOrigin = "https://*.stage.example.com";

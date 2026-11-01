@@ -58,6 +58,35 @@ export const getFlowOutputStorageKey = ({
 }: GetFlowOutputStorageKeyParams) =>
   `${getFlowOutputStoragePrefix(workflowId)}${runId}/${stepId}/${outputName}.json` as const;
 
+/** The storage key for the record of a flow run's history, written when the run ends. */
+export const getFlowRunRecordStorageKey = (workflowId: string) =>
+  `${getFlowOutputStoragePrefix(workflowId)}run.jsonl` as const;
+
+const newline = 0x0a;
+
+/**
+ * The first line of a stream, without its newline, or the whole stream if it has none. Stops reading the stream once
+ * it has the line, which for a Node stream destroys it.
+ */
+export const readFirstLineOfStream = async (
+  stream: AsyncIterable<Uint8Array>,
+): Promise<string> => {
+  const chunks: Uint8Array[] = [];
+
+  for await (const chunk of stream) {
+    const newlineIndex = chunk.indexOf(newline);
+
+    if (newlineIndex !== -1) {
+      chunks.push(chunk.subarray(0, newlineIndex));
+      break;
+    }
+
+    chunks.push(chunk);
+  }
+
+  return Buffer.concat(chunks).toString("utf8");
+};
+
 /**
  * Interface describing a storage provider for file upload/download operations.
  * Supports both presigned URLs for client-side operations and direct access
@@ -136,6 +165,12 @@ export interface FileStorageProvider {
    * Used by workers that have direct storage credentials.
    */
   downloadDirect(this: void, params: { key: string }): Promise<Buffer>;
+
+  /**
+   * Read the first line of a stored object, without its newline, downloading only as much of it as that needs.
+   * Returns `null` if the object does not exist.
+   */
+  readFirstLine(this: void, params: { key: string }): Promise<string | null>;
 
   /**
    * Get the last-modified time of a stored object, or `null` if the object

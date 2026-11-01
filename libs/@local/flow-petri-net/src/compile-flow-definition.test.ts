@@ -12,12 +12,7 @@ import {
   defineFlow,
   flowInput,
 } from "@local/hash-isomorphic-utils/flows/define-flow";
-import * as browserPluginFlows from "@local/hash-isomorphic-utils/flows/definitions/browser-plugin-flow-definitions";
-import * as fileFlows from "@local/hash-isomorphic-utils/flows/definitions/file-flow-definitions";
-import * as frontendFlows from "@local/hash-isomorphic-utils/flows/definitions/frontend-flow-definitions";
 import { ftseInvestorsFlow } from "@local/hash-isomorphic-utils/flows/definitions/ftse-investors-flow-definition";
-import * as goalFlows from "@local/hash-isomorphic-utils/flows/definitions/goal-flow-definitions";
-import * as integrationFlows from "@local/hash-isomorphic-utils/flows/definitions/integration-flow-definitions";
 import { createStepShapeResolver } from "@local/hash-isomorphic-utils/flows/step-shapes";
 
 import { compileFlowDefinition } from "./compile-flow-definition.js";
@@ -37,32 +32,14 @@ import {
   generateStepTransitionKey,
   generateValuePlaceKey,
 } from "./flow-net-keys.js";
+import { hardcodedFlowDefinitions } from "./testing/flow-definitions.js";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
 import type {
   ActionStepDefinition,
   FlowDefinition,
-  FlowDefinitionWithId,
   PayloadKind,
 } from "@local/hash-isomorphic-utils/flows/types";
-
-const isFlow = (value: unknown): value is FlowDefinitionWithId =>
-  typeof value === "object" &&
-  value !== null &&
-  "flowDefinitionId" in value &&
-  "flowDefinition" in value;
-
-/** Every hardcoded flow's definition, found among the flow modules' exports so that new flows are covered too. */
-const hardcodedFlowDefinitions = Object.entries({
-  ...browserPluginFlows,
-  ...fileFlows,
-  ...frontendFlows,
-  ...goalFlows,
-  ...integrationFlows,
-  ftseInvestorsFlow,
-}).flatMap(([name, value]: [string, unknown]) =>
-  isFlow(value) ? [[name, value.flowDefinition] as const] : [],
-);
 
 const roleOf = (transition: SDCPN["transitions"][number]) =>
   transition.metadata?.role;

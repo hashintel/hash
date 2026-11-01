@@ -4,7 +4,7 @@
 //! middlewares that gate on it read the header through these functions, so what counts as a
 //! service credential is defined once.
 
-use hash_secret::Secret;
+use hash_crypto::Secret;
 use http::{HeaderMap, header};
 
 /// The `Authorization` scheme carrying the service secret.

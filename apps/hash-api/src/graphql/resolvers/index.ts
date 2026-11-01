@@ -1,9 +1,26 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
+import {
+  createApiTokenResolver,
+  myApiTokensResolver,
+  revokeApiTokenResolver,
+} from "./api-token";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { cancelFlow } from "./flows/cancel-flow";
+import {
+  archiveFlowDefinitionResolver,
+  createFlowDefinitionResolver,
+  updateFlowDefinitionResolver,
+} from "./flows/flow-definition";
+import { flowRunDataSourcesResolver } from "./flows/flow-run-data-sources";
+import {
+  flowRunFailureResolver,
+  flowRunOutputsResolver,
+  flowRunStepErrorsResolver,
+} from "./flows/flow-run-ending";
 import { flowRunEventsResolver } from "./flows/flow-run-events";
+import { flowRunOpenInputRequestsResolver } from "./flows/flow-run-open-input-requests";
 import {
   archiveFlowScheduleResolver,
   createFlowScheduleResolver,
@@ -195,6 +212,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     generatePlural: loggedInAndSignedUpMiddleware(generatePluralResolver),
     isGenerationAvailable: isGenerationAvailableResolver,
     validateEntity: loggedInAndSignedUpMiddleware(validateEntityResolver),
+
+    myApiTokens: loggedInAndSignedUpMiddleware(myApiTokensResolver),
   },
 
   Mutation: {
@@ -288,6 +307,16 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       submitExternalInputResponse,
     ),
 
+    createFlowDefinition: loggedInAndSignedUpMiddleware(
+      createFlowDefinitionResolver,
+    ),
+    updateFlowDefinition: loggedInAndSignedUpMiddleware(
+      updateFlowDefinitionResolver,
+    ),
+    archiveFlowDefinition: loggedInAndSignedUpMiddleware(
+      archiveFlowDefinitionResolver,
+    ),
+
     createFlowSchedule: loggedInAndSignedUpMiddleware(
       createFlowScheduleResolver,
     ),
@@ -306,6 +335,10 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     syncLinearIntegrationWithWebs: loggedInAndSignedUpMiddleware(
       syncLinearIntegrationWithWebsMutation,
     ),
+
+    // API tokens
+    createApiToken: loggedInAndSignedUpMiddleware(createApiTokenResolver),
+    revokeApiToken: loggedInAndSignedUpMiddleware(revokeApiTokenResolver),
   },
 
   JSONObject: JSONObjectResolver,
@@ -334,8 +367,17 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     blockChildEntity: blockChildEntityResolver,
   },
 
+  FlowRunSummary: {
+    openInputRequests: flowRunOpenInputRequestsResolver,
+  },
+
   FlowRun: {
+    dataSources: flowRunDataSourcesResolver,
     events: flowRunEventsResolver,
+    outputs: flowRunOutputsResolver,
+    failure: flowRunFailureResolver,
+    stepErrors: flowRunStepErrorsResolver,
+    openInputRequests: flowRunOpenInputRequestsResolver,
   },
 
   EntityAuthorizationSubject: {

@@ -16,6 +16,7 @@
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
+    "packet:run": "node --experimental-strip-types --disable-warning=ExperimentalWarning evals/petrinaut/run-packet-cli.ts",
     "persona": "node --experimental-strip-types evals/petrinaut/persona/launch.ts",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
     "probe:turn": "node --experimental-strip-types evals/petrinaut/turn-probe.ts",

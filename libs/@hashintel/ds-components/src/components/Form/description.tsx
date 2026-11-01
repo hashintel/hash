@@ -16,6 +16,7 @@ export const Description = ({
   children: React.ReactNode;
 
   size?: FormInputSize;
+  /** `right` right-aligns the text, matching a right-`labelDirection` field */
   direction?: "left" | "right";
 
   disabled?: boolean;
@@ -30,3 +31,5 @@ export const Description = ({
     </span>
   );
 };
+
+Description.displayName = "Form.Field.Description";

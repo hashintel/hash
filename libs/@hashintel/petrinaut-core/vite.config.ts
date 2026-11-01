@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,11 +10,19 @@ import { defineConfig } from "vite";
 const packageRoot = dirname(fileURLToPath(import.meta.url));
 // The wrapper exposes the compiler API but does not contain its standard-library files.
 const typescriptLibDirectory = dirname(ts.getDefaultLibFilePath({}));
+// The visualizer language service bundles three of `@types/react`'s
+// declaration files as text. `@types/react` exports only its entry points,
+// and TypeScript rejects any import specifier starting with `@types/`
+// (TS6137), so the files are reached through this alias instead.
+const reactTypesDirectory = dirname(
+  createRequire(import.meta.url).resolve("@types/react/package.json"),
+);
 
 export default defineConfig(({ command }) => ({
   resolve: {
     alias: {
       "@typescript/typescript6/lib": typescriptLibDirectory,
+      "react-types": reactTypesDirectory,
     },
   },
   build: {
@@ -29,6 +38,8 @@ export default defineConfig(({ command }) => ({
         diagnostics: resolve(packageRoot, "src/diagnostics.ts"),
         // HIR compiler. Tooling loads TS6 as a dependency; the LSP worker bundles it.
         hir: resolve(packageRoot, "src/hir.ts"),
+        // The view HIR visualizers lower to; builds on ./hir, same TS6 dependency.
+        "view-hir": resolve(packageRoot, "src/view-hir.ts"),
         // Dependency-free instantiation of compiled HIR artifacts.
         "hir-runtime": resolve(packageRoot, "src/hir-runtime.ts"),
         optimization: resolve(packageRoot, "src/optimization/index.ts"),

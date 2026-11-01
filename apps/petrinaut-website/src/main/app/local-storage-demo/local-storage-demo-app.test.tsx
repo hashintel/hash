@@ -12,6 +12,7 @@ import {
 import {
   Children,
   isValidElement,
+  use,
   useState,
   type ComponentProps,
   type ReactNode,
@@ -33,6 +34,7 @@ import {
   brunchEvaluationConversationIdFrom,
   ordinaryConstructionConversationIdFrom,
 } from "../plugins/brunch/conversation/brunch-conversation-id";
+import { BrunchAssistantContext } from "../plugins/brunch/editor-api-plugin";
 import { InterviewBudgetControl } from "../plugins/brunch/interview-budget/interview-budget-control";
 import {
   canonicalPetrinautClientToolNames,
@@ -51,6 +53,8 @@ import { LocalStorageDemoApp } from "./local-storage-demo-app";
 import { latestOrNewNetInStorage } from "./use-local-storage-sdcpns";
 import { voicePreferenceStorageKey } from "./voice-preference";
 
+import type { PetrinautAiMessage } from "../plugins/brunch/chat/ai-assistant-panel";
+import type { PetrinautAiAssistant } from "../plugins/brunch/chat/petrinaut";
 import type { AgentConversationObservationSnapshot } from "@flue/sdk";
 import type {
   CommandRegistryView,
@@ -58,10 +62,6 @@ import type {
   PetrinautDocHandle,
 } from "@hashintel/petrinaut-core";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
-import type {
-  PetrinautAiAssistant,
-  PetrinautAiMessage,
-} from "@hashintel/petrinaut/ui";
 import type { PetrinautPlugin } from "@hashintel/petrinaut/ui/plugin";
 
 const netOneId = toPetrinautId("net-1");
@@ -132,7 +132,8 @@ vi.mock(
 
 const editorProps = vi.hoisted(() => ({
   current: null as {
-    aiAssistant?: unknown;
+    /** Brunch's assistant, which reaches the editor through its plugin's bridge. */
+    bridgedAssistant?: PetrinautAiAssistant;
     createNewNet?: (params: {
       petriNetDefinition: unknown;
       title: string;
@@ -191,26 +192,22 @@ vi.mock("../plugins/petrinaut-ai/plugin", () => ({
   },
 }));
 
-vi.mock("@hashintel/petrinaut/ui", () => ({
+vi.mock("@hashintel/petrinaut/ui", async (importOriginal) => ({
+  // Brunch's chat uses the editor's public UI exports; only the editor is mocked.
+  ...(await importOriginal<typeof import("@hashintel/petrinaut/ui")>()),
   Petrinaut: (props: Record<string, unknown>) => {
-    editorProps.current = props;
+    // Brunch's plugin reads its assistant from the shell's bridge, never a prop.
+    const bridgedAssistant = use(BrunchAssistantContext) ?? undefined;
+    editorProps.current = { ...props, bridgedAssistant };
     // The real editor reuses the registry the host provides.
     renderedPetrinaut.commandRegistry = useCommandRegistry();
-    renderedPetrinaut.aiAssistant = props.aiAssistant;
-    renderedAssistants.push(
-      props.aiAssistant as PetrinautAiAssistant | undefined,
-    );
+    renderedPetrinaut.aiAssistant = bridgedAssistant;
+    renderedAssistants.push(bridgedAssistant);
     return (
       (props.slots as { settingsLabs?: ReactNode } | undefined)?.settingsLabs ??
       null
     );
   },
-  definePetrinautAiInteractiveTool: (definition: unknown) => definition,
-  definePetrinautPlugin: (manifest: unknown) => () => ({ manifest }),
-  executePetrinautAiMutation: () => ({
-    applied: false,
-    reason: "Mocked document unchanged.",
-  }),
 }));
 
 /**
@@ -1185,13 +1182,15 @@ describe("local storage demo Brunch controls", () => {
       }),
     };
     const view = render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => expect(editorProps.current?.aiAssistant).toBeDefined());
-    const first = editorProps.current?.aiAssistant as PetrinautAiAssistant;
+    await waitFor(() =>
+      expect(editorProps.current?.bridgedAssistant).toBeDefined(),
+    );
+    const first = editorProps.current?.bridgedAssistant as PetrinautAiAssistant;
     const originalId = first.conversationId;
     const handle = editorProps.current?.handle;
     expect(first.canClearMessages).toBe(true);
     act(() => first.onClearMessages?.());
-    const next = editorProps.current?.aiAssistant as PetrinautAiAssistant;
+    const next = editorProps.current?.bridgedAssistant as PetrinautAiAssistant;
     expect(next.conversationId).not.toBe(originalId);
     expect(next.conversationId).toContain(
       `${ordinaryConstructionConversationIdFrom(netOneId)}:`,
@@ -1202,10 +1201,9 @@ describe("local storage demo Brunch controls", () => {
     view.unmount();
     render(<DemoApp onSearchChange={() => {}} search={{}} />);
     await waitFor(() =>
-      expect(
-        (editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined)
-          ?.conversationId,
-      ).toBe(nextId),
+      expect(editorProps.current?.bridgedAssistant?.conversationId).toBe(
+        nextId,
+      ),
     );
   });
 
@@ -1252,12 +1250,11 @@ describe("local storage demo Brunch controls", () => {
       render(<DemoApp onSearchChange={() => {}} search={{}} />);
       await waitFor(() =>
         expect(
-          (editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined)
-            ?.inBandBrowserTools,
+          editorProps.current?.bridgedAssistant?.inBandBrowserTools,
         ).toBeDefined(),
       );
       const assistant = editorProps.current
-        ?.aiAssistant as PetrinautAiAssistant;
+        ?.bridgedAssistant as PetrinautAiAssistant;
       const initialTools = assistant.interactiveTools;
       const execute = vi.fn(async () => ({ applied: true }));
       const run = assistant.inBandBrowserTools?.run(
@@ -1270,8 +1267,7 @@ describe("local storage demo Brunch controls", () => {
         execute,
       );
       const interactiveTools = () =>
-        (editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined)
-          ?.interactiveTools;
+        editorProps.current?.bridgedAssistant?.interactiveTools;
       await waitFor(() => expect(claimed).toHaveBeenCalled());
       await waitFor(() => expect(interactiveTools()).not.toBe(initialTools));
       const waitingTools = interactiveTools();
@@ -1314,9 +1310,11 @@ describe("local storage demo Brunch controls", () => {
     };
 
     render(<DemoApp onSearchChange={() => {}} search={{}} />);
-    await waitFor(() => expect(editorProps.current?.aiAssistant).toBeDefined());
+    await waitFor(() =>
+      expect(editorProps.current?.bridgedAssistant).toBeDefined(),
+    );
     const aiAssistant = editorProps.current
-      ?.aiAssistant as PetrinautAiAssistant;
+      ?.bridgedAssistant as PetrinautAiAssistant;
     const transportOptions = brunchPanelTransportOptions.current as {
       readonly initialData?: { readonly binding?: unknown };
     };
@@ -1330,6 +1328,9 @@ describe("local storage demo Brunch controls", () => {
     );
     expect(aiAssistant.conversationId).toBe(conversationId);
     expect(aiAssistant.executeMutation).toBeUndefined();
+    // The editor gets no built-in chat; its tools run on the editor's handle.
+    expect(editorProps.current).not.toHaveProperty("aiAssistant");
+    expect(aiAssistant.documentHandle).toBe(editorProps.current?.handle);
     expect(aiAssistant.automaticTools?.map(({ toolName }) => toolName)).toEqual(
       [
         "getLatestNetDefinition",
@@ -1429,8 +1430,7 @@ describe("assistant selection", () => {
       renderedPetrinaut.commandRegistry?.execute(command.id);
     });
   };
-  const currentAssistant = () =>
-    editorProps.current?.aiAssistant as PetrinautAiAssistant | undefined;
+  const currentAssistant = () => editorProps.current?.bridgedAssistant;
   const currentVoiceCapability = () => {
     const settingsLabs = editorProps.current?.slots?.settingsLabs;
     if (!isValidElement<{ openAIVoiceConfig: unknown }>(settingsLabs)) {
@@ -1448,6 +1448,20 @@ describe("assistant selection", () => {
     y: 0,
     targetSubnetId: null,
   };
+  // The editor is mocked, so its edits are too: each is accepted and changes
+  // nothing, and the chat's mutation runner reports the document unchanged.
+  const acceptedNoOp = () => ({ applied: true, value: undefined });
+  const noOpEdits = {
+    addPlace: acceptedNoOp,
+    addTransition: acceptedNoOp,
+    addArc: acceptedNoOp,
+  };
+  /** The bridged assistant's bound handle, which must be the editor's own. */
+  const currentDocumentHandle = () => {
+    const handle = currentAssistant()?.documentHandle;
+    expect(handle).toBe(editorProps.current?.handle);
+    return handle;
+  };
   const executeCurrentCanonicalMutation = (
     toolCallId: string,
     toolName: "addPlace" | "addTransition" | "addArc",
@@ -1458,14 +1472,12 @@ describe("assistant selection", () => {
     );
     expect(tool).toBeDefined();
     return tool?.execute({
-      commands: {},
-      handle: editorProps.current?.handle,
+      edit: noOpEdits,
+      handle: currentDocumentHandle(),
       input,
-      mutations: {},
       readDiagnosticsContext: async () => "",
       signal: new AbortController().signal,
       toolCallId,
-      viewport: {},
     } as never);
   };
   const executeCurrentReadCall = (toolCallId: string) => {
@@ -1474,14 +1486,12 @@ describe("assistant selection", () => {
     );
     expect(tool).toBeDefined();
     return tool?.execute({
-      commands: {},
-      handle: editorProps.current?.handle,
+      edit: noOpEdits,
+      handle: currentDocumentHandle(),
       input: {},
-      mutations: {},
       readDiagnosticsContext: async () => "",
       signal: new AbortController().signal,
       toolCallId,
-      viewport: {},
     } as never);
   };
   const currentVoiceProvider = () => {
@@ -1658,7 +1668,8 @@ describe("assistant selection", () => {
           expect.objectContaining({ interviewBudgetLevel: level }),
         );
         const assistant = currentAssistant();
-        if (!assistant) throw new Error("Missing Brunch's assistant");
+        if (assistant === undefined)
+          throw new Error("Brunch's assistant is not bridged to the editor");
         const composer = assistant.renderComposerControl?.(context);
         if (!isValidElement<{ children: ReactNode }>(composer))
           throw new Error("Missing composer controls");
@@ -2087,8 +2098,8 @@ describe("assistant selection", () => {
     const firstOutput = (await waitFor(() =>
       executeCurrentCanonicalMutation("reused-call", "addPlace", firstInput),
     )) as { applied?: boolean } | undefined;
-    // Mutations are stubbed, so Petrinaut reports its own unchanged result; the
-    // point is that each document's call reaches Petrinaut rather than being refused.
+    // Edits are stubbed, so the chat's runner reports its own unchanged result;
+    // the point is that each document's call reaches it rather than being refused.
     expect(firstOutput).toHaveProperty("applied");
 
     const loadPetriNet = editorProps.current?.loadPetriNet as

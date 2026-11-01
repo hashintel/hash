@@ -1,5 +1,7 @@
 import { brunchEnv } from "@hashintel/brunch-agent";
 
+import type { ThinkingLevel } from "@flue/runtime";
+
 /** Bare Anthropic Sonnet id used by tests and legacy resume. */
 export const STEP_A_MODEL_ID = "claude-sonnet-4-6";
 
@@ -16,12 +18,9 @@ const thinkingLevels = [
   "high",
   "xhigh",
   "max",
-] as const;
-export type ChatThinkingLevel = (typeof thinkingLevels)[number];
+] as const satisfies readonly ThinkingLevel[];
 
-export const isChatThinkingLevel = (
-  value: string,
-): value is ChatThinkingLevel =>
+export const isChatThinkingLevel = (value: string): value is ThinkingLevel =>
   thinkingLevels.some((level) => level === value);
 
 /** Full `provider/id` specifier. Bare ids stay Anthropic so existing tests keep working. */
@@ -36,7 +35,7 @@ export const selectChatModelSpecifier = (
 /** The default thinking level belongs to the default model; an overriding model gets none unless one is set. */
 export const selectChatThinking = (
   environment: NodeJS.ProcessEnv = process.env,
-): ChatThinkingLevel | undefined => {
+): ThinkingLevel | undefined => {
   const value = environment[brunchEnv.chatThinking];
   if (!value)
     return environment[brunchEnv.chatModel] ? undefined : DEFAULT_CHAT_THINKING;

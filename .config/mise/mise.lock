@@ -188,7 +188,7 @@ url = "https://github.com/casey/just/releases/download/1.51.0/just-1.51.0-x86_64
 url_api = "https://api.github.com/repos/casey/just/releases/assets/416466221"
 
 [[tools.markdownlint-cli2]]
-version = "0.22.1"
+version = "0.24.0"
 backend = "npm:markdownlint-cli2"
 
 [[tools.node]]
@@ -293,25 +293,33 @@ checksum = "sha256:63c6a6a1cf6f1410299b1359bb68f08370e901456933d3d12f21c1ec31365
 url = "https://github.com/getsentry/sentry-cli/releases/download/2.52.0/sentry-cli-Darwin-x86_64"
 url_api = "https://api.github.com/repos/getsentry/sentry-cli/releases/assets/282142099"
 
-[[tools.taplo]]
-version = "0.10.0"
-backend = "aqua:tamasfe/taplo"
+[[tools.tombi]]
+version = "1.8.9"
+backend = "aqua:tombi-toml/tombi"
 
-[tools.taplo."platforms.linux-arm64"]
-url = "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-linux-aarch64.gz"
-url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257322597"
+[tools.tombi."platforms.linux-arm64"]
+checksum = "sha256:4862f4fea963536bfb07678bed3d005735408e700701e979e6b68b9571084de6"
+url = "https://github.com/tombi-toml/tombi/releases/download/v1.8.9/tombi-cli-1.8.9-aarch64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/tombi-toml/tombi/releases/assets/656427372"
+provenance = "github-attestations"
 
-[tools.taplo."platforms.linux-x64"]
-url = "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-linux-x86_64.gz"
-url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257322600"
+[tools.tombi."platforms.linux-x64"]
+checksum = "sha256:26d7207a4de89e5d846d5a9e5d3bc9c407f8b035f06adfdb774564bd7e440c15"
+url = "https://github.com/tombi-toml/tombi/releases/download/v1.8.9/tombi-cli-1.8.9-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/tombi-toml/tombi/releases/assets/656427416"
+provenance = "github-attestations"
 
-[tools.taplo."platforms.macos-arm64"]
-url = "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-darwin-aarch64.gz"
-url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257323110"
+[tools.tombi."platforms.macos-arm64"]
+checksum = "sha256:287d02319d42d997237cab16a9876c0c116ea654be82f31e19c10c0a24159a60"
+url = "https://github.com/tombi-toml/tombi/releases/download/v1.8.9/tombi-cli-1.8.9-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/tombi-toml/tombi/releases/assets/656427377"
+provenance = "github-attestations"
 
-[tools.taplo."platforms.macos-x64"]
-url = "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-darwin-x86_64.gz"
-url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257323116"
+[tools.tombi."platforms.macos-x64"]
+checksum = "sha256:c566db7e0d1b98b75ebdbd080d75407140039eb52a7af503e3028e318f01f8f2"
+url = "https://github.com/tombi-toml/tombi/releases/download/v1.8.9/tombi-cli-1.8.9-x86_64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/tombi-toml/tombi/releases/assets/656427371"
+provenance = "github-attestations"
 
 [[tools.typst]]
 version = "0.15.1"
@@ -338,8 +346,11 @@ url = "https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-app
 url_api = "https://api.github.com/repos/typst/typst/releases/assets/480300018"
 
 [[tools."ubi:terrastruct/d2"]]
-version = "0.7.1"
+version = "0.9.0"
 backend = "ubi:terrastruct/d2"
+
+[tools."ubi:terrastruct/d2"."platforms.macos-arm64-d2"]
+checksum = "blake3:f2105f786f3125f6f6f91681e2020ae0ebacd5885a1c0898329b5a45b6563ea9"
 
 [[tools.uv]]
 version = "0.13.4"

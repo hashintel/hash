@@ -1,7 +1,9 @@
+import type { FlowRunEventError, FlowRunStepError } from "./run-events.js";
 import type {
   FlowDataSources,
   LocalFlowRun,
   FlowInputValues,
+  StepOutput,
 } from "./types.js";
 import type {
   EntityId,
@@ -52,3 +54,22 @@ export type RunFlowWorkflowResponse = Status<{
   outputs?: LocalFlowRun["outputs"];
   stepErrors?: Status<{ stepId: string }>[];
 }>;
+
+/**
+ * How a run ended: as the event that closes its workflow's history records it, or as the workflow gives it to the
+ * activity that records the run before that event is written.
+ */
+export type FlowRunEnding =
+  | {
+      kind: "completed";
+      flowOutputs: StepOutput[];
+      stepErrors?: FlowRunStepError[];
+    }
+  | {
+      kind: "failed";
+      failure: FlowRunEventError;
+      stepErrors?: FlowRunStepError[];
+    }
+  | { kind: "cancelled" }
+  | { kind: "terminated"; reason?: string }
+  | { kind: "timedOut" };

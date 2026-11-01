@@ -64,6 +64,16 @@ import type {
  */
 export const compileFlowDefinition = async (
   unvalidatedFlowDefinition: FlowDefinition,
+  {
+    layout = true,
+  }: {
+    /**
+     * Whether to position the nodes with Petrinaut's automatic layout. A net that runs rather than one that's shown
+     * doesn't need it, and the layout can't run where ELK can't, such as in a Temporal workflow: with `false`, every
+     * node is at the origin.
+     */
+    layout?: boolean;
+  } = {},
 ): Promise<SDCPN> => {
   const flowDefinition = assertValidFlowDefinition(unvalidatedFlowDefinition);
 
@@ -119,7 +129,9 @@ export const compileFlowDefinition = async (
     [...usedSubnets.keys()].sort().map((subnetName) => {
       const { step, resolvedKinds } = usedSubnets.get(subnetName)!;
 
-      return generateActionSubnet(getActionDefinition(step), resolvedKinds);
+      return generateActionSubnet(getActionDefinition(step), resolvedKinds, {
+        layout,
+      });
     }),
   );
 
@@ -158,7 +170,7 @@ export const compileFlowDefinition = async (
     return { name: `${instance.name}::${port.name}`, color };
   };
 
-  const laidOut = await layOut({
+  const nodes = {
     places: net.places,
     transitions: net.transitions.map((transition) =>
       withKernel(transition, resolvePlace, (endpoint) =>
@@ -166,7 +178,8 @@ export const compileFlowDefinition = async (
       ),
     ),
     componentInstances: net.componentInstances,
-  });
+  };
+  const laidOut = layout ? await layOut(nodes) : nodes;
 
   /*
    * The net is built from readable keys (`p.input.prompt`, `t.startStep.1`), and every id is the Petrinaut id

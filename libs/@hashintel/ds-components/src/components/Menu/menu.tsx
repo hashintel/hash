@@ -17,7 +17,22 @@ import { TriggerPressedContext } from "../../util/trigger-pressed-context";
 import { type Position } from "../Tooltip/tooltip";
 import { collectSelectedIds } from "./menu-util";
 
-export type MenuItem = Item & { selected?: boolean };
+export type MenuItem = Item & {
+  /** Whether the item is marked as the current choice. */
+  selected?: boolean;
+};
+
+// Docs-only markers: render nothing, exist so react-docgen can surface the
+// `items` entry shapes in the docs prop tables.
+export const MenuItemDoc = (_props: MenuItem): null => null;
+export const MenuItemGroupDoc = (_props: {
+  /** Identifies the group */
+  id: string;
+  /** Rendered as an uppercase label above the group's items */
+  label: React.ReactNode;
+  /** The group's entries — items and custom rows; groups don't nest */
+  items: MenuItem[];
+}): null => null;
 
 export const Menu = ({
   items,
@@ -44,10 +59,16 @@ export const Menu = ({
    * supply your own divider if needed.
    */
   footer?: React.ReactNode;
-  /** Swap the header/footer to the opposite edge when the menu opens upward. */
+  /**
+   * Whether to swap the header and footer to the opposite edge when the menu
+   * opens upward.
+   */
   swapHeaderFooterOnFlip?: boolean;
   onOpen?: (open: boolean) => void;
-  /** Key events from the open menu */
+  /**
+   * Called with key events from the open menu, plus the highlighted item's
+   * id (or `null` when none).
+   */
   onKeyDown?: (
     event: React.KeyboardEvent,
     highlightedValue: string | null,
@@ -107,3 +128,6 @@ export const Menu = ({
     </ArkMenu.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+Menu.displayName = "Menu";

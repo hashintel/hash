@@ -13,8 +13,21 @@ const config: CodegenConfig = {
         noSchemaStitching: true,
       },
     },
+    "./src/graphql/schema-types.gen.ts": {
+      plugins: ["typescript", "typescript-resolvers"],
+      hooks: {
+        afterOneFileWrite: ["oxfmt --write --ignore-path /dev/null"],
+      },
+      config: {
+        noSchemaStitching: true,
+        ...baseGraphQlCodegenConfig,
+      },
+    },
     "./src/graphql/api-types.gen.ts": {
-      plugins: ["typescript", "typescript-resolvers", "typescript-operations"],
+      plugins: [
+        { add: { content: 'export * from "./schema-types.gen";' } },
+        "typescript-operations",
+      ],
       documents: [
         "../../libs/@local/hash-isomorphic-utils/src/graphql/queries/**/*.ts",
       ],
@@ -22,8 +35,8 @@ const config: CodegenConfig = {
         afterOneFileWrite: ["oxfmt --write --ignore-path /dev/null"],
       },
       config: {
-        noSchemaStitching: true,
         ...baseGraphQlCodegenConfig,
+        importSchemaTypesFrom: "./src/graphql/schema-types.gen.ts",
       },
     },
   },

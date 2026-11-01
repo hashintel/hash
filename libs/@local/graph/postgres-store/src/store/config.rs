@@ -1,6 +1,6 @@
 use core::{fmt, num::NonZero, pin::Pin};
 
-use hash_secret::Secret;
+use hash_crypto::Secret;
 use tokio_postgres::Config;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
@@ -188,7 +188,7 @@ impl Default for DatabasePoolConfig {
 
 #[cfg(test)]
 mod tests {
-    use hash_secret::Secret;
+    use hash_crypto::Secret;
     use tokio_postgres::config::Host;
 
     use super::{DatabaseConnectionInfo, DatabaseType};

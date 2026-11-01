@@ -10,6 +10,7 @@ import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
 import { StatusCode } from "@local/status";
 
+import { createProposedEntity } from "../../shared/testing-utilities/create-proposed-entity.js";
 import { findAction } from "./find-action.js";
 
 import type {
@@ -22,7 +23,6 @@ import type { QueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import type { FilterCondition } from "@local/hash-isomorphic-utils/flows/filter-condition";
 import type {
   Payload,
-  ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
 
@@ -87,9 +87,11 @@ const hasSummary = (summary: string): FilterCondition => ({
   ],
 });
 
-const entities = ["A", "B", "B"].map(
-  (summary, index) =>
-    ({ summary, localEntityId: `entity-${index}` }) as ProposedEntity,
+const entities = ["A", "B", "B"].map((summary, index) =>
+  createProposedEntity({
+    summary,
+    localEntityId: `entity-${index}`,
+  }),
 );
 
 const storedEntities = async (): Promise<Payload> => ({
@@ -168,13 +170,11 @@ describe("findAction", () => {
         },
       },
     } as unknown as Awaited<ReturnType<typeof queryEntityTypeSubgraph>>);
-    const proposed = ["person", "startup", "company"].map(
-      (name) =>
-        ({
-          localEntityId: name,
-          entityTypeIds: [typeUrl(name, 1)],
-          properties: {},
-        }) as unknown as ProposedEntity,
+    const proposed = ["person", "startup", "company"].map((name) =>
+      createProposedEntity({
+        localEntityId: name,
+        entityTypeIds: [typeUrl(name, 1)],
+      }),
     );
 
     const result = await run(

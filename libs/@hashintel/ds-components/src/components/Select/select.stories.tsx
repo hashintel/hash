@@ -95,7 +95,7 @@ const Controlled = (
     items?: SingleSelectProps["items"];
   },
 ) => {
-  const { required: _required, ...rest } = props;
+  const { required: _required, clearable: _clearable, ...rest } = props;
   const [value, setValue] = useState<string | null | undefined>(
     props.value ?? "",
   );
@@ -104,7 +104,7 @@ const Controlled = (
       <Select
         {...(rest as Omit<
           SingleSelectProps,
-          "value" | "onChange" | "items" | "required"
+          "value" | "onChange" | "items" | "required" | "clearable"
         >)}
         required
         items={props.items ?? sampleItems}
@@ -123,33 +123,16 @@ const Controlled = (
   );
 };
 
-const ClearableSelect = (
-  props: Omit<SingleSelectProps, "clearable" | "onChange" | "items"> & {
-    items?: SingleSelectProps["items"];
-  },
-) => {
-  const { required: _required, ...rest } = props;
-  const [value, setValue] = useState<string | null | undefined>(
-    props.value ?? "",
-  );
-  return (
-    <Select
-      {...rest}
-      items={props.items ?? sampleItems}
-      value={value}
-      onChange={(val) => setValue(val)}
-      clearable
-    />
-  );
-};
-
 const ConnectedPair = ({
   left,
   right,
   size,
   ...args
 }: Partial<
-  Omit<SingleSelectProps, "items" | "value" | "onChange" | "required">
+  Omit<
+    SingleSelectProps,
+    "items" | "value" | "onChange" | "required" | "clearable"
+  >
 > & {
   left: Pick<SelectProps, "invalid" | "disabled" | "readonly" | "variant">;
   right: Pick<SelectProps, "invalid" | "disabled" | "readonly" | "variant">;
@@ -221,14 +204,12 @@ const subheadingStyle: React.CSSProperties = {
 const stateRows: Array<{
   key: string;
   label: string;
-  clearable?: boolean;
   grouped?: boolean;
   extraProps: Partial<SingleSelectProps>;
 }> = [
   { key: "disabled", label: "Disabled", extraProps: { disabled: true } },
   { key: "invalid", label: "Invalid", extraProps: { invalid: true } },
   { key: "loading", label: "Loading", extraProps: { loading: true } },
-  { key: "clearable", label: "Clearable", clearable: true, extraProps: {} },
   {
     key: "placeholder-required",
     label: "Placeholder + required",
@@ -251,6 +232,11 @@ const stateRows: Array<{
     key: "searchable",
     label: "Searchable",
     extraProps: { searchable: true },
+  },
+  {
+    key: "long-value",
+    label: "A long selected value that truncates",
+    extraProps: { width: "sm" },
   },
   {
     key: "hide-arrow",
@@ -347,17 +333,7 @@ export const Default: Story = {
                       ? row.label
                       : "";
                 const cellKey = `${row.key}-${col.key}`;
-                return row.clearable ? (
-                  <ClearableSelect
-                    key={cellKey}
-                    {...args}
-                    items={itemsForRow}
-                    value={value}
-                    variant={variant}
-                    readonly={col.readonly}
-                    {...row.extraProps}
-                  />
-                ) : (
+                return (
                   <Controlled
                     key={cellKey}
                     {...args}
@@ -534,7 +510,7 @@ const CustomRenderDemo = (args: SingleSelectProps) => {
   const [nakedValues, setNakedValues] = useState<string[]>(["apple", "cherry"]);
   const spreadArgs = args as Omit<
     SingleSelectProps,
-    "items" | "value" | "onChange" | "required"
+    "items" | "value" | "onChange" | "required" | "clearable"
   >;
 
   return (
@@ -714,6 +690,41 @@ export const Widths: Story = {
           ))}
         </div>
       ))}
+    </div>
+  ),
+};
+
+// A required select opts into clearing with `clearable`. It stays required:
+// once cleared it is empty, so this example passes `invalid` to show that.
+const RequiredClearableSelect = ({ size }: { size: FormInputSize }) => {
+  const [value, setValue] = useState<string | null | undefined>("apple");
+  return (
+    <Select
+      items={sampleItems}
+      size={size}
+      width="md"
+      required
+      clearable
+      invalid={value == null}
+      placeholder="Pick a fruit…"
+      value={value}
+      onChange={setValue}
+    />
+  );
+};
+
+export const RequiredClearable: Story = {
+  render: () => (
+    <div className={sectionStyle}>
+      <div className={groupStyle}>
+        <h3 style={headingStyle}>Required + clearable</h3>
+        {formInputSizes.map((size) => (
+          <Fragment key={size}>
+            <span style={subheadingStyle}>{size}</span>
+            <RequiredClearableSelect size={size} />
+          </Fragment>
+        ))}
+      </div>
     </div>
   ),
 };

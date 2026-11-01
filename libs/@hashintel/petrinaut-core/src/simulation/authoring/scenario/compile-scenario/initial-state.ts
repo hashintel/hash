@@ -93,7 +93,11 @@ export const compileCodeModeInitialState = (args: {
     });
     return { marking, errors };
   }
-  if (typeof evaluated.value !== "object" || Array.isArray(evaluated.value)) {
+  if (
+    typeof evaluated.value !== "object" ||
+    evaluated.value === null ||
+    Array.isArray(evaluated.value)
+  ) {
     errors.push({
       itemId: "__code__",
       message: `Initial state code must return an object, got ${typeof evaluated.value}.`,

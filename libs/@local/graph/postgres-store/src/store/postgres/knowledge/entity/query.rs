@@ -9,7 +9,7 @@ use tracing::instrument;
 use type_system::{
     knowledge::{
         entity::{
-            Entity, EntityMetadata, LinkData,
+            Entity, EntityMetadata, Link, LinkEndpoint,
             id::{EntityId, EntityRecordId},
             metadata::EntityTemporalMetadata,
         },
@@ -115,21 +115,25 @@ impl QueryRecordDecode for Entity {
                     Some(left_entity_uuid),
                     Some(right_web_id),
                     Some(right_entity_uuid),
-                ) => Some(LinkData {
-                    left_entity_id: EntityId {
-                        web_id: left_web_id,
-                        entity_uuid: left_entity_uuid,
-                        draft_id: None,
+                ) => Some(Link::Directed {
+                    source: LinkEndpoint {
+                        entity_id: EntityId {
+                            web_id: left_web_id,
+                            entity_uuid: left_entity_uuid,
+                            draft_id: None,
+                        },
+                        confidence: row.get(indices.left_entity_confidence),
+                        provenance: row.get(indices.left_entity_provenance),
                     },
-                    right_entity_id: EntityId {
-                        web_id: right_web_id,
-                        entity_uuid: right_entity_uuid,
-                        draft_id: None,
+                    target: LinkEndpoint {
+                        entity_id: EntityId {
+                            web_id: right_web_id,
+                            entity_uuid: right_entity_uuid,
+                            draft_id: None,
+                        },
+                        confidence: row.get(indices.right_entity_confidence),
+                        provenance: row.get(indices.right_entity_provenance),
                     },
-                    left_entity_confidence: row.get(indices.left_entity_confidence),
-                    right_entity_confidence: row.get(indices.right_entity_confidence),
-                    left_entity_provenance: row.get(indices.left_entity_provenance),
-                    right_entity_provenance: row.get(indices.right_entity_provenance),
                 }),
                 (None, None, None, None) => None,
                 _ => unreachable!(

@@ -1,0 +1,30 @@
+/*
+ * Code blocks, highlighted by shiki with one theme per colour scheme: the
+ * light colours are the defaults and the dark ones take over with the
+ * document's theme, so a switch needs no second render.
+ */
+
+@layer starlight.content {
+  .sl-markdown-content pre.shiki {
+    --pnd-code-bg: var(--pnd-surface, var(--sl-color-gray-6));
+    border: 1px solid var(--sl-color-hairline-light);
+    border-radius: var(--pnd-radius, 0.5rem);
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    background-color: var(--pnd-code-bg) !important;
+    font-size: var(--sl-text-code);
+    line-height: var(--sl-line-height);
+  }
+  .sl-markdown-content pre.shiki code {
+    display: block;
+    padding: 0;
+    background: none;
+    font-size: inherit;
+  }
+  .sl-markdown-content pre.shiki span {
+    color: var(--shiki-light);
+  }
+  [data-theme="dark"] .sl-markdown-content pre.shiki span {
+    color: var(--shiki-dark);
+  }
+}

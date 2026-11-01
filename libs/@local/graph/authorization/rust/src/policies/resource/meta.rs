@@ -232,8 +232,8 @@ mod tests {
         check_deserialization_error::<ResourceConstraint>(
             json!({
                 "type": "meta",
-                "webId": WebId::new(Uuid::new_v4()),
-                "id": PolicyId::new(Uuid::new_v4()),
+                "webId": WebId::new(Uuid::now_v7()),
+                "id": PolicyId::new(Uuid::now_v7()),
             }),
             "data did not match any variant of untagged enum MetaResourceConstraint",
         )?;
@@ -262,8 +262,8 @@ mod tests {
         check_deserialization_error::<ResourceConstraint>(
             json!({
                 "type": "meta",
-                "webId": WebId::new(Uuid::new_v4()),
-                "id": PolicyId::new(Uuid::new_v4()),
+                "webId": WebId::new(Uuid::now_v7()),
+                "id": PolicyId::new(Uuid::now_v7()),
             }),
             "data did not match any variant of untagged enum MetaResourceConstraint",
         )?;
@@ -273,7 +273,7 @@ mod tests {
 
     #[test]
     fn constraint_in_web() -> Result<(), Box<dyn Error>> {
-        let web_id = WebId::new(Uuid::new_v4());
+        let web_id = WebId::new(Uuid::now_v7());
         check_resource(
             Some(ResourceConstraint::Meta(MetaResourceConstraint::Web {
                 web_id,
@@ -293,8 +293,8 @@ mod tests {
         check_deserialization_error::<ResourceConstraint>(
             json!({
                 "type": "meta",
-                "webId": WebId::new(Uuid::new_v4()),
-                "id": PolicyId::new(Uuid::new_v4()),
+                "webId": WebId::new(Uuid::now_v7()),
+                "id": PolicyId::new(Uuid::now_v7()),
             }),
             "data did not match any variant of untagged enum MetaResourceConstraint",
         )?;
@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn constraint_in_web_with_action() -> Result<(), Box<dyn Error>> {
-        let web_id = WebId::new(Uuid::new_v4());
+        let web_id = WebId::new(Uuid::now_v7());
         check_resource(
             Some(ResourceConstraint::Meta(MetaResourceConstraint::Web {
                 web_id,
@@ -326,8 +326,8 @@ mod tests {
         check_deserialization_error::<ResourceConstraint>(
             json!({
                 "type": "meta",
-                "webId": WebId::new(Uuid::new_v4()),
-                "id": PolicyId::new(Uuid::new_v4()),
+                "webId": WebId::new(Uuid::now_v7()),
+                "id": PolicyId::new(Uuid::now_v7()),
             }),
             "data did not match any variant of untagged enum MetaResourceConstraint",
         )?;

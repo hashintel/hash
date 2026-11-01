@@ -50,7 +50,7 @@ The helper speaks a Pi-style JSONL protocol to the bridge. Commands are `{ "id"?
 
 The persona stops by its own rule: when the person has what they came for, when the conversation is going nowhere, or when they run out of patience. It then runs `persona end` and tells you why it stopped. You, or an agent supervising the run, can force a stop at any point, for example after a chosen number of turns, with `<run>/bin/persona end`, or with Ctrl-C in the launcher when the agent runs in its own pane.
 
-**Persona runs have no automatic accounting cutoff.** The launcher disables the campaign accounting wrapper for Brunch even if `BRUNCH_STEP_A_ACCOUNTING` was inherited. There is no built-in turn-count limit. A live-provider run requires explicit model and spend authorization; the existence of this command grants none.
+**Persona runs have no automatic accounting cutoff.** The launcher disables the campaign accounting wrapper for Brunch even if `BRUNCH_STEP_A_ACCOUNTING` was inherited. `--max-messages <n>` stops the run once Brunch has replied to the persona's nth message; the case's opening is not counted, and the run packet is written as on any other stop. A live-provider run requires explicit model and spend authorization; the existence of this command grants none.
 
 ## Guidance provenance
 
@@ -123,6 +123,7 @@ Each launch prints its directory under `apps/brunch-agent/.data-wipe-me/persona-
 - `persona-brief.md`, `resume-brief.md` and `bin/persona`: the agent's private brief, latest resume notice and bridge helper.
 - `bridge-log.jsonl`: every utterance Brunch admitted, with the persona agent settings that wrote each persona utterance (empty when you started the agent yourself), used to reconcile resume; and every destructive edit the launcher allowed, with the items its approval panel listed.
 - `evidence/`: canonical snapshot and derived transcript, tool trace, compiled `ledger.md` with its `ledger.json` commits, and bound `net.json`; refreshed after completed turns and on shutdown.
+- `evidence/packet.json` and `packet.md`: the run packet, written on shutdown (see [Run packets](../README.md#run-packets)).
 - Service logs, only for services this launch started.
 
 The persistent Chrome profile lives outside the checkout; its path is in `run.json`. Older runs may also contain `pi/`, `persona-input.md`, `usage-ledger.json` or `attempt-ledger.md`; leave them untouched as historical evidence.

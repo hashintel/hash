@@ -12,7 +12,7 @@
  * internal; tests import it by relative path.
  *
  * "The WebGPU backend" in
- * `libs/@local/petrinaut-arch-docs/content/simulation/performance.mdx` covers
+ * `libs/@hashintel/petrinaut-core/src/simulation/performance.mdx` covers
  * why this shape (whole-experiment dispatch, on-GPU metric reduction) is the
  * only GPU design that is faster than the CPU rather than slower.
  */

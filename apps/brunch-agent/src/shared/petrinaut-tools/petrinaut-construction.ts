@@ -6,16 +6,15 @@ import {
   netReaderInputSchema,
   type NetReaderLevel,
   netReaderToolNames,
+  type BrowserToolEnvelope,
+  type ClientToolResult,
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-type CanonicalJson =
-  | string
-  | number
-  | boolean
-  | null
-  | CanonicalJson[]
-  | { [key: string]: CanonicalJson };
+import type { JsonValue } from "@flue/runtime";
+
+/** What the bound browser settles a call with, without its correlation. */
+type BrowserToolResult = Pick<ClientToolResult, "output" | "metadata">;
 
 /** Issues one call to the bound browser and resolves with its settled result. */
 export type BrowserToolExecutor = (call: {
@@ -23,20 +22,17 @@ export type BrowserToolExecutor = (call: {
   readonly input: unknown;
   readonly toolCallId: string;
   readonly signal?: AbortSignal;
-}) => Promise<{ readonly output: unknown; readonly metadata?: unknown }>;
+}) => Promise<BrowserToolResult>;
 
 /** The browser's output goes to the model; the envelope and its metadata stay host-only. */
-export const browserResultEnvelope = (result: {
-  readonly output: unknown;
-  readonly metadata?: unknown;
-}) =>
+export const browserResultEnvelope = (result: BrowserToolResult) =>
   JSON.parse(
     JSON.stringify({
       brunchBrowserResult: true,
       output: result.output,
       ...(result.metadata === undefined ? {} : { metadata: result.metadata }),
-    }),
-  ) as CanonicalJson;
+    } satisfies BrowserToolEnvelope),
+  ) as BrowserToolEnvelope & JsonValue;
 
 /** The browser runs `getLatestNetDefinition` and returns only the requested view. */
 export const netReaderTools = (execute: BrowserToolExecutor) =>

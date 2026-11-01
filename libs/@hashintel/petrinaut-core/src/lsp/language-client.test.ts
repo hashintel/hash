@@ -190,3 +190,29 @@ describe("createLanguageClient diagnostics", () => {
     expect(snapshot.errorCount).toBe(2);
   });
 });
+
+describe("createLanguageClient run gate", () => {
+  it("leaves a place visualizer's errors out of the error count", () => {
+    const { transport, publish } = createFakeTransport();
+    const client = createLanguageClient({ transport });
+
+    publish([
+      {
+        uri: "inmemory://sdcpn/places/p1/visualizer.jsx",
+        diagnostics: [diagnostic("misspelt attribute")],
+      },
+      {
+        uri: "inmemory://sdcpn/transitions/t1/lambda.ts",
+        diagnostics: [diagnostic("not a boolean")],
+      },
+    ]);
+
+    // Both documents keep their diagnostics; only the lambda's gates a run.
+    expect(client.diagnostics.get()).toMatchObject({ total: 2, errorCount: 1 });
+    expect(
+      client.diagnostics
+        .get()
+        .byUri.get("inmemory://sdcpn/places/p1/visualizer.jsx"),
+    ).toHaveLength(1);
+  });
+});

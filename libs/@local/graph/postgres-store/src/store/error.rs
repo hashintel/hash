@@ -1,5 +1,7 @@
 use core::{error::Error, fmt};
 
+use type_system::ontology::VersionedUrl;
+
 #[derive(Debug)]
 pub struct StoreError;
 
@@ -94,3 +96,44 @@ impl fmt::Display for OntologyTypeIsNotOwned {
 }
 
 impl Error for OntologyTypeIsNotOwned {}
+
+/// An entity type that would let a link point to a link.
+#[derive(Debug)]
+#[must_use]
+pub enum LinkToLinkConstraint {
+    /// The entity type allows the link type `destination_id` as a link destination.
+    Destination {
+        entity_type_id: VersionedUrl,
+        destination_id: VersionedUrl,
+    },
+    /// The entity type is a link type and declares the link `link_type_id`.
+    Source {
+        entity_type_id: VersionedUrl,
+        link_type_id: VersionedUrl,
+    },
+}
+
+impl fmt::Display for LinkToLinkConstraint {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Destination {
+                entity_type_id,
+                destination_id,
+            } => write!(
+                fmt,
+                "the entity type `{entity_type_id}` allows the link type `{destination_id}` as a \
+                 link destination, and links to links are not supported yet"
+            ),
+            Self::Source {
+                entity_type_id,
+                link_type_id,
+            } => write!(
+                fmt,
+                "the link type `{entity_type_id}` declares the link `{link_type_id}`, and links \
+                 to links are not supported yet"
+            ),
+        }
+    }
+}
+
+impl Error for LinkToLinkConstraint {}

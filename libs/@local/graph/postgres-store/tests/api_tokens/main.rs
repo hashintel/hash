@@ -18,6 +18,7 @@ use core::{assert_matches, error::Error, ops::ControlFlow, pin::pin, time::Durat
 
 use error_stack::Report;
 use futures::lock::Mutex;
+use hash_crypto::Secret;
 use hash_graph_authentication::api_token::{
     ApiTokenEncryptionKey, ApiTokenIssuer, ApiTokenProvider, AuthenticateApiToken, Environment,
     HashedApiToken,
@@ -30,8 +31,8 @@ use hash_graph_store::{
     api_token::{
         ApiTokenAuthenticationError, ApiTokenCredential, ApiTokenEncryptedSecretHash,
         ApiTokenEncryptionKeyId, ApiTokenId, ApiTokenMetadata, ApiTokenName,
-        ApiTokenRevocationError, ApiTokenSecretHash, ApiTokenStore as _, ApiTokenType,
-        ApiTokenVerificationError, ApiTokenVersion, CreateApiTokenParams,
+        ApiTokenRevocationError, ApiTokenStore as _, ApiTokenType, ApiTokenVerificationError,
+        ApiTokenVersion, CreateApiTokenParams,
     },
     email_subscription::{EmailSubscriptionError, EmailSubscriptionProvider},
     identity_provider::{IdentityDeletion, IdentityProvider, IdentityProviderError},
@@ -42,7 +43,6 @@ use hash_middleware::authentication::{
     provider::AuthenticationProvider,
     request::{AuthenticationError, AuthenticationErrorKind},
 };
-use hash_secret::Secret;
 use http::{HeaderMap, HeaderValue, header::AUTHORIZATION};
 use pretty_assertions::assert_eq;
 use time::OffsetDateTime;
@@ -86,13 +86,13 @@ fn token_params(
     lifetime: Option<Duration>,
 ) -> Result<CreateApiTokenParams, Box<dyn Error>> {
     Ok(CreateApiTokenParams {
-        token_id: ApiTokenId::new(Uuid::new_v4()),
+        token_id: ApiTokenId::new(Uuid::now_v7()),
         token_type: ApiTokenType::User,
         version: ApiTokenVersion::V0,
         user_id,
         name: ApiTokenName::new("ci".to_owned())?,
         lifetime,
-        encryption_key_id: ApiTokenEncryptionKeyId::new(Uuid::new_v4()),
+        encryption_key_id: ApiTokenEncryptionKeyId::new(Uuid::now_v7()),
         encrypted_secret_hash: ApiTokenEncryptedSecretHash::new([7; 60]),
     })
 }
@@ -206,7 +206,7 @@ async fn list_other_web() -> Result<(), Box<dyn Error>> {
 
     assert!(
         store
-            .list_api_tokens(WebId::new(Uuid::new_v4()))
+            .list_api_tokens(WebId::new(Uuid::now_v7()))
             .await?
             .is_empty(),
         "another web should not list the token"
@@ -333,7 +333,7 @@ async fn revoke_other_web() -> Result<(), Box<dyn Error>> {
     let token = create_token(&mut store, user_id, Some(LIFETIME)).await?;
 
     let result = store
-        .revoke_api_token(WebId::new(Uuid::new_v4()), token.token_id)
+        .revoke_api_token(WebId::new(Uuid::now_v7()), token.token_id)
         .await;
 
     assert_matches!(
@@ -581,7 +581,7 @@ async fn authenticate_unknown() -> Result<(), Box<dyn Error>> {
     create_token(&mut store, user_id, Some(LIFETIME)).await?;
 
     let result = store
-        .authenticate_api_token(ApiTokenId::new(Uuid::new_v4()), accept)
+        .authenticate_api_token(ApiTokenId::new(Uuid::now_v7()), accept)
         .await;
 
     assert_matches!(
@@ -932,9 +932,7 @@ impl AuthenticateApiToken for TransactionTokens<'_, '_> {
 
 /// Issues a token for `user_id`, records it, and returns its string.
 async fn record_issued(store: &mut Store<'_>, user_id: UserId) -> Result<String, Box<dyn Error>> {
-    let generated = issuer()
-        .issue(user_id, ApiTokenName::new("ci".to_owned())?, Some(LIFETIME))
-        .expect("the random number generator should provide bytes");
+    let generated = issuer().issue(user_id, ApiTokenName::new("ci".to_owned())?, Some(LIFETIME))?;
     store.create_api_token(generated.params).await?;
     Ok(generated.token.to_secret().expose().to_owned())
 }
@@ -987,10 +985,15 @@ async fn provider_wrong_secret() -> Result<(), Box<dyn Error>> {
     let (user_id, web_id) = user_with_web(&mut store).await?;
     let token = record_issued(&mut store, user_id).await?;
     let hashed: HashedApiToken = token.parse()?;
-    let other_secret = key().encrypt(
-        ApiTokenSecretHash::new([1; 32]),
-        &hashed.associated_data(ActorEntityUuid::from(user_id), web_id),
+    let other = HashedApiToken::from(
+        issuer()
+            .issue(user_id, ApiTokenName::new("other".to_owned())?, None)?
+            .token,
     );
+    let other_secret = key().encrypt(
+        other.secret_hash(),
+        &hashed.associated_data(ActorEntityUuid::from(user_id), web_id),
+    )?;
     store
         .as_client()
         .execute(
@@ -1051,7 +1054,7 @@ async fn provider_unknown_key() -> Result<(), Box<dyn Error>> {
         .as_client()
         .execute(
             "UPDATE api_token SET encryption_key_id = $2 WHERE token_id = $1",
-            &[&hashed.token_id(), &Uuid::new_v4()],
+            &[&hashed.token_id(), &Uuid::now_v7()],
         )
         .await?;
 

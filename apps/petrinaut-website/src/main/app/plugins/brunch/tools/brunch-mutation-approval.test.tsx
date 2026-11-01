@@ -15,6 +15,7 @@ import {
 
 import {
   createBrunchMutationAdmission,
+  createBrunchMutationApprovalComponents,
   createBrunchMutationApprovalCoordinator,
   createBrunchMutationApprovalInteractiveTools,
   createBrunchMutationApprovalWidget,
@@ -58,7 +59,10 @@ const netWith = (initial: SDCPNInput) =>
 describe("Brunch destructive edit approval", () => {
   test("covers every destructive canonical tool and no constructive one", () => {
     const toolNames = createBrunchMutationApprovalInteractiveTools(
-      createBrunchMutationApprovalCoordinator(),
+      createBrunchMutationApprovalComponents(
+        createBrunchMutationApprovalCoordinator(),
+      ),
+      new Set(),
     ).map(({ toolName }) => toolName);
     expect(toolNames).toContain("deleteItemsByIds");
     expect(toolNames).toContain("removeArc");
@@ -208,27 +212,30 @@ describe("Brunch destructive edit approval", () => {
     expect(coordinator.hasPending("delete-3")).toBe(true);
   });
 
-  test("changes its snapshot for every pending call, including calls of the same tool", () => {
+  test("publishes a new pending snapshot for every change, including calls of the same tool", () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
-    const idle = coordinator.getVersion();
+    const idle = coordinator.getPendingSnapshot();
     void coordinator.request({
       toolCallId: "remove-1",
       toolName: "removePlace",
       signal: new AbortController().signal,
     });
-    const waiting = coordinator.getVersion();
+    const waiting = coordinator.getPendingSnapshot();
     expect(waiting).not.toBe(idle);
-    expect(coordinator.getVersion()).toBe(waiting);
+    expect([...waiting]).toEqual(["remove-1"]);
+    expect(coordinator.getPendingSnapshot()).toBe(waiting);
     void coordinator.request({
       toolCallId: "remove-2",
       toolName: "removePlace",
       signal: new AbortController().signal,
     });
-    const bothWaiting = coordinator.getVersion();
+    const bothWaiting = coordinator.getPendingSnapshot();
     expect(bothWaiting).not.toBe(waiting);
+    expect([...bothWaiting]).toEqual(["remove-1", "remove-2"]);
     coordinator.resolve("remove-1", "deny");
-    expect(coordinator.getVersion()).not.toBe(bothWaiting);
-    expect(coordinator.hasPending("remove-2")).toBe(true);
+    expect([...coordinator.getPendingSnapshot()]).toEqual(["remove-2"]);
+    // An earlier snapshot never changes under a reader.
+    expect([...bothWaiting]).toEqual(["remove-1", "remove-2"]);
     coordinator.close();
   });
 

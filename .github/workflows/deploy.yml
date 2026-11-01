@@ -159,14 +159,6 @@ jobs:
               ecs:        []
             },
             {
-              package:    "@apps/petrinaut-opt",
-              service:    "petrinaut-opt",
-              push:       ["ecr", "ghcr"],
-              dockerfile: "apps/petrinaut-opt/docker/Dockerfile",
-              context:    ".",
-              ecs: [{ service: "petrinaut-opt", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-petrinaut-opt" }]
-            },
-            {
               service:    "kratos",
               push:       ["ecr"],
               dockerfile: "infra/compose/kratos/Dockerfile",

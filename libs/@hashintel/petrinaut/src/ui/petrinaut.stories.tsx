@@ -2,19 +2,13 @@ import { useMemo, useState, useEffect } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import {
-  sirModel,
-  supplyChainProfit,
-} from "@hashintel/petrinaut-core/examples";
-import { createServicePetrinautOptimization } from "@local/petrinaut-optimizer-client";
+import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
   createJsonDocHandle,
-  definePetrinautAiInteractiveTool,
   type PetrinautHandleCapabilities,
   type SDCPN,
 } from "../main";
-import { PetrinautOptimizationContext } from "../react/optimization-context";
 import { useStoreSelector } from "../react/use-store";
 import { Petrinaut } from "../ui/petrinaut";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
@@ -26,10 +20,10 @@ import {
   describeRefusal,
   type PluginDocumentReader,
 } from "./plugins/plugin-access";
-import { createStorybookAiTransport } from "./views/Editor/panels/create-storybook-ai-transport";
-
-import type { PetrinautAiMessage } from "./views/Editor/panels/ai-assistant-panel";
-import type { ChatTransport, UIMessageChunk } from "ai";
+import {
+  AssistantPanelTitle,
+  useAssistantPanel,
+} from "./plugins/plugin-assistant";
 
 const emptySDCPN: SDCPN = {
   places: [],
@@ -38,157 +32,6 @@ const emptySDCPN: SDCPN = {
   parameters: [],
   differentialEquations: [],
 };
-
-const hostInteractiveToolWidgetStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-  padding: "3",
-  border: "[1px solid #bee6ff]",
-  borderRadius: "lg",
-  background: "[#eff9ff]",
-});
-
-const hostInteractiveToolOptionsStyle = css({
-  display: "flex",
-  gap: "2",
-});
-
-const hostInteractiveToolStoryStyle = css({
-  height: "[100vh]",
-  width: "[100vw]",
-});
-
-type ReviewDepthInput = {
-  prompt: string;
-  options: [string, string];
-};
-
-type ReviewDepthOutput = {
-  choice: string;
-};
-
-const parseReviewDepthInput = (raw: unknown): ReviewDepthInput => {
-  if (
-    typeof raw !== "object" ||
-    raw === null ||
-    typeof (raw as { prompt?: unknown }).prompt !== "string" ||
-    !Array.isArray((raw as { options?: unknown }).options) ||
-    (raw as { options: unknown[] }).options.length !== 2 ||
-    !(raw as { options: unknown[] }).options.every(
-      (option) => typeof option === "string",
-    )
-  ) {
-    throw new Error("Invalid review-depth input");
-  }
-
-  return raw as ReviewDepthInput;
-};
-
-const parseReviewDepthOutput = (raw: unknown): ReviewDepthOutput => {
-  if (
-    typeof raw !== "object" ||
-    raw === null ||
-    typeof (raw as { choice?: unknown }).choice !== "string"
-  ) {
-    throw new Error("Invalid review-depth output");
-  }
-
-  return raw as ReviewDepthOutput;
-};
-
-const reviewDepthTool = definePetrinautAiInteractiveTool({
-  toolName: "chooseReviewDepth",
-  inputSchema: { parse: parseReviewDepthInput },
-  outputSchema: { parse: parseReviewDepthOutput },
-  component: ({ input, state, submit, submittedOutput, toolCallId }) => (
-    <div className={hostInteractiveToolWidgetStyle}>
-      <strong>{input.prompt}</strong>
-      <small>Tool call: {toolCallId}</small>
-      {state === "awaiting" ? (
-        <div className={hostInteractiveToolOptionsStyle}>
-          {input.options.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => submit({ choice: option })}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <span>Submitted: {submittedOutput.choice}</span>
-      )}
-    </div>
-  ),
-});
-
-const streamStoryChunks = (
-  chunks: UIMessageChunk[],
-): ReadableStream<UIMessageChunk> =>
-  new ReadableStream({
-    start(controller) {
-      for (const chunk of chunks) {
-        controller.enqueue(chunk);
-      }
-      controller.close();
-    },
-  });
-
-const getReviewDepthOutput = (
-  messages: PetrinautAiMessage[],
-): ReviewDepthOutput | undefined => {
-  for (const message of messages) {
-    for (const part of message.parts) {
-      if (
-        part.type === "dynamic-tool" &&
-        part.toolName === reviewDepthTool.toolName &&
-        part.state === "output-available"
-      ) {
-        return parseReviewDepthOutput(part.output);
-      }
-    }
-  }
-  return undefined;
-};
-
-const createHostInteractiveToolTransport =
-  (): ChatTransport<PetrinautAiMessage> => ({
-    reconnectToStream: () => Promise.resolve(null),
-    sendMessages: ({ messages }) => {
-      const submittedOutput = getReviewDepthOutput(messages);
-
-      return Promise.resolve(
-        streamStoryChunks(
-          submittedOutput
-            ? [
-                { type: "start-step" },
-                { type: "text-start", id: "host-tool-follow-up" },
-                {
-                  type: "text-delta",
-                  id: "host-tool-follow-up",
-                  delta: `Thanks — I'll use the ${submittedOutput.choice.toLowerCase()} review.`,
-                },
-                { type: "text-end", id: "host-tool-follow-up" },
-              ]
-            : [
-                { type: "start-step" },
-                {
-                  type: "tool-input-available",
-                  dynamic: true,
-                  toolCallId: "storybook-review-depth-1",
-                  toolName: reviewDepthTool.toolName,
-                  input: {
-                    prompt: "How deeply should I review this net?",
-                    options: ["Quick scan", "Detailed review"],
-                  },
-                },
-              ],
-        ),
-      );
-    },
-  });
 
 const barePetriNet: SDCPN = {
   places: [
@@ -453,63 +296,6 @@ export const Default: Story = {
   ),
 };
 
-/**
- * Whether the host serves a real Petrinaut Optimizer behind the Storybook
- * dev proxy; the dev task's `--with-optimizer-service` flag sets it.
- */
-const realOptimizerEnabled =
-  (import.meta as { env?: Record<string, string | undefined> }).env?.[
-    "VITE_PETRINAUT_OPT_PROVIDER"
-  ] === "service";
-
-const realOptimizerGuidanceStyle = css({
-  padding: "6",
-  fontSize: "sm",
-  color: "neutral.s100",
-  maxWidth: "[60ch]",
-});
-
-/**
- * The full editor with the real optimizer service as its optimization
- * capability, built from source. The editor starts studies only on a
- * connected (in-browser) source, so this story exercises the host wiring
- * around the local Petrinaut Optimizer container, not a study.
- */
-/**
- * One capability for the story's lifetime: a fresh identity per render
- * restarts the provider's re-attach effect against a live study.
- */
-const realOptimizer = realOptimizerEnabled
-  ? createServicePetrinautOptimization({
-      endpoint: () => new URL("/api/petrinaut-opt/", location.href),
-    })
-  : null;
-
-export const WithRealOptimizer: Story = {
-  render: () =>
-    realOptimizer ? (
-      <PetrinautOptimizationContext value={realOptimizer}>
-        <div style={{ height: "100vh", width: "100vw" }}>
-          <PetrinautStoryProvider
-            initialTitle={supplyChainProfit.title}
-            initialDefinition={supplyChainProfit.petriNetDefinition}
-          />
-        </div>
-      </PetrinautOptimizationContext>
-    ) : (
-      <div className={realOptimizerGuidanceStyle}>
-        This story talks to a real Petrinaut Optimizer and is inactive: start
-        Storybook with{" "}
-        <code>
-          turbo run dev --filter @hashintel/petrinaut --
-          --with-optimizer-service
-        </code>{" "}
-        from the repository root, which starts the optimizer container and sets{" "}
-        <code>VITE_PETRINAUT_OPT_PROVIDER=service</code>.
-      </div>
-    ),
-};
-
 export const Readonly: Story = {
   render: () => (
     <div style={{ height: "100vh", width: "100vw" }}>
@@ -621,72 +407,98 @@ export const WithPlugins: Story = {
   ),
 };
 
-export const WithAiAssistant: Story = {
-  render: () => (
-    <div style={{ height: "100vh", width: "100vw" }}>
-      <PetrinautStoryProvider
-        aiAssistant={{ transport: createStorybookAiTransport() }}
-        initialTitle={sirModel.title}
-        initialDefinition={sirModel.petriNetDefinition}
-      />
-    </div>
-  ),
+const echoLinesStyle = css({
+  flex: "[1]",
+  overflowY: "auto",
+  padding: "3",
+  fontSize: "sm",
+});
+
+const echoFormStyle = css({
+  display: "flex",
+  gap: "2",
+  padding: "3",
+  borderTop: "[1px solid {colors.neutral.bd.subtle}]",
+});
+
+const EchoAssistantPlugin = definePetrinautPlugin({
+  id: "storybook.echo-assistant",
+  name: "Echo assistant",
+  description: "Repeats what you send, to show an assistant plugin's panel.",
+  assistant: true,
+});
+
+/** The panel's content: the title bar's title and Clear, and a transcript that echoes. */
+const EchoChat = () => {
+  const { isOpen } = useAssistantPanel();
+  const [lines, setLines] = useState<string[]>([]);
+  const [draft, setDraft] = useState("");
+
+  return (
+    <>
+      <AssistantPanelTitle
+        actions={
+          lines.length > 0 ? (
+            <Button size="xs" variant="ghost" onClick={() => setLines([])}>
+              Clear
+            </Button>
+          ) : null
+        }
+      >
+        Echo
+      </AssistantPanelTitle>
+      <div className={echoLinesStyle}>
+        {lines.map((line, index) => (
+          // oxlint-disable-next-line react/no-array-index-key -- lines repeat and never reorder
+          <p key={index}>{line}</p>
+        ))}
+      </div>
+      <form
+        className={echoFormStyle}
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (draft.trim() === "") return;
+          setLines([...lines, draft]);
+          setDraft("");
+        }}
+      >
+        <input
+          aria-label="Message Echo"
+          data-autofocus
+          disabled={!isOpen}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+        />
+        <Button size="xs" type="submit">
+          Send
+        </Button>
+      </form>
+    </>
+  );
 };
 
-export const WithVoiceSetup: Story = {
+const echoAssistantPlugin = EchoAssistantPlugin({
+  assistant: { content: <EchoChat /> },
+});
+
+/** An assistant from a plugin: its content and title bar in the editor's panel. */
+export const WithAssistantPlugin: Story = {
   render: () => (
     <div style={{ height: "100vh", width: "100vw" }}>
       <PetrinautStoryProvider
-        aiAssistant={{
-          transport: createStorybookAiTransport(),
-          renderVoiceMode: ({ setInputMode }) => (
-            <div style={{ padding: 16 }}>
-              <p>Voice setup preview. No microphone or AI service is used.</p>
-              <button type="button" onClick={() => setInputMode("text")}>
-                Return to text
-              </button>
-            </div>
-          ),
-        }}
-        initialTitle="Voice setup preview"
+        plugins={[echoAssistantPlugin]}
+        initialTitle="Assistant plugin"
         initialDefinition={emptySDCPN}
       />
     </div>
   ),
 };
 
-export const WithHostInteractiveAiTool: Story = {
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "Open the AI panel and send any prompt. The synthetic host transport requests a review depth, the host widget submits once, and the automatic AI SDK follow-up confirms the selected value.",
-      },
-    },
-  },
-  render: () => (
-    <div className={hostInteractiveToolStoryStyle}>
-      <PetrinautStoryProvider
-        aiAssistant={{
-          interactiveTools: [reviewDepthTool],
-          transport: createHostInteractiveToolTransport(),
-        }}
-        initialTitle={sirModel.title}
-        initialDefinition={sirModel.petriNetDefinition}
-      />
-    </div>
-  ),
-};
-
 const HandleSpikeRender = ({
-  aiAssistant,
   capabilities,
   initial,
   initialTitle,
 }: {
-  aiAssistant?: {
-    transport: ReturnType<typeof createStorybookAiTransport>;
-  };
   capabilities?: PetrinautHandleCapabilities;
   initial: SDCPN;
   initialTitle: string;
@@ -711,7 +523,6 @@ const HandleSpikeRender = ({
   return (
     <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
       <Petrinaut
-        aiAssistant={aiAssistant}
         handle={handle}
         title={title}
         setTitle={setTitle}
@@ -818,16 +629,6 @@ export const SubnetsWithoutColors: Story = {
       capabilities={subnetsWithoutColorsCapabilities}
       initial={sirModel.petriNetDefinition}
       initialTitle={sirModel.title}
-    />
-  ),
-};
-
-export const HandleSpikeWithAi: Story = {
-  render: () => (
-    <HandleSpikeRender
-      aiAssistant={{ transport: createStorybookAiTransport() }}
-      initial={emptySDCPN}
-      initialTitle="AI mutation spike"
     />
   ),
 };

@@ -1,0 +1,433 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Children, cloneElement, Fragment, useState } from "react";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Checkbox } from "./checkbox";
+
+<Meta title="Docs/Checkbox" />
+
+export const meta = {
+  title: "Checkbox",
+  description: "Lets users turn a single independent option on or off.",
+  alternativeNames: ["Tickbox", "Check box"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Checkbox/checkbox.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-checkbox--default",
+  },
+  referenceLinks: {
+    apg: "https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/",
+    ark: "https://ark-ui.com/docs/components/checkbox",
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/checkbox",
+  },
+  related: ["CheckboxGroup", "Toggle", "RadioGroup"],
+};
+
+# Checkbox
+
+Lets users turn a single independent option on or off.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+export const ResolvesIndeterminate = ({ children }) => {
+  const child = Children.only(children);
+  const [state, setState] = useState({
+    indeterminate: !!child.props.indeterminate,
+    value: !!child.props.value,
+  });
+  return cloneElement(child, {
+    ...state,
+    onChange: (value) => setState({ indeterminate: false, value }),
+  });
+};
+
+<Stage>
+  <DemoState data-harness>
+    <Checkbox value label="Include draft entities" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Checkbox value tone="brand" label="Sync to GitHub" onChange={noop} />
+  </DemoState>
+  <ResolvesIndeterminate data-harness>
+    <Checkbox
+      indeterminate
+      value={false}
+      label="All property types"
+      onChange={noop}
+    />
+  </ResolvesIndeterminate>
+  <DemoState data-harness>
+    <Checkbox value={false} label="Include archived" onChange={noop} />
+  </DemoState>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { Checkbox } from "@hashintel/ds-components";
+
+export const IncludeArchivedOption = () => {
+  const [includeArchived, setIncludeArchived] = useState(false);
+
+  return (
+    <Checkbox
+      label="Include archived entities"
+      value={includeArchived}
+      onChange={setIncludeArchived}
+    />
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use Checkbox for one independent yes/no choice that takes effect when the form is saved — “Include archived entities”, “Notify teammates”.",
+    "Use it to record explicit agreement, such as accepting terms before creating a workspace.",
+    <Fragment key="0">
+      Use <code>indeterminate</code> on a parent checkbox that summarizes a
+      partially selected list, such as a select-all table header.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Avoid wiring up several related checkboxes by hand — prefer CheckboxGroup, which manages the array value, group name, and selection limits.",
+    "Don't use a checkbox for a setting that applies the moment it's flipped — use Toggle.",
+    "Don't use checkboxes for mutually exclusive options — use RadioGroup, or Select when the list is long.",
+  ]}
+/>
+
+## Examples
+
+### Basic
+
+Checkbox is always controlled: `value` holds the checked boolean and `onChange` receives the next one (see Installation for the state wiring). The default is `md`-sized and `neutral`.
+
+<Stage>
+  <DemoState data-harness>
+    <Checkbox value label="Include draft entities" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Checkbox
+      value={false}
+      label="Include archived entities"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Disabled
+
+A disabled checkbox keeps its checked state visible but can't be changed. Explain the constraint nearby — the box alone doesn't say why it's locked.
+
+<Stage>
+  <Checkbox
+    disabled
+    value
+    label="Inherited from workspace policy"
+    onChange={noop}
+  />
+  <Checkbox
+    disabled
+    value={false}
+    label="Requires admin role"
+    onChange={noop}
+  />
+  <Checkbox
+    disabled
+    indeterminate
+    value={false}
+    label="Some flows selected"
+    onChange={noop}
+  />
+</Stage>
+
+### Invalid
+
+Set `invalid` when the choice fails validation, such as required terms left unaccepted. Pair it with visible error text — the red box alone doesn't say what's wrong.
+
+<Stage>
+  <DemoState data-harness>
+    <Checkbox
+      invalid
+      value={false}
+      label="I agree to the data processing agreement"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Indeterminate
+
+Use `indeterminate` on a parent checkbox when only some of its children are selected. It's display-only — `value` remains true or false.
+
+export const selectAllCode = `import { useState } from "react";
+
+import { Checkbox } from "@hashintel/ds-components";
+
+const properties = ["name", "website"];
+
+export const PropertySelection = () => {
+  const [selected, setSelected] = useState(["name"]);
+  const allSelected = selected.length === properties.length;
+
+  const toggle = (property: string) => (checked: boolean) =>
+    setSelected(
+      checked
+        ? [...selected, property]
+        : selected.filter((entry) => entry !== property),
+    );
+
+  return (
+    <>
+      <Checkbox
+        indeterminate={selected.length > 0 && !allSelected}
+        value={allSelected}
+        label="All properties"
+        onChange={(checked) => setSelected(checked ? properties : [])}
+      />
+      <Checkbox
+        value={selected.includes("name")}
+        label="Name"
+        onChange={toggle("name")}
+      />
+      <Checkbox
+        value={selected.includes("website")}
+        label="Website"
+        onChange={toggle("website")}
+      />
+    </>
+  );
+};`;
+
+export const SelectAllDemo = () => {
+  const properties = ["name", "website"];
+  const [selected, setSelected] = useState(["name"]);
+  const allSelected = selected.length === properties.length;
+  const toggle = (property) => (checked) =>
+    setSelected(
+      checked
+        ? [...selected, property]
+        : selected.filter((entry) => entry !== property),
+    );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <Checkbox
+        indeterminate={selected.length > 0 && !allSelected}
+        value={allSelected}
+        label="All properties"
+        onChange={(checked) => setSelected(checked ? properties : [])}
+      />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          paddingLeft: 24,
+        }}
+      >
+        <Checkbox
+          value={selected.includes("name")}
+          label="Name"
+          onChange={toggle("name")}
+        />
+        <Checkbox
+          value={selected.includes("website")}
+          label="Website"
+          onChange={toggle("website")}
+        />
+      </div>
+    </div>
+  );
+};
+
+<Stage code={selectAllCode}>
+  <SelectAllDemo />
+</Stage>
+
+### Tones
+
+`tone` colors the checked box: `neutral` (default) for everyday options, `brand` for primary opt-ins such as onboarding choices, `success` for confirmation-flavored items like completed steps.
+
+<Stage>
+  <DemoState data-harness>
+    <Checkbox value tone="neutral" label="Neutral" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Checkbox value tone="brand" label="Brand" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Checkbox value tone="success" label="Success" onChange={noop} />
+  </DemoState>
+</Stage>
+
+### Sizes
+
+`md` is the default; the label text scales with the box. Match the surrounding text — `xxs`–`sm` for dense chrome such as table rows and filter panels, `lg` for prominent confirmations.
+
+<Stage>
+  <DemoState data-harness>
+    <Checkbox value size="xxs" label="xxs" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Checkbox value size="xs" label="xs" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Checkbox value size="sm" label="sm" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Checkbox value size="md" label="md" onChange={noop} />
+  </DemoState>
+  <DemoState data-harness>
+    <Checkbox value size="lg" label="lg" onChange={noop} />
+  </DemoState>
+</Stage>
+
+### Label placement
+
+`labelPlacement` puts the label `right` (default) or `left` of the box. 
+
+<Stage>
+  <DemoState data-harness>
+    <Checkbox
+      value
+      labelPlacement="right"
+      label="Label on the right"
+      onChange={noop}
+    />
+  </DemoState>
+  <DemoState data-harness>
+    <Checkbox
+      value
+      labelPlacement="left"
+      label="Label on the left"
+      onChange={noop}
+    />
+  </DemoState>
+</Stage>
+
+### Label alignment
+
+`labelAlign` sets the box against a label that wraps onto several lines: `top` (default) pins it to the first line, `center` centers it against the whole label.
+
+<Stage>
+  <div style={{ maxWidth: 260 }}>
+    <DemoState data-harness>
+      <Checkbox
+        value
+        labelAlign="top"
+        label="I agree to the terms of service and acknowledge the data processing agreement"
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+  <div style={{ maxWidth: 260 }}>
+    <DemoState data-harness>
+      <Checkbox
+        value
+        labelAlign="center"
+        label="I agree to the terms of service and acknowledge the data processing agreement"
+        onChange={noop}
+      />
+    </DemoState>
+  </div>
+</Stage>
+
+### In forms
+
+`value` is the checked boolean, not what the form submits: when checked, the hidden native input submits `htmlValue` (default `"on"`) under `name`, and nothing when unchecked. `required` blocks native submission until checked.
+
+```tsx
+import { useState } from "react";
+
+import { Button, Checkbox } from "@hashintel/ds-components";
+
+export const InviteTeammateForm = () => {
+  const [notifyByEmail, setNotifyByEmail] = useState(true);
+  const [dpaAccepted, setDpaAccepted] = useState(false);
+
+  return (
+    <form action="/api/invites" method="post">
+      <Checkbox
+        label="Notify the teammate by email"
+        name="notify"
+        htmlValue="email"
+        value={notifyByEmail}
+        onChange={setNotifyByEmail}
+      />
+      <Checkbox
+        label="I agree to the data processing agreement"
+        name="dpa"
+        required
+        value={dpaAccepted}
+        onChange={setDpaAccepted}
+      />
+      <Button type="submit" tone="brand">
+        Send invite
+      </Button>
+    </form>
+  );
+};
+```
+
+## Behavior
+
+- Checkbox renders as one `<label>` wrapping a hidden native checkbox, so clicking anywhere on it toggles. Don't nest it inside another label or interactive element.
+- Long labels wrap rather than truncate. If you prefer truncation, apply it with a `className`.
+- `invalid` sets `aria-invalid` on the input.
+
+## Content
+
+- Phrase labels positively: "Notify teammates by email", never "Don't send notifications" — unchecking a negative is a double negative.
+- Lead with the outcome of checking, in sentence case with no terminal punctuation: "Include archived entities", "Sync to GitHub".
+- Try to keep labels to one line — under roughly 8 words. It's generally better to move caveats and detail into nearby helper text.
+
+## Accessibility
+
+Checkbox implements the [WAI-ARIA checkbox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/).
+
+### What you must do
+
+- Always provide `label` — without it the input has no accessible name. When the visible label lives elsewhere, pass `htmlForId` and point that label's `htmlFor` at it.
+- Don't signal errors with the red box alone — put the error text next to the checkbox.
+- Prefer explaining a constraint over `disabled` — a disabled box has reduced contrast and doesn't say why it's locked.
+
+## API reference
+
+<PropsTable
+  of={Checkbox}
+  defaults={{
+    size: '"md"',
+    tone: '"neutral"',
+    labelPlacement: '"right"',
+    labelAlign: '"top"',
+    indeterminate: "false",
+    htmlValue: '"on"',
+  }}
+/>

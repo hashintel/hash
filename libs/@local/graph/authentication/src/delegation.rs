@@ -4,12 +4,12 @@ use alloc::sync::Arc;
 use core::{ops::ControlFlow, pin::Pin};
 
 use error_stack::Report;
+use hash_crypto::Secret;
 use hash_middleware::authentication::{
     provider::{AuthenticationProvider, Caller},
     request::{AuthenticationError, actor_id_from_header},
     service_secret::{presents_service_secret, service_credential},
 };
-use hash_secret::Secret;
 use http::HeaderMap;
 use type_system::principal::actor::ActorId;
 use uuid::Uuid;
@@ -107,13 +107,13 @@ mod tests {
     use std::collections::HashMap;
 
     use error_stack::Report;
+    use hash_crypto::Secret;
     use hash_middleware::authentication::{
         AuthenticationProblem, Challenge,
         provider::{AuthenticationProvider as _, Caller, expect_rejection},
         request::{ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind},
         service_secret::SERVICE_AUTH_SCHEME,
     };
-    use hash_secret::Secret;
     use http::HeaderMap;
     use type_system::principal::actor::{ActorEntityUuid, ActorId};
     use uuid::Uuid;
