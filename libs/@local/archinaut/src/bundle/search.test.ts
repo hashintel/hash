@@ -83,4 +83,21 @@ describe("plainTextOf", () => {
       "a b 1 2",
     );
   });
+
+  it("reduces mathematics to the names it mentions, and leaves code alone", () => {
+    expect(
+      plainTextOf([
+        "Bins are $\\mathit{bins} = \\min(1024, n)$ per metric, and the",
+        "bound is $$\\prod_i \\binom{n_i}{w_i}$$ over the arcs.",
+        "$$",
+        "\\lfloor 16384 / (4\\,\\mathit{metricCount}) \\rfloor",
+        "$$",
+        "```ts",
+        "const label = `$${amount}`;",
+        "```",
+      ]),
+    ).toBe(
+      "Bins are bins = (1024, n) per metric, and the bound is i n i w i over the arcs. 16384 / (4 metricCount ) const label = $$ ;",
+    );
+  });
 });

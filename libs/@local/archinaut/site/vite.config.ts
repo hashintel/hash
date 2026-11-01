@@ -12,14 +12,17 @@ import { fileURLToPath } from "node:url";
 import mdx from "@mdx-js/rollup";
 import rehypeShiki from "@shikijs/rehype";
 import react from "@vitejs/plugin-react";
+import rehypeKatex from "rehype-katex";
 import rehypeSlug from "rehype-slug";
 import remarkDirective from "remark-directive";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import { defineConfig } from "vite";
 
 import { resolveDiffCompareContext } from "./src/diff-context.ts";
 import { rehypeInlineDiagrams } from "./src/plugins/inline-diagrams.mjs";
+import { rehypeMathErrors } from "./src/plugins/math-errors.mjs";
 import { reloadDiagrams } from "./src/plugins/reload-diagrams.mjs";
 import { remarkAsides } from "./src/plugins/remark-asides.mjs";
 
@@ -50,12 +53,17 @@ export default defineConfig(async () => ({
         remarkPlugins: [
           remarkFrontmatter,
           remarkGfm,
+          remarkMath,
           remarkDirective,
           remarkAsides,
         ],
         rehypePlugins: [
           rehypeSlug,
           rehypeInlineDiagrams,
+          // Formulas render here, so a page ships no math runtime; one
+          // KaTeX cannot parse stops the build instead of shipping in red.
+          rehypeKatex,
+          rehypeMathErrors,
           [
             rehypeShiki,
             {

@@ -138,7 +138,9 @@ status.
 `site/` is a Vite and React project shipped with the tool: TanStack Router
 for navigation that never leaves the document, MDX compiled by Vite with the
 same remark and rehype steps the pages were written against, code blocks
-highlighted by shiki, and one HTML file per page in the output. Before Vite
+highlighted by shiki, formulas between `$` signs rendered by KaTeX when the
+page compiles, with one KaTeX cannot parse failing the build, and one HTML
+file per page in the output. Before Vite
 runs, the tool writes the bundle into `site/src/content/` and `site/public/`,
 together with the instance's title, logo and favicon.
 
@@ -147,8 +149,9 @@ manifest through the server entry into `dist/<slug>.html`, with the client's
 own script tags kept, so a page is complete on arrival and the browser
 hydrates it and navigates in place from there.
 
-Search reads the bundle's `search.json`, every page cut into its sections,
-and ranks the sections in the browser with MiniSearch: title, heading and
+Search reads the bundle's `search.json`, every page cut into its sections
+with a formula reduced to the names it mentions, and ranks the sections in
+the browser with MiniSearch: title, heading and
 description outweigh body text, words match by prefix, and a near miss
 still counts. A result is a section, so it lands on the heading that
 matched, and results group under their page with the page's kind beside
