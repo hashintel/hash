@@ -14,7 +14,7 @@ import { agentOwnershipGuard } from "./ownership.ts";
 const mount = "/agents/chat";
 const identity = {
   conversationId: "live-route-conversation",
-  principalKey: "live-route-principal",
+  ownerKey: "live-route-owner",
 };
 const instanceId = flueConversationId(identity);
 const url = `http://brunch.test${mount}/${instanceId}/${liveToolRouteSegment}?submissionId=submission-1`;
@@ -36,7 +36,7 @@ test("guards the live SSE route with the existing conversation ownership", async
   const forbidden = await app.request(url, {
     headers: agentOwnershipHeaders({
       ...identity,
-      principalKey: "another-principal",
+      ownerKey: "another-owner",
     }),
   });
   expect(forbidden.status).toBe(403);

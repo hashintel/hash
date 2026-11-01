@@ -177,7 +177,7 @@ describe("the emitted server bundle", () => {
               "Access-Control-Request-Method": "POST",
               "Access-Control-Request-Headers": [
                 "content-type",
-                brunchHeaders.principal,
+                brunchHeaders.ownerKey,
                 brunchHeaders.conversation,
               ].join(","),
             },

@@ -108,7 +108,7 @@ const run = async () => {
   const application = await loadBuiltBrunchApplication();
   const clientFor = () => {
     const identity = {
-      principalKey: "admission-synthetic",
+      ownerKey: "admission-synthetic",
       conversationId: `${crypto.randomUUID()}-${caseId}`,
     };
     const initialData = {

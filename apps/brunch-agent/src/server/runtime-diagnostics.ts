@@ -4,7 +4,7 @@
  * stack, production keeps only the error's type/code.
  *
  * Content policy: never log prompts, tool arguments or results, request bodies,
- * principal keys or raw conversation IDs. Callers pass classification and
+ * owner keys or raw conversation IDs. Callers pass classification and
  * counts about external data, never the data.
  */
 
