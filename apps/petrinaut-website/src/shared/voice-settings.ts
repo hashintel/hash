@@ -1,3 +1,5 @@
+import type { UtteranceJudgmentMode } from "./live-utterance-judgment.js";
+
 /** Provider allowlists shared by the browser picker and session-creation boundary. */
 export const voiceNames = {
   realtime: [
@@ -30,6 +32,15 @@ export const voiceNames = {
 } as const;
 
 export type VoiceProvider = keyof typeof voiceNames;
+
+/** The `/api/voice/config` response body; `provider` is null when the configured provider is unsupported. */
+export interface VoiceConfigResponse {
+  readonly available: boolean;
+  readonly connectionTimeoutMs: number;
+  readonly provider: VoiceProvider | null;
+  readonly utteranceJudgment: UtteranceJudgmentMode;
+}
+
 export const voicePreferenceHeader = "x-petrinaut-voice";
 
 export const isSupportedVoice = (

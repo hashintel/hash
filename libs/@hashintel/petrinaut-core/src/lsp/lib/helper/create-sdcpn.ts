@@ -53,6 +53,9 @@ export function createSDCPN(options?: {
       colorId: place.colorId ?? null,
       dynamicsEnabled: place.dynamicsEnabled ?? false,
       differentialEquationId: place.differentialEquationId ?? null,
+      ...(place.visualizerCode !== undefined
+        ? { visualizerCode: place.visualizerCode }
+        : {}),
       x: place.x ?? 0,
       y: place.y ?? 0,
     })),

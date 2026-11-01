@@ -1,3 +1,5 @@
+import type { NetStructure } from "./net-readers";
+
 /** Key-order-independent JSON; the wire form wherever both sides serialize one value. */
 export const canonicalContent: {
   (value: object): string;
@@ -23,7 +25,7 @@ export interface ClientToolResultMetadata {
     readonly after?: string;
   };
   /** The net's structure after a settled document change, for the model's read-back. */
-  readonly readBack?: object;
+  readonly readBack?: NetStructure;
 }
 
 export const parseClientToolResultMetadata = (
@@ -44,6 +46,8 @@ export const parseClientToolResultMetadata = (
       ...(typeof fields.before === "string" ? { before: fields.before } : {}),
       ...(typeof fields.after === "string" ? { after: fields.after } : {}),
     },
-    ...(typeof readBack === "object" && readBack !== null ? { readBack } : {}),
+    ...(typeof readBack === "object" && readBack !== null
+      ? { readBack: readBack as NetStructure }
+      : {}),
   };
 };

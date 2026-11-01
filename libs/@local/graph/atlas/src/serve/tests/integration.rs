@@ -7,6 +7,7 @@ use std::panic::resume_unwind;
 use axum::{Router, http::HeaderMap};
 use error_stack::Report;
 use futures::FutureExt as _;
+use hash_crypto::Secret;
 use hash_graph_authorization::policies::{
     Effect,
     action::ActionName,
@@ -25,7 +26,6 @@ use hash_middleware::{
     },
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode},
 };
-use hash_secret::Secret;
 use tokio_postgres::NoTls;
 use tokio_util::sync::CancellationToken;
 use type_system::principal::actor::{ActorId, UserId};

@@ -8,22 +8,15 @@ import type { ChipColor } from "../Chip/chip";
 export interface BadgeProps {
   className?: string;
   contentClassName?: string;
-  /** The element the badge attaches to (e.g. an icon). */
+  /** The element the badge attaches to. */
   children: React.ReactNode;
-  /**
-   * The badge's own content (e.g. a `99` unread count). Omit to render a small
-   * dot with no content.
-   */
+  /** The badge's own content. Omit to render a small dot with no content. */
   content?: React.ReactNode;
   shape?: "square" | "round";
   color?: ChipColor;
   /** Which corner of the anchor the badge overhangs. */
   position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
-  /**
-   * Set to `"circle"` to align the badge to a circular anchor (e.g. a round
-   * avatar) — it sits on the circle's edge instead of the empty bounding-box
-   * corner.
-   */
+  /** Set to `"circle"` to align the badge to a circular anchor (e.g. a round avatar). */
   alignTo?: "circle";
   /** When true, the badge is not rendered — only the anchor (`children`) shows. */
   hide?: boolean;
@@ -80,3 +73,6 @@ export const Badge = ({
     </BaseBadge>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+Badge.displayName = "Badge";

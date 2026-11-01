@@ -1,9 +1,11 @@
 extern crate alloc;
+use alloc::sync::Arc;
 use core::sync::atomic::{self, AtomicUsize};
 use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
 use criterion::{BatchSize, BenchmarkGroup, BenchmarkId, measurement::Measurement};
 use error_stack::{IntoReport, Report, ResultExt as _};
+use hash_crypto::Secret;
 use hash_graph_authorization::policies::store::PolicyStore as _;
 use hash_graph_postgres_store::{
     Environment, load_env,
@@ -22,7 +24,6 @@ use hash_graph_test_data::seeding::{
     producer::{Producer, ProducerExt as _, user::UserCreation},
 };
 use hash_graph_type_fetcher::FetchingPool;
-use hash_secret::Secret;
 use rayon::iter::{IntoParallelIterator as _, ParallelIterator as _};
 use regex::Regex;
 use tokio::runtime::Runtime;
@@ -218,7 +219,8 @@ impl Runner {
             PostgresStoreSettings {
                 validate_links: true,
                 skip_embedding_creation: true,
-                filter_protection: PropertyProtectionFilterConfig::new(), // Disabled for benchmarks
+                // disabled for benchmarks.
+                filter_protection: Arc::new(PropertyProtectionFilterConfig::new()),
                 ..PostgresStoreSettings::default()
             },
         )

@@ -13,22 +13,21 @@ export type ButtonGroupProps = {
   className?: string;
   children?: React.ReactNode;
   /**
-   * `spaced` (default) spaces the buttons apart; `segmented` joins them into
-   * a single control with shared, overlapping borders.
+   * `spaced` spaces the buttons apart; `segmented` joins them into a single
+   * control with shared, overlapping borders.
    */
   variant?: "spaced" | "segmented";
   /**
-   * The gap between buttons in a `spaced` group, on the shared FormInputSize
-   * scale. Has no effect on `segmented` groups, whose buttons share a border.
-   * Aligned + fitted to Button sizes with the same value, so usually should
-   * match the button size of the children.
+   * The gap between buttons in a `spaced` group; no effect on `segmented`
+   * groups, whose buttons share a border. Each value is tuned to the matching
+   * Button size, so it usually equals the children's `size`.
    */
   spacing?: FormInputSize;
-  /** Reverse the visual (and focus/tab) order of the buttons. */
+  /** Whether to reverse the visual and tab order of the buttons. */
   reverse?: boolean;
-  /** Which edge of the available width the buttons align to. Defaults to `left`. */
+  /** Which edge of the available width the buttons align to. */
   alignedTo?: "left" | "right";
-  /** Keep the buttons on a single line (overflowing) instead of wrapping. */
+  /** Whether to keep the buttons on one line, overflowing instead of wrapping. */
   noWrap?: boolean;
 };
 
@@ -59,3 +58,6 @@ export const ButtonGroup = ({
     </div>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+ButtonGroup.displayName = "ButtonGroup";

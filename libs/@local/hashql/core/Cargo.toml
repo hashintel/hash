@@ -49,7 +49,6 @@ rstest                    = { workspace = true }
 test-strategy             = { workspace = true }
 zerocopy                  = { workspace = true, features = ["derive"] }
 
-
 [features]
 serde    = ["dep:serde", "text-size/serde"]
 rayon    = ["dep:rayon"]

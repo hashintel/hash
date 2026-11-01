@@ -121,8 +121,8 @@ pub(super) struct TileQuery {
 /// not address), and `internal` where a delivered row has no captured position or display payload,
 /// or the assembly worker panics. Encoding itself reports nothing, since the tile document
 /// declares an uninhabited error type.
-pub(super) async fn handler<R>(
-    State(state): State<AppState<R>>,
+pub(super) async fn handler(
+    State(state): State<AppState>,
     visibility: Visibility,
     Coordinates(CellPath { z, x, y }): Coordinates,
     query: Option<Body<TileQuery>>,

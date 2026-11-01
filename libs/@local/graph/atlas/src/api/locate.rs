@@ -117,8 +117,8 @@ pub(super) struct LocateRequest {
 /// `internal` where a delivered row has no captured data, where hydration fails, or where the
 /// assembly worker panics. Encoding itself reports nothing, since the locate document declares an
 /// uninhabited error type.
-pub(super) async fn handler<R>(
-    State(state): State<AppState<R>>,
+pub(super) async fn handler(
+    State(state): State<AppState>,
     visibility: Visibility,
     Body(LocateRequest {
         entity_id,

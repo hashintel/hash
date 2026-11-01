@@ -7,6 +7,7 @@ import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { useCodeNavigation } from "../../../../../monaco/code-navigation";
 import { parseDocumentUri } from "../../../../../monaco/editor-paths";
 
 import type { SubView } from "../../../../../components/sub-view/types";
@@ -108,7 +109,27 @@ const simulationErrorTextStyle = css({
   cursor: "text",
 });
 
-type EntityType = "transition" | "differential-equation";
+type EntityType = "transition" | "differential-equation" | "place";
+
+type SubType = "lambda" | "kernel" | "visualizer" | null;
+
+const SUB_TYPE_LABELS: Record<NonNullable<SubType>, string> = {
+  lambda: "Lambda",
+  kernel: "Kernel",
+  visualizer: "Visualizer",
+};
+
+const ENTITY_LABELS: Record<EntityType, string> = {
+  transition: "Transition",
+  "differential-equation": "Differential Equation",
+  place: "Place",
+};
+
+const SELECTION_TYPES: Record<EntityType, SelectionItemType> = {
+  transition: "transition",
+  "differential-equation": "differentialEquation",
+  place: "place",
+};
 
 interface GroupedDiagnostics {
   entityType: EntityType;
@@ -116,7 +137,9 @@ interface GroupedDiagnostics {
   entityName: string;
   errorCount: number;
   items: Array<{
-    subType: "lambda" | "kernel" | null;
+    subType: SubType;
+    /** The document the diagnostics belong to. */
+    uri: string;
     diagnostics: Diagnostic[];
   }>;
 }
@@ -130,6 +153,7 @@ const DiagnosticsContent: React.FC = () => {
   );
   const { petriNetDefinition, getItemType } = use(SDCPNContext);
   const { navigateTo, selectItem } = use(EditorContext);
+  const codeNavigation = useCodeNavigation();
   const {
     state: simulationState,
     error: simulationError,
@@ -140,16 +164,16 @@ const DiagnosticsContent: React.FC = () => {
     new Set(),
   );
 
-  // Handler to select an entity when clicking on a diagnostic
+  // Clicking a diagnostic selects its entity. A visualizer's section is
+  // collapsed by default, so its diagnostics also open that section.
   const handleSelectEntity = useCallback(
-    (entityId: string, entityType: EntityType) => {
-      const selectionType: SelectionItemType =
-        entityType === "differential-equation"
-          ? "differentialEquation"
-          : "transition";
-      selectItem({ type: selectionType, id: entityId });
+    (entityId: string, entityType: EntityType, uri: string) => {
+      selectItem({ type: SELECTION_TYPES[entityType], id: entityId });
+      if (entityType === "place") {
+        codeNavigation.open(uri);
+      }
     },
-    [selectItem],
+    [codeNavigation, selectItem],
   );
 
   // Group diagnostics by entity (transition or differential equation)
@@ -165,7 +189,7 @@ const DiagnosticsContent: React.FC = () => {
       const entityId = parsed.itemId;
       let entityType: EntityType;
       let entityName: string;
-      let subType: "lambda" | "kernel" | null;
+      let subType: SubType;
 
       if (parsed.itemType === "differential-equation") {
         entityType = "differential-equation";
@@ -174,6 +198,13 @@ const DiagnosticsContent: React.FC = () => {
         );
         entityName = de?.name ?? entityId;
         subType = null;
+      } else if (parsed.itemType === "place-visualizer") {
+        entityType = "place";
+        const place = petriNetDefinition.places.find(
+          (placeItem) => placeItem.id === entityId,
+        );
+        entityName = place?.name ?? entityId;
+        subType = "visualizer";
       } else {
         entityType = "transition";
         const transition = petriNetDefinition.transitions.find(
@@ -198,6 +229,7 @@ const DiagnosticsContent: React.FC = () => {
       group.errorCount += diagnostics.length;
       group.items.push({
         subType,
+        uri,
         diagnostics,
       });
     }
@@ -264,10 +296,7 @@ const DiagnosticsContent: React.FC = () => {
       {groupedDiagnostics.map((group) => {
         const entityKey = `${group.entityType}:${group.entityId}`;
         const isExpanded = !collapsedEntities.has(entityKey);
-        const entityLabel =
-          group.entityType === "transition"
-            ? `Transition: ${group.entityName}`
-            : `Differential Equation: ${group.entityName}`;
+        const entityLabel = `${ENTITY_LABELS[group.entityType]}: ${group.entityName}`;
 
         return (
           <div key={entityKey} className={entityGroupStyle}>
@@ -297,10 +326,10 @@ const DiagnosticsContent: React.FC = () => {
                     key={`${group.entityId}-${itemGroup.subType ?? "de"}`}
                     className={itemGroupStyle}
                   >
-                    {/* Show sub-type for transitions */}
+                    {/* Show sub-type for transitions and places */}
                     {itemGroup.subType && (
                       <div className={subTypeStyle}>
-                        {itemGroup.subType === "lambda" ? "Lambda" : "Kernel"}
+                        {SUB_TYPE_LABELS[itemGroup.subType]}
                       </div>
                     )}
 
@@ -317,6 +346,7 @@ const DiagnosticsContent: React.FC = () => {
                               handleSelectEntity(
                                 group.entityId,
                                 group.entityType,
+                                itemGroup.uri,
                               )
                             }
                             className={diagnosticButtonStyle}

@@ -8,7 +8,11 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[<a href="../hash_graph_migrations/index.html">hash-graph-migrations</a>]
-    1[hash-graph-migrations-macros]
-    class 1 root
-    0 --> 1
+    0[<a href="../hash_crypto/index.html">hash-crypto</a>]
+    1[<a href="../hash_graph_migrations/index.html">hash-graph-migrations</a>]
+    2[hash-graph-migrations-macros]
+    class 2 root
+    3[<a href="../error_stack/index.html">error-stack</a>]
+    0 --> 3
+    1 --> 2
+    2 --> 0

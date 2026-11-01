@@ -12,23 +12,20 @@ import { useEffect, useState } from "react";
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
-import {
-  definePetrinautAiInteractiveTool,
-  Petrinaut,
-} from "@hashintel/petrinaut/ui";
+import { Petrinaut } from "@hashintel/petrinaut/ui";
 
 import { createBrunchFlueAdapter } from "../brunch-flue-adapter";
+import { definePetrinautAiInteractiveTool } from "../chat/ai-interactive-tool";
+import { brunchPlugin, BrunchAssistantContext } from "../editor-api-plugin";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 
+import type { PetrinautAiVoiceModeContext } from "../chat/ai-assistant-composer-control";
+import type { PetrinautAiChatTransport } from "../chat/petrinaut";
 import type {
   AgentConversationObservation,
   AgentConversationObservationSnapshot,
   FlueClient,
 } from "@flue/sdk";
-import type {
-  PetrinautAiChatTransport,
-  PetrinautAiVoiceModeContext,
-} from "@hashintel/petrinaut/ui";
 
 await vi.hoisted(async () => {
   const { installPetrinautDomShims } =
@@ -168,9 +165,10 @@ const ContinuityPanel = ({
     voiceAdapter,
   );
   if (!history.ready || history.messages === undefined) return null;
+  // Brunch's chat, through its plugin, as the demo shell bridges it.
   return (
-    <Petrinaut
-      aiAssistant={{
+    <BrunchAssistantContext
+      value={{
         conversationId,
         interactiveTools: [voiceAnswerTool],
         messages: history.messages,
@@ -180,9 +178,13 @@ const ContinuityPanel = ({
         ),
         transport,
       }}
-      handle={handle}
-      lspWorkerFactory={inertWorker}
-    />
+    >
+      <Petrinaut
+        handle={handle}
+        lspWorkerFactory={inertWorker}
+        plugins={[brunchPlugin]}
+      />
+    </BrunchAssistantContext>
   );
 };
 

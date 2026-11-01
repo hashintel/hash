@@ -1,27 +1,32 @@
 import {
   ApplicationFailure,
+  CancellationScope,
+  isCancellation,
   proxyActivities,
+  TemporalFailure,
   upsertMemo,
   workflowInfo,
 } from "@temporalio/workflow";
 
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { getFlowType } from "@local/hash-isomorphic-utils/flows/get-flow-type";
+import { toStepErrors } from "@local/hash-isomorphic-utils/flows/run-events";
 import {
   generateStepRunId,
   parseStepRunId,
 } from "@local/hash-isomorphic-utils/flows/step-run-id";
-import {
-  assertNoStoredPayloadRefsInFlowInputs,
-  getArrayPayloadItems,
-} from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
+import { getArrayPayloadItems } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
 import { asPayload } from "@local/hash-isomorphic-utils/flows/types";
 import { getAllStepDefinitionsInFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
+import {
+  omitInvalidEmptyFlowInputs,
+  validateFlowInputs,
+} from "@local/hash-isomorphic-utils/flows/validate-payloads";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { StatusCode } from "@local/status";
 
 import { sleep } from "../utils.js";
-import { createCommonFlowActivities } from "./process-flow-workflow/common-activities.js";
+import { getActionActivityOptions } from "./action-activity-options.js";
 import { getAllStepsInFlow } from "./process-flow-workflow/get-all-steps-in-flow.js";
 import { getStepDefinitionFromFlowDefinition } from "./process-flow-workflow/get-step-definition-from-flow.js";
 import {
@@ -36,15 +41,13 @@ import {
 } from "./process-flow-workflow/pass-outputs-to-unprocessed-steps.js";
 import { toRunFailure } from "./process-flow-workflow/to-run-failure.js";
 
-import type {
-  ActionName,
-  CreateFlowActivities,
-  ProxyFlowActivity,
-} from "./action-types.js";
+import type { ActionName, FlowActionActivity } from "./action-types.js";
+import type { createCommonFlowActivities } from "./process-flow-workflow/common-activities.js";
 import type { EntityId, Timestamp } from "@blockprotocol/type-system";
 import type { FlowActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   BaseRunFlowWorkflowParams,
+  FlowRunEnding,
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type {
@@ -61,8 +64,6 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Status } from "@local/status";
-
-export { createCommonFlowActivities };
 
 const log = (message: string) => {
   // eslint-disable-next-line no-console
@@ -296,29 +297,101 @@ const { persistFlowActivity } = proxyActivities<
   },
 });
 
-const processFlow = async <
-  ValidActionDefinitionId extends FlowActionDefinitionId,
-  CreateActivitiesFn extends CreateFlowActivities<ValidActionDefinitionId>,
->(
+/**
+ * The activity that runs an action, on the task queue and with the settings its definition gives
+ * (`getActionActivityOptions`), whichever worker runs the flow.
+ */
+const proxyActionActivity = ({
+  actionDefinitionId,
+  maximumAttempts,
+  activityId,
+}: {
+  actionDefinitionId: FlowActionDefinitionId;
+  maximumAttempts: number;
+  activityId: string;
+}) => {
+  const actionName =
+    `${actionDefinitionId}Action` satisfies ActionName<FlowActionDefinitionId>;
+
+  const { [actionName]: action } = proxyActivities<
+    Record<ActionName<FlowActionDefinitionId>, FlowActionActivity>
+  >({
+    ...getActionActivityOptions(actionDefinitionId),
+    retry: { maximumAttempts },
+    activityId,
+  });
+
+  return action;
+};
+
+const { recordFlowRunActivity } = proxyActivities<
+  ReturnType<typeof createCommonFlowActivities>
+>({
+  startToCloseTimeout: "5 minutes",
+  retry: {
+    maximumAttempts: 3,
+  },
+});
+
+/**
+ * Records how the run ended, as the last thing it does: even when the run is cancelled. A run that couldn't be
+ * recorded is recorded the next time it's read.
+ */
+const recordFlowRun = async (
+  params: Parameters<typeof recordFlowRunActivity>[0],
+) => {
+  try {
+    await CancellationScope.nonCancellable(() => recordFlowRunActivity(params));
+  } catch (error) {
+    log(`Could not record how the run ended: ${stringifyError(error)}`);
+  }
+};
+
+/**
+ * How a run ends when it throws `runFailure`, or `null` if it doesn't end: Temporal retries the workflow task instead
+ * when it throws anything but a `TemporalFailure`.
+ */
+const getFailedRunEnding = (runFailure: unknown): FlowRunEnding | null => {
+  if (isCancellation(runFailure)) {
+    return { kind: "cancelled" };
+  }
+
+  if (!(runFailure instanceof TemporalFailure)) {
+    return null;
+  }
+
+  const [details] =
+    runFailure instanceof ApplicationFailure
+      ? ((runFailure.details as
+          | Partial<RunFlowWorkflowResponse>[]
+          | undefined) ?? [])
+      : [];
+  const stepErrors = details?.contents?.[0]?.stepErrors;
+
+  return {
+    kind: "failed",
+    failure: {
+      message: runFailure.message,
+      ...(details?.code ? { code: details.code } : {}),
+    },
+    ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+  };
+};
+
+const processFlow = async (
   params: BaseRunFlowWorkflowParams & {
     generateFlowRunName?: (params: {
       flowDefinition: FlowDefinition;
       flowDefinitionEntityId: EntityId;
       flowInputs: FlowInputValues;
     }) => Promise<string>;
-    proxyFlowActivity: ProxyFlowActivity<
-      ValidActionDefinitionId,
-      CreateActivitiesFn
-    >;
   },
 ): Promise<RunFlowWorkflowResponse> => {
   const {
     flowDefinitionEntityId,
     flowRunEntityUuid,
     flowRunName,
-    flowInputs,
     flowTriggerEntityId,
-    proxyFlowActivity,
     userAuthentication,
     webId,
     generateFlowRunName,
@@ -377,17 +450,25 @@ const processFlow = async <
     });
   }
 
-  try {
-    assertNoStoredPayloadRefsInFlowInputs(flowInputs);
-  } catch (error) {
-    const errorMessage = (error as Error).message;
+  /* A form, or a schedule saved from one, may give an input left blank as an empty string. */
+  const flowInputs = omitInvalidEmptyFlowInputs({
+    inputDefinitions: flowDefinition.inputs,
+    flowInputs: params.flowInputs,
+  });
+
+  const invalidFlowInputMessage = validateFlowInputs({
+    inputDefinitions: flowDefinition.inputs,
+    flowInputs,
+  });
+
+  if (invalidFlowInputMessage) {
     throw ApplicationFailure.create({
-      message: errorMessage,
+      message: invalidFlowInputMessage,
       nonRetryable: true,
       details: [
         {
           code: StatusCode.InvalidArgument,
-          message: errorMessage,
+          message: invalidFlowInputMessage,
           contents: [],
         },
       ],
@@ -416,6 +497,7 @@ const processFlow = async <
     flowDefinitionEntityId: flowDefinitionResult.flowDefinitionEntityId,
     flowRunEntityUuid,
     flowTriggerEntityId,
+    startedAt: workflowInfo().startTime.toISOString(),
     stepIds: ["initialize-flow"],
     userAuthentication,
     webId,
@@ -467,12 +549,8 @@ const processFlow = async <
         flowDefinition,
       });
 
-      const actionName =
-        `${currentStep.actionDefinitionId}Action` satisfies ActionName<string>;
-
-      const actionActivity = proxyFlowActivity({
-        // @ts-expect-error - not sure what's going on with inference of valid names here
-        actionName,
+      const actionActivity = proxyActionActivity({
+        actionDefinitionId: currentStep.actionDefinitionId,
         maximumAttempts: actionStepDefinition.retryCount ?? 3,
         activityId: currentStep.stepId,
       });
@@ -544,35 +622,6 @@ const processFlow = async <
         `Step ${currentStepId}: obtained ${outputs.length} outputs from "${currentStep.actionDefinitionId}" action`,
       );
 
-      /*
-       * An output that takes its kind from an input (`kindFrom`) is only typed as any kind that input accepts, so check
-       * the action returned the kind it was given.
-       */
-      for (const outputDefinition of actionDefinitions[
-        currentStep.actionDefinitionId
-      ].outputs) {
-        if (!("kindFrom" in outputDefinition)) {
-          continue;
-        }
-
-        const outputKind = outputs.find(
-          ({ outputName }) => outputName === outputDefinition.name,
-        )?.payload.kind;
-
-        const inputKind = currentStep.inputs?.find(
-          ({ inputName }) => inputName === outputDefinition.kindFrom,
-        )?.payload.kind;
-
-        if (outputKind !== undefined && outputKind !== inputKind) {
-          processStepErrors[currentStepId] = {
-            code: StatusCode.Internal,
-            message: `Action ${currentStep.actionDefinitionId} returned output "${outputDefinition.name}" of kind ${outputKind}, but it must have the kind of input "${outputDefinition.kindFrom}" (${inputKind ?? "not given"})`,
-          };
-
-          return;
-        }
-      }
-
       currentStep.outputs = outputs;
 
       const status = passOutputsToUnprocessedSteps({
@@ -614,7 +663,21 @@ const processFlow = async <
        * The items to run the nested steps for. A stored array is iterated using its length alone, giving each
        * branch a reference to its item, which the activities it runs resolve.
        */
-      const items = getArrayPayloadItems(over.value);
+      let items: unknown[];
+
+      try {
+        items = getArrayPayloadItems(over.value);
+      } catch (error) {
+        processStepErrors[currentStepId] = {
+          code: StatusCode.Internal,
+          message: `Step ${currentStepId} can't iterate over its array: ${(error as Error).message}`,
+        };
+
+        /* A step with an array to iterate over is ready, so it would be processed again on every pass. */
+        processedStepIds.push(currentStep.stepId);
+
+        return;
+      }
 
       const newSteps = items.flatMap((itemValue, index) => {
         const item = { kind: over.kind, value: itemValue } as Payload;
@@ -899,9 +962,34 @@ const processFlow = async <
 };
 
 export const processFlowWorkflow: typeof processFlow = async (params) => {
+  let result: RunFlowWorkflowResponse;
+
   try {
-    return await processFlow(params);
+    result = await processFlow(params);
   } catch (error) {
-    throw toRunFailure(error);
+    const runFailure = toRunFailure(error);
+    const ending = getFailedRunEnding(runFailure);
+
+    if (ending) {
+      await recordFlowRun({
+        ending,
+        userAuthentication: params.userAuthentication,
+      });
+    }
+
+    throw runFailure;
   }
+
+  const { outputs, stepErrors } = result.contents[0] ?? {};
+
+  await recordFlowRun({
+    ending: {
+      kind: "completed",
+      flowOutputs: outputs ?? [],
+      ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+    },
+    userAuthentication: params.userAuthentication,
+  });
+
+  return result;
 };

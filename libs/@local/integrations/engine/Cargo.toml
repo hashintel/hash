@@ -1,0 +1,39 @@
+[package]
+name              = "hash-integrations-engine"
+description       = "Runs integration pipelines in DuckDB"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+error-stack                  = { workspace = true, public = true, features = ["std"] }
+hash-integrations-definition = { workspace = true, public = true }
+type-system                  = { workspace = true, public = true }
+
+# Public third-party dependencies
+duckdb = { workspace = true, public = true, features = ["bundled", "json"] }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+derive_more    = { workspace = true, features = ["display", "error"] }
+opentelemetry  = { workspace = true, features = ["metrics"] }
+serde_json     = { workspace = true }
+simple-mermaid = { workspace = true }
+tokio          = { workspace = true, features = ["sync"] }
+tracing        = { workspace = true, features = ["attributes"] }
+uuid           = { workspace = true, features = ["v4", "v5"] }
+
+[dev-dependencies]
+opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
+pretty_assertions = { workspace = true }
+proptest          = { workspace = true, features = ["attr-macro", "std"] }
+serde             = { workspace = true, features = ["derive"] }
+tempfile          = { workspace = true }
+tokio             = { workspace = true, features = ["macros", "rt", "time"] }
+
+[lints]
+workspace = true

@@ -63,6 +63,8 @@ const payloadKindDisplayColors: Record<PayloadKind, string> = {
   PersistedEntityMetadata: "#10B981",
   ProposedEntity: "#22C55E",
   ProposedEntityWithResolvedLinks: "#16A34A",
+  PropertyObjectWithMetadata: "#15803D",
+  PropertyPatch: "#0D9488",
   FailedEntityProposal: "#B91C1C",
   Boolean: "#F59E0B",
   Number: "#EA580C",

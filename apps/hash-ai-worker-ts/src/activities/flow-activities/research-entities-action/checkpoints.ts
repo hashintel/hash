@@ -2,9 +2,9 @@ import { Context } from "@temporalio/activity";
 import proto from "@temporalio/proto";
 
 import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/parse-history-item-payload";
+import { typedActionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
-import { heartbeatTimeoutSeconds } from "../../../shared/heartbeats.js";
 import { researchActionCheckpointSignal } from "../../../shared/signals.js";
 import { logger } from "../../shared/activity-logger.js";
 import { getTemporalClient } from "../../shared/get-flow-context.js";
@@ -34,7 +34,9 @@ import type { CoordinatingAgentState } from "./shared/coordinators.js";
 export const heartbeatAndWaitCancellation = async (
   state: CoordinatingAgentState,
 ) => {
-  const secondsBetweenHeartbeats = heartbeatTimeoutSeconds - 5;
+  const secondsBetweenHeartbeats =
+    typedActionDefinitions.researchEntities.activitySettings
+      .heartbeatTimeoutSeconds - 5;
 
   const heartbeatInterval = setInterval(() => {
     Context.current().heartbeat({

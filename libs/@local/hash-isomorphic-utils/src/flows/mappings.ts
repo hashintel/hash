@@ -1,12 +1,23 @@
 import { simplifyProperties } from "../simplify-properties.js";
-import { assertValidFlowDefinition } from "./validate-flow-definition.js";
+import {
+  assertValidFlowDefinition,
+  type FlowDefinitionDiagnostic,
+  getValidFlowDefinition,
+  validateFlowDefinition,
+} from "./validate-flow-definition.js";
 
 import type {
   FlowDefinition as FlowDefinitionEntity,
   FlowDefinitionPropertiesWithMetadata,
 } from "../system-types/flowdefinition.js";
 import type { FlowRun } from "../system-types/flowrun.js";
-import type { FlowDefinition, FlowInputValues, LocalFlowRun } from "./types.js";
+import type {
+  ExternalInputRequest,
+  FlowDefinition,
+  FlowInputValues,
+  LocalFlowRun,
+  Payload,
+} from "./types.js";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 const toObjectArrayProperty = (values: object[]) => ({
@@ -21,10 +32,10 @@ const toObjectArrayProperty = (values: object[]) => ({
 
 /**
  * The properties of the `Flow Definition` entity that holds a flow definition. Typed against the generated entity
- * type, so that the two can't drift apart.
+ * type, so that the two can't drift apart. The definition needn't be valid: a flow can be saved before it's finished.
  */
 export const mapFlowDefinitionToEntityProperties = (
-  flowDefinition: FlowDefinition,
+  flowDefinition: FlowDefinition<string>,
 ): FlowDefinitionPropertiesWithMetadata => ({
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": {
@@ -86,6 +97,42 @@ export const getFlowDefinitionFromEntity = (
   assertValidFlowDefinition(getUnvalidatedFlowDefinitionFromEntity(entity));
 
 /**
+ * What a `Flow Definition` entity holds, without requiring it to be valid: e.g. to list a flow that isn't finished
+ * yet, with its problems. The definition is only given when it has no errors, so that only a valid one is compiled or
+ * run.
+ */
+export const validateFlowDefinitionEntity = (
+  entity: HashEntity<FlowDefinitionEntity>,
+): {
+  name: string;
+  description: string;
+  flowDefinition: FlowDefinition | null;
+  /** Every problem found, including warnings, which don't stop the flow running. */
+  diagnostics: FlowDefinitionDiagnostic[];
+} => {
+  const unvalidatedFlowDefinition =
+    getUnvalidatedFlowDefinitionFromEntity(entity);
+
+  const validation = validateFlowDefinition(unvalidatedFlowDefinition);
+
+  return {
+    name: unvalidatedFlowDefinition.name,
+    description: unvalidatedFlowDefinition.description,
+    flowDefinition: getValidFlowDefinition(validation),
+    diagnostics: validation.diagnostics,
+  };
+};
+
+/**
+ * The `Open Input Request` property of a flow run: the requests it has made that haven't been answered yet.
+ */
+export const mapOpenInputRequestsToEntityProperty = (
+  openInputRequests: ExternalInputRequest[],
+): NonNullable<
+  FlowRun["propertiesWithMetadata"]["value"]["https://hash.ai/@h/types/property-type/open-input-request/"]
+> => toObjectArrayProperty(openInputRequests);
+
+/**
  * The `Inputs` property of a flow run or trigger: one `{ inputName, payload }` object per input given a value,
  * like the `Outputs` property.
  */
@@ -100,6 +147,16 @@ export const mapFlowInputValuesToInputsProperty = (
     },
   })),
 });
+
+/** The values given to a flow's inputs, from the `Inputs` property of a flow run or trigger. */
+export const mapInputsPropertyToFlowInputValues = (
+  inputs: FlowRun["properties"]["https://hash.ai/@h/types/property-type/inputs/"],
+): FlowInputValues =>
+  Object.fromEntries(
+    (inputs as { inputName: string; payload: Payload }[]).map(
+      ({ inputName, payload }) => [inputName, payload],
+    ),
+  );
 
 export const mapFlowRunToEntityProperties = (
   flowRun: LocalFlowRun,
@@ -134,14 +191,5 @@ export const mapFlowRunToEntityProperties = (
           },
         }
       : {}),
-    "https://hash.ai/@h/types/property-type/step/": {
-      value: flowRun.steps.map((step) => ({
-        value: step,
-        metadata: {
-          dataTypeId:
-            "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-        },
-      })),
-    },
   },
 });

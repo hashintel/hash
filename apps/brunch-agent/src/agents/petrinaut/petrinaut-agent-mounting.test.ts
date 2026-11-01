@@ -11,6 +11,7 @@ import {
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
 import {
+  assertBrowserExecutedToolConformance,
   assertPetrinautToolCatalogueConformance,
   canonicalPetrinautToolCatalogue,
   brunchToolCatalogue,
@@ -247,4 +248,15 @@ test("the Brunch catalogue classifies every canonical tool", () => {
       "newCanonicalStockTool",
     ]),
   ).toThrow(/unclassified/u);
+});
+
+test("the catalogue's website-executed tools are the library's browser-executed tools", () => {
+  expect(() => assertBrowserExecutedToolConformance()).not.toThrow();
+  expect(() =>
+    assertBrowserExecutedToolConformance(
+      brunchToolCatalogue.filter(
+        ({ name }) => name !== brunchTools.draftPetrinautExperiment,
+      ),
+    ),
+  ).toThrow(/missing: draft_petrinaut_experiment/u);
 });

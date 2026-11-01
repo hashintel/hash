@@ -58,10 +58,10 @@ so it reads the action from `NetManagementContext`.
 
 ## Design
 
-[How the editor runs plugins](../../../../../@local/petrinaut-arch-docs/content/plugins/runtime.mdx)
+[How the editor runs plugins](./runtime.mdx)
 describes hosts, publishing, remounts, failures, settings storage and the
 React Compiler directives. The
-[Plugin API reference](../../../../../@local/petrinaut-arch-docs/content/plugins/reference.mdx)
+[Plugin API reference](./reference.mdx)
 gives the typing rules.
 
 ## Consumers

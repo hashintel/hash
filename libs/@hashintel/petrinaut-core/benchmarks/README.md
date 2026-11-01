@@ -1,7 +1,7 @@
 # Simulation benchmarks
 
 Measurement harnesses backing the architecture docs'
-[Simulation performance](../../../@local/petrinaut-arch-docs/content/simulation/performance.mdx)
+[Simulation performance](../src/simulation/performance.mdx)
 page. These are investigation tools, not tests — nothing here asserts, and none
 of it runs in CI.
 

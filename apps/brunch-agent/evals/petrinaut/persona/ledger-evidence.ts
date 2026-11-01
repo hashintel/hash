@@ -17,6 +17,6 @@ export const ledgerEvidence = (history: LedgerHistory): LedgerEvidence => {
   const { state, commits } = foldCommits(history);
   return {
     commits,
-    markdown: renderLedgerMarkdown(projectLedger(state), "agent"),
+    markdown: renderLedgerMarkdown(projectLedger(state)),
   };
 };

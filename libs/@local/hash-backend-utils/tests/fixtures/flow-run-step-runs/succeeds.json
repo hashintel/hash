@@ -1,0 +1,77 @@
+{
+  "stepRuns": [
+    {
+      "stepId": "count",
+      "stepType": "aggregateAction",
+      "startedAt": "2026-10-24T11:08:40.044Z",
+      "scheduledAt": "2026-10-24T11:08:40.043Z",
+      "closedAt": "2026-10-24T11:08:40.045Z",
+      "inputs": [
+        {
+          "inputName": "aggregation",
+          "payload": {
+            "kind": "Aggregation",
+            "value": {
+              "operation": "count"
+            }
+          }
+        },
+        {
+          "inputName": "items",
+          "payload": {
+            "kind": "Number",
+            "value": [3, 1]
+          }
+        }
+      ],
+      "logs": [],
+      "status": "COMPLETED",
+      "attempt": 1,
+      "outputs": [
+        {
+          "outputName": "result",
+          "payload": {
+            "kind": "Number",
+            "value": 2
+          }
+        }
+      ]
+    },
+    {
+      "stepId": "firstTwo",
+      "stepType": "takeFirstAction",
+      "startedAt": "2026-10-24T11:08:40.032Z",
+      "scheduledAt": "2026-10-24T11:08:40.028Z",
+      "closedAt": "2026-10-24T11:08:40.034Z",
+      "inputs": [
+        {
+          "inputName": "items",
+          "payload": {
+            "kind": "Number",
+            "value": [3, 1, 4]
+          }
+        },
+        {
+          "inputName": "count",
+          "payload": {
+            "kind": "Number",
+            "value": 2
+          }
+        }
+      ],
+      "logs": [],
+      "status": "COMPLETED",
+      "attempt": 1,
+      "outputs": [
+        {
+          "outputName": "items",
+          "payload": {
+            "kind": "Number",
+            "value": [3, 1]
+          }
+        }
+      ]
+    }
+  ],
+  "inputRequests": []
+}

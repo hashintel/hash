@@ -13,8 +13,6 @@ import {
   ArrowUpRightFromSquareRegularIcon,
   CaretDownSolidIcon,
   IconButton,
-  InfinityLightIcon,
-  MemoCircleCheckRegularIcon,
   MicroscopeRegularIcon,
   PlugRegularIcon,
 } from "@hashintel/design-system";
@@ -29,7 +27,7 @@ import { iconSx } from "./history-row/styles";
 
 import type { LocalStorage } from "../../../../../../shared/storage";
 
-type RowType = "automatic" | "manual" | "external-page-request";
+type RowType = "automatic" | "manual";
 
 const UrlChip = ({ type, url }: { type: RowType; url: string }) => (
   <Tooltip title={url} placement="top">
@@ -95,75 +93,54 @@ export const HistoryRow = ({
   return (
     <>
       <TableRow>
-        {type === "external-page-request" ? (
-          <TableCell>
+        <TableCell sx={{ pr: "3px !important" }}>
+          <Stack direction="row" alignItems="center">
             <Chip>
-              <MemoCircleCheckRegularIcon sx={{ ...iconSx, mr: 1 }} />
-              Load Page
-            </Chip>
-          </TableCell>
-        ) : (
-          <TableCell sx={{ pr: "3px !important" }}>
-            <Stack direction="row" alignItems="center">
-              <Chip>
-                <MicroscopeRegularIcon
-                  sx={{
-                    ...iconSx,
-                    mr: 0.6,
-                  }}
-                />
-                Analyze
-              </Chip>
-              <IconButton
-                onClick={() => setExpanded(!expanded)}
+              <MicroscopeRegularIcon
                 sx={{
-                  p: 0.4,
-                  "& svg": { fontSize: 13 },
-                  "@media (prefers-color-scheme: dark)": {
-                    "&:hover": {
-                      background: ({ palette }) => palette.gray[90],
-                    },
-                  },
+                  ...iconSx,
+                  mr: 0.6,
                 }}
-              >
-                <CaretDownSolidIcon
-                  sx={{
-                    ...iconSx,
-                    transform: expanded ? "rotate(0deg)" : "rotate(-90deg)",
-                    transition: ({ transitions }) =>
-                      transitions.create("transform"),
-                  }}
-                />
-              </IconButton>
-            </Stack>
-          </TableCell>
-        )}
+              />
+              Analyze
+            </Chip>
+            <IconButton
+              onClick={() => setExpanded(!expanded)}
+              sx={{
+                p: 0.4,
+                "& svg": { fontSize: 13 },
+                "@media (prefers-color-scheme: dark)": {
+                  "&:hover": {
+                    background: ({ palette }) => palette.gray[90],
+                  },
+                },
+              }}
+            >
+              <CaretDownSolidIcon
+                sx={{
+                  ...iconSx,
+                  transform: expanded ? "rotate(0deg)" : "rotate(-90deg)",
+                  transition: ({ transitions }) =>
+                    transitions.create("transform"),
+                }}
+              />
+            </IconButton>
+          </Stack>
+        </TableCell>
         {type === "manual" ? (
           <CellWithHoverButton button={openFlowButton}>
             <UrlChip type={type} url={flowRun.webPage.url} />
           </CellWithHoverButton>
         ) : (
           <TableCell>
-            <UrlChip
-              type={type}
-              url={flowRun.requestedPageUrl ?? flowRun.webPage.url}
-            />
+            <UrlChip type={type} url={flowRun.webPage.url} />
           </TableCell>
         )}
-        {(type === "automatic" || type === "external-page-request") && (
+        {type === "automatic" && (
           <CellWithHoverButton button={openFlowButton}>
             <Chip>
-              {type === "automatic" ? (
-                <>
-                  <PlugRegularIcon sx={{ ...iconSx, mr: 0.5 }} />
-                  Plugin
-                </>
-              ) : (
-                <>
-                  <InfinityLightIcon sx={{ ...iconSx, mr: 0.5 }} />
-                  Flow
-                </>
-              )}
+              <PlugRegularIcon sx={{ ...iconSx, mr: 0.5 }} />
+              Plugin
             </Chip>
           </CellWithHoverButton>
         )}

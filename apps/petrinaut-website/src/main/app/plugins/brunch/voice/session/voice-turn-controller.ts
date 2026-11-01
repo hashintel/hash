@@ -3,18 +3,18 @@ import {
   type VoiceErrorCode,
 } from "../../../../../../voice-diagnostics";
 
+import type { PetrinautAiComposerControlContext } from "../../chat/ai-assistant-composer-control";
 import type { CanonicalSpeechSegment } from "../live/canonical-speech";
-import type { OpenAIRealtimeSessionEvent } from "../realtime/openai-realtime-session";
 import type {
-  CancelPendingSpeechOptions,
+  OpenAIRealtimeSession,
+  OpenAIRealtimeSessionEvent,
+} from "../realtime/openai-realtime-session";
+import type {
+  ChatUpdate,
   RealtimeBridgeErrorCode,
+  RealtimeBrunchBridge,
   RealtimeBrunchBridgeEvent,
-  VoiceSubmissionSettlement,
 } from "../realtime/realtime-brunch-bridge";
-import type {
-  PetrinautAiComposerControlContext,
-  PetrinautAiVoiceModeContext,
-} from "@hashintel/petrinaut/ui";
 
 type VoiceConnectionState = "idle" | "connecting" | "connected" | "error";
 export type VoiceInputState = "listening" | "paused" | "submitting";
@@ -70,26 +70,28 @@ export interface VoiceLatencyEvent {
     | "answer-ready";
 }
 
-interface RealtimeSession {
-  cancelOutput(): Promise<void>;
-  connect(): Promise<number>;
-  disconnect(): Promise<void>;
-  setInterruptionBySpeaking(enabled: boolean): void;
-  setMicrophoneEnabled(enabled: boolean): void;
-  setSpeakerMuted(muted: boolean): void;
-  setSpeakerVolume(volume: number): void;
-  speakCanonical(segments: CanonicalSpeechSegment[]): void;
-  subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
-}
+type RealtimeSession = Pick<
+  OpenAIRealtimeSession,
+  | "cancelOutput"
+  | "connect"
+  | "disconnect"
+  | "setInterruptionBySpeaking"
+  | "setMicrophoneEnabled"
+  | "setSpeakerMuted"
+  | "setSpeakerVolume"
+  | "speakCanonical"
+  | "subscribe"
+>;
 
-interface RealtimeBridge {
-  cancelPendingSpeech(options?: CancelPendingSpeechOptions): void;
-  completeTurnHandoff(): void;
-  start(connectionEpoch: number): void;
-  stop(): void;
-  subscribe(listener: (event: RealtimeBrunchBridgeEvent) => void): () => void;
-  updateChat(update: ChatUpdate): void;
-}
+type RealtimeBridge = Pick<
+  RealtimeBrunchBridge,
+  | "cancelPendingSpeech"
+  | "completeTurnHandoff"
+  | "start"
+  | "stop"
+  | "subscribe"
+  | "updateChat"
+>;
 
 type ComposerSubmitTextInput = Parameters<
   PetrinautAiComposerControlContext["submitText"]
@@ -105,15 +107,6 @@ interface VoiceTurnControllerDependencies {
   readonly onLatencyEvent?: (event: VoiceLatencyEvent) => void;
   readonly session: RealtimeSession;
   readonly submitText: (input: SubmitTextInput) => Promise<unknown>;
-}
-
-interface ChatUpdate {
-  readonly canAcceptInterviewAnswer: boolean;
-  readonly canonicalSegments: CanonicalSpeechSegment[];
-  readonly questionSegment?: CanonicalSpeechSegment;
-  readonly settlements?: readonly VoiceSubmissionSettlement[];
-  readonly stopped?: boolean;
-  readonly status: PetrinautAiVoiceModeContext["status"];
 }
 
 interface PendingSubmissionSettlement {

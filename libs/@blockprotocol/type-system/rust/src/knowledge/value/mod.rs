@@ -1,5 +1,7 @@
 pub mod metadata;
 
+#[cfg(feature = "schemars")]
+use alloc::borrow::Cow;
 #[cfg(feature = "postgres")]
 use core::error::Error;
 use core::fmt::{self, Debug};
@@ -10,6 +12,8 @@ use bytes::BytesMut;
 use hash_codec::numeric::Real;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
+#[cfg(feature = "schemars")]
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::Serialize as _;
 
 pub use self::metadata::ValueMetadata;
@@ -60,6 +64,20 @@ pub enum PropertyValue {
     Number(Real),
     Array(Vec<Self>),
     Object(HashMap<String, Self>),
+}
+
+#[cfg(feature = "schemars")]
+impl JsonSchema for PropertyValue {
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("PropertyValue")
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "description": "A value of a data type: `null`, a boolean, a string, a number, an \
+                            array or an object.",
+        })
+    }
 }
 
 impl fmt::Display for PropertyValue {

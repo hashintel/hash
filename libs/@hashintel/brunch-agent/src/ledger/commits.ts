@@ -1,8 +1,10 @@
 import * as v from "valibot";
 
 import { brunchTools } from "../constants";
+import { petrinautUserMessageText } from "../petrinaut/contextual-user-message";
 import { vLedgerAppend, type LedgerAppend } from "./append";
-import { owedObligations, projectLedger } from "./projection";
+import { owedObligations, projectLedger } from "./projection/project-ledger";
+import { questionStatuses, type Origin } from "./shared/epistemics";
 
 import type {
   ClaimRecord,
@@ -10,15 +12,18 @@ import type {
   LedgerState,
   ObligationRecord,
   ReflectionRecord,
-} from "./projection";
+  Turn,
+} from "./projection/records";
+import type { FlueConversationMessage } from "@flue/sdk";
 
-/** Structural view of a conversation history; Flue and AI SDK messages both fit. */
-export interface LedgerHistoryMessage {
-  readonly id: string;
-  readonly role: string;
-  readonly purpose?: string;
-  readonly parts: readonly unknown[];
-}
+/** A Flue conversation message as the fold reads it: parts stay `unknown` because the fold parses them. */
+export type LedgerHistoryMessage = Pick<
+  FlueConversationMessage,
+  "id" | "role"
+> &
+  Partial<Pick<FlueConversationMessage, "purpose">> & {
+    readonly parts: readonly unknown[];
+  };
 
 export interface LedgerHistory {
   readonly messages: readonly LedgerHistoryMessage[];
@@ -43,7 +48,8 @@ interface LedgerCall {
    * can still be running.
    */
   readonly followsUnsettledCall: boolean;
-  readonly afterMessageId?: string;
+  /** The user message the call followed, which anchors its records' turn. */
+  readonly turn?: Turn;
 }
 
 const isSettled = (part: ToolPart) => part.state.startsWith("output-");
@@ -51,12 +57,34 @@ const isSettled = (part: ToolPart) => part.state.startsWith("output-");
 const isUserMessage = (message: LedgerHistoryMessage) =>
   message.role === "user" && (message.purpose ?? "user") === "user";
 
+const textPartSchema = v.object({ type: v.literal("text"), text: v.string() });
+
+const turnExcerptLength = 240;
+
+/** The opening of a user message's text, enough to recognise the turn by. */
+const turnExcerpt = (message: LedgerHistoryMessage): string => {
+  const text = petrinautUserMessageText(
+    message.parts
+      .flatMap((part) => {
+        const parsed = v.safeParse(textPartSchema, part);
+        return parsed.success ? [parsed.output.text] : [];
+      })
+      .join(" "),
+  )
+    .replace(/\s+/g, " ")
+    .trim();
+  const characters = Array.from(text);
+  return characters.length > turnExcerptLength
+    ? `${characters.slice(0, turnExcerptLength - 1).join("")}…`
+    : text;
+};
+
 /** Every `ledger_commit` call in canonical order, whatever its state. */
 const ledgerCalls = (history: LedgerHistory): LedgerCall[] => {
-  let afterMessageId: string | undefined;
+  let turn: Turn | undefined;
   return history.messages.flatMap((message) => {
     if (isUserMessage(message)) {
-      afterMessageId = message.id;
+      turn = { id: message.id, excerpt: turnExcerpt(message) };
       return [];
     }
     if (message.role !== "assistant") return [];
@@ -71,9 +99,9 @@ const ledgerCalls = (history: LedgerHistory): LedgerCall[] => {
       const followsUnsettledCall = parts
         .slice(0, index)
         .some((earlier) => !isSettled(earlier));
-      return afterMessageId === undefined
+      return turn === undefined
         ? { part, followsUnsettledCall }
-        : { part, followsUnsettledCall, afterMessageId };
+        : { part, followsUnsettledCall, turn };
     });
   });
 };
@@ -201,12 +229,6 @@ const reserveAddresses = (
   return next;
 };
 
-/** Statuses the map lists as questions, which need no entity to be shown. */
-const entityFreeClaimStatuses: ReadonlySet<string> = new Set([
-  "open",
-  "conflicted",
-]);
-
 /** Why a new claim would never be shown, if one would not. */
 const claimWithoutEntity = (
   entries: LedgerAppend["entries"],
@@ -215,7 +237,7 @@ const claimWithoutEntity = (
     if (
       route === "claim/create" &&
       payload.entities.length === 0 &&
-      !entityFreeClaimStatuses.has(payload.status)
+      !questionStatuses.has(payload.status)
     )
       return `Claim $${index} is ${payload.status} but names no entity, so the Ledger map would never show it. Reference the entities it is about, or record an unresolved gap as an open claim.`;
   return undefined;
@@ -234,9 +256,10 @@ type Derivation =
 const deriveBatch = (
   state: LedgerState,
   entries: LedgerAppend["entries"],
-  turn: string,
+  anchor: Turn | undefined,
   reserved: AddressCounters,
 ): Derivation => {
+  const turn = anchor?.id ?? "";
   const counters = { ...countersOf(state, reserved) };
   const addressed = entries.map((entry) => {
     const [route] = entry;
@@ -387,8 +410,9 @@ const deriveBatch = (
   }
 
   const turns =
-    turn !== "" && !state.turns.some((existing) => existing.id === turn)
-      ? [...state.turns, { id: turn, excerpt: "" }]
+    anchor !== undefined &&
+    !state.turns.some((existing) => existing.id === anchor.id)
+      ? [...state.turns, anchor]
       : state.turns;
 
   return {
@@ -438,12 +462,7 @@ const foldWithReservations = (
       continue;
     const input = v.safeParse(vLedgerAppend, call.part.input);
     const derived = input.success
-      ? deriveBatch(
-          state,
-          input.output.entries,
-          call.afterMessageId ?? "",
-          reserved,
-        )
+      ? deriveBatch(state, input.output.entries, call.turn, reserved)
       : undefined;
     const derivedIds =
       derived === undefined || "refusal" in derived ? undefined : derived.ids;
@@ -462,9 +481,7 @@ const foldWithReservations = (
     commits.push({
       commitId: call.part.toolCallId,
       revision: commits.length + 1,
-      ...(call.afterMessageId === undefined
-        ? {}
-        : { afterMessageId: call.afterMessageId }),
+      ...(call.turn === undefined ? {} : { afterMessageId: call.turn.id }),
       ids: derived.ids,
     });
     state = derived.state;
@@ -527,12 +544,7 @@ export const prepareAppend = (call: {
       message: unshownClaim,
       revision,
     };
-  const derived = deriveBatch(
-    state,
-    call.entries,
-    own.afterMessageId ?? "",
-    reserved,
-  );
+  const derived = deriveBatch(state, call.entries, own.turn, reserved);
   if ("refusal" in derived)
     return {
       status: "refused",
@@ -551,7 +563,7 @@ export const prepareAppend = (call: {
     commitId: call.toolCallId,
     revision: revision + 1,
     ids: derived.ids,
-    exchanges: exchangesThrough(call.history, own.afterMessageId),
+    exchanges: exchangesThrough(call.history, own.turn?.id),
     openQuestions: projectLedger(derived.state).questions.length,
     ...(owed.length > 0 ? { owed } : {}),
     ...(notes.length > 0 ? { notes } : {}),
@@ -567,7 +579,7 @@ const exchangesThrough = (
   return history.messages.slice(0, end + 1).filter(isUserMessage).length;
 };
 
-const accountOrigins = new Set(["stated", "evidenced"]);
+const accountOrigins: ReadonlySet<Origin> = new Set(["stated", "evidenced"]);
 
 /** A claim of the agent's own superseding the account: the account leaves the map. */
 const accountDisplacements = (

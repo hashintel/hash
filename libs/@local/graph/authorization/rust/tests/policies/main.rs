@@ -226,7 +226,7 @@ impl TestSystem {
         let hash_instance_entity = EntityResource {
             id: EntityId {
                 web_id: web.id,
-                entity_uuid: EntityUuid::new(Uuid::new_v4()),
+                entity_uuid: EntityUuid::new(Uuid::now_v7()),
                 draft_id: None,
             },
             entity_types: Cow::Owned(vec![
@@ -388,7 +388,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     let web_entity = EntityResource {
         id: EntityId {
             web_id: user.web.id,
-            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            entity_uuid: EntityUuid::new(Uuid::now_v7()),
             draft_id: None,
         },
         entity_types: Cow::Owned(vec![web_type.id.as_url().clone()]),
@@ -566,7 +566,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     let web_entity = EntityResource {
         id: EntityId {
             web_id: org_web.id,
-            entity_uuid: EntityUuid::new(Uuid::new_v4()),
+            entity_uuid: EntityUuid::new(Uuid::now_v7()),
             draft_id: None,
         },
         entity_types: Cow::Owned(vec![web_type.id.as_url().clone()]),

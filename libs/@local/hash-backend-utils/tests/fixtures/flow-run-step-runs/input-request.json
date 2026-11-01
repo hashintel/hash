@@ -1,0 +1,52 @@
+{
+  "stepRuns": [
+    {
+      "stepId": "research",
+      "stepType": "researchEntitiesAction",
+      "startedAt": "2026-10-27T16:06:54.114Z",
+      "scheduledAt": "2026-10-27T16:06:54.105Z",
+      "closedAt": "2026-10-27T16:06:54.156Z",
+      "inputs": [
+        {
+          "inputName": "prompt",
+          "payload": {
+            "kind": "Text",
+            "value": "Who makes HASH?"
+          }
+        }
+      ],
+      "logs": [],
+      "status": "COMPLETED",
+      "attempt": 1,
+      "outputs": [
+        {
+          "outputName": "proposedEntities",
+          "payload": {
+            "kind": "ProposedEntity",
+            "value": []
+          }
+        },
+        {
+          "outputName": "highlightedEntities",
+          "payload": {
+            "kind": "EntityId",
+            "value": []
+          }
+        }
+      ]
+    }
+  ],
+  "inputRequests": [
+    {
+      "data": {
+        "questions": ["Which HASH do you mean?"]
+      },
+      "answers": ["The company"],
+      "requestId": "a420afc6-cc65-418e-8053-d093a23f54da",
+      "stepId": "unresolved",
+      "type": "human-input",
+      "raisedAt": "2026-10-27T16:06:54.125Z",
+      "resolvedAt": "2026-10-27T16:06:54.129Z"
+    }
+  ]
+}

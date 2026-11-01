@@ -13,6 +13,8 @@ Select a place, transition, or differential equation in the canvas or left sideb
 
 The item’s menu in the left sidebar opens its code directly. For a place with dynamics, **View equation** below its assigned differential equation opens that equation’s properties and code.
 
+Every code section, the Visualizer included, is checked as you type: type errors are underlined and listed in the Diagnostics tab, completion suggests the names in scope, and pointing at a name shows its type.
+
 ## Fill the panel
 
 Use the **Fill panel** button in the section header to expand that section to the full width and height of the Properties Panel’s section area. Its controls stay beside the code. The canvas and the panel’s width stay unchanged.

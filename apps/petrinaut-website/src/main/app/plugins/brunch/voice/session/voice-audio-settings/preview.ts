@@ -1,7 +1,12 @@
 import type { VoiceProvider } from "../../../../../../../shared/voice-settings";
+import type { PetrinautAiVoiceSessionState } from "../../../chat/voice-session/types";
 
-type PreviewState = "loading" | "playing" | null;
-type Output = { muted: boolean; volume: number; sinkId?: string };
+type PreviewState = Exclude<
+  NonNullable<PetrinautAiVoiceSessionState["audioSettings"]>["voicePreview"],
+  undefined
+>;
+/** The session's audio output as a preview follows it. */
+export type PreviewOutput = { muted: boolean; volume: number; sinkId?: string };
 
 // Bump the path version whenever a clip changes; production serves it immutable.
 const previewRoot = "/voice-previews/v1";
@@ -15,7 +20,7 @@ export const previewVoice = ({
 }: {
   provider: VoiceProvider;
   voice: string;
-  output: () => Output;
+  output: () => PreviewOutput;
   onState: (state: PreviewState, error?: string) => void;
 }): (() => void) => {
   const abort = new AbortController();
@@ -42,7 +47,7 @@ export const previewVoice = ({
     state = nextState;
     onState(nextState);
   };
-  const syncOutput = async (): Promise<Output> => {
+  const syncOutput = async (): Promise<PreviewOutput> => {
     if (!audio) throw new Error("Preview audio is unavailable");
     const current = output();
     audio.muted = current.muted;
@@ -63,7 +68,7 @@ export const previewVoice = ({
     }
     return current;
   };
-  const updatePlayingState = (current: Output) => {
+  const updatePlayingState = (current: PreviewOutput) => {
     setState(
       started && !current.muted && current.volume > 0 ? "playing" : null,
     );

@@ -1,0 +1,441 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Avatar } from "../Avatar/avatar";
+import { Tooltip } from "../Tooltip/tooltip";
+import { AvatarGroup } from "./avatar-group";
+
+<Meta title="Docs/AvatarGroup" />
+
+export const meta = {
+  title: "AvatarGroup",
+  description:
+    "Show the people connected to an entity as a compact, overlapping stack.",
+  alternativeNames: ["AvatarStack", "Facepile"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/AvatarGroup/avatar-group.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-avatargroup--default",
+  },
+  related: ["Avatar", "Tooltip"],
+};
+
+# AvatarGroup
+
+Show the people connected to an entity as a compact, overlapping stack.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <AvatarGroup max={4}>
+    <Avatar
+      alt="Chris Feijoo"
+      src="https://avatars.githubusercontent.com/u/2991143?v=4"
+      placeholder={{ initials: "CF" }}
+    />
+    <Avatar
+      alt="Dei Vilkinsons"
+      src="https://avatars.githubusercontent.com/u/6226576?v=4"
+      placeholder={{ initials: "DV" }}
+    />
+    <Avatar
+      alt="Ciaran Morinan"
+      src="https://avatars.githubusercontent.com/u/37743469?v=4"
+      placeholder={{ initials: "CM" }}
+    />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+    <Avatar
+      alt="Alex Leon"
+      src="https://avatars.githubusercontent.com/u/7065873?v=4"
+      placeholder={{ initials: "AL" }}
+    />
+    <Avatar alt="Priya Patel" placeholder={{ initials: "PP" }} />
+  </AvatarGroup>
+  <AvatarGroup size="sm">
+    <Avatar
+      alt="HASH"
+      shape="square"
+      src="https://avatars.githubusercontent.com/u/63675132?v=4"
+      placeholder={{ initials: "H" }}
+    />
+    <Avatar alt="Apex Labs" shape="square" placeholder={{ initials: "AL" }} />
+    <Avatar
+      alt="Causal Insights"
+      shape="square"
+      placeholder={{ initials: "CI" }}
+    />
+  </AvatarGroup>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { Avatar, AvatarGroup } from "@hashintel/ds-components";
+
+export const EntityContributors = () => (
+  <AvatarGroup max={4}>
+    <Avatar
+      alt="Chris Feijoo"
+      src="https://avatars.githubusercontent.com/u/2991143?v=4"
+      placeholder={{ initials: "CF" }}
+    />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+    <Avatar alt="Priya Patel" placeholder={{ initials: "PP" }} />
+  </AvatarGroup>
+);
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Use AvatarGroup to show who's associated with something — an entity's contributors, a flow's participants, a workspace's members — where there's no room for names.",
+    <Fragment key="0">
+      Use <code>max</code> to keep long collections to a predictable width — the
+      badge summarises everyone it hides.
+    </Fragment>,
+    <Fragment key="1">
+      Use <code>total</code> when you fetch only the first page of members, so
+      the +N reflects the real count.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    "Don't use a group for a single person — use Avatar on its own.",
+    "Don't use it where each person must be identifiable at a glance — given the room, list names next to individual Avatars instead.",
+    "Don't use it as a control for choosing people — it only displays membership; use Combobox or Select to pick teammates.",
+  ]}
+/>
+
+## Anatomy
+
+```tsx
+<AvatarGroup>
+  <Avatar />
+  <Avatar />
+  {/* optional — replaces the automatic "+N" badge */}
+  <AvatarGroup.More>…</AvatarGroup.More>
+</AvatarGroup>
+```
+
+## Examples
+
+### Basic
+
+Pass Avatars as children, in order — the first renders on top of the stack.
+Hovering lifts the avatar under the pointer to the front.
+
+<Stage>
+  <AvatarGroup>
+    <Avatar
+      alt="Chris Feijoo"
+      src="https://avatars.githubusercontent.com/u/2991143?v=4"
+      placeholder={{ initials: "CF" }}
+    />
+    <Avatar
+      alt="Dei Vilkinsons"
+      src="https://avatars.githubusercontent.com/u/6226576?v=4"
+      placeholder={{ initials: "DV" }}
+    />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+    <Avatar
+      alt="Alex Leon"
+      src="https://avatars.githubusercontent.com/u/7065873?v=4"
+      placeholder={{ initials: "AL" }}
+    />
+  </AvatarGroup>
+</Stage>
+
+### Overflow
+
+Use `max` or `AvatarGroup.More` to handle overflow.
+
+With `max` the +N badge takes the final slot, so `max={4}` renders three avatars plus the badge. When children is not the size of the full set, for example its only the members you've loaded, set `total` to the size of the whole collection.
+
+Or to fully control the overflow, place an `<AvatarGroup.More>` among the children.
+
+<Stage>
+  <AvatarGroup max={4}>
+    <Avatar
+      alt="Chris Feijoo"
+      src="https://avatars.githubusercontent.com/u/2991143?v=4"
+      placeholder={{ initials: "CF" }}
+    />
+    <Avatar
+      alt="Dei Vilkinsons"
+      src="https://avatars.githubusercontent.com/u/6226576?v=4"
+      placeholder={{ initials: "DV" }}
+    />
+    <Avatar
+      alt="Ciaran Morinan"
+      src="https://avatars.githubusercontent.com/u/37743469?v=4"
+      placeholder={{ initials: "CM" }}
+    />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+    <Avatar alt="Sofia Almeida" placeholder={{ initials: "SA" }} />
+    <Avatar alt="Priya Patel" placeholder={{ initials: "PP" }} />
+  </AvatarGroup>
+  <AvatarGroup max={4} total={24}>
+    <Avatar
+      alt="Chris Feijoo"
+      src="https://avatars.githubusercontent.com/u/2991143?v=4"
+      placeholder={{ initials: "CF" }}
+    />
+    <Avatar
+      alt="Alex Leon"
+      src="https://avatars.githubusercontent.com/u/7065873?v=4"
+      placeholder={{ initials: "AL" }}
+    />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+    <Avatar alt="Priya Patel" placeholder={{ initials: "PP" }} />
+    <Avatar alt="Sofia Almeida" placeholder={{ initials: "SA" }} />
+  </AvatarGroup>
+  <AvatarGroup>
+    <Avatar
+      alt="Dei Vilkinsons"
+      src="https://avatars.githubusercontent.com/u/6226576?v=4"
+      placeholder={{ initials: "DV" }}
+    />
+    <Avatar
+      alt="Ciaran Morinan"
+      src="https://avatars.githubusercontent.com/u/37743469?v=4"
+      placeholder={{ initials: "CM" }}
+    />
+    <Avatar alt="Priya Patel" placeholder={{ initials: "PP" }} />
+    <AvatarGroup.More alt="99 or more viewers">
+      <span style={{ fontSize: 11 }}>99+</span>
+    </AvatarGroup.More>
+  </AvatarGroup>
+</Stage>
+
+### Sizes
+
+Sizes match Avatar's scale; `md` is the default. Set `size` once on the group
+— any child that doesn't set its own inherits it. Or set `size="custom"`
+and `--avatar-size` yourself to set a custom size.
+
+<Stage>
+  <AvatarGroup size="xxs">
+    <Avatar alt="Alex Leon" placeholder={{ initials: "AL" }} />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+    <Avatar alt="Priya Patel" placeholder={{ initials: "PP" }} />
+  </AvatarGroup>
+  <AvatarGroup size="xs">
+    <Avatar alt="Alex Leon" placeholder={{ initials: "AL" }} />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+    <Avatar alt="Priya Patel" placeholder={{ initials: "PP" }} />
+  </AvatarGroup>
+  <AvatarGroup size="sm">
+    <Avatar alt="Alex Leon" placeholder={{ initials: "AL" }} />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+    <Avatar alt="Priya Patel" placeholder={{ initials: "PP" }} />
+  </AvatarGroup>
+  <AvatarGroup size="md">
+    <Avatar alt="Alex Leon" placeholder={{ initials: "AL" }} />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+    <Avatar alt="Priya Patel" placeholder={{ initials: "PP" }} />
+  </AvatarGroup>
+  <AvatarGroup size="lg">
+    <Avatar alt="Alex Leon" placeholder={{ initials: "AL" }} />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+    <Avatar alt="Priya Patel" placeholder={{ initials: "PP" }} />
+  </AvatarGroup>
+  <div style={{ "--avatar-size": "64px" }}>
+    <AvatarGroup size="custom">
+      <Avatar
+        alt="Chris Feijoo"
+        src="https://avatars.githubusercontent.com/u/2991143?v=4"
+        placeholder={{ initials: "CF" }}
+      />
+      <Avatar
+        alt="Dei Vilkinsons"
+        src="https://avatars.githubusercontent.com/u/6226576?v=4"
+        placeholder={{ initials: "DV" }}
+      />
+      <Avatar
+        alt="Ciaran Morinan"
+        src="https://avatars.githubusercontent.com/u/37743469?v=4"
+        placeholder={{ initials: "CM" }}
+      />
+    </AvatarGroup>
+  </div>
+</Stage>
+
+### Spacing
+
+`md` (default) is the standard overlap; `sm` packs avatars tighter. Use `sm`
+in dense chrome such as table rows, where the group competes for width.
+
+<Stage>
+  <AvatarGroup spacing="md" max={4}>
+    <Avatar alt="Alex Leon" placeholder={{ initials: "AL" }} />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+    <Avatar alt="Priya Patel" placeholder={{ initials: "PP" }} />
+    <Avatar alt="Dei Vilkinsons" placeholder={{ initials: "DV" }} />
+    <Avatar alt="Sofia Almeida" placeholder={{ initials: "SA" }} />
+  </AvatarGroup>
+  <AvatarGroup spacing="sm" max={4}>
+    <Avatar alt="Alex Leon" placeholder={{ initials: "AL" }} />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+    <Avatar alt="Priya Patel" placeholder={{ initials: "PP" }} />
+    <Avatar alt="Dei Vilkinsons" placeholder={{ initials: "DV" }} />
+    <Avatar alt="Sofia Almeida" placeholder={{ initials: "SA" }} />
+  </AvatarGroup>
+</Stage>
+
+### Stacking order
+
+The first avatar sits on top by default. Set `lastOnTop` to flip which edge
+overlaps its neighbour — it reads better when the group sits against a right
+edge.
+
+<Stage>
+  <AvatarGroup>
+    <Avatar
+      alt="Chris Feijoo"
+      src="https://avatars.githubusercontent.com/u/2991143?v=4"
+      placeholder={{ initials: "CF" }}
+    />
+    <Avatar
+      alt="Dei Vilkinsons"
+      src="https://avatars.githubusercontent.com/u/6226576?v=4"
+      placeholder={{ initials: "DV" }}
+    />
+    <Avatar
+      alt="Ciaran Morinan"
+      src="https://avatars.githubusercontent.com/u/37743469?v=4"
+      placeholder={{ initials: "CM" }}
+    />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+  </AvatarGroup>
+  <AvatarGroup lastOnTop>
+    <Avatar
+      alt="Chris Feijoo"
+      src="https://avatars.githubusercontent.com/u/2991143?v=4"
+      placeholder={{ initials: "CF" }}
+    />
+    <Avatar
+      alt="Dei Vilkinsons"
+      src="https://avatars.githubusercontent.com/u/6226576?v=4"
+      placeholder={{ initials: "DV" }}
+    />
+    <Avatar
+      alt="Ciaran Morinan"
+      src="https://avatars.githubusercontent.com/u/37743469?v=4"
+      placeholder={{ initials: "CM" }}
+    />
+    <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} />
+  </AvatarGroup>
+</Stage>
+
+### Inherited size and tone
+
+An enclosing AvatarGroup supplies `size` and `tone` to avatars that don't set
+their own; an explicit prop still wins.
+
+<Stage>
+  <AvatarGroup size="sm" max={3}>
+    <Avatar alt="Chris Feijoo" placeholder={{ initials: "CF" }} />
+    <Avatar alt="Maya Iyer" placeholder={{ initials: "MI" }} />
+    <Avatar alt="Ciaran Morinan" placeholder={{ initials: "CM" }} />
+    <Avatar alt="Ana Flores" placeholder={{ initials: "AF" }} />
+  </AvatarGroup>
+</Stage>
+
+### Interactive avatars with tooltips
+
+Avatars keep their `href`/`onClick` behavior inside a group — the hover lift
+raises the real element, so it stays clickable mid-animation. Wrap each in a
+Tooltip so pointer users can read names without clicking.
+
+<Stage>
+  <AvatarGroup max={4}>
+    <Tooltip content="Chris Feijoo" position="bottom">
+      <Avatar
+        alt="Chris Feijoo"
+        src="https://avatars.githubusercontent.com/u/2991143?v=4"
+        placeholder={{ initials: "CF" }}
+        href="#"
+      />
+    </Tooltip>
+    <Tooltip content="Dei Vilkinsons" position="bottom">
+      <Avatar
+        alt="Dei Vilkinsons"
+        src="https://avatars.githubusercontent.com/u/6226576?v=4"
+        placeholder={{ initials: "DV" }}
+        href="#"
+      />
+    </Tooltip>
+    <Tooltip content="Priya Patel" position="bottom">
+      <Avatar alt="Priya Patel" placeholder={{ initials: "PP" }} href="#" />
+    </Tooltip>
+    <Tooltip content="Dele Okafor" position="bottom">
+      <Avatar alt="Dele Okafor" placeholder={{ initials: "DO" }} href="#" />
+    </Tooltip>
+    <Tooltip content="Sofia Almeida" position="bottom">
+      <Avatar alt="Sofia Almeida" placeholder={{ initials: "SA" }} href="#" />
+    </Tooltip>
+  </AvatarGroup>
+</Stage>
+
+## Accessibility
+
+AvatarGroup is a presentational grouping; naming and interaction live on the
+Avatars inside it.
+
+### What you must do
+
+- Give every Avatar a real name as `alt` — "Alex Leon", not "avatar" or an ID.
+- Give `AvatarGroup.More` an `alt` that states the overflow ("32 more
+  members") — only the automatic badge names itself.
+- Keep `total` accurate — the badge's +N and its announced name both derive
+  from it.
+
+## API reference
+
+### AvatarGroup
+
+<PropsTable
+  of={AvatarGroup}
+  defaults={{
+    total: "number of avatar children",
+    lastOnTop: "false",
+    spacing: '"md"',
+    size: '"md"',
+    tone: '"neutral"',
+  }}
+/>
+
+### AvatarGroup.More
+
+<PropsTable of={AvatarGroup.More} defaults={{ shape: '"circle"' }} />
+
+## Styling
+
+- You can customize the size of an avatar with the `--avatar-size` custom property.
+  The preset sizes set it for you; `size="custom"` leaves it to you
+  (see Sizes above).
+- `--avatar-lift-scale` sets how large a hovered avatar grows.
+  Override it on the group when a custom size makes the default pop feel off.

@@ -179,13 +179,32 @@ export type HirScenarioCodeContext = {
   places: HirScenarioPlaceInfo[];
 };
 
+/**
+ * Context for one place's visualizer: `tokens` carries the place's colour
+ * attributes (`null` for an uncoloured place, which never draws), and
+ * `parameters` the net's parameters.
+ */
+export type HirVisualizerContext = {
+  surface: "visualizer";
+  parameters: HirParameterInfo[];
+  elements: HirTokenElementInfo[] | null;
+};
+
 export type HirSurfaceContext =
   | HirDynamicsContext
   | HirLambdaContext
   | HirKernelContext
   | HirMetricContext
   | HirScenarioExpressionContext
-  | HirScenarioCodeContext;
+  | HirScenarioCodeContext
+  | HirVisualizerContext;
+
+/** The contexts of code that lowers to an `HirFunction`. A visualizer's
+ * context types only the expressions inside its view HIR. */
+export type HirFunctionContext = Exclude<
+  HirSurfaceContext,
+  HirVisualizerContext
+>;
 
 const SCOPE_SEPARATOR = "::";
 
@@ -330,6 +349,31 @@ export function buildDynamicsContext(
       name: element.name,
       type: element.type,
     })),
+  };
+}
+
+/**
+ * Builds the context for a place's visualizer: the place's colour attributes
+ * (or none for an uncoloured place) and the net's parameters.
+ */
+export function buildVisualizerContext(
+  sdcpn: SDCPN,
+  place: Pick<Place, "colorId">,
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+  net: HirNetScope = sdcpn,
+): HirVisualizerContext {
+  const color = place.colorId
+    ? collectColors(sdcpn, extensions).get(place.colorId)
+    : undefined;
+  return {
+    surface: "visualizer",
+    parameters: toParameterInfos(extensions.parameters ? net.parameters : []),
+    elements: color
+      ? color.elements.map((element) => ({
+          name: element.name,
+          type: element.type,
+        }))
+      : null,
   };
 }
 

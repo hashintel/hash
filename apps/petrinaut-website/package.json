@@ -23,11 +23,12 @@
     "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/ds-components": "workspace:*",
     "@hashintel/ds-helpers": "workspace:*",
+    "@hashintel/ds-icons": "workspace:*",
     "@hashintel/petrinaut": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
     "@local/flue-aisdk-transport": "workspace:*",
     "@pandacss/dev": "1.11.1",
-    "@sentry/react": "10.64.0",
+    "@sentry/react": "10.75.2",
     "@tanstack/react-router": "1.170.31",
     "ai": "6.0.286",
     "brotli-wasm": "3.0.1",
@@ -36,8 +37,7 @@
     "react-dom": "19.2.6",
     "react-icons": "5.5.0",
     "react-markdown": "10.1.0",
-    "remark-gfm": "4.0.1",
-    "zod": "4.4.3"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@fast-check/vitest": "0.4.1",

@@ -1,0 +1,734 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Fragment } from "react";
+
+import { noop } from "../../util/noop";
+import { DemoState } from "../../../docs/blocks/demo-state";
+import { DoList, DontList } from "../../../docs/blocks/do-dont-list";
+import { PropsTable } from "../../../docs/blocks/props-table";
+import { ReferenceLinks } from "../../../docs/blocks/reference-links";
+import { Stage } from "../../../docs/blocks/stage";
+import { Button } from "../Button/button";
+import { NumberInput } from "../NumberInput/number-input";
+import { RadioGroup } from "../RadioGroup/radio-group";
+import { TextInput } from "../TextInput/text-input";
+import { Toggle } from "../Toggle/toggle";
+import { Form } from "./form";
+
+<Meta title="Docs/Form" />
+
+export const meta = {
+  title: "Form",
+  description:
+    "Structure fields, rows and sections, wiring labels, help text and errors to any input.",
+  alternativeNames: ["Field", "FormControl", "FormLayout", "Fieldset"],
+  links: {
+    source:
+      "https://github.com/hashintel/hash/blob/main/libs/@hashintel/ds-components/src/components/Form/form.tsx",
+    stories:
+      "https://tokens.hash.design/?path=/story/components-form--form-field",
+  },
+  referenceLinks: {
+    mdn: "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/fieldset",
+  },
+  related: [
+    "TextInput",
+    "NumberInput",
+    "Select",
+    "RadioGroup",
+    "CheckboxGroup",
+    "Toggle",
+    "HelpTooltip",
+  ],
+};
+
+# Form
+
+Structure fields, rows and sections, wiring labels, help text and errors to any input.
+
+<ReferenceLinks
+  links={[
+    { label: "Source", href: meta.links.source, iconName: "code" },
+    { label: "Stories", href: meta.links.stories },
+  ]}
+/>
+
+<Stage>
+  <Form.Section>
+    <Form.Field
+      label="Entity type name"
+      description="Shown in search results and the type editor."
+      required
+    >
+      <DemoState data-harness>
+        <TextInput
+          name="entityTypeName"
+          width="md"
+          value="Research paper"
+          onChange={noop}
+        />
+      </DemoState>
+    </Form.Field>
+    <Form.Field layout="inline" label="Publish to type registry">
+      <DemoState data-harness>
+        <Toggle name="publishToRegistry" value={true} onChange={noop} />
+      </DemoState>
+    </Form.Field>
+  </Form.Section>
+</Stage>
+
+## Installation
+
+1. Install the package.
+
+```sh
+npm install @hashintel/ds-components
+```
+
+2. Import the component.
+
+```tsx
+import { useState } from "react";
+
+import { Form, TextInput } from "@hashintel/ds-components";
+
+export const EntityNameField = () => {
+  const [name, setName] = useState("");
+
+  return (
+    <Form.Field label="Entity name" required>
+      <TextInput name="entityName" value={name} onChange={setName} required />
+    </Form.Field>
+  );
+};
+```
+
+### When to use
+
+<DoList
+  items={[
+    "Wrap every input in a Form.Field — it supplies the label, description and error display, and wires the label to the input automatically.",
+    <Fragment key="0">
+      Use <code>layout="inline"</code> fields inside a Form.Section for settings
+      panels, so labels and inputs align across fields.
+    </Fragment>,
+    "Use Form.Row for values entered as a pair, such as minimum/maximum limits or first/last name.",
+    <Fragment key="1">
+      Use <code>as="legend"</code> when the field wraps a group of inputs such
+      as RadioGroup or CheckboxGroup.
+    </Fragment>,
+  ]}
+/>
+
+### When not to use
+
+<DontList
+  items={[
+    <Fragment key="0">
+      Don't put two inputs in one Form.Field — it labels exactly one control.
+      Use Form.Row for side-by-side fields, or <code>as="legend"</code> for
+      groups.
+    </Fragment>,
+    <Fragment key="1">
+      Don't use a placeholder instead of a label — it disappears as soon as a
+      value is entered. Use <code>hideLabel</code> to hide the label visually.
+    </Fragment>,
+    "Don't wrap controls that already label themselves, such as a Checkbox or Toggle with its own label text.",
+    "Don't build multi-column forms out of Form.Row — a single column reads faster. Reserve rows for naturally paired values.",
+  ]}
+/>
+
+## Anatomy
+
+`Form.Field` renders its label, description and error parts from props; you only compose the structural parts.
+
+```tsx
+<Form.Section>
+  <Form.Field
+    label="Name" // renders Form.Field.Label
+    description="Helper text" // renders Form.Field.Description
+    errors={["Error message"]} // renders Form.Field.Errors
+  >
+    {/* exactly one input */}
+  </Form.Field>
+
+  <Form.Row>
+    <Form.Field label="Minimum">{/* input */}</Form.Field>
+    <Form.Field label="Maximum">{/* input */}</Form.Field>
+  </Form.Row>
+</Form.Section>
+```
+
+## Examples
+
+### Basic
+
+A field needs only a `label` and a single input child — the label is associated with the input automatically, no ids required.
+
+<Stage>
+  <Form.Field label="Workspace name">
+    <DemoState data-harness>
+      <TextInput
+        name="workspaceName"
+        width="md"
+        value="Ontology research"
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+</Stage>
+
+### Required
+
+`required` adds the mark to the label only — it never reaches the input. Set `required` on the input too so forms and assistive technology enforce it.
+
+<Stage>
+  <Form.Field label="Teammate email" required>
+    <DemoState data-harness>
+      <TextInput
+        name="teammateEmail"
+        type="email"
+        width="md"
+        value="elena@hash.ai"
+        onChange={noop}
+        required
+      />
+    </DemoState>
+  </Form.Field>
+</Stage>
+
+### Disabled
+
+`disabled` greys the field's label, description and errors; disable the input separately — the prop doesn't cascade.
+
+<Stage>
+  <Form.Field
+    label="Entity ID"
+    description="Assigned when the entity is created."
+    disabled
+  >
+    <TextInput
+      name="entityId"
+      width="md"
+      value="e7f2a49c-3b1d-4e08"
+      onChange={noop}
+      disabled
+    />
+  </Form.Field>
+</Stage>
+
+### Descriptions
+
+`description` renders between the label and the input; `descriptionBottom` renders after it. Use them for format hints and consequences, not to restate the label.
+
+<Stage>
+  <Form.Field
+    label="Entity label"
+    description="Shown wherever the entity is referenced."
+  >
+    <DemoState data-harness>
+      <TextInput name="entityLabel" width="md" value="" onChange={noop} />
+    </DemoState>
+  </Form.Field>
+  <Form.Field
+    label="API key name"
+    descriptionBottom="You can't change this later."
+  >
+    <DemoState data-harness>
+      <TextInput name="apiKeyName" width="md" value="" onChange={noop} />
+    </DemoState>
+  </Form.Field>
+</Stage>
+
+### Errors
+
+Pass `errors` as an array — one message renders inline, several render as a list, and they're announced when they appear. Set `invalid` on the input yourself; the field never modifies its children.
+
+<Stage>
+  <Form.Field
+    label="Entity type URL"
+    errors={["Enter a URL that starts with https://"]}
+  >
+    <DemoState data-harness>
+      <TextInput
+        name="entityTypeUrl"
+        width="md"
+        value="example.com/types/person"
+        onChange={noop}
+        invalid
+      />
+    </DemoState>
+  </Form.Field>
+  <Form.Field
+    label="Property name"
+    errors={["Enter a property name", "Property names must be unique"]}
+  >
+    <DemoState data-harness>
+      <TextInput
+        name="propertyName"
+        width="md"
+        value=""
+        onChange={noop}
+        invalid
+      />
+    </DemoState>
+  </Form.Field>
+</Stage>
+
+### Hidden label
+
+Every field needs a label. When the context makes a visible one redundant — a lone search input, a table cell — set `hideLabel` so it stays announced to screen readers.
+
+<Stage>
+  <Form.Field label="Search entities" hideLabel>
+    <DemoState data-harness>
+      <TextInput
+        name="searchEntities"
+        width="md"
+        value=""
+        placeholder="Search entities…"
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+</Stage>
+
+### Label tooltip and actions
+
+`labelTooltip` adds a help icon after the label; `labelActions` puts controls at the far end of the label row (next to the input in inline layout). Both sit outside the `<label>`, so clicking them doesn't focus the input.
+
+<Stage>
+  <Form.Field
+    label="Inference model"
+    labelTooltip="Used by flows that infer entities from the web."
+  >
+    <DemoState data-harness>
+      <TextInput
+        name="inferenceModel"
+        width="md"
+        value="Default (automatic)"
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+  <Form.Field
+    label="Webhook URL"
+    labelActions={
+      <Button variant="ghost" size="xs">
+        Send test
+      </Button>
+    }
+  >
+    <DemoState data-harness>
+      <TextInput
+        name="webhookUrl"
+        width="md"
+        value="https://api.example.com/hooks/runs"
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+</Stage>
+
+### Sizes
+
+`size` scales the label, description and error text — set the same size on the field and its input. `md` is the default.
+
+<Stage>
+  <Form.Field size="xxs" label="xxs">
+    <DemoState data-harness>
+      <TextInput
+        name="sizeXxs"
+        size="xxs"
+        width="sm"
+        value=""
+        placeholder="Entity label"
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+  <Form.Field size="xs" label="xs">
+    <DemoState data-harness>
+      <TextInput
+        name="sizeXs"
+        size="xs"
+        width="sm"
+        value=""
+        placeholder="Entity label"
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+  <Form.Field size="sm" label="sm">
+    <DemoState data-harness>
+      <TextInput
+        name="sizeSm"
+        size="sm"
+        width="sm"
+        value=""
+        placeholder="Entity label"
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+  <Form.Field size="md" label="md">
+    <DemoState data-harness>
+      <TextInput
+        name="sizeMd"
+        size="md"
+        width="sm"
+        value=""
+        placeholder="Entity label"
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+  <Form.Field size="lg" label="lg">
+    <DemoState data-harness>
+      <TextInput
+        name="sizeLg"
+        size="lg"
+        width="sm"
+        value=""
+        placeholder="Entity label"
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+</Stage>
+
+### Inline layout
+
+`layout="inline"` places the label and input on one line — the settings-panel arrangement. `inputAlign="end"` pushes the input to the far edge of the row, and `labelDirection="right"` puts the label after the input instead — the trailing-label pattern.
+
+<Stage>
+  <div style={{ width: 420 }}>
+    <Form.Section>
+      <Form.Field
+        layout="inline"
+        inputAlign="start"
+        label="Enable AI inference"
+      >
+        <DemoState data-harness>
+          <Toggle name="aiInference" value={true} onChange={noop} />
+        </DemoState>
+      </Form.Field>
+      <Form.Field
+        layout="inline"
+        inputAlign="end"
+        label="Publish entity history"
+      >
+        <DemoState data-harness>
+          <Toggle name="entityHistory" value={false} onChange={noop} />
+        </DemoState>
+      </Form.Field>
+      <Form.Field
+        layout="inline"
+        labelDirection="right"
+        label="Autosave drafts"
+      >
+        <DemoState data-harness>
+          <Toggle name="autosaveDrafts" value={true} onChange={noop} />
+        </DemoState>
+      </Form.Field>
+    </Form.Section>
+  </div>
+</Stage>
+
+### Grouping related inputs
+
+A `<label>` can name only one control. When the field wraps a group — RadioGroup, CheckboxGroup — set `as="legend"` so the whole group is named with fieldset semantics.
+
+<Stage>
+  <Form.Field
+    as="legend"
+    label="Entity visibility"
+    description="Who can see entities created by this flow."
+  >
+    <DemoState data-harness>
+      <RadioGroup
+        name="visibility"
+        items={[
+          { value: "private", label: "Only me" },
+          { value: "workspace", label: "Everyone in the workspace" },
+          { value: "public", label: "Public" },
+        ]}
+        value="workspace"
+        onChange={noop}
+      />
+    </DemoState>
+  </Form.Field>
+</Stage>
+
+### Rows
+
+`Form.Row` places fields side by side, sharing the row's width and bottom-aligned so inputs line up; `gap` controls the spacing. For a message that belongs to the pair rather than one field, pass a `Form.Field.Errors` element to `errors` — it renders below the whole row.
+
+<Stage>
+  <div style={{ width: 560 }}>
+    <Form.Row
+      gap="md"
+      errors={
+        <Form.Field.Errors errors={["Maximum must be at least the minimum"]} />
+      }
+    >
+      <Form.Field label="Minimum instances">
+        <DemoState data-harness>
+          <NumberInput
+            name="minInstances"
+            value={10}
+            onChange={noop}
+            invalid
+          />
+        </DemoState>
+      </Form.Field>
+      <Form.Field label="Maximum instances">
+        <DemoState data-harness>
+          <NumberInput
+            name="maxInstances"
+            value={1}
+            onChange={noop}
+            invalid
+          />
+        </DemoState>
+      </Form.Field>
+    </Form.Row>
+  </div>
+</Stage>
+
+### Sections
+
+`Form.Section` aligns inline fields onto a shared grid — labels and inputs each share a column across fields — and spaces adjacent fields automatically.
+
+<Stage>
+  <Form.Section>
+    <Form.Field layout="inline" label="Workspace name">
+      <DemoState data-harness>
+        <TextInput
+          name="workspaceName"
+          width="sm"
+          value="Ontology research"
+          onChange={noop}
+        />
+      </DemoState>
+    </Form.Field>
+    <Form.Field layout="inline" label="Snapshot retention (days)" required>
+      <DemoState data-harness>
+        <NumberInput
+          name="snapshotRetention"
+          width="xs"
+          value={30}
+          onChange={noop}
+        />
+      </DemoState>
+    </Form.Field>
+    <Form.Field layout="inline" label="Public access">
+      <DemoState data-harness>
+        <Toggle name="publicAccess" value={false} onChange={noop} />
+      </DemoState>
+    </Form.Field>
+  </Form.Section>
+</Stage>
+
+### Custom inputs
+
+Every input picks up the field's generated id automatically. A hand-rolled input must read `useFieldId` and set it as its `id`.
+
+```tsx
+import { useState } from "react";
+
+import { Form, useFieldId } from "@hashintel/ds-components";
+
+const ColorInput = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) => {
+  const id = useFieldId();
+  return (
+    <input
+      type="color"
+      id={id ?? undefined}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+};
+
+export const AccentColorField = () => {
+  const [color, setColor] = useState("#0775e3");
+
+  return (
+    <Form.Field label="Accent color">
+      <ColorInput value={color} onChange={setColor} />
+    </Form.Field>
+  );
+};
+```
+
+### Form libraries
+
+`Form.Field` is driven entirely by props, so it drops into any form library. With TanStack Form, bind the label and errors once in a shared field component; in a real app the contexts and field components live in one module that every form imports.
+
+```tsx
+import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
+
+import { Form, TextInput } from "@hashintel/ds-components";
+
+const { fieldContext, formContext, useFieldContext } = createFormHookContexts();
+
+const TextField = ({
+  label,
+  required,
+}: {
+  label: string;
+  required?: boolean;
+}) => {
+  const field = useFieldContext<string>();
+
+  return (
+    <Form.Field
+      label={label}
+      required={required}
+      errors={field.state.meta.errors}
+    >
+      <TextInput
+        name={field.name}
+        value={field.state.value}
+        onChange={(value) => field.handleChange(value)}
+        onBlur={field.handleBlur}
+        required={required}
+        invalid={field.state.meta.errors.length > 0}
+      />
+    </Form.Field>
+  );
+};
+
+const { useAppForm } = createFormHook({
+  fieldComponents: { TextField },
+  formComponents: {},
+  fieldContext,
+  formContext,
+});
+
+export const InviteTeammateForm = () => {
+  const form = useAppForm({
+    defaultValues: { email: "" },
+    onSubmit: ({ value }) => console.log(value),
+  });
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void form.handleSubmit();
+      }}
+    >
+      <form.AppField
+        name="email"
+        validators={{
+          onChange: ({ value }) =>
+            /^\S+@\S+\.\S+$/.test(value)
+              ? undefined
+              : "Enter a valid email address",
+        }}
+      >
+        {(field) => <field.TextField label="Teammate email" required />}
+      </form.AppField>
+    </form>
+  );
+};
+```
+
+## Behavior
+
+- Nothing is injected into children: the field talks to its input only through the generated label id. Set `size`, `disabled`, `required` and `invalid` on the input yourself.
+- With `as="legend"` the generated id is not provided to children — group inputs label their own options.
+
+## Content
+
+- Labels name the data, 1–3 words, sentence case, no trailing punctuation: "Entity type name", "Teammate email".
+- Write errors as instructions that reuse the label's words: "Enter an entity type name", "Maximum must be at least the minimum". Avoid "please", "sorry" and the word "invalid".
+- Mark required fields consistently: if one required field carries the mark, they all should.
+
+## Accessibility
+
+Form fields build on native `<fieldset>`, `<label>` and `<legend>` semantics — see the [WAI forms tutorial](https://www.w3.org/WAI/tutorials/forms/) for the underlying model.
+
+### What Form provides
+
+- `Form.Field` renders a real `<fieldset>` and wires its `<label>` to the input through a generated id every ds-components input adopts automatically.
+- `as="legend"` names the whole group, keeping the required mark and tooltip out of the group's accessible name.
+- `hideLabel` hides the label visually but keeps it announced.
+- Error messages render with `role="alert"`, so they're announced when they appear.
+
+### What you must do
+
+- Always pass a `label` — use `hideLabel` rather than leaving it empty or relying on a placeholder.
+- Set `as="legend"` when the field wraps more than one input (RadioGroup, CheckboxGroup) — a label can name only one control.
+- Mirror field state on the input: `invalid` when passing `errors`, and `disabled`/`required` on both.
+- Give custom inputs the `useFieldId` id (see [Custom inputs](#custom-inputs)); without it the label is not associated.
+
+## API reference
+
+### Form.Field
+
+<PropsTable
+  of={Form.Field}
+  defaults={{
+    as: '"label"',
+    size: '"md"',
+    labelDirection: '"left"',
+    layout: '"block"',
+    inputAlign: '"start"',
+  }}
+/>
+
+### Form.Field.Label
+
+<PropsTable
+  of={Form.Field.Label}
+  defaults={{
+    as: '"label"',
+    size: '"md"',
+    direction: '"left"',
+  }}
+/>
+
+### Form.Field.Description
+
+<PropsTable
+  of={Form.Field.Description}
+  defaults={{
+    size: '"md"',
+    direction: '"left"',
+  }}
+/>
+
+### Form.Field.Errors
+
+<PropsTable of={Form.Field.Errors} />
+
+### Form.Row
+
+<PropsTable
+  of={Form.Row}
+  defaults={{
+    gap: '"md"',
+    align: '"bottom"',
+    noWrap: "false",
+  }}
+/>
+
+### Form.Section
+
+<PropsTable of={Form.Section} />
+
+### useFieldId
+
+Returns the id the nearest `Form.Field` provides for its input, or `null` when the component isn't rendered inside one.
+
+```tsx
+const fieldId: string | null = useFieldId();
+```

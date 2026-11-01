@@ -190,6 +190,7 @@ export const LinkedEntitySelector = ({
     <FileCreationContext.Provider value={fileCreationContextValue}>
       <EntitySelector
         entityIdsToFilterOut={entityIdsToFilterOut}
+        excludeLinkEntities
         expectedEntityTypes={expectedEntityTypes}
         includeDrafts={includeDrafts}
         multiple={false}

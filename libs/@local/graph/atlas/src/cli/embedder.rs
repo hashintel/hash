@@ -11,8 +11,8 @@ use core::{error::Error, fmt, pin::Pin};
 
 use clap::Args;
 use error_stack::Report;
+use hash_crypto::Secret;
 use hash_graph_embeddings::{EmbeddingError, OpenAiEmbeddingClient, OpenAiEmbeddingClientConfig};
-use hash_secret::Secret;
 
 use crate::salt::embedding::external::{
     EmbeddingContract, ExternalEmbeddingError, ExternalEmbeddingProvider, RequestLimits,

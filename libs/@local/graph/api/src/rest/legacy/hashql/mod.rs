@@ -5,32 +5,34 @@
 //! the result. Compilation errors are reported as structured diagnostics with
 //! source spans.
 
-mod compile;
-mod error;
-mod value;
-
 use alloc::sync::Arc;
 use core::num::NonZero;
 use std::thread::available_parallelism;
 
 use axum::{Extension, Router, response::IntoResponse as _, routing::post};
-use hash_graph_postgres_store::store::PostgresStorePool;
-use hash_graph_store::pool::StorePool as _;
+use hash_graph_authorization::policies::{
+    MergePolicies, PolicyComponents,
+    store::{PolicyStore, PrincipalStore},
+};
+use hash_graph_postgres_store::store::postgres::PostgresClient;
+use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool};
 use hash_temporal_client::TemporalClient;
 use hashql_core::{
-    heap::{HeapPool, ScratchPool},
+    heap::{HeapPool, ResetAllocator as _, ScratchPool},
     span::{SpanId, SpanTable},
 };
-use hashql_diagnostics::{
-    Diagnostic, IntoStatus as _, Label, Message, Source, Sources, Status, StatusExt as _, Success,
-    severity::Critical,
+use hashql_diagnostics::{IntoStatus as _, Source, Sources, Status, StatusExt as _, Success};
+use hashql_eval::{
+    error::EvalDiagnosticCategory,
+    orchestrator::Orchestrator,
+    postgres::{AuthorizationPatch, PreparedQueryPatch},
 };
-use hashql_eval::{error::EvalDiagnosticCategory, orchestrator::Orchestrator};
 use hashql_mir::interpret::Inputs;
 use hashql_syntax_jexpr::span::Span;
 use http::StatusCode;
 use serde_json::value::RawValue;
 use tokio_util::task::LocalPoolHandle;
+use type_system::principal::actor::ActorId;
 use utoipa::OpenApi;
 
 use self::{
@@ -41,6 +43,10 @@ use self::{
 use crate::rest::legacy::{
     AuthenticatedActorId, InteractiveHeader, JsonCompatHeader, json::Json, status::BoxedResponse,
 };
+
+mod compile;
+mod error;
+mod value;
 
 /// Shared resources for HashQL query compilation and execution, created once at server startup.
 pub struct CompilerContext {
@@ -72,9 +78,11 @@ impl CompilerContext {
 }
 
 /// Per-request database context.
-struct ExecutionContext {
-    postgres: PostgresStorePool,
+struct ExecutionContext<S> {
     temporal: Option<Arc<TemporalClient>>,
+    actor_id: ActorId,
+    store: Arc<S>,
+    filter_protection: Arc<PropertyProtectionFilterConfig<'static>>,
 }
 
 /// Controls the response format for a HashQL query.
@@ -87,12 +95,15 @@ pub(crate) struct CompilationOutputOptions {
 
 /// Compiles and executes a HashQL query, returning the result as a [`Status`].
 #[expect(clippy::future_not_send)]
-async fn query_local_impl(
+async fn query_local_impl<S>(
     ctx: Arc<CompilerContext>,
-    exec: ExecutionContext,
+    exec: ExecutionContext<S>,
     spans: &mut SpanTable<Span>,
     query: &[u8],
-) -> Status<OwnedValue, HashQlDiagnosticCategory, SpanId> {
+) -> Status<OwnedValue, HashQlDiagnosticCategory, SpanId>
+where
+    S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>,
+{
     // Heap and scratch must be created inside this function because `spawn_pinned` requires
     // `'static`. Moving them across the spawn boundary isn't possible since they borrow from
     // the pool guards.
@@ -102,38 +113,51 @@ async fn query_local_impl(
     let inputs = Inputs::new(); // TODO: https://linear.app/hash/issue/BE-41/hashql-expose-input-in-graph-api
 
     let Success {
-        value: compilation,
+        value: mut compilation,
         advisories,
     } = Compilation::compile(&heap, &mut scratch, spans, query)?;
-    drop(scratch);
-
-    let context = compilation.context();
 
     let Success {
-        value: client,
+        value: store,
         advisories,
     } = exec
-        .postgres
-        .acquire(exec.temporal)
+        .store
+        .acquire(exec.temporal.clone())
         .await
-        .map_err(|report| {
-            let mut diagnostic =
-                Diagnostic::new(HashQlDiagnosticCategory::Infrastructure, Critical::BUG).primary(
-                    Label::new(compilation.root_span, "failed to acquire postgres client"),
-                );
-
-            if cfg!(debug_assertions) {
-                diagnostic.add_message(Message::note(format!("{report:?}")));
-            } else {
-                tracing::error!(?report, "failed to acquire postgres client");
-            }
-
-            diagnostic
-        })
+        .map_err(|report| error::store_acquire_diagnostic(&report, compilation.root_span))
         .into_status()
         .with_diagnostics(advisories)?;
 
-    let orchestrator = Orchestrator::new(client, &compilation.artifact.postgres, &context);
+    let mut policy_components = PolicyComponents::builder(&store, Some(exec.actor_id));
+    policy_components.add_actions(
+        compilation.permissions.actions.iter().copied(),
+        MergePolicies::Yes,
+    );
+    let Success {
+        value: policy_components,
+        advisories,
+    } = policy_components
+        .await
+        .map_err(|report| error::authorization_context_diagnostic(&report, compilation.root_span))
+        .into_status()
+        .with_diagnostics(advisories)?;
+    let property = &*exec.filter_protection;
+
+    let patch = AuthorizationPatch::new(&policy_components, property);
+
+    // TODO: in the future when we cache queries, this will have to clone them, but because this is
+    // oneshot, we can just ignore that for now.
+    for query in compilation.artifact.postgres.iter_mut() {
+        PreparedQueryPatch::new()
+            .layer(&patch)
+            .apply(query, &mut *scratch);
+
+        scratch.reset();
+    }
+    drop(scratch);
+
+    let context = compilation.context();
+    let orchestrator = Orchestrator::new(&store, &compilation.artifact.postgres, &context);
     orchestrator
         .run(&inputs, compilation.entrypoint, [])
         .await
@@ -146,12 +170,15 @@ async fn query_local_impl(
 }
 
 #[expect(clippy::future_not_send)]
-async fn query_local(
+async fn query_local<S>(
     ctx: Arc<CompilerContext>,
-    exec: ExecutionContext,
+    exec: ExecutionContext<S>,
     query: Arc<RawValue>,
     options: CompilationOutputOptions,
-) -> BoxedResponse {
+) -> BoxedResponse
+where
+    S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>,
+{
     let mut sources = Sources::new();
     let source_id = sources.push(Source::new(query.get()));
 
@@ -162,12 +189,18 @@ async fn query_local(
 }
 
 /// Spawns a query onto the local thread pool and awaits the response.
-async fn run_query(
+async fn run_query<S>(
     ctx: Arc<CompilerContext>,
-    exec: ExecutionContext,
+    exec: ExecutionContext<S>,
     query: Arc<RawValue>,
     options: CompilationOutputOptions,
-) -> BoxedResponse {
+) -> BoxedResponse
+where
+    S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>
+        + Send
+        + Sync
+        + 'static,
+{
     // The compiler and interpreter hold references into bump-allocated heaps, making their
     // futures `!Send`. `spawn_pinned` runs them on a dedicated thread; the returned handle
     // is `Send` so the HTTP handler can await it normally.
@@ -229,21 +262,33 @@ pub(crate) struct HashQlRequest {
     responses(
         (status = 200, content_type = "application/json", description = "Query executed successfully"),
         (status = 400, content_type = "application/json", description = "Query compilation or validation error"),
+        (status = 401, description = "Missing or invalid authentication credentials"),
         (status = 500, description = "Internal compiler or database error"),
     )
 )]
-pub(crate) async fn query_hashql(
-    AuthenticatedActorId(_actor_id): AuthenticatedActorId,
+pub(crate) async fn query_hashql<S>(
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
+    Extension(store_pool): Extension<Arc<S>>,
     Extension(compiler): Extension<Arc<CompilerContext>>,
-    Extension(postgres): Extension<Arc<PostgresStorePool>>,
     Extension(temporal): Extension<Option<Arc<TemporalClient>>>,
-    InteractiveHeader(interactive): InteractiveHeader,
-    JsonCompatHeader(json_compat): JsonCompatHeader,
+    Extension(filter_protection): Extension<Arc<PropertyProtectionFilterConfig<'static>>>,
+    (InteractiveHeader(interactive), JsonCompatHeader(json_compat)): (
+        InteractiveHeader,
+        JsonCompatHeader,
+    ),
     Json(request): Json<HashQlRequest>,
-) -> BoxedResponse {
+) -> BoxedResponse
+where
+    S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>
+        + Send
+        + Sync
+        + 'static,
+{
     let exec = ExecutionContext {
-        postgres: (*postgres).clone(),
         temporal,
+        actor_id,
+        store: store_pool,
+        filter_protection,
     };
 
     let options = CompilationOutputOptions {
@@ -263,7 +308,13 @@ pub(crate) async fn query_hashql(
 pub(crate) struct HashQlResource;
 
 impl HashQlResource {
-    pub(crate) fn routes() -> Router {
-        Router::new().route("/hashql", post(query_hashql))
+    pub(crate) fn routes<S>() -> Router
+    where
+        S: for<'pool> StorePool<Store<'pool>: AsRef<PostgresClient> + PrincipalStore + PolicyStore>
+            + Send
+            + Sync
+            + 'static,
+    {
+        Router::new().route("/hashql", post(query_hashql::<S>))
     }
 }

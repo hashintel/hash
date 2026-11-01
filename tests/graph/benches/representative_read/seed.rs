@@ -10,7 +10,7 @@ use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use tracing::Instrument as _;
 use type_system::{
     knowledge::{
-        entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        entity::{Link, LinkEndpoint, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::{VersionedUrl, entity_type::EntityType},
@@ -246,13 +246,17 @@ pub(crate) async fn seed_db(account_id: ActorId, store_wrapper: &mut StoreWrappe
                         )
                         .expect("could not create property with metadata object"),
                         confidence: None,
-                        link_data: Some(LinkData {
-                            left_entity_id: left_entity.metadata.record_id.entity_id,
-                            right_entity_id: right_entity.metadata.record_id.entity_id,
-                            left_entity_confidence: None,
-                            left_entity_provenance: PropertyProvenance::default(),
-                            right_entity_confidence: None,
-                            right_entity_provenance: PropertyProvenance::default(),
+                        link_data: Some(Link::Directed {
+                            source: LinkEndpoint {
+                                entity_id: left_entity.metadata.record_id.entity_id,
+                                confidence: None,
+                                provenance: PropertyProvenance::default(),
+                            },
+                            target: LinkEndpoint {
+                                entity_id: right_entity.metadata.record_id.entity_id,
+                                confidence: None,
+                                provenance: PropertyProvenance::default(),
+                            },
                         }),
                         draft: false,
                         policies: Vec::new(),

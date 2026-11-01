@@ -2,6 +2,7 @@
   "package": "hash-graph-benches",
   "dependencies": [
     "error-stack",
+    "hash-crypto",
     "hash-graph-api",
     "hash-graph-authorization",
     "hash-graph-postgres-store",
@@ -10,7 +11,6 @@
     "hash-graph-test-data",
     "hash-graph-type-fetcher",
     "hash-repo-chores",
-    "hash-secret",
     "hash-telemetry",
     "type-system"
   ],

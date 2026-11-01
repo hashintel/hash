@@ -2,8 +2,8 @@ use alloc::sync::Arc;
 use core::{fmt, pin::Pin, time::Duration};
 
 use error_stack::{Report, ResultExt as _};
+use hash_crypto::Secret;
 use hash_graph_types::Embedding;
-use hash_secret::Secret;
 use reqwest::{Client, StatusCode};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};

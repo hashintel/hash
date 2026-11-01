@@ -5,7 +5,7 @@ import { VoiceMediationHistory } from "../history/voice-mediation-history";
 import { LiveBrunchBridge } from "./live-brunch-bridge";
 
 import type { UtteranceJudgment } from "../../../../../../shared/live-utterance-judgment";
-import type { ToolApprovalState } from "./live-brunch-bridge";
+import type { ToolApprovalState } from "../../tools/brunch-mutation-approval";
 import type { FlueConversationState } from "@flue/sdk";
 import type { MockInstance } from "vitest";
 

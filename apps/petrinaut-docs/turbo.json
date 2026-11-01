@@ -1,31 +1,57 @@
 {
   "extends": ["//"],
   "tasks": {
-    // Copies the bundle into `src/content/`. Generating it is the generator's
-    // job, declared here as a dependency so Turborepo orders the two — the sync
-    // script used to shell out and run the generator itself, which put a
-    // cross-package build step outside the task graph.
-    "sync:bundle": {
-      "cache": false,
-      "dependsOn": ["@local/petrinaut-arch-docs#doc:architecture"]
+    // The covered Python workspaces are not dependencies in `package.json`, so
+    // their sources reach the hash through these edges.
+    "manifest": {
+      "dependsOn": ["^manifest", "petrinaut-optimizer-core#manifest"]
     },
-    // `build`, `lint:tsc` and `dev` all need the synced content. Depending on one
-    // shared `sync:bundle` rather than each running it keeps them from racing on
-    // the same directories when Turborepo runs them concurrently.
+    // `archinaut` reads the annotations in the packages the config covers;
+    // `manifest` carries their sources into the hash. Not cached: with
+    // ARCHINAUT_DIFF_BASE the build annotates the difference to a git ref whose
+    // content the hash cannot see.
     "build": {
+      "dependsOn": ["manifest"],
       "cache": false,
-      "dependsOn": ["sync:bundle"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**"],
+      "env": [
+        "ARCHINAUT_DIFF_BASE",
+        "ARCHINAUT_CACHE_DIR",
+        "ARCHINAUT_SOURCE_REF",
+        "VERCEL_GIT_COMMIT_SHA",
+        "VERCEL_GIT_COMMIT_REF",
+        "VERCEL_GIT_PULL_REQUEST_ID",
+        "VERCEL_GIT_REPO_OWNER",
+        "VERCEL_GIT_REPO_SLUG",
+        "GITHUB_SHA",
+        "GITHUB_HEAD_REF",
+        "GITHUB_REF_NAME"
+      ]
     },
-    "lint:tsc": {
+    "doc:architecture": {
+      "dependsOn": ["manifest"],
       "cache": false,
-      "dependsOn": ["sync:bundle"]
+      "outputs": ["bundle/**"],
+      "env": [
+        "ARCHINAUT_SOURCE_REF",
+        "ARCHINAUT_DIFF_BASE",
+        "ARCHINAUT_CACHE_DIR",
+        "VERCEL_GIT_COMMIT_SHA",
+        "GITHUB_SHA",
+        "VERCEL_GIT_COMMIT_REF",
+        "GITHUB_HEAD_REF",
+        "GITHUB_REF_NAME",
+        "VERCEL_GIT_REPO_OWNER",
+        "VERCEL_GIT_REPO_SLUG"
+      ]
+    },
+    "lint:arch-docs": {
+      "dependsOn": ["manifest"],
+      "cache": false
     },
     "dev": {
       "cache": false,
       "persistent": true,
-      "dependsOn": ["sync:bundle"],
-      // The Claude Code preview passes the port to serve on.
       "env": ["PORT"]
     }
   }

@@ -183,7 +183,7 @@ async fn connect_and_start_workflow(
 async fn echo() {
     // A fresh task queue per test run so runs cannot interfere with each
     // other or with any real workers.
-    let task_queue = format!("hash-temporal-client-test-{}", Uuid::new_v4());
+    let task_queue = format!("hash-temporal-client-test-{}", Uuid::now_v7());
     let payload = json!({ "message": "hello from the HASH graph" });
 
     let (client, run) = connect_and_start_workflow(&task_queue, &payload).await;

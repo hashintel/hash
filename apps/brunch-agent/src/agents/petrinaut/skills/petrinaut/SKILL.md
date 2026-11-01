@@ -27,7 +27,7 @@ Three tools read the current net, each returning `{ title, definition, extension
 - `readNetStructure` adds that code and those expressions.
 - `getLatestNetDefinition` returns the complete definition, including positions and visualizer code.
 
-A change is refused unless a current read of the net is in context, so read it before the first change, and again when the USER may have edited the net since. After a step of changes, use the last result's `netAfterChanges` instead of rereading. Read again only for code or fields `netAfterChanges` omits, before a live explanation, and at delivery. Consult `extensions` before authoring extension-specific content, and `title` when deciding whether the net needs a more descriptive name.
+A change is refused unless a read of the net is in context, so read it before the first change. Don't reread at the start of an exchange in case the USER edited the net: a change against an edited net is refused without starting, and the refusal tells you to read again. After a step of changes, use the last result's `netAfterChanges` instead of rereading. Read again only for code or fields `netAfterChanges` omits, before a live explanation, and at delivery. Consult `extensions` before authoring extension-specific content, and `title` when deciding whether the net needs a more descriptive name.
 
 ### Making changes
 

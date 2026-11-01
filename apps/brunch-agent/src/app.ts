@@ -9,6 +9,7 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
 import {
+  browserExecutedToolNames,
   brunchEnv,
   brunchRoutes,
   brunchTools,
@@ -43,7 +44,6 @@ import {
   withBufferedToolAdmission,
 } from "./server/provider-admission.ts";
 import { diagnostics } from "./server/runtime-diagnostics.ts";
-import { inBandBrowserToolNames } from "./shared/tool-catalogue.ts";
 
 import type { Provider } from "@earendil-works/pi-ai";
 
@@ -154,9 +154,9 @@ if (accounting) {
 }
 // The Pi AI patch preserves complete Anthropic schemas independently of strict
 // generation. Retained contracts and removal proofs: docs/dependency-patches.md.
-const browserToolNames = inBandBrowserToolNames;
+const browserToolNames = browserExecutedToolNames;
 const mixedToolNames = new Set([
-  ...inBandBrowserToolNames,
+  ...browserExecutedToolNames,
   brunchTools.ping,
   brunchTools.ledgerCommit,
   brunchTools.ledgerCompile,

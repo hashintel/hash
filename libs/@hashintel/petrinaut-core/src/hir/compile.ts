@@ -40,9 +40,9 @@ import {
 import { typecheckHir } from "./typecheck";
 
 import type { SDCPN, Subnet } from "../types/sdcpn";
-import type { HirDiagnostic, HirFunction, HirSurfaceKind } from "./hir";
+import type { HirDiagnostic, HirFunction, HirFunctionSurfaceKind } from "./hir";
 import type { HirArtifacts } from "./instantiate";
-import type { HirNetScope, HirSurfaceContext } from "./surface-context";
+import type { HirFunctionContext, HirNetScope } from "./surface-context";
 
 export type HirCompileFailure = {
   itemId: string;
@@ -76,8 +76,8 @@ type ItemResult =
 
 function lowerAndCheck(
   code: string,
-  surface: HirSurfaceKind,
-  context: HirSurfaceContext | null,
+  surface: HirFunctionSurfaceKind,
+  context: HirFunctionContext | null,
 ): ItemResult {
   const lowered = lowerTypeScriptToHir(code, surface);
   if (!lowered.ok) {

@@ -6,7 +6,8 @@
  * - Requests: `textDocument/completion`, `textDocument/hover`, `textDocument/signatureHelp`
  * - Server push: `textDocument/publishDiagnostics`
  *
- * The LanguageService is created once and reused across SDCPN changes.
+ * Two language services, one for the net's TypeScript and one for visualizer
+ * JSX, are created once and reused across SDCPN changes.
  *
  * @layerRoot core.lsp.worker
  * @role Hosts the TypeScript language server off the main thread
@@ -33,11 +34,18 @@ import {
   lowerConstraint,
   lowerScenarioToHir,
 } from "../../hir";
+import { lowerVisualizerToHir } from "../../view-hir";
 import { getHirDiagnosticsForItem } from "../lib/check-hir";
 import { checkSDCPN } from "../lib/checker";
-import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";
 import { parseScenarioCodeFilePath } from "../lib/file-paths";
+import {
+  createLanguageServers,
+  disposeLanguageServers,
+  languageServerForFile,
+  syncLanguageServers,
+  type LanguageServers,
+} from "../lib/language-servers";
 import { offsetToPosition, positionToOffset } from "../lib/position-utils";
 import { serializeDiagnostic, toCompletionItemKind } from "../lib/ts-to-lsp";
 
@@ -66,7 +74,7 @@ const workerRuntime = createWorkerThreadRuntime<ClientMessage, ServerMessage>();
 // Server state
 // ---------------------------------------------------------------------------
 
-let server: SDCPNLanguageServer | null = null;
+let servers: LanguageServers | null = null;
 
 /** Active scenario editing sessions (sessionId → session data). */
 const scenarioSessions = new Map<string, ScenarioSessionData>();
@@ -162,13 +170,14 @@ function sessionDocumentDiagnostics(
     filePath: string,
   ) => HirSurfaceContext | null,
 ): PublishDiagnosticsParams | null {
-  if (!server || filePath.endsWith("/defs.d.ts")) {
+  if (!servers || filePath.endsWith("/defs.d.ts")) {
     return null;
   }
   const uri = filePathToUri(filePath);
   if (!uri) {
     return null;
   }
+  const server = servers.sdcpn;
   const userContent = server.getUserContent(filePath) ?? "";
   const allDiags = [
     ...server.getSyntacticDiagnostics(filePath),
@@ -221,13 +230,16 @@ let netDiagnosticsCache: {
 
 function checkAndSerializeNetDiagnostics(
   sdcpn: SDCPN,
-  checkingServer: SDCPNLanguageServer,
+  checkingServers: LanguageServers,
   extensions: PetrinautExtensionSettings,
 ): PublishDiagnosticsParams[] {
-  const result = checkSDCPN(sdcpn, checkingServer, extensions);
+  const result = checkSDCPN(sdcpn, checkingServers, extensions);
   return result.itemDiagnostics.map((item) => {
     const uri = filePathToUri(item.filePath);
-    const userContent = checkingServer.getUserContent(item.filePath) ?? "";
+    const userContent =
+      languageServerForFile(checkingServers, item.filePath).getUserContent(
+        item.filePath,
+      ) ?? "";
     return {
       uri: uri ?? item.filePath,
       diagnostics: item.diagnostics.map((diagnostic) =>
@@ -247,7 +259,7 @@ function netDiagnostics(
   ) {
     return netDiagnosticsCache.params;
   }
-  const params = checkAndSerializeNetDiagnostics(sdcpn, server!, extensions);
+  const params = checkAndSerializeNetDiagnostics(sdcpn, servers!, extensions);
   netDiagnosticsCache = { sdcpn, extensions, params };
   return params;
 }
@@ -257,12 +269,12 @@ function requestedDiagnostics(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
 ): PublishDiagnosticsParams[] {
-  const requestServer = new SDCPNLanguageServer();
+  const requestServers = createLanguageServers();
   try {
-    requestServer.syncFiles(sdcpn, extensions);
-    return checkAndSerializeNetDiagnostics(sdcpn, requestServer, extensions);
+    syncLanguageServers(requestServers, sdcpn, extensions);
+    return checkAndSerializeNetDiagnostics(sdcpn, requestServers, extensions);
   } finally {
-    requestServer.dispose();
+    disposeLanguageServers(requestServers);
   }
 }
 
@@ -271,7 +283,7 @@ function publishAllDiagnostics(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
 ): void {
-  if (!server) {
+  if (!servers) {
     return;
   }
 
@@ -302,7 +314,7 @@ function publishAllDiagnostics(
   // start. Empty code means "keep the default" and is never linted.
   for (const session of scenarioSessions.values()) {
     pushSessionDiagnostics(
-      server.getScenarioFileNames(session.sessionId),
+      servers.sdcpn.getScenarioFileNames(session.sessionId),
       (userContent, filePath) =>
         userContent.trim() === ""
           ? null
@@ -312,7 +324,7 @@ function publishAllDiagnostics(
 
   for (const session of adHocSessions.values()) {
     pushSessionDiagnostics(
-      server.getAdHocFileNames(session.sessionId),
+      servers.sdcpn.getAdHocFileNames(session.sessionId),
       () => null,
     );
   }
@@ -321,14 +333,14 @@ function publishAllDiagnostics(
   const metricHirContext = buildMetricContext(sdcpn, extensions);
   for (const session of metricSessions.values()) {
     pushSessionDiagnostics(
-      server.getMetricFileNames(session.sessionId),
+      servers.sdcpn.getMetricFileNames(session.sessionId),
       () => metricHirContext,
     );
   }
 
   for (const session of constraintSessions.values()) {
     pushSessionDiagnostics(
-      server.getConstraintFileNames(session.sessionId),
+      servers.sdcpn.getConstraintFileNames(session.sessionId),
       (userContent) =>
         userContent.trim() === ""
           ? null
@@ -361,11 +373,11 @@ function syncScenarioSession(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
 ): void {
-  if (!server) {
+  if (!servers) {
     return;
   }
   scenarioSessions.set(sessionData.sessionId, sessionData);
-  server.syncScenarioFiles(sdcpn, sessionData);
+  servers.sdcpn.syncScenarioFiles(sdcpn, sessionData);
   publishAllDiagnostics(sdcpn, extensions);
 }
 
@@ -383,11 +395,11 @@ function syncAdHocSession(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
 ): void {
-  if (!server) {
+  if (!servers) {
     return;
   }
   adHocSessions.set(sessionData.sessionId, sessionData);
-  server.syncAdHocFiles(sdcpn, sessionData);
+  servers.sdcpn.syncAdHocFiles(sdcpn, sessionData);
   publishAllDiagnostics(sdcpn, extensions);
 }
 
@@ -409,11 +421,11 @@ function syncConstraintSession(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
 ): void {
-  if (!server) {
+  if (!servers) {
     return;
   }
   constraintSessions.set(sessionData.sessionId, sessionData);
-  server.syncConstraintFiles(sdcpn, sessionData);
+  servers.sdcpn.syncConstraintFiles(sdcpn, sessionData);
   publishAllDiagnostics(sdcpn, extensions);
 }
 
@@ -431,11 +443,11 @@ function syncMetricSession(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
 ): void {
-  if (!server) {
+  if (!servers) {
     return;
   }
   metricSessions.set(sessionData.sessionId, sessionData);
-  server.syncMetricFiles(sdcpn, sessionData);
+  servers.sdcpn.syncMetricFiles(sdcpn, sessionData);
   publishAllDiagnostics(sdcpn, extensions);
 }
 
@@ -474,30 +486,30 @@ workerRuntime.onMessage((data) => {
           data.params.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
         lastSDCPN = sdcpn;
         lastExtensions = extensions;
-        server = new SDCPNLanguageServer();
+        servers = createLanguageServers();
         netDiagnosticsCache = null;
-        server.syncFiles(sdcpn, extensions);
+        syncLanguageServers(servers, sdcpn, extensions);
         // Replay scenario sessions that arrived before SDCPN init
         for (const session of pendingScenarioInits) {
           scenarioSessions.set(session.sessionId, session);
-          server.syncScenarioFiles(sdcpn, session);
+          servers.sdcpn.syncScenarioFiles(sdcpn, session);
         }
         pendingScenarioInits = [];
         // Replay ad-hoc sessions that arrived before SDCPN init
         for (const session of pendingAdHocInits) {
           adHocSessions.set(session.sessionId, session);
-          server.syncAdHocFiles(sdcpn, session);
+          servers.sdcpn.syncAdHocFiles(sdcpn, session);
         }
         pendingAdHocInits = [];
         // Replay metric sessions that arrived before SDCPN init
         for (const session of pendingMetricInits) {
           metricSessions.set(session.sessionId, session);
-          server.syncMetricFiles(sdcpn, session);
+          servers.sdcpn.syncMetricFiles(sdcpn, session);
         }
         pendingMetricInits = [];
         for (const session of pendingConstraintInits) {
           constraintSessions.set(session.sessionId, session);
-          server.syncConstraintFiles(sdcpn, session);
+          servers.sdcpn.syncConstraintFiles(sdcpn, session);
         }
         pendingConstraintInits = [];
         publishAllDiagnostics(sdcpn, extensions);
@@ -510,34 +522,37 @@ workerRuntime.onMessage((data) => {
           data.params.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
         lastSDCPN = sdcpn;
         lastExtensions = extensions;
-        server ??= new SDCPNLanguageServer();
-        server.syncFiles(sdcpn, extensions);
+        servers ??= createLanguageServers();
+        syncLanguageServers(servers, sdcpn, extensions);
         // Re-sync all scenario sessions since SDCPN types may have changed
         for (const session of scenarioSessions.values()) {
-          server.syncScenarioFiles(sdcpn, session);
+          servers.sdcpn.syncScenarioFiles(sdcpn, session);
         }
         // Re-sync all ad-hoc sessions since SDCPN types may have changed
         for (const session of adHocSessions.values()) {
-          server.syncAdHocFiles(sdcpn, session);
+          servers.sdcpn.syncAdHocFiles(sdcpn, session);
         }
         // Re-sync all metric sessions since SDCPN types may have changed
         for (const session of metricSessions.values()) {
-          server.syncMetricFiles(sdcpn, session);
+          servers.sdcpn.syncMetricFiles(sdcpn, session);
         }
         for (const session of constraintSessions.values()) {
-          server.syncConstraintFiles(sdcpn, session);
+          servers.sdcpn.syncConstraintFiles(sdcpn, session);
         }
         publishAllDiagnostics(sdcpn, extensions);
         break;
       }
 
       case "textDocument/didChange": {
-        if (!server) {
+        if (!servers) {
           break;
         }
         const filePath = uriToFilePath(data.params.textDocument.uri);
         if (filePath) {
-          server.updateDocumentContent(filePath, data.params.text);
+          languageServerForFile(servers, filePath).updateDocumentContent(
+            filePath,
+            data.params.text,
+          );
           // A net document changed under the same SDCPN object; session
           // documents (`/_temp/...`) never feed the net's diagnostics.
           if (!filePath.startsWith("/_temp/")) {
@@ -586,7 +601,7 @@ workerRuntime.onMessage((data) => {
         pendingScenarioInits = pendingScenarioInits.filter(
           (s) => s.sessionId !== sessionId,
         );
-        server?.removeScenarioSession(sessionId);
+        servers?.sdcpn.removeScenarioSession(sessionId);
         if (lastSDCPN) {
           publishAllDiagnostics(lastSDCPN, lastExtensions);
         }
@@ -627,7 +642,7 @@ workerRuntime.onMessage((data) => {
         pendingAdHocInits = pendingAdHocInits.filter(
           (s) => s.sessionId !== sessionId,
         );
-        server?.removeAdHocSession(sessionId);
+        servers?.sdcpn.removeAdHocSession(sessionId);
         if (lastSDCPN) {
           publishAllDiagnostics(lastSDCPN, lastExtensions);
         }
@@ -667,7 +682,7 @@ workerRuntime.onMessage((data) => {
         pendingMetricInits = pendingMetricInits.filter(
           (s) => s.sessionId !== sessionId,
         );
-        server?.removeMetricSession(sessionId);
+        servers?.sdcpn.removeMetricSession(sessionId);
         if (lastSDCPN) {
           publishAllDiagnostics(lastSDCPN, lastExtensions);
         }
@@ -707,7 +722,7 @@ workerRuntime.onMessage((data) => {
         pendingConstraintInits = pendingConstraintInits.filter(
           (s) => s.sessionId !== sessionId,
         );
-        server?.removeConstraintSession(sessionId);
+        servers?.sdcpn.removeConstraintSession(sessionId);
         if (lastSDCPN) {
           publishAllDiagnostics(lastSDCPN, lastExtensions);
         }
@@ -764,9 +779,18 @@ workerRuntime.onMessage((data) => {
         break;
       }
 
+      case "sdcpn/lowerVisualizer": {
+        const { id } = data;
+        respond(
+          id,
+          lowerVisualizerToHir(data.params.code, data.params.context),
+        );
+        break;
+      }
+
       case "textDocument/completion": {
         const { id } = data;
-        if (!server) {
+        if (!servers) {
           respond(id, {
             isIncomplete: false,
             items: [],
@@ -775,9 +799,16 @@ workerRuntime.onMessage((data) => {
         }
 
         const filePath = uriToFilePath(data.params.textDocument.uri);
+        const server = filePath
+          ? languageServerForFile(servers, filePath)
+          : null;
         // A session whose code is empty has no code file yet; answer empty
         // instead of failing the request over a missing source file.
-        if (!filePath || server.getFileContent(filePath) === undefined) {
+        if (
+          !filePath ||
+          !server ||
+          server.getFileContent(filePath) === undefined
+        ) {
           respond(id, {
             isIncomplete: false,
             items: [],
@@ -787,7 +818,7 @@ workerRuntime.onMessage((data) => {
 
         // Use user content (without prefix) for position conversion since
         // Monaco positions are relative to the visible user code only.
-        // SDCPNLanguageServer methods handle the prefix offset internally.
+        // The language server's methods handle the prefix offset internally.
         const userContent = server.getUserContent(filePath) ?? "";
         const offset = positionToOffset(userContent, data.params.position);
 
@@ -812,15 +843,22 @@ workerRuntime.onMessage((data) => {
 
       case "textDocument/hover": {
         const { id } = data;
-        if (!server) {
+        if (!servers) {
           respond(id, null);
           break;
         }
 
         const filePath = uriToFilePath(data.params.textDocument.uri);
+        const server = filePath
+          ? languageServerForFile(servers, filePath)
+          : null;
         // A session whose code is empty has no code file yet; answer empty
         // instead of failing the request over a missing source file.
-        if (!filePath || server.getFileContent(filePath) === undefined) {
+        if (
+          !filePath ||
+          !server ||
+          server.getFileContent(filePath) === undefined
+        ) {
           respond(id, null);
           break;
         }
@@ -861,15 +899,22 @@ workerRuntime.onMessage((data) => {
 
       case "textDocument/signatureHelp": {
         const { id } = data;
-        if (!server) {
+        if (!servers) {
           respond(id, null);
           break;
         }
 
         const filePath = uriToFilePath(data.params.textDocument.uri);
+        const server = filePath
+          ? languageServerForFile(servers, filePath)
+          : null;
         // A session whose code is empty has no code file yet; answer empty
         // instead of failing the request over a missing source file.
-        if (!filePath || server.getFileContent(filePath) === undefined) {
+        if (
+          !filePath ||
+          !server ||
+          server.getFileContent(filePath) === undefined
+        ) {
           respond(id, null);
           break;
         }

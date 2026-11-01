@@ -1,10 +1,14 @@
 /**
  * Records the Temporal histories of flow runs that the tests of `buildFlowRunEvents` read. Each case runs the AI
  * worker's real `runFlow` workflow, with its signal and query handlers, on a worker with a task queue of its own and
- * stub activities, against the local stack's Temporal (`yarn compose`). It writes each run's description and history
- * to libs/@local/hash-backend-utils/tests/fixtures/flow-run-histories/<fixture>.json.
+ * stub activities. It writes each run's description and history to
+ * libs/@local/hash-backend-utils/tests/fixtures/flow-run-histories/<fixture>.json.
  *
- *   yarn workspace @apps/hash-ai-worker-ts record-flow-run-histories [<case>...]
+ * Each action runs on its own worker's task queue (`getActionActivityOptions`), so the stub actions are on those queues.
+ * Record against a Temporal server no real worker polls, such as a dev server of its own:
+ *
+ *   temporal server start-dev --port 7299 --headless --namespace HASH
+ *   HASH_TEMPORAL_SERVER_PORT=7299 yarn workspace @apps/hash-ai-worker-ts record-flow-run-histories [<case>...]
  *
  * Rerun it when the flow workflow changes what its history records. The workflow is bundled from the libraries'
  * builds, so build `@local/hash-backend-utils` first.
@@ -20,6 +24,8 @@ import { Client, Connection } from "@temporalio/client";
 import proto from "@temporalio/proto";
 import { NativeConnection, Worker } from "@temporalio/worker";
 
+import { getActionActivityOptions } from "@local/hash-backend-utils/flows/action-activity-options";
+import { signalStepAttempts } from "@local/hash-backend-utils/flows/signal-step-attempts";
 import { temporalNamespace } from "@local/hash-backend-utils/temporal";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -29,6 +35,7 @@ import { answeringUserId, recordingCases } from "./cases.js";
 import type { RecordingCase } from "./cases.js";
 import type { EntityId, EntityUuid, WebId } from "@blockprotocol/type-system";
 import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
+import type { FlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/types";
 
 const require = createRequire(import.meta.url);
 
@@ -42,7 +49,7 @@ const fixturesDirectory = path.join(
 /** Kept out of the histories in place of the machine's `pid@hostname`. */
 const identity = "flow-run-histories";
 
-/** Left out of the histories, as neither `buildFlowRunEvents` nor `getFlowRunDetails` reads them. */
+/** Left out of the histories, as `buildFlowRunEvents` doesn't read them. */
 const unreadEventTypes = new Set<proto.temporal.api.enums.v1.EventType>([
   proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_TASK_SCHEDULED,
   proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_TASK_STARTED,
@@ -69,19 +76,6 @@ const recordRun = async (
     handle.fetchHistory(),
   ]);
 
-  const firstExecutionRunId =
-    history.events?.[0]?.workflowExecutionStartedEventAttributes
-      ?.firstExecutionRunId;
-
-  const originalRunStartTime =
-    firstExecutionRunId && firstExecutionRunId !== description.runId
-      ? (
-          await client.workflow
-            .getHandle(workflowId, firstExecutionRunId)
-            .describe()
-        ).startTime.toISOString()
-      : undefined;
-
   mkdirSync(fixturesDirectory, { recursive: true });
   writeFileSync(
     path.join(fixturesDirectory, `${fixtureName}.json`),
@@ -95,7 +89,6 @@ const recordRun = async (
           closeTime: description.closeTime?.toISOString() ?? null,
           memo: description.memo ?? {},
         },
-        ...(originalRunStartTime ? { originalRunStartTime } : {}),
         /*
          * `historyToJSON` throws on payload metadata with the version of `proto3-json-serializer` installed, so the
          * history is written as protobuf.js writes it, which `History.fromObject` reads.
@@ -156,13 +149,54 @@ const main = async () => {
       if (!action) {
         throw new Error(`The case doesn't stub ${activityName}`);
       }
-      return action(...args);
+      if (currentCase?.withoutAttemptSignals) {
+        return action(...args);
+      }
+      return signalStepAttempts({
+        action: async (
+          ...actionArgs: Parameters<RecordingCase["actions"][string]>
+        ) => action(...actionArgs),
+      }).action(...args);
     };
 
   const taskQueue = `flow-run-histories-${generateUuid()}`;
 
+  const stubActions = {
+    ifAction: stubAction("ifAction"),
+    takeFirstAction: stubAction("takeFirstAction"),
+    aggregateAction: stubAction("aggregateAction"),
+    researchEntitiesAction: stubAction("researchEntitiesAction"),
+  };
+
+  const workerConnection = await NativeConnection.connect({
+    address: temporalAddress,
+  });
+
+  /* A worker on each task queue the stub actions run on. */
+  const actionWorkers = await Promise.all(
+    [
+      ...new Set(
+        Object.keys(stubActions).map(
+          (activityName) =>
+            getActionActivityOptions(
+              activityName.replace(/Action$/, "") as FlowActionDefinitionId,
+            ).taskQueue,
+        ),
+      ),
+    ].map((actionTaskQueue) =>
+      Worker.create({
+        connection: workerConnection,
+        namespace: temporalNamespace,
+        taskQueue: actionTaskQueue,
+        identity,
+        maxHeartbeatThrottleInterval: "1 second",
+        activities: stubActions,
+      }),
+    ),
+  );
+
   const worker = await Worker.create({
-    connection: await NativeConnection.connect({ address: temporalAddress }),
+    connection: workerConnection,
     namespace: temporalNamespace,
     taskQueue,
     identity,
@@ -179,15 +213,13 @@ const main = async () => {
       persistFlowActivity: () => ({
         flowEntityId: `${webId}~${generateUuid()}`,
       }),
+      recordFlowRunActivity: () => undefined,
       generateFlowRunName: () => currentCase?.flow.flowDefinition.name,
-      ifAction: stubAction("ifAction"),
-      takeFirstAction: stubAction("takeFirstAction"),
-      aggregateAction: stubAction("aggregateAction"),
-      researchEntitiesAction: stubAction("researchEntitiesAction"),
+      saveOpenInputRequestsActivity: () => undefined,
     },
   });
 
-  await worker.runUntil(async () => {
+  const recording = worker.runUntil(async () => {
     for (const [caseName, createCase] of Object.entries(recordingCases)) {
       if (caseNames.length && !caseNames.includes(caseName)) {
         continue;
@@ -242,6 +274,11 @@ const main = async () => {
       );
     }
   });
+
+  await Promise.all([
+    recording,
+    ...actionWorkers.map((actionWorker) => actionWorker.runUntil(recording)),
+  ]);
 
   execFileSync("yarn", ["oxfmt", "--write", fixturesDirectory], {
     cwd: repositoryRoot,

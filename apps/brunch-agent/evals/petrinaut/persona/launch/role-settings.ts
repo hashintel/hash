@@ -11,13 +11,14 @@ import {
   DEFAULT_CHAT_MODEL,
   DEFAULT_CHAT_THINKING,
   STEP_A_MODEL_ID,
-  type ChatThinkingLevel,
 } from "../../../../src/shared/chat-model.ts";
+
+import type { ThinkingLevel } from "@flue/runtime";
 
 /** Brunch's own model; the persona agent chooses its model through its harness. */
 export type PersonaRoleSettings = {
   brunchModel: string;
-  brunchThinking: ChatThinkingLevel;
+  brunchThinking: ThinkingLevel;
 };
 
 const catalog = () => {

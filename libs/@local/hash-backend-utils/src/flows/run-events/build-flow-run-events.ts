@@ -1,6 +1,10 @@
 import proto from "@temporalio/proto";
 
-import { parseStepRunId } from "@local/hash-isomorphic-utils/flows/step-run-id";
+import {
+  toStepErrors,
+  toStepRun,
+  unknownErrorMessage,
+} from "@local/hash-isomorphic-utils/flows/run-events";
 import { FlowRunStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { StatusCode } from "@local/status";
 
@@ -13,6 +17,7 @@ import type {
   FlowStepGaveUpReason,
 } from "@local/hash-isomorphic-utils/flows/run-events";
 import type {
+  FlowRunEnding,
   RunFlowWorkflowParams,
   RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
@@ -23,6 +28,8 @@ import type {
   FlowSignalType,
   ProgressLogSignal,
   SkippedStep,
+  StepAttemptFailedSignal,
+  StepAttemptStartedSignal,
   StartedForEachStep,
   StepInput,
   StepOutput,
@@ -37,20 +44,14 @@ const { EventType, RetryState, WorkflowTaskFailedCause } =
 const nonStepActivityTypes = [
   "getFlowDefinitionActivity",
   "persistFlowActivity",
+  "recordFlowRunActivity",
   "generateFlowRunName",
+  "saveOpenInputRequestsActivity",
   "userHasPermissionToRunFlowInWebActivity",
 ];
 
-const unknownErrorMessage = "Unknown error";
-
 /** A step's activity type is its action definition id with this suffix, as `processFlowWorkflow` names it. */
 const actionActivitySuffix = "Action";
-
-const toStepRun = (stepRunId: string): FlowRunEventStepRun => {
-  const { stepId, itemIndex } = parseStepRunId(stepRunId);
-
-  return { stepId, itemPath: itemIndex === undefined ? [] : [itemIndex] };
-};
 
 const gaveUpReasonByRetryState: Partial<
   Record<proto.temporal.api.enums.v1.RetryState, FlowStepGaveUpReason>
@@ -60,21 +61,34 @@ const gaveUpReasonByRetryState: Partial<
   [RetryState.RETRY_STATE_TIMEOUT]: "timedOut",
 };
 
-const toStepErrors = (
-  stepErrors: NonNullable<
-    NonNullable<RunFlowWorkflowResponse["contents"][number]>["stepErrors"]
-  >,
-) =>
-  stepErrors.map(({ message, contents: [stepError] }) => {
-    if (!stepError) {
-      throw new Error(`No step id on step error: ${message}`);
-    }
+type RunFinishedEvent = Extract<FlowRunEvent, { kind: "runFinished" }>;
 
+const runFinishedStatusByEndingKind = {
+  completed: FlowRunStatus.Completed,
+  failed: FlowRunStatus.Failed,
+  cancelled: FlowRunStatus.Cancelled,
+  terminated: FlowRunStatus.Terminated,
+  timedOut: FlowRunStatus.TimedOut,
+} as const satisfies Record<FlowRunEnding["kind"], RunFinishedEvent["status"]>;
+
+/** The event for how a run ended, without its place in the run's history. */
+export const getRunFinishedEvent = (
+  ending: FlowRunEnding,
+): Omit<RunFinishedEvent, "position" | "occurredAt"> => {
+  const status = runFinishedStatusByEndingKind[ending.kind];
+
+  if (ending.kind === "terminated") {
     return {
-      stepRun: toStepRun(stepError.stepId),
-      error: { message: message ?? unknownErrorMessage },
+      kind: "runFinished",
+      status,
+      ...(ending.reason ? { failure: { message: ending.reason } } : {}),
     };
-  });
+  }
+
+  const { kind: _kind, ...fields } = ending;
+
+  return { kind: "runFinished", status, ...fields };
+};
 
 /**
  * The events of a flow run, from its Temporal history. An event depends only on its Temporal event and the ones
@@ -88,8 +102,21 @@ export const buildFlowRunEvents = (
   /** The step each activity is a run of, if it is one, and its attempt, once it has started. */
   const activitiesByScheduledEventId = new Map<
     string,
-    { stepRun?: FlowRunEventStepRun; attempt: number }
+    {
+      stepRun?: FlowRunEventStepRun;
+      attempt: number;
+      /** Attempts whose start a `stepAttemptStarted` signal recorded, before the activity's last attempt is. */
+      signalledStarts: Set<number>;
+      /** Attempts that are known to have failed, from a `stepAttemptFailed` signal or a later attempt's start. */
+      failedAttempts: Set<number>;
+      /** Whether the history has recorded the activity's last attempt (`ACTIVITY_TASK_STARTED`). */
+      lastAttemptRecorded: boolean;
+      /** The latest attempt an event has reported, as started or as hidden. */
+      reportedUpTo: number;
+    }
   >();
+  /** The activity most recently scheduled with each activity id: a step run's id, for a step's activity. */
+  const scheduledEventIdsByActivityId = new Map<string, string>();
   const reportedForEachStepIds = new Set<string>();
   const skippedStepIds = new Set<string>();
   const inputRequestStepRunsById = new Map<string, FlowRunEventStepRun>();
@@ -131,6 +158,60 @@ export const buildFlowRunEvents = (
       return value as T;
     };
 
+    /**
+     * Records the most recent attempt whose start a signal recorded as failed, when a later attempt starts and nothing
+     * said it failed: it ended without throwing, e.g. by timing out.
+     */
+    const failUnfailedAttempt = (
+      activity: ReturnType<typeof getActivity>,
+      stepRun: FlowRunEventStepRun,
+      laterAttempt: number,
+      error: { message: string },
+    ) => {
+      const attempt = Math.max(
+        0,
+        ...[...activity.signalledStarts].filter(
+          (signalled) => signalled < laterAttempt,
+        ),
+      );
+
+      if (attempt === 0 || activity.failedAttempts.has(attempt)) {
+        return;
+      }
+
+      activity.failedAttempts.add(attempt);
+      addEvent({
+        kind: "attemptFailed",
+        stepRun,
+        attempt,
+        error,
+        retrying: true,
+      });
+    };
+
+    /**
+     * How many attempts before `attempt` no event has reported, which its start reports as hidden: their signals
+     * didn't arrive. Each start records itself in `reportedUpTo`, so each attempt is counted once, whether its start is
+     * signalled or Temporal records it.
+     */
+    const countHiddenAttempts = (
+      { reportedUpTo }: ReturnType<typeof getActivity>,
+      attempt: number,
+    ) => Math.max(0, attempt - 1 - reportedUpTo);
+
+    /** The step activity a signal about an attempt is about, if the history has scheduled it. */
+    const getSignalledStepActivity = (stepRunId: string) => {
+      const scheduledEventId = scheduledEventIdsByActivityId.get(stepRunId);
+      const activity =
+        scheduledEventId === undefined
+          ? undefined
+          : activitiesByScheduledEventId.get(scheduledEventId);
+
+      return activity?.stepRun
+        ? { activity, stepRun: activity.stepRun }
+        : undefined;
+    };
+
     const getActivity = (scheduledEventId: unknown) => {
       const activity = activitiesByScheduledEventId.get(
         String(scheduledEventId),
@@ -170,7 +251,12 @@ export const buildFlowRunEvents = (
         activitiesByScheduledEventId.set(eventId, {
           ...(isStep ? { stepRun: toStepRun(activityId) } : {}),
           attempt: 1,
+          signalledStarts: new Set(),
+          failedAttempts: new Set(),
+          lastAttemptRecorded: false,
+          reportedUpTo: 0,
         });
+        scheduledEventIdsByActivityId.set(activityId, eventId);
 
         if (isStep) {
           if (!activityType.endsWith(actionActivitySuffix)) {
@@ -200,25 +286,41 @@ export const buildFlowRunEvents = (
         const attempt = attributes?.attempt ?? 1;
 
         activity.attempt = attempt;
+        activity.lastAttemptRecorded = true;
 
         if (activity.stepRun) {
           const lastErrorMessage = attributes?.lastFailure?.message;
+          const previousAttemptSignalled = activity.signalledStarts.has(
+            attempt - 1,
+          );
 
-          addEvent({
-            kind: "attemptStarted",
-            stepRun: activity.stepRun,
-            attempt,
-            ...(attempt > 1
-              ? {
-                  hiddenAttempts: {
-                    count: attempt - 1,
-                    ...(lastErrorMessage
-                      ? { lastError: { message: lastErrorMessage } }
-                      : {}),
-                  },
-                }
-              : {}),
+          failUnfailedAttempt(activity, activity.stepRun, attempt, {
+            message:
+              (previousAttemptSignalled ? lastErrorMessage : undefined) ??
+              unknownErrorMessage,
           });
+
+          if (!activity.signalledStarts.has(attempt)) {
+            const hiddenCount = countHiddenAttempts(activity, attempt);
+
+            activity.reportedUpTo = Math.max(activity.reportedUpTo, attempt);
+
+            addEvent({
+              kind: "attemptStarted",
+              stepRun: activity.stepRun,
+              attempt,
+              ...(hiddenCount > 0
+                ? {
+                    hiddenAttempts: {
+                      count: hiddenCount,
+                      ...(lastErrorMessage && !previousAttemptSignalled
+                        ? { lastError: { message: lastErrorMessage } }
+                        : {}),
+                    },
+                  }
+                : {}),
+            });
+          }
         }
         break;
       }
@@ -372,6 +474,82 @@ export const buildFlowRunEvents = (
           historyEvent.workflowExecutionSignaledEventAttributes;
 
         switch (attributes?.signalName as FlowSignalType | undefined) {
+          case "stepAttemptStarted": {
+            const { stepRunId, attempt, previousAttemptError } =
+              parseFirstPayload<StepAttemptStartedSignal>(
+                attributes?.input,
+                "step attempt",
+              );
+            const signalled = getSignalledStepActivity(stepRunId);
+
+            if (!signalled || signalled.activity.lastAttemptRecorded) {
+              break;
+            }
+
+            const { activity, stepRun } = signalled;
+            const previousAttemptSignalled = activity.signalledStarts.has(
+              attempt - 1,
+            );
+
+            failUnfailedAttempt(activity, stepRun, attempt, {
+              message:
+                (previousAttemptSignalled
+                  ? previousAttemptError?.message
+                  : undefined) ?? unknownErrorMessage,
+            });
+            const hiddenCount = countHiddenAttempts(activity, attempt);
+
+            activity.reportedUpTo = Math.max(activity.reportedUpTo, attempt);
+
+            activity.signalledStarts.add(attempt);
+            activity.attempt = attempt;
+            /* The attempts before it whose signals didn't arrive, the last of which failed with the previous attempt's error. */
+            addEvent({
+              kind: "attemptStarted",
+              stepRun,
+              attempt,
+              ...(hiddenCount > 0
+                ? {
+                    hiddenAttempts: {
+                      count: hiddenCount,
+                      ...(previousAttemptError && !previousAttemptSignalled
+                        ? { lastError: previousAttemptError }
+                        : {}),
+                    },
+                  }
+                : {}),
+            });
+            break;
+          }
+
+          case "stepAttemptFailed": {
+            const { stepRunId, attempt, error } =
+              parseFirstPayload<StepAttemptFailedSignal>(
+                attributes?.input,
+                "step attempt failure",
+              );
+            const signalled = getSignalledStepActivity(stepRunId);
+
+            if (
+              !signalled ||
+              signalled.activity.lastAttemptRecorded ||
+              signalled.activity.failedAttempts.has(attempt)
+            ) {
+              break;
+            }
+
+            /* Only a failure Temporal retries is signalled: the last attempt's is in the history. */
+            signalled.activity.failedAttempts.add(attempt);
+            addEvent({
+              kind: "attemptFailed",
+              stepRun: signalled.stepRun,
+              attempt,
+              error: { message: error.message },
+              retrying: true,
+            });
+            break;
+          }
+
           case "logProgress": {
             const { attempt, logs } = parseFirstPayload<ProgressLogSignal>(
               attributes?.input,
@@ -467,14 +645,16 @@ export const buildFlowRunEvents = (
           historyEvent.workflowExecutionCompletedEventAttributes?.result,
           "workflow result",
         );
+
         const { outputs, stepErrors } = result.contents[0] ?? {};
 
-        addEvent({
-          kind: "runFinished",
-          status: FlowRunStatus.Completed,
-          ...(outputs ? { flowOutputs: outputs } : {}),
-          ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
-        });
+        addEvent(
+          getRunFinishedEvent({
+            kind: "completed",
+            flowOutputs: outputs ?? [],
+            ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+          }),
+        );
         break;
       }
 
@@ -488,17 +668,21 @@ export const buildFlowRunEvents = (
             | undefined) ?? [];
         const stepErrors = details?.contents?.[0]?.stepErrors;
 
-        addEvent({
-          kind: "runFinished",
-          status: FlowRunStatus.Failed,
-          failure: { message: failure?.message ?? unknownErrorMessage },
-          ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
-        });
+        addEvent(
+          getRunFinishedEvent({
+            kind: "failed",
+            failure: {
+              message: failure?.message ?? unknownErrorMessage,
+              ...(details?.code ? { code: details.code } : {}),
+            },
+            ...(stepErrors ? { stepErrors: toStepErrors(stepErrors) } : {}),
+          }),
+        );
         break;
       }
 
       case EventType.EVENT_TYPE_WORKFLOW_EXECUTION_CANCELED: {
-        addEvent({ kind: "runFinished", status: FlowRunStatus.Cancelled });
+        addEvent(getRunFinishedEvent({ kind: "cancelled" }));
         break;
       }
 
@@ -506,16 +690,17 @@ export const buildFlowRunEvents = (
         const reason =
           historyEvent.workflowExecutionTerminatedEventAttributes?.reason;
 
-        addEvent({
-          kind: "runFinished",
-          status: FlowRunStatus.Terminated,
-          ...(reason ? { failure: { message: reason } } : {}),
-        });
+        addEvent(
+          getRunFinishedEvent({
+            kind: "terminated",
+            ...(reason ? { reason } : {}),
+          }),
+        );
         break;
       }
 
       case EventType.EVENT_TYPE_WORKFLOW_EXECUTION_TIMED_OUT: {
-        addEvent({ kind: "runFinished", status: FlowRunStatus.TimedOut });
+        addEvent(getRunFinishedEvent({ kind: "timedOut" }));
         break;
       }
     }

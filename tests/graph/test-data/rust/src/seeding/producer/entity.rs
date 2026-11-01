@@ -7,7 +7,10 @@ use rand::{distr::Distribution as _, seq::IndexedRandom as _};
 use type_system::{
     self,
     knowledge::{
-        entity::{EntityId, LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        entity::{
+            EntityId, Link, LinkEndpoint, id::EntityUuid,
+            provenance::ProvidedEntityEditionProvenance,
+        },
         property::metadata::PropertyProvenance,
     },
     ontology::VersionedUrl,
@@ -198,13 +201,17 @@ impl<
             let target_entity_id = entity_catalog
                 .sample_entity_id(target_type, &mut link_rng)
                 .unwrap_or_else(|| todo!("https://linear.app/hash/issue/BE-102"));
-            Some(LinkData {
-                left_entity_id: source_entity_id,
-                left_entity_confidence: None,
-                left_entity_provenance: PropertyProvenance::default(),
-                right_entity_id: target_entity_id,
-                right_entity_confidence: None,
-                right_entity_provenance: PropertyProvenance::default(),
+            Some(Link::Directed {
+                source: LinkEndpoint {
+                    entity_id: source_entity_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
+                target: LinkEndpoint {
+                    entity_id: target_entity_id,
+                    confidence: None,
+                    provenance: PropertyProvenance::default(),
+                },
             })
         } else {
             None

@@ -54,10 +54,18 @@ const DialogRoot = ({
         React.ReactElement<OverlayFooterProps, typeof OverlayFooter>?,
       ]
     | React.ReactElement<OverlayBodyProps, typeof OverlayBody>;
+  /**
+   * Which dismissals the dialog offers: `closeButtonAndOverlay`
+   * closes on the close button, Escape, and backdrop clicks; `closeButton`
+   * drops backdrop dismissal; `none` renders no close button and disables
+   * Escape, leaving closing entirely to your own controls.
+   */
   shouldCloseOn?: OverlayShouldCloseOn;
   loading?: boolean;
   onClose?: () => void;
+  /** Focused when the dialog opens, instead of the default initial focus. */
   initialFocusRef?: React.RefObject<HTMLElement>;
+  /** Receives focus when the dialog closes, instead of the element focused before it opened. */
   returnFocusRef?: React.RefObject<HTMLElement>;
 } & React.AriaAttributes) => {
   const portalContainerRef = usePortalContainerRef();
@@ -141,6 +149,9 @@ const DialogRoot = ({
     </ArkDialog.Root>
   );
 };
+
+// Stable name for the docs Stage code serializer under minification
+DialogRoot.displayName = "Dialog";
 
 export const Dialog = Object.assign(DialogRoot, {
   Header: OverlayHeader,

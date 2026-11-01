@@ -2,18 +2,21 @@ import { useApolloClient, useMutation } from "@apollo/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { normalizeStructuralQuery } from "@local/hash-isomorphic-utils/dashboard-types";
-import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { FlowRunStatus } from "../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
+import {
+  getOutputValue,
+  getStepProgress,
+  queryFlowRunProgress,
+} from "./shared/flow-run-progress";
 
 import type {
-  GetFlowRunByIdQuery,
-  GetFlowRunByIdQueryVariables,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
+import type { FlowRunProgress } from "./shared/flow-run-progress";
 import type { JsonValue } from "@blockprotocol/core";
 import type {
   EntityId,
@@ -24,10 +27,7 @@ import type {
   ChartType,
   StructuralQueryDefinition,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import type {
-  FlowRunWithoutEvents,
-  StepOutput,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FlowRunEvent } from "@local/hash-isomorphic-utils/flows/run-events";
 
 export type DashboardItemGenerationPhase =
   | "building-query"
@@ -61,34 +61,6 @@ export type DashboardItemGeneration = {
   chartConfig?: ChartConfig;
 };
 
-const getOutputValue = <Value>(
-  outputs: StepOutput[] | undefined,
-  outputName: string,
-): Value | null =>
-  (outputs?.find((output) => output.outputName === outputName)?.payload
-    .value as Value | undefined) ?? null;
-
-const getFlowOutputs = (
-  flowRun: FlowRunWithoutEvents,
-): StepOutput[] | undefined =>
-  (
-    flowRun.outputs as { contents: { outputs?: StepOutput[] }[] }[] | undefined
-  )?.flatMap((status) =>
-    status.contents.flatMap((content) => content.outputs ?? []),
-  );
-
-const getStepOutputs = (
-  step: FlowRunWithoutEvents["steps"][number] | undefined,
-): StepOutput[] | undefined =>
-  (
-    step?.outputs as
-      | { contents: { outputs?: StepOutput[] }[] }[]
-      | null
-      | undefined
-  )?.flatMap((status) =>
-    status.contents.flatMap((content) => content.outputs ?? []),
-  );
-
 const parseJson = <Value>(value: string | null): Value | undefined => {
   if (!value) {
     return undefined;
@@ -101,7 +73,7 @@ const parseJson = <Value>(value: string | null): Value | undefined => {
 };
 
 export const getDashboardItemGenerationOutputs = (
-  flowRun: FlowRunWithoutEvents,
+  events: FlowRunEvent[],
 ): Partial<
   Pick<
     DashboardItemGeneration,
@@ -112,15 +84,9 @@ export const getDashboardItemGenerationOutputs = (
     | "chartConfig"
   >
 > => {
-  const queryOutputs = getStepOutputs(
-    flowRun.steps.find((step) => step.stepId === "1"),
-  );
-  const analysisOutputs = getStepOutputs(
-    flowRun.steps.find((step) => step.stepId === "2"),
-  );
-  const chartOutputs = getStepOutputs(
-    flowRun.steps.find((step) => step.stepId === "3"),
-  );
+  const queryOutputs = getStepProgress(events, "1").outputs;
+  const analysisOutputs = getStepProgress(events, "2").outputs;
+  const chartOutputs = getStepProgress(events, "3").outputs;
 
   const structuralQuery = normalizeStructuralQuery(
     parseJson(getOutputValue<string>(queryOutputs, "structuralQuery")),
@@ -147,23 +113,19 @@ export const getDashboardItemGenerationOutputs = (
 };
 
 export const getDashboardItemGenerationPhase = (
-  flowRun: FlowRunWithoutEvents,
+  events: FlowRunEvent[],
 ): DashboardItemGenerationPhase => {
-  const queryStep = flowRun.steps.find((step) => step.stepId === "1");
-  const analysisStep = flowRun.steps.find((step) => step.stepId === "2");
-  const chartStep = flowRun.steps.find((step) => step.stepId === "3");
-  const outputs = getDashboardItemGenerationOutputs(flowRun);
+  const queryStep = getStepProgress(events, "1");
+  const analysisStep = getStepProgress(events, "2");
+  const chartStep = getStepProgress(events, "3");
+  const outputs = getDashboardItemGenerationOutputs(events);
 
-  if (
-    chartStep?.scheduledAt ||
-    analysisStep?.closedAt ||
-    outputs.pythonScript
-  ) {
+  if (chartStep.scheduledAt || analysisStep.closedAt || outputs.pythonScript) {
     return "creating-chart-configuration";
   }
   if (
-    analysisStep?.scheduledAt ||
-    queryStep?.closedAt ||
+    analysisStep.scheduledAt ||
+    queryStep.closedAt ||
     outputs.structuralQuery
   ) {
     return "analyzing-data";
@@ -240,8 +202,8 @@ export const useDashboardItemGenerations = ({
   );
 
   const finalizeGeneration = useCallback(
-    async (itemEntityId: EntityId, flowRun: FlowRunWithoutEvents) => {
-      const outputs = getFlowOutputs(flowRun);
+    async (itemEntityId: EntityId, flowRun: FlowRunProgress) => {
+      const { outputs } = flowRun;
       const structuralQueryJson = getOutputValue<string>(
         outputs,
         "structuralQuery",
@@ -334,15 +296,10 @@ export const useDashboardItemGenerations = ({
       }
 
       try {
-        const { data } = await apolloClient.query<
-          GetFlowRunByIdQuery,
-          GetFlowRunByIdQueryVariables
-        >({
-          query: getFlowRunById,
-          variables: { flowRunEntityId: generation.flowRunEntityId },
-          fetchPolicy: "network-only",
-        });
-        const flowRun = data.getFlowRunById;
+        const flowRun = await queryFlowRunProgress(
+          apolloClient,
+          generation.flowRunEntityId,
+        );
 
         if (flowRun.status === FlowRunStatus.Completed) {
           finalizingItemIdsRef.current.add(generation.itemEntityId);
@@ -377,8 +334,8 @@ export const useDashboardItemGenerations = ({
           return;
         }
 
-        const phase = getDashboardItemGenerationPhase(flowRun);
-        const outputs = getDashboardItemGenerationOutputs(flowRun);
+        const phase = getDashboardItemGenerationPhase(flowRun.events);
+        const outputs = getDashboardItemGenerationOutputs(flowRun.events);
         setGenerations((currentGenerations) => ({
           ...currentGenerations,
           [generation.itemEntityId]: { ...generation, ...outputs, phase },

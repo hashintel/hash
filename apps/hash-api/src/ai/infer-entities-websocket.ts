@@ -4,8 +4,12 @@ import {
   getFlowRunEntityById,
   getFlowRuns,
 } from "@local/hash-backend-utils/flows";
+import {
+  automaticBrowserInferenceFlow,
+  manualBrowserInferenceFlow,
+} from "@local/hash-isomorphic-utils/flows/definitions/browser-plugin-flow-definitions";
 import { externalInputResponseSignal } from "@local/hash-isomorphic-utils/flows/signals";
-import { assertNoStoredPayloadRefsInFlowInputs } from "@local/hash-isomorphic-utils/flows/stored-payload-refs";
+import { validateFlowInputs } from "@local/hash-isomorphic-utils/flows/validate-payloads";
 
 import { getUserAndSession } from "../auth/create-auth-handlers";
 import { FlowRunStatus } from "../graphql/api-types.gen";
@@ -14,7 +18,6 @@ import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-in
 
 import type { GraphApi, ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
-import type { FileStorageProvider } from "@local/hash-backend-utils/file-storage";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type {
   ExternalInputWebsocketRequestMessage,
@@ -30,12 +33,10 @@ const inferEntitiesMessageHandler = async ({
   graphApiClient,
   temporalClient,
   message,
-  storageProvider,
   user,
 }: {
   graphApiClient: GraphApi;
   socket: WebSocket;
-  storageProvider: FileStorageProvider;
   temporalClient: Client;
   message: InferenceWebsocketClientMessage;
   user: User;
@@ -50,10 +51,19 @@ const inferEntitiesMessageHandler = async ({
 
       const { webId: _webId, ...flowInputs } = message.payload;
 
-      try {
-        assertNoStoredPayloadRefsInFlowInputs(flowInputs);
-      } catch (error) {
-        socket.send((error as Error).message);
+      /* The code that seeds the flow the request starts, which a test keeps equal to its seeded definition. */
+      const { flowDefinition } =
+        message.type === "manual-inference-request"
+          ? manualBrowserInferenceFlow
+          : automaticBrowserInferenceFlow;
+
+      const invalidFlowInputMessage = validateFlowInputs({
+        inputDefinitions: flowDefinition.inputs,
+        flowInputs,
+      });
+
+      if (invalidFlowInputMessage) {
+        socket.send(invalidFlowInputMessage);
         return;
       }
 
@@ -61,7 +71,6 @@ const inferEntitiesMessageHandler = async ({
         graphApiClient,
         temporalClient,
         message,
-        storageProvider,
         user,
       });
       return;
@@ -79,21 +88,19 @@ const inferEntitiesMessageHandler = async ({
         authentication: { actorId: user.accountId },
         filters: { executionStatus: FlowRunStatus.Running },
         graphApiClient,
-        includeDetails: true,
-        storageProvider,
-        temporalClient,
       });
 
-      for (const flowRun of openFlowRuns.flowRuns) {
-        for (const inputRequest of flowRun.inputRequests) {
-          if (!inputRequest.resolvedAt) {
-            const requestMessage: ExternalInputWebsocketRequestMessage = {
-              flowRunEntityId: flowRun.flowRunEntityId,
-              payload: inputRequest,
-              type: "external-input-request",
-            };
-            socket.send(JSON.stringify(requestMessage));
-          }
+      for (const {
+        flowRunEntityId,
+        openInputRequests,
+      } of openFlowRuns.flowRuns) {
+        for (const inputRequest of openInputRequests) {
+          const requestMessage: ExternalInputWebsocketRequestMessage = {
+            flowRunEntityId,
+            payload: inputRequest,
+            type: "external-input-request",
+          };
+          socket.send(JSON.stringify(requestMessage));
         }
       }
       return;
@@ -186,13 +193,11 @@ export const openInferEntitiesWebSocket = ({
   context,
   httpServer,
   logger,
-  storageProvider,
   temporalClient,
 }: {
   context: ImpureGraphContext;
   httpServer: http.Server;
   logger: Logger;
-  storageProvider: FileStorageProvider;
   temporalClient: Client;
 }) => {
   const wss = new WebSocketServer({
@@ -324,7 +329,6 @@ export const openInferEntitiesWebSocket = ({
           void inferEntitiesMessageHandler({
             graphApiClient: context.graphApi,
             socket,
-            storageProvider,
             temporalClient,
             message: parsedMessage,
             user,

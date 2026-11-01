@@ -2,7 +2,7 @@ import { expect, test, vi } from "vitest";
 
 import { VoiceMediationHistory } from "./voice-mediation-history";
 
-import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiMessage } from "../../chat/ai-assistant-panel";
 
 test("partial input is display-only and only admitted final briefs survive reload", () => {
   const data = new Map<string, string>();

@@ -66,6 +66,10 @@ Each service includes health checks and proper dependency management. Services w
 - `mimir/mimir.yml` - Mimir metrics collection configuration
 - `grafana/provisioning/` - Grafana data source and dashboard provisioning
 
+### Temporal Configuration
+
+- `temporal/dynamicconfig.yaml` - Temporal server dynamic configuration
+
 ### Authentication Configuration
 
 - `kratos/kratos.dev.yml` - Kratos development configuration

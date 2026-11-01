@@ -8,6 +8,7 @@ import {
   toPetrinautId,
 } from "@hashintel/petrinaut-core";
 
+import { createTestEditorApi } from "../chat/testing/create-test-editor-api";
 import {
   createCanonicalPetrinautHostTools,
   issuedCanonicalCallsFromHistory,
@@ -15,7 +16,8 @@ import {
 } from "./brunch-petrinaut-tools";
 import { documentRevisionOf } from "./shared/document-revision";
 
-import type { PetrinautAiAutomaticToolExecuteParams } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiAutomaticToolExecuteParams } from "../chat/ai-automatic-tool";
+import type { EditRefusal } from "@hashintel/petrinaut/ui/plugin";
 
 vi.hoisted(() => {
   window.matchMedia = (media) => ({
@@ -46,7 +48,10 @@ const place = {
   y: 0,
   targetSubnetId: null,
 };
-const setup = (replay = EMPTY_CANONICAL_PETRINAUT_REPLAY) => {
+const setup = (
+  replay = EMPTY_CANONICAL_PETRINAUT_REPLAY,
+  refusal: () => EditRefusal | null = () => null,
+) => {
   const instance = createPetrinaut({
     document: createJsonDocHandle({
       id: "document",
@@ -54,6 +59,8 @@ const setup = (replay = EMPTY_CANONICAL_PETRINAUT_REPLAY) => {
       capabilities: { disabledExtensions: [] },
     }),
   });
+  // The plugin's refusal-aware edits over the same instance the handle backs.
+  const { edit } = createTestEditorApi(instance, { refusal }).document;
   const adapter = createCanonicalPetrinautHostTools({
     handle: instance.handle,
     readTitle: () => "Untitled",
@@ -73,10 +80,8 @@ const setup = (replay = EMPTY_CANONICAL_PETRINAUT_REPLAY) => {
     input: rawInput,
     toolCallId,
     handle: instance.handle,
-    mutations: instance.mutations,
-    commands: instance.commands,
+    edit,
     readDiagnosticsContext: async () => "No diagnostics",
-    viewport: { frameSceneAfterRender: async () => "framed" },
     signal: new AbortController().signal,
   });
   const revision = () => {
@@ -84,7 +89,7 @@ const setup = (replay = EMPTY_CANONICAL_PETRINAUT_REPLAY) => {
     if (!definition) throw new Error("The test document is unavailable.");
     return documentRevisionOf(definition);
   };
-  return { adapter, instance, tool, params, revision };
+  return { adapter, edit, instance, tool, params, revision };
 };
 
 describe("canonical browser revision attribution", () => {
@@ -97,7 +102,7 @@ describe("canonical browser revision attribution", () => {
     });
   });
   test("stamps an applied mutation with its new revision and leaves a no-op at its prior revision", () => {
-    const { adapter, instance, tool, params, revision } = setup();
+    const { adapter, edit, tool, params, revision } = setup();
     const before = revision();
     adapter.mapClientToolInput({
       toolName: "addPlace",
@@ -130,12 +135,36 @@ describe("canonical browser revision attribution", () => {
     });
     const noop = tool("addPlace").execute({
       ...params(place, "noop"),
-      mutations: { ...instance.mutations, addPlace: () => undefined },
+      // An edit the editor accepts that leaves the document as it was.
+      edit: {
+        ...edit,
+        addPlace: () => ({ applied: true, value: undefined }),
+      },
     });
     expect(noop).toMatchObject({ applied: false });
     expect(adapter.clientToolResultMetadataFor("noop", noop)).toEqual({
       documentRevision: { before: after },
     });
+  });
+  test("reports a read-only refusal as the call's output and leaves the document at its prior revision", () => {
+    const { adapter, instance, tool, params, revision } = setup(
+      EMPTY_CANONICAL_PETRINAUT_REPLAY,
+      () => ({ kind: "host-readonly" }),
+    );
+    const before = revision();
+    adapter.mapClientToolInput({
+      toolName: "addPlace",
+      toolCallId: "refused",
+      input: place,
+    });
+    const refused = tool("addPlace").execute(params(place, "refused"));
+    expect(refused).toMatchObject({ applied: false, blocked: "host-readonly" });
+    expect(instance.handle.doc()?.places).toEqual([]);
+    expect(adapter.clientToolResultMetadataFor("refused", refused)).toEqual({
+      documentRevision: { before },
+    });
+    // The refused call was attempted: a replay returns its output, never a retry.
+    expect(tool("addPlace").execute(params(place, "refused"))).toBe(refused);
   });
   test("history blocks an uncertain write rather than retrying it", async () => {
     const snapshot = {
@@ -231,6 +260,19 @@ describe("net freshness", () => {
     instance.mutations.addPlace({ ...place, id: "hand", name: "Hand" });
     expect(adapter.acceptsRevision(seen)).toBe(false);
     expect(adapter.acceptsRevision(revision())).toBe(true);
+  });
+
+  test("moving an element by hand leaves the model's view current", () => {
+    const { adapter, instance, revision } = setup();
+    instance.mutations.addPlace(place);
+    const seen = revision();
+    instance.mutations.updatePlacePosition({
+      placeId: toPetrinautId("queue"),
+      position: { x: 120, y: 80 },
+      targetSubnetId: null,
+    });
+    expect(instance.handle.doc()?.places[0]).toMatchObject({ x: 120, y: 80 });
+    expect(adapter.acceptsRevision(seen)).toBe(true);
   });
 
   test("the chain survives a reload through the settled revisions in history", () => {

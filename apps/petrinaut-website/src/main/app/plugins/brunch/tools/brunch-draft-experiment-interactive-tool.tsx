@@ -12,17 +12,18 @@ import {
 } from "@hashintel/brunch-agent";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 import {
   openPetrinautSimulationResource,
   prepareExperiment,
 } from "@hashintel/petrinaut/react";
-import {
-  definePetrinautAiInteractiveTool,
-  ExperimentExecutionCard,
-  type PetrinautAiInteractiveToolWidgetProps,
-} from "@hashintel/petrinaut/ui";
 import { useStore } from "@hashintel/petrinaut/ui/plugin";
 
+import { ExperimentExecutionCard } from "../chat/ai-assistant-panel";
+import {
+  definePetrinautAiInteractiveTool,
+  type PetrinautAiInteractiveToolWidgetProps,
+} from "../chat/ai-interactive-tool";
 import {
   WithBrunchEditorApi,
   type BrunchEditorApi,
@@ -184,21 +185,22 @@ export const resolveDraftAuthorityFromHistory = async (
   const relevant = calls.filter(
     (call) =>
       canonicalPetrinautClientToolNames.has(call.toolName) &&
-      (call.toolName === "getLatestNetDefinition" ||
+      (call.toolName === getLatestNetDefinitionToolName ||
         browserToolMutatesDocument(call.toolName)),
   );
   const latest = relevant.at(-1);
   if (
-    latest?.toolName !== "getLatestNetDefinition" ||
+    latest?.toolName !== getLatestNetDefinitionToolName ||
     latest.state !== "output-available"
   )
     throw new Error(
       "The AI assistant needs to read the latest model before drafting.",
     );
-  const envelope = latest.output;
+  // The sidecar is taken from any recorded object, enveloped or not.
+  const recorded = latest.output;
   const metadata =
-    typeof envelope === "object" && envelope !== null && "metadata" in envelope
-      ? parseClientToolResultMetadata(envelope.metadata)
+    typeof recorded === "object" && recorded !== null && "metadata" in recorded
+      ? parseClientToolResultMetadata(recorded.metadata)
       : undefined;
   const revision = metadata?.documentRevision.before;
   if (revision === undefined)

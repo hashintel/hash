@@ -15,6 +15,7 @@ use axum::{
 };
 use camino::Utf8PathBuf;
 use error_stack::Report;
+use hash_crypto::Secret;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
@@ -28,7 +29,6 @@ use hash_middleware::{
     },
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode},
 };
-use hash_secret::Secret;
 use tokio::time::timeout;
 use tokio_postgres::NoTls;
 use tower::ServiceExt as _;

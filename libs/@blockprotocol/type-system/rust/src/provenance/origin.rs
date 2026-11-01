@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use alloc::collections::BTreeSet;
 
 #[cfg(feature = "utoipa")]
 use utoipa::{
@@ -6,8 +6,10 @@ use utoipa::{
     openapi::{ObjectBuilder, OneOfBuilder, RefOr, Schema, SchemaType},
 };
 
+/// How an edition reached HASH. The public API writes `external`.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields, tag = "type", rename_all = "kebab-case")]
 pub enum OriginType {
     WebApp,
@@ -15,11 +17,20 @@ pub enum OriginType {
     BrowserExtension,
     Api,
     Flow {
-        #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+        /// The IDs of the flow steps that wrote the edition.
+        #[cfg_attr(
+            feature = "schemars",
+            schemars(
+                length(max = crate::provenance::validation::MAX_STEP_IDS),
+                inner(length(max = crate::provenance::validation::MAX_SHORT_TEXT_LENGTH))
+            )
+        )]
+        #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
         #[serde(rename = "stepIds")]
-        step_ids: HashSet<String>,
+        step_ids: BTreeSet<String>,
     },
     Migration,
+    External,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -28,23 +39,55 @@ pub struct OriginProvenance {
     #[serde(flatten)]
     pub ty: OriginType,
     /// A unique identifier for the origin, if one is available.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "hash_codec::serde::non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub id: Option<String>,
     /// The origin version, in whatever format the origin natively provides.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "hash_codec::serde::non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub version: Option<String>,
     /// The origin version in the format specified by Semantic Versioning 2.0.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "hash_codec::serde::non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub semantic_version: Option<semver::Version>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "hash_codec::serde::non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub environment: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "hash_codec::serde::non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub device_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "hash_codec::serde::non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub session_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "hash_codec::serde::non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub api_key_public_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        deserialize_with = "hash_codec::serde::non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub user_agent: Option<String>,
 }
 
@@ -168,6 +211,7 @@ provides.",
             "api",
             "flow",
             "migration",
+            "external",
         ] {
             let mut item_builder = ObjectBuilder::new();
             item_builder = item_builder

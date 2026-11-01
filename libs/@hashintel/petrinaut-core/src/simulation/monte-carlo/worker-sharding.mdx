@@ -1,0 +1,80 @@
+---
+title: Worker sharding
+description: How one experiment's runs split across Web Workers without changing what it reports.
+sidebar_order: 20
+---
+
+Runs are independent: own seed, own RNG state, own frame buffers, no shared
+mutable state. An experiment therefore splits them across one worker per logical
+core minus one, each running its own `MonteCarloSimulator` over a slice of the
+runs. Measured ~4x at 8 shards on a 10-core machine.
+
+No `SharedArrayBuffer` is involved: the app is not cross-origin isolated, and
+message-passing shards over independent runs need no shared memory.
+
+## Why sharding cannot change results
+
+Two properties carry it, and both are easy to break:
+
+**Seeds derive from the run's global index.** `runIndexOffset + localIndex`, so
+run _i_ gets the same seed whichever worker owns it. Seeding from the position
+_within_ a shard would silently correlate runs that must be independent.
+
+**Frames merge through a monoid.** `frameValue` on a scalar metric frame is
+already reduced and cannot be combined, because a mean of means is not a mean.
+Frames carry their pre-reduction accumulator state, and `metrics/merge.ts`
+recombines it. Output is byte-identical at every shard count while every
+shard still has an active run. The one divergence is a shard that finishes
+early: finished shards drop out of the merge watermark, so their completed
+runs stop contributing samples to later frames, where a single simulator
+keeps sampling every run's frozen state to the end.
+
+## The frame watermark
+
+A frame is finalised only once every _still-running_ shard has reported it.
+Finished shards are dropped from the watermark rather than blocking it, which is
+what stops a completed shard stalling the experiment.
+
+Progress reports the slowest shard's position, so the bar never runs ahead of
+the results behind it.
+
+![One experiment across worker shards](./worker-sharding.d2)
+
+## One protocol, any thread host
+
+The worker side of the protocol is `attachMonteCarloWorker(runtime)`, and a
+runtime is three functions: post a message, receive messages, yield between
+batches. The main-thread side asks only for a `WorkerFactory` returning a
+structural `WorkerLike`. The host also decides **how many**: the experiment is
+pure and defaults to one shard, so the editor passes
+`getDefaultMonteCarloShardCount()` (from `navigator.hardwareConcurrency`),
+leaving one core for the thread that merges shard messages. Each host supplies
+its own pair and everything between them — sharding, seed derivation, the
+metric merge — is shared:
+
+- the **editor** builds workers from a Vite `?worker` import;
+- **tests and source runs** use the in-process worker, the same protocol over a
+  callback loopback on the calling thread.
+
+![How each host provides and talks to its workers](./worker-factory.d2)
+
+An experiment may override each run's parameter values or initial marking
+(`runs`); its metric frames aggregate across runs.
+
+## Workers are leased, not consumed
+
+An experiment terminates its transports on dispose — correct, but a
+parameter sweep instantiates a batch per ladder rung and per surface chunk,
+so a single slider commit used to spawn and kill a pool's worth of workers,
+each new worker re-fetching and re-evaluating the engine module before it
+could simulate. `createReusableWorkerFactory` wraps any `WorkerFactory` with
+an idle pool: it hands out **leases** whose `terminate()` detaches the
+lease's listeners, posts `cancel` to reset the worker (the protocol is
+re-initializable by design — `init` rebuilds the simulator from scratch),
+and returns it to the pool. The pooling is invisible to the transport and
+the runtime, which keep the exact `WorkerFactory` contract; a worker whose
+script errored is never re-pooled, and hosts without `removeEventListener`
+opt out implicitly (a lease that cannot detach its listeners terminates the
+worker for real). The editor's experiments provider holds one pool per
+mount and drains it when the injected factory changes or the provider
+unmounts.

@@ -152,6 +152,14 @@
     "no-throw-literal": "off",
     "prefer-promise-reject-errors": "off"
   },
+  "overrides": [
+    {
+      "files": ["src/main/app/plugins/brunch/**/*.{ts,tsx}"],
+      "rules": {
+        "react/memo-dependencies": "error"
+      }
+    }
+  ],
   "ignorePatterns": [
     "dist/**",
     "styled-system/**",
