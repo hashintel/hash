@@ -143,7 +143,9 @@ a category.
 still groups design alternatives and describes the group as a whole; its `motion`
 text should not be used as an individual icon's description.
 
-## Sorting icons
+## Icon-specific documentation
+
+### Sort-by icons
 
 The Editing category includes these paired sort indicators. Each pair reverses
 both the arrow direction and the order of the symbols or lines. Use an accessible
