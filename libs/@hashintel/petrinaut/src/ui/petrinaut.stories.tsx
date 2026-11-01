@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { sirModel } from "@hashintel/petrinaut-core/examples";
+import { assemblyLine, sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
   createJsonDocHandle,
@@ -10,10 +10,13 @@ import {
   type SDCPN,
 } from "../main";
 import { useStoreSelector } from "../react/use-store";
+import { codeViewPlugin } from "../ui/builtin-plugins/code-view-plugin";
+import { standardComponentsPlugin } from "../ui/builtin-plugins/standard-components-plugin";
 import { Petrinaut } from "../ui/petrinaut";
 import { PetrinautStoryProvider } from "./petrinaut-story-provider";
 import {
   definePetrinautPlugin,
+  type PetrinautPlugin,
   type PluginHook,
 } from "./plugins/define-petrinaut-plugin";
 import {
@@ -498,10 +501,12 @@ const HandleSpikeRender = ({
   capabilities,
   initial,
   initialTitle,
+  plugins,
 }: {
   capabilities?: PetrinautHandleCapabilities;
   initial: SDCPN;
   initialTitle: string;
+  plugins?: readonly PetrinautPlugin[];
 }) => {
   const handle = useMemo(
     () => createJsonDocHandle({ id: "spike-net", initial, capabilities }),
@@ -524,6 +529,7 @@ const HandleSpikeRender = ({
     <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
       <Petrinaut
         handle={handle}
+        plugins={plugins}
         title={title}
         setTitle={setTitle}
         hideNetManagementControls="all"
@@ -629,6 +635,23 @@ export const SubnetsWithoutColors: Story = {
       capabilities={subnetsWithoutColorsCapabilities}
       initial={sirModel.petriNetDefinition}
       initialTitle={sirModel.title}
+    />
+  ),
+};
+
+const compositionPlugins: readonly PetrinautPlugin[] = [
+  standardComponentsPlugin,
+  codeViewPlugin,
+];
+
+export const CompositionAssemblyLine: Story = {
+  name: "Composition — assembly line",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithColorsCapabilities}
+      initial={assemblyLine.petriNetDefinition}
+      initialTitle={assemblyLine.title}
+      plugins={compositionPlugins}
     />
   ),
 };

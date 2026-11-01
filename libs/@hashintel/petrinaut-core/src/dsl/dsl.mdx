@@ -1,0 +1,220 @@
+---
+title: The Petrinaut DSL
+description: A textual projection of a document, components inline, user code as TypeScript bodies; its grammar, what it leaves out, how the Code view shows and edits it, and what editing still lacks.
+sidebar_order: 10
+---
+
+The DSL writes a net as declarations a reader can scan top to bottom, with
+the components it composes written inline and every piece of user code as a
+TypeScript function body between the braces of its keyword.
+`petrinaut-core/src/dsl/` holds the printer, the parser and the merge: the
+Code view shows the printed text, re-printed on every change, and writes an
+edited text back through the merge, which matches declarations to the
+document's entities by name. The model the text projects is described in
+[Composition by place fusion](doc:core.composition/place-fusion).
+
+## An example
+
+```petrinaut
+/// A line built from standard components.
+net "Assembly Line"
+
+component Stage from "hash.standard-components/stage" {
+  param rate: real = 1
+  port in In
+  port out Out
+  transition Process {
+    In -> Out
+    rate { return parameters.rate; }
+  }
+}
+
+/// Cut parts waiting for the drill.
+place Buffer capacity 5 start
+place Finished
+
+instance Cutter = Stage(rate = 2)
+instance Drill = Stage(rate = 1)
+
+fuse Buffer, Cutter.Out, Drill.In
+fuse Finished, Drill.Out
+
+metric "Finished parts" { return state.places.Finished.count; }
+```
+
+## Design
+
+- **One declaration per entity**, each starting with a keyword, in
+  dependency order: types, parameters, equations, places and ports,
+  instances, fusions, transitions; then metrics and scenarios at the root.
+  Components come first, so a reader meets a definition before its use.
+- **A transition is its firing rule.** `2 Raw, read Gate, inhibit Scrap ->
+2 Cell.In` is the arcs with their weights and kinds; `rate`, `guard` and
+  `kernel` are the code. A source transition reads `-> Out`, a sink `In ->`.
+- **Code is a function body**, as the user guide teaches it, so `rate {
+return parameters.rate; }` is what the editor's code panel holds. Code
+  still written in the module form is unwrapped when its parameters are the
+  surface's ambient names, and printed as it is otherwise, so nothing is
+  renamed behind the author's back. Visualizers stay modules.
+- **Names are identifiers when they can be.** Places, transitions and
+  instances always are; a type, equation, component, metric, scenario or
+  fusion named with spaces is quoted. A parameter is its variable name, with
+  its label beside it when the label says more than a spelling.
+- **Ports carry their direction** (`port in In`), declared or read off the
+  arcs, and a fusion lists its members, `fuse [Name =] A, B, C`, the anchor
+  first.
+- **Descriptions are `///` lines** above the declaration they describe.
+- **Positions, colours and ids are not written.** The DSL is the model, not
+  the drawing; a future parser matches declarations to entities by name and
+  keeps what the text does not say.
+
+The printer records the lines of each entity, so the Code view highlights
+and scrolls to the selected item, and a future editor can map a diagnostic
+to its line.
+
+## Grammar
+
+```ebnf
+file        = { doc } , net , { declaration } ;
+net         = "net" , [ string ] , [ "components-only" ] ;
+declaration = component | type | param | dynamics | place | port
+            | transition | instance | fuse | metric | scenario ;
+component   = "component" , name , [ "from" , string ] , "{" , { declaration } , "}" ;
+type        = "type" , name , "{" , element , { "," , element } , "}" ;
+element     = ident , ":" , valueType ;
+param       = "param" , ident , [ string ] , ":" , valueType , "=" , value ;
+dynamics    = "dynamics" , name , [ "(" , name , ")" ] , body ;
+place       = "place" , placeHead ;
+port        = "port" , ( "in" | "out" | "inout" ) , placeHead ;
+placeHead   = ident , [ ":" , name ] , { "capacity" , int | "dynamics" , name | "start" }
+            , [ "{" , "visualizer" , body , "}" ] ;
+transition  = "transition" , ident , "{" , [ arcs ] , { logic } , "}" ;
+arcs        = [ input , { "," , input } ] , "->" , [ output , { "," , output } ] ;
+input       = [ int ] , [ "read" | "inhibit" ] , ref ;
+output      = [ int ] , ref ;
+ref         = ident | ident , "." , ident ;
+logic       = ( "rate" | "guard" | "kernel" ) , body ;
+instance    = "instance" , ident , "=" , name , [ "(" , binding , { "," , binding } , ")" ] ;
+binding     = ident , "=" , value ;
+fuse        = "fuse" , [ name , "=" ] , ref , { "," , ref } ;
+metric      = "metric" , name , body ;
+scenario    = "scenario" , name , "{" , { scenarioParam | override } , [ initial ] , "}" ;
+scenarioParam = "param" , ident , ":" , valueType , "=" , number ;
+override    = "override" , ident , "=" , value ;
+initial     = "initial" , body | "marking" , "{" , { ident , ":" , value } , "}" ;
+body        = "{" , TypeScript function body , "}" ;
+doc         = "///" , text ;
+name        = ident | string ;
+```
+
+`valueType` is `real | integer | boolean | uuid | string`, with `ratio` in
+scenario parameters. A scenario's initial state is `initial` with a body
+that returns the marking, or `marking` with a value per place: a token count
+expression, or rows of token data as JSON. A body's closing brace stands
+alone at the keyword's indentation, which is what the Monaco tokenizer uses
+to find the end of the embedded TypeScript, counting the body's own braces
+in between; the parser counts them the same way.
+
+## The Code view
+
+`codeViewPlugin` registers the language with Monaco: a Monarch tokenizer for
+the declarations and `nextEmbedded: "typescript"` for each body, so the
+TypeScript tokenizer colours the code with no language service behind it.
+Clean, the view follows the net, and selecting an item on the canvas or in
+the sidebar highlights its lines; the plugin reads the selection from
+`api.editor.navigation`. Edited, the text is a draft: every keystroke parses
+it and merges it onto the current net, the diagnostics become Monaco
+markers, and **Apply**, or the editor's save shortcut, writes the merged net
+back in one undo entry. **Discard** drops the draft. A draft outlives
+changes made on the canvas meanwhile; the toolbar says so, since applying
+replaces them. A new title on the `net` line goes to `setTitle`.
+
+## Examples written in the DSL
+
+`dsl/examples/` holds nets written in the DSL by hand, exported as
+`dslExamples` with a title and a sentence each: a queue, an epidemic over
+typed tokens, a workshop composed by fusion, a thermostat with dynamics and
+guards. Their suite parses and merges each one, compiles every item through
+the HIR, runs the LSP check, and prints it back to a text that reads as the
+same net, so the examples stay the reference for what the language accepts.
+
+## Outside the editor
+
+The website's `/custom-dsl` page turns the relation around: the text is the
+document, one file kept in local storage, and a read-only editor beside it
+follows the text. `DslEditor` and `MonacoProvider` are exported from
+`@hashintel/petrinaut/ui` for a host like it. Each change is parsed and
+merged onto the net the editor last showed, so names keep their nodes, and a
+scope with a node the text did not have before is laid out, since the text
+carries no positions. The Code view plugin stays the way to edit the text
+inside the editor.
+
+## Editing: parse and merge
+
+`parsePetrinautDsl` is a hand-written recursive descent over the grammar
+above. Declarations are read by keyword; a body is the text between its
+braces, found by counting braces outside strings, template literals and
+comments, so the parser never reads the TypeScript. Every declaration and
+every name carries its range. A line that fails to parse is reported with
+its range and skipped, along with the block its head opened, so one mistake
+does not hide the next.
+
+`mergeDslDocument` writes the declarations onto a document. Parsing yields
+names, not ids or positions, so each declaration is matched to the entity
+of its name in its scope, a component or the root: a matched entity keeps
+its id, its position, its type's colour and icon, its host metadata and the
+fields the text has no words for; a declaration without a match is a new
+entity, placed in a row under the scope's nodes with a fresh id; an entity
+the text no longer declares is gone. When exactly one declaration of a kind
+is new and exactly one entity of that kind is gone, they pair as a rename.
+References resolve by name too: `Cutter.In` is the port `In` of the
+component `Cutter` instantiates, bindings and overrides name parameters by
+their variable, markings name places. Each that fails is an error at its
+text, and with any error there is no document to apply: the merge returns
+its diagnostics instead.
+
+Some fields are kept rather than written. A parameter without a label keeps
+the document's spelling of its name when that only spells the variable
+differently; a port keeps its direction undeclared when the text repeats
+what the arcs already say; a scenario without `initial` or `marking` keeps
+its initial state, which is how a form-authored scenario survives a round
+trip the printer cannot express. The merge writes every example back as the
+same text with every id and position kept, which `merge.test.ts` checks for
+all of them.
+
+The Code view applies the merged net through
+`api.document.edit.replaceDefinition`, a core command that replaces the
+whole definition in one change, validated as a file is. The ids the merge
+kept are what make that an edit of the same net rather than a new one.
+
+What this leaves for later:
+
+- **Renames beyond one at a time.** Two places renamed in one edit are two
+  deletions and two additions, with their positions lost. Monaco's change
+  events could track a rename as it happens.
+- **Formatting is the printer's.** Applying re-prints the text, so comments
+  outside `///` lines and blank lines of the author's choosing go away.
+- **Language features through the existing worker.** The LSP worker already
+  type-checks every body in a virtual TypeScript file per surface. The DSL
+  editor can map each body range to that file and forward completion, hover
+  and diagnostics, with their positions shifted.
+- **Imports.** `component X from "library/component"` is printed from
+  `source` and written back as written; an editable DSL could resolve the
+  line from a component library instead of carrying the body, which is the
+  import the composition proposal points at.
+- **A read-only signal for plugins.** The view reads the editor's read-only
+  reason through an internal hook; the plugin API has no store for it yet.
+
+## Alternatives considered
+
+- **YAML or JSON as the text view.** Already available through export, and
+  faithful, but a transition is forty lines of structure for one rule, and
+  code is a string in a string.
+- **A TypeScript builder** (`net.place("Raw")`): editable with full language
+  support from day one, but the result reads as a program, not a model, and
+  every reader has to run it in their head.
+- **PNML or a CPN-ML-like notation**: standard, verbose, and without a place
+  for Petrinaut's code surfaces.
+
+The DSL keeps the model's vocabulary and borrows the one thing from
+programming languages it needs: a function body where the model has code.

@@ -15,7 +15,12 @@ export type DraggingStateByNodeId = Record<
 >;
 
 export type EditorGlobalMode = "edit" | "simulate" | "actual";
-export type EditViewMode = "canvas" | "definitions";
+/**
+ * A view of the net in Edit mode: the built-in Canvas and Definitions, or a
+ * view a plugin declares, named `<plugin id>:<key>`. A location naming a
+ * view no running plugin provides shows Canvas.
+ */
+export type EditViewMode = "canvas" | "definitions" | `${string}:${string}`;
 type EditorEditionMode =
   | "cursor"
   | "add-place"

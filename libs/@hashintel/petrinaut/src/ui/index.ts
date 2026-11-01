@@ -11,6 +11,12 @@
 
 export { KeyboardShortcut } from "./keyboard-shortcut";
 export { Petrinaut } from "./petrinaut";
+// Plugins the package ships; a host passes them to `<Petrinaut plugins>`.
+export { codeViewPlugin } from "./builtin-plugins/code-view-plugin";
+export { DslEditor } from "./monaco/dsl-editor";
+export type { DslEditorProps, DslRevealedLines } from "./monaco/dsl-editor";
+export { MonacoProvider } from "./monaco/provider";
+export { standardComponentsPlugin } from "./builtin-plugins/standard-components-plugin";
 
 export {
   Petricon,

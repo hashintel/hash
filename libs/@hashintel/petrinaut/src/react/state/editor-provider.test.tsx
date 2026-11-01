@@ -403,6 +403,7 @@ describe("EditorProvider deep-link normalization", () => {
       differentialEquations: [],
       parameters: [],
       componentInstances: [],
+      fusions: [],
     };
 
     // The editor view's selection cleanup runs its effect before the provider's.

@@ -436,3 +436,159 @@ describe("flattenComponentInstancesForSimulation", () => {
     );
   });
 });
+
+describe("flattenComponentInstancesForSimulation with fusions", () => {
+  const machine = () =>
+    subnet("machine", {
+      places: [
+        place("in", { name: "In", isPort: true }),
+        place("out", { name: "Out", isPort: true }),
+      ],
+      transitions: [
+        transition("work", {
+          inputArcs: [{ placeId: "in", weight: 1, type: "standard" }],
+          outputArcs: [{ placeId: "out", weight: 1 }],
+        }),
+      ],
+    });
+
+  it("fuses a root place with an instance port, keeping the root place", () => {
+    const definition = sdcpn({
+      places: [place("buffer", { name: "Buffer" })],
+      transitions: [
+        transition("feed", {
+          outputArcs: [{ placeId: "buffer", weight: 1 }],
+        }),
+      ],
+      componentInstances: [componentInstance("m1", "machine")],
+      subnets: [machine()],
+      fusions: [
+        {
+          id: "f1",
+          members: [
+            { kind: "place", placeId: "buffer" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "m1",
+              portPlaceId: "in",
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = flatten({ definition, initialMarking: { buffer: 2 } });
+
+    expect(result.sdcpn.places.map(({ id }) => id)).toEqual([
+      "buffer",
+      "m1::out",
+    ]);
+    expect(
+      result.sdcpn.transitions.find(({ id }) => id === "m1::work")!.inputArcs,
+    ).toEqual([{ placeId: "buffer", weight: 1, type: "standard" }]);
+    expect(result.initialMarking).toEqual({ buffer: 2 });
+    expect([...result.fusedPlaceAliases]).toEqual([["m1::in", "buffer"]]);
+    expect(result.placeParameterValues.has("m1::in")).toBe(false);
+  });
+
+  it("fuses two instance ports into one shared place", () => {
+    const definition = sdcpn({
+      componentInstances: [
+        componentInstance("m1", "machine"),
+        componentInstance("m2", "machine"),
+      ],
+      subnets: [machine()],
+      fusions: [
+        {
+          id: "f1",
+          name: "Conveyor",
+          members: [
+            {
+              kind: "componentPort",
+              componentInstanceId: "m1",
+              portPlaceId: "out",
+            },
+            {
+              kind: "componentPort",
+              componentInstanceId: "m2",
+              portPlaceId: "in",
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = flatten({ definition });
+
+    expect(result.sdcpn.places.map(({ id, name }) => [id, name])).toEqual([
+      ["m1::in", "In"],
+      ["m1::out", "Conveyor"],
+      ["m2::out", "Out"],
+    ]);
+    expect(
+      result.sdcpn.transitions.find(({ id }) => id === "m2::work")!.inputArcs,
+    ).toEqual([{ placeId: "m1::out", weight: 1, type: "standard" }]);
+  });
+
+  it("applies fusions declared inside a subnet to the nested instances", () => {
+    const definition = sdcpn({
+      componentInstances: [componentInstance("line", "line")],
+      subnets: [
+        machine(),
+        subnet("line", {
+          places: [place("feed", { name: "Feed", isPort: true })],
+          componentInstances: [componentInstance("m1", "machine")],
+          fusions: [
+            {
+              id: "f1",
+              members: [
+                { kind: "place", placeId: "feed" },
+                {
+                  kind: "componentPort",
+                  componentInstanceId: "m1",
+                  portPlaceId: "in",
+                },
+              ],
+            },
+          ],
+        }),
+      ],
+    });
+
+    const result = flatten({ definition });
+
+    expect(result.sdcpn.places.map(({ id }) => id)).toEqual([
+      "line::feed",
+      "line::m1::out",
+    ]);
+    expect(
+      result.sdcpn.transitions.find(({ id }) => id === "line::m1::work")!
+        .inputArcs[0]!.placeId,
+    ).toBe("line::feed");
+  });
+
+  it("rejects a fusion member that is not a port", () => {
+    const definition = sdcpn({
+      places: [place("buffer")],
+      componentInstances: [componentInstance("m1", "machine")],
+      subnets: [
+        subnet("machine", { places: [place("hidden", { isPort: false })] }),
+      ],
+      fusions: [
+        {
+          id: "f1",
+          members: [
+            { kind: "place", placeId: "buffer" },
+            {
+              kind: "componentPort",
+              componentInstanceId: "m1",
+              portPlaceId: "hidden",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(() => flatten({ definition })).toThrow(/not a port/);
+  });
+});

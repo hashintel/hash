@@ -3,6 +3,11 @@
  * @role The demo site's Petrinaut plugins, and the list the editor receives
  */
 
+import {
+  codeViewPlugin,
+  standardComponentsPlugin,
+} from "@hashintel/petrinaut/ui";
+
 import { commandPalettePlugin } from "./command-palette/plugin";
 import { sentryFeedbackPlugin } from "./sentry-feedback/plugin";
 import { sharePlugin } from "./share/plugin";
@@ -16,4 +21,6 @@ export const demoPlugins: readonly PetrinautPlugin[] = [
   sentryFeedbackPlugin,
   commandPalettePlugin,
   walkthroughPlugin,
+  standardComponentsPlugin,
+  codeViewPlugin,
 ];

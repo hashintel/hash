@@ -14,6 +14,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
+  assemblyLine,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
@@ -41,9 +42,13 @@ import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
 import { KeyboardShortcut } from "../../keyboard-shortcut";
 import { CodeNavigationProvider } from "../../monaco/code-navigation";
+import { PluginBoundary } from "../../plugins/plugin-boundary";
 import { useCanvasRegistration } from "../../plugins/plugin-editor";
 import { PluginRoots } from "../../plugins/plugin-outlets";
-import { usePluginOverlay } from "../../plugins/plugins-provider";
+import {
+  usePluginOverlay,
+  usePluginViews,
+} from "../../plugins/plugins-provider";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -52,6 +57,10 @@ import { ImportErrorDialog } from "./components/import-error-dialog";
 import { TopBar } from "./components/TopBar/top-bar";
 import { applyAutoLayoutAndFrame } from "./editor-view/apply-auto-layout-and-frame";
 import { EditViewSelector } from "./editor-view/edit-view-selector";
+import {
+  editViewSelectorWidth,
+  resolveEditView,
+} from "./editor-view/edit-views";
 import {
   EditorAssistantPanel,
   useEditorAssistant,
@@ -119,7 +128,6 @@ const canvasContainerStyle = css({
 
 const workspaceStyle = css({
   position: "relative",
-  "--edit-view-selector-width": "[160px]",
   display: "flex",
   flexDirection: "column",
   flex: "[1]",
@@ -141,6 +149,17 @@ const openSubmenuStyle = css({
 const editViewSelectorSpaceStyle = css({
   width: "[var(--edit-view-selector-width)]",
   flexShrink: "0",
+});
+
+// A plugin's view fills the workspace below the view selector, which floats
+// over it the way it floats over the canvas.
+const pluginViewStyle = css({
+  position: "relative",
+  flex: "[1]",
+  minWidth: "[0]",
+  minHeight: "[0]",
+  display: "flex",
+  flexDirection: "column",
 });
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
@@ -217,6 +236,9 @@ const EditorViewContent = ({
     use(UserSettingsContext);
   // A plugin covering the canvas, such as a tour, holds back the prompt.
   const pluginOverlay = usePluginOverlay();
+  const pluginViews = usePluginViews();
+  const editView = resolveEditView(editViewMode, pluginViews);
+  const selectorWidth = editViewSelectorWidth(2 + pluginViews.length);
 
   const toggleAiAssistant = () => {
     if (isAiAssistantOpen) {
@@ -465,6 +487,14 @@ const EditorViewContent = ({
                   clearSelection();
                 },
               },
+              {
+                id: "load-example-assembly-line",
+                text: "Assembly Line",
+                onClick: () => {
+                  createNewNet(assemblyLine);
+                  clearSelection();
+                },
+              },
             ],
           },
         ]
@@ -547,11 +577,17 @@ const EditorViewContent = ({
           {globalMode === "simulate" ? (
             <SimulateView />
           ) : (
-            <div className={workspaceStyle}>
+            <div
+              className={workspaceStyle}
+              style={{
+                // @ts-expect-error CSS variables work at runtime, but are not in the type system
+                "--edit-view-selector-width": `${selectorWidth}px`,
+              }}
+            >
               {globalMode === "edit" && <EditViewSelector />}
               <Activity
                 mode={
-                  globalMode === "actual" || editViewMode === "canvas"
+                  globalMode === "actual" || editView === "canvas"
                     ? "visible"
                     : "hidden"
                 }
@@ -585,7 +621,7 @@ const EditorViewContent = ({
               </Activity>
               <Activity
                 mode={
-                  globalMode === "edit" && editViewMode === "definitions"
+                  globalMode === "edit" && editView === "definitions"
                     ? "visible"
                     : "hidden"
                 }
@@ -597,12 +633,32 @@ const EditorViewContent = ({
                   }
                 />
               </Activity>
+              {pluginViews.map((view) => (
+                <Activity
+                  key={`${view.instanceKey}:${view.id}`}
+                  mode={
+                    globalMode === "edit" && editView === view.id
+                      ? "visible"
+                      : "hidden"
+                  }
+                >
+                  <div className={pluginViewStyle}>
+                    <PluginBoundary
+                      pluginId={view.pluginId}
+                      place="view"
+                      contributionId={view.id}
+                    >
+                      {view.node}
+                    </PluginBoundary>
+                  </div>
+                </Activity>
+              ))}
             </div>
           )}
           <Activity
             mode={
               globalMode === "actual" ||
-              (globalMode === "edit" && editViewMode === "canvas")
+              (globalMode === "edit" && editView === "canvas")
                 ? "visible"
                 : "hidden"
             }

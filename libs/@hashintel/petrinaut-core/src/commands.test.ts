@@ -357,3 +357,67 @@ describe("applyAutoLayout", () => {
     ).toBe(true);
   });
 });
+
+describe("replaceDefinition", () => {
+  test("makes the document hold the definition, in one change", () => {
+    const instance = createInstance({
+      ...emptySDCPN,
+      description: "Before",
+      places: [
+        {
+          id: "place-1",
+          name: "Queue",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+    });
+    let changes = 0;
+    instance.definition.subscribe(() => {
+      changes += 1;
+    });
+
+    instance.commands.replaceDefinition({
+      definition: {
+        ...emptySDCPN,
+        componentsOnly: true,
+        places: [
+          {
+            id: "place-2",
+            name: "Served",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 30,
+            y: 45,
+          },
+        ],
+      },
+    });
+
+    const definition = instance.definition.get();
+    expect(definition.description).toBeUndefined();
+    expect(definition.componentsOnly).toBe(true);
+    expect(definition.places.map(({ id, name }) => [id, name])).toEqual([
+      [toPetrinautId("place-2"), "Served"],
+    ]);
+    expect(changes).toBe(1);
+  });
+
+  test("refuses a definition that does not validate", () => {
+    const instance = createInstance();
+
+    expect(() =>
+      instance.commands.replaceDefinition({
+        definition: {
+          ...emptySDCPN,
+          places: [{ id: "", name: "" } as never],
+        },
+      }),
+    ).toThrow();
+    expect(instance.definition.get().places).toEqual([]);
+  });
+});

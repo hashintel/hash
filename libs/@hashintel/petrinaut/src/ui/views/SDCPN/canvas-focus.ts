@@ -16,6 +16,8 @@ import {
   getArcEndpointNodeId,
 } from "@hashintel/petrinaut-core";
 
+import { fusionHub, fusionLinkId } from "./fusion-links";
+
 import type { ActiveNetDefinition } from "../../../react/state/active-net-context";
 
 /**
@@ -150,6 +152,26 @@ export const buildNetAdjacency = (net: ActiveNetDefinition): NetAdjacency => {
         transition.id,
         getArcEndpointNodeId(endpoint),
       );
+    }
+  }
+
+  // A fusion's members are one place, so its links join both ways: focusing
+  // either end lights the link and makes the other end bidirectional.
+  for (const fusion of net.fusions) {
+    canvasIds.add(fusion.id);
+    const hubMember = fusionHub(fusion);
+    if (hubMember === undefined) {
+      continue;
+    }
+    const hubId = getArcEndpointNodeId(hubMember);
+    for (const member of fusion.members) {
+      if (member === hubMember) {
+        continue;
+      }
+      const linkId = fusionLinkId(fusion.id, member);
+      const memberId = getArcEndpointNodeId(member);
+      join(linkId, hubId, memberId);
+      join(linkId, memberId, hubId);
     }
   }
 

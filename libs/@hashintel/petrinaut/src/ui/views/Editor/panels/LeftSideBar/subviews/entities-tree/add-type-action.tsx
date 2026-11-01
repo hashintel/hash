@@ -1,7 +1,7 @@
 import { use } from "react";
 
 import { Button } from "@hashintel/ds-components";
-import { generatePetrinautId } from "@hashintel/petrinaut-core";
+import { generatePetrinautId, nextTypeColor } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react/hooks/use-petrinaut-mutations";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
@@ -9,31 +9,6 @@ import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-
-// Pool of 10 well-differentiated colors for types
-const TYPE_COLOR_POOL = [
-  "#3b82f6", // Blue
-  "#ef4444", // Red
-  "#10b981", // Green
-  "#f59e0b", // Amber
-  "#8b5cf6", // Violet
-  "#ec4899", // Pink
-  "#14b8a6", // Teal
-  "#f97316", // Orange
-  "#6366f1", // Indigo
-  "#84cc16", // Lime
-];
-
-/**
- * Get the next available color from the pool that's not currently in use.
- * If all colors are in use, cycle back to the beginning.
- */
-const getNextAvailableColor = (existingColors: string[]): string => {
-  const unusedColor = TYPE_COLOR_POOL.find(
-    (color) => !existingColors.includes(color),
-  );
-  return unusedColor ?? TYPE_COLOR_POOL[0]!;
-};
 
 /**
  * Extract the highest type number from existing type names.
@@ -85,7 +60,7 @@ export const AddTypeAction: React.FC = () => {
         const existingColors = types.map((type) => type.displayColor);
         const existingNames = types.map((type) => type.name);
         const nextNumber = getNextTypeNumber(existingNames);
-        const nextColor = getNextAvailableColor(existingColors);
+        const nextColor = nextTypeColor(existingColors);
 
         const id = generatePetrinautId();
         const newType = {

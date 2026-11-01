@@ -72,6 +72,97 @@ export type {
   TransitionLogicAvailability,
 } from "./extensions";
 
+// --- Composition: place fusion and component libraries ---
+export {
+  describeFusionMember,
+  findFusionWithMember,
+  fusionAnchor,
+  fusionDisplayName,
+  fusionMemberKey,
+  fusionMembersEqual,
+  fusionNodeIds,
+  resolveFusionMember,
+} from "./composition/fusions";
+export type { FusionNet, ResolvedFusionMember } from "./composition/fusions";
+export {
+  checkComposition,
+  checkFusion,
+  checkFusions,
+  checkPorts,
+  colorsStructurallyEqual,
+} from "./composition/check-fusions";
+export type {
+  CompositionProblem,
+  FusionProblem,
+  FusionProblemCode,
+  PortProblem,
+  ProblemSeverity,
+} from "./composition/check-fusions";
+export {
+  describePortDirection,
+  effectivePortDirection,
+  inferPortDirection,
+  portUsage,
+  portUsageMatchesDirection,
+} from "./composition/ports";
+export type { PortUsage } from "./composition/ports";
+export {
+  instantiateLibraryComponent,
+  libraryComponentSubnetId,
+} from "./composition/component-library";
+export type {
+  ComponentLibrary,
+  ComponentTemplate,
+  LibraryComponent,
+} from "./composition/component-library";
+export {
+  standardComponentLibrary,
+  standardComponentLibraryId,
+} from "./composition/standard-components";
+
+// --- The Petrinaut DSL ---
+export { printPetrinautDsl } from "./dsl/print";
+export type { DslPrintResult, DslSpan, DslSpanKind } from "./dsl/print";
+export {
+  dslAttributeKeywords,
+  dslCodeKeywords,
+  dslDeclarationKeywords,
+  dslValueTypes,
+} from "./dsl/keywords";
+export { dslName, isDslIdentifier } from "./dsl/identifiers";
+export { toBodyForm } from "./dsl/code-bodies";
+export { parsePetrinautDsl, skipCodeBlock } from "./dsl/parse";
+export type { DslParseResult } from "./dsl/parse";
+export { mergeDslDocument } from "./dsl/merge";
+export { dslExamples } from "./dsl/examples/dsl-examples";
+export type { DslExample } from "./dsl/examples/dsl-examples";
+export type { DslMergeOptions, DslMergeResult } from "./dsl/merge";
+export type {
+  DslArc,
+  DslBinding,
+  DslComponentDeclaration,
+  DslDiagnostic,
+  DslDiagnosticSeverity,
+  DslDocument,
+  DslDynamicsDeclaration,
+  DslFusionDeclaration,
+  DslInitialState,
+  DslInstanceDeclaration,
+  DslMetricDeclaration,
+  DslParameterDeclaration,
+  DslPlaceDeclaration,
+  DslPlaceReference,
+  DslRange,
+  DslScenarioDeclaration,
+  DslScenarioParameter,
+  DslScope,
+  DslTransitionDeclaration,
+  DslTypeDeclaration,
+  DslTypeElement,
+  DslWord,
+} from "./dsl/ast";
+export { nextTypeColor, typeColorPool } from "./lib/type-colors";
+
 // --- Command registry (palette commands) ---
 export {
   combineCommandRegistries,
@@ -420,6 +511,7 @@ export {
 } from "./parameter-values";
 export { SDCPNItemError } from "./errors";
 export { isSDCPNEqual } from "./lib/deep-equal";
+export { replaceDefinition } from "./lib/replace-definition";
 export {
   hashPetrinautDocument,
   petrinautNonSemanticParts,

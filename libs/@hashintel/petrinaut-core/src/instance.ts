@@ -77,6 +77,12 @@ export type Petrinaut = {
 
   readonly readonly: boolean;
 
+  /**
+   * Releases the handle subscriptions `definition` and `patches` hold. A
+   * later subscription to either takes them again, so an instance a React
+   * host disposes and remounts, as StrictMode does in development, keeps
+   * following its handle.
+   */
   dispose(this: void): void;
 };
 
@@ -93,10 +99,9 @@ function createDefinitionStore(
   let latestSource: SDCPN | undefined;
   let latestSanitized: SDCPN | undefined;
   let unsubscribe: (() => void) | undefined;
-  let disposed = false;
 
   const observeHandle = () => {
-    if (unsubscribe !== undefined || disposed) {
+    if (unsubscribe !== undefined) {
       return;
     }
     unsubscribe = handle.subscribe((event) => {
@@ -122,9 +127,6 @@ function createDefinitionStore(
     store: {
       get: read,
       subscribe(listener) {
-        if (disposed) {
-          return () => {};
-        }
         listeners.add(listener);
         observeHandle();
         return () => {
@@ -137,7 +139,6 @@ function createDefinitionStore(
       },
     },
     dispose: () => {
-      disposed = true;
       unsubscribe?.();
       unsubscribe = undefined;
       listeners.clear();
@@ -151,10 +152,9 @@ function createPatchStream(handle: PetrinautDocHandle): {
 } {
   const listeners = new Set<(event: PetrinautPatch[]) => void>();
   let unsubscribe: (() => void) | undefined;
-  let disposed = false;
 
   const observeHandle = () => {
-    if (unsubscribe !== undefined || disposed) {
+    if (unsubscribe !== undefined) {
       return;
     }
     unsubscribe = handle.subscribe((event) => {
@@ -170,9 +170,6 @@ function createPatchStream(handle: PetrinautDocHandle): {
   return {
     stream: {
       subscribe(listener) {
-        if (disposed) {
-          return () => {};
-        }
         listeners.add(listener);
         observeHandle();
         return () => {
@@ -185,7 +182,6 @@ function createPatchStream(handle: PetrinautDocHandle): {
       },
     },
     dispose: () => {
-      disposed = true;
       unsubscribe?.();
       unsubscribe = undefined;
       listeners.clear();
@@ -251,7 +247,6 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
       for (const dispose of disposers) {
         dispose();
       }
-      disposers.length = 0;
     },
   };
 }

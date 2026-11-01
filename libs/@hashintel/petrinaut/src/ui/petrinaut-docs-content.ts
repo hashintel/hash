@@ -8,6 +8,7 @@ import adHocScenarios from "../../docs/ad-hoc-scenarios.md?raw";
 import aiAssistant from "../../docs/ai-assistant.md?raw";
 import codeEditor from "../../docs/code-editor.md?raw";
 import compilationOutput from "../../docs/compilation-output.md?raw";
+import composition from "../../docs/composition.md?raw";
 import drawingANet from "../../docs/drawing-a-net.md?raw";
 import examples from "../../docs/examples.md?raw";
 import experiments from "../../docs/experiments.md?raw";
@@ -34,6 +35,7 @@ export const stripImages = (markdown: string): string =>
 const rawDocsByName: Record<PetrinautDocName, string> = {
   "drawing-a-net": drawingANet,
   "petri-net-extensions": petriNetExtensions,
+  composition,
   "useful-patterns": usefulPatterns,
   simulation,
   scenarios,

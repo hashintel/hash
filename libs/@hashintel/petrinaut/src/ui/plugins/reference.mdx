@@ -9,22 +9,24 @@ together.
 
 ## Manifest
 
-| Key              | Value                                                                                                                                          | Adds to `api`                       | The hook returns |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ---------------- |
-| `id`             | Namespaced, stable and unique among the editor's plugins, such as `example.counter`. Ids starting `petrinaut.` are reserved.                   |                                     |                  |
-| `name`           | Titles the plugin's row in User settings → Plugins and the group of its setting rows.                                                          |                                     |                  |
-| `description`    | Shown when the plugin's row opens.                                                                                                             |                                     |                  |
-| `author`         | Shown beside the name, as in "by HASH".                                                                                                        |                                     |                  |
-| `required`       | `true`: the user cannot switch the plugin off, and its row in User settings → Plugins has no switch. A hook that throws still marks it failed. |                                     |                  |
-| `access`         | A level per family; see [`access`](#access).                                                                                                   | `document`, `experiments`, `editor` |                  |
-| `settings`       | A spec per key; see [Settings](#settings).                                                                                                     | `settings`                          |                  |
-| `commands`       | Per key: `{ label, category?, keywords?, shortcut? }`; see [Commands](#commands). Keys contain no dot.                                         |                                     | `commands`       |
-| `buttons`        | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                               |                                     | `buttons`        |
-| `topBarItems`    | Per key: `{ place }`.                                                                                                                          |                                     | `topBarItems`    |
-| `readOnlyAction` | `{ label }`: a button on the notice of a blocked edit on a document the host made read-only.                                                   |                                     | `readOnlyAction` |
-| `root`           | `true`: the plugin renders UI inside the editor.                                                                                               |                                     | `root`           |
-| `assistant`      | `true`: the plugin provides the AI assistant panel.                                                                                            |                                     | `assistant`      |
-| `provides`       | `pluginService<T>()`, the type of the service the hook provides.                                                                               |                                     | `provides`       |
+| Key                | Value                                                                                                                                          | Adds to `api`                       | The hook returns   |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------ |
+| `id`               | Namespaced, stable and unique among the editor's plugins, such as `example.counter`. Ids starting `petrinaut.` are reserved.                   |                                     |                    |
+| `name`             | Titles the plugin's row in User settings → Plugins and the group of its setting rows.                                                          |                                     |                    |
+| `description`      | Shown when the plugin's row opens.                                                                                                             |                                     |                    |
+| `author`           | Shown beside the name, as in "by HASH".                                                                                                        |                                     |                    |
+| `required`         | `true`: the user cannot switch the plugin off, and its row in User settings → Plugins has no switch. A hook that throws still marks it failed. |                                     |                    |
+| `access`           | A level per family; see [`access`](#access).                                                                                                   | `document`, `experiments`, `editor` |                    |
+| `settings`         | A spec per key; see [Settings](#settings).                                                                                                     | `settings`                          |                    |
+| `commands`         | Per key: `{ label, category?, keywords?, shortcut? }`; see [Commands](#commands). Keys contain no dot.                                         |                                     | `commands`         |
+| `buttons`          | Per key: `{ label, place, tooltip? }`. `label` is the accessible name; `tooltip` defaults to it.                                               |                                     | `buttons`          |
+| `topBarItems`      | Per key: `{ place }`.                                                                                                                          |                                     | `topBarItems`      |
+| `views`            | Per key: `{ label, description? }`; see [Views](#views). Keys contain no colon.                                                                |                                     | `views`            |
+| `componentLibrary` | `{ name, description? }`: a library of components the Components panel lists; see [Component libraries](#component-libraries).                 |                                     | `componentLibrary` |
+| `readOnlyAction`   | `{ label }`: a button on the notice of a blocked edit on a document the host made read-only.                                                   |                                     | `readOnlyAction`   |
+| `root`             | `true`: the plugin renders UI inside the editor.                                                                                               |                                     | `root`             |
+| `assistant`        | `true`: the plugin provides the AI assistant panel.                                                                                            |                                     | `assistant`        |
+| `provides`         | `pluginService<T>()`, the type of the service the hook provides.                                                                               |                                     | `provides`         |
 
 Every key but `id` and `name` is optional. Stored settings and the user's
 switch are keyed by `id`.
@@ -41,6 +43,29 @@ At each place, each plugin's buttons render before its top-bar items, in the
 order of the `plugins` array. Plugin items render before the host's
 `slots.topBarStart` and `slots.topBarEnd`, and after its `viewportActions`. The toolbar sets a button's size and variant to
 match the built-in buttons.
+
+### Views
+
+A view is a tab in the Canvas / Definitions selector. The hook returns its
+content under the same key; the editor renders it behind the plugin's error
+boundary, under the floating selector, and keeps it mounted while another
+tab shows. Its id in the editor's location is `pluginViewId(id, key)`, that
+is `<plugin id>:<key>`; `api.editor.navigate({ editView })` opens it. A
+location naming a view no running plugin provides shows Canvas.
+
+| Field         | Notes                                          |
+| ------------- | ---------------------------------------------- |
+| `label`       | The tab's text, e.g. "Code".                   |
+| `description` | Optional. Shown with the tag in User settings. |
+
+### Component libraries
+
+The hook returns `LibraryComponent[]` under `componentLibrary`: each a stable
+`id`, a `name`, an optional `description` and `keywords`, and a `template`,
+a subnet without id or source. The Components panel lists the library under
+the manifest's `name`. Using a component copies the template into the
+document as a subnet whose id derives from the plugin's and the component's
+ids, so a second use finds the copy, and whose `source` names them both.
 
 ### Settings
 
@@ -72,17 +97,17 @@ access: {
 }
 ```
 
-| Family        | `"read"` gives                                                                                      | `"write"` also gives                                                   |
-| ------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `document`    | `PluginDocumentReader`: `id`, `net`, `title` and `diagnostics` (stores), `extensions`, `diagnose()` | `PluginDocument`: `edit.*` (including `applyAutoLayout`), `setTitle()` |
-| `experiments` | `PluginExperimentsReader`: `records`, `optimizationUnavailableReason` (stores)                      | `PluginExperiments`: `run()`                                           |
-| `editor`      | `PluginEditorReader`: `navigation` (store)                                                          | `PluginEditor`: `navigate()`, `reveal()`                               |
+| Family        | `"read"` gives                                                                                      | `"write"` also gives                                                                           |
+| ------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `document`    | `PluginDocumentReader`: `id`, `net`, `title` and `diagnostics` (stores), `extensions`, `diagnose()` | `PluginDocument`: `edit.*` (including `applyAutoLayout` and `replaceDefinition`), `setTitle()` |
+| `experiments` | `PluginExperimentsReader`: `records`, `optimizationUnavailableReason` (stores)                      | `PluginExperiments`: `run()`                                                                   |
+| `editor`      | `PluginEditorReader`: `navigation` (store)                                                          | `PluginEditor`: `navigate()`, `reveal()`                                                       |
 
 - **Undeclared means absent.** A family left out of `access` is missing from
   the `api` type and from the object, as is a writer member at `"read"`.
 - **Declared does not mean allowed.** Edits are checked when called. Scenario
   and metric edits are refused only on a read-only host. Every other edit,
-  `applyAutoLayout` and `setTitle` need Edit mode, no simulation and a
+  `applyAutoLayout`, `replaceDefinition` and `setTitle` need Edit mode, no simulation and a
   writable host. Canvas edits follow the same rule in the editor; `setTitle`
   is stricter than the title field, which stays editable in every mode.
   `editor` writes are never refused: the location is not part of the document.
@@ -113,17 +138,18 @@ described in [AI-created experiments](doc:react.experiment-host/ai-created-exper
 
 ### `api.document`
 
-| Member                   | Level | Notes                                                                                                                                               |
-| ------------------------ | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                     | read  | The handle's id. Plugins remount for each document.                                                                                                 |
-| `net`                    | read  | `ReadableStore<SDCPN>`: the net without the data of disabled extensions; an empty net until the handle is ready.                                    |
-| `title`                  | read  | `ReadableStore<string>`: the title the host passed, or "Untitled" when it passes none.                                                              |
-| `extensions`             | read  | The document's `PetrinautExtensionSettings`.                                                                                                        |
-| `diagnostics`            | read  | `ReadableStore<DiagnosticsSnapshot>`: the diagnostics the editor shows.                                                                             |
-| `diagnose()`             | read  | Checks the current net. Resolves to `PluginDiagnostics`.                                                                                            |
-| `edit.<mutation>(input)` | write | One method per core mutation. Edits the root net unless `input.targetSubnetId` is set. Returns an `EditResult`.                                     |
-| `edit.applyAutoLayout()` | write | Lays out the viewed subnet in one undo entry, then frames it once drawn. Resolves to `EditResult<ApplyAutoLayoutResult>`.                           |
-| `setTitle(title)`        | write | Calls the host's `setTitle`. Refused with `no-title-setter` when the host passed none, and with the read-only reason while the editor is read-only. |
+| Member                               | Level | Notes                                                                                                                                                                                                                                          |
+| ------------------------------------ | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                                 | read  | The handle's id. Plugins remount for each document.                                                                                                                                                                                            |
+| `net`                                | read  | `ReadableStore<SDCPN>`: the net without the data of disabled extensions; an empty net until the handle is ready.                                                                                                                               |
+| `title`                              | read  | `ReadableStore<string>`: the title the host passed, or "Untitled" when it passes none.                                                                                                                                                         |
+| `extensions`                         | read  | The document's `PetrinautExtensionSettings`.                                                                                                                                                                                                   |
+| `diagnostics`                        | read  | `ReadableStore<DiagnosticsSnapshot>`: the diagnostics the editor shows.                                                                                                                                                                        |
+| `diagnose()`                         | read  | Checks the current net. Resolves to `PluginDiagnostics`.                                                                                                                                                                                       |
+| `edit.<mutation>(input)`             | write | One method per core mutation. Edits the root net unless `input.targetSubnetId` is set. Returns an `EditResult`.                                                                                                                                |
+| `edit.applyAutoLayout()`             | write | Lays out the viewed subnet in one undo entry, then frames it once drawn. Resolves to `EditResult<ApplyAutoLayoutResult>`.                                                                                                                      |
+| `edit.replaceDefinition(definition)` | write | Replaces the whole net in one undo entry, validated as the actions validate entities, ids canonicalised; ids kept from the current net make it an edit of the same net. Throws when the definition does not validate. Returns an `EditResult`. |
+| `setTitle(title)`                    | write | Calls the host's `setTitle`. Refused with `no-title-setter` when the host passed none, and with the read-only reason while the editor is read-only.                                                                                            |
 
 `diagnostics` holds `{ byUri, total, errorCount }`; `byUri` is a `Map` from
 document URI to LSP `Diagnostic[]`. `parseDocumentUri(uri)` returns `{ itemType, itemId }`, where

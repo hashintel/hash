@@ -24,6 +24,7 @@ const definition = productionMachines.petriNetDefinition;
 const activeNet = {
   ...definition,
   componentInstances: definition.componentInstances ?? [],
+  fusions: definition.fusions ?? [],
 };
 
 const Harness = ({

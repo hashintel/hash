@@ -1,6 +1,37 @@
 import { z } from "zod";
 
 import { clipboardPayloadSchema } from "./clipboard/types";
+import {
+  colorSchema,
+  componentInstanceSchema,
+  descriptionSchema,
+  differentialEquationSchema,
+  fusionSchema,
+  metadataSchema,
+  parameterSchema,
+  placeSchema,
+  subnetSchema,
+  transitionSchema,
+} from "./schemas/entity-schemas";
+import { metricSchema } from "./schemas/metric-schema";
+import { scenarioSchema } from "./schemas/scenario-schema";
+
+/** A whole definition, each entity as the actions validate it, ids canonicalised. */
+const definitionSchema = z.strictObject({
+  description: descriptionSchema,
+  metadata: metadataSchema,
+  componentsOnly: z.boolean().optional(),
+  places: z.array(placeSchema),
+  transitions: z.array(transitionSchema),
+  types: z.array(colorSchema),
+  differentialEquations: z.array(differentialEquationSchema),
+  parameters: z.array(parameterSchema),
+  scenarios: z.array(scenarioSchema).optional(),
+  metrics: z.array(metricSchema).optional(),
+  subnets: z.array(subnetSchema).optional(),
+  componentInstances: z.array(componentInstanceSchema).optional(),
+  fusions: z.array(fusionSchema).optional(),
+});
 
 /**
  * AI-callable commands. Keys MUST also appear in
@@ -39,6 +70,9 @@ export const commandActionInputSchemas = {
   applyClipboardPaste: z.strictObject({
     payload: clipboardPayloadSchema,
     targetSubnetId: z.string().min(1).nullable().optional(),
+  }),
+  replaceDefinition: z.strictObject({
+    definition: definitionSchema,
   }),
 } as const;
 

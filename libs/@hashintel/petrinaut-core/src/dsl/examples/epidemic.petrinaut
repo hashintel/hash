@@ -1,0 +1,57 @@
+/// An SIR epidemic over people who carry an age: tokens have a type, kernels
+/// say which tokens come out of a firing, and metrics read token data.
+net "Epidemic"
+
+/// What a token in a people place carries.
+type Person { age: real }
+
+/// Infectious contacts per person per day.
+param beta "Contact rate": real = 0.4
+/// Recoveries per infected person per day.
+param gamma "Recovery rate": real = 0.1
+/// People in the population, for the mass-action scaling.
+param population: real = 60
+
+place Susceptible: Person start
+place Infected: Person start
+place Recovered: Person
+
+/// Mass action: the more susceptible and infected people, the more contacts.
+/// The kernel returns the two people, so the newly infected one keeps its age.
+transition Infect {
+  Susceptible, Infected -> 2 Infected
+  rate {
+    const contacts = input.Susceptible.length * input.Infected.length;
+    return (parameters.beta * contacts) / parameters.population;
+  }
+  kernel { return { Infected: [input.Susceptible[0], input.Infected[0]] }; }
+}
+
+/// Each infected person recovers on their own, so the rate scales with them.
+transition Recover {
+  Infected -> Recovered
+  rate { return parameters.gamma * input.Infected.length; }
+  kernel { return { Recovered: [input.Infected[0]] }; }
+}
+
+metric "Infected" { return state.places.Infected.count; }
+metric "Infected over 50" {
+  return state.places.Infected.tokens.reduce(
+    (count, person) => count + (person.age > 50 ? 1 : 0),
+    0,
+  );
+}
+
+/// One case among a crowd of every age. The initial state is a function body
+/// returning the tokens of each place, so the ages are data turned into
+/// tokens rather than a list of rows.
+scenario "One case" {
+  initial {
+    const ages = [18, 23, 25, 29, 31, 34, 36, 40, 42, 45, 47, 51, 53, 56, 58, 62, 64, 67, 71, 74];
+    return {
+      Susceptible: ages.map((age) => ({ age })),
+      Infected: [{ age: 33 }],
+      Recovered: [],
+    };
+  }
+}

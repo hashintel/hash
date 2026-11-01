@@ -7,6 +7,7 @@ import {
   syncLanguageServers,
 } from "../lsp/lib/language-servers";
 import {
+  assemblyLine,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,
@@ -19,6 +20,7 @@ import {
 } from "./index";
 
 const EXAMPLES = [
+  assemblyLine,
   cafeQueue,
   deploymentPipelineSDCPN,
   dronePatrol,

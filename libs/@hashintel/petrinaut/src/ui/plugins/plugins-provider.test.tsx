@@ -30,8 +30,10 @@ import {
 } from "./define-petrinaut-plugin";
 import { PluginRoots, PluginToolbarItems } from "./plugin-outlets";
 import {
+  usePluginComponentLibraries,
   usePluginService,
   usePluginStatuses,
+  usePluginViews,
   useRunningPlugins,
 } from "./plugins-provider";
 import { renderPlugins } from "./plugins-test-harness";
@@ -760,5 +762,83 @@ describe("PetrinautPluginsProvider", () => {
     fireEvent.click(screen.getByRole("button", { name: "drag a node" }));
     fireEvent.click(await screen.findByRole("button", { name: "Fork" }));
     expect(noticeRuns).toEqual(["copy", "fork"]);
+  });
+});
+
+describe("views and component libraries", () => {
+  const ViewsReadout = () => {
+    const views = usePluginViews();
+    return (
+      <ul>
+        {views.map((view) => (
+          <li key={view.id} data-testid="view">
+            {view.id}:{view.label}
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
+  const LibrariesReadout = () => {
+    const libraries = usePluginComponentLibraries();
+    return (
+      <ul>
+        {libraries.map((library) => (
+          <li key={library.id} data-testid="library">
+            {library.id}:{library.name}:
+            {library.components.map(({ name }) => name).join(",")}
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
+  it("lists the running plugins' views with prefixed ids, and their libraries", () => {
+    const codePlugin = definePetrinautPlugin(
+      {
+        id: "test.code",
+        name: "Code",
+        views: { code: { label: "Code" }, tree: { label: "Tree" } },
+      },
+      { views: { code: <pre>code</pre>, tree: <pre>tree</pre> } },
+    );
+    const libraryPlugin = definePetrinautPlugin(
+      {
+        id: "test.library",
+        name: "Library",
+        componentLibrary: { name: "Queueing" },
+      },
+      {
+        componentLibrary: [
+          {
+            id: "queue",
+            name: "Queue",
+            template: {
+              name: "Queue",
+              places: [],
+              transitions: [],
+              types: [],
+              differentialEquations: [],
+              parameters: [],
+            },
+          },
+        ],
+      },
+    );
+
+    renderPlugins(
+      [codePlugin, libraryPlugin],
+      <>
+        <ViewsReadout />
+        <LibrariesReadout />
+      </>,
+    );
+
+    expect(
+      screen.getAllByTestId("view").map((item) => item.textContent),
+    ).toEqual(["test.code:code:Code", "test.code:tree:Tree"]);
+    expect(
+      screen.getAllByTestId("library").map((item) => item.textContent),
+    ).toEqual(["test.library:Queueing:Queue"]);
   });
 });

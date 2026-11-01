@@ -46,5 +46,12 @@ export function usePetrinautCommands(): PetrinautCommands {
       }
       return commands.applyAutoLayout({ targetSubnetId: activeSubnetId });
     },
+    replaceDefinition(input) {
+      if (isReadOnly) {
+        notifyReadOnly();
+        return;
+      }
+      commands.replaceDefinition(input);
+    },
   };
 }
