@@ -36,6 +36,14 @@ export const brunchTools = {
   task: "task",
 } as const;
 
+/**
+ * Signal types the browser delivers. Each doubles as the signal's tag name,
+ * which is all of it Flue's history carries back to the browser.
+ */
+export const brunchSignals = {
+  ledgerComments: "brunch.ledger-comments",
+} as const;
+
 /** Request headers that carry conversation identity. */
 export const brunchHeaders = {
   conversation: "x-brunch-conversation",

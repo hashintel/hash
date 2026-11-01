@@ -1,6 +1,8 @@
+import { generateId } from "ai";
 import { useEffect, useSyncExternalStore } from "react";
 
 import { Button } from "@hashintel/ds-components";
+import { FlueChatAdmissionError } from "@local/flue-aisdk-transport";
 
 import {
   editorDraftsFor,
@@ -24,14 +26,23 @@ const sendResults = (
     [...current.drafts.values()].some((entry) => entry.followUp === "pending")
   )
     return;
-  drafts.update(draft.toolCallId, { followUp: "pending" });
+  const followUpMessageId = latest?.followUpMessageId ?? generateId();
+  drafts.update(draft.toolCallId, { followUp: "pending", followUpMessageId });
   void submitText({
+    id: followUpMessageId,
     target: "message",
     preserveDraft: true,
     text: `The experiment I chose to run has finished. Interpret these results and suggest the next decision; do not start another run.\n\n${JSON.stringify(draft.run.result)}`,
   }).then(
     () => drafts.update(draft.toolCallId, { followUp: "sent" }),
-    () => drafts.update(draft.toolCallId, { followUp: "failed" }),
+    (error: unknown) =>
+      drafts.update(draft.toolCallId, {
+        followUp:
+          error instanceof FlueChatAdmissionError &&
+          error.failure.kind === "ambiguous"
+            ? "unconfirmed"
+            : "failed",
+      }),
   );
 };
 
@@ -73,8 +84,10 @@ export const BrunchExperimentFollowUp = ({
       draft.followUp !== "pending" &&
       hasDraftToolCall(context, draft),
   );
-  const unsent = completed.find((draft) => draft.followUp !== "failed");
-  const failed = completed.find((draft) => draft.followUp === "failed");
+  const unsent = completed.find((draft) => draft.followUp === undefined);
+  const failed = completed.find(
+    (draft) => draft.followUp === "failed" || draft.followUp === "unconfirmed",
+  );
 
   useEffect(() => {
     if (!unsent || pending || context.status !== "ready" || context.stopped)
@@ -91,7 +104,11 @@ export const BrunchExperimentFollowUp = ({
         context.status === "submitted" ||
         context.status === "streaming"
       }
-      tooltip="The experiment finished, but its results could not be sent to the AI assistant."
+      tooltip={
+        failed.followUp === "unconfirmed"
+          ? "The experiment finished, but delivery of its results could not be confirmed. Retrying uses the same delivery identity."
+          : "The experiment finished, but its results could not be sent to the AI assistant."
+      }
       onClick={() => sendResults(drafts, context.submitText, failed)}
     >
       Retry result summary

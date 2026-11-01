@@ -13,6 +13,7 @@ const nonblank = v.pipe(
 );
 
 export const personaCommandSchema = v.variant("type", [
+  v.object({ id: commandId, type: v.literal("open") }),
   v.object({ id: commandId, type: v.literal("prompt"), message: nonblank }),
   v.object({ id: commandId, type: v.literal("get_state") }),
   v.object({ id: commandId, type: v.literal("get_transcript") }),

@@ -26,10 +26,13 @@ import type {
 } from "@flue/sdk";
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
-/** The user turn a submission admits, identified by its AI SDK message. */
+/**
+ * The turn a submission admits, identified by its AI SDK message: the user's
+ * words, or a signal the host delivers in their place.
+ */
 export interface SubmittedUserMessage {
   readonly messageId: string;
-  readonly body: string;
+  readonly message: DeliveredMessage;
 }
 
 interface FlueChatResponseMessageEvent {
@@ -80,7 +83,7 @@ export interface FlueChatTransportOptions {
   readonly liveToolStream?: LiveToolStreamOptions;
   readonly onAdmission?: (event: {
     readonly admission: AgentSendResult;
-    readonly kind: "user";
+    readonly kind: DeliveredMessage["kind"];
     readonly messageId: string;
   }) => void;
   readonly onResponseMessage?: (
@@ -184,7 +187,7 @@ export const finalUserMessage = (
   if (message === undefined || body.length === 0) {
     throw new Error("The submitted user message has no text.");
   }
-  return { messageId: message.id, body };
+  return { messageId: message.id, message: { kind: "user", body } };
 };
 
 const isAbortError = (error: unknown): boolean =>
@@ -496,11 +499,10 @@ export const createFlueChatTransport = (
       throw new Error("Regenerating a Flue conversation is not supported.");
     }
 
-    const userMessage = (options.submittedUserMessage ?? finalUserMessage)(
-      messages,
-    );
-    const message: DeliveredMessage = { kind: "user", body: userMessage.body };
-    const idempotencyKey = `ai-sdk:user:${userMessage.messageId}`;
+    const { messageId, message } = (
+      options.submittedUserMessage ?? finalUserMessage
+    )(messages);
+    const idempotencyKey = `ai-sdk:${message.kind}:${messageId}`;
     if (Array.from(idempotencyKey).length > 256) {
       throw new Error("The submitted message identity is too long.");
     }
@@ -518,8 +520,8 @@ export const createFlueChatTransport = (
     }
     notifyObserver(options.onAdmission, {
       admission,
-      kind: "user",
-      messageId: userMessage.messageId,
+      kind: message.kind,
+      messageId,
     });
     return streamSubmission(options, admission, abortSignal);
   },

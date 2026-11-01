@@ -63,7 +63,9 @@ export function PetrinautAgent({ id }: AgentProps) {
   const initialData = useInitialData<SdcpnInitialData>();
   // Initial data is fixed when the conversation is created; the current user
   // delivery carries the changing host context. An absent or malformed
-  // allowance means Off, and absent or malformed words an empty snapshot.
+  // allowance means Off, and absent or malformed words an empty snapshot. A
+  // signal delivery, such as a turn of Ledger comments, carries neither: it
+  // sits outside the interview, and the kept words still apply.
   const delivery = useDelivery();
   const submitted =
     delivery.kind === "user"

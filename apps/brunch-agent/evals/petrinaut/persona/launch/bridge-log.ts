@@ -25,14 +25,12 @@ const appendBridgeRecord = (run: string, record: Record<string, unknown>) =>
 /** A persona utterance records the agent settings that wrote it, since a resume may start a different agent. */
 export const appendAdmittedUtterance = (
   run: string,
-  entry:
-    | { readonly source: "opening"; readonly message: string }
-    | {
-        readonly source: "persona";
-        readonly message: string;
-        readonly submissionId: string;
-        readonly personaAgent: PersonaAgentSettings;
-      },
+  entry: {
+    readonly source: "opening" | "persona";
+    readonly message: string;
+    readonly submissionId: string;
+    readonly personaAgent: PersonaAgentSettings;
+  },
 ) => appendBridgeRecord(run, { event: "admitted", ...entry });
 
 /** The persona cannot see the approval panel, so the launcher allows each destructive edit and records what it listed. */

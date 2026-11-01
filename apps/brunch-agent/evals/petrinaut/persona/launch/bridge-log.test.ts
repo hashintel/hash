@@ -19,7 +19,12 @@ afterEach(async () => {
 test("an allowed destructive edit is recorded without becoming the utterance resume reconciles against", async () => {
   const run = await mkdtemp(join(tmpdir(), "TEST-persona-bridge-log-"));
   runs.push(run);
-  await appendAdmittedUtterance(run, { source: "opening", message: "Hello." });
+  await appendAdmittedUtterance(run, {
+    source: "opening",
+    message: "Hello.",
+    submissionId: "sub_TEST",
+    personaAgent: { agent: "pi" },
+  });
   await appendAllowedDestructiveEdit(run, {
     items: ["Remove place — Queue"],
   });
@@ -39,7 +44,12 @@ test("an allowed destructive edit is recorded without becoming the utterance res
 test("a torn log line names the file and line instead of guessing the last utterance", async () => {
   const run = await mkdtemp(join(tmpdir(), "TEST-persona-bridge-log-"));
   runs.push(run);
-  await appendAdmittedUtterance(run, { source: "opening", message: "Hello." });
+  await appendAdmittedUtterance(run, {
+    source: "opening",
+    message: "Hello.",
+    submissionId: "sub_TEST",
+    personaAgent: { agent: "pi" },
+  });
   await expect(lastAdmittedUtterance(run)).resolves.toBe("Hello.");
 
   await appendFile(bridgeLogPath(run), '{"event":"admitted","sou');
