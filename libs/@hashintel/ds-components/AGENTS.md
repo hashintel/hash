@@ -241,6 +241,43 @@ export const Checkbox = (props) => (
 );
 ```
 
+## Figma Design System
+
+The designs live in the Figma file "Design System", key `WmnosvOvi4Blw0HK0jh1mG`, 1 page per component. The package has no Code Connect set-up, so the Figma MCP cannot tell you which export a design maps to. Use this section for that.
+
+### Finding a component
+
+1. `get_metadata` with the file key and no `nodeId` lists the pages with their IDs. Component pages sit under the `CONTROLS`, `CONTENT`, `CONTAINER`, `CHARTS`, `AI COMPONENTS` and `PETRINAUT` divider pages; `EXPLORATION`, `TO BE FIGURED OUT` and `UTILITY` hold unfinished work.
+2. `get_metadata` with the page ID lists the component sets and components on that page with their node IDs.
+3. `get_screenshot` or `get_design_context` with that node ID shows the component. A set with many variants needs `maxDimension` 1600 to 2000 to read.
+
+Names starting with `_` (`_AccordionItem`, `_SearchBar`) are private parts of a public set and have no export of their own. The Figma `Icons` page uses Lucide names; the `Icon` component ships Font Awesome SVGs (`iconNames` in `src/components/Icon/icon-util.ts`), so match icons by meaning and check the name exists in `iconNames`.
+
+### Figma name to export
+
+Most exports share their Figma name (`Button`, `Checkbox`, `Dialog`, `Drawer`, `Menu`, `Popover`, `Select`, `Toggle`, `Tooltip`, ...). These do not:
+
+| Figma                                                                              | Export                                                    |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `Segment` page, `SegmentedControl/Text` and `SegmentedControl/Icon`                | `SegmentedControl`                                        |
+| `Input (String)`, `Input (with Action)`, `Input (Sensitive Toggle)`, `Input (PIN)` | `TextInput`                                               |
+| `Input (Number)`, `stepper`                                                        | `NumberInput`                                             |
+| `Input (Textarea)`                                                                 | `TextArea`                                                |
+| `Multi-select`                                                                     | `Select` with `MultiSelectItem`                           |
+| `Range Input`, `Slider`                                                            | `Slider`                                                  |
+| `IconButton`, `Link button`                                                        | `Button` (with `iconName` and no label, `variant="link"`) |
+| `FieldSet`, `Label`, `FieldPrompt`, `Form set`, `Form group`                       | `Form`, `Form.Field`, `Form.Section`, `Form.Row`          |
+| `Inline banner`                                                                    | `Banner`                                                  |
+| `Chips`                                                                            | `Chip`                                                    |
+| `Alert Modal`, `ModalCloseButton`, `ModalTitle`, `ModalDescription`                | `Dialog`                                                  |
+| `Loader`                                                                           | `LoadingSpinner`                                          |
+| `counter` on the `Filter` page                                                     | `Filter`                                                  |
+| `RadioDefaultItem`                                                                 | `Radio`                                                   |
+| `Breadcrumbs`                                                                      | `BreadCrumbs` (folder `Breadcumbs/`)                      |
+| `_SearchBar`                                                                       | `SelectableListSearch`                                    |
+
+Exports with no Figma design: `NetworkGraph`, `RightClickMenu`, `TextMark`, `CharacterCount`, `HelpTooltip`, `FilterGroup`, `SortMenu`. Their stories are the reference. Figma components with no export yet include `Accordion`, `datePicker`, `Code container`, `ColorInput`, `pagination`, `Switch`, `ToggleGroup`, `table`, `Tabs`, `Timeline`, `Toast`, `EmptyState`, `Card`, `ActionCard`, the tree view, the charts and the AI chat components.
+
 ## Scripts
 
 | Script                 | Description                                                        |
