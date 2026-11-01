@@ -270,14 +270,14 @@ export const ColorPalettesDemo = () => (
 
     <VStack gap="4" alignItems="flex-start">
       <h2 className={css({ textStyle: "lg", fontWeight: "semibold" })}>
-        Static Colors (black / white)
+        Black &amp; White (invert in dark mode)
       </h2>
       <VStack gap="4" alignItems="flex-start">
         <VStack gap="2" alignItems="flex-start">
           <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>
             Black
           </h3>
-          <Box p="4" borderRadius="md" style={{ backgroundColor: "white" }}>
+          <Box p="4" borderRadius="md" bg="white">
             <HStack gap="1">
               {ALPHA_STEPS.map((step) => (
                 <ColorSwatch key={step} colorName="black" step={step} />
@@ -289,7 +289,7 @@ export const ColorPalettesDemo = () => (
           <h3 className={css({ fontSize: "base", fontWeight: "medium" })}>
             White
           </h3>
-          <Box p="4" borderRadius="md" style={{ backgroundColor: "black" }}>
+          <Box p="4" borderRadius="md" bg="black">
             <HStack gap="1">
               {ALPHA_STEPS.map((step) => (
                 <ColorSwatch key={step} colorName="white" step={step} />
