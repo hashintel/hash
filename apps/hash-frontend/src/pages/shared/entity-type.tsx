@@ -49,6 +49,7 @@ import { typeHeaderContainerStyles } from "./shared/type-header-container-styles
 import { useSlideStack } from "./slide-stack";
 import { TopContextBar } from "./top-context-bar";
 
+import type { OnNavigateToType } from "./entity-type-page/shared/on-navigate-to-type";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
@@ -90,10 +91,7 @@ const TypeDefinition = ({
   entityTypeBaseUrl: BaseUrl | null;
   isFile: boolean;
   isImage: boolean;
-  onNavigateToType: (
-    kind: "entityType" | "dataType",
-    url: VersionedUrl,
-  ) => void;
+  onNavigateToType: OnNavigateToType;
   readonly: boolean;
 }) => {
   const { tab } = useEntityTypeTab();
@@ -104,6 +102,7 @@ const TypeDefinition = ({
         entityTypeAndPropertyTypes ? (
           <DefinitionTab
             entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
+            entityTypeBaseUrl={entityTypeBaseUrl}
             onNavigateToType={onNavigateToType}
             readonly={readonly}
           />
