@@ -3,6 +3,7 @@
  * @role Wires the Monaco editor to the language server for authoring user code
  */
 
+import { codeEditorThemes } from "./code-editor-themes";
 import { CompletionSync } from "./completion-sync";
 import { MonacoContext } from "./context";
 import { DiagnosticsSync } from "./diagnostics-sync";
@@ -44,20 +45,9 @@ async function initMonaco(): Promise<MonacoContextValue> {
     },
   };
 
-  // The stock vs-light selection and occurrence highlights are too faint to
-  // read at 12px; this theme is vs-light with stronger ones.
-  monaco.editor.defineTheme("petrinaut-light", {
-    base: "vs",
-    inherit: true,
-    rules: [],
-    colors: {
-      "editor.selectionBackground": "#99C2FF",
-      "editor.inactiveSelectionBackground": "#CCE0FF",
-      "editor.selectionHighlightBackground": "#BAD5FF",
-      "editor.wordHighlightBackground": "#C6DCFF",
-      "editor.wordHighlightStrongBackground": "#B0CDFF",
-    },
-  });
+  for (const theme of codeEditorThemes) {
+    monaco.editor.defineTheme(theme.id, theme);
+  }
 
   // Use local Monaco instance — no CDN fetch.
   monacoReact.loader.config({ monaco });

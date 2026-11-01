@@ -32,3 +32,7 @@ Drag the panel’s left edge to change its width. After returning to the other p
 Changes apply automatically to the model. Read-only files and simulation modes keep code read-only. Selecting another item or changing the file or active subnet restores the usual section layout.
 
 The Properties Panel and Definitions show the same saved code. Switching between them keeps your latest edits.
+
+## Theme
+
+Every code editor shares one theme. Choose it under **User settings › General › Code editor**: **Petrinaut Light** (the default), **Kay Day** or **Kay Night**. Open editors change immediately, and the choice is saved with your other [preferences](visual-settings.md#code-editor-theme).
