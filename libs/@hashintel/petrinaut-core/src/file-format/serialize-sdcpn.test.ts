@@ -140,6 +140,7 @@ describe("serializeSDCPN", () => {
       "subnets",
       "places",
       "componentInstances",
+      "fusions",
       "transitions",
       "metrics",
       "scenarios",
@@ -154,6 +155,7 @@ describe("serializeSDCPN", () => {
       "differentialEquations",
       "places",
       "componentInstances",
+      "fusions",
       "transitions",
     ]);
   });

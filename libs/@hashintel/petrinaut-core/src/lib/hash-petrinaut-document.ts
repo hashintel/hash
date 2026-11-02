@@ -30,6 +30,7 @@ const itemCollections = new Set([
   "scenarios",
   "metrics",
   "componentInstances",
+  "fusions",
   "subnets",
 ]);
 

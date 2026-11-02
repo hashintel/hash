@@ -53,6 +53,31 @@ export type ComponentPortArcEndpoint = {
 
 export type ArcEndpoint = PlaceArcEndpoint | ComponentPortArcEndpoint;
 
+/**
+ * One member of a fusion: a place of the net the fusion belongs to, or a port
+ * of one of that net's component instances. The same shape an arc uses to
+ * name the place it touches, so the helpers in `arc-endpoints.ts` apply.
+ */
+export type FusionMember = ArcEndpoint;
+
+/**
+ * A fusion set: its members are one place when the net runs. A token put into
+ * any member is in every member, and a transition anywhere in the composition
+ * that reads or writes one of them reads or writes the fused place.
+ *
+ * At most one member is a place of the net itself, the anchor, which gives
+ * the fused place its name, initial marking and visualizer; the others are
+ * ports of the net's component instances. Members agree on their token type,
+ * capacity and dynamics, which `checkFusions` verifies.
+ */
+export type Fusion = {
+  id: ID;
+  /** Display name. Absent, the anchor's name, else the first member's, stands in. */
+  name?: string;
+  description?: string;
+  members: FusionMember[];
+};
+
 type ArcEndpointReference = {
   /**
    * Legacy shorthand for a normal place endpoint. New code should prefer
@@ -399,6 +424,8 @@ export type Subnet = {
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
   componentInstances?: ComponentInstance[];
+  /** Fusions among this subnet's places and its instances' ports. */
+  fusions?: Fusion[];
 };
 
 export type SDCPN = {
@@ -414,6 +441,8 @@ export type SDCPN = {
   metrics?: Metric[];
   subnets?: Subnet[];
   componentInstances?: ComponentInstance[];
+  /** Fusions among the root net's places and its instances' ports. */
+  fusions?: Fusion[];
 };
 
 export type MinimalNetMetadata = {

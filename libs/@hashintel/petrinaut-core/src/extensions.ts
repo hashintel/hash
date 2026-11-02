@@ -263,7 +263,7 @@ export const isSelectionTypeAvailableForExtensions = (
   if (type === "parameter") {
     return extensions.parameters;
   }
-  if (type === "componentInstance") {
+  if (type === "componentInstance" || type === "fusion") {
     return extensions.subnets;
   }
   return true;
@@ -333,6 +333,7 @@ type SanitizableNet = Pick<
   "places" | "transitions" | "types" | "differentialEquations" | "parameters"
 > & {
   componentInstances?: SDCPN["componentInstances"];
+  fusions?: SDCPN["fusions"];
 };
 
 const stripDisabledExtensionDataFromNet = (
@@ -360,6 +361,11 @@ const stripDisabledExtensionDataFromNet = (
     if (!canUseDynamics(extensions)) {
       delete place.dynamics;
     }
+  }
+
+  if (!extensions.subnets && net.fusions !== undefined) {
+    const targetNet = net;
+    delete targetNet.fusions;
   }
 
   for (const transition of net.transitions) {
@@ -421,6 +427,14 @@ const clonePlace = (place: SDCPNPlace): SDCPNPlace => ({
     : { dynamics: place.dynamics.map((term) => ({ ...term })) }),
 });
 
+const cloneFusions = (
+  fusions: NonNullable<SDCPN["fusions"]>,
+): NonNullable<SDCPN["fusions"]> =>
+  fusions.map((fusion) => ({
+    ...fusion,
+    members: fusion.members.map((member) => ({ ...member })),
+  }));
+
 const cloneSubnet = (
   subnet: NonNullable<SDCPN["subnets"]>[number],
 ): NonNullable<SDCPN["subnets"]>[number] => {
@@ -457,6 +471,10 @@ const cloneSubnet = (
     next.componentInstances = cloneComponentInstances(
       subnet.componentInstances,
     );
+  }
+
+  if (subnet.fusions) {
+    next.fusions = cloneFusions(subnet.fusions);
   }
 
   return next;
@@ -544,11 +562,16 @@ export const sanitizeSDCPNForExtensions = (
     next.componentInstances = cloneComponentInstances(sdcpn.componentInstances);
   }
 
+  if (sdcpn.fusions) {
+    next.fusions = cloneFusions(sdcpn.fusions);
+  }
+
   stripDisabledExtensionData(next, extensions);
 
   if (!extensions.subnets) {
     delete next.subnets;
     delete next.componentInstances;
+    delete next.fusions;
   }
 
   return next;
