@@ -6,12 +6,12 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 
-export type QueryEntityTypesResult = {
+type QueryEntityTypesResult = {
   entityTypes: EntityTypeWithMetadata[];
   cursor?: VersionedUrl | null;
 };
 
-export type DependentTypeVersionRange = {
+type DependentTypeVersionRange = {
   firstVersion: number;
   lastVersion: number;
   lastVersionId: VersionedUrl;

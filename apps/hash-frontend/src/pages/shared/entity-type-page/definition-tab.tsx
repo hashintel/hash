@@ -10,7 +10,6 @@ import { useNewTypeOwner } from "../shared/use-new-type-owner";
 import { DependentTypes } from "./definition-tab/dependent-types";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 
-import type { OnNavigateToType } from "./shared/on-navigate-to-type";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
@@ -24,7 +23,10 @@ type DefinitionTabProps = {
     propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata>;
   };
   entityTypeBaseUrl: BaseUrl | null;
-  onNavigateToType: OnNavigateToType;
+  onNavigateToType: (
+    kind: "entityType" | "dataType",
+    url: VersionedUrl,
+  ) => void;
   readonly: boolean;
 };
 
@@ -91,7 +93,10 @@ export const DefinitionTab = ({
   }
 
   return (
-    <Stack key={entityTypeAndPropertyTypes.entityType.schema.$id} spacing={6.5}>
+    <Stack
+      key={entityTypeAndPropertyTypes.entityType.schema.$id} // Reset state when switching entity types, helps avoid state mismatch issues
+      spacing={6.5}
+    >
       <EntityTypeEditor
         customization={{ onNavigateToType }}
         dataTypeOptions={dataTypeOptions}
@@ -107,7 +112,9 @@ export const DefinitionTab = ({
       <DependentTypes
         entityType={entityTypeAndPropertyTypes.entityType}
         entityTypeBaseUrl={entityTypeBaseUrl}
-        onNavigateToType={onNavigateToType}
+        onOpenType={(entityTypeId) =>
+          onNavigateToType("entityType", entityTypeId)
+        }
       />
     </Stack>
   );

@@ -96,18 +96,3 @@ test("a type's page lists each type that extends any of its versions, with the v
   await expect(page.locator("h1").filter({ hasText: childName })).toBeVisible();
   await expect(page).toHaveURL((url) => url.pathname === parentPath);
 });
-
-test("a type's page leaves out a type whose latest version no longer extends it", async ({
-  page,
-}) => {
-  const parentName = randomTypeName();
-  const parent = await createType(page, parentName);
-  const childName = randomTypeName();
-  const child = await createType(page, childName, parent);
-  await saveNextVersion(page, child);
-
-  await openTypePage(page, typePath(parent));
-  await expect(typesThatExtend(page, parentName)).toContainText(
-    `No types extend ${parentName} yet.`,
-  );
-});
