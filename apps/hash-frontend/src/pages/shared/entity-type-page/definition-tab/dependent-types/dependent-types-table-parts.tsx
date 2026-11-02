@@ -89,6 +89,9 @@ export const OpenTypeButton = ({
         height: rowHeight,
         borderRadius: 1,
         color: palette.gray[70],
+        opacity: 0,
+        "*:hover > &, &.Mui-focusVisible": { opacity: 1 },
+        "@media (hover: none)": { opacity: 1 },
         "& .open-type-button-dot": {
           width: 28,
           height: 28,
