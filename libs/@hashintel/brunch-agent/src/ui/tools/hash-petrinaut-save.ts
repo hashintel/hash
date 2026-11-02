@@ -1,21 +1,19 @@
-import {
-  brunchTools,
-  type SaveHashNetForAgent,
-  hashNetSaveInputParser,
-} from "@hashintel/brunch-agent";
+import { brunchTools, parseHashSaveInput } from "@hashintel/brunch-agent";
 
 import {
   definePetrinautAiAutomaticTool,
   type PetrinautAiAutomaticTool,
 } from "../chat/ai-automatic-tool";
 
+import type { BrunchHostSave } from "./brunch-mutation-approval";
+
 /** Brunch's HASH save, run in the page through the editor's own Save. */
 export const createHashPetrinautSaveTool = (
-  save: SaveHashNetForAgent,
+  hostSave: BrunchHostSave,
 ): PetrinautAiAutomaticTool =>
   definePetrinautAiAutomaticTool({
     toolName: brunchTools.saveHashNet,
-    inputParser: hashNetSaveInputParser,
+    inputParser: { parse: parseHashSaveInput },
     outputParser: { parse: (value) => value },
-    execute: ({ input, signal }) => save(input.documentId, signal),
+    execute: ({ input, signal }) => hostSave.save(input.documentId, signal),
   });

@@ -186,7 +186,7 @@ test("the agent offers the read, issues it as a read in a fresh conversation, an
           ? (lead.toolsAdded ?? []).map(({ name }) => name)
           : [];
       return fauxAssistantMessage(
-        [fauxToolCall(brunchTools.queryHashEntities, readInput, { id: "r1" })],
+        [fauxToolCall(brunchTools.hashQueryEntities, readInput, { id: "r1" })],
         { stopReason: "toolUse" },
       );
     },
@@ -201,7 +201,7 @@ test("the agent offers the read, issues it as a read in a fresh conversation, an
   const claim = await claimed(chat.instanceId, "r1", chat.binding);
   const { capability: _capability, ...issued } = claim;
   expect(issued).toEqual({
-    toolName: brunchTools.queryHashEntities,
+    toolName: brunchTools.hashQueryEntities,
     input: readInput,
     binding: canonicalContent(chat.binding),
   });
@@ -211,7 +211,7 @@ test("the agent offers the read, issues it as a read in a fresh conversation, an
       toolCallId: "r1",
       capability: claim.capability,
       binding: claim.binding,
-      toolName: brunchTools.queryHashEntities,
+      toolName: brunchTools.hashQueryEntities,
       canonicalInput: claim.input,
       output: supplierRead,
       metadata: { documentRevision: { before: "r1" } },
@@ -219,7 +219,7 @@ test("the agent offers the read, issues it as a read in a fresh conversation, an
   ).toBe("settled");
   await chat.wait(receipt, { signal: AbortSignal.timeout(10_000) });
 
-  expect(declared).toContain(brunchTools.queryHashEntities);
+  expect(declared).toContain(brunchTools.hashQueryEntities);
   // The model sees the page's entities as compact text, edition evidence
   // included, and none of the browser sidecar.
   expect(seen).toBe(supplierText);
@@ -233,7 +233,7 @@ test("a step proposing the read beside a net read issues both to the browser, an
     () =>
       fauxAssistantMessage(
         [
-          fauxToolCall(brunchTools.queryHashEntities, readInput, {
+          fauxToolCall(brunchTools.hashQueryEntities, readInput, {
             id: "m1",
           }),
           fauxToolCall(
@@ -256,7 +256,7 @@ test("a step proposing the read beside a net read issues both to the browser, an
     claimed(chat.instanceId, "m1", chat.binding),
     claimed(chat.instanceId, "m2", chat.binding),
   ]);
-  expect(entityClaim.toolName).toBe(brunchTools.queryHashEntities);
+  expect(entityClaim.toolName).toBe(brunchTools.hashQueryEntities);
   expect(netClaim.toolName).toBe("petrinaut_get_net");
   const outline = {
     title: "Supply",
@@ -281,7 +281,7 @@ test("a step proposing the read beside a net read issues both to the browser, an
       toolCallId: "m1",
       capability: entityClaim.capability,
       binding: entityClaim.binding,
-      toolName: brunchTools.queryHashEntities,
+      toolName: brunchTools.hashQueryEntities,
       canonicalInput: entityClaim.input,
       output: supplierRead,
       metadata: { documentRevision: { before: "r1" } },
@@ -301,7 +301,7 @@ test("a read that finds nothing the user may see shows the model the empty resul
       fauxAssistantMessage(
         [
           fauxToolCall(
-            brunchTools.queryHashEntities,
+            brunchTools.hashQueryEntities,
             { webIds: ["alice-web"] },
             { id: "r2" },
           ),
@@ -320,7 +320,7 @@ test("a read that finds nothing the user may see shows the model the empty resul
     toolCallId: "r2",
     capability: claim.capability,
     binding: claim.binding,
-    toolName: brunchTools.queryHashEntities,
+    toolName: brunchTools.hashQueryEntities,
     canonicalInput: claim.input,
     output: { propertyTypes: [], entityTypes: [], entities: [] },
   });
@@ -335,7 +335,7 @@ test("a read the page fails reaches the model as a tool error that left the docu
   steps.push(
     () =>
       fauxAssistantMessage(
-        [fauxToolCall(brunchTools.queryHashEntities, readInput, { id: "r3" })],
+        [fauxToolCall(brunchTools.hashQueryEntities, readInput, { id: "r3" })],
         { stopReason: "toolUse" },
       ),
     (context) => {
@@ -351,7 +351,7 @@ test("a read the page fails reaches the model as a tool error that left the docu
       toolCallId: "r3",
       capability: claim.capability,
       binding: claim.binding,
-      toolName: brunchTools.queryHashEntities,
+      toolName: brunchTools.hashQueryEntities,
       canonicalInput: claim.input,
       disposition: "failed",
     }),
@@ -439,17 +439,17 @@ test("the entity type read is offered, issued as a read in a fresh conversation 
     webIds: ["alice-web"],
   };
   const { claim, declared, seen } = await readOnce(
-    brunchTools.queryHashEntityTypes,
+    brunchTools.hashQueryEntityTypes,
     input,
     { entityTypes: [supplierType] },
   );
   const { capability: _capability, ...issued } = claim;
   expect(issued).toEqual({
-    toolName: brunchTools.queryHashEntityTypes,
+    toolName: brunchTools.hashQueryEntityTypes,
     input,
     binding: claim.binding,
   });
-  expect(declared).toContain(brunchTools.queryHashEntityTypes);
+  expect(declared).toContain(brunchTools.hashQueryEntityTypes);
   expect(seen).toBe(
     [
       "entity types: 1",
@@ -469,17 +469,17 @@ test("the web read is offered, issued as a read in a fresh conversation, and the
     { webId: "org-web", kind: "organization", shortname: "acme", name: "Acme" },
   ];
   const { claim, declared, seen } = await readOnce(
-    brunchTools.queryHashWebs,
+    brunchTools.hashQueryWebs,
     {},
     { webs },
   );
   const { capability: _capability, ...issued } = claim;
   expect(issued).toEqual({
-    toolName: brunchTools.queryHashWebs,
+    toolName: brunchTools.hashQueryWebs,
     input: {},
     binding: claim.binding,
   });
-  expect(declared).toContain(brunchTools.queryHashWebs);
+  expect(declared).toContain(brunchTools.hashQueryWebs);
   expect(seen).toBe(
     [
       "webs: 2",
@@ -504,7 +504,7 @@ test("an entity read asking for an entity's full values is issued as asked, and 
   const input = { entityIds: [net.entityId], fullValuesFor: [net.entityId] };
 
   const { claim, seen } = await readOnce(
-    brunchTools.queryHashEntities,
+    brunchTools.hashQueryEntities,
     input,
     output,
   );
@@ -513,7 +513,7 @@ test("an entity read asking for an entity's full values is issued as asked, and 
 
   // Without asking, the same value is summarised.
   const compact = await readOnce(
-    brunchTools.queryHashEntities,
+    brunchTools.hashQueryEntities,
     { entityIds: [net.entityId] },
     output,
   );
@@ -523,8 +523,8 @@ test("an entity read asking for an entity's full values is issued as asked, and 
 });
 
 test.each([
-  [brunchTools.queryHashEntities, readInput, supplierRead],
-  [brunchTools.queryHashEntityTypes, {}, { entityTypes: [supplierType] }],
+  [brunchTools.hashQueryEntities, readInput, supplierRead],
+  [brunchTools.hashQueryEntityTypes, {}, { entityTypes: [supplierType] }],
 ])(
   "%s settled as truncated tells the model more may match than it shows",
   async (toolName, input, output) => {
@@ -541,9 +541,9 @@ test.each([
 );
 
 test.each([
-  [brunchTools.queryHashEntities, readInput],
-  [brunchTools.queryHashEntityTypes, {}],
-  [brunchTools.queryHashWebs, {}],
+  [brunchTools.hashQueryEntities, readInput],
+  [brunchTools.hashQueryEntityTypes, {}],
+  [brunchTools.hashQueryWebs, {}],
 ])(
   "%s settled with the page's error reaches the model as a failed read it can read",
   async (toolName, input) => {
@@ -567,7 +567,7 @@ test.each([-1, 1.5, 4])(
         fauxAssistantMessage(
           [
             fauxToolCall(
-              brunchTools.queryHashEntities,
+              brunchTools.hashQueryEntities,
               { traversalDepth },
               { id: "r4" },
             ),

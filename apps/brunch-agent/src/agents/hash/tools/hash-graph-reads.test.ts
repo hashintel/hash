@@ -630,9 +630,9 @@ test("the HASH agent defines its three graph reads", () => {
   );
   expect(tools.map(({ name }) => name).toSorted()).toEqual(
     [
-      brunchTools.queryHashEntities,
-      brunchTools.queryHashEntityTypes,
-      brunchTools.queryHashWebs,
+      brunchTools.hashQueryEntities,
+      brunchTools.hashQueryEntityTypes,
+      brunchTools.hashQueryWebs,
     ].toSorted(),
   );
 });

@@ -93,6 +93,7 @@ export const TopBarActions = () => {
     persistPending,
     revisions,
     saveLabel,
+    saveRefusal,
   } = topBar;
 
   return (
@@ -106,9 +107,9 @@ export const TopBarActions = () => {
       <Button
         size="sm"
         onClick={onSave}
-        disabled={!isDirty || persistPending}
+        disabled={saveRefusal !== null}
         loading={persistPending}
-        tooltip={!isDirty && !persistPending ? "No changes to save" : undefined}
+        tooltip={saveRefusal === "clean" ? "No changes to save" : undefined}
       >
         {saveLabel}
       </Button>

@@ -30,17 +30,18 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut";
 
+import { createAgentSave } from "./petrinaut-editor/agent-save";
 import { ProcessPetrinaut } from "./petrinaut-editor/process-petrinaut";
+import {
+  agentSaveRefusal,
+  saveRefusal,
+} from "./petrinaut-editor/save-availability";
 import {
   type TopBarState,
   TopBarContext,
 } from "./petrinaut-editor/top-bar-context";
 
 import type { EntityId } from "@blockprotocol/type-system";
-import type {
-  HashNetSaveOutcome,
-  SaveHashNetForAgent,
-} from "@hashintel/brunch-agent";
 import type {
   ReadBrunchDocumentSaveState,
   VersionLoad,
@@ -204,30 +205,6 @@ const computeIsDirty = (
 };
 
 /**
- * The agent's save waiting on the editor, for the load whose handle it names,
- * from its start until the editor commits its snapshot or abandons it.
- */
-type AgentSaveInFlight = {
-  handle: PetrinautDocHandle;
-  /**
-   * What the host's save wrote, once it resolved, until the load commits it;
-   * compared with the committed snapshot by identity.
-   */
-  snapshot: NonNullable<SavedSnapshot> | null;
-  settle: (outcome: HashNetSaveOutcome) => void;
-};
-
-const abandonErrors = {
-  reloaded: "The editor reloaded before the save was confirmed.",
-  closed: "The editor closed before the save was confirmed.",
-} as const;
-
-const abortReasonOf = (signal: AbortSignal): Error =>
-  signal.reason instanceof Error
-    ? signal.reason
-    : new Error("The agent's save was aborted.");
-
-/**
  * The Petrinaut editor for the process page, mounted once for the page's
  * lifetime and driven by its props.
  *
@@ -338,62 +315,26 @@ export const PetrinautEditor = ({
   }, [handle, isDirty, onDirtyChange]);
 
   /**
-   * The agent's save waiting on the editor, until it settles; Brunch runs one
-   * at a time, and the agent's save of the same load is refused meanwhile,
-   * including after its host save resolved and before its snapshot commits.
+   * The agent's save waiting on the editor, for the load whose handle it
+   * names, until it settles. The agent's save of the same load is refused
+   * meanwhile, including after its host save resolved and before its
+   * snapshot commits.
    */
-  const agentSaveRef = useRef<AgentSaveInFlight | null>(null);
-
-  /**
-   * Settles the agent's save for an editor that will never confirm it: as
-   * saved, with the convention that nothing is left unsaved, when its host
-   * save had resolved, otherwise as unconfirmed. A host result arriving
-   * afterwards settles nothing.
-   */
-  const abandonAgentSave = useCallback((cause: keyof typeof abandonErrors) => {
-    const abandoned = agentSaveRef.current;
-    if (!abandoned) {
-      return;
-    }
-    agentSaveRef.current = null;
-    abandoned.settle(
-      abandoned.snapshot
-        ? {
-            saved: true,
-            decisionTime: abandoned.snapshot.decisionTime,
-            title: abandoned.snapshot.title,
-            stillDirty: false,
-          }
-        : { saved: false, error: abandonErrors[cause] },
-    );
-  }, []);
+  const [agentSave] = useState(createAgentSave<PetrinautDocHandle>);
 
   /**
    * Settles the agent's save once its load commits its snapshot, with the
    * dirty state committed then, and abandons it once another load commits.
    */
   useLayoutEffect(() => {
-    const inFlight = agentSaveRef.current;
-    if (!inFlight) {
-      return;
-    }
-    if (inFlight.handle !== session?.handle) {
-      abandonAgentSave("reloaded");
-      return;
-    }
-    if (!inFlight.snapshot || session.savedSnapshot !== inFlight.snapshot) {
-      return;
-    }
-    agentSaveRef.current = null;
-    inFlight.settle({
-      saved: true,
-      decisionTime: inFlight.snapshot.decisionTime,
-      title: inFlight.snapshot.title,
-      stillDirty: isDirty,
-    });
-  }, [abandonAgentSave, isDirty, session]);
+    agentSave.committed(
+      session?.handle,
+      session?.savedSnapshot ?? null,
+      isDirty,
+    );
+  }, [agentSave, isDirty, session]);
 
-  useEffect(() => () => abandonAgentSave("closed"), [abandonAgentSave]);
+  useEffect(() => () => agentSave.abandon("closed"), [agentSave]);
 
   /** Read by Brunch's tools when they need the title. */
   const readTitle = useCallback(() => liveSessionRef.current?.title ?? "", []);
@@ -510,104 +451,51 @@ export const PetrinautEditor = ({
 
   /**
    * Why the agent's save of `documentId` can't start now, with the title and
-   * last save its approval card shows. It saves only the saved net open in
-   * the editor, and only from the load this render shows.
+   * last save its approval card shows, judged from the open load as it is
+   * when called. It saves only from the load this render shows.
    */
   const readAgentSaveState = useCallback<ReadBrunchDocumentSaveState>(
     (documentId) => {
       const live = liveSessionRef.current;
-      const refusal =
-        live?.mode.kind !== "saved"
-          ? "The net is an unsaved draft, which the user creates with the editor's Create."
-          : live.handle !== handle || documentId !== live.mode.entityId
-            ? "That isn't the net open in the editor."
-            : hostSaveRef.current.readonly
-              ? "The user can't edit this net, so they can't save it."
-              : live.savePending || agentSaveRef.current?.handle === live.handle
-                ? "A save of this net is already in progress."
-                : !computeIsDirty(
-                      live.handle.doc() ?? live.definition,
-                      live.title,
-                      live.savedSnapshot,
-                    )
-                  ? "There are no unsaved changes to save."
-                  : null;
       return {
         title: live?.title ?? "",
         lastSavedTime: live?.savedSnapshot?.decisionTime ?? null,
-        refusal,
+        refusal: agentSaveRefusal(
+          {
+            mode: live?.mode ?? null,
+            fromOpenLoad: live !== null && live.handle === handle,
+            readonly: hostSaveRef.current.readonly,
+            saving:
+              live !== null &&
+              (live.savePending || agentSave.occupies(live.handle)),
+            isDirty:
+              live !== null &&
+              computeIsDirty(
+                live.handle.doc() ?? live.definition,
+                live.title,
+                live.savedSnapshot,
+              ),
+          },
+          documentId,
+        ),
       };
     },
-    [handle],
+    [agentSave, handle],
   );
 
   /**
-   * The Save button's save, for the agent once the user has approved it. It
-   * settles once the editor commits the saved snapshot, with the dirty state
-   * committed then, with the host's error when the save failed, or as the
-   * editor abandons it when another load commits or the editor closes first.
-   * Aborting rejects it without cancelling a save already submitted.
+   * The editor's Save, for the agent once the user has approved it, bound to
+   * the load this render shows.
    */
-  const saveNetForAgent = useCallback<SaveHashNetForAgent>(
-    (documentId, signal) => {
-      if (signal.aborted) {
-        return Promise.reject(abortReasonOf(signal));
-      }
-      const { refusal } = readAgentSaveState(documentId);
-      if (refusal !== null) {
-        return Promise.resolve<HashNetSaveOutcome>({
-          applied: false,
-          reason: refusal,
-        });
-      }
-      const sessionHandle = liveSessionRef.current?.handle;
-      if (!sessionHandle) {
-        return Promise.reject(new Error("The editor did not start the save."));
-      }
-      return new Promise<HashNetSaveOutcome>((resolve, reject) => {
-        /** Ends listening for the abort once the save settles. */
-        const listening = new AbortController();
-        const inFlight: AgentSaveInFlight = {
-          handle: sessionHandle,
-          snapshot: null,
-          settle: (outcome) => {
-            listening.abort();
-            resolve(outcome);
-          },
-        };
-        const saving = startSave((snapshot) => {
-          if (agentSaveRef.current === inFlight) {
-            inFlight.snapshot = snapshot;
-          }
-        });
-        if (!saving) {
-          reject(new Error("The editor did not start the save."));
-          return;
-        }
-        agentSaveRef.current = inFlight;
-        signal.addEventListener(
-          "abort",
-          () => {
-            if (agentSaveRef.current === inFlight) {
-              agentSaveRef.current = null;
-            }
-            reject(abortReasonOf(signal));
-          },
-          { once: true, signal: listening.signal },
-        );
-        saving.catch((error: unknown) => {
-          if (agentSaveRef.current !== inFlight) {
-            return;
-          }
-          agentSaveRef.current = null;
-          inFlight.settle({
-            saved: false,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        });
-      });
-    },
-    [readAgentSaveState, startSave],
+  const hostSave = useMemo(
+    () =>
+      handle
+        ? agentSave.hostSaveFor(handle, {
+            read: readAgentSaveState,
+            start: startSave,
+          })
+        : null,
+    [agentSave, handle, readAgentSaveState, startSave],
   );
 
   /** The Save button's save, for the load this render shows only. */
@@ -622,7 +510,7 @@ export const PetrinautEditor = ({
     startSave()?.catch(() => {});
   }, [handle, startSave]);
 
-  if (!session) {
+  if (!session || !hostSave) {
     /** The host covers the editor with a skeleton until it has a load. */
     return <Box sx={{ height: "100%" }} />;
   }
@@ -633,6 +521,11 @@ export const PetrinautEditor = ({
     readonly,
     isDirty,
     persistPending: session.savePending,
+    saveRefusal: saveRefusal({
+      readonly,
+      saving: session.savePending,
+      isDirty,
+    }),
     saveLabel:
       session.mode.kind === "saved" ? (isDirty ? "Save" : "Saved") : "Create",
     revisions,
@@ -652,8 +545,7 @@ export const PetrinautEditor = ({
               session.mode.kind === "saved" ? session.mode.entityId : null
             }
             readTitle={readTitle}
-            readSaveState={readAgentSaveState}
-            saveNetForAgent={saveNetForAgent}
+            hostSave={hostSave}
             versionLoad={session.versionLoad}
             readonly={readonly}
             setTitle={setTitle}

@@ -21,6 +21,7 @@ import {
   createBrunchMutationApprovalInteractiveTools,
   createBrunchMutationApprovalWidget,
   createBrunchSaveApprovalWidget,
+  type BrunchHostSave,
   type ReadBrunchDocumentSaveState,
 } from "./brunch-mutation-approval";
 
@@ -285,7 +286,7 @@ describe("Brunch save approval card", () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
     const decision = coordinator.request({
       toolCallId: "save-1",
-      toolName: brunchTools.saveHashNet,
+      toolName: brunchTools.appSaveNet,
       signal: new AbortController().signal,
     });
     const lastSavedTime = "2026-10-24T00:00:00.000Z";
@@ -333,13 +334,12 @@ describe("Brunch save approval card", () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
     const request = vi.spyOn(coordinator, "request");
     await expect(
-      createBrunchMutationAdmission(coordinator, () => ({
-        title: "Net",
-        lastSavedTime: null,
-        refusal: null,
-      }))({
+      createBrunchMutationAdmission(coordinator, {
+        read: () => ({ title: "Net", lastSavedTime: null, refusal: null }),
+        save: vi.fn<BrunchHostSave["save"]>(),
+      })({
         toolCallId: "save-1",
-        toolName: brunchTools.saveHashNet,
+        toolName: brunchTools.appSaveNet,
         input: {},
         signal: new AbortController().signal,
       }),
@@ -349,15 +349,18 @@ describe("Brunch save approval card", () => {
 
   test("is offered only by a host that can save", () => {
     const coordinator = createBrunchMutationApprovalCoordinator();
-    const names = (readSaveState?: ReadBrunchDocumentSaveState) =>
+    const names = (hostSave?: BrunchHostSave) =>
       createBrunchMutationApprovalInteractiveTools(
-        createBrunchMutationApprovalComponents(coordinator, readSaveState),
+        createBrunchMutationApprovalComponents(coordinator, hostSave),
         new Set(),
       ).map(({ toolName }) => toolName);
-    expect(names()).not.toContain(brunchTools.saveHashNet);
+    expect(names()).not.toContain(brunchTools.appSaveNet);
     expect(
-      names(() => ({ title: "Net", lastSavedTime: null, refusal: null })),
-    ).toContain(brunchTools.saveHashNet);
+      names({
+        read: () => ({ title: "Net", lastSavedTime: null, refusal: null }),
+        save: vi.fn<BrunchHostSave["save"]>(),
+      }),
+    ).toContain(brunchTools.appSaveNet);
   });
 });
 
@@ -370,7 +373,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
   const issuedCalls = (
     toolName: string,
     input: unknown,
-    readSaveState?: ReadBrunchDocumentSaveState,
+    hostSave?: BrunchHostSave,
   ) => {
     const posted: unknown[] = [];
     vi.stubGlobal(
@@ -400,19 +403,23 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
       binding,
       metadataFor: () => undefined,
       prepareInput,
-      admit: createBrunchMutationAdmission(coordinator, readSaveState),
+      admit: createBrunchMutationAdmission(coordinator, hostSave),
       acceptsRevision: () => true,
     });
     return { calls, coordinator, posted, prepareInput };
   };
 
   const saveInput = { documentId: "web~net" };
-  const saveState = (refusal: string | null = null) =>
-    vi.fn<ReadBrunchDocumentSaveState>(() => ({
+  /** A host that can save, whose save state refuses with `refusal`. */
+  const saveState = (refusal: string | null = null) => ({
+    read: vi.fn<ReadBrunchDocumentSaveState>(() => ({
       title: "Replenishment",
       lastSavedTime: "2026-10-24T00:00:00.000Z",
       refusal,
-    }));
+    })),
+    // The page's save, which the in-band call runs through `execute` here.
+    save: vi.fn<BrunchHostSave["save"]>(),
+  });
   const runSave = (
     calls: ReturnType<typeof issuedCalls>["calls"],
     execute: (issuedInput: unknown) => Promise<unknown>,
@@ -421,7 +428,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     calls.run(
       {
         toolCallId: "save-1",
-        toolName: brunchTools.saveHashNet,
+        toolName: brunchTools.appSaveNet,
         input: saveInput,
         signal,
       },
@@ -429,16 +436,16 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     );
 
   test("a declined save settles as not applied and never runs the save", async () => {
-    const readSaveState = saveState();
+    const hostSave = saveState();
     const { calls, coordinator, posted, prepareInput } = issuedCalls(
-      brunchTools.saveHashNet,
+      brunchTools.appSaveNet,
       saveInput,
-      readSaveState,
+      hostSave,
     );
     const execute = vi.fn(async () => ({ saved: true }));
     const run = runSave(calls, execute);
     await vi.waitFor(() => expect(coordinator.hasPending("save-1")).toBe(true));
-    expect(readSaveState).toHaveBeenCalledWith("web~net");
+    expect(hostSave.read).toHaveBeenCalledWith("web~net");
     coordinator.resolve("save-1", "deny");
 
     await run;
@@ -447,7 +454,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     expect(posted).toEqual([
       expect.objectContaining({
         output: {
-          applied: false,
+          status: "not-started",
           reason: "The user declined this save; nothing was saved.",
         },
       }),
@@ -456,7 +463,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
 
   test("a save the host refuses settles as not started with its reason, before any card", async () => {
     const { calls, coordinator, posted } = issuedCalls(
-      brunchTools.saveHashNet,
+      brunchTools.appSaveNet,
       saveInput,
       saveState("A save of this net is already in progress."),
     );
@@ -469,7 +476,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     expect(posted).toEqual([
       expect.objectContaining({
         output: {
-          applied: false,
+          status: "not-started",
           reason: "A save of this net is already in progress.",
         },
       }),
@@ -478,12 +485,12 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
 
   test("an allowed save runs once and reports its own result", async () => {
     const { calls, coordinator, posted, prepareInput } = issuedCalls(
-      brunchTools.saveHashNet,
+      brunchTools.appSaveNet,
       saveInput,
       saveState(),
     );
     const saved = {
-      saved: true,
+      status: "saved",
       decisionTime: "2026-10-24T01:00:00.000Z",
       title: "Replenishment",
       stillDirty: false,
@@ -500,11 +507,10 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
   });
 
   test("Always allow for destructive edits never admits a save without its card", async () => {
-    const readSaveState = saveState();
     const { calls, coordinator } = issuedCalls(
-      brunchTools.saveHashNet,
+      brunchTools.appSaveNet,
       saveInput,
-      readSaveState,
+      saveState(),
     );
     const removal = coordinator.request({
       toolCallId: "remove-1",
@@ -534,7 +540,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
 
   test("a save the conversation stops while it waits settles as stopped, not started", async () => {
     const { calls, coordinator, posted } = issuedCalls(
-      brunchTools.saveHashNet,
+      brunchTools.appSaveNet,
       saveInput,
       saveState(),
     );
@@ -548,7 +554,7 @@ describe("Brunch destructive edit approval on in-band browser calls", () => {
     expect(posted).toEqual([
       expect.objectContaining({
         output: {
-          applied: false,
+          status: "not-started",
           reason: "The save was stopped before approval; nothing was saved.",
         },
       }),

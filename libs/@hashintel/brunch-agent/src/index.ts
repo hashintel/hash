@@ -36,7 +36,12 @@ export {
   type HashReadFailure,
   type HashWebReadResult,
 } from "./hash/graph-reads";
-export { vHashSaveInput, parseHashSaveInput } from "./hash/save";
+export {
+  vHashSaveInput,
+  parseHashSaveInput,
+  parseHashSaveOutcome,
+  type HashSaveOutcome,
+} from "./hash/save";
 export {
   hashPetrinautTools,
   hashProcessEditorId,
@@ -102,10 +107,5 @@ export {
   type DraftPetrinautExperimentInput,
   type DraftPetrinautExperimentOutput,
 } from "./petrinaut/draft-experiment";
-export {
-  hashNetSaveInputParser,
-  type HashNetSaveOutcome,
-  type SaveHashNetForAgent,
-} from "./petrinaut/hash-net-save";
 export * from "./petrinaut/interview-budget-levels";
 export * from "./shared/voice-settings";

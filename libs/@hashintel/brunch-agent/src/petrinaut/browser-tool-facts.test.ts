@@ -190,11 +190,11 @@ describe("what the browser decides about each tool the server issues to it", () 
       { claim: "parsed-by-schema", automatic: false, revisionRecord: "before" },
     ],
     // HASH's graph reads and Save.
-    [brunchTools.queryHashEntities, hashRead],
-    [brunchTools.queryHashEntityTypes, hashRead],
-    [brunchTools.queryHashWebs, hashRead],
+    [brunchTools.hashQueryEntities, hashRead],
+    [brunchTools.hashQueryEntityTypes, hashRead],
+    [brunchTools.hashQueryWebs, hashRead],
     [
-      brunchTools.saveHashNet,
+      brunchTools.appSaveNet,
       {
         claim: "parsed-by-schema",
         automatic: true,

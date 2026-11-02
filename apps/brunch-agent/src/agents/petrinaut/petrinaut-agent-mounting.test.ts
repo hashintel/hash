@@ -103,10 +103,10 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
   );
   // HASH's graph reads and save belong to the HASH agent alone.
   for (const name of [
-    brunchTools.queryHashEntities,
-    brunchTools.queryHashEntityTypes,
-    brunchTools.queryHashWebs,
-    brunchTools.saveHashNet,
+    brunchTools.hashQueryEntities,
+    brunchTools.hashQueryEntityTypes,
+    brunchTools.hashQueryWebs,
+    brunchTools.appSaveNet,
   ])
     expect(mounted.tools).not.toContain(name);
   // Petrinaut, runtime, experiment and query_basis guidance live in the

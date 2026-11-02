@@ -306,7 +306,7 @@ test("a change whose expected revision the document has left is reported stale a
 });
 
 const hashRead = {
-  toolName: brunchTools.queryHashEntities,
+  toolName: brunchTools.hashQueryEntities,
   input: { entityTypes: ["Supplier"], traversalDepth: 1 },
 };
 const stubHashReadFetch = () => {
@@ -351,7 +351,7 @@ test("HASH's entity read is claimed for the input the server issued and settles 
     "http://brunch.local/agents/petrinaut/instance/browser-calls/read",
   ]);
   expect(posted[0]?.body).toMatchObject({
-    toolName: brunchTools.queryHashEntities,
+    toolName: brunchTools.hashQueryEntities,
     canonicalInput: hashRead.input,
     output,
   });

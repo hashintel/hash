@@ -75,7 +75,7 @@ export const parseHashEntityReadInput = (input: unknown): HashEntityReadInput =>
 
 export const vHashEntityTypeReadInput = v.strictObject({
   entityTypeIds: identifiers(
-    `Entity types to read, each a versioned URL as an entity's entityTypeIds name it, for example from ${brunchTools.queryHashEntities}. Those exact versions are read.`,
+    `Entity types to read, each a versioned URL as an entity's entityTypeIds name it, for example from ${brunchTools.hashQueryEntities}. Those exact versions are read.`,
   ),
   webIds: identifiers(
     "Web ids whose own entity types to list. Most types live in HASH's shared webs, not the user's or their organizations'.",
