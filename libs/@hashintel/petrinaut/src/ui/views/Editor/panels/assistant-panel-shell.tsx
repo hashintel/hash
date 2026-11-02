@@ -164,7 +164,6 @@ const titleStyle = css({
   display: "flex",
   alignItems: "center",
   marginLeft: "[24px]",
-  "[data-assistant-switcher] + &": { marginLeft: "[6px]" },
   color: "neutral.fg.heading",
   fontSize: "sm",
   fontWeight: "medium",
@@ -194,11 +193,14 @@ const buttonStyle = css({
   },
 });
 
-// Positioned, so it paints above the drag handle, right after its icon.
+// Positioned, so it paints above the drag handle, right after its icon. The
+// negative right margin gives back the room the title keeps for the icon, so
+// the title follows the switcher closely.
 const switcherStyle = css({
   position: "relative",
   display: "flex",
   marginLeft: "[18px]",
+  marginRight: "[-18px]",
 });
 
 /** Switches between the running plugins' assistants, while there are several. */
@@ -206,7 +208,7 @@ const AssistantSwitcher = () => {
   const { assistants, shownId, choose } = useAssistantChoice();
 
   return assistants.length > 1 ? (
-    <div className={switcherStyle} data-assistant-switcher>
+    <div className={switcherStyle}>
       <Menu
         position="bottom-start"
         items={assistants.map(({ id, name }) => ({
