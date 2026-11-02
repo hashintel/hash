@@ -133,7 +133,7 @@ const FlowEditor = ({
                 <Banner.Title>This flow changed elsewhere</Banner.Title>
                 <Banner.Description>
                   It was saved from somewhere else, so it now shows the latest
-                  version. Your last edit wasn't saved.
+                  version. Your latest edits weren't saved.
                 </Banner.Description>
               </Banner>
             </Box>
@@ -180,10 +180,7 @@ const FlowEditorLoader = ({
   return loading ? <EditorLoading /> : <NotFound />;
 };
 
-/**
- * Edits a flow definition, saving each edit as it's made. The definition and runs page, without `/edit`, stays as it
- * was.
- */
+/** Edits a flow definition, saving each edit as it's made. */
 const FlowEditorPage: NextPageWithLayout = () => {
   const { query } = useRouter();
 

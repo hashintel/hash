@@ -89,6 +89,8 @@ export const useAutosavedFlowEditor = ({
       const latest = await reloadFlowRef.current().catch(() => null);
 
       if (!latest) {
+        /* Trying again saves, gets refused again, and so reloads again. */
+        unsavedRef.current = true;
         setStatus("failed");
         return;
       }
@@ -149,6 +151,18 @@ export const useAutosavedFlowEditor = ({
     },
     [flush],
   );
+
+  /* Closing or reloading the tab doesn't unmount the page, so the browser asks before edits not saved yet are lost. */
+  useEffect(() => {
+    if (status === "saved") {
+      return;
+    }
+
+    const confirmLeaving = (event: BeforeUnloadEvent) => event.preventDefault();
+
+    window.addEventListener("beforeunload", confirmLeaving);
+    return () => window.removeEventListener("beforeunload", confirmLeaving);
+  }, [status]);
 
   const dismissChangedElsewhere = useCallback(
     () => setChangedElsewhere(false),

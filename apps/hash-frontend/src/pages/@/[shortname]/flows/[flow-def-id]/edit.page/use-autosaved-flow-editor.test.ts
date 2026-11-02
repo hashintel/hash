@@ -35,6 +35,36 @@ const deferred = <T>() => {
 const stepIdsOf = (flowDefinition: FlowDefinition<string>) =>
   flowDefinition.steps.map(({ stepId }) => stepId);
 
+type EditorOptions = Parameters<typeof useAutosavedFlowEditor>[0];
+
+const renderEditor = ({
+  saveFlowDefinition,
+  reloadFlow = vi.fn(),
+}: Pick<EditorOptions, "saveFlowDefinition"> &
+  Partial<Pick<EditorOptions, "reloadFlow">>) => {
+  const { result } = renderHook(() =>
+    useAutosavedFlowEditor({
+      flow: {
+        flowDefinition: emptyFlow("Flow"),
+        editionId: editionId("edition-1"),
+      },
+      saveFlowDefinition,
+      reloadFlow,
+    }),
+  );
+
+  const addStep = (stepId: string) =>
+    act(() => {
+      result.current.editor.addStep(stepId, { position: { x: 0, y: 0 } });
+    });
+
+  return { result, addStep };
+};
+
+/** Whether leaving the page now would make the browser ask first. */
+const leavingIsConfirmed = () =>
+  !window.dispatchEvent(new Event("beforeunload", { cancelable: true }));
+
 describe("useAutosavedFlowEditor", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -44,38 +74,29 @@ describe("useAutosavedFlowEditor", () => {
     vi.useRealTimers();
   });
 
-  it("saves one edit at a time, each against the edition the save before it created", async () => {
+  it("saves a burst of edits once, one save at a time, each against the edition the save before it created", async () => {
     const firstSave = deferred<EntityEditionId>();
     const saveFlowDefinition = vi
       .fn()
       .mockReturnValueOnce(firstSave.promise)
       .mockResolvedValueOnce(editionId("edition-3"));
+    const { result, addStep } = renderEditor({ saveFlowDefinition });
 
-    const { result } = renderHook(() =>
-      useAutosavedFlowEditor({
-        flow: {
-          flowDefinition: emptyFlow("Flow"),
-          editionId: editionId("edition-1"),
-        },
-        saveFlowDefinition,
-        reloadFlow: vi.fn(),
-      }),
-    );
-
-    act(() => {
-      result.current.editor.addStep("first", { position: { x: 0, y: 0 } });
-    });
+    addStep("first");
     expect(result.current.status).toBe("saving");
-
+    expect(leavingIsConfirmed()).toBe(true);
+    await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs / 2));
+    addStep("second");
     await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
     expect(saveFlowDefinition).toHaveBeenCalledTimes(1);
-    expect(stepIdsOf(saveFlowDefinition.mock.calls[0]![0])).toEqual(["first"]);
+    expect(stepIdsOf(saveFlowDefinition.mock.calls[0]![0])).toEqual([
+      "first",
+      "second",
+    ]);
     expect(saveFlowDefinition.mock.calls[0]![1]).toBe("edition-1");
 
     /* An edit while the first save is in flight waits for it. */
-    act(() => {
-      result.current.editor.addStep("second", { position: { x: 0, y: 0 } });
-    });
+    addStep("third");
     await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs * 3));
     expect(saveFlowDefinition).toHaveBeenCalledTimes(1);
 
@@ -85,85 +106,49 @@ describe("useAutosavedFlowEditor", () => {
     expect(stepIdsOf(saveFlowDefinition.mock.calls[1]![0])).toEqual([
       "first",
       "second",
+      "third",
     ]);
     expect(saveFlowDefinition.mock.calls[1]![1]).toBe("edition-2");
     expect(result.current.status).toBe("saved");
+    expect(leavingIsConfirmed()).toBe(false);
   });
 
-  it("saves a burst of edits once", async () => {
-    const saveFlowDefinition = vi
-      .fn()
-      .mockResolvedValue(editionId("edition-2"));
-
-    const { result } = renderHook(() =>
-      useAutosavedFlowEditor({
-        flow: {
-          flowDefinition: emptyFlow("Flow"),
-          editionId: editionId("edition-1"),
-        },
-        saveFlowDefinition,
-        reloadFlow: vi.fn(),
-      }),
-    );
-
-    act(() => {
-      result.current.editor.addStep("first", { position: { x: 0, y: 0 } });
-    });
-    await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs / 2));
-    act(() => {
-      result.current.editor.addStep("second", { position: { x: 0, y: 0 } });
-    });
-    await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
-
-    expect(saveFlowDefinition).toHaveBeenCalledTimes(1);
-    expect(stepIdsOf(saveFlowDefinition.mock.calls[0]![0])).toEqual([
-      "first",
-      "second",
-    ]);
-  });
-
-  it("reloads the flow when it changed elsewhere, and saves the next edit against the reloaded edition", async () => {
+  it("reloads the flow when it changed elsewhere, retrying a failed reload, and saves the next edit against the reloaded edition", async () => {
     const saveFlowDefinition = vi
       .fn()
       .mockRejectedValueOnce(new FlowChangedElsewhereError())
+      .mockRejectedValueOnce(new FlowChangedElsewhereError())
       .mockResolvedValueOnce(editionId("edition-10"));
-    const reloadFlow = vi.fn().mockResolvedValue({
-      flowDefinition: emptyFlow("Renamed elsewhere"),
-      editionId: editionId("edition-9"),
+    const reloadFlow = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockResolvedValueOnce({
+        flowDefinition: emptyFlow("Renamed elsewhere"),
+        editionId: editionId("edition-9"),
+      });
+    const { result, addStep } = renderEditor({
+      saveFlowDefinition,
+      reloadFlow,
     });
 
-    const { result } = renderHook(() =>
-      useAutosavedFlowEditor({
-        flow: {
-          flowDefinition: emptyFlow("Flow"),
-          editionId: editionId("edition-1"),
-        },
-        saveFlowDefinition,
-        reloadFlow,
-      }),
-    );
-
-    act(() => {
-      result.current.editor.addStep("lost", { position: { x: 0, y: 0 } });
-    });
+    addStep("lost");
     await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
+    expect(result.current.status).toBe("failed");
 
-    expect(reloadFlow).toHaveBeenCalledTimes(1);
+    await act(() => result.current.flush());
+    expect(reloadFlow).toHaveBeenCalledTimes(2);
     expect(result.current.changedElsewhere).toBe(true);
     expect(result.current.status).toBe("saved");
     expect(result.current.editor.getState().flowDefinition).toEqual(
       emptyFlow("Renamed elsewhere"),
     );
 
-    act(() => {
-      result.current.editor.addStep("kept", { position: { x: 0, y: 0 } });
-    });
+    addStep("kept");
     await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
-
-    expect(saveFlowDefinition).toHaveBeenCalledTimes(2);
-    expect(saveFlowDefinition.mock.calls[1]![0].name).toBe("Renamed elsewhere");
-    expect(stepIdsOf(saveFlowDefinition.mock.calls[1]![0])).toEqual(["kept"]);
-    expect(saveFlowDefinition.mock.calls[1]![1]).toBe("edition-9");
+    expect(saveFlowDefinition).toHaveBeenCalledTimes(3);
+    expect(saveFlowDefinition.mock.calls[2]![0].name).toBe("Renamed elsewhere");
+    expect(stepIdsOf(saveFlowDefinition.mock.calls[2]![0])).toEqual(["kept"]);
+    expect(saveFlowDefinition.mock.calls[2]![1]).toBe("edition-9");
   });
 
   it("shows a failed save, and tries it again with the next edit against the same edition", async () => {
@@ -171,29 +156,15 @@ describe("useAutosavedFlowEditor", () => {
       .fn()
       .mockRejectedValueOnce(new Error("Network error"))
       .mockResolvedValueOnce(editionId("edition-2"));
+    const { result, addStep } = renderEditor({ saveFlowDefinition });
 
-    const { result } = renderHook(() =>
-      useAutosavedFlowEditor({
-        flow: {
-          flowDefinition: emptyFlow("Flow"),
-          editionId: editionId("edition-1"),
-        },
-        saveFlowDefinition,
-        reloadFlow: vi.fn(),
-      }),
-    );
-
-    act(() => {
-      result.current.editor.addStep("first", { position: { x: 0, y: 0 } });
-    });
+    addStep("first");
     await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
     expect(result.current.status).toBe("failed");
+    expect(leavingIsConfirmed()).toBe(true);
 
-    act(() => {
-      result.current.editor.addStep("second", { position: { x: 0, y: 0 } });
-    });
+    addStep("second");
     await act(() => vi.advanceTimersByTimeAsync(autosaveDelayMs));
-
     expect(saveFlowDefinition).toHaveBeenCalledTimes(2);
     expect(stepIdsOf(saveFlowDefinition.mock.calls[1]![0])).toEqual([
       "first",
