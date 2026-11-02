@@ -149,6 +149,13 @@ export const hashEntityReadRequest = (
 const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
 
 /**
+ * A response carries a cursor when the graph stopped at its limit of matches,
+ * so more may match than it returned. The read doesn't follow it.
+ */
+const truncatedWhen = (cursor: unknown) =>
+  cursor === undefined || cursor === null ? {} : { truncated: true as const };
+
+/**
  * Every entity edition in the response, each described only from itself, so
  * its edition id is the edition whose properties it carries. An entity
  * archived through its `archived` property, as pages are, is left out: the
@@ -156,7 +163,7 @@ const archivedBaseUrl = systemPropertyTypes.archived.propertyTypeBaseUrl;
  * by following links.
  */
 export const hashEntityReadResult = (response: QueryEntitySubgraphQuery) => {
-  const { subgraph } = deserializeQueryEntitySubgraphResponse(
+  const { subgraph, cursor } = deserializeQueryEntitySubgraphResponse(
     response.queryEntitySubgraph,
   );
   const matched = new Set(
@@ -187,6 +194,7 @@ export const hashEntityReadResult = (response: QueryEntitySubgraphQuery) => {
             }),
       };
     }),
+    ...truncatedWhen(cursor),
   };
 };
 
@@ -287,7 +295,7 @@ export const hashEntityTypeReadRequest = (
  * properties use, and its links, each titled where the response resolved it.
  */
 export const hashEntityTypeReadResult = (response: QueryEntityTypesQuery) => {
-  const { entityTypes, closedEntityTypes, definitions } =
+  const { entityTypes, closedEntityTypes, definitions, cursor } =
     response.queryEntityTypes;
   const closedById = new Map(
     (closedEntityTypes ?? []).map((closed) => [closed.$id, closed]),
@@ -325,6 +333,7 @@ export const hashEntityTypeReadResult = (response: QueryEntityTypesQuery) => {
         }),
       };
     }),
+    ...truncatedWhen(cursor),
   };
 };
 
