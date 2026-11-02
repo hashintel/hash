@@ -48,6 +48,9 @@ const DependentTypeSubRow = ({
   isLink: boolean;
   onOpenType: (entityTypeId: VersionedUrl) => void;
 }) => {
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+
   const { entityType, former } = row;
   const { $id, title, description } = entityType.schema;
 
@@ -74,7 +77,12 @@ const DependentTypeSubRow = ({
       >
         <Box sx={cellSx} />
         <Box sx={{ ...innerCellSx, maxWidth: 1, display: "flex" }}>
-          <Tooltip title={description} describeChild>
+          <Tooltip
+            title={description}
+            open={hovered || focused}
+            onOpen={() => setHovered(true)}
+            onClose={() => setHovered(false)}
+          >
             <Box component="span" sx={{ display: "flex", minWidth: 0 }}>
               <TypeLabel
                 entityType={entityType}
@@ -95,7 +103,10 @@ const DependentTypeSubRow = ({
       </Box>
       <OpenTypeButton
         label={`Open ${title} v${versionNumber(highestVersionId)}, the highest version that extends ${parentLabel}`}
+        description={description}
         onClick={() => onOpenType(highestVersionId)}
+        onFocusVisible={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
       />
       <TreeLines last={last} />
     </Box>
