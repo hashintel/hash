@@ -10,6 +10,8 @@ import { useGetOwnerForEntity } from "../components/hooks/use-get-owner-for-enti
 import { getLayoutWithSidebar } from "../shared/layout";
 import { Link } from "../shared/ui/link";
 import { WorkersHeader } from "../shared/workers-header";
+import { FlowsEmptyState } from "./flows.page/flows-empty-state";
+import { NewFlowButton } from "./flows.page/new-flow-button";
 import { useFlowDefinitionsContext } from "./shared/flow-definitions-context";
 import { FlowDefinitionsContextProvider } from "./shared/flow-definitions-context-provider";
 import { useFlowRunsContext } from "./shared/flow-runs-context";
@@ -144,7 +146,8 @@ const FlowsPageContent = () => {
     direction: "asc",
   });
 
-  const { flowDefinitions: allFlowDefinitions } = useFlowDefinitionsContext();
+  const { flowDefinitions: allFlowDefinitions, loading } =
+    useFlowDefinitionsContext();
 
   const { flowRuns } = useFlowRunsContext();
 
@@ -219,16 +222,23 @@ const FlowsPageContent = () => {
         ]}
         title={{ text: "Flows", Icon: InfinityLightIcon }}
         subtitle="Processes that workers can monitor and manage"
+        endElement={<NewFlowButton />}
       />
-      <Container sx={{ my: 4, px: 4, height: tableHeight }}>
-        <VirtualizedTable
-          columns={columns}
-          createRowContent={createRowContent}
-          rows={flowDefinitionRows}
-          sort={sort}
-          setSort={setSort}
-        />
-      </Container>
+      {!loading && flowDefinitionRows.length === 0 ? (
+        <Container sx={{ my: 4, px: 4 }}>
+          <FlowsEmptyState />
+        </Container>
+      ) : (
+        <Container sx={{ my: 4, px: 4, height: tableHeight }}>
+          <VirtualizedTable
+            columns={columns}
+            createRowContent={createRowContent}
+            rows={flowDefinitionRows}
+            sort={sort}
+            setSort={setSort}
+          />
+        </Container>
+      )}
     </Box>
   );
 };
