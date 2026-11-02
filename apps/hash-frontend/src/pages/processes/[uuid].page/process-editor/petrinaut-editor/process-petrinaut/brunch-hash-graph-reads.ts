@@ -1,6 +1,5 @@
 import { useApolloClient } from "@apollo/client";
 import { useEffect, useMemo, useRef } from "react";
-import * as z from "zod";
 
 import { getEntities, getRoots } from "@blockprotocol/graph/stdlib";
 import {
@@ -14,7 +13,19 @@ import {
   extractVersion,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
-import { brunchTools } from "@hashintel/brunch-agent";
+import {
+  brunchTools,
+  type HashEntityReadInput,
+  type HashEntityReadResult,
+  type HashEntityTypeReadInput,
+  type HashEntityTypeReadResult,
+  type HashReadFailure,
+  type HashWebReadResult,
+  hashEntityReadDefaultTraversalDepth,
+  parseHashEntityReadInput,
+  parseHashEntityTypeReadInput,
+  parseHashWebReadInput,
+} from "@hashintel/brunch-agent";
 import {
   deserializeQueryEntitySubgraphResponse,
   getClosedMultiEntityTypeFromMap,
@@ -48,24 +59,6 @@ import type {
 } from "@local/hash-graph-client";
 import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 
-/**
- * The input Brunch's HASH agent issues for its entity read. The agent's
- * schema is the authority and has already validated it; this only narrows it.
- */
-const zHashEntityReadInput = z.object({
-  entityTypes: z.array(z.string()).optional(),
-  webIds: z.array(z.string()).optional(),
-  entityIds: z.array(z.string()).optional(),
-  traversalDepth: z.number().int().min(0).max(3).optional(),
-  includeDrafts: z.boolean().optional(),
-  // Keys only the agent reads, such as how it shows the result, are stripped.
-});
-
-/** An entity read as the agent issued it to the page, narrowed. */
-export type IssuedHashEntityRead = z.infer<typeof zHashEntityReadInput>;
-
-const defaultTraversalDepth = 1;
-
 const isTypeUrl = (type: string) =>
   type.startsWith("http://") || type.startsWith("https://");
 
@@ -89,7 +82,7 @@ const linkHops: readonly (readonly EntityTraversalEdge[])[] = [
  * in either direction, and a matched link entity's own endpoints. A path
  * returns each entity along it, so the chains of `depth` links also reach
  * every shallower one. The graph takes at most 10 paths of at most 10 edges,
- * which bounds `depth` at 3: 8 chains of 6 edges, and the 2 endpoint paths.
+ * which bounds `depth` at `hashEntityReadMaxTraversalDepth`.
  */
 const traversalPathsTo = (depth: number): EntityTraversalPath[] => {
   if (depth === 0) {
@@ -115,7 +108,7 @@ const traversalPathsTo = (depth: number): EntityTraversalPath[] => {
  * only the live entity.
  */
 export const hashEntityReadRequest = (
-  input: IssuedHashEntityRead,
+  input: HashEntityReadInput,
 ): QueryEntitySubgraphRequest => {
   const entityIds = (input.entityIds ?? []).map(
     (entityId) => entityId as EntityId,
@@ -150,7 +143,7 @@ export const hashEntityReadRequest = (
     },
     temporalAxes: currentTimeInstantTemporalAxes,
     traversalPaths: traversalPathsTo(
-      input.traversalDepth ?? defaultTraversalDepth,
+      input.traversalDepth ?? hashEntityReadDefaultTraversalDepth,
     ),
     includeDrafts: input.includeDrafts === true || namesDraft,
     includePermissions: false,
@@ -192,7 +185,9 @@ const closedTypeIn = (
  * its `archived` property, as pages are, is left out: the request's filter
  * applies only to the matches, not to the entities reached by following links.
  */
-export const hashEntityReadResult = (response: QueryEntitySubgraphQuery) => {
+export const hashEntityReadResult = (
+  response: QueryEntitySubgraphQuery,
+): HashEntityReadResult => {
   const { subgraph, closedMultiEntityTypes, definitions, cursor } =
     deserializeQueryEntitySubgraphResponse(response.queryEntitySubgraph);
   const matched = new Set(
@@ -298,7 +293,7 @@ export type QueryEntitySubgraph = (
 const settlingQueryFailure = async <Result>(
   signal: AbortSignal,
   read: () => Promise<Result>,
-): Promise<Result | { error: string }> => {
+): Promise<Result | HashReadFailure> => {
   try {
     return await read();
   } catch (error) {
@@ -319,27 +314,15 @@ export const createHashEntityReadTool = (
   queryEntitySubgraph: QueryEntitySubgraph,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.queryHashEntities,
-  inputParser: zHashEntityReadInput,
+  inputParser: { parse: parseHashEntityReadInput },
   outputParser: { parse: (value) => value },
   execute: async ({ input, signal }) => {
-    const request = hashEntityReadRequest(zHashEntityReadInput.parse(input));
+    const request = hashEntityReadRequest(parseHashEntityReadInput(input));
     return settlingQueryFailure(signal, async () =>
       hashEntityReadResult(await queryEntitySubgraph(request, signal)),
     );
   },
 });
-
-/**
- * The input Brunch's HASH agent issues for its entity type read, narrowed as
- * for the entity read.
- */
-const zHashEntityTypeReadInput = z.object({
-  entityTypeIds: z.array(z.string()).optional(),
-  webIds: z.array(z.string()).optional(),
-});
-
-/** An entity type read as the agent issued it to the page, narrowed. */
-export type IssuedHashEntityTypeRead = z.infer<typeof zHashEntityTypeReadInput>;
 
 export type QueryEntityTypesRequest = QueryEntityTypesQueryVariables["request"];
 
@@ -351,7 +334,7 @@ export type QueryEntityTypesRequest = QueryEntityTypesQueryVariables["request"];
  * carries the titles of their properties and links.
  */
 export const hashEntityTypeReadRequest = (
-  input: IssuedHashEntityTypeRead,
+  input: HashEntityTypeReadInput,
 ): QueryEntityTypesRequest => ({
   filter: {
     all: [
@@ -377,7 +360,9 @@ export const hashEntityTypeReadRequest = (
  * Each returned type with its properties, keyed by the base URL an entity's
  * properties use, and its links, each titled where the response resolved it.
  */
-export const hashEntityTypeReadResult = (response: QueryEntityTypesQuery) => {
+export const hashEntityTypeReadResult = (
+  response: QueryEntityTypesQuery,
+): HashEntityTypeReadResult => {
   const { entityTypes, closedEntityTypes, definitions, cursor } =
     response.queryEntityTypes;
   const closedById = new Map(
@@ -434,11 +419,11 @@ export const createHashEntityTypeReadTool = (
   queryEntityTypes: QueryEntityTypes,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.queryHashEntityTypes,
-  inputParser: zHashEntityTypeReadInput,
+  inputParser: { parse: parseHashEntityTypeReadInput },
   outputParser: { parse: (value) => value },
   execute: async ({ input, signal }) => {
     const request = hashEntityTypeReadRequest(
-      zHashEntityTypeReadInput.parse(input),
+      parseHashEntityTypeReadInput(input),
     );
     return settlingQueryFailure(signal, async () =>
       hashEntityTypeReadResult(await queryEntityTypes(request, signal)),
@@ -457,7 +442,9 @@ export type HashWebReadUser = Pick<
 };
 
 /** The signed-in user's own web, then each org web they belong to. */
-export const hashWebReadResult = (user: HashWebReadUser | undefined) =>
+export const hashWebReadResult = (
+  user: HashWebReadUser | undefined,
+): HashWebReadResult | HashReadFailure =>
   user === undefined
     ? { error: "No user is signed in to HASH." }
     : {
@@ -490,7 +477,7 @@ export const createHashWebReadTool = (
   currentUser: () => HashWebReadUser | undefined,
 ): PetrinautAiAutomaticTool => ({
   toolName: brunchTools.queryHashWebs,
-  inputParser: z.object({}),
+  inputParser: { parse: parseHashWebReadInput },
   outputParser: { parse: (value) => value },
   execute: () => hashWebReadResult(currentUser()),
 });

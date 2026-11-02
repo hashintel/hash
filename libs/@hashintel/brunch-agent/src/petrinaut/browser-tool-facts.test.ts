@@ -157,7 +157,7 @@ const netRead = (claim: Claim): BrowserSide => ({
   revisionRecord: "before",
 });
 const hashRead: BrowserSide = {
-  claim: "compared-as-issued",
+  claim: "parsed-by-schema",
   automatic: true,
   revisionRecord: "before",
 };
@@ -185,7 +185,7 @@ describe("what the browser decides about each tool the server issues to it", () 
     [
       brunchTools.saveHashNet,
       {
-        claim: "compared-as-issued",
+        claim: "parsed-by-schema",
         automatic: true,
         revisionRecord: "nothing",
       },

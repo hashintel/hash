@@ -16,6 +16,27 @@ export {
 } from "./constants";
 export * from "./conversation-identity";
 export * from "./client-tools";
+export {
+  hashEntityReadDefaultTraversalDepth,
+  vHashEntityReadInput,
+  hashEntityReadMaxTraversalDepth,
+  vHashEntityReadResult,
+  vHashEntityTypeReadInput,
+  vHashEntityTypeReadResult,
+  vHashReadFailure,
+  vHashWebReadInput,
+  vHashWebReadResult,
+  parseHashEntityReadInput,
+  parseHashEntityTypeReadInput,
+  parseHashWebReadInput,
+  type HashEntityReadInput,
+  type HashEntityReadResult,
+  type HashEntityTypeReadInput,
+  type HashEntityTypeReadResult,
+  type HashReadFailure,
+  type HashWebReadResult,
+} from "./hash/graph-reads";
+export { vHashSaveInput, parseHashSaveInput } from "./hash/save";
 export * from "./ledger";
 export {
   canonicalContent,
