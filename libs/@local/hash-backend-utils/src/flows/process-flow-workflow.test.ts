@@ -39,7 +39,10 @@ describe("getStepReadiness", () => {
           stepId: "each",
           description: "",
           over: { kind: "flow-input", inputName: "urls" },
-          steps: [getFileStep("inner")],
+          steps: [
+            getFileStep("inner"),
+            getFileStep("afterInner", [{ stepId: "inner" }]),
+          ],
           collect: { stepId: "inner", outputName: "fileEntity", as: "files" },
           runAfter: [{ stepId: "first" }],
         },
@@ -79,6 +82,7 @@ describe("getStepReadiness", () => {
         kind: "for-each" as const,
         stepId: "each",
         over: { kind: "Text" as const, value: ["https://example.com"] },
+        steps: [runStep("inner~0"), runStep("afterInner~0")],
         ...(collected
           ? {
               collected: {
@@ -136,15 +140,18 @@ describe("getStepReadiness", () => {
       expect(readiness("each", { processed: ["first"] })).toBe("ready");
     });
 
-    it("waits for a for-each step until every item has finished", () => {
-      expect(readiness("afterEach", { processed: ["first", "each"] })).toBe(
-        "waiting",
-      );
+    it("waits for a for-each step until it has collected every item, and every step in each item has finished", () => {
+      const everyStep = ["first", "each", "inner~0", "afterInner~0"];
+
+      expect(readiness("afterEach", { processed: everyStep })).toBe("waiting");
       expect(
         readiness("afterEach", {
-          processed: ["first", "each"],
+          processed: everyStep.filter((stepId) => stepId !== "afterInner~0"),
           collected: true,
         }),
+      ).toBe("waiting");
+      expect(
+        readiness("afterEach", { processed: everyStep, collected: true }),
       ).toBe("ready");
     });
   });
