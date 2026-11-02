@@ -64,32 +64,28 @@ test("a type's page lists each type that extends any of its versions, with the v
 
     const section = typesThatExtend(page, parentName);
     const toggle = section.getByRole("button", {
-      name: `${childName} v2`,
+      name: `${childName} v2, versions v1–v2, extends ${parentName} v1, v2`,
       exact: true,
     });
-    await expect(toggle).toHaveCount(1);
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
-    await expect(
-      toggle.locator("xpath=ancestor::tr[1]").getByRole("cell"),
-    ).toHaveText([`${childName} v2`, "v1–v2", "v1, v2", ""]);
 
     await toggle.click();
 
-    // Each range's open button comes after the row's own, which also opens v2.
+    const ranges = section.getByRole("group", {
+      name: `Version ranges of ${childName}`,
+    });
     for (const version of ["v1", "v2"]) {
       await expect(
-        section
-          .getByRole("button", { name: `Open ${childName} ${version}` })
-          .last()
-          .locator("xpath=ancestor::tr[1]")
-          .getByRole("cell"),
-      ).toHaveText(["", version, version, ""]);
+        ranges.getByRole("button", {
+          name: `Open ${childName} ${version}, the highest version in ${version}`,
+        }),
+      ).toBeVisible();
     }
   }
 
   await openTypePage(page, parentPath);
   await typesThatExtend(page, parentName)
-    .getByRole("button", { name: `Open ${childName} v2` })
+    .getByRole("button", { name: `Open ${childName} v2`, exact: true })
     .click();
 
   // Slides render inside MUI's Backdrop, which is aria-hidden, so role queries cannot see them.
