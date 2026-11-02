@@ -2,49 +2,62 @@ import { useQuery } from "@apollo/client";
 
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { queryDependentEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
+import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 
 import type {
-  QueryDependentEntityTypesQuery,
-  QueryDependentEntityTypesQueryVariables,
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
 import type { BaseUrl } from "@blockprotocol/type-system";
+import type { Filter } from "@local/hash-graph-client";
+
+const useQueryEntityTypes = (filter: Filter, skip: boolean) =>
+  useQuery<QueryEntityTypesQuery, QueryEntityTypesQueryVariables>(
+    queryEntityTypesQuery,
+    {
+      fetchPolicy: "cache-and-network",
+      skip,
+      variables: {
+        request: { filter, temporalAxes: currentTimeInstantTemporalAxes },
+      },
+    },
+  );
 
 /**
- * Loads the types whose own `allOf` names any version of the given type: every
- * version of them, and the latest version of each one whose latest version
- * extends the given type.
+ * Loads the types whose own `allOf` names any version of the given type, in two
+ * parallel queries: every version of them, and the latest version of each one
+ * whose latest version extends the given type.
  */
 export const useDependentTypes = (entityTypeBaseUrl: BaseUrl | null) => {
-  const extendsEntityType = {
+  const extendsEntityType: Filter = {
     equal: [
       { path: ["inheritsFrom(inheritanceDepth=0)", "*", "baseUrl"] },
       { parameter: entityTypeBaseUrl },
     ],
   };
 
-  const { data, error } = useQuery<
-    QueryDependentEntityTypesQuery,
-    QueryDependentEntityTypesQueryVariables
-  >(queryDependentEntityTypesQuery, {
-    fetchPolicy: "cache-and-network",
-    skip: !entityTypeBaseUrl,
-    variables: {
-      allVersions: {
-        filter: extendsEntityType,
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
-      latestVersions: {
-        filter: {
-          all: [
-            extendsEntityType,
-            { equal: [{ path: ["version"] }, { parameter: "latest" }] },
-          ],
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
+  const allVersions = useQueryEntityTypes(
+    extendsEntityType,
+    !entityTypeBaseUrl,
+  );
+  const latestVersions = useQueryEntityTypes(
+    {
+      all: [
+        extendsEntityType,
+        { equal: [{ path: ["version"] }, { parameter: "latest" }] },
+      ],
     },
-  });
+    !entityTypeBaseUrl,
+  );
 
-  return { data, error };
+  return {
+    data:
+      allVersions.data && latestVersions.data
+        ? {
+            allVersions: allVersions.data.queryEntityTypes,
+            latestVersions: latestVersions.data.queryEntityTypes,
+          }
+        : undefined,
+    error: allVersions.error ?? latestVersions.error,
+  };
 };

@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
-import { queryDependentEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
+import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
 import { useDependentTypes } from "./use-dependent-types";
 
 import type { MockedResponse } from "@apollo/client/testing";
@@ -19,6 +19,32 @@ import type { ReactNode } from "react";
 
 const animalBaseUrl =
   "https://example.com/@alice/types/entity-type/animal/" as BaseUrl;
+
+const extendsAnimal = {
+  equal: [
+    { path: ["inheritsFrom(inheritanceDepth=0)", "*", "baseUrl"] },
+    { parameter: animalBaseUrl },
+  ],
+};
+
+const allVersionsRequest = {
+  request: {
+    filter: extendsAnimal,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  },
+};
+
+const latestVersionsRequest = {
+  request: {
+    filter: {
+      all: [
+        extendsAnimal,
+        { equal: [{ path: ["version"] }, { parameter: "latest" }] },
+      ],
+    },
+    temporalAxes: currentTimeInstantTemporalAxes,
+  },
+};
 
 const makeEntityType = (title: string, version: number) =>
   ({
@@ -36,18 +62,12 @@ const makeEntityType = (title: string, version: number) =>
 const dogV1 = makeEntityType("Dog", 1);
 const dogV2 = makeEntityType("Dog", 2);
 
-const queryReturns = (data: {
-  allVersions: EntityTypeWithMetadata[];
-  latestVersions: EntityTypeWithMetadata[];
-}): MockedResponse => ({
-  request: { query: queryDependentEntityTypesQuery },
-  variableMatcher: () => true,
-  result: {
-    data: {
-      allVersions: { entityTypes: data.allVersions },
-      latestVersions: { entityTypes: data.latestVersions },
-    },
-  },
+const queryReturns = (
+  variables: typeof allVersionsRequest | typeof latestVersionsRequest,
+  entityTypes: EntityTypeWithMetadata[],
+): MockedResponse => ({
+  request: { query: queryEntityTypesQuery, variables },
+  result: { data: { queryEntityTypes: { entityTypes } } },
 });
 
 const renderDependentTypes = (
@@ -63,45 +83,26 @@ const renderDependentTypes = (
   });
 
 describe("useDependentTypes", () => {
-  it("asks in one request for every version of each type that directly extends any version of Animal, and for each such type's latest version", async () => {
+  it("asks for every version of each type that directly extends any version of Animal, and for each such type's latest version", async () => {
     const variableMatcher = vi.fn().mockReturnValue(true);
-
-    renderDependentTypes([
-      {
-        ...queryReturns({ allVersions: [], latestVersions: [] }),
-        variableMatcher,
-      },
-    ]);
-
-    const extendsAnimal = {
-      equal: [
-        { path: ["inheritsFrom(inheritanceDepth=0)", "*", "baseUrl"] },
-        { parameter: animalBaseUrl },
-      ],
+    const anyRequest: MockedResponse = {
+      request: { query: queryEntityTypesQuery },
+      variableMatcher,
+      result: { data: { queryEntityTypes: { entityTypes: [] } } },
     };
 
+    renderDependentTypes([anyRequest, anyRequest]);
+
     await waitFor(() => {
-      expect(variableMatcher).toHaveBeenCalledWith({
-        allVersions: {
-          filter: extendsAnimal,
-          temporalAxes: currentTimeInstantTemporalAxes,
-        },
-        latestVersions: {
-          filter: {
-            all: [
-              extendsAnimal,
-              { equal: [{ path: ["version"] }, { parameter: "latest" }] },
-            ],
-          },
-          temporalAxes: currentTimeInstantTemporalAxes,
-        },
-      });
+      expect(variableMatcher).toHaveBeenCalledWith(allVersionsRequest);
+      expect(variableMatcher).toHaveBeenCalledWith(latestVersionsRequest);
     });
   });
 
-  it("returns both results", async () => {
+  it("returns both results once both have arrived", async () => {
     const { result } = renderDependentTypes([
-      queryReturns({ allVersions: [dogV2, dogV1], latestVersions: [dogV2] }),
+      queryReturns(allVersionsRequest, [dogV2, dogV1]),
+      queryReturns(latestVersionsRequest, [dogV2]),
     ]);
 
     await waitFor(() => {
@@ -118,8 +119,9 @@ describe("useDependentTypes", () => {
     renderDependentTypes(
       [
         {
-          ...queryReturns({ allVersions: [dogV1], latestVersions: [dogV1] }),
+          request: { query: queryEntityTypesQuery },
           variableMatcher,
+          result: { data: { queryEntityTypes: { entityTypes: [dogV1] } } },
         },
       ],
       null,
@@ -132,9 +134,12 @@ describe("useDependentTypes", () => {
 
   it("reports a failed query", async () => {
     const { result } = renderDependentTypes([
+      queryReturns(allVersionsRequest, [dogV1]),
       {
-        request: { query: queryDependentEntityTypesQuery },
-        variableMatcher: () => true,
+        request: {
+          query: queryEntityTypesQuery,
+          variables: latestVersionsRequest,
+        },
         error: new Error("Network down"),
       },
     ]);
@@ -142,5 +147,6 @@ describe("useDependentTypes", () => {
     await waitFor(() => {
       expect(result.current.error?.message).toBe("Network down");
     });
+    expect(result.current.data).toBeUndefined();
   });
 });
