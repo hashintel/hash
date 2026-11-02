@@ -26,6 +26,7 @@ derive_more    = { workspace = true, features = ["display", "error"] }
 opentelemetry  = { workspace = true, features = ["metrics"] }
 parquet        = { workspace = true, features = ["arrow", "snap"] }
 reqwest        = { workspace = true }
+serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
 tempfile       = { workspace = true }

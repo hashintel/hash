@@ -4,8 +4,16 @@ use error_stack::Report;
 use hash_crypto::Secret;
 use hash_integrations_definition::SecretReference;
 use reqwest::{Client, Url};
+use serde::Deserialize;
 use serde_json::{Value, json};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
+use type_system::{
+    knowledge::{
+        Entity, Property, PropertyValue,
+        entity::{EntityId, id::EntityUuid},
+    },
+    principal::actor_group::WebId,
+};
 use uuid::Uuid;
 
 use super::SourceError;
@@ -44,6 +52,11 @@ pub struct GraphVaultSecretStore {
 const USER_SECRET_TYPE: &str = "https://hash.ai/@h/types/entity-type/user-secret/v/1";
 const EXPIRED_AT: &str = "https://hash.ai/@h/types/property-type/expired-at/";
 const VAULT_PATH: &str = "https://hash.ai/@h/types/property-type/vault-path/";
+
+#[derive(Deserialize)]
+struct SecretQueryResponse {
+    entities: Vec<Entity>,
+}
 
 impl GraphVaultSecretStore {
     /// Builds an HTTPS-only client with redirects disabled and a finite request timeout.
@@ -127,15 +140,11 @@ impl SecretStore for GraphVaultSecretStore {
         if response.status() != reqwest::StatusCode::OK {
             return Err(Report::new(SourceError::Secret));
         }
-        let body: Value = response
+        let body: SecretQueryResponse = response
             .json()
             .await
             .map_err(|_error| Report::new(SourceError::Secret))?;
-        let entities = body
-            .get("entities")
-            .and_then(Value::as_array)
-            .ok_or_else(|| Report::new(SourceError::Secret))?;
-        let [entity] = entities.as_slice() else {
+        let [entity] = body.entities.as_slice() else {
             return Err(Report::new(SourceError::Secret));
         };
         let path = validate_entity(entity, web_id, reference.secret_entity_uuid)?;
@@ -185,41 +194,33 @@ impl SecretStore for GraphVaultSecretStore {
 }
 
 fn validate_entity(
-    entity: &Value,
+    entity: &Entity,
     web_id: Uuid,
     entity_id: Uuid,
 ) -> Result<&str, Report<SourceError>> {
-    let metadata = entity
-        .get("metadata")
-        .ok_or_else(|| Report::new(SourceError::Secret))?;
-    let expected = format!("{web_id}~{entity_id}");
-    if metadata
-        .pointer("/recordId/entityId")
-        .and_then(Value::as_str)
-        != Some(&expected)
-        || metadata.get("archived").and_then(Value::as_bool) != Some(false)
-        || !metadata
-            .get("entityTypeIds")
-            .and_then(Value::as_array)
-            .is_some_and(|types| types.iter().any(|id| id.as_str() == Some(USER_SECRET_TYPE)))
+    let expected = EntityId {
+        web_id: WebId::new(web_id),
+        entity_uuid: EntityUuid::new(entity_id),
+        draft_id: None,
+    };
+    if entity.metadata.record_id.entity_id != expected
+        || entity.metadata.archived
+        || !entity
+            .metadata
+            .entity_type_ids
+            .iter()
+            .any(|id| id.to_string() == USER_SECRET_TYPE)
     {
         return Err(Report::new(SourceError::Secret));
     }
-    let properties = entity
-        .get("properties")
-        .ok_or_else(|| Report::new(SourceError::Secret))?;
-    let expiry = properties
-        .get(EXPIRED_AT)
-        .and_then(Value::as_str)
+    let expiry = string_property(entity, EXPIRED_AT)
         .and_then(|value| OffsetDateTime::parse(value, &Rfc3339).ok())
         .ok_or_else(|| Report::new(SourceError::Secret))?;
     if expiry <= OffsetDateTime::now_utc() {
         return Err(Report::new(SourceError::Secret));
     }
-    let path = properties
-        .get(VAULT_PATH)
-        .and_then(Value::as_str)
-        .ok_or_else(|| Report::new(SourceError::Secret))?;
+    let path =
+        string_property(entity, VAULT_PATH).ok_or_else(|| Report::new(SourceError::Secret))?;
     let parts: Vec<_> = path.split('/').collect();
     if parts.len() < 4
         || parts.first().copied() != Some("users")
@@ -229,6 +230,18 @@ fn validate_entity(
         return Err(Report::new(SourceError::Secret));
     }
     Ok(path)
+}
+
+fn string_property<'entity>(entity: &'entity Entity, url: &str) -> Option<&'entity str> {
+    entity.properties.iter().find_map(|(key, property)| {
+        if key.as_str() != url {
+            return None;
+        }
+        let Property::Value(PropertyValue::String(value)) = property else {
+            return None;
+        };
+        Some(value.as_str())
+    })
 }
 
 #[cfg(test)]
@@ -245,6 +258,11 @@ mod tests {
     use hash_integrations_definition::SecretReference;
     use reqwest::{Client, Url};
     use serde_json::{Value, json};
+    use type_system::{
+        knowledge::{Entity, Property, PropertyValue, property::PropertyObject},
+        ontology::BaseUrl,
+        principal::actor_group::WebId,
+    };
     use uuid::Uuid;
 
     use super::{
@@ -253,11 +271,24 @@ mod tests {
     };
     use crate::sources::{SourceError, tests::server};
 
-    fn entity(web: Uuid, id: Uuid) -> Value {
-        json!({
-            "metadata": {"recordId": {"entityId": format!("{web}~{id}")}, "archived": false, "entityTypeIds": [USER_SECRET_TYPE]},
+    fn entity(web: Uuid, id: Uuid) -> Entity {
+        let timestamp = "2026-01-01T00:00:00Z";
+        let interval = json!({"start": {"kind": "inclusive", "limit": timestamp}, "end": {"kind": "unbounded"}});
+        serde_json::from_value(json!({
+            "metadata": {
+                "recordId": {"entityId": format!("{web}~{id}"), "editionId": id},
+                "archived": false,
+                "entityTypeIds": [USER_SECRET_TYPE],
+                "temporalVersioning": {"decisionTime": interval, "transactionTime": interval},
+                "provenance": {
+                    "createdById": web,
+                    "createdAtTransactionTime": timestamp,
+                    "createdAtDecisionTime": timestamp,
+                    "edition": {"createdById": web, "actorType": "user", "origin": {"type": "api"}}
+                }
+            },
             "properties": {EXPIRED_AT: "2999-01-01T00:00:00Z", VAULT_PATH: format!("users/{web}/connector/token")}
-        })
+        })).expect("should build a complete Graph entity")
     }
 
     #[tokio::test]
@@ -419,21 +450,16 @@ mod tests {
             validate_entity(&original, web, id).is_ok(),
             "should accept an active secret in the owner's web"
         );
-        for (pointer, value) in [
-            ("/metadata/archived", json!(true)),
-            (
-                "/metadata/recordId/entityId",
-                json!(format!("{}~{id}", Uuid::new_v4())),
-            ),
-            (
-                "/metadata/entityTypeIds",
-                json!(["https://other.example/type/v/1"]),
-            ),
-        ] {
-            let mut invalid = original.clone();
-            *invalid
-                .pointer_mut(pointer)
-                .expect("should find the test property") = value;
+        let mut archived = original.clone();
+        archived.metadata.archived = true;
+        let mut foreign = original.clone();
+        foreign.metadata.record_id.entity_id.web_id = WebId::new(Uuid::new_v4());
+        let mut wrong_type = original.clone();
+        wrong_type.metadata.entity_type_ids = ["https://other.example/type/v/1"
+            .parse()
+            .expect("should parse the unrelated entity type")]
+        .into();
+        for invalid in [archived, foreign, wrong_type] {
             let error = validate_entity(&invalid, web, id)
                 .expect_err("should reject an invalid secret identity");
             assert!(
@@ -448,14 +474,25 @@ mod tests {
             format!("users/{web}/connector/token?x=1"),
         ] {
             let mut invalid = original.clone();
-            invalid["properties"][VAULT_PATH] = json!(path);
+            let mut properties = invalid.properties.properties().clone();
+            properties.insert(
+                BaseUrl::new(VAULT_PATH.to_owned())
+                    .expect("should parse the Vault path property URL"),
+                Property::Value(PropertyValue::String(path)),
+            );
+            invalid.properties = PropertyObject::new(properties);
             assert!(
                 validate_entity(&invalid, web, id).is_err(),
                 "should constrain Vault paths to the owner's web"
             );
         }
         let mut expired = original;
-        expired["properties"][EXPIRED_AT] = json!("2000-01-01T00:00:00Z");
+        let mut properties = expired.properties.properties().clone();
+        properties.insert(
+            BaseUrl::new(EXPIRED_AT.to_owned()).expect("should parse the expiry property URL"),
+            Property::Value(PropertyValue::String("2000-01-01T00:00:00Z".to_owned())),
+        );
+        expired.properties = PropertyObject::new(properties);
         assert!(
             validate_entity(&expired, web, id).is_err(),
             "should reject expired secrets before reading Vault"
