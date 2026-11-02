@@ -92,6 +92,31 @@ const currentRevision = (
   return definition === undefined ? undefined : documentRevisionOf(definition);
 };
 
+/**
+ * The net as a read shows it: its title, its definition at `detail` (the
+ * readers' projections, or all of it), and the document's enabled extensions.
+ */
+export const netReadOutput = ({
+  handle,
+  title,
+  detail,
+}: {
+  readonly handle: PetrinautDocHandle;
+  readonly title: string;
+  readonly detail: NetReaderLevel | "full";
+}) => {
+  const definition = handle.doc();
+  if (!definition)
+    throw new Error("The bound browser document is unavailable.");
+  const copy = structuredClone(definition);
+  return {
+    title,
+    definition: detail === "full" ? copy : projectNetDefinition(copy, detail),
+    extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
+      .extensions,
+  };
+};
+
 /** Petrinaut executes canonical actions; the host records the content revision before each call, and after it when the call changed the document. */
 export const createCanonicalPetrinautHostTools = (
   input: CanonicalPetrinautHostToolsInput,
@@ -143,7 +168,7 @@ export const createCanonicalPetrinautHostTools = (
 
   const readNet = (
     toolName: string,
-    view: (definition: unknown) => unknown,
+    detail: NetReaderLevel | "full",
     toolCallId: string,
     handle: PetrinautDocHandle,
   ) => {
@@ -151,15 +176,7 @@ export const createCanonicalPetrinautHostTools = (
     if (prior.found) return prior.output;
     if (input.replayReadiness.status === "pending")
       throw new Error("Conversation history is not ready.");
-    const definition = handle.doc();
-    if (!definition)
-      throw new Error("The bound browser document is unavailable.");
-    const output = {
-      title: input.readTitle(),
-      definition: view(structuredClone(definition)),
-      extensions: resolvePetrinautHandleCapabilities(handle.capabilities)
-        .extensions,
-    };
+    const output = netReadOutput({ handle, title: input.readTitle(), detail });
     stampBefore(toolCallId, handle);
     toolNames.set(toolCallId, toolName);
     started.set(toolCallId, { toolName, input: {}, output });
@@ -170,12 +187,7 @@ export const createCanonicalPetrinautHostTools = (
     inputParser: petrinautAiTools[getLatestNetDefinitionToolName].inputSchema,
     outputParser: passthrough,
     execute: ({ toolCallId, handle }) =>
-      readNet(
-        getLatestNetDefinitionToolName,
-        (definition) => definition,
-        toolCallId,
-        handle,
-      ),
+      readNet(getLatestNetDefinitionToolName, "full", toolCallId, handle),
   };
   const readerTools: PetrinautAiAutomaticTool[] = (
     Object.keys(netReaderToolNames) as NetReaderLevel[]
@@ -184,12 +196,7 @@ export const createCanonicalPetrinautHostTools = (
     inputParser: { parse: parseNetReaderInput },
     outputParser: passthrough,
     execute: ({ toolCallId, handle }) =>
-      readNet(
-        netReaderToolNames[level],
-        (definition) => projectNetDefinition(definition, level),
-        toolCallId,
-        handle,
-      ),
+      readNet(netReaderToolNames[level], level, toolCallId, handle),
   }));
   const diagnosticsTool: PetrinautAiAutomaticTool = {
     toolName: getNetCompilationErrorsToolName,

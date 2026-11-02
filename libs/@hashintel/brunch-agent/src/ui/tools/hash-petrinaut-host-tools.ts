@@ -3,10 +3,20 @@ import {
   type HashPetrinautToolName,
   hashProcessEditorId,
 } from "@hashintel/brunch-agent";
+import { petrinautExperimentRequestSchema } from "@hashintel/petrinaut-core";
 
-import { executePetrinautAiMutation } from "../chat/ai-assistant-panel";
+import { netDetailSchema } from "../../hash/petrinaut-tools";
+import {
+  applyPetrinautAiCommand,
+  executePetrinautAiMutation,
+  executeSetNetTitle,
+} from "../chat/ai-assistant-panel";
+import { netReadOutput } from "./brunch-petrinaut-tools";
 
-import type { PetrinautAiAutomaticTool } from "../chat/ai-automatic-tool";
+import type {
+  PetrinautAiAutomaticTool,
+  PetrinautAiAutomaticToolExecuteParams,
+} from "../chat/ai-automatic-tool";
 
 type Output = ReturnType<typeof executePetrinautAiMutation>;
 
@@ -48,18 +58,59 @@ const combinedOutput = (
  * the first call. The server refuses any other editor before issuing the
  * call; one arriving here fails as an input the tool doesn't accept would.
  */
+/**
+ * The tools that change no element, each run from the call's input through
+ * the plugin, as the canonical operation it stands for runs.
+ */
+const standIns: Partial<
+  Record<
+    HashPetrinautToolName,
+    (
+      input: Readonly<Record<string, unknown>>,
+      params: PetrinautAiAutomaticToolExecuteParams,
+    ) => unknown
+  >
+> = {
+  petrinaut_get_net: (input, { handle, document }) =>
+    netReadOutput({
+      handle,
+      title: document.title.get(),
+      detail: netDetailSchema.parse(input.detail),
+    }),
+  petrinaut_get_diagnostics: (_input, { readDiagnosticsContext }) =>
+    readDiagnosticsContext(),
+  // Refused without a title setter or while read-only: the refusal is the output.
+  petrinaut_set_net_title: (input, { document }) =>
+    executeSetNetTitle({ input, document }),
+  // Applied at once: it is one undo step.
+  petrinaut_layout_auto: (_input, { document }) =>
+    applyPetrinautAiCommand({
+      aiToolCall: {
+        toolName: "applyAutoLayout",
+        input: { askUserFirst: false },
+      },
+      applyAutoLayout: document.edit.applyAutoLayout,
+    }),
+  // Run as the canonical experiment runs, on its own: Stop doesn't cancel it.
+  petrinaut_create_experiment: (input, { experiments }) =>
+    experiments.run(petrinautExperimentRequestSchema.parse(input)),
+};
+
 const hashPetrinautHostTool = (
   toolName: HashPetrinautToolName,
 ): PetrinautAiAutomaticTool => {
   const { inputSchema, parseCall } = hashPetrinautTools[toolName];
+  const standIn = standIns[toolName];
   return {
     toolName,
     inputParser: inputSchema,
     outputParser: { parse: (value) => value },
-    execute: ({ input, handle, edit }) => {
-      const { editorId, calls } = parseCall(input);
+    execute: (params) => {
+      const { input, handle, edit } = params;
+      const { editorId, input: callInput, calls } = parseCall(input);
       if (editorId !== hashProcessEditorId)
         throw new Error(`The page shows no editor "${editorId}".`);
+      if (standIn !== undefined) return standIn(callInput, params);
       const getDefinition = () => {
         const definition = handle.doc();
         if (!definition)

@@ -17,10 +17,14 @@ import {
   type BrowserToolExecutor,
   browserResultEnvelope,
 } from "../../../shared/conversation/browser-tool-executor.ts";
+import { noNetViewRefusalNaming } from "../../../shared/conversation/net-freshness.ts";
 
 /** Why a call naming another editor was not started. */
 export const unknownEditorRefusal = (editorId: string) =>
   `Not started: editor_id ${JSON.stringify(editorId)} names no open editor; the open editor is ${JSON.stringify(hashProcessEditorId)}.`;
+
+/** Why a change with no current view of the net in context was not started, naming HASH's read. */
+export const hashNoNetViewRefusal = noNetViewRefusalNaming("petrinaut_get_net");
 
 /** HASH's Petrinaut tools, executed by whatever `execute` reaches HASH's page through. */
 export const createHashPetrinautTools = (execute: BrowserToolExecutor) =>

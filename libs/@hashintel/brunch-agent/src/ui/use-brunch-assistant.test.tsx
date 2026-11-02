@@ -180,8 +180,8 @@ const executeAutomaticTool = (
   );
   if (handle === undefined || tool === undefined)
     throw new Error("Missing bound automatic tool");
-  const edit = createTestEditorApi(createPetrinaut({ document: handle }))
-    .document.edit;
+  const api = createTestEditorApi(createPetrinaut({ document: handle }));
+  const { edit } = api.document;
   // Preserve the original tests' accepted no-op edits: the runner must report no document change.
   const acceptedNoOp = () => ({ applied: true as const, value: undefined });
   return tool.execute({
@@ -194,6 +194,8 @@ const executeAutomaticTool = (
       addTransition: acceptedNoOp,
       addArc: acceptedNoOp,
     },
+    document: api.document,
+    experiments: api.experiments,
     readDiagnosticsContext: async () => "",
     signal: new AbortController().signal,
   });

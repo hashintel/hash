@@ -178,6 +178,31 @@ describe("what the server decides about each tool it issues to the browser", () 
     ["petrinaut_create_place", change],
     ["petrinaut_update_arc", change],
     ["petrinaut_remove_place", change],
+    ["petrinaut_set_net_title", change],
+    ["petrinaut_layout_auto", change],
+    // Every detail of HASH's net read is a read of the net.
+    [
+      "petrinaut_get_net",
+      {
+        freshView: false,
+        onFailure: "unchanged",
+        netCall: true,
+        netView: "read",
+        hashAgentShowsString: "as-json",
+      },
+    ],
+    ...(
+      ["petrinaut_get_diagnostics", "petrinaut_create_experiment"] as const
+    ).map((name): [string, ServerSide] => [
+      name,
+      {
+        freshView: false,
+        onFailure: "unchanged",
+        netCall: true,
+        netView: "nothing",
+        hashAgentShowsString: "as-json",
+      },
+    ]),
     [
       "getLatestNetDefinition",
       {

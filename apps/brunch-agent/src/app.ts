@@ -12,9 +12,9 @@ import { Hono } from "hono";
 
 import {
   browserExecutedToolNames,
+  browserToolFacts,
   brunchRoutes,
   brunchTools,
-  netReaderToolNames,
 } from "@hashintel/brunch-agent";
 import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core";
 import {
@@ -193,9 +193,12 @@ const mixedToolNames = new Set([
 ]);
 // Running these beside their dependency would answer from the previous result.
 const dependentToolNames = new Map([
+  // Every read of the net, whichever agent's.
   [
     brunchTools.queryBasis,
-    [getLatestNetDefinitionToolName, ...Object.values(netReaderToolNames)],
+    [...browserExecutedToolNames].filter(
+      (toolName) => browserToolFacts(toolName).observesNet,
+    ),
   ],
   [brunchTools.ledgerCompile, [brunchTools.ledgerCommit]],
   [brunchTools.draftPetrinautExperiment, [getLatestNetDefinitionToolName]],

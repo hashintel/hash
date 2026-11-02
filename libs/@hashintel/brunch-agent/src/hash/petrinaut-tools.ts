@@ -1,8 +1,8 @@
 /**
  * The HASH agent's Petrinaut tools: Brunch's own names over Petrinaut's
- * canonical mutations, each addressed to an editor by `editor_id`. A tool
- * runs one canonical operation, or, for a merged update, several in a fixed
- * order within one call. The HASH agent mounts them in place of the
+ * canonical operations, each addressed to an editor by `editor_id`. A tool
+ * runs one canonical operation, or, for a merged update, several mutations in
+ * a fixed order within one call. The HASH agent mounts them in place of the
  * operations they map, and HASH's process page runs them; the website's agent
  * keeps Petrinaut's names.
  */
@@ -12,6 +12,8 @@ import { z } from "zod";
 import {
   mutationActionInputSchemas,
   petrinautAiTools,
+  petrinautExperimentRequestSchema,
+  setNetTitleToolInputSchema,
   type PetrinautAiMutationToolInput,
   type PetrinautAiMutationToolName,
   type PetrinautAiToolName,
@@ -27,6 +29,9 @@ const editorIdSchema = z.string().meta({
   description: "The editor to act on, as your instructions name it.",
 });
 
+/** How much of the net `petrinaut_get_net` returns. */
+export const netDetailSchema = z.enum(["outline", "structure", "full"]);
+
 /** One call of a canonical operation, as Petrinaut's mutation execution takes it. */
 export type PetrinautOperationCall = {
   [Operation in PetrinautAiMutationToolName]: {
@@ -37,16 +42,18 @@ export type PetrinautOperationCall = {
 
 interface HashPetrinautTool {
   /** Every canonical operation the tool may run, in the order it runs them. */
-  readonly operations: readonly PetrinautAiMutationToolName[];
+  readonly operations: readonly [PetrinautAiToolName, ...PetrinautAiToolName[]];
   readonly description: string;
   readonly inputSchema: z.ZodType<{ editor_id: string }>;
   /**
-   * The editor a call names, and the canonical calls it makes there, in
-   * order. A merged update runs its one step that can fail first, so a call
-   * either changes nothing or completes.
+   * The editor a call names, the rest of its input, and the canonical
+   * mutations it makes there, in order (none for a tool that changes no
+   * element). A merged update runs its one step that can fail first, so a
+   * call either changes nothing or completes.
    */
   readonly parseCall: (input: unknown) => {
     readonly editorId: string;
+    readonly input: Readonly<Record<string, unknown>>;
     readonly calls: readonly PetrinautOperationCall[];
   };
 }
@@ -79,7 +86,37 @@ const mapped = (operation: PetrinautAiMutationToolName): HashPetrinautTool => {
     parseCall: (input) => {
       const { editor_id: editorId, ...operationInput } =
         inputSchema.parse(input);
-      return { editorId, calls: [operationCall(operation, operationInput)] };
+      return {
+        editorId,
+        input: operationInput,
+        calls: [operationCall(operation, operationInput)],
+      };
+    },
+  };
+};
+
+/**
+ * A tool standing in for one canonical operation that changes no element (a
+ * read, the title, the layout, an experiment): HASH's page runs it from the
+ * call's input, with no canonical mutation calls.
+ */
+const standIn = ({
+  operation,
+  description = petrinautAiTools[operation].description,
+  shape,
+}: {
+  readonly operation: PetrinautAiToolName;
+  readonly description?: string;
+  readonly shape: z.core.$ZodShape;
+}): HashPetrinautTool => {
+  const inputSchema = z.strictObject({ ...shape, editor_id: editorIdSchema });
+  return {
+    operations: [operation],
+    description,
+    inputSchema,
+    parseCall: (input) => {
+      const { editor_id: editorId, ...rest } = inputSchema.parse(input);
+      return { editorId, input: rest, calls: [] };
     },
   };
 };
@@ -95,7 +132,10 @@ const merged = <Shape extends z.core.$ZodShape>({
   shape,
   split,
 }: {
-  readonly operations: readonly PetrinautAiMutationToolName[];
+  readonly operations: readonly [
+    PetrinautAiMutationToolName,
+    ...PetrinautAiMutationToolName[],
+  ];
   readonly description: string;
   readonly shape: Shape;
   readonly split: (
@@ -117,6 +157,7 @@ const merged = <Shape extends z.core.$ZodShape>({
       const { editor_id: editorId, ...rest } = inputSchema.parse(input);
       return {
         editorId,
+        input: rest,
         calls: split(rest as z.output<z.ZodObject<Shape>>),
       };
     },
@@ -330,6 +371,35 @@ export const hashPetrinautTools = {
     "Update fields on an existing component instance, its canvas position, or both.",
   ),
   petrinaut_remove_component: mapped("removeComponentInstance"),
+  petrinaut_get_net: standIn({
+    operation: "getLatestNetDefinition",
+    description:
+      "Read the net open in the editor at one level of detail. Returns { title, definition, extensions }: the user-visible net title, the net, and the extension capabilities enabled for this document.",
+    shape: {
+      detail: netDetailSchema.meta({
+        description:
+          "`outline`: ids, names and core properties of places, transitions with their input and output arcs, token types, parameters, equations, scenarios, metrics, subnets and component instances; code and expressions (lambda, kernel, equation and metric code, parameter overrides, component parameter values, scenario initial states other than the shape of an ad-hoc one), canvas positions, visual settings and host metadata are left out. `structure`: every core property, code and expressions included; canvas positions, visualizer code, icons, colours and host metadata left out. `full`: the complete definition, positions and visualizer code included.",
+      }),
+    },
+  }),
+  petrinaut_get_diagnostics: standIn({
+    operation: "getNetCompilationErrors",
+    shape: {},
+  }),
+  petrinaut_set_net_title: standIn({
+    operation: "setNetTitle",
+    shape: setNetTitleToolInputSchema.shape,
+  }),
+  petrinaut_layout_auto: standIn({
+    operation: "applyAutoLayout",
+    description:
+      "Reposition every place and transition of the net the editor shows, using an ELK layered layout. Use it once you have finished adding or restructuring places and transitions. It applies at once, and the user can undo it in one step.",
+    shape: {},
+  }),
+  petrinaut_create_experiment: standIn({
+    operation: "createExperiment",
+    shape: petrinautExperimentRequestSchema.shape,
+  }),
 } as const satisfies Record<string, HashPetrinautTool>;
 
 export type HashPetrinautToolName = keyof typeof hashPetrinautTools;

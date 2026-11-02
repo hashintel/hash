@@ -10,14 +10,7 @@ import {
 } from "./petrinaut-tools";
 
 /** Catalogue operations the HASH agent still mounts under Petrinaut's names, until their own tools exist. */
-const stillCanonical = [
-  "getLatestNetDefinition",
-  "getNetCompilationErrors",
-  "setNetTitle",
-  "applyAutoLayout",
-  "createExperiment",
-  "readPetrinautDoc",
-];
+const stillCanonical = ["readPetrinautDoc"];
 /** Catalogue operations the HASH agent drops for its per-kind tools. */
 const dropped = ["deleteItemsByIds", "commitNodePositions"];
 

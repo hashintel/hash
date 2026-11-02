@@ -14,7 +14,7 @@ import { StrictMode, use, useEffect, useState } from "react";
 import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 
-import { brunchTools } from "@hashintel/brunch-agent";
+import { brunchTools, hashProcessEditorId } from "@hashintel/brunch-agent";
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
   canonicalizePetrinautIds,
@@ -34,6 +34,7 @@ import {
 } from "@hashintel/petrinaut/react";
 
 import { createInBandBrowserCalls } from "../../client/tools/in-band-browser-call";
+import { hashPetrinautHostTools } from "../tools/hash-petrinaut-host-tools";
 import {
   addMappedToolOutput,
   AiAssistantPanel,
@@ -7056,9 +7057,12 @@ describe("AiAssistantPanel host interactive tools", () => {
       });
       expect(execute).toHaveBeenCalledWith({
         input: { value: 2 },
-        // The plugin's refusal-aware edits and the host-bound handle replace
-        // the raw mutations, commands and viewport framing.
+        // The plugin's refusal-aware edits, document and experiments, and the
+        // host-bound handle, replace the raw mutations, commands and viewport
+        // framing.
         edit: api.document.edit,
+        document: api.document,
+        experiments: api.experiments,
         handle,
         readDiagnosticsContext: expect.any(Function) as () => Promise<string>,
         toolCallId: "automatic-call-1",
@@ -7361,6 +7365,61 @@ describe("AI experiment requests", () => {
         inBandBrowserTools: {
           has: (toolName) =>
             toolName === "createExperiment" ||
+            toolName === getLatestNetDefinitionToolName,
+          run,
+        },
+      },
+      initialMessage: "Run an experiment, then read the net",
+      experimentHost: { runExperiment },
+    });
+
+    await waitFor(() => expect(outputs.has("read-call")).toBe(true));
+    expect(runExperiment).toHaveBeenCalledOnce();
+    expect(outputs.has("experiment-call")).toBe(false);
+
+    await act(async () => completion.resolve(result));
+    await waitFor(() => expect(outputs.get("experiment-call")).toEqual(result));
+  });
+
+  test("a HASH experiment run by a host tool also yields the document lane once started", async () => {
+    const completion = Promise.withResolvers<PetrinautExperimentResult>();
+    const runExperiment = vi.fn<PetrinautExperimentHost["runExperiment"]>(
+      () => completion.promise,
+    );
+    const outputs = new Map<string, unknown>();
+    const run = vi.fn<
+      NonNullable<PetrinautAiAssistant["inBandBrowserTools"]>["run"]
+    >(async ({ toolCallId, input }, execute) => {
+      outputs.set(toolCallId, await execute(input));
+    });
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async () =>
+        new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({ type: "start-step" });
+            controller.enqueue({
+              type: "tool-input-available",
+              dynamic: true,
+              toolCallId: "experiment-call",
+              toolName: "petrinaut_create_experiment",
+              input: { editor_id: hashProcessEditorId, ...request },
+            });
+            controller.enqueue({
+              type: "tool-input-available",
+              toolCallId: "read-call",
+              toolName: getLatestNetDefinitionToolName,
+              input: {},
+            });
+          },
+        }),
+    );
+    renderTestPanel({
+      aiAssistant: {
+        transport: { reconnectToStream: async () => null, sendMessages },
+        automaticTools: hashPetrinautHostTools,
+        inBandBrowserTools: {
+          has: (toolName) =>
+            toolName === "petrinaut_create_experiment" ||
             toolName === getLatestNetDefinitionToolName,
           run,
         },

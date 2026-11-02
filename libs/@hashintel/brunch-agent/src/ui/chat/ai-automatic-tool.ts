@@ -1,5 +1,9 @@
 import type { PetrinautDocHandle } from "@hashintel/petrinaut-core";
-import type { PluginEdits } from "@hashintel/petrinaut/ui/plugin";
+import type {
+  PluginDocument,
+  PluginEdits,
+  PluginExperiments,
+} from "@hashintel/petrinaut/ui/plugin";
 
 /**
  * Runtime parser used at a host-owned automatic dynamic-tool boundary.
@@ -10,14 +14,19 @@ export type PetrinautAiAutomaticToolParser<Value> = {
 
 /**
  * Capability passed to a host automatic tool: the plugin's refusal-aware
- * edits, the document handle the host bound the assistant to, and the
- * diagnostics the built-in tools read. Raw mutations, commands and viewport
- * framing are not part of the plugin API, so they are not offered here.
+ * document and experiments, the document handle the host bound the assistant
+ * to, and the diagnostics the built-in tools read. Raw mutations, commands and
+ * viewport framing are not part of the plugin API, so they are not offered
+ * here.
  */
 export type PetrinautAiAutomaticToolExecuteParams<Input = unknown> = {
   input: Input;
   /** Refused while the editor is read-only; never pass as `PetrinautMutations`. */
   edit: PluginEdits;
+  /** The plugin's document: the net and its title, read and changed, refused while read-only. */
+  document: PluginDocument;
+  /** The plugin's experiments: run one on a snapshot of the net. */
+  experiments: PluginExperiments;
   /** The host's bound document handle, from `PetrinautAiAssistant.documentHandle`. */
   handle: PetrinautDocHandle;
   /**
