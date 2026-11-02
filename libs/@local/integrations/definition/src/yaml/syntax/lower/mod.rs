@@ -422,17 +422,22 @@ impl SourceSyntax {
                     "redshift"
                 });
                 let connection_path = path.clone().field("connection");
-                let connection = lowering.text(&source.value.connection, &connection_path)?;
-                let connection = Url::parse(&connection).map_err(|_error| {
-                    lowering.report(
-                        connection_path,
-                        IssueKind::InvalidSource {
-                            reason: "connection must be a valid PostgreSQL URI",
-                        },
-                    )
-                })?;
-                let schema = lowering.text(&source.value.schema, &path.clone().field("schema"))?;
-                let table = lowering.text(&source.value.table, &path.field("table"))?;
+                let connection = lowering
+                    .text(&source.value.connection, &connection_path)
+                    .and_then(|connection| {
+                        Url::parse(&connection).map_err(|_error| {
+                            lowering.report(
+                                connection_path,
+                                IssueKind::InvalidSource {
+                                    reason: "connection must be a valid PostgreSQL URI",
+                                },
+                            )
+                        })
+                    });
+                let schema = lowering.text(&source.value.schema, &path.clone().field("schema"));
+                let table = lowering.text(&source.value.table, &path.field("table"));
+                let (connection, schema, table, primary_key) =
+                    (connection, schema, table, primary_key).try_collect()?;
                 SourceKind::Postgres {
                     source: crate::PostgresSource {
                         connection,
@@ -440,15 +445,14 @@ impl SourceSyntax {
                         table: table.into_boxed_str(),
                         credentials: source.value.credentials,
                     },
-                    primary_key: primary_key?,
+                    primary_key,
                 }
             } else if let Some(endpoint) = &self.rest {
-                let endpoint = endpoint
-                    .value
-                    .lower(lowering, &path.clone().field("rest"))?;
+                let endpoint = endpoint.value.lower(lowering, &path.clone().field("rest"));
+                let (endpoint, primary_key) = (endpoint, primary_key).try_collect()?;
                 SourceKind::Rest {
                     endpoint,
-                    primary_key: primary_key?,
+                    primary_key,
                 }
             } else {
                 return Err(lowering.report(
