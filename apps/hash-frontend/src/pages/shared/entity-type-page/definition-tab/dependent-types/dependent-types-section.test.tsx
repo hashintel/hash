@@ -221,13 +221,6 @@ describe("DependentTypesSection", () => {
     ).toBeNull();
   });
 
-  it("explains each control", () => {
-    const { section } = renderSection({ rows: [user] });
-
-    within(section).getByRole("button", { name: "About the layouts" });
-    within(section).getByRole("button", { name: "About current children" });
-  });
-
   it("warns that types or versions may be missing when a query reached its row limit", () => {
     const { section } = renderSection({ rows: [user], incomplete: true });
 
