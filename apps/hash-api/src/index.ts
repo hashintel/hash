@@ -3,7 +3,6 @@ import { promisify } from "node:util";
 
 import KeyvRedis from "@keyv/redis";
 import * as Sentry from "@sentry/node";
-import bodyParser from "body-parser";
 import cors from "cors";
 import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
 import { RuntimeException } from "effect/Cause";
@@ -606,7 +605,7 @@ const main = async () => {
 
   app.use(express.static("public"));
 
-  const jsonParser = bodyParser.json({
+  const jsonParser = express.json({
     // default is 100kb
     limit: "16mb",
   });

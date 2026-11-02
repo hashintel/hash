@@ -73,7 +73,6 @@
     "rollup": "4.59.0",
     "tslib": "2.8.1",
     "typescript": "catalog:",
-    "vite-plugin-wasm-pack": "0.1.12",
     "vitest": "catalog:"
   }
 }
