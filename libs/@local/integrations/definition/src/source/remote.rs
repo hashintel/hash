@@ -130,7 +130,7 @@ pub struct RestSource {
     pub rate_limit_ms: u64,
 }
 
-const fn default_page_size() -> NonZeroU64 {
+pub(crate) const fn default_page_size() -> NonZeroU64 {
     NonZeroU64::new(100).expect("the page size should be nonzero")
 }
 

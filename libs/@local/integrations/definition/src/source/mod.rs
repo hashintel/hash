@@ -3,6 +3,7 @@ mod remote;
 use alloc::{boxed::Box, collections::BTreeSet, string::String};
 use core::{array, mem};
 
+pub(crate) use self::remote::default_page_size;
 pub use self::remote::{Pagination, PostgresSource, RestAuth, RestSource, SecretReference};
 use crate::name::{CheckpointName, ColumnName};
 

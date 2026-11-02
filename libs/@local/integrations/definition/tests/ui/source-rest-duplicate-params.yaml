@@ -1,0 +1,11 @@
+connector: demo
+vars:
+  PARAM: status
+sources:
+  api:
+    rest:
+      url: https://api.example.org
+      params:
+        status: active
+        ${PARAM}: inactive
+    primaryKey: [id]

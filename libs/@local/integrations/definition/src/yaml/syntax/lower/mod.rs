@@ -4,6 +4,7 @@
 //! and their issues combined, so one issue does not hide issues elsewhere in the definition.
 
 mod pipelines;
+mod rest;
 
 use alloc::{
     boxed::Box,
@@ -442,11 +443,9 @@ impl SourceSyntax {
                     primary_key: primary_key?,
                 }
             } else if let Some(endpoint) = &self.rest {
-                let mut endpoint = endpoint.value.clone();
-                endpoint.url = lowering.resolve(&endpoint.url, path)?;
-                for value in endpoint.params.values_mut() {
-                    *value = lowering.resolve(value, path)?;
-                }
+                let endpoint = endpoint
+                    .value
+                    .lower(lowering, &path.clone().field("rest"))?;
                 SourceKind::Rest {
                     endpoint,
                     primary_key: primary_key?,

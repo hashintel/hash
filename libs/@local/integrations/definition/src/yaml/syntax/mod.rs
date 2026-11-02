@@ -7,13 +7,14 @@ mod lower;
 mod spanned_map;
 
 use alloc::{boxed::Box, string::String, vec::Vec};
-use core::fmt;
+use core::{fmt, num::NonZeroU64};
 
 use serde::{
     Deserialize,
     de::{Deserializer, MapAccess, Visitor, value::MapAccessDeserializer},
 };
 use serde_saphyr::Spanned;
+use uuid::Uuid;
 
 use self::spanned_map::SpannedMap;
 
@@ -44,13 +45,60 @@ struct PostgresSourceSyntax {
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct RestSourceSyntax {
+    url: Spanned<String>,
+    #[serde(default)]
+    params: SpannedMap<Spanned<String>>,
+    auth: Option<Spanned<RestAuthSyntax>>,
+    results_field: Option<Spanned<String>>,
+    pagination: Option<Spanned<PaginationSyntax>>,
+    #[serde(default = "crate::source::default_page_size")]
+    page_size: NonZeroU64,
+    max_pages: Option<NonZeroU64>,
+    #[serde(default)]
+    rate_limit_ms: u64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct RestAuthSyntax {
+    #[serde(rename = "type")]
+    kind: RestAuthKindSyntax,
+    name: Option<Spanned<String>>,
+    secret_entity_uuid: Uuid,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum RestAuthKindSyntax {
+    Header,
+    Bearer,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PaginationSyntax {
+    #[serde(rename = "type")]
+    kind: PaginationKindSyntax,
+    field: Option<Spanned<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+enum PaginationKindSyntax {
+    NextLink,
+    Offset,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct SourceSyntax {
     sql: Option<Spanned<String>>,
     checkpoint: Option<Spanned<String>>,
     local: Option<Spanned<String>>,
     postgres: Option<Spanned<PostgresSourceSyntax>>,
     redshift: Option<Spanned<PostgresSourceSyntax>>,
-    rest: Option<Spanned<crate::RestSource>>,
+    rest: Option<Spanned<RestSourceSyntax>>,
     primary_key: Option<Spanned<Vec<Spanned<String>>>>,
     coverage: Option<CoverageSyntax>,
 }
