@@ -59,8 +59,6 @@ export default defineConfig(async () => ({
         rehypePlugins: [
           rehypeSlug,
           rehypeInlineDiagrams,
-          // Formulas render here, so a page ships no math runtime; one
-          // KaTeX cannot parse stops the build instead of shipping in red.
           rehypeFormulas,
           [
             rehypeShiki,

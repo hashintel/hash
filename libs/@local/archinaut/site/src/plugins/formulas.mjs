@@ -15,46 +15,24 @@ import katex from "katex";
 import { SKIP, visit } from "unist-util-visit";
 
 /**
- * @param {import("hast").Element} element
- * @returns {string[]}
- */
-const classesOf = (element) =>
-  Array.isArray(element.properties.className)
-    ? element.properties.className.map(String)
-    : [];
-
-/**
- * @param {import("hast").Element} element
- * @returns {string}
- */
-const textOf = (element) => {
-  let text = "";
-  visit(element, "text", (node) => {
-    text += node.value;
-  });
-  return text;
-};
-
-/**
- * The formula an element carries, if it is one `remark-math` emitted: the
- * `code` of a `$…$` span, or the `pre` around the `code` of a `$$` block.
+ * The formula an element carries, if `remark-math` emitted it: a `$…$` span
+ * is a `code.math-inline`, a `$$` block the `pre` around a `code.math-display`.
  *
  * @param {import("hast").Element} element
  * @returns {{ tex: string; display: boolean } | null}
  */
 const formulaOf = (element) => {
-  if (element.tagName === "pre") {
-    const [child] = element.children;
-    return child?.type === "element" &&
-      child.tagName === "code" &&
-      classesOf(child).includes("math-display")
-      ? { tex: textOf(child), display: true }
-      : null;
+  const display = element.tagName === "pre";
+  const code = display ? element.children[0] : element;
+  const classes =
+    code?.type === "element" ? (code.properties.className ?? []) : [];
+  if (!classes.includes(display ? "math-display" : "math-inline")) {
+    return null;
   }
-  return element.tagName === "code" &&
-    classesOf(element).includes("math-inline")
-    ? { tex: textOf(element), display: false }
-    : null;
+  const tex = code.children
+    .map((child) => (child.type === "text" ? child.value : ""))
+    .join("");
+  return { tex, display };
 };
 
 /**

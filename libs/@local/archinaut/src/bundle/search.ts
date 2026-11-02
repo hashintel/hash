@@ -40,38 +40,20 @@ const texToWords = (tex: string): string =>
   tex.replace(/\\[a-zA-Z]+|\\.|[{}^_&]/gu, " ");
 
 /**
- * The lines with their mathematics reduced to words: a `$$` fence goes,
- * the lines between two and every `$…$` span are reduced by `texToWords`.
- * Fenced code is left alone, since a `$` there is code.
+ * Fenced code, a `$$` block and a `$…$` span, in one pattern. Code is kept
+ * as written, since a `$` there is code; a formula is reduced to its words.
  */
-const reduceMath = (lines: string[]): string[] => {
-  const result: string[] = [];
-  let inFence = false;
-  let inMath = false;
-  for (const line of lines) {
-    if (/^\s*(```|~~~)/u.test(line)) {
-      inFence = !inFence;
-    }
-    if (inFence) {
-      result.push(line);
-      continue;
-    }
-    if (/^\s*\$\$\s*$/u.test(line)) {
-      inMath = !inMath;
-      continue;
-    }
-    result.push(
-      inMath
-        ? texToWords(line)
-        : line
-            .replace(/\$\$([^$]+)\$\$/gu, (_match, tex: string) =>
-              texToWords(tex),
-            )
-            .replace(/\$([^$]+)\$/gu, (_match, tex: string) => texToWords(tex)),
-    );
-  }
-  return result;
-};
+const codeOrMathPattern =
+  /(```|~~~)[\s\S]*?\1|\$\$([\s\S]*?)\$\$|\$([^$\n]+)\$/gu;
+
+const reduceMath = (text: string): string =>
+  text.replace(
+    codeOrMathPattern,
+    (match, _fence, block?: string, span?: string) => {
+      const tex = block ?? span;
+      return tex === undefined ? match : texToWords(tex);
+    },
+  );
 
 /**
  * An MDX section's lines as the text a reader sees: no ESM, no JSX, no
@@ -80,7 +62,8 @@ const reduceMath = (lines: string[]): string[] => {
  * joined, since a component with its props on several lines is one tag.
  */
 export const plainTextOf = (lines: string[]): string =>
-  reduceMath(lines)
+  reduceMath(lines.join("\n"))
+    .split("\n")
     .filter((line) => !/^\s*(import|export)\s/u.test(line))
     .filter((line) => !/^\s*(```|~~~)/u.test(line))
     .filter((line) => !/^\s*:::/u.test(line))
