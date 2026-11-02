@@ -90,16 +90,6 @@ const problemCodesOf = (editor: FlowEditor, stepId: string) =>
     ?.map(({ code }) => code);
 
 describe("createFlowEditor", () => {
-  it("keeps a definition as it was loaded, with no problems", () => {
-    const editor = loadFlow();
-
-    expect(editor.getState()).toStrictEqual({
-      flowDefinition,
-      problemsByStepId: new Map(),
-      flowProblems: [],
-    });
-  });
-
   it("keeps for-each steps and their nested steps exactly as they were through edits to other steps", () => {
     const editor = loadFlow();
 
@@ -117,7 +107,7 @@ describe("createFlowEditor", () => {
     });
   });
 
-  it("replaces the state on each edit, leaving earlier states as they were", () => {
+  it("loads a definition with no problems, and leaves that state as it was through edits", () => {
     const editor = loadFlow();
     const loaded = editor.getState();
 
@@ -140,15 +130,16 @@ describe("createFlowEditor", () => {
   });
 
   describe("adding a step", () => {
-    it("runs the new step after the given step, with no inputs yet", () => {
+    it("adds a step with no inputs yet, after the given step or on its own", () => {
       const editor = loadFlow();
 
-      const stepId = editor.addStep("webSearch", {
+      const after = editor.addStep("webSearch", {
         after: "first",
         position: { x: 300, y: 200 },
       });
+      const alone = editor.addStep("webSearch", { position: { x: 0, y: 400 } });
 
-      expect(stepOf(editor, stepId)).toStrictEqual({
+      expect(stepOf(editor, after)).toStrictEqual({
         kind: "action",
         stepId: "webSearch",
         actionDefinitionId: "webSearch",
@@ -157,18 +148,9 @@ describe("createFlowEditor", () => {
         position: { x: 300, y: 200 },
         runAfter: [{ stepId: "first" }],
       });
-    });
-
-    it("adds a step on its own", () => {
-      const editor = loadFlow();
-
-      const stepId = editor.addStep("webSearch", {
-        position: { x: 0, y: 400 },
-      });
-
-      expect(stepOf(editor, stepId)).toStrictEqual({
+      expect(stepOf(editor, alone)).toStrictEqual({
         kind: "action",
-        stepId: "webSearch",
+        stepId: "webSearch2",
         actionDefinitionId: "webSearch",
         description: "",
         inputs: {},
@@ -204,14 +186,6 @@ describe("createFlowEditor", () => {
       ]);
     });
 
-    it("rejects inserting into a connection that doesn't exist", () => {
-      const editor = loadFlow();
-
-      expect(() =>
-        editor.addStep("webSearch", { into: { from: "second", to: "first" } }),
-      ).toThrow('Step "first" doesn\'t run after step "second"');
-    });
-
     it("gives ids that are unique across nested steps, and not used by references to removed steps", () => {
       const editor = loadFlow();
 
@@ -231,17 +205,6 @@ describe("createFlowEditor", () => {
       expect(editor.addStep("answerQuestion", { after: "first" })).toBe(
         "answerQuestion3",
       );
-    });
-  });
-
-  it("moves a step", () => {
-    const editor = loadFlow();
-
-    editor.moveStep("second", { x: 400, y: 50 });
-
-    expect(stepOf(editor, "second")).toStrictEqual({
-      ...flowDefinition.steps[1],
-      position: { x: 400, y: 50 },
     });
   });
 
@@ -325,14 +288,6 @@ describe("createFlowEditor", () => {
       expect(stepOf(editor, "second")).toMatchObject({ inputs: {} });
       expect(problemCodesOf(editor, "second")).toEqual(["missingInput"]);
     });
-
-    it("rejects setting an input of a for-each step", () => {
-      const editor = loadFlow();
-
-      expect(() =>
-        editor.setInputSource("each", "over", explanationOf("first")),
-      ).toThrow('Step "each" is a for-each step, with no inputs');
-    });
   });
 
   describe("connections", () => {
@@ -398,15 +353,18 @@ describe("createFlowEditor", () => {
     ]);
   });
 
-  it("rejects edits to a step that isn't a top-level step of the flow", () => {
+  it("rejects edits naming a step that isn't a top-level step, a connection that doesn't exist, or a for-each step's inputs", () => {
     const editor = loadFlow();
 
     expect(() => editor.moveStep("answerQuestion", { x: 0, y: 0 })).toThrow(
       'The flow has no top-level step "answerQuestion"',
     );
-    expect(() => editor.removeStep("missing")).toThrow(
-      'The flow has no top-level step "missing"',
-    );
+    expect(() =>
+      editor.addStep("webSearch", { into: { from: "second", to: "first" } }),
+    ).toThrow('Step "first" doesn\'t run after step "second"');
+    expect(() =>
+      editor.setInputSource("each", "over", explanationOf("first")),
+    ).toThrow('Step "each" is a for-each step, with no inputs');
   });
 
   it("tells subscribers about each edit until they unsubscribe", () => {

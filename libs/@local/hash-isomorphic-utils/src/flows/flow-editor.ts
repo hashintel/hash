@@ -4,7 +4,6 @@ import {
   validateFlowDefinition,
 } from "./validate-flow-definition.js";
 
-import type { ActionDefinitions } from "./step-shapes.js";
 import type {
   ActionStepDefinition,
   FlowDefinition,
@@ -35,7 +34,6 @@ export type FlowEditorState = {
 
 const checkFlowDefinition = (
   flowDefinition: FlowDefinition<string>,
-  actionDefinitions: ActionDefinitions | undefined,
 ): FlowEditorState => {
   const problemsByStepId = new Map<
     string,
@@ -45,7 +43,7 @@ const checkFlowDefinition = (
 
   for (const problem of addStepIdsToDiagnostics(
     flowDefinition,
-    validateFlowDefinition(flowDefinition, { actionDefinitions }).diagnostics,
+    validateFlowDefinition(flowDefinition).diagnostics,
   )) {
     if (problem.stepId === undefined) {
       flowProblems.push(problem);
@@ -132,7 +130,7 @@ const setRunAfter = (
   return updated;
 };
 
-/** Removes the connections from the given steps, at any depth, leaving every other step as it was. */
+/** Removes the connections from the given steps, at any depth. */
 const removeConnectionsFrom = (
   steps: StepDefinition<string>[],
   stepIds: Set<string>,
@@ -165,21 +163,12 @@ const replaceStep = (
  * Edits never fail because a step is half-built: its problems are listed instead. They throw only when what they
  * name isn't there: a top-level step, the connection to insert a step into, or an action step's inputs.
  */
-export const createFlowEditor = (
-  flowDefinition: FlowDefinition<string>,
-  options: {
-    /** The actions steps can run. Defaults to every action; tests pass their own. */
-    actionDefinitions?: ActionDefinitions;
-  } = {},
-) => {
-  let state = checkFlowDefinition(flowDefinition, options.actionDefinitions);
+export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
+  let state = checkFlowDefinition(flowDefinition);
   const listeners = new Set<() => void>();
 
   const setSteps = (steps: StepDefinition<string>[]) => {
-    state = checkFlowDefinition(
-      { ...state.flowDefinition, steps },
-      options.actionDefinitions,
-    );
+    state = checkFlowDefinition({ ...state.flowDefinition, steps });
 
     for (const listener of listeners) {
       listener();
