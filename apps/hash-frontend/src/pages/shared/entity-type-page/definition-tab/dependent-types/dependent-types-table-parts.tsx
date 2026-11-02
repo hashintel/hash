@@ -1,9 +1,14 @@
 import { Box, ButtonBase, Typography } from "@mui/material";
+import { useId } from "react";
 
 import { EntityOrTypeIcon } from "@hashintel/design-system";
 
 import { ArrowUpRightRegularIcon } from "../../../../../shared/icons/arrow-up-right-regular-icon";
-import { openColumnWidth, rowHeight } from "./dependent-types-table-layout";
+import {
+  openColumnWidth,
+  rowHeight,
+  visuallyHidden,
+} from "./dependent-types-table-layout";
 
 import type { EntityTypeWithMetadata } from "@blockprotocol/type-system";
 import type { ReactNode } from "react";
@@ -51,55 +56,68 @@ export const HeaderRow = ({
 
 export const OpenTypeButton = ({
   label,
+  description,
   onClick,
-  onFocus,
+  onFocusVisible,
   onBlur,
 }: {
   label: string;
+  /** Read out after the label, for a description shown elsewhere only on hover. */
+  description?: string;
   onClick: () => void;
-  onFocus?: () => void;
+  onFocusVisible?: () => void;
   onBlur?: () => void;
-}) => (
-  <ButtonBase
-    aria-label={label}
-    disableRipple
-    onClick={(event) => {
-      event.stopPropagation();
-      onClick();
-    }}
-    onFocus={onFocus}
-    onBlur={onBlur}
-    sx={({ palette }) => ({
-      position: "absolute",
-      right: 0,
-      top: 0,
-      width: openColumnWidth,
-      height: rowHeight,
-      borderRadius: 1,
-      color: palette.gray[70],
-      "& .open-type-button-dot": {
-        width: 28,
-        height: 28,
+}) => {
+  const descriptionId = useId();
+
+  return (
+    <ButtonBase
+      aria-label={label}
+      aria-describedby={description ? descriptionId : undefined}
+      disableRipple
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      onFocusVisible={onFocusVisible}
+      onBlur={onBlur}
+      sx={({ palette }) => ({
+        position: "absolute",
+        right: 0,
+        top: 0,
+        width: openColumnWidth,
+        height: rowHeight,
         borderRadius: 1,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      },
-      "&:hover .open-type-button-dot": {
-        background: palette.gray[20],
-        color: palette.blue[70],
-      },
-      "&.Mui-focusVisible": {
-        outline: `2px solid ${palette.blue[70]}`,
-        outlineOffset: -4,
-      },
-    })}
-  >
-    <span className="open-type-button-dot">
-      <ArrowUpRightRegularIcon sx={{ fontSize: 14 }} />
-    </span>
-  </ButtonBase>
-);
+        color: palette.gray[70],
+        "& .open-type-button-dot": {
+          width: 28,
+          height: 28,
+          borderRadius: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        "&:hover .open-type-button-dot": {
+          background: palette.gray[20],
+          color: palette.blue[70],
+        },
+        "&.Mui-focusVisible": {
+          outline: `2px solid ${palette.blue[70]}`,
+          outlineOffset: -4,
+        },
+      })}
+    >
+      <span className="open-type-button-dot">
+        <ArrowUpRightRegularIcon sx={{ fontSize: 14 }} />
+      </span>
+      {description ? (
+        <Box component="span" id={descriptionId} sx={visuallyHidden}>
+          {description}
+        </Box>
+      ) : null}
+    </ButtonBase>
+  );
+};
 
 /** The vertical line and elbow that join a nested row to the row above it. */
 export const TreeLines = ({ last }: { last: boolean }) => (

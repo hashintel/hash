@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { ThemeProvider } from "@mui/material";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -136,6 +137,22 @@ const expand = (name: string) => {
   });
 };
 
+// jsdom never matches `:focus-visible`, which MUI checks to tell keyboard focus from a mouse press.
+const focusWithKeyboard = (element: HTMLElement) => {
+  const matches = element.matches.bind(element);
+  const focusVisible = vi
+    .spyOn(element, "matches")
+    .mockImplementation(
+      (selector) => selector === ":focus-visible" || matches(selector),
+    );
+
+  act(() => {
+    element.focus();
+  });
+
+  focusVisible.mockRestore();
+};
+
 describe("DependentTypesByVersionTable", () => {
   afterEach(cleanup);
 
@@ -192,9 +209,9 @@ describe("DependentTypesByVersionTable", () => {
     expect(
       [...group.children].map((subRow) => subRow.textContent.trim()),
     ).toEqual([
-      "Charityv6v3–v4, v6",
-      "Public Companyv3v1",
-      "Sole TraderFormerv1–v3",
+      "Charityv6v3–v4, v6 A Charity",
+      "Public Companyv3v1 A Public Company",
+      "Sole TraderFormerv1–v3 A Sole Trader",
     ]);
 
     fireEvent.click(
@@ -234,7 +251,7 @@ describe("DependentTypesByVersionTable", () => {
       name: "Open Sole Trader v3, the highest version that extends Company v2",
     });
     expect(open.parentElement?.textContent.trim()).toBe(
-      "Sole TraderFormerv1–v3",
+      "Sole TraderFormerv1–v3 A Sole Trader",
     );
 
     fireEvent.click(open);
@@ -246,6 +263,18 @@ describe("DependentTypesByVersionTable", () => {
     renderTable();
 
     fireEvent.mouseOver(within(expand(v1Name)).getByText("Charity"));
+
+    expect((await screen.findByRole("tooltip")).textContent).toBe("A Charity");
+  });
+
+  it("describes a type's open button with the type's description, and shows it when the button gets keyboard focus", async () => {
+    renderTable();
+
+    const open = within(expand(v1Name)).getByRole("button", {
+      name: "Open Charity v2, the highest version that extends Company v1",
+      description: "A Charity",
+    });
+    focusWithKeyboard(open);
 
     expect((await screen.findByRole("tooltip")).textContent).toBe("A Charity");
   });
