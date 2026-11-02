@@ -47,7 +47,7 @@ export const DependentTypes = ({
   return (
     <DependentTypesSection
       entityType={entityType}
-      parentLatestVersion={
+      knownParentLatestVersion={
         latestVersion ? Number.parseInt(latestVersion.toString(), 10) : null
       }
       rows={dependentTypeRows?.rows}
