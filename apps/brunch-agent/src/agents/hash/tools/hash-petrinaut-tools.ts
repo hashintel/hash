@@ -30,11 +30,11 @@ export const hashNoNetViewRefusal = noNetViewRefusalNaming("petrinaut_get_net");
 export const createHashPetrinautTools = (execute: BrowserToolExecutor) =>
   (Object.keys(hashPetrinautTools) as HashPetrinautToolName[]).map(
     (toolName) => {
-      const { description, inputSchema } = hashPetrinautTools[toolName];
+      const { description, zInput } = hashPetrinautTools[toolName];
       return defineTool({
         name: toolName,
         description,
-        input: inputSchema,
+        input: zInput,
         run: async ({ data, toolCallId, signal }) => {
           if (data.editor_id !== hashProcessEditorId)
             throw new Error(unknownEditorRefusal(data.editor_id));

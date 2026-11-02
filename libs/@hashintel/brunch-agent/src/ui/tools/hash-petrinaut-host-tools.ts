@@ -8,7 +8,7 @@ import {
   readPetrinautDocToolInputSchema,
 } from "@hashintel/petrinaut-core";
 
-import { netDetailSchema } from "../../hash/petrinaut-tools";
+import { zNetDetail } from "../../hash/petrinaut-tools";
 import {
   applyPetrinautAiCommand,
   executePetrinautAiMutation,
@@ -79,7 +79,7 @@ const standIns: Partial<
     netReadOutput({
       handle,
       title: document.title.get(),
-      detail: netDetailSchema.parse(input.detail),
+      detail: zNetDetail.parse(input.detail),
     }),
   petrinaut_get_diagnostics: (_input, { readDiagnosticsContext }) =>
     readDiagnosticsContext(),
@@ -106,11 +106,11 @@ const standIns: Partial<
 const hashPetrinautHostTool = (
   toolName: HashPetrinautToolName,
 ): PetrinautAiAutomaticTool => {
-  const { inputSchema, parseCall } = hashPetrinautTools[toolName];
+  const { zInput, parseCall } = hashPetrinautTools[toolName];
   const standIn = standIns[toolName];
   return {
     toolName,
-    inputParser: inputSchema,
+    inputParser: zInput,
     outputParser: { parse: (value) => value },
     execute: (params) => {
       const { input, handle, edit } = params;

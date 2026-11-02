@@ -26,12 +26,12 @@ import {
  */
 export const hashProcessEditorId = "process-editor";
 
-const editorIdSchema = z.string().meta({
+const zEditorId = z.string().meta({
   description: "The editor to act on, as your instructions name it.",
 });
 
 /** How much of the net `petrinaut_get_net` returns. */
-export const netDetailSchema = z.enum(["outline", "structure", "full"]);
+export const zNetDetail = z.enum(["outline", "structure", "full"]);
 
 /** One call of a canonical operation, as Petrinaut's mutation execution takes it. */
 export type PetrinautOperationCall = {
@@ -45,7 +45,7 @@ interface HashPetrinautTool {
   /** Every canonical operation the tool may run, in the order it runs them. */
   readonly operations: readonly [PetrinautAiToolName, ...PetrinautAiToolName[]];
   readonly description: string;
-  readonly inputSchema: z.ZodType<{ editor_id: string }>;
+  readonly zInput: z.ZodType<{ editor_id: string }>;
   /**
    * The editor a call names, the rest of its input, and the canonical
    * mutations it makes there, in order (none for a tool that changes no
@@ -77,16 +77,15 @@ const operationCall = (
 
 /** A tool that runs one canonical operation, with the operation's input and description. */
 const mapped = (operation: PetrinautAiMutationToolName): HashPetrinautTool => {
-  const inputSchema = mutationActionInputSchemas[operation].extend({
-    editor_id: editorIdSchema,
+  const zInput = mutationActionInputSchemas[operation].extend({
+    editor_id: zEditorId,
   });
   return {
     operations: [operation],
     description: petrinautAiTools[operation].description,
-    inputSchema,
+    zInput,
     parseCall: (input) => {
-      const { editor_id: editorId, ...operationInput } =
-        inputSchema.parse(input);
+      const { editor_id: editorId, ...operationInput } = zInput.parse(input);
       return {
         editorId,
         input: operationInput,
@@ -110,13 +109,13 @@ const standIn = ({
   readonly description?: string;
   readonly shape: z.core.$ZodShape;
 }): HashPetrinautTool => {
-  const inputSchema = z.strictObject({ ...shape, editor_id: editorIdSchema });
+  const zInput = z.strictObject({ ...shape, editor_id: zEditorId });
   return {
     operations: [operation],
     description,
-    inputSchema,
+    zInput,
     parseCall: (input) => {
-      const { editor_id: editorId, ...rest } = inputSchema.parse(input);
+      const { editor_id: editorId, ...rest } = zInput.parse(input);
       return { editorId, input: rest, calls: [] };
     },
   };
@@ -144,18 +143,18 @@ const merged = <Shape extends z.core.$ZodShape>({
   ) => readonly PetrinautOperationCall[];
 }): HashPetrinautTool => {
   // Generic in `Shape`, zod can't see `editor_id` in the object's output.
-  const inputSchema = z.strictObject({
+  const zInput = z.strictObject({
     ...shape,
-    editor_id: editorIdSchema,
+    editor_id: zEditorId,
   }) as unknown as z.ZodType<
     z.output<z.ZodObject<Shape>> & { editor_id: string }
   >;
   return {
     operations,
     description,
-    inputSchema,
+    zInput,
     parseCall: (input) => {
-      const { editor_id: editorId, ...rest } = inputSchema.parse(input);
+      const { editor_id: editorId, ...rest } = zInput.parse(input);
       return {
         editorId,
         input: rest,
@@ -167,7 +166,7 @@ const merged = <Shape extends z.core.$ZodShape>({
 
 const schemas = mutationActionInputSchemas;
 
-const nodeIdSchemas = {
+const zNodeIds = {
   placeId: schemas.updatePlace.shape.placeId,
   transitionId: schemas.updateTransition.shape.transitionId,
   instanceId: schemas.updateComponentInstance.shape.instanceId,
@@ -183,14 +182,14 @@ const mergedNodeUpdate = (
     | "updatePlacePosition"
     | "updateTransitionPosition"
     | "updateComponentInstancePosition",
-  key: keyof typeof nodeIdSchemas,
+  key: keyof typeof zNodeIds,
   description: string,
 ) =>
   merged({
     operations: [update, position],
     description,
     shape: {
-      [key]: nodeIdSchemas[key],
+      [key]: zNodeIds[key],
       update: schemas[update].shape.update.optional(),
       position: schemas[position].shape.position.optional(),
       targetSubnetId: schemas[update].shape.targetSubnetId,
@@ -377,7 +376,7 @@ export const hashPetrinautTools = {
     description:
       "Read the net open in the editor at one level of detail. Returns { title, definition, extensions }: the user-visible net title, the net, and the extension capabilities enabled for this document.",
     shape: {
-      detail: netDetailSchema.meta({
+      detail: zNetDetail.meta({
         description:
           "`outline`: ids, names and core properties of places, transitions with their input and output arcs, token types, parameters, equations, scenarios, metrics, subnets and component instances; code and expressions (lambda, kernel, equation and metric code, parameter overrides, component parameter values, scenario initial states other than the shape of an ad-hoc one), canvas positions, visual settings and host metadata are left out. `structure`: every core property, code and expressions included; canvas positions, visualizer code, icons, colours and host metadata left out. `full`: the complete definition, positions and visualizer code included.",
       }),

@@ -104,7 +104,7 @@ export const createInBandBrowserCalls = (input: {
         claimSignal.addEventListener("abort", onAbort, { once: true });
       });
     }
-    const inputParser = browserExecutedTools.get(call.toolName)?.inputSchema;
+    const inputParser = browserExecutedTools.get(call.toolName)?.inputParser;
     if (
       !issued ||
       issued.toolName !== call.toolName ||

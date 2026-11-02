@@ -60,7 +60,7 @@ export interface CanonicalPetrinautCall {
 
 interface BrowserToolDescriptor extends BrowserToolFacts {
   /** Parses the issued input; the browser compares the model's and the issued input parsed. */
-  readonly inputSchema: { readonly parse: (input: unknown) => unknown };
+  readonly inputParser: { readonly parse: (input: unknown) => unknown };
   /** The canonical Petrinaut calls a call with this input makes, in order; none for other tools. */
   readonly canonicalCalls: (
     input: unknown,
@@ -113,7 +113,7 @@ const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
     releasesDocumentLane: name === createExperimentToolName,
     targets,
     destructive,
-    inputSchema: petrinautAiTools[name].inputSchema,
+    inputParser: petrinautAiTools[name].inputSchema,
     canonicalCalls: (input) => [{ toolName: name, input }],
   };
 };
@@ -129,7 +129,7 @@ const canonical = (name: PetrinautAiToolName): BrowserToolDescriptor => {
  */
 const hashPetrinaut = ({
   operations,
-  inputSchema,
+  zInput,
   parseCall,
 }: (typeof hashPetrinautTools)[keyof typeof hashPetrinautTools]): BrowserToolDescriptor => {
   const [first] = operations;
@@ -140,7 +140,7 @@ const hashPetrinaut = ({
     ...canonical(first),
     targets: [...new Set(effects.flatMap(({ targets }) => targets))],
     destructive: effects.some(({ destructive }) => destructive),
-    inputSchema,
+    inputParser: zInput,
     canonicalCalls: (input) => parseCall(input).calls,
   };
 };
@@ -152,7 +152,7 @@ const hashGraphRead = (
   ...reads,
   runsOnNet: false,
   textResult: true,
-  inputSchema: { parse },
+  inputParser: { parse },
   canonicalCalls: noCanonicalCalls,
 });
 
@@ -180,7 +180,7 @@ export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
         {
           ...reads,
           observesNet: true,
-          inputSchema: { parse: parseNetReaderInput },
+          inputParser: { parse: parseNetReaderInput },
           canonicalCalls: noCanonicalCalls,
         },
       ],
@@ -192,7 +192,7 @@ export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
         // Prepared in editor memory through its own review card.
         automatic: false,
         runsOnNet: false,
-        inputSchema: zDraftPetrinautExperimentInput,
+        inputParser: zDraftPetrinautExperimentInput,
         canonicalCalls: noCanonicalCalls,
       },
     ],
@@ -212,7 +212,7 @@ export const browserExecutedTools: ReadonlyMap<string, BrowserToolDescriptor> =
         // unknown, but any change while it was pending is someone else's.
         runsOnNet: false,
         documentRevision: "none",
-        inputSchema: { parse: parseHashSaveInput },
+        inputParser: { parse: parseHashSaveInput },
         canonicalCalls: noCanonicalCalls,
       },
     ],
