@@ -189,10 +189,11 @@ export const figmaScreens: FigmaScreen[] = [
   },
   {
     id: "J1.16",
-    name: "Node context menu (Scratch U12 B)",
+    name: "Step right-click: Disconnect from previous, Disconnect all (no Delete, 2 Nov)",
     nodeId: "813:21530",
     section: "J1 · Create a flow and add steps",
     tag: "Ready",
+    why: "no Delete in menus (2 Nov)",
   },
   {
     id: "J1.19",
@@ -200,6 +201,22 @@ export const figmaScreens: FigmaScreen[] = [
     nodeId: "810:20987",
     section: "J1 · Create a flow and add steps",
     tag: "Ready",
+  },
+  {
+    id: "J1.20",
+    name: "Connection right-click: Disconnect, Insert step here",
+    nodeId: "912:24022",
+    section: "J1 · Create a flow and add steps",
+    tag: "Ready",
+    why: "agreed 2 Nov",
+  },
+  {
+    id: "J1.21",
+    name: "Port right-click: Disconnect, Disconnect all",
+    nodeId: "912:24264",
+    section: "J1 · Create a flow and add steps",
+    tag: "Ready",
+    why: "agreed 2 Nov",
   },
   {
     id: "J2.1",
@@ -838,9 +855,11 @@ export const findScreen = (id: string | null): FigmaScreen | undefined => {
     .trim()
     .toUpperCase()
     .replace(/^(?!J)/, "J");
-  return figmaScreens.find(
-    (screen) =>
-      screen.id.toUpperCase() === wanted ||
+  // A screen's own id wins over another frame's alias (J1.20 is its own frame now, and was once J1.11's alias).
+  return (
+    figmaScreens.find((screen) => screen.id.toUpperCase() === wanted) ??
+    figmaScreens.find((screen) =>
       screen.aliases?.some((alias) => alias.toUpperCase() === wanted),
+    )
   );
 };

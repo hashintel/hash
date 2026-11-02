@@ -2,10 +2,15 @@ import "@xyflow/react/dist/style.css";
 import {
   Background,
   BackgroundVariant,
+  BaseEdge,
   MiniMap,
   type Connection,
   type Edge,
+  EdgeLabelRenderer,
+  type EdgeProps,
+  getBezierPath,
   Handle,
+  type HandleProps,
   type Node,
   type NodeChange,
   type NodeProps,
@@ -18,6 +23,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Icon,
   type IconName,
+  type MenuItem,
   RightClickMenu,
   Tooltip,
 } from "@hashintel/ds-components";
@@ -32,7 +38,12 @@ import {
   startSubtitle,
   stepTitle,
 } from "./document";
-import { showDebug, showFull, useEditor } from "./editor-context";
+import {
+  type CanvasMenu,
+  showDebug,
+  showFull,
+  useEditor,
+} from "./editor-context";
 import { describeSource } from "./shapes";
 
 // The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
@@ -100,14 +111,17 @@ const toNodes = (
   document: EditorDocument,
   selectedId: string | null,
   collapsed: string[] = [],
+  selectedIds: string[] = [],
 ) => {
+  const isSelected = (id: string) =>
+    selectedId === id || selectedIds.includes(id);
   const nodes: StepNode[] = [
     {
       id: START_ID,
       type: "start",
       position: document.positions[START_ID] ?? { x: 360, y: 220 },
       data: { stepId: START_ID },
-      selected: selectedId === START_ID,
+      selected: isSelected(START_ID),
       // Start holds the flow's inputs, so it stays.
       deletable: false,
     },
@@ -127,7 +141,7 @@ const toNodes = (
         type: step.kind === "for-each" ? "forEach" : "step",
         position: document.positions[step.stepId] ?? { x: 0, y: 0 },
         data: { stepId: step.stepId },
-        selected: selectedId === step.stepId,
+        selected: isSelected(step.stepId),
         ...(parentId ? { parentId, extent: "parent" as const } : {}),
         ...(size ? { style: { width: size.width, height: size.height } } : {}),
       });
@@ -153,6 +167,7 @@ const toEdges = (
       sourceHandle: wire.sourcePort,
       target: wire.target,
       targetHandle: "in",
+      type: "flow",
       style: { stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: 1.5 },
     }));
 };
@@ -258,7 +273,48 @@ const handleStyle = css({
     borderWidth: "thin",
     borderColor: "neutral.bd.strong",
   },
+  // J1.21: the port whose menu is open shows blue.
+  "&.react-flow__handle[data-highlight]": {
+    backgroundColor: "blue.bg.solid",
+    borderColor: "blue.bd.strong",
+  },
 });
+
+/** A port: right-click opens Disconnect / Disconnect all for it (J1.21). */
+const PortHandle = ({
+  stepId,
+  ...props
+}: HandleProps & {
+  stepId: string;
+  className?: string;
+  style?: React.CSSProperties;
+  children?: React.ReactNode;
+}) => {
+  const { ui, setUi } = useEditor();
+  const port = props.id ?? (props.type === "source" ? "next" : "in");
+  const menu = ui.canvasMenu;
+  const highlighted =
+    menu?.kind === "port" && menu.stepId === stepId && menu.port === port;
+  return (
+    <Handle
+      {...props}
+      data-highlight={highlighted || undefined}
+      onContextMenu={(event) => {
+        setUi((current) => ({
+          ...current,
+          picker: null,
+          canvasMenu: {
+            kind: "port",
+            stepId,
+            port,
+            side: props.type,
+            point: { x: event.clientX, y: event.clientY },
+          },
+        }));
+      }}
+    />
+  );
+};
 
 const portAddStyle = css({
   position: "absolute",
@@ -418,54 +474,6 @@ const CardText = ({
   </span>
 );
 
-/**
- * J1.16 (Scratch U12 B): right-clicking a step offers Disconnect from previous and Delete. Ports and connections only
- * disconnect (2 Nov); deleting a step lives here and on the keyboard.
- */
-const NodeMenu = ({
-  id,
-  children,
-}: {
-  id: string;
-  children: React.ReactNode;
-}) => {
-  const { document, setDocument, setUi } = useEditor();
-  const incoming = document.wires.some((wire) => wire.target === id);
-  return (
-    <RightClickMenu
-      className={css({ minWidth: "[268px]" })}
-      items={[
-        {
-          id: "disconnect",
-          text: "Disconnect from previous",
-          // ds-icons has no broken-link glyph; the plug stands in for Figma's.
-          icon: "plug",
-          disabled: !incoming,
-          onClick: () =>
-            setDocument((current) => ({
-              ...current,
-              wires: current.wires.filter((wire) => wire.target !== id),
-            })),
-        },
-        {
-          id: "delete",
-          text: "Delete",
-          icon: "trash",
-          onClick: () => {
-            setDocument((current) => removeStep(current, id));
-            setUi((current) => ({
-              ...current,
-              selectedId: current.selectedId === id ? null : current.selectedId,
-            }));
-          },
-        },
-      ]}
-    >
-      {children}
-    </RightClickMenu>
-  );
-};
-
 const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const { document, ui } = useEditor();
   const step = flatFind(document, id);
@@ -475,91 +483,89 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const entry = getCatalogEntry(step.actionDefinitionId);
   const ports = portRows(step);
   return (
-    <NodeMenu id={id}>
-      <div
-        className={cardStyle({ selected })}
-        data-flash={ui.flashId === id || undefined}
-        data-source-hover={ui.hoverSourceId === id || undefined}
-      >
-        <Handle
-          id="in"
-          type="target"
-          position={Position.Left}
-          className={handleStyle}
-          style={{ top: STEP_HEIGHT / 2 }}
-        />
-        <Tooltip
-          content={entry?.title ?? step.actionDefinitionId}
-          position="top"
+    <div
+      className={cardStyle({ selected })}
+      data-flash={ui.flashId === id || undefined}
+      data-source-hover={ui.hoverSourceId === id || undefined}
+    >
+      <PortHandle
+        stepId={id}
+        id="in"
+        type="target"
+        position={Position.Left}
+        className={handleStyle}
+        style={{ top: STEP_HEIGHT / 2 }}
+      />
+      <Tooltip content={entry?.title ?? step.actionDefinitionId} position="top">
+        <div className={cardHeadStyle}>
+          <CardTile
+            icon={entry?.icon ?? "cube"}
+            tone={entry?.tone ?? "green"}
+          />
+          <CardText
+            title={entry?.title ?? step.actionDefinitionId}
+            description={
+              step.description && step.description !== entry?.title
+                ? step.description
+                : undefined
+            }
+          />
+        </div>
+      </Tooltip>
+      {ports ? (
+        <div
+          className={css({
+            borderTopWidth: "thin",
+            borderTopStyle: "solid",
+            borderTopColor: "neutral.bd.subtle",
+          })}
         >
-          <div className={cardHeadStyle}>
-            <CardTile
-              icon={entry?.icon ?? "cube"}
-              tone={entry?.tone ?? "green"}
-            />
-            <CardText
-              title={entry?.title ?? step.actionDefinitionId}
-              description={
-                step.description && step.description !== entry?.title
-                  ? step.description
-                  : undefined
-              }
-            />
-          </div>
-        </Tooltip>
-        {ports ? (
-          <div
-            className={css({
-              borderTopWidth: "thin",
-              borderTopStyle: "solid",
-              borderTopColor: "neutral.bd.subtle",
-            })}
-          >
-            {ports.map((port) => (
-              <div
-                key={port.outputName}
-                className={css({
-                  position: "relative",
-                  height: "[26px]",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                  paddingRight: "3",
-                  textStyle: "xs",
-                  color: "neutral.fg.subtle",
-                })}
-              >
-                {port.label}
-                <Handle
-                  id={port.outputName}
-                  type="source"
-                  position={Position.Right}
-                  className={handleStyle}
-                  style={{ top: PORT_ROW / 2 }}
-                >
-                  {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
-                  <PortAdd stepId={id} port={port.outputName} />
-                </Handle>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <>
-            <Handle
-              id="next"
-              type="source"
-              position={Position.Right}
-              className={handleStyle}
-              style={{ top: STEP_HEIGHT / 2 }}
+          {ports.map((port) => (
+            <div
+              key={port.outputName}
+              className={css({
+                position: "relative",
+                height: "[26px]",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                paddingRight: "3",
+                textStyle: "xs",
+                color: "neutral.fg.subtle",
+              })}
             >
-              {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
-              <PortAdd stepId={id} port="next" />
-            </Handle>
-          </>
-        )}
-        <ProblemDot stepId={id} />
-      </div>
-    </NodeMenu>
+              {port.label}
+              <PortHandle
+                stepId={id}
+                id={port.outputName}
+                type="source"
+                position={Position.Right}
+                className={handleStyle}
+                style={{ top: PORT_ROW / 2 }}
+              >
+                {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
+                <PortAdd stepId={id} port={port.outputName} />
+              </PortHandle>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <>
+          <PortHandle
+            stepId={id}
+            id="next"
+            type="source"
+            position={Position.Right}
+            className={handleStyle}
+            style={{ top: STEP_HEIGHT / 2 }}
+          >
+            {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
+            <PortAdd stepId={id} port="next" />
+          </PortHandle>
+        </>
+      )}
+      <ProblemDot stepId={id} />
+    </div>
   );
 };
 
@@ -597,7 +603,8 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
           <CardText title="Start" description={startSubtitle(document)} />
         </div>
       </Tooltip>
-      <Handle
+      <PortHandle
+        stepId={START_ID}
         id="next"
         type="source"
         position={Position.Right}
@@ -606,7 +613,7 @@ const StartNodeView = ({ selected }: NodeProps<StepNode>) => {
       >
         {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
         <PortAdd stepId={START_ID} port="next" />
-      </Handle>
+      </PortHandle>
     </div>
   );
 };
@@ -650,7 +657,8 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
       className={groupStyle({ selected })}
       data-source-hover={ui.hoverSourceId === id || undefined}
     >
-      <Handle
+      <PortHandle
+        stepId={id}
         id="in"
         type="target"
         position={Position.Left}
@@ -743,8 +751,8 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
             })} nodrag nopan`}
             onClick={(event) => {
               event.stopPropagation();
-              setUi((ui) => ({
-                ...ui,
+              setUi((current) => ({
+                ...current,
                 picker: { parentId: id, anchor: "group" },
               }));
             }}
@@ -753,7 +761,8 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
           </button>
         </div>
       ) : null}
-      <Handle
+      <PortHandle
+        stepId={id}
         id="next"
         type="source"
         position={Position.Right}
@@ -762,7 +771,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
       >
         {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
         <PortAdd stepId={id} port="next" />
-      </Handle>
+      </PortHandle>
       <ProblemDot stepId={id} />
     </div>
   );
@@ -772,6 +781,234 @@ const nodeTypes = {
   step: StepNodeView,
   start: StartNodeView,
   forEach: GroupNodeView,
+};
+
+const edgeCloseStyle = css({
+  position: "absolute",
+  pointerEvents: "all",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[16px]",
+  height: "[16px]",
+  borderRadius: "full",
+  backgroundColor: "neutral.bgSolid.min",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "blue.bd.strong",
+  color: "blue.fg.muted",
+  cursor: "pointer",
+});
+
+/**
+ * A connection (2 Nov vocabulary). Hovering it shows a small × that disconnects it (Explorations U12 C); it turns blue
+ * while hovered or while its right-click menu is open (J1.20).
+ */
+const FlowEdge = ({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  style,
+}: EdgeProps) => {
+  const { ui, setUi, setDocument } = useEditor();
+  const [path, labelX, labelY] = getBezierPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+  });
+  const menuOpen =
+    ui.canvasMenu?.kind === "connection" && ui.canvasMenu.wireId === id;
+  const hovered = ui.hoverWireId === id;
+  return (
+    <>
+      <BaseEdge
+        id={id}
+        path={path}
+        interactionWidth={16}
+        style={
+          menuOpen || hovered
+            ? { ...style, stroke: "var(--colors-blue-bd-strong)" }
+            : style
+        }
+      />
+      {hovered && !menuOpen ? (
+        <EdgeLabelRenderer>
+          <button
+            type="button"
+            aria-label="Disconnect"
+            className={`${edgeCloseStyle} nodrag nopan`}
+            style={{
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            }}
+            onPointerEnter={() =>
+              setUi((current) => ({ ...current, hoverWireId: id }))
+            }
+            onPointerLeave={() =>
+              setUi((current) => ({ ...current, hoverWireId: null }))
+            }
+            onClick={(event) => {
+              event.stopPropagation();
+              setDocument((current) => ({
+                ...current,
+                wires: current.wires.filter((wire) => wire.id !== id),
+              }));
+              setUi((current) => ({ ...current, hoverWireId: null }));
+            }}
+          >
+            <Icon name="close" size="xxs" />
+          </button>
+        </EdgeLabelRenderer>
+      ) : null}
+    </>
+  );
+};
+
+
+const edgeTypes = { flow: FlowEdge };
+
+/** Wires touching any of these steps. */
+const touching =
+  (ids: string[]) => (wire: { source: string; target: string }) =>
+    ids.includes(wire.source) || ids.includes(wire.target);
+
+/**
+ * The canvas's right-click menus (2 Nov: no Delete in any of them; a step is deleted with Delete or Backspace).
+ * J1.16 a step: Disconnect from previous, Disconnect all. A box selection: Disconnect all. J1.20 a connection:
+ * Disconnect, Insert step here. J1.21 a port: Disconnect, Disconnect all.
+ */
+const useCanvasMenuItems = (
+  menu: CanvasMenu | null | undefined,
+): MenuItem[] => {
+  const { document, setDocument, setUi } = useEditor();
+  const dropWires = (
+    keep: (wire: (typeof document.wires)[number]) => boolean,
+  ) => {
+    setDocument((current) => ({
+      ...current,
+      wires: current.wires.filter(keep),
+    }));
+    setUi((current) => ({ ...current, canvasMenu: null }));
+  };
+  // ds-icons has no broken-link glyph; the plug stands in for Figma's unlink.
+  if (!menu) {
+    // Never shown: a right-click on empty canvas stops before the menu (see `onPaneContextMenu`).
+    return [
+      {
+        id: "none",
+        text: "Nothing to do here",
+        disabled: true,
+        onClick: () => undefined,
+      },
+    ];
+  }
+  return (() => {
+    if (menu.kind === "step") {
+      const incoming = document.wires.some(
+        (wire) => wire.target === menu.stepId,
+      );
+      const any = document.wires.some(touching([menu.stepId]));
+      return [
+        {
+          id: "previous",
+          text: "Disconnect from previous",
+          icon: "plug",
+          disabled: !incoming,
+          onClick: () => dropWires((wire) => wire.target !== menu.stepId),
+        },
+        {
+          id: "all",
+          text: "Disconnect all",
+          icon: "close",
+          disabled: !any,
+          onClick: () => dropWires((wire) => !touching([menu.stepId])(wire)),
+        },
+      ];
+    }
+    if (menu.kind === "selection") {
+      return [
+        {
+          id: "all",
+          text: "Disconnect all",
+          icon: "close",
+          disabled: !document.wires.some(touching(menu.stepIds)),
+          onClick: () => dropWires((wire) => !touching(menu.stepIds)(wire)),
+        },
+      ];
+    }
+    if (menu.kind === "connection") {
+      const wire = document.wires.find(
+        (candidate) => candidate.id === menu.wireId,
+      );
+      return [
+        {
+          id: "disconnect",
+          text: "Disconnect",
+          icon: "plug",
+          onClick: () => dropWires((candidate) => candidate.id !== menu.wireId),
+        },
+        {
+          id: "insert",
+          text: "Insert step here",
+          icon: "plus",
+          disabled: !wire,
+          onClick: () => {
+            if (!wire) {
+              return;
+            }
+            // Opened after this menu has closed, so the two DS menus don't fight over focus.
+            setTimeout(
+              () =>
+                setUi((current) => ({
+                  ...current,
+                  canvasMenu: null,
+                  picker: {
+                    after: { stepId: wire.source, port: wire.sourcePort },
+                    anchor: "drop",
+                    drop: {
+                      client: menu.point,
+                      flow: {
+                        x: menu.flow.x,
+                        y: menu.flow.y - STEP_HEIGHT / 2,
+                      },
+                    },
+                    insertInto: wire.id,
+                  },
+                })),
+              300,
+            );
+          },
+        },
+      ];
+    }
+    const atPort = (wire: (typeof document.wires)[number]) =>
+      menu.side === "source"
+        ? wire.source === menu.stepId && wire.sourcePort === menu.port
+        : wire.target === menu.stepId;
+    const first = document.wires.find(atPort);
+    return [
+      {
+        id: "disconnect",
+        text: "Disconnect",
+        icon: "plug",
+        disabled: !first,
+        onClick: () => dropWires((wire) => wire.id !== first?.id),
+      },
+      {
+        id: "all",
+        text: "Disconnect all",
+        icon: "close",
+        disabled: !first,
+        onClick: () => dropWires((wire) => !atPort(wire)),
+      },
+    ];
+  })();
 };
 
 /**
@@ -893,10 +1130,42 @@ export const FlowCanvas = ({
       : undefined;
   });
 
+  const canvasMenuItems = useCanvasMenuItems(ui.canvasMenu);
+  // A menu's highlight (the port or connection it is for) clears on the next press or Escape.
+  useEffect(() => {
+    if (!ui.canvasMenu) {
+      return;
+    }
+    const clear = (event: Event) => {
+      if (event instanceof KeyboardEvent && event.key !== "Escape") {
+        return;
+      }
+      // A press inside the menu is a pick; its own handler clears the target.
+      if (
+        event instanceof PointerEvent &&
+        (event.button === 2 ||
+          (event.target as Element | null)?.closest?.('[role="menu"]'))
+      ) {
+        return;
+      }
+      setUi((current) => ({ ...current, canvasMenu: null }));
+    };
+    const timer = setTimeout(() => {
+      globalThis.addEventListener("pointerdown", clear);
+      globalThis.addEventListener("keydown", clear);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      globalThis.removeEventListener("pointerdown", clear);
+      globalThis.removeEventListener("keydown", clear);
+    };
+  }, [ui.canvasMenu, setUi]);
+
   const nodes = toNodes(
     { ...document, positions: { ...document.positions, ...dragPositions } },
     ui.selectedId,
     ui.collapsed,
+    ui.selectedIds,
   );
 
   const onNodesChange = (changes: NodeChange<StepNode>[]) => {
@@ -910,6 +1179,34 @@ export const FlowCanvas = ({
           settled[change.id] = change.position;
         }
       }
+    }
+    // Box selection (drag on empty canvas, J1.17): React Flow reports each step it takes in or lets go of.
+    const selects = changes.filter((change) => change.type === "select");
+    if (selects.length > 0) {
+      setUi((current) => {
+        const next = new Set(
+          current.selectedIds ??
+            (current.selectedId ? [current.selectedId] : []),
+        );
+        for (const change of selects) {
+          if (change.selected) {
+            next.add(change.id);
+          } else {
+            next.delete(change.id);
+          }
+        }
+        const selectedIds = [...next];
+        return {
+          ...current,
+          selectedIds,
+          selectedId:
+            selectedIds.length === 1
+              ? selectedIds[0]!
+              : selectedIds.includes(current.selectedId ?? "")
+                ? current.selectedId
+                : (selectedIds[0] ?? null),
+        };
+      });
     }
     if (Object.keys(moving).length > 0) {
       setDragPositions((previous) => ({ ...previous, ...moving }));
@@ -984,128 +1281,171 @@ export const FlowCanvas = ({
   };
 
   return (
-    <ReactFlow
-      className={canvasStyle}
-      nodes={nodes}
-      edges={toEdges(document, ui.collapsed)}
-      nodeTypes={nodeTypes}
-      onNodesChange={onNodesChange}
-      onNodeDragStop={onNodeDragStop}
-      onConnect={onConnect}
-      onConnectEnd={onConnectEnd}
-      onNodeClick={(_, node) =>
-        setUi((current) => ({
-          ...current,
-          selectedId: node.id,
-          triggerId: null,
-          openField: null,
-        }))
-      }
-      onPaneClick={() => {
-        if (Date.now() - droppedAt.current < 400) {
-          return;
-        }
-        setUi((current) => ({
-          ...current,
-          selectedId: null,
-          picker: null,
-          openField: null,
-        }));
-      }}
-      onNodesDelete={(deleted) =>
-        setDocument((current) =>
-          deleted.reduce((next, node) => removeStep(next, node.id), current),
-        )
-      }
-      onEdgesDelete={(deleted) =>
-        setDocument((current) => ({
-          ...current,
-          wires: current.wires.filter(
-            (wire) => !deleted.some((edge) => edge.id === wire.id),
-          ),
-        }))
-      }
-      onInit={(instance) =>
-        onInit(
-          () => {
-            instance.fitView(fitOptions).catch(() => undefined);
-          },
-          (by) => {
-            instance.zoomTo(instance.getZoom() * by).catch(() => undefined);
-          },
-        )
-      }
-      data-quiet-port-add={(ui.quietPortAdd && !showFull) || undefined}
-      // A click on a port is the + on it (J0.5), not the start of a click-to-connect.
-      connectOnClick={false}
-      fitView={!startViewport}
-      fitViewOptions={fitOptions}
-      defaultViewport={startViewport}
-      panOnDrag={mode === "hand" ? true : [1, 2]}
-      selectionOnDrag={mode === "select"}
-      minZoom={0.2}
-      maxZoom={2}
-      proOptions={{ hideAttribution: true }}
-      deleteKeyCode={["Backspace", "Delete"]}
+    // One DS right-click menu for the canvas; what was right-clicked (set by the handlers below) decides its rows.
+    <RightClickMenu
+      items={canvasMenuItems}
+      className={css({ minWidth: "[268px]" })}
     >
-      {/* ↳ Current's canvas: a light dot grid, and a minimap at the top right. */}
-      <Background
-        variant={BackgroundVariant.Dots}
-        gap={16}
-        size={1}
-        color="var(--colors-neutral-bd-solid)"
-      />
-      <MiniMap
-        position="top-right"
-        pannable
-        zoomable
-        ariaLabel="Minimap"
-        style={{ width: 100, height: 64, borderRadius: 6 }}
-        maskColor="rgba(0, 0, 0, 0.08)"
-        nodeColor="var(--colors-neutral-fg-onSolid)"
-        nodeStrokeColor="var(--colors-neutral-bd-solid)"
-      />
-    </ReactFlow>
+      <ReactFlow
+        className={canvasStyle}
+        nodes={nodes}
+        edges={toEdges(document, ui.collapsed)}
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onNodeDragStop={onNodeDragStop}
+        onConnect={onConnect}
+        onConnectEnd={onConnectEnd}
+        edgeTypes={edgeTypes}
+        onNodeClick={(_, node) =>
+          setUi((current) => ({
+            ...current,
+            selectedId: node.id,
+            selectedIds: [node.id],
+            triggerId: null,
+            openField: null,
+          }))
+        }
+        onNodeContextMenu={(event, node) => {
+          // A port inside the step has its own menu (J1.21).
+          if ((event.target as Element).closest(".react-flow__handle")) {
+            return;
+          }
+          const point = { x: event.clientX, y: event.clientY };
+          setUi((current) => {
+            const group = current.selectedIds ?? [];
+            return group.length > 1 && group.includes(node.id)
+              ? {
+                  ...current,
+                  picker: null,
+                  canvasMenu: { kind: "selection", stepIds: group, point },
+                }
+              : {
+                  ...current,
+                  picker: null,
+                  selectedId: node.id,
+                  selectedIds: [node.id],
+                  triggerId: null,
+                  openField: null,
+                  canvasMenu: { kind: "step", stepId: node.id, point },
+                };
+          });
+        }}
+        onSelectionContextMenu={(event, selected) => {
+          setUi((current) => ({
+            ...current,
+            picker: null,
+            canvasMenu: {
+              kind: "selection",
+              stepIds: selected.map((node) => node.id),
+              point: { x: event.clientX, y: event.clientY },
+            },
+          }));
+        }}
+        onEdgeContextMenu={(event, edge) => {
+          const point = { x: event.clientX, y: event.clientY };
+          setUi((current) => ({
+            ...current,
+            picker: null,
+            hoverWireId: null,
+            canvasMenu: {
+              kind: "connection",
+              wireId: edge.id,
+              point,
+              flow: flow.screenToFlowPosition(point),
+            },
+          }));
+        }}
+        onPaneContextMenu={(event) => {
+          // Empty canvas has no menu: keep the right-click from reaching it, and keep the browser's own away.
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        onEdgeMouseEnter={(_, edge) =>
+          setUi((current) => ({ ...current, hoverWireId: edge.id }))
+        }
+        onEdgeMouseLeave={() =>
+          setUi((current) => ({ ...current, hoverWireId: null }))
+        }
+        onPaneClick={() => {
+          if (Date.now() - droppedAt.current < 400) {
+            return;
+          }
+          setUi((current) => ({
+            ...current,
+            selectedId: null,
+            selectedIds: [],
+            picker: null,
+            openField: null,
+            canvasMenu: null,
+          }));
+        }}
+        // Delete / Backspace is the only way to delete steps (2 Nov: no Delete in any menu).
+        onNodesDelete={(deleted) => {
+          const ids = deleted.map((node) => node.id);
+          setDocument((current) =>
+            ids.reduce((next, id) => removeStep(next, id), current),
+          );
+          setUi((current) => ({
+            ...current,
+            selectedId: ids.includes(current.selectedId ?? "")
+              ? null
+              : current.selectedId,
+            selectedIds: (current.selectedIds ?? []).filter(
+              (id) => !ids.includes(id),
+            ),
+          }));
+        }}
+        onEdgesDelete={(deleted) =>
+          setDocument((current) => ({
+            ...current,
+            wires: current.wires.filter(
+              (wire) => !deleted.some((edge) => edge.id === wire.id),
+            ),
+          }))
+        }
+        onInit={(instance) =>
+          onInit(
+            () => {
+              instance.fitView(fitOptions).catch(() => undefined);
+            },
+            (by) => {
+              instance.zoomTo(instance.getZoom() * by).catch(() => undefined);
+            },
+          )
+        }
+        data-quiet-port-add={(ui.quietPortAdd && !showFull) || undefined}
+        // A click on a port is the + on it (J0.5), not the start of a click-to-connect.
+        connectOnClick={false}
+        fitView={!startViewport}
+        fitViewOptions={fitOptions}
+        defaultViewport={startViewport}
+        panOnDrag={mode === "hand" ? true : [1, 2]}
+        selectionOnDrag={mode === "select"}
+        minZoom={0.2}
+        maxZoom={2}
+        proOptions={{ hideAttribution: true }}
+        deleteKeyCode={["Backspace", "Delete"]}
+      >
+        {/* ↳ Current's canvas: a light dot grid, and a minimap at the top right. */}
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={16}
+          size={1}
+          color="var(--colors-neutral-bd-solid)"
+        />
+        <MiniMap
+          position="top-right"
+          pannable
+          zoomable
+          ariaLabel="Minimap"
+          style={{ width: 100, height: 64, borderRadius: 6 }}
+          maskColor="rgba(0, 0, 0, 0.08)"
+          nodeColor="var(--colors-neutral-fg-onSolid)"
+          nodeStrokeColor="var(--colors-neutral-bd-solid)"
+        />
+      </ReactFlow>
+    </RightClickMenu>
   );
 };
 
 export { stepTitle };
-
-const thumbnailStyle = css({
-  width: "[100%]",
-  height: "[100%]",
-  pointerEvents: "none",
-  "& .react-flow__handle, & [data-port-add], & [data-group-add]": {
-    display: "none",
-  },
-});
-
-/**
- * A static preview of a flow for the flows list: fitted to its card, with every interaction off and no pointer
- * events inside. Clicking the card (not the canvas) opens the flow.
- */
-export const FlowThumbnail = () => {
-  const { document } = useEditor();
-  return (
-    <div className={thumbnailStyle} aria-hidden="true">
-      <ReactFlow
-        nodes={toNodes(document, null)}
-        edges={toEdges(document)}
-        nodeTypes={nodeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.12, maxZoom: 0.8 }}
-        minZoom={0.05}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable={false}
-        panOnDrag={false}
-        panOnScroll={false}
-        zoomOnScroll={false}
-        zoomOnPinch={false}
-        zoomOnDoubleClick={false}
-        preventScrolling={false}
-        proOptions={{ hideAttribution: true }}
-      />
-    </div>
-  );
-};

@@ -55,6 +55,32 @@ const click = (selector: string) => {
   return element;
 };
 
+/** Right-clicks an element at a window point. */
+const rightClick = async (
+  selector: string,
+  clientX: number,
+  clientY: number,
+) => {
+  // React Flow draws connections only once it has measured the steps, so wait for the target (up to 3 s).
+  for (
+    let tries = 0;
+    tries < 30 && !globalThis.document.querySelector(selector);
+    tries++
+  ) {
+    await pause(100);
+  }
+  await pause(100);
+  globalThis.document.querySelector(selector)?.dispatchEvent(
+    new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+      clientX,
+      clientY,
+    }),
+  );
+};
+
 /** Types into a text field the way React hears it. */
 const typeInto = (selector: string, text: string) => {
   const input = globalThis.document.querySelector<HTMLInputElement>(selector);
@@ -290,24 +316,32 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
       click('[aria-label="Collapse all"]');
     },
   }),
+  // J1.16, J1.20, J1.21: the right-click menus on a step, a connection and a port, as a person right-clicks them.
   "J1.16": () => {
     const { document, stepId } = firstStep();
     return {
       ...early(document, { selectedId: stepId }),
-      act: () => {
-        const card = globalThis.document.querySelector(
-          `.react-flow__node[data-id="${stepId}"] > *`,
-        );
-        card?.dispatchEvent(
-          new MouseEvent("contextmenu", {
-            bubbles: true,
-            cancelable: true,
-            button: 2,
-            clientX: 702,
-            clientY: 468,
-          }),
-        );
-      },
+      act: () =>
+        rightClick(`.react-flow__node[data-id="${stepId}"] > *`, 702, 468),
+    };
+  },
+  "J1.20": () => {
+    const { document, stepId } = firstStep();
+    return {
+      ...early(document, { selectedId: stepId }),
+      act: () => rightClick(".react-flow__edge-interaction", 500, 476),
+    };
+  },
+  "J1.21": () => {
+    const { document, stepId } = firstStep();
+    return {
+      ...early(document, { selectedId: stepId }),
+      act: () =>
+        rightClick(
+          `.react-flow__node[data-id="${START_ID}"] .react-flow__handle.source`,
+          470,
+          476,
+        ),
     };
   },
   "J1.19": () => ({

@@ -22,6 +22,9 @@ import { OpenMenu } from "./open-menu";
 import { SearchHeader } from "./source-menu";
 import { OriginMark } from "./ui";
 
+/** How far Insert step here moves the steps after it: a card and the gap between cards (J1.1: 200 + 96). */
+const insertShift = 296;
+
 /** J0.10: the first step added from Start's + offers these three before Recent and Browse all. */
 const recommendedFirstSteps = ["queryEntities", "requestReview", "sendEmail"];
 
@@ -136,7 +139,41 @@ export const AddNodePicker = ({
                   y: document.positions[START_ID]?.y ?? 220,
                 },
     });
-    setDocument(() => next);
+    // Insert step here (J1.20): the connection now runs through the new step.
+    const inserted = picker.insertInto
+      ? document.wires.find((wire) => wire.id === picker.insertInto)
+      : undefined;
+    // The new step takes the target's place; the target and everything right of it moves one column on.
+    const targetAt = inserted ? next.positions[inserted.target] : undefined;
+    const shifted =
+      inserted && targetAt
+        ? Object.fromEntries(
+            Object.entries(next.positions).map(([id, at]) =>
+              id === stepId
+                ? [id, targetAt]
+                : at.x >= targetAt.x - 1 && !findStep(next, id)?.parentId
+                  ? [id, { ...at, x: at.x + insertShift }]
+                  : [id, at],
+            ),
+          )
+        : next.positions;
+    setDocument(() =>
+      inserted
+        ? {
+            ...next,
+            positions: shifted,
+            wires: [
+              ...next.wires.filter((wire) => wire.id !== inserted.id),
+              {
+                id: `${stepId}:next->${inserted.target}`,
+                source: stepId,
+                sourcePort: "next",
+                target: inserted.target,
+              },
+            ],
+          }
+        : next,
+    );
     setUi((current) => ({
       ...current,
       picker: null,

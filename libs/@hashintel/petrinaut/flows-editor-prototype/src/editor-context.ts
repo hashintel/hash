@@ -11,7 +11,17 @@ export type PickerTarget = {
   anchor: "toolbar" | "port" | "group" | "drop";
   /** For "drop": where a wire was released on empty canvas, in window pixels (the menu) and flow units (the new step). */
   drop?: { client: { x: number; y: number }; flow: { x: number; y: number } };
+  /** J1.20 Insert step here: the connection the new step goes into; it is rewired through the new step. */
+  insertInto?: string;
 };
+
+/** A canvas right-click menu (J1.16, J1.20, J1.21): what was right-clicked, and where, in window pixels. */
+export type CanvasMenu = { point: { x: number; y: number } } & (
+  | { kind: "step"; stepId: string }
+  | { kind: "selection"; stepIds: string[] }
+  | { kind: "connection"; wireId: string; flow: { x: number; y: number } }
+  | { kind: "port"; stepId: string; port: string; side: "source" | "target" }
+);
 
 /** A field whose menu is open: the source menu, or the "@" search of a free-text field. */
 export type OpenField = {
@@ -53,6 +63,12 @@ export type EditorUi = {
   earlyPanel?: boolean;
   /** For each boxes (and "In parallel" rows) folded, in the Steps tree and on the canvas alike (J1.13). */
   collapsed?: string[];
+  /** Steps box-selected together (drag on empty canvas); `selectedId` is the one the panel shows. */
+  selectedIds?: string[];
+  /** The open canvas right-click menu, if any. */
+  canvasMenu?: CanvasMenu | null;
+  /** The connection under the pointer, which shows its × (U12 C). */
+  hoverWireId?: string | null;
   /** A screen that draws the pointer on a port (J0.5): that step's + shows as if hovered. */
   showPortAddOn?: string;
   /** The step card a hovered reference comes from: the canvas highlights it while the pointer is on the reference. */
