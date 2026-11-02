@@ -344,14 +344,36 @@ export type {
   HirMetricArtifact,
 } from "./hir";
 
+// --- Event-driven simulation (experimental) ---
+export {
+  createEventSimulation,
+  DEFAULT_EVENT_STEP_DT,
+  DEFAULT_REFERENCE_INTERVAL,
+} from "./simulation/event-trace";
+export type {
+  CreateEventSimulationConfig,
+  EventSimulation,
+  EventSimulationConfig,
+  EventSimulationEvent,
+  EventTraceSummary,
+  TraceEvent,
+  TraceEventKind,
+} from "./simulation/event-trace";
+
 // --- Playback ---
 export {
+  createEventPlayback,
   createPlayback,
+  EVENT_PLAY_MODE_LEAD,
   formatPlaybackSpeed,
   getPlayModeBackpressure,
   PLAYBACK_SPEEDS,
 } from "./playback";
 export type {
+  EventPlayback,
+  EventPlaybackSnapshot,
+  EventTickInput,
+  EventTickResult,
   Playback,
   ComputePlayMode,
   PlaybackSnapshot,

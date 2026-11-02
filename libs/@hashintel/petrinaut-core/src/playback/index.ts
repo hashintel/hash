@@ -4,6 +4,14 @@
  */
 
 export {
+  createEventPlayback,
+  EVENT_PLAY_MODE_LEAD,
+  type EventPlayback,
+  type EventPlaybackSnapshot,
+  type EventTickInput,
+  type EventTickResult,
+} from "./event-playback";
+export {
   createPlayback,
   formatPlaybackSpeed,
   getPlayModeBackpressure,
