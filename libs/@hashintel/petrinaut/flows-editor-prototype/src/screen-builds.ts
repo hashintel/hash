@@ -6,6 +6,7 @@ import {
   addStep,
   emptyDocument,
   type EditorDocument,
+  fieldKey,
   START_ID,
 } from "./document";
 import { type EditorUi, initialUi } from "./editor-context";
@@ -17,6 +18,7 @@ import {
   SUPPLIERS,
   supplierCertificatesExample,
 } from "./supplier-certificates-example";
+import { findScreenState } from "./states";
 import { supplierReviewExample } from "./supplier-review-example";
 
 import type { FlowListEntry } from "./home";
@@ -86,6 +88,30 @@ const ninetyPercent: Partial<EditorUi> = {
 /** J1.7–J1.19 draw the four-step flow at 62%, Start 42 px into the canvas. */
 const sixtyTwoPercent: Partial<EditorUi> = {
   viewport: { left: 42, top: 364, zoom: 0.62 },
+};
+
+/** J2.4–J2.8's flow: Start, then "Shipments this month" with one Received date row, after Sep 30, 2026. */
+const shipmentsAfterSeptember = (): EditorDocument => {
+  const { document } = findScreenState("j3-a3")!.create();
+  const key = fieldKey(SHIPMENTS, "query");
+  const query = document.queries[key]!;
+  return {
+    ...document,
+    queries: {
+      ...document.queries,
+      [key]: {
+        ...query,
+        conditions: query.conditions.map((row, index) =>
+          index === 0 ? { ...row, value: "2026-09-30" } : row,
+        ),
+      },
+    },
+  };
+};
+
+/** J2.5–J2.8 draw Start 156 px into the canvas, lower than J1 does. */
+const queryViewport: Partial<EditorUi> = {
+  viewport: { left: 156, top: 389, zoom: 1 },
 };
 
 /** J1's frames draw the early panel (see `EditorUi.earlyPanel`). */
@@ -293,6 +319,28 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
       press('[aria-label="Organize"]');
     },
   }),
+  // J2.2 and J1.1 are the same frame: a new Find entities, its type left at Any.
+  "J2.2": () => {
+    const { document, stepId } = firstStep();
+    return early(document, { selectedId: stepId });
+  },
+  "J2.4": () =>
+    early(shipmentsAfterSeptember(), {
+      selectedId: SHIPMENTS,
+      showPortAddOn: SHIPMENTS,
+    }),
+  // J2.6 keeps the whole query under the popover: Received date, Purity, and the Or group of suppliers.
+  "J2.6": () =>
+    editor(findScreenState("j3-a1")!.create().document, {
+      ...queryViewport,
+      selectedId: SHIPMENTS,
+      // "mention" opens the exact-date calendar beside the relative presets.
+      openField: {
+        stepId: SHIPMENTS,
+        inputName: "query:condition1:value",
+        mode: "mention",
+      },
+    }),
   "J0.12": () => ({
     ...editor(emptyDocument()),
     act: () => {

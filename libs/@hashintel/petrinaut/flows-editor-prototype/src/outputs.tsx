@@ -1,15 +1,14 @@
 /**
- * A step's Outputs, as the 26 Oct sync asked (T26):
+ * A step's Outputs, as the 2 Nov sync settled (J2.51, J4.4):
  *
- * - Each output is data with its kind as a small badge under its name (Ciarán: "entities", "integer").
- * - The steps that use it hang under it as a short vertical list, one per line, not one crowded row (a hierarchy,
- *   preferred over the flat chip row of 16–21 Oct).
- * - Three show; "+N more" lists the next ten on hover and shows all on click (Dei: there might be 50 or 100).
- * - With or without node icons on the chips: both versions, to choose between (`ui.outputIcons`; Aakarsh, 26 Oct).
+ * - A type icon left of each output's name (checklist for a choice, T for text, person for a reviewer).
+ * - What depends on it, by name, as plain text: "Used in Alert to the team", or "Not used yet".
+ * - The dependents as chips only while the row is hovered; a chip selects that step.
+ * - Three names show; "+N more" lists the next ten on hover and shows all on click (Dei: there might be 50 or 100).
  */
 import { useState } from "react";
 
-import { Chip, type IconName, Tooltip } from "@hashintel/ds-components";
+import { Chip, Icon, type IconName, Tooltip } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { type EditorDocument, findStep, stepLabel, usersOf } from "./document";
@@ -21,28 +20,30 @@ import type { StepInputSource } from "./engine";
 const shownUsers = 3;
 const hoverUsers = 10;
 
-const labelStackStyle = css({
+/** The dependents line: plain text until the row is hovered, then the chips. */
+const usedStyle = css({
   display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
+  flexWrap: "wrap",
+  alignItems: "center",
   gap: "1",
   minWidth: "[0]",
+  fontSize: "[13px]", // token-guard: allow Figma panel values beside labels are 13 px (J2.51)
+  lineHeight: "[16px]",
+  color: "neutral.fg.subtle",
 });
 
-/** One user per line, joined by a thin rail on the left so they read as children of the output. */
-const treeStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-  gap: "1",
-  minWidth: "[0]",
-  paddingLeft: "2",
-  borderLeftWidth: "thin",
-  borderLeftStyle: "solid",
-  borderLeftColor: "neutral.bd.subtle",
+const namesStyle = css({ "[data-row]:hover &": { display: "none" } });
+
+const chipsStyle = css({
+  display: "none",
+  "[data-row]:hover &": { display: "contents" },
 });
 
-const emptyStyle = css({ textStyle: "sm", color: "neutral.fg.subtle" });
+const emptyStyle = css({
+  fontSize: "[13px]", // token-guard: allow Figma panel values beside labels are 13 px (J2.51)
+  lineHeight: "[16px]",
+  color: "neutral.fg.subtle",
+});
 
 const moreStyle = css({
   padding: "[0]",
@@ -77,39 +78,54 @@ const UsedByTree = ({
   const rest = users.slice(shownUsers);
   const select = (id: string) =>
     setUi((current) => ({ ...current, selectedId: id, openField: null }));
-  return (
-    <div className={treeStyle}>
-      {shown.map((id) =>
-        withIcons ? (
-          <SourceChip key={id} icon={iconOf(id)} onClick={() => select(id)}>
-            {nameOf(document, id)}
-          </SourceChip>
-        ) : (
-          <Chip key={id} size="md" onClick={() => select(id)}>
-            {nameOf(document, id)}
-          </Chip>
-        ),
-      )}
-      {rest.length > 0 && !all ? (
-        <Tooltip
-          content={
-            <span className={css({ display: "flex", flexDirection: "column" })}>
-              {rest.slice(0, hoverUsers).map((id) => (
-                <span key={id}>{nameOf(document, id)}</span>
-              ))}
-              {rest.length > hoverUsers ? (
-                <span>and {rest.length - hoverUsers} more</span>
-              ) : null}
-            </span>
-          }
+  const more =
+    rest.length > 0 && !all ? (
+      <Tooltip
+        content={
+          <span className={css({ display: "flex", flexDirection: "column" })}>
+            {rest.slice(0, hoverUsers).map((id) => (
+              <span key={id}>{nameOf(document, id)}</span>
+            ))}
+            {rest.length > hoverUsers ? (
+              <span>and {rest.length - hoverUsers} more</span>
+            ) : null}
+          </span>
+        }
+      >
+        <button
+          type="button"
+          className={moreStyle}
+          onClick={() => setAll(true)}
         >
-          <button type="button" className={moreStyle} onClick={() => setAll(true)}>
-            +{rest.length} more
-          </button>
-        </Tooltip>
-      ) : null}
+          +{rest.length} more
+        </button>
+      </Tooltip>
+    ) : null;
+  return (
+    <div className={usedStyle}>
+      <span className={namesStyle}>
+        Used in {shown.map((id) => nameOf(document, id)).join(", ")}
+      </span>
+      <span className={chipsStyle}>
+        {shown.map((id) =>
+          withIcons ? (
+            <SourceChip key={id} icon={iconOf(id)} onClick={() => select(id)}>
+              {nameOf(document, id)}
+            </SourceChip>
+          ) : (
+            <Chip key={id} size="md" onClick={() => select(id)}>
+              {nameOf(document, id)}
+            </Chip>
+          ),
+        )}
+      </span>
+      {more}
       {all && rest.length > 0 ? (
-        <button type="button" className={moreStyle} onClick={() => setAll(false)}>
+        <button
+          type="button"
+          className={moreStyle}
+          onClick={() => setAll(false)}
+        >
           Show less
         </button>
       ) : null}
@@ -117,12 +133,30 @@ const UsedByTree = ({
   );
 };
 
-/** The kind under an output's name: "List of Shipment", "Number". Unknown until the step's input is set. */
-const KindBadge = ({ kind }: { kind: string | null }) => (
-  <Chip size="xs" variant="soft">
-    {kind ?? "Any"}
-  </Chip>
-);
+/** An output's type as the icon left of its name (2 Nov): its kind decides it. */
+const kindIcon = (kind: string | null): IconName => {
+  const name = (kind ?? "").replace(/^List of /, "");
+  const list = kind?.startsWith("List of ") ?? false;
+  if (/entity/i.test(name)) {
+    return list ? "cubes" : "cube";
+  }
+  if (/date|time/i.test(name)) {
+    return "calendar";
+  }
+  if (/number|integer/i.test(name)) {
+    return "oneHundred";
+  }
+  if (/boolean|choice|decision/i.test(name)) {
+    return "list";
+  }
+  if (/person|user|actor/i.test(name)) {
+    return "user";
+  }
+  if (/file/i.test(name)) {
+    return "file";
+  }
+  return list ? "list" : "text";
+};
 
 export const OutputRows = ({
   stepId,
@@ -143,12 +177,18 @@ export const OutputRows = ({
         <PropertyRow
           key={output.name}
           label={
-            <span className={labelStackStyle}>
-              <span>{output.label}</span>
-              <KindBadge kind={kind} />
+            <span
+              className={css({
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "1",
+              })}
+            >
+              <Icon name={kindIcon(kind)} size="sm" />
+              {output.label}
             </span>
           }
-          hover={kind ? undefined : "Kind is known when it runs"}
+          hover={kind ?? "Kind is known when it runs"}
         >
           <UsedByTree
             iconOf={iconOf}

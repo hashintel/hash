@@ -446,12 +446,14 @@ export const DatePickerSurface = ({
             <div className={relativeLabelStyle}>
               {relative?.kind === "interval" || customOpen
                 ? `Relative to ${anchorText[interval.anchor].toLowerCase()}`
-                : "Relative to today"}
+                : // J2.6 (3 Nov): presets count back from when the step runs.
+                  "Relative to step run time"}
             </div>
             {relativePresets
               .filter((preset) => !isStartOfPreset(preset))
               .map(presetRow)}
-            {daysOpen ? (
+            {/* J2.6 lists no "Number of days ago": Custom… sets any number of days. It stays once picked. */}
+            {!daysOpen && relative?.kind !== "daysAgo" ? null : daysOpen ? (
               <div
                 className={css({
                   display: "flex",
