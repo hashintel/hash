@@ -14,14 +14,14 @@ import type {
 export type StepPosition = NonNullable<StepDefinition<string>["position"]>;
 
 /** A line between two steps: step `to` runs after step `from`, which is in its `runAfter`. */
-export type FlowConnection = { from: string; to: string };
+export type RunAfterLink = { from: string; to: string };
 
 /**
- * Where a new step goes: after a step, into a connection (`from` → new step → `to`), or on its own.
+ * Where a new step goes: after a step, into a run-after link (`from` → new step → `to`), or on its own.
  */
 export type NewStepPlacement =
   | { after: string; position?: StepPosition }
-  | { into: FlowConnection; position?: StepPosition }
+  | { into: RunAfterLink; position?: StepPosition }
   | { position: StepPosition };
 
 export type FlowEditorState = {
@@ -130,8 +130,8 @@ const setRunAfter = (
   return updated;
 };
 
-/** Removes the connections from the given steps, at any depth. */
-const removeConnectionsFrom = (
+/** Removes the run-after links from the given steps, at any depth. */
+const removeRunAfterLinksFrom = (
   steps: StepDefinition<string>[],
   stepIds: Set<string>,
 ): StepDefinition<string>[] =>
@@ -146,7 +146,7 @@ const removeConnectionsFrom = (
         : step;
 
     return updated.kind === "for-each"
-      ? { ...updated, steps: removeConnectionsFrom(updated.steps, stepIds) }
+      ? { ...updated, steps: removeRunAfterLinksFrom(updated.steps, stepIds) }
       : updated;
   });
 
@@ -158,10 +158,10 @@ const replaceStep = (
 /**
  * Holds a flow definition being edited and applies edits to it, checking it after each one, so that a canvas and
  * panels only draw it and send edits. Each edit replaces the state rather than changing it. Edits apply to the flow's top-level steps, and leave the steps inside for-each
- * steps as they were, except for connections to a step that's removed or disconnected.
+ * steps as they were, except for run-after links to a step that's removed or unlinked.
  *
  * Edits never fail because a step is half-built: its problems are listed instead. They throw only when what they
- * name isn't there: a top-level step, the connection to insert a step into, or an action step's inputs.
+ * name isn't there: a top-level step, the run-after link to insert a step into, or an action step's inputs.
  */
 export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
   let state = checkFlowDefinition(flowDefinition);
@@ -249,21 +249,21 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
     },
 
     /**
-     * Removes a step, with every connection to and from it. Inputs that take a value from it keep their source,
+     * Removes a step, with every run-after link to and from it. Inputs that take a value from it keep their source,
      * which is then a problem.
      */
     removeStep: (stepId: string) => {
       const removedStepIds = new Set(getStepIds(getStep(stepId)));
 
       setSteps(
-        removeConnectionsFrom(
+        removeRunAfterLinksFrom(
           state.flowDefinition.steps.filter((step) => step.stepId !== stepId),
           removedStepIds,
         ),
       );
     },
 
-    /** Sets where an input of an action step takes its value from, or disconnects it if `source` is `null`. */
+    /** Sets where an input of an action step takes its value from, or clears it if `source` is `null`. */
     setInputSource: (
       stepId: string,
       inputName: string,
@@ -289,7 +289,7 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
       );
     },
 
-    addConnection: ({ from, to }: FlowConnection) => {
+    addRunAfter: ({ from, to }: RunAfterLink) => {
       getStep(from);
       const step = getStep(to);
       const runAfter = step.runAfter ?? [];
@@ -306,8 +306,8 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
       );
     },
 
-    /** Removes a connection, which may come from a step that doesn't exist. */
-    removeConnection: ({ from, to }: FlowConnection) => {
+    /** Removes a run-after link, which may come from a step that doesn't exist. */
+    removeRunAfter: ({ from, to }: RunAfterLink) => {
       const step = getStep(to);
       const runAfter = step.runAfter ?? [];
 
@@ -326,10 +326,10 @@ export const createFlowEditor = (flowDefinition: FlowDefinition<string>) => {
       );
     },
 
-    /** Removes every connection to and from a step. */
-    disconnectStep: (stepId: string) => {
+    /** Removes every run-after link to and from a step. */
+    unlinkStep: (stepId: string) => {
       setSteps(
-        removeConnectionsFrom(
+        removeRunAfterLinksFrom(
           replaceStep(
             state.flowDefinition.steps,
             setRunAfter(getStep(stepId), []),
