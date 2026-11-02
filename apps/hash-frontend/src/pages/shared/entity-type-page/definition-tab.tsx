@@ -7,7 +7,7 @@ import { useEntityTypesContextRequired } from "../../../shared/entity-types-cont
 import { usePropertyTypes } from "../../../shared/property-types-context";
 import { useDataTypesContext } from "../data-types-context";
 import { useNewTypeOwner } from "../shared/use-new-type-owner";
-import { EntityTypeChildren } from "./definition-tab/entity-type-children";
+import { DependentTypes } from "./definition-tab/dependent-types";
 import { useEditorOntologyFunctions } from "./definition-tab/use-editor-ontology-functions";
 
 import type { OnNavigateToType } from "./shared/on-navigate-to-type";
@@ -104,7 +104,7 @@ export const DefinitionTab = ({
         propertyTypeOptions={propertyTypeOptions}
         readonly={readonly}
       />
-      <EntityTypeChildren
+      <DependentTypes
         entityType={entityTypeAndPropertyTypes.entityType}
         entityTypeBaseUrl={entityTypeBaseUrl}
         onNavigateToType={onNavigateToType}

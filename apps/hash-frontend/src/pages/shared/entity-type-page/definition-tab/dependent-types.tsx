@@ -2,8 +2,8 @@ import { Box } from "@mui/material";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { isTypeArchived } from "../../../../shared/is-archived";
-import { DependentTypesSection } from "./entity-type-children/dependent-types-section";
-import { useEntityTypeChildren } from "./entity-type-children/use-entity-type-children";
+import { DependentTypesSection } from "./dependent-types/dependent-types-section";
+import { useDependentTypes } from "./dependent-types/use-dependent-types";
 
 import type { OnNavigateToType } from "../shared/on-navigate-to-type";
 import type {
@@ -11,7 +11,7 @@ import type {
   EntityTypeWithMetadata,
 } from "@blockprotocol/type-system";
 
-export const EntityTypeChildren = ({
+export const DependentTypes = ({
   entityType,
   entityTypeBaseUrl,
   onNavigateToType,
@@ -25,7 +25,7 @@ export const EntityTypeChildren = ({
 
   const hidden = !entityTypeBaseUrl || isTypeArchived(entityType);
 
-  const { children, error } = useEntityTypeChildren(
+  const { children, error } = useDependentTypes(
     hidden ? null : entityType.schema.$id,
   );
 
