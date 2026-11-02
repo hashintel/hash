@@ -1,11 +1,18 @@
 //! The store connection: flags and dialing.
 
 use core::{error::Error, fmt, pin::Pin};
-use std::io;
+use std::{io, path::PathBuf};
 
 use clap::Args;
+use error_stack::Report;
 use hash_crypto::Secret;
-use tokio_postgres::{Client, Config, NoTls, config::Host};
+use hash_graph_postgres_store::store::{
+    DatabaseConnectionInfo, DatabaseSslMode, DatabaseType,
+    postgres::connection::RootCertificateError,
+};
+use tokio::net::TcpStream;
+use tokio_postgres::{Client, Config, config::Host, tls::MakeTlsConnect};
+use tokio_postgres_rustls::MakeRustlsConnect;
 
 /// The store connection flags, mirroring the graph binary's `HASH_GRAPH_PG_*` environment.
 ///
@@ -48,6 +55,27 @@ pub struct PostgresArgs {
     /// Defaults to `graph` when neither the flag nor `HASH_GRAPH_PG_DATABASE` supplies one.
     #[arg(long, default_value = "graph", env = "HASH_GRAPH_PG_DATABASE")]
     database: String,
+
+    /// Whether to connect to the store over TLS.
+    ///
+    /// Defaults to `disable` when neither the flag nor `HASH_GRAPH_PG_SSL_MODE` supplies one.
+    #[arg(
+        long = "pg-ssl-mode",
+        default_value = "disable",
+        value_enum,
+        env = "HASH_GRAPH_PG_SSL_MODE"
+    )]
+    ssl_mode: DatabaseSslMode,
+
+    /// The PEM-encoded root certificate the store is verified against.
+    ///
+    /// Required unless `--pg-ssl-mode` is `disable`.
+    #[arg(
+        long = "pg-ssl-root-cert",
+        env = "HASH_GRAPH_PG_SSL_ROOT_CERT",
+        required_if_eq_any = [("ssl_mode", "prefer"), ("ssl_mode", "require")]
+    )]
+    ssl_root_cert: Option<PathBuf>,
 }
 
 impl PostgresArgs {
@@ -58,25 +86,29 @@ impl PostgresArgs {
     ///
     /// # Errors
     ///
-    /// Returns a [`ConnectError`] when the host flag names no TCP host, or when the store refuses
-    /// the connection or handshake.
+    /// Returns a [`ConnectError`] when the root certificate cannot be loaded, when the host flag
+    /// names no TCP host, or when the store refuses the connection or handshake.
     pub async fn connect(self) -> Result<Client, ConnectError> {
-        // The store config copies the password, and that copy is the library's own.
-        let mut config = Config::new();
-        config
-            .user(self.user)
-            .password(self.password.expose())
-            .host(self.host)
-            .port(self.port)
-            .dbname(self.database);
+        let info = DatabaseConnectionInfo::new(
+            DatabaseType::Postgres,
+            self.user,
+            self.password,
+            self.host,
+            self.port,
+            self.database,
+        )
+        .with_ssl(self.ssl_mode, self.ssl_root_cert);
+        let tls = info.tls().map_err(ConnectError::RootCertificate)?;
 
-        connect(config).await
+        connect(info.config(), tls).await
     }
 }
 
 /// Dialing the store failed.
 #[derive(Debug)]
 pub enum ConnectError {
+    /// The root certificate could not be loaded.
+    RootCertificate(Report<RootCertificateError>),
     /// The configuration names no TCP host.
     NoTcpHost,
     /// The store refused the TCP connection.
@@ -88,6 +120,7 @@ pub enum ConnectError {
 impl fmt::Display for ConnectError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::RootCertificate(_) => fmt.write_str("the root certificate could not be loaded"),
             Self::NoTcpHost => fmt.write_str("the configuration names no TCP host"),
             Self::Connect(_) => fmt.write_str("the store refused the TCP connection"),
             Self::Handshake(_) => fmt.write_str("the store handshake failed"),
@@ -98,6 +131,7 @@ impl fmt::Display for ConnectError {
 impl Error for ConnectError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
+            Self::RootCertificate(report) => Some(report.as_error()),
             Self::Handshake(error) => Some(error),
             Self::NoTcpHost => None,
             Self::Connect(error) => Some(error),
@@ -105,13 +139,14 @@ impl Error for ConnectError {
     }
 }
 
-/// Dials the store the configuration names and drives the connection on a background task.
+/// Dials the store the configuration names over `tls` and drives the connection on a background
+/// task.
 ///
 /// # Errors
 ///
 /// Returns a [`ConnectError`] when the configuration names no TCP host, when the socket refuses
 /// the connection, or when the store rejects the handshake.
-pub async fn connect(config: Config) -> Result<Client, ConnectError> {
+pub async fn connect(config: Config, mut tls: MakeRustlsConnect) -> Result<Client, ConnectError> {
     let host = config
         .get_hosts()
         .iter()
@@ -124,11 +159,12 @@ pub async fn connect(config: Config) -> Result<Client, ConnectError> {
     // 5432 is the protocol's registered port, which tokio-postgres also dials when no port is set.
     let port = config.get_ports().first().copied().unwrap_or(5432);
 
-    let stream = tokio::net::TcpStream::connect((host.as_str(), port))
+    let stream = TcpStream::connect((host.as_str(), port))
         .await
         .map_err(ConnectError::Connect)?;
+    let Ok(tls) = MakeTlsConnect::<TcpStream>::make_tls_connect(&mut tls, &host);
     let (client, connection) = config
-        .connect_raw(stream, NoTls)
+        .connect_raw(stream, tls)
         .await
         .map_err(ConnectError::Handshake)?;
     tokio::spawn(async move {
@@ -138,4 +174,43 @@ pub async fn connect(config: Config) -> Result<Client, ConnectError> {
     });
 
     Ok(client)
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::{Parser, error::ErrorKind};
+
+    use super::PostgresArgs;
+
+    #[derive(Debug, Parser)]
+    struct Cli {
+        #[command(flatten)]
+        store: PostgresArgs,
+    }
+
+    #[test]
+    fn ssl_requires_root_cert() {
+        for mode in ["prefer", "require"] {
+            let error = Cli::try_parse_from(["atlas", "--pg-ssl-mode", mode])
+                .expect_err("a TLS mode without a root certificate should be rejected");
+
+            assert_eq!(
+                error.kind(),
+                ErrorKind::MissingRequiredArgument,
+                "`{mode}` should require `--pg-ssl-root-cert`"
+            );
+        }
+    }
+
+    #[test]
+    fn ssl_with_root_cert() {
+        Cli::try_parse_from([
+            "atlas",
+            "--pg-ssl-mode",
+            "require",
+            "--pg-ssl-root-cert",
+            "/etc/ssl/rds.pem",
+        ])
+        .expect("a TLS mode with a root certificate should parse");
+    }
 }

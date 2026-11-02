@@ -159,6 +159,14 @@ impl DatabaseConnectionInfo {
         }
     }
 
+    /// Connects in the given SSL `mode`, verifying the server against `root_cert`.
+    #[must_use]
+    pub fn with_ssl(mut self, mode: DatabaseSslMode, root_cert: Option<PathBuf>) -> Self {
+        self.ssl_mode = mode;
+        self.ssl_root_cert = root_cert;
+        self
+    }
+
     /// The connection configuration, password included.
     ///
     /// The copy of the password in the returned [`Config`] is not zeroed when it is dropped.
