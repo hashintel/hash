@@ -7,6 +7,7 @@ import {
   formatPlaybackSpeed,
   PLAYBACK_SPEEDS,
   PlaybackContext,
+  type PlaybackContextValue,
   type PlaybackSpeed,
 } from "../../../../../react/playback/context";
 import { SimulationContext } from "../../../../../react/simulation/context";
@@ -142,8 +143,24 @@ const maxTimeInputStyle = css({
   fontVariantNumeric: "tabular-nums",
 });
 
+/** The playback settings the menu edits; `PlaybackContext` by default. */
+export type PlaybackSettingsSource = Pick<
+  PlaybackContextValue,
+  | "playbackSpeed"
+  | "playMode"
+  | "isViewOnlyAvailable"
+  | "isComputeAvailable"
+  | "setPlaybackSpeed"
+  | "setPlayMode"
+>;
+
 export type PlaybackSettingsMenuProps = {
   allowedSpeeds?: readonly PlaybackSpeed[];
+  /**
+   * The playback the menu controls. Left out, the menu edits the frame
+   * playback; the event-driven controls hand it theirs.
+   */
+  playback?: PlaybackSettingsSource;
 };
 
 const toSpeedRows = (speeds: readonly PlaybackSpeed[]): PlaybackSpeed[][] => {
@@ -156,6 +173,7 @@ const toSpeedRows = (speeds: readonly PlaybackSpeed[]): PlaybackSpeed[][] => {
 
 export const PlaybackSettingsMenu = ({
   allowedSpeeds = PLAYBACK_SPEEDS,
+  playback,
 }: PlaybackSettingsMenuProps) => {
   const presentation = usePetrinautPresentation();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -171,6 +189,7 @@ export const PlaybackSettingsMenu = ({
     setMaxTime,
   } = use(SimulationContext);
 
+  const framePlayback = use(PlaybackContext);
   const {
     playbackSpeed,
     playMode,
@@ -178,7 +197,7 @@ export const PlaybackSettingsMenu = ({
     isComputeAvailable,
     setPlaybackSpeed,
     setPlayMode,
-  } = use(PlaybackContext);
+  } = playback ?? framePlayback;
 
   const hasSimulation = simulationState !== "NotRun";
 

@@ -12,6 +12,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ActualModeContext } from "../actual-mode-context";
+import { EventPlaybackContext } from "../event-playback/context";
 import { PlaybackContext } from "../playback/context";
 import { SimulationContext } from "../simulation/context";
 import { EditorContext } from "../state/editor-context";
@@ -45,6 +46,36 @@ export const useSimulationExecutionFrameSource = (): ExecutionFrameSource => {
     currentFrameReader,
     currentViewedFrame,
     scrubToFrame: setCurrentViewedFrame,
+    getFramesInRange,
+  };
+};
+
+/**
+ * Adapter exposing event-driven playback as an {@link ExecutionFrameSource}.
+ *
+ * A "frame" here is a recorded event, so consumers that walk frames by index
+ * see the events; the viewed frame is the state at the viewed time, which
+ * falls between events as often as on one. Scrubbing to a frame views that
+ * event's time.
+ */
+export const useEventExecutionFrameSource = (): ExecutionFrameSource => {
+  const { eventSimulation, getFramesInRange, totalFrames } =
+    use(SimulationContext);
+  const { currentEventIndex, currentFrameReader, setTime } =
+    use(EventPlaybackContext);
+
+  return {
+    sourceId: `event-trace:${eventSimulation === null ? "none" : "run"}`,
+    totalFrames,
+    currentFrameIndex: Math.max(0, currentEventIndex),
+    currentFrameReader,
+    currentViewedFrame: currentFrameReader?.toFrameState() ?? null,
+    scrubToFrame: (frameIndex: number) => {
+      const event = eventSimulation?.getEvent(Math.max(0, frameIndex));
+      if (event) {
+        setTime(event.time);
+      }
+    },
     getFramesInRange,
   };
 };
@@ -159,20 +190,29 @@ export const useActualExecutionFrameSource = (params: {
 /**
  * Routes {@link ExecutionFrameSourceContext} to the adapter matching the
  * editor's global mode: the host-provided Actual mode stream in Actual mode,
- * local simulation playback otherwise. A single element provides the context
- * so switching modes swaps the value without remounting the subtree.
+ * local playback otherwise, over events or frames as the simulation engine
+ * setting says. A single element provides the context so switching modes
+ * swaps the value without remounting the subtree.
  */
 export const ExecutionFrameProvider: FC<PropsWithChildren> = ({ children }) => {
   const { globalMode } = use(EditorContext);
+  const { engine } = use(SimulationContext);
   const isActualMode = globalMode === "actual";
   const simulationSource = useSimulationExecutionFrameSource();
+  const eventSource = useEventExecutionFrameSource();
   const actualSource = useActualExecutionFrameSource({
     enabled: isActualMode,
   });
 
   return (
     <ExecutionFrameSourceContext
-      value={isActualMode ? actualSource : simulationSource}
+      value={
+        isActualMode
+          ? actualSource
+          : engine === "event-driven"
+            ? eventSource
+            : simulationSource
+      }
     >
       {children}
     </ExecutionFrameSourceContext>
