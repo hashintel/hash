@@ -161,9 +161,12 @@ describe("DependentTypesByVersionTable", () => {
 
     expect(
       screen
-        .getAllByRole("button", { expanded: false })
+        .getAllByRole("button", { name: /, extended by / })
         .map((button) => button.getAttribute("aria-label")),
     ).toEqual([v4Name, v3Name, v2Name, v1Name]);
+    for (const name of [v3Name, v2Name, v1Name]) {
+      screen.getByRole("button", { name, expanded: false });
+    }
   });
 
   it("shows how many types extend each version", () => {
@@ -185,6 +188,7 @@ describe("DependentTypesByVersionTable", () => {
     const v4 = screen.getByRole("button", { name: v4Name });
     const v3 = screen.getByRole("button", { name: v3Name });
     expect((v4 as HTMLButtonElement).disabled).toBe(true);
+    expect(v4.getAttribute("aria-expanded")).toBeNull();
     expect((v3 as HTMLButtonElement).disabled).toBe(false);
     // The chevron is the row's only hidden decoration beside its toggle.
     const chevronOf = (toggle: HTMLElement) =>
