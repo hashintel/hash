@@ -96,8 +96,8 @@ describe("createFlowEditor", () => {
     const added = editor.addStep("answerQuestion", { after: "second" });
     editor.moveStep("first", { x: 10, y: 10 });
     editor.setInputSource(added, "question", explanationOf("second"));
-    editor.addRunAfter({ from: added, to: "first" });
-    editor.removeRunAfter({ from: added, to: "first" });
+    editor.addConnection({ from: added, to: "first" });
+    editor.removeConnection({ from: added, to: "first" });
     editor.removeStep(added);
     editor.moveStep("each", { x: 600, y: 0 });
 
@@ -117,9 +117,9 @@ describe("createFlowEditor", () => {
     });
     editor.moveStep("first", { x: 10, y: 10 });
     editor.setInputSource("second", "question", null);
-    editor.addRunAfter({ from: added, to: "each" });
+    editor.addConnection({ from: added, to: "each" });
     editor.removeStep("first");
-    editor.unlinkStep("each");
+    editor.disconnectStep("each");
 
     expect(editor.getState()).not.toBe(loaded);
     expect(loaded).toStrictEqual({
@@ -158,7 +158,7 @@ describe("createFlowEditor", () => {
       });
     });
 
-    it("inserts a step into a run-after link only for ordering, leaving data inputs as they were", () => {
+    it("inserts a step into a connection only for ordering, leaving data inputs as they were", () => {
       const editor = loadFlow();
 
       const stepId = editor.addStep("webSearch", {
@@ -172,10 +172,10 @@ describe("createFlowEditor", () => {
       });
     });
 
-    it("keeps the step's other runAfter entries in place when inserting into one", () => {
+    it("keeps the step's other connections in place when inserting into one", () => {
       const editor = loadFlow();
 
-      editor.addRunAfter({ from: "first", to: "each" });
+      editor.addConnection({ from: "first", to: "each" });
       const stepId = editor.addStep("webSearch", {
         into: { from: "second", to: "each" },
       });
@@ -209,10 +209,10 @@ describe("createFlowEditor", () => {
   });
 
   describe("removing a step", () => {
-    it("drops every run-after link to and from it, at any depth", () => {
+    it("drops every connection to and from it, at any depth", () => {
       const editor = loadFlow();
 
-      editor.addRunAfter({ from: "first", to: "each" });
+      editor.addConnection({ from: "first", to: "each" });
       editor.removeStep("first");
 
       const [second, each] = editor.getState().flowDefinition.steps;
@@ -296,12 +296,12 @@ describe("createFlowEditor", () => {
     });
   });
 
-  describe("run-after links", () => {
-    it("adds a run-after link once", () => {
+  describe("connections", () => {
+    it("adds a connection once", () => {
       const editor = loadFlow();
 
-      editor.addRunAfter({ from: "first", to: "each" });
-      editor.addRunAfter({ from: "first", to: "each" });
+      editor.addConnection({ from: "first", to: "each" });
+      editor.addConnection({ from: "first", to: "each" });
 
       expect(stepOf(editor, "each")?.runAfter).toEqual([
         { stepId: "second" },
@@ -309,19 +309,19 @@ describe("createFlowEditor", () => {
       ]);
     });
 
-    it("removes a run-after link, leaving no runAfter when it was the last one", () => {
+    it("removes a connection, leaving no runAfter when it was the last one", () => {
       const editor = loadFlow();
 
-      editor.removeRunAfter({ from: "first", to: "second" });
+      editor.removeConnection({ from: "first", to: "second" });
 
       expect(stepOf(editor, "second")).not.toHaveProperty("runAfter");
     });
 
-    it("removes every run-after link to and from a step, at any depth", () => {
+    it("removes every connection to and from a step, at any depth", () => {
       const editor = loadFlow();
 
-      editor.addRunAfter({ from: "second", to: "first" });
-      editor.unlinkStep("first");
+      editor.addConnection({ from: "second", to: "first" });
+      editor.disconnectStep("first");
 
       const [first, second, each] = editor.getState().flowDefinition.steps;
 
@@ -334,7 +334,7 @@ describe("createFlowEditor", () => {
     });
   });
 
-  it("unlinks a for-each step from the steps inside it too", () => {
+  it("disconnects a for-each step from the steps inside it too", () => {
     const definition = structuredClone(flowDefinition);
     const [, , each] = definition.steps;
 
@@ -345,7 +345,7 @@ describe("createFlowEditor", () => {
     each.steps[0].runAfter = [{ stepId: "first" }, { stepId: "each" }];
     const editor = createFlowEditor(definition);
 
-    editor.unlinkStep("each");
+    editor.disconnectStep("each");
 
     expect(stepOf(editor, "each")).toMatchObject({
       steps: [{ stepId: "answer", runAfter: [{ stepId: "first" }] }, {}],
@@ -353,7 +353,7 @@ describe("createFlowEditor", () => {
     expect(stepOf(editor, "each")).not.toHaveProperty("runAfter");
   });
 
-  it("rejects edits naming a step that isn't a top-level step, a run-after link that doesn't exist, or a for-each step's inputs", () => {
+  it("rejects edits naming a step that isn't a top-level step, a connection that doesn't exist, or a for-each step's inputs", () => {
     const editor = loadFlow();
 
     expect(() => editor.moveStep("answerQuestion", { x: 0, y: 0 })).toThrow(
