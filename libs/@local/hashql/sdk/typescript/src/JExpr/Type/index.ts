@@ -48,7 +48,7 @@ export declare namespace Type {
   /**
    * The schema-encoded form of a {@link Type}, which writes each path and member name as source text.
    *
-   * A reference's path becomes text such as `"::core::List<Integer>"`, and a struct member name becomes text such as `` "`+`" ``. Path arguments use type syntax, which omits single-member union and intersection wrappers. Other type nodes keep their tagged objects. {@link Schema} encodes and decodes this form, and neither form is J-Expr. Use {@link compile} or {@link toExpression} for J-Expr.
+   * A reference's path becomes text such as `"::core::List<Integer>"`, and a struct member name becomes text such as <code>"\`+\`"</code>. Path arguments use type syntax, which omits single-member union and intersection wrappers. Other type nodes keep their tagged objects. {@link Schema} encodes and decodes this form, and neither form is J-Expr. Use {@link compile} or {@link toExpression} for J-Expr.
    */
   export type Encoded = Defs.TypeEncoded;
 }
@@ -61,7 +61,7 @@ type MakeIn = (typeof Schema)["~type.make.in"];
  *
  * Validates the input against {@link Schema} by default. `options.disableChecks` skips the identifier checks but still requires the tagged structure. {@link makeOption} returns `None` for validation failures, and {@link makeEffect} preserves the issue in its error channel.
  *
- * @throws {Error} If construction fails. A schema-validation error carries a {@link SchemaIssue.Issue} in its `cause`.
+ * @throws `Error` If construction fails. A schema-validation error carries a {@link SchemaIssue.Issue} in its `cause`.
  *
  * @example <caption>Construct and check tagged type syntax.</caption>
  * ```ts
@@ -159,7 +159,7 @@ const asReadonlyUnsafe = <T>(input: T): Readonly<T> => input;
 /**
  * Creates a type with named fields.
  *
- * Returns `None` if any field name is not a valid identifier according to `Ident.decodeResult`. Symbol names accept bare (`+`) or backticked (`` `+` ``) spelling. Spelling one {@link Ident.name | name} two ways, such as `+` and `` `+` ``, also returns `None`. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
+ * Returns `None` if any field name is not a valid identifier according to `Ident.decodeResult`. Symbol names accept bare (`+`) or backticked (<code>\`+\`</code>) spelling. Spelling one {@link Ident.name | name} two ways, such as `+` and <code>\`+\`</code>, also returns `None`. Fields follow the record's own enumerable string-key order. An empty record produces an empty struct, which {@link compile} renders as `(:)`.
  *
  * @example <caption>Build a struct type and reject an invalid field name.</caption>
  * ```ts
