@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { isTypeArchived } from "../../../../shared/is-archived";
@@ -28,36 +28,33 @@ export const DependentTypes = ({
 
   const { data, error } = useDependentTypes(hidden ? null : entityTypeBaseUrl);
 
+  const dependentTypeRows = useMemo(
+    () =>
+      data && entityTypeBaseUrl
+        ? getDependentTypeRows({ parentBaseUrl: entityTypeBaseUrl, ...data })
+        : undefined,
+    [data, entityTypeBaseUrl],
+  );
+
   if (hidden) {
     return null;
   }
 
-  const boldTitle = (
-    <Box component="span" sx={{ fontWeight: "bold" }}>
-      {entityType.schema.title}
-    </Box>
-  );
-
-  const heading = <>Types that extend {boldTitle}</>;
-  const emptyMessage = <>No types extend {boldTitle} yet.</>;
-  const isLinkType = (type: EntityTypeWithMetadata) =>
-    isSpecialEntityTypeLookup?.[type.schema.$id]?.isLink ?? false;
-
   return (
     <DependentTypesSection
-      heading={heading}
-      emptyMessage={emptyMessage}
-      types={
-        data
-          ? getDependentTypeRows({
-              parentBaseUrl: entityTypeBaseUrl,
-              ...data,
-            }).rows.map((row) => row.entityType)
-          : undefined
-      }
+      entityTypeTitle={entityType.schema.title}
+      rows={dependentTypeRows?.rows}
+      incomplete={dependentTypeRows?.incomplete ?? false}
       error={error}
-      isLinkType={isLinkType}
-      onTypeClick={(typeId) => onNavigateToType("entityType", typeId)}
+      isLinkType={(type) =>
+        // A type created after the lookup loaded is missing from it. A type
+        // that extends a link type is a link type, so the parent's entry
+        // answers for it.
+        isSpecialEntityTypeLookup?.[type.schema.$id]?.isLink ??
+        isSpecialEntityTypeLookup?.[entityType.schema.$id]?.isLink ??
+        false
+      }
+      onOpenType={(typeId) => onNavigateToType("entityType", typeId)}
     />
   );
 };
