@@ -28,7 +28,9 @@ use parquet::{
 };
 
 use super::Connection;
-use crate::{CaptureError, SourceCapture, StatementError, sql::Identifier};
+use crate::{
+    CaptureError, SourceCapture, StatementError, sql::Identifier, workspace::metrics::Operation,
+};
 
 fn parquet_batch(batch: &duckdb_array::StructArray) -> Result<RecordBatch, Report<CaptureError>> {
     let (mut array, mut schema) = to_ffi(&batch.to_data()).change_context(CaptureError::Write)?;
@@ -108,7 +110,7 @@ impl Connection {
             rows = rows.saturating_add(u64::try_from(batch.num_rows()).unwrap_or(u64::MAX));
         }
         writer.close().change_context(CaptureError::Write)?;
-        self.metrics.rows("capture", rows);
+        self.metrics.rows(Operation::Capture, rows);
         self.check_disk_limit()
             .change_context(CaptureError::Query)?;
         self.check_capture_cancelled()?;

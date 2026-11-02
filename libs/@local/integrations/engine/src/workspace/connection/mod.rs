@@ -468,12 +468,12 @@ impl Connection {
                     table,
                     reply,
                 } => {
-                    self.answer(id, reply, "load_capture", |connection| {
+                    self.answer(id, reply, Operation::LoadCapture, |connection| {
                         connection.load_capture(&capture, &table)
                     });
                 }
                 Command::Capture { sql, target, reply } => {
-                    self.answer(id, reply, "capture", |connection| {
+                    self.answer(id, reply, Operation::Capture, |connection| {
                         connection.capture(&sql, &target)
                     });
                 }
