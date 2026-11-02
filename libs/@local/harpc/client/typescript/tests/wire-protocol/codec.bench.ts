@@ -42,7 +42,7 @@ describe("request", () => {
     await bench("decode", () => {
       const buffer = MutableBuffer.makeRead(MutableBytes.from(requestEncoded));
 
-      Request.decode(buffer).pipe(Either.getOrThrow);
+      Request.decode(buffer).pipe(Result.getOrThrow);
     }).run();
   });
 });
@@ -59,7 +59,7 @@ describe("response", () => {
     await bench("decode", () => {
       const buffer = MutableBuffer.makeRead(MutableBytes.from(responseEncoded));
 
-      Response.decode(buffer).pipe(Either.getOrThrow);
+      Response.decode(buffer).pipe(Result.getOrThrow);
     }).run();
   });
 });
