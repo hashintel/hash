@@ -270,6 +270,7 @@ async fn capture_empty_schema() {
         )
         .await
         .expect("the empty capture should be published");
+    workspace.close().await.expect("the workspace should close");
     assert_eq!(capture.rows(), 0);
     let reader = ParquetRecordBatchReaderBuilder::try_new(
         File::open(target).expect("the capture should open"),
@@ -301,6 +302,7 @@ async fn capture_existing_target() {
         fs::read(target).expect("should read the original"),
         original
     );
+    workspace.close().await.expect("the workspace should close");
 }
 
 #[tokio::test]
@@ -329,6 +331,7 @@ async fn capture_failed_query_cleanup() {
         .query("SELECT 1".into())
         .await
         .expect("the workspace should survive a failed capture");
+    workspace.close().await.expect("the workspace should close");
 }
 
 #[tokio::test]
@@ -357,6 +360,7 @@ async fn capture_restricted_sql() {
         setting.iter().next().expect("should return a row").first(),
         Some(&Value::Boolean(false))
     );
+    workspace.close().await.expect("the workspace should close");
 }
 
 #[tokio::test]
@@ -378,6 +382,7 @@ async fn capture_workspace_file() {
         .query("SELECT 1".into())
         .await
         .expect("the workspace should stay usable");
+    workspace.close().await.expect("the workspace should close");
 }
 
 #[tokio::test]
@@ -410,6 +415,7 @@ async fn capture_cancelled_cleanup() {
         0,
         "cancellation should remove partial files"
     );
+    workspace.close().await.expect("the workspace should close");
 }
 
 #[tokio::test]
@@ -422,6 +428,7 @@ async fn copy_local_capture_independence() {
         .capture("SELECT 1 AS id".into(), source.clone())
         .await
         .expect("should create a local source");
+    workspace.close().await.expect("the workspace should close");
     let capture = SourceCapture::copy_from(&source, &target).expect("the local source should copy");
     fs::write(&source, b"modified source").expect("should modify the live source");
     assert_eq!(
