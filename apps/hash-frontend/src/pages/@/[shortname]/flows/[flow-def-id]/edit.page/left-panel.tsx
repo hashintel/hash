@@ -72,7 +72,7 @@ export const LeftPanel = ({ steps }: { steps: StepDefinition<string>[] }) => {
             color: ({ palette }) => palette.gray[60],
           }}
         >
-          Steps you can add will be listed here.
+          Actions you can add will be listed here.
         </Typography>
       )}
     </Stack>

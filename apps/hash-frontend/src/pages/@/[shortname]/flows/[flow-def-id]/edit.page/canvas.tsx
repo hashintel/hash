@@ -127,7 +127,7 @@ const CanvasToolbar = ({
           variant="ghost"
           size="md"
           iconName="plus"
-          tooltip="Add step"
+          tooltip="Add action"
           disabled
         />
         <Button
