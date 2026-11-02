@@ -2,12 +2,20 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": ["@tsconfig/bases/strictest", "@local/tsconfig/policy.json"],
   "compilerOptions": {
-    "lib": ["es2024"],
+    "lib": ["dom", "dom.iterable", "es2024"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "types": [],
+    "jsx": "react-jsx",
+    "types": ["node"],
     "verbatimModuleSyntax": true,
-    "noEmit": true
+    "noEmit": true,
+    "plugins": [{ "name": "next" }]
   },
-  "include": ["oxlint.config.ts"]
+  "include": [
+    "oxlint.config.ts",
+    "scripts",
+    "lib",
+    "preview",
+    "preview/.next/types/**/*.ts"
+  ]
 }
