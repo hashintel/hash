@@ -348,18 +348,20 @@ const PanelHeader = ({
           }
         />
       ) : stepId && description !== undefined ? (
-        // "Action · description", as in V3 P1 (Figma 118:1748).
+        // "Action · description", as in V3 P1 (Figma 118:1748); with no description yet, "Add a description…" alone (J2.1).
         <span className={css({ display: "flex", alignItems: "baseline" })}>
-          <span
-            className={css({
-              flexShrink: 0,
-              whiteSpace: "pre",
-              textStyle: "sm",
-              color: "neutral.fg.muted.hover",
-            })}
-          >
-            {"Action · "}
-          </span>
+          {description.trim() ? (
+            <span
+              className={css({
+                flexShrink: 0,
+                whiteSpace: "pre",
+                textStyle: "sm",
+                color: "neutral.fg.muted.hover",
+              })}
+            >
+              {"Action · "}
+            </span>
+          ) : null}
           <span className={css({ flex: "1", minWidth: "0", display: "grid" })}>
             <DescriptionInput
               label="Step description"

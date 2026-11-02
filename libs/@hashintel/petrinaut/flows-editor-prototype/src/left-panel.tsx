@@ -4,7 +4,6 @@ import {
   Button,
   Icon,
   type IconName,
-  SegmentedControl,
   TextInput,
 } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
@@ -478,20 +477,44 @@ const Library = () => {
   );
 };
 
-/** Option F's rail (2 Nov): 44 px, white, a hairline on its right, the DS SegmentedControl standing up in it. */
+/**
+ * The R3 rail (Aakarsh's pick, 2 Nov; Explorations 933:120562, 933:121144): 64 px, grey, a hairline on its right,
+ * items centred 10 px apart from 10 px down.
+ */
 const railStyle = css({
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
+  gap: "[10px]",
   flexShrink: 0,
-  width: "[44px]",
+  width: "[64px]",
   height: "[100%]",
-  paddingTop: "2",
-  backgroundColor: "neutral.bgSolid.min",
+  paddingTop: "[10px]",
+  backgroundColor: "neutral.bgSolid.surface.active",
   borderRightWidth: "thin",
   borderRightStyle: "solid",
   borderRightColor: "neutral.bd.subtle",
 });
+
+/** A closed item: a 32 px ghost icon button over its 11 px grey label, 2 px apart. */
+const railItemStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "[2px]",
+});
+
+const railLabelStyle = css({
+  fontSize: "[11px]", // token-guard: allow R3 rail labels are 11 px, below the DS xs step
+  lineHeight: "[13px]",
+  color: "neutral.fg.muted",
+});
+
+const railItems = [
+  { value: "steps", icon: "list", label: "Steps" },
+  { value: "add", icon: "plus", label: "Add" },
+  { value: "runs", icon: "clockRotateLeft", label: "Runs" },
+] as const;
 
 /** The panel's title: "Steps", "Add a step", "Runs", 14 px semibold, 8 px in, in a 40 px header. */
 const panelTitleStyle = css({
@@ -599,25 +622,40 @@ export const LeftPanel = () => {
   return (
     <>
       <nav className={railStyle} aria-label="Panels">
-        <SegmentedControl
-          aria-label="Panels"
-          layout="vertical"
-          size="md"
-          value={panel}
-          onChange={(next) =>
-            setUi((current) => ({
-              ...current,
-              leftPanel: next,
-              // Leaving Runs goes back to editing.
-              viewRunId: next === "runs" ? current.viewRunId : null,
-            }))
-          }
-          items={[
-            { value: "steps", iconName: "list", tooltip: "Steps" },
-            { value: "add", iconName: "plus", tooltip: "Add a step" },
-            { value: "runs", iconName: "clockRotateLeft", tooltip: "Runs" },
-          ]}
-        />
+        {railItems.map((item) =>
+          item.value === panel ? (
+            // The open panel: a 40 px ghost icon button, pressed, with no label.
+            <Button
+              key={item.value}
+              size="lg"
+              variant="ghost"
+              tone="neutral"
+              iconName={item.icon}
+              pressed
+              aria-label={item.label}
+              aria-current="page"
+            />
+          ) : (
+            <div key={item.value} className={railItemStyle}>
+              <Button
+                size="md"
+                variant="ghost"
+                tone="neutral"
+                iconName={item.icon}
+                aria-label={item.label}
+                onClick={() =>
+                  setUi((current) => ({
+                    ...current,
+                    leftPanel: item.value,
+                    // Leaving Runs goes back to editing.
+                    viewRunId: item.value === "runs" ? current.viewRunId : null,
+                  }))
+                }
+              />
+              <span className={railLabelStyle}>{item.label}</span>
+            </div>
+          ),
+        )}
       </nav>
       <aside className={panelStyle} aria-label={panelTitles[panel]}>
         <div className={panelTitleStyle}>{panelTitles[panel]}</div>
