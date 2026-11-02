@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import { splitEntityId } from "@blockprotocol/type-system";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
+import { isFlowDefinedInCode } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 import {
   getUnvalidatedFlowDefinitionFromEntity,
   validateFlowDefinitionEntity,
@@ -42,7 +43,25 @@ import type { FlowDefinition as FlowDefinitionEntity } from "@local/hash-isomorp
  */
 export type LoadedFlowDefinition = {
   flowDefinitionEntityId: EntityId;
+  /** Whether the graph lets the user update the entity. */
+  userCanUpdate: boolean;
 } & ReturnType<typeof validateFlowDefinitionEntity>;
+
+/**
+ * Whether the user can edit a flow in the editor: one they can update, unless it's defined in code.
+ */
+export const canEditFlowDefinition = ({
+  flowDefinitionEntityId,
+  userCanUpdate,
+}: {
+  flowDefinitionEntityId: EntityId;
+  userCanUpdate: boolean;
+}) => userCanUpdate && !isFlowDefinedInCode(flowDefinitionEntityId);
+
+const userCanUpdateEntity = (
+  data: QueryEntitySubgraphQuery,
+  entityId: EntityId,
+) => !!data.queryEntitySubgraph.entityPermissions?.[entityId]?.update;
 
 const flowDefinitionsQueryVariables = (
   filter: Filter,
@@ -65,7 +84,7 @@ const flowDefinitionsQueryVariables = (
     traversalPaths: [],
     temporalAxes,
     includeDrafts: false,
-    includePermissions: false,
+    includePermissions: true,
   },
 });
 
@@ -85,6 +104,7 @@ const getFlowDefinitionsFromQueryResult = (
 
   return getRoots(subgraph).map((entity) => ({
     flowDefinitionEntityId: entity.metadata.recordId.entityId,
+    userCanUpdate: userCanUpdateEntity(data, entity.metadata.recordId.entityId),
     ...validateFlowDefinitionEntity(entity),
   }));
 };
@@ -162,6 +182,7 @@ export const useFlowDefinitionAtTime = (params: {
 export type FlowDefinitionToEdit = {
   flowDefinition: FlowDefinition<string>;
   editionId: EntityEditionId;
+  userCanUpdate: boolean;
 };
 
 const getFlowDefinitionToEdit = (
@@ -189,6 +210,10 @@ const getFlowDefinitionToEdit = (
     flowDefinition && {
       flowDefinition,
       editionId: entity.metadata.recordId.editionId,
+      userCanUpdate: userCanUpdateEntity(
+        data,
+        entity.metadata.recordId.entityId,
+      ),
     }
   );
 };

@@ -47,6 +47,7 @@ const renderEditor = ({
       flow: {
         flowDefinition: emptyFlow("Flow"),
         editionId: editionId("edition-1"),
+        userCanUpdate: true,
       },
       saveFlowDefinition,
       reloadFlow,

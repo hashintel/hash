@@ -5,6 +5,7 @@ import { useSyncExternalStore } from "react";
 
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { Banner, LoadingSpinner } from "@hashintel/ds-components";
+import { isFlowDefinedInCode } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
 
 import {
   archiveFlowDefinitionMutation,
@@ -13,9 +14,13 @@ import {
 import { getPlainLayout } from "../../../../../shared/layout";
 import { DsComponentsScope } from "../../../../shared/ds-components-scope";
 import { NotFound } from "../../../../shared/not-found";
-import { useFlowDefinitionToEdit } from "../../../../shared/use-flow-definitions";
+import {
+  canEditFlowDefinition,
+  useFlowDefinitionToEdit,
+} from "../../../../shared/use-flow-definitions";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 import { Canvas } from "./edit.page/canvas";
+import { FlowNotEditable } from "./edit.page/flow-not-editable";
 import { LeftPanel } from "./edit.page/left-panel";
 import { TopBar } from "./edit.page/top-bar";
 import {
@@ -169,6 +174,20 @@ const FlowEditorLoader = ({
   const { flow, loading, reload } = useFlowDefinitionToEdit(
     flowDefinitionEntityId,
   );
+
+  if (
+    flow &&
+    !canEditFlowDefinition({
+      flowDefinitionEntityId,
+      userCanUpdate: flow.userCanUpdate,
+    })
+  ) {
+    return (
+      <FlowNotEditable
+        definedInCode={isFlowDefinedInCode(flowDefinitionEntityId)}
+      />
+    );
+  }
 
   if (flow) {
     return (

@@ -1,10 +1,15 @@
 import { Box, Container, Stack, TableCell, Typography } from "@mui/material";
 import { formatDistanceToNowStrict } from "date-fns";
+import { useRouter } from "next/router";
 import { memo, useMemo, useState } from "react";
 
 import { Chip, InfinityLightIcon } from "@hashintel/design-system";
+import { EllipsisMenu } from "@hashintel/ds-components";
 import { isGoalFlowDefinitionEntityId } from "@local/hash-isomorphic-utils/flows/flow-definition-ids";
-import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+import {
+  generateFlowDefinitionPath,
+  generateFlowEditorPath,
+} from "@local/hash-isomorphic-utils/flows/frontend-paths";
 
 import { useGetOwnerForEntity } from "../components/hooks/use-get-owner-for-entity";
 import { getLayoutWithSidebar } from "../shared/layout";
@@ -12,6 +17,7 @@ import { Link } from "../shared/ui/link";
 import { WorkersHeader } from "../shared/workers-header";
 import { FlowsEmptyState } from "./flows.page/flows-empty-state";
 import { NewFlowButton } from "./flows.page/new-flow-button";
+import { DsComponentsScope } from "./shared/ds-components-scope";
 import { useFlowDefinitionsContext } from "./shared/flow-definitions-context";
 import { FlowDefinitionsContextProvider } from "./shared/flow-definitions-context-provider";
 import { useFlowRunsContext } from "./shared/flow-runs-context";
@@ -21,6 +27,7 @@ import {
   flowTableRowHeight,
   FlowTableWebChip,
 } from "./shared/flow-tables";
+import { canEditFlowDefinition } from "./shared/use-flow-definitions";
 import { VirtualizedTable } from "./shared/virtualized-table";
 import { virtualizedTableHeaderHeight } from "./shared/virtualized-table/header";
 
@@ -36,7 +43,7 @@ import type { Subtype } from "@local/advanced-types/subtype";
 
 type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
 
-const columns: VirtualizedTableColumn<FieldId>[] = [
+const columns: VirtualizedTableColumn<FieldId | "actions">[] = [
   {
     id: "web",
     label: "Web",
@@ -61,6 +68,12 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     sortable: true,
     width: 150,
   },
+  {
+    id: "actions",
+    label: "",
+    sortable: false,
+    width: 56,
+  },
 ];
 
 type FlowSummary = Subtype<
@@ -78,6 +91,8 @@ type FlowSummary = Subtype<
     /** False for a flow saved before it was finished, which can't run yet. */
     isValid: boolean;
     lastRunStartedAt: string | null;
+    /** Whether the flow can be opened in the editor. */
+    editable: boolean;
   }
 >;
 
@@ -89,7 +104,10 @@ const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
     description,
     isValid,
     lastRunStartedAt,
+    editable,
   } = flowSummary;
+
+  const router = useRouter();
 
   return (
     <>
@@ -131,6 +149,33 @@ const TableRow = memo(({ flowSummary }: { flowSummary: FlowSummary }) => {
             : "Never"}
         </Typography>
       </TableCell>
+      <TableCell sx={flowTableCellSx}>
+        {editable && (
+          <DsComponentsScope
+            sx={{ display: "flex", justifyContent: "flex-end" }}
+          >
+            <EllipsisMenu
+              iconName="ellipsis"
+              variant="ghost"
+              size="xs"
+              items={[
+                {
+                  id: "edit",
+                  text: "Edit",
+                  onClick: () => {
+                    void router.push(
+                      generateFlowEditorPath({
+                        shortname: web.shortname,
+                        flowDefinitionEntityId,
+                      }),
+                    );
+                  },
+                },
+              ]}
+            />
+          </DsComponentsScope>
+        )}
+      </TableCell>
     </>
   );
 });
@@ -159,35 +204,47 @@ const FlowsPageContent = () => {
         ({ flowDefinitionEntityId }) =>
           !isGoalFlowDefinitionEntityId(flowDefinitionEntityId),
       )
-      .map(({ flowDefinitionEntityId, name, description, flowDefinition }) => {
-        let lastRunStartedAt = null;
-        for (const flowRun of flowRuns) {
-          if (
-            flowRun.flowDefinitionEntityId === flowDefinitionEntityId &&
-            (!lastRunStartedAt || flowRun.startedAt > lastRunStartedAt)
-          ) {
-            lastRunStartedAt = flowRun.startedAt;
+      .map(
+        ({
+          flowDefinitionEntityId,
+          name,
+          description,
+          flowDefinition,
+          userCanUpdate,
+        }) => {
+          let lastRunStartedAt = null;
+          for (const flowRun of flowRuns) {
+            if (
+              flowRun.flowDefinitionEntityId === flowDefinitionEntityId &&
+              (!lastRunStartedAt || flowRun.startedAt > lastRunStartedAt)
+            ) {
+              lastRunStartedAt = flowRun.startedAt;
+            }
           }
-        }
 
-        return {
-          id: flowDefinitionEntityId,
-          data: {
-            web: {
-              avatarUrl: "/hash-logo-black.png",
-              name: "HASH",
-              shortname: getOwner({ entityId: flowDefinitionEntityId })
-                .shortname,
-              isOrg: true,
+          return {
+            id: flowDefinitionEntityId,
+            data: {
+              web: {
+                avatarUrl: "/hash-logo-black.png",
+                name: "HASH",
+                shortname: getOwner({ entityId: flowDefinitionEntityId })
+                  .shortname,
+                isOrg: true,
+              },
+              name,
+              flowDefinitionEntityId,
+              description,
+              isValid: flowDefinition !== null,
+              lastRunStartedAt,
+              editable: canEditFlowDefinition({
+                flowDefinitionEntityId,
+                userCanUpdate,
+              }),
             },
-            name,
-            flowDefinitionEntityId,
-            description,
-            isValid: flowDefinition !== null,
-            lastRunStartedAt,
-          },
-        };
-      });
+          };
+        },
+      );
 
     return rowData.sort((a, b) => {
       const field = sort.fieldId;
