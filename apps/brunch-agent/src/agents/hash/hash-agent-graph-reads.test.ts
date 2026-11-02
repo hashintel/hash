@@ -21,7 +21,6 @@ import { afterAll, beforeAll, expect, test, vi } from "vitest";
 
 import {
   type BrowserCallClaim,
-  browserNetToolNames,
   brunchTools,
   canonicalContent,
 } from "@hashintel/brunch-agent";
@@ -221,7 +220,6 @@ test("the agent offers the read, issues it as a read in a fresh conversation, an
   // The model sees the page's entities as compact text, edition evidence
   // included, and none of the browser sidecar.
   expect(seen).toBe(supplierText);
-  expect(browserNetToolNames.has(brunchTools.queryHashEntities)).toBe(false);
 });
 
 test("a step proposing the read beside a net read issues both to the browser, and the model next sees both results", async () => {

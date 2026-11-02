@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 
-import { browserToolMutatesDocument } from "@hashintel/brunch-agent";
+import { browserToolFacts } from "@hashintel/brunch-agent";
 
 import type {
   BrowserCallClaim,
@@ -41,7 +41,7 @@ const outcomeError = (
   if (cause === "stale") return new Error(BROWSER_CALL_STALE_ERROR);
   if (!entry.claimed || cause === "unstarted")
     return new Error(BROWSER_CALL_UNSTARTED_ERROR);
-  const unchanged = !browserToolMutatesDocument(entry.toolName);
+  const unchanged = !browserToolFacts(entry.toolName).effectUnknownOnFailure;
   switch (cause) {
     case "failed":
       return new Error(

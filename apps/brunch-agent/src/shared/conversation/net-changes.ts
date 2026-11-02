@@ -1,8 +1,8 @@
 import {
   type ArcElement,
   type NetElementAddress,
-  browserNetToolNames,
   browserToolEnvelopeOf,
+  browserToolFacts,
   generatedArcId,
   namesId,
   parseClientToolResultMetadata,
@@ -38,7 +38,7 @@ export const netCalls = (snapshot: FlueConversationSnapshot): NetCall[] =>
       ? message.parts.flatMap((part, partIndex) => {
           if (
             part.type !== "dynamic-tool" ||
-            !browserNetToolNames.has(part.toolName) ||
+            !browserToolFacts(part.toolName).runsOnNet ||
             part.state !== "output-available"
           )
             return [];

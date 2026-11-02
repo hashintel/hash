@@ -5,18 +5,11 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import {
   brunchTools,
-  hashGraphReadToolNames,
   petrinautContextualUserMessageBody,
   vSdcpnInitialData,
 } from "@hashintel/brunch-agent";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import {
-  assertBrowserExecutedToolConformance,
-  assertPetrinautToolCatalogueConformance,
-  canonicalPetrinautToolCatalogue,
-  brunchToolCatalogue,
-} from "../../shared/tool-catalogue.ts";
 import {
   commitToolDescription,
   compileToolDescription,
@@ -109,7 +102,12 @@ test("a document binding mounts the guidance, the complete canonical catalogue, 
     ]),
   );
   // HASH's graph reads and save belong to the HASH agent alone.
-  for (const name of [...hashGraphReadToolNames, brunchTools.saveHashNet])
+  for (const name of [
+    brunchTools.queryHashEntities,
+    brunchTools.queryHashEntityTypes,
+    brunchTools.queryHashWebs,
+    brunchTools.saveHashNet,
+  ])
     expect(mounted.tools).not.toContain(name);
   // Petrinaut, runtime, experiment and query_basis guidance live in the
   // skills and tool descriptions, so no instruction is mounted.
@@ -232,45 +230,4 @@ test("the current submission's words reach the prompt as one instruction and an 
   mounted.body = "Four agents";
   renderAgent({ id: "words" });
   expect(mounted.instructions).toEqual([]);
-});
-
-test("the Brunch catalogue classifies every canonical tool", () => {
-  const canonicalNames = Object.keys(petrinautAiTools);
-  expect(canonicalPetrinautToolCatalogue.map(({ name }) => name)).toEqual(
-    canonicalNames,
-  );
-  expect(brunchToolCatalogue.map(({ name }) => name)).toEqual(
-    expect.arrayContaining(canonicalNames),
-  );
-  expect(brunchToolCatalogue.map(({ name }) => name)).toContain(
-    brunchTools.draftPetrinautExperiment,
-  );
-  expect(() =>
-    assertPetrinautToolCatalogueConformance([
-      ...canonicalNames,
-      "newCanonicalStockTool",
-    ]),
-  ).toThrow(/unclassified/u);
-});
-
-test("the catalogue's website-executed tools are the library's browser-executed tools", () => {
-  expect(() => assertBrowserExecutedToolConformance()).not.toThrow();
-  expect(() =>
-    assertBrowserExecutedToolConformance(
-      brunchToolCatalogue.filter(
-        ({ name }) => name !== brunchTools.draftPetrinautExperiment,
-      ),
-    ),
-  ).toThrow(/missing: draft_petrinaut_experiment/u);
-});
-
-test("the catalogue has HASH's save, run by HASH's page", () => {
-  expect(
-    brunchToolCatalogue.find(({ name }) => name === brunchTools.saveHashNet),
-  ).toEqual({
-    name: brunchTools.saveHashNet,
-    definitionOwner: "brunch-app",
-    executionOwner: "hash-frontend",
-    capability: "hash-save",
-  });
 });

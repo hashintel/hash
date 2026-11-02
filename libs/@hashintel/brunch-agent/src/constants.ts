@@ -49,17 +49,6 @@ export const brunchTools = {
 } as const;
 
 /**
- * The reads of the HASH graph that HASH's process page runs in band as the
- * signed-in user. Each is browser-executed, reads the graph rather than the
- * net, and never changes the bound document.
- */
-export const hashGraphReadToolNames: ReadonlySet<string> = new Set([
-  brunchTools.queryHashEntities,
-  brunchTools.queryHashEntityTypes,
-  brunchTools.queryHashWebs,
-]);
-
-/**
  * Signal types the browser delivers. Each doubles as the signal's tag name,
  * which is all of it Flue's history carries back to the browser.
  */

@@ -1,6 +1,7 @@
 import {
   browserExecutedToolNames,
   browserToolEnvelopeOf,
+  browserToolFacts,
   parsePetrinautUserMessageBody,
   petrinautContextualUserMessageBody,
 } from "@hashintel/brunch-agent";
@@ -61,7 +62,6 @@ const readBackEntryIndex = (
 const projectInBandBrowserResult = (
   entry: ContextProjectionEntry,
   withReadBack: boolean,
-  textResultToolNames: ReadonlySet<string>,
 ): ContextProjectionEntry => {
   const envelope = browserEnvelope(entry.message);
   if (!envelope || entry.message.role !== "toolResult") return entry;
@@ -80,7 +80,7 @@ const projectInBandBrowserResult = (
           // as that text, not as a JSON string. Its failure, `{ error, note }`,
           // is not rendered and is shown as JSON like any other output.
           text:
-            textResultToolNames.has(entry.message.toolName) &&
+            browserToolFacts(entry.message.toolName).textResult &&
             typeof envelope.output === "string"
               ? envelope.output
               : JSON.stringify(
@@ -135,11 +135,6 @@ const projectUserBody = (
 export type BrunchContextProjectionOptions = {
   /** Receives exactly the canonical entries of the model's next request. */
   observe?: (entries: readonly ContextProjectionEntry[]) => void;
-  /**
-   * Browser tools whose output is already rendered as text for the model;
-   * their text output is shown as is. Every other output is shown as JSON.
-   */
-  textResultToolNames?: ReadonlySet<string>;
 };
 
 /**
@@ -154,11 +149,7 @@ export const createBrunchContextProjection =
     return entries.map((entry, entryIndex) =>
       entry.message.role === "user"
         ? projectUserBody(entry)
-        : projectInBandBrowserResult(
-            entry,
-            entryIndex === readBackIndex,
-            options.textResultToolNames ?? new Set(),
-          ),
+        : projectInBandBrowserResult(entry, entryIndex === readBackIndex),
     );
   };
 
