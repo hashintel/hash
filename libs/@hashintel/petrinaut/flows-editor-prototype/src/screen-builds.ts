@@ -2,9 +2,21 @@
  * Live builds of the Figma screens in `screens.ts`: each returns the page and state that reproduce one frame on
  * "↳ Journeys · 3 Nov". A screen missing here shows its Figma export instead.
  */
-import { emptyDocument, type EditorDocument, START_ID } from "./document";
+import {
+  addStep,
+  emptyDocument,
+  type EditorDocument,
+  START_ID,
+} from "./document";
 import { type EditorUi, initialUi } from "./editor-context";
 import { purityCheckExample } from "./purity-check-example";
+import {
+  CERTIFICATES,
+  EACH_SUPPLIER,
+  SHIPMENTS,
+  SUPPLIERS,
+  supplierCertificatesExample,
+} from "./supplier-certificates-example";
 import { supplierReviewExample } from "./supplier-review-example";
 
 import type { FlowListEntry } from "./home";
@@ -58,6 +70,29 @@ const byText = (selector: string, text: string) =>
   );
 
 const recentSteps = ["queryEntities", "getFileFromUrl"];
+
+/** J1.1: Find entities just added after Start, selected. */
+const firstStep = () =>
+  addStep(emptyDocument(), "queryEntities", {
+    after: { stepId: START_ID, port: "next" },
+  });
+
+/** J1.4's frame draws its cards at 90% and labels that 100%. */
+const ninetyPercent: Partial<EditorUi> = {
+  viewport: { left: 40, top: 346, zoom: 0.9 },
+  zoomBase: 0.9,
+};
+
+/** J1.7–J1.19 draw the four-step flow at 62%, Start 42 px into the canvas. */
+const sixtyTwoPercent: Partial<EditorUi> = {
+  viewport: { left: 42, top: 364, zoom: 0.62 },
+};
+
+/** J1's frames draw the early panel (see `EditorUi.earlyPanel`). */
+const early = (
+  document: EditorDocument,
+  ui: Partial<EditorUi> = {},
+): ScreenBuild => editor(document, { earlyPanel: true, ...ui });
 
 /** Presses the pointer on an element, for DS menus that open on pointer down. */
 const press = (selector: string) => {
@@ -162,6 +197,100 @@ export const screenBuilds: Record<string, () => ScreenBuild> = {
     }),
     act: () => {
       typeInto('input[placeholder="Search"]', "ask");
+    },
+  }),
+  "J1.1": () => {
+    const { document, stepId } = firstStep();
+    return early(document, { selectedId: stepId });
+  },
+  "J1.2": () => {
+    const { document, stepId } = firstStep();
+    return {
+      ...early(document, { selectedId: stepId }),
+      act: () => {
+        typeInto('[aria-label="Step description"]', "Shipments this month");
+      },
+    };
+  },
+  "J1.3": () =>
+    early(supplierCertificatesExample("shipments"), {
+      selectedId: SHIPMENTS,
+      showPortAddOn: SHIPMENTS,
+    }),
+  "J1.4": () => ({
+    ...early(supplierCertificatesExample("suppliers"), {
+      ...ninetyPercent,
+      selectedId: SUPPLIERS,
+      showPortAddOn: SUPPLIERS,
+      recent: recentSteps,
+      picker: { anchor: "port", after: { stepId: SUPPLIERS, port: "next" } },
+    }),
+    act: async () => {
+      await pause(200);
+      hover(byText('[role="menuitem"]', "Flow control"));
+      await pause(300);
+      hover(byText('[role="menuitem"]', "For each"));
+    },
+  }),
+  "J1.7": () =>
+    early(supplierCertificatesExample("empty-for-each"), {
+      ...sixtyTwoPercent,
+      selectedId: EACH_SUPPLIER,
+      openField: { stepId: EACH_SUPPLIER, inputName: "over", mode: "menu" },
+    }),
+  "J1.8": () =>
+    early(supplierCertificatesExample("for-each-list"), {
+      ...sixtyTwoPercent,
+      selectedId: EACH_SUPPLIER,
+    }),
+  "J1.9": () =>
+    early(supplierCertificatesExample("for-each-list"), {
+      ...sixtyTwoPercent,
+      selectedId: EACH_SUPPLIER,
+      recent: recentSteps,
+      picker: { parentId: EACH_SUPPLIER, anchor: "group" },
+    }),
+  "J1.10": () =>
+    early(supplierCertificatesExample("fetch-file"), {
+      ...sixtyTwoPercent,
+      selectedId: CERTIFICATES,
+    }),
+  "J1.13": () => ({
+    ...early(supplierCertificatesExample("fetch-file"), {
+      ...sixtyTwoPercent,
+      selectedId: EACH_SUPPLIER,
+    }),
+    act: () => {
+      (byText("button", "Collapse all") as HTMLElement | undefined)?.click();
+    },
+  }),
+  "J1.16": () => {
+    const { document, stepId } = firstStep();
+    return {
+      ...early(document, { selectedId: stepId }),
+      act: () => {
+        const card = globalThis.document.querySelector(
+          `.react-flow__node[data-id="${stepId}"] > *`,
+        );
+        card?.dispatchEvent(
+          new MouseEvent("contextmenu", {
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+            clientX: 702,
+            clientY: 468,
+          }),
+        );
+      },
+    };
+  },
+  "J1.19": () => ({
+    ...early(supplierCertificatesExample("empty-for-each"), {
+      ...sixtyTwoPercent,
+      selectedId: EACH_SUPPLIER,
+    }),
+    act: () => {
+      press('[aria-label="Organize"]');
     },
   }),
   "J0.12": () => ({

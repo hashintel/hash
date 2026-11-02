@@ -1352,7 +1352,6 @@ const EntityTypeField = ({
       <button
         type="button"
         className={selectTriggerStyle}
-        data-placeholder={(!sourceLook && !selected) || undefined}
         onClick={() => setOpen(true)}
       >
         <span
@@ -1365,7 +1364,8 @@ const EntityTypeField = ({
           {!sourceLook && selected ? <Icon name="cube" size="xs" /> : null}
           {sourceLook
             ? `${sourceLook.owner} › ${sourceLook.label}`
-            : (selected?.title ?? "Choose a type")}
+            : // J2.2: the type defaults to Any.
+              (selected?.title ?? "Any")}
         </span>
         <Icon name="chevronDown" size="sm" />
       </button>
@@ -1440,7 +1440,7 @@ export const QueryField = ({
   /** False for a trigger's condition, which has nothing earlier to refer to. */
   allowVariables?: boolean;
 }) => {
-  const { document, setDocument } = useEditor();
+  const { document, setDocument, ui } = useEditor();
   const key = fieldKey(step.stepId, input.name);
   const draft: QueryDraft = document.queries[key] ?? { conditions: [] };
   const typeBaseUrl = mode === "query" ? draft.entityTypeBaseUrl : typeHint;
@@ -1502,9 +1502,13 @@ export const QueryField = ({
         })}
       >
         {/* No header over a filter (Find entities, If): its rows start with Where (T23, 22:35). */}
-        {mode === "query" || mode === "condition" ? null : (
-          <span className={keyStyle}>{input.label}</span>
-        )}
+        {/* J1.1–J2.4 label it "Query"; from J2.5 on its first row reads "Where". */}
+        {(mode === "query" && ui.earlyPanel) ||
+        (mode !== "query" && mode !== "condition") ? (
+          <span className={keyStyle}>
+            {mode === "query" ? "Query" : input.label}
+          </span>
+        ) : null}
         <ConditionBuilder
           step={step}
           input={input}

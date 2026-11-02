@@ -212,7 +212,14 @@ const collapseAllStyle = css({
 /** "In this flow": Start, then the steps in order, children of a For each indented under it. */
 const FlowList = () => {
   const { document, ui, setUi } = useEditor();
-  const [closed, setClosed] = useState<string[]>([]);
+  // Shared with the canvas: a For each closed here folds its box there too (J1.13).
+  const closed = ui.collapsed ?? [];
+  const setClosed = (next: string[] | ((current: string[]) => string[])) =>
+    setUi((current) => ({
+      ...current,
+      collapsed:
+        typeof next === "function" ? next(current.collapsed ?? []) : next,
+    }));
   const select = (id: string) =>
     setUi((current) => ({
       ...current,

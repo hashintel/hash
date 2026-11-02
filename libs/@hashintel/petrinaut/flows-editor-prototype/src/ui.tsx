@@ -80,10 +80,17 @@ export const kindLabel = (kind: string | undefined, array = false) => {
 
 /** Figma ↳ Current panels: 12 px medium, muted, sentence case. */
 // Section titles read above field labels: dark and semibold, as in V3 P1 (Figma 118:1748; Aakarsh, 26 Oct).
+// J2.51 (3 Nov): section titles are 14 px medium, dark. J1's frames draw them as a quiet 12 px label instead.
 export const sectionTitleStyle = css({
   textStyle: "sm",
-  fontWeight: "semibold",
+  lineHeight: "[14px]",
+  fontWeight: "medium",
   color: "neutral.fg.heading",
+  "&[data-quiet]": {
+    textStyle: "xs",
+    lineHeight: "[15px]",
+    color: "neutral.fg.subtle",
+  },
 });
 
 const sectionGridStyle = css({
@@ -107,10 +114,13 @@ export const Section = ({
   title,
   children,
   action,
+  quiet = false,
 }: {
   title?: string;
   children: React.ReactNode;
   action?: React.ReactNode;
+  /** The title as J1's frames draw it: a 12 px grey label. */
+  quiet?: boolean;
 }) => (
   <section
     className={css({ display: "flex", flexDirection: "column", gap: "2" })}
@@ -123,7 +133,9 @@ export const Section = ({
           justifyContent: "space-between",
         })}
       >
-        <div className={sectionTitleStyle}>{title}</div>
+        <div className={sectionTitleStyle} data-quiet={quiet || undefined}>
+          {title}
+        </div>
         {action}
       </div>
     ) : null}
@@ -135,8 +147,10 @@ export const keyStyle = css({
   // A block, not an inline-block: an inline-block that clips takes its bottom edge as its baseline.
   display: "block",
   maxWidth: "[100%]",
-  textStyle: "sm",
-  color: "neutral.fg.muted",
+  // J1.1, J2.51: field labels are 13 px regular, subtle grey.
+  fontSize: "[13px]", // token-guard: allow Figma panel labels are 13 px, between the DS xs and sm steps
+  lineHeight: "[16px]",
+  color: "neutral.fg.subtle",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
@@ -441,8 +455,11 @@ export const panelHeaderStyle = css({
 
 export const typeLineStyle = css({
   textStyle: "sm",
-  fontWeight: "semibold",
+  lineHeight: "[14px]",
+  fontWeight: "medium",
   color: "neutral.fg.heading",
+  // J1.1: the step type in grey semibold, over a 12 px description.
+  "[data-early-panel] &": { fontWeight: "semibold", color: "neutral.fg.muted.hover" },
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -473,8 +490,10 @@ export const HeaderTitle = ({
 /** The description under the header's type: 12 px muted text that edits in place. */
 export const descriptionInputStyle = css({
   width: "[100%]",
-  textStyle: "xs",
-  color: "neutral.fg.subtle",
+  // J2.51: "Action · description" in 14 px regular, muted. J1.1 draws the description alone in 12 px.
+  textStyle: "sm",
+  color: "neutral.fg.muted.hover",
+  "[data-early-panel] &": { textStyle: "xs", color: "neutral.fg.subtle" },
   backgroundColor: "[transparent]",
   borderWidth: "[0]",
   borderRadius: "xs",

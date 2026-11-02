@@ -15,7 +15,12 @@ import {
 } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
 
-import { Icon, type IconName, Tooltip } from "@hashintel/ds-components";
+import {
+  Icon,
+  type IconName,
+  RightClickMenu,
+  Tooltip,
+} from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { getCatalogEntry } from "./catalog";
@@ -29,7 +34,6 @@ import {
 } from "./document";
 import { showDebug, showFull, useEditor } from "./editor-context";
 import { describeSource } from "./shapes";
-import { IconTile } from "./ui";
 
 // The V7 card on ↳ Current: 200 wide, 12 px in, a 24 px tile and two lines (59 px with its border).
 export const STEP_WIDTH = 200;
@@ -72,7 +76,31 @@ const groupSize = (document: EditorDocument, step: DraftStep) => {
   };
 };
 
-const toNodes = (document: EditorDocument, selectedId: string | null) => {
+/** J1.13: a folded For each is its header alone, 240 wide, a step card's height. */
+const FOLDED_GROUP = { width: 240, height: 58 };
+
+/** The steps inside folded For each boxes, which the canvas leaves out. */
+const hiddenSteps = (document: EditorDocument, collapsed: string[]) => {
+  const hidden = new Set<string>();
+  const visit = (steps: DraftStep[], inside: boolean) => {
+    for (const step of steps) {
+      if (inside) {
+        hidden.add(step.stepId);
+      }
+      if (step.kind === "for-each") {
+        visit(step.steps, inside || collapsed.includes(step.stepId));
+      }
+    }
+  };
+  visit(document.steps, false);
+  return hidden;
+};
+
+const toNodes = (
+  document: EditorDocument,
+  selectedId: string | null,
+  collapsed: string[] = [],
+) => {
   const nodes: StepNode[] = [
     {
       id: START_ID,
@@ -86,8 +114,14 @@ const toNodes = (document: EditorDocument, selectedId: string | null) => {
   ];
   const visit = (steps: DraftStep[], parentId?: string) => {
     for (const step of steps) {
+      const folded =
+        step.kind === "for-each" && collapsed.includes(step.stepId);
       const size =
-        step.kind === "for-each" ? groupSize(document, step) : undefined;
+        step.kind !== "for-each"
+          ? undefined
+          : folded
+            ? FOLDED_GROUP
+            : groupSize(document, step);
       nodes.push({
         id: step.stepId,
         type: step.kind === "for-each" ? "forEach" : "step",
@@ -97,7 +131,7 @@ const toNodes = (document: EditorDocument, selectedId: string | null) => {
         ...(parentId ? { parentId, extent: "parent" as const } : {}),
         ...(size ? { style: { width: size.width, height: size.height } } : {}),
       });
-      if (step.kind === "for-each") {
+      if (step.kind === "for-each" && !folded) {
         visit(step.steps, step.stepId);
       }
     }
@@ -106,15 +140,22 @@ const toNodes = (document: EditorDocument, selectedId: string | null) => {
   return nodes;
 };
 
-const toEdges = (document: EditorDocument): Edge[] =>
-  document.wires.map((wire) => ({
-    id: wire.id,
-    source: wire.source,
-    sourceHandle: wire.sourcePort,
-    target: wire.target,
-    targetHandle: "in",
-    style: { stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: 1.5 },
-  }));
+const toEdges = (
+  document: EditorDocument,
+  collapsed: string[] = [],
+): Edge[] => {
+  const hidden = hiddenSteps(document, collapsed);
+  return document.wires
+    .filter((wire) => !hidden.has(wire.source) && !hidden.has(wire.target))
+    .map((wire) => ({
+      id: wire.id,
+      source: wire.source,
+      sourceHandle: wire.sourcePort,
+      target: wire.target,
+      targetHandle: "in",
+      style: { stroke: "rgba(0, 0, 0, 0.2)", strokeWidth: 1.5 },
+    }));
+};
 
 const cardStyle = cva({
   base: {
@@ -377,6 +418,54 @@ const CardText = ({
   </span>
 );
 
+/**
+ * J1.16 (Scratch U12 B): right-clicking a step offers Disconnect from previous and Delete. Ports and connections only
+ * disconnect (2 Nov); deleting a step lives here and on the keyboard.
+ */
+const NodeMenu = ({
+  id,
+  children,
+}: {
+  id: string;
+  children: React.ReactNode;
+}) => {
+  const { document, setDocument, setUi } = useEditor();
+  const incoming = document.wires.some((wire) => wire.target === id);
+  return (
+    <RightClickMenu
+      className={css({ minWidth: "[268px]" })}
+      items={[
+        {
+          id: "disconnect",
+          text: "Disconnect from previous",
+          // ds-icons has no broken-link glyph; the plug stands in for Figma's.
+          icon: "plug",
+          disabled: !incoming,
+          onClick: () =>
+            setDocument((current) => ({
+              ...current,
+              wires: current.wires.filter((wire) => wire.target !== id),
+            })),
+        },
+        {
+          id: "delete",
+          text: "Delete",
+          icon: "trash",
+          onClick: () => {
+            setDocument((current) => removeStep(current, id));
+            setUi((current) => ({
+              ...current,
+              selectedId: current.selectedId === id ? null : current.selectedId,
+            }));
+          },
+        },
+      ]}
+    >
+      {children}
+    </RightClickMenu>
+  );
+};
+
 const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const { document, ui } = useEditor();
   const step = flatFind(document, id);
@@ -386,86 +475,91 @@ const StepNodeView = ({ id, selected }: NodeProps<StepNode>) => {
   const entry = getCatalogEntry(step.actionDefinitionId);
   const ports = portRows(step);
   return (
-    <div
-      className={cardStyle({ selected })}
-      data-flash={ui.flashId === id || undefined}
-      data-source-hover={ui.hoverSourceId === id || undefined}
-    >
-      <Handle
-        id="in"
-        type="target"
-        position={Position.Left}
-        className={handleStyle}
-        style={{ top: STEP_HEIGHT / 2 }}
-      />
-      <Tooltip content={entry?.title ?? step.actionDefinitionId} position="top">
-        <div className={cardHeadStyle}>
-          <CardTile
-            icon={entry?.icon ?? "cube"}
-            tone={entry?.tone ?? "green"}
-          />
-          <CardText
-            title={entry?.title ?? step.actionDefinitionId}
-            description={
-              step.description && step.description !== entry?.title
-                ? step.description
-                : undefined
-            }
-          />
-        </div>
-      </Tooltip>
-      {ports ? (
-        <div
-          className={css({
-            borderTopWidth: "thin",
-            borderTopStyle: "solid",
-            borderTopColor: "neutral.bd.subtle",
-          })}
+    <NodeMenu id={id}>
+      <div
+        className={cardStyle({ selected })}
+        data-flash={ui.flashId === id || undefined}
+        data-source-hover={ui.hoverSourceId === id || undefined}
+      >
+        <Handle
+          id="in"
+          type="target"
+          position={Position.Left}
+          className={handleStyle}
+          style={{ top: STEP_HEIGHT / 2 }}
+        />
+        <Tooltip
+          content={entry?.title ?? step.actionDefinitionId}
+          position="top"
         >
-          {ports.map((port) => (
-            <div
-              key={port.outputName}
-              className={css({
-                position: "relative",
-                height: "[26px]",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "flex-end",
-                paddingRight: "3",
-                textStyle: "xs",
-                color: "neutral.fg.subtle",
-              })}
-            >
-              {port.label}
-              <Handle
-                id={port.outputName}
-                type="source"
-                position={Position.Right}
-                className={handleStyle}
-                style={{ top: PORT_ROW / 2 }}
-              >
-                {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
-                <PortAdd stepId={id} port={port.outputName} />
-              </Handle>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <>
-          <Handle
-            id="next"
-            type="source"
-            position={Position.Right}
-            className={handleStyle}
-            style={{ top: STEP_HEIGHT / 2 }}
+          <div className={cardHeadStyle}>
+            <CardTile
+              icon={entry?.icon ?? "cube"}
+              tone={entry?.tone ?? "green"}
+            />
+            <CardText
+              title={entry?.title ?? step.actionDefinitionId}
+              description={
+                step.description && step.description !== entry?.title
+                  ? step.description
+                  : undefined
+              }
+            />
+          </div>
+        </Tooltip>
+        {ports ? (
+          <div
+            className={css({
+              borderTopWidth: "thin",
+              borderTopStyle: "solid",
+              borderTopColor: "neutral.bd.subtle",
+            })}
           >
-            {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
-            <PortAdd stepId={id} port="next" />
-          </Handle>
-        </>
-      )}
-      <ProblemDot stepId={id} />
-    </div>
+            {ports.map((port) => (
+              <div
+                key={port.outputName}
+                className={css({
+                  position: "relative",
+                  height: "[26px]",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  paddingRight: "3",
+                  textStyle: "xs",
+                  color: "neutral.fg.subtle",
+                })}
+              >
+                {port.label}
+                <Handle
+                  id={port.outputName}
+                  type="source"
+                  position={Position.Right}
+                  className={handleStyle}
+                  style={{ top: PORT_ROW / 2 }}
+                >
+                  {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
+                  <PortAdd stepId={id} port={port.outputName} />
+                </Handle>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            <Handle
+              id="next"
+              type="source"
+              position={Position.Right}
+              className={handleStyle}
+              style={{ top: STEP_HEIGHT / 2 }}
+            >
+              {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
+              <PortAdd stepId={id} port="next" />
+            </Handle>
+          </>
+        )}
+        <ProblemDot stepId={id} />
+      </div>
+    </NodeMenu>
   );
 };
 
@@ -550,6 +644,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
     return null;
   }
   const over = step.over ? describeSource(document, step.over, id) : null;
+  const folded = ui.collapsed?.includes(id) ?? false;
   return (
     <div
       className={groupStyle({ selected })}
@@ -560,7 +655,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
         type="target"
         position={Position.Left}
         className={handleStyle}
-        style={{ top: GROUP_HEADER / 2 }}
+        style={{ top: (folded ? FOLDED_GROUP.height : GROUP_HEADER) / 2 }}
       />
       <div
         className={css({
@@ -571,7 +666,34 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
           paddingX: "3",
         })}
       >
-        <IconTile icon="rotate" tone="green" size="sm" />
+        {/* J1.8: a chevron folds the box (J1.13), as the Steps tree's does. */}
+        <button
+          type="button"
+          aria-label={folded ? "Unfold" : "Fold"}
+          aria-expanded={!folded}
+          className={`${css({
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "[16px]",
+            height: "[16px]",
+            color: "neutral.fg.muted",
+            cursor: "pointer",
+            borderRadius: "sm",
+            _hover: { backgroundColor: "neutral.bg.surface.active" },
+          })} nodrag nopan`}
+          onClick={(event) => {
+            event.stopPropagation();
+            setUi((current) => ({
+              ...current,
+              collapsed: folded
+                ? (current.collapsed ?? []).filter((other) => other !== id)
+                : [...(current.collapsed ?? []), id],
+            }));
+          }}
+        >
+          <Icon name={folded ? "chevronRight" : "chevronDown"} size="xs" />
+        </button>
         <Tooltip
           content={
             over
@@ -590,7 +712,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
           </span>
         </Tooltip>
       </div>
-      {step.steps.length === 0 ? (
+      {step.steps.length === 0 && !folded ? (
         <div
           className={css({
             position: "absolute",
@@ -636,7 +758,7 @@ const GroupNodeView = ({ id, selected }: NodeProps<StepNode>) => {
         type="source"
         position={Position.Right}
         className={handleStyle}
-        style={{ top: GROUP_HEADER / 2 }}
+        style={{ top: (folded ? FOLDED_GROUP.height : GROUP_HEADER) / 2 }}
       >
         {/* The + sits on the port (J0.5): pressing it and dragging still draws a connection. */}
         <PortAdd stepId={id} port="next" />
@@ -774,6 +896,7 @@ export const FlowCanvas = ({
   const nodes = toNodes(
     { ...document, positions: { ...document.positions, ...dragPositions } },
     ui.selectedId,
+    ui.collapsed,
   );
 
   const onNodesChange = (changes: NodeChange<StepNode>[]) => {
@@ -864,7 +987,7 @@ export const FlowCanvas = ({
     <ReactFlow
       className={canvasStyle}
       nodes={nodes}
-      edges={toEdges(document)}
+      edges={toEdges(document, ui.collapsed)}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
       onNodeDragStop={onNodeDragStop}
