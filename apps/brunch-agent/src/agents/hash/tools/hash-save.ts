@@ -28,7 +28,9 @@ export const vHashSaveInput = v.strictObject({
   documentId: v.pipe(
     v.string(),
     v.minLength(1),
-    v.description("The id of the net open in the editor, as given above."),
+    v.description(
+      "The ID of the net open in the editor, given in this tool's description.",
+    ),
   ),
 });
 
