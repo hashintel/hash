@@ -200,6 +200,21 @@ describe("getDependentTypeRows", () => {
     ]);
   });
 
+  it("lists no former types when the latest-version query stopped at its row limit, because the types after the cut are missing from it", () => {
+    const machine = makeVersion("machine", "Machine", 1, [1]);
+    const user = makeVersion("user", "User", 1, [1]);
+
+    const result = getDependentTypeRows({
+      parentBaseUrl: actorBaseUrl,
+      allVersions: { entityTypes: [machine, user] },
+      latestVersions: { entityTypes: [machine], cursor: machine.schema.$id },
+    });
+
+    expect(summarize(result)).toEqual([
+      { title: "Machine", ranges: ["v1–v1 → v1"] },
+    ]);
+  });
+
   it("lists each version of a type that extends the parent, with the parent versions it extends", () => {
     const mixedVersions = [
       makeVersion("mixed", "Mixed", 4, [2]),
