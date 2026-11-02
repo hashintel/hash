@@ -8,12 +8,15 @@ import { use } from "react";
 
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
+  findFusionWithMember,
   generateDefaultLambdaCode,
   generatePetrinautId,
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../react/hooks/use-petrinaut-mutations";
 import { useReadOnlyFeedback } from "../../../react/hooks/use-read-only-feedback";
+import { NotificationsContext } from "../../../react/notifications/context";
+import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -22,7 +25,7 @@ import { snapPositionToGrid } from "../../lib/snap-position-to-grid";
 
 import type { DraggedNodeKind } from "../shared/canvas-node-drag";
 import type { CanvasNode, CanvasPoint, CanvasScene } from "./canvas-scene";
-import type { SelectionMap } from "@hashintel/petrinaut-core";
+import type { FusionMember, SelectionMap } from "@hashintel/petrinaut-core";
 
 export type CanvasConnection = {
   sourceId: string;
@@ -55,6 +58,9 @@ export type CanvasInteractions = {
   clearHover: () => void;
   /** Arcs are selected only by a direct click, never by box selection. */
   selectArc: (id: string) => void;
+  /** A fusion is selected by clicking any of its links. */
+  selectFusion: (fusionId: string) => void;
+  hoverFusion: (fusionId: string) => void;
   /** Node selection changes from clicks and box selection. */
   applySelectionChanges: (changes: CanvasSelectionChange[]) => void;
   beginSelectionGesture: () => void;
@@ -65,7 +71,11 @@ export type CanvasInteractions = {
   /** Drags that ended; commits the positions and clears the previews. */
   dropNodes: (drops: CanvasNodeDrop[]) => void;
   isValidConnection: (connection: CanvasConnection) => boolean;
-  /** Adds the arc for a valid connection and ignores an invalid one. */
+  /**
+   * Adds the arc for a valid connection and ignores an invalid one. A
+   * connection between a place and an instance port, or two instance ports,
+   * fuses them: into the fusion either already belongs to, else a new one.
+   */
   connect: (connection: CanvasConnection) => void;
   /** A click on empty canvas: clears the selection or places a node, by mode. */
   clickPane: (scenePosition: CanvasPoint) => void;
@@ -109,17 +119,22 @@ const isCanvasItemType = (type: string) =>
   type === "place" ||
   type === "transition" ||
   type === "arc" ||
-  type === "componentInstance";
+  type === "componentInstance" ||
+  type === "fusion";
 
 export const useCanvasInteractions = (
   scene: CanvasScene,
 ): CanvasInteractions => {
   const { petriNetDefinition, getItemType } = use(SDCPNContext);
+  const { activeNet } = use(ActiveNetContext);
+  const { addNotification } = use(NotificationsContext);
   const {
     addPlace,
     addTransition,
     addArc,
     addComponentInstance,
+    addFusion,
+    addFusionMember,
     commitNodePositions,
   } = usePetrinautMutations();
   const {
@@ -153,12 +168,48 @@ export const useCanvasInteractions = (
   const kindOf = (id: string) =>
     scene.nodes.find((node) => node.id === id)?.kind;
 
-  const isValidConnection = ({
+  /** The fusion member an end of a connection names, or `null` for a transition. */
+  const memberOf = (
+    nodeId: string,
+    portId: string | null,
+  ): FusionMember | null => {
+    const kind = kindOf(nodeId);
+    if (kind === "place") {
+      return { kind: "place", placeId: nodeId };
+    }
+    if (kind === "componentInstance" && portId !== null) {
+      return {
+        kind: "componentPort",
+        componentInstanceId: nodeId,
+        portPlaceId: portId,
+      };
+    }
+    return null;
+  };
+
+  const isFusionConnection = ({
     sourceId,
     targetId,
     sourcePortId,
     targetPortId,
   }: CanvasConnection): boolean => {
+    const source = kindOf(sourceId);
+    const target = kindOf(targetId);
+    const touchesPort =
+      (source === "componentInstance" && sourcePortId !== null) ||
+      (target === "componentInstance" && targetPortId !== null);
+    const placeOrPort = (kind: string | undefined, portId: string | null) =>
+      kind === "place" || (kind === "componentInstance" && portId !== null);
+    return (
+      touchesPort &&
+      placeOrPort(source, sourcePortId) &&
+      placeOrPort(target, targetPortId) &&
+      !(sourceId === targetId && sourcePortId === targetPortId)
+    );
+  };
+
+  const isValidConnection = (connection: CanvasConnection): boolean => {
+    const { sourceId, targetId, sourcePortId, targetPortId } = connection;
     const source = kindOf(sourceId);
     const target = kindOf(targetId);
     if (!source || !target) {
@@ -176,7 +227,44 @@ export const useCanvasInteractions = (
     if (source === "componentInstance" && target === "transition") {
       return sourcePortId !== null;
     }
-    return false;
+    return isFusionConnection(connection);
+  };
+
+  const fuse = (first: FusionMember, second: FusionMember) => {
+    // The fused place is one place of this net at most: a connection that
+    // would give the fusion a second anchor is refused with a notice.
+    const anchors = new Set(
+      [
+        first,
+        second,
+        ...(findFusionWithMember(activeNet, first)?.members ?? []),
+        ...(findFusionWithMember(activeNet, second)?.members ?? []),
+      ].flatMap((member) => (member.kind === "place" ? [member.placeId] : [])),
+    );
+    if (anchors.size > 1) {
+      addNotification({
+        id: "fusion:second-anchor",
+        message:
+          "A fusion holds one place of this net. Fuse the port with that place instead.",
+        tone: "neutral",
+        durationMs: 4500,
+      });
+      return;
+    }
+    const existing =
+      findFusionWithMember(activeNet, first) ??
+      findFusionWithMember(activeNet, second);
+    if (existing) {
+      // One of the two already belongs to a fusion: the other joins it, and
+      // a fusion the other belonged to merges in.
+      const member = findFusionWithMember(activeNet, first) ? second : first;
+      addFusionMember({ fusionId: existing.id, member });
+      selectItem({ type: "fusion", id: existing.id });
+      return;
+    }
+    const id = generatePetrinautId();
+    addFusion({ id, members: [first, second] });
+    selectItem({ type: "fusion", id });
   };
 
   const connect = (connection: CanvasConnection) => {
@@ -231,6 +319,12 @@ export const useCanvasInteractions = (
         },
         weight: 1,
       });
+    } else {
+      const first = memberOf(sourceId, sourcePortId);
+      const second = memberOf(targetId, targetPortId);
+      if (first && second) {
+        fuse(first, second);
+      }
     }
   };
 
@@ -388,6 +482,8 @@ export const useCanvasInteractions = (
     hoverArc: (id) => setHoveredItem({ type: "arc", id }),
     clearHover: clearHoveredItem,
     selectArc: (id) => setSelection(new Map([[id, { type: "arc", id }]])),
+    selectFusion: (id) => setSelection(new Map([[id, { type: "fusion", id }]])),
+    hoverFusion: (id) => setHoveredItem({ type: "fusion", id }),
     applySelectionChanges,
     beginSelectionGesture,
     endSelectionGesture,

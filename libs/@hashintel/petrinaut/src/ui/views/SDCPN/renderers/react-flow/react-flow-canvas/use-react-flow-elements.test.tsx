@@ -69,6 +69,7 @@ const arcBase: Omit<CanvasArc, "id" | "sourceId" | "targetId"> = {
 };
 const scene: CanvasScene = {
   nodes,
+  fusions: [],
   dimensions: compactNodeDimensions,
   focusActive: false,
   arcs: [

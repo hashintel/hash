@@ -158,6 +158,8 @@ When you instantiate that subnet as a component, each port appears as a handle o
 
 Port arcs behave like ordinary transition arcs: they have weights, input arcs can be Standard, Read, or Inhibitor, and simulation treats the port as the corresponding place inside that component instance.
 
+Ports can also be **fused** with a place of the net, or with each other, so the fused places are one place: see [Composition](composition.md#fusing-places).
+
 ## Arc weight
 
 Select an arc to open its properties. Set the **weight** to control how many tokens are required and consumed (standard input), required without being consumed (read input), blocked by (inhibitor input), or produced (output) per firing.
