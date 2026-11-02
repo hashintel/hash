@@ -813,11 +813,13 @@ test("a second agent save while the first awaits its commit is refused as in pro
 test("an agent save abandoned by a load doesn't keep the new load's agent save from starting", async () => {
   onSave.mockReturnValueOnce(deferred<PetrinautEditorSaved>().promise);
   const { rerender } = await renderBrunchEditor();
+  editNet("edited");
   const abandoned = agentSave(savedEntityId);
 
   rerender({ load: savedLoad("2026-10-23T00:00:00.000Z") });
   await expect(abandoned.settled).resolves.toMatchObject({ saved: false });
   await waitFor(() => expect(lastBrunchInput()?.selected).toBe(true));
+  editNet("edited again");
 
   onSave.mockResolvedValueOnce({
     entityId: savedEntityId,
@@ -914,6 +916,7 @@ test.each([
 test("the agent's save while a save is pending is refused as not started, and the card shows the net's title and last save", async () => {
   onSave.mockReturnValue(deferred<PetrinautEditorSaved>().promise);
   await renderBrunchEditor();
+  editNet("edited");
   expect(lastBrunchInput()?.readSaveState?.(savedEntityId)).toEqual({
     title: "Net",
     lastSavedTime: "2026-10-24T00:00:00.000Z",
@@ -958,6 +961,7 @@ test("a load before the save completes settles the agent's save as unconfirmed, 
   onSave.mockReturnValue(pending.promise);
   const { rerender } = await renderBrunchEditor();
   const earlierTool = agentSaveTool();
+  editNet("edited");
   const save = agentSave(savedEntityId);
 
   rerender({ load: savedLoad() });
@@ -1040,4 +1044,34 @@ test("a pick of another saved revision reaches Brunch as a version load that Sav
   // Opening a net, even this one at that version, carries none.
   rerender({ load: savedLoad(earlier) });
   await waitFor(() => expect(lastVersionLoad()).toBeUndefined());
+});
+
+test("the agent's save of a net with no unsaved changes is refused as not started, judged as the net and title are when called", async () => {
+  // The loaded net has legacy ids, which the open net holds converted.
+  const { rerender } = await renderBrunchEditor();
+  const clean = "There are no unsaved changes to save.";
+  const refusal = () =>
+    lastBrunchInput()?.readSaveState?.(savedEntityId).refusal;
+  expect(refusal()).toBe(clean);
+  await expect(agentSave(savedEntityId).settled).resolves.toEqual({
+    applied: false,
+    reason: clean,
+  });
+
+  // An unsaved title makes it savable; restoring it, in the same tick, doesn't.
+  act(() => lastTopBar()?.onTitleChange("Net (edited)"));
+  expect(refusal()).toBeNull();
+  act(() => {
+    lastTopBar()?.onTitleChange("Net");
+    expect(refusal()).toBe(clean);
+  });
+
+  // A just-picked earlier revision has nothing unsaved either.
+  rerender({ load: savedLoad("2026-10-23T00:00:00.000Z", "revision") });
+  await waitFor(() => expect(lastBrunchInput()?.versionLoad).toBeDefined());
+  await expect(agentSave(savedEntityId).settled).resolves.toEqual({
+    applied: false,
+    reason: clean,
+  });
+  expect(onSave).not.toHaveBeenCalled();
 });
