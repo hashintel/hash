@@ -7,6 +7,12 @@ import { readBrowserStorage } from "./browser-storage";
  */
 export type AssistantSelection = "brunch" | "stock";
 
+/**
+ * Holds the choice users made with the demo's own assistant switch, which
+ * Petrinaut's assistant setting replaces. Nothing writes it any more; it is
+ * read once so those users still see their assistant first, and can go once
+ * that no longer matters.
+ */
 export const assistantSelectionStorageKey = "petrinaut-website:assistant";
 
 export const resolveDefaultAssistantSelection = (

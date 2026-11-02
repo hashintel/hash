@@ -82,6 +82,7 @@ const BrunchAssistantContent = ({
   children: (assistant: PetrinautAiAssistant) => ReactNode;
 }) => {
   const host = use(BrunchAssistantContext);
+  // Optional so the hook below runs before the missing-provider throw.
   const show = host?.show;
   // Before paint, so the host's assistant replaces this frame unseen.
   useLayoutEffect(() => show?.(documentId), [show, documentId]);

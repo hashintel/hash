@@ -125,9 +125,9 @@ export const LocalStorageDemoApp = ({
 
   const { activeHandle, unsavedChangeMessage } = useActiveHandle(repository);
   // Brunch connects only while the editor shows it on the open net's handle.
-  const brunchShown =
-    activeHandle?.document.documentId === currentNetId &&
-    activeHandle.handle.id === brunchShownOn;
+  // Brunch reports `api.document.id`, which the editor takes from that
+  // handle's `id`; were the two to differ, Brunch would never connect.
+  const brunchShown = activeHandle?.handle.id === brunchShownOn;
 
   const existingNets: MinimalNetMetadata[] = repository.records
     .map((document) => ({
