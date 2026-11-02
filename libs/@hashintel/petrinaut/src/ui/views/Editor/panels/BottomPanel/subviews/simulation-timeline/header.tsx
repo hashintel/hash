@@ -81,7 +81,7 @@ const TimelineChartTypeSelector: React.FC = () => {
   );
 };
 
-const TimelineViewPicker: React.FC = () => {
+export const TimelineViewPicker: React.FC = () => {
   const { navigateTo, setSimulateDrawer, timelineView, setTimelineView } =
     use(EditorContext);
   const {

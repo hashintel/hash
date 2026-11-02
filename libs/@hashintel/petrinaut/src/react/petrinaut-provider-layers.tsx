@@ -1,3 +1,4 @@
+import { EventPlaybackProvider } from "./event-playback/provider";
 import { ExecutionFrameProvider } from "./execution-frame/provider";
 import { PetrinautInstanceContext } from "./instance-context";
 import {
@@ -75,11 +76,13 @@ export const PetrinautCanvasProvider: React.FC<
 > = ({ children, initialPlaybackSpeed }) => (
   <CanvasViewportProvider>
     <PlaybackProvider initialSpeed={initialPlaybackSpeed}>
-      <ActiveNetProvider>
-        <EditorProvider>
-          <ExecutionFrameProvider>{children}</ExecutionFrameProvider>
-        </EditorProvider>
-      </ActiveNetProvider>
+      <EventPlaybackProvider initialSpeed={initialPlaybackSpeed}>
+        <ActiveNetProvider>
+          <EditorProvider>
+            <ExecutionFrameProvider>{children}</ExecutionFrameProvider>
+          </EditorProvider>
+        </ActiveNetProvider>
+      </EventPlaybackProvider>
     </PlaybackProvider>
   </CanvasViewportProvider>
 );

@@ -138,7 +138,7 @@ const EMPTY_TIMELINE_METRIC_STATE: TimelineMetricState = {
  * worker) and binds the resulting buffer program to frame readers. The
  * compile is asynchronous — while it is in flight the extractor plots gaps.
  */
-function useTimelineMetric(metric: Metric | null): TimelineMetricState {
+export function useTimelineMetric(metric: Metric | null): TimelineMetricState {
   const { requestHirArtifacts } = use(LanguageClientContext);
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { parameterValues } = useSimulationParameters();

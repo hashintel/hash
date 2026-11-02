@@ -34,6 +34,15 @@ Override values for this run:
 
 Changes here do not modify the parameter definition or the scenario -- they only apply to the simulation. Parameter values are locked while a simulation is running. Reset the simulation to change them.
 
+### Engine
+
+The **Engine** switch beside the scenario picker chooses how the next run is computed:
+
+- **Fixed step** (the default) computes one frame per time step, as described below.
+- **Event-driven** (experimental) records one frame per transition firing, with the time it happened, plus a reference frame every 0.1 seconds of simulated time. The continuous evolution of token attributes between two frames is interpolated from the values and derivatives stored in them. Playback moves through time rather than through frames, so any instant can be viewed, and the [Timeline](#timeline) shows the events themselves.
+
+The switch is locked while a simulation exists; reset to change it. The Time Step input applies to the fixed-step engine only.
+
 ### Time step (dt)
 
 Set the time step in seconds per frame using the **Time Step** input beside the scenario picker in Simulation Settings. It controls the resolution of ODE integration and how frequently transitions are evaluated. Hover the info icon beside its label for a short explanation.
@@ -145,6 +154,8 @@ The **Timeline** tab appears in the bottom panel during and after simulation. It
 - **Chart type** -- toggle between **Run** (line chart) and **Stacked** (area chart) using the control in the tab header.
 - **Scrub** -- click or drag on the chart to jump to any frame. A playhead indicator shows the current position.
 - **Closing the panel** -- a closed timeline stops reading frames and stops drawing, so a run costs nothing on its account while it is out of sight. Reopen it and it catches up on everything it missed.
+  With the **Event-driven** engine, the timeline shows the run's events instead of its steps. Token counts per place or per type are drawn as steps that change at the events, a user metric is drawn as a continuous curve read from the interpolated state, and **Transition firings** shows one lane per transition with a mark at every firing. Every firing is also marked along the time axis, and pointing at one names the transitions that fired. Scroll over the chart to zoom around the pointer, drag to pan, and click to view that exact time; **Fit to run** returns to the whole run. The playback bar gains **Previous event** and **Next event** buttons, and its scrubber moves through time rather than frames.
+
 - **Series selector** -- the strip below the chart lists the traces currently shown. Hover a trace and click the eye icon that replaces its colour swatch to hide it; the trace stays in place, struck through, until the pointer leaves the selector, so you can hide several traces in a row or click again to undo a change. Hidden traces are managed from the dropdown: click the **N/M shown** badge (or anywhere else in the selector) to open the full list for searching, which is also where traces that don't fit in the strip live. The badge shows how many traces are currently shown, and your selection is kept while you switch tabs. Use **Select All** or **Unselect All** for bulk changes, or choose **Only** on a trace row to focus the chart on that one series. Y axis is automatically scaled to the maximum value.
 
 ## Viewing state during simulation
